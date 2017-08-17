@@ -1,0 +1,37 @@
+<!-- Default home page -->
+<link href='//fonts.googleapis.com/css?family=Open+Sans:400italic,600' rel='stylesheet' type='text/css'>
+
+
+
+<div class="default-page">
+  <div class="header">
+    <h1 id="main-title" class="container">Welcome to the DMP Tool</h1>
+    <div class="container">
+      <a class="btn btn-large btn-info" href="/<%= typeof branding == 'undefined'? data.branding : branding %>/<%= typeof portal == 'undefined'? data.portal : portal %>/record/edit">
+        <span class="glyphicon glyphicon-plus-sign"></span>
+        Create a plan
+      </a>
+    </div>
+    <br/>
+  </div>
+  <div class="row" id="loading">
+    <div class="col-xs-1">
+    </div>
+    <div class="col-xs-10">
+      <img class="center-block" src="/images/loading.svg">
+    </div>
+    <div class="col-xs-1">
+    </div>
+  </div>
+  <div class="main container clearfix">
+    <dashboard branding="<%= typeof branding == 'undefined'? data.branding : branding %>" portal="<%= typeof portal == 'undefined'? data.portal : portal %>"></dashboard>
+<% if (!sails.config.ng2.use_bundled) { %>
+  <script src="/dynamic/systemjs-config.js?appName=dashboard"></script>
+  <script>
+    System.import('dashboard').catch(function(err){ console.error(err); });
+  </script>
+<% } %>
+
+
+  </div>
+</div>

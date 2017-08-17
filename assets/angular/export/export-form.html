@@ -1,0 +1,27 @@
+<div class="row" *ngIf="!isLoading">
+  <div class="col-xs-1">
+  </div>
+  <div class="col-xs-10">
+    <div class="form-horizontal">
+      <div class="form-group">
+        <label class="col-xs-2 control-label">{{ 'export-modified-after' | translate }} </label>
+        <span class="col-xs-10">
+          <datetime id="after" [(ngModel)]="modAfter" [datepicker]="datePickerOpts" [timepicker]="timePickerOpts" [hasClearButton]="hasClearButton"></datetime>
+        </span>
+      </div>
+      <div class="form-group">
+        <label class="col-xs-2 control-label">{{ 'export-modified-before' | translate }} </label>
+        <span class="col-xs-10">
+          <datetime id="before" [(ngModel)]="modBefore" [datepicker]="datePickerOpts" [timepicker]="timePickerOpts" [hasClearButton]="hasClearButton"></datetime>
+        </span>
+      </div>
+      <div class="form-group">
+        <div class="col-xs-offset-2 col-xs-10">
+          <button (click)="download()" class="btn btn-primary">{{ 'export-download' | translate }}</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-xs-1">
+  </div>
+</div>

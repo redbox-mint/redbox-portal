@@ -1,0 +1,12 @@
+{
+  "dependencies": {
+    "express": "registry:npm/express#4.14.0+20160925001530",
+    "path-exists": "registry:npm/path-exists#3.0.0+20160724002618",
+    "requirejs": "registry:npm/requirejs#2.2.0+20160319062357",
+    "sails": "registry:npm/sails#0.12.0+20160610190623"
+  },
+  "globalDependencies": {
+    "jquery": "registry:dt/jquery#1.10.0+20170310222111",
+    "lodash": "registry:global/lodash#4.0.0+20160723033700"
+  }
+}

@@ -1,0 +1,36 @@
+version: '2'
+services:
+  redboxportal:
+    build: .
+    image: qcifengineering/redbox-portal:latest
+    ports:
+       - "1500:1500"
+    volumes:
+       - ".:/opt/rds-rdmp-portal"
+    expose:
+       - "1500"
+    environment:
+      - NODE_ENV=development
+      - PORT=1500
+    links:
+      - mongodb:mongodb
+      - redbox:redbox
+    entrypoint: /bin/bash -c "cd /opt/rds-rdmp-portal && node app.js"
+  mongodb:
+    image: mvertes/alpine-mongo:latest
+    volumes:
+      - "./devdata:/devdata"
+      - "/mnt/data/mongo/data/db:/data/db"
+      - "/var/log/mongo:/var/log/mongo"
+    ports:
+       - "27017:27017"
+  redbox:
+    image: qcifengineering/dlcf-redbox
+    environment:
+      - RAID_URL=https://api.raid.org.au:8000/
+      - RAID_KEY=<To be supplied>
+    volumes:
+        - "/mnt/data/redbox:/opt/redbox/data"
+        - "/var/log/redbox:/opt/redbox/home/logs"
+    ports:
+       - "9000:9000"

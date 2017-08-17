@@ -1,0 +1,11 @@
+<% include ../../../functions %>
+<div class='container'>
+<%
+var currentAuthConfig = ConfigService.getBrand(branding, 'auth');
+for (var i=0; i < currentAuthConfig.active.length; i++) {
+  var activeAuth = currentAuthConfig[currentAuthConfig.active[i]];
+  sails.log.verbose(activeAuth);
+%>
+<%- superPartial("/user/"+activeAuth.templatePath, branding, portal) %>
+<% } %>
+</div>

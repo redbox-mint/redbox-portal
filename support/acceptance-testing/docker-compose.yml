@@ -1,0 +1,65 @@
+version: '2'
+services:
+  mongodb:
+    image: mvertes/alpine-mongo:latest
+    ports:
+       - "27017:27017"
+  redbox:
+    image: qcifengineering/dlcf-redbox:acceptance
+    ports:
+       - "9000:9000"
+  dlcfportal:
+    image: qcifengineering/dlcf-portal:latest
+    ports:
+       - "1500:1500"
+    expose:
+       - "1500"
+    environment:
+      - NODE_ENV=acceptance
+      - PORT=1500
+      - sails_ng2__force_bundle=true
+    links:
+      - mongodb:mongodb
+      - redbox:redbox
+    entrypoint: /bin/bash -c "cd /opt/rds-rdmp-portal && node app.js"
+  seleniumhub:
+    image: selenium/hub:3.4.0
+    ports:
+       - "4444:4444"
+  seleniumnodechrome:
+    image: selenium/node-chrome:3.4.0
+    environment:
+      - HUB_PORT_4444_TCP_ADDR=seleniumhub
+      - HUB_PORT_4444_TCP_PORT=4444
+    links:
+      - seleniumhub:seleniumhub
+      - dlcfportal:dlcfportal
+  seleniumnodefirefox:
+    image: selenium/node-firefox:latest
+    environment:
+      - HUB_PORT_4444_TCP_ADDR=seleniumhub
+      - HUB_PORT_4444_TCP_PORT=4444
+    links:
+      - seleniumhub:seleniumhub
+      - dlcfportal:dlcfportal
+  acceptance:
+    build: .
+    image: qcifengineering/acceptance-testing-dlcf
+    depends_on:
+      - seleniumnodechrome
+      - seleniumnodefirefox
+    links:
+      - seleniumhub:seleniumhub
+      - dlcfportal:dlcfportal
+    command: ['gradle', 'test']
+    environment:
+      - GEB_BUILD_LOCAL_BASE_URL=http://dlcfportal:1500
+      - SAUCE_ACCESS_KEY
+      - SAUCE_USERNAME
+      - TRAVIS_BUILD_NUMBER
+      - REDBOX_AAF_GUEST_USERNAME
+      - REDBOX_AAF_GUEST_PASSWORD
+      - REDBOX_LOCAL_ADMIN_USERNAME
+      - REDBOX_LOCAL_ADMIN_PASSWORD
+      - AAF_TEST_URL_PART
+      - DOCKER_HUB_URL=http://seleniumhub:4444/wd/hub

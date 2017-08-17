@@ -1,0 +1,17 @@
+<div class="row" id="loading">
+  <div class="col-xs-1">
+  </div>
+  <div class="col-xs-10">
+    <img class="center-block" src="/images/loading.svg">
+  </div>
+  <div class="col-xs-1">
+  </div>
+</div>
+<dmp-form oid="<%= req.param('oid') %>" editMode="false" ></dmp-form>
+<% if (!sails.config.ng2.use_bundled) { %>
+<!-- Import and Load angular 2 if on dev mode-->
+<script src="/dynamic/systemjs-config.js?appName=dmp"></script>
+<script>
+  System.import('dmp').catch(function(err){ console.error(err); });
+</script>
+<% } %>

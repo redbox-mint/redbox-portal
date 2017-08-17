@@ -1,0 +1,168 @@
+<% include ../../functions %>
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <base href="/<%= typeof branding == 'undefined'? data.branding : branding %>/<%= typeof portal == 'undefined'? data.portal : portal %>">
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>
+    <%=typeof title == 'undefined' ? TranslationService.t('default-title') : title%>
+  </title>
+
+  <!-- Google Fonts -->
+  <link href='//fonts.googleapis.com/css?family=Titillium+Web:400,200,300,700,600' rel='stylesheet' type='text/css'>
+  <link href='//fonts.googleapis.com/css?family=Roboto+Condensed:400,700,300' rel='stylesheet' type='text/css'>
+  <link href='//fonts.googleapis.com/css?family=Raleway:400,100' rel='stylesheet' type='text/css'>
+
+  <!-- Bootstrap -->
+  <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css">
+
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css">
+
+  <!-- Custom CSS -->
+
+  <link rel="stylesheet" href="<%= sails.config.appUrl %>/<%= typeof branding == 'undefined'?data.branding : branding %>/<%= typeof portal == 'undefined'? data.portal : portal %>/styles/style.css">
+  <link rel="stylesheet" href="<%= sails.config.appUrl %>/<%= typeof branding == 'undefined'?data.branding : branding %>/<%= typeof portal == 'undefined'? data.portal : portal %>/styles/responsive.css">
+  <link rel="stylesheet" href="<%= sails.config.appUrl %>/<%= typeof branding == 'undefined'?data.branding : branding %>/<%= typeof portal == 'undefined'? data.portal : portal %>/styles/theme.css">
+
+  <!-- Latest jQuery form server -->
+  <script src="https://code.jquery.com/jquery.min.js"></script>
+  <!-- Bootstrap JS form CDN -->
+  <script src="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/js/bootstrap.min.js"></script>
+  <!-- Angular2 Required Files -->
+  <!-- Added here to ensure these are loaded before the Bootstrap fn is called -->
+  <script src="/node_modules/core-js/client/shim.min.js"></script>
+  <script src="/node_modules/zone.js/dist/zone.js"></script>
+  <script src="/node_modules/systemjs/dist/system.src.js"></script>
+  <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
+  <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+  <!--[if lt IE 9]>
+      <script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
+      <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+    <![endif]-->
+</head>
+
+<body>
+
+  <div class="header-area">
+    <div class="container">
+      <div class="row">
+        <div class="col-md-8">
+          <div class="user-menu">
+            <ul>
+              <% if (!req.isAuthenticated())  { %>
+                <li><a href="/<%= typeof branding == 'undefined'? data.branding : branding %>/<%= typeof portal == 'undefined'? data.portal : portal %>/user/login"><i class="fa fa-user"></i><%= TranslationService.t('menu-login') %></a></li>
+              <% } else { %>
+                <li><i class="fa fa-user"></i>&nbsp;<%= TranslationService.t('menu-welcome-text') %>
+                  <%= req.user.name %>
+                </li>
+                <li><a href="/<%= typeof branding == 'undefined'? data.branding : branding %>/<%= typeof portal == 'undefined'? data.portal : portal %>/user/logout"><%= TranslationService.t('menu-logout') %></a></li>
+              <% } %>
+
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- End header area -->
+
+  <div class="site-branding-area">
+    <div class="container">
+      <div class="row" style="position:relative">
+        <div class="col-sm-10">
+          <div class="logo" style="display:inline;">
+            <h1><img src="<%= sails.config.appUrl %>/<%= typeof branding == 'undefined'? data.branding : branding %>/<%= typeof portal == 'undefined'? data.portal : portal %>/images/logo.png"/></h1>
+          </div>
+        </div>
+
+        <div class="col-sm-2 search-box">
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- End site branding area -->
+
+  <div class="mainmenu-area">
+    <div class="container">
+      <div class="row">
+        <div class="navbar-header">
+          <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+                        <span class="sr-only"><%= TranslationService.t('menu-toggle')%></span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                    </button>
+        </div>
+        <div class="navbar-collapse collapse">
+          <ul class="nav navbar-nav">
+            <% if (req.isAuthenticated()) {
+              %>
+              <li class="active"><a href="/<%= typeof branding == 'undefined'? data.branding : branding %>/<%= typeof portal == 'undefined'? data.portal : portal %>/dashboard"><%= TranslationService.t('menu-dashboard')%></a></li>
+              <%
+                if (hasAdminRole(req)) {%>
+              <li class="dropdown">
+                <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">Admin <span class="caret"></span></a>
+                <ul class="dropdown-menu">
+                  <li><a href="/<%= typeof branding == 'undefined'? data.branding : branding %>/<%= typeof portal == 'undefined'? data.portal : portal %>/admin"><%= TranslationService.t('menu-rolemgmt')%></a></li>
+                  <li><a href="/<%= typeof branding == 'undefined'? data.branding : branding %>/<%= typeof portal == 'undefined'? data.portal : portal %>/export"><%= TranslationService.t('menu-export')%></a></li>
+                </ul>
+              </li>
+            <% }
+              } else { %>
+              <li class="active"><a href="/<%= typeof branding == 'undefined'? data.branding : branding %>/<%= typeof portal == 'undefined'? data.portal : portal %>/home"><%= TranslationService.t('menu-home') %></a></li>
+            <% } %>
+          </ul>
+
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- End mainmenu area -->
+
+<% if (typeof title!== 'undefined') { %>
+  <div class="product-big-title-area">
+    <div class="container">
+      <div class="row">
+        <div class="col-md-12">
+          <div class="product-bit-title text-center">
+            <h2>Researcher Dashboard default</h2>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+<% } %>
+
+  <div class="single-product-area">
+    <%- body %>
+  </div>
+
+
+
+  <div class="footer-bottom-area navbar-fixed-bottom">
+    <div class="container">
+      <div class="row">
+        <div class="col-md-8">
+          <div class="copyright">
+            <p>&copy; 2017 Queensland Cyberinfrastructure Foundation</p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+  </div>
+
+  <!--SCRIPTS-->
+  <script src="/js/dependencies/sails.io.js"></script>
+  <!--SCRIPTS END-->
+</body>
+<% if (res.statusCode <= 400 && sails.config.ng2.use_bundled) { %>
+  <!-- NG2 bundled scripts section, expects a 'ng2_apps' local containing the list of apps to load for this view -->
+  <%- partial ('../../misc/ng2-apps.ejs', {apps: ng2_apps}) %>
+<% } %>
+</html>

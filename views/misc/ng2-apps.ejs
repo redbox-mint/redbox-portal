@@ -1,0 +1,10 @@
+<!-- stupid workaround for commonjs elements -->
+<script>window.module = "";</script>
+<%
+if (apps) {
+  var currentMinute = sails.config.startupMinute;
+  for (var i=0; i < apps.length; i++) {
+    %><%- partial('script-tag', {src:apps[i] + "?ts=" + currentMinute}) %><%
+  }
+}
+%>

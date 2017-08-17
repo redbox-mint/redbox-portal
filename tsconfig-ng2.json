@@ -1,0 +1,30 @@
+{
+    "compilerOptions": {
+        "target": "es5",
+        "module": "es2015",
+        "moduleResolution": "node",
+        "isolatedModules": false,
+        "jsx": "react",
+        "experimentalDecorators": true,
+        "emitDecoratorMetadata": true,
+        "declaration": false,
+        "noImplicitAny": false,
+        "noImplicitUseStrict": false,
+        "removeComments": true,
+        "noLib": false,
+        "preserveConstEnums": true,
+        "suppressImplicitAnyIndexErrors": true,
+        "sourceMap": false
+    },
+    "exclude": [
+        "node_modules/**",
+        "typings/**",
+        "api/**",
+        "typescript/**"
+    ],
+    "include": [
+        "assets/angular/**/*.ts"
+    ],
+    "compileOnSave": true,
+    "buildOnSave": false
+}

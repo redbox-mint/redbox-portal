@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>
+    <%=typeof title == 'undefined' ? 'New Sails App' : title%>
+  </title>
+
+  <!-- Google Fonts -->
+  <link href='//fonts.googleapis.com/css?family=Titillium+Web:400,200,300,700,600' rel='stylesheet' type='text/css'>
+  <link href='//fonts.googleapis.com/css?family=Roboto+Condensed:400,700,300' rel='stylesheet' type='text/css'>
+  <link href='//fonts.googleapis.com/css?family=Raleway:400,100' rel='stylesheet' type='text/css'>
+
+  <!-- Bootstrap -->
+  <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css">
+
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css">
+
+  <!-- Custom CSS -->
+
+  <link rel="stylesheet" href="<%= sails.config.appUrl %>/styles/style.css">
+  <link rel="stylesheet" href="<%= sails.config.appUrl %>/styles/responsive.css">
+  <link rel="stylesheet" href="<%= sails.config.appUrl %>/<%= typeof theme == 'undefined' ? req.param('theme') : theme %>/<%= typeof portal == 'undefined' ? req.param('portal') : portal %>/styles/theme.css">
+
+
+  <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
+  <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+  <!--[if lt IE 9]>
+      <script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
+      <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+    <![endif]-->
+</head>
+
+<body>
+
+  <div class="header-area">
+    <div class="container">
+      <div class="row">
+        <div class="col-md-8">
+          <div class="user-menu">
+            <ul>
+              <% if (!req.isAuthenticated())  { %>
+                <li><a href="user/login"><i class="fa fa-user"></i>Login</a></li>
+              <% } else { %>
+                <li><i class="fa fa-user"></i>&nbsp;Welcome <%= req.user.name %></li>
+                <li><a href="user/logout">Logout</a></li>
+              <% } %>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- End header area -->
+
+  <div class="site-branding-area">
+    <div class="container">
+      <div class="row" style="position:relative">
+        <div class="col-sm-10">
+          <div class="logo" style="display:inline;">
+            <h1><img src="images/logo.png"/></h1>
+          </div>
+        </div>
+
+        <div class="col-sm-2 search-box">
+          <form role="form" class="form-inline search-form">
+            <div class="form-group has-feedback">
+              <input type="text" class="form-control" placeholder="Search">
+              <i class="form-control-feedback glyphicon glyphicon-search"></i>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- End site branding area -->
+
+  <div class="mainmenu-area">
+    <div class="container">
+      <div class="row">
+        <div class="navbar-header">
+          <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+                        <span class="sr-only">Toggle navigation</span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                    </button>
+        </div>
+        <div class="navbar-collapse collapse">
+          <ul class="nav navbar-nav">
+            <li class="active"><a href="/">Home</a></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- End mainmenu area -->
+
+  <div class="product-big-title-area">
+    <div class="container">
+      <div class="row">
+        <div class="col-md-12">
+          <div class="product-bit-title text-center">
+            <h2>Researcher Dashboard</h2>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <div class="single-product-area">
+    <%- body %>
+  </div>
+
+
+
+  <div class="footer-bottom-area navbar-fixed-bottom">
+    <div class="container">
+      <div class="row">
+        <div class="col-md-8">
+          <div class="copyright">
+            <p>&copy; 2017 Queensland Cyberinfrastructure Foundation</p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+  </div>
+
+  <!-- Latest jQuery form server -->
+  <script src="https://code.jquery.com/jquery.min.js"></script>
+
+  <!-- Bootstrap JS form CDN -->
+  <script src="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/js/bootstrap.min.js"></script>
+
+  <!--SCRIPTS-->
+  <script src="/js/dependencies/sails.io.js"></script>
+  <!--SCRIPTS END-->
+</body>
+
+</html>

@@ -1,0 +1,47 @@
+<!--
+
+
+       444444444       000000000            444444444
+      4::::::::4     00:::::::::00         4::::::::4
+     4:::::::::4   00:::::::::::::00      4:::::::::4
+    4::::44::::4  0:::::::000:::::::0    4::::44::::4
+   4::::4 4::::4  0::::::0   0::::::0   4::::4 4::::4
+  4::::4  4::::4  0:::::0     0:::::0  4::::4  4::::4
+ 4::::4   4::::4  0:::::0     0:::::0 4::::4   4::::4
+4::::444444::::4440:::::0 000 0:::::04::::444444::::444
+4::::::::::::::::40:::::0 000 0:::::04::::::::::::::::4
+4444444444:::::4440:::::0     0:::::04444444444:::::444
+          4::::4  0:::::0     0:::::0          4::::4
+          4::::4  0::::::0   0::::::0          4::::4
+          4::::4  0:::::::000:::::::0          4::::4
+        44::::::44 00:::::::::::::00         44::::::44
+        4::::::::4   00:::::::::00           4::::::::4
+        4444444444     000000000             4444444444
+
+
+
+  This is the default "404: Not Found" page.
+  User agents that don't "Accept" HTML will see a JSON version instead.
+  You can customize the control logic for your needs in `config/404.js`
+
+  Sails considers a request to be in a "404: Not Found" state when a user
+  requests a URL which doesn't match any of your app's routes or blueprints.
+
+  You can also trigger this response from one of your controllers or policies with:
+  `return res.notFound();`
+
+
+-->
+
+    <div class="col-xs-2"></div>
+    <div class="col-xs-8">
+      <div class="panel panel-danger">
+        <div class="panel-heading">
+           <h3 class="panel-title">Page Not Found!</h3>
+         </div>
+         <div class="panel-body">
+          <%= typeof data == 'undefined'? "The page you are trying to reach doesn't exist." : data %>
+         </div>
+      </div>
+    </div>
+    <div class="col-xs-2"></div>

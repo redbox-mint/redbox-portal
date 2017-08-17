@@ -1,0 +1,21 @@
+<div class="row" id="loading">
+  <div class="col-xs-1">
+  </div>
+  <div class="col-xs-10">
+    <img class="center-block" src="/images/loading.svg">
+  </div>
+  <div class="col-xs-1">
+  </div>
+</div>
+<div class="row">
+  <local-auth><!-- Add Angular2 selector --></local-auth>
+</div>
+<% if (!sails.config.ng2.use_bundled) { %>
+<!-- Import and Load angular 2 if on dev mode-->
+<script src="/dynamic/systemjs-config.js?appName=localAuth"></script>
+<script>
+  System.import('localAuth').catch(function(err){ console.error(err); });
+</script>
+<%
+}
+%>

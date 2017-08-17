@@ -1,0 +1,18 @@
+<div class="row" id="loading">
+  <div class="col-xs-1">
+  </div>
+  <div class="col-xs-10">
+    <img class="center-block" src="/images/loading.svg">
+  </div>
+  <div class="col-xs-1">
+  </div>
+</div>
+<div class="row">
+  <manage-roles></manage-roles>
+</div>
+<script src="/dynamic/systemjs-config.js?appName=manageRoles"></script>
+<% if (!sails.config.ng2.use_bundled) { %>
+<script>
+  System.import('manageRoles').catch(function(err){ console.error(err); });
+</script>
+<% } %>
