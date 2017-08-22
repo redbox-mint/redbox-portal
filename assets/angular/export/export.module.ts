@@ -24,11 +24,12 @@ import { HttpModule } from '@angular/http';
 import { ExportFormComponent } from './export-form.component';
 import { NKDatetimeModule } from 'ng2-datetime/ng2-datetime';
 import { TranslateI18NextModule } from 'angular2-i18next';
+import { TranslationService } from '../shared/translation-service';
 
 @NgModule({
   imports:      [ BrowserModule, HttpModule, ReactiveFormsModule, FormsModule, NKDatetimeModule, TranslateI18NextModule ],
   declarations: [ ExportFormComponent ],
-  providers:    [  ],
+  providers:    [ TranslationService ],
   bootstrap:    [ ExportFormComponent ],
   entryComponents: [  ]
 })

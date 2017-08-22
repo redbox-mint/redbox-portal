@@ -8,8 +8,7 @@ import * as _ from "lodash-lib";
 import { LoadableComponent } from '../shared/loadable.component';
 import { OnInit } from '@angular/core';
 import { PaginationModule, TooltipModule} from 'ngx-bootstrap';
-import { TranslateI18Next } from 'angular2-i18next';
-
+import { TranslationService } from '../shared/translation-service';
 
 declare var pageData: any;
 declare var jQuery: any;
@@ -31,9 +30,9 @@ export class AppComponent extends LoadableComponent  {
   initTracker: any = {draftLoaded:false, activeLoaded: false};
 
 
-  constructor( @Inject(DashboardService) protected dashboardService: DashboardService, @Inject(DOCUMENT) protected document: any, elementRef: ElementRef, translateI18Next:TranslateI18Next ) {
+  constructor( @Inject(DashboardService) protected dashboardService: DashboardService, @Inject(DOCUMENT) protected document: any, elementRef: ElementRef, translationService:TranslationService ) {
     super();
-    this.initTranslator(translateI18Next);
+    this.initTranslator(translationService);
     this.draftPlans = new PlanTable();
     this.activePlans = new PlanTable();
     this.branding = elementRef.nativeElement.getAttribute('branding');

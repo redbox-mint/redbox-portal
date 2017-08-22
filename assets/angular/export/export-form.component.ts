@@ -21,7 +21,7 @@ import { Component, Inject, Input, ElementRef } from '@angular/core';
 import { Location, LocationStrategy, PathLocationStrategy } from '@angular/common';
 import { LoadableComponent } from '../shared/loadable.component';
 import moment from 'moment-es6';
-import { TranslateI18Next } from 'angular2-i18next';
+import { TranslationService } from '../shared/translation-service';
 
 /**
  * Main Export component
@@ -48,13 +48,13 @@ export class ExportFormComponent extends LoadableComponent {
   constructor(
     elm: ElementRef,
     @Inject(Location) protected LocationService: Location,
-    translateI18Next:TranslateI18Next
+    translationService:TranslationService
   ) {
     super();
     this.timePickerOpts = false;
     this.hasClearButton = false;
     this.datePickerOpts = {placeholder: 'dd/mm/yyyy', format: 'dd/mm/yyyy', icon: 'fa fa-calendar'};
-    this.initTranslator(translateI18Next);
+    this.initTranslator(translationService);
     this.checkIfHasLoaded();
   }
 

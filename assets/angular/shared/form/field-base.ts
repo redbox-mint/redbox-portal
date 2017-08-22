@@ -19,6 +19,8 @@
 
 
 import { FormControl, FormGroup, Validators } from '@angular/forms';
+import { TranslationService } from '../translation-service';
+import * as _ from "lodash-lib";
 /**
  * Base class for dynamic form models...
  *
@@ -44,8 +46,11 @@ export class FieldBase<T> {
   validationMessages: any;
   editMode: boolean;
   readOnly: boolean;
+  help: string;
+  translationService: TranslationService;
 
-  constructor(options = {}) {
+  constructor(options = {}, translationService = undefined) {
+    this.translationService = translationService;
     this.setOptions(options);
   }
 
@@ -60,12 +65,14 @@ export class FieldBase<T> {
     cssClasses?: any,
     groupName?: string,
     editMode? : boolean,
-    readOnly?: boolean
+    readOnly?: boolean,
+    help?: string
   } = {}) {
-    this.value = options.value;
+    this.value = this.getTranslated(options.value, undefined);
     this.name = options.name || '';
     this.id = options.id || '';
-    this.label = options.label || '';
+    this.label = this.getTranslated(options.label, '');
+    this.help = this.getTranslated(options.help, undefined);
     this.required = !!options.required;
     this.controlType = options.controlType || '';
     this.cssClasses = options.cssClasses || {}; // array of
@@ -77,7 +84,22 @@ export class FieldBase<T> {
     }
     this.options = options;
     this.hasControl = true;
-    this.validationMessages = options['validationMessages'] || {};
+    this.validationMessages = {};
+    _.forOwn(options['validationMessages'] || {}, (messageKey, messageName) => {
+      this.validationMessages[messageName] = this.getTranslated(messageKey, messageKey);
+    });
+  }
+
+  getTranslated(key, defValue) {
+    if (!_.isEmpty(key) && !_.isUndefined(key)) {
+      if (_.isFunction(key.startsWith) && key.startsWith('@') && this.translationService) {
+        return this.translationService.t(key);
+      } else {
+        return key;
+      }
+    } else {
+      return defValue;
+    }
   }
 
   get isValid() {

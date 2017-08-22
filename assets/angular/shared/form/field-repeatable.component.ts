@@ -42,8 +42,8 @@ export class RepeatableContainer extends Container {
   addButtonClass: any;
   removeButtonClass: any;
 
-  constructor(options: any) {
-    super(options);
+  constructor(options: any, translationService: any) {
+    super(options, translationService);
     this.hasGroup = true;
     this.addButtonText = options['addButtonText'] || '';
     this.removeButtonText = options['removeButtonText'] || null;
@@ -147,7 +147,12 @@ export class RepeatableComponent extends SimpleComponent {
   template: `
   <div *ngIf="field.editMode">
     <div class="row">
-      <label class="col-md-12">{{field.label}}</label>
+      <div class="col-md-12">
+      <label>{{field.label}}
+        <button type="button" class="btn btn-default" *ngIf="field.help" (click)="toggleHelp()"><span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span></button>
+      </label> 
+      <span id="{{ 'helpBlock_' + field.name }}" class="help-block" *ngIf="this.helpShow" [innerHtml]="field.help"></span>
+      </div>
     </div>
     <div *ngFor="let fieldElem of field.fields; let i = index;" class="row">
       <span class="col-xs-12">

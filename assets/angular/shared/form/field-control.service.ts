@@ -43,7 +43,7 @@ import 'rxjs/add/operator/last';
 import 'rxjs/add/observable/from';
 import { CompleterService } from 'ng2-completer';
 import { ConfigService } from '../config-service';
-
+import { TranslationService } from '../translation-service';
 /**
  * Field / Model Factory Service...
  *
@@ -52,7 +52,6 @@ import { ConfigService } from '../config-service';
  */
 @Injectable()
 export class FieldControlService {
-
   protected classes = {
     'TextField': { 'meta': TextField, 'comp': TextFieldComponent },
     'TextArea': { 'meta': TextArea, 'comp': TextAreaComponent },
@@ -68,7 +67,10 @@ export class FieldControlService {
     'WorkflowStepButton': {'meta': WorkflowStepButton, 'comp': WorkflowStepButtonComponent},
     'LinkValueComponent': {'meta': LinkValue, 'comp': LinkValueComponent }
   };
-  constructor(@Inject(VocabFieldLookupService) private vocabFieldLookupService: VocabFieldLookupService, @Inject(CompleterService) private completerService: CompleterService,  @Inject(ConfigService) protected configService: ConfigService) {
+  constructor(@Inject(VocabFieldLookupService) private vocabFieldLookupService: VocabFieldLookupService, @Inject(CompleterService) private completerService: CompleterService,
+  @Inject(ConfigService) protected configService: ConfigService,
+  @Inject(TranslationService) protected translationService: TranslationService
+  ) {
 
   }
 
@@ -95,7 +97,7 @@ export class FieldControlService {
 
   getFieldsMeta(fieldsArr: any) {
     const fields = _.map(fieldsArr, (f:any) => {
-      const inst = new this.classes[f.class].meta(f.definition);
+      const inst = new this.classes[f.class].meta(f.definition, this.translationService); 
       // set the component class
       if (_.isArray(this.classes[f.class].comp)) {
         inst.compClass = _.find(this.classes[f.class].comp, (c:any)=> { return c.name == f.compClass });

@@ -24,6 +24,7 @@ import { RecordsService } from '../shared/form/records.service';
 import { LoadableComponent } from '../shared/loadable.component';
 import { FieldControlService } from '../shared/form/field-control.service';
 import * as _ from "lodash-lib";
+import { TranslationService } from '../shared/translation-service';
 /**
  * Main DMP Edit component
  *
@@ -56,38 +57,41 @@ export class DmpFormComponent extends LoadableComponent {
     elm: ElementRef,
     @Inject(RecordsService) protected RecordsService: RecordsService,
     @Inject(FieldControlService) protected fcs: FieldControlService,
-    @Inject(Location) protected LocationService: Location
+    @Inject(Location) protected LocationService: Location,
+    translationService: TranslationService
   ) {
     super();
     this.status = {};
     this.initSubs = RecordsService.waitForInit((initStat:boolean) => {
       this.initSubs.unsubscribe();
-      this.fieldMap = {_rootComp:this};
-      this.oid = elm.nativeElement.getAttribute('oid');
-      this.editMode = elm.nativeElement.getAttribute('editMode') == "true";
-      console.log(`Loading form with OID: ${this.oid}, on edit mode:${this.editMode}`);
-      this.RecordsService.getForm(this.oid, this.editMode).then((obs:any) => {
-        obs.subscribe((form:any) => {
-          this.formDef = form;
-          if (this.editMode) {
-            this.cssClasses = this.formDef.editCssClasses;
-          } else {
-            this.cssClasses = this.formDef.viewCssClasses;
+      translationService.isReady(tService => {
+        this.fieldMap = {_rootComp:this};
+        this.oid = elm.nativeElement.getAttribute('oid');
+        this.editMode = elm.nativeElement.getAttribute('editMode') == "true";
+        console.log(`Loading form with OID: ${this.oid}, on edit mode:${this.editMode}`);
+        this.RecordsService.getForm(this.oid, this.editMode).then((obs:any) => {
+          obs.subscribe((form:any) => {
+            this.formDef = form;
+            if (this.editMode) {
+              this.cssClasses = this.formDef.editCssClasses;
+            } else {
+              this.cssClasses = this.formDef.viewCssClasses;
+            }
+            this.needsSave = false;
+            if (form.fieldsMeta) {
+              this.fields = form.fieldsMeta;
+              this.rebuildForm();
+              this.watchForChanges();
+            }
+          });
+        }).catch((err:any) => {
+          console.log("Error loading form...");
+          console.log(err);
+          if (err.status == false) {
+              this.criticalError = err.message;
           }
-          this.needsSave = false;
-          if (form.fieldsMeta) {
-            this.fields = form.fieldsMeta;
-            this.rebuildForm();
-            this.watchForChanges();
-          }
+          this.setLoading(false);
         });
-      }).catch((err:any) => {
-        console.log("Error loading form...");
-        console.log(err);
-        if (err.status == false) {
-            this.criticalError = err.message;
-        }
-        this.setLoading(false);
       });
     });
   }

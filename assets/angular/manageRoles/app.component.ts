@@ -25,7 +25,7 @@ import { RolesService } from '../shared/roles-service';
 import { Role, User, LoginResult, SaveResult } from '../shared/user-models';
 import * as _ from "lodash-lib";
 import { LoadableComponent } from '../shared/loadable.component';
-import { TranslateI18Next } from 'angular2-i18next';
+import { TranslationService } from '../shared/translation-service';
 
 declare var pageData :any;
 declare var jQuery: any;
@@ -54,9 +54,9 @@ export class AppComponent extends LoadableComponent {
   saveMsgType ="info";
   initSubs: any;
 
-  constructor (@Inject(RolesService) protected rolesService: RolesService, @Inject(FormBuilder) fb: FormBuilder, @Inject(DOCUMENT) protected document:any, translateI18Next:TranslateI18Next) {
+  constructor (@Inject(RolesService) protected rolesService: RolesService, @Inject(FormBuilder) fb: FormBuilder, @Inject(DOCUMENT) protected document:any, translationService:TranslationService) {
     super();
-    this.initTranslator(translateI18Next);
+    this.initTranslator(translationService);
     this.initSubs = rolesService.waitForInit((initStat:any) => {
       this.initSubs.unsubscribe();
       rolesService.getBrandRoles().then((roles:any) => {
@@ -79,7 +79,7 @@ export class AppComponent extends LoadableComponent {
         });
         _.map(this.users, (user:any)=> {user.roleStr = _.join(user.roles, ', ')});
         this.filteredUsers = this.users;
-        this.checkIfHasLoaded(); 
+        this.checkIfHasLoaded();
       });
     });
   }

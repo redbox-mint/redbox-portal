@@ -6,11 +6,12 @@ import { AppComponent }  from './app.component';
 import { UserSimpleService } from '../shared/user.service-simple';
 import { ConfigService } from '../shared/config-service';
 import { TranslateI18NextModule } from 'angular2-i18next';
+import { TranslationService } from '../shared/translation-service';
 
 @NgModule({
   imports:      [ BrowserModule, HttpModule, ReactiveFormsModule, TranslateI18NextModule ],
   declarations: [ AppComponent ],
-  providers: [ UserSimpleService, ConfigService ],
+  providers: [ UserSimpleService, ConfigService, TranslationService ],
   bootstrap:    [ AppComponent ]
 })
 export class AppModule { }

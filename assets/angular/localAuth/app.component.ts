@@ -23,7 +23,7 @@ import { FormGroup, FormControl, Validators, FormBuilder } from '@angular/forms'
 import { UserSimpleService } from '../shared/user.service-simple';
 import { LoginResult } from '../shared/user-models'
 import { LoadableComponent } from '../shared/loadable.component';
-import { TranslateI18Next } from 'angular2-i18next';
+import { TranslationService } from '../shared/translation-service';
 
 /**
  * Local Authentication  Component
@@ -43,9 +43,9 @@ export class AppComponent extends LoadableComponent {
   form: FormGroup;
   loginMessage: string;
   isLoginDisabled: boolean;
-  constructor (@Inject(UserSimpleService) protected userService: UserSimpleService, @Inject(FormBuilder) protected fb: FormBuilder, @Inject(DOCUMENT) protected document:any, translateI18Next:TranslateI18Next) {
+  constructor (@Inject(UserSimpleService) protected userService: UserSimpleService, @Inject(FormBuilder) protected fb: FormBuilder, @Inject(DOCUMENT) protected document:any, translationService: TranslationService) {
     super();
-    this.initTranslator(translateI18Next);
+    this.initTranslator(translationService);
     userService.waitForInit((whatever:any)=> {
       this.form = this.fb.group({
           "username": ["", Validators.required],

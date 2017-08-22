@@ -16,6 +16,7 @@
 // You should have received a copy of the GNU General Public License along
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+import { TranslationService } from './translation-service';
 
 declare var jQuery: any;
 /**
@@ -27,30 +28,17 @@ declare var jQuery: any;
 export class LoadableComponent  {
   isLoading: boolean;
   translatorReady: boolean;
-  translateI18Next: any;
+  translationService: any;
 
   constructor() {
     this.isLoading = true;
     this.synchLoading();
+
   }
 
-  initTranslator(translateI18Next: any) {
-    this.translateI18Next = translateI18Next;
-    this.translateI18Next.init({
-        debug: true,                                                        // optional
-        returnEmptyString: false,                                           // optional	- but.. it's important, please see http://i18next.com/docs/options/!
-        // mapping: {"specific_backend_message": "message_for_translate"},     // optional
-        // browserLanguageDetector: injectableCustomLanguageDetectorService,   // optional - the specific application language detector (allows you to return the language of the user.
-        //                                                                     //            If it is absent, the service uses default "angular2 locale detector" behaviour using LOCALE_ID.
-        // // supportedLanguages: ['en', 'pt'],                                //            Therefore you can pass the optional supportedLanguages parameter which indicates your supported languages.
-        //                                                                     //            For example, LOCALE_ID = 'en-AU' or 'en-US' or 'en', you can pass only ['en'] -> locales/en/translation.json
-        //                                                                     //                         LOCALE_ID = 'pt-BR' or 'pt', you can pass only ['pt'] -> locales/pt/translation.json
-        // backend: injectableBackendConfigFactory                             // optional - allows to change "loadPath" i18next parameter
-        lng: 'en',
-        fallbackLang: 'en'
-    }).then(() => {
-      console.log(`Translator loaded...`);
-      this.translatorLoaded();
+  initTranslator(translationService: TranslationService) {
+    translationService.isReady(tService => {
+      this.translatorReady = true;
     });
   }
 
@@ -66,7 +54,7 @@ export class LoadableComponent  {
   }
 
   hasLoaded() {
-    return this.isLoading && (this.translateI18Next ? this.translatorReady : true);
+    return this.isLoading && (this.translationService ? this.translatorReady : true);
   }
 
   setLoading(loading: boolean=true) {
