@@ -215,6 +215,7 @@ export class DmpFormComponent extends LoadableComponent {
   }
 
   stepTo(targetStep: string) {
+    console.log(this.form.value);
     if (!this.isValid(true)) {
       return;
     }

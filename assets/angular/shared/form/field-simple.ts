@@ -18,7 +18,7 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 import { FieldBase } from './field-base';
-import { FormControl } from '@angular/forms';
+import { FormControl, FormGroup, FormArray } from '@angular/forms';
 import * as _ from "lodash-lib";
 import moment from 'moment-es6';
 /**
@@ -34,6 +34,14 @@ export class TextField extends FieldBase<string> {
     super(options, translationService);
     this.type = options['type'] || '';
     this.controlType = 'textbox';
+  }
+
+  postInit(value:any) {
+    if (_.isEmpty(value)) {
+      this.value = this.defaultValue ? this.defaultValue : '';
+    } else {
+      this.value = value;
+    }
   }
 }
 
@@ -54,10 +62,8 @@ export class TextArea extends FieldBase<string> {
     this.lines = this.value ? this.value.split("\n") : [];
   }
 }
-/**
-Ordinary dropdown field
-*/
-export class DropdownField extends FieldBase<string> {
+
+export class SelectionField extends FieldBase<any>  {
   options: {key: string, value: string}[] = [];
 
   constructor(options: any, translationService: any) {
@@ -65,9 +71,31 @@ export class DropdownField extends FieldBase<string> {
     this.options = options['options'] || [];
     this.options = _.map(options['options'] || [], (option)=> {
       option.label = this.getTranslated(option.label, option.label);
+      option.value = this.getTranslated(option.value, option.value);
       return option;
     });
-    this.controlType = 'dropdown';
+    
+  }
+
+  createFormModel() {
+    if (this.controlType == 'checkbox') {
+      const fgDef = [];
+
+      _.map(this.options, (opt)=>{
+        const hasValue = _.find(this.value, (val) => {
+          return val == opt.value;
+        });
+        if (hasValue) {
+          fgDef.push(new FormControl(opt.value));
+        }
+      });
+      console.log(`Created form model:`);
+      const fg = new FormArray(fgDef);
+      console.log(fg);
+      return fg;
+    } else {
+      return super.createFormModel();
+    }
   }
 }
 

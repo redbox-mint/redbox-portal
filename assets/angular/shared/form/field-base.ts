@@ -48,6 +48,8 @@ export class FieldBase<T> {
   readOnly: boolean;
   help: string;
   translationService: TranslationService;
+  defaultValue: any;
+  marginTop: string;
 
   constructor(options = {}, translationService = undefined) {
     this.translationService = translationService;
@@ -66,7 +68,8 @@ export class FieldBase<T> {
     groupName?: string,
     editMode? : boolean,
     readOnly?: boolean,
-    help?: string
+    help?: string,
+    defaultValue?: any
   } = {}) {
     this.value = this.getTranslated(options.value, undefined);
     this.name = options.name || '';
@@ -88,6 +91,10 @@ export class FieldBase<T> {
     _.forOwn(options['validationMessages'] || {}, (messageKey, messageName) => {
       this.validationMessages[messageName] = this.getTranslated(messageKey, messageKey);
     });
+    this.defaultValue = this.getTranslated(options.defaultValue, undefined);
+    if ((_.isUndefined(this.value) || _.isEmpty(this.value)) && !_.isUndefined(this.defaultValue)) {
+      this.value = this.defaultValue;
+    }
   }
 
   getTranslated(key, defValue) {

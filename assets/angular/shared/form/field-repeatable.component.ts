@@ -17,7 +17,7 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { Input, Component, OnInit} from '@angular/core';
+import { Input, Component, OnInit, Output, EventEmitter} from '@angular/core';
 import { SimpleComponent } from './field-simple.component';
 import { Container } from './field-simple';
 import { FormArray } from '@angular/forms';
@@ -130,6 +130,27 @@ export class RepeatableContainer extends Container {
   }
 }
 
+export class EmbeddableComponent extends SimpleComponent {
+  @Input() isEmbedded: boolean = false;
+  @Input() canRemove: boolean = false;
+  @Input() removeBtnText: string = null;
+  @Input() removeBtnClass: string = 'btn fa fa-minus-circle btn text-20 pull-left btn btn-danger';
+  @Input() index: number;
+  @Output() onRemoveBtnClick: EventEmitter<any> = new EventEmitter<any>();
+
+  onRemove(event: any) {
+    this.onRemoveBtnClick.emit([event, this.index]);
+  }
+
+  public getGroupClass(fldName:string=null): string {
+    let baseClass = 'form-group';
+    if (this.isEmbedded) {
+      baseClass = '';
+    }
+    return `${baseClass} ${this.hasRequiredError() ? 'has-error' : '' }`;
+  }
+}
+
 export class RepeatableComponent extends SimpleComponent {
   field: RepeatableContainer;
 
@@ -143,14 +164,14 @@ export class RepeatableComponent extends SimpleComponent {
 }
 
 @Component({
-  selector: 'repeatable',
+  selector: 'repeatable-vocab',
   template: `
   <div *ngIf="field.editMode">
     <div class="row">
       <div class="col-md-12">
       <label>{{field.label}}
         <button type="button" class="btn btn-default" *ngIf="field.help" (click)="toggleHelp()"><span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span></button>
-      </label> 
+      </label>
       <span id="{{ 'helpBlock_' + field.name }}" class="help-block" *ngIf="this.helpShow" [innerHtml]="field.help"></span>
       </div>
     </div>
@@ -184,7 +205,7 @@ export class RepeatableContributor extends RepeatableContainer {
 }
 
 @Component({
-  selector: 'repeatable',
+  selector: 'repeatable-contributor',
   template: `
   <div *ngIf="field.editMode">
     <div *ngFor="let fieldElem of field.fields; let i = index;" class="row">

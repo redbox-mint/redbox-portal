@@ -20,7 +20,7 @@
 import { Input, Component, ViewChild, ViewContainerRef, OnInit } from '@angular/core';
 import { FieldBase } from './field-base';
 import { DateTime, AnchorOrButton, TextArea, TextField } from './field-simple';
-import { FormGroup } from '@angular/forms';
+import { FormGroup, FormControl, FormArray } from '@angular/forms';
 import * as _ from "lodash-lib";
 import moment from 'moment-es6';
 declare var jQuery: any;
@@ -34,6 +34,8 @@ export class SimpleComponent {
   @Input() public field: FieldBase<any>;
   @Input() public form: FormGroup;
   @Input() public fieldMap: any;
+  @Input() public index: any;
+  @Input() public name: any;
 
   helpShow: boolean;
 
@@ -53,38 +55,22 @@ export class SimpleComponent {
   }
 
   public toggleHelp() {
-    console.log(`Togglingl help: ${this.helpShow}`)
     this.helpShow = !this.helpShow;
   }
+
+  getRequiredLabelStr() {
+    return this.field.required ? '(*)' : '';
+  }
+
 }
 
-@Component({
-  selector: 'textfield',
-  template: `
-  <div *ngIf="field.editMode" [formGroup]='form' [ngClass]="getGroupClass()" >
-    <label [attr.for]="field.name">
-      {{field.label}} {{ field.required ? '(*)' : ''}}
-      <button type="button" class="btn btn-default" *ngIf="field.help" (click)="toggleHelp()"><span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span></button>
-    </label><br/>
-    <span id="{{ 'helpBlock_' + field.name }}" class="help-block" *ngIf="this.helpShow" [innerHtml]="field.help"></span>
-    <input [formControl]="fieldMap[field.name].control"  [id]="field.name" [type]="field.type" [readonly]="field.readOnly" class="form-control" [attr.aria-describedby]="field.help ? 'helpBlock_' + field.name : null">
-    <div class="text-danger" *ngIf="fieldMap[field.name].control.hasError('required') && fieldMap[field.name].control.touched && !field.validationMessages?.required">{{field.label}} is required</div>
-    <div class="text-danger" *ngIf="fieldMap[field.name].control.hasError('required') && fieldMap[field.name].control.touched && field.validationMessages?.required">{{field.validationMessages.required}}</div>
-  </div>
-  <div *ngIf="!field.editMode" class="key-value-pair">
-    <span class="key" *ngIf="field.label">{{field.label}}</span>
-    <span class="value">{{field.value}}</span>
-  </div>
-  `,
-})
-export class TextFieldComponent extends SimpleComponent {}
 
 @Component({
   selector: 'text-area',
   template: `
   <div *ngIf="field.editMode" [formGroup]='form' class="form-group">
     <label [attr.for]="field.name">
-      {{field.label}} {{ field.required ? '(*)' : ''}}
+      {{field.label}} {{ getRequiredLabelStr()}}
       <button type="button" class="btn btn-default" *ngIf="field.help" (click)="toggleHelp()"><span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span></button>
     </label><br/>
     <span id="{{ 'helpBlock_' + field.name }}" class="help-block" *ngIf="this.helpShow" [innerHtml]="field.help"></span>
@@ -111,12 +97,26 @@ export class TextAreaComponent extends SimpleComponent implements OnInit {
   }
 }
 
+export class SelectionComponent extends SimpleComponent {
+
+  getLabel(val: any): string {
+    const opt = _.find(this.field.options, (opt)=> {
+      return opt.value == val;
+    });
+    if (opt) {
+      return opt.label;
+    } else {
+      return '';
+    }
+  }
+}
+
 @Component({
   selector: 'dropdownfield',
   template: `
   <div [formGroup]='form' *ngIf="field.editMode" class="form-group">
      <label [attr.for]="field.name">
-      {{field.label}} {{ field.required ? '(*)' : ''}}
+      {{field.label}} {{ getRequiredLabelStr()}}
       <button type="button" class="btn btn-default" *ngIf="field.help" (click)="toggleHelp()"><span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span></button>
      </label><br/>
      <span id="{{ 'helpBlock_' + field.name }}" class="help-block" *ngIf="this.helpShow" [innerHtml]="field.help"></span>
@@ -132,19 +132,63 @@ export class TextAreaComponent extends SimpleComponent implements OnInit {
   </div>
   `,
 })
-export class DropdownFieldComponent extends SimpleComponent {
+export class DropdownFieldComponent extends SelectionComponent {
+}
 
-  getLabel(val: any): string {
-    const opt = _.find(this.field.options, (opt)=> {
-      return opt.value == val;
+@Component({
+  selector: 'selectionfield',
+  template: `
+  <div [formGroup]='form' *ngIf="field.editMode" class="form-group">
+     <label [attr.for]="field.name">
+      {{field.label}} {{ getRequiredLabelStr()}}
+      <button type="button" class="btn btn-default" *ngIf="field.help" (click)="toggleHelp()"><span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span></button>
+     </label><br/>
+     <span id="{{ 'helpBlock_' + field.name }}" class="help-block" *ngIf="this.helpShow" [innerHtml]="field.help"></span>
+     <span *ngFor="let opt of field.options" >
+      <input *ngIf="hasControl()" type="{{field.controlType}}" name="{{field.name}}" [id]="field.name + '_' + opt.value" [formControl]="fieldMap[field.name].control" [value]="opt.value" >
+      <input *ngIf="!hasControl()" type="{{field.controlType}}" name="{{field.name}}" [id]="field.name + '_' + opt.value" [value]="opt.value" (change)="onChange(opt, $event)" [attr.selected]="isSelected(opt)">
+      <label for="{{field.name + '_' + opt.value}}" class="radio-label">{{ opt.label }}</label>
+      <br/>
+     </span>
+     <div class="text-danger" *ngIf="fieldMap[field.name].control.hasError('required') && fieldMap[field.name].control.touched && !field.validationMessages?.required">{{field.label}} is required</div>
+     <div class="text-danger" *ngIf="fieldMap[field.name].control.hasError('required') && fieldMap[field.name].control.touched && field.validationMessages?.required">{{field.validationMessages.required}}</div>
+  </div>
+  <div *ngIf="!field.editMode" class="key-value-pair">
+    <span class="key" *ngIf="field.label">{{field.label}}</span>
+    <span class="value">{{getLabel(field.value)}}</span>
+  </div>
+  `,
+})
+export class SelectionFieldComponent extends SelectionComponent {
+
+  hasControl() {
+    return this.field.controlType != 'checkbox';
+  }
+
+  isSelected(opt: any) {
+    const control = _.find(this.fieldMap[this.field.name].control.controls, (ctrl) => {
+      return opt.value == ctrl.value;
     });
-    if (opt) {
-      return opt.label;
+    return control != null;
+  }
+
+  onChange(opt:any, event:any) {
+    if (event.target.checked) {
+      this.fieldMap[this.field.name].control.push(new FormControl(opt.value));
     } else {
-      return '';
+      let idx = null;
+      _.forEach(this.fieldMap[this.field.name].control.controls, (ctrl, i) => {
+        if (ctrl.value == opt.value) {
+          idx = i;
+          return false;
+        }
+      });
+      this.fieldMap[this.field.name].control.removeAt(idx);
     }
   }
 }
+
+
 /****************************************************************************
 Container components
 *****************************************************************************/
@@ -214,6 +258,8 @@ export class HtmlRawComponent extends SimpleComponent {
     <h2 *ngSwitchCase="'h2'" [ngClass]="field.cssClasses">{{field.value}}</h2>
     <h3 *ngSwitchCase="'h3'" [ngClass]="field.cssClasses">{{field.value}}</h3>
     <h4 *ngSwitchCase="'h4'" [ngClass]="field.cssClasses">{{field.value}}</h4>
+    <h5 *ngSwitchCase="'h5'" [ngClass]="field.cssClasses">{{field.value}}</h5>
+    <hr *ngSwitchCase="'hr'" [ngClass]="field.cssClasses">
     <span *ngSwitchCase="'span'" [ngClass]="field.cssClasses">{{field.value}}</span>
     <p *ngSwitchDefault [ngClass]="field.cssClasses">{{field.value}}</p>
   </div>
@@ -232,7 +278,7 @@ Based on: https://bootstrap-datepicker.readthedocs.io/en/stable/
   template: `
   <div *ngIf="field.editMode" [formGroup]='form' class="form-group">
     <label [attr.for]="field.name">
-      {{field.label}} {{ field.required ? '(*)' : ''}}
+      {{field.label}} {{ getRequiredLabelStr()}}
       <button type="button" class="btn btn-default" *ngIf="field.help" (click)="toggleHelp()"><span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span></button>
     </label><br/>
     <span id="{{ 'helpBlock_' + field.name }}" class="help-block" *ngIf="this.helpShow" [innerHtml]="field.help"></span>

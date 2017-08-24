@@ -165,7 +165,7 @@ export class VocabFieldLookupService extends BaseService {
   template: `
   <div *ngIf="field.editMode && !isEmbedded" [formGroup]='form' [ngClass]="getGroupClass()">
     <label>
-      {{field.label}}
+      {{field.label}} {{getRequiredLabelStr()}} 
       <button type="button" class="btn btn-default" *ngIf="field.help" (click)="toggleHelp()"><span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span></button>
     </label>
     <span id="{{ 'helpBlock_' + field.name }}" class="help-block" *ngIf="this.helpShow" >{{field.help}}</span>

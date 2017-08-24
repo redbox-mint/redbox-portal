@@ -20,9 +20,9 @@
 import { Injectable, Inject }   from '@angular/core';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { FieldBase } from './field-base';
-import { TextField, DropdownField, Container, TextArea, DateTime, AnchorOrButton, HiddenValue, LinkValue, TabOrAccordionContainer } from './field-simple';
+import { TextField, Container, TextArea, DateTime, AnchorOrButton, HiddenValue, LinkValue, TabOrAccordionContainer, SelectionField } from './field-simple';
+import { TextFieldComponent, RepeatableTextfieldComponent} from './field-textfield.component';
 import {
-  TextFieldComponent,
   DropdownFieldComponent,
   TabOrAccordionContainerComponent,
   TextBlockComponent,
@@ -30,7 +30,9 @@ import {
   DateTimeComponent,
   AnchorOrButtonComponent,
   HiddenValueComponent,
-  LinkValueComponent} from './field-simple.component';
+  LinkValueComponent,
+  SelectionFieldComponent
+} from './field-simple.component';
 import { VocabField, VocabFieldComponent, VocabFieldLookupService } from './field-vocab.component';
 import { RepeatableContainer, RepeatableVocabComponent, RepeatableContributorComponent } from './field-repeatable.component';
 import { ContributorField, ContributorComponent } from './field-contributor.component';
@@ -56,16 +58,16 @@ export class FieldControlService {
     'TextField': { 'meta': TextField, 'comp': TextFieldComponent },
     'TextArea': { 'meta': TextArea, 'comp': TextAreaComponent },
     'DateTime': { 'meta': DateTime, 'comp': DateTimeComponent },
-    'DropdownField': { 'meta': DropdownField, 'comp': DropdownFieldComponent },
     'Container': {'meta': Container, 'comp': [ TextBlockComponent ] },
     'TabOrAccordionContainer': {'meta': TabOrAccordionContainer, 'comp': TabOrAccordionContainerComponent },
     'AnchorOrButton': { 'meta': AnchorOrButton, 'comp': AnchorOrButtonComponent },
     'VocabField': {'meta': VocabField, 'comp': VocabFieldComponent, 'lookupService': 'vocabFieldLookupService'},
-    'RepeatableContainer': {'meta': RepeatableContainer, 'comp': [RepeatableVocabComponent, RepeatableContributorComponent]},
+    'RepeatableContainer': {'meta': RepeatableContainer, 'comp': [RepeatableVocabComponent, RepeatableContributorComponent, RepeatableTextfieldComponent]},
     'ContributorField': {'meta': ContributorField, 'comp': ContributorComponent},
     'HiddenValue': {'meta': HiddenValue, 'comp': HiddenValueComponent},
     'WorkflowStepButton': {'meta': WorkflowStepButton, 'comp': WorkflowStepButtonComponent},
-    'LinkValueComponent': {'meta': LinkValue, 'comp': LinkValueComponent }
+    'LinkValueComponent': {'meta': LinkValue, 'comp': LinkValueComponent },
+    'SelectionField': {'meta': SelectionField, 'comp': [ SelectionFieldComponent, DropdownFieldComponent ] },
   };
   constructor(@Inject(VocabFieldLookupService) private vocabFieldLookupService: VocabFieldLookupService, @Inject(CompleterService) private completerService: CompleterService,
   @Inject(ConfigService) protected configService: ConfigService,
@@ -97,7 +99,7 @@ export class FieldControlService {
 
   getFieldsMeta(fieldsArr: any) {
     const fields = _.map(fieldsArr, (f:any) => {
-      const inst = new this.classes[f.class].meta(f.definition, this.translationService); 
+      const inst = new this.classes[f.class].meta(f.definition, this.translationService);
       // set the component class
       if (_.isArray(this.classes[f.class].comp)) {
         inst.compClass = _.find(this.classes[f.class].comp, (c:any)=> { return c.name == f.compClass });
