@@ -74,7 +74,7 @@ export class SelectionField extends FieldBase<any>  {
       option.value = this.getTranslated(option.value, option.value);
       return option;
     });
-    
+
   }
 
   createFormModel() {
@@ -89,11 +89,14 @@ export class SelectionField extends FieldBase<any>  {
           fgDef.push(new FormControl(opt.value));
         }
       });
-      console.log(`Created form model:`);
-      const fg = new FormArray(fgDef);
-      console.log(fg);
-      return fg;
+      // const fg = new FormArray(fgDef);
+      // return fg;
+      return new FormArray(fgDef);
     } else {
+      // const model = super.createFormModel();
+      // console.log(`Created form model:`);
+      // console.log(model);
+      // return model;
       return super.createFormModel();
     }
   }

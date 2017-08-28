@@ -144,8 +144,9 @@ export class DropdownFieldComponent extends SelectionComponent {
       <button type="button" class="btn btn-default" *ngIf="field.help" (click)="toggleHelp()"><span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span></button>
      </label><br/>
      <span id="{{ 'helpBlock_' + field.name }}" class="help-block" *ngIf="this.helpShow" [innerHtml]="field.help"></span>
-     <span *ngFor="let opt of field.options" >
-      <input *ngIf="hasControl()" type="{{field.controlType}}" name="{{field.name}}" [id]="field.name + '_' + opt.value" [formControl]="fieldMap[field.name].control" [value]="opt.value" >
+     <span *ngFor="let opt of field.options">
+      <!-- radio type hard-coded otherwise accessor directive will not work! -->
+      <input *ngIf="hasControl()" type="radio" name="{{field.name}}" [id]="field.name + '_' + opt.value" [formControl]="fieldMap[field.name].control" [value]="opt.value">
       <input *ngIf="!hasControl()" type="{{field.controlType}}" name="{{field.name}}" [id]="field.name + '_' + opt.value" [value]="opt.value" (change)="onChange(opt, $event)" [attr.selected]="isSelected(opt)">
       <label for="{{field.name + '_' + opt.value}}" class="radio-label">{{ opt.label }}</label>
       <br/>
