@@ -11,7 +11,7 @@ module.exports.auth = {
       name: 'Admin'
     },
     {
-      name: 'Maintainer'
+      name: 'Librarians'
     },
     {
       name: 'Researcher'

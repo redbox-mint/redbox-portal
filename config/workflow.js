@@ -8,8 +8,8 @@ module.exports.workflow = {
           next: 'active',
         },
         authorization: {
-          viewRoles: ['Admin'],
-          editRoles: ['Admin']
+          viewRoles: ['Admin','Librarians'],
+          editRoles: ['Admin','Librarians']
         },
         form: 'default-1.0-draft'
       },
@@ -20,28 +20,13 @@ module.exports.workflow = {
         workflow: {
           stage: 'active',
           stageLabel: 'Active',
-          next: 'retired',
           back: 'draft'
         },
         authorization: {
-          viewRoles: ['Admin'],
-          editRoles: ['Admin']
+          viewRoles: ['Admin','Librarians'],
+          editRoles: ['Admin','Librarians']
         },
         form: 'default-1.0-active'
-      }
-    },
-    "retired": {
-      config: {
-        workflow: {
-          stage: 'retired',
-          stageLabel: 'Retired',
-          back: 'active'
-        },
-        authorization: {
-          viewRoles: ['Admin'],
-          editRoles: ['Admin']
-        },
-        form: 'default-1.0-retired'
       }
     }
   }
