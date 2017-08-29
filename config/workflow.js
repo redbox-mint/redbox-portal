@@ -14,4 +14,5 @@ module.exports.workflow = {
       },
       starting: true
     }
+  }
 };
