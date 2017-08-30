@@ -187,7 +187,7 @@ module.exports.form = {
                     {
                       class: 'TextField',
                         definition: {
-                          name: 'dc:relation.bibo:Website',
+                          name: 'dc:relation_bibo:Website',
                           label: '@dmpt-project-website',
                           help: '@dmpt-project-website-help',
                           type: 'text'
@@ -196,7 +196,7 @@ module.exports.form = {
                     {
                       class: 'DateTime',
                         definition: {
-                         name: "dc:coverage.vivo:DateTimeInterval.vivo:start",
+                         name: "dc:coverage_vivo:DateTimeInterval_vivo:start",
                          label: "@dmpt-project-startdate",
                          help: '@dmpt-project-startdate-help',
                          datePickerOpts: {format: 'dd/mm/yyyy', icon: 'fa fa-calendar'},
@@ -204,13 +204,13 @@ module.exports.form = {
                          hasClearButton: false,
                          valueFormat: 'YYYY-MM-DD',
                          displayFormat: 'L',
-                         onChange: {setStartDate: ['dc:coverage.vivo:DateTimeInterval.vivo:end']}
+                         onChange: {setStartDate: ['dc:coverage_vivo:DateTimeInterval_vivo:end']}
                         }
                     },
                     {
                     class: 'DateTime',
                       definition: {
-                       name: "dc:coverage.vivo:DateTimeInterval.vivo:end",
+                       name: "dc:coverage_vivo:DateTimeInterval_vivo:end",
                        label: "@dmpt-project-enddate",
                        help: '@dmpt-project-enddate-help',
                        datePickerOpts: {format: 'dd/mm/yyyy', icon: 'fa fa-calendar'},
@@ -224,7 +224,7 @@ module.exports.form = {
                       class: 'SelectionField',
                       compClass: 'DropdownFieldComponent',
                       definition: {
-                       name: 'dc:subject.anzsrc:toa.rdf:resource',
+                       name: 'dc:subject_anzsrc:toa_rdf:resource',
                        label: '@dmpt-project-activity-type',
                        help: '@dmpt-project-activity-type-help',
                        options: [
@@ -241,7 +241,7 @@ module.exports.form = {
                       definition: {
                         label: "@dmpt-project-anzsrcFor",
                         help: "@dmpt-project-anzsrcFor-help",
-                        name: "dc:subject.anzsrc:for",
+                        name: "dc:subject_anzsrc:for",
                         forceClone: ['sourceData','completerService'],
                         fields: [
                           {
@@ -265,7 +265,7 @@ module.exports.form = {
                      definition: {
                        label: "@dmpt-project-anzsrcSeo",
                        help: "@dmpt-project-anzsrcSeo-help",
-                       name: "dc:subject.anzsrc:seo",
+                       name: "dc:subject_anzsrc:seo",
                        forceClone: ['sourceData','completerService'],
                        fields: [
                          {
@@ -349,7 +349,7 @@ module.exports.form = {
                       class: 'TextArea',
                       compClass: 'TextAreaComponent',
                       definition: {
-                        name: 'vivo:Dataset.redbox:DataCollectionMethodology',
+                        name: 'vivo:Dataset_redbox:DataCollectionMethodology',
                         label: '@dmpt-data-collection-methodology',
                         help: '@dmpt-data-collection-methodology-help',
                         rows: 5,
@@ -364,14 +364,14 @@ module.exports.form = {
                       class: 'TextArea',
                       compClass: 'TextAreaComponent',
                       definition: {
-                        name: 'vivo:Dataset.dc.format',
-                        label: '@dmpt-vivo:Dataset.dc.format',
-                        help: '@dmpt-vivo:Dataset.dc.format-help',
+                        name: 'vivo:Dataset_dc_format',
+                        label: '@dmpt-vivo:Dataset_dc_format',
+                        help: '@dmpt-vivo:Dataset_dc_format-help',
                         rows: 5,
                         columns: 10,
                         required: true,
                         validationMessages: {
-                          required: "@dmpt-vivo:Dataset.dc.format-required"
+                          required: "@dmpt-vivo:Dataset_dc_format-required"
                         }
                       }
                     },
@@ -379,9 +379,9 @@ module.exports.form = {
                       class: 'TextArea',
                       compClass: 'TextAreaComponent',
                       definition: {
-                        name: 'vivo:Dataset.redbox:DataCollectionResources',
-                        label: '@dmpt-vivo:Dataset.redbox:DataCollectionResources',
-                        help: '@dmpt-vivo:Dataset.redbox:DataCollectionResources-help',
+                        name: 'vivo:Dataset_redbox:DataCollectionResources',
+                        label: '@dmpt-vivo:Dataset_redbox:DataCollectionResources',
+                        help: '@dmpt-vivo:Dataset_redbox:DataCollectionResources-help',
                         rows: 5,
                         columns: 10
                       }
@@ -390,9 +390,9 @@ module.exports.form = {
                       class: 'TextArea',
                       compClass: 'TextAreaComponent',
                       definition: {
-                        name: 'vivo:Dataset.redbox:DataAnalysisResources',
-                        label: '@dmpt-vivo:Dataset.redbox:DataAnalysisResources',
-                        help: '@dmpt-vivo:Dataset.redbox:DataAnalysisResources-help',
+                        name: 'vivo:Dataset_redbox:DataAnalysisResources',
+                        label: '@dmpt-vivo:Dataset_redbox:DataAnalysisResources',
+                        help: '@dmpt-vivo:Dataset_redbox:DataAnalysisResources-help',
                         rows: 5,
                         columns: 10
                       }
@@ -401,9 +401,9 @@ module.exports.form = {
                       class: 'TextArea',
                       compClass: 'TextAreaComponent',
                       definition: {
-                        name: 'vivo:Dataset.redbox:MetadataStandard',
-                        label: '@dmpt-vivo:Dataset.redbox:MetadataStandard',
-                        help: '@dmpt-vivo:Dataset.redbox:MetadataStandard-help',
+                        name: 'vivo:Dataset_redbox:MetadataStandard',
+                        label: '@dmpt-vivo:Dataset_redbox:MetadataStandard',
+                        help: '@dmpt-vivo:Dataset_redbox:MetadataStandard-help',
                         rows: 5,
                         columns: 10
                       }
@@ -412,9 +412,9 @@ module.exports.form = {
                       class: 'TextArea',
                       compClass: 'TextAreaComponent',
                       definition: {
-                        name: 'vivo:Dataset.redbox:DataStructureStandard',
-                        label: '@dmpt-vivo:Dataset.redbox:DataStructureStandard',
-                        help: '@dmpt-vivo:Dataset.redbox:DataStructureStandard-help',
+                        name: 'vivo:Dataset_redbox:DataStructureStandard',
+                        label: '@dmpt-vivo:Dataset_redbox:DataStructureStandard',
+                        help: '@dmpt-vivo:Dataset_redbox:DataStructureStandard-help',
                         rows: 5,
                         columns: 10
                       }
@@ -443,18 +443,18 @@ module.exports.form = {
                       class: 'SelectionField',
                       compClass: 'DropdownFieldComponent',
                       definition: {
-                        name: 'vivo:Dataset.dc:extent',
-                        label: '@dmpt-vivo:Dataset.dc:extent',
-                        help: '@dmpt-vivo:Dataset.dc:extent-help',
+                        name: 'vivo:Dataset_dc:extent',
+                        label: '@dmpt-vivo:Dataset_dc:extent',
+                        help: '@dmpt-vivo:Dataset_dc:extent-help',
                         options: [
-                          { value: "@dmpt-vivo:Dataset.dc:extent-less-than-10GB", label: "@dmpt-vivo:Dataset.dc:extent-less-than-10GB" },
-                          { value: "@dmpt-vivo:Dataset.dc:extent-10-20GB", label: "@dmpt-vivo:Dataset.dc:extent-10-20GB"},
-                          { value: "@dmpt-vivo:Dataset.dc:extent-20-100GB", label: "@dmpt-vivo:Dataset.dc:extent-20-100GB"},
-                          { value: "@dmpt-vivo:Dataset.dc:extent-more-than-100GB", label: "@dmpt-vivo:Dataset.dc:extent-more-than-100GB"}
+                          { value: "@dmpt-vivo:Dataset_dc:extent-less-than-10GB", label: "@dmpt-vivo:Dataset_dc:extent-less-than-10GB" },
+                          { value: "@dmpt-vivo:Dataset_dc:extent-10-20GB", label: "@dmpt-vivo:Dataset_dc:extent-10-20GB"},
+                          { value: "@dmpt-vivo:Dataset_dc:extent-20-100GB", label: "@dmpt-vivo:Dataset_dc:extent-20-100GB"},
+                          { value: "@dmpt-vivo:Dataset_dc:extent-more-than-100GB", label: "@dmpt-vivo:Dataset_dc:extent-more-than-100GB"}
                         ],
                         required: true,
                         validationMessages: {
-                          required: "@dmpt-vivo:Dataset.dc:extent-required"
+                          required: "@dmpt-vivo:Dataset_dc:extent-required"
                         }
                       }
                     },
@@ -462,18 +462,18 @@ module.exports.form = {
                       class: 'SelectionField',
                       compClass: 'DropdownFieldComponent',
                       definition: {
-                        name: 'vivo:Dataset.dc:location.rdf:PlainLiteral',
-                        label: '@dmpt-vivo:Dataset.dc:location.rdf:PlainLiteral',
-                        help: '@dmpt-vivo:Dataset.dc:location.rdf:PlainLiteral-help',
+                        name: 'vivo:Dataset_dc:location_rdf:PlainLiteral',
+                        label: '@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral',
+                        help: '@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-help',
                         options: [
-                          { value: "@dmpt-vivo:Dataset.dc:location.rdf:PlainLiteral-personal", label: "@dmpt-vivo:Dataset.dc:location.rdf:PlainLiteral-personal" },
-                          { value: "@dmpt-vivo:Dataset.dc:location.rdf:PlainLiteral-shared", label: "@dmpt-vivo:Dataset.dc:location.rdf:PlainLiteral-shared"},
-                          { value: "@dmpt-vivo:Dataset.dc:location.rdf:PlainLiteral-uni", label: "@dmpt-vivo:Dataset.dc:location.rdf:PlainLiteral-uni"},
-                          { value: "@dmpt-vivo:Dataset.dc:location.rdf:PlainLiteral-other", label: "@dmpt-vivo:Dataset.dc:location.rdf:PlainLiteral-other"}
+                          { value: "@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-personal", label: "@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-personal" },
+                          { value: "@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-shared", label: "@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-shared"},
+                          { value: "@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-uni", label: "@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-uni"},
+                          { value: "@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-other", label: "@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-other"}
                         ],
                         required: true,
                         validationMessages: {
-                          required: "@dmpt-vivo:Dataset.dc:location.rdf:PlainLiteral-required"
+                          required: "@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-required"
                         }
                       }
                     },
@@ -481,8 +481,8 @@ module.exports.form = {
                       class: 'TextArea',
                       compClass: 'TextAreaComponent',
                       definition: {
-                        name: 'vivo:Dataset.dc:location.skos:note',
-                        label: '@dmpt-vivo:Dataset.dc:location.skos:note',
+                        name: 'vivo:Dataset_dc:location_skos:note',
+                        label: '@dmpt-vivo:Dataset_dc:location_skos:note',
                         rows: 5,
                         columns: 10
                       }
@@ -491,18 +491,18 @@ module.exports.form = {
                       class: 'SelectionField',
                       compClass: 'DropdownFieldComponent',
                       definition: {
-                        name: 'vivo:Dataset.dc:source.dc:location.rdf:PlainLiteral',
-                        label: '@dmpt-vivo:Dataset.dc:source.dc:location.rdf:PlainLiteral',
-                        help: '@dmpt-vivo:Dataset.dc:source.dc:location.rdf:PlainLiteral-help',
+                        name: 'vivo:Dataset_dc:source_dc:location_rdf:PlainLiteral',
+                        label: '@dmpt-vivo:Dataset_dc:source_dc:location_rdf:PlainLiteral',
+                        help: '@dmpt-vivo:Dataset_dc:source_dc:location_rdf:PlainLiteral-help',
                         options: [
-                          { value: "@dmpt-vivo:Dataset.dc:source.dc:location.rdf:PlainLiteral-personal", label: "@dmpt-vivo:Dataset.dc:source.dc:location.rdf:PlainLiteral-personal" },
-                          { value: "@dmpt-vivo:Dataset.dc:source.dc:location.rdf:PlainLiteral-shared", label: "@dmpt-vivo:Dataset.dc:source.dc:location.rdf:PlainLiteral-shared"},
-                          { value: "@dmpt-vivo:Dataset.dc:source.dc:location.rdf:PlainLiteral-uni", label: "@dmpt-vivo:Dataset.dc:source.dc:location.rdf:PlainLiteral-uni"},
-                          { value: "@dmpt-vivo:Dataset.dc:source.dc:location.rdf:PlainLiteral-other", label: "@dmpt-vivo:Dataset.dc:source.dc:location.rdf:PlainLiteral-other"}
+                          { value: "@dmpt-vivo:Dataset_dc:source_dc:location_rdf:PlainLiteral-personal", label: "@dmpt-vivo:Dataset_dc:source_dc:location_rdf:PlainLiteral-personal" },
+                          { value: "@dmpt-vivo:Dataset_dc:source_dc:location_rdf:PlainLiteral-shared", label: "@dmpt-vivo:Dataset_dc:source_dc:location_rdf:PlainLiteral-shared"},
+                          { value: "@dmpt-vivo:Dataset_dc:source_dc:location_rdf:PlainLiteral-uni", label: "@dmpt-vivo:Dataset_dc:source_dc:location_rdf:PlainLiteral-uni"},
+                          { value: "@dmpt-vivo:Dataset_dc:source_dc:location_rdf:PlainLiteral-other", label: "@dmpt-vivo:Dataset_dc:source_dc:location_rdf:PlainLiteral-other"}
                         ],
                         required: true,
                         validationMessages: {
-                          required: "@dmpt-vivo:Dataset.dc:source.dc:location.rdf:PlainLiteral-required"
+                          required: "@dmpt-vivo:Dataset_dc:source_dc:location_rdf:PlainLiteral-required"
                         }
                       }
                     },
@@ -510,8 +510,8 @@ module.exports.form = {
                       class: 'TextArea',
                       compClass: 'TextAreaComponent',
                       definition: {
-                        name: 'vivo:Dataset.dc:source.dc:location.skos:note',
-                        label: '@dmpt-vivo:Dataset.dc:location.skos:note',
+                        name: 'vivo:Dataset_dc:source_dc:location_skos:note',
+                        label: '@dmpt-vivo:Dataset_dc:source_dc:location_skos:note',
                         rows: 5,
                         columns: 10
                       }
@@ -540,19 +540,19 @@ module.exports.form = {
                       class: 'SelectionField',
                       compClass: 'DropdownFieldComponent',
                       definition: {
-                        name: 'redbox:retentionPeriod.dc:date',
-                        label: '@dmpt-redbox:retentionPeriod.dc:date',
-                        help: '@dmpt-redbox:retentionPeriod.dc:date-help',
+                        name: 'redbox:retentionPeriod_dc:date',
+                        label: '@dmpt-redbox:retentionPeriod_dc:date',
+                        help: '@dmpt-redbox:retentionPeriod_dc:date-help',
                         options: [
-                          { value: "1year", label: "@dmpt-redbox:retentionPeriod.dc:date-1year" },
-                          { value: "5years", label: "@dmpt-redbox:retentionPeriod.dc:date-5years"},
-                          { value: "7years", label: "@dmpt-redbox:retentionPeriod.dc:date-7years"},
-                          { value: "15years", label: "@dmpt-redbox:retentionPeriod.dc:date-15years"},
-                          { value: "permanent", label: "@dmpt-redbox:retentionPeriod.dc:date-permanent"}
+                          { value: "1year", label: "@dmpt-redbox:retentionPeriod_dc:date-1year" },
+                          { value: "5years", label: "@dmpt-redbox:retentionPeriod_dc:date-5years"},
+                          { value: "7years", label: "@dmpt-redbox:retentionPeriod_dc:date-7years"},
+                          { value: "15years", label: "@dmpt-redbox:retentionPeriod_dc:date-15years"},
+                          { value: "permanent", label: "@dmpt-redbox:retentionPeriod_dc:date-permanent"}
                         ],
                         required: true,
                         validationMessages: {
-                          required: "@dmpt-redbox:retentionPeriod.dc:date-required"
+                          required: "@dmpt-redbox:retentionPeriod_dc:date-required"
                         }
                       }
                     },
@@ -560,14 +560,14 @@ module.exports.form = {
                       class: 'SelectionField',
                       compClass: 'DropdownFieldComponent',
                       definition: {
-                        name: 'redbox:retentionPeriod.dc:date.skos:note',
-                        label: '@dmpt-redbox:retentionPeriod.dc:date.skos:note',
+                        name: 'redbox:retentionPeriod_dc:date_skos:note',
+                        label: '@dmpt-redbox:retentionPeriod_dc:date_skos:note',
                         options: [
-                          { value: "heritage", label: "@dmpt-redbox:retentionPeriod.dc:date.skos:note-heritage" },
-                          { value: "controversial", label: "@dmpt-redbox:retentionPeriod.dc:date.skos:note-controversial"},
-                          { value: "ofinterest", label: "@dmpt-redbox:retentionPeriod.dc:date.skos:note-ofinterest"},
-                          { value: "costly_impossible", label: "@dmpt-redbox:retentionPeriod.dc:date.skos:note-costly_impossible"},
-                          { value: "commercial", label: "@dmpt-redbox:retentionPeriod.dc:date.skos:note-commercial"}
+                          { value: "heritage", label: "@dmpt-redbox:retentionPeriod_dc:date_skos:note-heritage" },
+                          { value: "controversial", label: "@dmpt-redbox:retentionPeriod_dc:date_skos:note-controversial"},
+                          { value: "ofinterest", label: "@dmpt-redbox:retentionPeriod_dc:date_skos:note-ofinterest"},
+                          { value: "costly_impossible", label: "@dmpt-redbox:retentionPeriod_dc:date_skos:note-costly_impossible"},
+                          { value: "commercial", label: "@dmpt-redbox:retentionPeriod_dc:date_skos:note-commercial"}
                         ]
                       }
                     },
@@ -608,17 +608,17 @@ module.exports.form = {
                       class: 'SelectionField',
                       compClass: 'DropdownFieldComponent',
                       definition: {
-                        name: 'dc:rightsHolder.dc:name',
-                        label: '@dmpt-dc:rightsHolder.dc:name',
-                        help: '@dmpt-dc:rightsHolder.dc:name-help',
+                        name: 'dc:rightsHolder_dc:name',
+                        label: '@dmpt-dc:rightsHolder_dc:name',
+                        help: '@dmpt-dc:rightsHolder_dc:name-help',
                         options: [
-                          { value: "myUni", label: "@dmpt-dc:rightsHolder.dc:name-myUni" },
-                          { value: "myUnjount", label: "@dmpt-dc:rightsHolder.dc:name-myUnjount"},
-                          { value: "student", label: "@dmpt-dc:rightsHolder.dc:name-student"}
+                          { value: "myUni", label: "@dmpt-dc:rightsHolder_dc:name-myUni" },
+                          { value: "myUnjount", label: "@dmpt-dc:rightsHolder_dc:name-myUnjount"},
+                          { value: "student", label: "@dmpt-dc:rightsHolder_dc:name-student"}
                         ],
                         required: true,
                         validationMessages: {
-                          required: "@dmpt-dc:rightsHolder.dc:name-required"
+                          required: "@dmpt-dc:rightsHolder_dc:name-required"
                         }
                       }
                     },
@@ -626,9 +626,9 @@ module.exports.form = {
                       class: 'TextArea',
                       compClass: 'TextAreaComponent',
                       definition: {
-                        name: 'dc:rightsHolder.dc:description',
-                        label: '@dmpt-dc:rightsHolder.dc:description',
-                        help: '@dmpt-dc:rightsHolder.dc:description-help',
+                        name: 'dc:rightsHolder_dc:description',
+                        label: '@dmpt-dc:rightsHolder_dc:description',
+                        help: '@dmpt-dc:rightsHolder_dc:description-help',
                         rows: 5,
                         columns: 10
                       }
@@ -648,9 +648,9 @@ module.exports.form = {
                     class: 'RepeatableContainer',
                     compClass: 'RepeatableTextfieldComponent',
                       definition: {
-                        label: "@dmpt-dc:coverage.dc:identifier",
-                        help: "@dmpt-dc:coverage.dc:identifier-help",
-                        name: "dc:coverage.dc:identifier",
+                        label: "@dmpt-dc:coverage_dc:identifier",
+                        help: "@dmpt-dc:coverage_dc:identifier-help",
+                        name: "dc:coverage_dc:identifier",
                         editOnly: true,
                         fields: [
                           {
@@ -710,8 +710,8 @@ module.exports.form = {
                     {
                       class: 'TextField',
                       definition: {
-                        name: 'dataLicensingAccess.manager',
-                        label: '@dmpt-dataLicensingAccess.manager',
+                        name: 'dataLicensingAccess_manager',
+                        label: '@dmpt-dataLicensingAccess_manager',
                         type: 'text'
                       }
                     },
@@ -734,41 +734,41 @@ module.exports.form = {
                       class: 'SelectionField',
                       compClass: 'DropdownFieldComponent',
                       definition: {
-                        name: 'dc:license.dc:identifier',
-                        label: '@dmpt-dc:license.dc:identifier',
-                        help: '@dmpt-dc:license.dc:identifier-help',
+                        name: 'dc:license_dc:identifier',
+                        label: '@dmpt-dc:license_dc:identifier',
+                        help: '@dmpt-dc:license_dc:identifier-help',
                         options: [
-                          { value: "http://creativecommons.org/licenses/by/3.0/au", label: "@dmpt-dc:license.dc:identifier-1" },
-                          { value: "http://creativecommons.org/licenses/by-sa/3.0/au", label: "@dmpt-dc:license.dc:identifier-2"},
-                          { value: "http://creativecommons.org/licenses/by-nd/3.0/au", label: "@dmpt-dc:license.dc:identifier-3"},
-                          { value: "http://creativecommons.org/licenses/by-nc/3.0/au", label: "@dmpt-dc:license.dc:identifier-4"},
-                          { value: "http://creativecommons.org/licenses/by-nc-sa/3.0/au", label: "@dmpt-dc:license.dc:identifier-5"},
-                          { value: "http://creativecommons.org/licenses/by-nc-nd/3.0/au", label: "@dmpt-dc:license.dc:identifier-6" },
-                          { value: "http://creativecommons.org/licenses/by/4.0", label: "@dmpt-dc:license.dc:identifier-7" },
-                          { value: "http://creativecommons.org/licenses/by-sa/4.0", label: "@dmpt-dc:license.dc:identifier-8" },
-                          { value: "http://creativecommons.org/licenses/by-nd/4.0", label: "@dmpt-dc:license.dc:identifier-9" },
-                          { value: "http://creativecommons.org/licenses/by-nc/4.0", label: "@dmpt-dc:license.dc:identifier-10" },
-                          { value: "http://creativecommons.org/licenses/by-nc-sa/4.0", label: "@dmpt-dc:license.dc:identifier-11" },
-                          { value: "http://creativecommons.org/licenses/by-nc-nd/4.0", label: "@dmpt-dc:license.dc:identifier-12" },
-                          { value: "http://opendatacommons.org/licenses/pddl/1.0/", label: "@dmpt-dc:license.dc:identifier-13" },
-                          { value: "http://opendatacommons.org/licenses/by/1.0/", label: "@dmpt-dc:license.dc:identifier-14" },
-                          { value: "http://opendatacommons.org/licenses/odbl/1.0/", label: "@dmpt-dc:license.dc:identifier-15" },
+                          { value: "http://creativecommons.org/licenses/by/3.0/au", label: "@dmpt-dc:license_dc:identifier-1" },
+                          { value: "http://creativecommons.org/licenses/by-sa/3.0/au", label: "@dmpt-dc:license_dc:identifier-2"},
+                          { value: "http://creativecommons.org/licenses/by-nd/3.0/au", label: "@dmpt-dc:license_dc:identifier-3"},
+                          { value: "http://creativecommons.org/licenses/by-nc/3.0/au", label: "@dmpt-dc:license_dc:identifier-4"},
+                          { value: "http://creativecommons.org/licenses/by-nc-sa/3.0/au", label: "@dmpt-dc:license_dc:identifier-5"},
+                          { value: "http://creativecommons.org/licenses/by-nc-nd/3.0/au", label: "@dmpt-dc:license_dc:identifier-6" },
+                          { value: "http://creativecommons.org/licenses/by/4.0", label: "@dmpt-dc:license_dc:identifier-7" },
+                          { value: "http://creativecommons.org/licenses/by-sa/4.0", label: "@dmpt-dc:license_dc:identifier-8" },
+                          { value: "http://creativecommons.org/licenses/by-nd/4.0", label: "@dmpt-dc:license_dc:identifier-9" },
+                          { value: "http://creativecommons.org/licenses/by-nc/4.0", label: "@dmpt-dc:license_dc:identifier-10" },
+                          { value: "http://creativecommons.org/licenses/by-nc-sa/4.0", label: "@dmpt-dc:license_dc:identifier-11" },
+                          { value: "http://creativecommons.org/licenses/by-nc-nd/4.0", label: "@dmpt-dc:license_dc:identifier-12" },
+                          { value: "http://opendatacommons.org/licenses/pddl/1.0/", label: "@dmpt-dc:license_dc:identifier-13" },
+                          { value: "http://opendatacommons.org/licenses/by/1.0/", label: "@dmpt-dc:license_dc:identifier-14" },
+                          { value: "http://opendatacommons.org/licenses/odbl/1.0/", label: "@dmpt-dc:license_dc:identifier-15" },
                         ]
                       }
                     },
                     {
                       class: 'TextField',
                       definition: {
-                        name: 'dc:license.dc:identifier.other',
-                        label: '@dmpt-dc:license.dc:identifier.other',
+                        name: 'dc:license_dc:identifier_other',
+                        label: '@dmpt-dc:license_dc:identifier_other',
                         type: 'text'
                       }
                     },
                     {
                       class: 'TextField',
                       definition: {
-                        name: 'dc:license.dc:identifier.url',
-                        label: '@dmpt-dc:license.dc:identifier.url',
+                        name: 'dc:license_dc:identifier_url',
+                        label: '@dmpt-dc:license_dc:identifier_url',
                         type: 'text'
                       }
                     },
@@ -802,9 +802,9 @@ module.exports.form = {
                       class: 'TextArea',
                       compClass: 'TextAreaComponent',
                       definition: {
-                        name: 'dc:rights.skos:note',
-                        label: '@dmpt-dc:rights.skos:note',
-                        help: '@dmpt-dc:rights.skos:note-help',
+                        name: 'dc:rights_skos:note',
+                        label: '@dmpt-dc:rights_skos:note',
+                        help: '@dmpt-dc:rights_skos:note-help',
                         rows: 5,
                         columns: 10
                       }
@@ -832,9 +832,9 @@ module.exports.form = {
                     {
                       class: 'TextField',
                       definition: {
-                        name: 'agls:policy.dc:identifier',
-                        label: '@dmpt-agls:policy.dc:identifier',
-                        help: '@dmpt-agls:policy.dc:identifier-help',
+                        name: 'agls:policy_dc:identifier',
+                        label: '@dmpt-agls:policy_dc:identifier',
+                        help: '@dmpt-agls:policy_dc:identifier-help',
                         type: 'text'
                       }
                     },
@@ -842,9 +842,9 @@ module.exports.form = {
                       class: 'TextArea',
                       compClass: 'TextAreaComponent',
                       definition: {
-                        name: 'agls:policy.skos:note',
-                        label: '@dmpt-agls:policy.skos:note',
-                        help: '@dmpt-agls:policy.skos:note-help',
+                        name: 'agls:policy_skos:note',
+                        label: '@dmpt-agls:policy_skos:note',
+                        help: '@dmpt-agls:policy_skos:note-help',
                         rows: 5,
                         columns: 10
                       }
@@ -861,15 +861,15 @@ module.exports.form = {
                       class: 'SelectionField',
                       compClass: 'SelectionFieldComponent',
                       definition: {
-                        name: 'agls:protectiveMarking.dc:type',
-                        label: '@dmpt-agls:protectiveMarking.dc:type',
-                        help: '@dmpt-agls:protectiveMarking.dc:type-help',
+                        name: 'agls:protectiveMarking_dc:type',
+                        label: '@dmpt-agls:protectiveMarking_dc:type',
+                        help: '@dmpt-agls:protectiveMarking_dc:type-help',
                         controlType: 'checkbox',
                         options: [
-                          { value: "agls:protectiveMarking.dc:type.redbox:CommerciallySensitive", label: "@dmpt-agls:protectiveMarking.dc:type-commercial"},
-                          { value: "agls:protectiveMarking.dc:type.redbox:CulturallySensitive", label: "@dmpt-agls:protectiveMarking.dc:type-cultural"},
-                          { value: "agls:protectiveMarking.dc:type.redbox:SecurityClassified", label: "@dmpt-agls:protectiveMarking.dc:type-security"},
-                          { value: "agls:protectiveMarking.dc:type.redbox:NonPublic", label: "@dmpt-agls:protectiveMarking.dc:type-nonPublic"}
+                          { value: "agls:protectiveMarking_dc:type.redbox:CommerciallySensitive", label: "@dmpt-agls:protectiveMarking_dc:type-commercial"},
+                          { value: "agls:protectiveMarking_dc:type.redbox:CulturallySensitive", label: "@dmpt-agls:protectiveMarking_dc:type-cultural"},
+                          { value: "agls:protectiveMarking_dc:type.redbox:SecurityClassified", label: "@dmpt-agls:protectiveMarking_dc:type-security"},
+                          { value: "agls:protectiveMarking_dc:type.redbox:NonPublic", label: "@dmpt-agls:protectiveMarking_dc:type-nonPublic"}
                         ]
                       }
                     },
@@ -877,9 +877,9 @@ module.exports.form = {
                       class: 'TextArea',
                       compClass: 'TextAreaComponent',
                       definition: {
-                        name: 'agls:protectiveMarking.skos:note',
-                        label: '@dmpt-agls:protectiveMarking.skos:note',
-                        help: '@dmpt-agls:protectiveMarking.skos:note-help',
+                        name: 'agls:protectiveMarking_dc:type',
+                        label: '@dmpt-agls:protectiveMarking_dc:type',
+                        help: '@dmpt-agls:protectiveMarking_dc:type-help',
                         rows: 5,
                         columns: 10
                       }

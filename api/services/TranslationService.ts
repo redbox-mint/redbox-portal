@@ -57,7 +57,7 @@ export module Services {
     public t(key) {
       return i18next.t(key);
     }
-
   }
+}
 
   module.exports = new Services.Translation().exports();
