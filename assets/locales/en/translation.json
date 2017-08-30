@@ -99,7 +99,7 @@
   "@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-shared": "Shared university network drive",
   "@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-uni": "University provided collaboration space",
   "@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-other": "Other",
-  "@dmpt-vivo:Dataset.dc:location.skos:note": "If other, please provide further details:",
+  "@dmpt-vivo:Dataset_dc:location_skos:note": "If other, please provide further details:",
   "@dmpt-vivo:Dataset_dc:source_dc:location_rdf:PlainLiteral": "Location of the master version",
   "@dmpt-vivo:Dataset_dc:source_dc:location_rdf:PlainLiteral-help": "Nominate where the master version of your research data will be stored. If you intend to store your master version in an alternative location please provide details in the field below.",
   "@dmpt-vivo:Dataset_dc:source_dc:location_rdf:PlainLiteral-required": "Location of the master version is required",
@@ -191,5 +191,4 @@
   "@dmpt-agls:protectiveMarking_skos:note": "Information about privacy, confidentiality or sensitivity to the data and how it will be managed ",
   "@dmpt-agls:protectiveMarking_skos:note-help": "Where there are privacy, confidentiality or sensitivity factors relevant to this research data provide details about the measures that will be put in place to ensure that the data or information is kept private.",
   "@dmpt-vivo:Dataset_dc:source_dc:location_skos:note": "If other, please provide further details, including information about backups:"
-
 }
