@@ -184,7 +184,9 @@ export class SelectionFieldComponent extends SelectionComponent {
           return false;
         }
       });
-      this.fieldMap[this.field.name].control.removeAt(idx);
+      if (idx) {
+        this.fieldMap[this.field.name].control.removeAt(idx);
+      }
     }
   }
 }

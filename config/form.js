@@ -877,9 +877,9 @@ module.exports.form = {
                       class: 'TextArea',
                       compClass: 'TextAreaComponent',
                       definition: {
-                        name: 'agls:protectiveMarking_dc:type',
-                        label: '@dmpt-agls:protectiveMarking_dc:type',
-                        help: '@dmpt-agls:protectiveMarking_dc:type-help',
+                        name: 'agls:protectiveMarking_skos:note',
+                        label: '@dmpt-agls:protectiveMarking_skos:note',
+                        help: '@dmpt-agls:protectiveMarking_skos:note',
                         rows: 5,
                         columns: 10
                       }
