@@ -146,8 +146,8 @@ export class DropdownFieldComponent extends SelectionComponent {
      <span id="{{ 'helpBlock_' + field.name }}" class="help-block" *ngIf="this.helpShow" [innerHtml]="field.help"></span>
      <span *ngFor="let opt of field.options">
       <!-- radio type hard-coded otherwise accessor directive will not work! -->
-      <input *ngIf="hasControl()" type="radio" name="{{field.name}}" [id]="field.name + '_' + opt.value" [formControl]="fieldMap[field.name].control" [value]="opt.value">
-      <input *ngIf="!hasControl()" type="{{field.controlType}}" name="{{field.name}}" [id]="field.name + '_' + opt.value" [value]="opt.value" (change)="onChange(opt, $event)" [attr.selected]="isSelected(opt)">
+      <input *ngIf="isRadio()" type="radio" name="{{field.name}}" [id]="field.name + '_' + opt.value" [formControl]="fieldMap[field.name].control" [value]="opt.value">
+      <input *ngIf="!isRadio()" type="{{field.controlType}}" name="{{field.name}}" [id]="field.name + '_' + opt.value" [value]="opt.value" (change)="onChange(opt, $event)" [attr.selected]="getControlFromOption(opt)" [attr.checked]="getControlFromOption(opt)">
       <label for="{{field.name + '_' + opt.value}}" class="radio-label">{{ opt.label }}</label>
       <br/>
      </span>
@@ -155,22 +155,28 @@ export class DropdownFieldComponent extends SelectionComponent {
      <div class="text-danger" *ngIf="fieldMap[field.name].control.hasError('required') && fieldMap[field.name].control.touched && field.validationMessages?.required">{{field.validationMessages.required}}</div>
   </div>
   <div *ngIf="!field.editMode" class="key-value-pair">
-    <span class="key" *ngIf="field.label">{{field.label}}</span>
-    <span class="value">{{getLabel(field.value)}}</span>
+    <ng-container *ngIf="isRadio()">
+      <span *ngIf="field.label" class="key">{{field.label}}</span>
+      <span class="value">{{getLabel(field.value)}}</span>
+    </ng-container>
+    <ng-container *ngIf="!isRadio()">
+      <span *ngIf="field.label" class="key">{{field.label}}</span>
+      <span class="value" *ngFor="let value of field.value">{{getLabel(value)}}<br/></span>
+    </ng-container>
   </div>
   `,
 })
 export class SelectionFieldComponent extends SelectionComponent {
 
-  hasControl() {
-    return this.field.controlType != 'checkbox';
+  isRadio() {
+    return this.field.controlType == 'radio';
   }
 
-  isSelected(opt: any) {
+  getControlFromOption(opt: any) {
     const control = _.find(this.fieldMap[this.field.name].control.controls, (ctrl) => {
       return opt.value == ctrl.value;
     });
-    return control != null;
+    return control;
   }
 
   onChange(opt:any, event:any) {
@@ -184,9 +190,7 @@ export class SelectionFieldComponent extends SelectionComponent {
           return false;
         }
       });
-      if (idx) {
-        this.fieldMap[this.field.name].control.removeAt(idx);
-      }
+      this.fieldMap[this.field.name].control.removeAt(idx);
     }
   }
 }

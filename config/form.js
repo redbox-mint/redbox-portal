@@ -879,7 +879,7 @@ module.exports.form = {
                       definition: {
                         name: 'agls:protectiveMarking_skos:note',
                         label: '@dmpt-agls:protectiveMarking_skos:note',
-                        help: '@dmpt-agls:protectiveMarking_skos:note',
+                        help: '@dmpt-agls:protectiveMarking_skos:note-help',
                         rows: 5,
                         columns: 10
                       }
