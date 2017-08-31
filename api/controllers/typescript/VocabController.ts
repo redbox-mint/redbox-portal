@@ -41,7 +41,8 @@ export module Controllers {
     protected _exportedMethods: any = [
         'get',
         'getCollection',
-        'loadCollection'
+        'loadCollection',
+        'getMint'
     ];
 
     /**
@@ -84,6 +85,17 @@ export module Controllers {
       const collectionId = req.param('collectionId');
       VocabService.loadCollection(collectionId).subscribe(receipt => {
         this.ajaxOk(req, res, null, {status: 'queued', message: 'All good.', receipt: receipt}, true);
+      }, error => {
+        this.ajaxFail(req, res, null, error, true);
+      });
+    }
+
+    public getMint(req, res) {
+      const mintSourceType = req.param('mintSourceType');
+      const searchString = req.query.search;
+      VocabService.findInMint(mintSourceType, searchString).subscribe(mintResponse => {
+        // only return the response...
+        this.ajaxOk(req, res, null, mintResponse.response.docs, true);
       }, error => {
         this.ajaxFail(req, res, null, error, true);
       });

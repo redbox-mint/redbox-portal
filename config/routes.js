@@ -94,6 +94,7 @@ module.exports.routes = {
   'get /:branding/:portal/dashboard': 'typescript/DashboardController.render',
   'get /:branding/:portal/listPlans': 'typescript/DashboardController.getPlanList',
   'get /:branding/:portal/vocab/:vocabId': 'typescript/VocabController.get',
+  'get /:branding/:portal/mint/:mintSourceType': 'typescript/VocabController.getMint',
   'get /:branding/:portal/collection/:collectionId': 'typescript/VocabController.getCollection',
   'post /:branding/:portal/collection/:collectionId': 'typescript/VocabController.loadCollection',
   'get /dynamic/:asset': 'typescript/DynamicAssetController.get',

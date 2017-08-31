@@ -221,6 +221,28 @@ module.exports.form = {
                       }
                     },
                     {
+                      class: 'RepeatableContainer',
+                      compClass: 'RepeatableVocabComponent',
+                      definition: {
+                        name: 'foaf:fundedBy_vivo:Grant',
+                        label: "@dmpt-foaf:fundedBy_vivo:Grant",
+                        help: "@dmpt-foaf:fundedBy_vivo:Grant-help",
+                        forceClone: ['lookupService', 'completerService'],
+                        fields: [
+                          {
+                            class: 'VocabField',
+                            definition: {
+                              vocabId: 'Research Activities',
+                              sourceType: 'mint',
+                              fieldNames: ['dc_title', 'grant_number', 'foaf_name', 'dc_identifier', 'known_ids'],
+                              searchFields: 'dc_title',
+                              titleFieldArr: ['dc_title']
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
                       class: 'SelectionField',
                       compClass: 'DropdownFieldComponent',
                       definition: {
@@ -236,8 +258,8 @@ module.exports.form = {
                       }
                     },
                     {
-                    class: 'RepeatableContainer',
-                    compClass: 'RepeatableVocabComponent',
+                      class: 'RepeatableContainer',
+                      compClass: 'RepeatableVocabComponent',
                       definition: {
                         label: "@dmpt-project-anzsrcFor",
                         help: "@dmpt-project-anzsrcFor-help",

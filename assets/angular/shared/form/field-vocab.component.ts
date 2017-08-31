@@ -106,6 +106,14 @@ export class VocabField extends FieldBase<any> {
       const title = this.titleFieldArr.length == 1 ? this.titleFieldArr[0] : 'title';
       console.log(`Using title: ${title}`);
       this.dataService = this.completerService.remote(url, this.searchFields, title);
+    } else if (this.sourceType == "mint") {
+      const url = this.lookupService.getMintRootUrl(this.vocabId);
+      console.log(`Using: ${url}`);
+      // at the moment, multiple titles arrays are not supported
+      // TODO: consider replacing with ngx-bootstrap typeahead
+      const title = this.titleFieldArr.length == 1 ? this.titleFieldArr[0] : 'title';
+      console.log(`Using title: ${title}`);
+      this.dataService = this.completerService.remote(url, this.searchFields, title);
     }
   }
 
@@ -159,6 +167,10 @@ export class VocabFieldLookupService extends BaseService {
 
   findLookupData(field: VocabField, search: string) {
 
+  }
+
+  getMintRootUrl(source: string) {
+    return `${this.brandingAndPortallUrl}/${this.config.mintRootUri}/${source}/?search=`;
   }
 }
 

@@ -48,6 +48,16 @@ module.exports.auth = {
       can_read: true
     },
     {
+      path: '/*/*/collection(/*)',
+      role: 'Researcher',
+      can_read: true
+    },
+    {
+      path: '/*/*/mint(/*)',
+      role: 'Researcher',
+      can_read: true
+    },
+    {
       path: '/*/*/dashboard',
       role: 'Researcher',
       can_update:true

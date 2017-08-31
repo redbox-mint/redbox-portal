@@ -42,7 +42,8 @@ export module Services {
       'bootstrap',
       'getVocab',
       'loadCollection',
-      'findCollection'
+      'findCollection',
+      'findInMint'
     ];
 
     public bootstrap() {
@@ -51,6 +52,12 @@ export module Services {
         return this.getVocab(vocabId);
       })
       .last();
+    }
+
+    public findInMint(sourceType, queryString) {
+      const mintUrl = `${sails.config.mint.api.search.url}?q=repository_type:${sourceType} AND dc_title:${queryString}*&version=2.2&wt=json&start=0`;
+      const options = this.getMintOptions(mintUrl);
+      return Observable.fromPromise(request[sails.config.record.api.search.method](options));
     }
 
 
@@ -172,6 +179,10 @@ export module Services {
 
     getInst(collectionId) {
       return RecordsService.getOne(sails.config.vocab.collection[collectionId].type);
+    }
+
+    protected getMintOptions(url) {
+      return {url:url, json:true, headers: {'Authorization': `Bearer ${sails.config.mint.apiKey}`, 'Content-Type': 'application/json; charset=utf-8'}};
     }
   }
 }
