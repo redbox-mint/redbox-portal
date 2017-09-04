@@ -176,7 +176,8 @@ class MintLookupDataService extends Subject<CompleterItem[]> implements Complete
     term = _.trim(term);
     let searchString='';
     if (!_.isEmpty(term)) {
-      _.forEach(this.searchFields, (searchFld)=>{
+      term = _.toLower(term);
+      _.forEach(this.searchFields, (searchFld) => {
         searchString = `${searchString}${_.isEmpty(searchString) ? '' : ' OR '}${searchFld}:${term}*`
       });
     }
