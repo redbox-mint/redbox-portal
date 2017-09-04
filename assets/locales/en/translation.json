@@ -193,6 +193,6 @@
   "@dmpt-vivo:Dataset_dc:source_dc:location_skos:note": "If other, please provide further details, including information about backups:",
   "@dmpt-foaf:fundedBy_vivo:Grant": "Grant number(s)",
   "@dmpt-foaf:fundedBy_vivo:Grant-help": "Enter the grant number or a partial name to evoke a list of possible matches from Research Master.",
-  "@dmpt-foaf:fundedBy.foaf:Agent": "Funding source",
-  "@dmpt-foaf:fundedBy.foaf:Agent-help": "Enter the funding agency name. N.B. entering part of the name will evoke a list of possible matches. Either select one, or keep typing to override."
+  "@dmpt-foaf:fundedBy_foaf:Agent": "Funding source",
+  "@dmpt-foaf:fundedBy_foaf:Agent-help": "Enter the funding agency name. N.B. entering part of the name will evoke a list of possible matches. Either select one, or keep typing to override."
 }

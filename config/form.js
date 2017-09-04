@@ -224,9 +224,9 @@ module.exports.form = {
                       class: 'RepeatableContainer',
                       compClass: 'RepeatableVocabComponent',
                       definition: {
-                        name: 'foaf:fundedBy.foaf:Agent',
-                        label: "@dmpt-foaf:fundedBy.foaf:Agent",
-                        help: "@dmpt-foaf:fundedBy.foaf:Agent-help",
+                        name: 'foaf:fundedBy_foaf:Agent',
+                        label: "@dmpt-foaf:fundedBy_foaf:Agent",
+                        help: "@dmpt-foaf:fundedBy_foaf:Agent-help",
                         forceClone: ['lookupService', 'completerService'],
                         fields: [
                           {
