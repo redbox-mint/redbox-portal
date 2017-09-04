@@ -6,7 +6,7 @@ services:
     ports:
        - "1500:1500"
     volumes:
-       - ".:/opt/rds-rdmp-portal"
+       - ".:/opt/redbox-portal"
     expose:
        - "1500"
     environment:
@@ -15,7 +15,7 @@ services:
     links:
       - mongodb:mongodb
       - redbox:redbox
-    entrypoint: /bin/bash -c "cd /opt/rds-rdmp-portal && node app.js"
+    entrypoint: /bin/bash -c "cd /opt/redbox-portal && node app.js"
   mongodb:
     image: mvertes/alpine-mongo:latest
     volumes:
@@ -28,7 +28,7 @@ services:
     image: qcifengineering/dlcf-redbox
     environment:
       - RAID_URL=https://api.raid.org.au:8000/
-      - RAID_KEY=<To be supplied>
+      - RAID_KEY=safasfassafafsfasfsa
     volumes:
         - "/mnt/data/redbox:/opt/redbox/data"
         - "/var/log/redbox:/opt/redbox/home/logs"
