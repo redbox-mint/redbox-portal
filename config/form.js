@@ -224,6 +224,28 @@ module.exports.form = {
                       class: 'RepeatableContainer',
                       compClass: 'RepeatableVocabComponent',
                       definition: {
+                        name: 'foaf:fundedBy.foaf:Agent',
+                        label: "@dmpt-foaf:fundedBy.foaf:Agent",
+                        help: "@dmpt-foaf:fundedBy.foaf:Agent-help",
+                        forceClone: ['lookupService', 'completerService'],
+                        fields: [
+                          {
+                            class: 'VocabField',
+                            definition: {
+                              vocabId: 'Funding Bodies',
+                              sourceType: 'mint',
+                              fieldNames: ['dc_title', 'dc_identifier', 'ID', 'repository_name'],
+                              searchFields: 'dc_title',
+                              titleFieldArr: ['dc_title']
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      class: 'RepeatableContainer',
+                      compClass: 'RepeatableVocabComponent',
+                      definition: {
                         name: 'foaf:fundedBy_vivo:Grant',
                         label: "@dmpt-foaf:fundedBy_vivo:Grant",
                         help: "@dmpt-foaf:fundedBy_vivo:Grant-help",
@@ -234,9 +256,14 @@ module.exports.form = {
                             definition: {
                               vocabId: 'Research Activities',
                               sourceType: 'mint',
-                              fieldNames: ['dc_title', 'grant_number', 'foaf_name', 'dc_identifier', 'known_ids'],
-                              searchFields: 'dc_title',
-                              titleFieldArr: ['dc_title']
+                              fieldNames: ['dc_title', 'grant_number', 'foaf_name', 'dc_identifier', 'known_ids', 'repository_name'],
+                              searchFields: 'grant_number,dc_title',
+                              titleFieldArr: ['grant_number', 'repository_name', 'dc_title'],
+                              titleFieldDelim: [
+                                {prefix: '[', suffix: ']'},
+                                {prefix: ' (', suffix: ')'},
+                                {prefix: ' ', suffix: ''}
+                              ]
                             }
                           }
                         ]

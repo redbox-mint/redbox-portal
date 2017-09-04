@@ -23,11 +23,12 @@ import { FieldBase } from './field-base';
 import { FormGroup, FormControl, Validators } from '@angular/forms';
 import * as _ from "lodash-lib";
 import { Observable } from 'rxjs/Observable';
+import { Subject } from "rxjs/Subject";
 import 'rxjs/add/operator/toPromise';
 import 'rxjs/add/observable/of';
 import { Http } from '@angular/http';
 import { BaseService } from '../base-service';
-import { CompleterService, CompleterData } from 'ng2-completer';
+import { CompleterService, CompleterData, CompleterItem } from 'ng2-completer';
 import { ConfigService } from '../config-service';
 /**
  * Vocabulary Field
@@ -41,8 +42,9 @@ export class VocabField extends FieldBase<any> {
   public completerService: CompleterService;
   protected dataService: CompleterData;
   public initialValue: any;
+  public titleFieldName: string;
   public titleFieldArr: string[];
-  public titleFieldDelim: string;
+  public titleFieldDelim: any;
   public searchFields: string;
   public fieldNames: string[];
   public sourceType: string;
@@ -53,6 +55,7 @@ export class VocabField extends FieldBase<any> {
     this.hasLookup = true;
     this.vocabId = options['vocabId'] || '';
     this.controlType = 'textbox';
+    this.titleFieldName = options['titleFieldName'] || 'title';
     this.titleFieldArr = options['titleFieldArr'] || [];
     this.searchFields = options['searchFields'] || '';
     this.titleFieldDelim = options['titleFieldDelim'] || ' - ';
@@ -109,20 +112,31 @@ export class VocabField extends FieldBase<any> {
     } else if (this.sourceType == "mint") {
       const url = this.lookupService.getMintRootUrl(this.vocabId);
       console.log(`Using: ${url}`);
-      // at the moment, multiple titles arrays are not supported
-      // TODO: consider replacing with ngx-bootstrap typeahead
-      const title = this.titleFieldArr.length == 1 ? this.titleFieldArr[0] : 'title';
-      console.log(`Using title: ${title}`);
-      this.dataService = this.completerService.remote(url, this.searchFields, title);
+
+      this.dataService = new MintLookupDataService(
+         url,
+         this.lookupService.http,
+         this.fieldNames,
+         this.titleFieldName,
+         this.titleFieldArr,
+         this.titleFieldDelim);
     }
   }
 
   getTitle(data: any): string {
     let title = '';
     if (data) {
-      _.forEach(this.titleFieldArr, (titleFld: string) => {
-        title = `${title}${_.isEmpty(title) ? '' : this.titleFieldDelim}${data[titleFld]}`;
-      });
+      if (_.isString(this.titleFieldDelim)) {
+        _.forEach(this.titleFieldArr, (titleFld: string) => {
+          title = `${title}${_.isEmpty(title) ? '' : this.titleFieldDelim}${data[titleFld]}`;
+        });
+      } else {
+        // expecting a delim pair array, 'prefix', 'suffix'
+        _.forEach(this.titleFieldArr, (titleFld: string, idx) => {
+          const delimPair = this.titleFieldDelim[idx];
+          title = `${title}${_.isEmpty(title) ? '' : delimPair.prefix}${data[titleFld]}${_.isEmpty(title) ? '' : delimPair.suffix}`;
+        });
+      }
     }
     return title;
   }
@@ -130,11 +144,73 @@ export class VocabField extends FieldBase<any> {
   getValue(data: any) {
     const valObj = {};
     _.forEach(this.fieldNames, (fldName: string) => {
-      valObj[fldName] = data[fldName];
+      if (data.originalObject) {
+        valObj[fldName] = data.originalObject[fldName];
+      } else {
+        valObj[fldName] = data[fldName];
+      }
     });
     return valObj;
   }
 
+}
+
+class MintLookupDataService extends Subject<CompleterItem[]> implements CompleterData {
+
+  constructor(private url:string,
+    private http: Http,
+    private fields: string[],
+    private compositeTitleName: string,
+    private titleFieldArr: string[],
+    private titleFieldDelim: any[])
+  {
+    super();
+  }
+
+  public search(term: string): void {
+    const searchUrl = `${this.url}${term}`;
+    this.http.get(`${searchUrl}`).map((res: Response) => {
+      // Convert the result to CompleterItem[]
+      let data = res.json();
+      let matches: CompleterItem[] = _.map(data, (mintDataItem: any) => { return this.convertToItem(mintDataItem); });
+      this.next(matches);
+    }).subscribe();
+  }
+
+  public cancel() {
+    // Handle cancel
+  }
+
+  public convertToItem(data: any): CompleterItem | null {
+    if (!data) {
+      return null;
+    }
+    const item = {};
+    _.forEach(this.fields, (fieldName) => {
+      item[fieldName] = data[fieldName];
+    });
+    // build the title,
+    item[this.compositeTitleName] = this.getTitle(data);
+    return item as CompleterItem;
+  }
+
+  getTitle(data: any): string {
+    let title = '';
+    if (data) {
+      if (_.isString(this.titleFieldDelim)) {
+        _.forEach(this.titleFieldArr, (titleFld: string) => {
+          title = `${title}${_.isEmpty(title) ? '' : this.titleFieldDelim}${data[titleFld]}`;
+        });
+      } else {
+        // expecting a delim pair array, 'prefix', 'suffix'
+        _.forEach(this.titleFieldArr, (titleFld: string, idx) => {
+          const delimPair = this.titleFieldDelim[idx];
+          title = `${title}${delimPair.prefix}${data[titleFld]}${delimPair.suffix}`;
+        });
+      }
+    }
+    return title;
+  }
 }
 
 @Injectable()
@@ -219,7 +295,7 @@ export class VocabFieldComponent extends SimpleComponent {
 
   onSelect(selected: any) {
     if (selected) {
-      this.field.formModel.setValue(this.field.getValue(selected.originalObject));
+      this.field.formModel.setValue(this.field.getValue(selected));
     } else {
       this.field.formModel.setValue(null);
     }
