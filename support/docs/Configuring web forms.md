@@ -99,10 +99,12 @@ defaultForm
 
 ### Form-wide configuration
 
+The settings in this section control the behaviour of the entire form.
+
 | Field                | Description                                                                                                                                                                                                                                                                                                | Required               | Example                              |
 |----------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------|--------------------------------------|
 | < form-name >        | The label name of the form, should match a "form" value in workflow.js for it to be used                                                                                                                                                                                                                   | Yes                    | rdmp-1.0-draft                       |
-| name                 |                                                                                                                                                                                                                                                                                                            | Yes                    | rdmp-1.0-draft                       |
+| name                 |        The label name of the form. This should match the < form-name > value. form                                                                                                                                                                                                                                                                                                   | Yes                    | rdmp-1.0-draft                       |
 | skipValidationOnSave | When set to true, validation will only trigger when the record is submitted to change it's workflow state. This property is particularly useful in early stages of a workflow where you want the user to be able to save and come back to the record later without having to fill in all mandatory fields. | No (defaults to false) | true                                 |
 | editCssClasses       | The css classes to apply to each element for styling. These are used in edit mode                                                                                                                                                                                                                          | Yes                    | row col-md-12                        |
 | viewCssClasses       | The css classes to apply to each element for styling. These are used in view mode                                                                                                                                                                                                                          | Yes                    | row col-md-12                        |
@@ -110,10 +112,36 @@ defaultForm
 
 ### Field configuration
 
+The fields section lays out the components to appear in the form.
+
 | Field      | Description                                                                                   | Required               | Example |
 |------------|-----------------------------------------------------------------------------------------------|------------------------|---------|
 | class      |                                                                                               | Yes                    |         |
 | compClass  |                                                                                               | Yes                    |         |
 | viewOnly   | When set to true, this component will only appear in the view (details) rendition of the form | No (defaults to false) | true    |
 | editOnly   | When set to true, this component will only appear in the edit (details) rendition of the form | No (defaults to false) | true    |
-| definition |                                                                                               | Yes                    |         |
+| definition | Configuration that is specific for the component being added                                                                                              | Yes                    |  value: '@dmpt-data-collection-heading' |
+
+
+### Example
+
+```
+fields: [
+  {
+    class: 'Container',
+    compClass: 'TextBlockComponent',
+    viewOnly: true,
+    definition: {
+      name: 'title',
+      type: 'h1'
+    }
+  },
+```
+
+## Language Configuration
+
+Messages in the system can be configured using Language files. This allows for internationalisation of the portal as well as editing in a translation management system such as [Locize](https://locize.com).
+
+The application uses [i18next](https://www.i18next.com/) to render the messages and the language files are kept in the assests/locales/<language> directories.
+
+Please see the [i18next documentation](https://www.i18next.com/essentials.html) for more information on how the language file is structured and it's features.
