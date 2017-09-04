@@ -55,7 +55,12 @@ export module Services {
     }
 
     public findInMint(sourceType, queryString) {
-      const mintUrl = `${sails.config.mint.api.search.url}?q=repository_type:${sourceType} AND dc_title:${queryString}*&version=2.2&wt=json&start=0`;
+      queryString = _.trim(queryString);
+      let searchString = '';
+      if (!_.isEmpty(queryString)) {
+        searchString = ` AND ${queryString}`;
+      }
+      const mintUrl = `${sails.config.mint.api.search.url}?q=repository_type:${sourceType}${searchString}&version=2.2&wt=json&start=0`;
       const options = this.getMintOptions(mintUrl);
       return Observable.fromPromise(request[sails.config.record.api.search.method](options));
     }

@@ -114,12 +114,13 @@ export class VocabField extends FieldBase<any> {
       console.log(`Using: ${url}`);
 
       this.dataService = new MintLookupDataService(
-         url,
-         this.lookupService.http,
-         this.fieldNames,
-         this.titleFieldName,
-         this.titleFieldArr,
-         this.titleFieldDelim);
+        url,
+        this.lookupService.http,
+        this.fieldNames,
+        this.titleFieldName,
+        this.titleFieldArr,
+        this.titleFieldDelim,
+        this.searchFields);
     }
   }
 
@@ -157,18 +158,29 @@ export class VocabField extends FieldBase<any> {
 
 class MintLookupDataService extends Subject<CompleterItem[]> implements CompleterData {
 
+  searchFields: any[];
+
   constructor(private url:string,
     private http: Http,
     private fields: string[],
     private compositeTitleName: string,
     private titleFieldArr: string[],
-    private titleFieldDelim: any[])
+    private titleFieldDelim: any[],
+    searchFieldStr: any)
   {
     super();
+    this.searchFields = searchFieldStr.split(',');
   }
 
   public search(term: string): void {
-    const searchUrl = `${this.url}${term}`;
+    term = _.trim(term);
+    let searchString='';
+    if (!_.isEmpty(term)) {
+      _.forEach(this.searchFields, (searchFld)=>{
+        searchString = `${searchString}${_.isEmpty(searchString) ? '' : ' OR '}${searchFld}:${term}*`
+      });
+    }
+    const searchUrl = `${this.url}${searchString}`;
     this.http.get(`${searchUrl}`).map((res: Response) => {
       // Convert the result to CompleterItem[]
       let data = res.json();
