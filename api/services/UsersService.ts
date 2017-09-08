@@ -20,10 +20,11 @@
 import { Observable } from 'rxjs/Rx';
 import services = require('../../typescript/services/CoreService.js');
 import {Sails, Model} from "sails";
+import * as request from "request-promise";
 
 declare var sails: Sails;
 declare var User, Role, BrandingConfig: Model;
-declare var BrandingService, RolesService, ConfigService;
+declare var BrandingService, RolesService, ConfigService, RecordsService;
 declare var _this;
 declare const Buffer;
 
@@ -41,7 +42,8 @@ export module Services {
       'bootstrap',
       'updateUserRoles',
       'getUserWithId',
-      'hasRole'
+      'hasRole',
+      'findAndAssignAccessToRecords'
     ];
 
     protected localAuthInit = () => {
@@ -234,6 +236,34 @@ export module Services {
       return _.find(user.roles, (role)=> {
         return role.id == targetRole.id;
       });
+    }
+
+
+    /**
+    *
+    * Find all records that the user is intended to have access to and assign actual access using their userId.
+    * This is used as users or services may want to provide access for a user to a record but due to single sign-on solutions,
+    * we're not able to reliably determine the username before they login to the system for the first time.
+    *
+    **/
+    public findAndAssignAccessToRecords(pendingValue, userid) {
+      var url = `${sails.config.record.api.search.url}?q=authorization_editPending:${pendingValue}%20OR%20authorization_viewPending:${pendingValue}&sort=date_object_modified desc&version=2.2&wt=json&rows=10000`;
+      var options = { url: url, json: true, headers: { 'Authorization': `Bearer ${sails.config.redbox.apiKey}`, 'Content-Type': 'application/json; charset=utf-8' } };
+      var response = Observable.fromPromise(request[sails.config.record.api.search.method](options));
+
+      response.subscribe(results => {
+
+        var docs = results["response"]["docs"];
+        for (var i = 0; i < docs.length; i++) {
+
+          var doc = docs[i];
+          var item = {};
+          var oid  = doc["storage_id"];
+
+          RecordsService.provideUserAccessAndRemovePendingAccess(oid,userid,pendingValue);
+        }
+      });
+
     }
 
   }

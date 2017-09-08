@@ -42,7 +42,8 @@ export module Services {
       'hasEditAccess',
       'getOne',
       'search',
-      'createBatch'
+      'createBatch',
+      'provideUserAccessAndRemovePendingAccess'
     ];
 
     public create(brand, record, formName=sails.config.form.defaultForm): Observable<any> {
@@ -144,6 +145,40 @@ export module Services {
     protected getSearchTypeUrl(type, searchField=null, searchStr=null) {
       const searchParam = searchField ? ` AND ${searchField}:${searchStr}*` : '';
       return `${sails.config.record.api.search.url}?q=metaMetadata_type:${type}${searchParam}&version=2.2&wt=json`;
+    }
+
+    protected provideUserAccessAndRemovePendingAccess(oid,userid,pendingValue) {
+      var metadataResponse = this.getMeta(oid);
+
+      metadataResponse.subscribe(metadata =>{
+      // remove pending edit access and add real edit access with userid
+      var pendingEditArray = metadata['authorization']['editPending'];
+      var editArray = metadata['authorization']['edit'];
+      for(var i=0; i < pendingEditArray.length; i++) {
+        if(pendingEditArray[i] == pendingValue) {
+          pendingEditArray = pendingEditArray.filter(e => e !== pendingValue);
+          editArray = editArray.filter(e => e !== userid);
+          editArray.push(userid);
+        }
+      }
+      metadata['authorization']['editPending'] = pendingEditArray;
+      metadata['authorization']['edit'] = editArray;
+
+      var pendingViewArray = metadata['authorization']['viewPending'];
+      var viewArray = metadata['authorization']['view'];
+      for(var i=0; i < pendingViewArray.length; i++) {
+        if(pendingViewArray[i] == pendingValue) {
+          pendingViewArray = pendingViewArray.filter(e => e !== pendingValue);
+          viewArray = viewArray.filter(e => e !== userid);
+          viewArray.push(userid);
+        }
+      }
+      metadata['authorization']['viewPending'] = pendingViewArray;
+      metadata['authorization']['view'] = viewArray;
+
+      this.updateMeta(null, oid, metadata);
+    });
+
     }
 
   }
