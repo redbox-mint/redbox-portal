@@ -73,20 +73,30 @@ export module Services {
           passwordField: passwordField
         },
         function(username, password, done) {
-          User.findOne({ username: username }).populate('roles').exec(function (err, user) {
+
+          User.findOne({ username: username }).populate('roles').exec(function (err, foundUser) {
             if (err) { return done(err); }
-            if (!user) {
+            if (!foundUser) {
               return done(null, false, { message: 'Incorrect username/password.' });
             }
 
-            bcrypt.compare(password, user.password, function (err, res) {
-                if (!res)
+            bcrypt.compare(password, foundUser.password, function (err, res) {
+
+                if (!res) {
                   return done(null, false, {
                     message: 'Invalid username/password'
                   });
-                return done(null, user, {
-                  message: 'Logged In Successfully'
-                });
+                  }
+
+                    foundUser.lastLogin = new Date();
+
+                    User.update({username: foundUser.username}, {lastLogin: foundUser.lastLogin});
+
+                      return done(null, foundUser, {
+                        message: 'Logged In Successfully'
+                      });
+
+
               });
           });
         }
@@ -122,7 +132,10 @@ export module Services {
             return done(err, false);
           }
           if (user) {
-            done(null, user);
+              user.lastLogin = new Date();
+              User.update(user).exec(function(err, user) {
+                return done(null, user);
+            });
           } else {
             sails.log.verbose("At AAF Strategy verify, creating new user...");
             // first time login, create with default role
@@ -138,7 +151,8 @@ export module Services {
               givenname: jwt_payload[aafAttributes].givenname,
               surname: jwt_payload[aafAttributes].surname,
               type: 'aaf',
-              roles: aafDefRoles
+              roles: aafDefRoles,
+              lastLogin: new Date()
             };
             sails.log.verbose(userToCreate);
             User.create(userToCreate).exec(function(err, newUser) {
@@ -166,6 +180,7 @@ export module Services {
         defaultUser = {type:'local', name:'Local Admin'};
         defaultUser[usernameField] = authConfig.local.default.adminUser;
         defaultUser[passwordField] = authConfig.local.default.adminPw;
+        defaultUser["email"] = "admin@redboxresearchdata.com.au";
         sails.log.verbose("Default user missing, creating...");
         return super.getObservable(User.create(defaultUser))
                     .flatMap(defUser => {
@@ -249,19 +264,22 @@ export module Services {
     public findAndAssignAccessToRecords(pendingValue, userid) {
       var url = `${sails.config.record.api.search.url}?q=authorization_editPending:${pendingValue}%20OR%20authorization_viewPending:${pendingValue}&sort=date_object_modified desc&version=2.2&wt=json&rows=10000`;
       var options = { url: url, json: true, headers: { 'Authorization': `Bearer ${sails.config.redbox.apiKey}`, 'Content-Type': 'application/json; charset=utf-8' } };
-      var response = Observable.fromPromise(request[sails.config.record.api.search.method](options));
+      var response = Observable.fromPromise(request[sails.config.record.api.search.method](options)).catch(error => Observable.of(`Error: ${error}`);
 
       response.subscribe(results => {
 
+        if(results["response"] != null) {
         var docs = results["response"]["docs"];
         for (var i = 0; i < docs.length; i++) {
-
           var doc = docs[i];
           var item = {};
           var oid  = doc["storage_id"];
 
           RecordsService.provideUserAccessAndRemovePendingAccess(oid,userid,pendingValue);
         }
+      } else {
+        sails.log.error(results);
+      }
       });
 
     }
