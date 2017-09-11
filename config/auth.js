@@ -89,7 +89,8 @@ module.exports.auth = {
       passwordField: 'password',
       default: {
         adminUser: 'admin',
-        adminPw: 'rbadmin'
+        adminPw: 'rbadmin',
+        email: 'admin@redboxresearchdata.com.au'
       },
       templatePath: 'local.ejs',
       postLoginRedir: 'dashboard',

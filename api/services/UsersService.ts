@@ -180,7 +180,7 @@ export module Services {
         defaultUser = {type:'local', name:'Local Admin'};
         defaultUser[usernameField] = authConfig.local.default.adminUser;
         defaultUser[passwordField] = authConfig.local.default.adminPw;
-        defaultUser["email"] = "admin@redboxresearchdata.com.au";
+        defaultUser["email"] = authConfig.local.default.email;
         sails.log.verbose("Default user missing, creating...");
         return super.getObservable(User.create(defaultUser))
                     .flatMap(defUser => {
