@@ -9,6 +9,7 @@ module.exports = {
   attributes: {
     username : { type: 'string', required: true, unique: true },
     password : { type: 'string' },
+    lastLogin: {type: 'datetime'},
     type : { type: 'string', required: true},
     name : { type: 'string', required: true},
     email: { type: 'string'},
@@ -35,6 +36,25 @@ module.exports = {
       });
     } else {
       cb();
+    }
+  },
+  afterCreate: function(user, cb) {
+    this.assignAccessToPendingRecords(user);
+    cb();
+  },
+  afterUpdate: function(user, cb) {
+    this.assignAccessToPendingRecords(user);
+    cb();
+  },
+  assignAccessToPendingRecords: function(user) {
+    try {
+      if(user.email != null) {
+        UsersService.findAndAssignAccessToRecords(user.email, user.username);
+      }
+    } catch(e) {
+      // log and move on
+      sails.log.error("Unable to assign access to pending records");
+      sails.log.error(e);
     }
   }
 };
