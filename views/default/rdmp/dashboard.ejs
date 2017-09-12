@@ -5,12 +5,21 @@
 
 <div class="default-page">
   <div class="header">
-    <h1 id="main-title" class="container">Welcome to the DMP Tool</h1>
+    <h1 id="main-title" class="container"><%= TranslationService.t('dashboard-welcome-text') %></h1>
     <div class="container">
-      <a class="btn btn-large btn-info" href="/<%= typeof branding == 'undefined'? data.branding : branding %>/<%= typeof portal == 'undefined'? data.portal : portal %>/record/edit">
-        <span class="glyphicon glyphicon-plus-sign"></span>
-        Create a plan
-      </a>
+      <div class="btn-group">
+        <a class="btn btn-large btn-info" href="<%= BrandingService.getBrandAndPortalPath(req) %>/record/edit">
+          <span class="glyphicon glyphicon-plus-sign"></span>
+          <%= TranslationService.t('create-plan')%>
+        </a>
+        <button type="button" class="btn btn-info dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+          <span class="caret"></span>
+          <span class="sr-only"><%= TranslationService.t('toggle-dropdown')%></span>
+        </button>
+        <ul class="dropdown-menu">
+          <li><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/record/transfer"><%= TranslationService.t('transfer-ownership')%></a></li>
+        </ul>
+      </div>
     </div>
     <br/>
   </div>

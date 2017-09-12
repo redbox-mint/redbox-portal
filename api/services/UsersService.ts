@@ -24,7 +24,6 @@ import {Sails, Model} from "sails";
 declare var sails: Sails;
 declare var User, Role, BrandingConfig: Model;
 declare var BrandingService, RolesService, ConfigService;
-declare var _this;
 declare const Buffer;
 
 export module Services {
@@ -41,7 +40,8 @@ export module Services {
       'bootstrap',
       'updateUserRoles',
       'getUserWithId',
-      'hasRole'
+      'hasRole',
+      'findUsersWithName'
     ];
 
     protected localAuthInit = () => {
@@ -204,18 +204,18 @@ export module Services {
       var defAdminRole = RolesService.getAdminFromRoles(defRoles);
       return Observable.of(defAdminRole)
         .flatMap(defAdminRole => {
-          _this.localAuthInit();
-          _this.aafAuthInit();
-          return _this.initDefAdmin(defRoles, defAdminRole);
+          this.localAuthInit();
+          this.aafAuthInit();
+          return this.initDefAdmin(defRoles, defAdminRole);
       });
     }
 
     public getUserWithId = (userid) => {
-      return _this.getObservable(User.findOne({id:userid}).populate('roles'));
+      return this.getObservable(User.findOne({id:userid}).populate('roles'));
     }
 
     public updateUserRoles = (userid, newRoleIds) => {
-      return _this.getUserWithId(userid).flatMap(user=>{
+      return this.getUserWithId(userid).flatMap(user=>{
         if (user) {
           if (_.isEmpty(newRoleIds) || newRoleIds.length == 0){
             return Observable.throw(new Error('Please assign at least one role'));
@@ -223,7 +223,7 @@ export module Services {
           var curRoleIds = _.map(user.roles, 'id');
           _.map(newRoleIds, (roleId)=>{user.roles.add(roleId)});
           _.map(curRoleIds, (roleId)=>{if (!_.includes(newRoleIds, roleId)) user.roles.remove(roleId)});
-          return _this.getObservable(user, 'save', 'simplecb');
+          return this.getObservable(user, 'save', 'simplecb');
         } else {
           return Observable.throw(new Error('No such user with id:' + userid));
         }
@@ -234,6 +234,25 @@ export module Services {
       return _.find(user.roles, (role)=> {
         return role.id == targetRole.id;
       });
+    }
+
+    public findUsersWithName(name: string, brandId: string, source:any = null) {
+      const query = {name: {'startsWith': name}};
+      if (!_.isEmpty(source) && !_.isUndefined(source) && !_.isNull(source)) {
+        query['type'] = source;
+      }
+      return this.getObservable(User.find(query).populate('roles'))
+        .flatMap(users => {
+          if (brandId) {
+            _.remove(users, (user) => {
+              const isInBrand = _.find(user.roles, (role) => {
+                return role.branding == brandId;
+              });
+              return !isInBrand;
+            });
+          }
+          return Observable.of(users);
+        });
     }
 
   }

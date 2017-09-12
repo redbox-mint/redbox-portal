@@ -35,7 +35,7 @@ export class BaseService {
   protected config: any;
   protected configService: any;
   protected baseUrl:string;
-  protected brandingAndPortallUrl:string;
+  protected brandingAndPortalUrl:string;
   protected options: any;
   protected static __config: any;
   protected initSubject: any;
@@ -47,14 +47,14 @@ export class BaseService {
     this.configService.getConfig((config:any) => {
       this.config = config;
       this.baseUrl = this.config.baseUrl;
-      this.brandingAndPortallUrl = `${this.baseUrl}/${this.config.branding}/${this.config.portal}`;
+      this.brandingAndPortalUrl = `${this.baseUrl}/${this.config.branding}/${this.config.portal}`;
       this.options = this.getOptionsClient();
       this.emitInit();
     });
   }
 
   public get getBrandingAndPortalUrl() {
-    return this.brandingAndPortallUrl;
+    return this.brandingAndPortalUrl;
   }
 
   public get getBaseUrl() {

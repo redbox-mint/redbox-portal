@@ -7,12 +7,11 @@
   <div class="col-xs-1">
   </div>
 </div>
-<div class="row">
-  <manage-roles></manage-roles>
-</div>
+<transfer-owner></transfer-owner>
 <% if (!sails.config.ng2.use_bundled) { %>
-<script src="/dynamic/systemjs-config.js?appName=manageRoles"></script>
+<!-- Import and Load angular 2 if on dev mode-->
+<script src="/dynamic/systemjs-config.js?appName=transfer_owner"></script>
 <script>
-  System.import('manageRoles').catch(function(err){ console.error(err); });
+  System.import('transfer_owner').catch(function(err){ console.error(err); });
 </script>
 <% } %>

@@ -37,6 +37,7 @@ export class LoadableComponent  {
   }
 
   initTranslator(translationService: TranslationService) {
+    this.translationService = translationService;
     translationService.isReady(tService => {
       this.translatorReady = true;
     });

@@ -20,7 +20,7 @@
 //<reference path='./../../typings/loader.d.ts'/>
 declare var module;
 declare var sails;
-declare var BrandingService;
+declare var BrandingService, UsersService;
 import controller = require('../../../typescript/controllers/CoreController.js');
 
 export module Controllers {
@@ -43,7 +43,8 @@ export module Controllers {
           'redirLogin',
           'redirPostLogin',
           'getPostLoginUrl',
-          'respond'
+          'respond',
+          'find'
       ];
 
       /**
@@ -141,6 +142,24 @@ export module Controllers {
             return sails.controllers['typescript/user'].redirPostLogin(req, res);
           });
         })(req, res);
+      }
+
+      public find(req, res) {
+        const brand = BrandingService.getBrand(req.session.branding);
+        const searchSource = req.query.source;
+        const searchName = req.query.name;
+        UsersService.findUsersWithName(searchName, brand.id, searchSource).subscribe(users => {
+          const userArr = _.map(users, user => {
+            return {
+              name: user.name,
+              id: user.id,
+              username: user.username
+            };
+          });
+          this.ajaxOk(req, res, null, userArr, true);
+        }, error => {
+          this.ajaxFail(req, res, null, error, true);
+        });
       }
       /**
        **************************************************************************************************

@@ -40,11 +40,11 @@ export module Services {
     ];
 
 
-    public getPlans(workflowState, start, rows = 10, username, roles, brand) {
+    public getPlans(workflowState, start, rows = 10, username, roles, brand, editAccessOnly=undefined) {
 
       var url = this.addQueryParams(sails.config.record.api.search.url, workflowState);
       url = this.addPaginationParams(url, start, rows);
-      url = this.addAuthFilter(url, username, roles, brand)
+      url = this.addAuthFilter(url, username, roles, brand, editAccessOnly)
       url = url+"&fq=metaMetadata_brandId:"+brand.id
       var options = this.getOptions(url);
       sails.log.error("Query URL is: "+ url);
@@ -73,7 +73,7 @@ export module Services {
       return url;
     }
 
-    protected addAuthFilter(url, username, roles, brand) {
+    protected addAuthFilter(url, username, roles, brand, editAccessOnly=undefined) {
 
       var roleString = ""
       var matched = false;
@@ -88,7 +88,7 @@ export module Services {
           matched = true;
         }
       }
-      url = url + "&fq=authorization_edit:" + username + " OR authorization_view:" + username + " OR authorization_viewRoles:(" + roleString + ") OR authorization_editRoles:(" + roleString + ")";
+      url = url + "&fq=authorization_edit:" + username + (editAccessOnly ?  "" : ( " OR authorization_view:" + username  + " OR authorization_viewRoles:(" + roleString + ")" )) + " OR authorization_editRoles:(" + roleString + ")";
       return url;
     }
 

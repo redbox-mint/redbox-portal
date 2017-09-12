@@ -51,5 +51,14 @@ module.exports = {
   },
   redbox: {
     apiKey: '18f344b4-81a9-43b9-8916-4bbf339e8765'
+  },
+  mint: {
+    apiKey: '3a86f185-8305-478a-a3dc-9e8481d49712',
+    api: {
+      search: {
+        method: 'get',
+        url: 'http://203.101.226.35/mint/api/v1/search'
+      }
+    }
   }
 };

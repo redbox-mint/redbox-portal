@@ -58,6 +58,11 @@ module.exports.auth = {
       can_read: true
     },
     {
+      path: '/*/*/user/find(/*)',
+      role: 'Researcher',
+      can_read: true
+    },
+    {
       path: '/*/*/dashboard',
       role: 'Researcher',
       can_update:true

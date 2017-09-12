@@ -43,7 +43,8 @@ export module Controllers {
         'getForm',
         'create',
         'update',
-        'stepTo'
+        'stepTo',
+        'modifyEditors'
     ];
 
     /**
@@ -87,8 +88,19 @@ export module Controllers {
           if (_.isEmpty(currentRec)) {
             return Observable.throw(new Error(`Error, empty metadata for OID: ${oid}`));
           }
-          return this.hasEditAccess(brand, req.user, currentRec)
-          .flatMap(hasEditAccess => {
+          if (editMode) {
+            return this.hasEditAccess(brand, req.user, currentRec)
+            .flatMap(hasEditAccess => {
+              const formName = currentRec.metaMetadata.form;
+              return FormsService.getForm(formName, brand.id, editMode).flatMap(form=> {
+                if (_.isEmpty(form)) {
+                  return Observable.throw(new Error(`Error, getting form ${formName} for OID: ${oid}`));
+                }
+                this.mergeFields(req, res, form.fields, currentRec.metadata);
+                return Observable.of(form);
+              });
+            });
+          } else {
             const formName = currentRec.metaMetadata.form;
             return FormsService.getForm(formName, brand.id, editMode).flatMap(form=> {
               if (_.isEmpty(form)) {
@@ -97,7 +109,7 @@ export module Controllers {
               this.mergeFields(req, res, form.fields, currentRec.metadata);
               return Observable.of(form);
             });
-          });
+          }
         });
       }
       obs.subscribe(form => {
@@ -146,25 +158,40 @@ export module Controllers {
       const brand = BrandingService.getBrand(req.session.branding);
       const metadata = req.body;
       const oid = req.param('oid');
-
-      this.getRecord(oid).flatMap(currentRec => {
-        return this.hasEditAccess(brand, req.user, currentRec)
-        .flatMap(hasEditAccess => {
-          currentRec.metadata = metadata;
-          return this.updateMetadata(brand, oid, currentRec, req.user.username);
+      const user = req.user;
+      this.getRecord(oid).subscribe(currentRec => {
+        sails.log.verbose(`Got record:`);
+        sails.log.verbose(currentRec);
+        sails.log.verbose(`Updating to:`);
+        sails.log.verbose(metadata);
+        this.saveMetadata(brand, oid, currentRec, metadata, user).subscribe(response => {
+          if (response && response.code == "200") {
+            response.success = true;
+            this.ajaxOk(req, res, null, response);
+          } else {
+            this.ajaxFail(req, res, null, response);
+          }
+        }, error => {
+          sails.log.error("Error updating meta:");
+          sails.log.error(error);
+          this.ajaxFail(req, res, error.message);
         });
-      })
-      .subscribe(response => {
-        if (response && response.code == "200") {
-          response.success = true;
-          this.ajaxOk(req, res, null, response);
-        } else {
-          this.ajaxFail(req, res, null, response);
-        }
-      }, error => {
-        sails.log.error("Error updating meta:");
-        sails.log.error(error);
-        this.ajaxFail(req, res, error.message);
+      });
+    }
+
+    protected saveMetadata(brand, oid, currentRec, metadata, user): Observable<any> {
+      return this.hasEditAccess(brand, user, currentRec)
+      .flatMap(hasEditAccess => {
+        currentRec.metadata = metadata;
+        return this.updateMetadata(brand, oid, currentRec, user.username);
+      });
+    }
+
+    protected saveAuthorization(brand, oid, currentRec, authorization, user): Observable<any> {
+      return this.hasEditAccess(brand, user, currentRec)
+      .flatMap(hasEditAccess => {
+        currentRec.authorization = authorization;
+        return this.updateAuthorization(brand, oid, currentRec, user.username);
       });
     }
 
@@ -198,6 +225,15 @@ export module Controllers {
       }
       currentRec.metaMetadata.lastSavedBy = username;
       currentRec.metaMetadata.lastSaveDate = moment().format();
+      sails.log.verbose(`Calling record service...`);
+      sails.log.verbose(currentRec);
+      return RecordsService.updateMeta(brand, oid, currentRec);
+    }
+
+    protected updateAuthorization(brand, oid, currentRec, username) {
+      if (currentRec.metaMetadata.brandId != brand.id) {
+        return Observable.throw(new Error(`Failed to update meta, brand's don't match: ${currentRec.metaMetadata.brandId} != ${brand.id}, with oid: ${oid}`));
+      }
       return RecordsService.updateMeta(brand, oid, currentRec);
     }
 
@@ -267,6 +303,45 @@ export module Controllers {
           }
         }
       });
+    }
+
+    public modifyEditors(req, res) {
+      const records = req.body.records;
+      const toUsername = req.body.username;
+      const fromUsername = req.user.username;
+      const brand = BrandingService.getBrand(req.session.branding);
+      const user = req.user;
+
+      let recordCtr = 0;
+      if (records.length > 0) {
+        _.forEach(records, rec => {
+          const oid = rec.oid;
+          this.getRecord(oid).subscribe(record => {
+            const authorization = _.cloneDeep(record.authorization);
+            // current user will lose edit access but will keep read-only access
+            _.remove(authorization.edit, (username) => {
+              return username == fromUsername;
+            });
+            authorization.edit.push(toUsername);
+
+            this.saveAuthorization(brand, oid, record, authorization, user).subscribe(response => {
+              if (response && response.code == "200") {
+                recordCtr++;
+                if (recordCtr == records.length) {
+                  response.success = true;
+                  this.ajaxOk(req, res, null, response);
+                }
+              }
+            }, error => {
+              sails.log.error("Error updating auth:");
+              sails.log.error(error);
+              this.ajaxFail(req, res, error.message);
+            });
+          });
+        });
+      } else {
+        this.ajaxFail(req, res, 'No records specified');
+      }
     }
     /**
      **************************************************************************************************

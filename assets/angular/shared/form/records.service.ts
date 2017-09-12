@@ -54,7 +54,7 @@ export class RecordsService extends BaseService {
   }
 
   getFormFields(formName:string, oid: string=null, editable:boolean) {
-    const url = oid ? `${this.brandingAndPortallUrl}/record/form/auto/${oid}?edit=${editable}` : `${this.brandingAndPortallUrl}/record/form/${formName}?edit=${editable}`;
+    const url = oid ? `${this.brandingAndPortalUrl}/record/form/auto/${oid}?edit=${editable}` : `${this.brandingAndPortalUrl}/record/form/${formName}?edit=${editable}`;
     return this.http.get(url, this.options)
       .toPromise()
       .then((res:any) => this.extractData(res));
@@ -73,25 +73,31 @@ export class RecordsService extends BaseService {
   }
 
   create(record: any) {
-    return this.http.post(`${this.brandingAndPortallUrl}/recordmeta/`, record, this.getOptionsClient())
+    return this.http.post(`${this.brandingAndPortalUrl}/recordmeta/`, record, this.getOptionsClient())
     .toPromise()
     .then((res:any) => this.extractData(res) as RecordActionResult);
   }
 
   update(oid: string, record: any) {
-    return this.http.put(`${this.brandingAndPortallUrl}/recordmeta/${oid}`, record, this.getOptionsClient())
+    return this.http.put(`${this.brandingAndPortalUrl}/recordmeta/${oid}`, record, this.getOptionsClient())
     .toPromise()
     .then((res:any) => this.extractData(res) as RecordActionResult);
   }
 
   stepTo(oid: string, record: any, targetStep: string) {
-    return this.http.post(`${this.brandingAndPortallUrl}/record/workflow/step/${targetStep}/${oid}`, record, this.getOptionsClient())
+    return this.http.post(`${this.brandingAndPortalUrl}/record/workflow/step/${targetStep}/${oid}`, record, this.getOptionsClient())
     .toPromise()
     .then((res:any) => this.extractData(res) as RecordActionResult);
   }
 
   getDashboardUrl() {
-    return `${this.brandingAndPortallUrl}/dashboard`;
+    return `${this.brandingAndPortalUrl}/dashboard`;
+  }
+
+  modifyEditors(records, username) {
+    return this.http.post(`${this.brandingAndPortalUrl}/record/editors/modify`, {records:records, username:username}, this.getOptionsClient())
+    .toPromise()
+    .then((res:any) => this.extractData(res) as RecordActionResult);
   }
 }
 

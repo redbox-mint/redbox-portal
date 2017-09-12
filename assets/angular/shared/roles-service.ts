@@ -38,13 +38,13 @@ export class RolesService extends BaseService {
   }
 
   getBrandRoles() :Promise<Role[]> {
-    return this.http.get(`${this.brandingAndPortallUrl}/admin/roles`, this.options)
+    return this.http.get(`${this.brandingAndPortalUrl}/admin/roles`, this.options)
     .toPromise()
     .then((res:any) => this.extractData(res) as Role[]);
   }
 
   updateUserRoles(userid: any, roleIds: any) {
-    return this.http.post(`${this.brandingAndPortallUrl}/admin/roles/user`, {userid: userid, roles:roleIds}, this.options)
+    return this.http.post(`${this.brandingAndPortalUrl}/admin/roles/user`, {userid: userid, roles:roleIds}, this.options)
     .toPromise()
     .then((res:any) => this.extractData(res) as SaveResult[]);
   }

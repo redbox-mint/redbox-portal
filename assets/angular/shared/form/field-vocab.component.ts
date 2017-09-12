@@ -49,6 +49,7 @@ export class VocabField extends FieldBase<any> {
   public fieldNames: string[];
   public sourceType: string;
   public lookupService: any;
+  public placeHolder: string;
 
   constructor(options: any) {
     super(options);
@@ -61,6 +62,7 @@ export class VocabField extends FieldBase<any> {
     this.titleFieldDelim = options['titleFieldDelim'] || ' - ';
     this.fieldNames = options['fieldNames'] || [];
     this.sourceType = options['sourceType'] || 'vocab';
+    this.placeHolder = options['placeHolder'] || 'Select a valid value';
   }
 
   createFormModel(valueElem: any = undefined) {
@@ -101,8 +103,11 @@ export class VocabField extends FieldBase<any> {
         data.title = this.getTitle(data);
       });
       this.dataService = this.completerService.local(this.sourceData, this.searchFields, 'title');
-    } else if (this.sourceType == "collection") {
-      const url = this.lookupService.getCollectionRootUrl(this.vocabId);
+    } else if (this.sourceType == "collection" || this.sourceType == "user") {
+      let url = this.lookupService.getCollectionRootUrl(this.vocabId);
+      if (this.sourceType == "user") {
+        url = this.lookupService.getUserLookupUrl();
+      }
       console.log(`Using: ${url}`);
       // at the moment, multiple titles arrays are not supported
       // TODO: consider replacing with ngx-bootstrap typeahead
@@ -237,7 +242,7 @@ export class VocabFieldLookupService extends BaseService {
     const vocabId  = field.vocabId;
     // only retrieving static data when on vocab mode
     if (field.sourceType == "vocab") {
-      const url = `${this.brandingAndPortallUrl}/${this.config.vocabRootUrl}/${vocabId}`;
+      const url = `${this.brandingAndPortalUrl}/${this.config.vocabRootUrl}/${vocabId}`;
       return this.http.get(url, this.options)
         .flatMap((res: any) => {
           const data = this.extractData(res);
@@ -251,7 +256,11 @@ export class VocabFieldLookupService extends BaseService {
   }
 
   getCollectionRootUrl(collectionId: string) {
-    return `${this.brandingAndPortallUrl}/${this.config.collectionRootUri}/${collectionId}/?search=`;
+    return `${this.brandingAndPortalUrl}/${this.config.collectionRootUri}/${collectionId}/?search=`;
+  }
+
+  getUserLookupUrl(searchSource: string = '') {
+    return `${this.brandingAndPortalUrl}/${this.config.userRootUri}/?source=${searchSource}&name=`;
   }
 
   findLookupData(field: VocabField, search: string) {
@@ -259,7 +268,7 @@ export class VocabFieldLookupService extends BaseService {
   }
 
   getMintRootUrl(source: string) {
-    return `${this.brandingAndPortallUrl}/${this.config.mintRootUri}/${source}/?search=`;
+    return `${this.brandingAndPortalUrl}/${this.config.mintRootUri}/${source}/?search=`;
   }
 }
 
@@ -272,13 +281,13 @@ export class VocabFieldLookupService extends BaseService {
       <button type="button" class="btn btn-default" *ngIf="field.help" (click)="toggleHelp()"><span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span></button>
     </label>
     <span id="{{ 'helpBlock_' + field.name }}" class="help-block" *ngIf="this.helpShow" >{{field.help}}</span>
-    <ng2-completer [placeholder]="'Select a valid value'" [clearUnselected]="true" (selected)="onSelect($event)" [datasource]="field.dataService" [minSearchLength]="0" [inputClass]="'form-control'" [initialValue]="field.initialValue"></ng2-completer>
+    <ng2-completer [placeholder]="field.placeHolder" [clearUnselected]="true" (selected)="onSelect($event)" [datasource]="field.dataService" [minSearchLength]="0" [inputClass]="'form-control'" [initialValue]="field.initialValue"></ng2-completer>
     <div class="text-danger" *ngIf="hasRequiredError()">{{field.validationMessages.required}}</div>
   </div>
   <div *ngIf="field.editMode && isEmbedded" [formGroup]='form' [ngClass]="getGroupClass()">
     <div class="input-group">
       <span id="{{ 'helpBlock_' + field.name }}" class="help-block" *ngIf="this.helpShow" >{{field.help}}</span>
-      <ng2-completer [placeholder]="'Select a valid value'" [clearUnselected]="true" (selected)="onSelect($event)" [datasource]="field.dataService" [minSearchLength]="0" [inputClass]="'form-control'" [initialValue]="field.initialValue"></ng2-completer>
+      <ng2-completer [placeholder]="field.placeHolder" [clearUnselected]="true" (selected)="onSelect($event)" [datasource]="field.dataService" [minSearchLength]="0" [inputClass]="'form-control'" [initialValue]="field.initialValue"></ng2-completer>
       <span class="input-group-btn">
         <button type='button' *ngIf="removeBtnText" [disabled]="!canRemove" (click)="onRemove($event)" [ngClass]="removeBtnClass" >{{removeBtnText}}</button>
         <button [disabled]="!canRemove" type='button' [ngClass]="removeBtnClass" (click)="onRemove($event)"></button>
@@ -294,7 +303,7 @@ export class VocabFieldLookupService extends BaseService {
   `,
 })
 export class VocabFieldComponent extends SimpleComponent {
-  field: VocabField;
+  @Input() field: VocabField;
   @Input() isEmbedded: boolean = false;
   @Input() canRemove: boolean = false;
   @Input() removeBtnText: string = null;

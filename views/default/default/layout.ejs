@@ -3,7 +3,7 @@
 <html lang="en">
 
 <head>
-  <base href="/<%= typeof branding == 'undefined'? data.branding : branding %>/<%= typeof portal == 'undefined'? data.portal : portal %>">
+  <base href="<%= BrandingService.getBrandAndPortalPath(req) %>">
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -24,9 +24,9 @@
 
   <!-- Custom CSS -->
 
-  <link rel="stylesheet" href="<%= sails.config.appUrl %>/<%= typeof branding == 'undefined'?data.branding : branding %>/<%= typeof portal == 'undefined'? data.portal : portal %>/styles/style.css">
-  <link rel="stylesheet" href="<%= sails.config.appUrl %>/<%= typeof branding == 'undefined'?data.branding : branding %>/<%= typeof portal == 'undefined'? data.portal : portal %>/styles/responsive.css">
-  <link rel="stylesheet" href="<%= sails.config.appUrl %>/<%= typeof branding == 'undefined'?data.branding : branding %>/<%= typeof portal == 'undefined'? data.portal : portal %>/styles/theme.css">
+  <link rel="stylesheet" href="<%= BrandingService.getBrandAndPortalPath(req) %>/styles/style.css">
+  <link rel="stylesheet" href="<%= BrandingService.getBrandAndPortalPath(req) %>/styles/responsive.css">
+  <link rel="stylesheet" href="<%= BrandingService.getBrandAndPortalPath(req) %>/styles/theme.css">
 
   <!-- Latest jQuery form server -->
   <script src="https://code.jquery.com/jquery.min.js"></script>
@@ -54,12 +54,12 @@
           <div class="user-menu">
             <ul>
               <% if (!req.isAuthenticated())  { %>
-                <li><a href="/<%= typeof branding == 'undefined'? data.branding : branding %>/<%= typeof portal == 'undefined'? data.portal : portal %>/user/login"><i class="fa fa-user"></i><%= TranslationService.t('menu-login') %></a></li>
+                <li><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/user/login"><i class="fa fa-user"></i><%= TranslationService.t('menu-login') %></a></li>
               <% } else { %>
                 <li><i class="fa fa-user"></i>&nbsp;<%= TranslationService.t('menu-welcome-text') %>
                   <%= req.user.name %>
                 </li>
-                <li><a href="/<%= typeof branding == 'undefined'? data.branding : branding %>/<%= typeof portal == 'undefined'? data.portal : portal %>/user/logout"><%= TranslationService.t('menu-logout') %></a></li>
+                <li><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/user/logout"><%= TranslationService.t('menu-logout') %></a></li>
               <% } %>
 
             </ul>
@@ -75,7 +75,7 @@
       <div class="row" style="position:relative">
         <div class="col-sm-10">
           <div class="logo" style="display:inline;">
-            <h1><img src="<%= sails.config.appUrl %>/<%= typeof branding == 'undefined'? data.branding : branding %>/<%= typeof portal == 'undefined'? data.portal : portal %>/images/logo.png"/></h1>
+            <h1><img src="<%= BrandingService.getBrandAndPortalPath(req) %>/images/logo.png"/></h1>
           </div>
         </div>
 
@@ -101,19 +101,19 @@
           <ul class="nav navbar-nav">
             <% if (req.isAuthenticated()) {
               %>
-              <li class="active"><a href="/<%= typeof branding == 'undefined'? data.branding : branding %>/<%= typeof portal == 'undefined'? data.portal : portal %>/dashboard"><%= TranslationService.t('menu-dashboard')%></a></li>
+              <li class="active"><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/dashboard"><%= TranslationService.t('menu-dashboard')%></a></li>
               <%
                 if (hasAdminRole(req)) {%>
               <li class="dropdown">
                 <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">Admin <span class="caret"></span></a>
                 <ul class="dropdown-menu">
-                  <li><a href="/<%= typeof branding == 'undefined'? data.branding : branding %>/<%= typeof portal == 'undefined'? data.portal : portal %>/admin"><%= TranslationService.t('menu-rolemgmt')%></a></li>
-                  <li><a href="/<%= typeof branding == 'undefined'? data.branding : branding %>/<%= typeof portal == 'undefined'? data.portal : portal %>/export"><%= TranslationService.t('menu-export')%></a></li>
+                  <li><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/admin"><%= TranslationService.t('menu-rolemgmt')%></a></li>
+                  <li><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/export"><%= TranslationService.t('menu-export')%></a></li>
                 </ul>
               </li>
             <% }
               } else { %>
-              <li class="active"><a href="/<%= typeof branding == 'undefined'? data.branding : branding %>/<%= typeof portal == 'undefined'? data.portal : portal %>/home"><%= TranslationService.t('menu-home') %></a></li>
+              <li class="active"><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/home"><%= TranslationService.t('menu-home') %></a></li>
             <% } %>
           </ul>
 

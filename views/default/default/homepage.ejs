@@ -9,6 +9,6 @@
     <br/>
   </div>
   <div class="main container clearfix">
-    <a href="/<%= typeof branding == 'undefined'? data.branding : branding %>/<%= typeof portal == 'undefined'? data.portal : portal %>/dashboard"><%= TranslationService.t('welcome-dashboard-link-text') %></a>
+    <a href="<%= BrandingService.getBrandAndPortalPath(req) %>/dashboard"><%= TranslationService.t('welcome-dashboard-link-text') %></a>
   </div>
 </div>

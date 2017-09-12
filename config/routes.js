@@ -48,6 +48,13 @@ module.exports.routes = {
       'view': 'record/view'
     }
   },
+  '/:branding/:portal/record/transfer': {
+    controller: 'typescript/RenderViewController',
+    action: 'render',
+    locals:{
+      'view': 'record/transfer'
+    }
+  },
   '/:branding/:portal/record/view-orig/:oid': {
     controller: 'typescript/RenderViewController',
     action: 'render',
@@ -82,6 +89,7 @@ module.exports.routes = {
   'get /user/info': 'typescript/UserController.info',
   'get /:branding/:portal/user/login': 'typescript/UserController.login',
   'get /:branding/:portal/user/logout': 'typescript/UserController.logout',
+  'get /:branding/:portal/user/find': 'typescript/UserController.find',
   'get /:branding/:portal/admin/roles': 'typescript/AdminController.getBrandRoles',
   'post /:branding/:portal/admin/roles/user': 'typescript/AdminController.updateUserRoles',
   'get /:branding/:portal/record/edit': 'typescript/RecordController.edit',
@@ -91,6 +99,7 @@ module.exports.routes = {
   'post /:branding/:portal/recordmeta/': 'typescript/RecordController.create',
   'put /:branding/:portal/recordmeta/:oid': 'typescript/RecordController.update',
   'post /:branding/:portal/record/workflow/step/:targetStep/:oid': 'typescript/RecordController.stepTo',
+  'post /:branding/:portal/record/editors/modify': 'typescript/RecordController.modifyEditors',
   'get /:branding/:portal/dashboard': 'typescript/DashboardController.render',
   'get /:branding/:portal/listPlans': 'typescript/DashboardController.getPlanList',
   'get /:branding/:portal/vocab/:vocabId': 'typescript/VocabController.get',

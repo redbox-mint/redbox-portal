@@ -23,7 +23,6 @@ import {Sails, Model} from "sails";
 
 declare var sails: Sails;
 declare var BrandingConfig: Model;
-declare var _this;
 
 export module Services {
   /**
@@ -47,17 +46,17 @@ export module Services {
     protected dBrand = {name: 'default'};
 
     public bootstrap = (): Observable<any> => {
-      return super.getObservable(BrandingConfig.findOne(_this.dBrand))
+      return super.getObservable(BrandingConfig.findOne(this.dBrand))
                               .flatMap(defaultBrand => {
                                 if (_.isEmpty(defaultBrand)) {
                                   // create default brand
                                   sails.log.verbose("Default brand doesn't exist, creating...");
-                                  return super.getObservable(BrandingConfig.create(_this.dBrand))
+                                  return super.getObservable(BrandingConfig.create(this.dBrand))
                                 }
                                 sails.log.verbose("Default brand already exists...");
                                 return Observable.of(defaultBrand);
                               })
-                              .flatMap(_this.loadAvailableBrands);
+                              .flatMap(this.loadAvailableBrands);
     }
 
     public loadAvailableBrands = (defBrand) :Observable<any> => {
@@ -66,9 +65,9 @@ export module Services {
       // A policy is configured to reject any branding values not present in this array.
       return super.getObservable(BrandingConfig.find({}).populate('roles'))
       .flatMap(brands => {
-        _this.brandings = brands;
-        _this.availableBrandings = _.map(_this.brandings, 'name');
-        var defBrandEntry = _this.getDefault();
+        this.brandings = brands;
+        this.availableBrandings = _.map(this.brandings, 'name');
+        var defBrandEntry = this.getDefault();
         if (defBrandEntry == null) {
           sails.log.error("Failed to load default brand!");
           return Observable.throw(new Error("Failed to load default brand!"));
@@ -78,15 +77,15 @@ export module Services {
     }
 
     public getDefault = () :BrandingConfig => {
-      return _.find(_this.brandings, (o) => {return o.name == _this.dBrand.name});
+      return _.find(this.brandings, (o) => {return o.name == this.dBrand.name});
     }
 
     public getBrand = (name) :BrandConfig => {
-      return _.find(_this.brandings, (o) => {return o.name == name});
+      return _.find(this.brandings, (o) => {return o.name == name});
     }
 
     public getAvailable = () => {
-      return _this.availableBrandings;
+      return this.availableBrandings;
     }
 
     public getBrandAndPortalPath(req) {

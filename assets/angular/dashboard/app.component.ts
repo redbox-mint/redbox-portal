@@ -54,7 +54,7 @@ export class AppComponent extends LoadableComponent  {
 
   protected setDashboardTitle(planTable: PlanTable) {
     _.forEach(planTable.items, (plan: Plan) => {
-      plan.dashboardTitle = (_.isUndefined(plan.title) || _.isEmpty(plan.title) || _.isEmpty(plan.title[0])) ? this.translateI18Next.translate('plan-with-no-title'): plan.title;
+      plan.dashboardTitle = (_.isUndefined(plan.title) || _.isEmpty(plan.title) || _.isEmpty(plan.title[0])) ? this.translationService.t('plan-with-no-title'): plan.title;
     });
   }
 

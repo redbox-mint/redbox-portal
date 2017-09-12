@@ -61,6 +61,8 @@ export module Controllers {
 
     public getPlanList(req, res) {
       const brand = BrandingService.getBrand(req.session.branding);
+      const editAccessOnly = req.query.editOnly;
+
       var roles = [];
       var username = "guest";
       if (req.isAuthenticated()) {
@@ -76,7 +78,7 @@ export module Controllers {
       const workflowState = req.param('state');
       const start = req.param('start');
       const rows = req.param('rows');
-      this.getPlans(workflowState,start,rows,username,roles,brand).flatMap(results => {
+      this.getPlans(workflowState,start,rows,username,roles,brand,editAccessOnly).flatMap(results => {
           return results;
         }).subscribe(response => {
           if (response && response.code == "200") {
@@ -92,8 +94,8 @@ export module Controllers {
         });
     }
 
-    protected getPlans(workflowState,start,rows,username, roles, brand) {
-      var response = DashboardService.getPlans(workflowState,start,rows,username,roles,brand);
+    protected getPlans(workflowState,start,rows,username, roles, brand, editAccessOnly=undefined) {
+      var response = DashboardService.getPlans(workflowState,start,rows,username,roles,brand,editAccessOnly);
 
       return response.map(results => {
         var totalItems = results["response"]["numFound"];

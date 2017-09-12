@@ -14,10 +14,18 @@ export class DashboardService extends BaseService {
     super(http, configService);
   }
 
+  getAlllDraftPlansCanEdit(): Promise<PlanTable> {
+    var rows = 1000000;
+    var start = 0;
+    return this.http.get(`${this.brandingAndPortalUrl}/listPlans?state=draft&editOnly=true&start=`+start+`&rows=`+rows, this.options)
+      .toPromise()
+      .then((res: any) => this.formatDates(this.extractData(res))as PlanTable);
+  }
+
   getActivePlans(pageNumber:number): Promise<PlanTable> {
     var rows = 10;
     var start = (pageNumber-1) * rows;
-    return this.http.get(`${this.brandingAndPortallUrl}/listPlans?state=active&start=`+start+`&rows=`+rows, this.options)
+    return this.http.get(`${this.brandingAndPortalUrl}/listPlans?state=active&start=`+start+`&rows=`+rows, this.options)
       .toPromise()
       .then((res: any) => this.formatDates(this.extractData(res))as PlanTable);
   }
@@ -25,7 +33,7 @@ export class DashboardService extends BaseService {
   getDraftPlans(pageNumber:number): Promise<PlanTable> {
     var rows = 10;
     var start = (pageNumber-1) * rows;
-    return this.http.get(`${this.brandingAndPortallUrl}/listPlans?state=draft&start=`+start+`&rows=`+rows, this.options)
+    return this.http.get(`${this.brandingAndPortalUrl}/listPlans?state=draft&start=`+start+`&rows=`+rows, this.options)
       .toPromise()
       .then((res: any) => this.formatDates(this.extractData(res)) as PlanTable);
   }

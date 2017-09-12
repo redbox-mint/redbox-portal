@@ -7,8 +7,8 @@
     </div>
     <div class="panel-body" style="overflow:scroll" >
       <div class="input-group">
-        <span class="input-group-addon" id="name-addon">Search for name</span>
-        <input type="text" (keyup)="onFilterChange(null)" [(ngModel)]="searchFilter.name" class="form-control" placeholder="search" aria-describedby="name-addon">
+        <span class="input-group-addon" id="name-addon">{{ 'manage-roles-filter-name' | translate }}</span>
+        <input type="text" (keyup)="onFilterChange(null)" [(ngModel)]="searchFilter.name" class="form-control" placeholder="{{ 'manage-roles-filter-name-placeholder' | translate }}" aria-describedby="name-addon">
         <span (click)="resetFilter()" class="input-group-btn"><button class="btn btn-primary" type='button'>Reset</button></span>
       </div>
       <div>
