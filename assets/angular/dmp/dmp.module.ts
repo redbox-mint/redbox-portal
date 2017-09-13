@@ -22,26 +22,13 @@ import { BrowserModule } from '@angular/platform-browser';
 import { ReactiveFormsModule, FormsModule} from "@angular/forms";
 import { HttpModule } from '@angular/http';
 import { DmpFormComponent } from './dmp-form.component';
-import { DmpFieldComponent } from './dmp-field.component';
-import { FieldControlService } from '../shared/form/field-control.service';
-import { RecordsService } from '../shared/form/records.service';
-import { NKDatetimeModule } from 'ng2-datetime/ng2-datetime';
-import { TextFieldComponent, RepeatableTextfieldComponent } from '../shared/form/field-textfield.component';
-import { DropdownFieldComponent, TabOrAccordionContainerComponent, TextBlockComponent, TextAreaComponent, DateTimeComponent, AnchorOrButtonComponent, HtmlRawComponent, HiddenValueComponent, LinkValueComponent, SelectionFieldComponent } from '../shared/form/field-simple.component';
-import { VocabField, VocabFieldComponent, VocabFieldLookupService } from '../shared/form/field-vocab.component';
-import { RepeatableVocabComponent, RepeatableContributorComponent } from '../shared/form/field-repeatable.component';
-import { ContributorComponent } from '../shared/form/field-contributor.component';
-import { WorkflowStepButtonComponent } from '../shared/form/workflow-button.component';
-import { Ng2CompleterModule } from "ng2-completer";
-import { ConfigService } from '../shared/config-service';
-import { TranslateI18NextModule } from 'angular2-i18next';
-import { TranslationService } from '../shared/translation-service';
-
+import { SharedModule } from '../shared/shared.module';
+ 
 @NgModule({
-  imports:      [ BrowserModule, HttpModule, ReactiveFormsModule, NKDatetimeModule, FormsModule, Ng2CompleterModule, TranslateI18NextModule ],
-  declarations: [ DmpFormComponent, DmpFieldComponent, TextFieldComponent, DropdownFieldComponent, TabOrAccordionContainerComponent, TextBlockComponent, TextAreaComponent, DateTimeComponent, AnchorOrButtonComponent, VocabFieldComponent, RepeatableVocabComponent, ContributorComponent, RepeatableContributorComponent, HtmlRawComponent, HiddenValueComponent, WorkflowStepButtonComponent, LinkValueComponent, SelectionFieldComponent, RepeatableTextfieldComponent ],
-  providers:    [ FieldControlService, RecordsService, VocabFieldLookupService, ConfigService, TranslationService ],
+  imports:      [ BrowserModule, HttpModule, ReactiveFormsModule, SharedModule ],
+  declarations: [ DmpFormComponent ],
+  providers:    [ ],
   bootstrap:    [ DmpFormComponent ],
-  entryComponents: [ TextFieldComponent, DropdownFieldComponent, TabOrAccordionContainerComponent, TextBlockComponent, TextAreaComponent, DateTimeComponent, AnchorOrButtonComponent, VocabFieldComponent, RepeatableVocabComponent, ContributorComponent, RepeatableContributorComponent, HtmlRawComponent, HiddenValueComponent, WorkflowStepButtonComponent, LinkValueComponent, SelectionFieldComponent, RepeatableTextfieldComponent ]
+  entryComponents: [ ]
 })
 export class DmpModule { }

@@ -19,8 +19,8 @@
 
 import { Component, Input, Inject, ViewChild, ViewContainerRef, ComponentFactoryResolver, ComponentRef } from '@angular/core';
 import { FormGroup } from '@angular/forms';
-import { FieldBase } from '../shared/form/field-base';
-import { SimpleComponent } from '../shared/form/field-simple.component';
+import { FieldBase } from './field-base';
+import { SimpleComponent } from './field-simple.component';
 /**
  * Base component for a DMP field...
  *
@@ -28,9 +28,8 @@ import { SimpleComponent } from '../shared/form/field-simple.component';
  *
  */
 @Component({
-  moduleId: module.id,
   selector: 'dmp-field',
-  templateUrl: './dmp-field.component.html'
+  template: '<div #field></div>'
 })
 export class DmpFieldComponent {
   @Input() field: FieldBase<any>;

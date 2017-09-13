@@ -59,27 +59,29 @@ export class AppComponent extends LoadableComponent {
     this.initTranslator(translationService);
     this.initSubs = rolesService.waitForInit((initStat:any) => {
       this.initSubs.unsubscribe();
-      rolesService.getBrandRoles().then((roles:any) => {
-        this.roles = roles;
-        _.forEach(roles, (role:any) => {
-          this.searchFilter.roles.push({value:role.name, label:role.name, checked:false});
-          _.forEach(role.users, (user:any) => {
-            if (!_.includes(this.hiddenUsers, user.username)) {
-              // flattening the tree, match by username
-              let existingUser: any = _.find(this.users, (existingUser:any) => { return existingUser.username == user.username});
-              if (_.isEmpty(existingUser)) {
-                existingUser = user;
-                existingUser.roles = [role.name];
-                this.users.push(existingUser);
-              } else {
-                existingUser.roles.push(role.name);
+      translationService.isReady(tService => {
+        rolesService.getBrandRoles().then((roles:any) => {
+          this.roles = roles;
+          _.forEach(roles, (role:any) => {
+            this.searchFilter.roles.push({value:role.name, label:role.name, checked:false});
+            _.forEach(role.users, (user:any) => {
+              if (!_.includes(this.hiddenUsers, user.username)) {
+                // flattening the tree, match by username
+                let existingUser: any = _.find(this.users, (existingUser:any) => { return existingUser.username == user.username});
+                if (_.isEmpty(existingUser)) {
+                  existingUser = user;
+                  existingUser.roles = [role.name];
+                  this.users.push(existingUser);
+                } else {
+                  existingUser.roles.push(role.name);
+                }
               }
-            }
+            });
           });
+          _.map(this.users, (user:any)=> {user.roleStr = _.join(user.roles, ', ')});
+          this.filteredUsers = this.users;
+          this.checkIfHasLoaded();
         });
-        _.map(this.users, (user:any)=> {user.roleStr = _.join(user.roles, ', ')});
-        this.filteredUsers = this.users;
-        this.checkIfHasLoaded();
       });
     });
   }

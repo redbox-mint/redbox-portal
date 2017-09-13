@@ -46,18 +46,20 @@ export class AppComponent extends LoadableComponent {
   constructor (@Inject(UserSimpleService) protected userService: UserSimpleService, @Inject(FormBuilder) protected fb: FormBuilder, @Inject(DOCUMENT) protected document:any, translationService: TranslationService) {
     super();
     this.initTranslator(translationService);
-    userService.waitForInit((whatever:any)=> {
-      this.form = this.fb.group({
-          "username": ["", Validators.required],
-          "password":["", Validators.required]
+    translationService.isReady(tService => {
+      userService.waitForInit((whatever:any)=> {
+        this.form = this.fb.group({
+            "username": ["", Validators.required],
+            "password":["", Validators.required]
+        });
+        this.form.valueChanges.subscribe(data => {
+          this.isLoginDisabled = this.form.status == 'INVALID';
+          if (this.isLoginDisabled) {
+            this.getErrors();
+          }
+        });
+        this.checkIfHasLoaded();
       });
-      this.form.valueChanges.subscribe(data => {
-        this.isLoginDisabled = this.form.status == 'INVALID';
-        if (this.isLoginDisabled) {
-          this.getErrors();
-        }
-      });
-      this.checkIfHasLoaded();
     });
   }
 

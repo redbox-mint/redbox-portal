@@ -3,15 +3,12 @@ import { BrowserModule } from '@angular/platform-browser';
 import {ReactiveFormsModule} from "@angular/forms";
 import { HttpModule } from '@angular/http';
 import { AppComponent }  from './app.component';
-import { UserSimpleService } from '../shared/user.service-simple';
-import { ConfigService } from '../shared/config-service';
-import { TranslateI18NextModule } from 'angular2-i18next';
-import { TranslationService } from '../shared/translation-service';
+import { SharedModule } from '../shared/shared.module';
 
 @NgModule({
-  imports:      [ BrowserModule, HttpModule, ReactiveFormsModule, TranslateI18NextModule ],
+  imports:      [ BrowserModule, HttpModule, ReactiveFormsModule, SharedModule ],
   declarations: [ AppComponent ],
-  providers: [ UserSimpleService, ConfigService, TranslationService ],
+  providers:    [ ],
   bootstrap:    [ AppComponent ]
 })
 export class AppModule { }

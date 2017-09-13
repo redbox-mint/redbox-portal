@@ -55,7 +55,9 @@ export class ExportFormComponent extends LoadableComponent {
     this.hasClearButton = false;
     this.datePickerOpts = {placeholder: 'dd/mm/yyyy', format: 'dd/mm/yyyy', icon: 'fa fa-calendar'};
     this.initTranslator(translationService);
-    this.checkIfHasLoaded();
+    translationService.isReady(tService => {
+      this.checkIfHasLoaded();
+    });
   }
 
   download() {

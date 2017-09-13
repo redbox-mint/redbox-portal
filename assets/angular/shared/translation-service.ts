@@ -50,7 +50,7 @@ export class TranslationService {
         //                                                                     //                         LOCALE_ID = 'pt-BR' or 'pt', you can pass only ['pt'] -> locales/pt/translation.json
         // backend: injectableBackendConfigFactory                             // optional - allows to change "loadPath" i18next parameter
         lng: 'en',
-        fallbackLang: 'en'
+        fallbackLng: 'en'
     }).then(() => {
       console.log(`Translator loaded...`);
       this.translatorReady = true;

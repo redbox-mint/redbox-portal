@@ -134,8 +134,8 @@ export module Services {
           if (user) {
               user.lastLogin = new Date();
               User.update(user).exec(function(err, user) {
-                return done(null, user);
-            });
+              });
+              return done(null, user);
           } else {
             sails.log.verbose("At AAF Strategy verify, creating new user...");
             // first time login, create with default role
@@ -282,7 +282,7 @@ export module Services {
     public findAndAssignAccessToRecords(pendingValue, userid) {
       var url = `${sails.config.record.api.search.url}?q=authorization_editPending:${pendingValue}%20OR%20authorization_viewPending:${pendingValue}&sort=date_object_modified desc&version=2.2&wt=json&rows=10000`;
       var options = { url: url, json: true, headers: { 'Authorization': `Bearer ${sails.config.redbox.apiKey}`, 'Content-Type': 'application/json; charset=utf-8' } };
-      var response = Observable.fromPromise(request[sails.config.record.api.search.method](options)).catch(error => Observable.of(`Error: ${error}`);
+      var response = Observable.fromPromise(request[sails.config.record.api.search.method](options)).catch(error => Observable.of(`Error: ${error}`));
 
       response.subscribe(results => {
 

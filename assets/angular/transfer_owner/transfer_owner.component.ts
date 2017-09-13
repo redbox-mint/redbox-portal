@@ -61,7 +61,7 @@ export class TransferOwnerComponent extends LoadableComponent {
   constructor(@Inject(DashboardService) protected dashboardService: DashboardService,
    @Inject(FormBuilder) fb: FormBuilder,
    @Inject(DOCUMENT) protected document:any,
-   protected translationService:TranslationService,
+   public translationService:TranslationService,
    @Inject(VocabFieldLookupService) private vocabFieldLookupService,
    @Inject(CompleterService) private completerService: CompleterService,
    @Inject(RecordsService) private recordService: RecordsService) {

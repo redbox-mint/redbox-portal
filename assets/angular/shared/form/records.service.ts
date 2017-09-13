@@ -18,7 +18,7 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 import { Injectable, Inject }       from '@angular/core';
-import { DropdownField, TextField } from './field-simple';
+import { TextField } from './field-simple';
 import { FieldBase }     from './field-base';
 import { BaseService } from '../base-service';
 import { Http } from '@angular/http';

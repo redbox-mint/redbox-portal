@@ -22,14 +22,12 @@ import { BrowserModule } from '@angular/platform-browser';
 import { ReactiveFormsModule, FormsModule} from "@angular/forms";
 import { HttpModule } from '@angular/http';
 import { ExportFormComponent } from './export-form.component';
-import { NKDatetimeModule } from 'ng2-datetime/ng2-datetime';
-import { TranslateI18NextModule } from 'angular2-i18next';
-import { TranslationService } from '../shared/translation-service';
+import { SharedModule } from '../shared/shared.module';
 
 @NgModule({
-  imports:      [ BrowserModule, HttpModule, ReactiveFormsModule, FormsModule, NKDatetimeModule, TranslateI18NextModule ],
+  imports:      [ BrowserModule, HttpModule, ReactiveFormsModule, FormsModule, SharedModule ],
   declarations: [ ExportFormComponent ],
-  providers:    [ TranslationService ],
+  providers:    [  ],
   bootstrap:    [ ExportFormComponent ],
   entryComponents: [  ]
 })
