@@ -281,13 +281,13 @@ export class VocabFieldLookupService extends BaseService {
       <button type="button" class="btn btn-default" *ngIf="field.help" (click)="toggleHelp()"><span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span></button>
     </label>
     <span id="{{ 'helpBlock_' + field.name }}" class="help-block" *ngIf="this.helpShow" >{{field.help}}</span>
-    <ng2-completer [placeholder]="field.placeHolder" [clearUnselected]="true" (selected)="onSelect($event)" [datasource]="field.dataService" [minSearchLength]="0" [inputClass]="'form-control'" [initialValue]="field.initialValue"></ng2-completer>
+    <ng2-completer [disableInput]="disableInput" [placeholder]="field.placeHolder" [clearUnselected]="true" (selected)="onSelect($event)" [datasource]="field.dataService" [minSearchLength]="0" [inputClass]="'form-control'" [initialValue]="field.initialValue"></ng2-completer>
     <div class="text-danger" *ngIf="hasRequiredError()">{{field.validationMessages.required}}</div>
   </div>
   <div *ngIf="field.editMode && isEmbedded" [formGroup]='form' [ngClass]="getGroupClass()">
     <div class="input-group">
       <span id="{{ 'helpBlock_' + field.name }}" class="help-block" *ngIf="this.helpShow" >{{field.help}}</span>
-      <ng2-completer [placeholder]="field.placeHolder" [clearUnselected]="true" (selected)="onSelect($event)" [datasource]="field.dataService" [minSearchLength]="0" [inputClass]="'form-control'" [initialValue]="field.initialValue"></ng2-completer>
+      <ng2-completer [disableInput]="disableInput" [placeholder]="field.placeHolder" [clearUnselected]="true" (selected)="onSelect($event)" [datasource]="field.dataService" [minSearchLength]="0" [inputClass]="'form-control'" [initialValue]="field.initialValue"></ng2-completer>
       <span class="input-group-btn">
         <button type='button' *ngIf="removeBtnText" [disabled]="!canRemove" (click)="onRemove($event)" [ngClass]="removeBtnClass" >{{removeBtnText}}</button>
         <button [disabled]="!canRemove" type='button' [ngClass]="removeBtnClass" (click)="onRemove($event)"></button>
@@ -310,6 +310,7 @@ export class VocabFieldComponent extends SimpleComponent {
   @Input() removeBtnClass: string = 'btn fa fa-minus-circle btn text-20 pull-left btn btn-danger';
   @Input() index: number;
   @Output() onRemoveBtnClick: EventEmitter<any> = new EventEmitter<any>();
+  disableInput: boolean;
 
   constructor() {
     super();
@@ -318,6 +319,7 @@ export class VocabFieldComponent extends SimpleComponent {
   onSelect(selected: any) {
     if (selected) {
       this.field.formModel.setValue(this.field.getValue(selected));
+      this.disableInput = true;
     } else {
       this.field.formModel.setValue(null);
     }
