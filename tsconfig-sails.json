@@ -17,10 +17,9 @@
         "sourceMap": false
     },
     "exclude": [
-        "node_modules/*",
-        "typings/browser",
-        "typings/browser.d.ts",
-        "assets/angular/*"
+        "node_modules/**",
+        "typings/**",
+        "assets/angular/**"
     ],
     "include": [
         "typescript/**/*.ts",

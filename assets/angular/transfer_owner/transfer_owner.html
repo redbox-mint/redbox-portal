@@ -35,6 +35,8 @@
       <rb-vocab [field]="userLookupMeta" [form]="formGroup"></rb-vocab>
       <button [disabled]="!canTransfer()" class="btn btn-primary" type='button' data-toggle="modal" data-target="#myModal">{{ 'transfer-ownership-execute' | translate }}</button>
       <div><br/></div>
+      <div>{{ 'transfer-ownership-step-2-update' | translate }}</div>
+      <div><br/></div>
       <div class="bg-{{saveMsgType}} text-center">{{saveMsg}}</div>
     </div>
   </div>

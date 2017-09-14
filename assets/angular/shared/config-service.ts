@@ -55,7 +55,7 @@ export class ConfigService {
   }
 
   initConfig() {
-    this.http.get('/dynamic/apiClientConfig.json').subscribe((res:any) => {
+    this.http.get(`/dynamic/apiClientConfig.json?v=${new Date().getTime()}`).subscribe((res:any) => {
       this.config = this.extractData(res);
       console.log(`ConfigService, initialized. `);
       this.emitConfig();
