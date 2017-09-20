@@ -55,6 +55,13 @@ module.exports.routes = {
       'view': 'record/transfer'
     }
   },
+  '/:branding/:portal/record/search': {
+    controller: 'typescript/RenderViewController',
+    action: 'render',
+    locals:{
+      'view': 'record/search'
+    }
+  },
   '/:branding/:portal/record/view-orig/:oid': {
     controller: 'typescript/RenderViewController',
     action: 'render',
@@ -96,6 +103,7 @@ module.exports.routes = {
   'get /:branding/:portal/record/edit/:oid': 'typescript/RecordController.edit',
   'get /:branding/:portal/record/form/:name': 'typescript/RecordController.getForm',
   'get /:branding/:portal/record/form/:name/:oid': 'typescript/RecordController.getForm',
+  'get /:branding/:portal/record/search/:type': 'typescript/RecordController.search',
   'post /:branding/:portal/recordmeta/': 'typescript/RecordController.create',
   'put /:branding/:portal/recordmeta/:oid': 'typescript/RecordController.update',
   'post /:branding/:portal/record/workflow/step/:targetStep/:oid': 'typescript/RecordController.stepTo',

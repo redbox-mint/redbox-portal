@@ -44,7 +44,8 @@ export module Controllers {
         'create',
         'update',
         'stepTo',
-        'modifyEditors'
+        'modifyEditors',
+        'search'
     ];
 
     /**
@@ -62,14 +63,12 @@ export module Controllers {
       return this.sendView(req, res, 'record/edit', {oid: oid});
     }
 
-    protected hasEditAccess(brand, user, currentRec) {
-      return RecordsService.hasEditAccess(brand, user, currentRec)
-      .flatMap(hasEditAccess => {
-        if (!hasEditAccess) {
-          return Observable.throw(new Error(`User doesn't have access to this record.`));
-        }
-        return Observable.of(true);
-      });
+    protected hasEditAccess(brand, user, currentRec): Observable<boolean> {
+      const hasEditAccess = RecordsService.hasEditAccess(brand, user.username, user.roles, currentRec);
+      if (!hasEditAccess) {
+        return Observable.throw(new Error(`User doesn't have access to this record.`));
+      }
+      return Observable.of(true);
     }
 
     public getForm(req, res) {
@@ -322,8 +321,9 @@ export module Controllers {
             _.remove(authorization.edit, (username) => {
               return username == fromUsername;
             });
-            authorization.edit.push(toUsername);
-
+            if (_.isUndefined(_.find(authorization.edit, (username) => { return username == toUsername}))) {
+              authorization.edit.push(toUsername);
+            }
             this.saveAuthorization(brand, oid, record, authorization, user).subscribe(response => {
               if (response && response.code == "200") {
                 recordCtr++;
@@ -342,6 +342,20 @@ export module Controllers {
       } else {
         this.ajaxFail(req, res, 'No records specified');
       }
+    }
+
+    public search(req, res) {
+      const type = req.param('type');
+      const searchString = req.query.searchStr;
+      const workflow = req.query.workflow;
+      const brand = BrandingService.getBrand(req.session.branding);
+
+      RecordsService.searchFuzzy(type, workflow, searchString, brand, req.user.username, req.user.roles, sails.config.record.search.returnFields)
+      .subscribe(searchRes => {
+        this.ajaxOk(req, res, null, searchRes);
+      }, error => {
+        this.ajaxFail(req, res, error.message);
+      });
     }
     /**
      **************************************************************************************************

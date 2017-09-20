@@ -4,19 +4,24 @@ import 'rxjs/add/operator/map';
 import 'rxjs/add/operator/toPromise';
 import moment from 'moment-es6';
 import { BaseService } from '../shared/base-service'
-import { PlanTable } from './dashboard-models'
+import { PlanTable, Plan } from './dashboard-models'
 import { ConfigService } from './config-service';
+import { TranslationService } from './translation-service';
+import * as _ from "lodash-lib";
 
 @Injectable()
 export class DashboardService extends BaseService {
 
-  constructor( @Inject(Http) http: Http, @Inject(ConfigService) protected configService: ConfigService) {
+  constructor(
+    @Inject(Http) http: Http,
+    @Inject(ConfigService) protected configService: ConfigService,
+    @Inject(TranslationService) protected translator:TranslationService) {
     super(http, configService);
   }
 
   getAlllDraftPlansCanEdit(): Promise<PlanTable> {
-    var rows = 1000000;
-    var start = 0;
+    const rows = this.config.maxTransferRowsPerPage;
+    const start = 0;
     return this.http.get(`${this.brandingAndPortalUrl}/listPlans?state=draft&editOnly=true&start=`+start+`&rows=`+rows, this.options)
       .toPromise()
       .then((res: any) => this.formatDates(this.extractData(res))as PlanTable);
@@ -45,6 +50,20 @@ export class DashboardService extends BaseService {
       items[i]["dateModified"] = moment(items[i]["dateModified"]).local().format('LLL')
     }
     return response;
+  }
+
+  public setDashboardTitle(planTable: PlanTable, plans: any[]=null) {
+    _.forEach(planTable ? planTable.items : plans, (plan: Plan) => {
+      plan.dashboardTitle = (_.isUndefined(plan.title) || _.isEmpty(plan.title) || _.isEmpty(plan.title[0])) ? this.translator.t('plan-with-no-title'): plan.title;
+    });
+  }
+
+  public searchRecords(pageNumber:number, basicSearch: string, facets: any = null) {
+    const rows = this.config.maxSearchRowsPerPage;
+    const start = (pageNumber-1) * rows;
+    return this.http.get(`${this.brandingAndPortalUrl}/searchPlans??start=${start}&rows=${rows}&query=${basicSearch}&facets=${facets}`, this.options)
+      .toPromise()
+      .then((res:any) => this.formatDates(this.extractData(res))as PlanTable);
   }
 
 }

@@ -18,12 +18,8 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 import { Component, Injectable, Inject } from '@angular/core';
-import { DOCUMENT } from '@angular/platform-browser';
-import { FormArray, FormGroup, FormControl, Validators, FormBuilder } from '@angular/forms';
+import { FormArray, FormGroup, FormControl, Validators } from '@angular/forms';
 import { DashboardService } from '../shared/dashboard-service';
-import { UserSimpleService } from '../shared/user.service-simple';
-import { RolesService } from '../shared/roles-service';
-import { Role, User, LoginResult, SaveResult } from '../shared/user-models';
 import * as _ from "lodash-lib";
 import { LoadableComponent } from '../shared/loadable.component';
 import { TranslationService } from '../shared/translation-service';
@@ -59,8 +55,6 @@ export class TransferOwnerComponent extends LoadableComponent {
   saveMsgType: string;
 
   constructor(@Inject(DashboardService) protected dashboardService: DashboardService,
-   @Inject(FormBuilder) fb: FormBuilder,
-   @Inject(DOCUMENT) protected document:any,
    public translationService:TranslationService,
    @Inject(VocabFieldLookupService) private vocabFieldLookupService,
    @Inject(CompleterService) private completerService: CompleterService,
@@ -77,7 +71,7 @@ export class TransferOwnerComponent extends LoadableComponent {
   protected loadPlans() {
     this.translationService.isReady(tService => {
       this.dashboardService.getAlllDraftPlansCanEdit().then((draftPlans: PlanTable) => {
-        this.setDashboardTitle(draftPlans);
+        this.dashboardService.setDashboardTitle(draftPlans);
         this.plans = draftPlans;
         this.filteredPlans = this.plans.items;
         if (!this.userLookupMeta) {
@@ -108,17 +102,11 @@ export class TransferOwnerComponent extends LoadableComponent {
     this.formGroup = new FormGroup({researcher_name: this.userLookupMeta.formModel});
   }
 
-  protected setDashboardTitle(planTable: PlanTable) {
-    _.forEach(planTable.items, (plan: Plan) => {
-      plan.dashboardTitle = (_.isUndefined(plan.title) || _.isEmpty(plan.title) || _.isEmpty(plan.title[0])) ? this.translationService.t('plan-with-no-title'): plan.title;
-    });
-  }
-
   onFilterChange() {
     if (this.searchFilterName) {
       this.filteredPlans = _.filter(this.plans.items, (plan: any)=> {
         plan.selected = false;
-        return _.startsWith(_.toLower(plan.dashboardTitle), _.toLower(this.searchFilterName));
+        return _.toLower(plan.dashboardTitle).includes(_.toLower(this.searchFilterName));
       });
     } else {
       this.filteredPlans = this.plans.items;
@@ -142,7 +130,7 @@ export class TransferOwnerComponent extends LoadableComponent {
       }
     });
     const username = this.getSelResearcher()['username'];
-    this.saveMsg = this.translationService.t('transfer-ownership-transferring');
+    this.saveMsg = `${this.translationService.t('transfer-ownership-transferring')}${this.spinnerElem}`;
     this.saveMsgType = "info";
     this.clearSelResearcher();
     this.recordService.modifyEditors(records, username).then((res:any)=>{
@@ -152,7 +140,7 @@ export class TransferOwnerComponent extends LoadableComponent {
       this.loadPlans();
     }).catch((err:any)=>{
       this.saveMsg = err;
-      this.saveMsgType = "error";
+      this.saveMsgType = "danger";
     });
     jQuery('#myModal').modal('hide');
   }

@@ -56,7 +56,7 @@ function compileAoT() {
   node_modules/.bin/ngc -p tsconfig-aot.json
   node_modules/.bin/grunt --gruntfile Gruntfile-ts-compile-sails.js
   node_modules/.bin/grunt --gruntfile Gruntfile-ts-compile-ng2.js
-  ng2apps=( "localAuth" "dmp" "manageRoles" "dashboard" "export" "transfer_owner" )
+  ng2apps=( "localAuth" "dmp" "manageRoles" "dashboard" "export" "transfer_owner" "record_search" )
   for ng2app in "${ng2apps[@]}"
   do
     bundleNg2App $ng2app

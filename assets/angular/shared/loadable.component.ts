@@ -29,6 +29,7 @@ export class LoadableComponent  {
   isLoading: boolean;
   translatorReady: boolean;
   translationService: any;
+  spinnerElem: string = `<i class="fa fa-spinner fa-pulse fa-1x fa-fw"></i>`;
 
   constructor() {
     this.isLoading = true;

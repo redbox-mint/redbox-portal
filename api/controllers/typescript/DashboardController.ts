@@ -21,9 +21,8 @@
 declare var module;
 declare var sails;
 import { Observable } from 'rxjs/Rx';
-declare var BrandingService;
-declare var RolesService;
-declare var  DashboardService;
+declare var BrandingService, RolesService, DashboardService, RecordsService;
+
 /**
  * Package that contains all Controllers.
  */
@@ -110,6 +109,7 @@ export module Controllers {
 
         var items = [];
         var docs = results["response"]["docs"];
+
         for (var i = 0; i < docs.length; i++) {
           var doc = docs[i];
           var item = {};
@@ -117,6 +117,7 @@ export module Controllers {
           item["title"] = doc["title"];
           item["dateCreated"] =  doc["date_object_created"];
           item["dateModified"] = doc["date_object_modified"];
+          item["hasEditAccess"] = RecordsService.hasEditAccess(brand, username, roles, doc);
           items.push(item);
         }
 

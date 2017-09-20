@@ -309,6 +309,7 @@ export class VocabFieldComponent extends SimpleComponent {
   @Input() removeBtnText: string = null;
   @Input() removeBtnClass: string = 'btn fa fa-minus-circle btn text-20 pull-left btn btn-danger';
   @Input() index: number;
+  @Input() disableEditAfterSelect: boolean = true;
   @Output() onRemoveBtnClick: EventEmitter<any> = new EventEmitter<any>();
   disableInput: boolean;
 
@@ -319,7 +320,8 @@ export class VocabFieldComponent extends SimpleComponent {
   onSelect(selected: any) {
     if (selected) {
       this.field.formModel.setValue(this.field.getValue(selected));
-      this.disableInput = true;
+      if (this.disableEditAfterSelect)
+        this.disableInput = true;
     } else {
       this.field.formModel.setValue(null);
     }

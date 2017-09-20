@@ -1,0 +1,17 @@
+<div class="row" id="loading">
+  <div class="col-xs-1">
+  </div>
+  <div class="col-xs-10">
+    <img class="center-block" src="/images/loading.svg">
+  </div>
+  <div class="col-xs-1">
+  </div>
+</div>
+<record-search search_url="record/search" record_type="<%= req.query.type ? req.query.type : 'rdmp'%>" search_str="<%= req.query.q ? req.query.q : '' %>"></record-search>
+<% if (!sails.config.ng2.use_bundled) { %>
+<!-- Import and Load angular 2 if on dev mode-->
+<script src="/dynamic/systemjs-config.js?appName=record_search"></script>
+<script>
+  System.import('record_search').catch(function(err){ console.error(err); });
+</script>
+<% } %>

@@ -25,5 +25,12 @@ module.exports.record = {
   },
   export: {
     maxRecords: 20
+  },
+  transfer: {
+    maxRecordsPerPage: 1000000
+  },
+  search: {
+    returnFields: ['title', 'description', 'storage_id'],
+    maxRecordsPerPage: 1000000
   }
 };

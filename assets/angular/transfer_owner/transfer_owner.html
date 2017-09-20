@@ -11,7 +11,7 @@
       <div class="input-group">
         <span class="input-group-addon" id="name-addon">{{ 'transfer-ownership-filter-plan-name' | translate }}</span>
         <input type="text" (keyup)="onFilterChange()" [(ngModel)]="searchFilterName" class="form-control" placeholder="{{ 'transfer-ownership-filter-plan-name-placeholder' | translate}}" aria-describedby="name-addon">
-        <span (click)="resetFilter()" class="input-group-btn"><button class="btn btn-primary" type='button'>Reset</button></span>
+        <span (click)="resetFilter()" class="input-group-btn"><button class="btn btn-primary" type='button'>{{ 'transfer-ownership-reset' | translate }}</button></span>
       </div>
       <div><br/></div>
       <div class="table-responsive">
@@ -32,12 +32,12 @@
       </div>
       <div><br/></div>
       <div>{{ 'transfer-ownership-step-2' | translate }}</div>
-      <rb-vocab [field]="userLookupMeta" [form]="formGroup"></rb-vocab>
+      <rb-vocab [field]="userLookupMeta" [form]="formGroup" [disableEditAfterSelect]="false"></rb-vocab>
       <button [disabled]="!canTransfer()" class="btn btn-primary" type='button' data-toggle="modal" data-target="#myModal">{{ 'transfer-ownership-execute' | translate }}</button>
       <div><br/></div>
       <div>{{ 'transfer-ownership-step-2-update' | translate }}</div>
       <div><br/></div>
-      <div class="bg-{{saveMsgType}} text-center">{{saveMsg}}</div>
+      <div class="bg-{{saveMsgType}} text-center" [innerHtml]="saveMsg"></div>
     </div>
   </div>
 </div>

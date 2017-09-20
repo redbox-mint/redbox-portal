@@ -43,7 +43,8 @@ export module Services {
       'getOne',
       'search',
       'createBatch',
-      'provideUserAccessAndRemovePendingAccess'
+      'provideUserAccessAndRemovePendingAccess',
+      'searchFuzzy'
     ];
 
     public create(brand, record, formName=sails.config.form.defaultForm): Observable<any> {
@@ -78,29 +79,40 @@ export module Services {
     }
 
     /**
-     * Fine-grained access to the record
+     * Fine-grained access to the record, converted to sync.
+     *
      */
-    public hasEditAccess(brand, user, record) {
-      const isInUserEdit = _.find(record.authorization.edit, username=> {
-        return username == user.username;
+    public hasEditAccess(brand, uname, roles, record): boolean {
+      const editArr = record.authorization ? record.authorization.edit : record.authorization_edit;
+      const editRolesArr = record.authorization ? record.authorization.editRoles : record.authorization_editRoles;
+
+      const isInUserEdit = _.find(editArr, username=> {
+        return uname == username;
       });
-      if (isInUserEdit !== undefined) {
-        return Observable.of(true);
+      if (!_.isUndefined(isInUserEdit)) {
+        return true;
       }
-      const isInRoleEdit = _.find(record.authorization.editRoles, roleName => {
+      const isInRoleEdit = _.find(editRolesArr, roleName => {
         const role = RolesService.getRole(brand, roleName);
-        return role && UsersService.hasRole(user, role);
+        return role && !_.isUndefined(_.find(roles, r => {
+            return role.id == r.id;
+        }));
       });
-      if (isInRoleEdit !== undefined) {
-        return Observable.of(true);
-      }
-      return WorkflowStepsService.get(brand, record.workflow.stage).flatMap(wfStep => {
-        const wfHasRoleEdit = _.find(wfStep.config.authorization.editRoles, roleName => {
-          const role = RolesService.getRole(brand, roleName);
-          return role && UsersService.hasRole(user, role);
-        });
-        return Observable.of(wfHasRoleEdit !== undefined);
-      });
+      return !_.isUndefined(isInRoleEdit);
+      // Lines below commented out because we're not checking workflow auths anymore,
+      // we're expecting that the workflow auths are bolted into the document on workflow updates.
+      //
+      // if (isInRoleEdit !== undefined) {
+      //   return Observable.of(true);
+      // }
+      //
+      // return WorkflowStepsService.get(brand, record.workflow.stage).flatMap(wfStep => {
+      //   const wfHasRoleEdit = _.find(wfStep.config.authorization.editRoles, roleName => {
+      //     const role = RolesService.getRole(brand, roleName);
+      //     return role && UsersService.hasRole(user, role);
+      //   });
+      //   return Observable.of(wfHasRoleEdit !== undefined);
+      // });
     }
 
     public createBatch(type, data, harvestIdFldName) {
@@ -132,6 +144,32 @@ export module Services {
               });
     }
 
+    public searchFuzzy(type, workflowState, searchQuery, brand, username, roles, returnFields) {
+      // const url = `${this.getSearchTypeUrl(type, searchField, searchStr)}&start=0&rows=${sails.config.record.export.maxRecords}`;
+      let searchParam = workflowState ? ` AND workflow_stage:${workflowState} ` : '';
+      searchParam = `${searchParam} AND full_text:${searchQuery}`;
+      const url = `${sails.config.record.api.search.url}?q=metaMetadata_type:${type}${searchParam}&version=2.2&wt=json&sort=date_object_modified desc`;
+      sails.log.verbose(`Searching fuzzy using: ${url}`);
+      const options = this.getOptions(url);
+      return Observable.fromPromise(request[sails.config.record.api.search.method](options))
+              .flatMap(response => {
+                const customResp = [];
+                _.forEach(response.response.docs, solrdoc => {
+                  const customDoc = {};
+                  _.forEach(returnFields, retField => {
+                    if (_.isArray(solrdoc[retField])) {
+                      customDoc[retField] = solrdoc[retField][0];
+                    } else {
+                      customDoc[retField] = solrdoc[retField];
+                    }
+                  });
+                  customDoc["hasEditAccess"] = this.hasEditAccess(brand, username, roles, solrdoc);
+                  customResp.push(customDoc);
+                });
+                return Observable.of(customResp);
+              });
+    }
+
     public getOne(type) {
       const url = `${this.getSearchTypeUrl(type)}&start=0&rows=1`;
       sails.log.verbose(`Getting one using url: ${url}`);
@@ -144,7 +182,7 @@ export module Services {
 
     protected getSearchTypeUrl(type, searchField=null, searchStr=null) {
       const searchParam = searchField ? ` AND ${searchField}:${searchStr}*` : '';
-      return `${sails.config.record.api.search.url}?q=metaMetadata_type:${type}${searchParam}&version=2.2&wt=json`;
+      return `${sails.config.record.api.search.url}?q=metaMetadata_type:${type}${searchParam}&version=2.2&wt=json&sort=date_object_modified desc`;
     }
 
     protected provideUserAccessAndRemovePendingAccess(oid,userid,pendingValue) {

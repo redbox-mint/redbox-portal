@@ -8,6 +8,7 @@ module.exports.ng2 = {
     "user/login": ['/angular/localAuth/dist-bundle.js'],
     "record/edit": ['/angular/dmp/dist-bundle.js'],
     "record/view": ['/angular/dmp/dist-bundle.js'],
+    "record/search": ['/angular/record_search/dist-bundle.js'],
     "record/transfer": ['/angular/transfer_owner/dist-bundle.js'],
     "admin/roles": ['/angular/manageRoles/dist-bundle.js'],
     "dashboard": ['/angular/dashboard/dist-bundle.js'],

@@ -154,3 +154,4 @@ support/acceptance-testing/*.iws
 ConfigService.js
 DashboardService.js
 TranslationService.js
+*.tmp*

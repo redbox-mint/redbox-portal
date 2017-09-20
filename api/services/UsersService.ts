@@ -254,7 +254,7 @@ export module Services {
     }
 
     public findUsersWithName(name: string, brandId: string, source:any = null) {
-      const query = {name: {'startsWith': name}};
+      const query = {name: {'contains': name}};
       if (!_.isEmpty(source) && !_.isUndefined(source) && !_.isNull(source)) {
         query['type'] = source;
       }

@@ -99,6 +99,12 @@ export class RecordsService extends BaseService {
     .toPromise()
     .then((res:any) => this.extractData(res) as RecordActionResult);
   }
+
+  search(type, searchString) {
+    return this.http.get(`${this.brandingAndPortalUrl}/record/search/${type}/?searchStr=${searchString}`, this.getOptionsClient())
+    .toPromise()
+    .then((res:any) => this.extractData(res) as RecordActionResult);
+  }
 }
 
 export class RecordActionResult {
