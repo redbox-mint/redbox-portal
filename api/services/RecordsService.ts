@@ -144,10 +144,13 @@ export module Services {
               });
     }
 
-    public searchFuzzy(type, workflowState, searchQuery, brand, username, roles, returnFields) {
+    public searchFuzzy(type, workflowState, searchQuery, exactSearches, brand, username, roles, returnFields) {
       // const url = `${this.getSearchTypeUrl(type, searchField, searchStr)}&start=0&rows=${sails.config.record.export.maxRecords}`;
       let searchParam = workflowState ? ` AND workflow_stage:${workflowState} ` : '';
       searchParam = `${searchParam} AND full_text:${searchQuery}`;
+      _.forEach(exactSearches, (exactSearch) => {
+        searchParam = `${searchParam}&fq=${exactSearch.name}:${exactSearch.value}*`
+      });
       const url = `${sails.config.record.api.search.url}?q=metaMetadata_type:${type}${searchParam}&version=2.2&wt=json&sort=date_object_modified desc`;
       sails.log.verbose(`Searching fuzzy using: ${url}`);
       const options = this.getOptions(url);

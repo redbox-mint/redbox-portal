@@ -100,8 +100,22 @@ export class RecordsService extends BaseService {
     .then((res:any) => this.extractData(res) as RecordActionResult);
   }
 
-  search(type, searchString) {
-    return this.http.get(`${this.brandingAndPortalUrl}/record/search/${type}/?searchStr=${searchString}`, this.getOptionsClient())
+  search(params: RecordSearchParams) {
+    let refinedSearchStr = '';
+    if (_.size(params.activeRefiners) > 0) {
+      let exactSearchNames = '';
+      let exactSearchValues = '';
+      _.forEach(params.activeRefiners, (refiner: RecordSearchRefiner)=> {
+        switch (refiner.type) {
+          case "exact":
+            exactSearchNames = `${_.isEmpty(exactSearchNames) ? `&exactNames=` : `${exactSearchNames},`}${refiner.name}`;
+            exactSearchValues = `${exactSearchValues}&exact_${refiner.name}=${refiner.value}`;
+            break;
+        }
+      });
+      refinedSearchStr = `${exactSearchNames}${exactSearchValues}`;
+    }
+    return this.http.get(`${this.brandingAndPortalUrl}/record/search/${params.recordType}/?searchStr=${params.basicSearch}${refinedSearchStr}`, this.getOptionsClient())
     .toPromise()
     .then((res:any) => this.extractData(res) as RecordActionResult);
   }
@@ -111,4 +125,88 @@ export class RecordActionResult {
   success:boolean;
   oid: string;
   message: string;
+}
+
+export class RecordSearchRefiner {
+  name: string;
+  title: string;
+  type: string;
+  value: any;
+  active: boolean;
+  typeLabel: string;
+
+  constructor(opts: any = {}) {
+    this.name = opts.name;
+    this.title = opts.title;
+    this.type = opts.type;
+    this.value = opts.value;
+    this.typeLabel = opts.typeLabel;
+  }
+}
+
+export class RecordSearchParams {
+  recordType: string;
+  basicSearch: string;
+  activeRefiners: any[];
+  refinerConfig: RecordSearchRefiner[];
+
+  constructor(recType: string) {
+    this.recordType = recType;
+    this.clear();
+  }
+
+  clear() {
+    this.basicSearch = null;
+    _.forEach(this.activeRefiners, refiner => {
+      refiner.value = '';
+    });
+    this.activeRefiners = [];
+  }
+
+  getRefinerConfig(name: string) {
+    return _.find(this.refinerConfig, (config) => {
+      return config.name == name;
+    });
+  }
+
+  setRefinerConfig(config: RecordSearchRefiner[]) {
+    this.refinerConfig = config;
+  }
+
+  getHttpQuery(searchUrl: string) {
+    let refinerValues = '';
+    _.forEach(this.activeRefiners, (refiner:RecordSearchRefiner) => {
+      refinerValues = `${refinerValues}&refiner_${refiner.name}=${refiner.value}`;
+    });
+    return `${searchUrl}?q=${this.basicSearch}&type=${this.recordType}${refinerValues}`;
+  }
+
+  getRefinerConfigs() {
+    return this.refinerConfig;
+  }
+
+  addActiveRefiner(refiner: RecordSearchRefiner) {
+    this.activeRefiners.push(refiner);
+  }
+
+  addActiveRefinerStr(queryStr:string) {
+    let refinerValues = {};
+    _.forEach(queryStr.split('&'), (q)=> {
+      const qObj = q.split('=');
+      if (_.startsWith(qObj[0], "refiner_")) {
+        const refinerName = qObj[0].split('_')[1];
+        refinerValues[refinerName] = qObj[1];
+      }
+    });
+    _.forOwn(refinerValues, (value, name) => {
+      const config = this.getRefinerConfig(name);
+      config.value = value;
+      this.addActiveRefiner(config);
+    });
+  }
+
+  hasActiveRefiners() {
+    return _.size(this.activeRefiners) > 0;
+  }
+
 }

@@ -17,13 +17,13 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { Component, Inject, Input, ElementRef } from '@angular/core';
+import { Component, Inject, Input, Output, ElementRef, EventEmitter } from '@angular/core';
 import { Location, LocationStrategy, PathLocationStrategy } from '@angular/common';
 import { Role, User, LoginResult, SaveResult } from '../shared/user-models';
 import * as _ from "lodash-lib";
 import { LoadableComponent } from '../shared/loadable.component';
 import { TranslationService } from '../shared/translation-service';
-import { RecordsService } from '../shared/form/records.service';
+import { RecordsService, RecordSearchParams, RecordSearchRefiner} from '../shared/form/records.service';
 import { DashboardService } from '../shared/dashboard-service';
 
 declare var pageData :any;
@@ -48,10 +48,11 @@ export class RecordSearchComponent extends LoadableComponent {
   plans: any[];
   advanceMode: boolean;
   advancedSearchLabel: string;
-  params: any;
+  params: RecordSearchParams;
   isSearching: boolean;
   searchMsgType: string;
   searchMsg: string;
+  queryStr: string;
 
   constructor(
    elm: ElementRef,
@@ -64,7 +65,29 @@ export class RecordSearchComponent extends LoadableComponent {
     this.record_type = elm.nativeElement.getAttribute('record_type');
     this.search_str = elm.nativeElement.getAttribute('search_str');
     this.search_url = elm.nativeElement.getAttribute('search_url');
-    this.setParams();
+    this.queryStr = elm.nativeElement.getAttribute("full_url").split('?')[1];
+    this.params = new RecordSearchParams(this.record_type);
+    this.params.basicSearch = this.search_str;
+    this.params.setRefinerConfig(
+      [
+        new RecordSearchRefiner ({
+          name: "title",
+          title: "search-refine-title",
+          type: "exact",
+          typeLabel: "search-refine-contains"
+        }),
+        new RecordSearchRefiner({
+          name: "description",
+          title: "search-refine-description",
+          type: "exact",
+          typeLabel: "search-refine-contains"
+        })
+      ]
+    );
+    if (!_.isEmpty(this.queryStr)) {
+      this.params.addActiveRefinerStr(this.queryStr);
+    }
+
   }
 
   ngOnInit() {
@@ -72,26 +95,20 @@ export class RecordSearchComponent extends LoadableComponent {
       this.setLoading(false);
       if (this.search_str) {
         this.search();
+        console.log(`Using query string: ${this.queryStr}`);
       }
     });
   }
 
-  setParams() {
-    this.params = {
-      basic: this.search_str
-    }
-  }
-
   resetSearch() {
-    this.search_str = null;
-    this.setParams();
+    this.params.clear();
     this.plans = null;
     this.LocationService.go(this.search_url);
     this.searchMsg = null;
   }
 
   syncLoc() {
-    this.LocationService.go(`${this.search_url}?q=${this.params.basic}&type=${this.record_type}`);
+    this.LocationService.go(this.params.getHttpQuery(this.search_url));
   }
 
   toggleAdvancedSearch() {
@@ -107,23 +124,49 @@ export class RecordSearchComponent extends LoadableComponent {
     }
   }
 
-  search() {
-    this.isSearching = true;
-    this.plans = null;
-    this.searchMsgType = "info";
-    this.searchMsg = `${this.translationService.t('record-search-searching')}${this.spinnerElem}`;
-    this.syncLoc();
-    this.recordsService.search(this.record_type, this.params.basic).then((res:any)=>{
-      this.isSearching = false;
-      this.searchMsgType = "success";
-      this.searchMsg = `${this.translationService.t('record-search-results')}${res.length}`;
-      this.dashboardService.setDashboardTitle(null, res);
-      this.plans = res;
-    }).catch((err:any)=>{
-      this.isSearching = false;
-      this.searchMsg = err;
-      this.searchMsgType = "danger";
-    });
-
+  search(refinerConfig: RecordSearchRefiner = null) {
+    if (!_.isEmpty(this.params.basicSearch)) {
+      if (refinerConfig) {
+        this.params.addActiveRefiner(refinerConfig);
+      }
+      this.isSearching = true;
+      this.plans = null;
+      this.searchMsgType = "info";
+      this.searchMsg = `${this.translationService.t('record-search-searching')}${this.spinnerElem}`;
+      this.syncLoc();
+      this.recordsService.search(this.params).then((res:any) => {
+        this.isSearching = false;
+        this.searchMsgType = "success";
+        this.searchMsg = `${this.translationService.t('record-search-results')}${res.length}`;
+        this.dashboardService.setDashboardTitle(null, res);
+        this.plans = res;
+      }).catch((err:any) => {
+        this.isSearching = false;
+        this.searchMsg = err;
+        this.searchMsgType = "danger";
+      });
+    }
   }
+}
+
+@Component({
+  moduleId: module.id,
+  selector: 'record-search-refiner',
+  templateUrl: './record_search_refiner.html'
+})
+export class RecordSearchRefinerComponent {
+  @Input() refinerConfig: RecordSearchRefiner;
+  @Input() isSearching: boolean;
+  @Output() onApplyFilter: EventEmitter<any> = new EventEmitter<any>();
+
+  applyFilter() {
+    if (this.hasValue()) {
+      this.onApplyFilter.emit(this.refinerConfig);
+    }
+  }
+
+  hasValue() {
+    return !_.isEmpty(this.refinerConfig.value);
+  }
+
 }

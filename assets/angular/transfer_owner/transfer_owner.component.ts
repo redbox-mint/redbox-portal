@@ -41,9 +41,6 @@ declare var jQuery: any;
   selector: 'transfer-owner',
   templateUrl: './transfer_owner.html'
 })
-
-// TODO: find a way to remove jQuery dependency
-@Injectable()
 export class TransferOwnerComponent extends LoadableComponent {
   plans: PlanTable;
   initSubs: any;

@@ -1,0 +1,16 @@
+<div class="panel panel-default">
+  <div class="panel-heading">
+    <h3 class="panel-title">
+      {{ refinerConfig.title | translate }}
+    </h3>
+  </div>
+  <div class="panel-body">
+    <div> {{ refinerConfig.typeLabel | translate }} </div>
+    <div class="input-group">
+      <input [(ngModel)]="refinerConfig.value" class="form-control" (keyup.enter)="applyFilter()">
+      <span class="input-group-btn">
+        <button [disabled]="isSearching || !hasValue()" class="btn btn-primary" type='button' (click)="applyFilter()">{{ 'search-refine-apply-filter' | translate }}</button>
+      </span>
+    </div>
+  </div>
+</div>

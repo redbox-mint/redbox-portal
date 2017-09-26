@@ -9,8 +9,8 @@
       <div class="panel-body" style="overflow:scroll" >
         <div class="input-group">
           <span class="input-group-addon" id="basic-search-addon">{{ 'record-search-basic-search' | translate }}</span>
-          <input type="text" [disabled]="isSearching" [(ngModel)]="params.basic" class="form-control" placeholder="{{ 'record-search-basic-search-placeholder' | translate}}" (keyup.enter)="search()" aria-describedby="basic-search-addon">
-          <span class="input-group-btn"><button [disabled]="isSearching" class="btn btn-primary" type='button' (click)="search()">{{ 'record-search-submit' | translate }}</button></span>
+          <input type="text" [disabled]="isSearching" [(ngModel)]="params.basicSearch" class="form-control" placeholder="{{ 'record-search-basic-search-placeholder' | translate}}" (keyup.enter)="search()" aria-describedby="basic-search-addon">
+          <span class="input-group-btn"><button [disabled]="isSearching || !params.basicSearch" class="btn btn-primary" type='button' (click)="search()">{{ 'record-search-submit' | translate }}</button></span>
         </div>
         <div><br/></div>
         <button [disabled]="isSearching" class="btn btn-primary" type='button' (click)="resetSearch()">{{ 'record-search-reset' | translate }}</button>
@@ -21,9 +21,10 @@
   </div>
 </div>
 <!-- Results section -->
-<div *ngIf="!isLoading && plans" class="row">
+<div *ngIf="!isLoading && ((plans && plans.length > 0) || params.hasActiveRefiners())" class="row">
   <div class="col-md-2">
-    &nbsp;
+    <!-- Exact match and facets -->
+    <record-search-refiner *ngFor="let refinerConfig of params.getRefinerConfigs()" [isSearching]="isSearching" [refinerConfig]="refinerConfig" (onApplyFilter)="search($event)" ></record-search-refiner>
   </div>
   <div class="col-md-10">
     <div class="panel panel-default" *ngFor="let plan of plans">

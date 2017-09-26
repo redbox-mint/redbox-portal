@@ -347,10 +347,16 @@ export module Controllers {
     public search(req, res) {
       const type = req.param('type');
       const searchString = req.query.searchStr;
+      const exactSearchNames = _.isEmpty(req.query.exactNames) ? [] : req.query.exactNames.split(',');
+      const exactSearches = [];
+      _.forEach(exactSearchNames, (exactSearch) => {
+        exactSearches.push({name: exactSearch, value: req.query[`exact_${exactSearch}`]});
+      });
+
       const workflow = req.query.workflow;
       const brand = BrandingService.getBrand(req.session.branding);
 
-      RecordsService.searchFuzzy(type, workflow, searchString, brand, req.user.username, req.user.roles, sails.config.record.search.returnFields)
+      RecordsService.searchFuzzy(type, workflow, searchString, exactSearches, brand, req.user.username, req.user.roles, sails.config.record.search.returnFields)
       .subscribe(searchRes => {
         this.ajaxOk(req, res, null, searchRes);
       }, error => {
