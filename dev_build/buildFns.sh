@@ -24,6 +24,9 @@ function cleanUpAllJs() {
 function linkNodeLib() {
   source=$1
   target=$2
+  current_user=`whoami`
+
+  sudo chown -R $current_user:$current_user "node_modules"
   cd "node_modules"
   sourcedir="${source}"
   targetdir="${target}"
