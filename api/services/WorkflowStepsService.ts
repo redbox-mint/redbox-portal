@@ -19,11 +19,13 @@
 
 import { Observable } from 'rxjs/Rx';
 import services = require('../../typescript/services/CoreService.js');
-import {Sails, Model} from "sails";
+import { Sails, Model } from "sails";
 
 declare var sails: Sails;
 declare var WorkflowStep: Model;
+declare var RecordType: Model;
 declare var _this;
+declare var JSON;
 
 export module Services {
   /**
@@ -38,47 +40,68 @@ export module Services {
       'bootstrap',
       'create',
       'get',
-      'getFirst'
+      'getFirst',
+      'getAllForRecordType'
     ];
 
-    public bootstrap = (defBrand) => {
-      return super.getObservable(WorkflowStep.find({branding:defBrand.id})).flatMap(workflows => {
-        if (_.isEmpty(workflows)) {
-          sails.log.verbose("Bootstrapping workflow definitions... ");
-          const wfSteps = [];
-          _.forOwn(sails.config.workflow.default, (workflowConf, workflowName) => {
-            wfSteps.push(workflowName);
-          });
-          return Observable.from(wfSteps);
-        } else {
-          sails.log.verbose("Default workflow definition(s) exist.");
+    public bootstrap = (recordType) => {
+      sails.log.error("Record Type inside ws service");
+      sails.log.error(recordType.name);
+      return super.getObservable(WorkflowStep.find())
+        .flatMap(workflows => {
+
+          if (_.isEmpty(workflows)) {
+            sails.log.verbose("Bootstrapping workflow definitions... ");
+            const wfSteps = [];
+            _.forOwn(sails.config.workflow[recordType.name], (workflowConf, workflowName) => {
+              sails.log.error("workflow step added to list: " + workflowName)
+              wfSteps.push(workflowName);
+            });
+            return Observable.from(wfSteps);
+          } else {
+            sails.log.verbose("Default workflow definition(s) exist.");
+            return Observable.of(null);
+          }
+        }).flatMap(stepName => {
+          sails.log.error("Processing step: " + stepName);
+          if (stepName) {
+            const workflowConf = sails.config.workflow[recordType.name][stepName];
+            sails.log.error("Adding: " + stepName);
+            sails.log.error(workflowConf);
+            sails.log.error(recordType);
+
+
+            var obs = this.create(recordType, stepName, workflowConf.config, workflowConf.starting == true);
+            return obs;
+
+          }
+
+
+
+
           return Observable.of(null);
-        }
-      }).flatMap(stepName => {
-        if (stepName) {
-          const workflowConf = sails.config.workflow.default[stepName];
-          return this.create(defBrand, stepName, workflowConf.config, workflowConf.starting == true);
-        }
-        return Observable.of(null);
-      })
-      .last();
+        }).toArray();
     }
 
-    public create(brand, name, workflowConf, starting) {
+    public create(recordType, name, workflowConf, starting) {
       return super.getObservable(WorkflowStep.create({
         name: name,
         config: workflowConf,
-        branding: brand.id,
+        recordType: recordType.key,
         starting: starting
       }));
     }
 
-    public get(brand, name) {
-      return super.getObservable(WorkflowStep.findOne({branding: brand.id, name: name}));
+    public get(recordType, name) {
+      return super.getObservable(WorkflowStep.findOne({ recordType: recordType.key, name: name }));
     }
 
-    public getFirst(brand) {
-      return super.getObservable(WorkflowStep.findOne({branding: brand.id, starting: true}));
+    public getAllForRecordType(recordType) {
+      return super.getObservable(WorkflowStep.find({ recordType: recordType.key }));
+    }
+
+    public getFirst(recordType) {
+      return super.getObservable(WorkflowStep.findOne({ recordType: recordType.key, starting: true }));
     }
   }
 }

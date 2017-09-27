@@ -19,6 +19,7 @@ module.exports.bootstrap = function(cb) {
       console.log("Using NG2 Bundled files.......");
     }
     // actual bootstrap...
+
     sails.services.brandingservice.bootstrap()
     .flatMap(defaultBrand => {
       sails.log.verbose("Bootstrapping roles...");
@@ -36,14 +37,20 @@ module.exports.bootstrap = function(cb) {
       return sails.services.pathrulesservice.bootstrap(defUserAndDefRoles.defUser, defUserAndDefRoles.defRoles);
     })
     .flatMap(whatever => {
-      return sails.services.formsservice.bootstrap(sails.services.brandingservice.getDefault());
+      return sails.services.recordtypesservice.bootstrap(sails.services.brandingservice.getDefault());
+    }).flatMap(recordType => {
+      sails.log.error(typeof recordType)
+      return recordType;
+    }).flatMap(recordType => {
+      return sails.services.workflowstepsservice.bootstrap(recordType);
+    })
+    .flatMap(workflowSteps => {
+      return sails.services.formsservice.bootstrap(workflowSteps);
     })
     .flatMap(whatever => {
       return sails.services.vocabservice.bootstrap();
     })
-    .flatMap(whatever => {
-      return sails.services.workflowstepsservice.bootstrap(sails.services.brandingservice.getDefault());
-    })
+
     .last()
     .subscribe(retval => {
       sails.log.verbose("Bootstrap complete!");

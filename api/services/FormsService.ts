@@ -19,10 +19,12 @@
 
 import { Observable } from 'rxjs/Rx';
 import services = require('../../typescript/services/CoreService.js');
-import {Sails, Model} from "sails";
+import { Sails, Model } from "sails";
 
 declare var sails: Sails;
 declare var Form: Model;
+declare var RecordType: Model;
+declare var WorkflowStep: Model;
 declare var _this;
 
 export module Services {
@@ -40,46 +42,84 @@ export module Services {
       'flattenFields'
     ];
 
-    public bootstrap = (defBrand): Observable<any> => {
-      return super.getObservable(Form.find({branding:defBrand.id})).flatMap(form => {
-        if (!form || form.length == 0) {
-          sails.log.verbose("Bootstrapping form definitions... ");
-          const formDefs = [];
-          _.forOwn(sails.config.form.forms, (formDef, formName) => {
-            formDefs.push(formName);
-          });
-          return Observable.from(formDefs);
-        } else {
-          sails.log.verbose("Form definition(s) exist.");
-          return Observable.of(null);
-        }
-      })
-      .flatMap(formName => {
-        if (formName) {
-          const formObj = {
-            name: formName,
-            fields: sails.config.form.forms[formName].fields,
-            branding: defBrand.id,
-            type: sails.config.form.forms[formName].type,
-            messages: sails.config.form.forms[formName].messages,
-            viewCssClasses: sails.config.form.forms[formName].viewCssClasses,
-            editCssClasses: sails.config.form.forms[formName].editCssClasses,
-            skipValidationOnSave: sails.config.form.forms[formName].skipValidationOnSave
-          };
-          return super.getObservable(Form.create(formObj));
-        }
+    public bootstrap = (workflowSteps): Observable<any> => {
+
+      if (!workflowSteps || workflowSteps.length == 0 || workflowSteps[0] == null) {
         return Observable.of(null);
-      })
-      .last();
+      } else {
+        return super.getObservable(Form.find({ workflowStep: workflowSteps[0].name })).flatMap(form => {
+          if (!form || form.length == 0) {
+            sails.log.verbose("Bootstrapping form definitions... ");
+            const formDefs = [];
+            _.forOwn(sails.config.form.forms, (formDef, formName) => {
+              formDefs.push(formName);
+            });
+            return Observable.from(formDefs);
+          } else {
+
+            return Observable.of(null);
+          }
+        })
+          .flatMap(formName => {
+
+            if (formName) {
+              sails.log.error("Form Name: " + formName);
+              _.each(workflowSteps, function(workflowStep) {
+
+                if (workflowStep.config.form == formName) {
+                  const formObj = {
+                    name: formName,
+                    fields: sails.config.form.forms[formName].fields,
+                    workflowStep: workflowStep.name,
+                    type: sails.config.form.forms[formName].type,
+                    messages: sails.config.form.forms[formName].messages,
+                    viewCssClasses: sails.config.form.forms[formName].viewCssClasses,
+                    editCssClasses: sails.config.form.forms[formName].editCssClasses,
+                    skipValidationOnSave: sails.config.form.forms[formName].skipValidationOnSave
+                  };
+
+                  var q = Form.create(formObj);
+                  var obs = Observable.bindCallback(q["exec"].bind(q))();
+                  obs.subscribe(result => {
+                    sails.log.error("Created form record: ");
+                    sails.log.error(result);
+                  });
+                  return Observable.of(null);
+                }
+              });
+            }
+            return Observable.of(null);
+          })
+          .last();
+      }
     }
 
-    public getForm = (name, brandId, editMode): Observable<any> => {
-      return super.getObservable(Form.findOne({name: name, branding: brandId})).flatMap(form => {
-        if (form) {
-          this.setFormEditMode(form.fields, editMode);
-        }
-        return Observable.of(form);
-      });
+    public getForm = (branding, recordType, editMode): Observable<any> => {
+      sails.log.error("In getForm");
+      return super.getObservable(RecordType.findOne({ key: branding + "_" + recordType }))
+        .flatMap(recordType => {
+          sails.log.error("recordType");
+          sails.log.error(recordType);
+          return super.getObservable(WorkflowStep.findOne({ recordType: recordType.key }));
+        }).flatMap(workflowStep => {
+          sails.log.error("workflowStep");
+          sails.log.error(workflowStep);
+          sails.log.error(workflowStep.starting);
+          if (workflowStep.starting == true) {
+            sails.log.error("Checking starting: true");
+            return super.getObservable(Form.findOne({ name: workflowStep.config.form }));
+          }
+          sails.log.error("Checking starting: false");
+          return Observable.of(null);
+        }).flatMap(form => {
+          sails.log.error("form");
+          sails.log.error(form);
+          if (form) {
+            this.setFormEditMode(form.fields, editMode);
+            return Observable.of(form);
+          }
+          return Observable.of(null);
+        }).filter(result => result !== null).last();
     }
 
     protected setFormEditMode(fields, editMode) {
@@ -99,7 +139,7 @@ export module Services {
     }
 
     public flattenFields(fields, fieldArr) {
-      _.map(fields, (f)=> {
+      _.map(fields, (f) => {
         fieldArr.push(f);
         if (f.fields) {
           this.flattenFields(f.fields, fieldArr);

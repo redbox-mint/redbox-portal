@@ -41,11 +41,11 @@ export class RecordsService extends BaseService {
     super(http, configService);
   }
 
-  getForm(oid: string = null, editable: boolean = true) {
+  getForm(oid: string = null, recordType: string = null, editable: boolean = true) {
     if (_.isEmpty(oid)) {
       oid = null;
     }
-    return this.getFormFieldsMeta(this.config.defaultForm, editable, oid).then((form:any) => {
+    return this.getFormFieldsMeta(recordType, editable, oid).then((form:any) => {
       return this.fcs.getLookupData(form.fieldsMeta).flatMap((fields:any) => {
         form.fieldsMata = fields;
         return Observable.of(form);
@@ -53,19 +53,20 @@ export class RecordsService extends BaseService {
     });
   }
 
-  getFormFields(formName:string, oid: string=null, editable:boolean) {
-    const url = oid ? `${this.brandingAndPortallUrl}/record/form/auto/${oid}?edit=${editable}` : `${this.brandingAndPortallUrl}/record/form/${formName}?edit=${editable}`;
+  getFormFields(recordType:string, oid: string=null, editable:boolean) {
+    sails.log.error("Oid is: " + oid);
+    const url = oid ? `${this.brandingAndPortallUrl}/record/form/auto/${oid}?edit=${editable}` : `${this.brandingAndPortallUrl}/record/form/${recordType}?edit=${editable}`;
     return this.http.get(url, this.options)
       .toPromise()
       .then((res:any) => this.extractData(res));
   }
 
-  getFormFieldsMeta(formName:string, editable:boolean, oid:string=null) {
-    return this.getFormFields(formName, oid, editable).then((form:any) => {
+  getFormFieldsMeta(recordType:string, editable:boolean, oid:string=null) {
+    return this.getFormFields(recordType, oid, editable).then((form:any) => {
       if (form && form.fields) {
         form.fieldsMeta = this.fcs.getFieldsMeta(form.fields);
       } else {
-        console.error("Error loading form:" + formName);
+        console.error("Error loading form:" + recordType);
         throw form;
       }
       return form;
