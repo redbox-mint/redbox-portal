@@ -50,12 +50,10 @@ export module Services {
             var obs = this.create(defBrand, recordType);
             rTypes.push(obs);
           });
-          sails.log.verbose("RTypes");
           return Observable.from(rTypes);
 
         } else {
-          sails.log.error("recordTypes");
-          sails.log.error(recordTypes);
+
           var rTypes = [];
           _.each(recordTypes, function(recordType) {
             rTypes.push(Observable.of(recordType));

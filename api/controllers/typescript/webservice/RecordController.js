@@ -45,7 +45,6 @@ var Controllers;
                 }
                 var recordTypeObservable = RecordTypesService.get(brand, recordType);
                 recordTypeObservable.subscribe(function (recordTypeModel) {
-                    sails.log.error(recordTypeModel);
                     var metadata = body["metadata"];
                     var workflowStage = body["workflowStage"];
                     var request = {};
@@ -58,7 +57,6 @@ var Controllers;
                     var workflowStepsObs = WorkflowStepsService.getAllForRecordType(recordTypeModel);
                     workflowStepsObs.subscribe(function (workflowSteps) {
                         _.each(workflowSteps, function (workflowStep) {
-                            sails.log.error(workflowStep);
                             if (workflowStep.name == workflowStage) {
                                 metaMetadata["form"] = workflowStep.config.form;
                             }

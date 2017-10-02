@@ -22,7 +22,7 @@ declare var module;
 declare var sails;
 import { Observable } from 'rxjs/Rx';
 import moment from 'moment-es6';
-declare var FormsService, RecordsService, WorkflowStepsService, BrandingService;
+declare var FormsService, RecordsService, WorkflowStepsService, BrandingService, RecordTypesService;
 /**
  * Package that contains all Controllers.
  */
@@ -78,20 +78,20 @@ export module Controllers {
       const oid = req.param('oid');
       const editMode = req.query.edit == "true";
 
-
       let obs = null;
       if (_.isEmpty(oid)) {
         obs = FormsService.getForm(brand.id, name, editMode);
       } else {
         // defaults to retrive the form of the current workflow state...
         obs = RecordsService.getMeta(oid).flatMap(currentRec => {
+
           if (_.isEmpty(currentRec)) {
             return Observable.throw(new Error(`Error, empty metadata for OID: ${oid}`));
           }
           return this.hasEditAccess(brand, req.user, currentRec)
             .flatMap(hasEditAccess => {
               const formName = currentRec.metaMetadata.form;
-              return FormsService.getForm(formName, brand.id, editMode).flatMap(form => {
+              return FormsService.getFormByName(formName,editMode).flatMap(form => {
                 if (_.isEmpty(form)) {
                   return Observable.throw(new Error(`Error, getting form ${formName} for OID: ${oid}`));
                 }
@@ -123,25 +123,34 @@ export module Controllers {
       const brand = BrandingService.getBrand(req.session.branding);
       const metadata = req.body;
       const record = { metaMetadata: {} };
+      var recordType = 'rdmp';
       record.authorization = { view: [req.user.username], edit: [req.user.username] };
       record.metaMetadata.brandId = brand.id;
       record.metaMetadata.createdBy = req.user.username;
-      record.metaMetadata.type = 'rdmp';
+      //TODO: This is currently hardcoded
+      record.metaMetadata.type = recordType;
       record.metadata = metadata;
-      WorkflowStepsService.getFirst(brand)
-        .subscribe(wfStep => {
-          this.updateWorkflowStep(record, wfStep);
-          RecordsService.create(brand, record).subscribe(response => {
-            if (response && response.code == "200") {
-              response.success = true;
-              this.ajaxOk(req, res, null, response);
-            } else {
-              this.ajaxFail(req, res, null, response);
-            }
+
+      RecordTypesService.get(brand, recordType).subscribe(recordType => {
+
+        WorkflowStepsService.getFirst(recordType)
+          .subscribe(wfStep => {
+
+            this.updateWorkflowStep(record, wfStep);
+            RecordsService.create(brand, record).subscribe(response => {
+              if (response && response.code == "200") {
+                response.success = true;
+                this.ajaxOk(req, res, null, response);
+              } else {
+                this.ajaxFail(req, res, null, response);
+              }
+          }, error => {
+            return Observable.throw(`Failed to save record: ${error}`)
+          });
           }, error => {
             this.ajaxFail(req, res, `Failed to save record: ${error}`);
           });
-        })
+      });
     }
 
     public update(req, res) {

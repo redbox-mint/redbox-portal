@@ -33,12 +33,9 @@ var Services;
                             var obs = _this.create(defBrand, recordType);
                             rTypes.push(obs);
                         });
-                        sails.log.verbose("RTypes");
                         return Rx_1.Observable.from(rTypes);
                     }
                     else {
-                        sails.log.error("recordTypes");
-                        sails.log.error(recordTypes);
                         var rTypes = [];
                         _.each(recordTypes, function (recordType) {
                             rTypes.push(Rx_1.Observable.of(recordType));

@@ -39,7 +39,8 @@ export module Services {
     protected _exportedMethods: any = [
       'bootstrap',
       'getForm',
-      'flattenFields'
+      'flattenFields',
+      'getFormByName'
     ];
 
     public bootstrap = (workflowSteps): Observable<any> => {
@@ -63,7 +64,7 @@ export module Services {
           .flatMap(formName => {
 
             if (formName) {
-              sails.log.error("Form Name: " + formName);
+
               _.each(workflowSteps, function(workflowStep) {
 
                 if (workflowStep.config.form == formName) {
@@ -81,8 +82,8 @@ export module Services {
                   var q = Form.create(formObj);
                   var obs = Observable.bindCallback(q["exec"].bind(q))();
                   obs.subscribe(result => {
-                    sails.log.error("Created form record: ");
-                    sails.log.error(result);
+                    sails.log.verbose("Created form record: ");
+                    sails.log.verbose(result);
                   });
                   return Observable.of(null);
                 }
@@ -94,26 +95,32 @@ export module Services {
       }
     }
 
+    public getFormByName = (formName, editMode): Observable<any> => {
+      return super.getObservable(Form.findOne({ name: formName })).flatMap(form => {
+        if (form) {
+          this.setFormEditMode(form.fields, editMode);
+          return Observable.of(form);
+        }
+        return Observable.of(null);
+      });
+    }
+
     public getForm = (branding, recordType, editMode): Observable<any> => {
-      sails.log.error("In getForm");
+
       return super.getObservable(RecordType.findOne({ key: branding + "_" + recordType }))
         .flatMap(recordType => {
-          sails.log.error("recordType");
-          sails.log.error(recordType);
+
           return super.getObservable(WorkflowStep.findOne({ recordType: recordType.key }));
         }).flatMap(workflowStep => {
-          sails.log.error("workflowStep");
-          sails.log.error(workflowStep);
-          sails.log.error(workflowStep.starting);
+
           if (workflowStep.starting == true) {
-            sails.log.error("Checking starting: true");
+
             return super.getObservable(Form.findOne({ name: workflowStep.config.form }));
           }
-          sails.log.error("Checking starting: false");
+
           return Observable.of(null);
         }).flatMap(form => {
-          sails.log.error("form");
-          sails.log.error(form);
+          
           if (form) {
             this.setFormEditMode(form.fields, editMode);
             return Observable.of(form);

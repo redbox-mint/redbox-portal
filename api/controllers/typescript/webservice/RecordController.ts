@@ -86,7 +86,7 @@ export module Controllers {
 
         recordTypeObservable.subscribe(recordTypeModel => {
 
-          sails.log.error(recordTypeModel);
+
           var metadata = body["metadata"];
           var workflowStage = body["workflowStage"];
           var request = {};
@@ -96,13 +96,13 @@ export module Controllers {
           metaMetadata["createdBy"] = "admin";
           request["metaMetadata"] = metaMetadata;
           request["metadata"] = body["metadata"];
-          
+
           // FormsService
           var workflowStepsObs = WorkflowStepsService.getAllForRecordType(recordTypeModel);
 
           workflowStepsObs.subscribe( workflowSteps => {
             _.each(workflowSteps, function(workflowStep) {
-              sails.log.error(workflowStep)
+              
               if(workflowStep.name == workflowStage) {
                 metaMetadata["form"] = workflowStep.config.form;
               }

@@ -45,8 +45,7 @@ export module Services {
     ];
 
     public bootstrap = (recordType) => {
-      sails.log.error("Record Type inside ws service");
-      sails.log.error(recordType.name);
+
       return super.getObservable(WorkflowStep.find())
         .flatMap(workflows => {
 
@@ -54,7 +53,7 @@ export module Services {
             sails.log.verbose("Bootstrapping workflow definitions... ");
             const wfSteps = [];
             _.forOwn(sails.config.workflow[recordType.name], (workflowConf, workflowName) => {
-              sails.log.error("workflow step added to list: " + workflowName)
+              sails.log.verbose("workflow step added to list: " + workflowName)
               wfSteps.push(workflowName);
             });
             return Observable.from(wfSteps);
@@ -63,22 +62,14 @@ export module Services {
             return Observable.of(null);
           }
         }).flatMap(stepName => {
-          sails.log.error("Processing step: " + stepName);
+          sails.log.verbose("Processing step: " + stepName);
           if (stepName) {
             const workflowConf = sails.config.workflow[recordType.name][stepName];
-            sails.log.error("Adding: " + stepName);
-            sails.log.error(workflowConf);
-            sails.log.error(recordType);
-
-
+            sails.log.verbose("Adding: " + stepName);
             var obs = this.create(recordType, stepName, workflowConf.config, workflowConf.starting == true);
             return obs;
 
           }
-
-
-
-
           return Observable.of(null);
         }).toArray();
     }
