@@ -11,10 +11,9 @@ module.exports = {
       type: 'string',
       required: true
     },
-    // A Workflow needs to belong to a Brand, 1 to 1
-    branding: {
-      model: 'brandingconfig',
-      required: true
+    // A Workflow step can have a form, 1 to 1
+    form: {
+      model: 'form'
     },
     config: {
       type: 'json',
@@ -23,6 +22,9 @@ module.exports = {
     starting: {
       type: 'boolean',
       required: true
+    },
+    recordType: {
+      model: 'recordType'
     }
   }
 }

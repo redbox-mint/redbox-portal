@@ -83,6 +83,8 @@ export module Services {
      *
      */
     public hasEditAccess(brand, uname, roles, record): boolean {
+      sails.log.verbose("hasEditAcccess record is: ");
+      sails.log.verbose(record);
       const editArr = record.authorization ? record.authorization.edit : record.authorization_edit;
       const editRolesArr = record.authorization ? record.authorization.editRoles : record.authorization_editRoles;
 

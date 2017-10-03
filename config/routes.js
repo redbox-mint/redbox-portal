@@ -99,7 +99,7 @@ module.exports.routes = {
   'get /:branding/:portal/user/find': 'typescript/UserController.find',
   'get /:branding/:portal/admin/roles': 'typescript/AdminController.getBrandRoles',
   'post /:branding/:portal/admin/roles/user': 'typescript/AdminController.updateUserRoles',
-  'get /:branding/:portal/record/edit': 'typescript/RecordController.edit',
+  'get /:branding/:portal/record/:recordType/edit': 'typescript/RecordController.edit',
   'get /:branding/:portal/record/edit/:oid': 'typescript/RecordController.edit',
   'get /:branding/:portal/record/form/:name': 'typescript/RecordController.getForm',
   'get /:branding/:portal/record/form/:name/:oid': 'typescript/RecordController.getForm',
@@ -118,5 +118,19 @@ module.exports.routes = {
   'get /:branding/:portal/export': 'typescript/ExportController.index',
   'get /:branding/:portal/export/record/download/:format': 'typescript/ExportController.downloadRecs',
   'get /:branding/:portal/asynch/start/:procId': 'typescript/AsynchController.start',
-  'get /:branding/:portal/asynch/progress/:progId': 'typescript/AsynchController.progress'
+  'get /:branding/:portal/asynch/progress/:progId': 'typescript/AsynchController.progress',
+
+  /***************************************************************************
+  *                                                                          *
+  * REST API routes                                                          *
+  *                                                                          *
+  *                                                                          *
+  *                                                                          *
+  *                                                                          *
+  *                                                                          *
+  ***************************************************************************/
+
+  'post /:branding/:portal/api/records/:recordType/create': 'typescript/webservice/RecordController.create',
+  'get /:branding/:portal/api/listUsers': 'typescript/webservice/UserManagementController.listUsers',
+  'get /:branding/:portal/api/lookupUser': 'typescript/webservice/UserManagementController.findUser'
 };
