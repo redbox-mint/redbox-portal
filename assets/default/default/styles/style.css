@@ -745,3 +745,8 @@ div.logo img {
 .radio-label {
   font-weight: 400;
 }
+
+.panel-search-refine {
+    margin-left: 10px;
+    margin-bottom: 10px;
+}

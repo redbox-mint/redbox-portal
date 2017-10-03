@@ -186,7 +186,16 @@ export class RecordSearchParams {
   }
 
   addActiveRefiner(refiner: RecordSearchRefiner) {
-    this.activeRefiners.push(refiner);
+    var novelRefiner = true;
+    _.forEach(this.activeRefiners, (record:RecordSearchRefiner) => {
+      if (record.name === refiner.name) {
+        record.value = refiner.value;
+        novelRefiner = false;
+      }
+    });
+    if (novelRefiner) {
+      this.activeRefiners.push(refiner);
+    }
   }
 
   addActiveRefinerStr(queryStr:string) {
@@ -199,7 +208,7 @@ export class RecordSearchParams {
       }
     });
     _.forOwn(refinerValues, (value, name) => {
-      const config = this.getRefinerConfig(name);
+      var config = this.getRefinerConfig(name);
       config.value = value;
       this.addActiveRefiner(config);
     });
