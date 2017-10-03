@@ -26,6 +26,8 @@ services:
        - "27017:27017"
   redbox:
     image: qcifengineering/dlcf-redbox
+    expose:
+       - "9000"
     environment:
       - RAID_URL=https://api.raid.org.au:8000/
       - RAID_KEY=safasfassafafsfasfsa

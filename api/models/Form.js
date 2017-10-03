@@ -15,9 +15,8 @@ module.exports = {
     fields: {
       type: 'json'
     },
-    branding: {
-      model: 'brandingconfig',
-      required: true
+    workflowStep: {
+      model: 'workflowStep'
     },
     type: {
       type: 'string'

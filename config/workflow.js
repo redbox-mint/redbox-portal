@@ -1,5 +1,5 @@
 module.exports.workflow = {
-  "default": {
+  "rdmp": {
     "draft": {
       config: {
         workflow: {

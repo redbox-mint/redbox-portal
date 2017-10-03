@@ -41,6 +41,7 @@ import { TranslationService } from '../shared/translation-service';
 export class DmpFormComponent extends LoadableComponent {
   @Input() oid: string;
   @Input() editMode: boolean;
+  @Input() recordType: string;
 
   fields: any[] = [];
   form: FormGroup;
@@ -68,8 +69,9 @@ export class DmpFormComponent extends LoadableComponent {
         this.fieldMap = {_rootComp:this};
         this.oid = elm.nativeElement.getAttribute('oid');
         this.editMode = elm.nativeElement.getAttribute('editMode') == "true";
-        console.log(`Loading form with OID: ${this.oid}, on edit mode:${this.editMode}`);
-        this.RecordsService.getForm(this.oid, this.editMode).then((obs:any) => {
+        this.recordType = elm.nativeElement.getAttribute('recordType');
+        console.log(`Loading form with OID: ${this.oid}, on edit mode:${this.editMode}, Record Type: ${this.recordType}`);
+        this.RecordsService.getForm(this.oid, this.recordType, this.editMode).then((obs:any) => {
           obs.subscribe((form:any) => {
             this.formDef = form;
             if (this.editMode) {

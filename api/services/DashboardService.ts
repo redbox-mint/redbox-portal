@@ -47,7 +47,6 @@ export module Services {
       url = this.addAuthFilter(url, username, roles, brand, editAccessOnly)
       url = url+"&fq=metaMetadata_brandId:"+brand.id
       var options = this.getOptions(url);
-      sails.log.error("Query URL is: "+ url);
       return Observable.fromPromise(request[sails.config.record.api.search.method](options));
     }
 
