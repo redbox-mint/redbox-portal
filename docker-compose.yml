@@ -25,7 +25,7 @@ services:
     ports:
        - "27017:27017"
   redbox:
-    image: qcifengineering/dlcf-redbox
+    image: qcifengineering/new-redbox
     expose:
        - "9000"
     environment:
