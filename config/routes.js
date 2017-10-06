@@ -131,6 +131,12 @@ module.exports.routes = {
   ***************************************************************************/
 
   'post /:branding/:portal/api/records/:recordType/create': 'typescript/webservice/RecordController.create',
+  'post /:branding/:portal/api/records/metadata/:oid': 'typescript/webservice/RecordController.updateMeta',
+  'get /:branding/:portal/api/records/metadata/:oid': 'typescript/webservice/RecordController.getMeta',
+  'post /:branding/:portal/api/records/permissions/:oid/edit/add': 'typescript/webservice/RecordController.addUserEdit',
+  'post /:branding/:portal/api/records/permissions/:oid/edit/remove': 'typescript/webservice/RecordController.removeUserEdit',
+  'post /:branding/:portal/api/records/permissions/:oid/view/add': 'typescript/webservice/RecordController.addUserView',
+  'post /:branding/:portal/api/records/permissions/:oid/view/remove': 'typescript/webservice/RecordController.removeUserView',
   'get /:branding/:portal/api/listUsers': 'typescript/webservice/UserManagementController.listUsers',
   'get /:branding/:portal/api/lookupUser': 'typescript/webservice/UserManagementController.findUser'
 };
