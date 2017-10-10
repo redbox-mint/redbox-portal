@@ -13,6 +13,7 @@ module.exports = {
     type : { type: 'string', required: true},
     name : { type: 'string', required: true},
     email: { type: 'string'},
+    token: { type: 'string'},
     // users have many roles
     roles: { collection: 'role', via: 'users'},
     toJSON: function() {

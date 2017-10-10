@@ -55,6 +55,7 @@ module.exports.policies = {
   },
   '*': ['brandingAndPortal',
          'checkBrandingValid',
+         'isWebServiceAuthenticated',
          'checkAuth'
   ]
 

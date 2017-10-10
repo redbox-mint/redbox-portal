@@ -49,6 +49,7 @@
     "passport": "^0.3.2",
     "passport-jwt": "github:itayadler/passport-jwt",
     "passport-local": "^1.0.0",
+    "passport-http-bearer": "^1.0.1",
     "rc": "1.0.1",
     "request-promise": "^4.2.0",
     "rxjs": "5.4.1",

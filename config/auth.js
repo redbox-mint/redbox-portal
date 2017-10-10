@@ -76,6 +76,11 @@ module.exports.auth = {
       path: '/*/*/asynch(/*)',
       role: 'Admin',
       can_update:true
+    },
+    {
+      path: '/*/*/api(/*)',
+      role: 'Admin',
+      can_update:true
     }
   ],
   // Bootstrap END
@@ -95,7 +100,8 @@ module.exports.auth = {
       default: {
         adminUser: 'admin',
         adminPw: 'rbadmin',
-        email: 'admin@redboxresearchdata.com.au'
+        email: 'admin@redboxresearchdata.com.au',
+        token: "123123"
       },
       templatePath: 'local.ejs',
       postLoginRedir: 'dashboard',
