@@ -47,7 +47,7 @@ export module Services {
           sails.log.verbose("Bootstrapping record type definitions... ");
           _.forOwn(sails.config.recordtype, (config, recordType) => {
             recordTypes.push(recordType);
-            var obs = this.create(defBrand, recordType);
+            var obs = this.create(defBrand, recordType, config);
             rTypes.push(obs);
           });
           return Observable.from(rTypes);
@@ -65,10 +65,11 @@ export module Services {
       .last();
     }
 
-    public create(brand, name) {
+    public create(brand, name, config) {
       return super.getObservable(RecordType.create({
         name: name,
-        branding: brand.id
+        branding: brand.id,
+        searchFilters: config.searchFilters
       }));
     }
 

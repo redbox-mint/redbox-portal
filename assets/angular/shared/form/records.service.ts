@@ -107,19 +107,33 @@ export class RecordsService extends BaseService {
     if (_.size(params.activeRefiners) > 0) {
       let exactSearchNames = '';
       let exactSearchValues = '';
+      let facetSearchNames = '';
+      let facetSearchValues = '';
       _.forEach(params.activeRefiners, (refiner: RecordSearchRefiner)=> {
         switch (refiner.type) {
           case "exact":
             exactSearchNames = `${_.isEmpty(exactSearchNames) ? `&exactNames=` : `${exactSearchNames},`}${refiner.name}`;
             exactSearchValues = `${exactSearchValues}&exact_${refiner.name}=${refiner.value}`;
             break;
+          case "facet":
+            facetSearchNames = `${_.isEmpty(facetSearchNames) ? `&facetNames=` : `${facetSearchNames},`}${refiner.name}`;
+            if (!_.isEmpty(refiner.activeValue)) {
+              facetSearchValues = `${facetSearchValues}&facet_${refiner.name}=${refiner.activeValue}`;
+            }
+            break;
         }
       });
-      refinedSearchStr = `${exactSearchNames}${exactSearchValues}`;
+      refinedSearchStr = `${exactSearchNames}${exactSearchValues}${facetSearchNames}${facetSearchValues}`;
     }
     return this.http.get(`${this.brandingAndPortalUrl}/record/search/${params.recordType}/?searchStr=${params.basicSearch}${refinedSearchStr}`, this.getOptionsClient())
     .toPromise()
     .then((res:any) => this.extractData(res) as RecordActionResult);
+  }
+
+  getType(name: string) {
+    return this.http.get(`${this.brandingAndPortalUrl}/record/type/${name}`, this.getOptionsClient())
+    .toPromise()
+    .then((res:any) => this.extractData(res));
   }
 }
 
@@ -134,8 +148,9 @@ export class RecordSearchRefiner {
   title: string;
   type: string;
   value: any;
-  active: boolean;
+  alwaysActive: boolean;
   typeLabel: string;
+  activeValue: any;
 
   constructor(opts: any = {}) {
     this.name = opts.name;
@@ -143,6 +158,15 @@ export class RecordSearchRefiner {
     this.type = opts.type;
     this.value = opts.value;
     this.typeLabel = opts.typeLabel;
+    this.alwaysActive = opts.alwaysActive;
+  }
+
+  setCurrentValue(value: any) {
+    if (this.type == "facet") {
+      this.activeValue = value;
+    } else {
+      this.value = value;
+    }
   }
 }
 
@@ -154,15 +178,17 @@ export class RecordSearchParams {
 
   constructor(recType: string) {
     this.recordType = recType;
+    this.activeRefiners = [];
     this.clear();
   }
 
   clear() {
     this.basicSearch = null;
-    _.forEach(this.activeRefiners, refiner => {
-      refiner.value = '';
+    _.remove(this.activeRefiners, refiner => {
+      refiner.value = null;
+      refiner.activeValue = null;
+      return !refiner.alwaysActive;
     });
-    this.activeRefiners = [];
   }
 
   getRefinerConfig(name: string) {
@@ -173,12 +199,22 @@ export class RecordSearchParams {
 
   setRefinerConfig(config: RecordSearchRefiner[]) {
     this.refinerConfig = config;
+    // parse through and activate those set as active...
+    _.forEach(this.refinerConfig, (refinerConfig) => {
+      if (refinerConfig.alwaysActive) {
+        this.addActiveRefiner(refinerConfig);
+      }
+    });
   }
 
   getHttpQuery(searchUrl: string) {
     let refinerValues = '';
     _.forEach(this.activeRefiners, (refiner:RecordSearchRefiner) => {
-      refinerValues = `${refinerValues}&refiner_${refiner.name}=${refiner.value}`;
+      if (refiner.type == "facet") {
+        refinerValues = `${refinerValues}&refiner|${refiner.name}=${_.isEmpty(refiner.activeValue) ? '' : refiner.activeValue}`;
+      } else {
+        refinerValues = `${refinerValues}&refiner|${refiner.name}=${_.isEmpty(refiner.value) ? '' : refiner.value}`;
+      }
     });
     return `${searchUrl}?q=${this.basicSearch}&type=${this.recordType}${refinerValues}`;
   }
@@ -188,36 +224,54 @@ export class RecordSearchParams {
   }
 
   addActiveRefiner(refiner: RecordSearchRefiner) {
-    var novelRefiner = true;
-    _.forEach(this.activeRefiners, (record:RecordSearchRefiner) => {
-      if (record.name === refiner.name) {
-        record.value = refiner.value;
-        novelRefiner = false;
-      }
+    const existingRefiner = _.find(this.activeRefiners, (activeRefiner:RecordSearchRefiner) => {
+      return activeRefiner.name == refiner.name;
     });
-    if (novelRefiner) {
+    if (existingRefiner) {
+      existingRefiner.value = refiner.value;
+    } else {
       this.activeRefiners.push(refiner);
     }
   }
 
-  addActiveRefinerStr(queryStr:string) {
+  parseQueryStr(queryStr:string) {
     let refinerValues = {};
     _.forEach(queryStr.split('&'), (q)=> {
       const qObj = q.split('=');
-      if (_.startsWith(qObj[0], "refiner_")) {
-        const refinerName = qObj[0].split('_')[1];
+      if (_.startsWith(qObj[0], "q")) {
+        this.basicSearch = qObj[1];
+      }
+      if (_.startsWith(qObj[0], "refiner|")) {
+        const refinerName = qObj[0].split('|')[1];
         refinerValues[refinerName] = qObj[1];
       }
     });
     _.forOwn(refinerValues, (value, name) => {
-      var config = this.getRefinerConfig(name);
-      config.value = value;
+      const config = this.getRefinerConfig(name);
+      config.setCurrentValue(value);
       this.addActiveRefiner(config);
     });
   }
 
   hasActiveRefiners() {
-    return _.size(this.activeRefiners) > 0;
+    let hasActive = false;
+    _.forEach(this.activeRefiners, (refiner: RecordSearchRefiner) => {
+      if (!hasActive && (!_.isEmpty(refiner.value))) {
+        hasActive = true;
+      }
+    });
+    return hasActive;
+  }
+
+  setFacetValues(facets: any) {
+    _.forEach(facets, (facet: any) => {
+      const refiner = _.find(this.activeRefiners, (refinerConfig: RecordSearchRefiner) => {
+        return refinerConfig.name == facet.name;
+      });
+      if (refiner) {
+        refiner.value = facet.values;
+      }
+    });
   }
 
 }

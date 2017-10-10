@@ -39,9 +39,12 @@ export class SimpleComponent {
 
   helpShow: boolean;
 
-  public getFormControl() {
+  public getFormControl(name: string = null) {
+    if (_.isEmpty(name)) {
+      name = this.field.name;
+    }
     if (this.fieldMap && this.field) {
-      return this.fieldMap[this.field.name].control;
+      return this.fieldMap[name].control;
     }
     return null;
   }
@@ -62,6 +65,35 @@ export class SimpleComponent {
     return this.field.required ? '(*)' : '';
   }
 
+  ngOnInit() {
+    if (this.field.onChange) {
+      if (this.field.onChange.control) {
+        // listen to external control changes
+        if (this.field.onChange.control.source) {
+          _.forEach(this.field.onChange.control.source, (srcName: string) => {
+            this.getFormControl(srcName).valueChanges.subscribe((value:any) => {
+              this.handleChange(value, 'control');
+            });
+          });
+        } else {
+          // listen to own  changes
+          this.getFormControl().valueChanges.subscribe((value:any) => {
+            this.handleChange(value, 'control');
+          });
+        }
+      }
+      if (this.field.onChange.form) {
+        // listen to form changes, warning: don't emit change events unless you want to get stuck in a loop
+        this.form.valueChanges.subscribe((value:any) => {
+          this.handleChange(value, 'form');
+        });
+      }
+    }
+  }
+
+  handleChange(value:any, source: string) {
+
+  }
 }
 
 
@@ -301,11 +333,6 @@ export class DateTimeComponent extends SimpleComponent implements OnInit {
   public field: DateTime;
   @ViewChild('dateTime', {read: ViewContainerRef}) dateTimeView: ViewContainerRef;
 
-  ngOnInit() {
-    this.getFormControl().valueChanges.subscribe((date:any) => {
-      this.handleChange(date);
-    });
-  }
 
   updateStartDate(newVal: any) {
     const thisDate = moment(newVal);
@@ -318,9 +345,9 @@ export class DateTimeComponent extends SimpleComponent implements OnInit {
     this.field.datePickerOpts = newOpts;
   }
 
-  handleChange(newVal: Date) {
-    if (this.field.onChange) {
-      _.forEach(this.field.onChange.setStartDate, (targetField: any) => {
+  handleChange(newVal: any, source: string) {
+    if (this.field.onChange && source == 'control') {
+      _.forEach(this.field.onChange.control.setStartDate, (targetField: any) => {
         this.fieldMap[targetField].instance.updateStartDate(newVal);
       });
     }
@@ -378,4 +405,25 @@ export class LinkValueComponent extends SimpleComponent {
   `,
 })
 export class HiddenValueComponent extends SimpleComponent {
+
+  handleChange(value: any, source: string) {
+    console.log(`Hidden Value change: ${source}`);
+    console.log(value);
+    let targetVal = null;
+    if (_.isArray(value)) {
+      targetVal = [];
+      _.forEach(value, (v:any)=> {
+        let tVal = '';
+        _.forEach(this.field.onChange.control.subFields, (subField:string) => {
+          tVal = `${_.isEmpty(tVal) ? tVal : `${tVal}${this.field.onChange.control.delim}`}${v[subField]}`;
+        });
+        targetVal.push(tVal);
+      });
+    }
+    this.getFormControl().setValue(targetVal, this.field.onChange.updateConf);
+    console.log(`Form now has value:`);
+    console.log(this.form.value);
+  }
+
+
 }

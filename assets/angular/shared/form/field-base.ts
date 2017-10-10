@@ -50,6 +50,7 @@ export class FieldBase<T> {
   translationService: TranslationService;
   defaultValue: any;
   marginTop: string;
+  onChange: any; // custom configuration for each component, for dates: e.g. { 'setStartDate': ['name of pickers']}
 
   constructor(options = {}, translationService = undefined) {
     this.translationService = translationService;
@@ -82,6 +83,8 @@ export class FieldBase<T> {
     this.groupName = options.groupName || null;
     this.editMode = options.editMode || false;
     this.readOnly = options.readOnly || false;
+    this.onChange = options['onChange'] || null;
+
     if (this.groupName) {
       this.hasGroup = true;
     }

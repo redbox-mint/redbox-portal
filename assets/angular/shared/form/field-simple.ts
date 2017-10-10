@@ -141,7 +141,6 @@ export class TabOrAccordionContainer extends Container {
 export class DateTime extends FieldBase<any> {
   datePickerOpts: any;
   timePickerOpts: any;
-  onChange: any; // e.g. { 'setStartDate': ['name of pickers']}
   hasClearButton: boolean;
   valueFormat: string;
   displayFormat: string;
@@ -150,7 +149,6 @@ export class DateTime extends FieldBase<any> {
     super(options, translationService);
     this.datePickerOpts = options['datePickerOpts'] || false;
     this.timePickerOpts = options['timePickerOpts'] || false;
-    this.onChange = options['onChange'] || null;
     this.hasClearButton = options['hasClearButton'] || false;
     this.valueFormat = options['valueFormat'] || 'YYYY-MM-DD';
     this.displayFormat = options['displayFormat'] || 'YYYY-MM-DD';

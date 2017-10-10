@@ -45,7 +45,8 @@ export module Controllers {
         'update',
         'stepTo',
         'modifyEditors',
-        'search'
+        'search',
+        'getType'
     ];
 
     /**
@@ -342,20 +343,36 @@ export module Controllers {
     }
 
     public search(req, res) {
+      const brand = BrandingService.getBrand(req.session.branding);
       const type = req.param('type');
+      const workflow = req.query.workflow;
       const searchString = req.query.searchStr;
       const exactSearchNames = _.isEmpty(req.query.exactNames) ? [] : req.query.exactNames.split(',');
       const exactSearches = [];
+      const facetSearchNames = _.isEmpty(req.query.facetNames) ? [] : req.query.facetNames.split(',');
+      const facetSearches = [];
+
       _.forEach(exactSearchNames, (exactSearch) => {
         exactSearches.push({name: exactSearch, value: req.query[`exact_${exactSearch}`]});
       });
+      _.forEach(facetSearchNames, (facetSearch) => {
+        facetSearches.push({name: facetSearch, value: req.query[`facet_${facetSearch}`]});
+      });
 
-      const workflow = req.query.workflow;
-      const brand = BrandingService.getBrand(req.session.branding);
 
-      RecordsService.searchFuzzy(type, workflow, searchString, exactSearches, brand, req.user.username, req.user.roles, sails.config.record.search.returnFields)
+      RecordsService.searchFuzzy(type, workflow, searchString, exactSearches, facetSearches, brand, req.user.username, req.user.roles, sails.config.record.search.returnFields)
       .subscribe(searchRes => {
         this.ajaxOk(req, res, null, searchRes);
+      }, error => {
+        this.ajaxFail(req, res, error.message);
+      });
+    }
+    /** Returns the RecordType configuration */
+    public getType(req, res) {
+      const recordType = req.param('recordType');
+      const brand = BrandingService.getBrand(req.session.branding);
+      RecordTypesService.get(brand, recordType).subscribe(recordType => {
+        this.ajaxOk(req, res, null, recordType);
       }, error => {
         this.ajaxFail(req, res, error.message);
       });

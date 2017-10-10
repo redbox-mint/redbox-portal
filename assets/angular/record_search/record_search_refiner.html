@@ -5,12 +5,19 @@
     </h3>
   </div>
   <div class="panel-body">
-    <div> {{ refinerConfig.typeLabel | translate }} </div>
-    <div class="input-group">
-      <input [(ngModel)]="refinerConfig.value" class="form-control" (keyup.enter)="applyFilter()">
+    <div *ngIf="refinerConfig.typeLabel"> {{ refinerConfig.typeLabel | translate }} </div>
+    <div class="input-group" *ngIf="refinerConfig.type == 'exact'">
+      <input [(ngModel)]="refinerConfig.value" class="form-control" (keyup.enter)="applyFilter($event)">
       <span class="input-group-btn">
-        <button [disabled]="isSearching || !hasValue()" class="btn btn-primary" type='button' (click)="applyFilter()">{{ 'search-refine-apply-filter' | translate }}</button>
+        <button [disabled]="isSearching || !hasValue()" class="btn btn-primary" type='button' (click)="applyFilter($event)">{{ 'search-refine-apply-filter' | translate }}</button>
       </span>
+    </div>
+    <div class="input-group" *ngIf="refinerConfig.type == 'facet'">
+      <div *ngFor="let facetValue of refinerConfig.value">
+        <ng-template [ngIf]="facetValue.count > 0">
+          <a href="" (click)="applyFilter($event, facetValue.value)"> {{ facetValue.value }} ({{ facetValue.count }})</a>
+        </ng-template>
+      </div>
     </div>
   </div>
 </div>

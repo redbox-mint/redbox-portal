@@ -204,7 +204,7 @@ module.exports.form = {
                          hasClearButton: false,
                          valueFormat: 'YYYY-MM-DD',
                          displayFormat: 'L',
-                         onChange: {setStartDate: ['dc:coverage_vivo:DateTimeInterval_vivo:end']}
+                         onChange: {control: {setStartDate: ['dc:coverage_vivo:DateTimeInterval_vivo:end']}}
                         }
                     },
                     {
@@ -931,6 +931,25 @@ module.exports.form = {
                         help: '@dmpt-agls:protectiveMarking_skos:note-help',
                         rows: 5,
                         columns: 10
+                      }
+                    },
+                    // Hiddden reactive elements...
+                    {
+                      class: 'HiddenValue',
+                      compClass: 'HiddenValueComponent',
+                      definition: {
+                        name: 'grant_number_name',
+                        onChange: {
+                          control: {
+                            source: ['foaf:fundedBy_vivo:Grant'],
+                            subFields: ['grant_number', 'dc_title'],
+                            delim: ' - ',
+                            updateConf: {
+                              onlySelf: true,
+                              emitEvent: false
+                            }
+                          }
+                        }
                       }
                     }
                   ]

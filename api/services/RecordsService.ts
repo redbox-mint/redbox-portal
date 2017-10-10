@@ -21,6 +21,7 @@ import { Observable } from 'rxjs/Rx';
 import services = require('../../typescript/services/CoreService.js');
 import {Sails, Model} from "sails";
 import * as request from "request-promise";
+import * as luceneEscapeQuery from "lucene-escape-query";
 
 declare var FormsService, RolesService, UsersService, WorkflowStepsService;
 declare var sails: Sails;
@@ -83,8 +84,6 @@ export module Services {
      *
      */
     public hasEditAccess(brand, uname, roles, record): boolean {
-      sails.log.verbose("hasEditAcccess record is: ");
-      sails.log.verbose(record);
       const editArr = record.authorization ? record.authorization.edit : record.authorization_edit;
       const editRolesArr = record.authorization ? record.authorization.editRoles : record.authorization_editRoles;
 
@@ -146,19 +145,26 @@ export module Services {
               });
     }
 
-    public searchFuzzy(type, workflowState, searchQuery, exactSearches, brand, username, roles, returnFields) {
+    public searchFuzzy(type, workflowState, searchQuery, exactSearches, facetSearches, brand, username, roles, returnFields) {
       // const url = `${this.getSearchTypeUrl(type, searchField, searchStr)}&start=0&rows=${sails.config.record.export.maxRecords}`;
       let searchParam = workflowState ? ` AND workflow_stage:${workflowState} ` : '';
       searchParam = `${searchParam} AND full_text:${searchQuery}`;
       _.forEach(exactSearches, (exactSearch) => {
-        searchParam = `${searchParam}&fq=${exactSearch.name}:${exactSearch.value}*`
+        searchParam = `${searchParam}&fq=${exactSearch.name}:${this.luceneEscape(exactSearch.value)}*`
       });
-      const url = `${sails.config.record.api.search.url}?q=metaMetadata_type:${type}${searchParam}&version=2.2&wt=json&sort=date_object_modified desc`;
+      if (facetSearches.length > 0) {
+        searchParam = `${searchParam}&facet=true`
+        _.forEach(facetSearches, (facetSearch) => {
+          searchParam = `${searchParam}&facet.field=${facetSearch.name}${_.isEmpty(facetSearch.value) ? '' : `&fq=${facetSearch.name}:${this.luceneEscape(facetSearch.value)}`}`
+        });
+      }
+
+      const url = `${sails.config.record.api.search.url}?q=metaMetadata_brandId:${brand.id} AND metaMetadata_type:${type}${searchParam}&version=2.2&wt=json&sort=date_object_modified desc`;
       sails.log.verbose(`Searching fuzzy using: ${url}`);
       const options = this.getOptions(url);
       return Observable.fromPromise(request[sails.config.record.api.search.method](options))
               .flatMap(response => {
-                const customResp = [];
+                const customResp = {records: []};
                 _.forEach(response.response.docs, solrdoc => {
                   const customDoc = {};
                   _.forEach(returnFields, retField => {
@@ -169,8 +175,23 @@ export module Services {
                     }
                   });
                   customDoc["hasEditAccess"] = this.hasEditAccess(brand, username, roles, solrdoc);
-                  customResp.push(customDoc);
+                  customResp.records.push(customDoc);
                 });
+                // check if have facets turned on...
+                if (response.facet_counts) {
+                  customResp['facets'] = [];
+                  _.forOwn(response.facet_counts.facet_fields, (facet_field, facet_name) => {
+                    const numFacetsValues = _.size(facet_field) / 2;
+                    const facetValues = [];
+                    for (var i=0,j=0; i < numFacetsValues;i++) {
+                      facetValues.push({
+                        value: facet_field[j++],
+                        count: facet_field[j++]
+                      });
+                    }
+                    customResp['facets'].push({name: facet_name, values: facetValues});
+                  });
+                }
                 return Observable.of(customResp);
               });
     }
@@ -224,6 +245,9 @@ export module Services {
 
     }
 
+    protected luceneEscape(str: string) {
+      return luceneEscapeQuery.escape(str);
+    }
   }
 }
 module.exports = new Services.Records().exports();

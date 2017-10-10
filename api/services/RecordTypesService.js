@@ -30,7 +30,7 @@ var Services;
                         sails.log.verbose("Bootstrapping record type definitions... ");
                         _.forOwn(sails.config.recordtype, function (config, recordType) {
                             recordTypes.push(recordType);
-                            var obs = _this.create(defBrand, recordType);
+                            var obs = _this.create(defBrand, recordType, config);
                             rTypes.push(obs);
                         });
                         return Rx_1.Observable.from(rTypes);
@@ -48,10 +48,11 @@ var Services;
             };
             return _this;
         }
-        RecordTypes.prototype.create = function (brand, name) {
+        RecordTypes.prototype.create = function (brand, name, config) {
             return _super.prototype.getObservable.call(this, RecordType.create({
                 name: name,
-                branding: brand.id
+                branding: brand.id,
+                searchFilters: config.searchFilters
             }));
         };
         RecordTypes.prototype.get = function (brand, name) {

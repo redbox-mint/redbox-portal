@@ -25,6 +25,11 @@ module.exports = {
       collection: 'workflowStep',
       via: 'recordType',
       dominant: true
+    },
+    // RecordType can have specific search parameters
+    searchFilters: {
+      type: 'json',
+      required: false
     }
   },
     beforeCreate: function(recordType, cb) {

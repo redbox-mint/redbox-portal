@@ -21,7 +21,7 @@
   </div>
 </div>
 <!-- Results section -->
-<div *ngIf="!isLoading && ((plans && plans.length > 0) || params.hasActiveRefiners())" class="row">
+<div *ngIf="!isLoading && !isSearching && ((plans && plans.length > 0) || params.hasActiveRefiners())" class="row">
   <div class="col-md-2">
     <!-- Exact match and facets -->
     <record-search-refiner *ngFor="let refinerConfig of params.getRefinerConfigs()" [isSearching]="isSearching" [refinerConfig]="refinerConfig" (onApplyFilter)="search($event)" ></record-search-refiner>

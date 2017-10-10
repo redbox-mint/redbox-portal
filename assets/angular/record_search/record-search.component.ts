@@ -67,36 +67,32 @@ export class RecordSearchComponent extends LoadableComponent {
     this.search_url = elm.nativeElement.getAttribute('search_url');
     this.queryStr = elm.nativeElement.getAttribute("full_url").split('?')[1];
     this.params = new RecordSearchParams(this.record_type);
-    this.params.basicSearch = this.search_str;
-    this.params.setRefinerConfig(
-      [
-        new RecordSearchRefiner ({
-          name: "title",
-          title: "search-refine-title",
-          type: "exact",
-          typeLabel: "search-refine-contains"
-        }),
-        new RecordSearchRefiner({
-          name: "description",
-          title: "search-refine-description",
-          type: "exact",
-          typeLabel: "search-refine-contains"
-        })
-      ]
-    );
-    if (!_.isEmpty(this.queryStr)) {
-      this.params.addActiveRefinerStr(this.queryStr);
-    }
-
   }
 
   ngOnInit() {
     this.translationService.isReady((tService:any)=> {
-      this.setLoading(false);
-      if (this.search_str) {
-        this.search();
-        console.log(`Using query string: ${this.queryStr}`);
-      }
+      this.recordsService.getType(this.record_type).then((typeConf: any) => {
+        const searchFilterConfig = [];
+        _.forEach(typeConf.searchFilters, (searchConfig:any)=> {
+          searchFilterConfig.push(new RecordSearchRefiner(searchConfig));
+        });
+        this.params.setRefinerConfig(searchFilterConfig);
+        this.setLoading(false);
+        if (!_.isEmpty(this.queryStr)) {
+          console.log(`Using query string: ${this.queryStr}`);
+          this.params.parseQueryStr(this.queryStr);
+          this.search(null, false);
+        }
+        this.LocationService.subscribe((popState:any) => {
+          this.queryStr = popState.url.split('?')[1];
+          this.params.parseQueryStr(this.queryStr);
+          this.search(null, false);
+        }, (exception: any) => {
+          console.log(`Error on location service monitoring.`);
+          console.log(exception);
+        }, ()=> {
+        });
+      });
     });
   }
 
@@ -124,7 +120,7 @@ export class RecordSearchComponent extends LoadableComponent {
     }
   }
 
-  search(refinerConfig: RecordSearchRefiner = null) {
+  search(refinerConfig: RecordSearchRefiner = null, shouldSyncLoc:boolean = true) {
     if (!_.isEmpty(this.params.basicSearch)) {
       if (refinerConfig) {
         this.params.addActiveRefiner(refinerConfig);
@@ -133,13 +129,16 @@ export class RecordSearchComponent extends LoadableComponent {
       this.plans = null;
       this.searchMsgType = "info";
       this.searchMsg = `${this.translationService.t('record-search-searching')}${this.spinnerElem}`;
-      this.syncLoc();
+      if (shouldSyncLoc) {
+        this.syncLoc();
+      }
       this.recordsService.search(this.params).then((res:any) => {
         this.isSearching = false;
         this.searchMsgType = "success";
-        this.searchMsg = `${this.translationService.t('record-search-results')}${res.length}`;
-        this.dashboardService.setDashboardTitle(null, res);
-        this.plans = res;
+        this.searchMsg = `${this.translationService.t('record-search-results')}${res.records.length}`;
+        this.dashboardService.setDashboardTitle(null, res.records);
+        this.params.setFacetValues(res.facets);
+        this.plans = res.records;
       }).catch((err:any) => {
         this.isSearching = false;
         this.searchMsg = err;
@@ -159,8 +158,10 @@ export class RecordSearchRefinerComponent {
   @Input() isSearching: boolean;
   @Output() onApplyFilter: EventEmitter<any> = new EventEmitter<any>();
 
-  applyFilter() {
+  applyFilter(event:any, refinerValue:any = null) {
+    event.preventDefault();
     if (this.hasValue()) {
+      this.refinerConfig.activeValue = refinerValue;
       this.onApplyFilter.emit(this.refinerConfig);
     }
   }
