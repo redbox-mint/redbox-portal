@@ -235,6 +235,7 @@ export class RecordSearchParams {
   }
 
   parseQueryStr(queryStr:string) {
+    queryStr = decodeURI(queryStr);
     let refinerValues = {};
     _.forEach(queryStr.split('&'), (q)=> {
       const qObj = q.split('=');
