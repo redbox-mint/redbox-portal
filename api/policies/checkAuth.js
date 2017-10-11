@@ -2,7 +2,10 @@ module.exports = function(req, res, next) {
   var brand = BrandingService.getBrand(req.session.branding);
   if (!brand) {
     // invalid brand
-    return res.notFound({branding: sails.config.auth.defaultBrand, portal: sails.config.auth.defaultPortal});
+    return res.notFound({
+      branding: sails.config.auth.defaultBrand,
+      portal: sails.config.auth.defaultPortal
+    });
   }
   var roles;
   // sails.log.verbose("User is....");
@@ -26,7 +29,12 @@ module.exports = function(req, res, next) {
       if (req.isAuthenticated()) {
         return res.forbidden();
       } else {
-        return sails.controllers['typescript/user'].redirLogin(req, res);
+        var contentTypeHeader = req.headers["content-type"] == null ? "" : req.headers["content-type"];
+        if (contentTypeHeader.indexOf("application/json") != -1) {
+          return res.forbidden({message: "Access Denied"});
+        } else {
+          return sails.controllers['typescript/user'].redirLogin(req, res);
+        }
       }
     }
   } else {

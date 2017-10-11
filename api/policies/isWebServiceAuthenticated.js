@@ -1,16 +1,15 @@
 module.exports = function(req, res, next) {
-  var path = req.path;
-  var splitPath = path.split('/');
+  var contentTypeHeader = req.headers["content-type"] == null ? "" : req.headers["content-type"];
 
-  if (splitPath.length > 3) {
-    if (splitPath[2] == "api") {
-      sails.config.passport.authenticate('bearer', function(err, user, info) {
-        next();
-      })(req, res);
-    } else {
+  if (!req.isAuthenticated() && contentTypeHeader.indexOf("application/json") != -1) {
+    sails.config.passport.authenticate('bearer', function(err, user, info) {
+      if(user != false) {
+        req.user = user;
+      }
       next();
-    }
+    })(req, res);
   } else {
     next();
   }
+
 };
