@@ -120,7 +120,7 @@ module.exports.routes = {
   'get /:branding/:portal/export/record/download/:format': 'typescript/ExportController.downloadRecs',
   'get /:branding/:portal/asynch/start/:procId': 'typescript/AsynchController.start',
   'get /:branding/:portal/asynch/progress/:progId': 'typescript/AsynchController.progress',
-
+  
   /***************************************************************************
   *                                                                          *
   * REST API routes                                                          *
@@ -139,5 +139,6 @@ module.exports.routes = {
   'post /:branding/:portal/api/records/permissions/:oid/view/add': 'typescript/webservice/RecordController.addUserView',
   'post /:branding/:portal/api/records/permissions/:oid/view/remove': 'typescript/webservice/RecordController.removeUserView',
   'get /:branding/:portal/api/listUsers': 'typescript/webservice/UserManagementController.listUsers',
-  'get /:branding/:portal/api/lookupUser': 'typescript/webservice/UserManagementController.findUser'
+  'get /:branding/:portal/api/lookupUser': 'typescript/webservice/UserManagementController.findUser',
+  'post /:branding/:portal/api/sendNotification': 'typescript/EmailController.sendNotification'
 };
