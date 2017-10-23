@@ -93,7 +93,7 @@ module.exports.auth = {
   default: {
     defaultRole: 'Guest', // default when unauthenticated
     // will be shown in the login page choices
-    active: ['local', 'aaf'],
+    active: [],
     local: {
       usernameField: 'username',
       passwordField: 'password',

@@ -266,7 +266,14 @@ module.exports.form = {
                               ]
                             }
                           }
-                        ]
+                        ],
+                        publish: {
+                          onValueUpdate: {
+                            modelEventSource: 'valueChanges',
+                            // optional, renames fields `{field: sourcefield}` accessed using _.get, remove to return the entire data set
+                            fields: [{'grant_number': 'grant_number[0]'}, {'dc_title': 'dc_title'}]
+                          }
+                        }
                       }
                     },
                     {
@@ -939,15 +946,15 @@ module.exports.form = {
                       compClass: 'HiddenValueComponent',
                       definition: {
                         name: 'grant_number_name',
-                        onChange: {
-                          control: {
-                            source: ['foaf:fundedBy_vivo:Grant'],
-                            subFields: ['grant_number', 'dc_title'],
-                            delim: ' - ',
-                            updateConf: {
-                              onlySelf: true,
-                              emitEvent: false
-                            }
+                        subscribe: {
+                          'foaf:fundedBy_vivo:Grant': {
+                            onValueUpdate: [
+                              {
+                                action: 'utilityService.concatenate',
+                                fields: ['grant_number', 'dc_title'],
+                                delim: ' - '
+                              }
+                            ]
                           }
                         }
                       }

@@ -17,9 +17,11 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-
+import { Output, EventEmitter } from '@angular/core';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { TranslationService } from '../translation-service';
+import { UtilityService } from '../util-service';
+
 import * as _ from "lodash-lib";
 /**
  * Base class for dynamic form models...
@@ -51,6 +53,12 @@ export class FieldBase<T> {
   defaultValue: any;
   marginTop: string;
   onChange: any; // custom configuration for each component, for dates: e.g. { 'setStartDate': ['name of pickers']}
+  publish: any; // configuration for publishing events
+  subscribe: any; // configuration for subscribing to events published by other components
+  fieldMap: any;
+  utilityService: UtilityService;
+
+  @Output() public onValueUpdate: EventEmitter<any> = new EventEmitter<any>();
 
   constructor(options = {}, translationService = undefined) {
     this.translationService = translationService;
@@ -84,6 +92,8 @@ export class FieldBase<T> {
     this.editMode = options.editMode || false;
     this.readOnly = options.readOnly || false;
     this.onChange = options['onChange'] || null;
+    this.publish = options['publish'] || null;
+    this.subscribe = options['subscribe'] || null;
 
     if (this.groupName) {
       this.hasGroup = true;
@@ -125,7 +135,19 @@ export class FieldBase<T> {
     return this.formModel;
   }
 
+  /**
+   * Creates a control group and populates field map with:
+   *
+   * fieldMap[name].control = the NG2 FormControl
+   * fieldMap[name].field = the Field model (this)
+   *
+   * @author <a target='_' href='https://github.com/shilob'>Shilo Banihit</a>
+   * @param  {any} group
+   * @param  {any} fieldMap
+   * @return {any}
+   */
   public getGroup(group: any, fieldMap: any) : any {
+    this.fieldMap = fieldMap;
     let retval = null;
     fieldMap[this.name] = {field:this};
     let control = this.createFormModel();
@@ -153,5 +175,97 @@ export class FieldBase<T> {
       this.formModel.markAsTouched();
       this.formModel.updateValueAndValidity();
     }
+  }
+
+  valueNotEmpty(data) {
+    return !_.isEmpty(data) && (_.isArray(data) ? (!_.isEmpty(data[0])): true );
+  }
+
+  setupEventHandlers() {
+    if (!_.isEmpty(this.formModel)) {
+      const publishConfig = this.publish;
+      const subscribeConfig = this.subscribe;
+
+      if (!_.isEmpty(publishConfig)) {
+        _.forOwn(publishConfig, (eventConfig, eventName) => {
+          console.log(`Setting up ${eventName} handlers for field: ${this.name}`)
+          const eventSource = eventConfig.modelEventSource;
+          this.formModel[eventSource].subscribe((value:any) => {
+            if (this.valueNotEmpty(value)) {
+              let emitData = value;
+              if (!_.isEmpty(eventConfig.fields)) {
+                if (_.isArray(value)) {
+                  emitData = [];
+                  _.each(value, (v:any) => {
+                    if (!_.isEmpty(v)) {
+                      const item = {};
+                      _.each(eventConfig.fields, (f:any)=> {
+                        _.forOwn(f, (src, tgt) => {
+                          item[tgt] = _.get(v, src);
+                        });
+                      });
+                      emitData.push(item);
+                    }
+                  });
+                } else {
+                  emitData = {};
+                  if (!_.isEmpty(value)) {
+                    _.each(eventConfig.fields, (f:any)=> {
+                      _.forOwn(f, (src, tgt) => {
+                        emitData[tgt] = _.get(value, src);
+                      });
+                    });
+                  }
+                }
+              }
+              console.log(`Emitting data:`);
+              console.log(emitData);
+              this.emitEvent(eventName, emitData, value);
+            }
+          });
+        });
+      }
+
+      if (!_.isEmpty(subscribeConfig)) {
+        _.forOwn(subscribeConfig, (subConfig, srcName) => {
+          _.forOwn(subConfig, (eventConfArr, eventName) => {
+            this.fieldMap[srcName].field[eventName].subscribe((value:any) => {
+              let curValue = value;
+              if (_.isArray(value)) {
+                curValue = [];
+                _.each(value, (v: any) => {
+                  let entryVal = v;
+                  _.each(eventConfArr, (eventConf: any) => {
+                    const fn = _.get(this, eventConf.action);
+                    if (fn) {
+                      entryVal = fn(entryVal, eventConf);
+                    }
+                  });
+                  if (!_.isEmpty(entryVal)) {
+                    curValue.push(entryVal);
+                  }
+                });
+              } else {
+                _.each(eventConfArr, (eventConf: any) => {
+                  const fn = _.get(this, eventConf.action);
+                  if (fn) {
+                    curValue = fn(curValue, eventConf);
+                  }
+                });
+              }
+              this.reactEvent(eventName, curValue, value);
+            });
+          });
+        });
+      }
+    }
+  }
+
+  public emitEvent(eventName: string, eventData: any, origData: any) {
+    this[eventName].emit(eventData);
+  }
+
+  public reactEvent(eventName: string, eventData: any, origData: any) {
+    this.formModel.setValue(eventData, { onlySelf: true, emitEvent: false });
   }
 }

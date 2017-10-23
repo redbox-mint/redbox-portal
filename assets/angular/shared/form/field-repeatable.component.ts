@@ -34,7 +34,6 @@ import { ChangeDetectorRef } from '@angular/core';
 export class RepeatableContainer extends Container {
   addButtonText: string;
   removeButtonText: string;
-  control: any;
   skipClone: string[];
   forceClone: string[];
   addButtonTextClass: any;
@@ -63,7 +62,7 @@ export class RepeatableContainer extends Container {
   getGroup(group: any, fieldMap: any) {
     fieldMap[this.name] = {field:this};
     if (!this.value || this.value.length == 0) {
-      this.control = new FormArray(this.getInitArrayEntry());
+      this.formModel = new FormArray(this.getInitArrayEntry());
     } else {
       let fieldCtr = 0;
       const baseField = this.fields[0];
@@ -83,19 +82,19 @@ export class RepeatableContainer extends Container {
       const elems = _.map(this.fields, (field:any) => {
         return field.createFormModel();
       });
-      this.control = new FormArray(elems);
+      this.formModel = new FormArray(elems);
     }
-    fieldMap[this.name].control = this.control;
+    fieldMap[this.name].control = this.formModel;
     if (this.groupName) {
       if (group[this.groupName]) {
-        group[this.groupName].addControl(this.name, this.control);
+        group[this.groupName].addControl(this.name, this.formModel);
       } else {
         const fg = {};
-        fg[this.name] = this.control;
+        fg[this.name] = this.formModel;
         group[this.groupName] = fg;
       }
     } else {
-      group[this.name] = this.control;
+      group[this.name] = this.formModel;
     }
   }
 
@@ -114,13 +113,13 @@ export class RepeatableContainer extends Container {
   addElem() {
     const newElem = this.createNewElem(this.fields[0]);
     this.fields.push(newElem);
-    this.control.push(newElem.createFormModel());
+    this.formModel.push(newElem.createFormModel());
     return newElem;
   }
 
   removeElem(index: number) {
     _.remove(this.fields, (val:any, idx: number) => { return idx == index });
-    this.control.removeAt(index);
+    this.formModel.removeAt(index);
   }
 
   public triggerValidation() {

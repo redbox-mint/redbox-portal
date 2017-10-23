@@ -46,6 +46,7 @@ import 'rxjs/add/observable/from';
 import { CompleterService } from 'ng2-completer';
 import { ConfigService } from '../config-service';
 import { TranslationService } from '../translation-service';
+import { UtilityService } from '../util-service';
 /**
  * Field / Model Factory Service...
  *
@@ -71,7 +72,8 @@ export class FieldControlService {
   };
   constructor(@Inject(VocabFieldLookupService) private vocabFieldLookupService: VocabFieldLookupService, @Inject(CompleterService) private completerService: CompleterService,
   @Inject(ConfigService) protected configService: ConfigService,
-  @Inject(TranslationService) protected translationService: TranslationService
+  @Inject(TranslationService) protected translationService: TranslationService,
+  @Inject(UtilityService) protected utilityService: UtilityService
   ) {
 
   }
@@ -83,7 +85,16 @@ export class FieldControlService {
   toFormGroup(fields: FieldBase<any>[], fieldMap: any = null ) {
     let group: any = {};
     this.populateFormGroup(fields, group, fieldMap);
+    this.setupEventHandlers(fieldMap);
     return new FormGroup(group);
+  }
+
+  setupEventHandlers(fieldMap: any) {
+    _.forOwn(fieldMap, (fMap:any) => {
+      if (fMap.field) {
+        fMap.field.setupEventHandlers();
+      }
+    });
   }
 
   populateFormGroup(fields: any[], group: any, fieldMap: any) {
@@ -100,6 +111,7 @@ export class FieldControlService {
   getFieldsMeta(fieldsArr: any) {
     const fields = _.map(fieldsArr, (f:any) => {
       const inst = new this.classes[f.class].meta(f.definition, this.translationService);
+      inst.utilityService = this.utilityService;
       // set the component class
       if (_.isArray(this.classes[f.class].comp)) {
         inst.compClass = _.find(this.classes[f.class].comp, (c:any)=> { return c.name == f.compClass });
