@@ -1,0 +1,37 @@
+<div class="row equal">
+  <div class="col-md-1">
+  </div>
+    <div class="col-md-3">
+      <div class="panel panel-default">
+               <div class="panel-heading">
+                   <h4 class="panel-title"><%= TranslationService.t('menu-analyze')%></h4>
+               </div>
+               <!-- end panel-heading -->
+               <div class="panel-body">
+                 <div><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/admin/reports"><%= TranslationService.t('reports-heading')%></a></div>
+                 <div><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/export"><%= TranslationService.t('menu-export')%></a></div>
+               </div>
+               <!-- end panel-body -->
+           </div>
+           <!-- end panel-primary -->
+    </div>
+
+    <div class="col-md-3">
+      <div class="panel panel-default">
+               <div class="panel-heading">
+                   <h4 class="panel-title"><%= TranslationService.t('menu-syssettings')%></h4>
+               </div>
+               <!-- end panel-heading -->
+               <div class="panel-body">
+                 <div><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/admin/roles"><%= TranslationService.t('menu-rolemgmt')%></a></div>
+               </div>
+               <!-- end panel-body -->
+           </div>
+           <!-- end panel-primary -->
+    </div>
+    <div class="col-md-3">
+
+    </div>
+    <div class="col-md-1">
+    </div>
+</div>

@@ -60,7 +60,7 @@
   "welcome-title": "Welcome to the ReDBox DMP Tool",
   "welcome-homepage-text": "This is the homepage of the DMP Tool. Some content needs to go here as well as a link to the researcher dashboard (still to be implemented).",
   "welcome-dashboard-link-text": "Proceed to the dashboard",
-  "default-title": "DLCF Portal",
+  "default-title": "ReDBox",
   "menu-welcome-text": "Welcome",
   "menu-login": "Login",
   "menu-logout": "Logout",
@@ -69,6 +69,9 @@
   "menu-rolemgmt": "Role management",
   "menu-export": "Export",
   "menu-home": "Home",
+  "menu-analyze": "Analyze",
+  "menu-syssettings": "System settings",
+  "menu-admin": "Admin",
   "aaf-title": "AAF Credentials",
   "admin-title": "Admin Home",
   "search-refine-title": "Title",
@@ -238,5 +241,11 @@
   "@dmpt-foaf:fundedBy_vivo:Grant": "Grant number(s)",
   "@dmpt-foaf:fundedBy_vivo:Grant-help": "Enter the grant number or a partial name to evoke a list of possible matches from Research Master.",
   "@dmpt-foaf:fundedBy_foaf:Agent": "Funding source",
-  "@dmpt-foaf:fundedBy_foaf:Agent-help": "Enter the funding agency name. N.B. entering part of the name will evoke a list of possible matches. Either select one, or keep typing to override."
+  "@dmpt-foaf:fundedBy_foaf:Agent-help": "Enter the funding agency name. N.B. entering part of the name will evoke a list of possible matches. Either select one, or keep typing to override.",
+  "report-results-returned": "{count} result returned",
+  "report-results-returned_plural": "{count} results returned",
+  "report-csv-download": "Download as CSV",
+  "report-retrieving-results": "Retrieving results",
+  "reports-heading": "Reports",
+  "reports-description": "Click on a link below to view a report"
 }

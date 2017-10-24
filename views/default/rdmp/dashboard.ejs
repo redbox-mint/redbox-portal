@@ -8,7 +8,7 @@
     <h1 id="main-title" class="container"><%= TranslationService.t('dashboard-welcome-text') %></h1>
     <div class="container">
       <div class="btn-group">
-        <a class="btn btn-large btn-info" href="<%= BrandingService.getBrandAndPortalPath(req) %>/record/rdmp/edit">
+        <a class="btn btn-large btn-info" href="<%= BrandingService.getBrandAndPortalPath(req) %>/admin/downloadReportCSV?name={{ name }}">
           <span class="glyphicon glyphicon-plus-sign"></span>
           <%= TranslationService.t('create-plan')%>
         </a>

@@ -228,7 +228,6 @@ export module Services {
     public bootstrap = (defRoles) => {
       const defAuthConfig = ConfigService.getBrand(BrandingService.getDefault().name, 'auth');
       sails.log.verbose("Bootstrapping users....");
-      // return Observable.of(defAdminRole);
 
       var usernameField = defAuthConfig.local.usernameField,
         passwordField = defAuthConfig.local.passwordField;
@@ -237,9 +236,7 @@ export module Services {
         .flatMap(defAdminRole => {
           this.localAuthInit();
           this.aafAuthInit();
-          sails.log.error("$$$$$$**************&&&&&&&&&&&&&&&&&&&&&")
           this.bearerTokenAuthInit();
-          sails.log.error("$$$$$$**************&&&&&&&&&&&&&&&&&&&&&")
           return this.initDefAdmin(defRoles, defAdminRole);
         });
     }

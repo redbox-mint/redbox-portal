@@ -12,6 +12,10 @@
     display: block;
     margin: 0 auto 15px;
 }
+.equal {
+    display: -webkit-flex;
+    display: flex;
+}
 a:focus { outline: 0px solid }
 img {
     max-width: 100%;
@@ -728,7 +732,7 @@ div.logo img {
 
 .padding-top-10 {
   padding-top: 10px;
-} 
+}
 
 .padding-bottom-10 {
   padding-bottom: 10px;

@@ -78,6 +78,13 @@ module.exports.routes = {
     action: 'renderImage'
   },
   '/:branding/:portal/admin': {
+    controller: 'typescript/RenderViewController',
+    action: 'render',
+    locals:{
+      'view': 'admin/home'
+    }
+  },
+  '/:branding/:portal/admin/roles': {
     controller: 'typescript/AdminController',
     action: 'rolesIndex',
     skipAssets: true
@@ -120,7 +127,12 @@ module.exports.routes = {
   'get /:branding/:portal/export/record/download/:format': 'typescript/ExportController.downloadRecs',
   'get /:branding/:portal/asynch/start/:procId': 'typescript/AsynchController.start',
   'get /:branding/:portal/asynch/progress/:progId': 'typescript/AsynchController.progress',
-  
+  'get /:branding/:portal/admin/reports': 'typescript/ReportsController.render',
+  'get /:branding/:portal/admin/report/:name': 'typescript/ReportController.render',
+  'get /:branding/:portal/admin/getReport': 'typescript/ReportController.get',
+  'get /:branding/:portal/admin/getReportResults': 'typescript/ReportController.getResults',
+  'get /:branding/:portal/admin/downloadReportCSV': 'typescript/ReportController.downloadCSV',
+
   /***************************************************************************
   *                                                                          *
   * REST API routes                                                          *

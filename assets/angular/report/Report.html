@@ -1,0 +1,49 @@
+<div *ngIf="!isLoading">
+
+  <div class="row">
+
+    <div class="col-xs-12">
+      <h1>
+        {{ report.title }}
+      </h1>
+    </div>
+
+  </div>
+  <div class="row">
+    <div class="col-xs-2">
+      <span *ngIf="initTracker.resultsReturned == false"><span class="fa fa-spinner fa-spin fa-fw"></span>{{ 'report-retrieving-results' | translate }}</span>
+      <span *ngIf="initTracker.resultsReturned == true" [innerHTML]='"report-results-returned" | translate:{count: reportResults.totalItems}'></span>
+    </div>
+    <div class="col-xs-8">
+      <h1>
+      </h1>
+    </div>
+    <div class="col-xs-2">
+      <a class="btn btn-large btn-info" href="/{{ branding }}/{{ portal }}/admin/downloadReportCSV?name={{ name }}">
+        <span class="glyphicon glyphicon-download"></span>
+        {{ 'report-csv-download' | translate }}
+      </a>
+
+    </div>
+  </div>
+  <div class="row">
+  <table class="table">
+    <thead>
+        <tr>
+            <ng-container *ngFor="let header of report.columns"><th *ngIf='header.show != false'>{{ header.label }}</th></ng-container>
+        </tr>
+    </thead>
+    <tbody>
+        <tr *ngFor="let item of reportResults.items"><ng-container *ngFor="let column of report.columns"><td  *ngIf='column.show != false'>
+          <span *ngIf='column.link != null; else multivalue'><a href="/{{ branding }}/{{ portal }}/{{ column.link.pattern | stringTemplate:item }}">{{ item[column.property] }}</a></span>
+          <ng-template #multivalue><span *ngIf='column.multivalue == true; else noProcessing' [innerHTML]='item[column.property] | multivalue'></span></ng-template>
+          <ng-template #noProcessing><span >{{ item[column.property] }}</span></ng-template>
+        </td></ng-container></tr>
+    </tbody>
+  </table>
+  </div>
+  <div class="row">
+    <pagination *ngIf="reportResults.totalItems > 0" [directionLinks]="false" [boundaryLinks]="true" [totalItems]="reportResults.totalItems"
+              [(ngModel)]="reportResults.currentPage" (pageChanged)="reportResultsPageChanged($event)" class="pagination-sm"></pagination>
+  </div>
+</div>

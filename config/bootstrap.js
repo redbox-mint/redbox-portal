@@ -28,6 +28,11 @@ module.exports.bootstrap = function(cb) {
     .flatMap(defaultBrand => {
       // sails doesn't support 'populating' of nested associations
       // intentionally queried again because of nested 'users' population, couldn't be bothered with looping thru the results
+      return sails.services.reportsservice.bootstrap(sails.services.brandingservice.getDefault());
+    })
+    .flatMap(defaultBrand => {
+      // sails doesn't support 'populating' of nested associations
+      // intentionally queried again because of nested 'users' population, couldn't be bothered with looping thru the results
       return sails.services.rolesservice.getRolesWithBrand(sails.services.brandingservice.getDefault());
     })
     .flatMap(defRoles => {

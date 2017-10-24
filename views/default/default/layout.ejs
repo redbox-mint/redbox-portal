@@ -105,11 +105,7 @@
               <%
                 if (hasAdminRole(req)) {%>
               <li class="dropdown">
-                <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">Admin <span class="caret"></span></a>
-                <ul class="dropdown-menu">
-                  <li><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/admin"><%= TranslationService.t('menu-rolemgmt')%></a></li>
-                  <li><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/export"><%= TranslationService.t('menu-export')%></a></li>
-                </ul>
+                <a href="<%= BrandingService.getBrandAndPortalPath(req) %>/admin"><%= TranslationService.t('menu-admin')%></a>
               </li>
             <% }
               } else { %>
