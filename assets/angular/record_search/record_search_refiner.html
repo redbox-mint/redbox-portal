@@ -14,7 +14,7 @@
     </div>
     <div class="input-group" *ngIf="refinerConfig.type == 'facet'">
       <div *ngFor="let facetValue of refinerConfig.value">
-        <ng-template [ngIf]="facetValue.count > 0">
+        <ng-template [ngIf]="facetValue.count > 0 && facetValue.value">
           <a href="" (click)="applyFilter($event, facetValue.value)"> {{ facetValue.value }} ({{ facetValue.count }})</a>
         </ng-template>
       </div>

@@ -204,7 +204,11 @@ module.exports.form = {
                          hasClearButton: false,
                          valueFormat: 'YYYY-MM-DD',
                          displayFormat: 'L',
-                         onChange: {control: {setStartDate: ['dc:coverage_vivo:DateTimeInterval_vivo:end']}}
+                         publish: {
+                           onValueUpdate: {
+                             modelEventSource: 'valueChanges'
+                           }
+                         }
                         }
                     },
                     {
@@ -217,7 +221,12 @@ module.exports.form = {
                        timePickerOpts: false,
                        hasClearButton: false,
                        valueFormat: 'YYYY-MM-DD',
-                       displayFormat: 'L'
+                       displayFormat: 'L',
+                       subscribe: {
+                         'dc:coverage_vivo:DateTimeInterval_vivo:start': {
+                           onValueUpdate: []
+                         }
+                       }
                       }
                     },
                     {

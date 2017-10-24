@@ -64,36 +64,6 @@ export class SimpleComponent {
   getRequiredLabelStr() {
     return this.field.required ? '(*)' : '';
   }
-
-  ngOnInit() {
-    if (this.field.onChange) {
-      if (this.field.onChange.control) {
-        // listen to external control changes
-        if (this.field.onChange.control.source) {
-          _.forEach(this.field.onChange.control.source, (srcName: string) => {
-            this.getFormControl(srcName).valueChanges.subscribe((value:any) => {
-              this.handleChange(value, 'control');
-            });
-          });
-        } else {
-          // listen to own  changes
-          this.getFormControl().valueChanges.subscribe((value:any) => {
-            this.handleChange(value, 'control');
-          });
-        }
-      }
-      if (this.field.onChange.form) {
-        // listen to form changes, warning: don't emit change events unless you want to get stuck in a loop
-        this.form.valueChanges.subscribe((value:any) => {
-          this.handleChange(value, 'form');
-        });
-      }
-    }
-  }
-
-  handleChange(value:any, source: string) {
-
-  }
 }
 
 
@@ -106,9 +76,9 @@ export class SimpleComponent {
       <button type="button" class="btn btn-default" *ngIf="field.help" (click)="toggleHelp()"><span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span></button>
     </label><br/>
     <span id="{{ 'helpBlock_' + field.name }}" class="help-block" *ngIf="this.helpShow" [innerHtml]="field.help"></span>
-    <textarea [formControl]="fieldMap[field.name].control"  [attr.rows]="field.rows" [attr.cols]="field.cols" [id]="field.name" class="form-control">{{field.value}}</textarea>
-    <div class="text-danger" *ngIf="fieldMap[field.name].control.hasError('required') && fieldMap[field.name].control.touched && !field.validationMessages?.required">{{field.label}} is required</div>
-    <div class="text-danger" *ngIf="fieldMap[field.name].control.hasError('required') && fieldMap[field.name].control.touched && field.validationMessages?.required">{{field.validationMessages.required}}</div>
+    <textarea [formControl]="getFormControl()"  [attr.rows]="field.rows" [attr.cols]="field.cols" [id]="field.name" class="form-control">{{field.value}}</textarea>
+    <div class="text-danger" *ngIf="getFormControl().hasError('required') && getFormControl().touched && !field.validationMessages?.required">{{field.label}} is required</div>
+    <div class="text-danger" *ngIf="getFormControl().hasError('required') && getFormControl().touched && field.validationMessages?.required">{{field.validationMessages.required}}</div>
   </div>
   <li *ngIf="!field.editMode" class="key-value-pair">
     <span class="key" *ngIf="field.label">{{field.label}}</span>
@@ -152,11 +122,11 @@ export class SelectionComponent extends SimpleComponent {
       <button type="button" class="btn btn-default" *ngIf="field.help" (click)="toggleHelp()"><span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span></button>
      </label><br/>
      <span id="{{ 'helpBlock_' + field.name }}" class="help-block" *ngIf="this.helpShow" [innerHtml]="field.help"></span>
-     <select [formControl]="fieldMap[field.name].control"  [id]="field.name" class="form-control">
+     <select [formControl]="getFormControl()"  [id]="field.name" class="form-control">
         <option *ngFor="let opt of field.options" [value]="opt.value">{{opt.label}}</option>
      </select>
-     <div class="text-danger" *ngIf="fieldMap[field.name].control.hasError('required') && fieldMap[field.name].control.touched && !field.validationMessages?.required">{{field.label}} is required</div>
-     <div class="text-danger" *ngIf="fieldMap[field.name].control.hasError('required') && fieldMap[field.name].control.touched && field.validationMessages?.required">{{field.validationMessages.required}}</div>
+     <div class="text-danger" *ngIf="getFormControl().hasError('required') && getFormControl().touched && !field.validationMessages?.required">{{field.label}} is required</div>
+     <div class="text-danger" *ngIf="getFormControl().hasError('required') && getFormControl().touched && field.validationMessages?.required">{{field.validationMessages.required}}</div>
   </div>
   <div *ngIf="!field.editMode" class="key-value-pair">
     <span class="key" *ngIf="field.label">{{field.label}}</span>
@@ -178,13 +148,13 @@ export class DropdownFieldComponent extends SelectionComponent {
      <span id="{{ 'helpBlock_' + field.name }}" class="help-block" *ngIf="this.helpShow" [innerHtml]="field.help"></span>
      <span *ngFor="let opt of field.options">
       <!-- radio type hard-coded otherwise accessor directive will not work! -->
-      <input *ngIf="isRadio()" type="radio" name="{{field.name}}" [id]="field.name + '_' + opt.value" [formControl]="fieldMap[field.name].control" [value]="opt.value">
+      <input *ngIf="isRadio()" type="radio" name="{{field.name}}" [id]="field.name + '_' + opt.value" [formControl]="getFormControl()" [value]="opt.value">
       <input *ngIf="!isRadio()" type="{{field.controlType}}" name="{{field.name}}" [id]="field.name + '_' + opt.value" [value]="opt.value" (change)="onChange(opt, $event)" [attr.selected]="getControlFromOption(opt)" [attr.checked]="getControlFromOption(opt)">
       <label for="{{field.name + '_' + opt.value}}" class="radio-label">{{ opt.label }}</label>
       <br/>
      </span>
-     <div class="text-danger" *ngIf="fieldMap[field.name].control.hasError('required') && fieldMap[field.name].control.touched && !field.validationMessages?.required">{{field.label}} is required</div>
-     <div class="text-danger" *ngIf="fieldMap[field.name].control.hasError('required') && fieldMap[field.name].control.touched && field.validationMessages?.required">{{field.validationMessages.required}}</div>
+     <div class="text-danger" *ngIf="getFormControl().hasError('required') && getFormControl().touched && !field.validationMessages?.required">{{field.label}} is required</div>
+     <div class="text-danger" *ngIf="getFormControl().hasError('required') && getFormControl().touched && field.validationMessages?.required">{{field.validationMessages.required}}</div>
   </div>
   <div *ngIf="!field.editMode" class="key-value-pair">
     <ng-container *ngIf="isRadio()">
@@ -205,7 +175,7 @@ export class SelectionFieldComponent extends SelectionComponent {
   }
 
   getControlFromOption(opt: any) {
-    const control = _.find(this.fieldMap[this.field.name].control.controls, (ctrl) => {
+    const control = _.find(this.getFormControl().controls, (ctrl) => {
       return opt.value == ctrl.value;
     });
     return control;
@@ -213,16 +183,16 @@ export class SelectionFieldComponent extends SelectionComponent {
 
   onChange(opt:any, event:any) {
     if (event.target.checked) {
-      this.fieldMap[this.field.name].control.push(new FormControl(opt.value));
+      this.getFormControl().push(new FormControl(opt.value));
     } else {
       let idx = null;
-      _.forEach(this.fieldMap[this.field.name].control.controls, (ctrl, i) => {
+      _.forEach(this.getFormControl().controls, (ctrl, i) => {
         if (ctrl.value == opt.value) {
           idx = i;
           return false;
         }
       });
-      this.fieldMap[this.field.name].control.removeAt(idx);
+      this.getFormControl().removeAt(idx);
     }
   }
 }
@@ -321,7 +291,7 @@ Based on: https://bootstrap-datepicker.readthedocs.io/en/stable/
       <button type="button" class="btn btn-default" *ngIf="field.help" (click)="toggleHelp()"><span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span></button>
     </label><br/>
     <span id="{{ 'helpBlock_' + field.name }}" class="help-block" *ngIf="this.helpShow" [innerHtml]="field.help"></span>
-    <datetime #dateTime [formControl]="fieldMap[field.name].control" [timepicker]="field.timePickerOpts" [datepicker]="field.datePickerOpts" [hasClearButton]="field.hasClearButton"></datetime>
+    <datetime #dateTime [formControl]="getFormControl()" [timepicker]="field.timePickerOpts" [datepicker]="field.datePickerOpts" [hasClearButton]="field.hasClearButton"></datetime>
   </div>
   <li *ngIf="!field.editMode" class="key-value-pair">
     <span class="key" *ngIf="field.label">{{field.label}}</span>
@@ -331,30 +301,9 @@ Based on: https://bootstrap-datepicker.readthedocs.io/en/stable/
 })
 export class DateTimeComponent extends SimpleComponent implements OnInit {
   public field: DateTime;
-  @ViewChild('dateTime', {read: ViewContainerRef}) dateTimeView: ViewContainerRef;
-
-
-  updateStartDate(newVal: any) {
-    const thisDate = moment(newVal);
-    const prevStartDate = moment(this.getFormControl().value);
-    if (!prevStartDate.isValid() || thisDate.isAfter(prevStartDate)) {
-      this.getFormControl().setValue(newVal);
-    }
-    const newOpts = _.cloneDeep(this.field.datePickerOpts);
-    newOpts.startDate = newVal;
-    this.field.datePickerOpts = newOpts;
-  }
-
-  handleChange(newVal: any, source: string) {
-    if (this.field.onChange && source == 'control') {
-      _.forEach(this.field.onChange.control.setStartDate, (targetField: any) => {
-        this.fieldMap[targetField].instance.updateStartDate(newVal);
-      });
-    }
-  }
 
   formatValue() {
-    return this.field.formatValue(this.fieldMap[this.field.name].control.value);
+    return this.field.formatValue(this.getFormControl().value);
   }
 
 }
@@ -400,7 +349,7 @@ export class LinkValueComponent extends SimpleComponent {
   selector: 'hidden-field',
   template: `
   <div [formGroup]='form'>
-    <input type="hidden" [formControl]="fieldMap[field.name].control" />
+    <input type="hidden" [formControl]="getFormControl()" />
   </div>
   `,
 })

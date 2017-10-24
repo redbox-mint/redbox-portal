@@ -170,6 +170,17 @@ export class DateTime extends FieldBase<any> {
     const locale = window.navigator.language; // commented out, no support for below IE 11: window.navigator.userLanguage || window.navigator.language;
     return this.value ? moment(this.value).locale(locale).format(this.displayFormat) : '';
   }
+
+  public reactEvent(eventName: string, eventData: any, origData: any) {
+    const thisDate = moment(eventData);
+    const prevStartDate = moment(this.formModel.value);
+    if (!prevStartDate.isValid() || thisDate.isAfter(prevStartDate)) {
+      this.formModel.setValue(eventData);
+    }
+    const newOpts = _.cloneDeep(this.datePickerOpts);
+    newOpts.startDate = eventData;
+    this.datePickerOpts = newOpts;
+  }
 }
 
 export class AnchorOrButton extends FieldBase<string> {

@@ -323,7 +323,9 @@ export class VocabFieldComponent extends SimpleComponent {
       if (this.disableEditAfterSelect)
         this.disableInput = true;
     } else {
-      this.field.formModel.setValue(null);
+      if (!this.disableEditAfterSelect) {
+        this.field.formModel.setValue(null);
+      }
     }
   }
 

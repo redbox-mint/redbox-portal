@@ -66,21 +66,17 @@ export class RepeatableContainer extends Container {
     } else {
       let fieldCtr = 0;
       const baseField = this.fields[0];
+      const elems = [];
       this.fields = _.map(this.value, (valueElem:any) => {
         let fieldClone = null;
         if (fieldCtr == 0) {
           fieldClone = baseField;
         } else {
-          fieldClone = this.createNewElem(baseField);
-        }
-        if (_.isFunction(fieldClone.postInit)) {
-          fieldClone.postInit(valueElem);
+          fieldClone = this.createNewElem(baseField, valueElem);
         }
         fieldCtr++;
+        elems.push(fieldClone.createFormModel(valueElem));
         return fieldClone;
-      });
-      const elems = _.map(this.fields, (field:any) => {
-        return field.createFormModel();
       });
       this.formModel = new FormArray(elems);
     }
@@ -98,7 +94,7 @@ export class RepeatableContainer extends Container {
     }
   }
 
-  createNewElem(baseFieldInst: any) {
+  createNewElem(baseFieldInst: any, value:any = null) {
     const newInst = new baseFieldInst.constructor(baseFieldInst.options);
     _.forEach(this.skipClone, (f: any)=> {
       newInst[f] = null;
@@ -106,7 +102,9 @@ export class RepeatableContainer extends Container {
     _.forEach(this.forceClone, (f: any) => {
       newInst[f] = _.cloneDeep(baseFieldInst[f]);
     });
-    newInst.postInit(null);
+    if (_.isFunction(newInst.postInit)) {
+      newInst.postInit(value);
+    }
     return newInst;
   }
 

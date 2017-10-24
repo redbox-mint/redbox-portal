@@ -177,8 +177,8 @@ export class FieldBase<T> {
     }
   }
 
-  valueNotEmpty(data) {
-    return !_.isEmpty(data) && (_.isArray(data) ? (!_.isEmpty(data[0])): true );
+  valueNotNull(data) {
+    return !_.isNull(data) && (_.isArray(data) ? (!_.isNull(data[0])): true );
   }
 
   setupEventHandlers() {
@@ -191,7 +191,7 @@ export class FieldBase<T> {
           console.log(`Setting up ${eventName} handlers for field: ${this.name}`)
           const eventSource = eventConfig.modelEventSource;
           this.formModel[eventSource].subscribe((value:any) => {
-            if (this.valueNotEmpty(value)) {
+            if (this.valueNotNull(value)) {
               let emitData = value;
               if (!_.isEmpty(eventConfig.fields)) {
                 if (_.isArray(value)) {
