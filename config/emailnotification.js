@@ -11,6 +11,10 @@ module.exports.emailnotification = {
       from: "redbox@dev",
       subject: "ReDBox Notification",
       format: "html"
+    },
+    templates: {
+      transferOwnerTo: {subject: '', template: '', fields: ''},
+      test: {subject: 'Test Email Message', template: 'test', fields: ''}
     }
   };
   

@@ -21,6 +21,7 @@
 declare var module;
 declare var sails;
 declare var EmailService;
+import { Observable } from 'rxjs/Rx';
 import controller = require('../../../typescript/controllers/CoreController.js');
 
 export module Controllers {
@@ -58,7 +59,6 @@ export module Controllers {
        * @param res
        * 
        * TODO 
-       *    • proper responses back to ang2
        *    • proper email address validation
        *    • support for multiple email addresses (trivial: make array)
        */
@@ -73,16 +73,36 @@ export module Controllers {
                 return; 
             }
             var to = req.body.to;
-            var subject = req.body.subject;
             var template = req.body.template;
+            
+            // use subject if provided, else use template default
+            var subject;
+            if (req.body.subject) { subject = req.body.subject; }
+            else { subject = sails.config.emailnotification.templates[template].subject; }
+
             var data = {};
             if (req.body.data) { data = req.body.data; }
 
-            var body = EmailService.buildTemplate(template, data);
+            var buildResponse = EmailService.buildFromTemplate(template, data);
 
-            var resp = EmailService.sendNotification(to, body, subject);
+            buildResponse.subscribe(buildResult => {
+                if (buildResult['status'] != 200) {
+                    this.ajaxFail(req, res, buildResult['msg']);
+                }
+                else {
+                    var sendResponse = EmailService.sendMessage(to, buildResult['body'], subject);
 
-        
+                    sendResponse.subscribe(sendResult => {
+                        if (sendResult['code'] != 200) {
+                            this.ajaxFail(req, res, sendResult['msg']);
+                        }
+                        else {
+                            this.ajaxOk(req, res, sendResult['msg']);
+                        }
+                    });
+                }
+            });
+
        }
 
        /**

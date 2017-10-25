@@ -20,6 +20,7 @@
 import { Observable } from 'rxjs/Rx';
 import services = require('../../typescript/services/CoreService.js');
 import { Sails, Model } from "sails";
+import 'rxjs/add/operator/toPromise';
 import * as request from "request-promise";
 import * as ejs from 'ejs';
 import * as fs from 'graceful-fs';
@@ -37,23 +38,25 @@ export module Services {
     export class Email extends services.Services.Core.Service {
   
         protected _exportedMethods: any = [
-            'sendNotification',
-            'buildTemplate',
+            'sendMessage',
+            'buildFromTemplate',
         ];
 
       /**
         * Simple API service to POST a message queue to Redbox.
         *
-        **/
-        public sendNotification(msgTo: string, msgBody: string, 
+        * Base email sending method.
+        * Return: code, msg
+        */
+        public sendMessage(msgTo: string, msgBody: string, 
             msgSubject: string = sails.config.emailnotification.defaults.subject, 
             msgFrom: string = sails.config.emailnotification.defaults.from, 
-            msgFormat: string = sails.config.emailnotification.defaults.format) {
+            msgFormat: string = sails.config.emailnotification.defaults.format): Observable<any> {
             if (!sails.config.emailnotification.settings.enabled) {
                 sails.log.verbose("Received email notification request, but is disabled. Ignoring.");
-                return;
+                return {'code': '200', 'msg': 'Email services disabled.'};
             }
-            sails.log.verbose("Received email notification request. Processing.");
+            sails.log.verbose('Received email notification request. Processing.');
 
             var url = `${sails.config.emailnotification.api.send.url}`;
             var body = {
@@ -66,39 +69,65 @@ export module Services {
             var options = { url: url, json: true, body: body, headers: { 'Authorization': `Bearer ${sails.config.redbox.apiKey}`, 'Content-Type': 'application/json; charset=utf-8' } };
             
             var response = Observable.fromPromise(request[sails.config.emailnotification.api.send.method](options)).catch(error => Observable.of(`Error: ${error}`));
-    
-            response.subscribe(result => {
-                if (result["response"] != null) {
-                    sails.log.verbose(result);
+            
+            return response.map(result => {
+                if (result['code'] != '200') {
+                    sails.log.error(`Unable to post message to message queue: ${result}`);
+                    result['msg'] = 'Email unable to be submitted';
                 } else {
-                    sails.log.error(result);
+                    sails.log.verbose('Message submitted to message queue successfully');
+                    result['msg'] = 'Email sent!';
                 }
+                return result;
             });
         }
 
         /**
-       * Build Email From Template
-       *
-       * @param template
-       * @param data
+       * Build Email Body from Template
        * 
-       * TODO
-       *    • better exception handling
+       * Templates are defined in sails config
+       * 
+       * Return: status, body, exc
        */
 
-      public buildTemplate(template: string, data: any = {}) {
-        fs.readFile(sails.config.emailnotification.settings.templateDir + template + '.ejs', 'utf8', (err, source) => {
-            if (err) throw err;
-      
+      public buildFromTemplate(template: string, data: any = {}): Observable<any> {
+
+        let readFileAsObservable = Observable.bindNodeCallback((
+            path: string,
+            encoding: string,
+            callback: (error: Error, buffer: Buffer) => void
+        ) => fs.readFile(path, encoding, callback));
+        
+        let res = {};
+        let readTemplate = readFileAsObservable(sails.config.emailnotification.settings.templateDir + template + '.ejs', 'utf8');
+
+        return readTemplate.map(
+        buffer => {
             try {
-              var renderedTemplate = ejs.render((source || "").toString(), data, {cache: true, filename: template});
-              return renderedTemplate;
-    
+                var renderedTemplate = ejs.render((buffer || "").toString(), data, {cache: true, filename: template});
             } catch (e) {
-              throw e;
+                sails.log.error(`Unable to render template ${template} with data: ${data}`);
+                res['status'] = 500;
+                res['body'] = 'Templating error.';
+                res['ex'] = e;
+                return res;
+                //throw e;
             }
-          });
+
+            res['status'] = 200;
+            res['body'] = renderedTemplate;
+            return res;
+        },
+        error => {
+            sails.log.error(`Unable to read template file for ${template}`);
+            res['status'] = 500;
+            res['body'] = 'Template read error.';
+            res['ex'] = error;
+            return res;
+            //throw error;
         }
+        );
+      }
     }
 
 }
