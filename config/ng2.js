@@ -12,6 +12,7 @@ module.exports.ng2 = {
     "record/transfer": ['/angular/transfer_owner/dist-bundle.js'],
     "admin/roles": ['/angular/manageRoles/dist-bundle.js'],
     "dashboard": ['/angular/dashboard/dist-bundle.js'],
-    "export/index": ['/angular/export/dist-bundle.js']
+    "export/index": ['/angular/export/dist-bundle.js'],
+    "admin/report": ['/angular/report/dist-bundle.js']
   }
 };
