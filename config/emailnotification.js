@@ -13,8 +13,8 @@ module.exports.emailnotification = {
       format: "html"
     },
     templates: {
-      transferOwnerTo: {subject: '', template: '', fields: ''},
-      test: {subject: 'Test Email Message', template: 'test', fields: ''}
+      transferOwnerTo: {subject: 'Ownership of DMP record/s has been transferred to you', template: 'transferOwnerTo'},
+      test: {subject: 'Test Email Message', template: 'test'}
     }
   };
   

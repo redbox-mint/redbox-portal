@@ -39,8 +39,15 @@ export class EmailNotificationService extends BaseService {
     super(http, configService);
   }
 
-  sendNotification(to: string, subject: string, template: string, data: any = {}): Promise<any> {
-    return this.http.post(`${this.brandingAndPortalUrl}/api/sendNotification`, {to: to, subject: subject, template: template, data: data}, this.getOptionsClient())
+  sendNotification(to: string, template: string, data: any = {}, subject: string = null, from: string = null): Promise<any> {
+    var payload = {to: to, template: template, data: data};
+    if (subject) {
+      payload['subject'] = subject;
+    }
+    if (from) {
+      payload['from'] = from;
+    }
+    return this.http.post(`${this.brandingAndPortalUrl}/api/sendNotification`, payload, this.getOptionsClient())
     .toPromise()
     .then(this.extractData);
   }

@@ -26,7 +26,7 @@ import controller = require('../../../typescript/controllers/CoreController.js')
 
 export module Controllers {
   /**
-   *  User-related features...
+   *  Redbox email message queue stuff
    *
    * @author <a target='_' href='https://github.com/thomcuddihy'>Thom Cuddihy</a>
    */
@@ -57,6 +57,12 @@ export module Controllers {
        *
        * @param req
        * @param res
+       * 
+       * USAGE (ng2):
+            var data = {};
+            data['data'] = 'test';
+            this.emailService.sendNotification('user@example.com', 'template', data, subject?, from?)
+            .then(function (res) {console.log(`Email result: ${JSON.stringify(res)}`)});
        * 
        * TODO 
        *    • proper email address validation

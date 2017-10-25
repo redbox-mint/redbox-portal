@@ -1,0 +1,12 @@
+<p>Hi <%= name %>,
+
+The following record/s have been transferred to you for you to manage:
+
+<ul>
+    <%for (var record in records){%>
+        <li><a href="<%= records[record]['url'] %>"><%=records[record]['title']%></a></li>    
+    <%}%>
+</ul>
+
+Regards,
+ReDBox Team</p>
