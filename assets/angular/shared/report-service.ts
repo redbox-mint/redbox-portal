@@ -25,10 +25,14 @@ export class ReportService extends BaseService {
       .then((res: any) => this.extractData(res) as Report);
   }
 
-  getReportResults(name:string, pageNumber:number): Promise<ReportResults> {
+  getReportResults(name:string, pageNumber:number, params:object): Promise<ReportResults> {
     var rows = 10;
     var start = (pageNumber-1) * rows;
-    return this.http.get(`${this.brandingAndPortalUrl}/admin/getReportResults?name=`+name+`&start=`+start+`&rows=`+rows, this.options)
+    var url = `${this.brandingAndPortalUrl}/admin/getReportResults?name=`+name+`&start=`+start+`&rows=`+rows;
+    for(var key in params) {
+      url=url+'&'+key+"="+params[key];
+    }
+    return this.http.get(url, this.options)
       .toPromise()
       .then((res: any) => this.extractData(res) as ReportResults);
   }

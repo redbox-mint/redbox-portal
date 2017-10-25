@@ -2,7 +2,11 @@ module.exports.reports = {
   "orphanRecords": {
       "title": "Records that are not yet assigned to a user",
       "solr_query": "-authorization_edit:[\"\" TO *]",
-      "filter": {},
+      "filter": {
+        "type": "date-range",
+        "property": "date_object_created",
+        "message": "Filter by date created"
+      },
       "columns": [
         {
         "label": "Id",

@@ -9,7 +9,7 @@ import { LoadableComponent } from '../shared/loadable.component';
 import { OnInit } from '@angular/core';
 import { PaginationModule, TooltipModule } from 'ngx-bootstrap';
 import { TranslationService } from '../shared/translation-service';
-import { TranslatePipe}
+import moment from 'moment-es6';
 
 
 declare var pageData: any;
@@ -32,6 +32,7 @@ export class AppComponent extends LoadableComponent {
   initSubs: any;
   initTracker: any = { reportLoaded: false, resultsReturned: false };
   resultCountParam: object;
+  filterParams: object;
 
 
   constructor( @Inject(ReportService) protected reportService: ReportService, @Inject(DOCUMENT) protected document: any, elementRef: ElementRef, translationService: TranslationService) {
@@ -42,12 +43,13 @@ export class AppComponent extends LoadableComponent {
     this.branding = elementRef.nativeElement.getAttribute('branding');
     this.portal = elementRef.nativeElement.getAttribute('portal');
     this.name = elementRef.nativeElement.getAttribute('name');
+    this.filterParams = {};
     this.initSubs = reportService.waitForInit((initStat: boolean) => {
       this.initSubs.unsubscribe();
       reportService.getReport(this.name).then((report: Report) => {
         this.setReport(report);
         this.initTracker.reportLoaded = true;
-        this.getReportResults(1);
+        this.getReportResults(1, {});
         this.checkIfHasLoaded();
       });
     });
@@ -58,16 +60,38 @@ export class AppComponent extends LoadableComponent {
     return this.initTracker.reportLoaded
   }
 
-  public getReportResults( page: number) {
-    this.reportService.getReportResults(this.name, page).then((results: ReportResults) => { this.reportResults = results; this.initTracker.resultsReturned = true; this.resultCountParam = { count: this.reportResults.totalItems };});
+  public getReportResults(page: number, params:object) {
+    this.reportService.getReportResults(this.name, page, params).then((results: ReportResults) => { this.reportResults = results; this.initTracker.resultsReturned = true; this.resultCountParam = { count: this.reportResults.totalItems }; });
 
   }
   public reportResultsPageChanged(event: any): void {
-    this.getReportResults(event.page);
+    this.getReportResults(event.page, {});
   }
 
   public setReport(report) {
     this.report = report;
   }
 
+  public filter(event: any): void {
+    this.initTracker.resultsReturned = false;
+    this.reportResults = new ReportResults();
+    this.getReportResults(1, this.getParams());
+  }
+
+  private getParams() {
+    var params = {};
+    if (this.report["filter"]["type"] == 'date-range') {
+
+      var fromDate = (this.filterParams["fromDate"] != null ? moment(this.filterParams["fromDate"]) : null);
+      var toDate = (this.filterParams["toDate"] != null ? moment(this.filterParams["toDate"]) : null);
+
+      if (fromDate != null) {
+        params["fromDate"] = fromDate.utc().format();
+      }
+      if (toDate != null) {
+        params["toDate"] = toDate.utc().format();
+      }
+    }
+    return params;
+  }
 }

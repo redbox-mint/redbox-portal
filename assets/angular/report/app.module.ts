@@ -8,9 +8,10 @@ import { MultivalueFieldPipe }  from './MultivalueFieldPipe';
 import { PaginationModule,TooltipModule } from 'ngx-bootstrap';
 import { SharedModule } from '../shared/shared.module';
 import { ReportService } from '../shared/report-service';
+import { NKDatetimeModule } from 'ng2-datetime/ng2-datetime';
 
 @NgModule({
-  imports:      [ BrowserModule, HttpModule, ReactiveFormsModule, FormsModule, PaginationModule.forRoot(), TooltipModule.forRoot(), SharedModule ],
+  imports:      [ BrowserModule, HttpModule, ReactiveFormsModule, FormsModule, PaginationModule.forRoot(), TooltipModule.forRoot(), SharedModule, NKDatetimeModule],
   declarations: [ AppComponent, StringTemplatePipe, MultivalueFieldPipe ],
   providers:    [  ReportService ],
   bootstrap:    [ AppComponent ]

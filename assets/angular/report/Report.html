@@ -1,13 +1,60 @@
+
 <div *ngIf="!isLoading">
 
   <div class="row">
 
     <div class="col-xs-12">
-      <h1>
+      <h1 class="text-center">
         {{ report.title }}
       </h1>
     </div>
 
+  </div>
+  <div class="row" *ngIf="report.filter != null && report.filter.type == 'date-range'">
+    <div class="panel panel-default">
+  <div class="panel-body">
+    <div class="row">
+      <h4 class="text-center">
+        {{ report.filter.message }}
+      </h4>
+    </div>
+    <div class="row">
+    <div class="col-xs-2">
+
+    </div>
+    <div class="col-xs-3">
+      <div class="form-horizontal">
+            <div class="form-group">
+              <label class="col-xs-3 control-label">{{ 'report-filter-date-from' | translate }}</label>
+              <span class="col-xs-9">
+                <datetime [timepicker]="false" [datepicker]="{format: 'd/m/yyyy'}" [(ngModel)]="filterParams.fromDate"></datetime>
+              </span>
+            </div>
+      </div>
+    </div>
+    <div class="col-xs-3">
+      <div class="form-horizontal">
+            <div class="form-group">
+              <label class="col-xs-2 control-label">{{ 'report-filter-date-to' | translate }}</label>
+              <span class="col-xs-10">
+                <datetime [timepicker]="false"  [datepicker]="{format: 'd/m/yyyy'}" [(ngModel)]="filterParams.toDate"></datetime>
+              </span>
+            </div>
+      </div>
+
+    </div>
+    <div class="col-xs-2">
+      <a class="btn btn-large btn-info" (click)="filter()">
+        <span class="glyphicon glyphicon-search"></span>
+        {{ 'report-filter-button' | translate }}
+      </a>
+    </div>
+    <div class="col-xs-2">
+
+    </div>
+  </div>
+  </div>
+</div>
   </div>
   <div class="row">
     <div class="col-xs-2">

@@ -92,7 +92,7 @@ export module Services {
       }));
     }
 
-    public getResults(brand, name='', start = 0, rows = 10) {
+    public getResults(brand, name = '', req, start = 0, rows = 10) {
 
       var reportObs = super.getObservable(Report.findOne({
         key: brand.id + "_" + name
@@ -102,6 +102,20 @@ export module Services {
         var url = this.addQueryParams(sails.config.record.api.search.url, report);
         url = this.addPaginationParams(url, start, rows);
         url = url + "&fq=metaMetadata_brandId:" + brand.id + "&wt=json";
+
+        if (report.filter != null) {
+          if (report.filter.type == 'date-range') {
+            var fromDate = req.param("fromDate");
+            var toDate = req.param("toDate");
+            var searchProperty = report.filter.property;
+            var filterQuery = "&fq=" + searchProperty + ":[";
+            filterQuery = filterQuery + (fromDate == null ? "*" : fromDate);
+            filterQuery = filterQuery + " TO ";
+            filterQuery = filterQuery + (toDate == null ? "*" : toDate) + "]";
+
+            url = url + filterQuery;
+          }
+        }
         var options = this.getOptions(url);
         return Observable.fromPromise(request[sails.config.record.api.search.method](options));
       });
@@ -135,13 +149,13 @@ export module Services {
       return url;
     }
 
-    protected addPaginationParams(url, start=0, rows) {
+    protected addPaginationParams(url, start = 0, rows) {
       url = url + "&start=" + start + "&rows=" + rows;
       return url;
     }
 
     protected getOptions(url, contentType = 'application/json; charset=utf-8') {
-      return { url: url, json: true, headers: { 'Authorization': `Bearer ${sails.config.redbox.apiKey}`, 'Content-Type':  contentType} };
+      return { url: url, json: true, headers: { 'Authorization': `Bearer ${sails.config.redbox.apiKey}`, 'Content-Type': contentType } };
     }
 
 

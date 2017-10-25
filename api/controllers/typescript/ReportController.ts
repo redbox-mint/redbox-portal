@@ -69,7 +69,7 @@ export module Controllers {
 
     public getResults(req, res) {
       const brand = BrandingService.getBrand(req.session.branding);
-      var response = ReportsService.getResults(brand, req.param('name'), req.param('start'),req.param('rows'));
+      var response = ReportsService.getResults(brand, req.param('name'),  req, req.param('start'), req.param('rows'));
       return response.map(results => {
         var totalItems = results["response"]["numFound"];
         var startIndex = results["response"]["start"];
