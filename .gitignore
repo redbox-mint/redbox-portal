@@ -141,6 +141,7 @@ RecordsService.js
 WorkflowStepsService.js
 .tscache
 AsynchsService.js
+!assets/angular/**/rollup-config.js
 
 ### acceptance-testing
 support/acceptance-testing/reports/
