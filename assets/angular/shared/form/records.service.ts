@@ -55,7 +55,7 @@ export class RecordsService extends BaseService {
 
   getFormFields(recordType:string, oid: string=null, editable:boolean) {
     console.log("Oid is: " + oid);
-    const url = oid ? `${this.brandingAndPortallUrl}/record/form/auto/${oid}?edit=${editable}` : `${this.brandingAndPortallUrl}/record/form/${recordType}?edit=${editable}`;
+    const url = oid ? `${this.brandingAndPortalUrl}/record/form/auto/${oid}?edit=${editable}` : `${this.brandingAndPortalUrl}/record/form/${recordType}?edit=${editable}`;
     console.log("URL is: " + url);
     return this.http.get(url, this.options)
       .toPromise()
