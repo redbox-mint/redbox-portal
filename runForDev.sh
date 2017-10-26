@@ -9,14 +9,14 @@ sudo chown -R vagrant:vagrant *
 for var in "$@"
 do
     if [ $var = "install" ]; then
-        docker run -it --rm -v $PWD:$PORTAL_DIR $PORTAL_IMAGE /bin/bash -c "cd $PORTAL_DIR && npm install sails-hook-autoreload && npm install -g typings && npm install"
+        docker run -it --rm -v $PWD:$PORTAL_DIR $PORTAL_IMAGE /bin/bash -c "cd $PORTAL_DIR; npm install -g yarn; yarn add sails-hook-autoreload && yarn global add typings && yarn install"
     fi
     if [ $var = "jit" ]; then
       linkNodeLib "lodash" "lodash-lib"
       # Build targets are different for assets/angular, clearing all .js files from .ts files
       cleanUpAllJs
       export ENV=development
-      docker run -it --rm -v $PWD:$PORTAL_DIR $PORTAL_IMAGE /bin/bash -c "cd $PORTAL_DIR; npm install --only=dev; node_modules/.bin/grunt --gruntfile Gruntfile-ts-compile-all-cjs.js"
+      docker run -it --rm -v $PWD:$PORTAL_DIR $PORTAL_IMAGE /bin/bash -c "cd $PORTAL_DIR; npm install -g yarn; yarn install --only=dev; node_modules/.bin/grunt --gruntfile Gruntfile-ts-compile-all-cjs.js"
     fi
     if [ $var == "aot" ]; then
       docker run -it --rm -v $PWD:$PORTAL_DIR $PORTAL_IMAGE /bin/bash -c "cd $PORTAL_DIR; export buildTarget=\"${buildTarget}\"; ./runForDev.sh aotCompile"
