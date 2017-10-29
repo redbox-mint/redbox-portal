@@ -27,6 +27,7 @@ import { PlanTable, Plan } from '../shared/dashboard-models';
 import { VocabField, VocabFieldComponent, VocabFieldLookupService } from '../shared/form/field-vocab.component';
 import { CompleterService } from 'ng2-completer';
 import { RecordsService } from '../shared/form/records.service';
+import { EmailNotificationService} from '../shared/email-service';
 
 declare var pageData :any;
 declare var jQuery: any;
@@ -53,6 +54,7 @@ export class TransferOwnerComponent extends LoadableComponent {
 
   constructor(@Inject(DashboardService) protected dashboardService: DashboardService,
    public translationService:TranslationService,
+   protected emailService: EmailNotificationService,
    @Inject(VocabFieldLookupService) private vocabFieldLookupService,
    @Inject(CompleterService) private completerService: CompleterService,
    @Inject(RecordsService) private recordService: RecordsService) {
@@ -121,18 +123,36 @@ export class TransferOwnerComponent extends LoadableComponent {
 
   transferOwnership(event: any) {
     const records = [];
+    const recordMeta = [];
     _.forEach(this.filteredPlans, (plan: any) => {
       if (plan.selected) {
         records.push(plan);
+        var record = {}
+        var title = plan.dashboardTitle;
+        record['url'] = this.emailService.getBrandingAndPortalUrl + "/record/view/" + plan.oid;
+        record['title'] = title.toString();
+        recordMeta.push(record);
       }
     });
     const username = this.getSelResearcher()['username'];
+    const name = this.getSelResearcher()['name'];
+    const email = this.getSelResearcher()['email'];
     this.saveMsg = `${this.translationService.t('transfer-ownership-transferring')}${this.spinnerElem}`;
     this.saveMsgType = "info";
     this.clearSelResearcher();
     this.recordService.modifyEditors(records, username).then((res:any)=>{
       this.saveMsg = this.translationService.t('transfer-ownership-transfer-ok');
       this.saveMsgType = "success";
+      
+      // ownership transfer ok, send notification email
+      if (email) { // email address isn't a required property for the user model!
+        var data = {};
+        data['name'] = name;
+        data['records'] = recordMeta;
+        this.emailService.sendNotification(email, 'transferOwnerTo', data)
+        .then(function (res) {console.log(`Email result: ${JSON.stringify(res)}`)}); // what should we do with this?
+      }
+      
       this.setLoading(true);
       this.loadPlans();
     }).catch((err:any)=>{
