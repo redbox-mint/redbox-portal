@@ -17,157 +17,167 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { Component, Inject, Input, Output, ElementRef, EventEmitter } from '@angular/core';
-import { Location, LocationStrategy, PathLocationStrategy } from '@angular/common';
-import { Role, User, LoginResult, SaveResult } from '../shared/user-models';
+import { Component, Injectable, Inject } from '@angular/core';
+import { FormArray, FormGroup, FormControl, Validators } from '@angular/forms';
+import { DashboardService } from '../shared/dashboard-service';
 import * as _ from "lodash-lib";
 import { LoadableComponent } from '../shared/loadable.component';
 import { TranslationService } from '../shared/translation-service';
-import { RecordsService, RecordSearchParams, RecordSearchRefiner} from '../shared/form/records.service';
-import { DashboardService } from '../shared/dashboard-service';
+import { PlanTable, Plan } from '../shared/dashboard-models';
+import { VocabField, VocabFieldComponent, VocabFieldLookupService } from '../shared/form/field-vocab.component';
+import { CompleterService } from 'ng2-completer';
+import { RecordsService } from '../shared/form/records.service';
+import { EmailNotificationService} from '../shared/email-service';
 
 declare var pageData :any;
 declare var jQuery: any;
 /**
- * Record Search component
+ * Manage Roles component
  *
  *
  * @author <a target='_' href='https://github.com/shilob'>Shilo Banihit</a>
  */
 @Component({
   moduleId: module.id,
-  selector: 'record-search',
-  templateUrl: './record_search.html',
-  providers: [Location, {provide: LocationStrategy, useClass: PathLocationStrategy}]
+  selector: 'transfer-owner',
+  templateUrl: './transfer_owner.html'
 })
-export class RecordSearchComponent extends LoadableComponent {
-  @Input() record_type: string;
-  @Input() search_str: string;
-  @Input() search_url: string;
+export class TransferOwnerComponent extends LoadableComponent {
+  plans: PlanTable;
+  initSubs: any;
+  searchFilterName: any;
+  filteredPlans: Plan[];
+  userLookupMeta: VocabField;
+  formGroup: FormGroup;
+  saveMsg: string;
+  saveMsgType: string;
 
-  plans: any[];
-  advanceMode: boolean;
-  advancedSearchLabel: string;
-  params: RecordSearchParams;
-  isSearching: boolean;
-  searchMsgType: string;
-  searchMsg: string;
-  queryStr: string;
-
-  constructor(
-   elm: ElementRef,
-   @Inject(Location) protected LocationService: Location,
-   protected recordsService: RecordsService,
-   protected dashboardService: DashboardService,
-   public translationService:TranslationService) {
+  constructor(@Inject(DashboardService) protected dashboardService: DashboardService,
+   public translationService:TranslationService,
+   protected emailService: EmailNotificationService,
+   @Inject(VocabFieldLookupService) private vocabFieldLookupService,
+   @Inject(CompleterService) private completerService: CompleterService,
+   @Inject(RecordsService) private recordService: RecordsService) {
     super();
     this.initTranslator(translationService);
-    this.record_type = elm.nativeElement.getAttribute('record_type');
-    this.search_str = elm.nativeElement.getAttribute('search_str');
-    this.search_url = elm.nativeElement.getAttribute('search_url');
-    this.queryStr = elm.nativeElement.getAttribute("full_url").split('?')[1];
-    this.params = new RecordSearchParams(this.record_type);
+    this.plans = new PlanTable();
+    this.initSubs = dashboardService.waitForInit((initStat:boolean) => {
+      this.initSubs.unsubscribe();
+      this.loadPlans();
+    });
   }
 
-  ngOnInit() {
-    this.translationService.isReady((tService:any)=> {
-      this.recordsService.getType(this.record_type).then((typeConf: any) => {
-        const searchFilterConfig = [];
-        _.forEach(typeConf.searchFilters, (searchConfig:any)=> {
-          searchFilterConfig.push(new RecordSearchRefiner(searchConfig));
-        });
-        this.params.setRefinerConfig(searchFilterConfig);
-        this.setLoading(false);
-        if (!_.isEmpty(this.queryStr)) {
-          console.log(`Using query string: ${this.queryStr}`);
-          this.params.parseQueryStr(this.queryStr);
-          this.search(null, false);
+  protected loadPlans() {
+    this.translationService.isReady(tService => {
+      this.dashboardService.getAlllDraftPlansCanEdit().then((draftPlans: PlanTable) => {
+        this.dashboardService.setDashboardTitle(draftPlans);
+        this.plans = draftPlans;
+        this.filteredPlans = this.plans.items;
+        if (!this.userLookupMeta) {
+          this.initUserlookup();
         }
-        this.LocationService.subscribe((popState:any) => {
-          this.queryStr = popState.url.split('?')[1];
-          this.params.parseQueryStr(this.queryStr);
-          this.search(null, false);
-        }, (exception: any) => {
-          console.log(`Error on location service monitoring.`);
-          console.log(exception);
-        }, ()=> {
-        });
+        this.saveMsg = "";
+        this.saveMsgType = "";
+        this.setLoading(false);
       });
     });
   }
 
-  resetSearch() {
-    this.params.clear();
-    this.plans = null;
-    this.LocationService.go(this.search_url);
-    this.searchMsg = null;
+  protected initUserlookup() {
+    // create meta object for vocab
+    const userLookupOptions = {
+      sourceType: 'user',
+      fieldNames: ['name', 'id', 'username'],
+      searchFields: 'name',
+      titleFieldArr: ['name'],
+      editMode: true,
+      placeHolder: this.translationService.t('transfer-ownership-researcher-name')
+    };
+    this.userLookupMeta = new VocabField(userLookupOptions);
+    this.userLookupMeta.completerService = this.completerService;
+    this.userLookupMeta.lookupService = this.vocabFieldLookupService;
+    this.userLookupMeta.createFormModel();
+    this.userLookupMeta.initLookupData();
+    this.formGroup = new FormGroup({researcher_name: this.userLookupMeta.formModel});
   }
 
-  syncLoc() {
-    this.LocationService.go(this.params.getHttpQuery(this.search_url));
-  }
-
-  toggleAdvancedSearch() {
-    this.advanceMode = !this.advanceMode;
-    this.setSearchLabel();
-  }
-
-  setSearchLabel() {
-    if (this.advanceMode) {
-      this.advancedSearchLabel = 'record-search-advanced-hide';
-    } else {
-      this.advancedSearchLabel = 'record-search-advanced-show';
-    }
-  }
-
-  search(refinerConfig: RecordSearchRefiner = null, shouldSyncLoc:boolean = true) {
-    if (!_.isEmpty(this.params.basicSearch)) {
-      if (refinerConfig) {
-        this.params.addActiveRefiner(refinerConfig);
-      }
-      this.isSearching = true;
-      this.plans = null;
-      this.searchMsgType = "info";
-      this.searchMsg = `${this.translationService.t('record-search-searching')}${this.spinnerElem}`;
-      if (shouldSyncLoc) {
-        this.syncLoc();
-      }
-      this.recordsService.search(this.params).then((res:any) => {
-        this.isSearching = false;
-        this.searchMsgType = "success";
-        this.searchMsg = `${this.translationService.t('record-search-results')}${res.records.length}`;
-        this.dashboardService.setDashboardTitle(null, res.records);
-        this.params.setFacetValues(res.facets);
-        this.plans = res.records;
-      }).catch((err:any) => {
-        this.isSearching = false;
-        this.searchMsg = err;
-        this.searchMsgType = "danger";
+  onFilterChange() {
+    if (this.searchFilterName) {
+      this.filteredPlans = _.filter(this.plans.items, (plan: any)=> {
+        plan.selected = false;
+        return _.toLower(plan.dashboardTitle).includes(_.toLower(this.searchFilterName));
       });
-    }
-  }
-}
-
-@Component({
-  moduleId: module.id,
-  selector: 'record-search-refiner',
-  templateUrl: './record_search_refiner.html'
-})
-export class RecordSearchRefinerComponent {
-  @Input() refinerConfig: RecordSearchRefiner;
-  @Input() isSearching: boolean;
-  @Output() onApplyFilter: EventEmitter<any> = new EventEmitter<any>();
-
-  applyFilter(event:any, refinerValue:any = null) {
-    event.preventDefault();
-    if (this.hasValue()) {
-      this.refinerConfig.activeValue = refinerValue;
-      this.onApplyFilter.emit(this.refinerConfig);
+    } else {
+      this.filteredPlans = this.plans.items;
     }
   }
 
-  hasValue() {
-    return !_.isEmpty(this.refinerConfig.value);
+  resetFilter() {
+    this.searchFilterName = null;
+    this.onFilterChange();
   }
 
+  toggleSelect(plan: any) {
+    plan.selected = !plan.selected;
+  }
+
+  transferOwnership(event: any) {
+    const records = [];
+    const recordMeta = [];
+    _.forEach(this.filteredPlans, (plan: any) => {
+      if (plan.selected) {
+        records.push(plan);
+        var record = {}
+        var title = plan.dashboardTitle;
+        record['url'] = this.emailService.getBrandingAndPortalUrl + "/record/view/" + plan.oid;
+        record['title'] = title.toString();
+        recordMeta.push(record);
+      }
+    });
+    const username = this.getSelResearcher()['username'];
+    const name = this.getSelResearcher()['name'];
+    const email = this.getSelResearcher()['email'];
+    this.saveMsg = `${this.translationService.t('transfer-ownership-transferring')}${this.spinnerElem}`;
+    this.saveMsgType = "info";
+    this.clearSelResearcher();
+    this.recordService.modifyEditors(records, username).then((res:any)=>{
+      this.saveMsg = this.translationService.t('transfer-ownership-transfer-ok');
+      this.saveMsgType = "success";
+      
+      // ownership transfer ok, send notification email
+      if (email) { // email address isn't a required property for the user model!
+        var data = {};
+        data['name'] = name;
+        data['records'] = recordMeta;
+        this.emailService.sendNotification(email, 'transferOwnerTo', data)
+        .then(function (res) {console.log(`Email result: ${JSON.stringify(res)}`)}); // what should we do with this?
+      }
+      
+      this.setLoading(true);
+      this.loadPlans();
+    }).catch((err:any)=>{
+      this.saveMsg = err;
+      this.saveMsgType = "danger";
+    });
+    jQuery('#myModal').modal('hide');
+  }
+
+  getSelResearcher() {
+    return this.formGroup.value.researcher_name;
+  }
+
+  clearSelResearcher() {
+    this.formGroup.value.researcher_name = "";
+  }
+
+  canTransfer() {
+    let hasSelectedPlan = false;
+    _.forEach(this.filteredPlans, (plan: any) => {
+      if (plan.selected) {
+        hasSelectedPlan = true;
+        return false;
+      }
+    });
+    return hasSelectedPlan && this.getSelResearcher();
+  }
 }
