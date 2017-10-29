@@ -11,6 +11,10 @@
 var Observable = require('rxjs/Observable').Observable;
 
 module.exports.bootstrap = function(cb) {
+    sails.config.peopleSearch.orcid = sails.services.orcidservice.searchOrcid;
+    sails.log.error("Services are:");
+    sails.log.error(sails.services.nlaservice);
+    sails.config.peopleSearch.nla = sails.services.nlaservice.searchPeople;
     sails.config.startupMinute = Math.floor(Date.now() / 60000);
     sails.services.cacheservice.bootstrap();
     sails.services.translationservice.bootstrap();

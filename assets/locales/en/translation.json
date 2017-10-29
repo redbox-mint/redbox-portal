@@ -250,5 +250,11 @@
   "report-filter-date-to": "To:",
   "report-filter-button": "Filter",
   "reports-heading": "Reports",
-  "reports-description": "Click on a link below to view a report"
+  "reports-description": "Click on a link below to view a report",
+  "orcid-given-names": "Given names",
+  "orcid-family-name": "Family name",
+  "orcid-other-names": "Other names",
+  "orcid-researcher-urls": "Researcher URLs",
+  "orcid-keywords": "Keywords",
+  "orcid-biography": "Biography"
 }

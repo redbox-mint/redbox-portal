@@ -1,10 +1,11 @@
-version: '2'
+version: '3.1'
 services:
   redboxportal:
     build: .
     image: qcifengineering/redbox-portal:latest
     ports:
        - "1500:1500"
+    restart: on-failure
     volumes:
        - ".:/opt/redbox-portal"
     expose:
@@ -30,7 +31,7 @@ services:
        - "9000"
     environment:
       - RAID_URL=https://api.raid.org.au:8000/
-      - RAID_KEY=safasfassafafsfasfsa
+      - RAID_KEY=
     volumes:
         - "/mnt/data/redbox:/opt/redbox/data"
         - "/var/log/redbox:/opt/redbox/home/logs"

@@ -132,6 +132,7 @@ module.exports.routes = {
   'get /:branding/:portal/admin/getReport': 'typescript/ReportController.get',
   'get /:branding/:portal/admin/getReportResults': 'typescript/ReportController.getResults',
   'get /:branding/:portal/admin/downloadReportCSV': 'typescript/ReportController.downloadCSV',
+  'get /:branding/:portal/people/search': 'typescript/VocabController.searchPeople',
 
   /***************************************************************************
   *                                                                          *

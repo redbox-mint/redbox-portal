@@ -42,7 +42,8 @@ export module Controllers {
         'get',
         'getCollection',
         'loadCollection',
-        'getMint'
+        'getMint',
+        'searchPeople'
     ];
 
     /**
@@ -99,6 +100,21 @@ export module Controllers {
       }, error => {
         this.ajaxFail(req, res, null, error, true);
       });
+    }
+
+    public searchPeople(req, res) {
+      const source = req.param('source');
+      const page = req.param('page');
+      const givenNames = req.param('givenNames');
+      const surname = req.param('surname');
+
+      sails.config.peopleSearch[source](givenNames, surname, page).subscribe(response => {
+          // only return the response...
+          this.ajaxOk(req, res, null, response, true);
+        }, error => {
+          this.ajaxFail(req, res, null, error, true);
+        });
+
     }
 
     /**
