@@ -8,7 +8,58 @@
     <div class="container"><%= TranslationService.t('welcome-homepage-text') %></div>
     <br/>
   </div>
+  <div class="row equal">
+    <div class="col-md-1">
+    </div>
+      <div class="col-md-3 homepanel">
+        <div class="panel panel-default">
+                 <div class="panel-heading">
+                     <h4 class="panel-title"><%= TranslationService.t('menu-plan')%></h4>
+                 </div>
+                 <div class="panel-body">
+                   <div><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/record/rdmp/edit"><%= TranslationService.t('create-rdmp')%></a></div>
+                 </div>
+             </div>
+      </div>
+  
+      <div class="col-md-3 homepanel">
+        <div class="panel panel-default">
+                 <div class="panel-heading">
+                     <h4 class="panel-title"><%= TranslationService.t('menu-manage')%></h4>
+                 </div>
+                 <div class="panel-body">
+                    <div><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/record/rdmp/edit"><%= TranslationService.t('edit-rdmp')%></a></div>
+                   <div><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/record/search"><%= TranslationService.t('record-search-link')%></a></div>
+                 </div>
+             </div>
+      </div>
+      <div class="col-md-3 homepanel">
+        <div class="panel panel-default">
+          <div class="panel-heading">
+              <h4 class="panel-title"><%= TranslationService.t('menu-publish')%></h4>
+          </div>
+          <div class="panel-body">
+            <div><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/record/transfer"><%= TranslationService.t('transfer-ownership-rdmp')%></a></div>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-1">
+      </div>
+  </div>
+  
   <div class="main container clearfix">
     <a href="<%= BrandingService.getBrandAndPortalPath(req) %>/dashboard"><%= TranslationService.t('welcome-dashboard-link-text') %></a>
   </div>
+
+  <!-- simple jquery script to make all the panels equal height -->
+  <script>
+    $( document ).ready(function() {   
+      panels = $('.homepanel .panel-default .panel-body');
+      maxHeight = Math.max.apply(
+        Math, panels.map(function() {
+          return $(this).height();
+          }).get());
+      panels.height(maxHeight);
+    });
+  </script>
 </div>
