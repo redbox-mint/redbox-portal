@@ -40,7 +40,13 @@ module.exports.routes = {
       'view': 'homepage'
     }
   },
-
+  '/:branding/:portal/researcher/home': {
+    controller: 'typescript/RenderViewController',
+    action: 'render',
+    locals:{
+      'view': 'researcher/home'
+    }
+  },
   '/:branding/:portal/record/view/:oid': {
     controller: 'typescript/RenderViewController',
     action: 'render',

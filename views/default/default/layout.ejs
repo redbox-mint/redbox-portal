@@ -101,7 +101,7 @@
           <ul class="nav navbar-nav">
             <% if (req.isAuthenticated()) {
               %>
-              <li class="active"><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/dashboard"><%= TranslationService.t('menu-dashboard')%></a></li>
+              <li class="active"><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/researcher/home"><%= TranslationService.t('menu-home')%></a></li>
 
               <li class="dropdown">
                 <a class="dropdown-toggle" data-toggle="dropdown" href="#"><%= TranslationService.t('menu-plan-nav')%><span class="caret"></span></a>
@@ -113,7 +113,7 @@
             <li class="dropdown">
                 <a class="dropdown-toggle" data-toggle="dropdown" href="#"><%= TranslationService.t('menu-manage-nav')%><span class="caret"></span></a>
                 <ul class="dropdown-menu">
-                  <li><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/record/rdmp/edit"><%= TranslationService.t('edit-rdmp')%></a></li>
+                  <li><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/dashboard"><%= TranslationService.t('edit-rdmp')%></a></li>
                   <li><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/record/search"><%= TranslationService.t('record-search-link')%></a></li>
                 </ul>
               </li>
@@ -123,7 +123,7 @@
                   <ul class="dropdown-menu">
                     <li><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/record/transfer"><%= TranslationService.t('transfer-ownership-rdmp')%></a></li>
                   </ul>
-                </li>  
+                </li>
               <%
                 if (hasAdminRole(req)) {%>
               <li class="dropdown">

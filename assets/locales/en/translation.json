@@ -1,5 +1,5 @@
 {
-  "dashboard-welcome-text": "Welcome to the DMP Tool",
+  "dashboard-heading": "My plans",
   "create-plan": "Create a plan",
   "create-rdmp": "Create my RDMP",
   "edit-rdmp": "Update my RDMP",
@@ -60,7 +60,7 @@
   "manage-roles-edit": "Edit User Roles",
   "manage-roles-save": "Save",
   "manage-roles-cancel": "Cancel",
-  "welcome-title": "Welcome to the ReDBox DMP Tool",
+  "welcome-title": "Welcome to ReDBox",
   "welcome-homepage-text": "This is the homepage of the DMP Tool. Some content needs to go here as well as a link to the researcher dashboard (still to be implemented).",
   "welcome-dashboard-link-text": "Proceed to the dashboard",
   "default-title": "ReDBox",

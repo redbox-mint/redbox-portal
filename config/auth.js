@@ -23,64 +23,69 @@ module.exports.auth = {
   // default rules for the default brand...
   rules: [
     {
-      path: '/*/*/home',
+      path: '/[^/]*/[^/]*/admin(/*)',
+      role: 'Admin',
+      can_update:true
+    },
+    {
+      path: '/[^/]*/[^/]*/record(/*)',
+      role: 'Researcher',
+      can_update:true
+    },
+    {
+      path: '/[^/]*/[^/]*/recordmeta(/*)',
+      role: 'Researcher',
+      can_update:true
+    },
+    {
+      path: '/[^/]*/[^/]*/vocab(/*)',
+      role: 'Researcher',
+      can_read: true
+    },
+    {
+      path: '/[^/]*/[^/]*/collection(/*)',
+      role: 'Researcher',
+      can_read: true
+    },
+    {
+      path: '/[^/]*/[^/]*/mint(/*)',
+      role: 'Researcher',
+      can_read: true
+    },
+    {
+      path: '/[^/]*/[^/]*/user/find(/*)',
+      role: 'Researcher',
+      can_read: true
+    },
+    {
+      path: '/[^/]*/[^/]*/dashboard',
+      role: 'Researcher',
+      can_update:true
+    },
+    {
+      path: '/[^/]*/[^/]*/researcher/home',
+      role: 'Researcher',
+      can_update:true
+    },
+    {
+      path: '/[^/]*/[^/]*/export(/*)',
+      role: 'Admin',
+      can_update:true
+    },
+    {
+      path: '/[^/]*/[^/]*/asynch(/*)',
+      role: 'Admin',
+      can_update:true
+    },
+    {
+      path: '/[^/]*/[^/]*/api(/*)',
+      role: 'Admin',
+      can_update:true
+    }
+    ,{
+      path: '/[^/]*/[^/]*/home',
       role: 'Guest',
       can_read: true
-    },
-    {
-      path: '/*/*/admin(/*)',
-      role: 'Admin',
-      can_update:true
-    },
-    {
-      path: '/*/*/record(/*)',
-      role: 'Researcher',
-      can_update:true
-    },
-    {
-      path: '/*/*/recordmeta(/*)',
-      role: 'Researcher',
-      can_update:true
-    },
-    {
-      path: '/*/*/vocab(/*)',
-      role: 'Researcher',
-      can_read: true
-    },
-    {
-      path: '/*/*/collection(/*)',
-      role: 'Researcher',
-      can_read: true
-    },
-    {
-      path: '/*/*/mint(/*)',
-      role: 'Researcher',
-      can_read: true
-    },
-    {
-      path: '/*/*/user/find(/*)',
-      role: 'Researcher',
-      can_read: true
-    },
-    {
-      path: '/*/*/dashboard',
-      role: 'Researcher',
-      can_update:true
-    },
-    {
-      path: '/*/*/export(/*)',
-      role: 'Admin',
-      can_update:true
-    },
-    {
-      path: '/*/*/asynch(/*)',
-      role: 'Admin',
-      can_update:true
-    },
-    {
-      path: '/*/*/api(/*)',
-      role: 'Admin',
-      can_update:true
     }
   ],
   // Bootstrap END
