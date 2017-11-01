@@ -1,4 +1,4 @@
-FROM node:6.9.2
+FROM node:6.11.5
 ENV node_env production
 COPY . /opt/redbox-portal/
 RUN chmod +x /opt/redbox-portal/buildTypescript.sh
