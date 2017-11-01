@@ -754,3 +754,7 @@ div.logo img {
     margin-left: 10px;
     margin-bottom: 10px;
 }
+
+.header h1#main-title {
+    text-align: center;
+}
