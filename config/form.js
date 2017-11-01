@@ -361,37 +361,93 @@ module.exports.form = {
                   label : "@dmpt-people-tab",
                   fields: [
                     {
+                      class: 'ContributorField',
+                      showHeader:true,
+                      definition: {
+                        name: 'contributor_ci',
+                        required: true,
+                        label: '@dmpt-people-tab-ci',
+                        role: "@dmpt-people-tab-ci-role",
+                        freeText: false,
+                        vocabId: 'Parties AND repository_name:People',
+                        sourceType: 'mint',
+                        fieldNames: [{'given_name': 'text_given_name'}, {'family_name':'text_family_name'}, {'text_full_name':'text_full_name'}, {'full_name_honorific':'text_full_name_honorific'}, {'email': 'Email[0]'}],
+                        searchFields: 'text_given_name,text_family_name,text_full_name,text_full_name_honorific',
+                        titleFieldArr: ['text_full_name'],
+                        titleFieldDelim: '',
+                        nameColHdr: '@dmpt-people-tab-name-hdr',
+                        emailColHdr: '@dmpt-people-tab-email-hdr',
+                        validation_required_name: '@dmpt-people-tab-validation-name-required',
+                        validation_required_email: '@dmpt-people-tab-validation-email-required',
+                        validation_invalid_email: '@dmpt-people-tab-validation-email-invalid'
+                      }
+                    },
+                    {
+                      class: 'ContributorField',
+                      showHeader:true,
+                      definition: {
+                        name: 'contributor_data_manager',
+                        required: true,
+                        label: '@dmpt-people-tab-data-manager',
+                        role: "@dmpt-people-tab-data-manager-role",
+                        freeText: false,
+                        vocabId: 'Parties AND repository_name:People',
+                        sourceType: 'mint',
+                        fieldNames: [{'given_name': 'text_given_name'}, {'family_name':'text_family_name'}, {'text_full_name':'text_full_name'}, {'full_name_honorific':'text_full_name_honorific'}, {'email': 'Email[0]'}],
+                        searchFields: 'text_given_name,text_family_name,text_full_name,text_full_name_honorific',
+                        titleFieldArr: ['text_full_name'],
+                        titleFieldDelim: '',
+                        nameColHdr: '@dmpt-people-tab-name-hdr',
+                        emailColHdr: '@dmpt-people-tab-email-hdr'
+                      }
+                    },
+                    {
                      class: 'RepeatableContainer',
                      compClass: 'RepeatableContributorComponent',
                      definition: {
                        name: "contributors",
                        skipClone: ['showHeader'],
+                       forceClone: ['vocabField'],
                        fields: [
                          {
                            class: 'ContributorField',
                            showHeader:true,
                            definition: {
                              required: true,
-                             roles: [
-                               "Chief Investigator",
-                               "Data manager",
-                               "Collaborator",
-                               "Supervisor"
-                             ],
-                             validationMessages: {
-                               required: {
-                                 email: 'Email required',
-                                 name: 'Name required',
-                                 role: 'Select a role'
-                               },
-                               invalid: {
-                                 email: 'Invalid email format'
-                               }
-                             }
+                             label: '@dmpt-people-tab-contributors',
+                             role: "@dmpt-people-tab-contributors-role",
+                             freeText: false,
+                             vocabId: 'Parties AND repository_name:People',
+                             sourceType: 'mint',
+                             fieldNames: [{'given_name': 'text_given_name'}, {'family_name':'text_family_name'}, {'text_full_name':'text_full_name'}, {'full_name_honorific':'text_full_name_honorific'}, {'email': 'Email[0]'}],
+                             searchFields: 'text_given_name,text_family_name,text_full_name,text_full_name_honorific',
+                             titleFieldArr: ['text_full_name'],
+                             titleFieldDelim: '',
+                             nameColHdr: '@dmpt-people-tab-name-hdr',
+                             emailColHdr: '@dmpt-people-tab-email-hdr'
                            }
                          }
                        ]
                      }
+                    },
+                    {
+                      class: 'ContributorField',
+                      showHeader:true,
+                      definition: {
+                        name: 'contributor_supervisor',
+                        required: true,
+                        label: '@dmpt-people-tab-supervisor',
+                        role: "@dmpt-people-tab-supervisor-role",
+                        freeText: false,
+                        vocabId: 'Parties AND repository_name:People',
+                        sourceType: 'mint',
+                        fieldNames: [{'given_name': 'text_given_name'}, {'family_name':'text_family_name'}, {'text_full_name':'text_full_name'}, {'full_name_honorific':'text_full_name_honorific'}, {'email': 'Email[0]'}],
+                        searchFields: 'text_given_name,text_family_name,text_full_name,text_full_name_honorific',
+                        titleFieldArr: ['text_full_name'],
+                        titleFieldDelim: '',
+                        nameColHdr: '@dmpt-people-tab-name-hdr',
+                        emailColHdr: '@dmpt-people-tab-email-hdr'
+                      }
                     }
                   ]
                 }

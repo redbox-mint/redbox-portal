@@ -51,8 +51,8 @@ export class VocabField extends FieldBase<any> {
   public lookupService: any;
   public placeHolder: string;
 
-  constructor(options: any) {
-    super(options);
+  constructor(options: any, translationService: any) {
+    super(options, translationService);
     this.hasLookup = true;
     this.vocabId = options['vocabId'] || '';
     this.controlType = 'textbox';
@@ -96,6 +96,11 @@ export class VocabField extends FieldBase<any> {
     return this.value;
   }
 
+  setLookupServices(completerService: any, lookupService: any) {
+    this.completerService = completerService;
+    this.lookupService = lookupService;
+  }
+
   initLookupData() {
     if (this.sourceType == "vocab") {
       // Hack for creating the intended title...
@@ -134,7 +139,10 @@ export class VocabField extends FieldBase<any> {
     if (data) {
       if (_.isString(this.titleFieldDelim)) {
         _.forEach(this.titleFieldArr, (titleFld: string) => {
-          title = `${title}${_.isEmpty(title) ? '' : this.titleFieldDelim}${data[titleFld]}`;
+          const titleVal = data[titleFld];
+          if (titleVal) {
+            title = `${title}${_.isEmpty(title) ? '' : this.titleFieldDelim}${data[titleFld]}`;
+          }
         });
       } else {
         // expecting a delim pair array, 'prefix', 'suffix'
@@ -149,14 +157,29 @@ export class VocabField extends FieldBase<any> {
 
   getValue(data: any) {
     const valObj = {};
-    _.forEach(this.fieldNames, (fldName: string) => {
+    _.forEach(this.fieldNames, (fldName: any) => {
       if (data.originalObject) {
-        valObj[fldName] = data.originalObject[fldName];
+        this.getFieldValuePair(fldName, data.originalObject, valObj)
       } else {
-        valObj[fldName] = data[fldName];
+        this.getFieldValuePair(fldName, data, valObj)
       }
     });
     return valObj;
+  }
+
+  getFieldValuePair(fldName: any, data: any, valObj: any) {
+    if (_.isString(fldName)) {
+      valObj[fldName] = _.get(data, fldName);
+    } else {
+      // expects a value pair
+      _.forOwn(fldName, (srcFld, targetFld) => {
+        if (_.get(data, srcFld)) {
+          valObj[targetFld] = _.get(data, srcFld);
+        } else {
+          valObj[targetFld] = _.get(data, targetFld);
+        }
+      });
+    }
   }
 
 }
@@ -205,7 +228,18 @@ class MintLookupDataService extends Subject<CompleterItem[]> implements Complete
     }
     const item = {};
     _.forEach(this.fields, (fieldName) => {
-      item[fieldName] = data[fieldName];
+      if (_.isString(fieldName)) {
+        item[fieldName] = data[fieldName];
+      } else {
+        // expects a value pair
+        _.forOwn(fieldName, (srcFld, targetFld) => {
+          if (_.get(data, srcFld)) {
+            item[srcFld] = _.get(data, srcFld);
+          } else {
+            item[targetFld] = _.get(data, targetFld);
+          }
+        });
+      }
     });
     // build the title,
     item[this.compositeTitleName] = this.getTitle(data);
@@ -217,7 +251,10 @@ class MintLookupDataService extends Subject<CompleterItem[]> implements Complete
     if (data) {
       if (_.isString(this.titleFieldDelim)) {
         _.forEach(this.titleFieldArr, (titleFld: string) => {
-          title = `${title}${_.isEmpty(title) ? '' : this.titleFieldDelim}${data[titleFld]}`;
+          const titleVal = data[titleFld];
+          if (titleVal) {
+            title = `${title}${_.isEmpty(title) ? '' : this.titleFieldDelim}${data[titleFld]}`;
+          }
         });
       } else {
         // expecting a delim pair array, 'prefix', 'suffix'

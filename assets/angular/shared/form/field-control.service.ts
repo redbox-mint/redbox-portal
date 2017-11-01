@@ -64,7 +64,7 @@ export class FieldControlService {
     'AnchorOrButton': { 'meta': AnchorOrButton, 'comp': AnchorOrButtonComponent },
     'VocabField': {'meta': VocabField, 'comp': VocabFieldComponent, 'lookupService': 'vocabFieldLookupService'},
     'RepeatableContainer': {'meta': RepeatableContainer, 'comp': [RepeatableVocabComponent, RepeatableContributorComponent, RepeatableTextfieldComponent]},
-    'ContributorField': {'meta': ContributorField, 'comp': ContributorComponent},
+    'ContributorField': {'meta': ContributorField, 'comp': ContributorComponent, 'lookupService': 'vocabFieldLookupService'},
     'HiddenValue': {'meta': HiddenValue, 'comp': HiddenValueComponent},
     'WorkflowStepButton': {'meta': WorkflowStepButton, 'comp': WorkflowStepButtonComponent},
     'LinkValueComponent': {'meta': LinkValue, 'comp': LinkValueComponent },
@@ -141,8 +141,9 @@ export class FieldControlService {
     return Observable.from(fieldArray).flatMap((f:any) => {
       if (f.hasLookup) {
         const lookupServiceName = this.classes[f.constructor.name].lookupService;
-        f.completerService = this.completerService;
-        f.lookupService = this[lookupServiceName];
+        f.setLookupServices(this.completerService, this[lookupServiceName]);
+        // f.completerService = this.completerService;
+        // f.lookupService = this[lookupServiceName];
         return this[lookupServiceName].getLookupData(f);
       } else {
         return Observable.of(null);

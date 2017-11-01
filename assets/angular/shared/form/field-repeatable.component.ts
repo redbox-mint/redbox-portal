@@ -95,7 +95,7 @@ export class RepeatableContainer extends Container {
   }
 
   createNewElem(baseFieldInst: any, value:any = null) {
-    const newInst = new baseFieldInst.constructor(baseFieldInst.options);
+    const newInst = new baseFieldInst.constructor(baseFieldInst.options, this.translationService);
     _.forEach(this.skipClone, (f: any)=> {
       newInst[f] = null;
     });
@@ -207,7 +207,7 @@ export class RepeatableContributor extends RepeatableContainer {
   <div *ngIf="field.editMode">
     <div *ngFor="let fieldElem of field.fields; let i = index;" class="row">
       <span class="col-xs-10">
-        <rb-contributor [field]="fieldElem" [form]="form" [fieldMap]="fieldMap"></rb-contributor>
+        <rb-contributor [field]="fieldElem" [form]="form" [fieldMap]="fieldMap" [isEmbedded]="true"></rb-contributor>
       </span>
       <span class="col-xs-2">
         <button type='button' *ngIf="field.fields.length > 1 && field.removeButtonText" (click)="removeElem($event, i)"  [ngClass]="field.removeButtonTextClass" [ngStyle]="{'margin-top': fieldElem.marginTop}" >{{field.removeButtonText}}</button>
@@ -239,7 +239,6 @@ export class RepeatableContributorComponent extends RepeatableComponent implemen
   field: RepeatableContributor;
 
   ngOnInit() {
-    let fieldElem: {}
     this.field.fields[0].marginTop = '25px';
   }
 
