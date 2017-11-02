@@ -23,67 +23,67 @@ module.exports.auth = {
   // default rules for the default brand...
   rules: [
     {
-      path: '/[^/]*/[^/]*/admin(/*)',
+      path: '/:branding/:portal/admin(/*)',
       role: 'Admin',
       can_update:true
     },
     {
-      path: '/[^/]*/[^/]*/record(/*)',
+      path: '/:branding/:portal/record(/*)',
       role: 'Researcher',
       can_update:true
     },
     {
-      path: '/[^/]*/[^/]*/recordmeta(/*)',
+      path: '/:branding/:portal/recordmeta(/*)',
       role: 'Researcher',
       can_update:true
     },
     {
-      path: '/[^/]*/[^/]*/vocab(/*)',
+      path: '/:branding/:portal/vocab(/*)',
       role: 'Researcher',
       can_read: true
     },
     {
-      path: '/[^/]*/[^/]*/collection(/*)',
+      path: '/:branding/:portal/collection(/*)',
       role: 'Researcher',
       can_read: true
     },
     {
-      path: '/[^/]*/[^/]*/mint(/*)',
+      path: '/:branding/:portal/mint(/*)',
       role: 'Researcher',
       can_read: true
     },
     {
-      path: '/[^/]*/[^/]*/user/find(/*)',
+      path: '/:branding/:portal/user/find(/*)',
       role: 'Researcher',
       can_read: true
     },
     {
-      path: '/[^/]*/[^/]*/dashboard',
+      path: '/:branding/:portal/dashboard',
       role: 'Researcher',
       can_update:true
     },
     {
-      path: '/[^/]*/[^/]*/researcher/home',
+      path: '/:branding/:portal/researcher/home',
       role: 'Researcher',
       can_update:true
     },
     {
-      path: '/[^/]*/[^/]*/export(/*)',
+      path: '/:branding/:portal/export(/*)',
       role: 'Admin',
       can_update:true
     },
     {
-      path: '/[^/]*/[^/]*/asynch(/*)',
+      path: '/:branding/:portal/asynch(/*)',
       role: 'Admin',
       can_update:true
     },
     {
-      path: '/[^/]*/[^/]*/api(/*)',
+      path: '/:branding/:portal/api(/*)',
       role: 'Admin',
       can_update:true
     }
     ,{
-      path: '/[^/]*/[^/]*/home',
+      path: '/:branding/:portal/home',
       role: 'Guest',
       can_read: true
     }
