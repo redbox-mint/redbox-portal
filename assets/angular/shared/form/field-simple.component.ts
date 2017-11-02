@@ -299,7 +299,7 @@ Based on: https://bootstrap-datepicker.readthedocs.io/en/stable/
   </li>
   `
 })
-export class DateTimeComponent extends SimpleComponent implements OnInit {
+export class DateTimeComponent extends SimpleComponent {
   public field: DateTime;
 
   formatValue() {
