@@ -1,4 +1,4 @@
-FROM node:8.9
+FROM node:6.11.5
 ENV node_env production
 COPY . /opt/redbox-portal/
 RUN echo "Australia/Brisbane" > /etc/timezone && dpkg-reconfigure -f noninteractive tzdata
