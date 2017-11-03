@@ -38,7 +38,7 @@ export class RolesService extends BaseService {
   }
 
   getBrandRoles() :Promise<Role[]> {
-    return this.http.get(`${this.brandingAndPortalUrl}/admin/roles`, this.options)
+    return this.http.get(`${this.brandingAndPortalUrl}/admin/roles/get`, this.options)
     .toPromise()
     .then((res:any) => this.extractData(res) as Role[]);
   }
