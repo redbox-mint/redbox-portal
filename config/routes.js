@@ -110,7 +110,7 @@ module.exports.routes = {
   'get /:branding/:portal/user/login': 'typescript/UserController.login',
   'get /:branding/:portal/user/logout': 'typescript/UserController.logout',
   'get /:branding/:portal/user/find': 'typescript/UserController.find',
-  'get /:branding/:portal/admin/roles': 'typescript/AdminController.getBrandRoles',
+  'get /:branding/:portal/admin/roles/get': 'typescript/AdminController.getBrandRoles',
   'post /:branding/:portal/admin/roles/user': 'typescript/AdminController.updateUserRoles',
   'get /:branding/:portal/record/:recordType/edit': 'typescript/RecordController.edit',
   'get /:branding/:portal/record/edit/:oid': 'typescript/RecordController.edit',

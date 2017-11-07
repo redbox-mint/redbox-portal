@@ -159,8 +159,8 @@ export module Services {
     }
 
 
-  }
 
-}
+
+  }
 }
 module.exports = new Services.Reports().exports();

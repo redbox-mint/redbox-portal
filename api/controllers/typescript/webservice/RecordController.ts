@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Queensland Cyber Infrastructure Foundation (http://www.qcif.edu.au/)
+// Copyright(c) 2017 Queensland Cyber Infrastructure Foundation (http://www.qcif.edu.au/)
 //
 // GNU GENERAL PUBLIC LICENSE
 //    Version 2, June 1991
@@ -16,7 +16,6 @@
 // You should have received a copy of the GNU General Public License along
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-
 //<reference path='./../../typings/loader.d.ts'/>
 declare var module;
 declare var sails;
@@ -78,7 +77,7 @@ export module Controllers {
         // }
         var body = req.body;
         var username = body["username"];
-        if(username == null) {
+        if (username == null) {
           record["authorization"]["edit"].push(username);
         } else {
           var pendingUser = body["pendingUser"];
@@ -104,7 +103,7 @@ export module Controllers {
         // }
         var body = req.body;
         var username = body["username"];
-        if(username == null) {
+        if (username == null) {
           record["authorization"]["view"].push(username);
         } else {
           var pendingUser = body["pendingUser"];
@@ -130,16 +129,16 @@ export module Controllers {
         // }
         var body = req.body;
         var username = body["username"];
-        if(username == null) {
+        if (username == null) {
           var userIndex = record["authorization"]["edit"].indexOf(username);
-          if(userIndex > -1) {
-            record["authorization"]["edit"].splice(userIndex,1)
+          if (userIndex > -1) {
+            record["authorization"]["edit"].splice(userIndex, 1)
           }
         } else {
           var pendingUser = body["pendingUser"];
           var userIndex = record["authorization"]["editPending"].indexOf(username);
-          if(userIndex > -1) {
-            record["authorization"]["editPending"].splice(userIndex,1)
+          if (userIndex > -1) {
+            record["authorization"]["editPending"].splice(userIndex, 1)
           }
         }
 
@@ -162,16 +161,16 @@ export module Controllers {
         // }
         var body = req.body;
         var username = body["username"];
-        if(username == null) {
+        if (username == null) {
           var userIndex = record["authorization"]["view"].indexOf(username);
-          if(userIndex > -1) {
-            record["authorization"]["view"].splice(userIndex,1)
+          if (userIndex > -1) {
+            record["authorization"]["view"].splice(userIndex, 1)
           }
         } else {
           var pendingUser = body["pendingUser"];
           var userIndex = record["authorization"]["viewPending"].indexOf(username);
-          if(userIndex > -1) {
-            record["authorization"]["viewPending"].splice(userIndex,1)
+          if (userIndex > -1) {
+            record["authorization"]["viewPending"].splice(userIndex, 1)
           }
         }
 
@@ -218,7 +217,6 @@ export module Controllers {
       });
     }
 
-
     public create(req, res) {
       const brand = BrandingService.getBrand(req.session.branding);
       var recordType = req.param('recordType');
@@ -255,14 +253,14 @@ export module Controllers {
           workflowStepsObs.subscribe(workflowSteps => {
             _.each(workflowSteps, function(workflowStep) {
 
-              if (workflowStep.name == workflowStage) {
-                request["workflow"] = workflowStep.config.workflow;
-                request["authorization"] = workflowStep.config.authorization;
+              if (workflowStep["name"] == workflowStage) {
+                request["workflow"] = workflowStep["config"]["workflow"];
+                request["authorization"] = workflowStep["config"]["authorization"];
                 request["authorization"]["view"] = body["authorization"]["view"];
                 request["authorization"]["edit"] = body["authorization"]["edit"];
                 request["authorization"]["viewPending"] = body["authorization"]["viewPending"];
                 request["authorization"]["editPending"] = body["authorization"]["editPending"];
-                metaMetadata["form"] = workflowStep.config.form;
+                metaMetadata["form"] = workflowStep["config"]["form"];
               }
 
 
@@ -278,20 +276,17 @@ export module Controllers {
 
         );
       }
-
-
     }
 
+
+
+
+    /**
+     **************************************************************************************************
+     **************************************** Override magic methods **********************************
+     **************************************************************************************************
+     */
   }
-
-
-
-  /**
-   **************************************************************************************************
-   **************************************** Override magic methods **********************************
-   **************************************************************************************************
-   */
-}
 }
 
 module.exports = new Controllers.Record().exports();
