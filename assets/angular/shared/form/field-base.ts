@@ -181,7 +181,7 @@ export class FieldBase<T> {
     return !_.isNull(data) && (_.isArray(data) ? (!_.isNull(data[0])): true );
   }
 
-  setupEventHandlers() {
+  public setupEventHandlers() {
     if (!_.isEmpty(this.formModel)) {
       const publishConfig = this.publish;
       const subscribeConfig = this.subscribe;
@@ -229,7 +229,8 @@ export class FieldBase<T> {
       if (!_.isEmpty(subscribeConfig)) {
         _.forOwn(subscribeConfig, (subConfig, srcName) => {
           _.forOwn(subConfig, (eventConfArr, eventName) => {
-            this.fieldMap[srcName].field[eventName].subscribe((value:any) => {
+            const eventEmitter = srcName == "this" ? this[eventName] : this.fieldMap[srcName].field[eventName];
+            eventEmitter.subscribe((value:any) => {
               let curValue = value;
               if (_.isArray(value)) {
                 curValue = [];

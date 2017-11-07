@@ -47,6 +47,9 @@ export class ContributorField extends FieldBase<any> {
   // Frankenstein begin
   vocabField: VocabField;
   // Frankenstein end
+  previousEmail: string;
+  username: string;
+  hasInit: boolean;
 
   constructor(options: any, translationService: any) {
     super(options, translationService);
@@ -63,14 +66,15 @@ export class ContributorField extends FieldBase<any> {
       text_full_name: this.getTranslated(options['validation_required_name'], 'Name is required'),
       role: this.getTranslated(options['validation_required_role'],'Select a role')},
       invalid: { email: this.getTranslated(options['validation_invalid_email'], 'Email format is incorrect')}};
-    this.groupFieldNames = ['text_full_name', 'email', 'role'];
+    this.groupFieldNames = ['text_full_name', 'email'];
     this.freeText = options['freeText'] || false;
     this.role = options['role'] ? this.getTranslated(options['role'], options['role']) : null;
+    this.username = options['username'] || '';
+    this.previousEmail = this.value ? this.value.email : '';
 
     this.validators = {
       text_full_name: [Validators.required],
-      email: [Validators.required, Validators.email],
-      role: [Validators.required]
+      email: [Validators.required, Validators.email]
     };
     if (!this.freeText) {
       this.vocabField = new VocabField(this.options, this.translationService);
@@ -88,16 +92,37 @@ export class ContributorField extends FieldBase<any> {
     if (valueElem) {
       this.value = valueElem;
     }
-    if (!this.freeText) {
-      this.formModel = this.vocabField.createFormModel(valueElem);
-      return this.formModel;
-    }
 
-    this.formModel = new FormGroup({text_full_name: new FormControl(this.value.text_full_name || null),
-                                 email: new FormControl(this.value.email || null),
-                                 role: new FormControl(this.value.role || null)});
+    if (!this.freeText) {
+      this.vocabField.setEmptyValue();
+      this.formModel = this.vocabField.createFormModel(this.value, true);
+      this.formModel.addControl('username', new FormControl(this.value.username));
+      this.formModel.addControl('role', new FormControl(this.value.role));
+      if (this.value) {
+        this.setValue(this.value);
+      }
+    } else {
+      this.formModel = new FormGroup({text_full_name: new FormControl(this.value.text_full_name || null),
+                                   email: new FormControl(this.value.email || null),
+                                   role: new FormControl(this.value.role || null),
+                                   username: new FormControl(this.value.username || '')});
+    }
     this.enableValidators();
     return this.formModel;
+  }
+
+  setValue(value:any) {
+    if (!this.hasInit) {
+      this.hasInit = true;
+      value.username = _.isUndefined(value.username) ? '' : value.username;
+    } else {
+      if ( _.isUndefined(value.username) ||  (value.email && value.email != this.previousEmail )) {
+        value.username = '';
+        this.previousEmail = value.email;
+      }
+    }
+    this.formModel.patchValue(value, {emitEvent: false });
+    this.formModel.markAsTouched();
   }
 
   toggleValidator(c:any) {
@@ -146,7 +171,7 @@ export class ContributorField extends FieldBase<any> {
   }
 
   setEmptyValue() {
-    this.value = {name: null, email: null, role: null};
+    this.value = {name: null, email: null, role: null, username: ''};
     return this.value;
   }
 
@@ -176,6 +201,10 @@ export class ContributorField extends FieldBase<any> {
     }
     return errObj;
   }
+
+  public reactEvent(eventName: string, eventData: any, origData: any) {
+    this.setValue(eventData);
+  }
 }
 
 @Component({
@@ -204,7 +233,7 @@ export class ContributorField extends FieldBase<any> {
         <div *ngIf="!isEmbedded">
           <div class="row">
             <span class='col-xs-10' >
-              <!-- Lookup version -->
+              <!-- Free text not embedded version -->
               <div class='col-xs-1'>
                 <span class='text-right'>{{ field.nameColHdr }}</span>
               </div>
@@ -225,7 +254,7 @@ export class ContributorField extends FieldBase<any> {
         </div>
 
         <ng-container *ngIf="isEmbedded">
-          <!-- Lookup version -->
+          <!-- Embedded free text version -->
           <div class='col-xs-1'>
             <span class='text-right'>{{ field.nameColHdr }}</span>
           </div>
@@ -244,39 +273,46 @@ export class ContributorField extends FieldBase<any> {
         </ng-container>
 
       </ng-container>
+      <!-- Lookup version -->
       <ng-container *ngIf="!field.freeText" [formGroup]="field.formModel">
         <div *ngIf="!isEmbedded">
           <div class="row">
             <span class='col-xs-10' >
-              <!-- Lookup version -->
+              <!-- Lookup Not Embedded version -->
               <div class='col-xs-1'>
                 <span class='text-right'>{{ field.nameColHdr }}</span>
               </div>
-              <div class='col-xs-5'>
-                <ng2-completer [inputClass]="'form-control'" [placeholder]="field.vocabField.placeHolder" [clearUnselected]="true" (selected)="onSelect($event)" [datasource]="field.vocabField.dataService" [minSearchLength]="0" [initialValue]="field.vocabField.initialValue"></ng2-completer>
+              <div [ngClass]="getGroupClass('text_full_name')">
+                <ng2-completer [overrideSuggested]="true" [inputClass]="'form-control'" [placeholder]="field.vocabField.placeHolder" [clearUnselected]="false" (selected)="onSelect($event)" [datasource]="field.vocabField.dataService" [minSearchLength]="0" [initialValue]="field.vocabField.initialValue"></ng2-completer>
+                <div class="text-danger" *ngIf="field.formModel.controls['text_full_name'].hasError('required')">{{field.validationMessages.required.text_full_name}}</div>
               </div>
               <div class='col-xs-1'>
                 <span class='text-right'>{{ field.emailColHdr }}</span>
               </div>
-              <div class='col-xs-5'>
-                <input type='text' [ngClass]="'form-control'" [readonly]='true' [value]="field.formModel?.value?.email ? field.formModel?.value?.email : '' " />
+              <div [ngClass]="getGroupClass('email')">
+                <input formControlName="email" type="text" class="form-control" />
+                <div class="text-danger" *ngIf="field.formModel.controls['email'].touched && field.formModel.controls['email'].hasError('email')">{{field.validationMessages.invalid.email}}</div>
+                <div class="text-danger" *ngIf="field.formModel.controls['email'].touched && field.formModel.controls['email'].hasError('required')">{{field.validationMessages.required.email}}</div>
               </div>
             </span>
           </div>
         </div>
         <ng-container *ngIf="isEmbedded">
-          <!-- Lookup version -->
+          <!-- Lookup Embedded version -->
           <div class='col-xs-1'>
             <span class='text-right'>{{ field.nameColHdr }}</span>
           </div>
-          <div class='col-xs-5'>
-            <ng2-completer [inputClass]="'form-control'" [placeholder]="field.vocabField.placeHolder" [clearUnselected]="true" (selected)="onSelect($event)" [datasource]="field.vocabField.dataService" [minSearchLength]="0" [initialValue]="field.vocabField.initialValue"></ng2-completer>
+          <div [ngClass]="getGroupClass('text_full_name')">
+            <ng2-completer [overrideSuggested]="true" [inputClass]="'form-control'" [placeholder]="field.vocabField.placeHolder" [clearUnselected]="false" (selected)="onSelect($event)" [datasource]="field.vocabField.dataService" [minSearchLength]="0" [initialValue]="field.vocabField.initialValue"></ng2-completer>
+            <div class="text-danger" *ngIf="field.formModel.controls['text_full_name'].hasError('required')">{{field.validationMessages.required.text_full_name}}</div>
           </div>
           <div class='col-xs-1'>
             <span class='text-right'>{{ field.emailColHdr }}</span>
           </div>
-          <div class='col-xs-5'>
-            <input type='text' [ngClass]="'form-control'" [readonly]='true' [value]="field.formModel?.value?.email ? field.formModel?.value?.email : '' " />
+          <div [ngClass]="getGroupClass('email')">
+            <input formControlName="email" type="text" class="form-control" />
+            <div class="text-danger" *ngIf="field.formModel.controls['email'].touched && field.formModel.controls['email'].hasError('email')">{{field.validationMessages.invalid.email}}</div>
+            <div class="text-danger" *ngIf="field.formModel.controls['email'].touched && field.formModel.controls['email'].hasError('required')">{{field.validationMessages.required.email}}</div>
           </div>
         </ng-container>
       </ng-container>
@@ -303,20 +339,31 @@ export class ContributorComponent extends SimpleComponent {
 
   public getGroupClass(fldName:any): string {
     let hasError = false;
-    hasError = hasError || (this.field.formModel.controls[fldName].touched && this.field.formModel.controls[fldName].hasError('required'));
+    hasError = hasError || (this.field.formModel.controls[fldName].hasError('required'));
     if (!hasError && fldName == 'email') {
-      hasError = hasError || (this.field.formModel.controls[fldName].touched && this.field.formModel.controls[fldName].hasError('email'));
+      hasError = hasError || (this.field.formModel.controls[fldName].hasError('email'));
     }
     return `col-xs-5 form-group${hasError ? ' has-error' : ''}`;
   }
 
   onSelect(selected: any) {
     if (selected) {
-      const val:any = this.field.vocabField.getValue(selected);
+      if ((_.isUndefined(selected.title) && _.isUndefined(selected.text_full_name) && _.isEmpty(selected.title) && _.isEmpty(selected.text_full_name))
+          || (selected.title && selected.title == this.field.formModel.value.text_full_name)) {
+        console.log(`Same or empty selection, returning...`);
+        return;
+      }
+      let val:any;
+      if (selected.text_full_name) {
+        val = this.field.vocabField.getValue(selected);
+      } else {
+        val = {text_full_name: selected.title};
+      }
       val.role = this.field.role;
-      this.field.formModel.setValue(val);
+      this.field.setValue(val);
     } else {
-      this.field.formModel.setValue(null);
+      console.log(`No selected user.`)
     }
   }
+
 }

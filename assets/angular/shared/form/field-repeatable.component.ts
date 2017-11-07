@@ -79,6 +79,9 @@ export class RepeatableContainer extends Container {
         return fieldClone;
       });
       this.formModel = new FormArray(elems);
+      _.each(this.fields, f => {
+        f.setupEventHandlers();
+      });
     }
     fieldMap[this.name].control = this.formModel;
     if (this.groupName) {
@@ -95,7 +98,9 @@ export class RepeatableContainer extends Container {
   }
 
   createNewElem(baseFieldInst: any, value:any = null) {
-    const newInst = new baseFieldInst.constructor(baseFieldInst.options, this.translationService);
+    const newOpts = _.cloneDeep(baseFieldInst.options);
+    newOpts.value = null;
+    const newInst = new baseFieldInst.constructor(newOpts, this.translationService);
     _.forEach(this.skipClone, (f: any)=> {
       newInst[f] = null;
     });
@@ -110,8 +115,12 @@ export class RepeatableContainer extends Container {
 
   addElem() {
     const newElem = this.createNewElem(this.fields[0]);
+    if (_.isFunction(newElem.setEmptyValue)) {
+      newElem.setEmptyValue();
+    }
     this.fields.push(newElem);
-    this.formModel.push(newElem.createFormModel());
+    const newFormModel = newElem.createFormModel();
+    this.formModel.push(newFormModel);
     return newElem;
   }
 
@@ -245,6 +254,8 @@ export class RepeatableContributorComponent extends RepeatableComponent implemen
   addElem(event: any) {
     const newElem = this.field.addElem();
     newElem.marginTop = '0px';
+    newElem.vocabField.initialValue = null;
+    newElem.setupEventHandlers();
   }
 
   removeElem(event: any, i: number) {

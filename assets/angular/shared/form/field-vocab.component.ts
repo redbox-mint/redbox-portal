@@ -65,17 +65,27 @@ export class VocabField extends FieldBase<any> {
     this.placeHolder = options['placeHolder'] || 'Select a valid value';
   }
 
-  createFormModel(valueElem: any = undefined) {
-    const group = {};
+  createFormModel(valueElem: any = undefined, createFormGroup:boolean=false) {
     if (valueElem) {
       this.value = valueElem;
     }
-    this.formModel = new FormControl(this.value || '');
+    if (createFormGroup) {
+      const flds = {};
+      _.forEach(this.fieldNames, fld => {
+        _.forOwn(fld, (srcFld, targetFld) => {
+          flds[targetFld] = new FormControl(this.value[targetFld] || '');
+        });
+      });
+      this.formModel = new FormGroup(flds);
+    } else {
+      this.formModel = new FormControl(this.value || '');
+    }
     if (this.value) {
       const init = _.cloneDeep(this.value);
       init.title = this.getTitle(this.value);
       this.initialValue = init;
     }
+
     if (this.required) {
       this.formModel.setValidators([Validators.required]);
     }

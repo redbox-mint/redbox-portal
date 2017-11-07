@@ -371,7 +371,7 @@ module.exports.form = {
                         freeText: false,
                         vocabId: 'Parties AND repository_name:People',
                         sourceType: 'mint',
-                        fieldNames: [{'given_name': 'text_given_name'}, {'family_name':'text_family_name'}, {'text_full_name':'text_full_name'}, {'full_name_honorific':'text_full_name_honorific'}, {'email': 'Email[0]'}],
+                        fieldNames: [{'text_full_name':'text_full_name'}, {'full_name_honorific':'text_full_name_honorific'}, {'email': 'Email[0]'}],
                         searchFields: 'text_given_name,text_family_name,text_full_name,text_full_name_honorific',
                         titleFieldArr: ['text_full_name'],
                         titleFieldDelim: '',
@@ -379,7 +379,17 @@ module.exports.form = {
                         emailColHdr: '@dmpt-people-tab-email-hdr',
                         validation_required_name: '@dmpt-people-tab-validation-name-required',
                         validation_required_email: '@dmpt-people-tab-validation-email-required',
-                        validation_invalid_email: '@dmpt-people-tab-validation-email-invalid'
+                        validation_invalid_email: '@dmpt-people-tab-validation-email-invalid',
+                        publish: {
+                          onValueUpdate: {
+                            modelEventSource: 'valueChanges'
+                          }
+                        },
+                        subscribe: {
+                          'this': {
+                            onValueUpdate: []
+                          }
+                        }
                       }
                     },
                     {
@@ -393,12 +403,22 @@ module.exports.form = {
                         freeText: false,
                         vocabId: 'Parties AND repository_name:People',
                         sourceType: 'mint',
-                        fieldNames: [{'given_name': 'text_given_name'}, {'family_name':'text_family_name'}, {'text_full_name':'text_full_name'}, {'full_name_honorific':'text_full_name_honorific'}, {'email': 'Email[0]'}],
+                        fieldNames: [{'text_full_name':'text_full_name'}, {'full_name_honorific':'text_full_name_honorific'}, {'email': 'Email[0]'}],
                         searchFields: 'text_given_name,text_family_name,text_full_name,text_full_name_honorific',
                         titleFieldArr: ['text_full_name'],
                         titleFieldDelim: '',
                         nameColHdr: '@dmpt-people-tab-name-hdr',
-                        emailColHdr: '@dmpt-people-tab-email-hdr'
+                        emailColHdr: '@dmpt-people-tab-email-hdr',
+                        publish: {
+                          onValueUpdate: {
+                            modelEventSource: 'valueChanges'
+                          }
+                        },
+                        subscribe: {
+                          'this': {
+                            onValueUpdate: []
+                          }
+                        }
                       }
                     },
                     {
@@ -406,7 +426,7 @@ module.exports.form = {
                      compClass: 'RepeatableContributorComponent',
                      definition: {
                        name: "contributors",
-                       skipClone: ['showHeader'],
+                       skipClone: ['showHeader', 'initialValue'],
                        forceClone: ['vocabField'],
                        fields: [
                          {
@@ -419,12 +439,22 @@ module.exports.form = {
                              freeText: false,
                              vocabId: 'Parties AND repository_name:People',
                              sourceType: 'mint',
-                             fieldNames: [{'given_name': 'text_given_name'}, {'family_name':'text_family_name'}, {'text_full_name':'text_full_name'}, {'full_name_honorific':'text_full_name_honorific'}, {'email': 'Email[0]'}],
+                             fieldNames: [{'text_full_name':'text_full_name'}, {'full_name_honorific':'text_full_name_honorific'}, {'email': 'Email[0]'}],
                              searchFields: 'text_given_name,text_family_name,text_full_name,text_full_name_honorific',
                              titleFieldArr: ['text_full_name'],
                              titleFieldDelim: '',
                              nameColHdr: '@dmpt-people-tab-name-hdr',
-                             emailColHdr: '@dmpt-people-tab-email-hdr'
+                             emailColHdr: '@dmpt-people-tab-email-hdr',
+                             publish: {
+                               onValueUpdate: {
+                                 modelEventSource: 'valueChanges'
+                               }
+                             },
+                             subscribe: {
+                               'this': {
+                                 onValueUpdate: []
+                               }
+                             }
                            }
                          }
                        ]
@@ -441,12 +471,22 @@ module.exports.form = {
                         freeText: false,
                         vocabId: 'Parties AND repository_name:People',
                         sourceType: 'mint',
-                        fieldNames: [{'given_name': 'text_given_name'}, {'family_name':'text_family_name'}, {'text_full_name':'text_full_name'}, {'full_name_honorific':'text_full_name_honorific'}, {'email': 'Email[0]'}],
+                        fieldNames: [{'text_full_name':'text_full_name'}, {'full_name_honorific':'text_full_name_honorific'}, {'email': 'Email[0]'}],
                         searchFields: 'text_given_name,text_family_name,text_full_name,text_full_name_honorific',
                         titleFieldArr: ['text_full_name'],
                         titleFieldDelim: '',
                         nameColHdr: '@dmpt-people-tab-name-hdr',
-                        emailColHdr: '@dmpt-people-tab-email-hdr'
+                        emailColHdr: '@dmpt-people-tab-email-hdr',
+                        publish: {
+                          onValueUpdate: {
+                            modelEventSource: 'valueChanges'
+                          }
+                        },
+                        subscribe: {
+                          'this': {
+                            onValueUpdate: []
+                          }
+                        }
                       }
                     }
                   ]
