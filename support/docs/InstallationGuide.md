@@ -5,7 +5,7 @@ The following dependencies will need to be installed on the OS:
 * [NodeJS environment version 6.x](https://nodejs.org/en/)
 * [MongoDB](https://www.mongodb.com/)
 * A reverse proxy server such as [Nginx](https://nginx.org/en/) or [Apache HTTP Server](https://httpd.apache.org/)
-* []
+* [Git](https://git-scm.com/)
 
 ## Node dependencies
 Once you have a NodeJS environment installed install the following dependencies globally using the ```npm install -g <dependency>``` command:
