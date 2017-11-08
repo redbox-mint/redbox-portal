@@ -42,14 +42,15 @@ export class ContributorField extends FieldBase<any> {
   validators: any;
   enabledValidators: boolean;
   marginTop: string;
-  freeText: boolean;
   role: string;
   // Frankenstein begin
   vocabField: VocabField;
-  // Frankenstein end
   previousEmail: string;
   username: string;
   hasInit: boolean;
+  freeText: boolean;
+  forceLookupOnly: boolean;
+  // Frankenstein end
 
   constructor(options: any, translationService: any) {
     super(options, translationService);
@@ -68,6 +69,11 @@ export class ContributorField extends FieldBase<any> {
       invalid: { email: this.getTranslated(options['validation_invalid_email'], 'Email format is incorrect')}};
     this.groupFieldNames = ['text_full_name', 'email'];
     this.freeText = options['freeText'] || false;
+    this.forceLookupOnly = options['forceLookupOnly'] || false;
+    if (this.forceLookupOnly) {
+      // override free text as it doesn't make sense
+      this.freeText = false;
+    }
     this.role = options['role'] ? this.getTranslated(options['role'], options['role']) : null;
     this.username = options['username'] || '';
     this.previousEmail = this.value ? this.value.email : '';
@@ -111,7 +117,7 @@ export class ContributorField extends FieldBase<any> {
     return this.formModel;
   }
 
-  setValue(value:any) {
+  setValue(value:any, emitEvent:boolean=true) {
     if (!this.hasInit) {
       this.hasInit = true;
       value.username = _.isUndefined(value.username) ? '' : value.username;
@@ -121,8 +127,9 @@ export class ContributorField extends FieldBase<any> {
         this.previousEmail = value.email;
       }
     }
-    this.formModel.patchValue(value, {emitEvent: false });
+    this.formModel.patchValue(value, {emitEvent: emitEvent});
     this.formModel.markAsTouched();
+    this.formModel.markAsDirty();
   }
 
   toggleValidator(c:any) {
@@ -171,7 +178,12 @@ export class ContributorField extends FieldBase<any> {
   }
 
   setEmptyValue() {
-    this.value = {name: null, email: null, role: null, username: ''};
+    this.value = {text_full_name: null, email: null, role: null, username: ''};
+    if (this.formModel) {
+      _.forOwn(this.formModel.controls, (c, cName)=> {
+        c.setValue(null)
+      });
+    }
     return this.value;
   }
 
@@ -203,7 +215,7 @@ export class ContributorField extends FieldBase<any> {
   }
 
   public reactEvent(eventName: string, eventData: any, origData: any) {
-    this.setValue(eventData);
+    this.setValue(eventData, false);
   }
 }
 
@@ -283,14 +295,14 @@ export class ContributorField extends FieldBase<any> {
                 <span class='text-right'>{{ field.nameColHdr }}</span>
               </div>
               <div [ngClass]="getGroupClass('text_full_name')">
-                <ng2-completer [overrideSuggested]="true" [inputClass]="'form-control'" [placeholder]="field.vocabField.placeHolder" [clearUnselected]="false" (selected)="onSelect($event)" [datasource]="field.vocabField.dataService" [minSearchLength]="0" [initialValue]="field.vocabField.initialValue"></ng2-completer>
+                <ng2-completer [overrideSuggested]="!field.forceLookupOnly" [inputClass]="'form-control'" [placeholder]="field.vocabField.placeHolder" [clearUnselected]="field.forceLookupOnly" (selected)="onSelect($event)" [datasource]="field.vocabField.dataService" [minSearchLength]="0" [initialValue]="field.vocabField.initialValue"></ng2-completer>
                 <div class="text-danger" *ngIf="field.formModel.controls['text_full_name'].hasError('required')">{{field.validationMessages.required.text_full_name}}</div>
               </div>
               <div class='col-xs-1'>
                 <span class='text-right'>{{ field.emailColHdr }}</span>
               </div>
               <div [ngClass]="getGroupClass('email')">
-                <input formControlName="email" type="text" class="form-control" />
+                <input formControlName="email" type="text" class="form-control" [readOnly]="field.forceLookupOnly"/>
                 <div class="text-danger" *ngIf="field.formModel.controls['email'].touched && field.formModel.controls['email'].hasError('email')">{{field.validationMessages.invalid.email}}</div>
                 <div class="text-danger" *ngIf="field.formModel.controls['email'].touched && field.formModel.controls['email'].hasError('required')">{{field.validationMessages.required.email}}</div>
               </div>
@@ -303,14 +315,14 @@ export class ContributorField extends FieldBase<any> {
             <span class='text-right'>{{ field.nameColHdr }}</span>
           </div>
           <div [ngClass]="getGroupClass('text_full_name')">
-            <ng2-completer [overrideSuggested]="true" [inputClass]="'form-control'" [placeholder]="field.vocabField.placeHolder" [clearUnselected]="false" (selected)="onSelect($event)" [datasource]="field.vocabField.dataService" [minSearchLength]="0" [initialValue]="field.vocabField.initialValue"></ng2-completer>
+            <ng2-completer [overrideSuggested]="!field.forceLookupOnly" [inputClass]="'form-control'" [placeholder]="field.vocabField.placeHolder" [clearUnselected]="field.forceLookupOnly" (selected)="onSelect($event)" [datasource]="field.vocabField.dataService" [minSearchLength]="0" [initialValue]="field.vocabField.initialValue"></ng2-completer>
             <div class="text-danger" *ngIf="field.formModel.controls['text_full_name'].hasError('required')">{{field.validationMessages.required.text_full_name}}</div>
           </div>
           <div class='col-xs-1'>
             <span class='text-right'>{{ field.emailColHdr }}</span>
           </div>
           <div [ngClass]="getGroupClass('email')">
-            <input formControlName="email" type="text" class="form-control" />
+            <input formControlName="email" type="text" class="form-control" [readOnly]="field.forceLookupOnly"/>
             <div class="text-danger" *ngIf="field.formModel.controls['email'].touched && field.formModel.controls['email'].hasError('email')">{{field.validationMessages.invalid.email}}</div>
             <div class="text-danger" *ngIf="field.formModel.controls['email'].touched && field.formModel.controls['email'].hasError('required')">{{field.validationMessages.required.email}}</div>
           </div>
@@ -363,6 +375,10 @@ export class ContributorComponent extends SimpleComponent {
       this.field.setValue(val);
     } else {
       console.log(`No selected user.`)
+      if (this.field.forceLookupOnly) {
+        console.log(`Forced lookup, clearing data..`)
+        this.field.setEmptyValue();
+      }
     }
   }
 
