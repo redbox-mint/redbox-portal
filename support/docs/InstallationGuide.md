@@ -14,9 +14,13 @@ Once you have a NodeJS environment installed install the following dependencies 
 
 ## Install the ReDBox Portal
 
-1. Install the ReDBox Portal to your location of choice (e.g. /opt/rbportal) ```yarn add redbox-portal```
-2. Create a [ecosytem.json](http://pm2.keymetrics.io/docs/usage/deployment/) file for PM2 as below
-```{
+1. Install the ReDBox Portal to your location of choice (e.g. /opt/rbportal) 
+```
+yarn add redbox-portal
+```
+2. Create a [ecosytem.json](http://pm2.keymetrics.io/docs/usage/deployment/) file for PM2 as below. See the [portal configuration]() guide for information on how to configure the env section.
+```
+{
   "apps" : [{
     // Application #1
     "name"        : "rbportal",
@@ -33,9 +37,16 @@ Once you have a NodeJS environment installed install the following dependencies 
     }
   }
   ]
-}```
-See the [portal configuration]() guide for information on how to configure the env section
+}
+```
+
 3. Copy your configuration changes over the installation
-4. Setup PM2 run on init e.g `pm2 startup systemd`
-5. Start the application`pm2 start ecosystem.json`
-6. Save the PM2 configuration `pm2 save`
+4. Setup PM2 run on init (depending on your distro) e.g `pm2 startup systemd`
+5. Start the application 
+```
+pm2 start ecosystem.json
+```
+6. Save the PM2 configuration 
+```
+pm2 save
+```
