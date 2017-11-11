@@ -1001,3 +1001,7 @@ div.logo img {
 .pagination > li > a, .pagination > li > span {
   color: #428bca;
 }
+
+.input-space {
+    margin-left: 15px;
+  }

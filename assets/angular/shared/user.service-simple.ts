@@ -22,7 +22,7 @@ import { Http, Response, RequestOptions, Headers } from '@angular/http';
 import 'rxjs/add/operator/map';
 import 'rxjs/add/operator/toPromise';
 import { BaseService } from '../shared/base-service'
-import { User, LoginResult } from './user-models'
+import { User, LoginResult, SaveResult } from './user-models'
 import { ConfigService } from '../shared/config-service';
 /**
  * User related service...
@@ -50,6 +50,36 @@ export class UserSimpleService extends BaseService {
     return this.http.post(`${this.baseUrl}/user/login_local`, {username: username, password:password}, this.getOptionsClient())
     .toPromise()
     .then(this.extractData);
+  }
+
+  getUsers() :Promise<User[]> {
+    return this.http.get(`${this.brandingAndPortalUrl}/admin/users/get`, this.options)
+    .toPromise()
+    .then((res:any) => this.extractData(res) as User[]);
+  }
+
+  updateUserDetails(userid: any, details: any) {
+    return this.http.post(`${this.brandingAndPortalUrl}/admin/users/update`, {userid: userid, details:details}, this.options)
+    .toPromise()
+    .then((res:any) => this.extractData(res) as SaveResult[]);
+  }
+
+  addLocalUser(username: any, details: any) {
+    return this.http.post(`${this.brandingAndPortalUrl}/admin/users/newUser`, {username: username, details:details}, this.options)
+    .toPromise()
+    .then((res:any) => this.extractData(res) as SaveResult[]);
+  }
+
+  genKey(userid: any) {
+    return this.http.post(`${this.brandingAndPortalUrl}/admin/users/genKey`, {userid: userid}, this.options)
+    .toPromise()
+    .then((res:any) => this.extractData(res) as SaveResult[]);
+  }
+
+  revokeKey(userid: any) {
+    return this.http.post(`${this.brandingAndPortalUrl}/admin/users/revokeKey`, {userid: userid}, this.options)
+    .toPromise()
+    .then((res:any) => this.extractData(res) as SaveResult[]);
   }
 
 }

@@ -93,6 +93,7 @@ module.exports.auth = {
   defaultPortal: 'rdmp',
   loginPath: 'user/login',
   hiddenRoles: [],
+  hiddenUsers: [],
   postLogoutRedir: '/',
   // Brand-Portal Specific configuration
   default: {

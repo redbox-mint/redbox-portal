@@ -95,6 +95,11 @@ module.exports.routes = {
     action: 'rolesIndex',
     skipAssets: true
   },
+  '/:branding/:portal/admin/users': {
+    controller: 'typescript/AdminController',
+    action: 'usersIndex',
+    skipAssets: true
+  },
   /***************************************************************************
   *                                                                          *
   * Custom routes here...                                                    *
@@ -110,6 +115,11 @@ module.exports.routes = {
   'get /:branding/:portal/user/login': 'typescript/UserController.login',
   'get /:branding/:portal/user/logout': 'typescript/UserController.logout',
   'get /:branding/:portal/user/find': 'typescript/UserController.find',
+  'get /:branding/:portal/admin/users/get': 'typescript/AdminController.getUsers',
+  'post /:branding/:portal/admin/users/update': 'typescript/AdminController.updateUserDetails',
+  'post /:branding/:portal/admin/users/genKey': 'typescript/AdminController.generateUserKey',
+  'post /:branding/:portal/admin/users/revokeKey': 'typescript/AdminController.revokeUserKey',
+  'post /:branding/:portal/admin/users/newUser': 'typescript/AdminController.addLocalUser',
   'get /:branding/:portal/admin/roles/get': 'typescript/AdminController.getBrandRoles',
   'post /:branding/:portal/admin/roles/user': 'typescript/AdminController.updateUserRoles',
   'get /:branding/:portal/record/:recordType/edit': 'typescript/RecordController.edit',

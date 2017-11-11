@@ -1,0 +1,178 @@
+<div class="col-md-offset-2 col-md-8" *ngIf="!isLoading">
+  <div class="panel panel-default">
+    <div class="panel-heading">
+      <h3 class="panel-title">
+        {{ 'manage-users-title' | translate }}
+      </h3>
+    </div>
+    <div class="panel-body" style="overflow:scroll">
+      <div class="row">
+        <div class="col-sm-9">
+          <div class="input-group">
+            <span class="input-group-addon" id="name-addon">{{ 'manage-users-filter-name' | translate }}</span>
+            <input type="text" (keyup)="onFilterChange(null)" [(ngModel)]="searchFilter.name" class="form-control" placeholder="{{ 'manage-users-filter-name-placeholder' | translate }}" aria-describedby="name-addon">
+            <span (click)="resetFilter()" class="input-group-btn"><button class="btn btn-primary" type='button'>Reset</button></span>
+          </div>
+        </div>
+        <div class="col-sm-3">
+            <span (click)="showNewUserModal()"><button class="btn btn-primary" type='button'>{{ 'manage-users-add-local' | translate }}</button></span>
+        </div>
+      </div>
+      <div>
+        <br/>
+      </div>
+      <div>
+        <br/>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-bordered table-striped table-hover">
+          <thead>
+            <tr>
+              <th>{{ 'manage-users-name' | translate }}</th>
+              <th>{{ 'manage-users-email' | translate }}</th>
+              <th>{{ 'manage-users-role' | translate }}</th>
+              <th>{{ 'manage-users-api' | translate }}</th>
+              <th>{{ 'manage-users-action' | translate }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let user of filteredUsers" (mouseover)="setCurrentUser(user.username)">
+              <td>{{user.name}}</td>
+              <td>{{user.email}}</td>
+              <td>{{user.roleStr}}</td>
+              <td>
+                <i class="fa fa-check" aria-hidden="true" *ngIf="user.token"></i>
+              </td>
+              <td>
+                <a style="cursor:pointer" (click)="editUser(user.username)">Edit</a>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- User Details Modal -->
+<div *ngIf="isDetailsModalShown" [config]="{ show: true }" (onHidden)="onDetailsModalHidden()" bsModal #userDetailsModal="bs-modal" class="modal fade" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog">
+      <!-- Modal content-->
+      <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" (click)="hideDetailsModal()">&times;</button>
+        <h4 class="modal-title">{{ 'manage-users-edit' | translate }}</h4>
+      </div>
+      <div class="modal-body">
+        <form>
+          <div class="table-responsive">
+            <table class="table">
+              <tbody>
+                <tr>
+                  <td>{{ 'manage-users-name' | translate }}</td>
+                  <td *ngIf="currentUser.type == 'local'">
+                    <input type="text" id="updateUserName" (keyup)="onDetailsChange()" [(ngModel)]="detailsUser.name" [ngModelOptions]="{standalone: true}" class="form-control input-sm chat-input" value="{{ currentUser.name }}"/>
+                  </td>
+                  <td *ngIf="currentUser.type != 'local'">{{currentUser.name}}</td>
+                </tr>
+                <tr>
+                  <td>{{ 'manage-users-email' | translate }}</td>
+                  <td *ngIf="currentUser.type == 'local'">
+                      <input type="email" id="updateUserEmail" (keyup)="onDetailsChange()" [(ngModel)]="detailsUser.email" [ngModelOptions]="{standalone: true}" class="form-control input-sm chat-input" value="{{ currentUser.email }}"/>
+                  </td>
+                  <td *ngIf="currentUser.type != 'local'">{{currentUser.email}}</td>
+                </tr>
+                <tr>
+                  <td>{{ 'manage-users-password' | translate }}</td>
+                  <td *ngIf="currentUser.type == 'local'">
+                      <input type="password" id="updateUserPassword" (keyup)="onDetailsChange()" [(ngModel)]="detailsUser.password" [ngModelOptions]="{standalone: true}" class="form-control input-sm chat-input" placeholder="Password"/>
+                  </td>
+                  <td *ngIf="currentUser.type != 'local'">{{ 'manage-users-aaf-password' | translate}}</td>
+                </tr>
+                <tr *ngIf="currentUser.type == 'local'">
+                    <td>{{ 'manage-users-confirm-password' | translate }}</td>
+                    <td>
+                        <input type="password" id="updateUserConfirmPassword" (keyup)="onDetailsChange()" [(ngModel)]="detailsUser.confirmPassword" [ngModelOptions]="{standalone: true}" class="form-control input-sm chat-input" placeholder="Confirm Password"/>
+                    </td>
+                </tr>
+                <tr>
+                  <td>{{ 'manage-users-api' | translate }}</td>
+                  <td *ngIf="!currentUser.token">
+                    <button type="button" class="btn btn-primary" (click)="genKey(currentUser.id)">{{ 'manage-users-api-generate' | translate }}</button>
+                  </td>
+                  <td *ngIf="currentUser.token">
+                      {{ currentUser.token }}
+                      <button type="button" class="btn btn-primary" (click)="revokeKey(currentUser.id)">{{ 'manage-users-api-revoke' | translate }}</button>
+                    </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </form>
+        <div class="bg-{{updateDetailsMsgType}} center-block">{{updateDetailsMsg}}</div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" [disabled]="!isDetailsValidated" (click)="updateCurrentUser($event)">{{ 'manage-users-save' | translate }}</button>
+        <button type="button" class="btn btn-default" (click)="hideDetailsModal()">{{ 'manage-users-cancel' | translate }}</button>
+      </div>
+      </div>
+      </div>
+    </div>
+
+<!-- New User Modal -->
+<div *ngIf="isNewUserModalShown" [config]="{ show: true }" (onHidden)="onNewUserHidden()" bsModal #userNewModal="bs-modal" class="modal fade" tabindex="-1" role="dialog" aria-hidden="true">
+  <div class="modal-dialog">
+      <!-- Modal content-->
+      <div class="modal-content">
+          <div class="modal-header">
+            <button type="button" class="close" (click)="hideNewUserModal()">&times;</button>
+            <h4 class="modal-title">{{ 'manage-users-new' | translate }}</h4>
+          </div>
+          <div class="modal-body">
+            <form>
+              <div class="table-responsive">
+                <table class="table">
+                  <tbody>
+                    <tr>
+                        <td>{{ 'manage-users-username' | translate }}</td>
+                        <td>
+                          <input type="text" id="newUserUsername" (keyup)="onNewUserChange()" [(ngModel)]="newUser.username" [ngModelOptions]="{standalone: true}" class="form-control input-sm chat-input" placeholder="{{ 'manage-users-name' | translate }}"/>
+                        </td>
+                    </tr>
+                    <tr>
+                      <td>{{ 'manage-users-name' | translate }}</td>
+                      <td>
+                        <input type="text" id="newUserName" (keyup)="onNewUserChange()" [(ngModel)]="newUser.name" [ngModelOptions]="{standalone: true}" class="form-control input-sm chat-input" placeholder="{{ 'manage-users-name' | translate }}"/>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>{{ 'manage-users-email' | translate }}</td>
+                      <td>
+                        <input type="email" id="newUserEmail" (keyup)="onNewUserChange()" [(ngModel)]="newUser.email" [ngModelOptions]="{standalone: true}"  class="form-control input-sm chat-input" value="{{ currentUser.email }}"/>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>{{ 'manage-users-password' | translate }}</td>
+                      <td>
+                          <input type="password" id="newUserPassword" (keyup)="onNewUserChange()" [(ngModel)]="newUser.password" [ngModelOptions]="{standalone: true}" class="form-control input-sm chat-input" placeholder="Password"/>
+                      </td>
+                    </tr>
+                    <tr>
+                        <td>{{ 'manage-users-confirm-password' | translate }}</td>
+                        <td>
+                            <input type="password" id="newUserConfirmPassword" (keyup)="onNewUserChange()" [(ngModel)]="newUser.confirmPassword" [ngModelOptions]="{standalone: true}" class="form-control input-sm chat-input" placeholder="Password"/>
+                        </td>
+                      </tr>
+                  </tbody>
+                </table>
+              </div>
+            </form>
+            <div class="bg-{{newUserMsgType}} center-block">{{newUserMsg}}</div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-primary" [disabled]="!isNewUserValidated" (click)="addUser($event)">{{ 'manage-users-save' | translate }}</button>
+            <button type="button" class="btn btn-default" (click)="hideNewUserModal()">{{ 'manage-users-cancel' | translate }}</button>
+          </div>
+          </div>
+          </div>
+        </div>

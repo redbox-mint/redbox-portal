@@ -18,6 +18,14 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 export class User {
+  id: string
+  username: string
+  password: string
+  type: string
+  name: string
+  email: string
+  token: string
+  roles: Role[]
 }
 export class LoginResult {
   id: string

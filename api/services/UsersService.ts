@@ -40,10 +40,14 @@ export module Services {
     protected _exportedMethods: any = [
       'bootstrap',
       'updateUserRoles',
+      'updateUserDetails',
       'getUserWithId',
+      'addLocalUser',
+      'setUserKey',
       'hasRole',
       'findUsersWithName',
       'findAndAssignAccessToRecords',
+      'getUsers',
     ];
 
     protected localAuthInit = () => {
@@ -77,14 +81,14 @@ export module Services {
           User.findOne({ username: username }).populate('roles').exec(function(err, foundUser) {
             if (err) { return done(err); }
             if (!foundUser) {
-              return done(null, false, { message: 'Incorrect username/password.' });
+              return done(null, false, { message: 'Incorrect username/password' });
             }
 
             bcrypt.compare(password, foundUser.password, function(err, res) {
 
               if (!res) {
                 return done(null, false, {
-                  message: 'Invalid username/password'
+                  message: 'Incorrect username/password'
                 });
               }
 
@@ -220,6 +224,30 @@ export module Services {
     }
 
     /**
+     * @return User: the newly created user
+     * 
+     */
+    public addLocalUser = (username, name, email, password) => {
+      const authConfig = ConfigService.getBrand(BrandingService.getDefault().name, 'auth');
+      var usernameField = authConfig.local.usernameField, passwordField = authConfig.local.passwordField;
+
+      return this.getUserWithUsername(username).flatMap(user => {
+        if (user) {
+          return Observable.throw(new Error('Username already exists'));
+        } else {
+          var newUser = { type: 'local', name: name};
+          if (!_.isEmpty(email)){
+            newUser["email"] = email;
+          }
+          newUser[usernameField] = username;
+          newUser[passwordField] = password;
+          return super.getObservable(User.create(newUser));
+        }
+      });
+
+    }
+
+    /**
     @return Object {
           defUser: the default admin user
           defRoles: the default brand's roles
@@ -241,8 +269,51 @@ export module Services {
         });
     }
 
+    protected getUserWithUsername = (username) => {
+      return this.getObservable(User.findOne({ username: username }).populate('roles'));
+    }
+
     public getUserWithId = (userid) => {
       return this.getObservable(User.findOne({ id: userid }).populate('roles'));
+    }
+
+    /**
+     * @return Collection of all users (local and AAF)
+     */
+    public getUsers = () :Observable<any> => {
+      return super.getObservable(User.find({ username: {$exists: true}}).populate('roles'));
+    }
+
+    public setUserKey = (userid, uuid) => {
+      return this.getUserWithId(userid).flatMap(user => {
+        if (user) {
+          user["token"] = uuid;
+          return this.getObservable(user, 'save', 'simplecb');
+        } else {
+          return Observable.throw(new Error('No such user with id:' + userid));
+        }
+      });
+    }
+
+    public updateUserDetails = (userid, name, email, password) => {
+      const authConfig = ConfigService.getBrand(BrandingService.getDefault().name, 'auth');
+      var passwordField = authConfig.local.passwordField;
+
+      return this.getUserWithId(userid).flatMap(user => {
+        if (user) {
+          user["name"] = name;
+
+          if (!_.isEmpty(email)) {
+            user["email"] = email;
+          }
+          if (!_.isEmpty(password)) {
+            user[passwordField] = password;
+          }
+          return this.getObservable(user, 'save', 'simplecb');
+        } else {
+          return Observable.throw(new Error('No such user with id:' + userid));
+        }
+      });
     }
 
     public updateUserRoles = (userid, newRoleIds) => {

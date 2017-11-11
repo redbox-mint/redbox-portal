@@ -21,6 +21,7 @@
 declare var module;
 declare var sails;
 import { Observable } from 'rxjs/Rx';
+import * as uuidv4 from 'uuid/v4';
 declare var BrandingService, RolesService, UsersService;
 
 import controller = require('../../../typescript/controllers/CoreController.js');
@@ -38,8 +39,14 @@ export module Controllers {
      */
     protected _exportedMethods: any = [
         'rolesIndex',
+        'usersIndex',
         'getBrandRoles',
-        'updateUserRoles'
+        'getUsers',
+        'updateUserRoles',
+        'updateUserDetails',
+        'addLocalUser',
+        'generateUserKey',
+        'revokeUserKey'
     ];
 
     /**
@@ -57,6 +64,29 @@ export module Controllers {
 
     public rolesIndex(req, res) {
       return this.sendView(req, res, 'admin/roles');
+    }
+
+    public usersIndex(req, res) {
+      return this.sendView(req, res, 'admin/users');
+    }
+
+    public getUsers(req, res) {
+      var pageData = {};
+      var users = UsersService.getUsers().flatMap(users => {
+        _.map(users, (user) => {
+          if (_.isEmpty(_.find(sails.config.auth.hiddenUsers, (hideUser) => { return hideUser == user.name }))) {
+            // not hidden, adding to view data...
+            if (_.isEmpty(pageData.users)) {
+              pageData.users = [];
+            }
+            pageData.users.push(user);
+          }
+        });
+        return Observable.of(pageData);
+      })
+      .subscribe(pageData => {
+        this.ajaxOk(req, res, null, pageData.users);
+      });
     }
 
     public getBrandRoles(req, res) {
@@ -78,6 +108,76 @@ export module Controllers {
       .subscribe(pageData => {
         this.ajaxOk(req, res, null, pageData.roles);
       });
+    }
+
+    public generateUserKey(req, res) {
+      var userid = req.body.userid;
+      if (userid) {
+        var uuid = uuidv4();
+        sails.log.verbose("UUID: " + uuid);
+        UsersService.setUserKey(userid, uuid).subscribe(user => {
+          this.ajaxOk(req, res, "UUID set successfully")
+        }, error => {
+          sails.log.error("Failed to set UUID:");
+          sails.log.error(error);
+          this.ajaxFail(req, res, error.message);
+        });
+      }
+      else {
+        return this.ajaxFail(req, res, "Please provide userid");
+      }
+    }
+
+    public revokeUserKey(req, res) {
+      var userid = req.body.userid;
+      if (userid) {
+        var uuid = null;
+        UsersService.setUserKey(userid, uuid).subscribe(user => {
+          this.ajaxOk(req, res, "UUID revoked successfully")
+        }, error => {
+          sails.log.error("Failed to revoke UUID:");
+          sails.log.error(error);
+          this.ajaxFail(req, res, error.message);
+        });
+      }
+      else {
+        return this.ajaxFail(req, res, "Please provide userid");
+      }
+    }
+
+    public addLocalUser(req, res) {
+      var username = req.body.username;
+      var details = req.body.details;
+      if (details.name) { var name = details.name };
+      if (details.password) { var password = details.password };
+      if (username && name && password) {
+        UsersService.addLocalUser(username, name, details.email, password).subscribe(user => {
+          this.ajaxOk(req, res, "User created successfully");
+        }, error => {
+          sails.log.error("Failed to create user:");
+          sails.log.error(error);
+          this.ajaxFail(req, res, error.message);
+        });
+      } else {
+        this.ajaxFail(req, res, "Please provide minimum of username, name and password");
+      }
+    }
+
+    public updateUserDetails(req, res) {
+      var userid = req.body.userid;
+      var details = req.body.details;
+      if (details.name) { var name = details.name };
+      if (userid && name) {
+        UsersService.updateUserDetails(userid, name, details.email, details.password).subscribe(user => {
+          this.ajaxOk(req, res, "Save OK.");
+        }, error => {
+          sails.log.error("Failed to update user details:");
+          sails.log.error(error);
+          this.ajaxFail(req, res, error.message);
+        });
+      } else {
+        this.ajaxFail(req, res, "Please provide minimum of userid and name");
+      }
     }
 
     /**
