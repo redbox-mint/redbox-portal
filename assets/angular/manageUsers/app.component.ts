@@ -45,8 +45,8 @@ declare var pageData :any;
 export class AppComponent extends LoadableComponent {
   allUsers: User[] = [];
   filteredUsers: User[] = [];
-  searchFilter: { name: string, user: any, prevName: string, prevUser: any, users: any[] } = { 
-    name: null, user: null, prevName: null, prevUser:null, users: [ {value: null, label:'Any', checked:true}]};
+  searchFilter: { name: string, prevName: string, users: any[] } = { 
+    name: null, prevName: null, users: [ {value: null, label:'Any', checked:true}]};
   detailsUser: { userid: string, name: string, email: string, password: string, confirmPassword: string } =
     { userid: null, name: null, email: null, password: null, confirmPassword: null };
   newUser: { username: string, name: string, email: string, password: string, confirmPassword: string } =
@@ -115,6 +115,7 @@ export class AppComponent extends LoadableComponent {
       this.detailsUser.password = "";
       this.detailsUser.confirmPassword = "";
     }
+    this.onDetailsChange();
     this.showDetailsModal();
   }
 
@@ -127,16 +128,34 @@ export class AppComponent extends LoadableComponent {
   onNewUserHidden():void {this.isNewUserModalShown = false;}
 
   genKey(userid: string) {
-    this.usersService.genKey(userid);
+    this.setUpdateMessage("Generating...", "primary");
+    this.usersService.genKey(userid).then((saveRes:SaveResult) => {
+      if (saveRes.status) {
+        this.currentUser.token = saveRes.message;
+        this.refreshUsers();
+        this.setUpdateMessage();
+      } else {
+        this.setUpdateMessage(saveRes.message, "danger");
+      }
+    });
   }
 
   revokeKey(userid: string) {
-    this.usersService.revokeKey(userid);
+    this.setUpdateMessage("Revoking...", "primary");
+    this.usersService.revokeKey(userid).then((saveRes:SaveResult) => {
+      if (saveRes.status) {
+        this.currentUser.token = null;
+        this.refreshUsers();
+        this.setUpdateMessage();
+      } else {
+        this.setUpdateMessage(saveRes.message, "danger");
+      }
+    });
   }
 
   // note: can rm this, was used for testing
   setCurrentUser(username: string) {
-    this.currentUser = _.find(this.allUsers, (user:any)=>{return user.username == username});
+    //this.currentUser = _.find(this.allUsers, (user:any)=>{return user.username == username});
   }
 
   updateCurrentUser($event:any) {
@@ -147,7 +166,7 @@ export class AppComponent extends LoadableComponent {
     var details: { name: string, email: string, password: string } = 
       { name: this.detailsUser.name, email: this.detailsUser.email, password: this.detailsUser.password };
     this.setUpdateMessage("Saving...", "primary");
-    this.usersService.addLocalUser(this.detailsUser.userid, details).then((saveRes:SaveResult) => {
+    this.usersService.updateUserDetails(this.detailsUser.userid, details).then((saveRes:SaveResult) => {
       if (saveRes.status) {
         this.hideDetailsModal();
         this.refreshUsers();
@@ -189,37 +208,71 @@ export class AppComponent extends LoadableComponent {
   }
 
   onDetailsChange() {
-    // TODO - validator
-    this.isDetailsValidated = true;
+    var validated = true;
+    if (_.isEmpty(this.detailsUser.name)) {
+      validated = false; 
+      this.setUpdateMessage("Name cannot be empty", "danger"); 
+    }
+
+    if (!_.isEmpty(this.detailsUser.password)) {
+      if (this.detailsUser.password != this.detailsUser.confirmPassword) {
+        validated = false;
+        this.setUpdateMessage("Passwords do not match", "danger"); 
+      }
+    }
+
+    if (validated) {
+      this.setUpdateMessage();
+    }
+
+    this.isDetailsValidated = validated;
   }
 
   onNewUserChange() {
-    // TODO - validator
-    this.isNewUserValidated = true;
+    var validated = true;
+    if (_.isEmpty(this.newUser.username)) {
+      validated = false; 
+      this.setNewUserMessage("Username cannot be empty", "danger"); 
+    }
+
+    if (_.isEmpty(this.newUser.name)) {
+      validated = false; 
+      this.setNewUserMessage("Name cannot be empty", "danger"); 
+    }
+
+    if (_.isEmpty(this.newUser.password)) {
+      validated = false; 
+      this.setNewUserMessage("Password cannot be empty", "danger"); 
+    }
+
+    if (!_.isEmpty(this.newUser.password)) {
+      if (this.newUser.password != this.newUser.confirmPassword) {
+        validated = false;
+        this.setNewUserMessage("Passwords do not match", "danger"); 
+      }
+    }
+
+    if (validated) {
+      this.setNewUserMessage();
+    }
+    
+    this.isNewUserValidated = validated;
   }
 
-  onFilterChange(userFilter:any=null) {
-    if (userFilter) {
-      userFilter.checked = true;
-      this.searchFilter.user = userFilter.value;
-      _.map(this.searchFilter.users, (user:any)=> user.checked = userFilter.value == user.value );
-    }
-    if (this.searchFilter.name != this.searchFilter.prevName || this.searchFilter.user != this.searchFilter.prevUser) {
+  onFilterChange() {
+    if (this.searchFilter.name != this.searchFilter.prevName) {
       this.searchFilter.prevName = this.searchFilter.name;
-      this.searchFilter.prevUser = this.searchFilter.user;
       var nameFilter =_.isEmpty(this.searchFilter.name) ? "" : _.trim(this.searchFilter.name);
-      // run filter change...
+
       this.filteredUsers = _.filter(this.allUsers, (user:any) => {
-        var hasUser = this.searchFilter.user == null ?  true : _.includes(user.users, this.searchFilter.user);
         var hasNameMatch = nameFilter == "" ? true : (_.toLower(user.name).indexOf(_.toLower(this.searchFilter.name)) >= 0);
-        return hasUser && hasNameMatch;
+        return hasNameMatch;
       });
     }
   }
 
   resetFilter() {
     this.searchFilter.name = null;
-    this.searchFilter.user = null;
     _.map(this.searchFilter.users, (user:any)=> user.checked = user.value == null);
     this.onFilterChange();
   }

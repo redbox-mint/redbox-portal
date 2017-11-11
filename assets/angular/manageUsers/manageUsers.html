@@ -10,7 +10,7 @@
         <div class="col-sm-9">
           <div class="input-group">
             <span class="input-group-addon" id="name-addon">{{ 'manage-users-filter-name' | translate }}</span>
-            <input type="text" (keyup)="onFilterChange(null)" [(ngModel)]="searchFilter.name" class="form-control" placeholder="{{ 'manage-users-filter-name-placeholder' | translate }}" aria-describedby="name-addon">
+            <input type="text" (keyup)="onFilterChange()" [(ngModel)]="searchFilter.name" class="form-control" placeholder="{{ 'manage-users-filter-name-placeholder' | translate }}" aria-describedby="name-addon">
             <span (click)="resetFilter()" class="input-group-btn"><button class="btn btn-primary" type='button'>Reset</button></span>
           </div>
         </div>
@@ -136,7 +136,7 @@
                     <tr>
                         <td>{{ 'manage-users-username' | translate }}</td>
                         <td>
-                          <input type="text" id="newUserUsername" (keyup)="onNewUserChange()" [(ngModel)]="newUser.username" [ngModelOptions]="{standalone: true}" class="form-control input-sm chat-input" placeholder="{{ 'manage-users-name' | translate }}"/>
+                          <input type="text" id="newUserUsername" (keyup)="onNewUserChange()" [(ngModel)]="newUser.username" [ngModelOptions]="{standalone: true}" class="form-control input-sm chat-input" placeholder="{{ 'manage-users-username' | translate }}"/>
                         </td>
                     </tr>
                     <tr>
@@ -148,19 +148,19 @@
                     <tr>
                       <td>{{ 'manage-users-email' | translate }}</td>
                       <td>
-                        <input type="email" id="newUserEmail" (keyup)="onNewUserChange()" [(ngModel)]="newUser.email" [ngModelOptions]="{standalone: true}"  class="form-control input-sm chat-input" value="{{ currentUser.email }}"/>
+                        <input type="email" id="newUserEmail" (keyup)="onNewUserChange()" [(ngModel)]="newUser.email" [ngModelOptions]="{standalone: true}"  class="form-control input-sm chat-input" placeholder="{{ 'manage-users-email' | translate }}"/>
                       </td>
                     </tr>
                     <tr>
                       <td>{{ 'manage-users-password' | translate }}</td>
                       <td>
-                          <input type="password" id="newUserPassword" (keyup)="onNewUserChange()" [(ngModel)]="newUser.password" [ngModelOptions]="{standalone: true}" class="form-control input-sm chat-input" placeholder="Password"/>
+                          <input type="password" id="newUserPassword" (keyup)="onNewUserChange()" [(ngModel)]="newUser.password" [ngModelOptions]="{standalone: true}" class="form-control input-sm chat-input" placeholder="{{ 'manage-users-password' | translate }}"/>
                       </td>
                     </tr>
                     <tr>
                         <td>{{ 'manage-users-confirm-password' | translate }}</td>
                         <td>
-                            <input type="password" id="newUserConfirmPassword" (keyup)="onNewUserChange()" [(ngModel)]="newUser.confirmPassword" [ngModelOptions]="{standalone: true}" class="form-control input-sm chat-input" placeholder="Password"/>
+                            <input type="password" id="newUserConfirmPassword" (keyup)="onNewUserChange()" [(ngModel)]="newUser.confirmPassword" [ngModelOptions]="{standalone: true}" class="form-control input-sm chat-input" placeholder="{{ 'manage-users-confirm-password' | translate }}"/>
                         </td>
                       </tr>
                   </tbody>
