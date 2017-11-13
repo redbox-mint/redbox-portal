@@ -50,7 +50,7 @@ export module Services {
 
     public create(brand, record, formName=sails.config.form.defaultForm): Observable<any> {
       // TODO: validate metadata with the form...
-      const options = this.getOptions(sails.config.record.api.create.url);
+      const options = this.getOptions(sails.config.record.baseUrl.redbox+sails.config.record.api.create.url);
       options.body = record;
       sails.log.verbose(options);
       return Observable.fromPromise(request[sails.config.record.api.create.method](options));
@@ -58,13 +58,13 @@ export module Services {
 
     public updateMeta(brand, oid, record): Observable<any> {
       // TODO: validate metadata with the form...
-      const options = this.getOptions(sails.config.record.api.updateMeta.url, oid);
+      const options = this.getOptions(sails.config.record.baseUrl.redbox+sails.config.record.api.updateMeta.url, oid);
       options.body = record;
       return Observable.fromPromise(request[sails.config.record.api.updateMeta.method](options));
     }
 
     public getMeta(oid) {
-      const options = this.getOptions(sails.config.record.api.getMeta.url, oid);
+      const options = this.getOptions(sails.config.record.baseUrl.redbox+sails.config.record.api.getMeta.url, oid);
       return Observable.fromPromise(request[sails.config.record.api.getMeta.method](options));
     }
 
@@ -117,7 +117,7 @@ export module Services {
     }
 
     public createBatch(type, data, harvestIdFldName) {
-      const options = this.getOptions(sails.config.record.api.harvest.url, null, type);
+      const options = this.getOptions(sails.config.record.baseUrl.redbox+sails.config.record.api.harvest.url, null, type);
       data = _.map(data, dataItem => {
         return {harvest_id: _.get(dataItem, harvestIdFldName, ''), metadata: {metadata: dataItem, metaMetadata: {type:type}}};
       });
@@ -159,7 +159,7 @@ export module Services {
         });
       }
 
-      const url = `${sails.config.record.api.search.url}?q=metaMetadata_brandId:${brand.id} AND metaMetadata_type:${type}${searchParam}&version=2.2&wt=json&sort=date_object_modified desc`;
+      const url = `${sails.config.record.baseUrl.redbox}${sails.config.record.api.search.url}?q=metaMetadata_brandId:${brand.id} AND metaMetadata_type:${type}${searchParam}&version=2.2&wt=json&sort=date_object_modified desc`;
       sails.log.verbose(`Searching fuzzy using: ${url}`);
       const options = this.getOptions(url);
       return Observable.fromPromise(request[sails.config.record.api.search.method](options))
@@ -208,7 +208,7 @@ export module Services {
 
     protected getSearchTypeUrl(type, searchField=null, searchStr=null) {
       const searchParam = searchField ? ` AND ${searchField}:${searchStr}*` : '';
-      return `${sails.config.record.api.search.url}?q=metaMetadata_type:${type}${searchParam}&version=2.2&wt=json&sort=date_object_modified desc`;
+      return `${sails.config.record.baseUrl.redbox}${sails.config.record.api.search.url}?q=metaMetadata_type:${type}${searchParam}&version=2.2&wt=json&sort=date_object_modified desc`;
     }
 
     protected provideUserAccessAndRemovePendingAccess(oid,userid,pendingValue) {

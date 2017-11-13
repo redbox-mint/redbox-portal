@@ -14,11 +14,11 @@ export module Controllers {
   export class Branding extends controller.Controllers.Core.Controller {
 
     private blobAdapter = skipperGridFs({
-      host: 'mongodb',
-      port: 27017,
-      user: '',
-      password: '',
-      dbname: 'rds-dlcf-portal'
+      host: sails.config.connections.mongodb.host,
+      port: sails.config.connections.mongodb.port,
+      user: sails.config.connections.mongodb.user,
+      password: sails.config.connections.mongodb.password,
+      dbname: sails.config.connections.mongodb.database
     });
     /**
      * Exported methods, accessible from internet.

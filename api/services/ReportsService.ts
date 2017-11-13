@@ -99,7 +99,7 @@ export module Services {
       }));
 
       return reportObs.flatMap(report => {
-        var url = this.addQueryParams(sails.config.record.api.search.url, report);
+        var url = this.addQueryParams(sails.config.record.baseUrl.redbox + sails.config.record.api.search.url, report);
         url = this.addPaginationParams(url, start, rows);
         url = url + "&fq=metaMetadata_brandId:" + brand.id + "&wt=json";
 
@@ -128,7 +128,7 @@ export module Services {
       }));
 
       return reportObs.flatMap(report => {
-        var url = this.addQueryParams(sails.config.record.api.search.url, report);
+        var url = this.addQueryParams(sails.config.record.baseUrl.redbox + sails.config.record.api.search.url, report);
         //TODO: Ensure we get all results in a tidier way
         url = this.addPaginationParams(url, start, 1000000000);
         url = url + "&fq=metaMetadata_brandId:" + brand.id + "&wt=csv";

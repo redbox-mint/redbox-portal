@@ -35,7 +35,7 @@ export module Services {
      *
      */
     export class Email extends services.Services.Core.Service {
-  
+
         protected _exportedMethods: any = [
             'sendMessage',
             'buildFromTemplate',
@@ -47,9 +47,9 @@ export module Services {
         * Base email sending method.
         * Return: code, msg
         */
-        public sendMessage(msgTo: string, msgBody: string, 
-            msgSubject: string = sails.config.emailnotification.defaults.subject, 
-            msgFrom: string = sails.config.emailnotification.defaults.from, 
+        public sendMessage(msgTo: string, msgBody: string,
+            msgSubject: string = sails.config.emailnotification.defaults.subject,
+            msgFrom: string = sails.config.emailnotification.defaults.from,
             msgFormat: string = sails.config.emailnotification.defaults.format): Observable<any> {
             if (!sails.config.emailnotification.settings.enabled) {
                 sails.log.verbose("Received email notification request, but is disabled. Ignoring.");
@@ -57,7 +57,7 @@ export module Services {
             }
             sails.log.verbose('Received email notification request. Processing.');
 
-            var url = `${sails.config.emailnotification.api.send.url}`;
+            var url = `${sails.config.record.baseUrl.redbox}${sails.config.emailnotification.api.send.url}`;
             var body = {
                 "to": [msgTo],
                 "subject": msgSubject,
@@ -66,9 +66,9 @@ export module Services {
                 "format": msgFormat
             };
             var options = { url: url, json: true, body: body, headers: { 'Authorization': `Bearer ${sails.config.redbox.apiKey}`, 'Content-Type': 'application/json; charset=utf-8' } };
-            
+
             var response = Observable.fromPromise(request[sails.config.emailnotification.api.send.method](options)).catch(error => Observable.of(`Error: ${error}`));
-            
+
             return response.map(result => {
                 if (result['code'] != '200') {
                     sails.log.error(`Unable to post message to message queue: ${result}`);
@@ -83,9 +83,9 @@ export module Services {
 
         /**
        * Build Email Body from Template
-       * 
+       *
        * Templates are defined in sails config
-       * 
+       *
        * Return: status, body, exc
        */
 
@@ -96,7 +96,7 @@ export module Services {
             encoding: string,
             callback: (error: Error, buffer: Buffer) => void
         ) => fs.readFile(path, encoding, callback));
-        
+
         let res = {};
         let readTemplate = readFileAsObservable(sails.config.emailnotification.settings.templateDir + template + '.ejs', 'utf8');
 
@@ -130,5 +130,5 @@ export module Services {
     }
 
 }
-  
+
 module.exports = new Services.Email().exports();

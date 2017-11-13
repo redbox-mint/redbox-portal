@@ -1,10 +1,14 @@
 module.exports.record = {
+  baseUrl: {
+    redbox: "http://redbox:9000/redbox",
+    mint: "http://203.101.226.160/mint"
+  },
   api: {
-    create: {method: 'post', url: "http://redbox:9000/redbox/api/v1/object/rdmp"},
-    search: {method: 'get', url: "http://redbox:9000/redbox/api/v1/search"},
-    getMeta: {method: 'get', url: "http://redbox:9000/redbox/api/v1/recordmetadata/$oid"},
-    updateMeta: {method: 'post', url: "http://redbox:9000/redbox/api/v1/recordmetadata/$oid"},
-    harvest: {method: 'post', url:"http://redbox:9000/redbox/api/v1.1/harvest/$packageType"}
+    create: {method: 'post', url: "/api/v1/object/rdmp"},
+    search: {method: 'get', url: "/api/v1/search"},
+    getMeta: {method: 'get', url: "/api/v1/recordmetadata/$oid"},
+    updateMeta: {method: 'post', url: "/api/v1/recordmetadata/$oid"},
+    harvest: {method: 'post', url:"/api/v1.1/harvest/$packageType"}
   },
   customFields: {
     '@branding': {

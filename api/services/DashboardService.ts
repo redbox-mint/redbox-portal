@@ -42,7 +42,7 @@ export module Services {
 
     public getPlans(workflowState, start, rows = 10, username, roles, brand, editAccessOnly=undefined) {
 
-      var url = this.addQueryParams(sails.config.record.api.search.url, workflowState);
+      var url = this.addQueryParams(sails.config.record.baseUrl.redbox + sails.config.record.api.search.url, workflowState);
       url = this.addPaginationParams(url, start, rows);
       url = this.addAuthFilter(url, username, roles, brand, editAccessOnly)
       url = url+"&fq=metaMetadata_brandId:"+brand.id
@@ -52,7 +52,8 @@ export module Services {
 
     exportAllPlans(username, roles, brand, format, modBefore, modAfter) {
       const dateQ = modBefore || modAfter ? ` AND date_object_modified:[${modAfter ? `${modAfter}T00:00:00Z`: '*'} TO ${modBefore ? `${modBefore}T23:59:59Z` : '*'}]` : '';
-      var url = `${sails.config.record.api.search.url}?q=metaMetadata_type:rdmp${dateQ}&sort=date_object_modified desc&version=2.2&wt=${format}`;
+      var url = sails.config.record.baseUrl.redbox;
+      url = `${url}${sails.config.record.api.search.url}?q=metaMetadata_type:rdmp${dateQ}&sort=date_object_modified desc&version=2.2&wt=${format}`;
       url = `${url}&start=0&rows=${sails.config.record.export.maxRecords}`;
       url = this.addAuthFilter(url, username, roles, brand)
       url = url+"&fq=metaMetadata_brandId:"+brand.id

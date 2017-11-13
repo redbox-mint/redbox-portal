@@ -57,7 +57,7 @@ module.exports = {
     api: {
       search: {
         method: 'get',
-        url: 'http://203.101.226.160/mint/api/v1/search'
+        url: '/mint/api/v1/search'
       }
     }
   }

@@ -60,7 +60,7 @@ export module Services {
       if (!_.isEmpty(queryString)) {
         searchString = ` AND (${queryString})`;
       }
-      const mintUrl = `${sails.config.mint.api.search.url}?q=repository_type:${sourceType}${searchString}&version=2.2&wt=json&start=0`;
+      const mintUrl = `${sails.config.record.baseUrl.mint}${sails.config.mint.api.search.url}?q=repository_type:${sourceType}${searchString}&version=2.2&wt=json&start=0`;
       const options = this.getMintOptions(mintUrl);
       return Observable.fromPromise(request[sails.config.record.api.search.method](options));
     }
