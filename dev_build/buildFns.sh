@@ -59,9 +59,11 @@ function compileAoT() {
   node_modules/.bin/ngc -p tsconfig-aot.json
   node_modules/.bin/grunt --gruntfile Gruntfile-ts-compile-sails.js
   node_modules/.bin/grunt --gruntfile Gruntfile-ts-compile-ng2.js
-  ng2apps=( "localAuth" "dmp" "manageRoles" "dashboard" "export" "transfer_owner" "record_search" "report" )
+  ng2apps=( `find assets/angular -maxdepth 1 -mindepth 1 -type d -printf '%f '` )
   for ng2app in "${ng2apps[@]}"
   do
-    bundleNg2App $ng2app
+    if [ "$ng2app" != "shared" ]; then
+      bundleNg2App $ng2app
+    fi
   done
 }

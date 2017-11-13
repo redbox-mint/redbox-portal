@@ -470,6 +470,7 @@ module.exports.form = {
                         label: '@dmpt-people-tab-supervisor',
                         role: "@dmpt-people-tab-supervisor-role",
                         freeText: false,
+                        forceLookupOnly: true,
                         vocabId: 'Parties AND repository_name:People',
                         sourceType: 'mint',
                         fieldNames: [{'text_full_name':'text_full_name'}, {'full_name_honorific':'text_full_name_honorific'}, {'email': 'Email[0]'}],
