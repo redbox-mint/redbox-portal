@@ -88,7 +88,7 @@ export module Controllers {
         if (req.session.redirUrl) {
           return req.session.redirUrl;
         } else {
-          return `/${branding}/${portal}/${sails.config.auth[req.session.branding].local.postLoginRedir}`;
+          return `/${branding}/${portal}/${sails.config.auth[branding].local.postLoginRedir}`;
         }
       }
 
