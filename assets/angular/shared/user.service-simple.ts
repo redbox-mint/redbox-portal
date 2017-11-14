@@ -47,7 +47,7 @@ export class UserSimpleService extends BaseService {
   }
 
   loginLocal(username: string, password: string): Promise<any> {
-    return this.http.post(`${this.baseUrl}/user/login_local`, {username: username, password:password}, this.getOptionsClient())
+    return this.http.post(`${this.baseUrl}/user/login_local`, {username: username, password:password, branding:this.config.branding, portal: this.config.portal}, this.getOptionsClient())
     .toPromise()
     .then(this.extractData);
   }

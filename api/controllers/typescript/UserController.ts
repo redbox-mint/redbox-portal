@@ -82,10 +82,13 @@ export module Controllers {
       }
 
       protected getPostLoginUrl(req, res) {
+        const branding = req.body.branding;
+        const portal = req.body.portal;
+        sails.log.debug(`Login local using branding: ${branding} and portal: ${portal}`);
         if (req.session.redirUrl) {
           return req.session.redirUrl;
         } else {
-          return `${BrandingService.getBrandAndPortalPath(req)}/${sails.config.auth[req.session.branding].local.postLoginRedir}`;
+          return `/${branding}/${portal}/${sails.config.auth[req.session.branding].local.postLoginRedir}`;
         }
       }
 
