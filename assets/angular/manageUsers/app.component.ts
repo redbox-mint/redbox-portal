@@ -24,9 +24,11 @@ import { ModalDirective } from 'ngx-bootstrap';
 import * as _ from "lodash-lib";
 
 import { UserSimpleService } from '../shared/user.service-simple';
-import { User, LoginResult, SaveResult } from '../shared/user-models';
+import { RolesService } from '../shared/roles-service';
+import { Role, User, LoginResult, SaveResult } from '../shared/user-models';
 import { LoadableComponent } from '../shared/loadable.component';
 import { TranslationService } from '../shared/translation-service';
+import { NewUser, UpdateUser } from './app.interfaces';
 
 declare var pageData :any;
 /**
@@ -45,35 +47,51 @@ declare var pageData :any;
 export class AppComponent extends LoadableComponent {
   allUsers: User[] = [];
   filteredUsers: User[] = [];
+  roles: Role[];
+  updateRoles: any[];
+  newRoles: any[];
+
   searchFilter: { name: string, prevName: string, users: any[] } = { 
     name: null, prevName: null, users: [ {value: null, label:'Any', checked:true}]};
-  detailsUser: { userid: string, name: string, email: string, password: string, confirmPassword: string } =
-    { userid: null, name: null, email: null, password: null, confirmPassword: null };
-  newUser: { username: string, name: string, email: string, password: string, confirmPassword: string } =
-    { username: null, name: null, email: null, password: null, confirmPassword: null};
+  detailsUser: { userid: string, name: string, email: string, password: string, confirmPassword: string, roles: Role[] } =
+    { userid: null, name: null, email: null, password: null, confirmPassword: null, roles: [] };
+  newUser: { username: string, name: string, email: string, password: string, confirmPassword: string, roles: Role[] } =
+    { username: null, name: null, email: null, password: null, confirmPassword: null, roles: []};
+
   hiddenUsers = ['']; //include local admin
   currentUser: User = new User();
+
   updateDetailsMsg = "";
   updateDetailsMsgType ="info";
   newUserMsg = "";
   newUserMsgType ="info";
+
   initSubs: any;
+
   @ViewChild('userDetailsModal') userDetailsModal:ModalDirective;
   @ViewChild('userNewModal') userNewModal:ModalDirective;
+
   isDetailsModalShown:boolean = false;
   isNewUserModalShown:boolean = false;
   isDetailsValidated:boolean = false;
   isNewUserValidated:boolean = false;
   
-  constructor (@Inject(UserSimpleService) protected usersService: UserSimpleService, @Inject(FormBuilder) fb: FormBuilder, @Inject(DOCUMENT) protected document:any, translationService:TranslationService) {
+  constructor (@Inject(UserSimpleService, RolesService) protected usersService: UserSimpleService, protected rolesService: RolesService, @Inject(FormBuilder) fb: FormBuilder, @Inject(DOCUMENT) protected document:any, translationService:TranslationService) {
     super();
     this.initTranslator(translationService);
-    this.resetNewUser();
-    this.initSubs = usersService.waitForInit((initStat:any) => {
-      this.initSubs.unsubscribe();
-      translationService.isReady(tService => {
-        this.refreshUsers();
-      });
+    this.initSubs = usersService.waitForInit((initStatUsers:any) => {
+      rolesService.waitForInit((initStatRole:any) => {
+        this.initSubs.unsubscribe();
+        translationService.isReady(tService => {
+          rolesService.getBrandRoles().then((roles:any) => {
+            this.roles = roles;
+            this.newRoles = _.map(this.roles, (r:any) => {
+              return {name: r.name, id:r.id, hasRole: false };
+            });
+          });
+          this.refreshUsers();
+        });
+      });      
     });
   }
 
@@ -85,7 +103,6 @@ export class AppComponent extends LoadableComponent {
       });
       this.filteredUsers = [];
       _.forEach(users, (user:any) => {
-        console.log(user);
         this.searchFilter.users.push({value:user.name, label:user.name, checked:false});
         if (!_.includes(this.hiddenUsers, user.username)) {
           // filter out any system accounts e.g.
@@ -98,16 +115,32 @@ export class AppComponent extends LoadableComponent {
   }
 
   resetNewUser() {
-    this.newUser.username = "";
-    this.newUser.name = "";
-    this.newUser.email = "";
-    this.newUser.password = "";
-    this.newUser.confirmPassword = ""; 
+    this.newUser.username = null;
+    this.newUser.name = null;
+    this.newUser.email = null;
+    this.newUser.password = null;
+    this.newUser.confirmPassword = null;
+    this.newRoles = _.map(this.roles, (r:any) => {
+      return {name: r.name, id:r.id, hasRole: false };
+    });
+    this.setNewUserMessage();
+    this.hideNewUserModal();
+  }
+
+  // reset model if user clicks "cancel" on modal
+  resetDetailsUser() {
+    this.detailsUser.userid = null; //only need to reset uid, editUser() handles rest
+    this.setUpdateMessage();
+    this.hideDetailsModal();
   }
 
   editUser(username: string) {
     //this.setUpdateMessage();
     this.currentUser = _.find(this.allUsers, (user:any)=>{return user.username == username});
+    this.updateRoles = _.map(this.roles, (r:any) => {
+      return {name: r.name, id:r.id, hasRole: _.includes(
+        _.flatMap(this.currentUser.roles, role => { return role['name']; }), r.name)};
+    });
     if (this.detailsUser.userid != this.currentUser.id){
       this.detailsUser.userid = this.currentUser.id;
       this.detailsUser.name = this.currentUser.name;
@@ -165,12 +198,37 @@ export class AppComponent extends LoadableComponent {
     }
     var details: { name: string, email: string, password: string } = 
       { name: this.detailsUser.name, email: this.detailsUser.email, password: this.detailsUser.password };
+    var userRoles:any[] = [];
+    _.forEach(this.updateRoles, (role:any) => {
+      if (role.hasRole)
+      userRoles.push(role.name);
+    });
     this.setUpdateMessage("Saving...", "primary");
+
+    let returnedOk:boolean = false;
+    this.rolesService.updateUserRoles(this.detailsUser.userid, userRoles).then((saveRes:SaveResult) => {
+      if (saveRes.status) {
+        if (returnedOk) {
+          this.hideDetailsModal();
+          this.refreshUsers();
+          this.setUpdateMessage();
+        } else {
+          returnedOk = true;
+        }
+      } else {
+        this.setUpdateMessage(saveRes.message, "danger");
+      }
+    });
+
     this.usersService.updateUserDetails(this.detailsUser.userid, details).then((saveRes:SaveResult) => {
       if (saveRes.status) {
-        this.hideDetailsModal();
-        this.refreshUsers();
-        this.setUpdateMessage();
+        if (returnedOk) {
+          this.hideDetailsModal();
+          this.refreshUsers();
+          this.setUpdateMessage();
+        } else {
+          returnedOk = true;
+        }
       } else {
         this.setUpdateMessage(saveRes.message, "danger");
       }
@@ -178,17 +236,22 @@ export class AppComponent extends LoadableComponent {
   }
 
   addUser() {
-    if (!this.isNewUserValidated){
+    if (this.isNewUserValidated){
       this.setNewUserMessage("Please validate form", "danger");
       return;
     }
-    var details: { name: string, email: string, password: string } = 
-      { name: this.newUser.name, email: this.newUser.email, password: this.newUser.password };
+    var details: { name: string, email: string, password: string, roles: any[] } = 
+      { name: this.newUser.name, email: this.newUser.email, password: this.newUser.password, roles: [] };
+    
+    _.forEach(this.newRoles, (role:any) => {
+      if (role.hasRole)
+      details.roles.push(role.name);
+      });
+
     this.setNewUserMessage("Saving...", "primary");
     this.usersService.addLocalUser(this.newUser.username, details).then((saveRes:SaveResult) => {
       if (saveRes.status) {
         this.resetNewUser();
-        this.hideNewUserModal();
         this.refreshUsers();
         this.setNewUserMessage();
       } else {
@@ -257,6 +320,7 @@ export class AppComponent extends LoadableComponent {
     }
     
     this.isNewUserValidated = validated;
+    this.isNewUserValidated = true;
   }
 
   onFilterChange() {

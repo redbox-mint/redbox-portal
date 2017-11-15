@@ -40,7 +40,7 @@
               <td>{{user.name}}</td>
               <td>{{user.email}}</td>
               <td>{{user.roleStr}}</td>
-              <td>
+              <td align="center">
                 <i class="fa fa-check" aria-hidden="true" *ngIf="user.token"></i>
               </td>
               <td>
@@ -64,14 +64,18 @@
         <h4 class="modal-title">{{ 'manage-users-edit' | translate }}</h4>
       </div>
       <div class="modal-body">
-        <form>
+        <form name="updateUserForm">
           <div class="table-responsive">
             <table class="table">
               <tbody>
+                <tr *ngIf="currentUser.type == 'local'">
+                  <td>{{ 'manage-users-username' | translate }}</td>
+                  <td>{{ currentUser.username }}</td>
+                </tr>
                 <tr>
                   <td>{{ 'manage-users-name' | translate }}</td>
                   <td *ngIf="currentUser.type == 'local'">
-                    <input type="text" id="updateUserName" (keyup)="onDetailsChange()" [(ngModel)]="detailsUser.name" [ngModelOptions]="{standalone: true}" class="form-control input-sm chat-input" value="{{ currentUser.name }}"/>
+                    <input type="text" id="updateUserName" (keyup)="onDetailsChange()" [(ngModel)]="detailsUser.name" [ngModelOptions]="{standalone: true}" required class="form-control input-sm chat-input" value="{{ currentUser.name }}"/>
                   </td>
                   <td *ngIf="currentUser.type != 'local'">{{currentUser.name}}</td>
                 </tr>
@@ -92,7 +96,7 @@
                 <tr *ngIf="currentUser.type == 'local'">
                     <td>{{ 'manage-users-confirm-password' | translate }}</td>
                     <td>
-                        <input type="password" id="updateUserConfirmPassword" (keyup)="onDetailsChange()" [(ngModel)]="detailsUser.confirmPassword" [ngModelOptions]="{standalone: true}" class="form-control input-sm chat-input" placeholder="Confirm Password"/>
+                        <input type="password" [disabled]="!detailsUser.password || detailsUser.password.length === 0" id="updateUserConfirmPassword" (keyup)="onDetailsChange()" [(ngModel)]="detailsUser.confirmPassword" [ngModelOptions]="{standalone: true}" class="form-control input-sm chat-input" placeholder="Confirm Password"/>
                     </td>
                 </tr>
                 <tr>
@@ -101,10 +105,21 @@
                     <button type="button" class="btn btn-primary" (click)="genKey(currentUser.id)">{{ 'manage-users-api-generate' | translate }}</button>
                   </td>
                   <td *ngIf="currentUser.token">
-                      {{ currentUser.token }}
+                      {{ currentUser.token }}<br />
                       <button type="button" class="btn btn-primary" (click)="revokeKey(currentUser.id)">{{ 'manage-users-api-revoke' | translate }}</button>
                     </td>
                 </tr>
+                <tr>
+                    <td class="col-md-2">{{ 'manage-roles-role' | translate }}</td>
+                    <td class="col-md-8">
+                      <div *ngFor="let role of updateRoles">
+                        <label class="checkbox-inline" for="cb_{{role.id}}">
+                          <input  id="cb_{{role.id}}" type="checkbox" value="{{role.id}}" [(ngModel)]="role.hasRole" [ngModelOptions]="{standalone: true}">
+                          {{role.name}}
+                        </label>
+                      </div>
+                    </td>
+                  </tr>
               </tbody>
             </table>
           </div>
@@ -113,7 +128,7 @@
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-primary" [disabled]="!isDetailsValidated" (click)="updateCurrentUser($event)">{{ 'manage-users-save' | translate }}</button>
-        <button type="button" class="btn btn-default" (click)="hideDetailsModal()">{{ 'manage-users-cancel' | translate }}</button>
+        <button type="button" class="btn btn-default" (click)="resetDetailsUser()">{{ 'manage-users-cancel' | translate }}</button>
       </div>
       </div>
       </div>
@@ -129,20 +144,21 @@
             <h4 class="modal-title">{{ 'manage-users-new' | translate }}</h4>
           </div>
           <div class="modal-body">
-            <form>
+            <form name="newUserForm">
               <div class="table-responsive">
                 <table class="table">
                   <tbody>
                     <tr>
                         <td>{{ 'manage-users-username' | translate }}</td>
                         <td>
-                          <input type="text" id="newUserUsername" (keyup)="onNewUserChange()" [(ngModel)]="newUser.username" [ngModelOptions]="{standalone: true}" class="form-control input-sm chat-input" placeholder="{{ 'manage-users-username' | translate }}"/>
+                          <input type="text" id="newUserUsername" (keyup)="onNewUserChange()" [(ngModel)]="newUser.username" [ngModelOptions]="{standalone: true}" required class="form-control input-sm chat-input" placeholder="{{ 'manage-users-username' | translate }}"/>
+                          <span class="help-inline" [hidden]="!newUserForm.$submitted && newUserForm.newUserUsername.$error.required">Required</span>
                         </td>
                     </tr>
                     <tr>
                       <td>{{ 'manage-users-name' | translate }}</td>
                       <td>
-                        <input type="text" id="newUserName" (keyup)="onNewUserChange()" [(ngModel)]="newUser.name" [ngModelOptions]="{standalone: true}" class="form-control input-sm chat-input" placeholder="{{ 'manage-users-name' | translate }}"/>
+                        <input type="text" id="newUserName" (keyup)="onNewUserChange()" [(ngModel)]="newUser.name" [ngModelOptions]="{standalone: true}" required class="form-control input-sm chat-input" placeholder="{{ 'manage-users-name' | translate }}"/>
                       </td>
                     </tr>
                     <tr>
@@ -154,15 +170,26 @@
                     <tr>
                       <td>{{ 'manage-users-password' | translate }}</td>
                       <td>
-                          <input type="password" id="newUserPassword" (keyup)="onNewUserChange()" [(ngModel)]="newUser.password" [ngModelOptions]="{standalone: true}" class="form-control input-sm chat-input" placeholder="{{ 'manage-users-password' | translate }}"/>
+                          <input type="password" id="newUserPassword" (keyup)="onNewUserChange()" [(ngModel)]="newUser.password" [ngModelOptions]="{standalone: true}" required class="form-control input-sm chat-input" placeholder="{{ 'manage-users-password' | translate }}"/>
                       </td>
                     </tr>
                     <tr>
                         <td>{{ 'manage-users-confirm-password' | translate }}</td>
                         <td>
-                            <input type="password" id="newUserConfirmPassword" (keyup)="onNewUserChange()" [(ngModel)]="newUser.confirmPassword" [ngModelOptions]="{standalone: true}" class="form-control input-sm chat-input" placeholder="{{ 'manage-users-confirm-password' | translate }}"/>
+                            <input [disabled]="!newUser.password || newUser.password.length === 0" type="password" id="newUserConfirmPassword" (keyup)="onNewUserChange()" [(ngModel)]="newUser.confirmPassword" [ngModelOptions]="{standalone: true}" required class="form-control input-sm chat-input" placeholder="{{ 'manage-users-confirm-password' | translate }}"/>
                         </td>
                       </tr>
+                      <tr>
+                          <td>{{ 'manage-roles-role' | translate }}</td>
+                          <td>
+                            <div *ngFor="let role of newRoles">
+                              <label class="checkbox-inline" for="cb_{{role.id}}">
+                                <input  id="cb_{{role.id}}" type="checkbox" value="{{role.id}}" [(ngModel)]="role.hasRole" [ngModelOptions]="{standalone: true}">
+                                {{role.name}}
+                              </label>
+                            </div>
+                          </td>
+                        </tr>
                   </tbody>
                 </table>
               </div>
@@ -171,7 +198,7 @@
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-primary" [disabled]="!isNewUserValidated" (click)="addUser($event)">{{ 'manage-users-save' | translate }}</button>
-            <button type="button" class="btn btn-default" (click)="hideNewUserModal()">{{ 'manage-users-cancel' | translate }}</button>
+            <button type="button" class="btn btn-default" (click)="resetNewUser()">{{ 'manage-users-cancel' | translate }}</button>
           </div>
           </div>
           </div>
