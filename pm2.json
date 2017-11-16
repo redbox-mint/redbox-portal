@@ -1,7 +1,7 @@
 {
   "apps" : [
       {
-        "name": "stashportal",
+        "name": "redboxportal",
         "script": "./app.js",
         "watch": false,
         "env": {
