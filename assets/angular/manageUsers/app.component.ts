@@ -28,7 +28,7 @@ import { RolesService } from '../shared/roles-service';
 import { Role, User, LoginResult, SaveResult } from '../shared/user-models';
 import { LoadableComponent } from '../shared/loadable.component';
 import { TranslationService } from '../shared/translation-service';
-import { NewUser, UpdateUser } from './app.interfaces';
+import { UserForm, matchingValuesValidator, optionalEmailValidator } from './forms';
 
 declare var pageData :any;
 /**
@@ -47,17 +47,10 @@ declare var pageData :any;
 export class AppComponent extends LoadableComponent {
   allUsers: User[] = [];
   filteredUsers: User[] = [];
-  roles: Role[];
-  updateRoles: any[];
-  newRoles: any[];
+  allRoles: Role[];
 
   searchFilter: { name: string, prevName: string, users: any[] } = { 
     name: null, prevName: null, users: [ {value: null, label:'Any', checked:true}]};
-  detailsUser: { userid: string, name: string, email: string, password: string, confirmPassword: string, roles: Role[] } =
-    { userid: null, name: null, email: null, password: null, confirmPassword: null, roles: [] };
-  newUser: { username: string, name: string, email: string, password: string, confirmPassword: string, roles: Role[] } =
-    { username: null, name: null, email: null, password: null, confirmPassword: null, roles: []};
-
   hiddenUsers = ['']; //include local admin
   currentUser: User = new User();
 
@@ -73,10 +66,11 @@ export class AppComponent extends LoadableComponent {
 
   isDetailsModalShown:boolean = false;
   isNewUserModalShown:boolean = false;
-  isDetailsValidated:boolean = false;
-  isNewUserValidated:boolean = false;
+  updateUserForm: FormGroup;
+  newUserForm: FormGroup;
+  submitted: boolean;
   
-  constructor (@Inject(UserSimpleService, RolesService) protected usersService: UserSimpleService, protected rolesService: RolesService, @Inject(FormBuilder) fb: FormBuilder, @Inject(DOCUMENT) protected document:any, translationService:TranslationService) {
+  constructor (@Inject(UserSimpleService, RolesService) protected usersService: UserSimpleService, protected rolesService: RolesService, @Inject(FormBuilder) fb: FormBuilder, @Inject(DOCUMENT) protected document:any, translationService:TranslationService, private _fb: FormBuilder) {
     super();
     this.initTranslator(translationService);
     this.initSubs = usersService.waitForInit((initStatUsers:any) => {
@@ -84,15 +78,75 @@ export class AppComponent extends LoadableComponent {
         this.initSubs.unsubscribe();
         translationService.isReady(tService => {
           rolesService.getBrandRoles().then((roles:any) => {
-            this.roles = roles;
-            this.newRoles = _.map(this.roles, (r:any) => {
-              return {name: r.name, id:r.id, hasRole: false };
-            });
+            this.allRoles = roles;
+            this.refreshUsers();
           });
-          this.refreshUsers();
         });
-      });      
+      });
     });
+  }
+
+  setupForms() {
+    this.submitted = false;
+    let updateRolesControlArray = new FormArray(this.allRoles.map((role) => {
+      return new FormGroup({
+        key: new FormControl(role.id),
+        value: new FormControl(role.name),
+        checked: new FormControl(_.includes(_.flatMap(this.currentUser.roles, role => { return role['name']; }), role.name)),
+      });
+    }));
+
+    let newRolesControlArray = new FormArray(this.allRoles.map((role) => {
+      return new FormGroup({
+        key: new FormControl(role.id),
+        value: new FormControl(role.name),
+        checked: new FormControl(false),
+      });
+    }));
+
+    this.updateUserForm = this._fb.group({
+      userid: this.currentUser.id,
+      username: this.currentUser.username,
+      name: [this.currentUser.name, Validators.required],
+      email: [this.currentUser.email, optionalEmailValidator],
+      passwords: this._fb.group({
+        password: [''],
+        confirmPassword: ['']
+      }, {validator: matchingValuesValidator('password', 'confirmPassword')}),
+      allRoles: updateRolesControlArray,
+      roles: [this.mapRoles(updateRolesControlArray.value), Validators.required]
+    });
+
+    this.newUserForm = this._fb.group({
+      username: ['', Validators.required],
+      name: ['', Validators.required],
+      email: ['', optionalEmailValidator],
+      passwords: this._fb.group({
+        password: ['', Validators.required],
+        confirmPassword: ['', Validators.required]
+      }, {validator: matchingValuesValidator('password', 'confirmPassword')}),
+      allRoles: newRolesControlArray,
+      roles: [this.mapRoles(newRolesControlArray.value), Validators.required]
+    });
+
+    updateRolesControlArray.valueChanges.subscribe((v) => {
+      this.updateUserForm.controls.roles.setValue(this.mapRoles(v));
+    });
+
+    newRolesControlArray.valueChanges.subscribe((v) => {
+      this.newUserForm.controls.roles.setValue(this.mapRoles(v));
+    });
+
+  }
+
+  mapRoles(roles) {
+    let selectedRoles = roles.filter((role) => role.checked).map((r) => {
+      let ret = new Role();
+      ret.id = r.key;
+      ret.name = r.value;
+      return ret;
+      });
+    return selectedRoles.length ? selectedRoles : null;
   }
 
   refreshUsers() {
@@ -105,7 +159,6 @@ export class AppComponent extends LoadableComponent {
       _.forEach(users, (user:any) => {
         this.searchFilter.users.push({value:user.name, label:user.name, checked:false});
         if (!_.includes(this.hiddenUsers, user.username)) {
-          // filter out any system accounts e.g.
           this.filteredUsers.push(user);
         }
       });
@@ -114,42 +167,17 @@ export class AppComponent extends LoadableComponent {
     });
   }
 
-  resetNewUser() {
-    this.newUser.username = null;
-    this.newUser.name = null;
-    this.newUser.email = null;
-    this.newUser.password = null;
-    this.newUser.confirmPassword = null;
-    this.newRoles = _.map(this.roles, (r:any) => {
-      return {name: r.name, id:r.id, hasRole: false };
-    });
-    this.setNewUserMessage();
-    this.hideNewUserModal();
-  }
-
-  // reset model if user clicks "cancel" on modal
-  resetDetailsUser() {
-    this.detailsUser.userid = null; //only need to reset uid, editUser() handles rest
-    this.setUpdateMessage();
-    this.hideDetailsModal();
-  }
-
   editUser(username: string) {
-    //this.setUpdateMessage();
+    this.setUpdateMessage();
     this.currentUser = _.find(this.allUsers, (user:any)=>{return user.username == username});
-    this.updateRoles = _.map(this.roles, (r:any) => {
-      return {name: r.name, id:r.id, hasRole: _.includes(
-        _.flatMap(this.currentUser.roles, role => { return role['name']; }), r.name)};
-    });
-    if (this.detailsUser.userid != this.currentUser.id){
-      this.detailsUser.userid = this.currentUser.id;
-      this.detailsUser.name = this.currentUser.name;
-      this.detailsUser.email = this.currentUser.email;
-      this.detailsUser.password = "";
-      this.detailsUser.confirmPassword = "";
-    }
-    this.onDetailsChange();
+    this.setupForms();
     this.showDetailsModal();
+  }
+
+  newUser() {
+    this.setNewUserMessage();
+    this.setupForms();
+    this.showNewUserModal();
   }
 
   showDetailsModal():void {this.isDetailsModalShown = true;}
@@ -186,27 +214,22 @@ export class AppComponent extends LoadableComponent {
     });
   }
 
-  // note: can rm this, was used for testing
-  setCurrentUser(username: string) {
-    //this.currentUser = _.find(this.allUsers, (user:any)=>{return user.username == username});
-  }
-
-  updateCurrentUser($event:any) {
-    if (!this.isDetailsValidated){
-      this.setUpdateMessage("Please validate form", "danger");
+  updateUserSubmit(user: UserForm, isValid: boolean) {
+    this.submitted = true;
+    if (!isValid){
+      this.setUpdateMessage("Cannot submit. Please check fields.", "danger");
       return;
     }
     var details: { name: string, email: string, password: string } = 
-      { name: this.detailsUser.name, email: this.detailsUser.email, password: this.detailsUser.password };
+      { name: user.name, email: user.email, password: user.passwords.password };
     var userRoles:any[] = [];
-    _.forEach(this.updateRoles, (role:any) => {
-      if (role.hasRole)
+    _.forEach(user.roles, (role:any) => {
       userRoles.push(role.name);
     });
     this.setUpdateMessage("Saving...", "primary");
 
     let returnedOk:boolean = false;
-    this.rolesService.updateUserRoles(this.detailsUser.userid, userRoles).then((saveRes:SaveResult) => {
+    this.rolesService.updateUserRoles(user.userid, userRoles).then((saveRes:SaveResult) => {
       if (saveRes.status) {
         if (returnedOk) {
           this.hideDetailsModal();
@@ -220,7 +243,7 @@ export class AppComponent extends LoadableComponent {
       }
     });
 
-    this.usersService.updateUserDetails(this.detailsUser.userid, details).then((saveRes:SaveResult) => {
+    this.usersService.updateUserDetails(user.userid, details).then((saveRes:SaveResult) => {
       if (saveRes.status) {
         if (returnedOk) {
           this.hideDetailsModal();
@@ -235,23 +258,24 @@ export class AppComponent extends LoadableComponent {
     });
   }
 
-  addUser() {
-    if (this.isNewUserValidated){
-      this.setNewUserMessage("Please validate form", "danger");
+  newUserSubmit(user: UserForm, isValid: boolean) {
+    this.submitted = true;
+    if (!isValid){
+      this.setNewUserMessage("Cannot submit. Please check fields.", "danger");
       return;
     }
     var details: { name: string, email: string, password: string, roles: any[] } = 
-      { name: this.newUser.name, email: this.newUser.email, password: this.newUser.password, roles: [] };
+      { name: user.name, email: user.email, password: user.passwords.password, roles: [] };
     
-    _.forEach(this.newRoles, (role:any) => {
-      if (role.hasRole)
+    var userRoles:any[] = [];
+    _.forEach(user.roles, (role:any) => {
       details.roles.push(role.name);
-      });
+    });
 
     this.setNewUserMessage("Saving...", "primary");
-    this.usersService.addLocalUser(this.newUser.username, details).then((saveRes:SaveResult) => {
+    this.usersService.addLocalUser(user.username, details).then((saveRes:SaveResult) => {
       if (saveRes.status) {
-        this.resetNewUser();
+        this.hideNewUserModal();
         this.refreshUsers();
         this.setNewUserMessage();
       } else {
@@ -268,59 +292,6 @@ export class AppComponent extends LoadableComponent {
   setNewUserMessage(msg:string="", type:string="primary") {
     this.newUserMsg = msg;
     this.newUserMsgType = type;
-  }
-
-  onDetailsChange() {
-    var validated = true;
-    if (_.isEmpty(this.detailsUser.name)) {
-      validated = false; 
-      this.setUpdateMessage("Name cannot be empty", "danger"); 
-    }
-
-    if (!_.isEmpty(this.detailsUser.password)) {
-      if (this.detailsUser.password != this.detailsUser.confirmPassword) {
-        validated = false;
-        this.setUpdateMessage("Passwords do not match", "danger"); 
-      }
-    }
-
-    if (validated) {
-      this.setUpdateMessage();
-    }
-
-    this.isDetailsValidated = validated;
-  }
-
-  onNewUserChange() {
-    var validated = true;
-    if (_.isEmpty(this.newUser.username)) {
-      validated = false; 
-      this.setNewUserMessage("Username cannot be empty", "danger"); 
-    }
-
-    if (_.isEmpty(this.newUser.name)) {
-      validated = false; 
-      this.setNewUserMessage("Name cannot be empty", "danger"); 
-    }
-
-    if (_.isEmpty(this.newUser.password)) {
-      validated = false; 
-      this.setNewUserMessage("Password cannot be empty", "danger"); 
-    }
-
-    if (!_.isEmpty(this.newUser.password)) {
-      if (this.newUser.password != this.newUser.confirmPassword) {
-        validated = false;
-        this.setNewUserMessage("Passwords do not match", "danger"); 
-      }
-    }
-
-    if (validated) {
-      this.setNewUserMessage();
-    }
-    
-    this.isNewUserValidated = validated;
-    this.isNewUserValidated = true;
   }
 
   onFilterChange() {

@@ -15,7 +15,7 @@
           </div>
         </div>
         <div class="col-sm-3">
-            <span (click)="showNewUserModal()"><button class="btn btn-primary" type='button'>{{ 'manage-users-add-local' | translate }}</button></span>
+            <span (click)="newUser()"><button class="btn btn-primary" type='button'>{{ 'manage-users-add-local' | translate }}</button></span>
         </div>
       </div>
       <div>
@@ -36,7 +36,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let user of filteredUsers" (mouseover)="setCurrentUser(user.username)">
+            <tr *ngFor="let user of filteredUsers">
               <td>{{user.name}}</td>
               <td>{{user.email}}</td>
               <td>{{user.roleStr}}</td>
@@ -64,7 +64,7 @@
         <h4 class="modal-title">{{ 'manage-users-edit' | translate }}</h4>
       </div>
       <div class="modal-body">
-        <form name="updateUserForm">
+        <form id="detailsform" [formGroup]="updateUserForm" novalidate (ngSubmit)="updateUserSubmit(updateUserForm.value, updateUserForm.valid)">
           <div class="table-responsive">
             <table class="table">
               <tbody>
@@ -75,28 +75,41 @@
                 <tr>
                   <td>{{ 'manage-users-name' | translate }}</td>
                   <td *ngIf="currentUser.type == 'local'">
-                    <input type="text" id="updateUserName" (keyup)="onDetailsChange()" [(ngModel)]="detailsUser.name" [ngModelOptions]="{standalone: true}" required class="form-control input-sm chat-input" value="{{ currentUser.name }}"/>
+                    <input type="text" formControlName="name" class="form-control input-sm chat-input"/>
+                    <div class='form-text error' *ngIf='updateUserForm.controls.name.touched || submitted'>
+                        <div *ngIf="updateUserForm.controls.name.hasError('required')">Name is required</div>
+                      </div>
                   </td>
                   <td *ngIf="currentUser.type != 'local'">{{currentUser.name}}</td>
                 </tr>
                 <tr>
                   <td>{{ 'manage-users-email' | translate }}</td>
                   <td *ngIf="currentUser.type == 'local'">
-                      <input type="email" id="updateUserEmail" (keyup)="onDetailsChange()" [(ngModel)]="detailsUser.email" [ngModelOptions]="{standalone: true}" class="form-control input-sm chat-input" value="{{ currentUser.email }}"/>
+                      <input type="email" formControlName="email" class="form-control input-sm chat-input"/>
+                      <div class='form-text error' *ngIf='updateUserForm.controls.email.touched || submitted'>
+                          <div *ngIf="updateUserForm.controls.email.hasError('invalidEmail')">Email address not supported</div>
+                        </div>
                   </td>
                   <td *ngIf="currentUser.type != 'local'">{{currentUser.email}}</td>
                 </tr>
                 <tr>
                   <td>{{ 'manage-users-password' | translate }}</td>
                   <td *ngIf="currentUser.type == 'local'">
-                      <input type="password" id="updateUserPassword" (keyup)="onDetailsChange()" [(ngModel)]="detailsUser.password" [ngModelOptions]="{standalone: true}" class="form-control input-sm chat-input" placeholder="Password"/>
+                    <div formGroupName="passwords">
+                        <input type="password" formControlName="password" class="form-control input-sm chat-input" placeholder="Password"/>
+                    </div>
                   </td>
                   <td *ngIf="currentUser.type != 'local'">{{ 'manage-users-aaf-password' | translate}}</td>
                 </tr>
                 <tr *ngIf="currentUser.type == 'local'">
                     <td>{{ 'manage-users-confirm-password' | translate }}</td>
                     <td>
-                        <input type="password" [disabled]="!detailsUser.password || detailsUser.password.length === 0" id="updateUserConfirmPassword" (keyup)="onDetailsChange()" [(ngModel)]="detailsUser.confirmPassword" [ngModelOptions]="{standalone: true}" class="form-control input-sm chat-input" placeholder="Confirm Password"/>
+                        <div formGroupName="passwords">
+                          <input type="password" formControlName="confirmPassword" class="form-control input-sm chat-input" placeholder="Confirm Password"/>
+                        </div>
+                        <div class='form-text error' *ngIf="updateUserForm.controls.passwords.controls.confirmPassword.touched || submitted">
+                            <div *ngIf="updateUserForm.controls.passwords.hasError('mismatched')">Passwords do not match</div>
+                          </div>
                     </td>
                 </tr>
                 <tr>
@@ -112,12 +125,15 @@
                 <tr>
                     <td class="col-md-2">{{ 'manage-roles-role' | translate }}</td>
                     <td class="col-md-8">
-                      <div *ngFor="let role of updateRoles">
-                        <label class="checkbox-inline" for="cb_{{role.id}}">
-                          <input  id="cb_{{role.id}}" type="checkbox" value="{{role.id}}" [(ngModel)]="role.hasRole" [ngModelOptions]="{standalone: true}">
-                          {{role.name}}
-                        </label>
-                      </div>
+                        <div [formArrayName]="'allRoles'">
+                            <div *ngFor="let role of updateUserForm.controls.allRoles.controls; let i = index;" [formGroup]="role">
+                              <input type="checkbox" formControlName="checked" id="role_{{ role.controls.key.value }}">
+                              <label attr.for="role_{{ role.controls.key.value }}">{{ role.controls.value.value }}</label>
+                            </div>
+                            <div class='form-text error' *ngIf="!updateUserForm.controls.roles.valid">
+                                <div>At least one role is required</div>
+                              </div>
+                          </div>
                     </td>
                   </tr>
               </tbody>
@@ -127,8 +143,8 @@
         <div class="bg-{{updateDetailsMsgType}} center-block">{{updateDetailsMsg}}</div>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-primary" [disabled]="!isDetailsValidated" (click)="updateCurrentUser($event)">{{ 'manage-users-save' | translate }}</button>
-        <button type="button" class="btn btn-default" (click)="resetDetailsUser()">{{ 'manage-users-cancel' | translate }}</button>
+        <button type="button" class="btn btn-primary" form="detailsform" type="submit">{{ 'manage-users-save' | translate }}</button>
+        <button type="button" class="btn btn-default" (click)="hideDetailsModal()">{{ 'manage-users-cancel' | translate }}</button>
       </div>
       </div>
       </div>
@@ -144,50 +160,71 @@
             <h4 class="modal-title">{{ 'manage-users-new' | translate }}</h4>
           </div>
           <div class="modal-body">
-            <form name="newUserForm">
+          <form id="newform" [formGroup]="newUserForm" novalidate (ngSubmit)="newUserSubmit(newUserForm.value, newUserForm.valid)">
               <div class="table-responsive">
                 <table class="table">
                   <tbody>
                     <tr>
                         <td>{{ 'manage-users-username' | translate }}</td>
                         <td>
-                          <input type="text" id="newUserUsername" (keyup)="onNewUserChange()" [(ngModel)]="newUser.username" [ngModelOptions]="{standalone: true}" required class="form-control input-sm chat-input" placeholder="{{ 'manage-users-username' | translate }}"/>
-                          <span class="help-inline" [hidden]="!newUserForm.$submitted && newUserForm.newUserUsername.$error.required">Required</span>
+                            <input type="text" formControlName="username" class="form-control input-sm chat-input" placeholder="Username"/>
+                            <div class='form-text error' *ngIf='newUserForm.controls.username.touched || submitted'>
+                                <div *ngIf="newUserForm.controls.username.hasError('required')">Username is required</div>
+                              </div>
                         </td>
                     </tr>
                     <tr>
                       <td>{{ 'manage-users-name' | translate }}</td>
                       <td>
-                        <input type="text" id="newUserName" (keyup)="onNewUserChange()" [(ngModel)]="newUser.name" [ngModelOptions]="{standalone: true}" required class="form-control input-sm chat-input" placeholder="{{ 'manage-users-name' | translate }}"/>
+                          <input type="text" formControlName="name" class="form-control input-sm chat-input" placeholder="Name"/>
+                          <div class='form-text error' *ngIf='newUserForm.controls.name.touched || submitted'>
+                              <div *ngIf="newUserForm.controls.name.hasError('required')">Name is required</div>
+                            </div>
                       </td>
                     </tr>
                     <tr>
                       <td>{{ 'manage-users-email' | translate }}</td>
                       <td>
-                        <input type="email" id="newUserEmail" (keyup)="onNewUserChange()" [(ngModel)]="newUser.email" [ngModelOptions]="{standalone: true}"  class="form-control input-sm chat-input" placeholder="{{ 'manage-users-email' | translate }}"/>
+                          <input type="email" formControlName="email" class="form-control input-sm chat-input" placeholder="Email"/>
+                          <div class='form-text error' *ngIf='newUserForm.controls.email.touched || submitted'>
+                              <div *ngIf="newUserForm.controls.email.hasError('invalidEmail')">Email address not supported</div>
+                            </div>
                       </td>
                     </tr>
                     <tr>
                       <td>{{ 'manage-users-password' | translate }}</td>
                       <td>
-                          <input type="password" id="newUserPassword" (keyup)="onNewUserChange()" [(ngModel)]="newUser.password" [ngModelOptions]="{standalone: true}" required class="form-control input-sm chat-input" placeholder="{{ 'manage-users-password' | translate }}"/>
+                          <div formGroupName="passwords">
+                              <input type="password" formControlName="password" class="form-control input-sm chat-input" placeholder="Password"/>
+                          </div>
+                          <div class='form-text error' *ngIf="newUserForm.controls.passwords.controls.password.touched || submitted">
+                              <div *ngIf="newUserForm.controls.passwords.controls.password.hasError('required')">Please supply a password</div>
+                            </div>
                       </td>
                     </tr>
                     <tr>
                         <td>{{ 'manage-users-confirm-password' | translate }}</td>
                         <td>
-                            <input [disabled]="!newUser.password || newUser.password.length === 0" type="password" id="newUserConfirmPassword" (keyup)="onNewUserChange()" [(ngModel)]="newUser.confirmPassword" [ngModelOptions]="{standalone: true}" required class="form-control input-sm chat-input" placeholder="{{ 'manage-users-confirm-password' | translate }}"/>
+                            <div formGroupName="passwords">
+                                <input type="password" formControlName="confirmPassword" class="form-control input-sm chat-input" placeholder="Confirm Password"/>
+                              </div>
+                              <div class='form-text error' *ngIf="newUserForm.controls.passwords.controls.confirmPassword.touched || submitted">
+                                  <div *ngIf="newUserForm.controls.passwords.hasError('mismatched')">Passwords do not match</div>
+                                </div>
                         </td>
                       </tr>
                       <tr>
-                          <td>{{ 'manage-roles-role' | translate }}</td>
-                          <td>
-                            <div *ngFor="let role of newRoles">
-                              <label class="checkbox-inline" for="cb_{{role.id}}">
-                                <input  id="cb_{{role.id}}" type="checkbox" value="{{role.id}}" [(ngModel)]="role.hasRole" [ngModelOptions]="{standalone: true}">
-                                {{role.name}}
-                              </label>
-                            </div>
+                          <td class="col-md-2">{{ 'manage-roles-role' | translate }}</td>
+                          <td class="col-md-8">
+                              <div [formArrayName]="'allRoles'">
+                                  <div *ngFor="let role of newUserForm.controls.allRoles.controls; let i = index;" [formGroup]="role">
+                                    <input type="checkbox" formControlName="checked" id="role_{{ role.controls.key.value }}">
+                                    <label attr.for="role_{{ role.controls.key.value }}">{{ role.controls.value.value }}</label>
+                                  </div>
+                                  <div class='form-text error' *ngIf="!newUserForm.controls.roles.valid">
+                                      <div>At least one role is required</div>
+                                    </div>
+                                </div>
                           </td>
                         </tr>
                   </tbody>
@@ -197,8 +234,8 @@
             <div class="bg-{{newUserMsgType}} center-block">{{newUserMsg}}</div>
           </div>
           <div class="modal-footer">
-            <button type="button" class="btn btn-primary" [disabled]="!isNewUserValidated" (click)="addUser($event)">{{ 'manage-users-save' | translate }}</button>
-            <button type="button" class="btn btn-default" (click)="resetNewUser()">{{ 'manage-users-cancel' | translate }}</button>
+            <button type="button" class="btn btn-primary" form="newform" type="submit">{{ 'manage-users-save' | translate }}</button>
+            <button type="button" class="btn btn-default" (click)="hideNewUserModal()">{{ 'manage-users-cancel' | translate }}</button>
           </div>
           </div>
           </div>
