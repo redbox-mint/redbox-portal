@@ -70,7 +70,7 @@ export class AppComponent extends LoadableComponent {
   newUserForm: FormGroup;
   submitted: boolean;
   
-  constructor (@Inject(UserSimpleService, RolesService) protected usersService: UserSimpleService, protected rolesService: RolesService, @Inject(FormBuilder) fb: FormBuilder, @Inject(DOCUMENT) protected document:any, translationService:TranslationService, private _fb: FormBuilder) {
+  constructor (@Inject(UserSimpleService) protected usersService: UserSimpleService, @Inject(RolesService) protected rolesService: RolesService, @Inject(FormBuilder) fb: FormBuilder, @Inject(DOCUMENT) protected document:any, translationService:TranslationService, private _fb: FormBuilder) {
     super();
     this.initTranslator(translationService);
     this.initSubs = usersService.waitForInit((initStatUsers:any) => {

@@ -114,7 +114,6 @@ export module Controllers {
       var userid = req.body.userid;
       if (userid) {
         var uuid = uuidv4();
-        sails.log.verbose("UUID: " + uuid);
         UsersService.setUserKey(userid, uuid).subscribe(user => {
           this.ajaxOk(req, res, uuid)
         }, error => {

@@ -309,5 +309,8 @@
   "orcid-other-names": "Other names",
   "orcid-researcher-urls": "Researcher URLs",
   "orcid-keywords": "Keywords",
-  "orcid-biography": "Biography"
+  "orcid-biography": "Biography",
+  "user-profile-link": "Update my profile",
+  "user-profile-return": "Return",
+  "user-profile-edit": "Edit Profile"
 }

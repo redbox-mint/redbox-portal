@@ -21,6 +21,7 @@
 declare var module;
 declare var sails;
 declare var BrandingService, UsersService, ConfigService;
+import * as uuidv4 from 'uuid/v4';
 import controller = require('../../../typescript/controllers/CoreController.js');
 
 export module Controllers {
@@ -44,6 +45,10 @@ export module Controllers {
           'redirPostLogin',
           'getPostLoginUrl',
           'respond',
+          'update',
+          'profile',
+          'generateUserKey',
+          'revokeUserKey',
           'find'
       ];
 
@@ -68,6 +73,10 @@ export module Controllers {
        */
       public login(req, res) {
         this.sendView(req,res, sails.config.auth.loginPath);
+      }
+
+      public profile(req, res) {
+        this.sendView(req, res, "user/profile");
       }
 
       public redirLogin(req, res) {
@@ -102,6 +111,80 @@ export module Controllers {
 
       public info(req, res) {
         return res.json ({ user:req.user });
+      }
+
+      public update(req, res) {
+        var userid;
+        if (req.isAuthenticated()) {
+          userid = req.user.id;
+        } else {
+          this.ajaxFail(req, res, "No current user session. Please login.");
+        }
+
+        if (!userid){ this.ajaxFail(req, res, "Error: unable to get user ID."); }
+
+        var details = req.body.details;
+        if (!details){this.ajaxFail(req, res, "Error: user details not specified"); }
+
+        var name;
+        if (details.name) { name = details.name };
+        if (name) {
+          UsersService.updateUserDetails(userid, name, details.email, details.password).subscribe(user => {
+            this.ajaxOk(req, res, "Profile updated successfully.");
+          }, error => {
+            sails.log.error("Failed to update user profile:");
+            sails.log.error(error);
+            this.ajaxFail(req, res, error.message);
+          });
+        } else {
+          this.ajaxFail(req, res, "Error: name must not be null");
+        }
+      }
+
+      public generateUserKey(req, res) {
+        var userid;
+        if (req.isAuthenticated()) {
+          userid = req.user.id;
+        } else {
+          this.ajaxFail(req, res, "No current user session. Please login.");
+        }
+
+        if (userid) {
+          var uuid = uuidv4();
+          UsersService.setUserKey(userid, uuid).subscribe(user => {
+            this.ajaxOk(req, res, uuid)
+          }, error => {
+            sails.log.error("Failed to set UUID:");
+            sails.log.error(error);
+            this.ajaxFail(req, res, error.message);
+          });
+        }
+        else {
+          return this.ajaxFail(req, res, "Error: unable to get user ID.");
+        }
+      }
+  
+      public revokeUserKey(req, res) {
+        var userid;
+        if (req.isAuthenticated()) {
+          userid = req.user.id;
+        } else {
+          this.ajaxFail(req, res, "No current user session. Please login.");
+        }
+
+        if (userid) {
+          var uuid = null;
+          UsersService.setUserKey(userid, uuid).subscribe(user => {
+            this.ajaxOk(req, res, "UUID revoked successfully")
+          }, error => {
+            sails.log.error("Failed to revoke UUID:");
+            sails.log.error(error);
+            this.ajaxFail(req, res, error.message);
+          });
+        }
+        else {
+          return this.ajaxFail(req, res, "Error: unable to get user ID.");
+        }
       }
 
       public localLogin(req, res) {

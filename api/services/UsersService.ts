@@ -306,8 +306,11 @@ export module Services {
           if (!_.isEmpty(email)) {
             user["email"] = email;
           }
+
           if (!_.isEmpty(password)) {
-            user[passwordField] = password;
+            var bcrypt = require('bcrypt');
+            var salt = salt = bcrypt.genSaltSync(10);
+            user[passwordField] = bcrypt.hashSync(password, salt);
           }
           return this.getObservable(user, 'save', 'simplecb');
         } else {

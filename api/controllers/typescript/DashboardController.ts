@@ -73,7 +73,6 @@ export module Controllers {
         roles.push(RolesService.getDefUnathenticatedRole(brand));
       }
 
-
       const workflowState = req.param('state');
       const start = req.param('start');
       const rows = req.param('rows');
