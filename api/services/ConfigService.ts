@@ -37,7 +37,12 @@ export module Services {
     ];
 
     public getBrand(brandName:string, configBlock:string) {
-      return sails.config[configBlock][brandName];
+      let configVal = sails.config[configBlock][brandName];
+      if (_.isUndefined(configVal)) {
+        brandName = sails.config.auth.defaultBrand;
+        configVal = sails.config[configBlock][brandName];
+      }
+      return configVal;
     }
 
   }

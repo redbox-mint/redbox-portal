@@ -20,7 +20,7 @@
 //<reference path='./../../typings/loader.d.ts'/>
 declare var module;
 declare var sails;
-declare var BrandingService, UsersService;
+declare var BrandingService, UsersService, ConfigService;
 import controller = require('../../../typescript/controllers/CoreController.js');
 
 export module Controllers {
@@ -82,14 +82,15 @@ export module Controllers {
       }
 
       protected getPostLoginUrl(req, res) {
-        const branding = req.body.branding;
-        const portal = req.body.portal;
-        sails.log.debug(`Login local using branding: ${branding} and portal: ${portal}`);
+        const branding = BrandingService.getBrandFromReq(req);
+        let postLoginUrl = null;
         if (req.session.redirUrl) {
-          return req.session.redirUrl;
+          postLoginUrl = req.session.redirUrl;
         } else {
-          return `/${branding}/${portal}/${sails.config.auth[branding].local.postLoginRedir}`;
+          postLoginUrl = `${BrandingService.getBrandAndPortalPath(req)}/${ConfigService.getBrand(branding, 'auth').local.postLoginRedir}`;
         }
+        sails.log.debug(`post login url: ${postLoginUrl}`);
+        return postLoginUrl;
       }
 
       public logout(req, res) {
