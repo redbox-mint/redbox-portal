@@ -51,7 +51,7 @@ export class AppComponent extends LoadableComponent {
 
   searchFilter: { name: string, prevName: string, users: any[] } = { 
     name: null, prevName: null, users: [ {value: null, label:'Any', checked:true}]};
-  hiddenUsers = ['']; //include local admin
+  hiddenUsers = [''];
   currentUser: User = new User();
 
   updateDetailsMsg = "";
@@ -194,7 +194,7 @@ export class AppComponent extends LoadableComponent {
       if (saveRes.status) {
         this.currentUser.token = saveRes.message;
         this.refreshUsers();
-        this.setUpdateMessage();
+        this.setUpdateMessage("Token generated.", "primary");
       } else {
         this.setUpdateMessage(saveRes.message, "danger");
       }
@@ -207,7 +207,7 @@ export class AppComponent extends LoadableComponent {
       if (saveRes.status) {
         this.currentUser.token = null;
         this.refreshUsers();
-        this.setUpdateMessage();
+        this.setUpdateMessage("Token revoked.", "primary");
       } else {
         this.setUpdateMessage(saveRes.message, "danger");
       }
@@ -217,7 +217,7 @@ export class AppComponent extends LoadableComponent {
   updateUserSubmit(user: UserForm, isValid: boolean) {
     this.submitted = true;
     if (!isValid){
-      this.setUpdateMessage("Cannot submit. Please check fields.", "danger");
+      this.setUpdateMessage(this.translationService.t('manage-users-validation-submit'), "danger");
       return;
     }
     var details: { name: string, email: string, password: string } = 
@@ -261,7 +261,7 @@ export class AppComponent extends LoadableComponent {
   newUserSubmit(user: UserForm, isValid: boolean) {
     this.submitted = true;
     if (!isValid){
-      this.setNewUserMessage("Cannot submit. Please check fields.", "danger");
+      this.setNewUserMessage(this.translationService.t('manage-users-validation-submit'), "danger");
       return;
     }
     var details: { name: string, email: string, password: string, roles: any[] } = 
