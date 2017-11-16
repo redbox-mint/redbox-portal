@@ -1,0 +1,19 @@
+{
+  "apps" : [
+      {
+        "name": "stashportal",
+        "script": "./app.js",
+        "watch": false,
+        "env": {
+          "NODE_ENV": "development"
+        },
+        "env_test": {
+          "NODE_ENV": "test",
+          "sails_ng2__force_bundle": 1
+        },
+        "env_production": {
+          "NODE_ENV": "production"
+        }
+      }
+  ]
+}
