@@ -220,38 +220,18 @@ export class AppComponent extends LoadableComponent {
       this.setUpdateMessage(this.translationService.t('manage-users-validation-submit'), "danger");
       return;
     }
-    var details: { name: string, email: string, password: string } = 
-      { name: user.name, email: user.email, password: user.passwords.password };
-    var userRoles:any[] = [];
+    var details: { name: string, email: string, password: string, roles: any[] } = 
+      { name: user.name, email: user.email, password: user.passwords.password, roles: [] };
     _.forEach(user.roles, (role:any) => {
-      userRoles.push(role.name);
+      details.roles.push(role.name);
     });
     this.setUpdateMessage("Saving...", "primary");
 
-    let returnedOk:boolean = false;
-    this.rolesService.updateUserRoles(user.userid, userRoles).then((saveRes:SaveResult) => {
-      if (saveRes.status) {
-        if (returnedOk) {
-          this.hideDetailsModal();
-          this.refreshUsers();
-          this.setUpdateMessage();
-        } else {
-          returnedOk = true;
-        }
-      } else {
-        this.setUpdateMessage(saveRes.message, "danger");
-      }
-    });
-
     this.usersService.updateUserDetails(user.userid, details).then((saveRes:SaveResult) => {
       if (saveRes.status) {
-        if (returnedOk) {
-          this.hideDetailsModal();
-          this.refreshUsers();
-          this.setUpdateMessage();
-        } else {
-          returnedOk = true;
-        }
+        this.hideDetailsModal();
+        this.refreshUsers();
+        this.setUpdateMessage();
       } else {
         this.setUpdateMessage(saveRes.message, "danger");
       }

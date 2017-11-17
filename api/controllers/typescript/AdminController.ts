@@ -151,11 +151,10 @@ export module Controllers {
       if (details.password) { var password = details.password };
       if (username && name && password) {
         UsersService.addLocalUser(username, name, details.email, password).subscribe(user => {
-          if (details.roles) { 
+          if (details.roles) {
             var roles = details.roles;
             var brand = BrandingService.getBrand(req.session.branding);
             var roleIds = RolesService.getRoleIds(brand.roles, roles);
-            sails.log.verbose(JSON.stringify(user));
             UsersService.updateUserRoles(user.id, roleIds).subscribe(user => {
               this.ajaxOk(req, res, "User created successfully");
             }, error => {
@@ -182,7 +181,20 @@ export module Controllers {
       if (details.name) { var name = details.name };
       if (userid && name) {
         UsersService.updateUserDetails(userid, name, details.email, details.password).subscribe(user => {
-          this.ajaxOk(req, res, "Save OK.");
+          if (details.roles) {
+            var roles = details.roles;
+            var brand = BrandingService.getBrand(req.session.branding);
+            var roleIds = RolesService.getRoleIds(brand.roles, roles);
+            UsersService.updateUserRoles(userid, roleIds).subscribe(user => {
+              this.ajaxOk(req, res, "User updated successfully");
+            }, error => {
+              sails.log.error("Failed to update user roles:");
+              sails.log.error(error);
+              this.ajaxFail(req, res, error.message);
+            });
+          } else {
+            this.ajaxOk(req, res, "Save OK.");
+          }
         }, error => {
           sails.log.error("Failed to update user details:");
           sails.log.error(error);

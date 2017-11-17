@@ -298,7 +298,6 @@ export module Services {
     public updateUserDetails = (userid, name, email, password) => {
       const authConfig = ConfigService.getBrand(BrandingService.getDefault().name, 'auth');
       var passwordField = authConfig.local.passwordField;
-
       return this.getUserWithId(userid).flatMap(user => {
         if (user) {
           user["name"] = name;

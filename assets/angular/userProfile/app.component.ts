@@ -136,9 +136,9 @@ export class AppComponent extends LoadableComponent {
     this.usersService.updateUserProfile(details).then((saveRes:SaveResult) => {
       if (saveRes.status) {
         this.refreshUser();
-        this.setUpdateMessage();
+        this.setUpdateMessage(this.translationService.t('user-profile-success'), "good");
       } else {
-        this.setUpdateMessage(saveRes.message, "danger");
+        this.setUpdateMessage(saveRes.message, "success");
       }
     });
   }
