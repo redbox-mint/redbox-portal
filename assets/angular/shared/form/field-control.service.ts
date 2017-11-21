@@ -17,7 +17,7 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { Injectable, Inject }   from '@angular/core';
+import { Injectable, Inject, ApplicationRef }   from '@angular/core';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { FieldBase } from './field-base';
 import { TextField, Container, TextArea, DateTime, AnchorOrButton, HiddenValue, LinkValue, TabOrAccordionContainer, SelectionField } from './field-simple';
@@ -73,7 +73,8 @@ export class FieldControlService {
   constructor(@Inject(VocabFieldLookupService) private vocabFieldLookupService: VocabFieldLookupService, @Inject(CompleterService) private completerService: CompleterService,
   @Inject(ConfigService) protected configService: ConfigService,
   @Inject(TranslationService) protected translationService: TranslationService,
-  @Inject(UtilityService) protected utilityService: UtilityService
+  @Inject(UtilityService) protected utilityService: UtilityService,
+  protected app: ApplicationRef
   ) {
 
   }
@@ -110,7 +111,7 @@ export class FieldControlService {
 
   getFieldsMeta(fieldsArr: any) {
     const fields = _.map(fieldsArr, (f:any) => {
-      const inst = new this.classes[f.class].meta(f.definition, this.translationService);
+      const inst = new this.classes[f.class].meta(f.definition, this.app._injector);
       inst.utilityService = this.utilityService;
       // set the component class
       if (_.isArray(this.classes[f.class].comp)) {

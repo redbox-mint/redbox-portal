@@ -30,8 +30,8 @@ import moment from 'moment-es6';
 export class TextField extends FieldBase<string> {
   type: string;
 
-  constructor(options: any, translationService: any) {
-    super(options, translationService);
+  constructor(options: any, injector: any) {
+    super(options, injector);
     this.type = options['type'] || '';
     this.controlType = 'textbox';
   }
@@ -51,8 +51,8 @@ export class TextArea extends FieldBase<string> {
 
   lines: string[];
 
-  constructor(options: any, translationService: any) {
-    super(options, translationService);
+  constructor(options: any, injector: any) {
+    super(options, injector);
     this.rows = options['rows'] || 5;
     this.cols = options['cols'] || null;
     this.controlType = 'textarea';
@@ -66,8 +66,8 @@ export class TextArea extends FieldBase<string> {
 export class SelectionField extends FieldBase<any>  {
   options: {key: string, value: string}[] = [];
 
-  constructor(options: any, translationService: any) {
-    super(options, translationService);
+  constructor(options: any, injector: any) {
+    super(options, injector);
     this.options = options['options'] || [];
     this.options = _.map(options['options'] || [], (option)=> {
       option.label = this.getTranslated(option.label, option.label);
@@ -108,8 +108,8 @@ export class Container extends FieldBase<string> {
   active: boolean;
   type: string;
 
-  constructor(options: any, translationService: any) {
-    super(options, translationService);
+  constructor(options: any, injector: any) {
+    super(options, injector);
     this.controlType = 'div';
     this.content = options['content'] || '';
     this.active = options['active'] || false;
@@ -126,8 +126,8 @@ export class TabOrAccordionContainer extends Container {
   accContainerClass: any;
   accClass: any;
 
-  constructor(options: any, translationService: any) {
-    super(options, translationService);
+  constructor(options: any, injector: any) {
+    super(options, injector);
     // defaults to nav-pills, nav-stacked, nav size col-md-2, tab content col-md-10
     this.tabNavContainerClass = options['tabNavContainerClass'] || 'col-md-2';
     this.tabNavClass = options['tabNavClass'] || 'nav nav-pills nav-stacked';
@@ -145,8 +145,8 @@ export class DateTime extends FieldBase<any> {
   valueFormat: string;
   displayFormat: string;
 
-  constructor(options: any, translationService: any) {
-    super(options, translationService);
+  constructor(options: any, injector: any) {
+    super(options, injector);
     this.datePickerOpts = options['datePickerOpts'] || false;
     this.timePickerOpts = options['timePickerOpts'] || false;
     this.hasClearButton = options['hasClearButton'] || false;
@@ -189,8 +189,8 @@ export class AnchorOrButton extends FieldBase<string> {
   isDisabledFn: any;
   showPencil: boolean;
 
-  constructor(options: any, translationService: any) {
-    super(options, translationService);
+  constructor(options: any, injector: any) {
+    super(options, injector);
     this.onClick_RootFn = options['onClick_RootFn'] || null;
     this.isDisabledFn = options['isDisabledFn'] || null;
     this.type = options['type'] || 'button';
@@ -201,16 +201,16 @@ export class AnchorOrButton extends FieldBase<string> {
 }
 
 export class HiddenValue extends FieldBase<string> {
-  constructor(options: any, translationService: any) {
-    super(options, translationService);
+  constructor(options: any, injector: any) {
+    super(options, injector);
     this.controlType = 'hidden';
   }
 }
 
 export class LinkValue extends FieldBase<string> {
   target: string;
-  constructor(options: any, translationService: any) {
-    super(options, translationService);
+  constructor(options: any, injector: any) {
+    super(options, injector);
     this.controlType = 'link';
     this.target = options.target || '_blank';
   }

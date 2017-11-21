@@ -17,7 +17,7 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { Component, Injectable, Inject } from '@angular/core';
+import { Component, Injectable, Inject, ApplicationRef } from '@angular/core';
 import { FormArray, FormGroup, FormControl, Validators } from '@angular/forms';
 import { DashboardService } from '../shared/dashboard-service';
 import * as _ from "lodash-lib";
@@ -57,7 +57,8 @@ export class TransferOwnerComponent extends LoadableComponent {
    protected emailService: EmailNotificationService,
    @Inject(VocabFieldLookupService) private vocabFieldLookupService,
    @Inject(CompleterService) private completerService: CompleterService,
-   @Inject(RecordsService) private recordService: RecordsService) {
+   @Inject(RecordsService) private recordService: RecordsService,
+   private app: ApplicationRef ) {
     super();
     this.initTranslator(translationService);
     this.plans = new PlanTable();
@@ -93,7 +94,7 @@ export class TransferOwnerComponent extends LoadableComponent {
       editMode: true,
       placeHolder: this.translationService.t('transfer-ownership-researcher-name')
     };
-    this.userLookupMeta = new VocabField(userLookupOptions, this.translationService);
+    this.userLookupMeta = new VocabField(userLookupOptions, this.app._injector);
     this.userLookupMeta.completerService = this.completerService;
     this.userLookupMeta.lookupService = this.vocabFieldLookupService;
     this.userLookupMeta.createFormModel();
@@ -143,7 +144,7 @@ export class TransferOwnerComponent extends LoadableComponent {
     this.recordService.modifyEditors(records, username).then((res:any)=>{
       this.saveMsg = this.translationService.t('transfer-ownership-transfer-ok');
       this.saveMsgType = "success";
-      
+
       // ownership transfer ok, send notification email
       if (email) { // email address isn't a required property for the user model!
         var data = {};
@@ -152,7 +153,7 @@ export class TransferOwnerComponent extends LoadableComponent {
         this.emailService.sendNotification(email, 'transferOwnerTo', data)
         .then(function (res) {console.log(`Email result: ${JSON.stringify(res)}`)}); // what should we do with this?
       }
-      
+
       this.setLoading(true);
       this.loadPlans();
     }).catch((err:any)=>{

@@ -41,8 +41,8 @@ export class RepeatableContainer extends Container {
   addButtonClass: any;
   removeButtonClass: any;
 
-  constructor(options: any, translationService: any) {
-    super(options, translationService);
+  constructor(options: any, injector: any) {
+    super(options, injector);
     this.hasGroup = true;
     this.addButtonText = options['addButtonText'] || '';
     this.removeButtonText = options['removeButtonText'] || null;
@@ -100,7 +100,7 @@ export class RepeatableContainer extends Container {
   createNewElem(baseFieldInst: any, value:any = null) {
     const newOpts = _.cloneDeep(baseFieldInst.options);
     newOpts.value = null;
-    const newInst = new baseFieldInst.constructor(newOpts, this.translationService);
+    const newInst = new baseFieldInst.constructor(newOpts, this.injector);
     _.forEach(this.skipClone, (f: any)=> {
       newInst[f] = null;
     });

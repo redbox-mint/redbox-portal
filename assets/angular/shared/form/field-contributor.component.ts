@@ -52,8 +52,8 @@ export class ContributorField extends FieldBase<any> {
   forceLookupOnly: boolean;
   // Frankenstein end
 
-  constructor(options: any, translationService: any) {
-    super(options, translationService);
+  constructor(options: any, injector: any) {
+    super(options, injector);
     this.controlType = 'textbox';
     this.nameColHdr = options['nameColHdr'] ? this.getTranslated(options['nameColHdr'], options['nameColHdr']) : 'Researcher Name';
     this.emailColHdr = options['emailColHdr'] ? this.getTranslated(options['emailColHdr'], options['emailColHdr']) : 'Email Address';
@@ -83,7 +83,7 @@ export class ContributorField extends FieldBase<any> {
       email: [Validators.required, Validators.email]
     };
     if (!this.freeText) {
-      this.vocabField = new VocabField(this.options, this.translationService);
+      this.vocabField = new VocabField(this.options, this.injector);
       this.hasLookup = true;
     }
   }

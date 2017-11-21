@@ -17,7 +17,7 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { Output, EventEmitter } from '@angular/core';
+import { Output, EventEmitter, Injector } from '@angular/core';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { TranslationService } from '../translation-service';
 import { UtilityService } from '../util-service';
@@ -57,12 +57,18 @@ export class FieldBase<T> {
   subscribe: any; // configuration for subscribing to events published by other components
   fieldMap: any;
   utilityService: UtilityService;
+  injector: Injector;
 
   @Output() public onValueUpdate: EventEmitter<any> = new EventEmitter<any>();
 
-  constructor(options = {}, translationService = undefined) {
-    this.translationService = translationService;
+  constructor(options = {}, injector) {
+    this.injector = injector;
+    this.translationService = this.getFromInjector(TranslationService);
     this.setOptions(options);
+  }
+
+  getFromInjector(token:any) {
+    return this.injector.get(token);
   }
 
   setOptions(options: {

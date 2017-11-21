@@ -51,8 +51,8 @@ export class VocabField extends FieldBase<any> {
   public lookupService: any;
   public placeHolder: string;
 
-  constructor(options: any, translationService: any) {
-    super(options, translationService);
+  constructor(options: any, injector: any) {
+    super(options, injector);
     this.hasLookup = true;
     this.vocabId = options['vocabId'] || '';
     this.controlType = 'textbox';

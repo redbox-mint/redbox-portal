@@ -6,8 +6,8 @@ import { AnchorOrButton } from './field-simple';
 export class WorkflowStepButton extends AnchorOrButton {
   targetStep: string;
 
-  constructor(options: any, translationService:any) {
-    super(options, translationService);
+  constructor(options: any, injector:any) {
+    super(options, injector);
     this.targetStep = options['targetStep'] || null;
   }
 }
