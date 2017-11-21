@@ -298,7 +298,6 @@ export module Services {
     public updateUserDetails = (userid, name, email, password) => {
       const authConfig = ConfigService.getBrand(BrandingService.getDefault().name, 'auth');
       var passwordField = authConfig.local.passwordField;
-
       return this.getUserWithId(userid).flatMap(user => {
         if (user) {
           user["name"] = name;
@@ -306,8 +305,11 @@ export module Services {
           if (!_.isEmpty(email)) {
             user["email"] = email;
           }
+
           if (!_.isEmpty(password)) {
-            user[passwordField] = password;
+            var bcrypt = require('bcrypt');
+            var salt = salt = bcrypt.genSaltSync(10);
+            user[passwordField] = bcrypt.hashSync(password, salt);
           }
           return this.getObservable(user, 'save', 'simplecb');
         } else {

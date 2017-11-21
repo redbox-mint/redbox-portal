@@ -77,7 +77,7 @@
                   <td *ngIf="currentUser.type == 'local'">
                     <input type="text" formControlName="name" class="form-control input-sm chat-input"/>
                     <div class='form-text error' *ngIf='updateUserForm.controls.name.touched || submitted'>
-                        <div *ngIf="updateUserForm.controls.name.hasError('required')">Name is required</div>
+                        <div *ngIf="updateUserForm.controls.name.hasError('required')">{{ 'manage-users-validation-name' | translate }}</div>
                       </div>
                   </td>
                   <td *ngIf="currentUser.type != 'local'">{{currentUser.name}}</td>
@@ -87,7 +87,7 @@
                   <td *ngIf="currentUser.type == 'local'">
                       <input type="email" formControlName="email" class="form-control input-sm chat-input"/>
                       <div class='form-text error' *ngIf='updateUserForm.controls.email.touched || submitted'>
-                          <div *ngIf="updateUserForm.controls.email.hasError('invalidEmail')">Email address not supported</div>
+                          <div *ngIf="updateUserForm.controls.email.hasError('invalidEmail')">{{ 'manage-users-validation-email' | translate }}</div>
                         </div>
                   </td>
                   <td *ngIf="currentUser.type != 'local'">{{currentUser.email}}</td>
@@ -96,7 +96,7 @@
                   <td>{{ 'manage-users-password' | translate }}</td>
                   <td *ngIf="currentUser.type == 'local'">
                     <div formGroupName="passwords">
-                        <input type="password" formControlName="password" class="form-control input-sm chat-input" placeholder="Password"/>
+                        <input type="password" formControlName="password" class="form-control input-sm chat-input" placeholder="{{ 'manage-users-update-password' | translate }}"/>
                     </div>
                   </td>
                   <td *ngIf="currentUser.type != 'local'">{{ 'manage-users-aaf-password' | translate}}</td>
@@ -108,7 +108,7 @@
                           <input type="password" formControlName="confirmPassword" class="form-control input-sm chat-input" placeholder="Confirm Password"/>
                         </div>
                         <div class='form-text error' *ngIf="updateUserForm.controls.passwords.controls.confirmPassword.touched || submitted">
-                            <div *ngIf="updateUserForm.controls.passwords.hasError('mismatched')">Passwords do not match</div>
+                            <div *ngIf="updateUserForm.controls.passwords.hasError('mismatched')">{{ 'manage-users-validation-confirmpassword' | translate }}</div>
                           </div>
                     </td>
                 </tr>
@@ -131,7 +131,7 @@
                               <label attr.for="role_{{ role.controls.key.value }}">{{ role.controls.value.value }}</label>
                             </div>
                             <div class='form-text error' *ngIf="!updateUserForm.controls.roles.valid">
-                                <div>At least one role is required</div>
+                                <div>{{ 'manage-users-validation-role' | translate }}</div>
                               </div>
                           </div>
                     </td>
@@ -167,27 +167,27 @@
                     <tr>
                         <td>{{ 'manage-users-username' | translate }}</td>
                         <td>
-                            <input type="text" formControlName="username" class="form-control input-sm chat-input" placeholder="Username"/>
+                            <input type="text" formControlName="username" class="form-control input-sm chat-input" placeholder="{{ 'manage-users-username' | translate }}"/>
                             <div class='form-text error' *ngIf='newUserForm.controls.username.touched || submitted'>
-                                <div *ngIf="newUserForm.controls.username.hasError('required')">Username is required</div>
+                                <div *ngIf="newUserForm.controls.username.hasError('required')">{{ 'manage-users-validation-username' | translate }}</div>
                               </div>
                         </td>
                     </tr>
                     <tr>
                       <td>{{ 'manage-users-name' | translate }}</td>
                       <td>
-                          <input type="text" formControlName="name" class="form-control input-sm chat-input" placeholder="Name"/>
+                          <input type="text" formControlName="name" class="form-control input-sm chat-input" placeholder="{{ 'manage-users-name' | translate }}"/>
                           <div class='form-text error' *ngIf='newUserForm.controls.name.touched || submitted'>
-                              <div *ngIf="newUserForm.controls.name.hasError('required')">Name is required</div>
+                              <div *ngIf="newUserForm.controls.name.hasError('required')">{{ 'manage-users-validation-name' | translate }}</div>
                             </div>
                       </td>
                     </tr>
                     <tr>
                       <td>{{ 'manage-users-email' | translate }}</td>
                       <td>
-                          <input type="email" formControlName="email" class="form-control input-sm chat-input" placeholder="Email"/>
+                          <input type="email" formControlName="email" class="form-control input-sm chat-input" placeholder="{{ 'manage-users-email' | translate }}"/>
                           <div class='form-text error' *ngIf='newUserForm.controls.email.touched || submitted'>
-                              <div *ngIf="newUserForm.controls.email.hasError('invalidEmail')">Email address not supported</div>
+                              <div *ngIf="newUserForm.controls.email.hasError('invalidEmail')">{{ 'manage-users-validation-email' | translate }}</div>
                             </div>
                       </td>
                     </tr>
@@ -195,10 +195,10 @@
                       <td>{{ 'manage-users-password' | translate }}</td>
                       <td>
                           <div formGroupName="passwords">
-                              <input type="password" formControlName="password" class="form-control input-sm chat-input" placeholder="Password"/>
+                              <input type="password" formControlName="password" class="form-control input-sm chat-input" placeholder="{{ 'manage-users-password' | translate }}"/>
                           </div>
                           <div class='form-text error' *ngIf="newUserForm.controls.passwords.controls.password.touched || submitted">
-                              <div *ngIf="newUserForm.controls.passwords.controls.password.hasError('required')">Please supply a password</div>
+                              <div *ngIf="newUserForm.controls.passwords.controls.password.hasError('required')">{{ 'manage-users-validation-password' | translate }}</div>
                             </div>
                       </td>
                     </tr>
@@ -206,10 +206,10 @@
                         <td>{{ 'manage-users-confirm-password' | translate }}</td>
                         <td>
                             <div formGroupName="passwords">
-                                <input type="password" formControlName="confirmPassword" class="form-control input-sm chat-input" placeholder="Confirm Password"/>
+                                <input type="password" formControlName="confirmPassword" class="form-control input-sm chat-input" placeholder="{{ 'manage-users-confirm-password' | translate }}"/>
                               </div>
                               <div class='form-text error' *ngIf="newUserForm.controls.passwords.controls.confirmPassword.touched || submitted">
-                                  <div *ngIf="newUserForm.controls.passwords.hasError('mismatched')">Passwords do not match</div>
+                                  <div *ngIf="newUserForm.controls.passwords.hasError('mismatched')">{{ 'manage-users-validation-confirmpassword' | translate }}</div>
                                 </div>
                         </td>
                       </tr>
@@ -222,7 +222,7 @@
                                     <label attr.for="role_{{ role.controls.key.value }}">{{ role.controls.value.value }}</label>
                                   </div>
                                   <div class='form-text error' *ngIf="!newUserForm.controls.roles.valid">
-                                      <div>At least one role is required</div>
+                                      <div>{{ 'manage-users-validation-role' | translate }}</div>
                                     </div>
                                 </div>
                           </td>

@@ -80,6 +80,14 @@
   "manage-users-password": "Password",
   "manage-users-aaf-password": "Login managed by AAF",
   "manage-users-confirm-password": "Confirm password",
+  "manage-users-validation-name": "Name is required",
+  "manage-users-validation-email": "Invalid email address",
+  "manage-users-validation-username": "Username is required",
+  "manage-users-validation-password": "Password is required",
+  "manage-users-validation-confirmpassword": "Passwords do not match",
+  "manage-users-validation-role": "At least one role is required",
+  "manage-users-validation-submit": "Invalid form. Please check fields.",
+  "manage-users-update-password": "Enter new password to change",
   "welcome-title": "Welcome to ReDBox",
   "welcome-homepage-text": "This is the homepage of the DMP Tool. Some content needs to go here as well as a link to the researcher dashboard (still to be implemented).",
   "welcome-dashboard-link-text": "Proceed to the dashboard",
@@ -301,5 +309,9 @@
   "orcid-other-names": "Other names",
   "orcid-researcher-urls": "Researcher URLs",
   "orcid-keywords": "Keywords",
-  "orcid-biography": "Biography"
+  "orcid-biography": "Biography",
+  "user-profile-link": "Update my profile",
+  "user-profile-return": "Return",
+  "user-profile-success": "Profile updated successfully",
+  "user-profile-edit": "Edit Profile"
 }

@@ -51,7 +51,7 @@ export class AppComponent extends LoadableComponent {
 
   searchFilter: { name: string, prevName: string, users: any[] } = { 
     name: null, prevName: null, users: [ {value: null, label:'Any', checked:true}]};
-  hiddenUsers = ['']; //include local admin
+  hiddenUsers = [''];
   currentUser: User = new User();
 
   updateDetailsMsg = "";
@@ -70,7 +70,7 @@ export class AppComponent extends LoadableComponent {
   newUserForm: FormGroup;
   submitted: boolean;
   
-  constructor (@Inject(UserSimpleService, RolesService) protected usersService: UserSimpleService, protected rolesService: RolesService, @Inject(FormBuilder) fb: FormBuilder, @Inject(DOCUMENT) protected document:any, translationService:TranslationService, private _fb: FormBuilder) {
+  constructor (@Inject(UserSimpleService) protected usersService: UserSimpleService, @Inject(RolesService) protected rolesService: RolesService, @Inject(FormBuilder) fb: FormBuilder, @Inject(DOCUMENT) protected document:any, translationService:TranslationService, private _fb: FormBuilder) {
     super();
     this.initTranslator(translationService);
     this.initSubs = usersService.waitForInit((initStatUsers:any) => {
@@ -194,7 +194,7 @@ export class AppComponent extends LoadableComponent {
       if (saveRes.status) {
         this.currentUser.token = saveRes.message;
         this.refreshUsers();
-        this.setUpdateMessage();
+        this.setUpdateMessage("Token generated.", "primary");
       } else {
         this.setUpdateMessage(saveRes.message, "danger");
       }
@@ -207,7 +207,7 @@ export class AppComponent extends LoadableComponent {
       if (saveRes.status) {
         this.currentUser.token = null;
         this.refreshUsers();
-        this.setUpdateMessage();
+        this.setUpdateMessage("Token revoked.", "primary");
       } else {
         this.setUpdateMessage(saveRes.message, "danger");
       }
@@ -217,41 +217,21 @@ export class AppComponent extends LoadableComponent {
   updateUserSubmit(user: UserForm, isValid: boolean) {
     this.submitted = true;
     if (!isValid){
-      this.setUpdateMessage("Cannot submit. Please check fields.", "danger");
+      this.setUpdateMessage(this.translationService.t('manage-users-validation-submit'), "danger");
       return;
     }
-    var details: { name: string, email: string, password: string } = 
-      { name: user.name, email: user.email, password: user.passwords.password };
-    var userRoles:any[] = [];
+    var details: { name: string, email: string, password: string, roles: any[] } = 
+      { name: user.name, email: user.email, password: user.passwords.password, roles: [] };
     _.forEach(user.roles, (role:any) => {
-      userRoles.push(role.name);
+      details.roles.push(role.name);
     });
     this.setUpdateMessage("Saving...", "primary");
 
-    let returnedOk:boolean = false;
-    this.rolesService.updateUserRoles(user.userid, userRoles).then((saveRes:SaveResult) => {
-      if (saveRes.status) {
-        if (returnedOk) {
-          this.hideDetailsModal();
-          this.refreshUsers();
-          this.setUpdateMessage();
-        } else {
-          returnedOk = true;
-        }
-      } else {
-        this.setUpdateMessage(saveRes.message, "danger");
-      }
-    });
-
     this.usersService.updateUserDetails(user.userid, details).then((saveRes:SaveResult) => {
       if (saveRes.status) {
-        if (returnedOk) {
-          this.hideDetailsModal();
-          this.refreshUsers();
-          this.setUpdateMessage();
-        } else {
-          returnedOk = true;
-        }
+        this.hideDetailsModal();
+        this.refreshUsers();
+        this.setUpdateMessage();
       } else {
         this.setUpdateMessage(saveRes.message, "danger");
       }
@@ -261,7 +241,7 @@ export class AppComponent extends LoadableComponent {
   newUserSubmit(user: UserForm, isValid: boolean) {
     this.submitted = true;
     if (!isValid){
-      this.setNewUserMessage("Cannot submit. Please check fields.", "danger");
+      this.setNewUserMessage(this.translationService.t('manage-users-validation-submit'), "danger");
       return;
     }
     var details: { name: string, email: string, password: string, roles: any[] } = 

@@ -1,0 +1,19 @@
+<div class="row" id="loading">
+        <div class="col-xs-1">
+        </div>
+        <div class="col-xs-10">
+          <img class="center-block" src="/images/loading.svg">
+        </div>
+        <div class="col-xs-1">
+        </div>
+      </div>
+      <div class="row">
+        <user-profile></user-profile>
+      </div>
+      <% if (!sails.config.ng2.use_bundled) { %>
+      <script src="/dynamic/systemjs-config.js?appName=userProfile"></script>
+      <script>
+        System.import('userProfile').catch(function(err){ console.error(err); });
+      </script>
+      <% } %>
+      

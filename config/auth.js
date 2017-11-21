@@ -58,6 +58,11 @@ module.exports.auth = {
       can_read: true
     },
     {
+      path: '/:branding/:portal/user/profile',
+      role: 'Researcher',
+      can_read: true
+    },
+    {
       path: '/:branding/:portal/dashboard',
       role: 'Researcher',
       can_update:true

@@ -83,4 +83,22 @@ export class UserSimpleService extends BaseService {
     .then((res:any) => this.extractData(res) as SaveResult[]);
   }
 
+  updateUserProfile(details: any) {
+    return this.http.post(`${this.brandingAndPortalUrl}/user/update`, {details:details}, this.options)
+    .toPromise()
+    .then((res:any) => this.extractData(res) as SaveResult[]);
+  }
+
+  genUserKey() {
+    return this.http.post(`${this.brandingAndPortalUrl}/user/genKey`, {},this.options)
+    .toPromise()
+    .then((res:any) => this.extractData(res) as SaveResult[]);
+  }
+
+  revokeUserKey() {
+    return this.http.post(`${this.brandingAndPortalUrl}/user/revokeKey`, {},this.options)
+    .toPromise()
+    .then((res:any) => this.extractData(res) as SaveResult[]);
+  }
+
 }

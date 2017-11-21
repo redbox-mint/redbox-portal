@@ -100,6 +100,11 @@ module.exports.routes = {
     action: 'usersIndex',
     skipAssets: true
   },
+  '/:branding/:portal/user/profile': {
+    controller: 'typescript/UserController',
+    action: 'profile',
+    skipAssets: true
+  },
   /***************************************************************************
   *                                                                          *
   * Custom routes here...                                                    *
@@ -169,5 +174,8 @@ module.exports.routes = {
   'post /:branding/:portal/api/records/permissions/:oid/view/remove': 'typescript/webservice/RecordController.removeUserView',
   'get /:branding/:portal/api/listUsers': 'typescript/webservice/UserManagementController.listUsers',
   'get /:branding/:portal/api/lookupUser': 'typescript/webservice/UserManagementController.findUser',
-  'post /:branding/:portal/api/sendNotification': 'typescript/EmailController.sendNotification'
+  'post /:branding/:portal/api/sendNotification': 'typescript/EmailController.sendNotification',
+  'post /:branding/:portal/user/genKey': 'typescript/UserController.generateUserKey',
+  'post /:branding/:portal/user/revokeKey': 'typescript/UserController.revokeUserKey',
+  'post /:branding/:portal/user/update': 'typescript/UserController.update'
 };
