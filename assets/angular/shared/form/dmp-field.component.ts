@@ -17,7 +17,7 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { Component, Input, Inject, ViewChild, ViewContainerRef, ComponentFactoryResolver, ComponentRef } from '@angular/core';
+import { Component, Input, Inject, ViewChild, ViewContainerRef, ComponentFactoryResolver, ComponentRef, ApplicationRef } from '@angular/core';
 import { FormGroup } from '@angular/forms';
 import { FieldBase } from './field-base';
 import { SimpleComponent } from './field-simple.component';
@@ -39,7 +39,8 @@ export class DmpFieldComponent {
 
   @ViewChild('field', {read: ViewContainerRef}) fieldAnchor: ViewContainerRef;
 
-  constructor(@Inject(ComponentFactoryResolver) private componentFactoryResolver: ComponentFactoryResolver){}
+  constructor(@Inject(ComponentFactoryResolver) private componentFactoryResolver: ComponentFactoryResolver, protected app: ApplicationRef){
+  }
 
   get isValid() {
     if (this.form && this.form.controls) {
@@ -55,7 +56,8 @@ export class DmpFieldComponent {
     this.fieldAnchor.clear();
 
     let compFactory = this.componentFactoryResolver.resolveComponentFactory(this.field.compClass);
-    let fieldCompRef:ComponentRef<SimpleComponent> = <ComponentRef<SimpleComponent>> this.fieldAnchor.createComponent(compFactory);
+    let fieldCompRef:ComponentRef<SimpleComponent> = <ComponentRef<SimpleComponent>> this.fieldAnchor.createComponent(compFactory, undefined, this.app._injector);
+    fieldCompRef.instance.injector = this.app._injector;
     fieldCompRef.instance.field = this.field;
     fieldCompRef.instance.form = this.form;
     fieldCompRef.instance.fieldMap = this.fieldMap;

@@ -17,7 +17,7 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { Input, Component, ViewChild, ViewContainerRef, OnInit } from '@angular/core';
+import { Input, Component, ViewChild, ViewContainerRef, OnInit, Injector} from '@angular/core';
 import { FieldBase } from './field-base';
 import { DateTime, AnchorOrButton, TextArea, TextField } from './field-simple';
 import { FormGroup, FormControl, FormArray } from '@angular/forms';
@@ -36,6 +36,7 @@ export class SimpleComponent {
   @Input() public fieldMap: any;
   @Input() public index: any;
   @Input() public name: any;
+  public injector: Injector;
 
   helpShow: boolean;
 
@@ -64,6 +65,10 @@ export class SimpleComponent {
   getRequiredLabelStr() {
     return this.field.required ? '(*)' : '';
   }
+
+  getFromInjector(token:any): any {
+    return this.injector.get(token);
+  }
 }
 
 
@@ -88,10 +93,11 @@ export class SimpleComponent {
     </span>
     <br/>
   </li>
-  `,
+  `
 })
 export class TextAreaComponent extends SimpleComponent implements OnInit {
   field: TextArea;
+
   ngOnInit() {
     if (!this.field.editMode) {
       this.field.formatValueForDisplay();
