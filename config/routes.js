@@ -129,6 +129,7 @@ module.exports.routes = {
   'post /:branding/:portal/admin/roles/user': 'typescript/AdminController.updateUserRoles',
   'get /:branding/:portal/record/:recordType/edit': 'typescript/RecordController.edit',
   'get /:branding/:portal/record/edit/:oid': 'typescript/RecordController.edit',
+  'get /:branding/:portal/record/metadata/:oid': 'typescript/RecordController.getMeta',
   'get /:branding/:portal/record/form/:name': 'typescript/RecordController.getForm',
   'get /:branding/:portal/record/form/:name/:oid': 'typescript/RecordController.getForm',
   'get /:branding/:portal/record/search/:type': 'typescript/RecordController.search',

@@ -37,6 +37,7 @@ import { VocabField, VocabFieldComponent, VocabFieldLookupService } from './fiel
 import { RepeatableContainer, RepeatableVocabComponent, RepeatableContributorComponent } from './field-repeatable.component';
 import { ContributorField, ContributorComponent } from './field-contributor.component';
 import { WorkflowStepButton, WorkflowStepButtonComponent } from './workflow-button.component';
+import { RelatedObjectDataField, RelatedObjectDataComponent } from './field-relatedobjectdata.component';
 import * as _ from "lodash-lib";
 import { Observable } from 'rxjs/Observable';
 import 'rxjs/add/observable/of';
@@ -68,7 +69,8 @@ export class FieldControlService {
     'HiddenValue': {'meta': HiddenValue, 'comp': HiddenValueComponent},
     'WorkflowStepButton': {'meta': WorkflowStepButton, 'comp': WorkflowStepButtonComponent},
     'LinkValueComponent': {'meta': LinkValue, 'comp': LinkValueComponent },
-    'SelectionField': {'meta': SelectionField, 'comp': [ SelectionFieldComponent, DropdownFieldComponent ] },
+    'SelectionField': {'meta': SelectionField, 'comp': [ SelectionFieldComponent, DropdownFieldComponent ]},
+    'RelatedObjectDataField': {'meta': RelatedObjectDataField, 'comp': RelatedObjectDataComponent, 'lookupService': 'vocabFieldLookupService'}
   };
   constructor(@Inject(VocabFieldLookupService) private vocabFieldLookupService: VocabFieldLookupService, @Inject(CompleterService) private completerService: CompleterService,
   @Inject(ConfigService) protected configService: ConfigService,

@@ -135,6 +135,12 @@ export class RecordsService extends BaseService {
     .toPromise()
     .then((res:any) => this.extractData(res));
   }
+
+  getRecordMeta(oid:string=null) {
+    return this.http.get(`${this.brandingAndPortalUrl}/record/metadata/`+oid, this.options)
+      .toPromise()
+      .then((res: any) => this.extractData(res));
+  }
 }
 
 export class RecordActionResult {

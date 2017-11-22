@@ -41,6 +41,7 @@ export module Services {
       'updateMeta',
       'getMeta',
       'hasEditAccess',
+      'hasViewAccess',
       'getOne',
       'search',
       'createBatch',
@@ -77,6 +78,43 @@ export module Services {
         url = url.replace('$packageType', packageType);
       }
       return {url:url, json:true, headers: {'Authorization': `Bearer ${sails.config.redbox.apiKey}`, 'Content-Type': 'application/json; charset=utf-8'}};
+    }
+
+    /**
+     * Fine-grained access to the record, converted to sync.
+     *
+     */
+    public hasViewAccess(brand, uname, roles, record): boolean {
+      const viewArr = record.authorization ? record.authorization.view : record.authorization_view;
+      const viewRolesArr = record.authorization ? record.authorization.viewRoles : record.authorization_viewRoles;
+
+      const isInUserView = _.find(viewArr, username=> {
+        return uname == username;
+      });
+      if (!_.isUndefined(isInUserView)) {
+        return true;
+      }
+      const isInRoleView = _.find(viewRolesArr, roleName => {
+        const role = RolesService.getRole(brand, roleName);
+        return role && !_.isUndefined(_.find(roles, r => {
+            return role.id == r.id;
+        }));
+      });
+      return !_.isUndefined(isInRoleView);
+      // Lines below commented out because we're not checking workflow auths anymore,
+      // we're expecting that the workflow auths are bolted into the document on workflow updates.
+      //
+      // if (isInRoleEdit !== undefined) {
+      //   return Observable.of(true);
+      // }
+      //
+      // return WorkflowStepsService.get(brand, record.workflow.stage).flatMap(wfStep => {
+      //   const wfHasRoleEdit = _.find(wfStep.config.authorization.editRoles, roleName => {
+      //     const role = RolesService.getRole(brand, roleName);
+      //     return role && UsersService.hasRole(user, role);
+      //   });
+      //   return Observable.of(wfHasRoleEdit !== undefined);
+      // });
     }
 
     /**

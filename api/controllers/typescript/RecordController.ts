@@ -39,14 +39,15 @@ export module Controllers {
      * Exported methods, accessible from internet.
      */
     protected _exportedMethods: any = [
-        'edit',
-        'getForm',
-        'create',
-        'update',
-        'stepTo',
-        'modifyEditors',
-        'search',
-        'getType'
+      'edit',
+      'getForm',
+      'create',
+      'update',
+      'stepTo',
+      'modifyEditors',
+      'search',
+      'getType',
+      'getMeta'
     ];
 
     /**
@@ -59,6 +60,22 @@ export module Controllers {
 
     }
 
+    public getMeta(req, res) {
+      const brand = BrandingService.getBrand(req.session.branding);
+      const oid = req.param('oid') ? req.param('oid') : '';
+      var obs = RecordsService.getMeta(oid);
+      return obs.subscribe(record => {
+        this.hasViewAccess(brand, req.user, record).subscribe(hasViewAccess => {
+          if (hasViewAccess) {
+            return res.json(record.metadata);
+          } else {
+            return res.json({ status: "Access Denied" });
+          }
+
+        });
+      });
+    }
+
     public edit(req, res) {
       const oid = req.param('oid') ? req.param('oid') : '';
       const recordType = req.param('recordType') ? req.param('recordType') : '';
@@ -69,6 +86,12 @@ export module Controllers {
       sails.log.verbose("Current Record: ");
       sails.log.verbose(currentRec);
       return Observable.of(RecordsService.hasEditAccess(brand, user.name, user.roles, currentRec));
+    }
+
+    protected hasViewAccess(brand, user, currentRec) {
+      sails.log.verbose("Current Record: ");
+      sails.log.verbose(currentRec);
+      return Observable.of(RecordsService.hasViewAccess(brand, user.name, user.roles, currentRec));
     }
 
     public getForm(req, res) {
@@ -89,7 +112,7 @@ export module Controllers {
           return this.hasEditAccess(brand, req.user, currentRec)
             .flatMap(hasEditAccess => {
               const formName = currentRec.metaMetadata.form;
-              return FormsService.getFormByName(formName,editMode).flatMap(form => {
+              return FormsService.getFormByName(formName, editMode).flatMap(form => {
                 if (_.isEmpty(form)) {
                   return Observable.throw(new Error(`Error, getting form ${formName} for OID: ${oid}`));
                 }
@@ -142,9 +165,9 @@ export module Controllers {
               } else {
                 this.ajaxFail(req, res, null, response);
               }
-          }, error => {
-            return Observable.throw(`Failed to save record: ${error}`)
-          });
+            }, error => {
+              return Observable.throw(`Failed to save record: ${error}`)
+            });
           }, error => {
             this.ajaxFail(req, res, `Failed to save record: ${error}`);
           });
@@ -178,18 +201,18 @@ export module Controllers {
 
     protected saveMetadata(brand, oid, currentRec, metadata, user): Observable<any> {
       return this.hasEditAccess(brand, user, currentRec)
-      .flatMap(hasEditAccess => {
-        currentRec.metadata = metadata;
-        return this.updateMetadata(brand, oid, currentRec, user.username);
-      });
+        .flatMap(hasEditAccess => {
+          currentRec.metadata = metadata;
+          return this.updateMetadata(brand, oid, currentRec, user.username);
+        });
     }
 
     protected saveAuthorization(brand, oid, currentRec, authorization, user): Observable<any> {
       return this.hasEditAccess(brand, user, currentRec)
-      .flatMap(hasEditAccess => {
-        currentRec.authorization = authorization;
-        return this.updateAuthorization(brand, oid, currentRec, user.username);
-      });
+        .flatMap(hasEditAccess => {
+          currentRec.authorization = authorization;
+          return this.updateAuthorization(brand, oid, currentRec, user.username);
+        });
     }
 
     protected updateWorkflowStep(currentRec, nextStep) {
@@ -319,7 +342,7 @@ export module Controllers {
             _.remove(authorization.edit, (username) => {
               return username == fromUsername;
             });
-            if (_.isUndefined(_.find(authorization.edit, (username) => { return username == toUsername}))) {
+            if (_.isUndefined(_.find(authorization.edit, (username) => { return username == toUsername }))) {
               authorization.edit.push(toUsername);
             }
             this.saveAuthorization(brand, oid, record, authorization, user).subscribe(response => {
@@ -353,19 +376,19 @@ export module Controllers {
       const facetSearches = [];
 
       _.forEach(exactSearchNames, (exactSearch) => {
-        exactSearches.push({name: exactSearch, value: req.query[`exact_${exactSearch}`]});
+        exactSearches.push({ name: exactSearch, value: req.query[`exact_${exactSearch}`] });
       });
       _.forEach(facetSearchNames, (facetSearch) => {
-        facetSearches.push({name: facetSearch, value: req.query[`facet_${facetSearch}`]});
+        facetSearches.push({ name: facetSearch, value: req.query[`facet_${facetSearch}`] });
       });
 
 
       RecordsService.searchFuzzy(type, workflow, searchString, exactSearches, facetSearches, brand, req.user.username, req.user.roles, sails.config.record.search.returnFields)
-      .subscribe(searchRes => {
-        this.ajaxOk(req, res, null, searchRes);
-      }, error => {
-        this.ajaxFail(req, res, error.message);
-      });
+        .subscribe(searchRes => {
+          this.ajaxOk(req, res, null, searchRes);
+        }, error => {
+          this.ajaxFail(req, res, error.message);
+        });
     }
     /** Returns the RecordType configuration */
     public getType(req, res) {

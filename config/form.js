@@ -1,6 +1,6 @@
 /**
-* Form related configuration
-*/
+ * Form related configuration
+ */
 module.exports.form = {
   defaultForm: "default-1.0-draft",
   forms: {
@@ -16,8 +16,7 @@ module.exports.form = {
         "saveSuccess": "Saved successfully.",
         "saveError": "Error while saving: "
       },
-      fields: [
-        {
+      fields: [{
           class: 'Container',
           compClass: 'TextBlockComponent',
           viewOnly: true,
@@ -54,14 +53,13 @@ module.exports.form = {
               // Welcome Tab
               // -------------------------------------------------------------------
               {
-                class : "Container",
+                class: "Container",
                 editOnly: true,
                 definition: {
                   id: "welcome",
-                  label : "@dmpt-welcome-tab",
+                  label: "@dmpt-welcome-tab",
                   active: true,
-                  fields: [
-                    {
+                  fields: [{
                       class: 'Container',
                       compClass: 'TextBlockComponent',
                       definition: {
@@ -104,12 +102,11 @@ module.exports.form = {
               // Project Tab
               // -------------------------------------------------------------------
               {
-                class : "Container",
+                class: "Container",
                 definition: {
                   id: "project",
-                  label : "@dmpt-project-tab",
-                  fields: [
-                    {
+                  label: "@dmpt-project-tab",
+                  fields: [{
                       class: 'Container',
                       compClass: 'TextBlockComponent',
                       definition: {
@@ -149,7 +146,7 @@ module.exports.form = {
                         help: '@dmpt-project-desc-help',
                         rows: 10,
                         cols: 10,
-                        required:true
+                        required: true
                       }
                     },
                     {
@@ -160,21 +157,19 @@ module.exports.form = {
                       }
                     },
                     {
-                    class: 'RepeatableContainer',
-                    compClass: 'RepeatableTextfieldComponent',
+                      class: 'RepeatableContainer',
+                      compClass: 'RepeatableTextfieldComponent',
                       definition: {
                         label: "@dmpt-finalKeywords",
                         help: "@dmpt-finalKeywords-help",
                         name: "finalKeywords",
                         editOnly: true,
-                        fields: [
-                          {
-                            class: 'TextField',
-                            definition: {
-                              type: 'text'
-                            }
+                        fields: [{
+                          class: 'TextField',
+                          definition: {
+                            type: 'text'
                           }
-                        ]
+                        }]
                       }
                     },
                     {
@@ -186,47 +181,53 @@ module.exports.form = {
                     },
                     {
                       class: 'TextField',
-                        definition: {
-                          name: 'dc:relation_bibo:Website',
-                          label: '@dmpt-project-website',
-                          help: '@dmpt-project-website-help',
-                          type: 'text'
+                      definition: {
+                        name: 'dc:relation_bibo:Website',
+                        label: '@dmpt-project-website',
+                        help: '@dmpt-project-website-help',
+                        type: 'text'
                       }
                     },
                     {
                       class: 'DateTime',
-                        definition: {
-                         name: "dc:coverage_vivo:DateTimeInterval_vivo:start",
-                         label: "@dmpt-project-startdate",
-                         help: '@dmpt-project-startdate-help',
-                         datePickerOpts: {format: 'dd/mm/yyyy', icon: 'fa fa-calendar'},
-                         timePickerOpts: false,
-                         hasClearButton: false,
-                         valueFormat: 'YYYY-MM-DD',
-                         displayFormat: 'L',
-                         publish: {
-                           onValueUpdate: {
-                             modelEventSource: 'valueChanges'
-                           }
-                         }
+                      definition: {
+                        name: "dc:coverage_vivo:DateTimeInterval_vivo:start",
+                        label: "@dmpt-project-startdate",
+                        help: '@dmpt-project-startdate-help',
+                        datePickerOpts: {
+                          format: 'dd/mm/yyyy',
+                          icon: 'fa fa-calendar'
+                        },
+                        timePickerOpts: false,
+                        hasClearButton: false,
+                        valueFormat: 'YYYY-MM-DD',
+                        displayFormat: 'L',
+                        publish: {
+                          onValueUpdate: {
+                            modelEventSource: 'valueChanges'
+                          }
                         }
+                      }
                     },
                     {
-                    class: 'DateTime',
+                      class: 'DateTime',
                       definition: {
-                       name: "dc:coverage_vivo:DateTimeInterval_vivo:end",
-                       label: "@dmpt-project-enddate",
-                       help: '@dmpt-project-enddate-help',
-                       datePickerOpts: {format: 'dd/mm/yyyy', icon: 'fa fa-calendar'},
-                       timePickerOpts: false,
-                       hasClearButton: false,
-                       valueFormat: 'YYYY-MM-DD',
-                       displayFormat: 'L',
-                       subscribe: {
-                         'dc:coverage_vivo:DateTimeInterval_vivo:start': {
-                           onValueUpdate: []
-                         }
-                       }
+                        name: "dc:coverage_vivo:DateTimeInterval_vivo:end",
+                        label: "@dmpt-project-enddate",
+                        help: '@dmpt-project-enddate-help',
+                        datePickerOpts: {
+                          format: 'dd/mm/yyyy',
+                          icon: 'fa fa-calendar'
+                        },
+                        timePickerOpts: false,
+                        hasClearButton: false,
+                        valueFormat: 'YYYY-MM-DD',
+                        displayFormat: 'L',
+                        subscribe: {
+                          'dc:coverage_vivo:DateTimeInterval_vivo:start': {
+                            onValueUpdate: []
+                          }
+                        }
                       }
                     },
                     {
@@ -237,18 +238,16 @@ module.exports.form = {
                         label: "@dmpt-foaf:fundedBy_foaf:Agent",
                         help: "@dmpt-foaf:fundedBy_foaf:Agent-help",
                         forceClone: ['lookupService', 'completerService'],
-                        fields: [
-                          {
-                            class: 'VocabField',
-                            definition: {
-                              vocabId: 'Funding Bodies',
-                              sourceType: 'mint',
-                              fieldNames: ['dc_title', 'dc_identifier', 'ID', 'repository_name'],
-                              searchFields: 'dc_title',
-                              titleFieldArr: ['dc_title']
-                            }
+                        fields: [{
+                          class: 'VocabField',
+                          definition: {
+                            vocabId: 'Funding Bodies',
+                            sourceType: 'mint',
+                            fieldNames: ['dc_title', 'dc_identifier', 'ID', 'repository_name'],
+                            searchFields: 'dc_title',
+                            titleFieldArr: ['dc_title']
                           }
-                        ]
+                        }]
                       }
                     },
                     {
@@ -259,28 +258,38 @@ module.exports.form = {
                         label: "@dmpt-foaf:fundedBy_vivo:Grant",
                         help: "@dmpt-foaf:fundedBy_vivo:Grant-help",
                         forceClone: ['lookupService', 'completerService'],
-                        fields: [
-                          {
-                            class: 'VocabField',
-                            definition: {
-                              vocabId: 'Research Activities',
-                              sourceType: 'mint',
-                              fieldNames: ['dc_title', 'grant_number', 'foaf_name', 'dc_identifier', 'known_ids', 'repository_name'],
-                              searchFields: 'grant_number,dc_title',
-                              titleFieldArr: ['grant_number', 'repository_name', 'dc_title'],
-                              titleFieldDelim: [
-                                {prefix: '[', suffix: ']'},
-                                {prefix: ' (', suffix: ')'},
-                                {prefix: ' ', suffix: ''}
-                              ]
-                            }
+                        fields: [{
+                          class: 'VocabField',
+                          definition: {
+                            vocabId: 'Research Activities',
+                            sourceType: 'mint',
+                            fieldNames: ['dc_title', 'grant_number', 'foaf_name', 'dc_identifier', 'known_ids', 'repository_name'],
+                            searchFields: 'grant_number,dc_title',
+                            titleFieldArr: ['grant_number', 'repository_name', 'dc_title'],
+                            titleFieldDelim: [{
+                                prefix: '[',
+                                suffix: ']'
+                              },
+                              {
+                                prefix: ' (',
+                                suffix: ')'
+                              },
+                              {
+                                prefix: ' ',
+                                suffix: ''
+                              }
+                            ]
                           }
-                        ],
+                        }],
                         publish: {
                           onValueUpdate: {
                             modelEventSource: 'valueChanges',
                             // optional, renames fields `{field: sourcefield}` accessed using _.get, remove to return the entire data set
-                            fields: [{'grant_number': 'grant_number[0]'}, {'dc_title': 'dc_title'}]
+                            fields: [{
+                              'grant_number': 'grant_number[0]'
+                            }, {
+                              'dc_title': 'dc_title'
+                            }]
                           }
                         }
                       }
@@ -289,15 +298,26 @@ module.exports.form = {
                       class: 'SelectionField',
                       compClass: 'DropdownFieldComponent',
                       definition: {
-                       name: 'dc:subject_anzsrc:toa_rdf:resource',
-                       label: '@dmpt-project-activity-type',
-                       help: '@dmpt-project-activity-type-help',
-                       options: [
-                         { value: "pure", label: "@dmpt-activity-type-pure" },
-                         { value: "strategic", label: "@dmpt-activity-type-strategic"},
-                         { value: "applied", label: "@dmpt-activity-type-applied"},
-                         { value: "experimental", label: "@dmpt-activity-type-experimental"}
-                       ]
+                        name: 'dc:subject_anzsrc:toa_rdf:resource',
+                        label: '@dmpt-project-activity-type',
+                        help: '@dmpt-project-activity-type-help',
+                        options: [{
+                            value: "pure",
+                            label: "@dmpt-activity-type-pure"
+                          },
+                          {
+                            value: "strategic",
+                            label: "@dmpt-activity-type-strategic"
+                          },
+                          {
+                            value: "applied",
+                            label: "@dmpt-activity-type-applied"
+                          },
+                          {
+                            value: "experimental",
+                            label: "@dmpt-activity-type-experimental"
+                          }
+                        ]
                       }
                     },
                     {
@@ -307,46 +327,42 @@ module.exports.form = {
                         label: "@dmpt-project-anzsrcFor",
                         help: "@dmpt-project-anzsrcFor-help",
                         name: "dc:subject_anzsrc:for",
-                        forceClone: ['sourceData','completerService'],
-                        fields: [
-                          {
-                            class: 'VocabField',
-                            definition: {
-                              vocabId: 'anzsrc-for',
-                              "validationMessages" : {
-                                  "required" : "Please select a valid value."
-                              },
-                              fieldNames: ['uri', 'label', 'notation'],
-                              searchFields: 'notation,label',
-                              titleFieldArr: ['notation', 'label']
-                            }
+                        forceClone: ['sourceData', 'completerService'],
+                        fields: [{
+                          class: 'VocabField',
+                          definition: {
+                            vocabId: 'anzsrc-for',
+                            "validationMessages": {
+                              "required": "Please select a valid value."
+                            },
+                            fieldNames: ['uri', 'label', 'notation'],
+                            searchFields: 'notation,label',
+                            titleFieldArr: ['notation', 'label']
                           }
-                        ]
+                        }]
                       }
                     },
                     {
-                     class: 'RepeatableContainer',
-                     compClass: 'RepeatableVocabComponent',
-                     definition: {
-                       label: "@dmpt-project-anzsrcSeo",
-                       help: "@dmpt-project-anzsrcSeo-help",
-                       name: "dc:subject_anzsrc:seo",
-                       forceClone: ['sourceData','completerService'],
-                       fields: [
-                         {
-                           class: 'VocabField',
-                           definition: {
-                             vocabId: 'anzsrc-seo',
-                             "validationMessages" : {
-                                 "required" : "Please select a valid value."
-                             },
-                             fieldNames: ['uri', 'label', 'notation'],
-                             searchFields: 'notation,label',
-                             titleFieldArr: ['notation', 'label']
-                           }
-                         }
-                       ]
-                     }
+                      class: 'RepeatableContainer',
+                      compClass: 'RepeatableVocabComponent',
+                      definition: {
+                        label: "@dmpt-project-anzsrcSeo",
+                        help: "@dmpt-project-anzsrcSeo-help",
+                        name: "dc:subject_anzsrc:seo",
+                        forceClone: ['sourceData', 'completerService'],
+                        fields: [{
+                          class: 'VocabField',
+                          definition: {
+                            vocabId: 'anzsrc-seo',
+                            "validationMessages": {
+                              "required": "Please select a valid value."
+                            },
+                            fieldNames: ['uri', 'label', 'notation'],
+                            searchFields: 'notation,label',
+                            titleFieldArr: ['notation', 'label']
+                          }
+                        }]
+                      }
                     }
                   ]
                 }
@@ -355,14 +371,13 @@ module.exports.form = {
               // People Tab
               // -------------------------------------------------------------------
               {
-                class : "Container",
+                class: "Container",
                 definition: {
                   id: "people",
-                  label : "@dmpt-people-tab",
-                  fields: [
-                    {
+                  label: "@dmpt-people-tab",
+                  fields: [{
                       class: 'ContributorField',
-                      showHeader:true,
+                      showHeader: true,
                       definition: {
                         name: 'contributor_ci',
                         required: true,
@@ -372,7 +387,13 @@ module.exports.form = {
                         forceLookupOnly: true,
                         vocabId: 'Parties AND repository_name:People',
                         sourceType: 'mint',
-                        fieldNames: [{'text_full_name':'text_full_name'}, {'full_name_honorific':'text_full_name_honorific'}, {'email': 'Email[0]'}],
+                        fieldNames: [{
+                          'text_full_name': 'text_full_name'
+                        }, {
+                          'full_name_honorific': 'text_full_name_honorific'
+                        }, {
+                          'email': 'Email[0]'
+                        }],
                         searchFields: 'text_given_name,text_family_name,text_full_name,text_full_name_honorific',
                         titleFieldArr: ['text_full_name'],
                         titleFieldDelim: '',
@@ -395,7 +416,7 @@ module.exports.form = {
                     },
                     {
                       class: 'ContributorField',
-                      showHeader:true,
+                      showHeader: true,
                       definition: {
                         name: 'contributor_data_manager',
                         required: true,
@@ -404,7 +425,13 @@ module.exports.form = {
                         freeText: false,
                         vocabId: 'Parties AND repository_name:People',
                         sourceType: 'mint',
-                        fieldNames: [{'text_full_name':'text_full_name'}, {'full_name_honorific':'text_full_name_honorific'}, {'email': 'Email[0]'}],
+                        fieldNames: [{
+                          'text_full_name': 'text_full_name'
+                        }, {
+                          'full_name_honorific': 'text_full_name_honorific'
+                        }, {
+                          'email': 'Email[0]'
+                        }],
                         searchFields: 'text_given_name,text_family_name,text_full_name,text_full_name_honorific',
                         titleFieldArr: ['text_full_name'],
                         titleFieldDelim: '',
@@ -423,47 +450,51 @@ module.exports.form = {
                       }
                     },
                     {
-                     class: 'RepeatableContainer',
-                     compClass: 'RepeatableContributorComponent',
-                     definition: {
-                       name: "contributors",
-                       skipClone: ['showHeader', 'initialValue'],
-                       forceClone: ['vocabField'],
-                       fields: [
-                         {
-                           class: 'ContributorField',
-                           showHeader:true,
-                           definition: {
-                             required: true,
-                             label: '@dmpt-people-tab-contributors',
-                             role: "@dmpt-people-tab-contributors-role",
-                             freeText: false,
-                             vocabId: 'Parties AND repository_name:People',
-                             sourceType: 'mint',
-                             fieldNames: [{'text_full_name':'text_full_name'}, {'full_name_honorific':'text_full_name_honorific'}, {'email': 'Email[0]'}],
-                             searchFields: 'text_given_name,text_family_name,text_full_name,text_full_name_honorific',
-                             titleFieldArr: ['text_full_name'],
-                             titleFieldDelim: '',
-                             nameColHdr: '@dmpt-people-tab-name-hdr',
-                             emailColHdr: '@dmpt-people-tab-email-hdr',
-                             publish: {
-                               onValueUpdate: {
-                                 modelEventSource: 'valueChanges'
-                               }
-                             },
-                             subscribe: {
-                               'this': {
-                                 onValueUpdate: []
-                               }
-                             }
-                           }
-                         }
-                       ]
-                     }
+                      class: 'RepeatableContainer',
+                      compClass: 'RepeatableContributorComponent',
+                      definition: {
+                        name: "contributors",
+                        skipClone: ['showHeader', 'initialValue'],
+                        forceClone: ['vocabField'],
+                        fields: [{
+                          class: 'ContributorField',
+                          showHeader: true,
+                          definition: {
+                            required: true,
+                            label: '@dmpt-people-tab-contributors',
+                            role: "@dmpt-people-tab-contributors-role",
+                            freeText: false,
+                            vocabId: 'Parties AND repository_name:People',
+                            sourceType: 'mint',
+                            fieldNames: [{
+                              'text_full_name': 'text_full_name'
+                            }, {
+                              'full_name_honorific': 'text_full_name_honorific'
+                            }, {
+                              'email': 'Email[0]'
+                            }],
+                            searchFields: 'text_given_name,text_family_name,text_full_name,text_full_name_honorific',
+                            titleFieldArr: ['text_full_name'],
+                            titleFieldDelim: '',
+                            nameColHdr: '@dmpt-people-tab-name-hdr',
+                            emailColHdr: '@dmpt-people-tab-email-hdr',
+                            publish: {
+                              onValueUpdate: {
+                                modelEventSource: 'valueChanges'
+                              }
+                            },
+                            subscribe: {
+                              'this': {
+                                onValueUpdate: []
+                              }
+                            }
+                          }
+                        }]
+                      }
                     },
                     {
                       class: 'ContributorField',
-                      showHeader:true,
+                      showHeader: true,
                       definition: {
                         name: 'contributor_supervisor',
                         required: true,
@@ -473,7 +504,13 @@ module.exports.form = {
                         forceLookupOnly: true,
                         vocabId: 'Parties AND repository_name:People',
                         sourceType: 'mint',
-                        fieldNames: [{'text_full_name':'text_full_name'}, {'full_name_honorific':'text_full_name_honorific'}, {'email': 'Email[0]'}],
+                        fieldNames: [{
+                          'text_full_name': 'text_full_name'
+                        }, {
+                          'full_name_honorific': 'text_full_name_honorific'
+                        }, {
+                          'email': 'Email[0]'
+                        }],
                         searchFields: 'text_given_name,text_family_name,text_full_name,text_full_name_honorific',
                         titleFieldArr: ['text_full_name'],
                         titleFieldDelim: '',
@@ -495,12 +532,11 @@ module.exports.form = {
                 }
               },
               {
-                class : "Container",
+                class: "Container",
                 definition: {
                   id: "dataCollection",
-                  label : "@dmpt-data-collection-tab",
-                  fields: [
-                    {
+                  label: "@dmpt-data-collection-tab",
+                  fields: [{
                       class: 'Container',
                       compClass: 'TextBlockComponent',
                       definition: {
@@ -589,12 +625,11 @@ module.exports.form = {
               // Storage Tab
               // -------------------------------------------------------------------
               {
-                class : "Container",
+                class: "Container",
                 definition: {
                   id: "storage",
-                  label : "@dmpt-storage-tab",
-                  fields: [
-                    {
+                  label: "@dmpt-storage-tab",
+                  fields: [{
                       class: 'Container',
                       compClass: 'TextBlockComponent',
                       definition: {
@@ -609,11 +644,22 @@ module.exports.form = {
                         name: 'vivo:Dataset_dc:extent',
                         label: '@dmpt-vivo:Dataset_dc:extent',
                         help: '@dmpt-vivo:Dataset_dc:extent-help',
-                        options: [
-                          { value: "@dmpt-vivo:Dataset_dc:extent-less-than-10GB", label: "@dmpt-vivo:Dataset_dc:extent-less-than-10GB" },
-                          { value: "@dmpt-vivo:Dataset_dc:extent-10-20GB", label: "@dmpt-vivo:Dataset_dc:extent-10-20GB"},
-                          { value: "@dmpt-vivo:Dataset_dc:extent-20-100GB", label: "@dmpt-vivo:Dataset_dc:extent-20-100GB"},
-                          { value: "@dmpt-vivo:Dataset_dc:extent-more-than-100GB", label: "@dmpt-vivo:Dataset_dc:extent-more-than-100GB"}
+                        options: [{
+                            value: "@dmpt-vivo:Dataset_dc:extent-less-than-10GB",
+                            label: "@dmpt-vivo:Dataset_dc:extent-less-than-10GB"
+                          },
+                          {
+                            value: "@dmpt-vivo:Dataset_dc:extent-10-20GB",
+                            label: "@dmpt-vivo:Dataset_dc:extent-10-20GB"
+                          },
+                          {
+                            value: "@dmpt-vivo:Dataset_dc:extent-20-100GB",
+                            label: "@dmpt-vivo:Dataset_dc:extent-20-100GB"
+                          },
+                          {
+                            value: "@dmpt-vivo:Dataset_dc:extent-more-than-100GB",
+                            label: "@dmpt-vivo:Dataset_dc:extent-more-than-100GB"
+                          }
                         ],
                         required: true,
                         validationMessages: {
@@ -628,11 +674,22 @@ module.exports.form = {
                         name: 'vivo:Dataset_dc:location_rdf:PlainLiteral',
                         label: '@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral',
                         help: '@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-help',
-                        options: [
-                          { value: "@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-personal", label: "@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-personal" },
-                          { value: "@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-shared", label: "@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-shared"},
-                          { value: "@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-uni", label: "@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-uni"},
-                          { value: "@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-other", label: "@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-other"}
+                        options: [{
+                            value: "@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-personal",
+                            label: "@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-personal"
+                          },
+                          {
+                            value: "@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-shared",
+                            label: "@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-shared"
+                          },
+                          {
+                            value: "@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-uni",
+                            label: "@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-uni"
+                          },
+                          {
+                            value: "@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-other",
+                            label: "@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-other"
+                          }
                         ],
                         required: true,
                         validationMessages: {
@@ -657,11 +714,22 @@ module.exports.form = {
                         name: 'vivo:Dataset_dc:source_dc:location_rdf:PlainLiteral',
                         label: '@dmpt-vivo:Dataset_dc:source_dc:location_rdf:PlainLiteral',
                         help: '@dmpt-vivo:Dataset_dc:source_dc:location_rdf:PlainLiteral-help',
-                        options: [
-                          { value: "@dmpt-vivo:Dataset_dc:source_dc:location_rdf:PlainLiteral-personal", label: "@dmpt-vivo:Dataset_dc:source_dc:location_rdf:PlainLiteral-personal" },
-                          { value: "@dmpt-vivo:Dataset_dc:source_dc:location_rdf:PlainLiteral-shared", label: "@dmpt-vivo:Dataset_dc:source_dc:location_rdf:PlainLiteral-shared"},
-                          { value: "@dmpt-vivo:Dataset_dc:source_dc:location_rdf:PlainLiteral-uni", label: "@dmpt-vivo:Dataset_dc:source_dc:location_rdf:PlainLiteral-uni"},
-                          { value: "@dmpt-vivo:Dataset_dc:source_dc:location_rdf:PlainLiteral-other", label: "@dmpt-vivo:Dataset_dc:source_dc:location_rdf:PlainLiteral-other"}
+                        options: [{
+                            value: "@dmpt-vivo:Dataset_dc:source_dc:location_rdf:PlainLiteral-personal",
+                            label: "@dmpt-vivo:Dataset_dc:source_dc:location_rdf:PlainLiteral-personal"
+                          },
+                          {
+                            value: "@dmpt-vivo:Dataset_dc:source_dc:location_rdf:PlainLiteral-shared",
+                            label: "@dmpt-vivo:Dataset_dc:source_dc:location_rdf:PlainLiteral-shared"
+                          },
+                          {
+                            value: "@dmpt-vivo:Dataset_dc:source_dc:location_rdf:PlainLiteral-uni",
+                            label: "@dmpt-vivo:Dataset_dc:source_dc:location_rdf:PlainLiteral-uni"
+                          },
+                          {
+                            value: "@dmpt-vivo:Dataset_dc:source_dc:location_rdf:PlainLiteral-other",
+                            label: "@dmpt-vivo:Dataset_dc:source_dc:location_rdf:PlainLiteral-other"
+                          }
                         ],
                         required: true,
                         validationMessages: {
@@ -686,12 +754,11 @@ module.exports.form = {
               // Retention Tab
               // -------------------------------------------------------------------
               {
-                class : "Container",
+                class: "Container",
                 definition: {
                   id: "retention",
-                  label : "@dmpt-retention-tab",
-                  fields: [
-                    {
+                  label: "@dmpt-retention-tab",
+                  fields: [{
                       class: 'Container',
                       compClass: 'TextBlockComponent',
                       definition: {
@@ -706,12 +773,26 @@ module.exports.form = {
                         name: 'redbox:retentionPeriod_dc:date',
                         label: '@dmpt-redbox:retentionPeriod_dc:date',
                         help: '@dmpt-redbox:retentionPeriod_dc:date-help',
-                        options: [
-                          { value: "1year", label: "@dmpt-redbox:retentionPeriod_dc:date-1year" },
-                          { value: "5years", label: "@dmpt-redbox:retentionPeriod_dc:date-5years"},
-                          { value: "7years", label: "@dmpt-redbox:retentionPeriod_dc:date-7years"},
-                          { value: "15years", label: "@dmpt-redbox:retentionPeriod_dc:date-15years"},
-                          { value: "permanent", label: "@dmpt-redbox:retentionPeriod_dc:date-permanent"}
+                        options: [{
+                            value: "1year",
+                            label: "@dmpt-redbox:retentionPeriod_dc:date-1year"
+                          },
+                          {
+                            value: "5years",
+                            label: "@dmpt-redbox:retentionPeriod_dc:date-5years"
+                          },
+                          {
+                            value: "7years",
+                            label: "@dmpt-redbox:retentionPeriod_dc:date-7years"
+                          },
+                          {
+                            value: "15years",
+                            label: "@dmpt-redbox:retentionPeriod_dc:date-15years"
+                          },
+                          {
+                            value: "permanent",
+                            label: "@dmpt-redbox:retentionPeriod_dc:date-permanent"
+                          }
                         ],
                         required: true,
                         validationMessages: {
@@ -725,12 +806,26 @@ module.exports.form = {
                       definition: {
                         name: 'redbox:retentionPeriod_dc:date_skos:note',
                         label: '@dmpt-redbox:retentionPeriod_dc:date_skos:note',
-                        options: [
-                          { value: "heritage", label: "@dmpt-redbox:retentionPeriod_dc:date_skos:note-heritage" },
-                          { value: "controversial", label: "@dmpt-redbox:retentionPeriod_dc:date_skos:note-controversial"},
-                          { value: "ofinterest", label: "@dmpt-redbox:retentionPeriod_dc:date_skos:note-ofinterest"},
-                          { value: "costly_impossible", label: "@dmpt-redbox:retentionPeriod_dc:date_skos:note-costly_impossible"},
-                          { value: "commercial", label: "@dmpt-redbox:retentionPeriod_dc:date_skos:note-commercial"}
+                        options: [{
+                            value: "heritage",
+                            label: "@dmpt-redbox:retentionPeriod_dc:date_skos:note-heritage"
+                          },
+                          {
+                            value: "controversial",
+                            label: "@dmpt-redbox:retentionPeriod_dc:date_skos:note-controversial"
+                          },
+                          {
+                            value: "ofinterest",
+                            label: "@dmpt-redbox:retentionPeriod_dc:date_skos:note-ofinterest"
+                          },
+                          {
+                            value: "costly_impossible",
+                            label: "@dmpt-redbox:retentionPeriod_dc:date_skos:note-costly_impossible"
+                          },
+                          {
+                            value: "commercial",
+                            label: "@dmpt-redbox:retentionPeriod_dc:date_skos:note-commercial"
+                          }
                         ]
                       }
                     },
@@ -740,7 +835,10 @@ module.exports.form = {
                         name: "redbox:disposalDate",
                         label: "@dmpt-redbox:disposalDate",
                         help: '@dmpt-redbox:disposalDate-help',
-                        datePickerOpts: {format: 'dd/mm/yyyy', icon: 'fa fa-calendar'},
+                        datePickerOpts: {
+                          format: 'dd/mm/yyyy',
+                          icon: 'fa fa-calendar'
+                        },
                         timePickerOpts: false,
                         hasClearButton: false,
                         valueFormat: 'YYYY-MM-DD',
@@ -754,12 +852,11 @@ module.exports.form = {
               // Ownership Tab
               // -------------------------------------------------------------------
               {
-                class : "Container",
+                class: "Container",
                 definition: {
                   id: "ownership",
-                  label : "@dmpt-ownership-tab",
-                  fields: [
-                    {
+                  label: "@dmpt-ownership-tab",
+                  fields: [{
                       class: 'Container',
                       compClass: 'TextBlockComponent',
                       definition: {
@@ -774,10 +871,18 @@ module.exports.form = {
                         name: 'dc:rightsHolder_dc:name',
                         label: '@dmpt-dc:rightsHolder_dc:name',
                         help: '@dmpt-dc:rightsHolder_dc:name-help',
-                        options: [
-                          { value: "myUni", label: "@dmpt-dc:rightsHolder_dc:name-myUni" },
-                          { value: "myUnjount", label: "@dmpt-dc:rightsHolder_dc:name-myUnjount"},
-                          { value: "student", label: "@dmpt-dc:rightsHolder_dc:name-student"}
+                        options: [{
+                            value: "myUni",
+                            label: "@dmpt-dc:rightsHolder_dc:name-myUni"
+                          },
+                          {
+                            value: "myUnjount",
+                            label: "@dmpt-dc:rightsHolder_dc:name-myUnjount"
+                          },
+                          {
+                            value: "student",
+                            label: "@dmpt-dc:rightsHolder_dc:name-student"
+                          }
                         ],
                         required: true,
                         validationMessages: {
@@ -808,21 +913,19 @@ module.exports.form = {
                       }
                     },
                     {
-                    class: 'RepeatableContainer',
-                    compClass: 'RepeatableTextfieldComponent',
+                      class: 'RepeatableContainer',
+                      compClass: 'RepeatableTextfieldComponent',
                       definition: {
                         label: "@dmpt-dc:coverage_dc:identifier",
                         help: "@dmpt-dc:coverage_dc:identifier-help",
                         name: "dc:coverage_dc:identifier",
                         editOnly: true,
-                        fields: [
-                          {
-                            class: 'TextField',
-                            definition: {
-                              type: 'text'
-                            }
+                        fields: [{
+                          class: 'TextField',
+                          definition: {
+                            type: 'text'
                           }
-                        ]
+                        }]
                       }
                     }
                   ]
@@ -832,12 +935,11 @@ module.exports.form = {
               // Licensing Tab
               // -------------------------------------------------------------------
               {
-                class : "Container",
+                class: "Container",
                 definition: {
                   id: "licensing",
-                  label : "@dmpt-licensing-tab",
-                  fields: [
-                    {
+                  label: "@dmpt-licensing-tab",
+                  fields: [{
                       class: 'Container',
                       compClass: 'TextBlockComponent',
                       definition: {
@@ -862,10 +964,18 @@ module.exports.form = {
                         help: '@dmpt-dc:accessRights-help',
                         defaultValue: '@dmpt-dc:accessRights-manager',
                         controlType: 'radio',
-                        options: [
-                          { value: "@dmpt-dc:accessRights-manager", label: "@dmpt-dc:accessRights-manager"},
-                          { value: "@dmpt-dc:accessRights-open", label: "@dmpt-dc:accessRights-open"},
-                          { value: "@dmpt-dc:accessRights-none-val", label: "@dmpt-dc:accessRights-none"}
+                        options: [{
+                            value: "@dmpt-dc:accessRights-manager",
+                            label: "@dmpt-dc:accessRights-manager"
+                          },
+                          {
+                            value: "@dmpt-dc:accessRights-open",
+                            label: "@dmpt-dc:accessRights-open"
+                          },
+                          {
+                            value: "@dmpt-dc:accessRights-none-val",
+                            label: "@dmpt-dc:accessRights-none"
+                          }
                         ],
                         required: true
                       }
@@ -900,22 +1010,66 @@ module.exports.form = {
                         name: 'dc:license_dc:identifier',
                         label: '@dmpt-dc:license_dc:identifier',
                         help: '@dmpt-dc:license_dc:identifier-help',
-                        options: [
-                          { value: "http://creativecommons.org/licenses/by/3.0/au", label: "@dmpt-dc:license_dc:identifier-1" },
-                          { value: "http://creativecommons.org/licenses/by-sa/3.0/au", label: "@dmpt-dc:license_dc:identifier-2"},
-                          { value: "http://creativecommons.org/licenses/by-nd/3.0/au", label: "@dmpt-dc:license_dc:identifier-3"},
-                          { value: "http://creativecommons.org/licenses/by-nc/3.0/au", label: "@dmpt-dc:license_dc:identifier-4"},
-                          { value: "http://creativecommons.org/licenses/by-nc-sa/3.0/au", label: "@dmpt-dc:license_dc:identifier-5"},
-                          { value: "http://creativecommons.org/licenses/by-nc-nd/3.0/au", label: "@dmpt-dc:license_dc:identifier-6" },
-                          { value: "http://creativecommons.org/licenses/by/4.0", label: "@dmpt-dc:license_dc:identifier-7" },
-                          { value: "http://creativecommons.org/licenses/by-sa/4.0", label: "@dmpt-dc:license_dc:identifier-8" },
-                          { value: "http://creativecommons.org/licenses/by-nd/4.0", label: "@dmpt-dc:license_dc:identifier-9" },
-                          { value: "http://creativecommons.org/licenses/by-nc/4.0", label: "@dmpt-dc:license_dc:identifier-10" },
-                          { value: "http://creativecommons.org/licenses/by-nc-sa/4.0", label: "@dmpt-dc:license_dc:identifier-11" },
-                          { value: "http://creativecommons.org/licenses/by-nc-nd/4.0", label: "@dmpt-dc:license_dc:identifier-12" },
-                          { value: "http://opendatacommons.org/licenses/pddl/1.0/", label: "@dmpt-dc:license_dc:identifier-13" },
-                          { value: "http://opendatacommons.org/licenses/by/1.0/", label: "@dmpt-dc:license_dc:identifier-14" },
-                          { value: "http://opendatacommons.org/licenses/odbl/1.0/", label: "@dmpt-dc:license_dc:identifier-15" },
+                        options: [{
+                            value: "http://creativecommons.org/licenses/by/3.0/au",
+                            label: "@dmpt-dc:license_dc:identifier-1"
+                          },
+                          {
+                            value: "http://creativecommons.org/licenses/by-sa/3.0/au",
+                            label: "@dmpt-dc:license_dc:identifier-2"
+                          },
+                          {
+                            value: "http://creativecommons.org/licenses/by-nd/3.0/au",
+                            label: "@dmpt-dc:license_dc:identifier-3"
+                          },
+                          {
+                            value: "http://creativecommons.org/licenses/by-nc/3.0/au",
+                            label: "@dmpt-dc:license_dc:identifier-4"
+                          },
+                          {
+                            value: "http://creativecommons.org/licenses/by-nc-sa/3.0/au",
+                            label: "@dmpt-dc:license_dc:identifier-5"
+                          },
+                          {
+                            value: "http://creativecommons.org/licenses/by-nc-nd/3.0/au",
+                            label: "@dmpt-dc:license_dc:identifier-6"
+                          },
+                          {
+                            value: "http://creativecommons.org/licenses/by/4.0",
+                            label: "@dmpt-dc:license_dc:identifier-7"
+                          },
+                          {
+                            value: "http://creativecommons.org/licenses/by-sa/4.0",
+                            label: "@dmpt-dc:license_dc:identifier-8"
+                          },
+                          {
+                            value: "http://creativecommons.org/licenses/by-nd/4.0",
+                            label: "@dmpt-dc:license_dc:identifier-9"
+                          },
+                          {
+                            value: "http://creativecommons.org/licenses/by-nc/4.0",
+                            label: "@dmpt-dc:license_dc:identifier-10"
+                          },
+                          {
+                            value: "http://creativecommons.org/licenses/by-nc-sa/4.0",
+                            label: "@dmpt-dc:license_dc:identifier-11"
+                          },
+                          {
+                            value: "http://creativecommons.org/licenses/by-nc-nd/4.0",
+                            label: "@dmpt-dc:license_dc:identifier-12"
+                          },
+                          {
+                            value: "http://opendatacommons.org/licenses/pddl/1.0/",
+                            label: "@dmpt-dc:license_dc:identifier-13"
+                          },
+                          {
+                            value: "http://opendatacommons.org/licenses/by/1.0/",
+                            label: "@dmpt-dc:license_dc:identifier-14"
+                          },
+                          {
+                            value: "http://opendatacommons.org/licenses/odbl/1.0/",
+                            label: "@dmpt-dc:license_dc:identifier-15"
+                          },
                         ]
                       }
                     },
@@ -979,12 +1133,11 @@ module.exports.form = {
               // Ethics Tab
               // -------------------------------------------------------------------
               {
-                class : "Container",
+                class: "Container",
                 definition: {
                   id: "ethics",
-                  label : "@dmpt-ethics-tab",
-                  fields: [
-                    {
+                  label: "@dmpt-ethics-tab",
+                  fields: [{
                       class: 'Container',
                       compClass: 'TextBlockComponent',
                       definition: {
@@ -1028,11 +1181,22 @@ module.exports.form = {
                         label: '@dmpt-agls:protectiveMarking_dc:type',
                         help: '@dmpt-agls:protectiveMarking_dc:type-help',
                         controlType: 'checkbox',
-                        options: [
-                          { value: "agls:protectiveMarking_dc:type.redbox:CommerciallySensitive", label: "@dmpt-agls:protectiveMarking_dc:type-commercial"},
-                          { value: "agls:protectiveMarking_dc:type.redbox:CulturallySensitive", label: "@dmpt-agls:protectiveMarking_dc:type-cultural"},
-                          { value: "agls:protectiveMarking_dc:type.redbox:SecurityClassified", label: "@dmpt-agls:protectiveMarking_dc:type-security"},
-                          { value: "agls:protectiveMarking_dc:type.redbox:NonPublic", label: "@dmpt-agls:protectiveMarking_dc:type-nonPublic"}
+                        options: [{
+                            value: "agls:protectiveMarking_dc:type.redbox:CommerciallySensitive",
+                            label: "@dmpt-agls:protectiveMarking_dc:type-commercial"
+                          },
+                          {
+                            value: "agls:protectiveMarking_dc:type.redbox:CulturallySensitive",
+                            label: "@dmpt-agls:protectiveMarking_dc:type-cultural"
+                          },
+                          {
+                            value: "agls:protectiveMarking_dc:type.redbox:SecurityClassified",
+                            label: "@dmpt-agls:protectiveMarking_dc:type-security"
+                          },
+                          {
+                            value: "agls:protectiveMarking_dc:type.redbox:NonPublic",
+                            label: "@dmpt-agls:protectiveMarking_dc:type-nonPublic"
+                          }
                         ]
                       }
                     },
@@ -1055,15 +1219,57 @@ module.exports.form = {
                         name: 'grant_number_name',
                         subscribe: {
                           'foaf:fundedBy_vivo:Grant': {
-                            onValueUpdate: [
-                              {
-                                action: 'utilityService.concatenate',
-                                fields: ['grant_number', 'dc_title'],
-                                delim: ' - '
-                              }
-                            ]
+                            onValueUpdate: [{
+                              action: 'utilityService.concatenate',
+                              fields: ['grant_number', 'dc_title'],
+                              delim: ' - '
+                            }]
                           }
                         }
+                      }
+                    }
+                  ]
+                }
+              },
+              // -------------------------------------------------------------------
+              // Workspaces Tab
+              // -------------------------------------------------------------------
+              {
+                class: "Container",
+                definition: {
+                  id: "workspaces",
+                  label: "@dmpt-workspaces-tab",
+                  fields: [{
+                      class: 'Container',
+                      compClass: 'TextBlockComponent',
+                      definition: {
+                        value: '@dmpt-workspaces-heading',
+                        type: 'h3'
+                      }
+                    },
+                    {
+                      class: 'Container',
+                      compClass: 'TextBlockComponent',
+                      definition: {
+                        value: '@dmpt-workspaces-associated-heading',
+                        type: 'h4'
+                      }
+                    },
+                    {
+                      class: 'RelatedObjectDataField',
+                      showHeader: true,
+                      definition: {
+                        name: 'workspaces',
+                        columns: [
+                        {
+                          "label": "Title",
+                          "property": "title"
+                        },
+                        {
+                          "label": "Description",
+                          "property": "description"
+                        }
+                      ]
                       }
                     }
                   ]
