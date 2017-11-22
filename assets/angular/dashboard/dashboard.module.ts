@@ -2,14 +2,24 @@ import { NgModule }      from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 import { ReactiveFormsModule, FormsModule} from "@angular/forms";
 import { HttpModule } from '@angular/http';
-import { AppComponent }  from './app.component';
+import { DashboardComponent }  from './dashboard.component';
 import { PaginationModule,TooltipModule } from 'ngx-bootstrap';
 import { SharedModule } from '../shared/shared.module';
-
+/**
+ * Dashboard Module
+ *
+ * @author <a target='_' href='https://github.com/shilob'>Shilo Banihit</a>
+ * @param  {[   BrowserModule}           {imports
+ * @param  {[type]} HttpModule
+ * @param  {[type]} ReactiveFormsModule
+ * @param  {[type]} FormsModule
+ * @param  {[type]} PaginationModule.forRoot(
+ * @return {[type]}
+ */
 @NgModule({
   imports:      [ BrowserModule, HttpModule, ReactiveFormsModule, FormsModule, PaginationModule.forRoot(), TooltipModule.forRoot(), SharedModule ],
-  declarations: [ AppComponent ],
+  declarations: [ DashboardComponent ],
   providers:    [  ],
-  bootstrap:    [ AppComponent ]
+  bootstrap:    [ DashboardComponent ]
 })
-export class AppModule { }
+export class DashboardModule { }

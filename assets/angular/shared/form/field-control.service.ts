@@ -111,7 +111,7 @@ export class FieldControlService {
 
   getFieldsMeta(fieldsArr: any) {
     const fields = _.map(fieldsArr, (f:any) => {
-      const inst = new this.classes[f.class].meta(f.definition, this.app._injector);
+      const inst = new this.classes[f.class].meta(f.definition, this.app['_injector']);
       inst.utilityService = this.utilityService;
       // set the component class
       if (_.isArray(this.classes[f.class].comp)) {

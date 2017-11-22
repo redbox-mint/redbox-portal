@@ -94,7 +94,7 @@ export class TransferOwnerComponent extends LoadableComponent {
       editMode: true,
       placeHolder: this.translationService.t('transfer-ownership-researcher-name')
     };
-    this.userLookupMeta = new VocabField(userLookupOptions, this.app._injector);
+    this.userLookupMeta = new VocabField(userLookupOptions, this.app['_injector']);
     this.userLookupMeta.completerService = this.completerService;
     this.userLookupMeta.lookupService = this.vocabFieldLookupService;
     this.userLookupMeta.createFormModel();

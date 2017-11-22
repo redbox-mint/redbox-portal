@@ -22,7 +22,7 @@ declare var jQuery: any;
 })
 // TODO: find a way to remove jQuery dependency
 @Injectable()
-export class AppComponent extends LoadableComponent {
+export class ReportComponent extends LoadableComponent {
   branding: string;
   portal: string;
   name: string;

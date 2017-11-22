@@ -45,13 +45,13 @@ declare var pageData :any;
 })
 
 @Injectable()
-export class AppComponent extends LoadableComponent {
+export class UserProfileComponent extends LoadableComponent {
   currentUser: User = new User();
   roleStr: string;
 
   updateDetailsMsg = "";
   updateDetailsMsgType ="info";
-  
+
   initSubs: any;
 
   @ViewChild('userDetailsModal') userDetailsModal:ModalDirective;
@@ -59,7 +59,7 @@ export class AppComponent extends LoadableComponent {
   isDetailsModalShown:boolean = false;
   updateUserForm: FormGroup;
   submitted: boolean;
-  
+
   constructor (@Inject(UserSimpleService) protected usersService: UserSimpleService, @Inject(FormBuilder) fb: FormBuilder, @Inject(DOCUMENT) protected document:any, translationService:TranslationService, private _fb: FormBuilder, @Inject(Location) protected location: Location) {
     super();
     this.initTranslator(translationService);
@@ -129,7 +129,7 @@ export class AppComponent extends LoadableComponent {
       this.setUpdateMessage(this.translationService.t('manage-users-validation-submit'), "danger");
       return;
     }
-    var details: { name: string, email: string, password: string } = 
+    var details: { name: string, email: string, password: string } =
       { name: user.name, email: user.email, password: user.passwords.password };
     this.setUpdateMessage("Saving...", "primary");
 

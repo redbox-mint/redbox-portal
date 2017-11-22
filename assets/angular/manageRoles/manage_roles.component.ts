@@ -43,7 +43,7 @@ declare var jQuery: any;
 
 // TODO: find a way to remove jQuery dependency
 @Injectable()
-export class AppComponent extends LoadableComponent {
+export class ManageRolesComponent extends LoadableComponent {
   users: any[] = [];
   filteredUsers: any[];
   searchFilter: { name: string, role: any, prevName: string, prevRole: any, roles: any[] } = { name: null, role: null, prevName: null, prevRole:null, roles: [ {value: null, label:'Any', checked:true}]};

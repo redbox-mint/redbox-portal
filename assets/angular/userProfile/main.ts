@@ -1,5 +1,5 @@
 import { platformBrowser }    from '@angular/platform-browser';
-import { AppModuleNgFactory } from './app.module.ngfactory';
+import { UserProfileModuleNgFactory } from './user_profile.module.ngfactory';
 import {enableProdMode} from '@angular/core';
 enableProdMode();
-platformBrowser().bootstrapModuleFactory(AppModuleNgFactory);
+platformBrowser().bootstrapModuleFactory(UserProfileModuleNgFactory);

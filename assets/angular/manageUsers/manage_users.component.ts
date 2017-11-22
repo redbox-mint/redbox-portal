@@ -44,7 +44,7 @@ declare var pageData :any;
 })
 
 @Injectable()
-export class AppComponent extends LoadableComponent {
+export class ManageUsersComponent extends LoadableComponent {
   allUsers: User[] = [];
   filteredUsers: User[] = [];
   allRoles: Role[];

@@ -14,6 +14,7 @@ module.exports.ng2 = {
     "admin/users": ['/angular/manageUsers/dist-bundle.js'],
     "dashboard": ['/angular/dashboard/dist-bundle.js'],
     "export/index": ['/angular/export/dist-bundle.js'],
-    "admin/report": ['/angular/report/dist-bundle.js']
+    "admin/report": ['/angular/report/dist-bundle.js'],
+    "user/profile": ['/angular/manageUsers/dist-bundle.js']
   }
 };

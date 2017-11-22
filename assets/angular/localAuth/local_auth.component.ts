@@ -28,7 +28,6 @@ import { TranslationService } from '../shared/translation-service';
 /**
  * Local Authentication  Component
  *
- *
  * @author <a target='_' href='https://github.com/shilob'>Shilo Banihit</a>
  *
  */
@@ -39,7 +38,7 @@ import { TranslationService } from '../shared/translation-service';
 })
 
 @Injectable()
-export class AppComponent extends LoadableComponent {
+export class LocalAuthComponent extends LoadableComponent {
   form: FormGroup;
   loginMessage: string;
   isLoginDisabled: boolean;

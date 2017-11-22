@@ -4,13 +4,13 @@ import {ReactiveFormsModule, FormsModule} from "@angular/forms";
 import { HttpModule } from '@angular/http';
 import { ModalModule } from 'ngx-bootstrap';
 
-import { AppComponent }  from './app.component';
+import { ManageUsersComponent }  from './manage_users.component';
 import { SharedModule } from '../shared/shared.module';
 
 @NgModule({
   imports:      [ BrowserModule, HttpModule, ReactiveFormsModule, FormsModule, SharedModule, ModalModule.forRoot() ],
-  declarations: [ AppComponent ],
+  declarations: [ ManageUsersComponent ],
   providers:    [ ],
-  bootstrap:    [ AppComponent ]
+  bootstrap:    [ ManageUsersComponent ]
 })
-export class AppModule { }
+export class ManageUsersModule { }
