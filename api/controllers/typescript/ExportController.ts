@@ -31,7 +31,7 @@ export module Controllers {
   /**
    * Responsible for all things related to exporting anything
    *
-   * @author <a target='_' href='https://github.com/shilob'>Shilo Banihit</a>
+   * Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a>
    */
   export class Export extends controller.Controllers.Core.Controller {
 

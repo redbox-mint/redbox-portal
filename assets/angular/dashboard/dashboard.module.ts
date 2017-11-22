@@ -8,7 +8,7 @@ import { SharedModule } from '../shared/shared.module';
 /**
  * Dashboard Module
  *
- * @author <a target='_' href='https://github.com/shilob'>Shilo Banihit</a>
+ * Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a>
  * @param  {[   BrowserModule}           {imports
  * @param  {[type]} HttpModule
  * @param  {[type]} ReactiveFormsModule

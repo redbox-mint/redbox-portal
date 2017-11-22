@@ -29,7 +29,7 @@ export module Controllers {
   /**
    * DynamicAssetController - returns all dynamic client-side elements
    *
-   * @author <a target='_' href='https://github.com/shilob'>Shilo Banihit</a>
+   * Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a>
    */
   export class DynamicAsset extends controller.Controllers.Core.Controller {
 

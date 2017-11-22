@@ -27,7 +27,7 @@ import { Subject } from 'rxjs/Subject';
 /**
  * Base class for all client-side services...
  *
- * @author <a target='_' href='https://github.com/shilob'>Shilo Banihit</a>
+ * Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a>
  *
  */
 export class BaseService {

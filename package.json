@@ -67,7 +67,8 @@
   "scripts": {
     "debug": "node debug app.js",
     "start": "node app.js",
-    "test": "node ./node_modules/mocha/bin/mocha test/bootstrap.test.js test/unit/**/*.test.js"
+    "test": "node ./node_modules/mocha/bin/mocha test/bootstrap.test.js test/unit/**/*.test.js",
+    "doc-ng2": "./node_modules/.bin/compodoc -p tsconfig-ng2.json -d support/docs/generated/ng2 -n \"ReDBox Portal - NG2 Apps\" --theme postmark"
   },
   "main": "app.js",
   "repository": {
@@ -77,6 +78,7 @@
   "author": "QCIF Engineering",
   "license": "GPL2",
   "devDependencies": {
+    "@compodoc/compodoc": "^1.0.4",
     "@types/jquery": "^2.0.44",
     "@types/lodash-es": "^4.14.5",
     "bower": "^1.8.0",

@@ -22,9 +22,9 @@ import { FormGroup } from '@angular/forms';
 import { FieldBase } from './field-base';
 import { SimpleComponent } from './field-simple.component';
 /**
- * Base component for a DMP field...
+ * Base component for a DMP field.
  *
- * @author <a target='_' href='https://github.com/shilob'>Shilo Banihit</a>
+ * Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a>
  *
  */
 @Component({
@@ -32,23 +32,43 @@ import { SimpleComponent } from './field-simple.component';
   template: '<div #field></div>'
 })
 export class DmpFieldComponent {
+  /**
+   * The model for this field.
+   */
   @Input() field: FieldBase<any>;
+  /**
+   * Form group
+   */
   @Input() form: FormGroup;
+  /**
+   * The value of this field.
+   */
   @Input() value: any;
+  /**
+   * Field map
+   */
   @Input() fieldMap: any;
-
+  /**
+   * The DOM node for this field.
+   */
   @ViewChild('field', {read: ViewContainerRef}) fieldAnchor: ViewContainerRef;
-
+  /**
+   * For DI'ing...
+   */
   constructor(@Inject(ComponentFactoryResolver) private componentFactoryResolver: ComponentFactoryResolver, protected app: ApplicationRef){
   }
-
+  /**
+   * If the form is valid.
+   */
   get isValid() {
     if (this.form && this.form.controls) {
       return this.form.controls[this.field.name].valid;
     }
     return false;
   }
-
+  /**
+   * Change handler, instantiates the field component.
+   */
   ngOnChanges() {
     if (!this.field || !this.componentFactoryResolver) {
       return;

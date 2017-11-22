@@ -29,7 +29,7 @@ export module Services {
   /**
    * Cache related functions...
    *
-   * @author <a target='_' href='https://github.com/shilob'>Shilo Banihit</a>
+   * Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a>
    *
    */
   export class Cache extends services.Services.Core.Service {

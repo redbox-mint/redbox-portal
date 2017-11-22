@@ -28,7 +28,7 @@ import { TranslationService } from '../shared/translation-service';
 /**
  * Local Authentication  Component
  *
- * @author <a target='_' href='https://github.com/shilob'>Shilo Banihit</a>
+ * Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a>
  *
  */
 @Component({

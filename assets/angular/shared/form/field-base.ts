@@ -26,7 +26,7 @@ import * as _ from "lodash-lib";
 /**
  * Base class for dynamic form models...
  *
- * @author <a target='_' href='https://github.com/shilob'>Shilo Banihit</a>
+ * Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a>
  *
  */
 export class FieldBase<T> {
@@ -147,7 +147,7 @@ export class FieldBase<T> {
    * fieldMap[name].control = the NG2 FormControl
    * fieldMap[name].field = the Field model (this)
    *
-   * @author <a target='_' href='https://github.com/shilob'>Shilo Banihit</a>
+   * Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a>
    * @param  {any} group
    * @param  {any} fieldMap
    * @return {any}

@@ -31,7 +31,7 @@ export module Services {
    * Roles services
    *
    *
-   * @author <a target='_' href='https://github.com/shilob'>Shilo Banihit</a>
+   * Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a>
    *
    */
   export class Roles extends services.Services.Core.Service {

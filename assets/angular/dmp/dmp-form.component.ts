@@ -37,23 +37,66 @@ import { TranslationService } from '../shared/translation-service';
   templateUrl: './dmp-form.html',
   providers: [Location, {provide: LocationStrategy, useClass: PathLocationStrategy}]
 })
-
 export class DmpFormComponent extends LoadableComponent {
+  /**
+   * The OID for this Form.
+   *
+   */
   @Input() oid: string;
+  /**
+   * Edit mode
+   *
+   */
   @Input() editMode: boolean;
+  /**
+   * The Record type
+   *
+   */
   @Input() recordType: string;
-
+  /**
+   * Fields for the form
+   */
   fields: any[] = [];
+  /**
+   * Form group
+   */
   form: FormGroup;
+  /**
+   * Initialization subscription
+   */
   initSubs: any;
+  /**
+   * Field map
+   */
   fieldMap: any;
+  /**
+   * Form JSON string
+   */
   payLoad: any;
+  /**
+   * Form status
+   */
   status: any;
+  /**
+   * Critical error message
+   */
   criticalError: any;
+  /**
+   * Form definition
+   */
   formDef: any;
+  /**
+   * CSS classes for this form
+   */
   cssClasses: any;
+  /**
+   * Flag when form needs saving.
+   *
+   */
   needsSave: boolean;
-
+  /**
+   * Expects a number of DI'ed elements.
+   */
   constructor(
     elm: ElementRef,
     @Inject(RecordsService) protected RecordsService: RecordsService,
@@ -97,7 +140,14 @@ export class DmpFormComponent extends LoadableComponent {
       });
     });
   }
-
+  /**
+   * Main submit method.
+   *
+   * @param  {boolean    =             false} nextStep
+   * @param  {string     =             null}  targetStep
+   * @param  {boolean=false} forceValidate
+   * @return {[type]}
+   */
   onSubmit(nextStep:boolean = false, targetStep:string = null, forceValidate:boolean=false) {
     if (!this.isValid(forceValidate)) {
       return;
@@ -142,6 +192,13 @@ export class DmpFormComponent extends LoadableComponent {
     }
   }
 
+  /**
+   * Sets the form message status.
+   *
+   * @param  {string} stat  Bootstrap contextual status: https://getbootstrap.com/docs/3.3/css/#helper-classes
+   * @param  {string} msg Message
+   * @return {[type]}
+   */
   setStatus(stat:string, msg:string) {
     _.forOwn(this.status, (stat:string, key:string) => {
       this.status[key] = null;
@@ -149,43 +206,85 @@ export class DmpFormComponent extends LoadableComponent {
     this.status[stat] = {msg: msg};
   }
 
+  /**
+   * Clears status
+   *
+   * @param  {string} stat - Clears the status
+   * @return {[type]}
+   */
   clearStatus(stat:string) {
     this.status[stat] = null;
   }
 
+  /**
+   * Convenience wrapper to set saving status.
+   *
+   * @param  {string = 'Saving...'} msg
+   * @return {[type]}
+   */
   setSaving(msg:string = 'Saving...') {
     this.clearError();
     this.clearSuccess();
     this.setStatus('saving', msg);
   }
-
+  /**
+   * Convenience wrapper to clear saving status.
+   *
+   * @return {[type]}
+   */
   clearSaving() {
     this.clearStatus('saving');
   }
-
+  /**
+   * Set a 'error' message.
+   *
+   * @param  {string} msg
+   * @return {[type]}
+   */
   setError(msg: string) {
     this.clearSaving();
     this.needsSave = true;
     this.setStatus('error', msg);
   }
 
+  /**
+   * Clear the error message.
+   *
+   * @return {[type]}
+   */
   clearError() {
     this.clearStatus('error');
   }
 
+  /**
+   * Set a 'success' message.
+   * @param  {string} msg
+   * @return {[type]}
+   */
   setSuccess(msg: string) {
     this.clearSaving();
     this.setStatus('success', msg);
   }
-
+  /**
+   * Clear the 'success' message.
+   * @return {[type]}
+   */
   clearSuccess() {
     this.clearStatus('success');
   }
-
+  /**
+   * Rebuild the form message.
+   *
+   * @return {[type]}
+   */
   rebuildForm() {
     this.form = this.fcs.toFormGroup(this.fields, this.fieldMap);
   }
-
+  /**
+   * Enable form change monitor.
+   *
+   * @return {[type]}
+   */
   watchForChanges() {
     this.setLoading(false);
     if (this.editMode) {
@@ -194,7 +293,11 @@ export class DmpFormComponent extends LoadableComponent {
       });
     }
   }
-
+  /**
+   * Trigger form validation
+   *
+   * @return {[type]}
+   */
   triggerValidation() {
     _.forOwn(this.fieldMap, (fieldEntry:any, fieldName:string) => {
       if (!_.isEmpty(fieldName) && !_.startsWith(fieldName, '_')) {
@@ -202,7 +305,12 @@ export class DmpFormComponent extends LoadableComponent {
       }
     });
   }
-
+  /**
+   * Checks form validity.
+   *
+   * @param  {boolean=false} forceValidate
+   * @return {[type]}
+   */
   isValid(forceValidate:boolean=false) {
     if (this.formDef.skipValidationOnSave  && (_.isUndefined(forceValidate) || _.isNull(forceValidate) || !forceValidate)) {
       return true;
@@ -215,7 +323,12 @@ export class DmpFormComponent extends LoadableComponent {
     }
     return true;
   }
-
+  /**
+   * Submit the form towards a target step.
+   *
+   * @param  {string} targetStep
+   * @return {[type]}
+   */
   stepTo(targetStep: string) {
     console.log(this.form.value);
     if (!this.isValid(true)) {
@@ -244,7 +357,12 @@ export class DmpFormComponent extends LoadableComponent {
       });
     }
   }
-
+  /**
+   * Trigger form elements to format their values.
+   *
+   * @param  {any}    data
+   * @return {[type]}
+   */
   formatValues(data:any) {
     const formVals = _.cloneDeep(data);
     _.forOwn(formVals, (val:any, key:string) => {
@@ -255,15 +373,28 @@ export class DmpFormComponent extends LoadableComponent {
     });
     return formVals;
   }
-
+  /**
+   * Returns the saving status of the form.
+   *
+   * @return {[type]}
+   */
   isSaving() {
     return this.status.saving;
   }
-
+  /**
+   * Redirect to dashboard.
+   *
+   * @author <a target='_' href='https://github.com/shilob'>Shilo Banihit</a>
+   * @return {[type]}
+   */
   gotoDashboard() {
     window.location.href = this.RecordsService.getDashboardUrl();
   }
-
+  /**
+   * Form cancellation handler.
+   *
+   * @return {[type]}
+   */
   onCancel() {
     this.gotoDashboard();
   }

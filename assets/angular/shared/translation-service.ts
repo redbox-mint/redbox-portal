@@ -24,7 +24,7 @@ import { ConfigService } from './config-service';
 /**
  * Translation service...
  *
- * @author <a target='_' href='https://github.com/shilob'>Shilo Banihit</a>
+ * Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a>
  *
  */
 @Injectable()

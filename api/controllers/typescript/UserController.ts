@@ -28,7 +28,7 @@ export module Controllers {
   /**
    *  User-related features...
    *
-   * @author <a target='_' href='https://github.com/shilob'>Shilo Banihit</a>
+   * Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a>
    */
   export class User extends controller.Controllers.Core.Controller {
 
@@ -163,7 +163,7 @@ export module Controllers {
           return this.ajaxFail(req, res, "Error: unable to get user ID.");
         }
       }
-  
+
       public revokeUserKey(req, res) {
         var userid;
         if (req.isAuthenticated()) {

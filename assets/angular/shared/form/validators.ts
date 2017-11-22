@@ -23,7 +23,7 @@ import * as _ from "lodash-lib";
 /**
  * Custom RB-Specific Validators - static methods only
  *
- * @author <a target='_' href='https://github.com/shilob'>Shilo Banihit</a>
+ * Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a>
  *
  */
 export class RbValidator {

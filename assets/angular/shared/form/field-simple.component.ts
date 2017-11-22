@@ -25,22 +25,46 @@ import * as _ from "lodash-lib";
 import moment from 'moment-es6';
 declare var jQuery: any;
 /**
- * Simple Component classes
+ * A component base class
  *
- * @author <a target='_' href='https://github.com/shilob'>Shilo Banihit</a>
- *
+ * Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a>
  */
 export class SimpleComponent {
+  /**
+   * Field model
+   */
   @Input() public field: FieldBase<any>;
+  /**
+   * The form group
+   */
   @Input() public form: FormGroup;
+  /**
+   * The field mapping
+   */
   @Input() public fieldMap: any;
+  /**
+   * The index of this field
+   */
   @Input() public index: any;
+  /**
+   * The name of this field
+   */
   @Input() public name: any;
+  /**
+   * The NG2 root injector
+   */
   public injector: Injector;
-
+  /**
+   * Toggles help display
+   */
   helpShow: boolean;
 
-  public getFormControl(name: string = null) {
+  /**
+   * Return the NG2 FormControl or subclass thereof
+   * @param  {string = null} name
+   * @return {FormControl}
+   */
+  public getFormControl(name: string = null):FormControl {
     if (_.isEmpty(name)) {
       name = this.field.name;
     }
@@ -49,29 +73,50 @@ export class SimpleComponent {
     }
     return null;
   }
-
+  /**
+   * Returns the CSS class
+   * @param  {string=null} fldName
+   * @return {string}
+   */
   public getGroupClass(fldName:string=null): string {
     return `form-group ${this.hasRequiredError() ? 'has-error' : '' }`;
   }
-
-  public hasRequiredError() {
+  /**
+   * If this field has a 'required' error.
+   * Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a>
+   * @return {[type]}
+   */
+  public hasRequiredError():boolean {
     return this.field.formModel.touched && this.field.formModel.hasError('required');
   }
-
+  /**
+   * Convenience method to toggle help mode.
+   * @return {[type]}
+   */
   public toggleHelp() {
     this.helpShow = !this.helpShow;
   }
-
-  getRequiredLabelStr() {
+  /**
+   * Returns label
+   * @return {string}
+   */
+  getRequiredLabelStr():string {
     return this.field.required ? '(*)' : '';
   }
-
+  /**
+   * Returns the NG2 root injector
+   * @param  {any} token
+   * @return {any}
+   */
   getFromInjector(token:any): any {
     return this.injector.get(token);
   }
 }
 
-
+/**
+ * Component
+ * Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a>
+ */
 @Component({
   selector: 'text-area',
   template: `
@@ -306,8 +351,13 @@ Based on: https://bootstrap-datepicker.readthedocs.io/en/stable/
   `
 })
 export class DateTimeComponent extends SimpleComponent {
+  /**
+   * The field model
+   */
   public field: DateTime;
-
+  /**
+   * Component method that formats the value, delegates to field.
+   */
   formatValue() {
     return this.field.formatValue(this.getFormControl().value);
   }

@@ -24,7 +24,7 @@ import moment from 'moment-es6';
 /**
  * Text Field Model
  *
- * @author <a target='_' href='https://github.com/shilob'>Shilo Banihit</a>
+ * Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a>
 
  */
 export class TextField extends FieldBase<string> {

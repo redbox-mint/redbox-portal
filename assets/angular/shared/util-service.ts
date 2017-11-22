@@ -22,7 +22,7 @@ import * as _ from "lodash-lib";
 /**
  * Utility service...
  *
- * @author <a target='_' href='https://github.com/shilob'>Shilo Banihit</a>
+ * Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a>
  *
  */
 @Injectable()
@@ -31,7 +31,7 @@ export class UtilityService {
   /**
    * returns concatenated string
    *
-   * @author <a target='_' href='https://github.com/shilob'>Shilo Banihit</a>
+   * Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a>
    * @param  {any} config
    * @return {string}
    */
