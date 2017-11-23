@@ -44,7 +44,8 @@ export module Services {
     ];
 
     public bootstrap = (workflowSteps): Observable<any> => {
-
+      // sails.log.error("Workflow Steps: ")
+      // sails.log.error(workflowSteps)
       if (!workflowSteps || workflowSteps.length == 0 || workflowSteps[0] == null) {
         return Observable.of(null);
       } else {
@@ -120,7 +121,7 @@ export module Services {
 
           return Observable.of(null);
         }).flatMap(form => {
-          
+
           if (form) {
             this.setFormEditMode(form.fields, editMode);
             return Observable.of(form);

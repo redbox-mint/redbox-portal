@@ -12,9 +12,7 @@ var Observable = require('rxjs/Observable').Observable;
 
 module.exports.bootstrap = function(cb) {
     sails.config.peopleSearch.orcid = sails.services.orcidservice.searchOrcid;
-    // sails.log.error("Services are:");
-    // sails.log.error(sails.services.nlaservice);
-    // sails.config.peopleSearch.nla = sails.services.nlaservice.searchPeople;
+
     sails.config.startupMinute = Math.floor(Date.now() / 60000);
     sails.services.cacheservice.bootstrap();
     sails.services.translationservice.bootstrap();
@@ -47,11 +45,8 @@ module.exports.bootstrap = function(cb) {
     })
     .flatMap(whatever => {
       return sails.services.recordtypesservice.bootstrap(sails.services.brandingservice.getDefault());
-    }).flatMap(recordType => {
-      sails.log.error(typeof recordType)
-      return recordType;
-    }).flatMap(recordType => {
-      return sails.services.workflowstepsservice.bootstrap(recordType);
+    }).flatMap(recordTypes => {
+      return sails.services.workflowstepsservice.bootstrap(recordTypes);
     })
     .flatMap(workflowSteps => {
       return sails.services.formsservice.bootstrap(workflowSteps);

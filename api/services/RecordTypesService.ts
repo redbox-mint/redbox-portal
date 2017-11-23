@@ -50,19 +50,17 @@ export module Services {
             var obs = this.create(defBrand, recordType, config);
             rTypes.push(obs);
           });
-          return Observable.from(rTypes);
+          return Observable.zip(...rTypes);
 
         } else {
-
           var rTypes = [];
           _.each(recordTypes, function(recordType) {
             rTypes.push(Observable.of(recordType));
           });
           sails.log.verbose("Default recordTypes definition(s) exist.");
-          return Observable.from(rTypes);
+          return Observable.zip(...rTypes);
       }
-    } )
-      .last();
+    } );
     }
 
     public create(brand, name, config) {
