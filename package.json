@@ -54,7 +54,7 @@
     "rxjs": "5.4.1",
     "sails": "~0.12.11",
     "sails-disk": "~0.10.9",
-    "sails-hook-autoreload": "^1.1.0",
+    "sails-hook-autoreload": "0.14.3",
     "sails-mongo": "~0.12.2",
     "skipper-gridfs": "~0.5.3",
     "systemjs": "0.19.40",
@@ -68,7 +68,7 @@
     "debug": "node debug app.js",
     "start": "node app.js",
     "test": "node ./node_modules/mocha/bin/mocha test/bootstrap.test.js test/unit/**/*.test.js",
-    "doc-ng2": "./node_modules/.bin/compodoc -p tsconfig-ng2.json -d support/docs/generated/ng2 -n \"ReDBox Portal - NG2 Apps\" --theme postmark"
+    "doc-ng2": "./node_modules/.bin/compodoc -p tsconfig-ng2.json -d support/docs/generated/ng2 -n \"ReDBox Portal - NG2 Apps\" --theme postmark --includes support/docs"
   },
   "main": "app.js",
   "repository": {

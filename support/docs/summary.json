@@ -1,0 +1,16 @@
+[
+    {
+        "title": "Installation guide",
+        "file": "InstallationGuide.md"
+    },
+    {
+        "title": "Configuration guide",
+        "file": "ConfigurationGuide.md",
+        "children": [
+            {
+                "title": "Configuring web forms",
+                "file": "Configuring web forms.md"
+            }
+        ]
+    }
+]

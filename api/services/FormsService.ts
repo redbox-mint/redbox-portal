@@ -31,7 +31,7 @@ export module Services {
   /**
    * Forms related functions...
    *
-   * Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a>
+   * @author <a target='_' href='https://github.com/shilob'>Shilo Banihit</a>
    *
    */
   export class Forms extends services.Services.Core.Service {
@@ -44,8 +44,6 @@ export module Services {
     ];
 
     public bootstrap = (workflowSteps): Observable<any> => {
-      // sails.log.error("Workflow Steps: ")
-      // sails.log.error(workflowSteps)
       if (!workflowSteps || workflowSteps.length == 0 || workflowSteps[0] == null) {
         return Observable.of(null);
       } else {

@@ -16,13 +16,14 @@
 // You should have received a copy of the GNU General Public License along
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-
 import { Input, Component, OnInit, Inject, Injector} from '@angular/core';
 import { SimpleComponent } from './field-simple.component';
 import { FieldBase } from './field-base';
 import { FormGroup, FormControl, Validators } from '@angular/forms';
 import * as _ from "lodash-lib";
 import { RecordsService } from './records.service';
+
+
 
 /**
  * Contributor Model
@@ -84,11 +85,20 @@ export class RelatedObjectDataField extends FieldBase<any> {
   }
 }
 
+// Setting the template url to a constant rather than directly in the component as the latter breaks document generation
+const template = '../angular/shared/form/field-relatedobjectdata.html';
+/**
+* Component to display information from related objects within ReDBox
+*
+*
+*  
+*
+*/
 @Component({
   selector: 'rb-relatedobjectdata',
-  templateUrl: '../angular/shared/form/field-relatedobjectdata.html',
+  templateUrl: template
 })
 export class RelatedObjectDataComponent extends SimpleComponent {
   field: RelatedObjectDataField;
-  @Input() isEmbedded: boolean = false;
+
 }
