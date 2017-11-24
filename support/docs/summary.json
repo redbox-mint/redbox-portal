@@ -9,8 +9,17 @@
         "children": [
             {
                 "title": "Configuring web forms",
-                "file": "Configuring web forms.md"
+                "file": "configuration/Configuring web forms.md"
+            },
+            {
+                "title": "Configuring email notifications",
+                "file": "configuration/Configuring email notifications.md"
+            },
+            {
+                "title": "Configuring integration with RedBox and Mint",
+                "file": "configuration/Configuring integration with ReDBox and Mint.md"
             }
+
         ]
     }
 ]
