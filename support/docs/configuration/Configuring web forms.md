@@ -110,7 +110,7 @@ Where <> are property labels that are variables.
 | < workflow-stage > | The label of the workflow stage for the record type                                                                                                                                      | Yes      | draft          |
 | stage            | The code value for the stage. This value is stored in the metadata record within ReDBox. Best practice would be to match it with < workflow-stage > but it can be different if necessary.  | Yes      | draft          |
 | stageLabel       | The label for the stage that is presented to users on the interface.                                                                                                                     | Yes      | Draft          |
-| next             | The stage to transition to. *NEEDS rework*                                                                                                                                               | No       | review         |
+| next             | The stage to transition to.                                                                                                                                                | No       | review         |
 | viewRoles        | An array of roles that are allowed to view this record type at this stage                                                                                                                | Yes      | ['Admin']      |
 | editRoles        | An array of roles that are allowed to edit this record type at this stage                                                                                                                | Yes      | ['Admin']      |
 | form             | The form code. This should match an entry in the form.js configuration file                                                                                                              | Yes      | rdmp-1.0-draft |
@@ -125,13 +125,13 @@ Where <> are property labels that are variables.
         workflow: {
           stage: 'draft',
           stageLabel: 'Draft',
-          next: 'active',
+          next: 'review',
         },
         authorization: {
           viewRoles: ['Admin'],
           editRoles: ['Admin']
         },
-        form: 'default-1.0-draft'
+        form: 'rdmp-1.0-draft'
       },
       starting: true
     },
@@ -190,7 +190,7 @@ The fields section lays out the components to appear in the form.
 | Field      | Description                                                                                   | Required               | Example |
 |------------|-----------------------------------------------------------------------------------------------|------------------------|---------|
 | class      |                                                                                               | Yes                    |         |
-| compClass  |  The Component class name. See the [Component documentation](https://redbox-mint.github.io/redbox-portal/components/ContributorComponent.html) for a list of available components and how to configure them | Yes                    |         |
+| compClass  |  The Component class name. See the [Component documentation](https://redbox-mint.github.io/redbox-portal/components/ContributorComponent.html) for a list of available components and how to configure them | Yes                    |   TextBlockComponent      |
 | viewOnly   | When set to true, this component will only appear in the view (details) rendition of the form | No (defaults to false) | true    |
 | editOnly   | When set to true, this component will only appear in the edit (details) rendition of the form | No (defaults to false) | true    |
 | definition | Configuration that is specific for the component being added. How to configure a component is described in the [Component documentation](https://redbox-mint.github.io/redbox-portal/components/ContributorComponent.html)  | Yes                    |  value: '@dmpt-data-collection-heading' |
