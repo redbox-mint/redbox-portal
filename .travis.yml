@@ -26,6 +26,6 @@ after_success:
 - docker tag $REPO:$COMMIT $REPO:$TAG
 - docker tag $REPO:$COMMIT $REPO:travis-$TRAVIS_BUILD_NUMBER
 - docker push $REPO
-- ./prepare_gh_deploy.sh;git push -d origin gh-pages; git add support/docs/generated/ng2/*;
+- git reset --hard origin/master; ./prepare_gh_deploy.sh; npm run doc-ng; git push -d origin gh-pages; git add support/docs/generated/ng2/*;
   git commit -m "Updated documentation"; git subtree push --prefix support/docs/generated/ng2/
   origin gh-pages; git reset --hard origin/master
