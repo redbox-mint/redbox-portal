@@ -171,6 +171,7 @@ The ReDBox Portal API provides authorized access to manage functions.
 + Request Remove users edit access to record (application/json)
   + Headers
     Authorization: Bearer abcabcab-abca-abca-abca-abcabcabcabc
+  + Body
   {
     "users": ["username2"]
   }
@@ -185,6 +186,7 @@ The ReDBox Portal API provides authorized access to manage functions.
 + Request Remove users (known usernames and pending login) edit access to record (application/json)
   + Headers
     Authorization: Bearer abcabcab-abca-abca-abca-abcabcabcabc
+  + Body
   {
     "users": ["username2"],
     "usersPending": ["pendingusername2@email.com"]
@@ -220,6 +222,7 @@ The ReDBox Portal API provides authorized access to manage functions.
 + Request Give users view access to record (application/json)
   + Headers
     Authorization: Bearer abcabcab-abca-abca-abca-abcabcabcabc
+  + Body
   {
     "users": ["username1","username2"]
   }
@@ -227,6 +230,7 @@ The ReDBox Portal API provides authorized access to manage functions.
 + Request Give users (pending login) view access to record (application/json)
   + Headers
     Authorization: Bearer abcabcab-abca-abca-abca-abcabcabcabc
+  + Body
   {
     "usersPending": ["pendingusername1@email.com","pendingusername2@email.com"]
   }
@@ -234,6 +238,7 @@ The ReDBox Portal API provides authorized access to manage functions.
 + Request Give users (known usernames and pending login) view access to record (application/json)
   + Headers
     Authorization: Bearer abcabcab-abca-abca-abca-abcabcabcabc
+  + Body
   {
     "users": ["username1","username2"],
     "usersPending": ["pendingusername1@email.com","pendingusername2@email.com"]
@@ -270,6 +275,7 @@ The ReDBox Portal API provides authorized access to manage functions.
 + Request Remove users view access to record (application/json)
   + Headers
     Authorization: Bearer abcabcab-abca-abca-abca-abcabcabcabc
+  + Body
   {
     "users": ["username2"]
   }
@@ -277,6 +283,7 @@ The ReDBox Portal API provides authorized access to manage functions.
 + Request Remove users (pending login) view access to record (application/json)
   + Headers
     Authorization: Bearer abcabcab-abca-abca-abca-abcabcabcabc
+  + Body
   {
     "usersPending": ["pendingusername2@email.com"]
   }
@@ -284,6 +291,7 @@ The ReDBox Portal API provides authorized access to manage functions.
 + Request Remove users (known usernames and pending login) view access to record (application/json)
   + Headers
     Authorization: Bearer abcabcab-abca-abca-abca-abcabcabcabc
+  + Body
   {
     "users": ["username2"],
     "usersPending": ["pendingusername2@email.com"]
