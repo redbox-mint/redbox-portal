@@ -21,5 +21,9 @@
             }
 
         ]
+    },
+    {
+        "title": "REST API documentation",
+        "file": "REST API documentation.md"
     }
 ]

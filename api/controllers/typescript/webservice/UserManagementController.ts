@@ -63,9 +63,30 @@ export module Controllers {
 
 
     public listUsers(req, res) {
-      User.find().exec(function (err, users) {
-        return res.json(users);
+      var page = req.param('page');
+      var pageSize = req.param('pageSize');
+      if(page == null) {
+        page = 1;
+      }
+
+      if(pageSize == null) {
+        pageSize = 10;
+      }
+      User.count().exec(function (err,count) {
+        var response = {};
+        response["summary"] = {};
+        response["summary"]["numFound"] = count;
+        response["summary"]["page"] = page;
+        if(count == 0) {
+          response["records"] = [];
+          return res.json(response);
+    } else {
+      User.find().paginate({page: 1, limit: 10}).exec(function (err, users) {
+        response["records"] = users;
+        return res.json(response);
       });
+    }
+    });
     }
 
     public findUser(req, res) {

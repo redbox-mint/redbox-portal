@@ -155,7 +155,12 @@ module.exports.routes = {
   'get /:branding/:portal/admin/getReportResults': 'typescript/ReportController.getResults',
   'get /:branding/:portal/admin/downloadReportCSV': 'typescript/ReportController.downloadCSV',
   'get /:branding/:portal/people/search': 'typescript/VocabController.searchPeople',
-
+  'get /:branding/:portal/api-docs.apib': 'typescript/BrandingController.renderApiB',
+  'get /:branding/:portal/api-docs.json': 'typescript/BrandingController.renderSwaggerJSON',
+  'get /:branding/:portal/api-docs.yaml': 'typescript/BrandingController.renderSwaggerYAML',
+  'post /:branding/:portal/user/genKey': 'typescript/UserController.generateUserKey',
+  'post /:branding/:portal/user/revokeKey': 'typescript/UserController.revokeUserKey',
+  'post /:branding/:portal/user/update': 'typescript/UserController.update',
   /***************************************************************************
   *                                                                          *
   * REST API routes                                                          *
@@ -166,17 +171,18 @@ module.exports.routes = {
   *                                                                          *
   ***************************************************************************/
 
-  'post /:branding/:portal/api/records/:recordType/create': 'typescript/webservice/RecordController.create',
-  'post /:branding/:portal/api/records/metadata/:oid': 'typescript/webservice/RecordController.updateMeta',
+  'post /:branding/:portal/api/records/metadata/:recordType': 'typescript/webservice/RecordController.create',
+  'put /:branding/:portal/api/records/metadata/:oid': 'typescript/webservice/RecordController.updateMeta',
   'get /:branding/:portal/api/records/metadata/:oid': 'typescript/webservice/RecordController.getMeta',
-  'post /:branding/:portal/api/records/permissions/:oid/edit/add': 'typescript/webservice/RecordController.addUserEdit',
-  'post /:branding/:portal/api/records/permissions/:oid/edit/remove': 'typescript/webservice/RecordController.removeUserEdit',
-  'post /:branding/:portal/api/records/permissions/:oid/view/add': 'typescript/webservice/RecordController.addUserView',
-  'post /:branding/:portal/api/records/permissions/:oid/view/remove': 'typescript/webservice/RecordController.removeUserView',
-  'get /:branding/:portal/api/listUsers': 'typescript/webservice/UserManagementController.listUsers',
-  'get /:branding/:portal/api/lookupUser': 'typescript/webservice/UserManagementController.findUser',
-  'post /:branding/:portal/api/sendNotification': 'typescript/EmailController.sendNotification',
-  'post /:branding/:portal/user/genKey': 'typescript/UserController.generateUserKey',
-  'post /:branding/:portal/user/revokeKey': 'typescript/UserController.revokeUserKey',
-  'post /:branding/:portal/user/update': 'typescript/UserController.update'
+  'post /:branding/:portal/api/records/permissions/edit/:oid': 'typescript/webservice/RecordController.addUserEdit',
+  'delete /:branding/:portal/api/records/permissions/edit/:oid': 'typescript/webservice/RecordController.removeUserEdit',
+  'post /:branding/:portal/api/records/permissions/view/:oid': 'typescript/webservice/RecordController.addUserView',
+  'delete /:branding/:portal/api/records/permissions/view/:oid': 'typescript/webservice/RecordController.removeUserView',
+  'get /:branding/:portal/api/records/permissions/:oid': 'typescript/webservice/RecordController.getPermissions',
+
+  'get /:branding/:portal/api/users': 'typescript/webservice/UserManagementController.listUsers',
+  'get /:branding/:portal/api/users/find': 'typescript/webservice/UserManagementController.findUser',
+
+  'post /:branding/:portal/api/sendNotification': 'typescript/EmailController.sendNotification'
+
 };

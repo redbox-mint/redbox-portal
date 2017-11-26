@@ -2,6 +2,11 @@ import controller = require('../../../typescript/controllers/CoreController.js')
 import skipperGridFs = require('skipper-gridfs');
 import {Model} from "sails";
 import {Sails} from "sails";
+import { Observable } from 'rxjs/Rx';
+import 'rxjs/add/operator/toPromise';
+import * as request from "request-promise";
+import * as ejs from 'ejs';
+import * as fs from 'graceful-fs';
 
 
 declare var sails: Sails;
@@ -26,6 +31,9 @@ export module Controllers {
     protected _exportedMethods: any = [
       'renderCss',
       'renderImage',
+      'renderApiB',
+      'renderSwaggerJSON',
+      'renderSwaggerYAML'
     ];
 
     /**
@@ -59,6 +67,43 @@ export module Controllers {
           return res.send("/* Using the default theme */");
         }
       });
+    }
+
+    /**
+     *
+     * Renders the API Blueprint spec for the given branding
+     *
+     * @param req
+     * @param res
+     */
+    public renderApiB(req, res) {
+      res.contentType('text/plain');
+      return this.sendView(req, res, "apidocsapib", {layout: false});
+    }
+
+
+    /**
+     *
+     * Renders the Swagger JSON spec for the given branding
+     *
+     * @param req
+     * @param res
+     */
+    public renderSwaggerJSON(req, res) {
+      res.contentType('application/json');
+      return this.sendView(req, res, "apidocsswaggerjson", {layout: false});
+    }
+
+    /**
+     *
+     * Renders the Swagger JSON spec for the given branding
+     *
+     * @param req
+     * @param res
+     */
+    public renderSwaggerYAML(req, res) {
+      res.contentType('application/x-yaml');
+      return this.sendView(req, res, "apidocsswaggeryaml", {layout: false});
     }
 
     /**

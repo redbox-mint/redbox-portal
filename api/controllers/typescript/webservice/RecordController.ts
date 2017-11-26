@@ -52,7 +52,8 @@ export module Controllers {
       'addUserEdit',
       'removeUserEdit',
       'addUserView',
-      'removeUserView'
+      'removeUserView',
+      'getPermissions'
     ];
 
     /**
@@ -65,28 +66,43 @@ export module Controllers {
 
     }
 
+    public getPermissions(req, res) {
+      const brand = BrandingService.getBrand(req.session.branding);
+      var oid = req.param('oid');
+
+      RecordsService.getMeta(oid).subscribe(record => {
+        return res.json(record["authorization"]);
+      });
+
+    }
+
     public addUserEdit(req, res) {
       const brand = BrandingService.getBrand(req.session.branding);
 
 
       var oid = req.param('oid');
-
+      var body = req.body;
+      var users = body["users"];
+      var pendingUsers = body["pendingUsers"];
       RecordsService.getMeta(oid).subscribe(record => {
-        // if (!RecordsService.hasEditAccess(brand, req.user.name, req.user.roles, record)) {
-        //   //TODO: Return security response once we have authorization implemented
-        // }
-        var body = req.body;
-        var username = body["username"];
-        if (username == null) {
-          record["authorization"]["edit"].push(username);
-        } else {
-          var pendingUser = body["pendingUser"];
-          record["authorization"]["editPending"].push(pendingUser);
+
+        if (users != null && users.length > 0) {
+          record["authorization"]["edit"] = _.union(record["authorization"]["edit"], users);
+
+        }
+        if (pendingUsers != null && pendingUsers.length > 0) {
+          record["authorization"]["editPending"] = _.union(record["authorization"]["editPending"], pendingUsers);
         }
 
         var obs = RecordsService.updateMeta(brand, oid, record);
         obs.subscribe(result => {
-          return res.json(result);
+          if (result["code"] == 200) {
+            RecordsService.getMeta(result["oid"]).subscribe(record => {
+              return res.json(record["authorization"]);
+            });
+          } else {
+            return res.json(result);
+          }
         });
       });
     }
@@ -96,87 +112,88 @@ export module Controllers {
 
 
       var oid = req.param('oid');
-
+      var body = req.body;
+      var users = body["users"];
+      var pendingUsers = body["pendingUsers"];
       RecordsService.getMeta(oid).subscribe(record => {
-        // if (!RecordsService.hasEditAccess(brand, req.user.name, req.user.roles, record)) {
-        //   //TODO: Return security response once we have authorization implemented
-        // }
-        var body = req.body;
-        var username = body["username"];
-        if (username == null) {
-          record["authorization"]["view"].push(username);
-        } else {
-          var pendingUser = body["pendingUser"];
-          record["authorization"]["viewPending"].push(pendingUser);
+
+        if (users != null && users.length > 0) {
+          record["authorization"]["view"] = _.union(record["authorization"]["view"], users);
+
+        }
+        if (pendingUsers != null && pendingUsers.length > 0) {
+          record["authorization"]["viewPending"] = _.union(record["authorization"]["viewPending"], pendingUsers);
         }
 
         var obs = RecordsService.updateMeta(brand, oid, record);
         obs.subscribe(result => {
-          return res.json(result);
+          if (result["code"] == 200) {
+            RecordsService.getMeta(result["oid"]).subscribe(record => {
+              return res.json(record["authorization"]);
+            });
+          } else {
+            return res.json(result);
+          }
         });
       });
     }
 
     public removeUserEdit(req, res) {
       const brand = BrandingService.getBrand(req.session.branding);
-
-
       var oid = req.param('oid');
 
+      var body = req.body;
+      var users = body["users"];
+      var pendingUsers = body["pendingUsers"];
       RecordsService.getMeta(oid).subscribe(record => {
-        // if (!RecordsService.hasEditAccess(brand, req.user.name, req.user.roles, record)) {
-        //   //TODO: Return security response once we have authorization implemented
-        // }
-        var body = req.body;
-        var username = body["username"];
-        if (username == null) {
-          var userIndex = record["authorization"]["edit"].indexOf(username);
-          if (userIndex > -1) {
-            record["authorization"]["edit"].splice(userIndex, 1)
-          }
-        } else {
-          var pendingUser = body["pendingUser"];
-          var userIndex = record["authorization"]["editPending"].indexOf(username);
-          if (userIndex > -1) {
-            record["authorization"]["editPending"].splice(userIndex, 1)
-          }
+
+        if (users != null && users.length > 0) {
+          record["authorization"]["edit"] = _.difference(record["authorization"]["edit"], users);
+        }
+
+        if (pendingUsers != null && pendingUsers.length > 0) {
+          record["authorization"]["editPending"] = _.difference(record["authorization"]["editPending"], pendingUsers);
         }
 
         var obs = RecordsService.updateMeta(brand, oid, record);
         obs.subscribe(result => {
-          return res.json(result);
+          if (result["code"] == 200) {
+            RecordsService.getMeta(result["oid"]).subscribe(record => {
+              return res.json(record["authorization"]);
+            });
+          } else {
+            return res.json(result);
+          }
         });
       });
     }
 
     public removeUserView(req, res) {
       const brand = BrandingService.getBrand(req.session.branding);
-
-
       var oid = req.param('oid');
 
+      var body = req.body;
+      var users = body["users"];
+      var pendingUsers = body["pendingUsers"];
       RecordsService.getMeta(oid).subscribe(record => {
-        // if (!RecordsService.hasEditAccess(brand, req.user.name, req.user.roles, record)) {
-        //   //TODO: Return security response once we have authorization implemented
-        // }
-        var body = req.body;
-        var username = body["username"];
-        if (username == null) {
-          var userIndex = record["authorization"]["view"].indexOf(username);
-          if (userIndex > -1) {
-            record["authorization"]["view"].splice(userIndex, 1)
-          }
-        } else {
-          var pendingUser = body["pendingUser"];
-          var userIndex = record["authorization"]["viewPending"].indexOf(username);
-          if (userIndex > -1) {
-            record["authorization"]["viewPending"].splice(userIndex, 1)
-          }
+
+        if (users != null && users.length > 0) {
+          record["authorization"]["view"] = _.difference(record["authorization"]["view"], users);
+        }
+
+        if (pendingUsers != null && pendingUsers.length > 0) {
+          record["authorization"]["viewPending"] = _.difference(record["authorization"]["viewPending"], pendingUsers);
         }
 
         var obs = RecordsService.updateMeta(brand, oid, record);
         obs.subscribe(result => {
-          return res.json(result);
+          if (result["code"] == 200) {
+            RecordsService.getMeta(result["oid"]).subscribe(record => {
+              return res.json(record["authorization"]);
+            });
+          } else {
+            return res.json(result);
+          }
         });
       });
     }
@@ -184,30 +201,18 @@ export module Controllers {
 
     public getMeta(req, res) {
       const brand = BrandingService.getBrand(req.session.branding);
-
-
       var oid = req.param('oid');
 
       RecordsService.getMeta(oid).subscribe(record => {
-        // if (!RecordsService.hasEditAccess(brand, req.user.name, req.user.roles, record)) {
-        //   //TODO: Return security response once we have authorization implemented
-        // }
-
         return res.json(record["metadata"]);
       });
     }
 
     public updateMeta(req, res) {
       const brand = BrandingService.getBrand(req.session.branding);
-
-
       var oid = req.param('oid');
 
       RecordsService.getMeta(oid).subscribe(record => {
-        // if (!RecordsService.hasEditAccess(brand, req.user.name, req.user.roles, record)) {
-        //   //TODO: Return security response once we have authorization implemented
-        // }
-
         record["metadata"] = req.body;
         var obs = RecordsService.updateMeta(brand, oid, record);
         obs.subscribe(result => {
@@ -228,9 +233,14 @@ export module Controllers {
           authorizationEdit = body["authorization"]["edit"];
           authorizationView = body["authorization"]["view"];
           authorizationEditPending = body["authorization"]["editPending"];
-          authorizationViewPending = body["authorization"]["editPending"];
+          authorizationViewPending = body["authorization"]["viewPending"];
         } else {
-          return res.status(400).json({ "message": "Request body requires an authorization block" })
+          // If no authorization block set to user
+          body["authorization"] = [];
+          authorizationEdit = [];
+          authorizationView = [];
+          authorizationEdit.push(req.user.username);
+          authorizationView.push(req.user.username);
         }
         var recordTypeObservable = RecordTypesService.get(brand, recordType);
 
@@ -245,29 +255,51 @@ export module Controllers {
           metaMetadata["type"] = recordTypeModel.name;
           metaMetadata["createdBy"] = "admin";
           request["metaMetadata"] = metaMetadata;
-          request["metadata"] = body["metadata"];
+          //if no metadata field, no authorization
+          if (metadata == null) {
+            request["metadata"] = body;
+          } else {
+            request["metadata"] = metadata;
+          }
 
           // FormsService
           var workflowStepsObs = WorkflowStepsService.getAllForRecordType(recordTypeModel);
 
           workflowStepsObs.subscribe(workflowSteps => {
             _.each(workflowSteps, function(workflowStep) {
-
-              if (workflowStep["name"] == workflowStage) {
-                request["workflow"] = workflowStep["config"]["workflow"];
-                request["authorization"] = workflowStep["config"]["authorization"];
-                request["authorization"]["view"] = body["authorization"]["view"];
-                request["authorization"]["edit"] = body["authorization"]["edit"];
-                request["authorization"]["viewPending"] = body["authorization"]["viewPending"];
-                request["authorization"]["editPending"] = body["authorization"]["editPending"];
-                metaMetadata["form"] = workflowStep["config"]["form"];
+              // If no workflowStage set, find the starting step
+              if (workflowStage == null) {
+                if (workflowStep["starting"] == true) {
+                  request["workflow"] = workflowStep["config"]["workflow"];
+                  request["authorization"] = workflowStep["config"]["authorization"];
+                  request["authorization"]["view"] = authorizationView;
+                  request["authorization"]["edit"] = authorizationEdit;
+                  request["authorization"]["viewPending"] = authorizationViewPending;
+                  request["authorization"]["editPending"] = authorizationEditPending;
+                  metaMetadata["form"] = workflowStep["config"]["form"];
+                }
+              } else {
+                if (workflowStep["name"] == workflowStage) {
+                  request["workflow"] = workflowStep["config"]["workflow"];
+                  request["authorization"] = workflowStep["config"]["authorization"];
+                  request["authorization"]["view"] = authorizationView;
+                  request["authorization"]["edit"] = authorizationEdit;
+                  request["authorization"]["viewPending"] = authorizationViewPending;
+                  request["authorization"]["editPending"] = authorizationEditPending;
+                  metaMetadata["form"] = workflowStep["config"]["form"];
+                }
               }
 
-
             });
+
             var obs = RecordsService.create(brand, request);
             obs.subscribe(result => {
-              return res.json(result);
+              if (result["code"] == "200") {
+                result["code"] = 201;
+                res.set('Location', sails.config.appUrl + BrandingService.getBrandAndPortalPath(req) + "/api/records/metadata/" + result["oid"]);
+              }
+
+              return res.status(201).json(result);
             });
 
           });

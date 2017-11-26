@@ -68,7 +68,7 @@
     "debug": "node debug app.js",
     "start": "node app.js",
     "test": "node ./node_modules/mocha/bin/mocha test/bootstrap.test.js test/unit/**/*.test.js",
-    "doc-ng2": "./node_modules/.bin/compodoc -p tsconfig-ng2.json -d support/docs/generated/ng2 -n \"ReDBox Portal - NG2 Apps\" --theme postmark --includes support/docs"
+    "doc-ng2": "./node_modules/.bin/compodoc -p tsconfig-ng2.json -d support/docs/generated/ng2 -n \"ReDBox Portal - NG2 Apps\" --theme postmark --includes support/docs; ejs-cli views/default/default/apidocsapib.ejs -O '{\"portal\":\"rdmp\",\"branding\":\"default\"}' > apidocs.apib; docker run -it --rm -v $PWD:/doc bukalapak/snowboard html -o rest-api.html apidocs.apib; mv -f rest-api.html support/docs/generated/ng2/additional-documentation"
   },
   "main": "app.js",
   "repository": {
@@ -91,6 +91,8 @@
     "rollup-plugin-node-resolve": "^3.0.0",
     "rollup-plugin-uglify": "^1.0.2",
     "supertest": "^3.0.0",
-    "uglify-es": "^3.0.15"
+    "uglify-es": "^3.0.15",
+    "api-spec-converter": "^2.6.0",
+    "ejs-cli": "^2.0.0"
   }
 }

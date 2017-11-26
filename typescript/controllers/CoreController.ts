@@ -151,7 +151,7 @@ export module Controllers.Core {
       if (resolvedView == null) {
         viewToTest = sails.config.appPath + "/views/default/" + portal + "/" + view + ".ejs";
         if (pathExists.sync(viewToTest)) {
-          resolvedView = "/default/" + portal + "/" + view;
+          resolvedView = "default/" + portal + "/" + view;
         }
       }
 
@@ -207,7 +207,7 @@ export module Controllers.Core {
       var resolvedLayout: string = this._getResolvedLayout(branding, portal);
 
       // If we can resolve a layout set it.
-      if (resolvedLayout != null) {
+      if (resolvedLayout != null && mergedLocal["layout"] != false) {
         res.locals.layout = resolvedLayout;
       }
 
@@ -223,6 +223,10 @@ export module Controllers.Core {
       mergedLocal.view.ext = 'ejs';
       // merge with ng2 app...
       _.merge(mergedLocal, this.getNg2Apps(view));
+      sails.log.error("resolvedView");
+      sails.log.error(resolvedView);
+      sails.log.error("mergedLocal");
+      sails.log.error(mergedLocal);
       res.view(resolvedView, mergedLocal);
     }
 

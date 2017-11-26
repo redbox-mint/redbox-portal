@@ -761,7 +761,7 @@ chai@^4.1.0:
     pathval "^1.0.0"
     type-detect "^4.0.0"
 
-chalk@1.1.3, chalk@^1.0.0, chalk@^1.1.0, chalk@^1.1.1, chalk@~1.1.1:
+chalk@1.1.3, chalk@^1.0.0, chalk@^1.1.0, chalk@^1.1.1, chalk@^1.1.3, chalk@~1.1.1:
   version "1.1.3"
   resolved "https://registry.yarnpkg.com/chalk/-/chalk-1.1.3.tgz#a8115c55e4a702fe4d150abd3872822a7e09fc98"
   dependencies:
@@ -2725,7 +2725,7 @@ js-yaml@3.5.4:
     argparse "^1.0.2"
     esprima "^2.6.0"
 
-js-yaml@3.x:
+js-yaml@3.x, js-yaml@^3.3.1:
   version "3.10.0"
   resolved "https://registry.yarnpkg.com/js-yaml/-/js-yaml-3.10.0.tgz#2e78441646bd4682e963f22b6e92823c309c62dc"
   dependencies:
@@ -3046,7 +3046,7 @@ lodash@3.8.0:
   version "3.8.0"
   resolved "https://registry.yarnpkg.com/lodash/-/lodash-3.8.0.tgz#376eb98bdcd9382a9365c33c4cb8250de1325b91"
 
-lodash@4.x, lodash@>=2.4.x, lodash@^4.0.1, lodash@^4.13.1, lodash@^4.14.2, lodash@^4.15.0, lodash@^4.17.3, lodash@^4.17.4, lodash@^4.8.0, lodash@^4.8.2, lodash@~4.17.4:
+lodash@4.x, lodash@>=2.4.x, lodash@^4.0.1, lodash@^4.13.1, lodash@^4.14.2, lodash@^4.15.0, lodash@^4.16.3, lodash@^4.17.3, lodash@^4.17.4, lodash@^4.8.0, lodash@^4.8.2, lodash@~4.17.4:
   version "4.17.4"
   resolved "https://registry.yarnpkg.com/lodash/-/lodash-4.17.4.tgz#78203a4d1c328ae1d86dca6460e369b57f4055ae"
 
@@ -4358,6 +4358,14 @@ safefs@^4.1.0:
   dependencies:
     editions "^1.1.1"
     graceful-fs "^4.1.4"
+
+sails-custom-swagger-hook@^1.0.3:
+  version "1.0.3"
+  resolved "https://registry.yarnpkg.com/sails-custom-swagger-hook/-/sails-custom-swagger-hook-1.0.3.tgz#5f2c553c8c1bfed6f6f15b94b5352ab62588d768"
+  dependencies:
+    chalk "^1.1.3"
+    js-yaml "^3.3.1"
+    lodash "^4.16.3"
 
 sails-disk@~0.10.9:
   version "0.10.10"

@@ -1,0 +1,388 @@
+FORMAT: 1A
+HOST: http://localhost:1337
+
+# ReDBox Portal API
+
+The ReDBox Portal API provides authorized access to manage functions.
+
+
+## Record Collection
+
+### Create Record [POST /<%= branding %>/<%= portal %>/api/records/metadata/{recordType}]
++ Parameters
+  + recordType (string) ... The type of record to create
+
++ Request Create Record setting metadata, authorization and workflowStage (application/json)
+  + Headers
+    Authorization: Bearer abcabcab-abca-abca-abca-abcabcabcabc
+  + Body
+  {
+    "authorization": {
+      "edit": ["username"],
+      "view": ["username"],
+      "editPending":["anEmail@redboxresearchdata.com.au"],
+      "viewPending":["anEmail@redboxresearchdata.com.au"]
+    },
+    "metadata":{
+      "title": "A sample title",
+      "description": "A description"
+    },
+    "workflowStage": "draft"
+  }
+
++ Request Create Record only setting metadata (application/json)
+  + Headers
+    Authorization: Bearer abcabcab-abca-abca-abca-abcabcabcabc
+  + Body
+  {
+      "title": "A sample title",
+      "description": "A description"
+  }
+
++ Request Create Record setting metadata and workflowStage (application/json)
+  + Headers
+    Authorization: Bearer abcabcab-abca-abca-abca-abcabcabcabc
+  + Body
+  {
+    "metadata":{
+      "title": "A sample title",
+      "description": "A description"
+    },
+    "workflowStage": "draft"
+  }
+
++ Request Create Record setting metadata and authorization (application/json)
+  + Headers
+    Authorization: Bearer abcabcab-abca-abca-abca-abcabcabcabc
+  + Body
+  {
+    "authorization": {
+      "edit": ["username"],
+      "view": ["username"],
+      "editPending":["anEmail@redboxresearchdata.com.au"],
+      "viewPending":["anEmail@redboxresearchdata.com.au"]
+    },
+    "metadata":{
+      "title": "A sample title",
+      "description": "A description"
+    }
+  }
+
++ Response 201 (application/json)
+  + Headers
+    Location: /<%= branding %>/<%= portal %>/api/records/metadata/a2985faeabb6d92b56af665ca466a965
+  + Body
+    {
+      "code": "201",
+      "oid": "a2985faeabb6d92b56af665ca466a965"
+    }
+
+
+### Update Record Metadata [PUT /<%= branding %>/<%= portal %>/api/records/metadata/{id}]
+
++ Parameters
+    + id (string) ... The id of the record to update
+
++ Request Update record metadata (application/json)
+  + Headers
+    Authorization: Bearer abcabcab-abca-abca-abca-abcabcabcabc
+  + Body
+  {
+      "title": "A sample title",
+      "description": "A description"
+  }
+
++ Response 200 (application/json)
+  {
+    "code": "200",
+    "oid": "a2985faeabb6d92b56af665ca466a965"
+  }
+
+### Get Record Metadata [GET /<%= branding %>/<%= portal %>/api/records/metadata/{id}]
++ Parameters
+    + id (string) ... The id of the record to update
+
++ Request
+  + Headers
+    Authorization: Bearer abcabcab-abca-abca-abca-abcabcabcabc
+
++ Response 200 (application/json)
+  + Body
+  {
+    "title": "A sample title",
+    "description": "A description"
+  }
+
+
+### Give users edit access to record [POST /<%= branding %>/<%= portal %>/api/records/permissions/edit/{id}]
++ Parameters
+    + id (string) ... The id of the record to update
+
++ Request Give users edit access to record (application/json)
+  + Headers
+    Authorization: Bearer abcabcab-abca-abca-abca-abcabcabcabc
+  {
+    "users": ["username1","username2"]
+  }
+
++ Request Give users (pending login) edit access to record (application/json)
+  + Headers
+    Authorization: Bearer abcabcab-abca-abca-abca-abcabcabcabc
+  {
+    "usersPending": ["pendingusername1@email.com","pendingusername2@email.com"]
+  }
+
++ Request Give users (known usernames and pending login) edit access to record (application/json)
+  + Headers
+    Authorization: Bearer abcabcab-abca-abca-abca-abcabcabcabc
+  {
+    "users": ["username1","username2"],
+    "usersPending": ["pendingusername1@email.com","pendingusername2@email.com"]
+  }
+
++ Response 200 (application/json)
+{
+  "viewRoles": [
+      "Admin",
+      "Librarians"
+  ],
+  "editRoles": [
+      "Admin",
+      "Librarians"
+  ],
+  "view": [
+      "username1"
+  ],
+  "edit": [
+      "username1",
+      "username2"
+  ],
+  "viewPending": [
+  ],
+  "editPending": ["pendingusername1@email.com","pendingusername2@email.com"]
+}
+
+### Remove users edit access to record [DELETE /<%= branding %>/<%= portal %>/api/records/permissions/edit/{id}]
++ Parameters
+    + id (string) ... The id of the record to update
+
++ Headers
+
++ Request Remove users edit access to record (application/json)
+  + Headers
+    Authorization: Bearer abcabcab-abca-abca-abca-abcabcabcabc
+  {
+    "users": ["username2"]
+  }
+
++ Request Remove users (pending login) edit access to record (application/json)
+  + Headers
+    Authorization: Bearer abcabcab-abca-abca-abca-abcabcabcabc
+  {
+    "usersPending": ["pendingusername2@email.com"]
+  }
+
++ Request Remove users (known usernames and pending login) edit access to record (application/json)
+  + Headers
+    Authorization: Bearer abcabcab-abca-abca-abca-abcabcabcabc
+  {
+    "users": ["username2"],
+    "usersPending": ["pendingusername2@email.com"]
+  }
+
++ Response 200 (application/json)
+{
+  "viewRoles": [
+      "Admin",
+      "Librarians"
+  ],
+  "editRoles": [
+      "Admin",
+      "Librarians"
+  ],
+  "view": [
+      "username1"
+  ],
+  "edit": [
+      "username2"
+  ],
+  "viewPending": [
+  ],
+  "editPending": ["pendingusername2@email.com"]
+}
+
+### Give users view access to record [POST /<%= branding %>/<%= portal %>/api/records/permissions/view/{id}]
++ Parameters
+    + id (string) ... The id of the record to update
+
++ Headers
+
++ Request Give users view access to record (application/json)
+  + Headers
+    Authorization: Bearer abcabcab-abca-abca-abca-abcabcabcabc
+  {
+    "users": ["username1","username2"]
+  }
+
++ Request Give users (pending login) view access to record (application/json)
+  + Headers
+    Authorization: Bearer abcabcab-abca-abca-abca-abcabcabcabc
+  {
+    "usersPending": ["pendingusername1@email.com","pendingusername2@email.com"]
+  }
+
++ Request Give users (known usernames and pending login) view access to record (application/json)
+  + Headers
+    Authorization: Bearer abcabcab-abca-abca-abca-abcabcabcabc
+  {
+    "users": ["username1","username2"],
+    "usersPending": ["pendingusername1@email.com","pendingusername2@email.com"]
+  }
+
++ Response 200 (application/json)
+{
+  "viewRoles": [
+      "Admin",
+      "Librarians"
+  ],
+  "editRoles": [
+      "Admin",
+      "Librarians"
+  ],
+  "view": [
+  "username1",
+  "username2"
+  ],
+  "edit": [
+
+  ],
+  "viewPending": ["pendingusername1@email.com","pendingusername2@email.com"
+  ],
+  "editPending": []
+}
+
+### Remove users view access to record [DELETE /<%= branding %>/<%= portal %>/api/records/permissions/view/{id}]
++ Parameters
+    + id (string) ... The id of the record to update
+
++ Headers
+
++ Request Remove users view access to record (application/json)
+  + Headers
+    Authorization: Bearer abcabcab-abca-abca-abca-abcabcabcabc
+  {
+    "users": ["username2"]
+  }
+
++ Request Remove users (pending login) view access to record (application/json)
+  + Headers
+    Authorization: Bearer abcabcab-abca-abca-abca-abcabcabcabc
+  {
+    "usersPending": ["pendingusername2@email.com"]
+  }
+
++ Request Remove users (known usernames and pending login) view access to record (application/json)
+  + Headers
+    Authorization: Bearer abcabcab-abca-abca-abca-abcabcabcabc
+  {
+    "users": ["username2"],
+    "usersPending": ["pendingusername2@email.com"]
+  }
+
++ Response 200 (application/json)
+{
+  "viewRoles": [
+      "Admin",
+      "Librarians"
+  ],
+  "editRoles": [
+      "Admin",
+      "Librarians"
+  ],
+  "view": [
+      "username2"
+  ],
+  "edit": [
+      "username1"
+  ],
+  "viewPending": ["pendingusername2@email.com"
+  ],
+  "editPending": []
+}
+
+### Get access permissions for record [GET /<%= branding %>/<%= portal %>/api/records/permissions/{id}]
++ Parameters
+    + id (string) ... The id of the record to update
+
++Request
+    + Headers
+      Authorization: Bearer abcabcab-abca-abca-abca-abcabcabcabc
+
++ Response 200 (application/json)
+{
+  "viewRoles": [
+      "Admin",
+      "Librarians"
+  ],
+  "editRoles": [
+      "Admin",
+      "Librarians"
+  ],
+  "view": [
+      "username1"
+  ],
+  "edit": [
+      "username1",
+      "username2"
+  ],
+  "viewPending": [
+  ],
+  "editPending": ["pendingusername1@email.com","pendingusername2@email.com"]
+}
+
+## User Collection
+
+### List users in the system [GET /<%= branding %>/<%= portal %>/api/users]
++ Parameters
+    + page (number) ... The page number. Defaults to 1.
+    + pageSize (number) ... The number of results to return per page. Defaults to 10
+
++ Headers
+
++ Response 200 (application/json)
+{
+    "summary": {
+        "numFound": 1
+    },
+    "records": [
+        {
+            "type": "local",
+            "name": "Local user",
+            "username": "user1",
+            "email": "localuser@redboxresearchdata.com.au",
+            "token": "16f613d9-29da-4326-a120-1ad70078f3c5",
+            "createdAt": "2017-10-09T03:34:47.660Z",
+            "updatedAt": "2017-11-20T04:08:33.061Z",
+            "id": "59daee5720b453050057c2f5"
+        }
+  ]
+}
+
+### Find user in the system [GET /<%= branding %>/<%= portal %>/api/users/find]
++ Parameters
+    + searchBy (string) ... The attribute to search by. e.g. email
+    + query (string) ... The value to query. Only exact matches.
+
++ Headers
+
++ Response 200 (application/json)
+{
+    "type": "local",
+    "name": "Local user",
+    "username": "user1",
+    "email": "localuser@redboxresearchdata.com.au",
+    "token": "16f613d9-29da-4326-a120-1ad70078f3c5",
+    "createdAt": "2017-10-09T03:34:47.660Z",
+    "updatedAt": "2017-11-20T04:08:33.061Z",
+    "id": "59daee5720b453050057c2f5"
+}
