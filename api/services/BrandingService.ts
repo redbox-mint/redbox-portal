@@ -19,7 +19,7 @@
 
 import { Observable } from 'rxjs/Rx';
 import services = require('../../typescript/services/CoreService.js');
-import {Sails, Model} from "sails";
+import { Sails, Model } from "sails";
 
 declare var sails: Sails;
 declare var BrandingConfig: Model;
@@ -43,47 +43,47 @@ export module Services {
       'getPortalFromReq'
     ];
 
-    protected availableBrandings: any =  []
+    protected availableBrandings: any = []
     protected brandings: any = []
-    protected dBrand = {name: 'default'};
+    protected dBrand = { name: 'default' };
 
     public bootstrap = (): Observable<any> => {
       return super.getObservable(BrandingConfig.findOne(this.dBrand))
-                              .flatMap(defaultBrand => {
-                                if (_.isEmpty(defaultBrand)) {
-                                  // create default brand
-                                  sails.log.verbose("Default brand doesn't exist, creating...");
-                                  return super.getObservable(BrandingConfig.create(this.dBrand))
-                                }
-                                sails.log.verbose("Default brand already exists...");
-                                return Observable.of(defaultBrand);
-                              })
-                              .flatMap(this.loadAvailableBrands);
+        .flatMap(defaultBrand => {
+          if (_.isEmpty(defaultBrand)) {
+            // create default brand
+            sails.log.verbose("Default brand doesn't exist, creating...");
+            return super.getObservable(BrandingConfig.create(this.dBrand))
+          }
+          sails.log.verbose("Default brand already exists...");
+          return Observable.of(defaultBrand);
+        })
+        .flatMap(this.loadAvailableBrands);
     }
 
-    public loadAvailableBrands = (defBrand) :Observable<any> => {
+    public loadAvailableBrands = (defBrand): Observable<any> => {
       sails.log.verbose("Loading available brands......");
       // Find all the BrandingConfig we have and add them to the availableBrandings array.
       // A policy is configured to reject any branding values not present in this array.
       return super.getObservable(BrandingConfig.find({}).populate('roles'))
-      .flatMap(brands => {
-        this.brandings = brands;
-        this.availableBrandings = _.map(this.brandings, 'name');
-        var defBrandEntry = this.getDefault();
-        if (defBrandEntry == null) {
-          sails.log.error("Failed to load default brand!");
-          return Observable.throw(new Error("Failed to load default brand!"));
-        }
-        return Observable.of(defBrandEntry);
-      });
+        .flatMap(brands => {
+          this.brandings = brands;
+          this.availableBrandings = _.map(this.brandings, 'name');
+          var defBrandEntry = this.getDefault();
+          if (defBrandEntry == null) {
+            sails.log.error("Failed to load default brand!");
+            return Observable.throw(new Error("Failed to load default brand!"));
+          }
+          return Observable.of(defBrandEntry);
+        });
     }
 
-    public getDefault = () :BrandingConfig => {
-      return _.find(this.brandings, (o) => {return o.name == this.dBrand.name});
+    public getDefault = (): BrandingConfig => {
+      return _.find(this.brandings, (o) => { return o.name == this.dBrand.name });
     }
 
-    public getBrand = (name) :BrandConfig => {
-      return _.find(this.brandings, (o) => {return o.name == name});
+    public getBrand = (name): BrandConfig => {
+      return _.find(this.brandings, (o) => { return o.name == name });
     }
 
     public getAvailable = () => {
@@ -98,11 +98,41 @@ export module Services {
     }
 
     public getBrandFromReq(req) {
-      return req.params['branding'] || req.body.branding || req.session.branding || sails.config.auth.defaultBrand;
+      var branding = req.params['branding'];
+      if (branding == null) {
+        if (req.body != null) {
+          branding = req.body.branding;
+        }
+      }
+      if (branding == null) {
+        if (req.session != null) {
+          branding = req.session.branding;
+        }
+      }
+      if (branding == null) {
+        branding = sails.config.auth.defaultBrand;
+      }
+
+      return branding;
     }
 
     public getPortalFromReq(req) {
-      return req.params['portal'] || req.body.portal || req.session.portal || sails.config.auth.defaultPortal;
+      var portal = req.params['portal'];
+      if (portal == null) {
+        if (req.body != null) {
+          portal = req.body.portal;
+        }
+      }
+      if (portal == null) {
+        if (req.session != null) {
+          portal = req.session.portal;
+        }
+      }
+      if (portal == null) {
+        portal = sails.config.auth.defaultPortal;
+      }
+
+      return portal;
     }
 
   }
