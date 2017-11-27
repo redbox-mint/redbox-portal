@@ -65,7 +65,7 @@ export module Services {
             return Observable.of(workflows);
           }
         }).flatMap(wfSteps => {
-          if (!_.isEmpty(wfSteps) && wfSteps[0]["config"] != null) {
+          if (_.isArray(wfSteps) && wfSteps[0]["config"] != null) {
             return Observable.of(wfSteps);
           } else {
           var workflowSteps = [];
