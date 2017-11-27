@@ -3,7 +3,6 @@ import { BrowserModule } from '@angular/platform-browser';
 import { ReactiveFormsModule, FormsModule} from "@angular/forms";
 import { HttpModule } from '@angular/http';
 import { ReportComponent }  from './report.component';
-import { StringTemplatePipe }  from '../shared/StringTemplatePipe';
 import { MultivalueFieldPipe }  from './MultivalueFieldPipe';
 import { PaginationModule,TooltipModule } from 'ngx-bootstrap';
 import { SharedModule } from '../shared/shared.module';
@@ -12,7 +11,7 @@ import { NKDatetimeModule } from 'ng2-datetime/ng2-datetime';
 
 @NgModule({
   imports:      [ BrowserModule, HttpModule, ReactiveFormsModule, FormsModule, PaginationModule.forRoot(), TooltipModule.forRoot(), SharedModule, NKDatetimeModule],
-  declarations: [ ReportComponent, StringTemplatePipe, MultivalueFieldPipe ],
+  declarations: [ ReportComponent, MultivalueFieldPipe ],
   providers:    [  ReportService ],
   bootstrap:    [ ReportComponent ]
 })
