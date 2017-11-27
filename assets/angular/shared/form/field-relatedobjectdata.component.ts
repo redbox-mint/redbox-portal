@@ -85,18 +85,23 @@ export class RelatedObjectDataField extends FieldBase<any> {
   }
 }
 
+declare var aotMode
 // Setting the template url to a constant rather than directly in the component as the latter breaks document generation
-const template = '../angular/shared/form/field-relatedobjectdata.html';
+let rbRelatedObjectDataTemplate = './field-relatedobjectdata.html';
+if(typeof aotMode == 'undefined') {
+  rbRelatedObjectDataTemplate = '../angular/shared/form/field-relatedobjectdata.html';
+}
+
 /**
 * Component to display information from related objects within ReDBox
 *
 *
-*  
+*
 *
 */
 @Component({
   selector: 'rb-relatedobjectdata',
-  templateUrl: template
+  templateUrl: rbRelatedObjectDataTemplate
 })
 export class RelatedObjectDataComponent extends SimpleComponent {
   field: RelatedObjectDataField;

@@ -21,4 +21,5 @@ import { platformBrowserDynamic } from '@angular/platform-browser-dynamic';
 
 import { DmpModule } from './dmp.module';
 console.log('Running DMP on JIT');
+const aotMode = false;
 platformBrowserDynamic().bootstrapModule(DmpModule);

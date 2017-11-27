@@ -21,4 +21,5 @@ import { platformBrowser }    from '@angular/platform-browser';
 import { DmpModuleNgFactory } from './dmp.module.ngfactory';
 import {enableProdMode} from '@angular/core';
 enableProdMode();
+const aotMode = true;
 platformBrowser().bootstrapModuleFactory(DmpModuleNgFactory);
