@@ -46,7 +46,7 @@ function bundleNg2App() {
     ../../../node_modules/.bin/rollup -c rollup-config.js
     if [ "${buildTarget}" == "PROD" ]; then
       ../../../node_modules/.bin/uglifyjs -c -o dist-bundle-min.js -- dist-bundle.js
-      mv dist-bundle-min.js dist-bundle.js
+      mv -f dist-bundle-min.js dist-bundle.js
     fi
   else
     echo "Missing Rollup config for app: ${ng2app}?"

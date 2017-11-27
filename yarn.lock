@@ -431,7 +431,7 @@ async-each@^1.0.0:
   version "1.0.1"
   resolved "https://registry.yarnpkg.com/async-each/-/async-each-1.0.1.tgz#19d386a1d9edc6e7c1c85d388aedbcc56d33602d"
 
-async@0.2.x, async@~0.2.6, async@~0.2.9:
+async@0.2.x, async@~0.2.10, async@~0.2.6, async@~0.2.9:
   version "0.2.10"
   resolved "https://registry.yarnpkg.com/async/-/async-0.2.10.tgz#b6bbe0b0674b9d719708ca38de8c237cb526c3d1"
 
@@ -761,7 +761,7 @@ chai@^4.1.0:
     pathval "^1.0.0"
     type-detect "^4.0.0"
 
-chalk@1.1.3, chalk@^1.0.0, chalk@^1.1.0, chalk@^1.1.1, chalk@^1.1.3, chalk@~1.1.1:
+chalk@1.1.3, chalk@^1.0.0, chalk@^1.1.0, chalk@^1.1.1, chalk@~1.1.1:
   version "1.1.3"
   resolved "https://registry.yarnpkg.com/chalk/-/chalk-1.1.3.tgz#a8115c55e4a702fe4d150abd3872822a7e09fc98"
   dependencies:
@@ -893,7 +893,7 @@ colors@*, colors@1.1.2, colors@^1.1.2, colors@latest, colors@~1.1.2:
   version "1.1.2"
   resolved "https://registry.yarnpkg.com/colors/-/colors-1.1.2.tgz#168a4701756b6a7f51a12ce0c97bfa28c084ed63"
 
-colors@0.6.2, colors@0.6.x, colors@~0.6.2:
+colors@0.6.2, colors@0.6.x, colors@~0.6.1, colors@~0.6.2:
   version "0.6.2"
   resolved "https://registry.yarnpkg.com/colors/-/colors-0.6.2.tgz#2423fe6678ac0c5dae8852e5d0e5be08c997abcc"
 
@@ -1387,6 +1387,16 @@ ee-first@1.1.1:
   version "1.1.1"
   resolved "https://registry.yarnpkg.com/ee-first/-/ee-first-1.1.1.tgz#590c61156b0ae2f4f0255732a158b266bc56b21d"
 
+ejs-cli@^2.0.0:
+  version "2.0.0"
+  resolved "https://registry.yarnpkg.com/ejs-cli/-/ejs-cli-2.0.0.tgz#ee4dd3a355102107ef0b29a445ca1bee9f868bf2"
+  dependencies:
+    async "~0.2.10"
+    colors "~0.6.1"
+    ejs "2.4.*"
+    glob "~3.2.9"
+    optimist "~0.5.2"
+
 ejs-locals@1.0.2:
   version "1.0.2"
   resolved "https://registry.yarnpkg.com/ejs-locals/-/ejs-locals-1.0.2.tgz#b9b320ff6933154105fa0eed683ea64d678088ce"
@@ -1400,6 +1410,10 @@ ejs@0.8.x:
 ejs@2.3.4:
   version "2.3.4"
   resolved "https://registry.yarnpkg.com/ejs/-/ejs-2.3.4.tgz#3c76caa09664b3583b0037af9dc136e79ec68b98"
+
+ejs@2.4.*:
+  version "2.4.2"
+  resolved "https://registry.yarnpkg.com/ejs/-/ejs-2.4.2.tgz#7057eb4812958fb731841cd9ca353343efe597b1"
 
 encodeurl@~1.0.1:
   version "1.0.1"
@@ -1991,6 +2005,13 @@ glob@^7.0.0, glob@^7.0.3, glob@^7.0.5, glob@^7.1.2, glob@~7.1.1:
     minimatch "^3.0.4"
     once "^1.3.0"
     path-is-absolute "^1.0.0"
+
+glob@~3.2.9:
+  version "3.2.11"
+  resolved "https://registry.yarnpkg.com/glob/-/glob-3.2.11.tgz#4a973f635b9190f715d10987d5c00fd2815ebe3d"
+  dependencies:
+    inherits "2"
+    minimatch "0.3"
 
 glob@~7.0.0:
   version "7.0.6"
@@ -2725,7 +2746,7 @@ js-yaml@3.5.4:
     argparse "^1.0.2"
     esprima "^2.6.0"
 
-js-yaml@3.x, js-yaml@^3.3.1:
+js-yaml@3.x:
   version "3.10.0"
   resolved "https://registry.yarnpkg.com/js-yaml/-/js-yaml-3.10.0.tgz#2e78441646bd4682e963f22b6e92823c309c62dc"
   dependencies:
@@ -3046,7 +3067,7 @@ lodash@3.8.0:
   version "3.8.0"
   resolved "https://registry.yarnpkg.com/lodash/-/lodash-3.8.0.tgz#376eb98bdcd9382a9365c33c4cb8250de1325b91"
 
-lodash@4.x, lodash@>=2.4.x, lodash@^4.0.1, lodash@^4.13.1, lodash@^4.14.2, lodash@^4.15.0, lodash@^4.16.3, lodash@^4.17.3, lodash@^4.17.4, lodash@^4.8.0, lodash@^4.8.2, lodash@~4.17.4:
+lodash@4.x, lodash@>=2.4.x, lodash@^4.0.1, lodash@^4.13.1, lodash@^4.14.2, lodash@^4.15.0, lodash@^4.17.3, lodash@^4.17.4, lodash@^4.8.0, lodash@^4.8.2, lodash@~4.17.4:
   version "4.17.4"
   resolved "https://registry.yarnpkg.com/lodash/-/lodash-4.17.4.tgz#78203a4d1c328ae1d86dca6460e369b57f4055ae"
 
@@ -3078,6 +3099,10 @@ loud-rejection@^1.0.0:
   dependencies:
     currently-unhandled "^0.4.1"
     signal-exit "^3.0.0"
+
+lru-cache@2:
+  version "2.7.3"
+  resolved "https://registry.yarnpkg.com/lru-cache/-/lru-cache-2.7.3.tgz#6d4524e8b955f95d4f5b58851ce21dd72fb4e952"
 
 lru-cache@^4.0.0:
   version "4.1.1"
@@ -3266,6 +3291,13 @@ mime@1.3.4:
 mime@1.4.1, mime@^1.2.11, mime@^1.4.1:
   version "1.4.1"
   resolved "https://registry.yarnpkg.com/mime/-/mime-1.4.1.tgz#121f9ebc49e3766f311a76e1fa1c8003c4b03aa6"
+
+minimatch@0.3:
+  version "0.3.0"
+  resolved "https://registry.yarnpkg.com/minimatch/-/minimatch-0.3.0.tgz#275d8edaac4f1bb3326472089e7949c8394699dd"
+  dependencies:
+    lru-cache "2"
+    sigmund "~1.0.0"
 
 "minimatch@2 || 3", minimatch@^3.0.0, minimatch@^3.0.2, minimatch@^3.0.4, minimatch@~3.0.0, minimatch@~3.0.2:
   version "3.0.4"
@@ -3641,6 +3673,12 @@ optimist@^0.6.1, optimist@~0.6.0:
   resolved "https://registry.yarnpkg.com/optimist/-/optimist-0.6.1.tgz#da3ea74686fa21a19a111c326e90eb15a0196686"
   dependencies:
     minimist "~0.0.1"
+    wordwrap "~0.0.2"
+
+optimist@~0.5.2:
+  version "0.5.2"
+  resolved "https://registry.yarnpkg.com/optimist/-/optimist-0.5.2.tgz#85c8c1454b3315e4a78947e857b1df033450bfbc"
+  dependencies:
     wordwrap "~0.0.2"
 
 optionator@^0.8.1:
@@ -4359,14 +4397,6 @@ safefs@^4.1.0:
     editions "^1.1.1"
     graceful-fs "^4.1.4"
 
-sails-custom-swagger-hook@^1.0.3:
-  version "1.0.3"
-  resolved "https://registry.yarnpkg.com/sails-custom-swagger-hook/-/sails-custom-swagger-hook-1.0.3.tgz#5f2c553c8c1bfed6f6f15b94b5352ab62588d768"
-  dependencies:
-    chalk "^1.1.3"
-    js-yaml "^3.3.1"
-    lodash "^4.16.3"
-
 sails-disk@~0.10.9:
   version "0.10.10"
   resolved "https://registry.yarnpkg.com/sails-disk/-/sails-disk-0.10.10.tgz#6ac5dea00950cf6568a53fe13fd0b8d3ad3260ff"
@@ -4499,12 +4529,12 @@ sails-generate@~0.13.0:
     sails-generate-views "~0.10.5"
     sails-generate-views-jade "~0.10.3"
 
-sails-hook-autoreload@^1.1.0:
-  version "1.1.0"
-  resolved "https://registry.yarnpkg.com/sails-hook-autoreload/-/sails-hook-autoreload-1.1.0.tgz#666cab7e0490b7575c970fc830b53f59f3529664"
+sails-hook-autoreload@0.14.3:
+  version "0.14.3"
+  resolved "https://registry.yarnpkg.com/sails-hook-autoreload/-/sails-hook-autoreload-0.14.3.tgz#b6292609cc590324bea5f9144db8450820f3c350"
   dependencies:
-    "@sailshq/lodash" "^3.10.2"
     chokidar "^1.0.0"
+    lodash "^3.10.1"
 
 sails-hook-orm@~1.0.9:
   version "1.0.9"
@@ -4802,6 +4832,10 @@ shelljs@^0.7.8:
     glob "^7.0.0"
     interpret "^1.0.0"
     rechoir "^0.6.2"
+
+sigmund@~1.0.0:
+  version "1.0.1"
+  resolved "https://registry.yarnpkg.com/sigmund/-/sigmund-1.0.1.tgz#3ff21f198cad2175f9f3b781853fd94d0d19b590"
 
 signal-exit@^3.0.0:
   version "3.0.2"
