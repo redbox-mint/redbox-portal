@@ -104,6 +104,7 @@ export class RecordsService extends BaseService {
 
   search(params: RecordSearchParams) {
     let refinedSearchStr = '';
+    params.filterActiveRefinersWithNoData();
     if (_.size(params.activeRefiners) > 0) {
       let exactSearchNames = '';
       let exactSearchValues = '';
@@ -257,6 +258,13 @@ export class RecordSearchParams {
       const config = this.getRefinerConfig(name);
       config.setCurrentValue(value);
       this.addActiveRefiner(config);
+    });
+  }
+
+  filterActiveRefinersWithNoData() {
+    const removed = _.remove(this.activeRefiners, (refiner: RecordSearchRefiner) => {
+      const value = refiner.type == 'exact' ? refiner.value : refiner.activeValue;
+      return  !refiner.alwaysActive && (_.isEmpty(value) || _.isUndefined(value));
     });
   }
 
