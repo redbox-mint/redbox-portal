@@ -144,7 +144,7 @@ export module Controllers {
       const brand = BrandingService.getBrand(req.session.branding);
       const metadata = req.body;
       const record = { metaMetadata: {} };
-      var recordType = 'rdmp';
+      var recordType = req.param('recordType');
       record.authorization = { view: [req.user.username], edit: [req.user.username] };
       record.metaMetadata.brandId = brand.id;
       record.metaMetadata.createdBy = req.user.username;
@@ -153,12 +153,12 @@ export module Controllers {
       record.metadata = metadata;
 
       RecordTypesService.get(brand, recordType).subscribe(recordType => {
-
+        let packageType = recordType.packageType;
         WorkflowStepsService.getFirst(recordType)
           .subscribe(wfStep => {
 
             this.updateWorkflowStep(record, wfStep);
-            RecordsService.create(brand, record).subscribe(response => {
+            RecordsService.create(brand, record, packageType).subscribe(response => {
               if (response && response.code == "200") {
                 response.success = true;
                 this.ajaxOk(req, res, null, response);

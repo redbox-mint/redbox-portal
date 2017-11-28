@@ -74,8 +74,8 @@ export class RecordsService extends BaseService {
     });
   }
 
-  create(record: any) {
-    return this.http.post(`${this.brandingAndPortalUrl}/recordmeta/`, record, this.getOptionsClient())
+  create(record: any, recordType: string) {
+    return this.http.post(`${this.brandingAndPortalUrl}/recordmeta/${recordType}`, record, this.getOptionsClient())
     .toPromise()
     .then((res:any) => this.extractData(res) as RecordActionResult);
   }

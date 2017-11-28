@@ -49,9 +49,9 @@ export module Services {
       'searchFuzzy'
     ];
 
-    public create(brand, record, formName=sails.config.form.defaultForm): Observable<any> {
+    public create(brand, record, packageType, formName=sails.config.form.defaultForm): Observable<any> {
       // TODO: validate metadata with the form...
-      const options = this.getOptions(sails.config.record.baseUrl.redbox+sails.config.record.api.create.url);
+      const options = this.getOptions(sails.config.record.baseUrl.redbox+sails.config.record.api.create.url, null, packageType);
       options.body = record;
       sails.log.verbose(options);
       return Observable.fromPromise(request[sails.config.record.api.create.method](options));

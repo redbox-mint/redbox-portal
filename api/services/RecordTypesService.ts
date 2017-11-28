@@ -67,6 +67,7 @@ export module Services {
       return super.getObservable(RecordType.create({
         name: name,
         branding: brand.id,
+        packageType: config.packageType,
         searchFilters: config.searchFilters
       }));
     }

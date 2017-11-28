@@ -292,7 +292,7 @@ export module Controllers {
 
             });
 
-            var obs = RecordsService.create(brand, request);
+            var obs = RecordsService.create(brand, request,recordTypeModel.packageType);
             obs.subscribe(result => {
               if (result["code"] == "200") {
                 result["code"] = 201;

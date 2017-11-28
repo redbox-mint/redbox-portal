@@ -1,5 +1,6 @@
 module.exports.recordtype = {
   "rdmp": {
+    "packageType": "rdmp",
     searchFilters: [
       {
         name: "text_title",
@@ -36,7 +37,8 @@ module.exports.recordtype = {
       }
     ]
   },
-  "workspace": {
+  "sampleWorkspace": {
+    packageType: "workspace",
     searchFilters: [
       {
         name: "text_title",
