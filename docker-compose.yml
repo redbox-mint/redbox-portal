@@ -13,6 +13,7 @@ services:
     environment:
       - NODE_ENV=development
       - PORT=1500
+      - sails_redbox__apiKey=c8e844fc-8550-497f-b970-7900ec8741ca
     links:
       - mongodb:mongodb
       - redbox:redbox
@@ -30,6 +31,7 @@ services:
     expose:
        - "9000"
     environment:
+      - RB_API_KEY=c8e844fc-8550-497f-b970-7900ec8741ca
       - RAID_URL=https://api.raid.org.au:8000/
       - RAID_KEY=
     volumes:
