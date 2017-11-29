@@ -394,3 +394,18 @@ The ReDBox Portal API provides authorized access to manage functions.
     "updatedAt": "2017-11-20T04:08:33.061Z",
     "id": "59daee5720b453050057c2f5"
 }
+
+## Other Functions Collection
+
+### Send an email [POST /<%= branding %>/<%= portal %>/api/email]
+
++ Request (application/json)
+  + Headers
+    Authorization: Bearer abcabcab-abca-abca-abca-abcabcabcabc
+  + Body
+  {
+    "to": ["user@redboxresearchdata.com.au"],
+    "subject":"A sample subject",
+    "template": "emailTemplateName",
+    "data": {"property": "values to populate in template"}
+   }
