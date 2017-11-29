@@ -158,7 +158,7 @@ export class DmpFormComponent extends LoadableComponent {
     console.log("Saving the following values:");
     console.log(this.payLoad);
     this.needsSave = false;
-    if (_.isEmpty(RecordsService)) {
+    if (_.isEmpty(this.oid)) {
       this.RecordsService.create(this.payLoad, this.recordType).then((res:any)=>{
         this.clearSaving();
         console.log("Create Response:");
