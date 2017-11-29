@@ -1005,3 +1005,8 @@ div.logo img {
 .input-space {
     margin-left: 15px;
   }
+
+.panel-default > .panel-heading {
+  background-color: #b1101a;
+  color: #FFF;
+}

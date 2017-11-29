@@ -758,3 +758,8 @@ div.logo img {
 .header h1#main-title {
     text-align: center;
 }
+
+.panel-default > .panel-heading {
+  background-color: #b1101a;
+  color: #FFF;
+}
