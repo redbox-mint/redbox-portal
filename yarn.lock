@@ -1415,6 +1415,10 @@ ejs@2.4.*:
   version "2.4.2"
   resolved "https://registry.yarnpkg.com/ejs/-/ejs-2.4.2.tgz#7057eb4812958fb731841cd9ca353343efe597b1"
 
+ejs@2.5.7:
+  version "2.5.7"
+  resolved "https://registry.yarnpkg.com/ejs/-/ejs-2.5.7.tgz#cc872c168880ae3c7189762fd5ffc00896c9518a"
+
 encodeurl@~1.0.1:
   version "1.0.1"
   resolved "https://registry.yarnpkg.com/encodeurl/-/encodeurl-1.0.1.tgz#79e3d58655346909fe6f0f45a5de68103b294d20"
@@ -4378,9 +4382,9 @@ rttc@~9.3.0:
   dependencies:
     lodash "3.8.0"
 
-rxjs@5.4.1:
-  version "5.4.1"
-  resolved "https://registry.yarnpkg.com/rxjs/-/rxjs-5.4.1.tgz#b62f757f279445d265a18a58fb0a70dc90e91626"
+rxjs@5.5.2:
+  version "5.5.2"
+  resolved "https://registry.yarnpkg.com/rxjs/-/rxjs-5.5.2.tgz#28d403f0071121967f18ad665563255d54236ac3"
   dependencies:
     symbol-observable "^1.0.1"
 
@@ -4533,12 +4537,12 @@ sails-generate@~0.13.0:
     sails-generate-views "~0.10.5"
     sails-generate-views-jade "~0.10.3"
 
-sails-hook-autoreload@0.14.3:
-  version "0.14.3"
-  resolved "https://registry.yarnpkg.com/sails-hook-autoreload/-/sails-hook-autoreload-0.14.3.tgz#b6292609cc590324bea5f9144db8450820f3c350"
+sails-hook-autoreload@^1.1.0:
+  version "1.1.0"
+  resolved "https://registry.yarnpkg.com/sails-hook-autoreload/-/sails-hook-autoreload-1.1.0.tgz#666cab7e0490b7575c970fc830b53f59f3529664"
   dependencies:
+    "@sailshq/lodash" "^3.10.2"
     chokidar "^1.0.0"
-    lodash "^3.10.1"
 
 sails-hook-orm@~1.0.9:
   version "1.0.9"
