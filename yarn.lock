@@ -2183,6 +2183,10 @@ grunt-sails-linker@~0.10.1:
   version "0.10.1"
   resolved "https://registry.yarnpkg.com/grunt-sails-linker/-/grunt-sails-linker-0.10.1.tgz#0d2cf5473c03baebb6ce6c1de1e58163d3ac8d06"
 
+grunt-sails-linker@~1.0.4:
+  version "1.0.4"
+  resolved "https://registry.yarnpkg.com/grunt-sails-linker/-/grunt-sails-linker-1.0.4.tgz#2b7d690d522aa04327f8f3f80dffd6668bb3b5c2"
+
 grunt-sync@0.5.2:
   version "0.5.2"
   resolved "https://registry.yarnpkg.com/grunt-sync/-/grunt-sync-0.5.2.tgz#6162c48f42e1b9a96f5f930433e1f3a880d8a6ec"
