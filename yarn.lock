@@ -3368,9 +3368,13 @@ mock-res@0.3.0:
   dependencies:
     moment "*"
 
-moment@*, moment@2.x.x, moment@^2.18.1:
+moment@*, moment@2.x.x:
   version "2.19.1"
   resolved "https://registry.yarnpkg.com/moment/-/moment-2.19.1.tgz#56da1a2d1cbf01d38b7e1afc31c10bcfa1929167"
+
+moment@^2.19.3:
+  version "2.19.3"
+  resolved "https://registry.yarnpkg.com/moment/-/moment-2.19.3.tgz#bdb99d270d6d7fda78cc0fbace855e27fe7da69f"
 
 mongodb-core@2.1.7:
   version "2.1.7"
