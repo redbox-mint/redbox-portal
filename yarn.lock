@@ -923,6 +923,10 @@ commander@2.9.0:
   dependencies:
     graceful-readlink ">= 1.0.0"
 
+commander@~2.12.1:
+  version "2.12.2"
+  resolved "https://registry.yarnpkg.com/commander/-/commander-2.12.2.tgz#0f5946c427ed9ec0d91a46bb9def53e54650e555"
+
 component-bind@1.0.0:
   version "1.0.0"
   resolved "https://registry.yarnpkg.com/component-bind/-/component-bind-1.0.0.tgz#00c608ab7dcd93897c0009651b1d3a8e1e73bbd1"
@@ -1414,6 +1418,10 @@ ejs@2.3.4:
 ejs@2.4.*:
   version "2.4.2"
   resolved "https://registry.yarnpkg.com/ejs/-/ejs-2.4.2.tgz#7057eb4812958fb731841cd9ca353343efe597b1"
+
+ejs@2.5.7:
+  version "2.5.7"
+  resolved "https://registry.yarnpkg.com/ejs/-/ejs-2.5.7.tgz#cc872c168880ae3c7189762fd5ffc00896c9518a"
 
 encodeurl@~1.0.1:
   version "1.0.1"
@@ -2135,6 +2143,15 @@ grunt-contrib-uglify@1.0.1:
     lodash "^4.0.1"
     maxmin "^1.1.0"
     uglify-js "~2.6.2"
+    uri-path "^1.0.0"
+
+grunt-contrib-uglify@3.2.1:
+  version "3.2.1"
+  resolved "https://registry.yarnpkg.com/grunt-contrib-uglify/-/grunt-contrib-uglify-3.2.1.tgz#8458943eb6053badff829b6f0c9126b1ea624c4a"
+  dependencies:
+    chalk "^1.0.0"
+    maxmin "^1.1.0"
+    uglify-js "~3.2.0"
     uri-path "^1.0.0"
 
 grunt-contrib-watch@1.0.0:
@@ -4533,12 +4550,12 @@ sails-generate@~0.13.0:
     sails-generate-views "~0.10.5"
     sails-generate-views-jade "~0.10.3"
 
-sails-hook-autoreload@0.14.3:
-  version "0.14.3"
-  resolved "https://registry.yarnpkg.com/sails-hook-autoreload/-/sails-hook-autoreload-0.14.3.tgz#b6292609cc590324bea5f9144db8450820f3c350"
+sails-hook-autoreload@^1.1.0:
+  version "1.1.0"
+  resolved "https://registry.yarnpkg.com/sails-hook-autoreload/-/sails-hook-autoreload-1.1.0.tgz#666cab7e0490b7575c970fc830b53f59f3529664"
   dependencies:
+    "@sailshq/lodash" "^3.10.2"
     chokidar "^1.0.0"
-    lodash "^3.10.1"
 
 sails-hook-orm@~1.0.9:
   version "1.0.9"
@@ -5370,6 +5387,13 @@ uglify-js@~2.6.2:
     source-map "~0.5.1"
     uglify-to-browserify "~1.0.0"
     yargs "~3.10.0"
+
+uglify-js@~3.2.0:
+  version "3.2.1"
+  resolved "https://registry.yarnpkg.com/uglify-js/-/uglify-js-3.2.1.tgz#d6427fd45a25fefc5d196689c0c772a6915e10fe"
+  dependencies:
+    commander "~2.12.1"
+    source-map "~0.6.1"
 
 uglify-to-browserify@~1.0.0:
   version "1.0.2"
