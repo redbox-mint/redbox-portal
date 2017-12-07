@@ -19,7 +19,7 @@
 
 import { Input, Component, ViewChild, ViewContainerRef, OnInit, Injector} from '@angular/core';
 import { FieldBase } from './field-base';
-import { DateTime, AnchorOrButton, TextArea, TextField } from './field-simple';
+import { DateTime, AnchorOrButton, SaveButton, CancelButton, TextArea, TextField } from './field-simple';
 import { FormGroup, FormControl, FormArray } from '@angular/forms';
 import * as _ from "lodash-lib";
 import moment from 'moment-es6';
@@ -299,6 +299,20 @@ Container components
 export class TabOrAccordionContainerComponent extends SimpleComponent {
 
 }
+
+@Component({
+  selector: 'buttonbarcontainer',
+  template: `
+    <div *ngIf="field.editMode" class="form-row">
+      <div class="pull-right col-md-10">
+      <dmp-field *ngFor="let field1 of field.fields" [field]="field1" [form]="form" class="form-row" [fieldMap]="fieldMap"></dmp-field>
+    </div>
+  `
+})
+export class ButtonBarContainerComponent extends SimpleComponent {
+
+}
+
 // Break in case of an emergency....
 @Component({
   selector: 'htmlraw',
@@ -363,6 +377,72 @@ export class DateTimeComponent extends SimpleComponent {
   }
 
 }
+/**
+* #### Save Button Component.
+*
+* Calls the form framework's save function to create or update the record.
+*
+* #### Usage
+* ```
+*     {
+*          class: "SaveButton",
+*          definition: {
+*            label: 'Save & Close',
+*            closeOnSave: true,
+*            redirectLocation: '/@branding/@portal/dashboard'
+*          }
+*        }
+* ```
+*
+*| Property Name    | Description                                                    | Required | Default |
+*|------------------|----------------------------------------------------------------|----------|---------|
+*| label            | The text to display on the button                              | Yes      |         |
+*| closeOnSave      | Flag to leave the page on successful save                      | No       | false   |
+*| redirectLocation | The location to redirect to if closeOnSave flag is set to true | No       |         |
+*/
+@Component({
+  selector: 'save-button',
+  template: `
+    <button type="button" (click)="onClick($event)" class="btn" [ngClass]="field.cssClasses" [disabled]="!fieldMap._rootComp.needsSave || fieldMap._rootComp.isSaving()">{{field.label}}</button>
+  `,
+})
+export class SaveButtonComponent extends SimpleComponent {
+  public field: SaveButton;
+
+  public onClick(event: any) {
+    if(this.field.closeOnSave == true) {
+      var successObs = this.fieldMap._rootComp.onSubmit();
+
+      successObs.subscribe( successful =>  {
+        if(successful) {
+           window.location.href= this.field.redirectLocation;
+        }
+      });
+    } else {
+      this.fieldMap._rootComp.onSubmit()
+    }
+  }
+
+}
+
+/**
+* # Cancel Button Component
+*
+* #### Button designed to
+*  @param  {CancelButton} cancelButton
+*   @return {FormControl}
+*/
+@Component({
+  selector: 'cancel-button',
+  template: `
+    <button type="button" class="btn btn-warning" [disabled]="fieldMap._rootComp.isSaving()" (click)="fieldMap._rootComp.onCancel()">{{field.label}}</button>
+  `,
+})
+export class CancelButtonComponent extends SimpleComponent {
+  public field: CancelButton;
+
+}
+
 
 @Component({
   selector: 'anchor-button',

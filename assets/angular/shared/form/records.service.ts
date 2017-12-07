@@ -76,14 +76,12 @@ export class RecordsService extends BaseService {
 
   create(record: any, recordType: string) {
     return this.http.post(`${this.brandingAndPortalUrl}/recordmeta/${recordType}`, record, this.getOptionsClient())
-    .toPromise()
-    .then((res:any) => this.extractData(res) as RecordActionResult);
+    .map((res:any) => this.extractData(res) as RecordActionResult);
   }
 
   update(oid: string, record: any) {
     return this.http.put(`${this.brandingAndPortalUrl}/recordmeta/${oid}`, record, this.getOptionsClient())
-    .toPromise()
-    .then((res:any) => this.extractData(res) as RecordActionResult);
+    .map((res:any) => this.extractData(res));
   }
 
   stepTo(oid: string, record: any, targetStep: string) {

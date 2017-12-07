@@ -23,6 +23,7 @@ import { FormGroup } from '@angular/forms';
 import { RecordsService } from '../shared/form/records.service';
 import { LoadableComponent } from '../shared/loadable.component';
 import { FieldControlService } from '../shared/form/field-control.service';
+import { Observable } from 'rxjs/Observable';
 import * as _ from "lodash-lib";
 import { TranslationService } from '../shared/translation-service';
 /**
@@ -150,7 +151,7 @@ export class DmpFormComponent extends LoadableComponent {
    */
   onSubmit(nextStep:boolean = false, targetStep:string = null, forceValidate:boolean=false) {
     if (!this.isValid(forceValidate)) {
-      return;
+      return Observable.of(false);
     }
     this.setSaving(this.formDef.messages.saving);
     const values = this.formatValues(this.form.value);
@@ -159,7 +160,7 @@ export class DmpFormComponent extends LoadableComponent {
     console.log(this.payLoad);
     this.needsSave = false;
     if (_.isEmpty(this.oid)) {
-      this.RecordsService.create(this.payLoad, this.recordType).then((res:any)=>{
+      return this.RecordsService.create(this.payLoad, this.recordType).flatMap((res:any)=>{
         this.clearSaving();
         console.log("Create Response:");
         console.log(res);
@@ -170,24 +171,30 @@ export class DmpFormComponent extends LoadableComponent {
           if (nextStep) {
             this.stepTo(targetStep);
           }
+          return Observable.of(true);
         } else {
           this.setError(`${this.formDef.messages.saveError} ${res.message}`);
+          return Observable.of(false);
         }
       }).catch((err:any)=>{
         this.setError(`${this.formDef.messages.saveError} ${err.message}`);
+        return Observable.of(false);
       });
     } else {
-      this.RecordsService.update(this.oid, this.payLoad).then((res:any)=>{
+      return this.RecordsService.update(this.oid, this.payLoad).flatMap((res:any)=>{
         this.clearSaving();
         console.log("Update Response:");
         console.log(res);
         if (res.success) {
           this.setSuccess(this.formDef.messages.saveSuccess);
+          return Observable.of(true);
         } else {
           this.setError(`${this.formDef.messages.saveError} ${res.message}`);
+          return Observable.of(false);
         }
       }).catch((err:any)=>{
         this.setError(`${this.formDef.messages.saveError} ${err}`);
+        return Observable.of(false);
       });
     }
   }

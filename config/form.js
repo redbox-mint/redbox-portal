@@ -7,7 +7,7 @@ module.exports.form = {
     "default-1.0-draft": {
       name: 'default-1.0-draft',
       type: 'rdmp',
-      skipValidationOnSave: true,
+      skipValidationOnSave: false,
       editCssClasses: 'row col-md-12',
       viewCssClasses: 'row col-md-offset-1 col-md-10',
       messages: {
@@ -34,7 +34,8 @@ module.exports.form = {
             cssClasses: 'btn btn-large btn-info margin-15',
             showPencil: true,
             controlType: 'anchor'
-          }
+          },
+          variableSubstitutionFields: ['value']
         },
         {
           class: 'TextArea',
@@ -1260,19 +1261,48 @@ module.exports.form = {
                       showHeader: true,
                       definition: {
                         name: 'workspaces',
-                        columns: [
-                        {
-                          "label": "Title",
-                          "property": "title"
-                        },
-                        {
-                          "label": "Description",
-                          "property": "description"
-                        }
-                      ]
+                        columns: [{
+                            "label": "Title",
+                            "property": "title"
+                          },
+                          {
+                            "label": "Description",
+                            "property": "description"
+                          }
+                        ]
                       }
                     }
                   ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          class: "ButtonBarContainer",
+          compClass: "ButtonBarContainerComponent",
+          definition: {
+            fields: [
+              {
+                class: "SaveButton",
+                definition: {
+                  label: 'Save',
+                  cssClasses: 'btn-success'
+                }
+              },
+              {
+                class: "SaveButton",
+                definition: {
+                  label: 'Save & Close',
+                  closeOnSave: true,
+                  redirectLocation: '/@branding/@portal/dashboard'
+                },
+                variableSubstitutionFields: ['redirectLocation']
+              },
+              {
+                class: "CancelButton",
+                definition: {
+                  label: 'Cancel',
                 }
               }
             ]

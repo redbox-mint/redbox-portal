@@ -305,24 +305,29 @@ export module Controllers {
     }
 
     protected replaceCustomFields(req, res, field, metadata) {
-      _.forOwn(sails.config.record.customFields, (customConfig, customKey) => {
-        if (!_.isEmpty(field.definition.value) && _.isString(field.definition.value) && field.definition.value.indexOf(customKey) != -1) {
-          let replacement = null;
-          if (customConfig.source == 'request') {
-            switch (customConfig.type) {
-              case 'session':
-                replacement = req.session[customConfig.field];
-                break;
-              case 'param':
-                replacement = req.param(customConfig.field);
-                break;
+      let variableSubstitutionFields = field.variableSubstitutionFields;
+      if (!_.isEmpty(variableSubstitutionFields)) {
+        _.forEach(variableSubstitutionFields, fieldName => {
+          _.forOwn(sails.config.record.customFields, (customConfig, customKey) => {
+            if (!_.isEmpty(field.definition[fieldName]) && _.isString(field.definition[fieldName]) && field.definition[fieldName].indexOf(customKey) != -1) {
+              let replacement = null;
+              if (customConfig.source == 'request') {
+                switch (customConfig.type) {
+                  case 'session':
+                    replacement = req.session[customConfig.field];
+                    break;
+                  case 'param':
+                    replacement = req.param(customConfig.field);
+                    break;
+                }
+              }
+              if (!_.isEmpty(replacement)) {
+                field.definition[fieldName]= field.definition[fieldName].replace(customKey, replacement);
+              }
             }
-          }
-          if (!_.isEmpty(replacement)) {
-            field.definition.value = field.definition.value.replace(customKey, replacement);
-          }
-        }
-      });
+          });
+        });
+      }
     }
 
     public modifyEditors(req, res) {

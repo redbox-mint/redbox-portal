@@ -138,6 +138,14 @@ export class TabOrAccordionContainer extends Container {
   }
 }
 
+export class ButtonBarContainer extends Container {
+
+  constructor(options: any, injector: any) {
+    super(options, injector);
+  }
+}
+
+
 export class DateTime extends FieldBase<any> {
   datePickerOpts: any;
   timePickerOpts: any;
@@ -180,6 +188,31 @@ export class DateTime extends FieldBase<any> {
     const newOpts = _.cloneDeep(this.datePickerOpts);
     newOpts.startDate = eventData;
     this.datePickerOpts = newOpts;
+  }
+}
+
+
+export class SaveButton extends FieldBase<string> {
+  label: string;
+  redirectLocation: string;
+  closeOnSave: boolean;
+  buttonClass: string;
+
+
+  constructor(options: any, injector: any) {
+    super(options, injector);
+    this.label = options['label'];
+    this.closeOnSave = options['closeOnSave'] || false;
+    this.redirectLocation = options['redirectLocation'] || false;
+    this.cssClasses = options['cssClasses'] || "btn-primary";
+  }
+}
+
+export class CancelButton extends FieldBase<string> {
+  label: string;
+  constructor(options: any, injector: any) {
+    super(options, injector);
+    this.label = options['label'];
   }
 }
 

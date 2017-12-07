@@ -29,7 +29,7 @@ import { SimpleComponent } from './field-simple.component';
  */
 @Component({
   selector: 'dmp-field',
-  template: '<div #field></div>'
+  template: '<span #field></span>'
 })
 export class DmpFieldComponent {
   /**

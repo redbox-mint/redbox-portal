@@ -20,15 +20,18 @@
 import { Injectable, Inject, ApplicationRef }   from '@angular/core';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { FieldBase } from './field-base';
-import { TextField, Container, TextArea, DateTime, AnchorOrButton, HiddenValue, LinkValue, TabOrAccordionContainer, SelectionField } from './field-simple';
+import { TextField, Container, TextArea, DateTime, AnchorOrButton, SaveButton, CancelButton, HiddenValue, LinkValue, TabOrAccordionContainer, ButtonBarContainer, SelectionField } from './field-simple';
 import { TextFieldComponent, RepeatableTextfieldComponent} from './field-textfield.component';
 import {
   DropdownFieldComponent,
   TabOrAccordionContainerComponent,
+  ButtonBarContainerComponent,
   TextBlockComponent,
   TextAreaComponent,
   DateTimeComponent,
   AnchorOrButtonComponent,
+  SaveButtonComponent,
+  CancelButtonComponent,
   HiddenValueComponent,
   LinkValueComponent,
   SelectionFieldComponent
@@ -62,7 +65,10 @@ export class FieldControlService {
     'DateTime': { 'meta': DateTime, 'comp': DateTimeComponent },
     'Container': {'meta': Container, 'comp': [ TextBlockComponent ] },
     'TabOrAccordionContainer': {'meta': TabOrAccordionContainer, 'comp': TabOrAccordionContainerComponent },
+    'ButtonBarContainer': {'meta': ButtonBarContainer, 'comp': ButtonBarContainerComponent },
     'AnchorOrButton': { 'meta': AnchorOrButton, 'comp': AnchorOrButtonComponent },
+    'SaveButton': { 'meta': SaveButton, 'comp': SaveButtonComponent },
+    'CancelButton': { 'meta': CancelButton, 'comp': CancelButtonComponent },
     'VocabField': {'meta': VocabField, 'comp': VocabFieldComponent, 'lookupService': 'vocabFieldLookupService'},
     'RepeatableContainer': {'meta': RepeatableContainer, 'comp': [RepeatableVocabComponent, RepeatableContributorComponent, RepeatableTextfieldComponent]},
     'ContributorField': {'meta': ContributorField, 'comp': ContributorComponent, 'lookupService': 'vocabFieldLookupService'},
