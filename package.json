@@ -20,7 +20,7 @@
     "chokidar": "~1.6.1",
     "core-js": "^2.4.1",
     "ejs": "2.5.7",
-    "fs-extra": "^1.0.0",
+    "fs-extra": "^4.0.3",
     "grunt": "1.0.1",
     "grunt-contrib-clean": "1.0.0",
     "grunt-contrib-coffee": "1.0.0",
