@@ -18,7 +18,7 @@
     "angular2-i18next": "^1.1.2",
     "bcrypt": "^1.0.2",
     "chokidar": "~1.6.1",
-    "core-js": "^2.4.1",
+    "core-js": "^2.5.2",
     "ejs": "2.5.7",
     "fs-extra": "^1.0.0",
     "grunt": "1.0.1",
