@@ -25,6 +25,7 @@ import * as luceneEscapeQuery from "lucene-escape-query";
 
 declare var FormsService, RolesService, UsersService, WorkflowStepsService;
 declare var sails: Sails;
+declare var _;
 declare var _this;
 
 export module Services {
@@ -52,6 +53,7 @@ export module Services {
     public create(brand, record, packageType, formName=sails.config.form.defaultForm): Observable<any> {
       // TODO: validate metadata with the form...
       const options = this.getOptions(sails.config.record.baseUrl.redbox+sails.config.record.api.create.url, null, packageType);
+
       options.body = record;
       sails.log.verbose(options);
       return Observable.fromPromise(request[sails.config.record.api.create.method](options));
@@ -197,7 +199,8 @@ export module Services {
         });
       }
 
-      const url = `${sails.config.record.baseUrl.redbox}${sails.config.record.api.search.url}?q=metaMetadata_brandId:${brand.id} AND metaMetadata_type:${type}${searchParam}&version=2.2&wt=json&sort=date_object_modified desc`;
+      let url = `${sails.config.record.baseUrl.redbox}${sails.config.record.api.search.url}?q=metaMetadata_brandId:${brand.id} AND metaMetadata_type:${type}${searchParam}&version=2.2&wt=json&sort=date_object_modified desc`;
+      url = this.addAuthFilter(url, username, roles, brand, false)
       sails.log.verbose(`Searching fuzzy using: ${url}`);
       const options = this.getOptions(url);
       return Observable.fromPromise(request[sails.config.record.api.search.method](options))
@@ -232,6 +235,25 @@ export module Services {
                 }
                 return Observable.of(customResp);
               });
+    }
+
+    protected addAuthFilter(url, username, roles, brand, editAccessOnly=undefined) {
+
+      var roleString = ""
+      var matched = false;
+      for (var i = 0; i < roles.length; i++) {
+        var role = roles[i]
+        if (role.branding == brand.id) {
+          if (matched) {
+            roleString += " OR ";
+            matched = false;
+          }
+          roleString += roles[i].name;
+          matched = true;
+        }
+      }
+      url = url + "&fq=authorization_edit:" + username + (editAccessOnly ?  "" : ( " OR authorization_view:" + username  + " OR authorization_viewRoles:(" + roleString + ")" )) + " OR authorization_editRoles:(" + roleString + ")";
+      return url;
     }
 
     public getOne(type) {

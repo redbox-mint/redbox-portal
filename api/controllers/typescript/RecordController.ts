@@ -109,8 +109,12 @@ export module Controllers {
           if (_.isEmpty(currentRec)) {
             return Observable.throw(new Error(`Error, empty metadata for OID: ${oid}`));
           }
+          if(editMode) {
           return this.hasEditAccess(brand, req.user, currentRec)
             .flatMap(hasEditAccess => {
+              if(!hasEditAccess) {
+                return Observable.throw(new Error(`You do not have permission to edit this record`));
+              }
               const formName = currentRec.metaMetadata.form;
               return FormsService.getFormByName(formName, editMode).flatMap(form => {
                 if (_.isEmpty(form)) {
@@ -120,6 +124,22 @@ export module Controllers {
                 return Observable.of(form);
               });
             });
+          } else {
+            return this.hasViewAccess(brand, req.user, currentRec)
+              .flatMap(hasViewAccess => {
+                if(!hasViewAccess) {
+                  return Observable.throw(new Error(`You do not have permission to view this record`));
+                }
+                const formName = currentRec.metaMetadata.form;
+                return FormsService.getFormByName(formName, editMode).flatMap(form => {
+                  if (_.isEmpty(form)) {
+                    return Observable.throw(new Error(`Error, getting form ${formName} for OID: ${oid}`));
+                  }
+                  this.mergeFields(req, res, form.fields, currentRec.metadata);
+                  return Observable.of(form);
+                });
+              });
+          }
         });
       }
       obs.subscribe(form => {

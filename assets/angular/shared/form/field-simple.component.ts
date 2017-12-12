@@ -419,7 +419,7 @@ export class SaveButtonComponent extends SimpleComponent {
         }
       });
     } else {
-      this.fieldMap._rootComp.onSubmit()
+      this.fieldMap._rootComp.onSubmit().subscribe();
     }
   }
 
