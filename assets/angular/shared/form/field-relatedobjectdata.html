@@ -14,6 +14,8 @@
         <ng-template #noProcessing><span >{{ item[column.property] }}</span></ng-template>
       </td></ng-container></tr>
       </tbody>
-      </table>
+    </table>
+    <p *ngIf="field.failedObjects.length > 0">There were {{ field.failedObjects.length }} records that failed to load</p>
+    <p *ngIf="field.accessDeniedObjects.length > 0">There were {{ field.accessDeniedObjects.length }} records that you do not have access to</p>
   </div>
 </div>

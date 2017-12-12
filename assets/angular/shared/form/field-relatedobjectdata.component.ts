@@ -38,6 +38,8 @@ export class RelatedObjectDataField extends FieldBase<any> {
   validators: any;
   enabledValidators: boolean;
   relatedObjects: object[];
+  accessDeniedObjects: object[];
+  failedObjects: object[];
   hasInit: boolean;
   recordsService: RecordsService;
   columns: object[];
@@ -45,6 +47,8 @@ export class RelatedObjectDataField extends FieldBase<any> {
   constructor(options: any, injector: any) {
     super(options, injector);
     this.relatedObjects = [];
+    this.accessDeniedObjects = [];
+    this.failedObjects = [];
     this.columns = options['columns'] || [];
 
     var relatedObjects = this.relatedObjects;
@@ -53,7 +57,15 @@ export class RelatedObjectDataField extends FieldBase<any> {
     var that = this;
     _.forEach(this.value, (item:any) => {
        this.recordsService.getRecordMeta(item.id).then(function (meta) {
-         that.relatedObjects.push(meta);
+         if(!meta) {
+           that.failedObjects.push(meta);
+         } else if(meta.status =="Access Denied") {
+          that.accessDeniedObjects.push(meta);
+        } else if(meta.title) {
+          that.relatedObjects.push(meta);
+        } else {
+          that.failedObjects.push(meta);
+        }
       });
     });
   }
