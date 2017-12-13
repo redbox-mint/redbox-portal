@@ -970,9 +970,19 @@ module.exports.form = {
                       definition: {
                         name: 'dataLicensingAccess_manager',
                         label: '@dmpt-dataLicensingAccess_manager',
-                        type: 'text'
+                        type: 'text',
+                        readOnly: true,
+                        subscribe: {
+                          'contributor_data_manager': {
+                            onValueUpdate: [{
+                              action: 'utilityService.concatenate',
+                              fields: ['text_full_name'],
+                              delim: ''
+                            }]
+                          }
                       }
                     }
+                  }
                   ]
                 }
               },
