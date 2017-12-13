@@ -246,66 +246,68 @@ export module Controllers {
 
         recordTypeObservable.subscribe(recordTypeModel => {
 
+          if (recordTypeModel) {
+            var metadata = body["metadata"];
+            var workflowStage = body["workflowStage"];
+            var request = {};
+            var metaMetadata = {};
+            metaMetadata["brandId"] = brand.id;
+            metaMetadata["type"] = recordTypeModel.name;
+            metaMetadata["createdBy"] = "admin";
+            request["metaMetadata"] = metaMetadata;
+            //if no metadata field, no authorization
+            if (metadata == null) {
+              request["metadata"] = body;
+            } else {
+              request["metadata"] = metadata;
+            }
 
-          var metadata = body["metadata"];
-          var workflowStage = body["workflowStage"];
-          var request = {};
-          var metaMetadata = {};
-          metaMetadata["brandId"] = brand.id;
-          metaMetadata["type"] = recordTypeModel.name;
-          metaMetadata["createdBy"] = "admin";
-          request["metaMetadata"] = metaMetadata;
-          //if no metadata field, no authorization
-          if (metadata == null) {
-            request["metadata"] = body;
+            // FormsService
+            var workflowStepsObs = WorkflowStepsService.getAllForRecordType(recordTypeModel);
+
+            workflowStepsObs.subscribe(workflowSteps => {
+              _.each(workflowSteps, function(workflowStep) {
+                // If no workflowStage set, find the starting step
+                if (workflowStage == null) {
+                  if (workflowStep["starting"] == true) {
+                    request["workflow"] = workflowStep["config"]["workflow"];
+                    request["authorization"] = workflowStep["config"]["authorization"];
+                    request["authorization"]["view"] = authorizationView;
+                    request["authorization"]["edit"] = authorizationEdit;
+                    request["authorization"]["viewPending"] = authorizationViewPending;
+                    request["authorization"]["editPending"] = authorizationEditPending;
+                    metaMetadata["form"] = workflowStep["config"]["form"];
+                  }
+                } else {
+                  if (workflowStep["name"] == workflowStage) {
+                    request["workflow"] = workflowStep["config"]["workflow"];
+                    request["authorization"] = workflowStep["config"]["authorization"];
+                    request["authorization"]["view"] = authorizationView;
+                    request["authorization"]["edit"] = authorizationEdit;
+                    request["authorization"]["viewPending"] = authorizationViewPending;
+                    request["authorization"]["editPending"] = authorizationEditPending;
+                    metaMetadata["form"] = workflowStep["config"]["form"];
+                  }
+                }
+
+              });
+
+              var obs = RecordsService.create(brand, request, recordTypeModel.packageType);
+              obs.subscribe(result => {
+                if (result["code"] == "200") {
+                  result["code"] = 201;
+                  res.set('Location', sails.config.appUrl + BrandingService.getBrandAndPortalPath(req) + "/api/records/metadata/" + result["oid"]);
+                }
+
+                return res.status(201).json(result);
+              });
+
+            });
+
           } else {
-            request["metadata"] = metadata;
+            return res.status(400).json({message: "Record Type provided is not valid"});
           }
-
-          // FormsService
-          var workflowStepsObs = WorkflowStepsService.getAllForRecordType(recordTypeModel);
-
-          workflowStepsObs.subscribe(workflowSteps => {
-            _.each(workflowSteps, function(workflowStep) {
-              // If no workflowStage set, find the starting step
-              if (workflowStage == null) {
-                if (workflowStep["starting"] == true) {
-                  request["workflow"] = workflowStep["config"]["workflow"];
-                  request["authorization"] = workflowStep["config"]["authorization"];
-                  request["authorization"]["view"] = authorizationView;
-                  request["authorization"]["edit"] = authorizationEdit;
-                  request["authorization"]["viewPending"] = authorizationViewPending;
-                  request["authorization"]["editPending"] = authorizationEditPending;
-                  metaMetadata["form"] = workflowStep["config"]["form"];
-                }
-              } else {
-                if (workflowStep["name"] == workflowStage) {
-                  request["workflow"] = workflowStep["config"]["workflow"];
-                  request["authorization"] = workflowStep["config"]["authorization"];
-                  request["authorization"]["view"] = authorizationView;
-                  request["authorization"]["edit"] = authorizationEdit;
-                  request["authorization"]["viewPending"] = authorizationViewPending;
-                  request["authorization"]["editPending"] = authorizationEditPending;
-                  metaMetadata["form"] = workflowStep["config"]["form"];
-                }
-              }
-
-            });
-
-            var obs = RecordsService.create(brand, request,recordTypeModel.packageType);
-            obs.subscribe(result => {
-              if (result["code"] == "200") {
-                result["code"] = 201;
-                res.set('Location', sails.config.appUrl + BrandingService.getBrandAndPortalPath(req) + "/api/records/metadata/" + result["oid"]);
-              }
-
-              return res.status(201).json(result);
-            });
-
-          });
-
         }
-
         );
       }
     }

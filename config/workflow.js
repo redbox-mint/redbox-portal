@@ -15,7 +15,7 @@ module.exports.workflow = {
       starting: true
     }
   },
-  "workspace": {
+  "sampleWorkspace": {
     "draft": {
       config: {
         workflow: {
