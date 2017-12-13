@@ -102,7 +102,10 @@ export module Controllers {
 
       let obs = null;
       if (_.isEmpty(oid)) {
-        obs = FormsService.getForm(brand.id, name, editMode);
+        obs = FormsService.getForm(brand.id, name, editMode).flatMap(form =>{
+          this.mergeFields(req, res, form.fields, {});
+          return Observable.of(form);
+        });
       } else {
         // defaults to retrive the form of the current workflow state...
         obs = RecordsService.getMeta(oid).flatMap(currentRec => {
@@ -341,6 +344,7 @@ export module Controllers {
                     break;
                 }
               }
+
               if (!_.isEmpty(replacement)) {
                 field.definition[fieldName]= field.definition[fieldName].replace(customKey, replacement);
               }

@@ -197,7 +197,8 @@ module.exports.form = {
                         help: '@dmpt-project-startdate-help',
                         datePickerOpts: {
                           format: 'dd/mm/yyyy',
-                          icon: 'fa fa-calendar'
+                          icon: 'fa fa-calendar',
+                          autoclose: true
                         },
                         timePickerOpts: false,
                         hasClearButton: false,
@@ -218,7 +219,8 @@ module.exports.form = {
                         help: '@dmpt-project-enddate-help',
                         datePickerOpts: {
                           format: 'dd/mm/yyyy',
-                          icon: 'fa fa-calendar'
+                          icon: 'fa fa-calendar',
+                          autoclose: true
                         },
                         timePickerOpts: false,
                         hasClearButton: false,
@@ -461,7 +463,7 @@ module.exports.form = {
                           class: 'ContributorField',
                           showHeader: true,
                           definition: {
-                            required: true,
+                            required: false,
                             label: '@dmpt-people-tab-contributors',
                             role: "@dmpt-people-tab-contributors-role",
                             freeText: false,
@@ -498,7 +500,7 @@ module.exports.form = {
                       showHeader: true,
                       definition: {
                         name: 'contributor_supervisor',
-                        required: true,
+                        required: false,
                         label: '@dmpt-people-tab-supervisor',
                         role: "@dmpt-people-tab-supervisor-role",
                         freeText: false,
@@ -646,20 +648,16 @@ module.exports.form = {
                         label: '@dmpt-vivo:Dataset_dc:extent',
                         help: '@dmpt-vivo:Dataset_dc:extent-help',
                         options: [{
-                            value: "@dmpt-vivo:Dataset_dc:extent-less-than-10GB",
-                            label: "@dmpt-vivo:Dataset_dc:extent-less-than-10GB"
+                            value: "@dmpt-vivo:Dataset_dc:extent-less-than-100GB",
+                            label: "@dmpt-vivo:Dataset_dc:extent-less-than-100GB"
                           },
                           {
-                            value: "@dmpt-vivo:Dataset_dc:extent-10-20GB",
-                            label: "@dmpt-vivo:Dataset_dc:extent-10-20GB"
+                            value: "@dmpt-vivo:Dataset_dc:extent-100GB-to-2TB",
+                            label: "@dmpt-vivo:Dataset_dc:extent-100GB-to-2TB"
                           },
                           {
-                            value: "@dmpt-vivo:Dataset_dc:extent-20-100GB",
-                            label: "@dmpt-vivo:Dataset_dc:extent-20-100GB"
-                          },
-                          {
-                            value: "@dmpt-vivo:Dataset_dc:extent-more-than-100GB",
-                            label: "@dmpt-vivo:Dataset_dc:extent-more-than-100GB"
+                            value: "@dmpt-vivo:Dataset_dc:extent-more-than-2TB",
+                            label: "@dmpt-vivo:Dataset_dc:extent-more-than-2TB"
                           }
                         ],
                         required: true,
@@ -676,20 +674,32 @@ module.exports.form = {
                         label: '@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral',
                         help: '@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-help',
                         options: [{
-                            value: "@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-personal",
-                            label: "@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-personal"
+                            label: "@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-personal-equipment",
+                            value: "@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-personal-equipment"
                           },
                           {
-                            value: "@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-shared",
-                            label: "@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-shared"
+                            label: "@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-eresearch-platforms",
+                            value: "@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-eresearch-platforms"
                           },
                           {
-                            value: "@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-uni",
-                            label: "@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-uni"
+                            label: "@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-eresearch-store",
+                            value: "@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-eresearch-store"
                           },
                           {
-                            value: "@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-other",
-                            label: "@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-other"
+                            label: "@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-share-drive",
+                            value: "@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-share-drive"
+                          },
+                          {
+                            label: "@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-survey-platform",
+                            value: "@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-survey-platform"
+                          },
+                          {
+                            label: "@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-collab-space",
+                            value: "@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-collab-space"
+                          },
+                          {
+                            label: "@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-other",
+                            value: "@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-other"
                           }
                         ],
                         required: true,
@@ -716,20 +726,32 @@ module.exports.form = {
                         label: '@dmpt-vivo:Dataset_dc:source_dc:location_rdf:PlainLiteral',
                         help: '@dmpt-vivo:Dataset_dc:source_dc:location_rdf:PlainLiteral-help',
                         options: [{
-                            value: "@dmpt-vivo:Dataset_dc:source_dc:location_rdf:PlainLiteral-personal",
-                            label: "@dmpt-vivo:Dataset_dc:source_dc:location_rdf:PlainLiteral-personal"
+                            label: "@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-personal-equipment",
+                            value: "@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-personal-equipment"
                           },
                           {
-                            value: "@dmpt-vivo:Dataset_dc:source_dc:location_rdf:PlainLiteral-shared",
-                            label: "@dmpt-vivo:Dataset_dc:source_dc:location_rdf:PlainLiteral-shared"
+                            label: "@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-eresearch-platforms",
+                            value: "@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-eresearch-platforms"
                           },
                           {
-                            value: "@dmpt-vivo:Dataset_dc:source_dc:location_rdf:PlainLiteral-uni",
-                            label: "@dmpt-vivo:Dataset_dc:source_dc:location_rdf:PlainLiteral-uni"
+                            label: "@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-eresearch-store",
+                            value: "@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-eresearch-store"
                           },
                           {
-                            value: "@dmpt-vivo:Dataset_dc:source_dc:location_rdf:PlainLiteral-other",
-                            label: "@dmpt-vivo:Dataset_dc:source_dc:location_rdf:PlainLiteral-other"
+                            label: "@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-share-drive",
+                            value: "@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-share-drive"
+                          },
+                          {
+                            label: "@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-survey-platform",
+                            value: "@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-survey-platform"
+                          },
+                          {
+                            label: "@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-collab-space",
+                            value: "@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-collab-space"
+                          },
+                          {
+                            label: "@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-other",
+                            value: "@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-other"
                           }
                         ],
                         required: true,
@@ -791,6 +813,10 @@ module.exports.form = {
                             label: "@dmpt-redbox:retentionPeriod_dc:date-15years"
                           },
                           {
+                            value: "20years",
+                            label: "@dmpt-redbox:retentionPeriod_dc:date-20years"
+                          },
+                          {
                             value: "permanent",
                             label: "@dmpt-redbox:retentionPeriod_dc:date-permanent"
                           }
@@ -829,23 +855,8 @@ module.exports.form = {
                           }
                         ]
                       }
-                    },
-                    {
-                      class: 'DateTime',
-                      definition: {
-                        name: "redbox:disposalDate",
-                        label: "@dmpt-redbox:disposalDate",
-                        help: '@dmpt-redbox:disposalDate-help',
-                        datePickerOpts: {
-                          format: 'dd/mm/yyyy',
-                          icon: 'fa fa-calendar'
-                        },
-                        timePickerOpts: false,
-                        hasClearButton: false,
-                        valueFormat: 'YYYY-MM-DD',
-                        displayFormat: 'L'
-                      }
                     }
+
                   ]
                 }
               },
@@ -856,12 +867,12 @@ module.exports.form = {
                 class: "Container",
                 definition: {
                   id: "ownership",
-                  label: "@dmpt-ownership-tab",
+                  label: "@dmpt-access-rights-tab",
                   fields: [{
                       class: 'Container',
                       compClass: 'TextBlockComponent',
                       definition: {
-                        value: '@dmpt-ownership-heading',
+                        value: '@dmpt-access-rights-heading',
                         type: 'h3'
                       }
                     },
@@ -928,33 +939,6 @@ module.exports.form = {
                           }
                         }]
                       }
-                    }
-                  ]
-                }
-              },
-              // -------------------------------------------------------------------
-              // Licensing Tab
-              // -------------------------------------------------------------------
-              {
-                class: "Container",
-                definition: {
-                  id: "licensing",
-                  label: "@dmpt-licensing-tab",
-                  fields: [{
-                      class: 'Container',
-                      compClass: 'TextBlockComponent',
-                      definition: {
-                        value: '@dmpt-licensing-heading',
-                        type: 'h3'
-                      }
-                    },
-                    {
-                      class: 'Container',
-                      compClass: 'TextBlockComponent',
-                      definition: {
-                        value: '@dmpt-licensing-access',
-                        type: 'h4'
-                      }
                     },
                     {
                       class: 'SelectionField',
@@ -987,144 +971,6 @@ module.exports.form = {
                         name: 'dataLicensingAccess_manager',
                         label: '@dmpt-dataLicensingAccess_manager',
                         type: 'text'
-                      }
-                    },
-                    {
-                      class: 'Container',
-                      compClass: 'TextBlockComponent',
-                      definition: {
-                        type: 'hr'
-                      }
-                    },
-                    {
-                      class: 'Container',
-                      compClass: 'TextBlockComponent',
-                      definition: {
-                        value: '@dmpt-licensing-licensing',
-                        type: 'h4'
-                      }
-                    },
-                    {
-                      class: 'SelectionField',
-                      compClass: 'DropdownFieldComponent',
-                      definition: {
-                        name: 'dc:license_dc:identifier',
-                        label: '@dmpt-dc:license_dc:identifier',
-                        help: '@dmpt-dc:license_dc:identifier-help',
-                        options: [{
-                            value: "http://creativecommons.org/licenses/by/3.0/au",
-                            label: "@dmpt-dc:license_dc:identifier-1"
-                          },
-                          {
-                            value: "http://creativecommons.org/licenses/by-sa/3.0/au",
-                            label: "@dmpt-dc:license_dc:identifier-2"
-                          },
-                          {
-                            value: "http://creativecommons.org/licenses/by-nd/3.0/au",
-                            label: "@dmpt-dc:license_dc:identifier-3"
-                          },
-                          {
-                            value: "http://creativecommons.org/licenses/by-nc/3.0/au",
-                            label: "@dmpt-dc:license_dc:identifier-4"
-                          },
-                          {
-                            value: "http://creativecommons.org/licenses/by-nc-sa/3.0/au",
-                            label: "@dmpt-dc:license_dc:identifier-5"
-                          },
-                          {
-                            value: "http://creativecommons.org/licenses/by-nc-nd/3.0/au",
-                            label: "@dmpt-dc:license_dc:identifier-6"
-                          },
-                          {
-                            value: "http://creativecommons.org/licenses/by/4.0",
-                            label: "@dmpt-dc:license_dc:identifier-7"
-                          },
-                          {
-                            value: "http://creativecommons.org/licenses/by-sa/4.0",
-                            label: "@dmpt-dc:license_dc:identifier-8"
-                          },
-                          {
-                            value: "http://creativecommons.org/licenses/by-nd/4.0",
-                            label: "@dmpt-dc:license_dc:identifier-9"
-                          },
-                          {
-                            value: "http://creativecommons.org/licenses/by-nc/4.0",
-                            label: "@dmpt-dc:license_dc:identifier-10"
-                          },
-                          {
-                            value: "http://creativecommons.org/licenses/by-nc-sa/4.0",
-                            label: "@dmpt-dc:license_dc:identifier-11"
-                          },
-                          {
-                            value: "http://creativecommons.org/licenses/by-nc-nd/4.0",
-                            label: "@dmpt-dc:license_dc:identifier-12"
-                          },
-                          {
-                            value: "http://opendatacommons.org/licenses/pddl/1.0/",
-                            label: "@dmpt-dc:license_dc:identifier-13"
-                          },
-                          {
-                            value: "http://opendatacommons.org/licenses/by/1.0/",
-                            label: "@dmpt-dc:license_dc:identifier-14"
-                          },
-                          {
-                            value: "http://opendatacommons.org/licenses/odbl/1.0/",
-                            label: "@dmpt-dc:license_dc:identifier-15"
-                          },
-                        ]
-                      }
-                    },
-                    {
-                      class: 'TextField',
-                      definition: {
-                        name: 'dc:license_dc:identifier_other',
-                        label: '@dmpt-dc:license_dc:identifier_other',
-                        type: 'text'
-                      }
-                    },
-                    {
-                      class: 'TextField',
-                      definition: {
-                        name: 'dc:license_dc:identifier_url',
-                        label: '@dmpt-dc:license_dc:identifier_url',
-                        type: 'text'
-                      }
-                    },
-                    {
-                      class: 'Container',
-                      compClass: 'TextBlockComponent',
-                      definition: {
-                        type: 'hr'
-                      }
-                    },
-                    {
-                      class: 'Container',
-                      compClass: 'TextBlockComponent',
-                      definition: {
-                        value: '@dmpt-licensing-rights',
-                        type: 'h4'
-                      }
-                    },
-                    {
-                      class: 'TextArea',
-                      compClass: 'TextAreaComponent',
-                      definition: {
-                        name: 'dc:RightsStatement',
-                        label: '@dmpt-dc:RightsStatement',
-                        help: '@dmpt-dc:RightsStatement-help',
-                        rows: 5,
-                        columns: 10
-                      }
-                    },
-                    {
-                      class: 'TextArea',
-                      compClass: 'TextAreaComponent',
-                      definition: {
-                        name: 'dc:rights_skos:note',
-                        label: '@dmpt-dc:rights_skos:note',
-                        help: '@dmpt-dc:rights_skos:note-help',
-                        rows: 5,
-                        columns: 10
                       }
                     }
                   ]
@@ -1282,8 +1128,7 @@ module.exports.form = {
           class: "ButtonBarContainer",
           compClass: "ButtonBarContainerComponent",
           definition: {
-            fields: [
-              {
+            fields: [{
                 class: "SaveButton",
                 definition: {
                   label: 'Save',

@@ -113,7 +113,9 @@ export class ContributorField extends FieldBase<any> {
                                    role: new FormControl(this.value.role || null),
                                    username: new FormControl(this.value.username || '')});
     }
-    this.enableValidators();
+    if(this.required) {
+      this.enableValidators();
+    }
     return this.formModel;
   }
 
