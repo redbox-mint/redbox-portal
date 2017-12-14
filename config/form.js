@@ -244,6 +244,7 @@ module.exports.form = {
                         fields: [{
                           class: 'VocabField',
                           definition: {
+                            disableEditAfterSelect: false,
                             vocabId: 'Funding Bodies',
                             sourceType: 'mint',
                             fieldNames: ['dc_title', 'dc_identifier', 'ID', 'repository_name'],
@@ -264,6 +265,7 @@ module.exports.form = {
                         fields: [{
                           class: 'VocabField',
                           definition: {
+                            disableEditAfterSelect: false,
                             vocabId: 'Research Activities',
                             sourceType: 'mint',
                             fieldNames: ['dc_title', 'grant_number', 'foaf_name', 'dc_identifier', 'known_ids', 'repository_name'],

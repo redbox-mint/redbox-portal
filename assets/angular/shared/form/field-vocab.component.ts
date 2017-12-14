@@ -50,6 +50,7 @@ export class VocabField extends FieldBase<any> {
   public sourceType: string;
   public lookupService: any;
   public placeHolder: string;
+  public disableEditAfterSelect: boolean;
 
   constructor(options: any, injector: any) {
     super(options, injector);
@@ -63,6 +64,7 @@ export class VocabField extends FieldBase<any> {
     this.fieldNames = options['fieldNames'] || [];
     this.sourceType = options['sourceType'] || 'vocab';
     this.placeHolder = options['placeHolder'] || 'Select a valid value';
+    this.disableEditAfterSelect = options['disableEditAfterSelect'] == undefined ? true : options['disableEditAfterSelect'];
   }
 
   createFormModel(valueElem: any = undefined, createFormGroup:boolean=false) {
@@ -365,12 +367,13 @@ export class VocabFieldComponent extends SimpleComponent {
   }
 
   onSelect(selected: any) {
+    let disableEditAfterSelect = this.disableEditAfterSelect && this.field.disableEditAfterSelect
     if (selected) {
       this.field.formModel.setValue(this.field.getValue(selected));
-      if (this.disableEditAfterSelect)
+      if (disableEditAfterSelect)
         this.disableInput = true;
     } else {
-      if (!this.disableEditAfterSelect) {
+      if (!disableEditAfterSelect) {
         this.field.formModel.setValue(null);
       }
     }
