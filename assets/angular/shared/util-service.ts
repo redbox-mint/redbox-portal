@@ -42,11 +42,18 @@ export class UtilityService {
         result = [];
         let itemResult = '';
         _.each(data, (d:any) => {
-          itemResult = `${itemResult}${_.isEmpty(itemResult) ? '' : config.delim}${_.get(d, f)}`;
+          const fldData = _.get(d, f);
+          // checking if field has data, otherwise will be skipping concat
+          if (fldData) {
+            itemResult = `${itemResult}${_.isEmpty(itemResult) ? '' : config.delim}${fldData}`;
+          }
         });
         result.push(itemResult);
       } else {
-        result = `${result}${_.isEmpty(result) ? '' : config.delim}${_.get(data, f)}`;
+        const fldData = _.get(data, f);
+        if (fldData) {
+          result = `${result}${_.isEmpty(result) ? '' : config.delim}${fldData}`;
+        }
       }
     });
     return result;

@@ -763,3 +763,8 @@ div.logo img {
   background-color: #b1101a;
   color: #FFF;
 }
+
+.padding-remove {
+  padding-left:0px;
+  padding-right:0px;
+}

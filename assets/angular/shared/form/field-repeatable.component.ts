@@ -49,9 +49,9 @@ export class RepeatableContainer extends Container {
     this.skipClone = options['skipClone'] || [];
     this.forceClone = options['forceClone'] || [];
     this.addButtonTextClass = options['addButtonTextClass'] || 'btn btn-success pull-right';
-    this.addButtonClass = options['addButtonClass'] || 'fa fa-plus-circle pull-right btn text-30 btn-success';
-    this.removeButtonTextClass = options['removeButtonTextClass'] || 'btn btn-danger pull-left';
-    this.removeButtonClass = options['removeButtonClass'] || 'fa fa-minus-circle btn text-20 pull-left btn-danger';
+    this.addButtonClass = options['addButtonClass'] || 'fa fa-plus-circle btn text-20 pull-right btn-success';
+    this.removeButtonTextClass = options['removeButtonTextClass'] || 'btn btn-danger pull-right';
+    this.removeButtonClass = options['removeButtonClass'] || 'fa fa-minus-circle btn text-20 pull-right btn-danger';
 
   }
 
@@ -174,7 +174,7 @@ export class RepeatableComponent extends SimpleComponent {
   template: `
   <div *ngIf="field.editMode">
     <div class="row">
-      <div class="col-md-12">
+      <div class="col-xs-12">
       <label>{{field.label}}
         <button type="button" class="btn btn-default" *ngIf="field.help" (click)="toggleHelp()"><span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span></button>
       </label>
@@ -187,7 +187,9 @@ export class RepeatableComponent extends SimpleComponent {
       </span>
     </div>
     <div class="row">
-      <span class="col-xs-12">
+      <span class="col-xs-11">&nbsp;
+      </span>
+      <span class="col-xs-1">
         <button *ngIf="field.addButtonText" type='button' (click)="addElem($event)" [ngClass]="field.addButtonTextClass" >{{field.addButtonText}}</button>
         <button *ngIf="!field.addButtonText" type='button' (click)="addElem($event)" [ngClass]="field.addButtonClass"></button>
       </span>

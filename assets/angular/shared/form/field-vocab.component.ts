@@ -30,6 +30,7 @@ import { Http } from '@angular/http';
 import { BaseService } from '../base-service';
 import { CompleterService, CompleterData, CompleterItem } from 'ng2-completer';
 import { ConfigService } from '../config-service';
+import * as luceneEscapeQuery from "lucene-escape-query";
 /**
  * Vocabulary Field
  *
@@ -51,6 +52,7 @@ export class VocabField extends FieldBase<any> {
   public lookupService: any;
   public placeHolder: string;
   public disableEditAfterSelect: boolean;
+  public stringLabelToField: string;
 
   constructor(options: any, injector: any) {
     super(options, injector);
@@ -65,6 +67,7 @@ export class VocabField extends FieldBase<any> {
     this.sourceType = options['sourceType'] || 'vocab';
     this.placeHolder = options['placeHolder'] || 'Select a valid value';
     this.disableEditAfterSelect = options['disableEditAfterSelect'] == undefined ? true : options['disableEditAfterSelect'];
+    this.stringLabelToField = options['stringLabelToField'] ? options['stringLabelToField'] : 'dc_title';
   }
 
   createFormModel(valueElem: any = undefined, createFormGroup:boolean=false) {
@@ -153,14 +156,17 @@ export class VocabField extends FieldBase<any> {
         _.forEach(this.titleFieldArr, (titleFld: string) => {
           const titleVal = data[titleFld];
           if (titleVal) {
-            title = `${title}${_.isEmpty(title) ? '' : this.titleFieldDelim}${data[titleFld]}`;
+            title = `${title}${_.isEmpty(title) ? '' : this.titleFieldDelim}${titleVal}`;
           }
         });
       } else {
         // expecting a delim pair array, 'prefix', 'suffix'
         _.forEach(this.titleFieldArr, (titleFld: string, idx) => {
           const delimPair = this.titleFieldDelim[idx];
-          title = `${title}${_.isEmpty(title) ? '' : delimPair.prefix}${data[titleFld]}${_.isEmpty(title) ? '' : delimPair.suffix}`;
+          const titleVal = data[titleFld];
+          if (titleVal) {
+            title = `${title}${_.isEmpty(title) ? '' : delimPair.prefix}${titleVal}${_.isEmpty(title) ? '' : delimPair.suffix}`;
+          }
         });
       }
     }
@@ -169,6 +175,10 @@ export class VocabField extends FieldBase<any> {
 
   getValue(data: any) {
     const valObj = {};
+    if (_.isString(data)) {
+      valObj[this.stringLabelToField] = data;
+      return valObj;
+    }
     _.forEach(this.fieldNames, (fldName: any) => {
       if (data.originalObject) {
         this.getFieldValuePair(fldName, data.originalObject, valObj)
@@ -180,18 +190,19 @@ export class VocabField extends FieldBase<any> {
   }
 
   getFieldValuePair(fldName: any, data: any, valObj: any) {
+    let fldVal = null;
     if (_.isString(fldName)) {
-      valObj[fldName] = _.get(data, fldName);
+      fldVal = _.get(data, fldName);
     } else {
       // expects a value pair
       _.forOwn(fldName, (srcFld, targetFld) => {
-        if (_.get(data, srcFld)) {
-          valObj[targetFld] = _.get(data, srcFld);
-        } else {
-          valObj[targetFld] = _.get(data, targetFld);
+        fldVal = _.get(data, srcFld);
+        if (!fldVal) {
+          fldVal = _.get(data, targetFld);
         }
       });
     }
+    valObj[fldName] = fldVal;
   }
 
 }
@@ -213,7 +224,7 @@ class MintLookupDataService extends Subject<CompleterItem[]> implements Complete
   }
 
   public search(term: string): void {
-    term = _.trim(term);
+    term = _.trim(luceneEscapeQuery.escape(term));
     let searchString='';
     if (!_.isEmpty(term)) {
       term = _.toLower(term);
@@ -272,7 +283,10 @@ class MintLookupDataService extends Subject<CompleterItem[]> implements Complete
         // expecting a delim pair array, 'prefix', 'suffix'
         _.forEach(this.titleFieldArr, (titleFld: string, idx) => {
           const delimPair = this.titleFieldDelim[idx];
-          title = `${title}${delimPair.prefix}${data[titleFld]}${delimPair.suffix}`;
+          const titleVal = data[titleFld];
+          if (titleVal) {
+            title = `${title}${delimPair.prefix}${titleVal}${delimPair.suffix}`;
+          }
         });
       }
     }
@@ -330,19 +344,23 @@ export class VocabFieldLookupService extends BaseService {
       <button type="button" class="btn btn-default" *ngIf="field.help" (click)="toggleHelp()"><span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span></button>
     </label>
     <span id="{{ 'helpBlock_' + field.name }}" class="help-block" *ngIf="this.helpShow" >{{field.help}}</span>
-    <ng2-completer [disableInput]="disableInput" [placeholder]="field.placeHolder" [clearUnselected]="true" (selected)="onSelect($event)" [datasource]="field.dataService" [minSearchLength]="0" [inputClass]="'form-control'" [initialValue]="field.initialValue"></ng2-completer>
+    <ng2-completer [(ngModel)]="searchStr" [ngModelOptions]="{standalone: true}" [disableInput]="disableInput" [placeholder]="field.placeHolder" [clearUnselected]="disableEditAfterSelect && field.disableEditAfterSelect" (selected)="onSelect($event)" [datasource]="field.dataService" [minSearchLength]="0" [inputClass]="'form-control'" [initialValue]="field.initialValue"></ng2-completer>
     <div class="text-danger" *ngIf="hasRequiredError()">{{field.validationMessages.required}}</div>
   </div>
   <div *ngIf="field.editMode && isEmbedded" [formGroup]='form' [ngClass]="getGroupClass()">
-    <div class="input-group">
+    <div class="row">
       <span id="{{ 'helpBlock_' + field.name }}" class="help-block" *ngIf="this.helpShow" >{{field.help}}</span>
-      <ng2-completer [disableInput]="disableInput" [placeholder]="field.placeHolder" [clearUnselected]="true" (selected)="onSelect($event)" [datasource]="field.dataService" [minSearchLength]="0" [inputClass]="'form-control'" [initialValue]="field.initialValue"></ng2-completer>
-      <span class="input-group-btn">
+      <div class="col-xs-11 padding-remove">
+        <ng2-completer [(ngModel)]="searchStr" [ngModelOptions]="{standalone: true}" [disableInput]="disableInput" [placeholder]="field.placeHolder" [clearUnselected]="disableEditAfterSelect && field.disableEditAfterSelect" (selected)="onSelect($event)" [datasource]="field.dataService" [minSearchLength]="0" [inputClass]="'form-control'" [initialValue]="field.initialValue"></ng2-completer>
+      </div>
+      <div class="col-xs-1 padding-remove">
         <button type='button' *ngIf="removeBtnText" [disabled]="!canRemove" (click)="onRemove($event)" [ngClass]="removeBtnClass" >{{removeBtnText}}</button>
         <button [disabled]="!canRemove" type='button' [ngClass]="removeBtnClass" (click)="onRemove($event)"></button>
-      </span>
+      </div>
     </div>
-    <div class="text-danger" *ngIf="hasRequiredError()">{{field.validationMessages.required}}</div>
+    <div class="row">
+      <div class="col-xs-12 text-danger" *ngIf="hasRequiredError()">{{field.validationMessages.required}}</div>
+    </div>
   </div>
 
   <li *ngIf="!field.editMode" class="key-value-pair">
@@ -352,11 +370,12 @@ export class VocabFieldLookupService extends BaseService {
   `,
 })
 export class VocabFieldComponent extends SimpleComponent {
+  protected searchStr: string;
   @Input() field: VocabField;
   @Input() isEmbedded: boolean = false;
   @Input() canRemove: boolean = false;
   @Input() removeBtnText: string = null;
-  @Input() removeBtnClass: string = 'btn fa fa-minus-circle btn text-20 pull-left btn btn-danger';
+  @Input() removeBtnClass: string = 'fa fa-minus-circle btn text-20 pull-right btn-danger';
   @Input() index: number;
   @Input() disableEditAfterSelect: boolean = true;
   @Output() onRemoveBtnClick: EventEmitter<any> = new EventEmitter<any>();
@@ -366,15 +385,25 @@ export class VocabFieldComponent extends SimpleComponent {
     super();
   }
 
+  public getGroupClass(fldName:string=null): string {
+    return `col-xs-12 form-group ${this.hasRequiredError() ? 'has-error' : '' }`;
+  }
+
   onSelect(selected: any) {
-    let disableEditAfterSelect = this.disableEditAfterSelect && this.field.disableEditAfterSelect
+    let disableEditAfterSelect = this.disableEditAfterSelect && this.field.disableEditAfterSelect;
+    console.log(selected);
+    console.log(this.searchStr);
     if (selected) {
       this.field.formModel.setValue(this.field.getValue(selected));
       if (disableEditAfterSelect)
         this.disableInput = true;
     } else {
-      if (!disableEditAfterSelect) {
+      if (disableEditAfterSelect) {
+        // means user can't edit, so no worries!
         this.field.formModel.setValue(null);
+      } else {
+        // set whatever value on the searchStr, let the fields decide how to parse the string...
+        this.field.formModel.setValue(this.field.getValue(this.searchStr));
       }
     }
   }

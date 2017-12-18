@@ -30,7 +30,8 @@ module.exports.dynamicasset = {
       "i18next",
       "i18next-xhr-backend",
       "i18next-browser-languagedetector",
-      "ts-smart-logger"
+      "ts-smart-logger",
+      "lucene-escape-query"
     ],
     systemjs_map: {
       '@angular/core': 'npm:@angular/core/bundles/core.umd.js',
@@ -51,7 +52,8 @@ module.exports.dynamicasset = {
       'angular2-i18next': 'npm:angular2-i18next/index.js',
       'i18next': 'npm:i18next',
       'i18next-xhr-backend': 'npm:i18next-xhr-backend',
-      "ts-smart-logger": "npm:ts-smart-logger"
+      "ts-smart-logger": "npm:ts-smart-logger",
+      "lucene-escape-query": "npm:lucene-escape-query/index.js"
     }
   }
 };

@@ -249,7 +249,8 @@ module.exports.form = {
                             sourceType: 'mint',
                             fieldNames: ['dc_title', 'dc_identifier', 'ID', 'repository_name'],
                             searchFields: 'dc_title',
-                            titleFieldArr: ['dc_title']
+                            titleFieldArr: ['dc_title'],
+                            stringLabelToField: 'dc_title'
                           }
                         }]
                       }
@@ -283,7 +284,8 @@ module.exports.form = {
                                 prefix: ' ',
                                 suffix: ''
                               }
-                            ]
+                            ],
+                            stringLabelToField: 'dc_title'
                           }
                         }],
                         publish: {
