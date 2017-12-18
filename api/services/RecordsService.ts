@@ -189,7 +189,8 @@ export module Services {
               });
     }
 
-    public searchFuzzy(type, workflowState, searchQuery, exactSearches, facetSearches, brand, username, roles, returnFields) {
+    public searchFuzzy(type, workflowState, searchQuery, exactSearches, facetSearches, brand, user, roles, returnFields) {
+      const username = user.username;
       // const url = `${this.getSearchTypeUrl(type, searchField, searchStr)}&start=0&rows=${sails.config.record.export.maxRecords}`;
       let searchParam = workflowState ? ` AND workflow_stage:${workflowState} ` : '';
       searchParam = `${searchParam} AND full_text:${searchQuery}`;
@@ -219,7 +220,7 @@ export module Services {
                       customDoc[retField] = solrdoc[retField];
                     }
                   });
-                  customDoc["hasEditAccess"] = this.hasEditAccess(brand, username, roles, solrdoc);
+                  customDoc["hasEditAccess"] = this.hasEditAccess(brand, user, roles, solrdoc);
                   customResp.records.push(customDoc);
                 });
                 // check if have facets turned on...

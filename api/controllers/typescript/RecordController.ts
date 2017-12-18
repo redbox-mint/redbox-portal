@@ -412,7 +412,7 @@ export module Controllers {
       });
 
 
-      RecordsService.searchFuzzy(type, workflow, searchString, exactSearches, facetSearches, brand, req.user.username, req.user.roles, sails.config.record.search.returnFields)
+      RecordsService.searchFuzzy(type, workflow, searchString, exactSearches, facetSearches, brand, req.user, req.user.roles, sails.config.record.search.returnFields)
         .subscribe(searchRes => {
           this.ajaxOk(req, res, null, searchRes);
         }, error => {
