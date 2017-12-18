@@ -176,6 +176,7 @@ export class VocabField extends FieldBase<any> {
   getValue(data: any) {
     const valObj = {};
     if (_.isString(data)) {
+      console.log(`Data is string...`)
       valObj[this.stringLabelToField] = data;
       return valObj;
     }
@@ -190,20 +191,19 @@ export class VocabField extends FieldBase<any> {
   }
 
   getFieldValuePair(fldName: any, data: any, valObj: any) {
-    let fldVal = null;
-    if (_.isString(fldName)) {
-      fldVal = _.get(data, fldName);
-    } else {
-      // expects a value pair
-      _.forOwn(fldName, (srcFld, targetFld) => {
-        fldVal = _.get(data, srcFld);
-        if (!fldVal) {
-          fldVal = _.get(data, targetFld);
-        }
-      });
-    }
-    valObj[fldName] = fldVal;
-  }
+     if (_.isString(fldName)) {
+      valObj[fldName] = _.get(data, fldName);
+     } else {
+       // expects a value pair
+       _.forOwn(fldName, (srcFld, targetFld) => {
+        if (_.get(data, srcFld)) {
+          valObj[targetFld] = _.get(data, srcFld);
+        } else {
+          valObj[targetFld] = _.get(data, targetFld);
+         }
+       });
+     }
+   }
 
 }
 
@@ -391,8 +391,6 @@ export class VocabFieldComponent extends SimpleComponent {
 
   onSelect(selected: any) {
     let disableEditAfterSelect = this.disableEditAfterSelect && this.field.disableEditAfterSelect;
-    console.log(selected);
-    console.log(this.searchStr);
     if (selected) {
       this.field.formModel.setValue(this.field.getValue(selected));
       if (disableEditAfterSelect)
