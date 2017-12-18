@@ -64,11 +64,14 @@ export module Controllers {
 
       var roles = [];
       var username = "guest";
+      let user = {};
       if (req.isAuthenticated()) {
         roles = req.user.roles;
+        user = req.user;
         username = req.user.username;
       } else {
         // assign default role if needed...
+        user = {username: username};
         roles = [];
         roles.push(RolesService.getDefUnathenticatedRole(brand));
       }
@@ -76,7 +79,7 @@ export module Controllers {
       const workflowState = req.param('state');
       const start = req.param('start');
       const rows = req.param('rows');
-      this.getPlans(workflowState,start,rows,username,roles,brand,editAccessOnly).flatMap(results => {
+      this.getPlans(workflowState,start,rows,user,roles,brand,editAccessOnly).flatMap(results => {
           return results;
         }).subscribe(response => {
           if (response && response.code == "200") {
@@ -92,7 +95,8 @@ export module Controllers {
         });
     }
 
-    protected getPlans(workflowState,start,rows,username, roles, brand, editAccessOnly=undefined) {
+    protected getPlans(workflowState,start,rows,user, roles, brand, editAccessOnly=undefined) {
+      const username = user.username;
       var response = DashboardService.getPlans(workflowState,start,rows,username,roles,brand,editAccessOnly);
 
       return response.map(results => {
@@ -116,7 +120,7 @@ export module Controllers {
           item["title"] = doc["title"];
           item["dateCreated"] =  doc["date_object_created"];
           item["dateModified"] = doc["date_object_modified"];
-          item["hasEditAccess"] = RecordsService.hasEditAccess(brand, username, roles, doc);
+          item["hasEditAccess"] = RecordsService.hasEditAccess(brand, user, roles, doc);
           items.push(item);
         }
 

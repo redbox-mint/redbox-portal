@@ -86,9 +86,10 @@ export module Services {
      * Fine-grained access to the record, converted to sync.
      *
      */
-    public hasViewAccess(brand, uname, roles, record): boolean {
+    public hasViewAccess(brand, user, roles, record): boolean {
       const viewArr = record.authorization ? record.authorization.view : record.authorization_view;
       const viewRolesArr = record.authorization ? record.authorization.viewRoles : record.authorization_viewRoles;
+      const uname = user.username;
 
       const isInUserView = _.find(viewArr, username=> {
         return uname == username;
@@ -123,13 +124,16 @@ export module Services {
      * Fine-grained access to the record, converted to sync.
      *
      */
-    public hasEditAccess(brand, uname, roles, record): boolean {
+    public hasEditAccess(brand, user, roles, record): boolean {
       const editArr = record.authorization ? record.authorization.edit : record.authorization_edit;
       const editRolesArr = record.authorization ? record.authorization.editRoles : record.authorization_editRoles;
+      const uname = user.username;
 
       const isInUserEdit = _.find(editArr, username=> {
+        sails.log.verbose(`Username: ${uname} == ${username}`);
         return uname == username;
       });
+      sails.log.verbose(`isInUserEdit: ${isInUserEdit}`);
       if (!_.isUndefined(isInUserEdit)) {
         return true;
       }

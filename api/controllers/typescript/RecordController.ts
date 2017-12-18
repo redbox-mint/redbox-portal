@@ -85,13 +85,13 @@ export module Controllers {
     protected hasEditAccess(brand, user, currentRec) {
       sails.log.verbose("Current Record: ");
       sails.log.verbose(currentRec);
-      return Observable.of(RecordsService.hasEditAccess(brand, user.name, user.roles, currentRec));
+      return Observable.of(RecordsService.hasEditAccess(brand, user, user.roles, currentRec));
     }
 
     protected hasViewAccess(brand, user, currentRec) {
       sails.log.verbose("Current Record: ");
       sails.log.verbose(currentRec);
-      return Observable.of(RecordsService.hasViewAccess(brand, user.name, user.roles, currentRec));
+      return Observable.of(RecordsService.hasViewAccess(brand, user, user.roles, currentRec));
     }
 
     public getForm(req, res) {
