@@ -35,7 +35,7 @@ export class RepeatableContainer extends Container {
   addButtonText: string;
   removeButtonText: string;
   skipClone: string[];
-  forceClone: string[];
+  forceClone: any[];
   addButtonTextClass: any;
   removeButtonTextClass: any;
   addButtonClass: any;
@@ -52,7 +52,6 @@ export class RepeatableContainer extends Container {
     this.addButtonClass = options['addButtonClass'] || 'fa fa-plus-circle btn text-20 pull-right btn-success';
     this.removeButtonTextClass = options['removeButtonTextClass'] || 'btn btn-danger pull-right';
     this.removeButtonClass = options['removeButtonClass'] || 'fa fa-minus-circle btn text-20 pull-right btn-danger';
-
   }
 
   getInitArrayEntry() {
@@ -105,12 +104,25 @@ export class RepeatableContainer extends Container {
       newInst[f] = null;
     });
     _.forEach(this.forceClone, (f: any) => {
-      newInst[f] = _.cloneDeep(baseFieldInst[f]);
+      if (_.isString(f)) {
+        newInst[f] = _.cloneDeep(baseFieldInst[f]);
+      } else {
+        newInst[f.field] = _.cloneDeepWith(baseFieldInst[f.field], this.getCloneCustomizer(f));
+      }
     });
+
     if (_.isFunction(newInst.postInit)) {
       newInst.postInit(value);
     }
     return newInst;
+  }
+
+  getCloneCustomizer(cloneOpts:any) {
+    return function(value: any, key: any) {
+      if (_.find(cloneOpts.skipClone, (skippedEntry:any) => { return skippedEntry == key}) ) {
+        return false;
+      }
+    };
   }
 
   addElem() {

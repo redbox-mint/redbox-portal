@@ -462,7 +462,7 @@ module.exports.form = {
                       definition: {
                         name: "contributors",
                         skipClone: ['showHeader', 'initialValue'],
-                        forceClone: ['vocabField'],
+                        forceClone: [{field:'vocabField', skipClone:['injector']}],
                         fields: [{
                           class: 'ContributorField',
                           showHeader: true,

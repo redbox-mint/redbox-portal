@@ -68,10 +68,17 @@ export class TransferOwnerComponent extends LoadableComponent {
     });
   }
 
-  protected loadPlans() {
+  protected loadPlans(transferredRecords:any[]=null) {
     this.translationService.isReady(tService => {
       this.dashboardService.getAlllDraftPlansCanEdit().then((draftPlans: PlanTable) => {
         this.dashboardService.setDashboardTitle(draftPlans);
+        // skip transferred records...
+        _.remove(draftPlans.items, (item: any) => {
+          return _.find(transferredRecords, (rec:any) => {
+            return rec.oid == item.oid;
+          });
+        });
+        draftPlans.noItems = draftPlans.items.length;
         this.plans = draftPlans;
         this.filteredPlans = this.plans.items;
         if (!this.userLookupMeta) {
@@ -155,7 +162,8 @@ export class TransferOwnerComponent extends LoadableComponent {
       }
 
       this.setLoading(true);
-      this.loadPlans();
+      this.loadPlans(records);
+      this.resetFilter();
     }).catch((err:any)=>{
       this.saveMsg = err;
       this.saveMsgType = "danger";
