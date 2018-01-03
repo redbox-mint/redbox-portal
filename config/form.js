@@ -308,7 +308,12 @@ module.exports.form = {
                         name: 'dc:subject_anzsrc:toa_rdf:resource',
                         label: '@dmpt-project-activity-type',
                         help: '@dmpt-project-activity-type-help',
-                        options: [{
+                        options: [
+                          {
+                            value: "",
+                            label: "@dmpt-select:Empty"
+                          },
+                          {
                             value: "pure",
                             label: "@dmpt-activity-type-pure"
                           },
@@ -651,7 +656,12 @@ module.exports.form = {
                         name: 'vivo:Dataset_dc:extent',
                         label: '@dmpt-vivo:Dataset_dc:extent',
                         help: '@dmpt-vivo:Dataset_dc:extent-help',
-                        options: [{
+                        options: [
+                          {
+                            value: "",
+                            label: "@dmpt-select:Empty"
+                          },
+                          {
                             value: "@dmpt-vivo:Dataset_dc:extent-less-than-100GB",
                             label: "@dmpt-vivo:Dataset_dc:extent-less-than-100GB"
                           },
@@ -677,7 +687,12 @@ module.exports.form = {
                         name: 'vivo:Dataset_dc:location_rdf:PlainLiteral',
                         label: '@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral',
                         help: '@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-help',
-                        options: [{
+                        options: [
+                          {
+                            value: "",
+                            label: "@dmpt-select:Empty"
+                          },
+                          {
                             label: "@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-personal-equipment",
                             value: "@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-personal-equipment"
                           },
@@ -729,7 +744,12 @@ module.exports.form = {
                         name: 'vivo:Dataset_dc:source_dc:location_rdf:PlainLiteral',
                         label: '@dmpt-vivo:Dataset_dc:source_dc:location_rdf:PlainLiteral',
                         help: '@dmpt-vivo:Dataset_dc:source_dc:location_rdf:PlainLiteral-help',
-                        options: [{
+                        options: [
+                          {
+                            value: "",
+                            label: "@dmpt-select:Empty"
+                          },
+                          {
                             label: "@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-personal-equipment",
                             value: "@dmpt-vivo:Dataset_dc:location_rdf:PlainLiteral-personal-equipment"
                           },
@@ -800,7 +820,12 @@ module.exports.form = {
                         name: 'redbox:retentionPeriod_dc:date',
                         label: '@dmpt-redbox:retentionPeriod_dc:date',
                         help: '@dmpt-redbox:retentionPeriod_dc:date-help',
-                        options: [{
+                        options: [
+                          {
+                            value: "",
+                            label: "@dmpt-select:Empty"
+                          },
+                          {
                             value: "1year",
                             label: "@dmpt-redbox:retentionPeriod_dc:date-1year"
                           },
@@ -837,7 +862,12 @@ module.exports.form = {
                       definition: {
                         name: 'redbox:retentionPeriod_dc:date_skos:note',
                         label: '@dmpt-redbox:retentionPeriod_dc:date_skos:note',
-                        options: [{
+                        options: [
+                          {
+                            value: "",
+                            label: "@dmpt-select:Empty"
+                          },
+                          {
                             value: "heritage",
                             label: "@dmpt-redbox:retentionPeriod_dc:date_skos:note-heritage"
                           },
@@ -887,7 +917,12 @@ module.exports.form = {
                         name: 'dc:rightsHolder_dc:name',
                         label: '@dmpt-dc:rightsHolder_dc:name',
                         help: '@dmpt-dc:rightsHolder_dc:name-help',
-                        options: [{
+                        options: [
+                          {
+                            value: "",
+                            label: "@dmpt-select:Empty"
+                          },
+                          {
                             value: "myUni",
                             label: "@dmpt-dc:rightsHolder_dc:name-myUni"
                           },
