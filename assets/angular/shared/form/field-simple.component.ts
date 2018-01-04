@@ -60,6 +60,10 @@ export class SimpleComponent {
   helpShow: boolean;
 
   /**
+   * Optional parentId of this component
+   */
+  parentId: string;
+  /**
    * Return the NG2 FormControl or subclass thereof
    * @param  {string = null} name
    * @return {FormControl}
@@ -270,7 +274,7 @@ Container components
       TODO: remove inlining, or perhaps consider a 3rd-party NG2 tab component
       -->
           <div *ngFor="let tab of field.fields" [ngClass]="{'tab-pane': true, 'fade': true, 'active': tab.active==true, 'in': tab.active==true}" id="{{tab.id}}">
-            <dmp-field *ngFor="let field of tab.fields" [field]="field" [form]="form" class="form-row" [fieldMap]="fieldMap"></dmp-field>
+            <dmp-field *ngFor="let field of tab.fields" [field]="field" [form]="form" class="form-row" [fieldMap]="fieldMap" [parentId]="tab.id"></dmp-field>
           </div>
         </div>
       </div>

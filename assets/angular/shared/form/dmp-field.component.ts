@@ -52,6 +52,11 @@ export class DmpFieldComponent {
    * The DOM node for this field.
    */
   @ViewChild('field', {read: ViewContainerRef}) fieldAnchor: ViewContainerRef;
+
+  /**
+   * The parentId of this field
+   */
+  @Input() parentId: string;
   /**
    * For DI'ing...
    */
@@ -81,6 +86,7 @@ export class DmpFieldComponent {
     fieldCompRef.instance.field = this.field;
     fieldCompRef.instance.form = this.form;
     fieldCompRef.instance.fieldMap = this.fieldMap;
+    fieldCompRef.instance.parentId = this.parentId;
     this.fieldMap[this.field.name].instance = fieldCompRef.instance;
   }
 }

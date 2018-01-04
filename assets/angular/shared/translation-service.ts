@@ -44,7 +44,8 @@ export class TranslationService {
       this.config = config;
       this.translateI18Next.init({
           debug: true,                                                        // optional
-          returnEmptyString: false,                                           // optional	- but.. it's important, please see http://i18next.com/docs/options/!
+          returnNull: false,
+          returnEmptyString: true,                                           // optional	- but.. it's important, please see http://i18next.com/docs/options/!
           // mapping: {"specific_backend_message": "message_for_translate"},     // optional
           // browserLanguageDetector: injectableCustomLanguageDetectorService,   // optional - the specific application language detector (allows you to return the language of the user.
           //                                                                     //            If it is absent, the service uses default "angular2 locale detector" behaviour using LOCALE_ID.

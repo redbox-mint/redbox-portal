@@ -11,10 +11,10 @@ module.exports.form = {
       editCssClasses: 'row col-md-12',
       viewCssClasses: 'row col-md-offset-1 col-md-10',
       messages: {
-        "saving": "Saving, please wait...",
-        "validationFail": "There are validation issues in the form, please check for error messages within each tab(s).",
-        "saveSuccess": "Saved successfully.",
-        "saveError": "Error while saving: "
+        "saving": ["@dmpt-form-saving"],
+        "validationFail": ["@dmpt-form-validation-fail-prefix", "@dmpt-form-validation-fail-suffix"],
+        "saveSuccess": ["@dmpt-form-save-success"],
+        "saveError": ["@dmpt-form-save-error"]
       },
       fields: [{
           class: 'Container',

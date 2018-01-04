@@ -26,6 +26,10 @@ import { FieldControlService } from '../shared/form/field-control.service';
 import { Observable } from 'rxjs/Observable';
 import * as _ from "lodash-lib";
 import { TranslationService } from '../shared/translation-service';
+
+// STEST-22
+declare var jQuery: any;
+
 /**
  * Main DMP Edit component
  *
@@ -96,6 +100,10 @@ export class DmpFormComponent extends LoadableComponent {
    */
   needsSave: boolean;
   /**
+   * Links to tabs
+   */
+  failedValidationLinks: any[];
+  /**
    * Expects a number of DI'ed elements.
    */
   constructor(
@@ -103,7 +111,7 @@ export class DmpFormComponent extends LoadableComponent {
     @Inject(RecordsService) protected RecordsService: RecordsService,
     @Inject(FieldControlService) protected fcs: FieldControlService,
     @Inject(Location) protected LocationService: Location,
-    translationService: TranslationService
+    protected translationService: TranslationService
   ) {
     super();
     this.status = {};
@@ -153,7 +161,7 @@ export class DmpFormComponent extends LoadableComponent {
     if (!this.isValid(forceValidate)) {
       return Observable.of(false);
     }
-    this.setSaving(this.formDef.messages.saving);
+    this.setSaving(this.getMessage(this.formDef.messages.saving));
     const values = this.formatValues(this.form.value);
     this.payLoad = JSON.stringify(values);
     console.log("Saving the following values:");
@@ -167,17 +175,17 @@ export class DmpFormComponent extends LoadableComponent {
         if (res.success) {
           this.oid = res.oid;
           this.LocationService.go(`record/edit/${this.oid}`);
-          this.setSuccess(this.formDef.messages.saveSuccess);
+          this.setSuccess(this.getMessage(this.formDef.messages.saveSuccess));
           if (nextStep) {
             this.stepTo(targetStep);
           }
           return Observable.of(true);
         } else {
-          this.setError(`${this.formDef.messages.saveError} ${res.message}`);
+          this.setError(`${this.getMessage(this.formDef.messages.saveError)} ${res.message}`);
           return Observable.of(false);
         }
       }).catch((err:any)=>{
-        this.setError(`${this.formDef.messages.saveError} ${err.message}`);
+        this.setError(`${this.getMessage(this.formDef.messages.saveError)} ${err.message}`);
         return Observable.of(false);
       });
     } else {
@@ -186,14 +194,14 @@ export class DmpFormComponent extends LoadableComponent {
         console.log("Update Response:");
         console.log(res);
         if (res.success) {
-          this.setSuccess(this.formDef.messages.saveSuccess);
+          this.setSuccess(this.getMessage(this.formDef.messages.saveSuccess));
           return Observable.of(true);
         } else {
-          this.setError(`${this.formDef.messages.saveError} ${res.message}`);
+          this.setError(`${this.getMessage(this.formDef.messages.saveError)} ${res.message}`);
           return Observable.of(false);
         }
       }).catch((err:any)=>{
-        this.setError(`${this.formDef.messages.saveError} ${err}`);
+        this.setError(`${this.getMessage(this.formDef.messages.saveError)} ${err}`);
         return Observable.of(false);
       });
     }
@@ -306,6 +314,7 @@ export class DmpFormComponent extends LoadableComponent {
    * @return {[type]}
    */
   triggerValidation() {
+    this.failedValidationLinks = [];
     _.forOwn(this.fieldMap, (fieldEntry:any, fieldName:string) => {
       if (!_.isEmpty(fieldName) && !_.startsWith(fieldName, '_')) {
         fieldEntry.field.triggerValidation();
@@ -324,11 +333,41 @@ export class DmpFormComponent extends LoadableComponent {
     }
     this.triggerValidation();
     if (!this.form.valid) {
-      this.setError('There are issues in the form.');
-      this.setError(this.formDef.messages.validationFail);
+      // STEST-22
+      this.setError(this.getMessage(this.formDef.messages.validationFail));
+      this.generateFailedValidationLinks();
       return false;
     }
     return true;
+  }
+
+  // STEST-22
+  generateFailedValidationLinks() {
+    let label = null;
+    _.forOwn(this.form.controls, (ctrl, ctrlName) => {
+      if (ctrl.invalid) {
+        label = this.failedValidationLinks.length > 0 ? `, ${this.fieldMap[ctrlName].field.label}` : this.fieldMap[ctrlName].field.label;
+        this.failedValidationLinks.push({
+          label: label,
+          parentId: this.fieldMap[ctrlName].instance.parentId
+        });
+
+      }
+    });
+  }
+
+  gotoTab(tabId) {
+    jQuery(`[href=#${tabId}]`).tab('show');
+  }
+
+  getMessage(messageKeyArr: any):string {
+    let message: string = '';
+    _.each(messageKeyArr, (msgKey) => {
+      if (_.startsWith(msgKey, '@')) {
+        message = `${message}${this.translationService.t(msgKey)}`;
+      }
+    });
+    return message;
   }
   /**
    * Submit the form towards a target step.
@@ -345,7 +384,7 @@ export class DmpFormComponent extends LoadableComponent {
     if (_.isEmpty(this.oid)) {
       this.onSubmit(true, targetStep, true);
     } else {
-      this.setSaving(this.formDef.messages.saving);
+      this.setSaving(this.getMessage(this.formDef.messages.saving));
       const values = this.formatValues(this.form.value);
       this.payLoad = JSON.stringify(values);
       console.log(this.payLoad);
@@ -354,13 +393,13 @@ export class DmpFormComponent extends LoadableComponent {
         console.log("Update Response:");
         console.log(res);
         if (res.success) {
-          this.setSuccess(this.formDef.messages.saveSuccess);
+          this.setSuccess(this.getMessage(this.formDef.messages.saveSuccess));
           this.gotoDashboard();
         } else {
-          this.setError(`${this.formDef.messages.saveError} ${res.message}`);
+          this.setError(`${this.getMessage(this.formDef.messages.saveError)} ${res.message}`);
         }
       }).catch((err:any)=>{
-        this.setError(`${this.formDef.messages.saveError} ${err}`);
+        this.setError(`${this.getMessage(this.formDef.messages.saveError)} ${err}`);
       });
     }
   }
