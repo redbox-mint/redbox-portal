@@ -335,5 +335,8 @@
   "@dmpt-form-saving": "Saving, please wait...",
   "@dmpt-form-save-success": "Saved successfully.",
   "@dmpt-form-save-error": "Error while saving: ",
-  "auth-update-error": "Updating authorization resulted in server error, please contact administrator."
+  "auth-update-error": "Updating authorization resulted in server error, please contact administrator.",
+  "edit-error-no-permissions": "You do not have permission to edit this record",
+  "view-error-no-permissions": "You do not have permission to view this record",
+  "missing-record": "Problems retrieving this record, are you sure it exists?"
 }
