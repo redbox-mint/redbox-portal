@@ -39,16 +39,18 @@ export class DashboardComponent extends LoadableComponent  {
     this.portal = elementRef.nativeElement.getAttribute('portal');
     this.initSubs = dashboardService.waitForInit((initStat:boolean) => {
       this.initSubs.unsubscribe();
-      dashboardService.getDraftPlans(1).then((draftPlans: PlanTable) => {
-        this.setDraftPlans(draftPlans);
-        this.initTracker.draftLoaded = true;
-        this.checkIfHasLoaded();
+      translationService.isReady(tService => {
+        dashboardService.getDraftPlans(1).then((draftPlans: PlanTable) => {
+          this.setDraftPlans(draftPlans);
+          this.initTracker.draftLoaded = true;
+          this.checkIfHasLoaded();
+        });
+        dashboardService.getActivePlans(1).then((activePlans: PlanTable) => {
+           this.setActivePlans(activePlans);
+           this.initTracker.activeLoaded = true;
+           this.checkIfHasLoaded();
+         });
       });
-      dashboardService.getActivePlans(1).then((activePlans: PlanTable) => {
-         this.setActivePlans(activePlans);
-         this.initTracker.activeLoaded = true;
-         this.checkIfHasLoaded();
-       });
     });
   }
 
