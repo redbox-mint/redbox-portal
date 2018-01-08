@@ -22,7 +22,7 @@ declare var module;
 declare var sails;
 import { Observable } from 'rxjs/Rx';
 import moment from 'moment-es6';
-declare var FormsService, RecordsService, WorkflowStepsService, BrandingService, RecordTypesService;
+declare var FormsService, RecordsService, WorkflowStepsService, BrandingService, RecordTypesService, TranslationService;
 /**
  * Package that contains all Controllers.
  */
@@ -116,7 +116,7 @@ export module Controllers {
           return this.hasEditAccess(brand, req.user, currentRec)
             .flatMap(hasEditAccess => {
               if(!hasEditAccess) {
-                return Observable.throw(new Error(`You do not have permission to edit this record`));
+                return Observable.throw(new Error(TranslationService.t('edit-error-no-permissions')));
               }
               const formName = currentRec.metaMetadata.form;
               return FormsService.getFormByName(formName, editMode).flatMap(form => {
@@ -131,7 +131,7 @@ export module Controllers {
             return this.hasViewAccess(brand, req.user, currentRec)
               .flatMap(hasViewAccess => {
                 if(!hasViewAccess) {
-                  return Observable.throw(new Error(`You do not have permission to view this record`));
+                  return Observable.throw(new Error(TranslationService.t('view-error-no-permissions')));
                 }
                 const formName = currentRec.metaMetadata.form;
                 return FormsService.getFormByName(formName, editMode).flatMap(form => {
@@ -156,7 +156,7 @@ export module Controllers {
         sails.log.error(error);
         let message = error.message;
         if (error.error && error.error.code == 500) {
-          message = "Problems retrieving this record, are you sure it exists?"
+          message = TranslationService.t('missing-record');
         }
         this.ajaxFail(req, res, message);
       });
@@ -371,6 +371,9 @@ export module Controllers {
             _.remove(authorization.edit, (username) => {
               return username == fromUsername;
             });
+            if (_.isUndefined(_.find(authorization.view, (username) => { return username == fromUsername }))) {
+              authorization.view.push(fromUsername);
+            }
             if (_.isUndefined(_.find(authorization.edit, (username) => { return username == toUsername }))) {
               authorization.edit.push(toUsername);
             }
@@ -381,6 +384,10 @@ export module Controllers {
                   response.success = true;
                   this.ajaxOk(req, res, null, response);
                 }
+              } else {
+                sails.log.error(`Failed to update authorization:`);
+                sails.log.error(response);
+                this.ajaxFail(req, res, TranslationService.t('auth-update-error'));
               }
             }, error => {
               sails.log.error("Error updating auth:");

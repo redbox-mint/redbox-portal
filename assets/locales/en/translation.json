@@ -334,5 +334,6 @@
   "@dmpt-form-validation-fail-suffix": "",
   "@dmpt-form-saving": "Saving, please wait...",
   "@dmpt-form-save-success": "Saved successfully.",
-  "@dmpt-form-save-error": "Error while saving: "
+  "@dmpt-form-save-error": "Error while saving: ",
+  "auth-update-error": "Updating authorization resulted in server error, please contact administrator."
 }
