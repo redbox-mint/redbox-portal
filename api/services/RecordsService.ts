@@ -87,8 +87,10 @@ export module Services {
      *
      */
     public hasViewAccess(brand, user, roles, record): boolean {
-      const viewArr = record.authorization ? record.authorization.view : record.authorization_view;
-      const viewRolesArr = record.authorization ? record.authorization.viewRoles : record.authorization_viewRoles;
+      // merge with the edit user and roles, since editors are viewers too...
+      const viewArr = record.authorization ? _.union(record.authorization.view, record.authorization.edit) : _.union(record.authorization_view, record.authorization_edit);
+      const viewRolesArr = record.authorization ? _.union(record.authorization.viewRoles, record.authorization.editRoles) : _.union(record.authorization_viewRoles, record.authorization_editRoles);
+
       const uname = user.username;
 
       const isInUserView = _.find(viewArr, username=> {
