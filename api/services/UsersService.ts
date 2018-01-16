@@ -46,6 +46,8 @@ export module Services {
       'setUserKey',
       'hasRole',
       'findUsersWithName',
+      'findUsersWithEmail',
+      'findUsersWithQuery',
       'findAndAssignAccessToRecords',
       'getUsers',
     ];
@@ -225,7 +227,7 @@ export module Services {
 
     /**
      * @return User: the newly created user
-     * 
+     *
      */
     public addLocalUser = (username, name, email, password) => {
       const authConfig = ConfigService.getBrand(BrandingService.getDefault().name, 'auth');
@@ -342,6 +344,16 @@ export module Services {
 
     public findUsersWithName(name: string, brandId: string, source: any = null) {
       const query = { name: { 'contains': name } };
+      // S2TEST-21
+      return this.findUsersWithQuery(query, brandId, source);
+    }
+    // S2TEST-21
+    public findUsersWithEmail(email: string, brandId: string, source: any) {
+      const query = { email: { 'contains': email } };
+      return this.findUsersWithQuery(query, brandId, source);
+    }
+    // S2TEST-21
+    public findUsersWithQuery(query: any, brandId: string, source: any = null) {
       if (!_.isEmpty(source) && !_.isUndefined(source) && !_.isNull(source)) {
         query['type'] = source;
       }
