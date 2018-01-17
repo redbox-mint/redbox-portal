@@ -1,6 +1,6 @@
 module.exports.emailnotification = {
     api: {
-      send: {method: 'post', url: "http://redbox:9000/redbox/api/v1/messaging/emailnotification"}
+      send: {method: 'post', url: "/redbox/api/v1/messaging/emailnotification"}
     },
     settings: {
       enabled: true,
@@ -17,4 +17,3 @@ module.exports.emailnotification = {
       test: {subject: 'Test Email Message', template: 'test'}
     }
   };
-  
