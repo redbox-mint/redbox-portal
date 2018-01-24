@@ -3513,9 +3513,9 @@ ng2-datetime@^1.3.2:
     bootstrap-timepicker "^0.5.2"
     jquery ">=2.2.1"
 
-ngx-bootstrap@^2.0.0-beta.8:
-  version "2.0.0-beta.8"
-  resolved "https://registry.yarnpkg.com/ngx-bootstrap/-/ngx-bootstrap-2.0.0-beta.8.tgz#3209c818e89a4b4ea88c7c45fc53cebf000c0699"
+ngx-bootstrap@^2.0.2:
+  version "2.0.2"
+  resolved "https://registry.yarnpkg.com/ngx-bootstrap/-/ngx-bootstrap-2.0.2.tgz#6862b2ee4764bb6cfd34c66528873d0d050c2faa"
 
 node-cache@^4.1.1:
   version "4.1.1"
