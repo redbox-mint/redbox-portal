@@ -87,7 +87,7 @@
     "grunt-cli": "^1.2.0",
     "istanbul": "^0.4.5",
     "mocha": "^3.4.2",
-    "rollup": "^0.41.6",
+    "rollup": "^0.55.3",
     "rollup-plugin-commonjs": "^8.0.2",
     "rollup-plugin-node-resolve": "^3.0.0",
     "rollup-plugin-uglify": "^1.0.2",
