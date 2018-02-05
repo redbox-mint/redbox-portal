@@ -37,7 +37,7 @@
     "i18next-sync-fs-backend": "^1.0.0",
     "include-all": "^1.0.0",
     "lodash": "^4.17.4",
-    "lodash-es": "^4.17.4",
+    "lodash-es": "^4.17.5",
     "lucene-escape-query": "^1.0.1",
     "moment": "^2.19.4",
     "moment-es6": "github:shilob/moment-es6",
