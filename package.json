@@ -57,7 +57,7 @@
     "sails-hook-autoreload": "^1.1.0",
     "sails-mongo": "~0.12.2",
     "skipper-gridfs": "~0.5.3",
-    "systemjs": "0.19.40",
+    "systemjs": "0.20.19",
     "ts-smart-logger": "0.0.4",
     "typescript": "2.5.3",
     "typescript-require": "~0.2.9-1",
