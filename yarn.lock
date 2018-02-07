@@ -2142,6 +2142,15 @@ grunt-contrib-uglify@1.0.1:
     uglify-js "~2.6.2"
     uri-path "^1.0.0"
 
+grunt-contrib-uglify@3.3.0:
+  version "3.3.0"
+  resolved "https://registry.yarnpkg.com/grunt-contrib-uglify/-/grunt-contrib-uglify-3.3.0.tgz#dcc29bee1dd4768698930e46fb8bff8e8d37fb08"
+  dependencies:
+    chalk "^1.0.0"
+    maxmin "^1.1.0"
+    uglify-js "~3.3.0"
+    uri-path "^1.0.0"
+
 grunt-contrib-watch@1.0.0:
   version "1.0.0"
   resolved "https://registry.yarnpkg.com/grunt-contrib-watch/-/grunt-contrib-watch-1.0.0.tgz#84a1a7a1d6abd26ed568413496c73133e990018f"
@@ -5386,6 +5395,13 @@ uglify-js@~2.6.2:
     source-map "~0.5.1"
     uglify-to-browserify "~1.0.0"
     yargs "~3.10.0"
+
+uglify-js@~3.3.0:
+  version "3.3.9"
+  resolved "https://registry.yarnpkg.com/uglify-js/-/uglify-js-3.3.9.tgz#33869666c8ab7f7658ce3d22f0f1ced40097d33a"
+  dependencies:
+    commander "~2.13.0"
+    source-map "~0.6.1"
 
 uglify-to-browserify@~1.0.0:
   version "1.0.2"
