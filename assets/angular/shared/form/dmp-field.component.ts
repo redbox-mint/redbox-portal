@@ -21,6 +21,8 @@ import { Component, Input, Inject, ViewChild, ViewContainerRef, ComponentFactory
 import { FormGroup } from '@angular/forms';
 import { FieldBase } from './field-base';
 import { SimpleComponent } from './field-simple.component';
+import * as _ from "lodash-lib";
+
 /**
  * Base component for a DMP field.
  *
