@@ -399,6 +399,7 @@ module.exports.form = {
                         forceLookupOnly: true,
                         vocabId: 'Parties AND repository_name:People',
                         sourceType: 'mint',
+                        disabledExpression: '<%= !_.isEmpty(oid) %>',
                         fieldNames: [{
                           'text_full_name': 'text_full_name'
                         }, {
@@ -437,6 +438,7 @@ module.exports.form = {
                         freeText: false,
                         vocabId: 'Parties AND repository_name:People',
                         sourceType: 'mint',
+                        disabledExpression: '<%= !_.isEmpty(oid) %>',
                         fieldNames: [{
                           'text_full_name': 'text_full_name'
                         }, {
@@ -889,7 +891,41 @@ module.exports.form = {
                           }
                         ]
                       }
+                    },
+                    {
+                      class: 'TextField',
+                      definition: {
+                        name: 'dataowner_name',
+                        label: '@dmpt-dataRetention_data_owner',
+                        type: 'text',
+                        readOnly: true,
+                        subscribe: {
+                          'contributor_ci': {
+                            onValueUpdate: [{
+                              action: 'utilityService.concatenate',
+                              fields: ['text_full_name'],
+                              delim: ''
+                            }]
+                          }
+                      }
                     }
+                  },
+                  {
+                    class: 'HiddenValue',
+                    compClass: 'HiddenValueComponent',
+                    definition: {
+                      name: 'dataowner_email',
+                      subscribe: {
+                        'contributor_ci': {
+                          onValueUpdate: [{
+                            action: 'utilityService.concatenate',
+                            fields: ['email'],
+                            delim: ''
+                          }]
+                        }
+                      }
+                    }
+                  }
 
                   ]
                 }

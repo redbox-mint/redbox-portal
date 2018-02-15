@@ -22,7 +22,7 @@ declare var module;
 declare var sails;
 import { Observable } from 'rxjs/Rx';
 import moment from 'moment-es6';
-declare var FormsService, RecordsService, WorkflowStepsService, BrandingService, RecordTypesService, TranslationService;
+declare var FormsService, RecordsService, WorkflowStepsService, BrandingService, RecordTypesService, TranslationService, User;
 /**
  * Package that contains all Controllers.
  */
@@ -47,7 +47,9 @@ export module Controllers {
       'modifyEditors',
       'search',
       'getType',
-      'getMeta'
+      'getMeta',
+      'getTransferResponsibilityConfig',
+      'updateResponsibilities'
     ];
 
     /**
@@ -93,6 +95,76 @@ export module Controllers {
       sails.log.verbose(currentRec);
       return Observable.of(RecordsService.hasViewAccess(brand, user, user.roles, currentRec));
     }
+
+    public getTransferResponsibilityConfig(req, res) {
+      const brand = BrandingService.getBrand(req.session.branding);
+      var type = req.param('type');
+      var recordTypeConfig = sails.config.recordtype;
+
+      return res.json(this.getTransferResponsibilityConfigObject(recordTypeConfig, type))
+
+
+    }
+
+    private getTransferResponsibilityConfigObject(config, type) {
+      for(var key in config) {
+        if(config[key]["packageType"] == type) {
+          return config[key]["transferResponsibility"];
+        }
+      }
+      return {};
+    }
+
+    public updateResponsibilities(req, res) {
+      const brand = BrandingService.getBrand(req.session.branding);
+      const records = req.body.records;
+      var role = req.body.role;
+      var toEmail = req.body.email;
+      var toName = req.body.name;
+      sails.log.error("In update responsibilities");
+      sails.log.error(req);
+      let recordCtr = 0;
+      if (records.length > 0) {
+        _.forEach(records, rec => {
+          const oid = rec.oid;
+          this.getRecord(oid).subscribe(record => {
+            //TODO: hardcoded to RDMP for the time being
+            var transferConfig = this.getTransferResponsibilityConfigObject(sails.config.recordtype,'rdmp');
+
+            var nameField = transferConfig.fields[role].fieldNames.name;
+            var emailField = transferConfig.fields[role].fieldNames.email;
+            sails.log.error("name field"+nameField)
+            sails.log.error("name"+toName)
+            sails.log.error("email field"+emailField)
+            sails.log.error("email"+toEmail)
+            _.set(record, "metadata."+nameField, toName);
+            _.set(record, "metadata."+emailField, toEmail);
+            sails.log.error(record)
+            RecordsService.updateMeta(brand, oid, record).subscribe(response => {
+              if (response && response.code == "200") {
+                recordCtr++;
+                if (recordCtr == records.length) {
+                  response.success = true;
+                  this.ajaxOk(req, res, null, response);
+                }
+              } else {
+                sails.log.error(`Failed to update authorization:`);
+                sails.log.error(response);
+                this.ajaxFail(req, res, TranslationService.t('auth-update-error'));
+              }
+            }, error => {
+              sails.log.error("Error updating auth:");
+              sails.log.error(error);
+              this.ajaxFail(req, res, error.message);
+            });
+
+          });
+        });
+      } else {
+        this.ajaxFail(req, res, 'No records specified');
+      }
+    }
+
 
     public getForm(req, res) {
       const brand = BrandingService.getBrand(req.session.branding);
@@ -356,7 +428,9 @@ export module Controllers {
 
     public modifyEditors(req, res) {
       const records = req.body.records;
-      const toUsername = req.body.username;
+      var toUsername = req.body.username;
+      var toEmail = req.body.email;
+      //TODO: Add email to username lookup
       const fromUsername = req.user.username;
       const brand = BrandingService.getBrand(req.session.branding);
       const user = req.user;
@@ -374,9 +448,19 @@ export module Controllers {
             if (_.isUndefined(_.find(authorization.view, (username) => { return username == fromUsername }))) {
               authorization.view.push(fromUsername);
             }
-            if (_.isUndefined(_.find(authorization.edit, (username) => { return username == toUsername }))) {
-              authorization.edit.push(toUsername);
+            if(!_.isEmpty(toUsername)) {
+              if (_.isUndefined(_.find(authorization.edit, (username) => { return username == toUsername }))) {
+                authorization.edit.push(toUsername);
+              }
+            } else {
+              if (_.isUndefined(_.find(authorization.editPending, (email) => { return toEmail == email }))) {
+                if(_.isUndefined(authorization.editPending)) {
+                  authorization.editPending = [];
+                }
+                authorization.editPending.push(toEmail);
+              }
             }
+
             this.saveAuthorization(brand, oid, record, authorization, user).subscribe(response => {
               if (response && response.code == "200") {
                 recordCtr++;

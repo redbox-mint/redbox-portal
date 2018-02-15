@@ -95,6 +95,18 @@ export module Controllers {
         });
     }
 
+    private getDocMetadata(doc) {
+      var metadata = {};
+      for(var key in doc){
+        if(key.indexOf('authorization_') != 0 && key.indexOf('metaMetadata_') != 0) {
+          metadata[key] = doc[key];
+        }
+        if(key == 'authorization_editRoles') {
+          metadata[key] = doc[key];
+        }
+      }
+      return metadata;
+    }
     protected getPlans(workflowState,start,rows,user, roles, brand, editAccessOnly=undefined) {
       const username = user.username;
       var response = DashboardService.getPlans(workflowState,start,rows,username,roles,brand,editAccessOnly);
@@ -118,6 +130,7 @@ export module Controllers {
           var item = {};
           item["oid"] = doc["storage_id"];
           item["title"] = doc["title"];
+          item["metadata"]= this.getDocMetadata(doc);
           item["dateCreated"] =  doc["date_object_created"];
           item["dateModified"] = doc["date_object_modified"];
           item["hasEditAccess"] = RecordsService.hasEditAccess(brand, user, roles, doc);

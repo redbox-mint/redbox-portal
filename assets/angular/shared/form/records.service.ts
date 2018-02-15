@@ -94,10 +94,23 @@ export class RecordsService extends BaseService {
     return `${this.brandingAndPortalUrl}/dashboard`;
   }
 
-  modifyEditors(records, username) {
-    return this.http.post(`${this.brandingAndPortalUrl}/record/editors/modify`, {records:records, username:username}, this.getOptionsClient())
+
+  modifyEditors(records, username, email) {
+    return this.http.post(`${this.brandingAndPortalUrl}/record/editors/modify`, {records:records, username:username, email:email}, this.getOptionsClient())
     .toPromise()
     .then((res:any) => this.extractData(res) as RecordActionResult);
+  }
+
+  updateResponsibilities(records, role, email, name) {
+    return this.http.post(`${this.brandingAndPortalUrl}/record/responsibility/update`, {records:records, role:role, email:email, name:name}, this.getOptionsClient())
+    .toPromise()
+    .then((res:any) => this.extractData(res) as RecordActionResult);
+  }
+
+  getTransferResponsibility(recordType) {
+    return this.http.get(`${this.brandingAndPortalUrl}/transferconfig/${recordType}`, this.getOptionsClient())
+    .toPromise()
+    .then((res:any) => this.extractData(res) as Object);
   }
 
   search(params: RecordSearchParams) {

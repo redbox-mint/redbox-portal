@@ -16,8 +16,8 @@
 // You should have received a copy of the GNU General Public License along
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-
-import { Component, Injectable, Inject, ApplicationRef } from '@angular/core';
+import { DOCUMENT } from '@angular/platform-browser';
+import { Component, Injectable, Inject, ApplicationRef, ElementRef } from '@angular/core';
 import { FormArray, FormGroup, FormControl, Validators } from '@angular/forms';
 import { DashboardService } from '../shared/dashboard-service';
 import * as _ from "lodash-lib";
@@ -27,9 +27,11 @@ import { PlanTable, Plan } from '../shared/dashboard-models';
 import { VocabField, VocabFieldComponent, VocabFieldLookupService } from '../shared/form/field-vocab.component';
 import { CompleterService } from 'ng2-completer';
 import { RecordsService } from '../shared/form/records.service';
-import { EmailNotificationService} from '../shared/email-service';
+import { EmailNotificationService } from '../shared/email-service';
+import { UserSimpleService } from '../shared/user.service-simple';
+import { User,Role } from '../shared/user-models';
 
-declare var pageData :any;
+declare var pageData: any;
 declare var jQuery: any;
 /**
  * Manage Roles component
@@ -46,35 +48,65 @@ export class TransferOwnerComponent extends LoadableComponent {
   plans: PlanTable;
   initSubs: any;
   searchFilterName: any;
+  searchFilterRoles: any;
   filteredPlans: Plan[];
   userLookupMeta: VocabField;
   formGroup: FormGroup;
   saveMsg: string;
   saveMsgType: string;
+  recordType: string;
+  transferConfig: object;
+  fieldsForUpdate: any;
+  fieldForUpdate: string;
+  user: User;
 
-  constructor(@Inject(DashboardService) protected dashboardService: DashboardService,
-   public translationService:TranslationService,
-   protected emailService: EmailNotificationService,
-   @Inject(VocabFieldLookupService) private vocabFieldLookupService,
-   @Inject(CompleterService) private completerService: CompleterService,
-   @Inject(RecordsService) private recordService: RecordsService,
-   private app: ApplicationRef ) {
+  constructor( @Inject(DashboardService) protected dashboardService: DashboardService,
+    public translationService: TranslationService,
+    protected emailService: EmailNotificationService,
+    @Inject(VocabFieldLookupService) private vocabFieldLookupService,
+    @Inject(CompleterService) private completerService: CompleterService,
+    @Inject(RecordsService) private recordService: RecordsService,
+    @Inject(UserSimpleService) protected userService: UserSimpleService,
+    private app: ApplicationRef, @Inject(DOCUMENT) protected document: any, elementRef: ElementRef, ) {
     super();
     this.initTranslator(translationService);
+    this.recordType = elementRef.nativeElement.getAttribute('type');
+    this.fieldsForUpdate = [];
     this.plans = new PlanTable();
-    this.initSubs = dashboardService.waitForInit((initStat:boolean) => {
+
+    this.initSubs = dashboardService.waitForInit((initStat: boolean) => {
       this.initSubs.unsubscribe();
+
+      this.loadTransferConfig().then(config => {
+        this.transferConfig = config;
+
+        for (var key in this.transferConfig["fields"]) {
+          var config = this.transferConfig["fields"][key];
+          config.key = key;
+          this.fieldsForUpdate.push(config);
+        }
+        this.fieldForUpdate = this.fieldsForUpdate[0].key;
+      });
+
       this.loadPlans();
+    });
+    userService.waitForInit((initStat: boolean) => { userService.getInfo().then(
+      user =>
+      this.user = user);
     });
   }
 
-  protected loadPlans(transferredRecords:any[]=null) {
+  protected loadTransferConfig() {
+    return this.recordService.getTransferResponsibility(this.recordType);
+  }
+
+  protected loadPlans(transferredRecords: any[] = null) {
     this.translationService.isReady(tService => {
       this.dashboardService.getAlllDraftPlansCanEdit().then((draftPlans: PlanTable) => {
         this.dashboardService.setDashboardTitle(draftPlans);
         // skip transferred records...
         _.remove(draftPlans.items, (item: any) => {
-          return _.find(transferredRecords, (rec:any) => {
+          return _.find(transferredRecords, (rec: any) => {
             return rec.oid == item.oid;
           });
         });
@@ -87,6 +119,7 @@ export class TransferOwnerComponent extends LoadableComponent {
         this.saveMsg = "";
         this.saveMsgType = "";
         this.setLoading(false);
+        this.onFilterChange();
       });
     });
   }
@@ -94,10 +127,11 @@ export class TransferOwnerComponent extends LoadableComponent {
   protected initUserlookup() {
     // create meta object for vocab
     const userLookupOptions = {
-      sourceType: 'user',
-      fieldNames: ['name', 'id', 'username'],
-      searchFields: 'name',
-      titleFieldArr: ['name'],
+      sourceType: 'mint',
+      fieldNames: ['text_full_name', 'storage_id', 'Email'],
+      searchFields: 'text_full_name',
+      titleFieldArr: ['text_full_name'],
+      vocabId: 'Parties AND repository_name:People',
       editMode: true,
       placeHolder: this.translationService.t('transfer-ownership-researcher-name')
     };
@@ -106,18 +140,46 @@ export class TransferOwnerComponent extends LoadableComponent {
     this.userLookupMeta.lookupService = this.vocabFieldLookupService;
     this.userLookupMeta.createFormModel();
     this.userLookupMeta.initLookupData();
-    this.formGroup = new FormGroup({researcher_name: this.userLookupMeta.formModel});
+    this.formGroup = new FormGroup({ researcher_name: this.userLookupMeta.formModel });
+
   }
 
   onFilterChange() {
-    if (this.searchFilterName) {
-      this.filteredPlans = _.filter(this.plans.items, (plan: any)=> {
-        plan.selected = false;
+
+
+    this.filteredPlans = _.filter(this.plans.items, (plan: any) => {
+      plan.selected = false;
+      console.log(plan)
+      if (this.hasPermissions(plan)) {
         return _.toLower(plan.dashboardTitle).includes(_.toLower(this.searchFilterName));
-      });
-    } else {
-      this.filteredPlans = this.plans.items;
+      }
+      return false;
+    });
+
+  }
+
+  hasPermissions(plan) {
+    var allowedToEdit = this.transferConfig.canEdit[this.fieldForUpdate];
+    var canEdit = false;
+    const roles:Role[] = this.user.roles;
+
+    _.filter(roles, (role:Role) => plan.metadata.authorization_editRoles.indexOf(role.name) != -1);
+
+    if(roles.length > 0) {
+      return true;
     }
+
+    var userEmail = this.user.email;
+
+    _.each(allowedToEdit, projectRole => {
+
+      var fieldName = this.transferConfig.fields[projectRole].fieldNames.email;
+      if (_.some(plan.metadata[fieldName]) && plan.metadata[fieldName][0] == userEmail) {
+        canEdit = true;
+      }
+    });
+
+    return canEdit;
   }
 
   resetFilter() {
@@ -142,29 +204,30 @@ export class TransferOwnerComponent extends LoadableComponent {
         recordMeta.push(record);
       }
     });
-    const username = this.getSelResearcher()['username'];
-    const name = this.getSelResearcher()['name'];
-    const email = this.getSelResearcher()['email'];
+    console.log(this.formGroup);
+    const name = this.getSelResearcher()['text_full_name'];
+    const email = this.getSelResearcher()['Email'];
+
     this.saveMsg = `${this.translationService.t('transfer-ownership-transferring')}${this.spinnerElem}`;
     this.saveMsgType = "info";
     this.clearSelResearcher();
-    this.recordService.modifyEditors(records, username).then((res:any)=>{
+    this.recordService.updateResponsibilities(records, this.fieldForUpdate, email, name).then((res: any) => {
       this.saveMsg = this.translationService.t('transfer-ownership-transfer-ok');
       this.saveMsgType = "success";
 
       // ownership transfer ok, send notification email
-      if (email) { // email address isn't a required property for the user model!
-        var data = {};
-        data['name'] = name;
-        data['records'] = recordMeta;
-        this.emailService.sendNotification(email, 'transferOwnerTo', data)
-        .then(function (res) {console.log(`Email result: ${JSON.stringify(res)}`)}); // what should we do with this?
-      }
+      // if (email) { // email address isn't a required property for the user model!
+      //   var data = {};
+      //   data['name'] = name;
+      //   data['records'] = recordMeta;
+      //   this.emailService.sendNotification(email, 'transferOwnerTo', data)
+      //     .then(function(res) { console.log(`Email result: ${JSON.stringify(res)}`) }); // what should we do with this?
+      // }
 
       this.setLoading(true);
       this.loadPlans(records);
       this.resetFilter();
-    }).catch((err:any)=>{
+    }).catch((err: any) => {
       this.saveMsg = err;
       this.saveMsgType = "danger";
     });

@@ -54,7 +54,7 @@ module.exports.routes = {
       'view': 'record/view'
     }
   },
-  '/:branding/:portal/record/transfer': {
+  '/:branding/:portal/record/transfer/:type': {
     controller: 'typescript/RenderViewController',
     action: 'render',
     locals:{
@@ -117,6 +117,7 @@ module.exports.routes = {
   'post /user/login_local': 'typescript/UserController.localLogin',
   'post /user/login_aaf': 'typescript/UserController.aafLogin',
   'get /user/info': 'typescript/UserController.info',
+  'get /:branding/:portal/user/info': 'typescript/UserController.info',
   'get /:branding/:portal/user/login': 'typescript/UserController.login',
   'get /:branding/:portal/user/logout': 'typescript/UserController.logout',
   'get /:branding/:portal/user/find': 'typescript/UserController.find',
@@ -138,6 +139,7 @@ module.exports.routes = {
   'put /:branding/:portal/recordmeta/:oid': 'typescript/RecordController.update',
   'post /:branding/:portal/record/workflow/step/:targetStep/:oid': 'typescript/RecordController.stepTo',
   'post /:branding/:portal/record/editors/modify': 'typescript/RecordController.modifyEditors',
+  'post /:branding/:portal/record/responsibility/update': 'typescript/RecordController.updateResponsibilities',
   'get /:branding/:portal/dashboard': 'typescript/DashboardController.render',
   'get /:branding/:portal/listPlans': 'typescript/DashboardController.getPlanList',
   'get /:branding/:portal/vocab/:vocabId': 'typescript/VocabController.get',
@@ -161,6 +163,7 @@ module.exports.routes = {
   'post /:branding/:portal/user/genKey': 'typescript/UserController.generateUserKey',
   'post /:branding/:portal/user/revokeKey': 'typescript/UserController.revokeUserKey',
   'post /:branding/:portal/user/update': 'typescript/UserController.update',
+  'get /:branding/:portal/transferconfig/:type': 'typescript/RecordController.getTransferResponsibilityConfig',
   /***************************************************************************
   *                                                                          *
   * REST API routes                                                          *
@@ -179,6 +182,7 @@ module.exports.routes = {
   'post /:branding/:portal/api/records/permissions/view/:oid': 'typescript/webservice/RecordController.addUserView',
   'delete /:branding/:portal/api/records/permissions/view/:oid': 'typescript/webservice/RecordController.removeUserView',
   'get /:branding/:portal/api/records/permissions/:oid': 'typescript/webservice/RecordController.getPermissions',
+
 
   'get /:branding/:portal/api/users': 'typescript/webservice/UserManagementController.listUsers',
   'get /:branding/:portal/api/users/find': 'typescript/webservice/UserManagementController.findUser',
