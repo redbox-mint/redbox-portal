@@ -22,7 +22,7 @@ declare var module;
 declare var sails;
 import { Observable } from 'rxjs/Rx';
 import moment from 'moment-es6';
-declare var FormsService, RecordsService, WorkflowStepsService, BrandingService, RecordTypesService, TranslationService, User;
+declare var FormsService, RecordsService, WorkflowStepsService, BrandingService, RecordTypesService, TranslationService, User, EmailService;
 /**
  * Package that contains all Controllers.
  */
@@ -143,6 +143,14 @@ export module Controllers {
             RecordsService.updateMeta(brand, oid, record).subscribe(response => {
               if (response && response.code == "200") {
                 recordCtr++;
+
+                var to = toEmail;
+                var subject = "Ownership transfered";
+                var data = {};
+                data['record'] = record;
+                data['name'] = toName;
+                data['oid'] = toName;
+                EmailService.sendTemplate(to, subject, "transferOwnerTo", data);
                 if (recordCtr == records.length) {
                   response.success = true;
                   this.ajaxOk(req, res, null, response);

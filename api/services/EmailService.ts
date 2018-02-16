@@ -39,6 +39,7 @@ export module Services {
         protected _exportedMethods: any = [
             'sendMessage',
             'buildFromTemplate',
+            'sendTemplate'
         ];
 
       /**
@@ -47,7 +48,7 @@ export module Services {
         * Base email sending method.
         * Return: code, msg
         */
-        public sendMessage(msgTo: string, msgBody: string,
+        public sendMessage(msgTo, msgBody: string,
             msgSubject: string = sails.config.emailnotification.defaults.subject,
             msgFrom: string = sails.config.emailnotification.defaults.from,
             msgFormat: string = sails.config.emailnotification.defaults.format): Observable<any> {
@@ -58,13 +59,16 @@ export module Services {
             sails.log.verbose('Received email notification request. Processing.');
 
             var url = `${sails.config.record.baseUrl.redbox}${sails.config.emailnotification.api.send.url}`;
+
             var body = {
-                "to": [msgTo],
+                "to": msgTo,
                 "subject": msgSubject,
                 "body": msgBody,
                 "from": msgFrom,
                 "format": msgFormat
             };
+            sails.log.error("Body: ");
+            sails.log.error(body);
             var options = { url: url, json: true, body: body, headers: { 'Authorization': `Bearer ${sails.config.redbox.apiKey}`, 'Content-Type': 'application/json; charset=utf-8' } };
 
             var response = Observable.fromPromise(request[sails.config.emailnotification.api.send.method](options)).catch(error => Observable.of(`Error: ${error}`));
@@ -81,7 +85,7 @@ export module Services {
             });
         }
 
-        /**
+      /**
        * Build Email Body from Template
        *
        * Templates are defined in sails config
@@ -127,7 +131,34 @@ export module Services {
         }
         );
       }
+
+      /**
+       * Send Email from Template
+       *
+       * Templates are defined in sails config
+       *
+       * Return: status, body, exc
+       */
+      public sendTemplate(to, subject, template, data) {
+        sails.log.error("Inside Send Template");
+        var buildResponse = this.buildFromTemplate(template, data);
+        sails.log.error("buildResponse");
+        buildResponse.subscribe(buildResult => {
+            if (buildResult['status'] != 200) {
+                return buildResult;
+            }
+            else {
+                var sendResponse = this.sendMessage(to, buildResult['body'], subject);
+
+                sendResponse.subscribe(sendResult => {
+                  return sendResult;
+                });
+            }
+        });
+      }
     }
+
+
 
 }
 

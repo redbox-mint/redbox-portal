@@ -1,12 +1,17 @@
-<p>Hi <%= name %>,
+<p>Dear <%= name %>,</p>
 
-The following record/s have been transferred to you for you to manage:
+<p>A research data management plan (RDMP) for project, <%= record.metadata.title %>, has been transferred to the custody of <%= record.metadata.dataowner_name %>. The RDMP outlines key details about the management of research data for this project, including the retention period and who may access the data.</p>
 
-<ul>
-    <%for (var record in records){%>
-        <li><a href="<%= records[record]['url'] %>"><%=records[record]['title']%></a></li>    
-    <%}%>
-</ul>
+<p>View the your RDMP in Stash <a href="http://rb2-test.redboxresearchdata.com.au/default/rdmp/record/view/<%= oid %>">here</a>.</p>
 
-Regards,
-ReDBox Team</p>
+<p>Please note that the following people have edit access to the plan:</p>
+
+<p><strong>First named Chief investigator:</strong> <%= record.metadata.contributor_ci.text_full_name %></br>
+<strong>Data manager:</strong> First named Chief investigator: <%= record.metadata.contributor_data_manager.text_full_name %></p>
+
+<p>If any UTS based collaborators are listed on the plan they will have view access to the plan.</p>
+
+<p>If you have questions about your RDMP please email <a href="mailto:data-librarian@uts.edu.au">data-librarian@uts.edu.au</a>.</p>
+
+<p>Kind regards</p>
+<p>UTS eResearch and UTS Library Research Data Team</p>
