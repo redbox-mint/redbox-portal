@@ -15,9 +15,11 @@ Once you have a NodeJS environment installed install the following dependencies 
 ## Install the ReDBox Portal
 
 1. Install the ReDBox Portal to your location of choice (e.g. /opt/rbportal)
+
 ```
-yarn add redbox-portal
+npm --registry=https://nexus-prod.redboxresearchdata.com.au/nexus/repository/npm-public/ install redbox-portal
 ```
+
 2. Create a [ecosytem.json](http://pm2.keymetrics.io/docs/usage/deployment/) file for PM2 as below. See the [configuration guide](https://github.com/redbox-mint/redbox-portal/blob/master/support/docs/Configuring%20web%20forms.md) guide for information on how to configure the env section.
 ```
 {
