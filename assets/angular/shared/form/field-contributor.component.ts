@@ -37,7 +37,9 @@ export class ContributorField extends FieldBase<any> {
   roleColHdr: string;
   showHeader: boolean;
   roles: string[];
-
+  
+  fieldNames: any;
+  fullNameResponseField: string;
   groupFieldNames: string[];
   validators: any;
   enabledValidators: boolean;
@@ -62,6 +64,10 @@ export class ContributorField extends FieldBase<any> {
     this.showHeader = options['showHeader'] || true;
     this.roles = options['roles'] || [];
     this.value = options['value'] || this.setEmptyValue();
+    const textFullNameFieldName = _.find(this.fieldNames, fieldNameObject => {
+      return fieldNameObject['text_full_name'] != undefined;
+    });
+    this.fullNameResponseField = textFullNameFieldName['text_full_name'];
     this.validationMessages = options['validationMessages'] || {required: {
       email: this.getTranslated(options['validation_required_email'], 'Email required'),
       text_full_name: this.getTranslated(options['validation_required_name'], 'Name is required'),
@@ -369,6 +375,8 @@ export class ContributorComponent extends SimpleComponent {
       }
       let val:any;
       if (selected.text_full_name) {
+        val = this.field.vocabField.getValue(selected);
+      } else if(selected[this.field.fullNameResponseField]) {
         val = this.field.vocabField.getValue(selected);
       } else {
         val = {text_full_name: selected.title};
