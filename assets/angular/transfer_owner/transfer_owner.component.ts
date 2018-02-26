@@ -161,9 +161,9 @@ export class TransferOwnerComponent extends LoadableComponent {
   hasPermissions(plan) {
     var allowedToEdit = this.transferConfig.canEdit[this.fieldForUpdate];
     var canEdit = false;
-    const roles:Role[] = this.user.roles;
+    let roles:Role[] = this.user.roles;
 
-    _.filter(roles, (role:Role) => plan.metadata.authorization_editRoles.indexOf(role.name) != -1);
+    roles = _.filter(roles, (role:Role) => plan.metadata.authorization_editRoles.indexOf(role.name) != -1);
 
     if(roles.length > 0) {
       return true;

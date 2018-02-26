@@ -37,9 +37,9 @@ export class ContributorField extends FieldBase<any> {
   roleColHdr: string;
   showHeader: boolean;
   roles: string[];
-  
+
   fieldNames: any;
-  fullNameResponseField: string;
+  fullNameResponseField: string = "text_full_name";
   groupFieldNames: string[];
   validators: any;
   enabledValidators: boolean;
@@ -67,7 +67,9 @@ export class ContributorField extends FieldBase<any> {
     const textFullNameFieldName = _.find(this.fieldNames, fieldNameObject => {
       return fieldNameObject['text_full_name'] != undefined;
     });
+    if(textFullNameFieldName ! = null) {
     this.fullNameResponseField = textFullNameFieldName['text_full_name'];
+    }
     this.validationMessages = options['validationMessages'] || {required: {
       email: this.getTranslated(options['validation_required_email'], 'Email required'),
       text_full_name: this.getTranslated(options['validation_required_name'], 'Name is required'),
