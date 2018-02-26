@@ -133,13 +133,18 @@ export module Controllers {
 
             var nameField = transferConfig.fields[role].fieldNames.name;
             var emailField = transferConfig.fields[role].fieldNames.email;
-            sails.log.error("name field"+nameField)
-            sails.log.error("name"+toName)
-            sails.log.error("email field"+emailField)
-            sails.log.error("email"+toEmail)
+
+
             _.set(record, "metadata."+nameField, toName);
             _.set(record, "metadata."+emailField, toEmail);
-            sails.log.error(record)
+
+            if(role == "chiefInvestigator") {
+              nameField = transferConfig.fields["dataOwner"].fieldNames.name;
+              emailField = transferConfig.fields["dataOwner"].fieldNames.email;
+              _.set(record, "metadata."+nameField, toName);
+              _.set(record, "metadata."+emailField, toEmail);
+            }
+
             RecordsService.updateMeta(brand, oid, record).subscribe(response => {
               if (response && response.code == "200") {
                 recordCtr++;
