@@ -145,6 +145,10 @@ export module Controllers {
               _.set(record, "metadata."+emailField, toEmail);
             }
 
+            if(role == "dataManager") {
+              _.set(record, "dataLicensingAccess_manager", toName);
+            }
+
             RecordsService.updateMeta(brand, oid, record).subscribe(response => {
               if (response && response.code == "200") {
                 recordCtr++;

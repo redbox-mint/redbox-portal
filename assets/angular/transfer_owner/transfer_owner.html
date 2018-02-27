@@ -27,8 +27,8 @@
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let plan of filteredPlans" (click)="toggleSelect(plan)">
-              <td class="text-center"><input type='checkbox' (click)="toggleSelect(plan)" [(ngModel)]="plan.selected"/></td>
+            <tr *ngFor="let plan of filteredPlans" (click)="toggleSelect(plan,$event)">
+              <td class="text-center"><input type='checkbox' (click)="true" [(ngModel)]="plan.selected"/></td>
               <td>{{ plan.dashboardTitle }}</td>
             </tr>
           </tbody>

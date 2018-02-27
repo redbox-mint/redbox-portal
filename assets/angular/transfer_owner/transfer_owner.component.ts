@@ -187,8 +187,10 @@ export class TransferOwnerComponent extends LoadableComponent {
     this.onFilterChange();
   }
 
-  toggleSelect(plan: any) {
-    plan.selected = !plan.selected;
+  toggleSelect(plan: any, event: any) {
+    if (event.target.type !== 'checkbox') {
+      plan.selected = !plan.selected;
+    }
   }
 
   transferOwnership(event: any) {
