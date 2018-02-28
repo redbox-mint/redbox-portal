@@ -1232,7 +1232,7 @@ module.exports.form = {
               {
                 class: "CancelButton",
                 definition: {
-                  label: 'Cancel',
+                  label: 'Close',
                 }
               }
             ]
