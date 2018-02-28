@@ -146,7 +146,7 @@ export module Controllers {
             }
 
             if(role == "dataManager") {
-              _.set(record, "dataLicensingAccess_manager", toName);
+              _.set(record, "metadata.dataLicensingAccess_manager", toName);
             }
 
             RecordsService.updateMeta(brand, oid, record).subscribe(response => {
