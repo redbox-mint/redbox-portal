@@ -207,7 +207,7 @@ export class ContributorField extends FieldBase<any> {
 
   public triggerValidation(): void {
     _.forEach(this.groupFieldNames, (f:any) => {
-      this.formModel.controls[f].updateValueAndValidity();
+      this.formModel.controls[f].updateValueAndValidity({ onlySelf: true, emitEvent: false });
       this.formModel.controls[f].markAsTouched();
     });
   }

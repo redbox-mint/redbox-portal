@@ -179,7 +179,7 @@ export class FieldBase<T> {
   public triggerValidation() {
     if (this.formModel) {
       this.formModel.markAsTouched();
-      this.formModel.updateValueAndValidity();
+      this.formModel.updateValueAndValidity({onlySelf: false, emitEvent: false});
     }
   }
 
