@@ -121,6 +121,7 @@ The ReDBox Portal API provides authorized access to manage functions.
 + Request Give users edit access to record (application/json)
   + Headers
     Authorization: Bearer abcabcab-abca-abca-abca-abcabcabcabc
+  + Body
   {
     "users": ["username1","username2"]
   }
@@ -128,6 +129,7 @@ The ReDBox Portal API provides authorized access to manage functions.
 + Request Give users (pending login) edit access to record (application/json)
   + Headers
     Authorization: Bearer abcabcab-abca-abca-abca-abcabcabcabc
+  + Body
   {
     "usersPending": ["pendingusername1@email.com","pendingusername2@email.com"]
   }
