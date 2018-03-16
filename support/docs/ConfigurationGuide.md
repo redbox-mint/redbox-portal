@@ -13,10 +13,10 @@ The ReDBox Portal is built on the [SailsJS framework](https://sailsjs.com/) and 
 Please see the [SailsJS documentation](https://sailsjs.com/documentation/reference/configuration) for more information on it's structure and configuration options.
 
 There are several configuration items that are specific to the ReDBox Portal:
-1. [record.js](./configuration/Configuring-integration-with-ReDBox-and Mint.html) manages configuration around record management and the portal's interaction with the ReDBox and Mint services
-2. [auth.js](./configuration/Configuring-authorisation-and-authentication.html) manages configuration around authorisation and authentication.
-3. [emailnotification.js](./configuration/Configuring-email-notifications.html) manages configuration of email notifications
-4. [form.js](./configuration/Configuring-web-forms.html) manages form configuration
+1. [record.js](./configuration-guide/configuring-integration-with-redbox-and-mint.html) manages configuration around record management and the portal's interaction with the ReDBox and Mint services
+2. [auth.js](./configuration-guide/configuring-authentication.html) manages configuration around authorisation and authentication.
+3. [emailnotification.js](./configuration-guide/configuring-email-notifications.html) manages configuration of email notifications
+4. [form.js](./configuration-guide/configuring-web-forms.html) manages form configuration
 
 
 ## Environment variables
