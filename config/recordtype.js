@@ -75,8 +75,8 @@ module.exports.recordtype = {
       }
     ]
   },
-  "sampleWorkspace": {
-    packageType: "workspace",
+  "dataRecord": {
+    "packageType": "dataRecord",
     searchFilters: [
       {
         name: "text_title",

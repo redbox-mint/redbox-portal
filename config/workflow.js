@@ -15,7 +15,7 @@ module.exports.workflow = {
       starting: true
     }
   },
-  "sampleWorkspace": {
+  "dataRecord": {
     "draft": {
       config: {
         workflow: {
@@ -26,7 +26,7 @@ module.exports.workflow = {
           viewRoles: ['Admin', 'Librarians'],
           editRoles: ['Admin', 'Librarians']
         },
-        form: 'default-1.0-draft'
+        form: 'dataRecord-1.0-draft'
       },
       starting: true
     }
