@@ -18,6 +18,10 @@
             {
                 "title": "Configuring integration with RedBox and Mint",
                 "file": "configuration/Configuring integration with ReDBox and Mint.md"
+            },
+            {
+                "title": "Configuring authentication",
+                "file": "configuration/Configuring AAF.md"
             }
 
         ]
