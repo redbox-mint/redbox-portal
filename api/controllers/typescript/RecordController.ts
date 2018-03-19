@@ -410,8 +410,14 @@ export module Controllers {
           field.definition.value = metadata[field.definition.name];
         }
         this.replaceCustomFields(req, res, field, metadata);
+        const val = field.definition.value;
+        if (field.definition.fields && _.isObject(val) && !_.isString(val) && !_.isUndefined(val) && !_.isNull(val) && !_.isEmpty(val)) {
+          _.each(field.definition.fields, fld => {
+            fld.definition.value = _.get(metadata, `${field.definition.name}.${fld.definition.name}`);
+          });
+        } else
         if (field.definition.fields) {
-          this.mergeFields(req, res, field.definition.fields, metadata);
+          this.mergeFields(req, res, field.definition.fields, metadata) ;
         }
       });
     }

@@ -34,17 +34,19 @@ declare var jQuery: any;
         <button type="button" class="btn btn-default" *ngIf="field.help" (click)="toggleHelp()"><span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span></button>
         <span id="{{ 'helpBlock_' + field.name }}" class="help-block" *ngIf="this.helpShow" [innerHtml]="field.help"></span>
       </label>
-      <input [formGroup]='form' [formControl]="fieldMap[field.name].control"  [id]="field.name" [type]="field.type" [readonly]="field.readOnly" class="form-control" [attr.aria-describedby]="field.help ? 'helpBlock_' + field.name : null">
+      <input [formGroup]='form' [formControl]="fieldMap[field.name].control"  [id]="field.name" [type]="field.type" [readonly]="field.readOnly" [ngClass]="field.cssClasses" [attr.aria-describedby]="field.help ? 'helpBlock_' + field.name : null">
     </div>
     <div *ngIf="isEmbedded" class="input-group padding-bottom-15">
-      <input [formControl]="fieldMap[name].control.controls[index]"  [id]="field.name" [type]="field.type" [readonly]="field.readOnly" class="form-control" [attr.aria-describedby]="field.help ? 'helpBlock_' + field.name : null">
+      <input [formControl]="fieldMap[name].control.controls[index]"  [id]="field.name" [type]="field.type" [readonly]="field.readOnly" [ngClass]="field.cssClasses" [attr.aria-describedby]="field.help ? 'helpBlock_' + field.name : null">
       <span class="input-group-btn">
         <button type='button' *ngIf="removeBtnText" [disabled]="!canRemove" (click)="onRemove($event)" [ngClass]="removeBtnClass" >{{removeBtnText}}</button>
         <button [disabled]="!canRemove" type='button' [ngClass]="removeBtnClass" (click)="onRemove($event)"></button>
       </span>
     </div>
-    <div class="text-danger" *ngIf="fieldMap[field.name].control.hasError('required') && fieldMap[field.name].control.touched && !field.validationMessages?.required">{{field.label}} is required</div>
-    <div class="text-danger" *ngIf="fieldMap[field.name].control.hasError('required') && fieldMap[field.name].control.touched && field.validationMessages?.required">{{field.validationMessages.required}}</div>
+    <div *ngIf="field.required" [style.visibility]="fieldMap[field.name].control && fieldMap[field.name].control.hasError('required') && fieldMap[field.name].control.touched ? 'inherit':'hidden'">
+      <div class="text-danger" *ngIf="!field.validationMessages?.required">{{field.label}} is required</div>
+      <div class="text-danger" *ngIf="field.validationMessages?.required">{{field.validationMessages.required}}</div>
+    </div>
   </div>
   <div *ngIf="!field.editMode" class="key-value-pair">
     <span class="key" *ngIf="field.label">{{field.label}}</span>

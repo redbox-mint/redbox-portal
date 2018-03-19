@@ -34,6 +34,7 @@ export class TextField extends FieldBase<string> {
     super(options, injector);
     this.type = options['type'] || '';
     this.controlType = 'textbox';
+    this.cssClasses = _.isEmpty(this.cssClasses) ? 'form-control' : this.cssClasses;
   }
 
   postInit(value:any) {
@@ -102,7 +103,7 @@ export class SelectionField extends FieldBase<any>  {
   }
 }
 
-export class Container extends FieldBase<string> {
+export class Container extends FieldBase<any> {
   content: string;
   fields: FieldBase<any>[];
   active: boolean;
@@ -114,7 +115,22 @@ export class Container extends FieldBase<string> {
     this.content = options['content'] || '';
     this.active = options['active'] || false;
     this.type = options['type'] || '';
-    this.hasControl = false;
+    this.hasControl = _.isUndefined(this.groupName);
+  }
+
+  public getGroup(group: any, fieldMap: any) : any {
+    this.fieldMap = fieldMap;
+    let retval = null;
+    fieldMap[this.name] = {field:this};
+    if (this.hasGroup && this.groupName) {
+      // when this has a FormControl associated, build the FormGroup...
+      group[this.groupName] = new FormGroup({});
+      _.each(this.fields, (field) => {
+        field.getGroup(group, fieldMap);
+      });
+      retval = group[this.groupName];
+    }
+    return retval;
   }
 }
 

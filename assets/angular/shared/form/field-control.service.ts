@@ -34,7 +34,8 @@ import {
   CancelButtonComponent,
   HiddenValueComponent,
   LinkValueComponent,
-  SelectionFieldComponent
+  SelectionFieldComponent,
+  GenericGroupComponent
 } from './field-simple.component';
 import { VocabField, VocabFieldComponent, VocabFieldLookupService } from './field-vocab.component';
 import { RepeatableContainer, RepeatableVocabComponent, RepeatableContributorComponent } from './field-repeatable.component';
@@ -63,7 +64,7 @@ export class FieldControlService {
     'TextField': { 'meta': TextField, 'comp': TextFieldComponent },
     'TextArea': { 'meta': TextArea, 'comp': TextAreaComponent },
     'DateTime': { 'meta': DateTime, 'comp': DateTimeComponent },
-    'Container': {'meta': Container, 'comp': [ TextBlockComponent ] },
+    'Container': {'meta': Container, 'comp': [ TextBlockComponent, GenericGroupComponent ] },
     'TabOrAccordionContainer': {'meta': TabOrAccordionContainer, 'comp': TabOrAccordionContainerComponent },
     'ButtonBarContainer': {'meta': ButtonBarContainer, 'comp': ButtonBarContainerComponent },
     'AnchorOrButton': { 'meta': AnchorOrButton, 'comp': AnchorOrButtonComponent },
@@ -124,6 +125,10 @@ export class FieldControlService {
       // set the component class
       if (_.isArray(this.classes[f.class].comp)) {
         inst.compClass = _.find(this.classes[f.class].comp, (c:any)=> { return c.name == f.compClass });
+        // defaults to the first entry when compClass is undefined
+        if (_.isUndefined(inst.compClass)) {
+          inst.compClass = this.classes[f.class].comp[0];
+        }
       } else {
         inst.compClass = this.classes[f.class].comp;
       }

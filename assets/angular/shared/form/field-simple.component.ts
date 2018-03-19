@@ -516,3 +516,17 @@ export class HiddenValueComponent extends SimpleComponent {
 
 
 }
+
+@Component({
+  selector: 'generic-group-field',
+  template: `
+  <div *ngIf="field.editMode" [formGroup]='form' class="form-inline">
+    <label [attr.for]="field.name" *ngIf="field.label">
+      {{field.label}}
+    </label><br/>
+    <dmp-field *ngFor="let field of field.fields" [field]="field" [form]="form" [fieldMap]="fieldMap"></dmp-field>
+  </div>
+  `,
+})
+export class GenericGroupComponent extends SimpleComponent {
+}
