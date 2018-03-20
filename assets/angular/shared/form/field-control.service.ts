@@ -42,6 +42,7 @@ import { RepeatableContainer, RepeatableVocabComponent, RepeatableContributorCom
 import { ContributorField, ContributorComponent } from './field-contributor.component';
 import { WorkflowStepButton, WorkflowStepButtonComponent } from './workflow-button.component';
 import { RelatedObjectDataField, RelatedObjectDataComponent } from './field-relatedobjectdata.component';
+// import { MapField, MapComponent } from './field-map.component';
 import * as _ from "lodash-lib";
 import { Observable } from 'rxjs/Observable';
 import 'rxjs/add/observable/of';
@@ -77,7 +78,8 @@ export class FieldControlService {
     'WorkflowStepButton': {'meta': WorkflowStepButton, 'comp': WorkflowStepButtonComponent},
     'LinkValueComponent': {'meta': LinkValue, 'comp': LinkValueComponent },
     'SelectionField': {'meta': SelectionField, 'comp': [ SelectionFieldComponent, DropdownFieldComponent ]},
-    'RelatedObjectDataField': {'meta': RelatedObjectDataField, 'comp': RelatedObjectDataComponent, 'lookupService': 'vocabFieldLookupService'}
+    'RelatedObjectDataField': {'meta': RelatedObjectDataField, 'comp': RelatedObjectDataComponent, 'lookupService': 'vocabFieldLookupService'},
+    // 'MapField': {'meta': MapField, 'comp': MapComponent, 'lookupService': 'vocabFieldLookupService'}
   };
   constructor(@Inject(VocabFieldLookupService) private vocabFieldLookupService: VocabFieldLookupService, @Inject(CompleterService) private completerService: CompleterService,
   @Inject(ConfigService) protected configService: ConfigService,
@@ -86,6 +88,10 @@ export class FieldControlService {
   protected app: ApplicationRef
   ) {
 
+  }
+
+  addComponentClasses(componentClasses: object) {
+    this.classes = _.merge(this.classes,componentClasses);
   }
 
   getEmptyFormGroup() {
