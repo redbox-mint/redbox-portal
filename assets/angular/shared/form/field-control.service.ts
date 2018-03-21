@@ -34,8 +34,7 @@ import {
   CancelButtonComponent,
   HiddenValueComponent,
   LinkValueComponent,
-  SelectionFieldComponent,
-  GenericGroupComponent
+  SelectionFieldComponent
 } from './field-simple.component';
 import { VocabField, VocabFieldComponent, VocabFieldLookupService } from './field-vocab.component';
 import { RepeatableContainer, RepeatableVocabComponent, RepeatableContributorComponent } from './field-repeatable.component';
@@ -52,6 +51,7 @@ import { CompleterService } from 'ng2-completer';
 import { ConfigService } from '../config-service';
 import { TranslationService } from '../translation-service';
 import { UtilityService } from '../util-service';
+import { GenericGroupComponent, RepeatableGroupComponent } from './field-group.component';
 /**
  * Field / Model Factory Service...
  *
@@ -71,7 +71,7 @@ export class FieldControlService {
     'SaveButton': { 'meta': SaveButton, 'comp': SaveButtonComponent },
     'CancelButton': { 'meta': CancelButton, 'comp': CancelButtonComponent },
     'VocabField': {'meta': VocabField, 'comp': VocabFieldComponent, 'lookupService': 'vocabFieldLookupService'},
-    'RepeatableContainer': {'meta': RepeatableContainer, 'comp': [RepeatableVocabComponent, RepeatableContributorComponent, RepeatableTextfieldComponent]},
+    'RepeatableContainer': {'meta': RepeatableContainer, 'comp': [RepeatableVocabComponent, RepeatableContributorComponent, RepeatableTextfieldComponent, RepeatableGroupComponent]},
     'ContributorField': {'meta': ContributorField, 'comp': ContributorComponent, 'lookupService': 'vocabFieldLookupService'},
     'HiddenValue': {'meta': HiddenValue, 'comp': HiddenValueComponent},
     'WorkflowStepButton': {'meta': WorkflowStepButton, 'comp': WorkflowStepButtonComponent},

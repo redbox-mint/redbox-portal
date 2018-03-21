@@ -55,6 +55,12 @@ export class RepeatableContainer extends Container {
   }
 
   getInitArrayEntry() {
+    if (this.fields[0].isGroup) {
+      const grp = {};
+      const fm = {};
+      const fg = this.fields[0].getGroup(grp, fm);
+      return [fg];
+    }
     return [this.fields[0].createFormModel()];
   }
 
@@ -70,6 +76,7 @@ export class RepeatableContainer extends Container {
         let fieldClone = null;
         if (fieldCtr == 0) {
           fieldClone = baseField;
+          fieldClone.value = valueElem;
         } else {
           fieldClone = this.createNewElem(baseField, valueElem);
         }
@@ -130,7 +137,7 @@ export class RepeatableContainer extends Container {
     if (_.isFunction(newElem.setEmptyValue)) {
       newElem.setEmptyValue();
     }
-    this.fields.push(newElem);
+    this.fields.push(newElem);)
     const newFormModel = newElem.createFormModel();
     this.formModel.push(newFormModel);
     return newElem;
@@ -149,7 +156,6 @@ export class RepeatableContainer extends Container {
 }
 
 export class EmbeddableComponent extends SimpleComponent {
-  @Input() isEmbedded: boolean = false;
   @Input() canRemove: boolean = false;
   @Input() removeBtnText: string = null;
   @Input() removeBtnClass: string = 'btn fa fa-minus-circle btn text-20 pull-left btn btn-danger';
@@ -165,7 +171,7 @@ export class EmbeddableComponent extends SimpleComponent {
     if (this.isEmbedded) {
       baseClass = '';
     }
-    return `${baseClass} ${this.hasRequiredError() ? 'has-error' : '' }`;
+    return `${baseClass} ${this.hasRequiredError() ? 'has-error' : '' } ${this.field.groupClasses}`;
   }
 }
 

@@ -50,6 +50,8 @@ export class SimpleComponent {
    * The name of this field
    */
   @Input() public name: any;
+
+  @Input() isEmbedded: boolean = false;
   /**
    * The NG2 root injector
    */
@@ -68,22 +70,38 @@ export class SimpleComponent {
    * @param  {string = null} name
    * @return {FormControl}
    */
-  public getFormControl(name: string = null):FormControl {
+  public getFormControl(name: string = null, ctrlIndex: number = null):FormControl {
+    let fc = null;
+    if (_.isEmpty(name)) {
+      name = this.name;
+    }
     if (_.isEmpty(name)) {
       name = this.field.name;
     }
     if (this.fieldMap && this.field) {
-      return this.fieldMap[name].control;
+      // console.log(name);
+      fc = this.field.getControl(name, this.fieldMap);
     }
-    return null;
+    if (!_.isNull(ctrlIndex) && !_.isUndefined(ctrlIndex)) {
+      if (!_.isNull(fc.controls) && !_.isUndefined(fc.controls)) {
+        fc = fc.controls[ctrlIndex];
+      }
+    } else
+    if (this.index != null) {
+      fc = fc.controls[this.index];
+    }
+    if (name != this.field.name && !_.isEmpty(this.field.name) && !_.isUndefined(fc.controls)) {
+      fc = fc.controls[this.field.name];
+    }
+    return fc;
   }
   /**
    * Returns the CSS class
    * @param  {string=null} fldName
    * @return {string}
    */
-  public getGroupClass(fldName:string=null): string {
-    return `form-group ${this.hasRequiredError() ? 'has-error' : '' }`;
+  public getGroupClass(fldName:string=null): string { 
+    return `form-group ${this.hasRequiredError() ? 'has-error' : '' } ${ this.field.groupClasses }`;
   }
   /**
    * If this field has a 'required' error.
@@ -91,7 +109,7 @@ export class SimpleComponent {
    * @return {[type]}
    */
   public hasRequiredError():boolean {
-    return this.field.formModel.touched && this.field.formModel.hasError('required');
+    return (this.field.formModel ? this.field.formModel.touched && this.field.formModel.hasError('required') : false);
   }
   /**
    * Convenience method to toggle help mode.
@@ -515,18 +533,4 @@ export class HiddenValueComponent extends SimpleComponent {
   }
 
 
-}
-
-@Component({
-  selector: 'generic-group-field',
-  template: `
-  <div *ngIf="field.editMode" [formGroup]='form' class="form-inline">
-    <label [attr.for]="field.name" *ngIf="field.label">
-      {{field.label}}
-    </label><br/>
-    <dmp-field *ngFor="let field of field.fields" [field]="field" [form]="form" [fieldMap]="fieldMap"></dmp-field>
-  </div>
-  `,
-})
-export class GenericGroupComponent extends SimpleComponent {
 }

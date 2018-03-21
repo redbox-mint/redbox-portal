@@ -599,7 +599,64 @@ module.exports = {
                     type: 'h3'
                   }
                 },
-
+                {
+                  class: 'RepeatableContainer',
+                  compClass: 'RepeatableGroupComponent',
+                  definition: {
+                    name: "related_websites",
+                    label: "@dmpt-related-website",
+                    help: "@dmpt-related-website-help",
+                    forceClone: ['fields', 'fieldMap'],
+                    fields: [
+                      {
+                        class: 'Container',
+                        compClass: 'GenericGroupComponent',
+                        definition: {
+                          name: "related_website",
+                          cssClasses: "form-inline",
+                          fields: [
+                            {
+                              class: 'TextField',
+                              editOnly: true,
+                              definition: {
+                                name: 'related_url',
+                                label: '@dmpt-related-website-url',
+                                type: 'text',
+                                groupName: 'related_website',
+                                groupClasses: 'width-30',
+                                cssClasses : "width-80 form-control"
+                              }
+                            },
+                            {
+                              class: 'TextField',
+                              editOnly: true,
+                              definition: {
+                                name: 'related_title',
+                                label: '@dmpt-related-website-title',
+                                type: 'text',
+                                groupName: 'related_website',
+                                groupClasses: 'width-30',
+                                cssClasses : "width-80 form-control"
+                              }
+                            },
+                            {
+                              class: 'TextField',
+                              editOnly: true,
+                              definition: {
+                                name: 'related_notes',
+                                label: '@dmpt-related-website-notes',
+                                type: 'text',
+                                groupName: 'related_website',
+                                groupClasses: 'width-30',
+                                cssClasses : "width-80 form-control"
+                              }
+                            }
+                          ]
+                        }
+                      }
+                    ]
+                  }
+                }
               ]
             }
           },

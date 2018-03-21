@@ -413,5 +413,10 @@
   "auth-update-error": "Updating authorization resulted in server error, please contact administrator.",
   "edit-error-no-permissions": "You do not have permission to edit this record",
   "view-error-no-permissions": "You do not have permission to view this record",
-  "missing-record": "Problems retrieving this record, are you sure it exists?"
+  "missing-record": "Problems retrieving this record, are you sure it exists?",
+  "@dmpt-related-website": "Related Website",
+  "@dmpt-related-website-help": "Help text for related website",
+  "@dmpt-related-website-url": "URL",
+  "@dmpt-related-website-title": "Title",
+  "@dmpt-related-website-notes": "Notes"
 }

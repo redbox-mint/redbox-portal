@@ -61,6 +61,12 @@ export class DmpFieldComponent {
    */
   @Input() parentId: string;
 
+  @Input() isEmbedded: boolean = false;
+
+  @Input() public name: any;
+
+  @Input() public index: number;
+
   disabledExpression: string;
 
   @ViewChild('field') fieldElement;
@@ -133,6 +139,11 @@ export class DmpFieldComponent {
     fieldCompRef.instance.form = this.form;
     fieldCompRef.instance.fieldMap = this.fieldMap;
     fieldCompRef.instance.parentId = this.parentId;
-    this.fieldMap[this.field.name].instance = fieldCompRef.instance;
+    fieldCompRef.instance.isEmbedded = this.isEmbedded;
+    fieldCompRef.instance.name = this.name;
+    fieldCompRef.instance.index = this.index;
+    // flip thi: make the fields responsible for setting the right fieldMap member
+    this.field.setFieldMapEntry(this.fieldMap, fieldCompRef);
+    //this.fieldMap[this.field.name].instance = fieldCompRef.instance;
   }
 }

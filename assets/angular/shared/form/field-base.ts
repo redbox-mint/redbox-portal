@@ -38,7 +38,9 @@ export class FieldBase<T> {
   controlType: string;
   compClass: any;
   form: any;
+  groupClasses: any;
   cssClasses: any;
+  isGroup: boolean;
   hasGroup: boolean;
   hasLookup: boolean;
   options: any;
@@ -94,6 +96,7 @@ export class FieldBase<T> {
     this.required = !!options.required;
     this.controlType = options.controlType || '';
     this.cssClasses = options.cssClasses || {}; // array of
+    this.groupClasses = options['groupClasses'] || '';
     this.groupName = options.groupName || null;
     this.editMode = options.editMode || false;
     this.readOnly = options.readOnly || false;
@@ -155,9 +158,9 @@ export class FieldBase<T> {
   public getGroup(group: any, fieldMap: any) : any {
     this.fieldMap = fieldMap;
     let retval = null;
-    fieldMap[this.name] = {field:this};
+    _.set(fieldMap, `${this.getFullFieldName()}.field`, this);
     let control = this.createFormModel();
-    fieldMap[this.name].control = control;
+    _.set(fieldMap, `${this.getFullFieldName()}.control`, control);
     if (this.hasGroup && this.groupName) {
       if (group[this.groupName]) {
         group[this.groupName].addControl(this.name, control);
@@ -274,5 +277,22 @@ export class FieldBase<T> {
 
   public reactEvent(eventName: string, eventData: any, origData: any) {
     this.formModel.setValue(eventData, { onlySelf: true, emitEvent: false });
+  }
+
+  public setFieldMapEntry(fieldMap: any, fieldCompRef: any) {
+    if (!_.isUndefined(this.name) && !_.isEmpty(this.name) && !_.isNull(this.name)) {
+      _.set(fieldMap, `${this.getFullFieldName()}.instance`, fieldCompRef.instance);
+    }
+  }
+
+  public getFullFieldName(name=null) {
+    const fldName = `${name ? name : this.name}`;
+    // console.log(`Using fldName: ${fldName}`);
+    // console.log(this.fieldMap);
+    return fldName;
+  }
+
+  public getControl(name = null, fieldMap = null) {
+    return _.get(fieldMap ? fieldMap : this.fieldMap, `${this.getFullFieldName(name)}.control`);
   }
 }

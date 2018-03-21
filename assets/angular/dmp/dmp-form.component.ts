@@ -313,11 +313,20 @@ export class DmpFormComponent extends LoadableComponent {
    *
    * @return {[type]}
    */
-  triggerValidation() {
+  triggerValidation(fieldMap=null) {
+    if (_.isNull(fieldMap)) {
+      fieldMap = this.fieldMap;
+    }
     this.failedValidationLinks = [];
-    _.forOwn(this.fieldMap, (fieldEntry:any, fieldName:string) => {
+    _.forOwn(fieldMap, (fieldEntry:any, fieldName:string) => {
       if (!_.isEmpty(fieldName) && !_.startsWith(fieldName, '_')) {
-        fieldEntry.field.triggerValidation();
+        if (!_.isUndefined(fieldEntry.field) && !_.isNull(fieldEntry.field)) {
+          fieldEntry.field.triggerValidation();
+        } else {
+          if (!_.isUndefined(fieldEntry.members) && !_.isNull(fieldEntry.members)) {
+            this.triggerValidation(fieldEntry.members);
+          }
+        }
       }
     });
   }
@@ -346,7 +355,8 @@ export class DmpFormComponent extends LoadableComponent {
     let label = null;
     _.forOwn(this.form.controls, (ctrl, ctrlName) => {
       if (ctrl.invalid) {
-        label = this.failedValidationLinks.length > 0 ? `, ${this.fieldMap[ctrlName].field.label}` : this.fieldMap[ctrlName].field.label;
+        label = this.fieldMap[ctrlName].field ? this.fieldMap[ctrlName].field.label : this.fieldMap[ctrlName].instance.field.label;
+        label = this.failedValidationLinks.length > 0 ? `, ${label}` : label;
         this.failedValidationLinks.push({
           label: label,
           parentId: this.fieldMap[ctrlName].instance.parentId
@@ -412,9 +422,20 @@ export class DmpFormComponent extends LoadableComponent {
   formatValues(data:any) {
     const formVals = _.cloneDeep(data);
     _.forOwn(formVals, (val:any, key:string) => {
-      if (_.isFunction(this.fieldMap[key].instance.formatValue)) {
-        const newVal = this.fieldMap[key].instance.formatValue(formVals[key]);
-        formVals[key] = newVal;
+      if (!_.isUndefined(this.fieldMap[key].members)) {
+        _.each(this.fieldMap[key].members, (member)=>{
+          if (_.isFunction(member.instance.formatValue)) {
+            const newVal = member.instance.formatValue(formVals[key]);
+            formVals[key] = newVal;
+          }
+        });
+      } else {
+        if (!_.isUndefined(this.fieldMap[key].instance)) {
+          if (_.isFunction(this.fieldMap[key].instance.formatValue)) {
+            const newVal = this.fieldMap[key].instance.formatValue(formVals[key]);
+            formVals[key] = newVal;
+          }
+        }
       }
     });
     return formVals;

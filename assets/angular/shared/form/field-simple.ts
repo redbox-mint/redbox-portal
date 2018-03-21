@@ -115,23 +115,29 @@ export class Container extends FieldBase<any> {
     this.content = options['content'] || '';
     this.active = options['active'] || false;
     this.type = options['type'] || '';
+    this.isGroup = true;
     this.hasControl = _.isUndefined(this.groupName);
   }
 
   public getGroup(group: any, fieldMap: any) : any {
     this.fieldMap = fieldMap;
-    let retval = null;
-    fieldMap[this.name] = {field:this};
-    if (this.hasGroup && this.groupName) {
-      // when this has a FormControl associated, build the FormGroup...
-      group[this.groupName] = new FormGroup({});
-      _.each(this.fields, (field) => {
-        field.getGroup(group, fieldMap);
-      });
-      retval = group[this.groupName];
-    }
-    return retval;
+    _.set(fieldMap, `${this.getFullFieldName()}.field`, this);
+    group[this.name] = new FormGroup({});
+    _.each(this.fields, (field) => {
+      field.getGroup(group, fieldMap);
+    });
+    return group[this.name];
   }
+
+  public createFormModel(): any {
+    const grp = {};
+    _.each(this.fields, (field) => {
+      grp[field.name] = field.createFormModel();
+    });
+    this.formModel = new FormGroup(grp);
+    return this.formModel;
+  }
+
 }
 
 export class TabOrAccordionContainer extends Container {
