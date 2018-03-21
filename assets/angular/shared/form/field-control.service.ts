@@ -16,8 +16,7 @@
 // You should have received a copy of the GNU General Public License along
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-
-import { Injectable, Inject, ApplicationRef }   from '@angular/core';
+import { Injectable, Inject, ApplicationRef, Output, EventEmitter }   from '@angular/core';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { FieldBase } from './field-base';
 import { TextField, Container, TextArea, DateTime, AnchorOrButton, SaveButton, CancelButton, HiddenValue, LinkValue, TabOrAccordionContainer, ButtonBarContainer, SelectionField } from './field-simple';
@@ -41,7 +40,7 @@ import { RepeatableContainer, RepeatableVocabComponent, RepeatableContributorCom
 import { ContributorField, ContributorComponent } from './field-contributor.component';
 import { WorkflowStepButton, WorkflowStepButtonComponent } from './workflow-button.component';
 import { RelatedObjectDataField, RelatedObjectDataComponent } from './field-relatedobjectdata.component';
-// import { MapField, MapComponent } from './field-map.component';
+import { MapField, MapComponent } from './field-map.component';
 import * as _ from "lodash-lib";
 import { Observable } from 'rxjs/Observable';
 import 'rxjs/add/observable/of';
@@ -79,7 +78,7 @@ export class FieldControlService {
     'LinkValueComponent': {'meta': LinkValue, 'comp': LinkValueComponent },
     'SelectionField': {'meta': SelectionField, 'comp': [ SelectionFieldComponent, DropdownFieldComponent ]},
     'RelatedObjectDataField': {'meta': RelatedObjectDataField, 'comp': RelatedObjectDataComponent, 'lookupService': 'vocabFieldLookupService'},
-    // 'MapField': {'meta': MapField, 'comp': MapComponent, 'lookupService': 'vocabFieldLookupService'}
+    'MapField': {'meta': MapField, 'comp': MapComponent, 'lookupService': 'vocabFieldLookupService'}
   };
   constructor(@Inject(VocabFieldLookupService) private vocabFieldLookupService: VocabFieldLookupService, @Inject(CompleterService) private completerService: CompleterService,
   @Inject(ConfigService) protected configService: ConfigService,

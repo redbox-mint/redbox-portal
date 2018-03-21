@@ -53,6 +53,21 @@ export class RecordsService extends BaseService {
     });
   }
 
+  addRenderCompleteElement(fieldsMeta){
+    var renderCompleteElement = {
+            "class" : "Container",
+            "compClass" : "TextBlockComponent",
+            "definition" : {
+                "value" : "",
+                "type" : "span",
+                "cssClasses" : "form-render-complete"
+            }
+        };
+
+    fieldsMeta.push(renderCompleteElement);
+
+  }
+
   getFormFields(recordType:string, oid: string=null, editable:boolean) {
     console.log("Oid is: " + oid);
     const url = oid ? `${this.brandingAndPortalUrl}/record/form/auto/${oid}?edit=${editable}` : `${this.brandingAndPortalUrl}/record/form/${recordType}?edit=${editable}`;
@@ -65,6 +80,10 @@ export class RecordsService extends BaseService {
   getFormFieldsMeta(recordType:string, editable:boolean, oid:string=null) {
     return this.getFormFields(recordType, oid, editable).then((form:any) => {
       if (form && form.fields) {
+        if(!editable){
+          // Add an empty element to the end of the form so a screenshot tool can detect the rendered form reliably
+          this.addRenderCompleteElement(form.fields);
+        }
         form.fieldsMeta = this.fcs.getFieldsMeta(form.fields);
       } else {
         console.error("Error loading form:" + recordType);

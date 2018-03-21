@@ -385,6 +385,8 @@
   "@dataRecord-embargoUntil": "Embargo until",
   "@dataRecord-embargoUntil-help": "",
   "@dataRecord-embargoNote": "Embargo note",
+  "@dataRecord-geospatial": "Geospatial location",
+  "@dataRecord-geospatial-help": "",
   "report-results-returned": "{count} result returned",
   "report-results-returned_plural": "{count} results returned",
   "report-csv-download": "Download as CSV",
