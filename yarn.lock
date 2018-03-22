@@ -841,6 +841,12 @@ clean-css@~3.4.2:
     commander "2.8.x"
     source-map "0.4.x"
 
+clean-css@~4.1.1:
+  version "4.1.9"
+  resolved "https://registry.yarnpkg.com/clean-css/-/clean-css-4.1.9.tgz#35cee8ae7687a49b98034f70de00c4edd3826301"
+  dependencies:
+    source-map "0.5.x"
+
 cliui@^2.1.0:
   version "2.1.0"
   resolved "https://registry.yarnpkg.com/cliui/-/cliui-2.1.0.tgz#4b475760ff80264c762c3a1719032e91c7fea0d1"
@@ -1357,7 +1363,7 @@ duplexer2@0.0.2:
   dependencies:
     readable-stream "~1.1.9"
 
-duplexer@~0.1.1:
+duplexer@^0.1.1, duplexer@~0.1.1:
   version "0.1.1"
   resolved "https://registry.yarnpkg.com/duplexer/-/duplexer-0.1.1.tgz#ace6ff808c1ce66b57d1ebf97977acb02334cfc1"
 
@@ -1421,6 +1427,10 @@ ejs@2.3.4:
   resolved "https://registry.yarnpkg.com/ejs/-/ejs-2.3.4.tgz#3c76caa09664b3583b0037af9dc136e79ec68b98"
 
 ejs@2.5.7, ejs@2.x:
+  version "2.5.7"
+  resolved "https://registry.yarnpkg.com/ejs/-/ejs-2.5.7.tgz#cc872c168880ae3c7189762fd5ffc00896c9518a"
+
+ejs@2.5.7:
   version "2.5.7"
   resolved "https://registry.yarnpkg.com/ejs/-/ejs-2.5.7.tgz#cc872c168880ae3c7189762fd5ffc00896c9518a"
 
@@ -2120,6 +2130,14 @@ grunt-contrib-cssmin@1.0.1:
     clean-css "~3.4.2"
     maxmin "^1.1.0"
 
+grunt-contrib-cssmin@2.2.1:
+  version "2.2.1"
+  resolved "https://registry.yarnpkg.com/grunt-contrib-cssmin/-/grunt-contrib-cssmin-2.2.1.tgz#64cbebe60134bc1270ca4154514ec4007cc16f7f"
+  dependencies:
+    chalk "^1.0.0"
+    clean-css "~4.1.1"
+    maxmin "^2.1.0"
+
 grunt-contrib-jst@1.0.0:
   version "1.0.0"
   resolved "https://registry.yarnpkg.com/grunt-contrib-jst/-/grunt-contrib-jst-1.0.0.tgz#b8e7035ae3b62587580bd6d83c8f0c4841063874"
@@ -2303,6 +2321,12 @@ gzip-size@^1.0.0:
   dependencies:
     browserify-zlib "^0.1.4"
     concat-stream "^1.4.1"
+
+gzip-size@^3.0.0:
+  version "3.0.0"
+  resolved "https://registry.yarnpkg.com/gzip-size/-/gzip-size-3.0.0.tgz#546188e9bdc337f673772f81660464b389dce520"
+  dependencies:
+    duplexer "^0.1.1"
 
 handlebars@^4.0.1, handlebars@^4.0.11, handlebars@^4.0.5:
   version "4.0.11"
@@ -3209,6 +3233,15 @@ maxmin@^1.1.0:
     gzip-size "^1.0.0"
     pretty-bytes "^1.0.0"
 
+maxmin@^2.1.0:
+  version "2.1.0"
+  resolved "https://registry.yarnpkg.com/maxmin/-/maxmin-2.1.0.tgz#4d3b220903d95eee7eb7ac7fa864e72dc09a3166"
+  dependencies:
+    chalk "^1.0.0"
+    figures "^1.0.1"
+    gzip-size "^3.0.0"
+    pretty-bytes "^3.0.0"
+
 md5-file@^2.0.3:
   version "2.0.7"
   resolved "https://registry.yarnpkg.com/md5-file/-/md5-file-2.0.7.tgz#307f78bd04ccb054e467ec661cfa5a9afdc9f210"
@@ -3941,6 +3974,12 @@ pretty-bytes@^1.0.0:
   dependencies:
     get-stdin "^4.0.1"
     meow "^3.1.0"
+
+pretty-bytes@^3.0.0:
+  version "3.0.1"
+  resolved "https://registry.yarnpkg.com/pretty-bytes/-/pretty-bytes-3.0.1.tgz#27d0008d778063a0b4811bb35c79f1bd5d5fbccf"
+  dependencies:
+    number-is-nan "^1.0.0"
 
 process-nextick-args@~1.0.6:
   version "1.0.7"
@@ -4988,7 +5027,7 @@ source-map@0.4.x, source-map@^0.4.4:
   dependencies:
     amdefine ">=0.0.4"
 
-source-map@^0.5.3, source-map@^0.5.6, source-map@~0.5.1:
+source-map@0.5.x, source-map@^0.5.3, source-map@^0.5.6, source-map@~0.5.1:
   version "0.5.7"
   resolved "https://registry.yarnpkg.com/source-map/-/source-map-0.5.7.tgz#8a039d2d1021d22d1ea14c80d8ea468ba2ef3fcc"
 
