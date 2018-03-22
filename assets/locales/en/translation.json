@@ -418,5 +418,22 @@
   "@dmpt-related-website-help": "Help text for related website",
   "@dmpt-related-website-url": "URL",
   "@dmpt-related-website-title": "Title",
-  "@dmpt-related-website-notes": "Notes"
+  "@dmpt-related-website-notes": "Notes",
+  "@dmpt-related-publication": "Related Publications",
+  "@dmpt-related-publication-help": "Help text for related publications",
+  "@dmpt-related-publication-url": "URL",
+  "@dmpt-related-publication-title": "Title",
+  "@dmpt-related-publication-notes": "Notes",
+  "@dmpt-related-data": "Related Data",
+  "@dmpt-related-data-help": "Help text for related data",
+  "@dmpt-related-data-url": "Data URL",
+  "@dmpt-related-data-title": "Title",
+  "@dmpt-related-data-notes": "Notes",
+  "@dmpt-related-data-local": "Local related data",
+  "@dmpt-related-data-local-val": "Local related data",
+  "@dmpt-related-data-relationship": "Relationship",
+  "@dmpt-related-data-relationship-association-with": "Has association with",
+  "@dmpt-related-data-relationship-association-with-val": "Has association with",
+  "@dmpt-related-data-rda": "Publish to RDA",
+  "@dmpt-related-data-rda-val": "Publish to RDA"
 }

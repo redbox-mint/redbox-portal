@@ -76,12 +76,13 @@ export class RepeatableContainer extends Container {
         let fieldClone = null;
         if (fieldCtr == 0) {
           fieldClone = baseField;
-          fieldClone.value = valueElem;
+          fieldClone.value = _.isArray(valueElem) ? valueElem[fieldCtr] : valueElem;
         } else {
-          fieldClone = this.createNewElem(baseField, valueElem);
+          fieldClone = this.createNewElem(baseField, _.isArray(valueElem) ? valueElem[fieldCtr] : valueElem);
+          fieldClone.value = _.isArray(valueElem) ? valueElem[fieldCtr] : valueElem;
         }
         fieldCtr++;
-        elems.push(fieldClone.createFormModel(valueElem));
+        elems.push(fieldClone.createFormModel(valueElem[fieldCtr]));
         return fieldClone;
       });
       this.formModel = new FormArray(elems);

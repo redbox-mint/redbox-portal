@@ -100,8 +100,8 @@ export class SimpleComponent {
    * @param  {string=null} fldName
    * @return {string}
    */
-  public getGroupClass(fldName:string=null): string { 
-    return `form-group ${this.hasRequiredError() ? 'has-error' : '' } ${ this.field.groupClasses }`;
+  public getGroupClass(fldName:string=null): string {
+    return `${ this.field.groupClasses } form-group ${this.hasRequiredError() ? 'has-error' : '' }`;
   }
   /**
    * If this field has a 'required' error.
@@ -189,13 +189,13 @@ export class SelectionComponent extends SimpleComponent {
 @Component({
   selector: 'dropdownfield',
   template: `
-  <div [formGroup]='form' *ngIf="field.editMode" class="form-group">
+  <div [formGroup]='form' *ngIf="field.editMode" [ngClass]="getGroupClass()">
      <label [attr.for]="field.name">
       {{field.label}} {{ getRequiredLabelStr()}}
       <button type="button" class="btn btn-default" *ngIf="field.help" (click)="toggleHelp()"><span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span></button>
      </label><br/>
      <span id="{{ 'helpBlock_' + field.name }}" class="help-block" *ngIf="this.helpShow" [innerHtml]="field.help"></span>
-     <select [formControl]="getFormControl()"  [id]="field.name" class="form-control">
+     <select [formControl]="getFormControl()"  [id]="field.name" [ngClass]="field.cssClasses">
         <option *ngFor="let opt of field.options" [value]="opt.value">{{opt.label}}</option>
      </select>
      <div class="text-danger" *ngIf="getFormControl().hasError('required') && getFormControl().touched && !field.validationMessages?.required">{{field.label}} is required</div>

@@ -92,6 +92,38 @@ module.exports = {
                   definition: {
                     value: '@dmpt-welcome-par4'
                   }
+                },
+                {
+                  class: 'Container',
+                  compClass: 'GenericGroupComponent',
+                  definition: {
+                    name: "related_website",
+                    label: "@dmpt-related-website",
+                    fields: [
+                      {
+                        class: 'TextField',
+                        editOnly: true,
+                        definition: {
+                          name: 'related_url',
+                          label: '@dmpt-related-website-url',
+                          type: 'text',
+                          required: true,
+                          groupName: 'related_website'
+                        }
+                      },
+                      {
+                        class: 'TextField',
+                        editOnly: true,
+                        definition: {
+                          name: 'related_title',
+                          label: '@dmpt-related-website-title',
+                          type: 'text',
+                          required: true,
+                          groupName: 'related_website'
+                        }
+                      }
+                    ]
+                  }
                 }
               ]
             }
