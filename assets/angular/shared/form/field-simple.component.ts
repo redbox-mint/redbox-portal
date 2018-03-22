@@ -19,7 +19,7 @@
 
 import { Input, Component, ViewChild, ViewContainerRef, OnInit, Injector} from '@angular/core';
 import { FieldBase } from './field-base';
-import { DateTime, AnchorOrButton, SaveButton, CancelButton, TextArea, TextField } from './field-simple';
+import { DateTime, AnchorOrButton, SaveButton, CancelButton, TextArea, TextField, TabOrAccordionContainer } from './field-simple';
 import { FormGroup, FormControl, FormArray } from '@angular/forms';
 import * as _ from "lodash-lib";
 import moment from 'moment-es6';
@@ -319,7 +319,16 @@ Container components
   `
 })
 export class TabOrAccordionContainerComponent extends SimpleComponent {
+  field: TabOrAccordionContainer;
 
+  ngAfterViewInit() {
+    let that = this;
+    jQuery("[role='tab']").on('shown.bs.tab', function () {
+      that.field.onTabChange.emit(this.getAttribute("href").substring(1,this.getAttribute("href").length));
+
+    });
+
+  }
 }
 
 @Component({

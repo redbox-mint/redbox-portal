@@ -31,7 +31,11 @@ module.exports.dynamicasset = {
       "i18next-xhr-backend",
       "i18next-browser-languagedetector",
       "ts-smart-logger",
-      "lucene-escape-query"
+      "lucene-escape-query",
+      "@asymmetrik/ngx-leaflet",
+      "@asymmetrik/ngx-leaflet-draw",
+      "leaflet",
+      "leaflet-draw"
     ],
     systemjs_map: {
       '@angular/core': 'npm:@angular/core/bundles/core.umd.js',
@@ -42,6 +46,11 @@ module.exports.dynamicasset = {
       '@angular/http': 'npm:@angular/http/bundles/http.umd.js',
       '@angular/router': 'npm:@angular/router/bundles/router.umd.js',
       '@angular/forms': 'npm:@angular/forms/bundles/forms.umd.js',
+      '@angular/forms': 'npm:@angular/forms/bundles/forms.umd.js',
+      '@asymmetrik/ngx-leaflet': 'npm:@asymmetrik/ngx-leaflet/dist/bundles/ngx-leaflet.js',
+      '@asymmetrik/ngx-leaflet-draw': 'npm:@asymmetrik/ngx-leaflet-draw/dist/bundles/ngx-leaflet-draw.js',
+      'leaflet': 'npm:leaflet/dist/leaflet.js',
+      'leaflet-draw': 'npm:leaflet-draw/dist/leaflet.draw.js',
       'rxjs': 'npm:rxjs',
       'lodash-lib': 'npm:lodash-lib/index.js',
       'ng2-datetime/ng2-datetime': 'npm:ng2-datetime/ng2-datetime.js',

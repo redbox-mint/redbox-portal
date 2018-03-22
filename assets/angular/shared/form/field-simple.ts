@@ -16,7 +16,7 @@
 // You should have received a copy of the GNU General Public License along
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-
+import { Output, EventEmitter } from '@angular/core';
 import { FieldBase } from './field-base';
 import { FormControl, FormGroup, FormArray } from '@angular/forms';
 import * as _ from "lodash-lib";
@@ -146,6 +146,8 @@ export class Container extends FieldBase<any> {
 }
 
 export class TabOrAccordionContainer extends Container {
+  
+  @Output() onTabChange: EventEmitter<any> = new EventEmitter<any>();
   tabNavContainerClass: any;
   tabNavClass: any;
   tabContentContainerClass: any;
@@ -217,6 +219,7 @@ export class DateTime extends FieldBase<any> {
     this.datePickerOpts = newOpts;
   }
 }
+
 
 
 export class SaveButton extends FieldBase<string> {

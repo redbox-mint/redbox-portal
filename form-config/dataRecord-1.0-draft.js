@@ -889,7 +889,6 @@ module.exports = {
                 },
                 {
                   class: 'TextField',
-                  editOnly: true,
                   definition: {
                     name: 'timePeriod',
                     label: '@dataRecord-timePeriod',
@@ -898,16 +897,16 @@ module.exports = {
                     required: true
                   }
                 },
-                // {
-                //   class: 'MapField',
-                //   compClass: 'MapComponent',
-                //   editOnly: true,
-                //   definition: {
-                //     name: 'timePeriod1',
-                //     label: '@dataRecord-timePeriod1',
-                //     help: '@dataRecord-timePeriod-help1'
-                //   }
-                // }
+                {
+                  class: 'MapField',
+                  compClass: 'MapComponent',
+                  definition: {
+                    name: 'geospatial',
+                    label: '@dataRecord-geospatial',
+                    help: '@dataRecord-geospatial-help',
+                    tabId: 'coverage'
+                  }
+                }
               ]
             }
           },
