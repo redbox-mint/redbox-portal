@@ -21,7 +21,7 @@
     "bcrypt": "^1.0.2",
     "chokidar": "~1.6.1",
     "core-js": "^2.4.1",
-    "ejs": "2.5.7",
+    "ejs": "2.5.8",
     "fs-extra": "^1.0.0",
     "grunt": "1.0.2",
     "grunt-contrib-clean": "1.0.0",
