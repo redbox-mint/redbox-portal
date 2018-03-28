@@ -59,7 +59,7 @@
     "sails": "~0.12.11",
     "sails-disk": "~0.10.9",
     "sails-hook-autoreload": "^1.1.0",
-    "sails-mongo": "~0.12.2",
+    "sails-mongo": "~1.0.0",
     "skipper-gridfs": "~0.5.3",
     "systemjs": "0.19.40",
     "ts-smart-logger": "0.0.4",
