@@ -4,7 +4,7 @@ source dev_build/buildFns.sh
 cleanUpAllJs
 npm install -g yarn
 yarn install
-linkNodeLib "lodash-es" "lodash-lib"
+#linkNodeLib "lodash-es" "lodash-lib"
 echo "declare module 'lodash-lib';" > "node_modules/lodash-es/index.d.ts"
 compileAoT
 convertApiSpec
