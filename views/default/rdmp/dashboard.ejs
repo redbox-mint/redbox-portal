@@ -21,12 +21,8 @@
   </div>
   <div class="main container clearfix">
     <dashboard branding="<%= typeof branding == 'undefined'? data.branding : branding %>" portal="<%= typeof portal == 'undefined'? data.portal : portal %>"></dashboard>
-<% if (!sails.config.ng2.use_bundled) { %>
-  <script src="/dynamic/systemjs-config.js?appName=dashboard"></script>
-  <script>
-    System.import('dashboard').catch(function(err){ console.error(err); });
-  </script>
-<% } %>
+
+    <script type="text/javascript" src="/angular/dashboard/inline.bundle.js"></script><script type="text/javascript" src="/angular/dashboard/polyfills.bundle.js"></script><script type="text/javascript" src="/angular/dashboard/styles.bundle.js"></script><script type="text/javascript" src="/angular/dashboard/vendor.bundle.js"></script><script type="text/javascript" src="/angular/dashboard/main.bundle.js"></script></body>
 
 
   </div>

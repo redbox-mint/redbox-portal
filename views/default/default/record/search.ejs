@@ -8,10 +8,5 @@
   </div>
 </div>
 <record-search search_url="record/search" record_type="<%= req.query.type ? req.query.type : 'rdmp'%>" search_str="<%= req.query.q ? req.query.q : '' %>" full_url="<%= req.url %>"></record-search>
-<% if (!sails.config.ng2.use_bundled) { %>
-<!-- Import and Load angular 2 if on dev mode-->
-<script src="/dynamic/systemjs-config.js?appName=record_search"></script>
-<script>
-  System.import('record_search').catch(function(err){ console.error(err); });
-</script>
-<% } %>
+
+<script type="text/javascript" src="/angular/record_search/inline.bundle.js"></script><script type="text/javascript" src="/angular/record_search/polyfills.bundle.js"></script><script type="text/javascript" src="/angular/record_search/styles.bundle.js"></script><script type="text/javascript" src="/angular/record_search/vendor.bundle.js"></script><script type="text/javascript" src="/angular/record_search/main.bundle.js"></script>

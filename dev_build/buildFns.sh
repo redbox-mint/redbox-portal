@@ -39,31 +39,29 @@ function linkNodeLib() {
 }
 
 function bundleNg2App() {
-  ng2dir="assets/angular"
+  ng2dir="angular"
   echo "Bundling ${ng2dir}/${ng2app}...using build target: ${buildTarget}"
-  cd "${ng2dir}/${ng2app}"
-  if [ -e "rollup-config.js" ]; then
-    ../../../node_modules/.bin/rollup -c rollup-config.js
-    if [ "${buildTarget}" == "PROD" ]; then
-      ../../../node_modules/.bin/uglifyjs -c -o dist-bundle-min.js -- dist-bundle.js
-      mv -f dist-bundle-min.js dist-bundle.js
-    fi
-  else
-    echo "Missing Rollup config for app: ${ng2app}?"
-  fi
+  cd "${ng2dir}"
+  ng build --app=${ng2app}
   cd -
 }
 
 function compileAoT() {
+  ng2dir="angular"
+  cd "${ng2dir}"
+    yarn
+  cd -
   echo "Running AoT compile..."
   node_modules/.bin/ngc -p tsconfig-aot.json
   node_modules/.bin/grunt --gruntfile Gruntfile-ts-compile-sails.js
   node_modules/.bin/grunt --gruntfile Gruntfile-ts-compile-ng2.js
-  ng2apps=( `find assets/angular -maxdepth 1 -mindepth 1 -type d -printf '%f '` )
+  ng2apps=( `find angular -maxdepth 1 -mindepth 1 -type d -printf '%f '` )
   for ng2app in "${ng2apps[@]}"
   do
     if [ "$ng2app" != "shared" ]; then
-      bundleNg2App $ng2app
+      if [ "$ng2app" != "e2e" ]; then
+        bundleNg2App $ng2app
+      fi
     fi
   done
 }

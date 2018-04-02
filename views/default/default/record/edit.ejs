@@ -16,12 +16,4 @@
 <link rel="stylesheet" type="text/css" href="/node_modules/leaflet/dist/leaflet.css">
 <link rel="stylesheet" type="text/css" href="/node_modules/leaflet-draw/dist/leaflet.draw.css">
 <script src='//api.tiles.mapbox.com/mapbox.js/plugins/leaflet-omnivore/v0.3.1/leaflet-omnivore.min.js'></script>
-
-
-<% if (!sails.config.ng2.use_bundled) { %>
-<!-- Import and Load angular 2 if on dev mode-->
-<script src="/dynamic/systemjs-config.js?appName=dmp"></script>
-<script>
-  System.import('dmp').catch(function(err){ console.error(err); });
-</script>
-<% } %>
+<script type="text/javascript" src="/angular/dmp/inline.bundle.js"></script><script type="text/javascript" src="/angular/dmp/polyfills.bundle.js"></script><script type="text/javascript" src="/angular/dmp/styles.bundle.js"></script><script type="text/javascript" src="/angular/dmp/vendor.bundle.js"></script><script type="text/javascript" src="/angular/dmp/main.bundle.js"></script>

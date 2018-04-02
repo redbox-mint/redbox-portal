@@ -16,7 +16,7 @@ do
       # Build targets are different for assets/angular, clearing all .js files from .ts files
       cleanUpAllJs
       export ENV=development
-      docker run -it --rm -v $PWD:$PORTAL_DIR $PORTAL_IMAGE /bin/bash -c "cd $PORTAL_DIR; npm install -g yarn; yarn install --only=dev; node_modules/.bin/grunt --gruntfile Gruntfile-ts-compile-all-cjs.js"
+      docker run -it --rm -v $PWD:$PORTAL_DIR $PORTAL_IMAGE /bin/bash -c "cd $PORTAL_DIR; npm install -g @angular/cli; npm install -g yarn; yarn install --only=dev; node_modules/.bin/grunt --gruntfile Gruntfile-ts-compile-all-cjs.js; cd angular; yarn; make build-frontend"
     fi
     if [ $var == "aot" ]; then
       docker run -it --rm -v $PWD:$PORTAL_DIR $PORTAL_IMAGE /bin/bash -c "cd $PORTAL_DIR; export buildTarget=\"${buildTarget}\"; ./runForDev.sh aotCompile"

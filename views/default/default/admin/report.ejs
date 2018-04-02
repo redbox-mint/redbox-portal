@@ -20,13 +20,7 @@
      <div class="col-xs-1">
      </div>
    </div>
-<% if (!sails.config.ng2.use_bundled) { %>
- <script src="/dynamic/systemjs-config.js?appName=report"></script>
- <script>
-   System.import('report').catch(function(err){ console.error(err); });
- </script>
-<% } %>
-
+<script type="text/javascript" src="/angular/report/inline.bundle.js"></script><script type="text/javascript" src="/angular/report/polyfills.bundle.js"></script><script type="text/javascript" src="/angular/report/styles.bundle.js"></script><script type="text/javascript" src="/angular/report/vendor.bundle.js"></script><script type="text/javascript" src="/angular/report/main.bundle.js"></script>
   </div>
   <div class="col-xs-2">
   </div>

@@ -1,0 +1,21 @@
+<div class='padding-bottom-10'>
+
+  <div class="row">
+    <table class="table">
+      <thead>
+          <tr>
+              <ng-container *ngFor="let header of field.columns"><th *ngIf='header.show != false'>{{ header.label }}</th></ng-container>
+          </tr>
+      </thead>
+      <tbody>
+      <tr *ngFor="let item of field.relatedObjects"><ng-container *ngFor="let column of field.columns"><td  *ngIf='column.show != false'>
+        <span *ngIf='column.link != null; else noProcessing '><a href="/{{ branding }}/{{ portal }}/{{ column.link.pattern}}">{{ column.link.pattern | stringTemplate:item }}</a></span>
+        <ng-template #multivalue></ng-template>
+        <ng-template #noProcessing><span >{{ item[column.property] }}</span></ng-template>
+      </td></ng-container></tr>
+      </tbody>
+    </table>
+    <p *ngIf="field.failedObjects.length > 0">There were {{ field.failedObjects.length }} records that failed to load</p>
+    <p *ngIf="field.accessDeniedObjects.length > 0">There were {{ field.accessDeniedObjects.length }} records that you do not have access to</p>
+  </div>
+</div>

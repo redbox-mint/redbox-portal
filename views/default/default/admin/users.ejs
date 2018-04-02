@@ -10,9 +10,4 @@
 <div class="row">
   <manage-users></manage-users>
 </div>
-<% if (!sails.config.ng2.use_bundled) { %>
-<script src="/dynamic/systemjs-config.js?appName=manageUsers"></script>
-<script>
-  System.import('manageUsers').catch(function(err){ console.error(err); });
-</script>
-<% } %>
+<script type="text/javascript" src="/angular/manageUsers/inline.bundle.js"></script><script type="text/javascript" src="/angular/manageUsers/polyfills.bundle.js"></script><script type="text/javascript" src="/angular/manageUsers/styles.bundle.js"></script><script type="text/javascript" src="/angular/manageUsers/vendor.bundle.js"></script><script type="text/javascript" src="/angular/manageUsers/main.bundle.js"></script>
