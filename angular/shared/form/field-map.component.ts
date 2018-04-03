@@ -175,7 +175,6 @@ export class MapField extends FieldBase<any> {
         layer = e.layer;
       that.layers.push(layer);
       that.layerGeoJSON = L.featureGroup(that.layers).toGeoJSON();
-      that.layers = [];
 
       return false;
     });
@@ -184,7 +183,12 @@ export class MapField extends FieldBase<any> {
       let layers = e.layers;
       let that2 = that;
       layers.eachLayer(function(layer) {
-        that2.layers[_.findIndex(that2.layers, function(o) { return o._leaflet_id == layer._leaflet_id; })] = layer;
+        let layerIndex = _.findIndex(that2.layers, function(o) { return o._leaflet_id == layer._leaflet_id; });
+        if(layerIndex == -1) {
+          that2.layers.push(layer);
+        } else {
+          that2.layers[layerIndex] = layer;
+        }
 
       });
     });
