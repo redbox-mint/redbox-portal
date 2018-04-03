@@ -47,10 +47,6 @@ function bundleNg2App() {
 }
 
 function compileAoT() {
-  ng2dir="angular"
-  cd "${ng2dir}"
-    yarn
-  cd -
   echo "Running AoT compile..."
   node_modules/.bin/ngc -p tsconfig-aot.json
   node_modules/.bin/grunt --gruntfile Gruntfile-ts-compile-sails.js
@@ -60,7 +56,10 @@ function compileAoT() {
   do
     if [ "$ng2app" != "shared" ]; then
       if [ "$ng2app" != "e2e" ]; then
-        bundleNg2App $ng2app
+        if [ "$ng2app" != "node_modules" ]; then
+          echo "Bundling ${ng2app}"
+          bundleNg2App $ng2app
+        fi
       fi
     fi
   done
