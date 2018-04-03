@@ -5,6 +5,7 @@ PORTAL_DIR=/opt/redbox-portal
 PORTAL_IMAGE=qcifengineering/redbox-portal:latest
 source dev_build/buildFns.sh
 sudo chown -R vagrant:vagrant *
+watch="false"
 # Not really needed but I'm putting this in a for loop in case we want to add more arguments later
 for var in "$@"
 do
@@ -30,6 +31,20 @@ do
       compileAoT
       exit 0
     fi
+    if [[ $var == watch=* ]]; then
+      ng2App=$(cut -d "=" -f 2 <<< "$var")
+      watch="true"
+
+    fi
 done
 
-docker-compose up
+if [ $watch == "true" ]; then
+    echo "Running watch"
+    nohup docker-compose up &
+    sleep 15
+    RBPORTAL_PS=$(docker ps -f name=redboxportal_redboxportal_1 -q)
+    docker exec -it $RBPORTAL_PS /bin/bash -c "cd /opt/redbox-portal/angular; npm install -g @angular/cli; yarn; ng build --app=${ng2App} --watch"
+else
+    echo "No watch"
+    docker-compose up
+fi

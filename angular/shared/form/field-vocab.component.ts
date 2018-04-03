@@ -234,12 +234,12 @@ class MintLookupDataService extends Subject<CompleterItem[]> implements Complete
       });
     }
     const searchUrl = `${this.url}${searchString}`;
-    // this.http.get(`${searchUrl}`).map((res: any, index:number) => {
-    //   // Convert the result to CompleterItem[]
-    //   let data = res.json();
-    //   let matches: CompleterItem[] = _.map(data, (mintDataItem: any) => { return this.convertToItem(mintDataItem); });
-    //   this.next(matches);
-    // }).subscribe();
+    this.http.get(`${searchUrl}`).map((res: any, index:number) => {
+      // Convert the result to CompleterItem[]
+      let data = res.json();
+      let matches: CompleterItem[] = _.map(data, (mintDataItem: any) => { return this.convertToItem(mintDataItem); });
+      this.next(matches); 
+    }).subscribe();
   }
 
   public cancel() {
