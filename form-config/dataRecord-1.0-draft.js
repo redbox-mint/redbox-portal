@@ -56,7 +56,33 @@ module.exports = {
               id: "about",
               label: "@dataRecord-about-tab",
               active: true,
-              fields: [{
+              fields: [
+                {
+                  class: "ParameterRetriever",
+                  compClass: 'ParameterRetrieverComponent',
+                  definition: {
+                    name: 'parameterRetriever',
+                    parameterName:'rdmpOid'
+                  }
+                },
+                {
+                  class: 'RecordMetadataRetriever',
+                  compClass: 'RecordMetadataRetrieverComponent',
+                  definition: {
+                    name: 'rdmpGetter',
+                    publish: {
+                        'rdmpDataRetrieved' :{}
+                    },
+                    subscribe: {
+                      'parameterRetriever': {
+                        onValueUpdate: [{
+                          action: 'publishMetadata'
+                        }]
+                      }
+                    }
+                  }
+                },
+                {
                   class: 'Container',
                   compClass: 'TextBlockComponent',
                   definition: {
@@ -70,7 +96,15 @@ module.exports = {
                     name: 'title',
                     label: '@dataRecord-title',
                     help: '@dataRecord-title-help',
-                    type: 'text'
+                    type: 'text',
+                    subscribe: {
+                      'rdmpGetter': {
+                        onValueUpdate: [{
+                          action: 'utilityService.getPropertyFromObject',
+                          field: 'title'
+                        }]
+                      }
+                    }
                   }
                 },
                 {
@@ -342,7 +376,14 @@ module.exports = {
                     subscribe: {
                       'this': {
                         onValueUpdate: []
-                      }
+                      },
+                      'rdmpGetter': {
+                          onValueUpdate: [{
+                            action: 'utilityService.getPropertyFromObject',
+                            field: 'contributor_ci'
+                          }]
+                        }
+
                     }
                   }
                 },

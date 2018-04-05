@@ -17,13 +17,14 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { Input, Component, ViewChild, ViewContainerRef, OnInit, Injector} from '@angular/core';
+import { Input, Component, ViewChild, ViewContainerRef, OnInit, Injector, AfterViewInit} from '@angular/core';
 import { FieldBase } from './field-base';
-import { DateTime, AnchorOrButton, SaveButton, CancelButton, TextArea, TextField, TabOrAccordionContainer } from './field-simple';
+import { DateTime, AnchorOrButton, SaveButton, CancelButton, TextArea, TextField, TabOrAccordionContainer,ParameterRetrieverField, RecordMetadataRetrieverField } from './field-simple';
 import { FormGroup, FormControl, FormArray } from '@angular/forms';
 import * as _ from "lodash-es";
 import moment from 'moment-es6';
 declare var jQuery: any;
+declare var window: any;
 /**
  * A component base class
  *
@@ -545,5 +546,49 @@ export class DateTimeComponent extends SimpleComponent {
   formatValue() {
     return this.field.formatValue(this.getFormControl().value);
   }
+
+}
+
+@Component({
+  selector: 'parameter-retriever',
+  template: `
+  <div>
+
+  </div>
+  `,
+})
+export class ParameterRetrieverComponent extends SimpleComponent implements AfterViewInit {
+  field: ParameterRetrieverField;
+
+  ngAfterViewInit() {
+    const paramValue = this.getUrlParameter(this.field.parameterName);
+    if(paramValue){
+      this.field.publishParameterValue(paramValue);
+    }
+  }
+
+  getUrlParameter(param:string) {
+    var pageURL = decodeURIComponent(window.location.search.substring(1)),
+        urlVariables = pageURL.split('&'),
+        parameterName,
+        i;
+
+    for (i = 0; i < urlVariables.length; i++) {
+        parameterName = urlVariables[i].split('=');
+
+        if (parameterName[0] === param) {
+            return parameterName[1] === undefined ? true : parameterName[1];
+        }
+    }
+}
+}
+
+@Component({
+  selector: 'record-metadata-retriever',
+  template: `
+  `,
+})
+export class RecordMetadataRetrieverComponent extends SimpleComponent {
+  field: RecordMetadataRetrieverField;
 
 }

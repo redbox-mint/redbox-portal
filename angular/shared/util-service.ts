@@ -58,4 +58,16 @@ export class UtilityService {
     });
     return result;
   }
+
+  /**
+   * returns a property from the provided object.
+   *
+   * Author: <a href='https://github.com/andrewbrazzatti' target='_blank'>Andrew Brazzatti</a>
+   * @param  {any} config
+   * @return {string}
+   */
+  public getPropertyFromObject(data: any, config: any) {
+    const fieldPath = config.field;
+    return _.get(data,fieldPath);
+  }
 }

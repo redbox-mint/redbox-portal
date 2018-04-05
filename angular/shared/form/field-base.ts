@@ -63,6 +63,7 @@ export class FieldBase<T> {
 
   @Output() public onValueUpdate: EventEmitter<any> = new EventEmitter<any>();
 
+
   constructor(options = {}, injector) {
     this.injector = injector;
     this.translationService = this.getFromInjector(TranslationService);
@@ -191,6 +192,7 @@ export class FieldBase<T> {
   }
 
   public setupEventHandlers() {
+
     if (!_.isEmpty(this.formModel)) {
       const publishConfig = this.publish;
       const subscribeConfig = this.subscribe;
@@ -232,10 +234,12 @@ export class FieldBase<T> {
               this.emitEvent(eventName, emitData, value);
             }
           });
+
         });
       }
 
       if (!_.isEmpty(subscribeConfig)) {
+
         _.forOwn(subscribeConfig, (subConfig, srcName) => {
           _.forOwn(subConfig, (eventConfArr, eventName) => {
             const eventEmitter = srcName == "this" ? this[eventName] : this.fieldMap[srcName].field[eventName];
@@ -248,7 +252,14 @@ export class FieldBase<T> {
                   _.each(eventConfArr, (eventConf: any) => {
                     const fn = _.get(this, eventConf.action);
                     if (fn) {
-                      entryVal = fn(entryVal, eventConf);
+                      let boundFunction = fn;
+                      if(eventConf.action.indexOf(".") == -1) {
+                        boundFunction = fn.bind(this);
+                      } else {
+                        var objectName = eventConf.action.substring(0,eventConf.action.indexOf("."));
+                        boundFunction = fn.bind(this[objectName]);
+                      }
+                      entryVal = boundFunction(entryVal, eventConf);
                     }
                   });
                   if (!_.isEmpty(entryVal)) {
@@ -257,9 +268,17 @@ export class FieldBase<T> {
                 });
               } else {
                 _.each(eventConfArr, (eventConf: any) => {
+
                   const fn = _.get(this, eventConf.action);
                   if (fn) {
-                    curValue = fn(curValue, eventConf);
+                    let boundFunction = fn;
+                    if(eventConf.action.indexOf(".") == -1) {
+                      boundFunction = fn.bind(this);
+                    } else {
+                      var objectName = eventConf.action.substring(0,eventConf.action.indexOf("."));
+                      boundFunction = fn.bind(this[objectName]);
+                    }
+                    curValue = boundFunction(curValue, eventConf);
                   }
                 });
               }

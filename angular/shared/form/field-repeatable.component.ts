@@ -23,7 +23,7 @@ import { Container } from './field-simple';
 import { FormArray } from '@angular/forms';
 import * as _ from "lodash-es";
 import { ChangeDetectorRef } from '@angular/core';
-
+import { ContributorField } from './field-contributor.component';
 /**
  * Repeatable Field Container
  *
@@ -226,7 +226,7 @@ export class RepeatableVocabComponent extends RepeatableComponent {
 }
 
 export class RepeatableContributor extends RepeatableContainer {
-  // fields: ContributorField[];
+  fields: ContributorField[];
 }
 
 @Component({

@@ -21,6 +21,8 @@ import { FieldBase } from './field-base';
 import { FormControl, FormGroup, FormArray } from '@angular/forms';
 import * as _ from "lodash-es";
 import moment from 'moment-es6';
+import { RecordsService } from './records.service';
+
 /**
  * Text Field Model
  *
@@ -272,4 +274,36 @@ export class LinkValue extends FieldBase<string> {
     this.controlType = 'link';
     this.target = options.target || '_blank';
   }
+}
+
+
+export class ParameterRetrieverField extends FieldBase<string> {
+  parameterName: string;
+
+  constructor(options: any, injector: any) {
+    super(options, injector);
+    this.parameterName = options.parameterName || '';
+  }
+
+  public publishParameterValue(value: string) {
+    this.onValueUpdate.emit(value);
+  }
+
+}
+
+export class RecordMetadataRetrieverField extends FieldBase<string> {
+  parameterName: string;
+  recordsService: RecordsService;
+  constructor(options: any, injector: any) {
+    super(options, injector);
+    this.recordsService = this.getFromInjector(RecordsService);
+    this.parameterName = options.parameterName || '';
+  }
+
+  public publishMetadata(oid: any, config: any) {
+    this.recordsService.getRecordMeta(oid).then(data => {
+      this.onValueUpdate.emit(data);
+  });
+  }
+
 }
