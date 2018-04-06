@@ -70,24 +70,35 @@ module.exports = {
                   compClass: 'RecordMetadataRetrieverComponent',
                   definition: {
                     name: 'rdmpGetter',
-                    publish: {
-                        'rdmpDataRetrieved' :{}
-                    },
                     subscribe: {
                       'parameterRetriever': {
                         onValueUpdate: [{
                           action: 'publishMetadata'
                         }]
-                      }
+                      },
+                      'rdmp': {
+                          relatedObjectSelected: [{
+                            action: 'publishMetadata'
+                          }]
+                        }
                     }
                   }
                 },
+
                 {
                   class: 'Container',
                   compClass: 'TextBlockComponent',
                   definition: {
                     value: '@dataRecord-about-heading',
                     type: 'h3'
+                  }
+                },
+                {
+                  class: 'RelatedObjectSelector',
+                  compClass: 'RelatedObjectSelectorComponent',
+                  definition: {
+                    label: 'RDMP related to this data record',
+                    name: 'rdmpOid'
                   }
                 },
                 {
