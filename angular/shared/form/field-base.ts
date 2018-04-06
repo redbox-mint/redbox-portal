@@ -250,7 +250,7 @@ export class FieldBase<T> {
                 _.each(value, (v: any) => {
                   let entryVal = v;
                   _.each(eventConfArr, (eventConf: any) => {
-                    const fn = _.get(this, eventConf.action);
+                    const fn:any = _.get(this, eventConf.action);
                     if (fn) {
                       let boundFunction = fn;
                       if(eventConf.action.indexOf(".") == -1) {

@@ -98,7 +98,7 @@ module.exports = {
                   compClass: 'RelatedObjectSelectorComponent',
                   definition: {
                     label: 'RDMP related to this data record',
-                    name: 'rdmpOid'
+                    name: 'rdmp'
                   }
                 },
                 {
@@ -108,6 +108,7 @@ module.exports = {
                     label: '@dataRecord-title',
                     help: '@dataRecord-title-help',
                     type: 'text',
+                    required: true,
                     subscribe: {
                       'rdmpGetter': {
                         onValueUpdate: [{
@@ -125,7 +126,8 @@ module.exports = {
                     name: 'description',
                     label: '@dataRecord-description',
                     help: '@dataRecord-description-help',
-                    type: 'text'
+                    type: 'text',
+                    required: true
                   }
                 },
                 {
@@ -135,6 +137,7 @@ module.exports = {
                     name: 'dc:subject_anzsrc:toa_rdf:resource',
                     label: '@dataRecord-datatype',
                     help: '@dataRecord-datatype-help',
+                    required: true,
                     options: [{
                         value: "",
                         label: "@dataRecord-dataype-select:Empty"
@@ -170,6 +173,7 @@ module.exports = {
                     help: "@dataRecord-keywords-help",
                     name: "finalKeywords",
                     editOnly: true,
+                    required: true,
                     fields: [{
                       class: 'TextField',
                       definition: {
