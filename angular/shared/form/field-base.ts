@@ -269,7 +269,7 @@ export class FieldBase<T> {
               } else {
                 _.each(eventConfArr, (eventConf: any) => {
 
-                  const fn = _.get(this, eventConf.action);
+                  const fn:any = _.get(this, eventConf.action);
                   if (fn) {
                     let boundFunction = fn;
                     if(eventConf.action.indexOf(".") == -1) {
