@@ -109,8 +109,12 @@ export module Services {
                                        .flatMap(newRole => {
                                          sails.log.verbose("Adding role to brand:" + newRole.id);
                                          var brand = sails.services.brandingservice.getDefault();
-                                         brand.roles.add(newRole.id);
-                                         return super.getObservable(brand, 'save', 'simplecb');
+                                         // START Sails 1.0 upgrade
+                                         // brand.roles.add(newRole.id);
+                                         const q = BrandingConfig.addToCollection(brand.id, 'roles').members([newRole.id]);
+                                         // return super.getObservable(brand, 'save', 'simplecb');
+                                         return super.getObservable(q, 'exec', 'simplecb');
+                                         // END Sails 1.0 upgrade
                                        });
                          })
                          .last()

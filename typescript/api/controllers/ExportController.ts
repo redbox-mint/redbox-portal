@@ -21,26 +21,26 @@
 declare var module;
 declare var sails;
 import { Observable } from 'rxjs/Rx';
-declare var BrandingService, RolesService, DashboardService, ReportsService;
-
+import moment from 'moment-es6';
+declare var RecordsService, DashboardService, BrandingService;
 /**
  * Package that contains all Controllers.
  */
-import controller = require('../../../typescript/controllers/CoreController.js');
+import controller = require('../../typescript/controllers/CoreController.js');
 export module Controllers {
   /**
-   * Responsible for all things related to the Dashboard
+   * Responsible for all things related to exporting anything
    *
-   * @author <a target='_' href='https://github.com/andrewbrazzatti'>Andrew Brazzatti</a>
+   * Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a>
    */
-  export class Reports extends controller.Controllers.Core.Controller {
-
+  export class Export extends controller.Controllers.Core.Controller {
 
     /**
      * Exported methods, accessible from internet.
      */
     protected _exportedMethods: any = [
-        'render'
+        'index',
+        'downloadRecs'
     ];
 
     /**
@@ -48,22 +48,26 @@ export module Controllers {
      **************************************** Add custom methods **************************************
      **************************************************************************************************
      */
-
-    public bootstrap() {
-
+    public index(req, res) {
+      return this.sendView(req, res, 'export/index');
     }
 
-    public render(req, res) {
+    public downloadRecs(req, res) {
       const brand = BrandingService.getBrand(req.session.branding);
-
-      ReportsService.findAllReportsForBrand(brand).subscribe(reports => {
-      req.options.locals["reports"] = reports;
-      return this.sendView(req, res, 'admin/reports');
-    });
+      const format = req.param('format');
+      const before = _.isEmpty(req.query.before) ? null : req.query.before;
+      const after = _.isEmpty(req.query.after) ? null : req.query.after;
+      const filename = `Exported Records.${format}`;
+      if (format == 'csv') {
+        res.set('Content-Type', 'text/csv');
+        res.set('Content-Disposition', `attachment; filename="${filename}"`);
+        DashboardService.exportAllPlans(req.user.username, req.user.roles, brand, format, before, after).subscribe(response => {
+          return res.send(200, response);
+        });
+      } else {
+        return res.send(500, 'Unsupported export format');
+      }
     }
-
-
-
     /**
      **************************************************************************************************
      **************************************** Override magic methods **********************************
@@ -72,4 +76,4 @@ export module Controllers {
   }
 }
 
-module.exports = new Controllers.Reports().exports();
+module.exports = new Controllers.Export().exports();

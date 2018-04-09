@@ -33,7 +33,7 @@ module.exports = function(req, res, next) {
         if (contentTypeHeader.indexOf("application/json") != -1) {
           return res.forbidden({message: "Access Denied"});
         } else {
-          return sails.controllers['typescript/user'].redirLogin(req, res);
+          return sails.getActions()['user/redirlogin'](req, res);
         }
       }
     }

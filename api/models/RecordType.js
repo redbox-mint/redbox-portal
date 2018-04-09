@@ -23,8 +23,7 @@ module.exports = {
     // RecordType can have many workflow steps
     workflowSteps: {
       collection: 'workflowStep',
-      via: 'recordType',
-      dominant: true
+      via: 'recordType'
     },
     // RecordType can have specific search parameters
     searchFilters: {

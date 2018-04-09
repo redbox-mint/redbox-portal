@@ -204,15 +204,21 @@ export module Services {
         sails.log.verbose("Default user missing, creating...");
         return super.getObservable(User.create(defaultUser))
           .flatMap(defUser => {
-            _.map(defRoles, (o) => {
-              defUser.roles.add(o.id);
+            // START Sails 1.0 upgrade
+            const defRoleIds = _.map(defRoles, (o) => {
+              return o.id;
             });
-            return super.getObservable(defUser, 'save', 'simplecb')
+            let q = User.addToCollection(defUser.id, 'roles').members(defRoleIds);
+            // END Sails 1.0 upgrade
+            return super.getObservable(q, 'exec', 'simplecb')
               .flatMap(dUser => {
                 return Observable.from(defRoles)
                   .map(role => {
-                    role.users.add(defUser.id)
-                    return super.getObservable(role, 'save', 'simplecb');
+                    // START Sails 1.0 upgrade
+                    // role.users.add(defUser.id)
+                    q = Role.addToCollection(role.id, 'users').members([defUser.id]);
+                    // END Sails 1.0 upgrade
+                    return super.getObservable(q, 'exec', 'simplecb');
                   });
               })
               .last()
@@ -326,10 +332,10 @@ export module Services {
           if (_.isEmpty(newRoleIds) || newRoleIds.length == 0) {
             return Observable.throw(new Error('Please assign at least one role'));
           }
-          var curRoleIds = _.map(user.roles, 'id');
-          _.map(newRoleIds, (roleId) => { user.roles.add(roleId) });
-          _.map(curRoleIds, (roleId) => { if (!_.includes(newRoleIds, roleId)) user.roles.remove(roleId) });
-          return this.getObservable(user, 'save', 'simplecb');
+          // START Sails 1.0 upgrade
+          const q = User.replaceCollection(user.id, 'roles').members(newRoleIds);
+          // END Sails 1.0 upgrade
+          return this.getObservable(q, 'exec', 'simplecb');
         } else {
           return Observable.throw(new Error('No such user with id:' + userid));
         }

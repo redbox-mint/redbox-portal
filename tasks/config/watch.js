@@ -24,7 +24,14 @@ module.exports = function(grunt) {
 
       // When assets are changed:
       tasks: ['syncAssets' , 'linkAssets' ]
+    },
+    // BEGIN Sails 1.0 Upgrade
+    // Added for development synching, take note that this is for ongoing
+    sails_api: {
+      files: ['typescript/api/**/*.js'],
+      tasks: ['syncApiFiles']
     }
+    // END Sails 1.0 Upgrade
   });
 
   grunt.loadNpmTasks('grunt-contrib-watch');

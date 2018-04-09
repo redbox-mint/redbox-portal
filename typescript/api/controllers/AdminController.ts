@@ -24,7 +24,7 @@ import { Observable } from 'rxjs/Rx';
 import * as uuidv4 from 'uuid/v4';
 declare var BrandingService, RolesService, UsersService;
 
-import controller = require('../../../typescript/controllers/CoreController.js');
+import controller = require('../../typescript/controllers/CoreController.js');
 
 export module Controllers {
   /**

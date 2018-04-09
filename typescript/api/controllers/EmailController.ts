@@ -22,7 +22,7 @@ declare var module;
 declare var sails;
 declare var EmailService;
 import { Observable } from 'rxjs/Rx';
-import controller = require('../../../typescript/controllers/CoreController.js');
+import controller = require('../../typescript/controllers/CoreController.js');
 
 export module Controllers {
   /**

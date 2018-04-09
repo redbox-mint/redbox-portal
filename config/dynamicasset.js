@@ -5,7 +5,7 @@ module.exports.dynamicasset = {
     view: "systemjs-config",
     type: "text/javascript"
   },
-  "apiClientConfig.json": {
+  "apiClientConfig": {
     view: "apiClientConfig",
     type: "application/json"
   },

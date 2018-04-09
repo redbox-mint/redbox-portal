@@ -65,18 +65,21 @@ export module Services {
             return Observable.of(workflows);
           }
         }).flatMap(wfSteps => {
+          sails.log.verbose(`wfSteps: `);
+          sails.log.verbose(JSON.stringify(wfSteps));
           if (_.isArray(wfSteps) && wfSteps[0]["config"] != null) {
-            return Observable.of(wfSteps);
+            sails.log.verbose(`return as Observable of`);
+            return Observable.from(wfSteps);
           } else {
-          var workflowSteps = [];
-          _.forOwn(wfSteps, (workflowStepsObject, recordTypeName) => {
-            _.forEach(workflowStepsObject, workflowStep => {
-              const workflowConf = sails.config.workflow[recordTypeName][workflowStep["workflow"]];
-              var obs = this.create(workflowStep["recordType"], workflowStep["workflow"], workflowConf.config, workflowConf.starting == true);
-              workflowSteps.push(obs);
+            var workflowSteps = [];
+            _.forOwn(wfSteps, (workflowStepsObject, recordTypeName) => {
+              _.forEach(workflowStepsObject, workflowStep => {
+                const workflowConf = sails.config.workflow[recordTypeName][workflowStep["workflow"]];
+                var obs = this.create(workflowStep["recordType"], workflowStep["workflow"], workflowConf.config, workflowConf.starting == true);
+                workflowSteps.push(obs);
+              });
             });
-          });
-          return Observable.zip(...workflowSteps);
+            return Observable.zip(...workflowSteps);
           }
         });
     }
@@ -87,21 +90,21 @@ export module Services {
       return super.getObservable(WorkflowStep.create({
         name: name,
         config: workflowConf,
-        recordType: recordType.key,
+        recordType: recordType.id,
         starting: starting
       }));
     }
 
     public get(recordType, name) {
-      return super.getObservable(WorkflowStep.findOne({ recordType: recordType.key, name: name }));
+      return super.getObservable(WorkflowStep.findOne({recordType: recordType.id, name: name }));
     }
 
     public getAllForRecordType(recordType) {
-      return super.getObservable(WorkflowStep.find({ recordType: recordType.key }));
+      return super.getObservable(WorkflowStep.find({recordType: recordType.id }));
     }
 
     public getFirst(recordType) {
-      return super.getObservable(WorkflowStep.findOne({ recordType: recordType.key, starting: true }));
+      return super.getObservable(WorkflowStep.findOne({recordType: recordType.id, starting: true }));
     }
   }
 }

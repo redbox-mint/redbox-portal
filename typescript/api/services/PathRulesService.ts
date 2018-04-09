@@ -56,8 +56,8 @@ export module Services {
             sails.log.verbose("Rules, don't exist, seeding...");
             var seedRules = sails.config.auth.rules;
             _.forEach(seedRules, (rule) => {
-              var roleId = RolesService.getRoleWithName(defRoles, rule.role);
-              rule.role = roleId;
+              var role = RolesService.getRoleWithName(defRoles, rule.role);
+              rule.role = role.id;
               rule.branding = defBrand.id;
             });
             return Observable.from(seedRules)

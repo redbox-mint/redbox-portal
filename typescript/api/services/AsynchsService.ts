@@ -40,7 +40,7 @@ export module Services {
     ];
 
     public start(brandId, processName, username) {
-      return super.getObservable(AsynchProgress.create({name: processName, started_by: username, branding: brandId, status:'starting'}));
+      return super.getObservable(AsynchProgress.create({name: processName, started_by: username, branding: brandId, status:'starting', date_started: moment().format('YYYY-MM-DDTHH:mm:ss')}));
     }
 
     public update(criteria, progressObj) {

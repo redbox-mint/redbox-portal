@@ -9,18 +9,18 @@ module.exports = {
   attributes: {
     username : { type: 'string', required: true, unique: true },
     password : { type: 'string' },
-    lastLogin: {type: 'datetime'},
+    lastLogin: {type: 'string', columnType: 'datetime'},
     type : { type: 'string', required: true},
     name : { type: 'string', required: true},
     email: { type: 'string'},
     token: { type: 'string'},
     // users have many roles
-    roles: { collection: 'role', via: 'users'},
-    toJSON: function() {
-        var obj = this.toObject();
-        delete obj.password;
-        return obj;
-    }
+    roles: { collection: 'role', via: 'users'}
+  },
+  customJSON: function() {
+      var obj = this.toObject();
+      delete obj.password;
+      return obj;
   },
   beforeCreate: function(user, cb) {
     if (user.password) {
@@ -40,11 +40,11 @@ module.exports = {
     }
   },
   afterCreate: function(user, cb) {
-    this.assignAccessToPendingRecords(user);
+    User.assignAccessToPendingRecords(user);
     cb();
   },
   afterUpdate: function(user, cb) {
-    this.assignAccessToPendingRecords(user);
+    User.assignAccessToPendingRecords(user);
     cb();
   },
   assignAccessToPendingRecords: function(user) {

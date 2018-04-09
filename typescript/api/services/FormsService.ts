@@ -47,7 +47,7 @@ export module Services {
       if (!workflowSteps || workflowSteps.length == 0 || workflowSteps[0] == null) {
         return Observable.of(null);
       } else {
-        return super.getObservable(Form.find({ workflowStep: workflowSteps[0].name })).flatMap(form => {
+        return super.getObservable(Form.find({ workflowStep: workflowSteps[0].id })).flatMap(form => {
           if (!form || form.length == 0) {
             sails.log.verbose("Bootstrapping form definitions... ");
             const formDefs = [];
@@ -61,7 +61,7 @@ export module Services {
           }
         })
           .flatMap(formName => {
-
+            const formsObs = [];
             if (formName) {
 
               _.each(workflowSteps, function(workflowStep) {
@@ -70,7 +70,7 @@ export module Services {
                   const formObj = {
                     name: formName,
                     fields: sails.config.form.forms[formName].fields,
-                    workflowStep: workflowStep.name,
+                    workflowStep: workflowStep.id,
                     type: sails.config.form.forms[formName].type,
                     messages: sails.config.form.forms[formName].messages,
                     viewCssClasses: sails.config.form.forms[formName].viewCssClasses,
@@ -79,14 +79,26 @@ export module Services {
                   };
 
                   var q = Form.create(formObj);
-                  var obs = Observable.bindCallback(q["exec"].bind(q))();
-                  obs.subscribe(result => {
-                    sails.log.verbose("Created form record: ");
-                    sails.log.verbose(result);
-                  });
-                  return Observable.of(null);
+                  formsObs.push(Observable.bindCallback(q["exec"].bind(q))());
+                  // var obs = Observable.bindCallback(q["exec"].bind(q))();
                 }
               });
+            }
+            return Observable.zip(...formsObs);
+          })
+          .flatMap(result => {
+            if (result) {
+              sails.log.verbose("Created form record: ");
+              sails.log.verbose(result);
+              return Observable.from(result[0]);
+            }
+            return Observable.of(result);
+          }).flatMap(result => {
+            if (result) {
+              sails.log.verbose(`Updating workflowstep ${result.workflowStep} to: ${result.id}`);
+              // update the workflow step...
+              const q = WorkflowStep.update({id: result.workflowStep}).set({form: result.id});
+              return Observable.bindCallback(q["exec"].bind(q))();
             }
             return Observable.of(null);
           })
@@ -109,7 +121,7 @@ export module Services {
       return super.getObservable(RecordType.findOne({ key: branding + "_" + recordType }))
         .flatMap(recordType => {
 
-          return super.getObservable(WorkflowStep.findOne({ recordType: recordType.key }));
+          return super.getObservable(WorkflowStep.findOne({ recordType: recordType.id }));
         }).flatMap(workflowStep => {
 
           if (workflowStep.starting == true) {

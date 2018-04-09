@@ -21,26 +21,29 @@
 declare var module;
 declare var sails;
 import { Observable } from 'rxjs/Rx';
-declare var BrandingService, RolesService, DashboardService, RecordsService;
+declare var BrandingService, RolesService, DashboardService, ReportsService;
 
 /**
  * Package that contains all Controllers.
  */
-import controller = require('../../../typescript/controllers/CoreController.js');
+import controller = require('../../typescript/controllers/CoreController.js');
 export module Controllers {
   /**
    * Responsible for all things related to the Dashboard
    *
    * @author <a target='_' href='https://github.com/andrewbrazzatti'>Andrew Brazzatti</a>
    */
-  export class Dashboard extends controller.Controllers.Core.Controller {
+  export class Report extends controller.Controllers.Core.Controller {
+
 
     /**
      * Exported methods, accessible from internet.
      */
     protected _exportedMethods: any = [
-        'render',
-        'getPlanList'
+      'render',
+      'get',
+      'getResults',
+      'downloadCSV'
     ];
 
     /**
@@ -54,63 +57,19 @@ export module Controllers {
     }
 
     public render(req, res) {
-      return this.sendView(req, res, 'dashboard');
+      return this.sendView(req, res, 'admin/report');
     }
 
-
-    public getPlanList(req, res) {
+    public get(req, res) {
       const brand = BrandingService.getBrand(req.session.branding);
-      const editAccessOnly = req.query.editOnly;
-
-      var roles = [];
-      var username = "guest";
-      let user = {};
-      if (req.isAuthenticated()) {
-        roles = req.user.roles;
-        user = req.user;
-        username = req.user.username;
-      } else {
-        // assign default role if needed...
-        user = {username: username};
-        roles = [];
-        roles.push(RolesService.getDefUnathenticatedRole(brand));
-      }
-
-      const workflowState = req.param('state');
-      const start = req.param('start');
-      const rows = req.param('rows');
-      this.getPlans(workflowState,start,rows,user,roles,brand,editAccessOnly).flatMap(results => {
-          return results;
-        }).subscribe(response => {
-          if (response && response.code == "200") {
-            response.success = true;
-            this.ajaxOk(req, res, null, response);
-          } else {
-            this.ajaxFail(req, res, null, response);
-          }
-        }, error => {
-          sails.log.error("Error updating meta:");
-          sails.log.error(error);
-          this.ajaxFail(req, res, error.message);
-        });
+      ReportsService.get(brand, req.param('name')).subscribe(response => {
+        return this.ajaxOk(req, res, null, response);
+      });
     }
 
-    private getDocMetadata(doc) {
-      var metadata = {};
-      for(var key in doc){
-        if(key.indexOf('authorization_') != 0 && key.indexOf('metaMetadata_') != 0) {
-          metadata[key] = doc[key];
-        }
-        if(key == 'authorization_editRoles') {
-          metadata[key] = doc[key];
-        }
-      }
-      return metadata;
-    }
-    protected getPlans(workflowState,start,rows,user, roles, brand, editAccessOnly=undefined) {
-      const username = user.username;
-      var response = DashboardService.getPlans(workflowState,start,rows,username,roles,brand,editAccessOnly);
-
+    public getResults(req, res) {
+      const brand = BrandingService.getBrand(req.session.branding);
+      var response = ReportsService.getResults(brand, req.param('name'),  req, req.param('start'), req.param('rows'));
       return response.map(results => {
         var totalItems = results["response"]["numFound"];
         var startIndex = results["response"]["start"];
@@ -128,17 +87,39 @@ export module Controllers {
         for (var i = 0; i < docs.length; i++) {
           var doc = docs[i];
           var item = {};
-          item["oid"] = doc["storage_id"];
-          item["title"] = doc["title"];
-          item["metadata"]= this.getDocMetadata(doc);
-          item["dateCreated"] =  doc["date_object_created"];
-          item["dateModified"] = doc["date_object_modified"];
-          item["hasEditAccess"] = RecordsService.hasEditAccess(brand, user, roles, doc);
+          for(var key in doc) {
+            item[key] = doc[key];
+          }
           items.push(item);
         }
 
         response["items"] = items;
         return Observable.of(response);
+      }).flatMap(results => {
+          return results;
+        }).subscribe(response => {
+          if (response && response.code == "200") {
+            response.success = true;
+            this.ajaxOk(req, res, null, response);
+          } else {
+            this.ajaxFail(req, res, null, response);
+          }
+        }, error => {
+          sails.log.error("Error updating meta:");
+          sails.log.error(error);
+          this.ajaxFail(req, res, error.message);
+        });;
+    }
+
+    public downloadCSV(req, res) {
+      const brand = BrandingService.getBrand(req.session.branding);
+
+      var response = ReportsService.getCSVResult(brand, req.param('name'));
+      response.subscribe(results => {
+        res.setHeader('Content-disposition', 'attachment; filename='+req.param('name')+'.csv');
+        res.set('Content-Type', 'text/csv');
+        res.status(200).send(results);
+        return res
       });
     }
 
@@ -150,4 +131,4 @@ export module Controllers {
   }
 }
 
-module.exports = new Controllers.Dashboard().exports();
+module.exports = new Controllers.Report().exports();

@@ -20,31 +20,27 @@
 //<reference path='./../../typings/loader.d.ts'/>
 declare var module;
 declare var sails;
+import { Observable } from 'rxjs/Rx';
+declare var BrandingService, RolesService, DashboardService, ReportsService;
 
-declare var BrandingService;
-declare var RolesService;
-declare var  DashboardService;
-declare var  UsersService;
-declare var  User;
 /**
  * Package that contains all Controllers.
  */
-import controller = require('../../../../typescript/controllers/CoreController.js');
+import controller = require('../../typescript/controllers/CoreController.js');
 export module Controllers {
   /**
    * Responsible for all things related to the Dashboard
    *
    * @author <a target='_' href='https://github.com/andrewbrazzatti'>Andrew Brazzatti</a>
    */
-  export class UserManagement extends controller.Controllers.Core.Controller {
+  export class Reports extends controller.Controllers.Core.Controller {
+
 
     /**
      * Exported methods, accessible from internet.
      */
     protected _exportedMethods: any = [
-        'render',
-        'listUsers',
-        'findUser'
+        'render'
     ];
 
     /**
@@ -58,51 +54,12 @@ export module Controllers {
     }
 
     public render(req, res) {
-      return this.sendView(req, res, 'dashboard');
-    }
+      const brand = BrandingService.getBrand(req.session.branding);
 
-
-    public listUsers(req, res) {
-      var page = req.param('page');
-      var pageSize = req.param('pageSize');
-      if(page == null) {
-        page = 1;
-      }
-
-      if(pageSize == null) {
-        pageSize = 10;
-      }
-      User.count().exec(function (err,count) {
-        var response = {};
-        response["summary"] = {};
-        response["summary"]["numFound"] = count;
-        response["summary"]["page"] = page;
-        if(count == 0) {
-          response["records"] = [];
-          return res.json(response);
-    } else {
-      User.find().paginate({page: 1, limit: 10}).exec(function (err, users) {
-        response["records"] = users;
-        return res.json(response);
-      });
-    }
+      ReportsService.findAllReportsForBrand(brand).subscribe(reports => {
+      req.options.locals["reports"] = reports;
+      return this.sendView(req, res, 'admin/reports');
     });
-    }
-
-    public findUser(req, res) {
-      var searchField = req.param('searchBy');
-      var query = req.param('query');
-      var queryObject = {};
-      queryObject[searchField] = query;
-      User.findOne(queryObject).exec(function (err, user) {
-        if(err != null) {
-          return res.serverError(err);
-        }
-        if(user != null) {
-          return res.json(user);
-        }
-        return res.json({})
-      });
     }
 
 
@@ -115,4 +72,4 @@ export module Controllers {
   }
 }
 
-module.exports = new Controllers.UserManagement().exports();
+module.exports = new Controllers.Reports().exports();

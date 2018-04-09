@@ -22,7 +22,7 @@ declare var module;
 declare var sails;
 declare var BrandingService, UsersService, ConfigService;
 import * as uuidv4 from 'uuid/v4';
-import controller = require('../../../typescript/controllers/CoreController.js');
+import controller = require('../../typescript/controllers/CoreController.js');
 
 export module Controllers {
   /**
@@ -199,10 +199,10 @@ export module Controllers {
               if (err) res.send(err);
               // login success
               // redir if api header call is not found
-              return sails.controllers['typescript/user'].respond(req, res, (req, res) => {
-                return res.json ({ user:user, message: 'Login OK', url: sails.controllers['typescript/user'].getPostLoginUrl(req, res)});
+              return sails.getActions()['user/respond'](req, res, (req, res) => {
+                return res.json ({ user:user, message: 'Login OK', url: sails.getActions()['user/getpostloginurl'](req, res)});
               }, (req, res) => {
-                return sails.controllers['typescript/user'].redirPostLogin(req, res);
+                return sails.getActions()['user/redirpostlogin'](req, res);
               });
           });
         })(req, res);
@@ -226,7 +226,7 @@ export module Controllers {
           req.logIn(user, function(err) {
             if (err) res.send(err);
             sails.log.debug("AAF Login OK, redirecting...");
-            return sails.controllers['typescript/user'].redirPostLogin(req, res);
+            return sails.getActions()['user/redirpostlogin'](req, res);
           });
         })(req, res);
       }

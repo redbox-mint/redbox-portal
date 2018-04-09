@@ -43,7 +43,7 @@ export module Services {
     protected cache;
 
     public bootstrap() {
-      const cacheOpts = {stdTTL: sails.config.cache.cacheExpiry, checkperiod: sails.config.cache.checkPeriod ? sails.config.cache.checkPeriod : 600};
+      const cacheOpts = {stdTTL: sails.config.custom_cache.cacheExpiry, checkperiod: sails.config.custom_cache.checkPeriod ? sails.config.custom_cache.checkPeriod : 600};
       sails.log.verbose(`Using node cache options: `);
       sails.log.verbose(cacheOpts);
       this.cache = new NodeCache(cacheOpts);
@@ -60,7 +60,7 @@ export module Services {
             if (!_.isEmpty(dbData)) {
               sails.log.verbose(`Got DB cache entry`);
               // check if entry is expired...
-              if (moment().unix() - dbData.ts_added > sails.config.cache.cacheExpiry) {
+              if (moment().unix() - dbData.ts_added > sails.config.custom_cache.cacheExpiry) {
                 sails.log.verbose(`Cache entry for ${name} has expired while on the DB, returning null...`);
                 return Observable.of(null);
               } else {
@@ -75,7 +75,7 @@ export module Services {
       });
     }
 
-    public set(name, data, expiry=sails.config.cache.cacheExpiry) {
+    public set(name, data, expiry=sails.config.custom_cache.cacheExpiry) {
       // update local cache then persist to DB...
       sails.log.verbose(`Setting cache for entry: ${name}...`);
       this.cache.set(name, data, expiry);

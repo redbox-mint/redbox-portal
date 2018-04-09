@@ -51,16 +51,12 @@ export module Services {
             rTypes.push(obs);
           });
           return Observable.zip(...rTypes);
-
         } else {
-          var rTypes = [];
-          _.each(recordTypes, function(recordType) {
-            rTypes.push(Observable.of(recordType));
-          });
           sails.log.verbose("Default recordTypes definition(s) exist.");
-          return Observable.zip(...rTypes);
-      }
-    } );
+          sails.log.verbose(JSON.stringify(recordTypes));
+          return Observable.of(recordTypes);
+        }
+      });
     }
 
     public create(brand, name, config) {

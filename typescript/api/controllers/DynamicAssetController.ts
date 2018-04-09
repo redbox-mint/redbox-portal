@@ -24,7 +24,7 @@ import { Observable } from 'rxjs/Rx';
 /**
  * Package that contains all Controllers.
  */
-import controller = require('../../../typescript/controllers/CoreController.js');
+import controller = require('../../typescript/controllers/CoreController.js');
 export module Controllers {
   /**
    * DynamicAssetController - returns all dynamic client-side elements
@@ -53,7 +53,9 @@ export module Controllers {
      */
 
     public get(req, res) {
-      const assetId = req.param("asset");
+      let assetId = req.param("asset");
+      if (!assetId) assetId = 'apiClientConfig.json'
+      sails.log.verbose(`Geting asset: ${assetId}`);
       res.set('Content-Type',sails.config.dynamicasset[assetId].type);
       return res.view(sails.config.dynamicasset[assetId].view, {layout:false});
     }

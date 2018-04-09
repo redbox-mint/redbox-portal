@@ -87,13 +87,13 @@ module.exports.http = {
       'session',
       'passportInit',
       'passportSession',
-      'myRequestLogger',
       'bodyParser',
       'handleBodyParserError',
       'compress',
       'methodOverride',
       'poweredBy',
       'router',
+      'translate',
       'brandingAndPortalAwareStaticRouter',
       'www',
       'favicon',
@@ -159,5 +159,5 @@ module.exports.http = {
    *                                                                          *
    ***************************************************************************/
 
-  // cache: 31557600000
+   // cache: 31557600000
 };

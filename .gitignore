@@ -162,3 +162,7 @@ EmailService.js
 RecordController.js
 package-lock.json
 redbox-portal/assets/angular
+www
+api/controllers/**/*.js
+typescript/api/controllers/**/*.js
+typescript/api/services/**/*.js
