@@ -43,6 +43,7 @@ import { ContributorField, ContributorComponent } from './field-contributor.comp
 import { WorkflowStepButton, WorkflowStepButtonComponent } from './workflow-button.component';
 import { RelatedObjectDataField, RelatedObjectDataComponent } from './field-relatedobjectdata.component';
 import { RelatedObjectSelectorComponent, RelatedObjectSelectorField } from './field-relatedobjectselector.component';
+import { DataLocationComponent, DataLocationField } from './field-datalocation.component';
 import { MapField, MapComponent } from './field-map.component';
 import * as _ from "lodash-es";
 import { Observable } from 'rxjs/Observable';
@@ -85,6 +86,7 @@ export class FieldControlService {
     'ParameterRetriever':{ 'meta': ParameterRetrieverField, 'comp': ParameterRetrieverComponent},
     'RecordMetadataRetriever':{ 'meta': RecordMetadataRetrieverField, 'comp': RecordMetadataRetrieverComponent},
     'RelatedObjectSelector':{ 'meta': RelatedObjectSelectorField, 'comp': RelatedObjectSelectorComponent},
+    'DataLocation':{ 'meta': DataLocationField, 'comp': DataLocationComponent},
   };
   constructor(@Inject(VocabFieldLookupService) private vocabFieldLookupService: VocabFieldLookupService, @Inject(CompleterService) private completerService: CompleterService,
   @Inject(ConfigService) protected configService: ConfigService,

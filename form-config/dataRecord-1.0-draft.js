@@ -540,6 +540,13 @@ module.exports = {
                   }
                 },
                 {
+                  class: 'DataLocation',
+                  compClass: 'DataLocationComponent',
+                  definition: {
+                    name:"dataLocations"
+                  }
+                },
+                {
                   class: 'SelectionField',
                   compClass: 'DropdownFieldComponent',
                   definition: {

@@ -1,0 +1,55 @@
+<div class='padding-bottom-10'>
+  <label [attr.for]="field.name">
+    {{field.label}} {{ getRequiredLabelStr()}}
+    <button type="button" class="btn btn-default" *ngIf="field.help" (click)="toggleHelp()"><span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span></button>
+  </label><br/>
+  <div>
+    <div class="table-responsive">
+    <table class="table table-bordered table-striped table-hover">
+      <thead>
+        <tr>
+          <th>Type of location</th><th>Location</th><th>Notes</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let dataLocation of field.value">
+          <td>{{ field.dataTypeLookup[dataLocation.type] }}</td><td>{{ dataLocation.location }}</td><td>{{ dataLocation.notes }}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+    <div class="row">
+      <div class="col-xs-3">
+        <label>Type of location</label>
+      </div>
+      <div class="col-xs-4">
+        <label>Location</label>
+      </div>
+      <div class="col-xs-5">
+        <label>Notes</label>
+      </div>
+
+    </div>
+  <div class="row">
+
+    <div class="col-xs-3">
+      <select [(ngModel)]="field.newLocation.type" [id]="field.newLocation.type" class="form-control">
+         <option *ngFor="let opt of field.dataTypes" [value]="opt.value">{{opt.label}}</option>
+      </select>
+    </div>
+
+    <div class="col-xs-4">
+      <input [(ngModel)]="field.newLocation.location" *ngIf="field.newLocation.type != 'attachment'" type="text" class="form-control" />
+      <a *ngIf="field.newLocation.type == 'attachment'"  class="btn btn-info">Add attachment</a>
+    </div>
+    <div class="col-xs-4">
+      <input [(ngModel)]="field.newLocation.notes"   type="text" class="form-control" />
+    </div>
+    <div class="col-xs-1">
+      <a class="fa fa-plus-circle btn text-20 pull-right btn-success" (click)="field.addLocation()"></a>
+    </div>
+  </div>
+  <div>
+  </div>
+</div>
+</div>
