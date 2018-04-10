@@ -5,7 +5,7 @@ services:
     image: qcifengineering/redbox-portal:latest
     ports:
        - "1500:1500"
-    restart: on-failure
+    restart: always
     volumes:
        - ".:/opt/redbox-portal"
     expose:
