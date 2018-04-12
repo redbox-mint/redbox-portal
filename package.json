@@ -55,7 +55,7 @@
     "passport-local": "^1.0.0",
     "rc": "1.2.5",
     "request-promise": "^4.2.0",
-    "rxjs": "5.4.1",
+    "rxjs": "5.5.10",
     "sails": "~0.12.11",
     "sails-disk": "~0.10.9",
     "sails-hook-autoreload": "^1.1.0",
