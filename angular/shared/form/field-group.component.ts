@@ -109,7 +109,7 @@ Generic component for grouping components together. The resulting JSON will have
   </ng-container>
   <ng-container *ngIf="!field.editMode">
     <div [formGroup]='form' [ngClass]="field.cssClasses">
-      <dmp-field *ngFor="let field of field.fields" [field]="field" [form]="form" [fieldMap]="fieldMap"></dmp-field>
+      <dmp-field *ngFor="let fieldElem of field.fields" [field]="fieldElem" [form]="form" [fieldMap]="fieldMap"></dmp-field>
     </div>
   </ng-container>
   `,
@@ -200,7 +200,7 @@ export class GenericGroupComponent extends EmbeddableComponent {
     <ng-container *ngFor="let fieldElem of field.fields; let i = index;" >
       <div class="row">
         <span class="col-xs-12">
-          <generic-group-field [name]="field.name" [index]="i" [field]="fieldElem" [form]="form" [fieldMap]="fieldMap" [isEmbedded]="true" [removeBtnText]="field.removeButtonText" [removeBtnClass]="field.removeButtonClass" [canRemove]="field.fields.length > 1" (onRemoveBtnClick)="removeElem($event[0], $event[1])" [index]="i"></generic-group-field>
+          <generic-group-field [name]="field.name" [field]="fieldElem" [form]="form" [fieldMap]="fieldMap" [isEmbedded]="true" [removeBtnText]="field.removeButtonText" [removeBtnClass]="field.removeButtonClass" [canRemove]="field.fields.length > 1" (onRemoveBtnClick)="removeElem($event[0], $event[1])" [index]="i"></generic-group-field>
         </span>
       </div>
       <div class="row">
