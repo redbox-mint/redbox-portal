@@ -220,7 +220,7 @@ export class GenericGroupComponent extends EmbeddableComponent {
     <span *ngIf="field.label" class="key">{{field.label}}</span>
     <span class="value">
       <ul class="key-value-list">
-        <generic-group-field *ngFor="let fieldElem of field.fields; let i = index;" [field]="fieldElem" [form]="form" [fieldMap]="fieldMap"></generic-group-field>
+        <generic-group-field *ngFor="let fieldElem of field.fields; let i = index;" [name]="field.name" [index]="i" [field]="fieldElem" [form]="form" [fieldMap]="fieldMap"></generic-group-field>
       </ul>
     </span>
   </li>

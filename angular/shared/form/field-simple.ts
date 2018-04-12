@@ -131,10 +131,15 @@ export class Container extends FieldBase<any> {
     return group[this.name];
   }
 
-  public createFormModel(): any {
+  public createFormModel(valueElem:any=null): any {
     const grp = {};
     _.each(this.fields, (field) => {
-      grp[field.name] = field.createFormModel();
+      let fldVal = null;
+      if (this.value) {
+        fldVal = _.get(this.value, field.name);
+      }
+      field.value = fldVal;
+      grp[field.name] = field.createFormModel(fldVal);
     });
     this.formModel = new FormGroup(grp);
     return this.formModel;
