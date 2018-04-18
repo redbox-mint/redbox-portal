@@ -92,7 +92,7 @@
     "ejs-cli": "^2.0.1",
     "grunt-cli": "^1.2.0",
     "istanbul": "^0.4.5",
-    "mocha": "^3.4.2",
+    "mocha": "^5.1.1",
     "rollup": "^0.41.6",
     "rollup-plugin-commonjs": "^8.0.2",
     "rollup-plugin-node-resolve": "^3.0.0",
