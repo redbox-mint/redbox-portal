@@ -75,7 +75,8 @@ export module Services {
                     messages: sails.config.form.forms[formName].messages,
                     viewCssClasses: sails.config.form.forms[formName].viewCssClasses,
                     editCssClasses: sails.config.form.forms[formName].editCssClasses,
-                    skipValidationOnSave: sails.config.form.forms[formName].skipValidationOnSave
+                    skipValidationOnSave: sails.config.form.forms[formName].skipValidationOnSave,
+                    attachmentFields: sails.config.form.forms[formName].attachmentFields
                   };
 
                   var q = Form.create(formObj);

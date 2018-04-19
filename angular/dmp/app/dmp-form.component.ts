@@ -17,7 +17,7 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { Component, Inject, Input, ElementRef } from '@angular/core';
+import { Component, Inject, Input, ElementRef, EventEmitter, Output } from '@angular/core';
 import { Location, LocationStrategy, PathLocationStrategy } from '@angular/common';
 import { FormGroup } from '@angular/forms';
 import { RecordsService } from '../../shared/form/records.service';
@@ -105,6 +105,16 @@ export class DmpFormComponent extends LoadableComponent {
   failedValidationLinks: any[];
 
   finishedRendering:boolean;
+
+  @Output() recordCreated: EventEmitter<any> = new EventEmitter<any>();
+  @Output() recordSaved: EventEmitter<any> = new EventEmitter<any>();
+  @Output() onBeforeSave: EventEmitter<any> = new EventEmitter<any>();
+
+  subs = {
+    recordCreated: {},
+    recordSaved: {},
+    onBeforeSave: {}
+  };
   /**
    * Expects a number of DI'ed elements.
    */
@@ -164,6 +174,7 @@ export class DmpFormComponent extends LoadableComponent {
    * @return {[type]}
    */
   onSubmit(nextStep:boolean = false, targetStep:string = null, forceValidate:boolean=false) {
+    this.onBeforeSave.emit({oid: this.oid});
     if (!this.isValid(forceValidate)) {
       return Observable.of(false);
     }
@@ -180,6 +191,7 @@ export class DmpFormComponent extends LoadableComponent {
         console.log(res);
         if (res.success) {
           this.oid = res.oid;
+          this.recordCreated.emit({oid: this.oid});
           this.LocationService.go(`record/edit/${this.oid}`);
           this.setSuccess(this.getMessage(this.formDef.messages.saveSuccess));
           if (nextStep) {
@@ -200,13 +212,16 @@ export class DmpFormComponent extends LoadableComponent {
         console.log("Update Response:");
         console.log(res);
         if (res.success) {
+          this.recordSaved.emit({oid: this.oid, success:true});
           this.setSuccess(this.getMessage(this.formDef.messages.saveSuccess));
           return Observable.of(true);
         } else {
+          this.recordSaved.emit({oid: this.oid, success:false});
           this.setError(`${this.getMessage(this.formDef.messages.saveError)} ${res.message}`);
           return Observable.of(false);
         }
       }).catch((err:any)=>{
+        this.recordSaved.emit({oid: this.oid, success:false});
         this.setError(`${this.getMessage(this.formDef.messages.saveError)} ${err}`);
         return Observable.of(false);
       });
@@ -392,6 +407,7 @@ export class DmpFormComponent extends LoadableComponent {
    * @return {[type]}
    */
   stepTo(targetStep: string) {
+    this.onBeforeSave.emit({oid: this.oid});
     console.log(this.form.value);
     if (!this.isValid(true)) {
       return;
@@ -470,5 +486,17 @@ export class DmpFormComponent extends LoadableComponent {
    */
   onCancel() {
     this.gotoDashboard();
+  }
+
+  subscribe(eventName, subscriberName, fn) {
+    if (this.subs[eventName][subscriberName]) {
+      return this.subs[eventName][subscriberName];
+    }
+    this.subs[eventName][subscriberName] = this[eventName].subscribe(fn);
+    console.log(this.subs);
+  }
+
+  getSubscription(eventName, subscriberName) {
+    return this.subs[eventName][subscriberName];
   }
 }

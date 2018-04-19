@@ -22,6 +22,7 @@ import services = require('../../typescript/services/CoreService.js');
 import {Sails, Model} from "sails";
 import * as request from "request-promise";
 import * as luceneEscapeQuery from "lucene-escape-query";
+import * as fs from 'fs';
 
 declare var FormsService, RolesService, UsersService, WorkflowStepsService;
 declare var sails: Sails;
@@ -47,7 +48,11 @@ export module Services {
       'search',
       'createBatch',
       'provideUserAccessAndRemovePendingAccess',
-      'searchFuzzy'
+      'searchFuzzy',
+      'addDatastream',
+      'removeDatastream',
+      'updateDatastream',
+      'getDatastream'
     ];
 
     public create(brand, record, packageType, formName=sails.config.form.defaultForm): Observable<any> {
@@ -70,7 +75,70 @@ export module Services {
       const options = this.getOptions(sails.config.record.baseUrl.redbox+sails.config.record.api.getMeta.url, oid);
       return Observable.fromPromise(request[sails.config.record.api.getMeta.method](options));
     }
+    /**
+     * Compares existing record metadata with new metadata and either removes or deletes the datastream from the record
+     */
+    public updateDatastream(oid, record, newMetadata, fileRoot, deleteWhenAttached:boolean = true) {
+      // loop thru the attachment fields and determine if we need to add or remove
+      return FormsService.getFormByName(record.metaMetadata.form, true).flatMap(form =>{
+        const reqs = [];
+        record.metaMetadata.attachmentFields = form.attachmentFields;
+        _.each(form.attachmentFields, (attField) => {
+          const oldAttachments = record.metadata[attField];
+          const newAttachments = newMetadata[attField];
+          // process removals
+          if (!_.isUndefined(oldAttachments) && !_.isNull(oldAttachments) && !_.isNull(newAttachments)) {
+            const toRemove = _.differenceBy(oldAttachments, newAttachments, 'fileId');
+            _.each(toRemove, (removeAtt) => {
+              if (removeAtt.type == 'attachment') {
+                reqs.push(this.removeDatastream(oid, removeAtt.fileId));
+              }
+            });
+          }
+          // process additions
+          if (!_.isUndefined(newAttachments) && !_.isNull(newAttachments)) {
+            const toAdd =  _.differenceBy(newAttachments, oldAttachments, 'fileId');
+            _.each(toAdd, (addAtt) => {
+              if (addAtt.type == 'attachment') {
+                reqs.push(this.addDatastream(oid, addAtt.fileId));
+                // reqs.push(Observable.of(null));
+              }
+            });
+          }
+        });
+        if (!_.isEmpty(reqs)) {
+          return Observable.of(reqs);
+        } else {
+          return Observable.of(null);
+        }
+      });
+    }
 
+    public removeDatastream(oid, fileId) {
+      const apiConfig = sails.config.record.api.removeDatastream;
+      const opts = this.getOptions(`${sails.config.record.baseUrl.redbox}${apiConfig.url}`, oid);
+      opts.url = `${opts.url}?skipReindex=true&datastreamId=${fileId}`;
+      return Observable.fromPromise(request[apiConfig.method](opts));
+    }
+
+    public addDatastream(oid, fileId) {
+      const apiConfig = sails.config.record.api.addDatastream;
+      const opts = this.getOptions(`${sails.config.record.baseUrl.redbox}${apiConfig.url}`, oid);
+      opts.url = `${opts.url}?skipReindex=true&datastreamId=${fileId}`;
+      const fpath = `${sails.config.record.attachments.stageDir}/${fileId}`;
+      opts['formData'] = {
+        content: fs.createReadStream(fpath)
+      };
+      return Observable.fromPromise(request[apiConfig.method](opts));
+    }
+
+    public getDatastream(oid, fileId) {
+      const apiConfig = sails.config.record.api.getDatastream;
+      const opts = this.getOptions(`${sails.config.record.baseUrl.redbox}${apiConfig.url}`, oid);
+      opts.url = `${opts.url}?datastreamId=${fileId}`;
+      opts.json = false;
+      return Observable.fromPromise(request[apiConfig.method](opts));
+    }
 
     protected getOptions(url, oid=null, packageType=null) {
       if (!_.isEmpty(oid)) {

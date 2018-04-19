@@ -139,7 +139,10 @@ export class FieldBase<T> {
     return false;
   }
 
-  public createFormModel(): any {
+  public createFormModel(valueElem:any = null): any {
+    if (valueElem) {
+      this.value = valueElem;
+    }
     this.formModel = this.required ? new FormControl(this.value || '', Validators.required)
                                       : new FormControl(this.value || '');
     return this.formModel;

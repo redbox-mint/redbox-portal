@@ -35,7 +35,8 @@ module.exports.dynamicasset = {
       "@asymmetrik/ngx-leaflet",
       "@asymmetrik/ngx-leaflet-draw",
       "leaflet",
-      "leaflet-draw"
+      "leaflet-draw",
+      "uppy"
     ],
     systemjs_map: {
       '@angular/core': 'npm:@angular/core/bundles/core.umd.js',

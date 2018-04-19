@@ -32,6 +32,9 @@ module.exports = {
     },
     skipValidationOnSave: {
       type: 'boolean'
+    },
+    attachmentFields: {
+      type: 'json'
     }
   }
 };

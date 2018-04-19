@@ -22,6 +22,9 @@ declare var module;
 declare var sails;
 import { Observable } from 'rxjs/Rx';
 import moment from 'moment-es6';
+import * as tus from 'tus-node-server';
+import * as fs from 'fs';
+
 declare var FormsService, RecordsService, WorkflowStepsService, BrandingService, RecordTypesService, TranslationService, User, EmailService;
 /**
  * Package that contains all Controllers.
@@ -49,7 +52,8 @@ export module Controllers {
       'getType',
       'getMeta',
       'getTransferResponsibilityConfig',
-      'updateResponsibilities'
+      'updateResponsibilities',
+      'doAttachment'
     ];
 
     /**
@@ -291,15 +295,42 @@ export module Controllers {
       const metadata = req.body;
       const oid = req.param('oid');
       const user = req.user;
-      this.getRecord(oid).subscribe(currentRec => {
-        sails.log.verbose(`Got record:`);
-        sails.log.verbose(currentRec);
-        sails.log.verbose(`Updating to:`);
-        sails.log.verbose(metadata);
-        this.saveMetadata(brand, oid, currentRec, metadata, user).subscribe(response => {
+      let currentRec = null;
+      this.getRecord(oid).flatMap(cr => {
+        currentRec = cr;
+        return this.hasEditAccess(brand, user, currentRec);
+      })
+      .subscribe(hasEditAccess => {
+        const origRecord = _.cloneDeep(currentRec);
+        currentRec.metadata = metadata;
+        return this.updateMetadata(brand, oid, currentRec, user.username)
+        .subscribe(response => {
           if (response && response.code == "200") {
-            response.success = true;
-            this.ajaxOk(req, res, null, response);
+            RecordsService.updateDatastream(oid, origRecord, metadata, sails.config.record.attachments.stageDir)
+            .flatMap(reqs => {
+              if (reqs) {
+                sails.log.verbose(`Updating data streams...`);
+                return Observable.from(reqs);
+              } else {
+                sails.log.verbose(`No datastreams to update...`);
+                return Observable.of(null);
+              }
+            })
+            .flatMap(updateResp => {
+              if (updateResp) {
+                sails.log.verbose(`Updated datastream`);
+              }
+              return Observable.of(null);
+            })
+            .last()
+            .subscribe(whatever => {
+              response.success = true;
+              this.ajaxOk(req, res, null, response);
+            }, error => {
+              sails.log.error("Error updating datatreams:");
+              sails.log.error(error);
+              this.ajaxFail(req, res, error.message);
+            });
           } else {
             this.ajaxFail(req, res, null, response);
           }
@@ -312,11 +343,8 @@ export module Controllers {
     }
 
     protected saveMetadata(brand, oid, currentRec, metadata, user): Observable<any> {
-      return this.hasEditAccess(brand, user, currentRec)
-        .flatMap(hasEditAccess => {
-          currentRec.metadata = metadata;
-          return this.updateMetadata(brand, oid, currentRec, user.username);
-        });
+      currentRec.metadata = metadata;
+      return this.updateMetadata(brand, oid, currentRec, user.username);
     }
 
     protected saveAuthorization(brand, oid, currentRec, authorization, user): Observable<any> {
@@ -378,8 +406,17 @@ export module Controllers {
       return this.getRecord(oid).flatMap(currentRec => {
         return this.hasEditAccess(brand, req.user, currentRec)
           .flatMap(hasEditAccess => {
+            if(!hasEditAccess) {
+              return Observable.throw(new Error(TranslationService.t('edit-error-no-permissions')));
+            }
+            let nextStep = null;
             return WorkflowStepsService.get(brand, targetStep)
-              .flatMap(nextStep => {
+              .flatMap(ns => {
+                nextStep = ns;
+                return RecordsService.updateDatastream(oid, currentRec, metadata, sails.config.record.attachments.stageDir);
+              })
+              .last()
+              .flatMap(whatever => {
                 currentRec.metadata = metadata;
                 sails.log.verbose("Current rec:");
                 sails.log.verbose(currentRec);
@@ -539,6 +576,90 @@ export module Controllers {
       const brand = BrandingService.getBrand(req.session.branding);
       RecordTypesService.get(brand, recordType).subscribe(recordType => {
         this.ajaxOk(req, res, null, recordType);
+      }, error => {
+        this.ajaxFail(req, res, error.message);
+      });
+    }
+
+    protected tusServer:any;
+
+    protected initTusServer() {
+      if (!this.tusServer) {
+        this.tusServer = new tus.Server();
+        const targetDir = sails.config.record.attachments.stageDir;
+        if (!fs.existsSync(targetDir)) {
+          fs.mkdirSync(targetDir);
+        }
+        // path below is appended to the 'Location' header, so it must match the routes for this controller if you want to keep your sanity
+        this.tusServer.datastore = new tus.FileStore({
+          path: sails.config.record.attachments.path,
+          directory: targetDir
+        });
+        this.tusServer.on(tus.EVENTS.EVENT_UPLOAD_COMPLETE, (event) => {
+          sails.log.verbose(`::: File uploaded to staging:`);
+          sails.log.verbose(JSON.stringify(event));
+        });
+        this.tusServer.on(tus.EVENTS.EVENT_FILE_CREATED, (event) => {
+          sails.log.verbose(`::: File created:`);
+          sails.log.verbose(JSON.stringify(event));
+        });
+      }
+    }
+
+    protected getTusMetadata(req, field: string): string {
+      const entries = {};
+      _.each(req.headers['upload-metadata'].split(','), (entry)=> {
+        const elems = entry.split(' ');
+        entries[elems[0]] = elems[1];
+      });
+      return Buffer.from(entries[field], 'base64').toString('ascii');
+    }
+
+    public doAttachment(req, res) {
+      const brand = BrandingService.getBrand(req.session.branding);
+      const oid = req.param('oid');
+      const attachId = req.param('attachId');
+      this.initTusServer();
+      const method = _.toLower(req.method);
+      if (method == 'post') {
+        req.baseUrl = `${sails.config.appPort ? `:${sails.config.appPort}`: ''}/${req.session.branding}/${req.session.portal}/record/${oid}`
+      } else {
+        req.baseUrl = '';
+      }
+      return this.getRecord(oid).flatMap(currentRec => {
+        return this.hasEditAccess(brand, req.user, currentRec)
+          .flatMap(hasEditAccess => {
+            if(!hasEditAccess) {
+              return Observable.throw(new Error(TranslationService.t('edit-error-no-permissions')));
+            }
+            if (method == 'get') {
+              // check if this attachId exists in the record
+              let found = null;
+              while (!found) {
+                _.each(currentRec.metaMetadata.attachmentFields, (attField) => {
+                  const attFieldVal = currentRec.metadata[attField];
+                  found = _.find(attFieldVal, (attVal) => { return attVal.fileId == attachId });
+                  if (found) return false;
+                });
+              }
+              if (!found) {
+                return Observable.throw(new Error(TranslationService.t('attachment-not-found')))
+              }
+              res.set('Content-Type', found.mimeType);
+              res.set('Content-Disposition', `attachment; filename="${found.name}"`);
+              return RecordsService.getDatastream(oid, attachId).flatMap(response => {
+                res.send(Buffer.from(response));
+                return Observable.of(oid);
+              });
+            } else {
+              // process the upload...
+              this.tusServer.handle(req, res);
+              return Observable.of(oid);
+            }
+          });
+      })
+      .subscribe(whatever => {
+        // ignore...
       }, error => {
         this.ajaxFail(req, res, error.message);
       });

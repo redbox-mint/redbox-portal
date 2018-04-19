@@ -81,13 +81,14 @@ module.exports.http = {
     translate: function(req, res, next){
       next();
     },
+
     order: [
       'startRequestTimer',
       'cookieParser',
       'session',
       'passportInit',
       'passportSession',
-      'bodyParser',
+      'myBodyParser',
       'handleBodyParserError',
       'compress',
       'methodOverride',
@@ -145,7 +146,17 @@ module.exports.http = {
      *                                                                          *
      ***************************************************************************/
 
-    // bodyParser: require('skipper')({strict: true})
+    myBodyParser: function(req, res, next) {
+      // ignore if there is '/attach/' on the url
+      if (req.url.toLowerCase().includes('/attach')) {
+        return next();
+      }
+      var skipper = require('skipper')({
+        // strict: true,
+        // ... more Skipper options here ...
+      });
+      return skipper(req, res, next);
+    }
 
   },
 

@@ -28,6 +28,8 @@ module.exports = {
     level: 'verbose'
   },
   appUrl:'http://localhost:1500',
+  // added for TUS server
+  appPort: 1500,
   db: {
     waitRetries: 5,
     waitSleep: 10000
