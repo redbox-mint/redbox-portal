@@ -101,7 +101,8 @@ module.exports = {
                   compClass: 'RelatedObjectSelectorComponent',
                   definition: {
                     label: 'RDMP related to this data record',
-                    name: 'rdmp'
+                    name: 'rdmp',
+                    recordType: 'rdmp'
                   }
                 },
                 {

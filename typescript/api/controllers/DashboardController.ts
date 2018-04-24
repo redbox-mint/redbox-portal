@@ -40,7 +40,7 @@ export module Controllers {
      */
     protected _exportedMethods: any = [
         'render',
-        'getPlanList'
+        'getRecordList'
     ];
 
     /**
@@ -54,12 +54,15 @@ export module Controllers {
     }
 
     public render(req, res) {
-      return this.sendView(req, res, 'dashboard');
+      const recordType = req.param('recordType') ? req.param('recordType') : '';
+      return this.sendView(req, res, 'dashboard', {recordType: recordType });
     }
 
 
-    public getPlanList(req, res) {
+    public getRecordList(req, res) {
+
       const brand = BrandingService.getBrand(req.session.branding);
+
       const editAccessOnly = req.query.editOnly;
 
       var roles = [];
@@ -75,11 +78,11 @@ export module Controllers {
         roles = [];
         roles.push(RolesService.getDefUnathenticatedRole(brand));
       }
-
+      const recordType = req.param('recordType');
       const workflowState = req.param('state');
       const start = req.param('start');
       const rows = req.param('rows');
-      this.getPlans(workflowState,start,rows,user,roles,brand,editAccessOnly).flatMap(results => {
+      this.getRecords(workflowState, recordType, start,rows,user,roles,brand,editAccessOnly).flatMap(results => {
           return results;
         }).subscribe(response => {
           if (response && response.code == "200") {
@@ -107,11 +110,15 @@ export module Controllers {
       }
       return metadata;
     }
-    protected getPlans(workflowState,start,rows,user, roles, brand, editAccessOnly=undefined) {
+
+    protected getRecords(workflowState, recordType, start,rows,user, roles, brand, editAccessOnly=undefined) {
       const username = user.username;
-      var response = DashboardService.getPlans(workflowState,start,rows,username,roles,brand,editAccessOnly);
+      var response = DashboardService.getRecords(workflowState,recordType, start,rows,username,roles,brand,editAccessOnly);
 
       return response.map(results => {
+        sails.log.error("asfsafasfsasf results: ");
+        sails.log.error(results);
+
         var totalItems = results["response"]["numFound"];
         var startIndex = results["response"]["start"];
         var noItems = 10;
@@ -128,11 +135,11 @@ export module Controllers {
         for (var i = 0; i < docs.length; i++) {
           var doc = docs[i];
           var item = {};
-          item["oid"] = doc["storage_id"];
-          item["title"] = doc["title"];
+          item["oid"] = doc["redboxOid"];
+          item["title"] = doc["metadata"]["title"];
           item["metadata"]= this.getDocMetadata(doc);
-          item["dateCreated"] =  doc["date_object_created"];
-          item["dateModified"] = doc["date_object_modified"];
+          item["dateCreated"] =  doc["date_object_created"][0];
+          item["dateModified"] = doc["date_object_modified"][0];
           item["hasEditAccess"] = RecordsService.hasEditAccess(brand, user, roles, doc);
           items.push(item);
         }

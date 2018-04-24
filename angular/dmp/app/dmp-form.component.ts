@@ -20,12 +20,12 @@
 import { Component, Inject, Input, ElementRef, EventEmitter, Output } from '@angular/core';
 import { Location, LocationStrategy, PathLocationStrategy } from '@angular/common';
 import { FormGroup } from '@angular/forms';
-import { RecordsService } from '../../shared/form/records.service';
-import { LoadableComponent } from '../../shared/loadable.component';
-import { FieldControlService } from '../../shared/form/field-control.service';
+import { RecordsService } from '@shared/form/records.service';
+import { LoadableComponent } from '@shared/loadable.component';
+import { FieldControlService } from '@shared/form/field-control.service';
 import { Observable } from 'rxjs/Observable';
 import * as _ from "lodash-es";
-import { TranslationService } from '../../shared/translation-service';
+import { TranslationService } from '@shared/translation-service';
 
 // STEST-22
 declare var jQuery: any;

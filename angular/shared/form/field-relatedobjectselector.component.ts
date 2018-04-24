@@ -47,6 +47,7 @@ export class RelatedObjectSelectorField extends FieldBase<any> {
   plans: PlanTable;
   searchFilterName: any;
   filteredPlans: Plan[];
+  recordType:string;
 
   relatedObjectSelected:EventEmitter<string> = new EventEmitter<string>();
 
@@ -59,9 +60,10 @@ export class RelatedObjectSelectorField extends FieldBase<any> {
 
     var relatedObjects = this.relatedObjects;
     this.value = options['value'] || this.setEmptyValue();
+    this.recordType = options['recordType'];
     this.dashboardService = this.getFromInjector(DashboardService);
     var that = this;
-    this.dashboardService.getAlllDraftPlansCanEdit().then((draftPlans: PlanTable) => {
+    this.dashboardService.getAllRecordsCanEdit(this.recordType,'').then((draftPlans: PlanTable) => {
       this.plans = draftPlans;
       this.onFilterChange();
 });
@@ -69,7 +71,7 @@ export class RelatedObjectSelectorField extends FieldBase<any> {
 
 
   recordSelected(record, event) {
-    this.setValue({oid: record.oid, title:record.metadata.title});
+    this.setValue({oid: record.oid, title:record.title});
     this.relatedObjectSelected.emit(record.oid);
   }
 

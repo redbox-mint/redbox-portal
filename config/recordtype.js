@@ -77,6 +77,10 @@ module.exports.recordtype = {
   },
   "dataRecord": {
     "packageType": "dataRecord",
+    labels: {
+      name:"Plan",
+      namePlural:"Plans"
+    },
     searchFilters: [
       {
         name: "text_title",

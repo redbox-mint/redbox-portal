@@ -160,8 +160,14 @@ export class RecordsService extends BaseService {
     .then((res:any) => this.extractData(res) as RecordActionResult);
   }
 
-  getType(name: string) {
+  public getType(name: string) {
     return this.http.get(`${this.brandingAndPortalUrl}/record/type/${name}`, this.getOptionsClient())
+    .toPromise()
+    .then((res:any) => this.extractData(res));
+  }
+
+  public getWorkflowSteps(name: string) {
+    return this.http.get(`${this.brandingAndPortalUrl}/record/wfSteps/${name}`, this.getOptionsClient())
     .toPromise()
     .then((res:any) => this.extractData(res));
   }
