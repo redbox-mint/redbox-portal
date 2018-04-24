@@ -1,3 +1,5 @@
+<!-- Basic Uppy styles -->
+<link rel="stylesheet" href="/node_modules/uppy/dist/uppy.min.css">
 <div class='padding-bottom-10'>
   <label [attr.for]="field.name">
     {{field.label}} {{ getRequiredLabelStr()}}
@@ -8,12 +10,29 @@
     <table class="table table-bordered table-striped table-hover">
       <thead>
         <tr>
-          <th>Type of location</th><th>Location</th><th>Notes</th>
+          <th width="15%">Type of location</th><th width="40%">Location</th><th width="40%">Notes</th><th width="5%"></th>
         </tr>
       </thead>
       <tbody>
-        <tr *ngFor="let dataLocation of field.value">
-          <td>{{ field.dataTypeLookup[dataLocation.type] }}</td><td>{{ dataLocation.location }}</td><td>{{ dataLocation.notes }}</td>
+        <tr *ngFor="let dataLocation of getDatalocations()">
+          <td>{{ field.dataTypeLookup[dataLocation.type] }}</td>
+          <td>
+            <ng-container *ngIf="dataLocation && dataLocation.type != 'attachment'">
+            {{ dataLocation.location }}
+            </ng-container>
+            <ng-container *ngIf="dataLocation.type == 'attachment'">
+              <ng-container *ngIf="dataLocation.pending">
+                {{ dataLocation.name }}
+              </ng-container>
+              <a *ngIf="!dataLocation.pending" href="{{ getAbsUrl(dataLocation.location) }}" target="_blank">
+                {{ dataLocation.name }}
+              </a>
+            </ng-container>
+          </td>
+          <td>{{ dataLocation.notes }}</td>
+          <td>
+            <a class="fa fa-minus-circle btn text-20 btn-danger" (click)="field.removeLocation(dataLocation)"></a>
+          </td>
         </tr>
       </tbody>
     </table>
@@ -26,7 +45,7 @@
         <label>Location</label>
       </div>
       <div class="col-xs-5">
-        <label>Notes</label>
+        <label *ngIf="field.newLocation.type != 'attachment'">Notes</label>
       </div>
 
     </div>
@@ -40,16 +59,16 @@
 
     <div class="col-xs-4">
       <input [(ngModel)]="field.newLocation.location" *ngIf="field.newLocation.type != 'attachment'" type="text" class="form-control" />
-      <a *ngIf="field.newLocation.type == 'attachment'"  class="btn btn-info">Add attachment</a>
+      <a [class.disabled]="isAttachmentsDisabled()"
+      class="btn btn-info UppyModalOpenerBtn"
+      [style.display]="field.newLocation.type == 'attachment' ? 'inherit' : 'none'" >Add attachment(s)</a>
     </div>
     <div class="col-xs-4">
-      <input [(ngModel)]="field.newLocation.notes"   type="text" class="form-control" />
+      <input [(ngModel)]="field.newLocation.notes"  *ngIf="field.newLocation.type != 'attachment'" type="text" class="form-control" />
     </div>
     <div class="col-xs-1">
-      <a class="fa fa-plus-circle btn text-20 pull-right btn-success" (click)="field.addLocation()"></a>
+      <a  *ngIf="field.newLocation.type != 'attachment'" class="fa fa-plus-circle btn text-20 pull-right btn-success" (click)="field.addLocation()"></a>
     </div>
-  </div>
-  <div>
   </div>
 </div>
 </div>

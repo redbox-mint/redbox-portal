@@ -118,7 +118,7 @@ export module Services {
       const apiConfig = sails.config.record.api.removeDatastream;
       const opts = this.getOptions(`${sails.config.record.baseUrl.redbox}${apiConfig.url}`, oid);
       opts.url = `${opts.url}?skipReindex=true&datastreamId=${fileId}`;
-      return Observable.fromPromise(request[apiConfig.method](opts));
+      return request[apiConfig.method](opts);
     }
 
     public addDatastream(oid, fileId) {
@@ -129,7 +129,7 @@ export module Services {
       opts['formData'] = {
         content: fs.createReadStream(fpath)
       };
-      return Observable.fromPromise(request[apiConfig.method](opts));
+      return request[apiConfig.method](opts);
     }
 
     public getDatastream(oid, fileId) {
@@ -137,6 +137,8 @@ export module Services {
       const opts = this.getOptions(`${sails.config.record.baseUrl.redbox}${apiConfig.url}`, oid);
       opts.url = `${opts.url}?datastreamId=${fileId}`;
       opts.json = false;
+      sails.log.verbose(`Getting datastream using: `);
+      sails.log.verbose(JSON.stringify(opts));
       return Observable.fromPromise(request[apiConfig.method](opts));
     }
 

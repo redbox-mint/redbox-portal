@@ -437,5 +437,6 @@
   "@dmpt-related-data-relationship-association-with": "Has association with",
   "@dmpt-related-data-relationship-association-with-val": "Has association with",
   "@dmpt-related-data-rda": "Publish to RDA",
-  "@dmpt-related-data-rda-val": "Publish to RDA"
+  "@dmpt-related-data-rda-val": "Publish to RDA",
+  "attachment-not-found": "Attachment not found for this record."
 }
