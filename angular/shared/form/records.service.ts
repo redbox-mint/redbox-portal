@@ -167,6 +167,12 @@ export class RecordsService extends BaseService {
     .then((res:any) => this.extractData(res));
   }
 
+  getWorkflowSteps(name: string) {
+    return this.http.get(`${this.brandingAndPortalUrl}/record/wfSteps/${name}`, this.getOptionsClient())
+    .toPromise()
+    .then((res:any) => this.extractData(res));
+  }
+
   getRecordMeta(oid:string=null) {
     return this.http.get(`${this.brandingAndPortalUrl}/record/metadata/`+oid, this.options)
       .toPromise()

@@ -35,19 +35,36 @@ export module Services {
   export class Dashboard extends services.Services.Core.Service {
 
     protected _exportedMethods: any = [
-      'getPlans',
+      'getRecords',
       'exportAllPlans'
     ];
 
 
-    public getPlans(workflowState, start, rows = 10, username, roles, brand, editAccessOnly=undefined) {
+    public getRecords(workflowState, recordType, start, rows = 10, username, roles, brand, editAccessOnly=undefined) {
 
-      var url = this.addQueryParams(sails.config.record.baseUrl.redbox + sails.config.record.api.search.url, workflowState);
+      var url = sails.config.record.baseUrl.redbox + sails.config.record.api.query.url+"?collection=metadataDocuments";
       url = this.addPaginationParams(url, start, rows);
-      url = this.addAuthFilter(url, username, roles, brand, editAccessOnly)
-      url = url+"&fq=metaMetadata_brandId:"+brand.id
+      // url = this.addAuthFilter(url, username, roles, brand, editAccessOnly)
+      // url = url+"&fq=metaMetadata_brandId:"+brand.id
+      let roleNames= this.getRoleNames(roles,brand);
+      let query = {
+            "metaMetadata.brandId": brand.id,
+            "metaMetadata.type": recordType,
+            "authorization.view": username,
+            "authorization.edit": username,
+            "authorization.editRoles": {"$in": roleNames},
+            "authorization.viewRoles": {"$in": roleNames}
+          };
+
+          if(workflowState != undefined) {
+           query["workflow.stage"] = workflowState;
+          }
+
       var options = this.getOptions(url);
-      return Observable.fromPromise(request[sails.config.record.api.search.method](options));
+      options['body'] = query;
+      sails.log.error("Options")
+      sails.log.error(options)
+      return Observable.fromPromise(request[sails.config.record.api.query.method](options));
     }
 
     exportAllPlans(username, roles, brand, format, modBefore, modAfter) {
@@ -71,6 +88,19 @@ export module Services {
     protected addPaginationParams(url, start, rows) {
       url = url + "&start=" + start + "&rows=" + rows + "&wt=json";
       return url;
+    }
+
+    protected getRoleNames(roles,brand) {
+      var roleNames =[];
+
+      for (var i = 0; i < roles.length; i++) {
+        var role = roles[i]
+        if (role.branding == brand.id) {
+          roleNames.push(roles[i].name);
+        }
+      }
+
+      return roleNames;
     }
 
     protected addAuthFilter(url, username, roles, brand, editAccessOnly=undefined) {

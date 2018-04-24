@@ -50,6 +50,7 @@ export module Controllers {
       'modifyEditors',
       'search',
       'getType',
+      'getWorkflowSteps',
       'getMeta',
       'getTransferResponsibilityConfig',
       'updateResponsibilities',
@@ -106,9 +107,9 @@ export module Controllers {
       var recordTypeConfig = sails.config.recordtype;
 
       return res.json(this.getTransferResponsibilityConfigObject(recordTypeConfig, type))
-
-
     }
+
+
 
     private getTransferResponsibilityConfigObject(config, type) {
       for(var key in config) {
@@ -696,6 +697,17 @@ export module Controllers {
         }
       });
     }
+
+    public getWorkflowSteps(req, res) {
+      const recordType = req.param('recordType');
+      const brand = BrandingService.getBrand(req.session.branding);
+      return RecordTypesService.get(brand, recordType).subscribe(recordType => {
+        return WorkflowStepsService.getAllForRecordType(recordType).subscribe(wfSteps => {
+          return this.ajaxOk(req, res, null, wfSteps);
+        });
+      });
+    }
+
     /**
      **************************************************************************************************
      **************************************** Override magic methods **********************************

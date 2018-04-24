@@ -6,6 +6,7 @@ module.exports.record = {
   api: {
     create: {method: 'post', url: "/api/v1/object/$packageType"},
     search: {method: 'get', url: "/api/v1/search"},
+    query: {method: 'post', url: "/api/v2/query"},
     getMeta: {method: 'get', url: "/api/v1/recordmetadata/$oid"},
     updateMeta: {method: 'post', url: "/api/v1/recordmetadata/$oid"},
     harvest: {method: 'post', url:"/api/v1.1/harvest/$packageType"},
