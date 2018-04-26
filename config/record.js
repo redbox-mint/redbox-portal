@@ -12,7 +12,9 @@ module.exports.record = {
     harvest: {method: 'post', url:"/api/v1.1/harvest/$packageType"},
     getDatastream: {method: 'get', url:"/api/v1/datastream/$oid"},
     addDatastream: {method: 'post', url:"/api/v1/datastream/$oid"},
-    removeDatastream: {method: 'delete', url:"/api/v1/datastream/$oid"}
+    removeDatastream: {method: 'delete', url:"/api/v1/datastream/$oid"},
+    addDatastreams: {method: 'put', url:"/api/v1/datastream/$oid"},
+    removeDatastreams: {method: 'patch', url:"/api/v1/datastream/$oid"}
   },
   customFields: {
     '@branding': {
