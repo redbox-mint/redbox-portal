@@ -40,7 +40,8 @@ export module Services {
       'getAvailable',
       'getBrandAndPortalPath',
       'getBrandFromReq',
-      'getPortalFromReq'
+      'getPortalFromReq',
+      'getFullPath'
     ];
 
     protected availableBrandings: any = []
@@ -95,6 +96,10 @@ export module Services {
       const portal = this.getPortalFromReq(req);
       const path = `/${branding}/${portal}`;
       return path;
+    }
+
+    public getFullPath(req){
+      return sails.config.appUrl + this.getBrandAndPortalPath(req);
     }
 
     public getBrandFromReq(req) {

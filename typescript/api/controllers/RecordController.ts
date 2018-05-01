@@ -63,7 +63,6 @@ export module Controllers {
      */
 
     public bootstrap() {
-
     }
 
     public getMeta(req, res) {
@@ -83,9 +82,35 @@ export module Controllers {
     }
 
     public edit(req, res) {
+      const brand = BrandingService.getBrand(req.session.branding);
       const oid = req.param('oid') ? req.param('oid') : '';
       const recordType = req.param('recordType') ? req.param('recordType') : '';
-      return this.sendView(req, res, 'record/edit', { oid: oid, recordType: recordType });
+      const rdmp = req.query.rdmp ? req.query.rdmp : '';
+      let appSelector = 'dmp-form';
+      let appName = 'dmp';
+      sails.log.debug('RECORD::APP: ' + appName)
+      if(recordType != '') {
+        FormsService.getForm(brand.id, recordType, true).subscribe(form => {
+          if(form['customAngularApp'] != null) {
+            appSelector = form['customAngularApp']['appSelector'];
+            appName = form['customAngularApp']['appName'];
+          }
+          return this.sendView(req, res, 'record/edit', { oid: oid, rdmp: rdmp, recordType: recordType, appSelector: appSelector, appName: appName });
+        });
+      } else {
+        RecordsService.getMeta(oid).flatMap(record => {
+          const formName = record.metaMetadata.form;
+          return FormsService.getFormByName(formName, true);
+        }).subscribe(form => {
+          sails.log.debug(form);
+          if(form['customAngularApp'] != null) {
+            appSelector = form['customAngularApp']['appSelector'];
+            appName = form['customAngularApp']['appName'];
+          }
+          return this.sendView(req, res, 'record/edit', { oid: oid, rdmp: rdmp, recordType: recordType, appSelector: appSelector, appName: appName });
+        });
+
+      }
     }
 
     protected hasEditAccess(brand, user, currentRec) {

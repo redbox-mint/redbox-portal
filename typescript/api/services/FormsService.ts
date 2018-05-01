@@ -65,7 +65,6 @@ export module Services {
             if (formName) {
 
               _.each(workflowSteps, function(workflowStep) {
-
                 if (workflowStep.config.form == formName) {
                   const formObj = {
                     name: formName,
@@ -76,7 +75,8 @@ export module Services {
                     viewCssClasses: sails.config.form.forms[formName].viewCssClasses,
                     editCssClasses: sails.config.form.forms[formName].editCssClasses,
                     skipValidationOnSave: sails.config.form.forms[formName].skipValidationOnSave,
-                    attachmentFields: sails.config.form.forms[formName].attachmentFields
+                    attachmentFields: sails.config.form.forms[formName].attachmentFields,
+                    customAngularApp: sails.config.form.forms[formName].customAngularApp || null
                   };
 
                   var q = Form.create(formObj);

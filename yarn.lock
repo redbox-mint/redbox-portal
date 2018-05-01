@@ -4382,6 +4382,10 @@ ncp@0.5.1:
   version "0.5.1"
   resolved "https://registry.yarnpkg.com/ncp/-/ncp-0.5.1.tgz#743985316e3db459281b587169e845735a05439f"
 
+ncp@^2.0.0:
+  version "2.0.0"
+  resolved "https://registry.yarnpkg.com/ncp/-/ncp-2.0.0.tgz#195a21d6c46e361d2fb1281ba38b91e9df7bdbb3"
+
 nedb@1.8.0:
   version "1.8.0"
   resolved "https://registry.yarnpkg.com/nedb/-/nedb-1.8.0.tgz#0e3502cd82c004d5355a43c9e55577bd7bd91d88"
@@ -5301,7 +5305,7 @@ request@^2.51.0, request@^2.81.0:
     tunnel-agent "^0.6.0"
     uuid "^3.1.0"
 
-request@^2.61.0, request@^2.72.0, request@^2.74.0, request@^2.79.0:
+request@^2.61.0, request@^2.72.0, request@^2.74.0, request@^2.79.0, request@^2.85.0:
   version "2.85.0"
   resolved "https://registry.yarnpkg.com/request/-/request-2.85.0.tgz#5a03615a47c61420b3eb99b7dba204f83603e1fa"
   dependencies:
@@ -5581,6 +5585,17 @@ sails-hook-orm@^2.0.0:
     sails-disk "^1.0.0-0"
     waterline "^0.13.1-0"
     waterline-utils "^1.0.0"
+
+"sails-hook-redbox-gitlab@https://github.com/moisbo/sails-hook-redbox-gitlab.git":
+  version "0.0.0"
+  resolved "https://github.com/moisbo/sails-hook-redbox-gitlab.git#6586a195cbb4377db7f4a2c9bf6db31ef7c364ed"
+  dependencies:
+    lodash "^4.17.5"
+    ncp "^2.0.0"
+    request "^2.85.0"
+    request-promise "^4.2.0"
+    rxjs "5.4.1"
+    sails "^1.0.0"
 
 sails-hook-sockets@^1.5.2:
   version "1.5.2"

@@ -42,7 +42,7 @@ if [ $watch == "true" ]; then
     echo "Running watch"
     nohup docker-compose up &
     sleep 15
-    RBPORTAL_PS=$(docker ps -f name=redboxportal_redboxportal_1 -q)
+    RBPORTAL_PS=$(docker ps -f name=redbox-portal_redboxportal_1 -q)
     docker exec -it $RBPORTAL_PS /bin/bash -c "cd /opt/redbox-portal/angular; npm install -g @angular/cli; yarn; ng build --app=${ng2App} --watch"
 else
     echo "No watch"
