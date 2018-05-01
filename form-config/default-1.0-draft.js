@@ -1191,7 +1191,8 @@ module.exports = {
                       },
                       {
                         "label": "Description",
-                        "property": "description"
+                        "property": "description",
+                        "link": "absolute"
                       }
                     ]
                   }
