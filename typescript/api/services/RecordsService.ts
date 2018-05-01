@@ -23,6 +23,7 @@ import {Sails, Model} from "sails";
 import * as request from "request-promise";
 import * as luceneEscapeQuery from "lucene-escape-query";
 import * as fs from 'fs';
+const util = require('util');
 
 declare var FormsService, RolesService, UsersService, WorkflowStepsService;
 declare var sails: Sails;
@@ -60,7 +61,7 @@ export module Services {
       const options = this.getOptions(sails.config.record.baseUrl.redbox+sails.config.record.api.create.url, null, packageType);
 
       options.body = record;
-      sails.log.verbose(options);
+      sails.log.verbose(util.inspect(options, {showHidden: false, depth: null}))
       return Observable.fromPromise(request[sails.config.record.api.create.method](options));
     }
 

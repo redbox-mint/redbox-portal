@@ -12,6 +12,9 @@ module.exports = {
       unique: true,
       required: true
     },
+    customAngularApp: {
+      type: 'json'
+    },
     fields: {
       type: 'json'
     },
