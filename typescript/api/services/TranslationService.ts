@@ -60,4 +60,5 @@ export module Services {
 
     }
   }
-  module.exports = new Services.Translation().exports();
+}
+module.exports = new Services.Translation().exports();
