@@ -39,8 +39,9 @@ services:
        - "9000"
     environment:
       - RB_API_KEY=c8e844fc-8550-497f-b970-7900ec8741ca
-      - RAID_URL=https://api.raid.org.au:8000/
-      - RAID_KEY=
+      - PORTAL_API_TOKEN=c81bd0a3-56fb-448e-bfa5-a5b7abb3668e
+      - RB_API_KEY=c81bd0a3-56fb-448e-bfa5-a5b7abb3668e
+      - PORTAL_BASE_URL=http://rbportal:1500/default/rdmp
     volumes:
         - "/mnt/data/redbox:/opt/redbox/data"
         - "/var/log/redbox:/opt/redbox/home/logs"
