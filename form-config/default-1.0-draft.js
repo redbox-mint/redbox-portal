@@ -1204,6 +1204,7 @@ module.exports = {
                 {
                   class: 'Container',
                   compClass: 'TextBlockComponent',
+                  editOnly: true,
                   definition: {
                     value: '@dmpt-workspaces-create-title',
                     type: 'h4'

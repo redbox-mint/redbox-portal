@@ -1,13 +1,13 @@
 //Workspace Type Definitions
 
-//Left example commented of gitlab
+//Left example commented
 
 module.exports.workspacetype = {
-  // 'gitlab': {
-  //   name: 'gitlab',
-  //   label: 'GitLab',
+  // 'workspace': {
+  //   name: 'workspace',
+  //   label: 'WorkSpace',
   //   subtitle: 'Add a subitle here...',
   //   description: 'To Create or link your workspace to this Plan follow this button (add more text here)',
-  //   logo: '/angular/gitlab/assets/images/gitlab.png'
+  //   logo: '/default/rdmp/images/logo.png'
   // }
 }

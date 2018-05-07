@@ -33,9 +33,12 @@ export class WorkspaceSelectorComponent extends SimpleComponent {
   </label>
   <br/>
   <span id="{{ 'helpBlock_' + field.name }}" class="help-block" *ngIf="this.helpShow" [innerHtml]="field.help"></span>
-  <select [formControl]="getFormControl()" [id]="field.name" [ngClass]="field.cssClasses"
+  <select [formControl]="getFormControl()" [ngClass]="field.cssClasses"
           (change)="field.loadWorkspaceDetails($event.target.value)">
-    <option *ngFor="let opt of field.workspaceApps" [selected]="0" [value]="opt.name">{{opt.label}}</option>
+    <option *ngFor="let opt of field.workspaceApps; let i = index"
+     [ngValue]="opt" [selected]="i == 0"
+     [value]="opt.name">{{opt.label}}
+    </option>
   </select>
   <div class="text-danger"
        *ngIf="getFormControl().hasError('required') && getFormControl().touched && !field.validationMessages?.required">

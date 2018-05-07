@@ -140,12 +140,13 @@ export class WorkspaceSelectorField extends FieldBase<any>  {
     // this.options = options['options'] || [];
     this.workspaceApps = _.map(options['defaultSelection'] || [], (option) => {
       option['label'] = this.getTranslated(option['label'], option['label']);
-      option['name'] = this.getTranslated(option['name'], option['name']);
+      option['name'] = '';
       return option;
     });
     this.appLink = this.workspaceTypeService.getBrand() + '/record/';
     this.workspaceTypeService.getWorkspaceTypes().then(response => {
       if(response['status']) {
+        //append results from database into workspaceApps
         this.workspaceApps = _.concat(this.workspaceApps, response['workspaceTypes']);
       } else {
         throw new Error('cannot get workspaces');
@@ -153,7 +154,6 @@ export class WorkspaceSelectorField extends FieldBase<any>  {
     }).catch(error => {
       console.log(error);
     });
-    //Merge results from database into options
   }
 
   init() {
@@ -172,11 +172,15 @@ export class WorkspaceSelectorField extends FieldBase<any>  {
 
   loadWorkspaceDetails(value: string) {
     //GET me the value from the database
-    this.workspaceApp = _.find(this.workspaceApps,
-     function(w) {
-       return w['name'] == value;
-     }
-    );
+    if(!value){
+      this.workspaceApp = null
+    }else {
+      this.workspaceApp = _.find(this.workspaceApps,
+        function(w) {
+          return w['name'] == value;
+        }
+      );
+    }
   }
 
   createFormModel() {
