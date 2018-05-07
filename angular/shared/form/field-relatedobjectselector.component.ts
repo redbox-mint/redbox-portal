@@ -38,27 +38,20 @@ export class RelatedObjectSelectorField extends FieldBase<any> {
   showHeader: boolean;
   validators: any;
   enabledValidators: boolean;
-  relatedObjects: object[];
-  accessDeniedObjects: object[];
-  failedObjects: object[];
   hasInit: boolean;
   dashboardService: DashboardService;
-  columns: object[];
   plans: PlanTable;
   searchFilterName: any;
   filteredPlans: Plan[];
   recordType:string;
+  columnTitle:string;
 
   relatedObjectSelected:EventEmitter<string> = new EventEmitter<string>();
 
   constructor(options: any, injector: any) {
     super(options, injector);
-    this.relatedObjects = [];
-    this.accessDeniedObjects = [];
-    this.failedObjects = [];
-    this.columns = options['columns'] || [];
 
-    var relatedObjects = this.relatedObjects;
+    this.columnTitle = options['columnTitle'] || "Record title";
     this.value = options['value'] || this.setEmptyValue();
     this.recordType = options['recordType'];
     this.dashboardService = this.getFromInjector(DashboardService);

@@ -1,0 +1,40 @@
+<div class='padding-bottom-10'>
+  <label [attr.for]="field.name">
+    {{field.label}} {{ getRequiredLabelStr()}}
+    <button type="button" class="btn btn-default" *ngIf="field.help" (click)="toggleHelp()"><span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span></button>
+  </label><br/>
+  <div>
+    <div class="table-responsive">
+    <table class="table table-bordered table-striped table-hover">
+      <thead>
+        <tr>
+          <th width="15%">Type of location</th><th width="40%">Location</th><th width="40%">Notes</th><th width="5%"></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let dataLocation of getDatalocations()">
+          <td>{{ field.dataTypeLookup[dataLocation.type] }}</td>
+          <td>
+            <ng-container *ngIf="dataLocation && dataLocation.type != 'attachment'">
+            {{ dataLocation.location }}
+            </ng-container>
+            <ng-container *ngIf="dataLocation.type == 'attachment'">
+              <ng-container *ngIf="dataLocation.pending">
+                {{ dataLocation.name }}
+              </ng-container>
+              <a *ngIf="!dataLocation.pending" href="{{ getAbsUrl(dataLocation.location) }}" target="_blank">
+                {{ dataLocation.name }}
+              </a>
+            </ng-container>
+          </td>
+          <td>{{ dataLocation.notes }}</td>
+          <td>
+            <a class="fa fa-minus-circle btn text-20 btn-danger" (click)="field.removeLocation(dataLocation)"></a>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <div><button class="btn btn-info">Export</button></div>
+</div>
+</div>
