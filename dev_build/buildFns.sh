@@ -50,7 +50,7 @@ function compileAoT() {
   echo "Running AoT compile..."
   node_modules/.bin/ngc -p tsconfig-aot.json
   node_modules/.bin/grunt --gruntfile Gruntfile-ts-compile-sails.js
-  node_modules/.bin/grunt --gruntfile Gruntfile-ts-compile-ng2.js
+  node_modules/.bin/grunt copy:api
   ng2apps=( `find angular -maxdepth 1 -mindepth 1 -type d -printf '%f '` )
   for ng2app in "${ng2apps[@]}"
   do
