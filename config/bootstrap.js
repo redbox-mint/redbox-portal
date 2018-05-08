@@ -9,7 +9,6 @@
  * http://sailsjs.org/#!/documentation/reference/sails.config/sails.config.bootstrap.html
  */
 var Observable = require('rxjs/Observable').Observable;
-const schedule = require('node-schedule');
 
 module.exports.bootstrap = function(cb) {
     sails.config.peopleSearch.orcid = sails.services.orcidservice.searchOrcid;
@@ -54,19 +53,6 @@ module.exports.bootstrap = function(cb) {
     })
     .flatMap(whatever => {
       return sails.services.vocabservice.bootstrap();
-    })
-    .flatMap(x => {
-      // Schedule cronjobs
-      if(sails.config.crontab.enabled) {
-        sails.config.crontab.crons().forEach(item => {
-          schedule.scheduleJob(item.interval, () => {
-            //At the moment no arguments are needed.
-            sails.services[item.service][item.method]();
-          });
-        });
-        sails.log.debug('cronjobs scheduled...');
-      }
-      return Observable.of('');
     })
     .last()
     .flatMap(whatever => {
