@@ -48,6 +48,24 @@ export class TextField extends FieldBase<string> {
   }
 }
 
+export class MarkdownTextArea extends FieldBase<string> {
+  rows: number;
+  cols: number;
+
+  lines: string[];
+
+  constructor(options: any, injector: any) {
+    super(options, injector);
+    this.rows = options['rows'] || 5;
+    this.cols = options['cols'] || null;
+    this.controlType = 'textarea';
+  }
+
+  formatValueForDisplay() {
+    this.lines = this.value ? this.value.split("\n") : [];
+  }
+}
+
 export class TextArea extends FieldBase<string> {
   rows: number;
   cols: number;

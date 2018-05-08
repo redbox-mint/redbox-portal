@@ -14,6 +14,8 @@ module.exports = {
     name : { type: 'string', required: true},
     email: { type: 'string'},
     token: { type: 'string'},
+    // users have many workspace apps
+    workspaceApps: { collection: 'workspaceApp', via: 'user' },
     // users have many roles
     roles: { collection: 'role', via: 'users'}
   },

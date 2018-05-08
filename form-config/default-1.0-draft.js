@@ -1192,6 +1192,11 @@ module.exports = {
                       {
                         "label": "Description",
                         "property": "description"
+                      },
+                      {
+                        "label": "Location",
+                        "property": "location",
+                        "link": "absolute"
                       }
                     ]
                   }

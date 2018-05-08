@@ -19,7 +19,7 @@
 import { Injectable, Inject, ApplicationRef, Output, EventEmitter }   from '@angular/core';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { FieldBase } from './field-base';
-import { TextField, Container, TextArea, DateTime, AnchorOrButton, SaveButton, CancelButton, HiddenValue, LinkValue, TabOrAccordionContainer, ButtonBarContainer, SelectionField, ParameterRetrieverField, RecordMetadataRetrieverField } from './field-simple';
+import { TextField, Container, MarkdownTextArea, TextArea, DateTime, AnchorOrButton, SaveButton, CancelButton, HiddenValue, LinkValue, TabOrAccordionContainer, ButtonBarContainer, SelectionField, ParameterRetrieverField, RecordMetadataRetrieverField } from './field-simple';
 import { TextFieldComponent, RepeatableTextfieldComponent} from './field-textfield.component';
 import {
   DropdownFieldComponent,
@@ -35,7 +35,8 @@ import {
   LinkValueComponent,
   SelectionFieldComponent,
   ParameterRetrieverComponent,
-  RecordMetadataRetrieverComponent
+  RecordMetadataRetrieverComponent,
+  MarkdownTextAreaComponent
 } from './field-simple.component';
 import { VocabField, VocabFieldComponent, VocabFieldLookupService } from './field-vocab.component';
 import { RepeatableContainer, RepeatableVocab, RepeatableContributor, RepeatableVocabComponent, RepeatableContributorComponent } from './field-repeatable.component';
@@ -44,6 +45,7 @@ import { WorkflowStepButton, WorkflowStepButtonComponent } from './workflow-butt
 import { RelatedObjectDataField, RelatedObjectDataComponent } from './field-relatedobjectdata.component';
 import { RelatedObjectSelectorComponent, RelatedObjectSelectorField } from './field-relatedobjectselector.component';
 import { DataLocationComponent, DataLocationField } from './field-datalocation.component';
+import { PublishDataLocationSelectorComponent, PublishDataLocationSelectorField } from './field-publishdatalocationselector.component'
 import { MapField, MapComponent } from './field-map.component';
 import * as _ from "lodash-es";
 import { Observable } from 'rxjs/Observable';
@@ -67,6 +69,7 @@ export class FieldControlService {
   protected classes = {
     'TextField': { 'meta': TextField, 'comp': TextFieldComponent },
     'TextArea': { 'meta': TextArea, 'comp': TextAreaComponent },
+    'MarkdownTextArea': { 'meta': MarkdownTextArea, 'comp': MarkdownTextAreaComponent },
     'DateTime': { 'meta': DateTime, 'comp': DateTimeComponent },
     'Container': {'meta': Container, 'comp': [ TextBlockComponent, GenericGroupComponent ] },
     'TabOrAccordionContainer': {'meta': TabOrAccordionContainer, 'comp': TabOrAccordionContainerComponent },
@@ -89,6 +92,7 @@ export class FieldControlService {
     'RecordMetadataRetriever':{ 'meta': RecordMetadataRetrieverField, 'comp': RecordMetadataRetrieverComponent},
     'RelatedObjectSelector':{ 'meta': RelatedObjectSelectorField, 'comp': RelatedObjectSelectorComponent},
     'DataLocation':{ 'meta': DataLocationField, 'comp': DataLocationComponent},
+    'PublishDataLocationSelector':{ 'meta': PublishDataLocationSelectorField, 'comp': PublishDataLocationSelectorComponent},
   };
   constructor(@Inject(VocabFieldLookupService) private vocabFieldLookupService: VocabFieldLookupService, @Inject(CompleterService) private completerService: CompleterService,
   @Inject(ConfigService) protected configService: ConfigService,
