@@ -460,7 +460,7 @@ module.exports = {
                   }
                 },
                 {
-                  class: 'RepeatableContainer',
+                  class: 'RepeatableContributor',
                   compClass: 'RepeatableContributorComponent',
                   definition: {
                     name: "contributors",

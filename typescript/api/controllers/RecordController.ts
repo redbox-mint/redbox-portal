@@ -29,7 +29,7 @@ declare var FormsService, RecordsService, WorkflowStepsService, BrandingService,
 /**
  * Package that contains all Controllers.
  */
-import controller = require('../../typescript/controllers/CoreController.js');
+import controller = require('../core/CoreController.js');
 export module Controllers {
   /**
    * Responsible for all things related to a Record, includings Forms, etc.

@@ -60,6 +60,7 @@ export class FieldBase<T> {
   fieldMap: any;
   utilityService: UtilityService;
   injector: Injector;
+  componentReactors: any[] = [];
 
   @Output() public onValueUpdate: EventEmitter<any> = new EventEmitter<any>();
 
@@ -299,6 +300,9 @@ export class FieldBase<T> {
 
   public reactEvent(eventName: string, eventData: any, origData: any) {
     this.formModel.setValue(eventData, { onlySelf: true, emitEvent: false });
+    _.each(this.componentReactors, (compReact) => {
+      compReact.reactEvent(eventName, eventData, origData, this);
+    });
   }
 
   public setFieldMapEntry(fieldMap: any, fieldCompRef: any) {
@@ -316,5 +320,10 @@ export class FieldBase<T> {
 
   public getControl(name = null, fieldMap = null) {
     return _.get(fieldMap ? fieldMap : this.fieldMap, `${this.getFullFieldName(name)}.control`);
+  }
+
+  public setValue(value:any, emitEvent:boolean=true) {
+    this.value = value;
+    this.formModel.setValue(value, { onlySelf: true, emitEvent: emitEvent });
   }
 }

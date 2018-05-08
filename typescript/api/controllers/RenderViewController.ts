@@ -1,6 +1,6 @@
 //<reference path='./../../typings/loader.d.ts'/>
 
-import controller = require('../../typescript/controllers/CoreController.js');
+import controller = require('../core/CoreController.js');
 
 /**
  * Package that contains all Controllers.

@@ -17,10 +17,11 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { Input, Component, OnInit, Output, EventEmitter} from '@angular/core';
+import { Input, Component, OnInit, Output, EventEmitter } from '@angular/core';
 import { SimpleComponent } from './field-simple.component';
+import { VocabField } from './field-vocab.component';
 import { Container } from './field-simple';
-import { FormArray } from '@angular/forms';
+import { FormControl, FormArray, Validators } from '@angular/forms';
 import * as _ from "lodash-es";
 import { ChangeDetectorRef } from '@angular/core';
 import { ContributorField } from './field-contributor.component';
@@ -64,9 +65,10 @@ export class RepeatableContainer extends Container {
   }
 
   getGroup(group: any, fieldMap: any) {
+    this.fieldMap = fieldMap;
     fieldMap[this.name] = {field:this};
     if (!this.value || this.value.length == 0) {
-      this.formModel = new FormArray(this.getInitArrayEntry());
+      this.formModel = this.required ? new FormArray(this.getInitArrayEntry(), Validators.required) : new FormArray(this.getInitArrayEntry());
     } else {
       let fieldCtr = 0;
       const baseField = this.fields[0];
@@ -84,7 +86,7 @@ export class RepeatableContainer extends Container {
         elems.push(fieldClone.createFormModel(valueElem[fieldCtr]));
         return fieldClone;
       });
-      this.formModel = new FormArray(elems);
+      this.formModel = this.required ? new FormArray(elems, Validators.required) : new FormArray(elems);
       _.each(this.fields, f => {
         f.setupEventHandlers();
       });
@@ -132,9 +134,9 @@ export class RepeatableContainer extends Container {
     };
   }
 
-  addElem() {
-    const newElem = this.createNewElem(this.fields[0]);
-    if (_.isFunction(newElem.setEmptyValue)) {
+  addElem(val:any = null) {
+    const newElem = this.createNewElem(this.fields[0], val);
+    if (val == null && _.isFunction(newElem.setEmptyValue)) {
       newElem.setEmptyValue();
     }
     this.fields.push(newElem);
@@ -148,9 +150,31 @@ export class RepeatableContainer extends Container {
     this.formModel.removeAt(index);
   }
 
+  setValueAtElem(index, value:any) {
+    this.fields[index].setValue(value, true);
+  }
+
   public triggerValidation() {
     _.forEach(this.fields, (f:any) => {
       f.triggerValidation();
+    });
+  }
+
+  public reactEvent(eventName: string, eventData: any, origData: any) {
+    console.log(`Repeatable container field reacting: ${eventName}`);
+    console.log(eventData);
+    // delete first...
+    if (this.fields.length > eventData.length) {
+      for (let toDelIdx = eventData.length - 1; toDelIdx < this.fields.length; toDelIdx++ ) {
+          this.removeElem(toDelIdx);
+      }
+    }
+    _.each(eventData, (entry, idx) => {
+      if (idx >= this.formModel.controls.length) {
+        this.addElem(entry);
+      } else {
+        this.setValueAtElem(idx, entry);
+      }
     });
   }
 }
@@ -184,6 +208,16 @@ export class RepeatableComponent extends SimpleComponent {
 
   removeElem(event: any, i: number) {
     this.field.removeElem(i);
+  }
+}
+
+export class RepeatableVocab extends RepeatableContainer {
+  fields: VocabField[];
+
+  setValueAtElem(index, value:any) {
+    console.log(`Repeatable vocab setting value at: ${index}`);
+    console.log(value);
+    this.fields[index].component.onSelect(value, false, true);
   }
 }
 
@@ -224,10 +258,16 @@ export class RepeatableComponent extends SimpleComponent {
   `,
 })
 export class RepeatableVocabComponent extends RepeatableComponent {
+  field: RepeatableVocab;
+
 }
 
 export class RepeatableContributor extends RepeatableContainer {
   fields: ContributorField[];
+
+  setValueAtElem(index, value:any) {
+    this.fields[index].component.onSelect(value, false, true);
+  }
 }
 
 @Component({
@@ -269,13 +309,15 @@ export class RepeatableContributorComponent extends RepeatableComponent implemen
 
   ngOnInit() {
     this.field.fields[0].marginTop = '25px';
+    this.field.fields[0].componentReactors.push(this);
   }
 
   addElem(event: any) {
-    const newElem = this.field.addElem();
+    const newElem:any = this.field.addElem();
     newElem.marginTop = '0px';
     newElem.vocabField.initialValue = null;
     newElem.setupEventHandlers();
+    newElem.componentReactors.push(this);
   }
 
   removeElem(event: any, i: number) {
@@ -283,6 +325,15 @@ export class RepeatableContributorComponent extends RepeatableComponent implemen
     if (i == 0) {
       this.field.fields[0].marginTop = '25px';
       this.field.fields[0]["showHeader"] = true;
+    }
+  }
+
+  public reactEvent(eventName: string, eventData: any, origData: any, elem:any) {
+    if (this.field.fields.length > 0) {
+      elem.marginTop = '0px';
+      elem.vocabField.initialValue = eventData;
+      elem.setupEventHandlers();
+      elem.componentReactors.push(this);
     }
   }
 }

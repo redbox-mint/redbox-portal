@@ -14,18 +14,19 @@
         "noLib": false,
         "preserveConstEnums": true,
         "suppressImplicitAnyIndexErrors": true,
-        "sourceMap": false
+        "sourceMap": false,
+        "outDir": "./",
+        "rootDir": "./typescript"
     },
     "exclude": [
         "node_modules/**",
         "typings/browser/**",
         "typings/browser.d.ts",
-        "test/integration/**/*.ts"
+        "test/integration/**/*.ts",
+        "angular/**"
     ],
     "include": [
-        "typescript/**/*.ts",
-        "api/**/*.ts",
-        "assets/angular/**/*.ts"
+        "typescript/**/*.ts"
     ],
     "compileOnSave": true,
     "buildOnSave": false,

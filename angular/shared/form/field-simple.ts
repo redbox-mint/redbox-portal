@@ -18,7 +18,7 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 import { Output, EventEmitter } from '@angular/core';
 import { FieldBase } from './field-base';
-import { FormControl, FormGroup, FormArray } from '@angular/forms';
+import { FormControl, FormGroup, FormArray, Validators } from '@angular/forms';
 import * as _ from "lodash-es";
 import moment from 'moment-es6';
 import { RecordsService } from './records.service';
@@ -124,7 +124,7 @@ export class Container extends FieldBase<any> {
   public getGroup(group: any, fieldMap: any) : any {
     this.fieldMap = fieldMap;
     _.set(fieldMap, `${this.getFullFieldName()}.field`, this);
-    group[this.name] = new FormGroup({});
+    group[this.name] =  this.required ? new FormGroup({}, Validators.required) : new FormGroup({});
     _.each(this.fields, (field) => {
       field.getGroup(group, fieldMap);
     });
@@ -141,7 +141,7 @@ export class Container extends FieldBase<any> {
       field.value = fldVal;
       grp[field.name] = field.createFormModel(fldVal);
     });
-    this.formModel = new FormGroup(grp);
+    this.formModel = this.required ? new FormGroup(grp, Validators.required) : new FormGroup(grp);
     return this.formModel;
   }
 

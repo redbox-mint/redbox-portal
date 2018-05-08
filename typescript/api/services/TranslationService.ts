@@ -18,7 +18,7 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 import { Observable } from 'rxjs/Rx';
-import services = require('../../typescript/services/CoreService.js');
+import services = require('../core/CoreService.js');
 import { Sails, Model } from "sails";
 import * as i18next from 'i18next';
 import * as Backend from 'i18next-sync-fs-backend';

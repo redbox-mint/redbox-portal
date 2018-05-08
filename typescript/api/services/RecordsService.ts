@@ -18,7 +18,7 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 import { Observable } from 'rxjs/Rx';
-import services = require('../../typescript/services/CoreService.js');
+import services = require('../core/CoreService.js');
 import {Sails, Model} from "sails";
 import * as request from "request-promise";
 import * as luceneEscapeQuery from "lucene-escape-query";
@@ -151,7 +151,7 @@ export module Services {
     public addDatastreams(oid, fileIds: any[]) {
       const apiConfig = sails.config.record.api.addDatastreams;
       const opts = this.getOptions(`${sails.config.record.baseUrl.redbox}${apiConfig.url}`, oid);
-      opts.url = `${opts.url}?skipReindex=false&dataStreamIds=${fileIds.join(',')}`;
+      opts.url = `${opts.url}?skipReindex=false&datastreamIds=${fileIds.join(',')}`;
       const formData = {};
       _.each(fileIds, fileId => {
         const fpath = `${sails.config.record.attachments.stageDir}/${fileId}`;

@@ -17,7 +17,7 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { Input, Component, Injectable , Inject, OnInit, Output, EventEmitter} from '@angular/core';
+import { Input, Component, Injectable , Inject, OnInit, Output, EventEmitter, ElementRef, ViewChild } from '@angular/core';
 import { SimpleComponent } from './field-simple.component';
 import { FieldBase } from './field-base';
 import { FormGroup, FormControl, Validators } from '@angular/forms';
@@ -39,6 +39,7 @@ import * as luceneEscapeQuery from "lucene-escape-query";
  *
  */
 export class VocabField extends FieldBase<any> {
+  public searchStr: any;
   public vocabId: string;
   public sourceData: any;
   public completerService: CompleterService;
@@ -54,6 +55,7 @@ export class VocabField extends FieldBase<any> {
   public placeHolder: string;
   public disableEditAfterSelect: boolean;
   public stringLabelToField: string;
+  public component:any;
 
   constructor(options: any, injector: any) {
     super(options, injector);
@@ -206,6 +208,13 @@ export class VocabField extends FieldBase<any> {
      }
    }
 
+   setValue(value:any, emitEvent:boolean=true, updateTitle:boolean=false) {
+     this.formModel.setValue(value, {emitEvent: emitEvent});
+     if (updateTitle) {
+       this.component.ngCompleter.ctrInput.nativeElement.value = this.getTitle(value);
+     }
+   }
+
 }
 
 class MintLookupDataService extends Subject<CompleterItem[]> implements CompleterData {
@@ -238,7 +247,7 @@ class MintLookupDataService extends Subject<CompleterItem[]> implements Complete
       // Convert the result to CompleterItem[]
       let data = res.json();
       let matches: CompleterItem[] = _.map(data, (mintDataItem: any) => { return this.convertToItem(mintDataItem); });
-      this.next(matches); 
+      this.next(matches);
     }).subscribe();
   }
 
@@ -345,14 +354,14 @@ export class VocabFieldLookupService extends BaseService {
       <button type="button" class="btn btn-default" *ngIf="field.help" (click)="toggleHelp()"><span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span></button>
     </label>
     <span id="{{ 'helpBlock_' + field.name }}" class="help-block" *ngIf="this.helpShow" >{{field.help}}</span>
-    <ng2-completer [(ngModel)]="searchStr" [ngModelOptions]="{standalone: true}" [disableInput]="disableInput" [placeholder]="field.placeHolder" [clearUnselected]="disableEditAfterSelect && field.disableEditAfterSelect" (keyup)="onKeyup($event)" (selected)="onSelect($event)" [datasource]="field.dataService" [minSearchLength]="0" [inputClass]="'form-control'" [initialValue]="field.initialValue"></ng2-completer>
+    <ng2-completer #ngCompleter [(ngModel)]="field.searchStr" [ngModelOptions]="{standalone: true}" [disableInput]="disableInput" [placeholder]="field.placeHolder" [clearUnselected]="disableEditAfterSelect && field.disableEditAfterSelect" (keyup)="onKeyup($event)" (selected)="onSelect($event)" [datasource]="field.dataService" [minSearchLength]="0" [inputClass]="'form-control'" [initialValue]="field.initialValue"></ng2-completer>
     <div class="text-danger" *ngIf="hasRequiredError()">{{field.validationMessages.required}}</div>
   </div>
   <div *ngIf="field.editMode && isEmbedded" [formGroup]='form' [ngClass]="getGroupClass()">
     <div class="row">
       <span id="{{ 'helpBlock_' + field.name }}" class="help-block" *ngIf="this.helpShow" >{{field.help}}</span>
       <div class="col-xs-11 padding-remove">
-        <ng2-completer [(ngModel)]="searchStr" [ngModelOptions]="{standalone: true}" [disableInput]="disableInput" [placeholder]="field.placeHolder" [clearUnselected]="disableEditAfterSelect && field.disableEditAfterSelect" (keyup)="onKeyup($event)" (selected)="onSelect($event)" [datasource]="field.dataService" [minSearchLength]="0" [inputClass]="'form-control'" [initialValue]="field.initialValue"></ng2-completer>
+        <ng2-completer #ngCompleter [(ngModel)]="field.searchStr" [ngModelOptions]="{standalone: true}" [disableInput]="disableInput" [placeholder]="field.placeHolder" [clearUnselected]="disableEditAfterSelect && field.disableEditAfterSelect" (keyup)="onKeyup($event)" (selected)="onSelect($event)" [datasource]="field.dataService" [minSearchLength]="0" [inputClass]="'form-control'" [initialValue]="field.initialValue"></ng2-completer>
       </div>
       <div class="col-xs-1 padding-remove">
         <button type='button' *ngIf="removeBtnText" [disabled]="!canRemove" (click)="onRemove($event)" [ngClass]="removeBtnClass" >{{removeBtnText}}</button>
@@ -371,7 +380,6 @@ export class VocabFieldLookupService extends BaseService {
   `,
 })
 export class VocabFieldComponent extends SimpleComponent {
-  protected searchStr: string;
   @Input() field: VocabField;
   @Input() isEmbedded: boolean = false;
   @Input() canRemove: boolean = false;
@@ -381,28 +389,33 @@ export class VocabFieldComponent extends SimpleComponent {
   @Input() disableEditAfterSelect: boolean = true;
   @Output() onRemoveBtnClick: EventEmitter<any> = new EventEmitter<any>();
   disableInput: boolean;
+  @ViewChild('ngCompleter') public ngCompleter: ElementRef;
 
   constructor() {
     super();
+  }
+
+  ngOnInit() {
+    this.field.component = this;
   }
 
   public getGroupClass(fldName:string=null): string {
     return `col-xs-12 form-group ${this.hasRequiredError() ? 'has-error' : '' }`;
   }
 
-  onSelect(selected: any) {
+  onSelect(selected: any, emitEvent:boolean = true, updateTitle:boolean = false) {
     let disableEditAfterSelect = this.disableEditAfterSelect && this.field.disableEditAfterSelect;
     if (selected) {
-      this.field.formModel.setValue(this.field.getValue(selected));
+      this.field.setValue(this.field.getValue(selected), emitEvent, updateTitle);
       if (disableEditAfterSelect)
         this.disableInput = true;
     } else {
       if (disableEditAfterSelect) {
         // means user can't edit, so no worries!
-        this.field.formModel.setValue(null);
+        this.field.setValue(null, emitEvent, updateTitle);
       } else {
         // set whatever value on the searchStr, let the fields decide how to parse the string...
-        this.field.formModel.setValue(this.field.getValue(this.searchStr));
+        this.field.setValue(this.field.getValue(this.field.searchStr), emitEvent, updateTitle);
       }
     }
   }
@@ -410,7 +423,7 @@ export class VocabFieldComponent extends SimpleComponent {
   onKeyup(value: any) {
     let disableEditAfterSelect = this.disableEditAfterSelect && this.field.disableEditAfterSelect;
     if (!disableEditAfterSelect) {
-      this.field.formModel.setValue(this.field.getValue(this.searchStr));
+      this.field.formModel.setValue(this.field.getValue(this.field.searchStr));
     }
   }
 

@@ -337,7 +337,7 @@
   "@dataRecord-dataype-select:dataset":"Dataset",
   "@dataRecord-dataype-select:registry":"Registry",
   "@dataRecord-dataype-select:repository":"Repository",
-  "@dataRecord-aim-tab":"Aim",
+  "@dataRecord-aim-tab":"Why was the data collected?",
   "@dataRecord-aim-heading":"Why was the data collected?",
   "@dataRecord-data-tab":"Data",
   "@dataRecord-data-heading":"Where is the data?",
@@ -444,5 +444,7 @@
   "@dmpt-related-data-relationship-association-with-val": "Has association with",
   "@dmpt-related-data-rda": "Publish to RDA",
   "@dmpt-related-data-rda-val": "Publish to RDA",
-  "attachment-not-found": "Attachment not found for this record."
+  "attachment-not-found": "Attachment not found for this record.",
+  "@dataRecord-aim-project-name": "Project Name",
+  "@dataRecord-keywords-required": "Keyword must not be blank."
 }

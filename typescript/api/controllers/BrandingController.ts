@@ -1,4 +1,4 @@
-import controller = require('../../typescript/controllers/CoreController.js');
+import controller = require('../core/CoreController.js');
 import skipperGridFs = require('skipper-gridfs');
 import {Model} from "sails";
 import {Sails} from "sails";

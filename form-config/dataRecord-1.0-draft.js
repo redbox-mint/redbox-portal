@@ -131,14 +131,22 @@ module.exports = {
                     label: '@dataRecord-description',
                     help: '@dataRecord-description-help',
                     type: 'text',
-                    required: true
+                    required: true,
+                    subscribe: {
+                      'rdmpGetter': {
+                        onValueUpdate: [{
+                          action: 'utilityService.getPropertyFromObject',
+                          field: 'description'
+                        }]
+                      }
+                    }
                   }
                 },
                 {
                   class: 'SelectionField',
                   compClass: 'DropdownFieldComponent',
                   definition: {
-                    name: 'dc:subject_anzsrc:toa_rdf:resource',
+                    name: 'datatype',
                     label: '@dataRecord-datatype',
                     help: '@dataRecord-datatype-help',
                     required: true,
@@ -176,14 +184,25 @@ module.exports = {
                     label: "@dataRecord-keywords",
                     help: "@dataRecord-keywords-help",
                     name: "finalKeywords",
-                    editOnly: true,
                     required: true,
                     fields: [{
                       class: 'TextField',
                       definition: {
-                        type: 'text'
+                        required: true,
+                        type: 'text',
+                        validationMessages: {
+                          required: "@dataRecord-keywords-required"
+                        }
                       }
-                    }]
+                    }],
+                    subscribe: {
+                      'rdmpGetter': {
+                        onValueUpdate: [{
+                          action: 'utilityService.getPropertyFromObject',
+                          field: 'finalKeywords'
+                        }]
+                      }
+                    }
                   }
                 }
 
@@ -207,7 +226,23 @@ module.exports = {
                   }
                 },
                 {
-                  class: 'RepeatableContainer',
+                  class: 'TextField',
+                  definition: {
+                    name: 'aim_project_name',
+                    label: '@dataRecord-aim-project-name',
+                    type: 'text',
+                    subscribe: {
+                      'rdmpGetter': {
+                        onValueUpdate: [{
+                          action: 'utilityService.getPropertyFromObject',
+                          field: 'title'
+                        }]
+                      }
+                    }
+                  }
+                },
+                {
+                  class: 'RepeatableVocab',
                   compClass: 'RepeatableVocabComponent',
                   definition: {
                     name: 'foaf:fundedBy_foaf:Agent',
@@ -225,11 +260,19 @@ module.exports = {
                         titleFieldArr: ['dc_title'],
                         stringLabelToField: 'dc_title'
                       }
-                    }]
+                    }],
+                    subscribe: {
+                      'rdmpGetter': {
+                        onValueUpdate: [{
+                          action: 'utilityService.getPropertyFromObject',
+                          field: 'foaf:fundedBy_foaf:Agent'
+                        }]
+                      }
+                    }
                   }
                 },
                 {
-                  class: 'RepeatableContainer',
+                  class: 'RepeatableVocab',
                   compClass: 'RepeatableVocabComponent',
                   definition: {
                     name: 'foaf:fundedBy_vivo:Grant',
@@ -271,41 +314,19 @@ module.exports = {
                           'dc_title': 'dc_title'
                         }]
                       }
+                    },
+                    subscribe: {
+                      'rdmpGetter': {
+                        onValueUpdate: [{
+                          action: 'utilityService.getPropertyFromObject',
+                          field: 'foaf:fundedBy_vivo:Grant'
+                        }]
+                      }
                     }
                   }
                 },
                 {
-                  class: 'SelectionField',
-                  compClass: 'DropdownFieldComponent',
-                  definition: {
-                    name: 'dc:subject_anzsrc:toa_rdf:resource',
-                    label: '@dmpt-project-activity-type',
-                    help: '@dmpt-project-activity-type-help',
-                    options: [{
-                        value: "",
-                        label: "@dmpt-select:Empty"
-                      },
-                      {
-                        value: "pure",
-                        label: "@dmpt-activity-type-pure"
-                      },
-                      {
-                        value: "strategic",
-                        label: "@dmpt-activity-type-strategic"
-                      },
-                      {
-                        value: "applied",
-                        label: "@dmpt-activity-type-applied"
-                      },
-                      {
-                        value: "experimental",
-                        label: "@dmpt-activity-type-experimental"
-                      }
-                    ]
-                  }
-                },
-                {
-                  class: 'RepeatableContainer',
+                  class: 'RepeatableVocab',
                   compClass: 'RepeatableVocabComponent',
                   definition: {
                     label: "@dmpt-project-anzsrcFor",
@@ -323,11 +344,19 @@ module.exports = {
                         searchFields: 'notation,label',
                         titleFieldArr: ['notation', 'label']
                       }
-                    }]
+                    }],
+                    subscribe: {
+                      'rdmpGetter': {
+                        onValueUpdate: [{
+                          action: 'utilityService.getPropertyFromObject',
+                          field: 'dc:subject_anzsrc:for'
+                        }]
+                      }
+                    }
                   }
                 },
                 {
-                  class: 'RepeatableContainer',
+                  class: 'RepeatableVocab',
                   compClass: 'RepeatableVocabComponent',
                   definition: {
                     label: "@dmpt-project-anzsrcSeo",
@@ -345,7 +374,15 @@ module.exports = {
                         searchFields: 'notation,label',
                         titleFieldArr: ['notation', 'label']
                       }
-                    }]
+                    }],
+                    subscribe: {
+                      'rdmpGetter': {
+                        onValueUpdate: [{
+                          action: 'utilityService.getPropertyFromObject',
+                          field: 'dc:subject_anzsrc:seo'
+                        }]
+                      }
+                    }
                   }
                 }
               ]
@@ -397,12 +434,11 @@ module.exports = {
                         onValueUpdate: []
                       },
                       'rdmpGetter': {
-                          onValueUpdate: [{
-                            action: 'utilityService.getPropertyFromObject',
-                            field: 'contributor_ci'
-                          }]
-                        }
-
+                        onValueUpdate: [{
+                          action: 'utilityService.getPropertyFromObject',
+                          field: 'contributor_ci'
+                        }]
+                      }
                     }
                   }
                 },
@@ -438,20 +474,27 @@ module.exports = {
                     subscribe: {
                       'this': {
                         onValueUpdate: []
+                      },
+                      'rdmpGetter': {
+                        onValueUpdate: [{
+                          action: 'utilityService.getPropertyFromObject',
+                          field: 'contributor_data_manager'
+                        }]
                       }
                     }
                   }
                 },
                 {
-                  class: 'RepeatableContainer',
+                  class: 'RepeatableContributor',
                   compClass: 'RepeatableContributorComponent',
                   definition: {
                     name: "contributors",
                     skipClone: ['showHeader', 'initialValue'],
                     forceClone: [{
-                      field: 'vocabField',
-                      skipClone: ['injector']
-                    }],
+                        field: 'vocabField',
+                        skipClone: ['injector']
+                      }
+                    ],
                     fields: [{
                       class: 'ContributorField',
                       showHeader: true,
@@ -485,7 +528,15 @@ module.exports = {
                           }
                         }
                       }
-                    }]
+                    }],
+                    subscribe: {
+                      'rdmpGetter': {
+                        onValueUpdate: [{
+                          action: 'utilityService.getPropertyFromObject',
+                          field: 'contributors'
+                        }]
+                      }
+                    }
                   }
                 },
                 {
@@ -520,6 +571,12 @@ module.exports = {
                     subscribe: {
                       'this': {
                         onValueUpdate: []
+                      },
+                      'rdmpGetter': {
+                        onValueUpdate: [{
+                          action: 'utilityService.getPropertyFromObject',
+                          field: 'contributor_supervisor'
+                        }]
                       }
                     }
                   }
@@ -589,6 +646,14 @@ module.exports = {
                     required: true,
                     validationMessages: {
                       required: "@dmpt-redbox:retentionPeriod_dc:date-required"
+                    },
+                    subscribe: {
+                      'rdmpGetter': {
+                        onValueUpdate: [{
+                          action: 'utilityService.getPropertyFromObject',
+                          field: 'redbox:retentionPeriod_dc:date'
+                        }]
+                      }
                     }
                   }
                 },
