@@ -103,7 +103,8 @@ module.exports = {
                   definition: {
                     label: 'Data record related to this publication',
                     name: 'rdmp',
-                    recordType: 'dataRecord'
+                    recordType: 'dataRecord',
+                    required: true
                   }
                 },
                 {
@@ -296,13 +297,6 @@ module.exports = {
                   definition: {
                     value: '@dataPublication-data-heading',
                     type: 'h3'
-                  }
-                },
-                {
-                  class: 'PublishDataLocationSelector',
-                  compClass: 'PublishDataLocationSelectorComponent',
-                  definition: {
-                    name:"dataLocations"
                   }
                 },
                 {
