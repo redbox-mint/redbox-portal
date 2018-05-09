@@ -204,8 +204,21 @@ module.exports = {
                       }
                     }
                   }
+                },
+                {
+                  class: 'VocabField',
+                  definition: {
+                    name: "language",
+                    label: "@dataRecord-about-language",
+                    disableEditAfterSelect: false,
+                    vocabId: "\"Language Codes\"",
+                    sourceType: 'mint',
+                    fieldNames: ['dc_title', 'dc_identifier', 'dc_description'],
+                    searchFields: 'dc_title',
+                    titleFieldArr: ['dc_title'],
+                    stringLabelToField: 'dc_title'
+                  }
                 }
-
               ]
             }
           },
@@ -221,7 +234,7 @@ module.exports = {
                   class: 'Container',
                   compClass: 'TextBlockComponent',
                   definition: {
-                    value: '@dataRecord-about-heading',
+                    value: '@dataRecord-aim-heading',
                     type: 'h3'
                   }
                 },
@@ -397,6 +410,14 @@ module.exports = {
               id: "people",
               label: "@dmpt-people-tab",
               fields: [{
+                  class: 'Container',
+                  compClass: 'TextBlockComponent',
+                  definition: {
+                    value: '@dataRecord-people-heading',
+                    type: 'h3'
+                  }
+                },
+                {
                   class: 'ContributorField',
                   showHeader: true,
                   definition: {
@@ -608,6 +629,88 @@ module.exports = {
                   }
                 },
                 {
+                  class: 'TextField',
+                  definition: {
+                    name: 'software_equipment',
+                    label: '@dataRecord-data-software',
+                    type: 'text'
+                  }
+                }
+              ]
+            }
+          },
+          // -------------------------------------------------------------------
+          // Relationships Tab
+          // -------------------------------------------------------------------
+          {
+            class: "Container",
+            definition: {
+              id: "relationships",
+              label: "@dataRecord-relationships-tab",
+              fields: [{
+                  class: 'Container',
+                  compClass: 'TextBlockComponent',
+                  definition: {
+                    value: '@dataRecord-relationships-heading',
+                    type: 'h3'
+                  }
+                },
+                {
+                  class: 'RepeatableContainer',
+                  compClass: 'RepeatableGroupComponent',
+                  definition: {
+                    name: "related_publications",
+                    label: "@dmpt-related-publication",
+                    help: "@dmpt-related-publication-help",
+                    forceClone: ['fields', 'fieldMap'],
+                    fields: [
+                      {
+                        class: 'Container',
+                        compClass: 'GenericGroupComponent',
+                        definition: {
+                          name: "related_publication",
+                          cssClasses: "form-inline",
+                          fields: [
+                            {
+                              class: 'TextField',
+                              definition: {
+                                name: 'related_url',
+                                label: '@dmpt-related-publication-url',
+                                type: 'text',
+                                groupName: 'related_publication',
+                                groupClasses: 'width-30',
+                                cssClasses : "width-80 form-control"
+                              }
+                            },
+                            {
+                              class: 'TextField',
+                              definition: {
+                                name: 'related_title',
+                                label: '@dmpt-related-publication-title',
+                                type: 'text',
+                                groupName: 'related_publication',
+                                groupClasses: 'width-30',
+                                cssClasses : "width-80 form-control"
+                              }
+                            },
+                            {
+                              class: 'TextField',
+                              definition: {
+                                name: 'related_notes',
+                                label: '@dmpt-related-publication-notes',
+                                type: 'text',
+                                groupName: 'related_publication',
+                                groupClasses: 'width-30',
+                                cssClasses : "width-80 form-control"
+                              }
+                            }
+                          ]
+                        }
+                      }
+                    ]
+                  }
+                },
+                {
                   class: 'SelectionField',
                   compClass: 'DropdownFieldComponent',
                   definition: {
@@ -687,7 +790,15 @@ module.exports = {
                         value: "commercial",
                         label: "@dmpt-redbox:retentionPeriod_dc:date_skos:note-commercial"
                       }
-                    ]
+                    ],
+                    subscribe: {
+                      'rdmpGetter': {
+                        onValueUpdate: [{
+                          action: 'utilityService.getPropertyFromObject',
+                          field: 'redbox:retentionPeriod_dc:date_skos:note'
+                        }]
+                      }
+                    }
                   }
                 },
                 {
@@ -711,583 +822,8 @@ module.exports = {
                       }
                     }
                   }
-                },
-              ]
-            }
-          },
-          // -------------------------------------------------------------------
-          // Relationships Tab
-          // -------------------------------------------------------------------
-          {
-            class: "Container",
-            definition: {
-              id: "relationships",
-              label: "@dataRecord-relationships-tab",
-              fields: [{
-                  class: 'Container',
-                  compClass: 'TextBlockComponent',
-                  definition: {
-                    value: '@dataRecord-relationships-heading',
-                    type: 'h3'
-                  }
-                },
-                {
-                  class: 'RepeatableContainer',
-                  compClass: 'RepeatableGroupComponent',
-                  definition: {
-                    name: "related_publications",
-                    label: "@dmpt-related-publication",
-                    help: "@dmpt-related-publication-help",
-                    forceClone: ['fields', 'fieldMap'],
-                    fields: [
-                      {
-                        class: 'Container',
-                        compClass: 'GenericGroupComponent',
-                        definition: {
-                          name: "related_publication",
-                          cssClasses: "form-inline",
-                          fields: [
-                            {
-                              class: 'TextField',
-                              definition: {
-                                name: 'related_url',
-                                label: '@dmpt-related-publication-url',
-                                type: 'text',
-                                groupName: 'related_publication',
-                                groupClasses: 'width-30',
-                                cssClasses : "width-80 form-control"
-                              }
-                            },
-                            {
-                              class: 'TextField',
-                              definition: {
-                                name: 'related_title',
-                                label: '@dmpt-related-publication-title',
-                                type: 'text',
-                                groupName: 'related_publication',
-                                groupClasses: 'width-30',
-                                cssClasses : "width-80 form-control"
-                              }
-                            },
-                            {
-                              class: 'TextField',
-                              definition: {
-                                name: 'related_notes',
-                                label: '@dmpt-related-publication-notes',
-                                type: 'text',
-                                groupName: 'related_publication',
-                                groupClasses: 'width-30',
-                                cssClasses : "width-80 form-control"
-                              }
-                            }
-                          ]
-                        }
-                      }
-                    ]
-                  }
-                },
-                {
-                  class: 'RepeatableContainer',
-                  compClass: 'RepeatableGroupComponent',
-                  definition: {
-                    name: "related_websites",
-                    label: "@dmpt-related-website",
-                    help: "@dmpt-related-website-help",
-                    forceClone: ['fields', 'fieldMap'],
-                    fields: [
-                      {
-                        class: 'Container',
-                        compClass: 'GenericGroupComponent',
-                        definition: {
-                          name: "related_website",
-                          cssClasses: "form-inline",
-                          fields: [
-                            {
-                              class: 'TextField',
-                              definition: {
-                                name: 'related_url',
-                                label: '@dmpt-related-website-url',
-                                type: 'text',
-                                groupName: 'related_website',
-                                groupClasses: 'width-30',
-                                cssClasses : "width-80 form-control"
-                              }
-                            },
-                            {
-                              class: 'TextField',
-                              definition: {
-                                name: 'related_title',
-                                label: '@dmpt-related-website-title',
-                                type: 'text',
-                                groupName: 'related_website',
-                                groupClasses: 'width-30',
-                                cssClasses : "width-80 form-control"
-                              }
-                            },
-                            {
-                              class: 'TextField',
-                              definition: {
-                                name: 'related_notes',
-                                label: '@dmpt-related-website-notes',
-                                type: 'text',
-                                groupName: 'related_website',
-                                groupClasses: 'width-30',
-                                cssClasses : "width-80 form-control"
-                              }
-                            }
-                          ]
-                        }
-                      }
-                    ]
-                  }
-                },
-                {
-                  class: 'RepeatableContainer',
-                  compClass: 'RepeatableGroupComponent',
-                  definition: {
-                    name: "related_data",
-                    label: "@dmpt-related-data",
-                    help: "@dmpt-related-data-help",
-                    forceClone: ['fields', 'fieldMap'],
-                    fields: [
-                      {
-                        class: 'Container',
-                        compClass: 'GenericGroupComponent',
-                        definition: {
-                          name: "related_datum",
-                          cssClasses: "form-inline",
-                          fields: [
-                            {
-                              class: 'SelectionField',
-                              compClass: 'DropdownFieldComponent',
-                              definition: {
-                                name: 'related_relationship',
-                                label: '@dmpt-related-data-relationship',
-                                groupName: 'related_datum',
-                                groupClasses: 'width-40',
-                                cssClasses : "width-80 form-control",
-                                options: [
-                                  {
-                                    value: "@dmpt-related-data-relationship-association-with-val",
-                                    label: "@dmpt-related-data-relationship-association-with"
-                                  }
-                                ]
-                              }
-                            },
-                            {
-                              class: 'TextField',
-                              editOnly: true,
-                              definition: {
-                                name: 'related_title',
-                                label: '@dmpt-related-data-title',
-                                type: 'text',
-                                groupName: 'related_datum',
-                                groupClasses: 'width-20',
-                                cssClasses : "width-80 form-control"
-                              }
-                            },
-                            {
-                              class: 'TextField',
-                              editOnly: true,
-                              definition: {
-                                name: 'related_url',
-                                label: '@dmpt-related-data-url',
-                                type: 'text',
-                                groupName: 'related_datum',
-                                groupClasses: 'width-40',
-                                cssClasses : "width-80 form-control"
-                              }
-                            },
-                            {
-                              class: 'TextField',
-                              editOnly: true,
-                              definition: {
-                                name: 'related_notes',
-                                label: '@dmpt-related-data-notes',
-                                type: 'text',
-                                groupName: 'related_datum',
-                                groupClasses: 'width-30',
-                                cssClasses : "width-80 form-control"
-                              }
-                            },
-                            {
-                              class: 'SelectionField',
-                              compClass: 'SelectionFieldComponent',
-                              definition: {
-                                name: 'related_localdata',
-                                controlType: 'checkbox',
-                                groupName: 'related_datum',
-                                cssClasses : "width-80 form-control",
-                                groupClasses: 'width-30',
-                                options: [{
-                                    value: "@dmpt-related-data-local-val",
-                                    label: "@dmpt-related-data-local"
-                                  }
-                                ]
-                              }
-                            },
-                            {
-                              class: 'SelectionField',
-                              compClass: 'SelectionFieldComponent',
-                              definition: {
-                                name: 'related_publishrda',
-                                controlType: 'checkbox',
-                                groupName: 'related_datum',
-                                groupClasses: 'width-30',
-                                cssClasses : "width-80 form-control",
-                                options: [{
-                                    value: "@dmpt-related-data-rda-val",
-                                    label: "@dmpt-related-data-rda"
-                                  }
-                                ]
-                              }
-                            }
-                          ]
-                        }
-                      }
-                    ]
-                  }
                 }
               ]
-            }
-          },
-          // -------------------------------------------------------------------
-          // Coverage Tab
-          // -------------------------------------------------------------------
-          {
-            class: "Container",
-            definition: {
-              id: "coverage",
-              label: "@dataRecord-coverage-tab",
-              fields: [{
-                  class: 'Container',
-                  compClass: 'TextBlockComponent',
-                  definition: {
-                    value: '@dataRecord-coverage-heading',
-                    type: 'h3'
-                  }
-                },
-                {
-                  class: 'Container',
-                  compClass: 'TextBlockComponent',
-                  definition: {
-                    value: '@dataRecord-temporalcoverage-heading',
-                    type: 'h4'
-                  }
-                },
-                {
-                  class: 'DateTime',
-                  definition: {
-                    name: "startDate",
-                    label: "@dataRecord-startDate",
-                    help: '@dataRecord-startDate-help',
-                    datePickerOpts: {
-                      format: 'dd/mm/yyyy',
-                      icon: 'fa fa-calendar',
-                      autoclose: true
-                    },
-                    timePickerOpts: false,
-                    hasClearButton: false,
-                    valueFormat: 'YYYY-MM-DD',
-                    displayFormat: 'L',
-                    publish: {
-                      onValueUpdate: {
-                        modelEventSource: 'valueChanges'
-                      }
-                    }
-                  }
-                },
-                {
-                  class: 'DateTime',
-                  definition: {
-                    name: "endDate",
-                    label: "@dataRecord-endDate",
-                    help: '@dataRecord-endDate-help',
-                    datePickerOpts: {
-                      format: 'dd/mm/yyyy',
-                      icon: 'fa fa-calendar',
-                      autoclose: true
-                    },
-                    timePickerOpts: false,
-                    hasClearButton: false,
-                    valueFormat: 'YYYY-MM-DD',
-                    displayFormat: 'L',
-                    publish: {
-                      onValueUpdate: {
-                        modelEventSource: 'valueChanges'
-                      }
-                    }
-                  }
-                },
-                {
-                  class: 'TextField',
-                  definition: {
-                    name: 'timePeriod',
-                    label: '@dataRecord-timePeriod',
-                    help: '@dataRecord-timePeriod-help',
-                    type: 'text',
-                    required: true
-                  }
-                },
-                {
-                  class: 'MapField',
-                  compClass: 'MapComponent',
-                  definition: {
-                    name: 'geospatial',
-                    label: '@dataRecord-geospatial',
-                    help: '@dataRecord-geospatial-help',
-                    tabId: 'coverage'
-                  }
-                }
-              ]
-            }
-          },
-          // -------------------------------------------------------------------
-          // Management Tab
-          // -------------------------------------------------------------------
-          {
-            class: "Container",
-            definition: {
-              id: "management",
-              label: "@dataRecord-management-tab",
-              fields: [{
-                  class: 'Container',
-                  compClass: 'TextBlockComponent',
-                  definition: {
-                    value: '@dataRecord-management-heading',
-                    type: 'h3'
-                  }
-                },
-                {
-                  class: 'Container',
-                  compClass: 'TextBlockComponent',
-                  definition: {
-                    value: '@dataRecord-licensing-heading',
-                    type: 'h4'
-                  }
-                },
-                {
-                  class: 'SelectionField',
-                  compClass: 'DropdownFieldComponent',
-                  definition: {
-                    name: 'licence',
-                    label: '@dataRecord-licence',
-                    help: '@dataRecord-licence-help',
-                    options: [{
-                        value: "http://creativecommons.org/licenses/by/3.0/au",
-                        label: "@dataRecord-licence-by30au"
-                      },
-                      {
-                        value: "http://creativecommons.org/licenses/by-sa/3.0/au",
-                        label: "@dataRecord-licence-bysa30au"
-                      },
-                      {
-                        value: "http://creativecommons.org/licenses/by-nd/3.0/au",
-                        label: "@dataRecord-licence-bynd30au"
-                      },
-                      {
-                        value: "http://creativecommons.org/licenses/by-nc/3.0/au",
-                        label: "@dataRecord-licence-bync30au"
-                      },
-                      {
-                        value: "http://creativecommons.org/licenses/by-nc-sa/3.0/au",
-                        label: "@dataRecord-licence-byncsa30au"
-                      },
-                      {
-                        value: "http://creativecommons.org/licenses/by/4.0",
-                        label: "@dataRecord-licence-by40au"
-                      },
-                      {
-                        value: "http://creativecommons.org/licenses/by-sa/4.0",
-                        label: "@dataRecord-licence-bysa40au"
-                      },
-                      {
-                        value: "http://creativecommons.org/licenses/by-nd/4.0",
-                        label: "@dataRecord-licence-bynd40au"
-                      },
-                      {
-                        value: "http://creativecommons.org/licenses/by-nc/4.0",
-                        label: "@dataRecord-licence-bync40au"
-                      },
-                      {
-                        value: "http://creativecommons.org/licenses/by-nc-sa/4.0",
-                        label: "@dataRecord-licence-byncsa40au"
-                      },
-                      {
-                        value: "http://creativecommons.org/licenses/by-nc-nd/4.0",
-                        label: "@dataRecord-licence-byncnd40au"
-                      },
-                      {
-                        value: "http://creativecommons.org/licenses/by-nd/4.0",
-                        label: "@dataRecord-licence-bynd40au"
-                      },
-                      {
-                        value: "http://opendatacommons.org/licenses/pddl/1.0/",
-                        label: "@dataRecord-licence-pddl10"
-                      },
-                      {
-                        value: "http://opendatacommons.org/licenses/odbl/1.0/",
-                        label: "@dataRecord-licence-odbl10"
-                      }
-                    ]
-                  }
-                },
-                {
-                  class: 'TextField',
-                  editOnly: true,
-                  definition: {
-                    name: 'otherLicence',
-                    label: '@dataRecord-otherLicence',
-                    help: '@dataRecord-otherLicence-help',
-                    type: 'text'
-                  }
-                },
-                {
-                  class: 'TextField',
-                  editOnly: true,
-                  definition: {
-                    name: 'otherLicenceUrl',
-                    label: '@dataRecord-otherLicenceUrl',
-                    help: '@dataRecord-otherLicenceUrl-help',
-                    type: 'text'
-                  }
-                },
-                {
-                  class: 'Container',
-                  compClass: 'TextBlockComponent',
-                  definition: {
-                    type: 'hr'
-                  }
-                },
-                {
-                  class: 'Container',
-                  compClass: 'TextBlockComponent',
-                  definition: {
-                    value: '@dataRecord-rights-statement',
-                    type: 'h4'
-                  }
-                },
-                {
-                  class: 'TextField',
-                  definition: {
-                    name: 'rights',
-                    label: '@dataRecord-rights',
-                    help: '@dataRecord-rights-help',
-                    type: 'text'
-                  }
-                },
-                {
-                  class: 'TextField',
-                  definition: {
-                    name: 'rightsUrl',
-                    label: '@dataRecord-rightsUrl',
-                    help: '@dataRecord-rightsUrl-help',
-                    type: 'text'
-                  }
-                },
-                {
-                  class: 'Container',
-                  compClass: 'TextBlockComponent',
-                  definition: {
-                    type: 'hr'
-                  }
-                },
-                {
-                  class: 'Container',
-                  compClass: 'TextBlockComponent',
-                  definition: {
-                    value: '@dataRecord-access-conditions',
-                    type: 'h4'
-                  }
-                },
-                {
-                  class: 'TextField',
-                  definition: {
-                    name: 'accessConditions',
-                    label: '@dataRecord-accessConditions',
-                    help: '@dataRecord-accessConditions-help',
-                    type: 'text'
-                  }
-                },
-                {
-                  class: 'TextField',
-                  definition: {
-                    name: 'accessConditionsUrl',
-                    label: '@dataRecord-accessConditionsUrl',
-                    help: '@dataRecord-accessConditionsUrl-help',
-                    type: 'text'
-                  }
-                },
-            ]
-          }
-        },
-          // -------------------------------------------------------------------
-          // Publication Tab
-          // -------------------------------------------------------------------
-          {
-            class: "Container",
-            definition: {
-              id: "publication",
-              label: "@dataRecord-publication-tab",
-              fields: [{
-                class: 'Container',
-                compClass: 'TextBlockComponent',
-                definition: {
-                  value: '@dataRecord-publication-heading',
-                  type: 'h3'
-                }
-              },
-              {
-                class: 'Container',
-                compClass: 'TextBlockComponent',
-                definition: {
-                  value: '@dataRecord-embargo-heading',
-                  type: 'h4'
-                }
-              },
-              {
-                class: 'SelectionField',
-                compClass: 'SelectionFieldComponent',
-                definition: {
-                  name: 'embargoEnabled',
-                  controlType: 'checkbox',
-                  options: [{
-                      value: "embargoed",
-                      label: "@dataRecord-embargoEnabled"
-                    }
-                  ]
-                }
-              },
-              {
-                class: 'DateTime',
-                definition: {
-                  name: "embargoUntil",
-                  label: "@dataRecord-embargoUntil",
-                  help: '@dataRecord-embargoUntil-help',
-                  datePickerOpts: {
-                    format: 'dd/mm/yyyy',
-                    icon: 'fa fa-calendar',
-                    autoclose: true
-                  },
-                  timePickerOpts: false,
-                  hasClearButton: false,
-                  valueFormat: 'YYYY-MM-DD',
-                  displayFormat: 'L',
-                  publish: {
-                    onValueUpdate: {
-                      modelEventSource: 'valueChanges'
-                    }
-                  }
-                }
-              },
-              {
-                class: 'TextArea',
-                definition: {
-                  name: 'embargoNote',
-                  label: '@dataRecord-embargoNote'
-                }
-              }
-            ]
             }
           }
         ]

@@ -165,7 +165,7 @@ export class RepeatableContainer extends Container {
     console.log(eventData);
     // delete first...
     if (this.fields.length > eventData.length) {
-      for (let toDelIdx = eventData.length - 1; toDelIdx < this.fields.length; toDelIdx++ ) {
+      for (let toDelIdx = eventData.length - 1; toDelIdx <= this.fields.length; toDelIdx++ ) {
           this.removeElem(toDelIdx);
       }
     }
