@@ -50,10 +50,11 @@ export module Services {
       let query = {
             "metaMetadata.brandId": brand.id,
             "metaMetadata.type": recordType,
-            "authorization.view": username,
-            "authorization.edit": username,
-            "authorization.editRoles": {"$in": roleNames},
-            "authorization.viewRoles": {"$in": roleNames}
+            "$or":[
+            {"authorization.view": username},
+            {"authorization.edit": username},
+            {"authorization.editRoles": {"$in": roleNames}},
+            {"authorization.viewRoles": {"$in": roleNames}}]
           };
 
           if(workflowState != undefined) {
@@ -62,8 +63,7 @@ export module Services {
 
       var options = this.getOptions(url);
       options['body'] = query;
-      sails.log.error("Options")
-      sails.log.error(options)
+
       return Observable.fromPromise(request[sails.config.record.api.query.method](options));
     }
 
