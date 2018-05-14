@@ -1200,6 +1200,32 @@ module.exports = {
                       }
                     ]
                   }
+                },
+                {
+                  class: 'Container',
+                  compClass: 'TextBlockComponent',
+                  editOnly: true,
+                  definition: {
+                    value: '@dmpt-workspaces-create-title',
+                    type: 'h4'
+                  }
+                },
+                {
+                  class: 'WorkspaceSelectorField',
+                  compClass: 'WorkspaceSelectorFieldComponent',
+                  definition: {
+                    name: 'WorkspaceSelector',
+                    label: '@dmpt-workspace-select-type',
+                    help: '@dmpt-workspace-select-help',
+                    open: '@dmpt-workspace-open',
+                    saveFirst: '@dmpt-workspace-saveFirst',
+                    defaultSelection: [
+                      {
+                        name: '',
+                        label: '@dmpt-select:Empty'
+                      }
+                    ]
+                  }
                 }
               ]
             }

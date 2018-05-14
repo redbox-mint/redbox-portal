@@ -192,6 +192,8 @@ module.exports.routes = {
   'get /:branding/:portal/api/users': 'webservice/UserManagementController.listUsers',
   'get /:branding/:portal/api/users/find': 'webservice/UserManagementController.findUser',
 
-  'post /:branding/:portal/api/sendNotification': 'EmailController.sendNotification'
+  'post /:branding/:portal/api/sendNotification': 'EmailController.sendNotification',
 
+  'get /:branding/:portal/workspace/types/:name' : 'WorkspaceTypesController.getOne',
+  'get /:branding/:portal/workspace/types' : 'WorkspaceTypesController.get'
 };

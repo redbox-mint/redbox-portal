@@ -1,8 +1,9 @@
-import { Component, Input, Inject, ViewChild, ViewContainerRef, ComponentFactoryResolver, ComponentRef, ApplicationRef } from '@angular/core';
-import { FormGroup } from '@angular/forms';
+import { Component, Input, Inject, ViewChild, ViewContainerRef, ComponentFactoryResolver, ComponentRef, ApplicationRef, ElementRef } from '@angular/core';
 import { FieldBase } from './field-base';
+import { FormControl, FormGroup, FormArray } from '@angular/forms';
 import { SimpleComponent } from './field-simple.component';
 import * as _ from "lodash-es";
+import { WorkspaceTypeService } from '../workspace-service';
 
 /**
  * Base component for a Workspace field.
@@ -118,5 +119,91 @@ export class WorkspaceFieldComponent {
     fieldCompRef.instance.fieldMap = this.fieldMap;
     fieldCompRef.instance.parentId = this.parentId;
     this.fieldMap[this.field.name].instance = fieldCompRef.instance;
+  }
+}
+
+export class WorkspaceSelectorField extends FieldBase<any>  {
+  workspaceApps: any[] = [];
+  open: string;
+  saveFirst: string;
+  rdmp: string;
+  workspaceTypeService: WorkspaceTypeService;
+  workspaceApp: any;
+  appLink: string;
+
+  constructor(options: any, injector: any) {
+    super(options, injector);
+    this.workspaceTypeService = this.getFromInjector(WorkspaceTypeService);
+    this.open = this.getTranslated(options['open'], options['open']);
+    this.saveFirst = this.getTranslated(options['saveFirst'], options['saveFirst']);
+    this.rdmp = undefined;
+    // this.options = options['options'] || [];
+    this.workspaceApps = _.map(options['defaultSelection'] || [], (option) => {
+      option['label'] = this.getTranslated(option['label'], option['label']);
+      option['name'] = '';
+      return option;
+    });
+    this.appLink = this.workspaceTypeService.getBrand() + '/record/';
+    this.workspaceTypeService.getWorkspaceTypes().then(response => {
+      if(response['status']) {
+        //append results from database into workspaceApps
+        this.workspaceApps = _.concat(this.workspaceApps, response['workspaceTypes']);
+      } else {
+        throw new Error('cannot get workspaces');
+      }
+    }).catch(error => {
+      console.log(error);
+    });
+  }
+
+  init() {
+    this.rdmp = this.fieldMap._rootComp.oid || undefined;
+  }
+
+  registerEvents() {
+    this.fieldMap._rootComp.recordCreated.subscribe(this.setOid.bind(this));
+    this.fieldMap._rootComp.recordSaved.subscribe(this.setOid.bind(this));
+  }
+
+  setOid(o) {
+    this.rdmp = o.oid;
+  }
+
+
+  loadWorkspaceDetails(value: string) {
+    //GET me the value from the database
+    if(!value){
+      this.workspaceApp = null
+    }else {
+      this.workspaceApp = _.find(this.workspaceApps,
+        function(w) {
+          return w['name'] == value;
+        }
+      );
+    }
+  }
+
+  createFormModel() {
+    if (this.controlType == 'checkbox') {
+      const fgDef = [];
+
+      _.map(this.options, (opt)=>{
+        const hasValue = _.find(this.value, (val) => {
+          return val == opt.value;
+        });
+        if (hasValue) {
+          fgDef.push(new FormControl(opt.value));
+        }
+      });
+      // const fg = new FormArray(fgDef);
+      // return fg;
+      return new FormArray(fgDef);
+    } else {
+      // const model = super.createFormModel();
+      // console.log(`Created form model:`);
+      // console.log(model);
+      // return model;
+      return super.createFormModel();
+    }
   }
 }

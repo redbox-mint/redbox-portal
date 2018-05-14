@@ -58,6 +58,8 @@ import { ConfigService } from '../config-service';
 import { TranslationService } from '../translation-service';
 import { UtilityService } from '../util-service';
 import { GenericGroupComponent, RepeatableGroupComponent } from './field-group.component';
+import { WorkspaceSelectorField } from './workspace-field.component';
+import { WorkspaceSelectorComponent, WorkspaceSelectorFieldComponent } from './workspace-selector.component';
 /**
  * Field / Model Factory Service...
  *
@@ -92,6 +94,7 @@ export class FieldControlService {
     'RecordMetadataRetriever':{ 'meta': RecordMetadataRetrieverField, 'comp': RecordMetadataRetrieverComponent},
     'RelatedObjectSelector':{ 'meta': RelatedObjectSelectorField, 'comp': RelatedObjectSelectorComponent},
     'DataLocation':{ 'meta': DataLocationField, 'comp': DataLocationComponent},
+    'WorkspaceSelectorField' : { 'meta': WorkspaceSelectorField, 'comp': [WorkspaceSelectorComponent, WorkspaceSelectorFieldComponent] },
     'PublishDataLocationSelector':{ 'meta': PublishDataLocationSelectorField, 'comp': PublishDataLocationSelectorComponent},
   };
   constructor(@Inject(VocabFieldLookupService) private vocabFieldLookupService: VocabFieldLookupService, @Inject(CompleterService) private completerService: CompleterService,
