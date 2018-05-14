@@ -32,7 +32,7 @@
   <script src="https://code.jquery.com/jquery.min.js"></script>
   <!-- Bootstrap JS form CDN -->
   <script src="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/js/bootstrap.min.js"></script>
-  
+
 </head>
 
 <body>
@@ -103,9 +103,10 @@
             <li class="dropdown">
                 <a class="dropdown-toggle" data-toggle="dropdown" href="#"><%= TranslationService.t('menu-manage-nav')%><span class="caret"></span></a>
                 <ul class="dropdown-menu">
-                  <li><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/dashboard"><%= TranslationService.t('edit-rdmp')%></a></li>
+                  <li><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/dashboard/rdmp"><%= TranslationService.t('edit-dashboard')%> RDMP</a></li>
                   <li><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/record/search"><%= TranslationService.t('record-search-link')%></a></li>
-                  <!-- <li><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/user/profile"><%= TranslationService.t('user-profile-link')%></a></li> -->
+                  <li><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/record/dataRecord/edit"><%= TranslationService.t('create-datarecord')%></a></li>
+                  <li><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/dashboard/dataRecord"><%= TranslationService.t('edit-dashboard')%> Data Record</a></li>
                 </ul>
               </li>
 

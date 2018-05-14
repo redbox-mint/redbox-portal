@@ -29,7 +29,7 @@ declare var FormsService, RecordsService, WorkflowStepsService, BrandingService,
 /**
  * Package that contains all Controllers.
  */
-import controller = require('../../typescript/controllers/CoreController.js');
+import controller = require('../core/CoreController.js');
 export module Controllers {
   /**
    * Responsible for all things related to a Record, includings Forms, etc.
@@ -50,6 +50,7 @@ export module Controllers {
       'modifyEditors',
       'search',
       'getType',
+      'getWorkflowSteps',
       'getMeta',
       'getTransferResponsibilityConfig',
       'updateResponsibilities',
@@ -131,9 +132,9 @@ export module Controllers {
       var recordTypeConfig = sails.config.recordtype;
 
       return res.json(this.getTransferResponsibilityConfigObject(recordTypeConfig, type))
-
-
     }
+
+
 
     private getTransferResponsibilityConfigObject(config, type) {
       for(var key in config) {
@@ -321,6 +322,7 @@ export module Controllers {
       const oid = req.param('oid');
       const user = req.user;
       let currentRec = null;
+      const failedAttachments = [];
       this.getRecord(oid).flatMap(cr => {
         currentRec = cr;
         return this.hasEditAccess(brand, user, currentRec);
@@ -328,11 +330,15 @@ export module Controllers {
       .subscribe(hasEditAccess => {
         const origRecord = _.cloneDeep(currentRec);
         currentRec.metadata = metadata;
-        return this.updateMetadata(brand, oid, currentRec, user.username)
+        return FormsService.getFormByName(currentRec.metaMetadata.form, true)
+        .flatMap(form =>{
+          currentRec.metaMetadata.attachmentFields = form.attachmentFields;
+          return this.updateMetadata(brand, oid, currentRec, user.username);
+        })
         .subscribe(response => {
           if (response && response.code == "200") {
             RecordsService.updateDatastream(oid, origRecord, metadata, sails.config.record.attachments.stageDir)
-            .flatMap(reqs => {
+            .concatMap(reqs => {
               if (reqs) {
                 sails.log.verbose(`Updating data streams...`);
                 return Observable.from(reqs);
@@ -341,14 +347,29 @@ export module Controllers {
                 return Observable.of(null);
               }
             })
-            .flatMap(updateResp => {
-              if (updateResp) {
-                sails.log.verbose(`Updated datastream`);
+            .concatMap((promise) => {
+              if (promise) {
+                sails.log.verbose(`Update datastream request is...`);
+                sails.log.verbose(JSON.stringify(promise));
+                return promise.catch(e => {
+                  sails.log.verbose(`Error in updating stream::::`);
+                  sails.log.verbose(JSON.stringify(e));
+                  return Observable.of(e);
+                });
+              } else {
+                return Observable.of(null);
               }
-              return Observable.of(null);
+            })
+            .concatMap(updateResp => {
+              if (updateResp) {
+                sails.log.verbose(`Got response from update datastream request...`);
+                sails.log.verbose(JSON.stringify(updateResp));
+              }
+              return Observable.of(updateResp);
             })
             .last()
             .subscribe(whatever => {
+              sails.log.verbose(`Done with updating streams, returning response...`);
               response.success = true;
               this.ajaxOk(req, res, null, response);
             }, error => {
@@ -652,26 +673,30 @@ export module Controllers {
         req.baseUrl = '';
       }
       return this.getRecord(oid).flatMap(currentRec => {
-        return this.hasEditAccess(brand, req.user, currentRec)
-          .flatMap(hasEditAccess => {
+        return this.hasEditAccess(brand, req.user, currentRec).flatMap(hasEditAccess => {
             if(!hasEditAccess) {
               return Observable.throw(new Error(TranslationService.t('edit-error-no-permissions')));
             }
             if (method == 'get') {
               // check if this attachId exists in the record
               let found = null;
-              while (!found) {
-                _.each(currentRec.metaMetadata.attachmentFields, (attField) => {
+              _.each(currentRec.metaMetadata.attachmentFields, (attField) => {
+                if (!found) {
                   const attFieldVal = currentRec.metadata[attField];
-                  found = _.find(attFieldVal, (attVal) => { return attVal.fileId == attachId });
-                  if (found) return false;
-                });
-              }
+                  found = _.find(attFieldVal, (attVal) => {
+                    return attVal.fileId == attachId
+                  });
+                  if (found) {
+                    return false;
+                  }
+                }
+              });
               if (!found) {
                 return Observable.throw(new Error(TranslationService.t('attachment-not-found')))
               }
               res.set('Content-Type', found.mimeType);
               res.set('Content-Disposition', `attachment; filename="${found.name}"`);
+              sails.log.verbose(`Returning datastream observable of ${oid}: ${found.name}, attachId: ${attachId}`);
               return RecordsService.getDatastream(oid, attachId).flatMap(response => {
                 res.send(Buffer.from(response));
                 return Observable.of(oid);
@@ -686,9 +711,28 @@ export module Controllers {
       .subscribe(whatever => {
         // ignore...
       }, error => {
-        this.ajaxFail(req, res, error.message);
+        if (this.isAjax(req)) {
+          this.ajaxFail(req, res, error.message);
+        } else {
+          if (error.message == TranslationService.t('edit-error-no-permissions')) {
+            res.forbidden();
+          } else if (error.message == TranslationService.t('attachment-not-found')) {
+            res.notFound();
+          }
+        }
       });
     }
+
+    public getWorkflowSteps(req, res) {
+      const recordType = req.param('recordType');
+      const brand = BrandingService.getBrand(req.session.branding);
+      return RecordTypesService.get(brand, recordType).subscribe(recordType => {
+        return WorkflowStepsService.getAllForRecordType(recordType).subscribe(wfSteps => {
+          return this.ajaxOk(req, res, null, wfSteps);
+        });
+      });
+    }
+
     /**
      **************************************************************************************************
      **************************************** Override magic methods **********************************

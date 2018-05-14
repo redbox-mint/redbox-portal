@@ -231,11 +231,15 @@ export module Controllers.Core {
     }
 
     public respond(req, res, ajaxCb, normalCb, forceAjax) {
-      if (req.headers['x-source'] == 'jsclient' || forceAjax == true) {
+      if (this.isAjax(req) || forceAjax == true) {
         return ajaxCb(req, res);
       } else {
         return normalCb(req, res);
       }
+    }
+
+    protected isAjax(req) {
+      return req.headers['x-source'] == 'jsclient';
     }
 
     protected ajaxOk(req, res, msg='', data=null, forceAjax=false) {

@@ -38,30 +38,25 @@ export class RelatedObjectSelectorField extends FieldBase<any> {
   showHeader: boolean;
   validators: any;
   enabledValidators: boolean;
-  relatedObjects: object[];
-  accessDeniedObjects: object[];
-  failedObjects: object[];
   hasInit: boolean;
   dashboardService: DashboardService;
-  columns: object[];
   plans: PlanTable;
   searchFilterName: any;
   filteredPlans: Plan[];
+  recordType:string;
+  columnTitle:string;
 
   relatedObjectSelected:EventEmitter<string> = new EventEmitter<string>();
 
   constructor(options: any, injector: any) {
     super(options, injector);
-    this.relatedObjects = [];
-    this.accessDeniedObjects = [];
-    this.failedObjects = [];
-    this.columns = options['columns'] || [];
 
-    var relatedObjects = this.relatedObjects;
+    this.columnTitle = options['columnTitle'] || "Record title";
     this.value = options['value'] || this.setEmptyValue();
+    this.recordType = options['recordType'];
     this.dashboardService = this.getFromInjector(DashboardService);
     var that = this;
-    this.dashboardService.getAlllDraftPlansCanEdit().then((draftPlans: PlanTable) => {
+    this.dashboardService.getAllRecordsCanEdit(this.recordType,'').then((draftPlans: PlanTable) => {
       this.plans = draftPlans;
       this.onFilterChange();
 });
@@ -69,7 +64,7 @@ export class RelatedObjectSelectorField extends FieldBase<any> {
 
 
   recordSelected(record, event) {
-    this.setValue({oid: record.oid, title:record.metadata.title});
+    this.setValue({oid: record.oid, title:record.title});
     this.relatedObjectSelected.emit(record.oid);
   }
 

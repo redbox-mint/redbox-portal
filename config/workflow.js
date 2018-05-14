@@ -30,5 +30,21 @@ module.exports.workflow = {
       },
       starting: true
     }
+  },
+  "dataPublication": {
+    "draft": {
+      config: {
+        workflow: {
+          stage: 'draft',
+          stageLabel: 'Draft',
+        },
+        authorization: {
+          viewRoles: ['Admin', 'Librarians'],
+          editRoles: ['Admin', 'Librarians']
+        },
+        form: 'dataPublication-1.0-draft'
+      },
+      starting: true
+    }
   }
 };

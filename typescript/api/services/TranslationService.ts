@@ -18,8 +18,8 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 import { Observable } from 'rxjs/Rx';
-import services = require('../../typescript/services/CoreService.js');
-import {Sails, Model} from "sails";
+import services = require('../core/CoreService.js');
+import { Sails, Model } from "sails";
 import * as i18next from 'i18next';
 import * as Backend from 'i18next-sync-fs-backend';
 declare var sails: Sails;
@@ -41,23 +41,24 @@ export module Services {
     /** Warning this is synch... */
     public bootstrap() {
       i18next
-      .use(Backend)
-      .init({
-        preload: ['en'],
-        debug: true,
-        lng: 'en',
-        fallbackLng: 'en',
-        initImmediate: false,
-        backend: {
-          loadPath: `${sails.config.appPath}/assets/locales/{{lng}}/{{ns}}.json`
-        }
-      });
+        .use(Backend)
+        .init({
+          preload: ['en'],
+          debug: true,
+          lng: 'en',
+          fallbackLng: 'en',
+          initImmediate: false,
+          backend: {
+            loadPath: `${sails.config.appPath}/assets/locales/{{lng}}/{{ns}}.json`
+          }
+        });
     }
 
-    public t(key) {
+    public t(key, context = null) {
+
       return i18next.t(key);
+
     }
   }
 }
-
-  module.exports = new Services.Translation().exports();
+module.exports = new Services.Translation().exports();

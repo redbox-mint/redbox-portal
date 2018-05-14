@@ -22,7 +22,19 @@ export class DashboardService extends BaseService {
   getAlllDraftPlansCanEdit(): Promise<PlanTable> {
     const rows = this.config.maxTransferRowsPerPage;
     const start = 0;
-    return this.http.get(`${this.brandingAndPortalUrl}/listPlans?state=draft&editOnly=true&start=`+start+`&rows=`+rows, this.options)
+    return this.http.get(`${this.brandingAndPortalUrl}/listRecords?recordType=rdmp&state=draft&editOnly=true&start=`+start+`&rows=`+rows, this.options)
+      .toPromise()
+      .then((res: any) => this.formatDates(this.extractData(res))as PlanTable);
+  }
+
+  getAllRecordsCanEdit(recordType:string, state:string): Promise<PlanTable> {
+    const rows = this.config.maxTransferRowsPerPage;
+    const start = 0;
+    let url = `${this.brandingAndPortalUrl}/listRecords?recordType=${recordType}&editOnly=true&start=`+start+`&rows=`+rows;
+    if(state != '') {
+      url += `&state=${start}`;
+    }
+    return this.http.get(url, this.options)
       .toPromise()
       .then((res: any) => this.formatDates(this.extractData(res))as PlanTable);
   }
@@ -30,7 +42,7 @@ export class DashboardService extends BaseService {
   getActivePlans(pageNumber:number): Promise<PlanTable> {
     var rows = 10;
     var start = (pageNumber-1) * rows;
-    return this.http.get(`${this.brandingAndPortalUrl}/listPlans?state=active&start=`+start+`&rows=`+rows, this.options)
+    return this.http.get(`${this.brandingAndPortalUrl}/listRecords?state=active&start=`+start+`&rows=`+rows, this.options)
       .toPromise()
       .then((res: any) => this.formatDates(this.extractData(res))as PlanTable);
   }
@@ -38,7 +50,15 @@ export class DashboardService extends BaseService {
   getDraftPlans(pageNumber:number): Promise<PlanTable> {
     var rows = 10;
     var start = (pageNumber-1) * rows;
-    return this.http.get(`${this.brandingAndPortalUrl}/listPlans?state=draft&start=`+start+`&rows=`+rows, this.options)
+    return this.http.get(`${this.brandingAndPortalUrl}/listRecords?recordType=rdmp&state=draft&start=`+start+`&rows=`+rows, this.options)
+      .toPromise()
+      .then((res: any) => this.formatDates(this.extractData(res)) as PlanTable);
+  }
+
+  getRecords(recordType:string,state:string,pageNumber:number): Promise<PlanTable> {
+    var rows = 10;
+    var start = (pageNumber-1) * rows;
+    return this.http.get(`${this.brandingAndPortalUrl}/listRecords?recordType=${recordType}&state=${state}&start=`+start+`&rows=`+rows, this.options)
       .toPromise()
       .then((res: any) => this.formatDates(this.extractData(res)) as PlanTable);
   }
@@ -61,7 +81,7 @@ export class DashboardService extends BaseService {
   public searchRecords(pageNumber:number, basicSearch: string, facets: any = null) {
     const rows = this.config.maxSearchRowsPerPage;
     const start = (pageNumber-1) * rows;
-    return this.http.get(`${this.brandingAndPortalUrl}/searchPlans??start=${start}&rows=${rows}&query=${basicSearch}&facets=${facets}`, this.options)
+    return this.http.get(`${this.brandingAndPortalUrl}/searchPlans?start=${start}&rows=${rows}&query=${basicSearch}&facets=${facets}`, this.options)
       .toPromise()
       .then((res:any) => this.formatDates(this.extractData(res))as PlanTable);
   }

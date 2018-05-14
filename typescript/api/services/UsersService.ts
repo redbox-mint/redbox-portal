@@ -18,7 +18,7 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 import { Observable } from 'rxjs/Rx';
-import services = require('../../typescript/services/CoreService.js');
+import services = require('../core/CoreService.js');
 import { Sails, Model } from "sails";
 import * as request from "request-promise";
 
@@ -289,7 +289,7 @@ export module Services {
      * @return Collection of all users (local and AAF)
      */
     public getUsers = () :Observable<any> => {
-      return super.getObservable(User.find({ username: {$exists: true}}).populate('roles'));
+      return super.getObservable(User.find({ }).populate('roles'));
     }
 
     public setUserKey = (userid, uuid) => {

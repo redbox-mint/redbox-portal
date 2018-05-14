@@ -18,7 +18,7 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 import { Observable } from 'rxjs/Rx';
-import services = require('../../typescript/services/CoreService.js');
+import services = require('../core/CoreService.js');
 import {Sails, Model} from "sails";
 import * as request from "request-promise";
 import * as luceneEscapeQuery from "lucene-escape-query";
@@ -90,21 +90,29 @@ export module Services {
           // process removals
           if (!_.isUndefined(oldAttachments) && !_.isNull(oldAttachments) && !_.isNull(newAttachments)) {
             const toRemove = _.differenceBy(oldAttachments, newAttachments, 'fileId');
+            const fileIds = [];
             _.each(toRemove, (removeAtt) => {
               if (removeAtt.type == 'attachment') {
-                reqs.push(this.removeDatastream(oid, removeAtt.fileId));
+                fileIds.push(removeAtt.fileId);
               }
             });
+            if (!_.isEmpty(fileIds)) {
+              reqs.push(this.removeDatastreams(oid, fileIds));
+            }
           }
           // process additions
           if (!_.isUndefined(newAttachments) && !_.isNull(newAttachments)) {
             const toAdd =  _.differenceBy(newAttachments, oldAttachments, 'fileId');
+            const fileIds = [];
             _.each(toAdd, (addAtt) => {
               if (addAtt.type == 'attachment') {
-                reqs.push(this.addDatastream(oid, addAtt.fileId));
+                fileIds.push(addAtt.fileId);
                 // reqs.push(Observable.of(null));
               }
             });
+            if (!_.isEmpty(fileIds)) {
+              reqs.push(this.addDatastreams(oid, fileIds));
+            }
           }
         });
         if (!_.isEmpty(reqs)) {
@@ -119,7 +127,7 @@ export module Services {
       const apiConfig = sails.config.record.api.removeDatastream;
       const opts = this.getOptions(`${sails.config.record.baseUrl.redbox}${apiConfig.url}`, oid);
       opts.url = `${opts.url}?skipReindex=true&datastreamId=${fileId}`;
-      return Observable.fromPromise(request[apiConfig.method](opts));
+      return request[apiConfig.method](opts);
     }
 
     public addDatastream(oid, fileId) {
@@ -130,7 +138,29 @@ export module Services {
       opts['formData'] = {
         content: fs.createReadStream(fpath)
       };
-      return Observable.fromPromise(request[apiConfig.method](opts));
+      return request[apiConfig.method](opts);
+    }
+
+    public removeDatastreams(oid, fileIds: any[]) {
+      const apiConfig = sails.config.record.api.removeDatastreams;
+      const opts = this.getOptions(`${sails.config.record.baseUrl.redbox}${apiConfig.url}`, oid);
+      const dataStreamIds = fileIds.join(',');
+      opts.url = `${opts.url}?skipReindex=false&datastreamIds=${dataStreamIds}`;
+      return request[apiConfig.method](opts);
+    }
+
+    public addDatastreams(oid, fileIds: any[]) {
+      const apiConfig = sails.config.record.api.addDatastreams;
+      const opts = this.getOptions(`${sails.config.record.baseUrl.redbox}${apiConfig.url}`, oid);
+      opts.url = `${opts.url}?skipReindex=false&datastreamIds=${fileIds.join(',')}`;
+      const formData = {};
+      _.each(fileIds, fileId => {
+        const fpath = `${sails.config.record.attachments.stageDir}/${fileId}`;
+        formData[fileId] = fs.createReadStream(fpath);
+      });
+      opts['formData'] = formData;
+
+      return request[apiConfig.method](opts);
     }
 
     public getDatastream(oid, fileId) {
@@ -138,6 +168,8 @@ export module Services {
       const opts = this.getOptions(`${sails.config.record.baseUrl.redbox}${apiConfig.url}`, oid);
       opts.url = `${opts.url}?datastreamId=${fileId}`;
       opts.json = false;
+      sails.log.verbose(`Getting datastream using: `);
+      sails.log.verbose(JSON.stringify(opts));
       return Observable.fromPromise(request[apiConfig.method](opts));
     }
 

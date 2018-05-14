@@ -9,6 +9,7 @@ import { LoadableComponent } from '../../shared/loadable.component';
 import { OnInit } from '@angular/core';
 import { PaginationModule, TooltipModule} from 'ngx-bootstrap';
 import { TranslationService } from '../../shared/translation-service';
+import { RecordsService } from '../../shared/form/records.service';
 
 declare var pageData: any;
 declare var jQuery: any;
@@ -23,33 +24,44 @@ declare var jQuery: any;
 export class DashboardComponent extends LoadableComponent  {
   branding: string;
   portal: string;
+  recordType: string;
+  typeLabel:string;
+  workflowSteps:any = [];
   draftPlans: PlanTable;
   activePlans: PlanTable;
+  records:any ={};
   saveMsgType = "info";
   initSubs: any;
   initTracker: any = {draftLoaded:false, activeLoaded: false};
 
 
-  constructor( @Inject(DashboardService) protected dashboardService: DashboardService, @Inject(DOCUMENT) protected document: any, elementRef: ElementRef, translationService:TranslationService ) {
+  constructor( @Inject(DashboardService) protected dashboardService: DashboardService,  protected recordsService: RecordsService, @Inject(DOCUMENT) protected document: any, elementRef: ElementRef, translationService:TranslationService ) {
     super();
     this.initTranslator(translationService);
     this.draftPlans = new PlanTable();
     this.activePlans = new PlanTable();
     this.branding = elementRef.nativeElement.getAttribute('branding');
     this.portal = elementRef.nativeElement.getAttribute('portal');
+    this.recordType = elementRef.nativeElement.getAttribute('recordType');
     this.initSubs = dashboardService.waitForInit((initStat:boolean) => {
       this.initSubs.unsubscribe();
+
       translationService.isReady(tService => {
-        dashboardService.getDraftPlans(1).then((draftPlans: PlanTable) => {
-          this.setDraftPlans(draftPlans);
-          this.initTracker.draftLoaded = true;
-          this.checkIfHasLoaded();
+        recordsService.getType(this.recordType).then(type => {
+          this.typeLabel = this.getTranslated(`${this.recordType}-name-plural`, "Records");
         });
-        dashboardService.getActivePlans(1).then((activePlans: PlanTable) => {
-           this.setActivePlans(activePlans);
-           this.initTracker.activeLoaded = true;
-           this.checkIfHasLoaded();
-         });
+        recordsService.getWorkflowSteps(this.recordType).then(steps =>{
+          this.workflowSteps = steps;
+          _.each(steps,step => {
+            dashboardService.getRecords(this.recordType,step.name,1).then((stagedRecords: PlanTable) => {
+              this.setDashboardTitle(stagedRecords);
+              this.records[step.name] = stagedRecords;
+              this.initTracker.draftLoaded = true;
+              this.checkIfHasLoaded();
+            });
+          });
+        });
+        this.initTracker.activeLoaded = true;
       });
     });
   }
@@ -61,25 +73,32 @@ export class DashboardComponent extends LoadableComponent  {
   }
 
   public hasLoaded() {
-    return this.initTracker.draftLoaded && this.initTracker.activeLoaded && this.translatorReady;
+    return this.translatorReady;
   }
 
-  public draftTablePageChanged(event:any):void {
-    this.dashboardService.getDraftPlans(event.page).then((draftPlans: PlanTable) => { this.setDraftPlans(draftPlans); });
+  public pageChanged(event:any, step: string):void {
+    this.dashboardService.getRecords('rdmp',step,event.page).then((stagedRecords: PlanTable) => {
+      this.setDashboardTitle(stagedRecords);
+      this.records[step] = stagedRecords;
+    });
   }
 
-  public activeTablePageChanged(event:any):void {
-    this.dashboardService.getActivePlans(event.page).then((activePlans: PlanTable) => { this.setActivePlans(activePlans); });
-  }
 
-  public setDraftPlans(draftPlans) {
-    this.setDashboardTitle(draftPlans);
-    this.draftPlans = draftPlans;
-  }
-
-  public setActivePlans(activePlans) {
-    this.setDashboardTitle(activePlans);
-    this.activePlans = activePlans;
+  getTranslated(key, defValue) {
+    if (!_.isEmpty(key) && !_.isUndefined(key)) {
+      if (_.isFunction(key.startsWith)) {
+        let translatedValue = this.translationService.t(key);
+        if(translatedValue == key) {
+        return defValue;
+      } else {
+        return translatedValue;
+      }
+      } else {
+        return key;
+      }
+    } else {
+      return defValue;
+    }
   }
 
 }

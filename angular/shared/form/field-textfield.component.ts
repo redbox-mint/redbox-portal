@@ -64,7 +64,8 @@ export class TextFieldComponent extends EmbeddableComponent {
   <div *ngIf="field.editMode">
     <div class="row">
       <div class="col-xs-12">
-      <label>{{field.label}}
+      <label>
+        {{field.label}} {{ getRequiredLabelStr() }}
         <button type="button" class="btn btn-default" *ngIf="field.help" (click)="toggleHelp()"><span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span></button>
       </label>
       <span id="{{ 'helpBlock_' + field.name }}" class="help-block" *ngIf="this.helpShow" [innerHtml]="field.help"></span>

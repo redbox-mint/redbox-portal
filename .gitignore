@@ -168,3 +168,5 @@ www
 api/controllers/**/*.js
 typescript/api/controllers/**/*.js
 typescript/api/services/**/*.js
+assets/angular
+api/core/*.js

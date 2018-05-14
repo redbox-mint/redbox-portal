@@ -17,9 +17,9 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { Input, Component, ViewChild, ViewContainerRef, OnInit, Injector, AfterViewInit} from '@angular/core';
+import { Input, Component, ViewChild, ViewContainerRef, OnInit, Injector, AfterViewInit, AfterViewChecked} from '@angular/core';
 import { FieldBase } from './field-base';
-import { DateTime, AnchorOrButton, SaveButton, CancelButton, TextArea, TextField, TabOrAccordionContainer,ParameterRetrieverField, RecordMetadataRetrieverField } from './field-simple';
+import { DateTime, AnchorOrButton, SaveButton, CancelButton, MarkdownTextArea, TextArea, TextField, TabOrAccordionContainer,ParameterRetrieverField, RecordMetadataRetrieverField } from './field-simple';
 import { FormGroup, FormControl, FormArray } from '@angular/forms';
 import * as _ from "lodash-es";
 import moment from 'moment-es6';
@@ -165,6 +165,38 @@ export class SimpleComponent {
 })
 export class TextAreaComponent extends SimpleComponent implements OnInit {
   field: TextArea;
+
+  ngOnInit() {
+    if (!this.field.editMode) {
+      this.field.formatValueForDisplay();
+    }
+  }
+}
+
+@Component({
+  selector: 'markdown-text-area',
+  template: `
+  <div *ngIf="field.editMode" [formGroup]='form' class="form-group">
+    <label [attr.for]="field.name">
+      {{field.label}} {{ getRequiredLabelStr()}}
+      <button type="button" class="btn btn-default" *ngIf="field.help" (click)="toggleHelp()"><span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span></button>
+    </label><br/>
+    <span id="{{ 'helpBlock_' + field.name }}" class="help-block" *ngIf="this.helpShow" [innerHtml]="field.help"></span>
+    <textarea [formControl]="getFormControl()"  [attr.rows]="field.rows" [attr.cols]="field.cols" [id]="field.name" class="form-control" [(ngModel)]="field.value"></textarea>
+    <div *ngIf="field.value" style='font-weight:bold'>Preview</div>
+    <markdown [data]="field.value"></markdown>
+    <div class="text-danger" *ngIf="getFormControl().hasError('required') && getFormControl().touched && !field.validationMessages?.required">{{field.label}} is required</div>
+    <div class="text-danger" *ngIf="getFormControl().hasError('required') && getFormControl().touched && field.validationMessages?.required">{{field.validationMessages.required}}</div>
+  </div>
+  <li *ngIf="!field.editMode" class="key-value-pair">
+    <span class="key" *ngIf="field.label">{{field.label}}</span>
+    <markdown [data]="field.value"></markdown>
+    <br/>
+  </li>
+  `
+})
+export class MarkdownTextAreaComponent extends SimpleComponent implements OnInit {
+  field: MarkdownTextArea;
 
   ngOnInit() {
     if (!this.field.editMode) {
@@ -320,10 +352,10 @@ Container components
   </div>
   `
 })
-export class TabOrAccordionContainerComponent extends SimpleComponent {
+export class TabOrAccordionContainerComponent extends SimpleComponent implements AfterViewChecked{
   field: TabOrAccordionContainer;
 
-  ngAfterViewInit() {
+  ngAfterViewChecked() {
     let that = this;
     jQuery("[role='tab']").on('shown.bs.tab', function () {
       that.field.onTabChange.emit(this.getAttribute("href").substring(1,this.getAttribute("href").length));

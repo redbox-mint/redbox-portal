@@ -3,6 +3,7 @@ export buildTarget="PROD"
 source dev_build/buildFns.sh
 cleanUpAllJs
 npm install -g yarn
+yarn cache clean
 yarn install
 cd angular
 yarn install

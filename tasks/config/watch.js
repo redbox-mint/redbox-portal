@@ -26,10 +26,9 @@ module.exports = function(grunt) {
       tasks: ['syncAssets' , 'linkAssets' ]
     },
     // BEGIN Sails 1.0 Upgrade
-    // Added for development synching, take note that this is for ongoing
     sails_api: {
-      files: ['typescript/api/**/*.js'],
-      tasks: ['syncApiFiles']
+      files: ['api/**/*.js'],
+      tasks: ['restartApp']
     }
     // END Sails 1.0 Upgrade
   });

@@ -18,7 +18,7 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 import { Observable } from 'rxjs/Rx';
-import services = require('../../typescript/services/CoreService.js');
+import services = require('../core/CoreService.js');
 import {Sails, Model} from "sails";
 import * as NodeCache from "node-cache";
 import moment from 'moment-es6';

@@ -1,5 +1,3 @@
-<!-- Basic Uppy styles -->
-<link rel="stylesheet" href="/node_modules/uppy/dist/uppy.min.css">
 <div class='padding-bottom-10'>
   <label [attr.for]="field.name">
     {{field.label}} {{ getRequiredLabelStr()}}
@@ -37,38 +35,6 @@
       </tbody>
     </table>
   </div>
-    <div class="row">
-      <div class="col-xs-3">
-        <label>Type of location</label>
-      </div>
-      <div class="col-xs-4">
-        <label>Location</label>
-      </div>
-      <div class="col-xs-5">
-        <label *ngIf="field.newLocation.type != 'attachment'">Notes</label>
-      </div>
-
-    </div>
-  <div class="row">
-
-    <div class="col-xs-3">
-      <select [(ngModel)]="field.newLocation.type" [id]="field.newLocation.type" class="form-control">
-         <option *ngFor="let opt of field.dataTypes" [value]="opt.value">{{opt.label}}</option>
-      </select>
-    </div>
-
-    <div class="col-xs-4">
-      <input [(ngModel)]="field.newLocation.location" *ngIf="field.newLocation.type != 'attachment'" type="text" class="form-control" />
-      <a [class.disabled]="isAttachmentsDisabled()"
-      class="btn btn-info UppyModalOpenerBtn"
-      [style.display]="field.newLocation.type == 'attachment' ? 'inherit' : 'none'" >Add attachment(s)</a>
-    </div>
-    <div class="col-xs-4">
-      <input [(ngModel)]="field.newLocation.notes"  *ngIf="field.newLocation.type != 'attachment'" type="text" class="form-control" />
-    </div>
-    <div class="col-xs-1">
-      <a  *ngIf="field.newLocation.type != 'attachment'" class="fa fa-plus-circle btn text-20 pull-right btn-success" (click)="field.addLocation()"></a>
-    </div>
-  </div>
+  <div><button class="btn btn-info">Export</button></div>
 </div>
 </div>

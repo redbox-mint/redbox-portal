@@ -17,7 +17,7 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { Input, Component, OnInit} from '@angular/core';
+import { Input, Component, OnInit, ViewChild, ElementRef} from '@angular/core';
 import { SimpleComponent } from './field-simple.component';
 import { FieldBase } from './field-base';
 import { FormGroup, FormControl, Validators } from '@angular/forms';
@@ -53,6 +53,8 @@ export class ContributorField extends FieldBase<any> {
   freeText: boolean;
   forceLookupOnly: boolean;
   // Frankenstein end
+  component: any;
+
 
   constructor(options: any, injector: any) {
     super(options, injector);
@@ -128,7 +130,7 @@ export class ContributorField extends FieldBase<any> {
     return this.formModel;
   }
 
-  setValue(value:any, emitEvent:boolean=true) {
+  setValue(value:any, emitEvent:boolean=true, updateTitle:boolean=false) {
     if (!this.hasInit) {
       this.hasInit = true;
       value.username = _.isUndefined(value.username) ? '' : value.username;
@@ -141,6 +143,9 @@ export class ContributorField extends FieldBase<any> {
     this.formModel.patchValue(value, {emitEvent: emitEvent});
     this.formModel.markAsTouched();
     this.formModel.markAsDirty();
+    if (updateTitle) {
+      this.component.ngCompleter.ctrInput.nativeElement.value = this.vocabField.getTitle(value);
+    }
   }
 
   toggleValidator(c:any) {
@@ -188,11 +193,11 @@ export class ContributorField extends FieldBase<any> {
     }
   }
 
-  setEmptyValue() {
+  setEmptyValue(emitEvent:boolean = true) {
     this.value = {text_full_name: null, email: null, role: null, username: ''};
     if (this.formModel) {
       _.forOwn(this.formModel.controls, (c, cName)=> {
-        c.setValue(null)
+        c.setValue(null, {emitEvent: emitEvent});
       });
     }
     return this.value;
@@ -227,6 +232,9 @@ export class ContributorField extends FieldBase<any> {
 
   public reactEvent(eventName: string, eventData: any, origData: any) {
     this.setValue(eventData, false);
+    _.each(this.componentReactors, (compReact) => {
+      compReact.reactEvent(eventName, eventData, origData);
+    });
   }
 }
 
@@ -306,7 +314,7 @@ export class ContributorField extends FieldBase<any> {
                 <span class='text-right'>{{ field.nameColHdr }}</span>
               </div>
               <div [ngClass]="getGroupClass('text_full_name')">
-                <ng2-completer [overrideSuggested]="!field.forceLookupOnly" [inputClass]="'form-control'" [placeholder]="field.vocabField.placeHolder" [clearUnselected]="field.forceLookupOnly" (selected)="onSelect($event)" [datasource]="field.vocabField.dataService" [minSearchLength]="0" [initialValue]="field.vocabField.initialValue"></ng2-completer>
+                <ng2-completer #ngCompleter [overrideSuggested]="!field.forceLookupOnly" [inputClass]="'form-control'" [placeholder]="field.vocabField.placeHolder" [clearUnselected]="field.forceLookupOnly" (selected)="onSelect($event)" [datasource]="field.vocabField.dataService" [minSearchLength]="0" [initialValue]="field.vocabField.initialValue"></ng2-completer>
                 <div class="text-danger" *ngIf="field.formModel.controls['text_full_name'].hasError('required')">{{field.validationMessages.required.text_full_name}}</div>
               </div>
               <div class='col-xs-1'>
@@ -326,7 +334,7 @@ export class ContributorField extends FieldBase<any> {
             <span class='text-right'>{{ field.nameColHdr }}</span>
           </div>
           <div [ngClass]="getGroupClass('text_full_name')">
-            <ng2-completer [overrideSuggested]="!field.forceLookupOnly" [inputClass]="'form-control'" [placeholder]="field.vocabField.placeHolder" [clearUnselected]="field.forceLookupOnly" (selected)="onSelect($event)" [datasource]="field.vocabField.dataService" [minSearchLength]="0" [initialValue]="field.vocabField.initialValue"></ng2-completer>
+            <ng2-completer #ngCompleter [overrideSuggested]="!field.forceLookupOnly" [inputClass]="'form-control'" [placeholder]="field.vocabField.placeHolder" [clearUnselected]="field.forceLookupOnly" (selected)="onSelect($event)" [datasource]="field.vocabField.dataService" [minSearchLength]="0" [initialValue]="field.vocabField.initialValue"></ng2-completer>
             <div class="text-danger" *ngIf="field.formModel.controls['text_full_name'].hasError('required')">{{field.validationMessages.required.text_full_name}}</div>
           </div>
           <div class='col-xs-1'>
@@ -359,6 +367,12 @@ export class ContributorField extends FieldBase<any> {
 export class ContributorComponent extends SimpleComponent {
   field: ContributorField;
   @Input() isEmbedded: boolean = false;
+  @ViewChild('ngCompleter') public ngCompleter: ElementRef;
+
+  public ngOnInit() {
+    this.field.componentReactors.push(this);
+    this.field.component = this;
+  }
 
   public getGroupClass(fldName:any): string {
     let hasError = false;
@@ -369,7 +383,7 @@ export class ContributorComponent extends SimpleComponent {
     return `col-xs-5 form-group${hasError ? ' has-error' : ''}`;
   }
 
-  onSelect(selected: any) {
+  onSelect(selected: any, emitEvent:boolean=true, updateTitle:boolean=false) {
     if (selected) {
       if ((_.isUndefined(selected.title) && _.isUndefined(selected.text_full_name) && _.isEmpty(selected.title) && _.isEmpty(selected.text_full_name))
           || (selected.title && selected.title == this.field.formModel.value.text_full_name)) {
@@ -385,14 +399,22 @@ export class ContributorComponent extends SimpleComponent {
         val = {text_full_name: selected.title};
       }
       val.role = this.field.role;
-      this.field.setValue(val);
+      console.log(`Using val:`);
+      console.log(JSON.stringify(val));
+      this.field.setValue(val, emitEvent, updateTitle);
     } else {
       console.log(`No selected user.`)
       if (this.field.forceLookupOnly) {
         console.log(`Forced lookup, clearing data..`)
-        this.field.setEmptyValue();
+        this.field.setEmptyValue(emitEvent);
       }
     }
+  }
+
+  public reactEvent(eventName: string, eventData: any, origData: any, elem:any) {
+    console.log(`Contributor component reacting:`);
+    console.log(eventData);
+    this.onSelect(eventData, false, true);
   }
 
 }

@@ -19,7 +19,7 @@
 import { Injectable, Inject, ApplicationRef, Output, EventEmitter }   from '@angular/core';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { FieldBase } from './field-base';
-import { TextField, Container, TextArea, DateTime, AnchorOrButton, SaveButton, CancelButton, HiddenValue, LinkValue, TabOrAccordionContainer, ButtonBarContainer, SelectionField, ParameterRetrieverField, RecordMetadataRetrieverField } from './field-simple';
+import { TextField, Container, MarkdownTextArea, TextArea, DateTime, AnchorOrButton, SaveButton, CancelButton, HiddenValue, LinkValue, TabOrAccordionContainer, ButtonBarContainer, SelectionField, ParameterRetrieverField, RecordMetadataRetrieverField } from './field-simple';
 import { TextFieldComponent, RepeatableTextfieldComponent} from './field-textfield.component';
 import {
   DropdownFieldComponent,
@@ -35,15 +35,17 @@ import {
   LinkValueComponent,
   SelectionFieldComponent,
   ParameterRetrieverComponent,
-  RecordMetadataRetrieverComponent
+  RecordMetadataRetrieverComponent,
+  MarkdownTextAreaComponent
 } from './field-simple.component';
 import { VocabField, VocabFieldComponent, VocabFieldLookupService } from './field-vocab.component';
-import { RepeatableContainer, RepeatableVocabComponent, RepeatableContributorComponent } from './field-repeatable.component';
+import { RepeatableContainer, RepeatableVocab, RepeatableContributor, RepeatableVocabComponent, RepeatableContributorComponent } from './field-repeatable.component';
 import { ContributorField, ContributorComponent } from './field-contributor.component';
 import { WorkflowStepButton, WorkflowStepButtonComponent } from './workflow-button.component';
 import { RelatedObjectDataField, RelatedObjectDataComponent } from './field-relatedobjectdata.component';
 import { RelatedObjectSelectorComponent, RelatedObjectSelectorField } from './field-relatedobjectselector.component';
 import { DataLocationComponent, DataLocationField } from './field-datalocation.component';
+import { PublishDataLocationSelectorComponent, PublishDataLocationSelectorField } from './field-publishdatalocationselector.component'
 import { MapField, MapComponent } from './field-map.component';
 import * as _ from "lodash-es";
 import { Observable } from 'rxjs/Observable';
@@ -69,6 +71,7 @@ export class FieldControlService {
   protected classes = {
     'TextField': { 'meta': TextField, 'comp': TextFieldComponent },
     'TextArea': { 'meta': TextArea, 'comp': TextAreaComponent },
+    'MarkdownTextArea': { 'meta': MarkdownTextArea, 'comp': MarkdownTextAreaComponent },
     'DateTime': { 'meta': DateTime, 'comp': DateTimeComponent },
     'Container': {'meta': Container, 'comp': [ TextBlockComponent, GenericGroupComponent ] },
     'TabOrAccordionContainer': {'meta': TabOrAccordionContainer, 'comp': TabOrAccordionContainerComponent },
@@ -77,7 +80,9 @@ export class FieldControlService {
     'SaveButton': { 'meta': SaveButton, 'comp': SaveButtonComponent },
     'CancelButton': { 'meta': CancelButton, 'comp': CancelButtonComponent },
     'VocabField': {'meta': VocabField, 'comp': VocabFieldComponent, 'lookupService': 'vocabFieldLookupService'},
-    'RepeatableContainer': {'meta': RepeatableContainer, 'comp': [RepeatableVocabComponent, RepeatableContributorComponent, RepeatableTextfieldComponent, RepeatableGroupComponent]},
+    'RepeatableContainer': {'meta': RepeatableContainer, 'comp': [RepeatableVocabComponent, RepeatableTextfieldComponent, RepeatableGroupComponent]},
+    'RepeatableContributor': {'meta': RepeatableContributor, 'comp': RepeatableContributorComponent },
+    'RepeatableVocab': {'meta': RepeatableVocab, 'comp': RepeatableVocabComponent },
     'ContributorField': {'meta': ContributorField, 'comp': ContributorComponent, 'lookupService': 'vocabFieldLookupService'},
     'HiddenValue': {'meta': HiddenValue, 'comp': HiddenValueComponent},
     'WorkflowStepButton': {'meta': WorkflowStepButton, 'comp': WorkflowStepButtonComponent},
@@ -89,7 +94,8 @@ export class FieldControlService {
     'RecordMetadataRetriever':{ 'meta': RecordMetadataRetrieverField, 'comp': RecordMetadataRetrieverComponent},
     'RelatedObjectSelector':{ 'meta': RelatedObjectSelectorField, 'comp': RelatedObjectSelectorComponent},
     'DataLocation':{ 'meta': DataLocationField, 'comp': DataLocationComponent},
-    'WorkspaceSelectorField' : { 'meta': WorkspaceSelectorField, 'comp': [WorkspaceSelectorComponent, WorkspaceSelectorFieldComponent] }
+    'WorkspaceSelectorField' : { 'meta': WorkspaceSelectorField, 'comp': [WorkspaceSelectorComponent, WorkspaceSelectorFieldComponent] },
+    'PublishDataLocationSelector':{ 'meta': PublishDataLocationSelectorField, 'comp': PublishDataLocationSelectorComponent},
   };
   constructor(@Inject(VocabFieldLookupService) private vocabFieldLookupService: VocabFieldLookupService, @Inject(CompleterService) private completerService: CompleterService,
   @Inject(ConfigService) protected configService: ConfigService,

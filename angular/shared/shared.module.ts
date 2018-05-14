@@ -1,16 +1,18 @@
 import { NgModule }      from '@angular/core';
+import { MarkdownModule } from 'angular2-markdown';
 import { ReactiveFormsModule, FormsModule } from "@angular/forms";
 import { BrowserModule } from '@angular/platform-browser';
 import { RecordsService } from './form/records.service';
 import { FieldControlService } from './form/field-control.service';
 import { TextFieldComponent, RepeatableTextfieldComponent } from './form/field-textfield.component';
-import { DropdownFieldComponent, TabOrAccordionContainerComponent, ButtonBarContainerComponent, TextBlockComponent, TextAreaComponent, DateTimeComponent, AnchorOrButtonComponent, SaveButtonComponent, CancelButtonComponent, HtmlRawComponent, HiddenValueComponent, LinkValueComponent, SelectionFieldComponent, ParameterRetrieverComponent, RecordMetadataRetrieverComponent } from './form/field-simple.component';
+import { DropdownFieldComponent, TabOrAccordionContainerComponent, ButtonBarContainerComponent, TextBlockComponent, MarkdownTextAreaComponent, TextAreaComponent, DateTimeComponent, AnchorOrButtonComponent, SaveButtonComponent, CancelButtonComponent, HtmlRawComponent, HiddenValueComponent, LinkValueComponent, SelectionFieldComponent, ParameterRetrieverComponent, RecordMetadataRetrieverComponent } from './form/field-simple.component';
 import { VocabField, VocabFieldComponent, VocabFieldLookupService } from './form/field-vocab.component';
 import { RepeatableVocabComponent, RepeatableContributorComponent } from './form/field-repeatable.component';
 import { ContributorComponent } from './form/field-contributor.component';
 import { RelatedObjectDataComponent } from './form/field-relatedobjectdata.component';
 import { RelatedObjectSelectorComponent } from './form/field-relatedobjectselector.component';
 import { DataLocationComponent } from './form/field-datalocation.component';
+import { PublishDataLocationSelectorComponent } from './form/field-publishdatalocationselector.component';
 import { MapComponent } from './form/field-map.component';
 import { WorkflowStepButtonComponent } from './form/workflow-button.component';
 import { ConfigService } from './config-service';
@@ -32,53 +34,11 @@ import { WorkspaceSelectorFieldComponent } from './form/workspace-selector.compo
 import { WorkspaceTypeService } from './workspace-service';
 
 @NgModule({
-  imports: [ BrowserModule, FormsModule, ReactiveFormsModule, NKDatetimeModule,
-    Ng2CompleterModule, TranslateI18NextModule, LeafletModule.forRoot(),
-    LeafletDrawModule.forRoot()
-  ],
-  exports: [ NKDatetimeModule, Ng2CompleterModule, TranslateI18NextModule,
-    DmpFieldComponent, TextFieldComponent, DropdownFieldComponent,
-    TabOrAccordionContainerComponent, ButtonBarContainerComponent,
-    TextBlockComponent, TextAreaComponent, DateTimeComponent,
-    AnchorOrButtonComponent, VocabFieldComponent, RepeatableVocabComponent,
-    ContributorComponent, RepeatableContributorComponent, HtmlRawComponent,
-    HiddenValueComponent, WorkflowStepButtonComponent, LinkValueComponent,
-    SelectionFieldComponent, RepeatableTextfieldComponent, StringTemplatePipe,
-    GenericGroupComponent, RepeatableGroupComponent, MapComponent,
-    ParameterRetrieverComponent, RecordMetadataRetrieverComponent,
-    RelatedObjectSelectorComponent, DataLocationComponent,
-    WorkspaceSelectorFieldComponent
-  ],
-  declarations: [ DmpFieldComponent, TextFieldComponent, DropdownFieldComponent,
-    TabOrAccordionContainerComponent, ButtonBarContainerComponent,
-    TextBlockComponent, TextAreaComponent, DateTimeComponent,
-    AnchorOrButtonComponent, SaveButtonComponent, CancelButtonComponent,
-    VocabFieldComponent, RepeatableVocabComponent, ContributorComponent,
-    RepeatableContributorComponent, HtmlRawComponent, HiddenValueComponent,
-    WorkflowStepButtonComponent, LinkValueComponent, SelectionFieldComponent,
-    RepeatableTextfieldComponent, RelatedObjectDataComponent, StringTemplatePipe,
-    GenericGroupComponent, RepeatableGroupComponent, MapComponent,
-    ParameterRetrieverComponent, RecordMetadataRetrieverComponent,
-    RelatedObjectSelectorComponent, DataLocationComponent,
-    WorkspaceSelectorFieldComponent
-  ],
-  providers: [ FieldControlService, RecordsService, VocabFieldLookupService,
-    ConfigService, TranslationService, UserSimpleService, DashboardService,
-    RolesService, EmailNotificationService, UtilityService, WorkspaceTypeService
-  ],
-  bootstrap: [ ],
-  entryComponents: [ DmpFieldComponent, TextFieldComponent,
-    DropdownFieldComponent, TabOrAccordionContainerComponent,
-    ButtonBarContainerComponent, TextBlockComponent, TextAreaComponent,
-    DateTimeComponent, AnchorOrButtonComponent, SaveButtonComponent,
-    CancelButtonComponent, VocabFieldComponent, RepeatableVocabComponent,
-    ContributorComponent, RepeatableContributorComponent, HtmlRawComponent,
-    HiddenValueComponent, WorkflowStepButtonComponent, LinkValueComponent,
-    SelectionFieldComponent, RepeatableTextfieldComponent,
-    RelatedObjectDataComponent, GenericGroupComponent, RepeatableGroupComponent,
-    MapComponent, ParameterRetrieverComponent, RecordMetadataRetrieverComponent,
-    RelatedObjectSelectorComponent,DataLocationComponent,
-    WorkspaceSelectorFieldComponent
-  ]
+  imports:      [ BrowserModule, FormsModule, ReactiveFormsModule, NKDatetimeModule, Ng2CompleterModule, TranslateI18NextModule, LeafletModule.forRoot(), LeafletDrawModule.forRoot(), MarkdownModule.forRoot() ],
+  exports:      [ NKDatetimeModule, Ng2CompleterModule, TranslateI18NextModule, DmpFieldComponent, TextFieldComponent, DropdownFieldComponent, TabOrAccordionContainerComponent, ButtonBarContainerComponent, TextBlockComponent,MarkdownTextAreaComponent, TextAreaComponent, DateTimeComponent, AnchorOrButtonComponent, VocabFieldComponent, RepeatableVocabComponent, ContributorComponent, RepeatableContributorComponent, HtmlRawComponent, HiddenValueComponent, WorkflowStepButtonComponent, LinkValueComponent, SelectionFieldComponent, RepeatableTextfieldComponent, StringTemplatePipe, GenericGroupComponent, RepeatableGroupComponent, MapComponent, ParameterRetrieverComponent, RecordMetadataRetrieverComponent, RelatedObjectSelectorComponent, DataLocationComponent, PublishDataLocationSelectorComponent, WorkspaceSelectorFieldComponent],
+  declarations: [ DmpFieldComponent, TextFieldComponent, DropdownFieldComponent, TabOrAccordionContainerComponent, ButtonBarContainerComponent, TextBlockComponent, MarkdownTextAreaComponent, TextAreaComponent, DateTimeComponent, AnchorOrButtonComponent, SaveButtonComponent, CancelButtonComponent, VocabFieldComponent, RepeatableVocabComponent, ContributorComponent, RepeatableContributorComponent, HtmlRawComponent, HiddenValueComponent, WorkflowStepButtonComponent, LinkValueComponent, SelectionFieldComponent, RepeatableTextfieldComponent, RelatedObjectDataComponent, StringTemplatePipe, GenericGroupComponent, RepeatableGroupComponent, MapComponent, ParameterRetrieverComponent, RecordMetadataRetrieverComponent, RelatedObjectSelectorComponent, DataLocationComponent, PublishDataLocationSelectorComponent, WorkspaceSelectorFieldComponent ],
+  providers:    [ FieldControlService, RecordsService, VocabFieldLookupService, ConfigService, TranslationService, UserSimpleService, DashboardService, RolesService, EmailNotificationService, UtilityService ],
+  bootstrap:    [ ],
+  entryComponents: [ DmpFieldComponent, TextFieldComponent, DropdownFieldComponent, TabOrAccordionContainerComponent, ButtonBarContainerComponent, TextBlockComponent, MarkdownTextAreaComponent, TextAreaComponent, DateTimeComponent, AnchorOrButtonComponent, SaveButtonComponent, CancelButtonComponent, VocabFieldComponent, RepeatableVocabComponent, ContributorComponent, RepeatableContributorComponent, HtmlRawComponent, HiddenValueComponent, WorkflowStepButtonComponent, LinkValueComponent, SelectionFieldComponent, RepeatableTextfieldComponent, RelatedObjectDataComponent, GenericGroupComponent, RepeatableGroupComponent, MapComponent, ParameterRetrieverComponent, RecordMetadataRetrieverComponent, RelatedObjectSelectorComponent,DataLocationComponent, PublishDataLocationSelectorComponent, WorkspaceSelectorFieldComponent ]
 })
 export class SharedModule { }

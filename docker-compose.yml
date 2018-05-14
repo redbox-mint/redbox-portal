@@ -1,4 +1,6 @@
 version: '3.1'
+networks:
+  main:
 services:
   redboxportal:
     build: .
@@ -14,9 +16,10 @@ services:
       - NODE_ENV=development
       - PORT=1500
       - sails_redbox__apiKey=c8e844fc-8550-497f-b970-7900ec8741ca
-    links:
-      - mongodb:mongodb
-      - redbox:redbox
+    networks:
+     main:
+       aliases:
+         - rbportal
     entrypoint: /bin/bash -c "cd /opt/redbox-portal && node app.js"
   mongodb:
     image: mvertes/alpine-mongo:latest
@@ -24,6 +27,10 @@ services:
       - "./devdata:/devdata"
       - "/mnt/data/mongo/data/db:/data/db"
       - "/var/log/mongo:/var/log/mongo"
+    networks:
+      main:
+        aliases:
+          - mongodb
     ports:
        - "27017:27017"
   redbox:
@@ -32,10 +39,14 @@ services:
        - "9000"
     environment:
       - RB_API_KEY=c8e844fc-8550-497f-b970-7900ec8741ca
-      - RAID_URL=https://api.raid.org.au:8000/
-      - RAID_KEY=
+      - PORTAL_API_TOKEN=c81bd0a3-56fb-448e-bfa5-a5b7abb3668e
+      - PORTAL_BASE_URL=http://redboxportal:1500/default/rdmp
     volumes:
         - "/mnt/data/redbox:/opt/redbox/data"
         - "/var/log/redbox:/opt/redbox/home/logs"
+    networks:
+      main:
+        aliases:
+          - redbox
     ports:
        - "9000:9000"
