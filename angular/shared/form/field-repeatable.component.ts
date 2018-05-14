@@ -290,18 +290,20 @@ export class RepeatableContributor extends RepeatableContainer {
       </span>
     </div>
   </div>
-  <div  *ngIf="!field.editMode" class="table-responsive">
-    <table class="table table-striped table-condensed">
-      <thead><th>{{field.fields[0].nameColHdr}}</th><th>{{field.fields[0].emailColHdr}}</th><th>{{field.fields[0].roleColHdr}}</th></thead>
-      <tbody>
-        <tr *ngFor="let fieldElem of field.fields; let i = index;">
-          <td>{{fieldElem.value.name}}</td>
-          <td>{{fieldElem.value.email}}</td>
-          <td>{{fieldElem.value.role}}</td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
+  <ng-container  *ngIf="!field.editMode">
+    <div class="row">
+      <div class="col-xs-3"><label>{{field.fields[0].nameColHdr}}</label></div>
+      <div class="col-xs-3"><label>{{field.fields[0].emailColHdr}}</label></div>
+      <div class="col-xs-3"><label>{{field.fields[0].roleColHdr}}</label></div>
+      <div class="col-xs-3"><label>{{field.fields[0].orcidColHdr}}</label></div>
+    </div>
+    <div class="row" *ngFor="let fieldElem of field.fields; let i = index;">
+      <div class="col-xs-3">{{fieldElem.value.text_full_name}}</div>
+      <div class="col-xs-3">{{fieldElem.value.email}}</div>
+      <div class="col-xs-3">{{fieldElem.value.role}}</div>
+      <div class="col-xs-3">{{fieldElem.value.orcid}}</div>
+    </div>
+  </ng-container>
   `,
 })
 export class RepeatableContributorComponent extends RepeatableComponent implements OnInit {

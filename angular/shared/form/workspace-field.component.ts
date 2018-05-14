@@ -187,8 +187,8 @@ export class WorkspaceSelectorField extends FieldBase<any>  {
     if (this.controlType == 'checkbox') {
       const fgDef = [];
 
-      _.map(this.options, (opt)=>{
-        const hasValue = _.find(this.value, (val) => {
+      _.map(this.options, (opt:any)=>{
+        const hasValue = _.find(this.value, (val:any) => {
           return val == opt.value;
         });
         if (hasValue) {

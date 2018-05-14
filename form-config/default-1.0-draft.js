@@ -408,6 +408,7 @@ module.exports = {
                     titleFieldDelim: '',
                     nameColHdr: '@dmpt-people-tab-name-hdr',
                     emailColHdr: '@dmpt-people-tab-email-hdr',
+                    orcidColHdr: '@dmpt-people-tab-orcid-hdr',
                     validation_required_name: '@dmpt-people-tab-validation-name-required',
                     validation_required_email: '@dmpt-people-tab-validation-email-required',
                     validation_invalid_email: '@dmpt-people-tab-validation-email-invalid',
@@ -447,6 +448,7 @@ module.exports = {
                     titleFieldDelim: '',
                     nameColHdr: '@dmpt-people-tab-name-hdr',
                     emailColHdr: '@dmpt-people-tab-email-hdr',
+                    orcidColHdr: '@dmpt-people-tab-orcid-hdr',
                     publish: {
                       onValueUpdate: {
                         modelEventSource: 'valueChanges'
@@ -491,6 +493,7 @@ module.exports = {
                         titleFieldDelim: '',
                         nameColHdr: '@dmpt-people-tab-name-hdr',
                         emailColHdr: '@dmpt-people-tab-email-hdr',
+                        orcidColHdr: '@dmpt-people-tab-orcid-hdr',
                         publish: {
                           onValueUpdate: {
                             modelEventSource: 'valueChanges'
@@ -529,6 +532,7 @@ module.exports = {
                     titleFieldDelim: '',
                     nameColHdr: '@dmpt-people-tab-name-hdr',
                     emailColHdr: '@dmpt-people-tab-email-hdr',
+                    orcidColHdr: '@dmpt-people-tab-orcid-hdr',
                     publish: {
                       onValueUpdate: {
                         modelEventSource: 'valueChanges'

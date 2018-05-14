@@ -35,6 +35,7 @@ export class ContributorField extends FieldBase<any> {
   nameColHdr: string;
   emailColHdr: string;
   roleColHdr: string;
+  orcidColHdr: string;
   showHeader: boolean;
   roles: string[];
 
@@ -62,6 +63,7 @@ export class ContributorField extends FieldBase<any> {
     this.nameColHdr = options['nameColHdr'] ? this.getTranslated(options['nameColHdr'], options['nameColHdr']) : 'Researcher Name';
     this.emailColHdr = options['emailColHdr'] ? this.getTranslated(options['emailColHdr'], options['emailColHdr']) : 'Email Address';
     this.roleColHdr = options['roleColHdr'] ? this.getTranslated(options['roleColHdr'], options['roleColHdr']) : 'Project Role';
+    this.orcidColHdr = options['orcidColHdr'] ? this.getTranslated(options['orcidColHdr'], options['orcidColHdr']) : 'ORCID';
 
     this.showHeader = options['showHeader'] || true;
     this.roles = options['roles'] || [];
@@ -115,6 +117,7 @@ export class ContributorField extends FieldBase<any> {
       this.formModel = this.vocabField.createFormModel(this.value, true);
       this.formModel.addControl('username', new FormControl(this.value.username));
       this.formModel.addControl('role', new FormControl(this.value.role));
+      this.formModel.addControl('orcid', new FormControl(this.value.orcid));
       if (this.value) {
         this.setValue(this.value);
       }
@@ -122,7 +125,9 @@ export class ContributorField extends FieldBase<any> {
       this.formModel = new FormGroup({text_full_name: new FormControl(this.value.text_full_name || null),
                                    email: new FormControl(this.value.email || null),
                                    role: new FormControl(this.value.role || null),
-                                   username: new FormControl(this.value.username || '')});
+                                   username: new FormControl(this.value.username || ''),
+                                   orcid: new FormControl(this.value.orcid || '')
+                                 });
     }
     if(this.required) {
       this.enableValidators();
@@ -259,6 +264,9 @@ export class ContributorField extends FieldBase<any> {
             <div class="text-danger" *ngIf="field.formModel.controls['email'].touched && field.formModel.controls['email'].hasError('email')">{{field.validationMessages.invalid.email}}</div>
             <div class="text-danger" *ngIf="field.formModel.controls['email'].touched && field.formModel.controls['email'].hasError('required')">{{field.validationMessages.required.email}}</div>
           </div>
+          <div >
+            <input formControlName="orcid" type="text" class="form-control"/>
+          </div>
         </ng-container>  -->
 
         <div *ngIf="!isEmbedded">
@@ -280,6 +288,12 @@ export class ContributorField extends FieldBase<any> {
                 <div class="text-danger" *ngIf="field.formModel.controls['email'].touched && field.formModel.controls['email'].hasError('email')">{{field.validationMessages.invalid.email}}</div>
                 <div class="text-danger" *ngIf="field.formModel.controls['email'].touched && field.formModel.controls['email'].hasError('required')">{{field.validationMessages.required.email}}</div>
               </div>
+              <div class='col-xs-1'>
+                <span class='text-right'>{{ field.orcidColHdr }}</span>
+              </div>
+              <div [ngClass]="getGroupClass('orcid')">
+                <input formControlName="orcid" type="text" class="form-control"/>
+              </div>
             </span>
           </div>
         </div>
@@ -300,6 +314,12 @@ export class ContributorField extends FieldBase<any> {
             <input formControlName="email" type="text" class="form-control" />
             <div class="text-danger" *ngIf="field.formModel.controls['email'].touched && field.formModel.controls['email'].hasError('email')">{{field.validationMessages.invalid.email}}</div>
             <div class="text-danger" *ngIf="field.formModel.controls['email'].touched && field.formModel.controls['email'].hasError('required')">{{field.validationMessages.required.email}}</div>
+          </div>
+          <div class='col-xs-1'>
+            <span class='text-right'>{{ field.orcidColHdr }}</span>
+          </div>
+          <div [ngClass]="getGroupClass('orcid')">
+            <input formControlName="orcid" type="text" class="form-control" />
           </div>
         </ng-container>
 
@@ -325,6 +345,12 @@ export class ContributorField extends FieldBase<any> {
                 <div class="text-danger" *ngIf="field.formModel.controls['email'].touched && field.formModel.controls['email'].hasError('email')">{{field.validationMessages.invalid.email}}</div>
                 <div class="text-danger" *ngIf="field.formModel.controls['email'].touched && field.formModel.controls['email'].hasError('required')">{{field.validationMessages.required.email}}</div>
               </div>
+              <div class='col-xs-1'>
+                <span class='text-right'>{{ field.orcidColHdr }}</span>
+              </div>
+              <div [ngClass]="getGroupClass('orcid')">
+                <input formControlName="orcid" type="text" class="form-control" />
+              </div>
             </span>
           </div>
         </div>
@@ -345,6 +371,12 @@ export class ContributorField extends FieldBase<any> {
             <div class="text-danger" *ngIf="field.formModel.controls['email'].touched && field.formModel.controls['email'].hasError('email')">{{field.validationMessages.invalid.email}}</div>
             <div class="text-danger" *ngIf="field.formModel.controls['email'].touched && field.formModel.controls['email'].hasError('required')">{{field.validationMessages.required.email}}</div>
           </div>
+          <div class='col-xs-1'>
+            <span class='text-right'>{{ field.orcidColHdr }}</span>
+          </div>
+          <div [ngClass]="getGroupClass('orcid')">
+            <input formControlName="orcid" type="text" class="form-control" />
+          </div>
         </ng-container>
       </ng-container>
     </div>
@@ -352,14 +384,16 @@ export class ContributorField extends FieldBase<any> {
   <div *ngIf="!field.editMode">
     <label *ngIf="field.label">{{field.label}}</label>
     <div class="row" *ngIf="field.showHeader">
-      <div class="col-xs-4"><label>{{field.nameColHdr}}</label></div>
-      <div class="col-xs-4"><label>{{field.emailColHdr}}</label></div>
-      <div class="col-xs-4"><label>{{field.roleColHdr}}</label></div>
+      <div class="col-xs-3"><label>{{field.nameColHdr}}</label></div>
+      <div class="col-xs-3"><label>{{field.emailColHdr}}</label></div>
+      <div class="col-xs-3"><label>{{field.roleColHdr}}</label></div>
+      <div class="col-xs-3"><label>{{field.orcidColHdr}}</label></div>
     </div>
     <div class="row">
-      <div class="col-xs-4">{{field.value.text_full_name}}</div>
-      <div class="col-xs-4">{{field.value.email}}</div>
-      <div class="col-xs-4">{{field.value.role}}</div>
+      <div class="col-xs-3">{{field.value.text_full_name}}</div>
+      <div class="col-xs-3">{{field.value.email}}</div>
+      <div class="col-xs-3">{{field.value.role}}</div>
+      <div class="col-xs-3">{{field.value.orcid}}</div>
     </div>
   </div>
   `,
@@ -380,7 +414,7 @@ export class ContributorComponent extends SimpleComponent {
     if (!hasError && fldName == 'email') {
       hasError = hasError || (this.field.formModel.controls[fldName].hasError('email'));
     }
-    return `col-xs-5 form-group${hasError ? ' has-error' : ''}`;
+    return `col-xs-3 form-group${hasError ? ' has-error' : ''}`;
   }
 
   onSelect(selected: any, emitEvent:boolean=true, updateTitle:boolean=false) {
