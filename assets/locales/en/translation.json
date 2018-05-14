@@ -177,8 +177,7 @@
   "@dmpt-vivo:Dataset_redbox:MetadataStandard-help": "Provide details of the metadata standard that will be applied to your research data. Metadata standards are requirements which are intended to establish a common understanding of the meaning or semantics of the data, to ensure correct and proper use and interpretation of the data by its owners and users. For example, the ANZLIC Metadata guidelines provide researchers with core metadata elements for geographic data in Australia and New Zealand. ",
   "@dmpt-vivo:Dataset_redbox:DataStructureStandard": "List any vocabularies to be used (e.g. ANZLIC, ISO, LCSH, ANZSCO etc)",
   "@dmpt-vivo:Dataset_redbox:DataStructureStandard-help": "Provide details of any standards, schema or data structure approaches applied to your research data to ensure that it is stored in a well organised and logical manner.",
-  "@dmpt-people-tab": "Who?",
-  "@dataRecord-people-heading": "Who was involved?",
+  "@dmpt-people-tab": "People",
   "@dmpt-people-tab-ci": "First-named chief investigator",
   "@dmpt-people-tab-ci-role": "Chief Investigator",
   "@dmpt-people-tab-data-manager": "Data manager",
@@ -193,6 +192,7 @@
   "@dmpt-people-tab-data-owner": "Data owner",
   "@dmpt-people-tab-name-hdr": "Name",
   "@dmpt-people-tab-email-hdr": "Email",
+  "@dmpt-people-tab-orcid-hdr": "ORCID",
   "@dmpt-people-tab-validation-name-required": "Name is required",
   "@dmpt-people-tab-validation-email-required": "Email is required",
   "@dmpt-people-tab-validation-email-invalid": "Email format is incorrect",
@@ -492,5 +492,7 @@
   "@dataRecord-aim-project-name": "Project Name",
   "@dataRecord-keywords-required": "Keyword must not be blank.",
   "@dataRecord-data-software": "Software and equipment used",
-  "@dataRecord-about-language": "Language"
+  "@dataRecord-about-language": "Language",
+  "@dataRecord-people-tab": "Who?",
+  "@dataRecord-people-heading": "Who was involved?"
 }

@@ -1,5 +1,5 @@
 import { Observable } from 'rxjs/Rx';
-import services = require('../../typescript/services/CoreService.js');
+import services = require('../core/CoreService.js');
 import { Sails, Model } from "sails";
 import * as request from "request-promise";
 const util = require('util');
