@@ -7,7 +7,7 @@ function removeJs() {
     basename=${tsFile%.*}
     dirname=$(dirname "$tsFile")
     jsfile="${dirname}/${basename}.js"
-    echo "Removing $jsfile"
+  #  echo "Removing $jsfile"
     rm -rf "$jsfile"
   done
 }
