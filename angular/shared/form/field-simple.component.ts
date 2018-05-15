@@ -17,9 +17,9 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { Input, Component, ViewChild, ViewContainerRef, OnInit, Injector, AfterViewInit, AfterViewChecked} from '@angular/core';
+import { Input, Component, ViewChild, ViewContainerRef, OnInit, Injector, AfterViewInit, AfterViewChecked, ChangeDetectorRef } from '@angular/core';
 import { FieldBase } from './field-base';
-import { DateTime, AnchorOrButton, SaveButton, CancelButton, MarkdownTextArea, TextArea, TextField, TabOrAccordionContainer,ParameterRetrieverField, RecordMetadataRetrieverField } from './field-simple';
+import { DateTime, AnchorOrButton, SaveButton, CancelButton, MarkdownTextArea, TextArea, TextField, TabOrAccordionContainer,ParameterRetrieverField, RecordMetadataRetrieverField, TabNavButton, Spacer } from './field-simple';
 import { FormGroup, FormControl, FormArray } from '@angular/forms';
 import * as _ from "lodash-es";
 import moment from 'moment-es6';
@@ -499,6 +499,39 @@ export class AnchorOrButtonComponent extends SimpleComponent {
 }
 
 @Component({
+  selector: 'tab-nav-button',
+  template: `
+    <button type='button'[ngClass]='field.cssClasses' [disabled]="!field.getTabId(-1)" (click)="stepToTab(-1)" >{{field.prevLabel}}</button>
+    <button type='button'[ngClass]='field.cssClasses' [disabled]="!field.getTabId(1)" (click)="stepToTab(1)" >{{field.nextLabel}}</button>
+  `,
+})
+export class TabNavButtonComponent extends SimpleComponent {
+  public field: TabNavButton;
+
+  constructor(private changeRef: ChangeDetectorRef) {
+    super();
+  }
+
+  ngOnInit() {
+    this.field.getTabs();
+    jQuery('a[data-toggle="tab"]').on('shown.bs.tab', (e) => {
+      const tabId = e.target.href.split('#')[1];
+      this.field.currentTab = tabId;
+      this.changeRef.detectChanges();
+    })
+  }
+
+  public stepToTab(step: number) {
+    const tabId = this.field.getTabId(step);
+    if (tabId) {
+      this.fieldMap._rootComp.gotoTab(tabId);
+    } else {
+      console.log(`Invalid tab: ${tabId}`);
+    }
+  }
+}
+
+@Component({
   selector: 'link-value',
   template: `
   <li *ngIf="!field.editMode && isVisible()" class="key-value-pair padding-bottom-10">
@@ -621,5 +654,16 @@ export class ParameterRetrieverComponent extends SimpleComponent implements Afte
 })
 export class RecordMetadataRetrieverComponent extends SimpleComponent {
   field: RecordMetadataRetrieverField;
+
+}
+
+@Component({
+  selector: 'spacer',
+  template: `
+  <span [style.display]="'inline-block'" [style.width]="field.width" [style.height]="field.height">&nbsp;</span>
+  `,
+})
+export class SpacerComponent extends SimpleComponent {
+  field: Spacer;
 
 }

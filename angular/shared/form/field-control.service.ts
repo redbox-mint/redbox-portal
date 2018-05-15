@@ -19,7 +19,7 @@
 import { Injectable, Inject, ApplicationRef, Output, EventEmitter }   from '@angular/core';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { FieldBase } from './field-base';
-import { TextField, Container, MarkdownTextArea, TextArea, DateTime, AnchorOrButton, SaveButton, CancelButton, HiddenValue, LinkValue, TabOrAccordionContainer, ButtonBarContainer, SelectionField, ParameterRetrieverField, RecordMetadataRetrieverField } from './field-simple';
+import { TextField, Container, MarkdownTextArea, TextArea, DateTime, AnchorOrButton, SaveButton, CancelButton, HiddenValue, LinkValue, TabOrAccordionContainer, ButtonBarContainer, SelectionField, ParameterRetrieverField, RecordMetadataRetrieverField, TabNavButton, Spacer } from './field-simple';
 import { TextFieldComponent, RepeatableTextfieldComponent} from './field-textfield.component';
 import {
   DropdownFieldComponent,
@@ -36,7 +36,9 @@ import {
   SelectionFieldComponent,
   ParameterRetrieverComponent,
   RecordMetadataRetrieverComponent,
-  MarkdownTextAreaComponent
+  MarkdownTextAreaComponent,
+  TabNavButtonComponent,
+  SpacerComponent
 } from './field-simple.component';
 import { VocabField, VocabFieldComponent, VocabFieldLookupService } from './field-vocab.component';
 import { RepeatableContainer, RepeatableVocab, RepeatableContributor, RepeatableVocabComponent, RepeatableContributorComponent } from './field-repeatable.component';
@@ -96,6 +98,8 @@ export class FieldControlService {
     'DataLocation':{ 'meta': DataLocationField, 'comp': DataLocationComponent},
     'WorkspaceSelectorField' : { 'meta': WorkspaceSelectorField, 'comp': [WorkspaceSelectorComponent, WorkspaceSelectorFieldComponent] },
     'PublishDataLocationSelector':{ 'meta': PublishDataLocationSelectorField, 'comp': PublishDataLocationSelectorComponent},
+    'TabNavButton': {'meta': TabNavButton, 'comp': TabNavButtonComponent},
+    'Spacer': {'meta': Spacer, 'comp': SpacerComponent}
   };
   constructor(@Inject(VocabFieldLookupService) private vocabFieldLookupService: VocabFieldLookupService, @Inject(CompleterService) private completerService: CompleterService,
   @Inject(ConfigService) protected configService: ConfigService,

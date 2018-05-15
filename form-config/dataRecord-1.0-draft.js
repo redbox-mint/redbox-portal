@@ -49,6 +49,7 @@ module.exports = {
       class: "TabOrAccordionContainer",
       compClass: "TabOrAccordionContainerComponent",
       definition: {
+        id: "mainTab",
         fields: [
           // -------------------------------------------------------------------
           // About Tab
@@ -112,15 +113,7 @@ module.exports = {
                     label: '@dataRecord-title',
                     help: '@dataRecord-title-help',
                     type: 'text',
-                    required: true,
-                    subscribe: {
-                      'rdmpGetter': {
-                        onValueUpdate: [{
-                          action: 'utilityService.getPropertyFromObject',
-                          field: 'title'
-                        }]
-                      }
-                    }
+                    required: true
                   }
                 },
                 {
@@ -203,20 +196,6 @@ module.exports = {
                         }]
                       }
                     }
-                  }
-                },
-                {
-                  class: 'VocabField',
-                  definition: {
-                    name: "language",
-                    label: "@dataRecord-about-language",
-                    disableEditAfterSelect: false,
-                    vocabId: "\"Language Codes\"",
-                    sourceType: 'mint',
-                    fieldNames: ['dc_title', 'dc_identifier', 'dc_description'],
-                    searchFields: 'dc_title',
-                    titleFieldArr: ['dc_title'],
-                    stringLabelToField: 'dc_title'
                   }
                 }
               ]
@@ -633,7 +612,7 @@ module.exports = {
                   }
                 },
                 {
-                  class: 'TextField',
+                  class: 'TextArea',
                   definition: {
                     name: 'software_equipment',
                     label: '@dataRecord-data-software',
@@ -657,61 +636,6 @@ module.exports = {
                   definition: {
                     value: '@dataRecord-relationships-heading',
                     type: 'h3'
-                  }
-                },
-                {
-                  class: 'RepeatableContainer',
-                  compClass: 'RepeatableGroupComponent',
-                  definition: {
-                    name: "related_publications",
-                    label: "@dmpt-related-publication",
-                    help: "@dmpt-related-publication-help",
-                    forceClone: ['fields', 'fieldMap'],
-                    fields: [
-                      {
-                        class: 'Container',
-                        compClass: 'GenericGroupComponent',
-                        definition: {
-                          name: "related_publication",
-                          cssClasses: "form-inline",
-                          fields: [
-                            {
-                              class: 'TextField',
-                              definition: {
-                                name: 'related_url',
-                                label: '@dmpt-related-publication-url',
-                                type: 'text',
-                                groupName: 'related_publication',
-                                groupClasses: 'width-30',
-                                cssClasses : "width-80 form-control"
-                              }
-                            },
-                            {
-                              class: 'TextField',
-                              definition: {
-                                name: 'related_title',
-                                label: '@dmpt-related-publication-title',
-                                type: 'text',
-                                groupName: 'related_publication',
-                                groupClasses: 'width-30',
-                                cssClasses : "width-80 form-control"
-                              }
-                            },
-                            {
-                              class: 'TextField',
-                              definition: {
-                                name: 'related_notes',
-                                label: '@dmpt-related-publication-notes',
-                                type: 'text',
-                                groupName: 'related_publication',
-                                groupClasses: 'width-30',
-                                cssClasses : "width-80 form-control"
-                              }
-                            }
-                          ]
-                        }
-                      }
-                    ]
                   }
                 },
                 {
@@ -826,6 +750,61 @@ module.exports = {
                       }
                     }
                   }
+                },
+                {
+                  class: 'RepeatableContainer',
+                  compClass: 'RepeatableGroupComponent',
+                  definition: {
+                    name: "related_publications",
+                    label: "@dmpt-related-publication",
+                    help: "@dmpt-related-publication-help",
+                    forceClone: ['fields', 'fieldMap'],
+                    fields: [
+                      {
+                        class: 'Container',
+                        compClass: 'GenericGroupComponent',
+                        definition: {
+                          name: "related_publication",
+                          cssClasses: "form-inline",
+                          fields: [
+                            {
+                              class: 'TextField',
+                              definition: {
+                                name: 'related_url',
+                                label: '@dmpt-related-publication-url',
+                                type: 'text',
+                                groupName: 'related_publication',
+                                groupClasses: 'width-30',
+                                cssClasses : "width-80 form-control"
+                              }
+                            },
+                            {
+                              class: 'TextField',
+                              definition: {
+                                name: 'related_title',
+                                label: '@dmpt-related-publication-title',
+                                type: 'text',
+                                groupName: 'related_publication',
+                                groupClasses: 'width-30',
+                                cssClasses : "width-80 form-control"
+                              }
+                            },
+                            {
+                              class: 'TextField',
+                              definition: {
+                                name: 'related_notes',
+                                label: '@dmpt-related-publication-notes',
+                                type: 'text',
+                                groupName: 'related_publication',
+                                groupClasses: 'width-30',
+                                cssClasses : "width-80 form-control"
+                              }
+                            }
+                          ]
+                        }
+                      }
+                    ]
+                  }
                 }
               ]
             }
@@ -837,7 +816,25 @@ module.exports = {
       class: "ButtonBarContainer",
       compClass: "ButtonBarContainerComponent",
       definition: {
-        fields: [{
+        fields: [
+          {
+            class: "TabNavButton",
+            definition: {
+              id: 'mainTabNav',
+              prevLabel: "@tab-nav-previous",
+              nextLabel: "@tab-nav-next",
+              targetTabContainerId: "mainTab",
+              cssClasses: 'btn btn-primary'
+            }
+          },
+          {
+            class: "Spacer",
+            definition: {
+              width: '50px',
+              height: 'inherit'
+            }
+          },
+          {
             class: "SaveButton",
             definition: {
               label: 'Save',

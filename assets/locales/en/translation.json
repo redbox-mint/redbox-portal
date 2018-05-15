@@ -329,9 +329,9 @@
   "@dmpt-workspace-select-help": "The next list allows the Redbox-Portal to link your RDMP to your workspaces (Add more help here...)",
   "@dmpt-workspace-open": "OPEN",
   "@dmpt-workspace-saveFirst": "Save your plan to access workspaces",
-  "@dataRecord-about-tab": "About",
+  "@dataRecord-about-tab": "What?",
   "@dataRecord-about-heading": "What is the data about?",
-  "@dataRecord-title": "Title",
+  "@dataRecord-title": "Data record Title",
   "@dataRecord-title-help": "",
   "@dataRecord-description": "Description",
   "@dataRecord-description-help": "",
@@ -354,8 +354,8 @@
   "@dataRecord:retentionPeriod_dc:date_skos:note":"Justification for extended retention period",
   "@dataRecord-disposalDate":"Select the earliest possible disposal date of the data",
   "@dataRecord-disposalDate-help": "",
-  "@dataRecord-relationships-tab": "Relationships",
-  "@dataRecord-relationships-heading": "Which publications does the data support and retention period?",
+  "@dataRecord-relationships-tab": "When?",
+  "@dataRecord-relationships-heading": "When should your data be reviewed for disposal?",
   "@dataRecord-coverage-tab": "Coverage",
   "@dataRecord-coverage-heading": "What is the spatial/temporal coverage of the data content ?",
   "@dataRecord-temporalcoverage-heading":"Temporal (time) coverage",
@@ -494,5 +494,7 @@
   "@dataRecord-data-software": "Software and equipment used",
   "@dataRecord-about-language": "Language",
   "@dataRecord-people-tab": "Who?",
-  "@dataRecord-people-heading": "Who was involved?"
+  "@dataRecord-people-heading": "Who was involved?",
+  "@tab-nav-previous": "Previous",
+  "@tab-nav-next": "Next"
 }

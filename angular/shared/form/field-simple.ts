@@ -266,6 +266,59 @@ export class CancelButton extends FieldBase<string> {
   }
 }
 
+export class TabNavButton extends FieldBase<string> {
+  prevLabel: string;
+  nextLabel: string;
+  currentTab: string;
+  tabs: string[] = [];
+  targetTabContainerId: string;
+
+  constructor(options: any, injector: any) {
+    super(options, injector);
+    this.prevLabel = this.getTranslated(options.prevLabel, 'Previous');
+    this.nextLabel = this.getTranslated(options.nextLabel, 'Next');
+    this.targetTabContainerId = options.targetTabContainerId;
+  }
+
+  public getTabs() {
+    const targetContainerTab = this.getTargetTab(this.fieldMap._rootComp.formDef.fields);
+    if (targetContainerTab) {
+      _.each(targetContainerTab.definition.fields, (tab) => {
+        this.tabs.push(tab.definition.id);
+      });
+      this.currentTab = this.tabs[0];
+    } else {
+      console.log(`Target Container Tab not found: ${this.targetTabContainerId}`);
+    }
+  }
+
+  protected getTargetTab(fields: any[]) {
+    const targetTab = _.find(fields, (f:any) => {
+      if (f.definition && f.definition.id == this.targetTabContainerId) {
+        return true;
+      }
+      if (f.definition && f.definition.fields) {
+        return this.getTargetTab(f.definition.fields);
+      }
+    });
+    return targetTab;
+  }
+
+  public getCurrentTabIdx() {
+    return _.findIndex(this.tabs, (curTab: any) => { return curTab == this.currentTab });
+  }
+
+  public getTabId(step:number) {
+    const curTabIdx = this.getCurrentTabIdx();
+    const tabIdx = curTabIdx + step;
+    if (tabIdx >= 0 && tabIdx < this.tabs.length) {
+      return this.tabs[tabIdx];
+    }
+    return null;
+  }
+
+}
+
 export class AnchorOrButton extends FieldBase<string> {
   onClick_RootFn: any;
   type: string;
@@ -329,4 +382,15 @@ export class RecordMetadataRetrieverField extends FieldBase<string> {
   });
   }
 
+}
+
+export class Spacer extends FieldBase<string> {
+  width: string;
+  height: string;
+
+  constructor(options: any, injector: any) {
+    super(options, injector);
+    this.width = options.width;
+    this.height = options.height;
+  }
 }

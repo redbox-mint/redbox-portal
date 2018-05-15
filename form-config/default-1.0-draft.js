@@ -46,6 +46,7 @@ module.exports = {
       class: "TabOrAccordionContainer",
       compClass: "TabOrAccordionContainerComponent",
       definition: {
+        id: "mainTab",
         fields: [
           // -------------------------------------------------------------------
           // Welcome Tab
@@ -1241,7 +1242,25 @@ module.exports = {
       class: "ButtonBarContainer",
       compClass: "ButtonBarContainerComponent",
       definition: {
-        fields: [{
+        fields: [
+          {
+            class: "TabNavButton",
+            definition: {
+              id: 'mainTabNav',
+              prevLabel: "@tab-nav-previous",
+              nextLabel: "@tab-nav-next",
+              targetTabContainerId: "mainTab",
+              cssClasses: 'btn btn-primary'
+            }
+          },
+          {
+            class: "Spacer",
+            definition: {
+              width: '50px',
+              height: 'inherit'
+            }
+          },
+          {
             class: "SaveButton",
             definition: {
               label: 'Save',
