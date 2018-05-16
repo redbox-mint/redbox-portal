@@ -165,9 +165,9 @@ export class DataLocationComponent extends SimpleComponent {
 
   public applyPendingChanges(savedInfo) {
     if (savedInfo.success) {
-      console.log(`Success, Field val is:`);
       // this.field.value = this.field.fieldMap._rootComp.form.value[this.field.name];
-      this.field.fieldMap[this.field.name].field.value = this.field.fieldMap[this.field.name].control.value;
+      const finalVal = this.field.fieldMap._rootComp.form.controls[this.field.name].value;
+      this.field.fieldMap[this.field.name].field.value = finalVal;
     } else {
       // reverse the value
       console.log(`Resetting....`);

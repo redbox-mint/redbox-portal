@@ -14,7 +14,7 @@ module.exports.record = {
     addDatastream: {method: 'post', url:"/api/v1/datastream/$oid"},
     removeDatastream: {method: 'delete', url:"/api/v1/datastream/$oid"},
     addDatastreams: {method: 'put', url:"/api/v1/datastream/$oid"},
-    removeDatastreams: {method: 'patch', url:"/api/v1/datastream/$oid"}
+    addAndRemoveDatastreams: {method: 'patch', url:"/api/v1/datastream/$oid"}
   },
   customFields: {
     '@branding': {

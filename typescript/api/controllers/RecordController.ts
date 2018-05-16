@@ -337,46 +337,7 @@ export module Controllers {
         })
         .subscribe(response => {
           if (response && response.code == "200") {
-            RecordsService.updateDatastream(oid, origRecord, metadata, sails.config.record.attachments.stageDir)
-            .concatMap(reqs => {
-              if (reqs) {
-                sails.log.verbose(`Updating data streams...`);
-                return Observable.from(reqs);
-              } else {
-                sails.log.verbose(`No datastreams to update...`);
-                return Observable.of(null);
-              }
-            })
-            .concatMap((promise) => {
-              if (promise) {
-                sails.log.verbose(`Update datastream request is...`);
-                sails.log.verbose(JSON.stringify(promise));
-                return promise.catch(e => {
-                  sails.log.verbose(`Error in updating stream::::`);
-                  sails.log.verbose(JSON.stringify(e));
-                  return Observable.of(e);
-                });
-              } else {
-                return Observable.of(null);
-              }
-            })
-            .concatMap(updateResp => {
-              if (updateResp) {
-                sails.log.verbose(`Got response from update datastream request...`);
-                sails.log.verbose(JSON.stringify(updateResp));
-              }
-              return Observable.of(updateResp);
-            })
-            .last()
-            .subscribe(whatever => {
-              sails.log.verbose(`Done with updating streams, returning response...`);
-              response.success = true;
-              this.ajaxOk(req, res, null, response);
-            }, error => {
-              sails.log.error("Error updating datatreams:");
-              sails.log.error(error);
-              this.ajaxFail(req, res, error.message);
-            });
+            return this.updateDataStream(oid, origRecord, metadata, response, req, res);
           } else {
             this.ajaxFail(req, res, null, response);
           }
@@ -385,6 +346,53 @@ export module Controllers {
           sails.log.error(error);
           this.ajaxFail(req, res, error.message);
         });
+      });
+    }
+
+    /**
+     * Handles data stream updates, atm, this call is terminal.
+     */
+    protected updateDataStream(oid, origRecord, metadata, response, req, res) {
+      const fileIdsAdded = [];
+      RecordsService.updateDatastream(oid, origRecord, metadata, sails.config.record.attachments.stageDir, fileIdsAdded)
+      .concatMap(reqs => {
+        if (reqs) {
+          sails.log.verbose(`Updating data streams...`);
+          return Observable.from(reqs);
+        } else {
+          sails.log.verbose(`No datastreams to update...`);
+          return Observable.of(null);
+        }
+      })
+      .concatMap((promise) => {
+        if (promise) {
+          sails.log.verbose(`Update datastream request is...`);
+          sails.log.verbose(JSON.stringify(promise));
+          return promise.catch(e => {
+            sails.log.verbose(`Error in updating stream::::`);
+            sails.log.verbose(JSON.stringify(e));
+            return Observable.of(e);
+          });
+        } else {
+          return Observable.of(null);
+        }
+      })
+      .concatMap(updateResp => {
+        if (updateResp) {
+          sails.log.verbose(`Got response from update datastream request...`);
+          sails.log.verbose(JSON.stringify(updateResp));
+        }
+        return Observable.of(updateResp);
+      })
+      .last()
+      .subscribe(whatever => {
+        sails.log.verbose(`Done with updating streams and returning response...`);
+        response.success = true;
+        this.ajaxOk(req, res, null, response);
+      }, error => {
+        sails.log.error("Error updating datatreams:");
+        sails.log.error(error);
+        this.ajaxFail(req, res, error.message);
       });
     }
 
@@ -448,21 +456,16 @@ export module Controllers {
       const metadata = req.body;
       const oid = req.param('oid');
       const targetStep = req.param('targetStep');
-
+      let origRecord = null;
       return this.getRecord(oid).flatMap(currentRec => {
+        origRecord = _.cloneDeep(currentRec);
         return this.hasEditAccess(brand, req.user, currentRec)
           .flatMap(hasEditAccess => {
             if(!hasEditAccess) {
               return Observable.throw(new Error(TranslationService.t('edit-error-no-permissions')));
             }
-            let nextStep = null;
             return WorkflowStepsService.get(brand, targetStep)
-              .flatMap(ns => {
-                nextStep = ns;
-                return RecordsService.updateDatastream(oid, currentRec, metadata, sails.config.record.attachments.stageDir);
-              })
-              .last()
-              .flatMap(whatever => {
+              .flatMap(nextStep => {
                 currentRec.metadata = metadata;
                 sails.log.verbose("Current rec:");
                 sails.log.verbose(currentRec);
@@ -473,18 +476,19 @@ export module Controllers {
               });
           });
       })
-        .subscribe(response => {
-          if (response && response.code == "200") {
-            response.success = true;
-            this.ajaxOk(req, res, null, response);
-          } else {
-            this.ajaxFail(req, res, null, response);
-          }
-        }, error => {
-          sails.log.error("Error updating meta:");
-          sails.log.error(error);
-          this.ajaxFail(req, res, error.message);
-        });
+      .subscribe(response => {
+        if (response && response.code == "200") {
+          response.success = true;
+          this.ajaxOk(req, res, null, response);
+          return this.updateDataStream(oid, origRecord, metadata, response, req, res);
+        } else {
+          this.ajaxFail(req, res, null, response);
+        }
+      }, error => {
+        sails.log.error("Error updating meta:");
+        sails.log.error(error);
+        this.ajaxFail(req, res, error.message);
+      });
     }
 
     protected mergeFields(req, res, fields, metadata) {

@@ -53,7 +53,8 @@ export module Services {
       'addDatastream',
       'removeDatastream',
       'updateDatastream',
-      'getDatastream'
+      'getDatastream',
+      'deleteFilesFromStageDir'
     ];
 
     public create(brand, record, packageType, formName=sails.config.form.defaultForm): Observable<any> {
@@ -79,7 +80,7 @@ export module Services {
     /**
      * Compares existing record metadata with new metadata and either removes or deletes the datastream from the record
      */
-    public updateDatastream(oid, record, newMetadata, fileRoot, deleteWhenAttached:boolean = true) {
+    public updateDatastream(oid, record, newMetadata, fileRoot, fileIdsAdded) {
       // loop thru the attachment fields and determine if we need to add or remove
       return FormsService.getFormByName(record.metaMetadata.form, true).flatMap(form =>{
         const reqs = [];
@@ -87,33 +88,26 @@ export module Services {
         _.each(form.attachmentFields, (attField) => {
           const oldAttachments = record.metadata[attField];
           const newAttachments = newMetadata[attField];
+          const removeIds = [];
           // process removals
           if (!_.isUndefined(oldAttachments) && !_.isNull(oldAttachments) && !_.isNull(newAttachments)) {
             const toRemove = _.differenceBy(oldAttachments, newAttachments, 'fileId');
-            const fileIds = [];
             _.each(toRemove, (removeAtt) => {
               if (removeAtt.type == 'attachment') {
-                fileIds.push(removeAtt.fileId);
+                removeIds.push(removeAtt.fileId);
               }
             });
-            if (!_.isEmpty(fileIds)) {
-              reqs.push(this.removeDatastreams(oid, fileIds));
-            }
           }
           // process additions
           if (!_.isUndefined(newAttachments) && !_.isNull(newAttachments)) {
             const toAdd =  _.differenceBy(newAttachments, oldAttachments, 'fileId');
-            const fileIds = [];
             _.each(toAdd, (addAtt) => {
               if (addAtt.type == 'attachment') {
-                fileIds.push(addAtt.fileId);
-                // reqs.push(Observable.of(null));
+                fileIdsAdded.push(addAtt.fileId);
               }
             });
-            if (!_.isEmpty(fileIds)) {
-              reqs.push(this.addDatastreams(oid, fileIds));
-            }
           }
+          reqs.push(this.addAndRemoveDatastreams(oid, fileIdsAdded, removeIds));
         });
         if (!_.isEmpty(reqs)) {
           return Observable.of(reqs);
@@ -141,11 +135,22 @@ export module Services {
       return request[apiConfig.method](opts);
     }
 
-    public removeDatastreams(oid, fileIds: any[]) {
-      const apiConfig = sails.config.record.api.removeDatastreams;
+    public addAndRemoveDatastreams(oid, addIds:any[], removeIds: any[]) {
+      const apiConfig = sails.config.record.api.addAndRemoveDatastreams;
       const opts = this.getOptions(`${sails.config.record.baseUrl.redbox}${apiConfig.url}`, oid);
-      const dataStreamIds = fileIds.join(',');
-      opts.url = `${opts.url}?skipReindex=false&datastreamIds=${dataStreamIds}`;
+      opts.url = `${opts.url}?skipReindex=false`;
+      if (!_.isEmpty(removeIds)) {
+        const removeDataStreamIds = removeIds.join(',');
+        opts.url = `${opts.url}&removePayloadIds=${removeDataStreamIds}`;
+      }
+      if (!_.isEmpty(addIds)) {
+        const formData = {};
+        _.each(addIds, fileId => {
+          const fpath = `${sails.config.record.attachments.stageDir}/${fileId}`;
+          formData[fileId] = fs.createReadStream(fpath);
+        });
+        opts['formData'] = formData;
+      }
       return request[apiConfig.method](opts);
     }
 
@@ -171,6 +176,13 @@ export module Services {
       sails.log.verbose(`Getting datastream using: `);
       sails.log.verbose(JSON.stringify(opts));
       return Observable.fromPromise(request[apiConfig.method](opts));
+    }
+
+    public deleteFilesFromStageDir(stageDir, fileIds) {
+      _.each(fileIds, fileId => {
+        const path = `${stageDir}/${fileId}`;
+        fs.unlinkSync(path);
+      });
     }
 
     protected getOptions(url, oid=null, packageType=null) {
