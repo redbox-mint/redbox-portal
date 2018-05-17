@@ -9,5 +9,11 @@
 </div>
 <transfer-owner type="<%= req.param('type') %>"></transfer-owner>
 
-
-<script type="text/javascript" src="/angular/transfer_owner/inline.bundle.js"></script><script type="text/javascript" src="/angular/transfer_owner/polyfills.bundle.js"></script><script type="text/javascript" src="/angular/transfer_owner/styles.bundle.js"></script><script type="text/javascript" src="/angular/transfer_owner/vendor.bundle.js"></script><script type="text/javascript" src="/angular/transfer_owner/main.bundle.js"></script>
+<%
+var currentMinute = sails.config.startupMinute;
+%>
+<script type="text/javascript" src="/angular/transfer_owner/inline.bundle.js?ts=<%= currentMinute %>"></script>
+<script type="text/javascript" src="/angular/transfer_owner/polyfills.bundle.js?ts=<%= currentMinute %>">
+</script><script type="text/javascript" src="/angular/transfer_owner/styles.bundle.js?ts=<%= currentMinute %>"></script>
+<script type="text/javascript" src="/angular/transfer_owner/vendor.bundle.js?ts=<%= currentMinute %>"></script>
+<script type="text/javascript" src="/angular/transfer_owner/main.bundle.js?ts=<%= currentMinute %>"></script>

@@ -21,8 +21,14 @@
   </div>
   <div class="main container clearfix">
     <dashboard branding="<%= typeof branding == 'undefined'? data.branding : branding %>" portal="<%= typeof portal == 'undefined'? data.portal : portal %>" recordType="<%= typeof recordType == 'undefined'? data.recordType : recordType %>"></dashboard>
-
-    <script type="text/javascript" src="/angular/dashboard/inline.bundle.js"></script><script type="text/javascript" src="/angular/dashboard/polyfills.bundle.js"></script><script type="text/javascript" src="/angular/dashboard/styles.bundle.js"></script><script type="text/javascript" src="/angular/dashboard/vendor.bundle.js"></script><script type="text/javascript" src="/angular/dashboard/main.bundle.js"></script></body>
+    <%
+    var currentMinute = sails.config.startupMinute;
+    %>
+    <script type="text/javascript" src="/angular/dashboard/inline.bundle.js?ts=<%= currentMinute %>"></script>
+    <script type="text/javascript" src="/angular/dashboard/polyfills.bundle.js?ts=<%= currentMinute %>"></script>
+    <script type="text/javascript" src="/angular/dashboard/styles.bundle.js?ts=<%= currentMinute %>"></script>
+    <script type="text/javascript" src="/angular/dashboard/vendor.bundle.js?ts=<%= currentMinute %>"></script>
+    <script type="text/javascript" src="/angular/dashboard/main.bundle.js?ts=<%= currentMinute %>"></script>
 
 
   </div>

@@ -8,5 +8,11 @@
   </div>
 </div>
 <record-search search_url="record/search" record_type="<%= req.query.type ? req.query.type : 'rdmp'%>" search_str="<%= req.query.q ? req.query.q : '' %>" full_url="<%= req.url %>"></record-search>
-
-<script type="text/javascript" src="/angular/record_search/inline.bundle.js"></script><script type="text/javascript" src="/angular/record_search/polyfills.bundle.js"></script><script type="text/javascript" src="/angular/record_search/styles.bundle.js"></script><script type="text/javascript" src="/angular/record_search/vendor.bundle.js"></script><script type="text/javascript" src="/angular/record_search/main.bundle.js"></script>
+<%
+var currentMinute = sails.config.startupMinute;
+%>
+<script type="text/javascript" src="/angular/record_search/inline.bundle.js?ts=<%= currentMinute %>"></script>
+<script type="text/javascript" src="/angular/record_search/polyfills.bundle.js?ts=<%= currentMinute %>"></script>
+<script type="text/javascript" src="/angular/record_search/styles.bundle.js?ts=<%= currentMinute %>"></script>
+<script type="text/javascript" src="/angular/record_search/vendor.bundle.js?ts=<%= currentMinute %>"></script>
+<script type="text/javascript" src="/angular/record_search/main.bundle.js?ts=<%= currentMinute %>"></script>
