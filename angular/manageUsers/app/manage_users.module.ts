@@ -5,7 +5,7 @@ import { HttpModule } from '@angular/http';
 import { ModalModule } from 'ngx-bootstrap';
 
 import { ManageUsersComponent }  from './manage_users.component';
-import { SharedModule } from '../../shared/shared.module';
+import { SharedModule } from './shared/shared.module';
 import * as $ from 'jquery';
 
 @NgModule({

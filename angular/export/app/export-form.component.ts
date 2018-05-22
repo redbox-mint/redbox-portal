@@ -19,9 +19,9 @@
 
 import { Component, Inject, Input, ElementRef } from '@angular/core';
 import { Location, LocationStrategy, PathLocationStrategy } from '@angular/common';
-import { LoadableComponent } from '../../shared/loadable.component';
+import { LoadableComponent } from './shared/loadable.component';
 import moment from 'moment-es6';
-import { TranslationService } from '../../shared/translation-service';
+import { TranslationService } from './shared/translation-service';
 
 /**
  * Main Export component

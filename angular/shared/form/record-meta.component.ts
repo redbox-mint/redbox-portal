@@ -16,20 +16,34 @@
 // You should have received a copy of the GNU General Public License along
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+import { Component } from '@angular/core';
+import { FieldBase } from './field-base';
+import { RecordsService } from './records.service';
+import { SimpleComponent } from './field-simple.component';
 
-import { NgModule }      from '@angular/core';
-import { BrowserModule } from '@angular/platform-browser';
-import { ReactiveFormsModule, FormsModule} from "@angular/forms";
-import { HttpModule } from '@angular/http';
-import { DmpFormComponent } from './dmp-form.component';
-import { SharedModule } from './shared/shared.module';
-import * as $ from 'jquery';
+export class RecordMetadataRetrieverField extends FieldBase<string> {
+  parameterName: string;
+  recordsService: RecordsService;
+  constructor(options: any, injector: any) {
+    super(options, injector);
+    this.recordsService = this.getFromInjector(RecordsService);
+    this.parameterName = options.parameterName || '';
+  }
 
-@NgModule({
-  imports:      [ BrowserModule, HttpModule, ReactiveFormsModule, SharedModule ],
-  declarations: [ DmpFormComponent ],
-  providers:    [ ],
-  bootstrap:    [ DmpFormComponent ],
-  entryComponents: [ ]
+  public publishMetadata(oid: any, config: any) {
+    this.recordsService.getRecordMeta(oid).then(data => {
+      this.onValueUpdate.emit(data);
+    });
+  }
+
+}
+
+@Component({
+  selector: 'record-metadata-retriever',
+  template: `
+  `,
 })
-export class DmpModule { }
+export class RecordMetadataRetrieverComponent extends SimpleComponent {
+  field: RecordMetadataRetrieverField;
+
+}

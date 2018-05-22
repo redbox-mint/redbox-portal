@@ -1,5 +1,5 @@
 import { Component, Inject, Input, Output, ElementRef, EventEmitter } from '@angular/core';
-import { RecordSearchRefiner} from '../../shared/form/records.service';
+import { RecordSearchRefiner} from './shared/form/records.service';
 import * as _ from "lodash-es";
 
 @Component({

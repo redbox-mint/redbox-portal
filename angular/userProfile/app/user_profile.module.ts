@@ -5,7 +5,7 @@ import { HttpModule } from '@angular/http';
 import { ModalModule } from 'ngx-bootstrap';
 
 import { UserProfileComponent }  from './user_profile.component';
-import { SharedModule } from '../../shared/shared.module';
+import { SharedModule } from './shared/shared.module';
 import * as $ from 'jquery';
 @NgModule({
   imports:      [ BrowserModule, HttpModule, ReactiveFormsModule, FormsModule, SharedModule, ModalModule.forRoot() ],

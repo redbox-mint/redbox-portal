@@ -19,17 +19,17 @@
 import { DOCUMENT } from '@angular/platform-browser';
 import { Component, Injectable, Inject, ApplicationRef, ElementRef } from '@angular/core';
 import { FormArray, FormGroup, FormControl, Validators } from '@angular/forms';
-import { DashboardService } from '../../shared/dashboard-service';
+import { DashboardService } from './shared/dashboard-service';
 import * as _ from "lodash-es";
-import { LoadableComponent } from '../../shared/loadable.component';
-import { TranslationService } from '../../shared/translation-service';
-import { PlanTable, Plan } from '../../shared/dashboard-models';
-import { VocabField, VocabFieldComponent, VocabFieldLookupService } from '../../shared/form/field-vocab.component';
+import { LoadableComponent } from './shared/loadable.component';
+import { TranslationService } from './shared/translation-service';
+import { PlanTable, Plan } from './shared/dashboard-models';
+import { VocabField, VocabFieldComponent, VocabFieldLookupService } from './shared/form/field-vocab.component';
 import { CompleterService } from 'ng2-completer';
-import { RecordsService } from '../../shared/form/records.service';
-import { EmailNotificationService } from '../../shared/email-service';
-import { UserSimpleService } from '../../shared/user.service-simple';
-import { User,Role } from '../../shared/user-models';
+import { RecordsService } from './shared/form/records.service';
+import { EmailNotificationService } from './shared/email-service';
+import { UserSimpleService } from './shared/user.service-simple';
+import { User,Role } from './shared/user-models';
 
 declare var pageData: any;
 declare var jQuery: any;

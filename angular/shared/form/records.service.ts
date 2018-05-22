@@ -17,16 +17,17 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { Injectable, Inject }       from '@angular/core';
+import { Injectable, Inject, ApplicationRef }       from '@angular/core';
 import { TextField } from './field-simple';
 import { FieldBase }     from './field-base';
 import { BaseService } from '../base-service';
 import { Http } from '@angular/http';
 import 'rxjs/add/operator/toPromise';
-import { FieldControlService } from './field-control.service';
+import { FieldControlMetaService } from './field-control-meta.service';
 import { Observable } from 'rxjs/Observable';
 import * as _ from "lodash-es";
 import { ConfigService } from '../config-service';
+
 /**
  * Plan Client-side services
  *
@@ -37,7 +38,12 @@ import { ConfigService } from '../config-service';
 @Injectable()
 export class RecordsService extends BaseService {
 
-  constructor (@Inject(Http) http: Http, @Inject(FieldControlService) protected fcs: FieldControlService, @Inject(ConfigService) protected configService: ConfigService) {
+  constructor (
+    @Inject(Http) http: Http,
+    @Inject(FieldControlMetaService) protected fcmetaService: FieldControlMetaService,
+    @Inject(ConfigService) protected configService: ConfigService,
+    protected app: ApplicationRef
+  ) {
     super(http, configService);
   }
 
@@ -46,7 +52,7 @@ export class RecordsService extends BaseService {
       oid = null;
     }
     return this.getFormFieldsMeta(recordType, editable, oid).then((form:any) => {
-      return this.fcs.getLookupData(form.fieldsMeta).flatMap((fields:any) => {
+      return this.fcmetaService.getLookupData(form.fieldsMeta).flatMap((fields:any) => {
         form.fieldsMata = fields;
         return Observable.of(form);
       });
@@ -84,7 +90,7 @@ export class RecordsService extends BaseService {
           // Add an empty element to the end of the form so a screenshot tool can detect the rendered form reliably
           this.addRenderCompleteElement(form.fields);
         }
-        form.fieldsMeta = this.fcs.getFieldsMeta(form.fields);
+        form.fieldsMeta = this.fcmetaService.getFieldsMeta(form.fields);
       } else {
         console.error("Error loading form:" + recordType);
         throw form;

@@ -1,4 +1,4 @@
-import { Role } from '../../shared/user-models';
+import { Role } from './shared/user-models';
 import { FormGroup, FormControl } from '@angular/forms';
 
 export interface UserForm {

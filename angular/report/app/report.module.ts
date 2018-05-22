@@ -5,8 +5,8 @@ import { HttpModule } from '@angular/http';
 import { ReportComponent }  from './report.component';
 import { MultivalueFieldPipe }  from './MultivalueFieldPipe';
 import { PaginationModule,TooltipModule } from 'ngx-bootstrap';
-import { SharedModule } from '../../shared/shared.module';
-import { ReportService } from '../../shared/report-service';
+import { SharedModule } from './shared/shared.module';
+import { ReportService } from './shared/report-service';
 import { NKDatetimeModule } from 'ng2-datetime/ng2-datetime';
 import * as $ from 'jquery';
 

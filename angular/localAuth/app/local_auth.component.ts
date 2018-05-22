@@ -20,10 +20,10 @@
 import { Component, Injectable, Inject } from '@angular/core';
 import { DOCUMENT } from '@angular/platform-browser';
 import { FormGroup, FormControl, Validators, FormBuilder } from '@angular/forms';
-import { UserSimpleService } from '../../shared/user.service-simple';
-import { LoginResult } from '../../shared/user-models'
-import { LoadableComponent } from '../../shared/loadable.component';
-import { TranslationService } from '../../shared/translation-service';
+import { UserSimpleService } from './shared/user.service-simple';
+import { LoginResult } from './shared/user-models'
+import { LoadableComponent } from './shared/loadable.component';
+import { TranslationService } from './shared/translation-service';
 
 /**
  * Local Authentication  Component

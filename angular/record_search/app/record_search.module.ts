@@ -4,7 +4,7 @@ import { ReactiveFormsModule, FormsModule } from "@angular/forms";
 import { HttpModule } from '@angular/http';
 import { RecordSearchComponent }  from './';
 import { RecordSearchRefinerComponent } from './';
-import { SharedModule } from '../../shared/shared.module';
+import { SharedModule } from './shared/shared.module';
 import * as $ from 'jquery';
 
 @NgModule({

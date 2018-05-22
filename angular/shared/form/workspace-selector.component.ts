@@ -4,10 +4,12 @@ import { FieldBase } from './field-base';
 import { WorkspaceSelectorField } from './workspace-field.component';
 
 import * as _ from "lodash-es";
-
+@Component({
+  selector: 'workspace-selector-parent',
+  template: ''
+})
 export class WorkspaceSelectorComponent extends SimpleComponent {
-
-
+  static clName = 'WorkspaceSelectorComponent';
 
   getLabel(val: any): string {
     const opt = _.find(this.field.options, (opt) => {
@@ -78,6 +80,7 @@ export class WorkspaceSelectorComponent extends SimpleComponent {
 })
 export class WorkspaceSelectorFieldComponent extends WorkspaceSelectorComponent {
   field: WorkspaceSelectorField
+  static clName = 'WorkspaceSelectorFieldComponent';
 
   ngOnInit() {
     this.field.init();

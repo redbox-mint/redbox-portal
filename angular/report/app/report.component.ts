@@ -1,14 +1,14 @@
 import { Component, Injectable, Inject, ElementRef } from '@angular/core';
 import { DOCUMENT } from '@angular/platform-browser';
 import { FormArray, FormGroup, FormControl, Validators, FormBuilder } from '@angular/forms';
-import { UserSimpleService } from '../../shared/user.service-simple';
-import { ReportService } from '../../shared/report-service';
-import { Report, ReportResults } from '../../shared/report-models';
+import { UserSimpleService } from './shared/user.service-simple';
+import { ReportService } from './shared/report-service';
+import { Report, ReportResults } from './shared/report-models';
 import * as _ from "lodash-es";
-import { LoadableComponent } from '../../shared/loadable.component';
+import { LoadableComponent } from './shared/loadable.component';
 import { OnInit } from '@angular/core';
 import { PaginationModule, TooltipModule } from 'ngx-bootstrap';
-import { TranslationService } from '../../shared/translation-service';
+import { TranslationService } from './shared/translation-service';
 import moment from 'moment-es6';
 
 

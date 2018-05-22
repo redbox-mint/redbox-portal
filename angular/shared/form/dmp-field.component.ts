@@ -132,7 +132,6 @@ export class DmpFieldComponent {
       return;
     }
     this.fieldAnchor.clear();
-
     let compFactory = this.componentFactoryResolver.resolveComponentFactory(this.field.compClass);
     let fieldCompRef:ComponentRef<SimpleComponent> = <ComponentRef<SimpleComponent>> this.fieldAnchor.createComponent(compFactory, undefined, this.app['_injector']);
     fieldCompRef.instance.injector = this.app['_injector'];

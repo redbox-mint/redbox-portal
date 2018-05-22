@@ -19,12 +19,12 @@
 
 import { Component, Inject, Input, Output, ElementRef, EventEmitter } from '@angular/core';
 import { Location, LocationStrategy, PathLocationStrategy } from '@angular/common';
-import { Role, User, LoginResult, SaveResult } from '../../shared/user-models';
+import { Role, User, LoginResult, SaveResult } from './shared/user-models';
 import * as _ from "lodash-es";
-import { LoadableComponent } from '../../shared/loadable.component';
-import { TranslationService } from '../../shared/translation-service';
-import { RecordsService, RecordSearchParams, RecordSearchRefiner} from '../../shared/form/records.service';
-import { DashboardService } from '../../shared/dashboard-service';
+import { LoadableComponent } from './shared/loadable.component';
+import { TranslationService } from './shared/translation-service';
+import { RecordsService, RecordSearchParams, RecordSearchRefiner} from './shared/form/records.service';
+import { DashboardService } from './shared/dashboard-service';
 
 declare var pageData :any;
 declare var jQuery: any;

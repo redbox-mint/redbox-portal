@@ -59,6 +59,7 @@ export class ContributorField extends FieldBase<any> {
 
   constructor(options: any, injector: any) {
     super(options, injector);
+    this.clName = 'ContributorField';
     this.controlType = 'textbox';
     this.nameColHdr = options['nameColHdr'] ? this.getTranslated(options['nameColHdr'], options['nameColHdr']) : 'Researcher Name';
     this.emailColHdr = options['emailColHdr'] ? this.getTranslated(options['emailColHdr'], options['emailColHdr']) : 'Email Address';

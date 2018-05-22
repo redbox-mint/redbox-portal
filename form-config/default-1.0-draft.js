@@ -26,7 +26,7 @@ module.exports = {
       class: "AnchorOrButton",
       viewOnly: true,
       definition: {
-        label: 'Edit this plan',
+        label: '@dmp-edit-record-link',
         value: '/@branding/@portal/record/edit/@oid',
         cssClasses: 'btn btn-large btn-info margin-15',
         showPencil: true,

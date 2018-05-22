@@ -4,7 +4,7 @@ import { ReactiveFormsModule, FormsModule} from "@angular/forms";
 import { HttpModule } from '@angular/http';
 import { DashboardComponent }  from './dashboard.component';
 import { PaginationModule,TooltipModule } from 'ngx-bootstrap';
-import { SharedModule } from '../../shared/shared.module';
+import { SharedModule } from './shared/shared.module';
 import * as $ from 'jquery';
 
 /**

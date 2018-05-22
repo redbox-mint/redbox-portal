@@ -61,6 +61,7 @@ export class FieldBase<T> {
   utilityService: UtilityService;
   injector: Injector;
   componentReactors: any[] = [];
+  clName: string;
 
   @Output() public onValueUpdate: EventEmitter<any> = new EventEmitter<any>();
 

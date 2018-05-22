@@ -94,6 +94,8 @@ export class TextFieldComponent extends EmbeddableComponent {
   `,
 })
 export class RepeatableTextfieldComponent extends RepeatableComponent {
+  static clName = 'RepeatableTextfieldComponent';
+
 
   ngOnInit() {
   }

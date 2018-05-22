@@ -115,6 +115,8 @@ Generic component for grouping components together. The resulting JSON will have
   `,
 })
 export class GenericGroupComponent extends EmbeddableComponent {
+  static clName = 'GenericGroupComponent';
+
 }
 
 /**
@@ -227,4 +229,6 @@ export class GenericGroupComponent extends EmbeddableComponent {
   `,
 })
 export class RepeatableGroupComponent extends RepeatableComponent {
+  static clName = 'RepeatableGroupComponent';
+
 }

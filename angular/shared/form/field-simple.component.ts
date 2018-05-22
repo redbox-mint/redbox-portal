@@ -19,7 +19,8 @@
 
 import { Input, Component, ViewChild, ViewContainerRef, OnInit, Injector, AfterViewInit, AfterViewChecked, ChangeDetectorRef } from '@angular/core';
 import { FieldBase } from './field-base';
-import { DateTime, AnchorOrButton, SaveButton, CancelButton, MarkdownTextArea, TextArea, TextField, TabOrAccordionContainer,ParameterRetrieverField, RecordMetadataRetrieverField, TabNavButton, Spacer } from './field-simple';
+import { DateTime, AnchorOrButton, SaveButton, CancelButton, MarkdownTextArea, TextArea, TextField, TabOrAccordionContainer,ParameterRetrieverField, TabNavButton, Spacer } from './field-simple';
+import { RecordMetadataRetrieverField } from './record-meta.component';
 import { FormGroup, FormControl, FormArray } from '@angular/forms';
 import * as _ from "lodash-es";
 import moment from 'moment-es6';
@@ -66,6 +67,7 @@ export class SimpleComponent {
    * Optional parentId of this component
    */
   parentId: string;
+
   /**
    * Return the NG2 FormControl or subclass thereof
    * @param  {string = null} name
@@ -241,6 +243,7 @@ export class SelectionComponent extends SimpleComponent {
   `,
 })
 export class DropdownFieldComponent extends SelectionComponent {
+  static clName = 'DropdownFieldComponent';
 }
 
 @Component({
@@ -269,12 +272,13 @@ export class DropdownFieldComponent extends SelectionComponent {
     </ng-container>
     <ng-container *ngIf="!isRadio()">
       <span *ngIf="field.label" class="key">{{field.label}}</span>
-      <span class="value" *ngFor="let value of field.value">{{getLabel(value)}}<br/></span>
+      <span class="value">{{getLabel(value)}}<br/></span>
     </ng-container>
   </div>
   `,
 })
 export class SelectionFieldComponent extends SelectionComponent {
+  static clName = 'SelectionFieldComponent';
 
   isRadio() {
     return this.field.controlType == 'radio';
@@ -406,6 +410,8 @@ export class HtmlRawComponent extends SimpleComponent {
 })
 export class TextBlockComponent extends SimpleComponent {
   field: TextField;
+
+  static clName = 'TextBlockComponent';
 }
 
 
@@ -550,7 +556,7 @@ export class LinkValueComponent extends SimpleComponent {
   selector: 'hidden-field',
   template: `
   <div [formGroup]='form'>
-    <input type="hidden" [formControl]="getFormControl()" />
+    <input type="hidden" name="{{field.name}}" [formControl]="getFormControl()" />
   </div>
   `,
 })
@@ -645,16 +651,6 @@ export class ParameterRetrieverComponent extends SimpleComponent implements Afte
         }
     }
 }
-}
-
-@Component({
-  selector: 'record-metadata-retriever',
-  template: `
-  `,
-})
-export class RecordMetadataRetrieverComponent extends SimpleComponent {
-  field: RecordMetadataRetrieverField;
-
 }
 
 @Component({

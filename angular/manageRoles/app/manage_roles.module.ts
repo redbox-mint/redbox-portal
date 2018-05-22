@@ -3,7 +3,7 @@ import { BrowserModule } from '@angular/platform-browser';
 import {ReactiveFormsModule, FormsModule} from "@angular/forms";
 import { HttpModule } from '@angular/http';
 import { ManageRolesComponent }  from './manage_roles.component';
-import { SharedModule } from '../../shared/shared.module';
+import { SharedModule } from './shared/shared.module';
 import * as $ from 'jquery';
 
 @NgModule({

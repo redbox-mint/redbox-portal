@@ -10,7 +10,10 @@
     <table class="table table-bordered table-striped table-hover">
       <thead>
         <tr>
-          <th width="15%">Type of location</th><th width="40%">Location</th><th width="40%">Notes</th><th width="5%"></th>
+          <th width="15%">Type of location</th>
+          <th width="40%">Location</th>
+          <th width="40%">Notes</th>
+          <th width="5%" *ngIf="field.editMode"></th>
         </tr>
       </thead>
       <tbody>
@@ -30,26 +33,26 @@
             </ng-container>
           </td>
           <td>{{ dataLocation.notes }}</td>
-          <td>
+          <td *ngIf="field.editMode">
             <a class="fa fa-minus-circle btn text-20 btn-danger" (click)="field.removeLocation(dataLocation)"></a>
           </td>
         </tr>
       </tbody>
     </table>
   </div>
-    <div class="row">
-      <div class="col-xs-3">
-        <label>Type of location</label>
-      </div>
-      <div class="col-xs-4">
-        <label>Location</label>
-      </div>
-      <div class="col-xs-5">
-        <label *ngIf="field.newLocation.type != 'attachment'">Notes</label>
-      </div>
-
+  <div class="row" *ngIf="field.editMode">
+    <div class="col-xs-3">
+      <label>Type of location</label>
     </div>
-  <div class="row">
+    <div class="col-xs-4">
+      <label>Location</label>
+    </div>
+    <div class="col-xs-5">
+      <label *ngIf="field.newLocation.type != 'attachment'">Notes</label>
+    </div>
+
+  </div>
+  <div class="row" *ngIf="field.editMode">
 
     <div class="col-xs-3">
       <select [(ngModel)]="field.newLocation.type" [id]="field.newLocation.type" class="form-control">

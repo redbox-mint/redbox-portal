@@ -23,11 +23,11 @@ import { FormArray, FormGroup, FormControl, Validators, FormBuilder } from '@ang
 import { ModalDirective } from 'ngx-bootstrap';
 import * as _ from "lodash-es";
 
-import { UserSimpleService } from '../../shared/user.service-simple';
-import { RolesService } from '../../shared/roles-service';
-import { Role, User, LoginResult, SaveResult } from '../../shared/user-models';
-import { LoadableComponent } from '../../shared/loadable.component';
-import { TranslationService } from '../../shared/translation-service';
+import { UserSimpleService } from './shared/user.service-simple';
+import { RolesService } from './shared/roles-service';
+import { Role, User, LoginResult, SaveResult } from './shared/user-models';
+import { LoadableComponent } from './shared/loadable.component';
+import { TranslationService } from './shared/translation-service';
 import { UserForm, matchingValuesValidator, optionalEmailValidator } from './forms';
 
 declare var pageData :any;

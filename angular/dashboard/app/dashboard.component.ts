@@ -1,15 +1,15 @@
 import { Component, Injectable, Inject, ElementRef } from '@angular/core';
 import { DOCUMENT } from '@angular/platform-browser';
 import { FormArray, FormGroup, FormControl, Validators, FormBuilder } from '@angular/forms';
-import { UserSimpleService } from '../../shared/user.service-simple';
-import { DashboardService } from '../../shared/dashboard-service';
-import { PlanTable, Plan } from '../../shared/dashboard-models';
+import { UserSimpleService } from './shared/user.service-simple';
+import { DashboardService } from './shared/dashboard-service';
+import { PlanTable, Plan } from './shared/dashboard-models';
 import * as _ from "lodash-es";
-import { LoadableComponent } from '../../shared/loadable.component';
+import { LoadableComponent } from './shared/loadable.component';
 import { OnInit } from '@angular/core';
 import { PaginationModule, TooltipModule} from 'ngx-bootstrap';
-import { TranslationService } from '../../shared/translation-service';
-import { RecordsService } from '../../shared/form/records.service';
+import { TranslationService } from './shared/translation-service';
+import { RecordsService } from './shared/form/records.service';
 
 declare var pageData: any;
 declare var jQuery: any;

@@ -50,6 +50,7 @@ export class RelatedObjectSelectorField extends FieldBase<any> {
 
   constructor(options: any, injector: any) {
     super(options, injector);
+    this.clName = 'RelatedObjectDataField';
 
     this.columnTitle = options['columnTitle'] || "Record title";
     this.value = options['value'] || this.setEmptyValue();
@@ -59,7 +60,7 @@ export class RelatedObjectSelectorField extends FieldBase<any> {
     this.dashboardService.getAllRecordsCanEdit(this.recordType,'').then((draftPlans: PlanTable) => {
       this.plans = draftPlans;
       this.onFilterChange();
-});
+    });
   }
 
 

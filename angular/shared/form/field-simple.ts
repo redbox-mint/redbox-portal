@@ -21,7 +21,6 @@ import { FieldBase } from './field-base';
 import { FormControl, FormGroup, FormArray, Validators } from '@angular/forms';
 import * as _ from "lodash-es";
 import moment from 'moment-es6';
-import { RecordsService } from './records.service';
 
 /**
  * Text Field Model
@@ -363,23 +362,6 @@ export class ParameterRetrieverField extends FieldBase<string> {
 
   public publishParameterValue(value: string) {
     this.onValueUpdate.emit(value);
-  }
-
-}
-
-export class RecordMetadataRetrieverField extends FieldBase<string> {
-  parameterName: string;
-  recordsService: RecordsService;
-  constructor(options: any, injector: any) {
-    super(options, injector);
-    this.recordsService = this.getFromInjector(RecordsService);
-    this.parameterName = options.parameterName || '';
-  }
-
-  public publishMetadata(oid: any, config: any) {
-    this.recordsService.getRecordMeta(oid).then(data => {
-      this.onValueUpdate.emit(data);
-  });
   }
 
 }

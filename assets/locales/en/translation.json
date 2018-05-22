@@ -496,5 +496,7 @@
   "@dataRecord-people-tab": "Who?",
   "@dataRecord-people-heading": "Who was involved?",
   "@tab-nav-previous": "Previous",
-  "@tab-nav-next": "Next"
+  "@tab-nav-next": "Next",
+  "@dmp-edit-record-link": "Edit this plan",
+  "@data-record-edit-record-link": "Edit this record"
 }

@@ -115,6 +115,7 @@ export class MapField extends FieldBase<any> {
 
   constructor(options: any, injector: any) {
     super(options, injector);
+    this.clName = 'MapField';
 
     this.leafletOptions = options['leafletOptions'] || this.defaultLeafletOptions;
     // merge in master options to ensure we have the right layers configured

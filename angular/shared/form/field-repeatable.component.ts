@@ -214,6 +214,11 @@ export class RepeatableComponent extends SimpleComponent {
 export class RepeatableVocab extends RepeatableContainer {
   fields: VocabField[];
 
+  constructor(options: any, injector: any) {
+    super(options, injector);
+    this.clName = 'RepeatableVocab';
+  }
+
   setValueAtElem(index, value:any) {
     console.log(`Repeatable vocab setting value at: ${index}`);
     console.log(value);
@@ -259,6 +264,7 @@ export class RepeatableVocab extends RepeatableContainer {
 })
 export class RepeatableVocabComponent extends RepeatableComponent {
   field: RepeatableVocab;
+  static clName = 'RepeatableVocabComponent';
 
 }
 

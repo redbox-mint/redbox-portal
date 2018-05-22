@@ -22,7 +22,7 @@ import { BrowserModule } from '@angular/platform-browser';
 import { ReactiveFormsModule, FormsModule} from "@angular/forms";
 import { HttpModule } from '@angular/http';
 import { ExportFormComponent } from './export-form.component';
-import { SharedModule } from '../../shared/shared.module';
+import { SharedModule } from './shared/shared.module';
 import { NKDatetimeModule } from 'ng2-datetime/ng2-datetime';
 import * as $ from 'jquery';
 

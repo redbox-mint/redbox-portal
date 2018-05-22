@@ -57,8 +57,10 @@ export class VocabField extends FieldBase<any> {
   public stringLabelToField: string;
   public component:any;
 
+
   constructor(options: any, injector: any) {
     super(options, injector);
+    this.clName = 'VocabField';
     this.hasLookup = true;
     this.vocabId = options['vocabId'] || '';
     this.controlType = 'textbox';
@@ -152,7 +154,7 @@ export class VocabField extends FieldBase<any> {
     }
   }
 
-  getTitle(data: any): string {
+  public getTitle(data: any): string {
     let title = '';
     if (data) {
       if (_.isString(this.titleFieldDelim)) {
@@ -176,7 +178,7 @@ export class VocabField extends FieldBase<any> {
     return title;
   }
 
-  getValue(data: any) {
+  public getValue(data: any) {
     const valObj = {};
     if (_.isString(data)) {
       console.log(`Data is string...`)
@@ -193,7 +195,7 @@ export class VocabField extends FieldBase<any> {
     return valObj;
   }
 
-  getFieldValuePair(fldName: any, data: any, valObj: any) {
+  public getFieldValuePair(fldName: any, data: any, valObj: any) {
      if (_.isString(fldName)) {
       valObj[fldName] = _.get(data, fldName);
      } else {
@@ -208,7 +210,7 @@ export class VocabField extends FieldBase<any> {
      }
    }
 
-   setValue(value:any, emitEvent:boolean=true, updateTitle:boolean=false) {
+   public setValue(value:any, emitEvent:boolean=true, updateTitle:boolean=false) {
      this.formModel.setValue(value, {emitEvent: emitEvent});
      if (updateTitle) {
        this.component.ngCompleter.ctrInput.nativeElement.value = this.getTitle(value);
@@ -375,7 +377,7 @@ export class VocabFieldLookupService extends BaseService {
 
   <li *ngIf="!field.editMode" class="key-value-pair">
     <span *ngIf="field.label" class="key">{{field.label}}</span>
-    <span class="value">{{field.getTitle(field.value)}}</span>
+    <span class="value">{{getTitle()}}</span>
   </li>
   `,
 })
@@ -429,5 +431,9 @@ export class VocabFieldComponent extends SimpleComponent {
 
   onRemove(event: any) {
     this.onRemoveBtnClick.emit([event, this.index]);
+  }
+
+  getTitle() {
+    return this.field && _.isFunction(this.field.getTitle) ? this.field.getTitle(this.field.value) : '';
   }
 }
