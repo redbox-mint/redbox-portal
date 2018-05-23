@@ -22,66 +22,6 @@ import { FormControl, FormGroup, FormArray, Validators } from '@angular/forms';
 import * as _ from "lodash-es";
 import moment from 'moment-es6';
 
-/**
- * Text Field Model
- *
- * Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a>
-
- */
-export class TextField extends FieldBase<string> {
-  type: string;
-
-  constructor(options: any, injector: any) {
-    super(options, injector);
-    this.type = options['type'] || '';
-    this.controlType = 'textbox';
-    this.cssClasses = _.isEmpty(this.cssClasses) ? 'form-control' : this.cssClasses;
-  }
-
-  postInit(value:any) {
-    if (_.isEmpty(value)) {
-      this.value = this.defaultValue ? this.defaultValue : '';
-    } else {
-      this.value = value;
-    }
-  }
-}
-
-export class MarkdownTextArea extends FieldBase<string> {
-  rows: number;
-  cols: number;
-
-  lines: string[];
-
-  constructor(options: any, injector: any) {
-    super(options, injector);
-    this.rows = options['rows'] || 5;
-    this.cols = options['cols'] || null;
-    this.controlType = 'textarea';
-  }
-
-  formatValueForDisplay() {
-    this.lines = this.value ? this.value.split("\n") : [];
-  }
-}
-
-export class TextArea extends FieldBase<string> {
-  rows: number;
-  cols: number;
-
-  lines: string[];
-
-  constructor(options: any, injector: any) {
-    super(options, injector);
-    this.rows = options['rows'] || 5;
-    this.cols = options['cols'] || null;
-    this.controlType = 'textarea';
-  }
-
-  formatValueForDisplay() {
-    this.lines = this.value ? this.value.split("\n") : [];
-  }
-}
 
 export class SelectionField extends FieldBase<any>  {
   options: any[] = [];

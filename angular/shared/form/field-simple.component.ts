@@ -19,7 +19,7 @@
 
 import { Input, Component, ViewChild, ViewContainerRef, OnInit, Injector, AfterViewInit, AfterViewChecked, ChangeDetectorRef } from '@angular/core';
 import { FieldBase } from './field-base';
-import { DateTime, AnchorOrButton, SaveButton, CancelButton, MarkdownTextArea, TextArea, TextField, TabOrAccordionContainer,ParameterRetrieverField, TabNavButton, Spacer } from './field-simple';
+import { Container, DateTime, AnchorOrButton, SaveButton, CancelButton, TabOrAccordionContainer,ParameterRetrieverField, TabNavButton, Spacer } from './field-simple';
 import { RecordMetadataRetrieverField } from './record-meta.component';
 import { FormGroup, FormControl, FormArray } from '@angular/forms';
 import * as _ from "lodash-es";
@@ -135,75 +135,6 @@ export class SimpleComponent {
    */
   getFromInjector(token:any): any {
     return this.injector.get(token);
-  }
-}
-
-/**
- * Component
- * Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a>
- */
-@Component({
-  selector: 'text-area',
-  template: `
-  <div *ngIf="field.editMode" [formGroup]='form' class="form-group">
-    <label [attr.for]="field.name">
-      {{field.label}} {{ getRequiredLabelStr()}}
-      <button type="button" class="btn btn-default" *ngIf="field.help" (click)="toggleHelp()"><span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span></button>
-    </label><br/>
-    <span id="{{ 'helpBlock_' + field.name }}" class="help-block" *ngIf="this.helpShow" [innerHtml]="field.help"></span>
-    <textarea [formControl]="getFormControl()"  [attr.rows]="field.rows" [attr.cols]="field.cols" [id]="field.name" class="form-control">{{field.value}}</textarea>
-    <div class="text-danger" *ngIf="getFormControl().hasError('required') && getFormControl().touched && !field.validationMessages?.required">{{field.label}} is required</div>
-    <div class="text-danger" *ngIf="getFormControl().hasError('required') && getFormControl().touched && field.validationMessages?.required">{{field.validationMessages.required}}</div>
-  </div>
-  <li *ngIf="!field.editMode" class="key-value-pair">
-    <span class="key" *ngIf="field.label">{{field.label}}</span>
-    <span *ngFor="let line of field.lines">
-      {{line}}
-      <br/>
-    </span>
-    <br/>
-  </li>
-  `
-})
-export class TextAreaComponent extends SimpleComponent implements OnInit {
-  field: TextArea;
-
-  ngOnInit() {
-    if (!this.field.editMode) {
-      this.field.formatValueForDisplay();
-    }
-  }
-}
-
-@Component({
-  selector: 'markdown-text-area',
-  template: `
-  <div *ngIf="field.editMode" [formGroup]='form' class="form-group">
-    <label [attr.for]="field.name">
-      {{field.label}} {{ getRequiredLabelStr()}}
-      <button type="button" class="btn btn-default" *ngIf="field.help" (click)="toggleHelp()"><span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span></button>
-    </label><br/>
-    <span id="{{ 'helpBlock_' + field.name }}" class="help-block" *ngIf="this.helpShow" [innerHtml]="field.help"></span>
-    <textarea [formControl]="getFormControl()"  [attr.rows]="field.rows" [attr.cols]="field.cols" [id]="field.name" class="form-control" [(ngModel)]="field.value"></textarea>
-    <div *ngIf="field.value" style='font-weight:bold'>Preview</div>
-    <markdown [data]="field.value"></markdown>
-    <div class="text-danger" *ngIf="getFormControl().hasError('required') && getFormControl().touched && !field.validationMessages?.required">{{field.label}} is required</div>
-    <div class="text-danger" *ngIf="getFormControl().hasError('required') && getFormControl().touched && field.validationMessages?.required">{{field.validationMessages.required}}</div>
-  </div>
-  <li *ngIf="!field.editMode" class="key-value-pair">
-    <span class="key" *ngIf="field.label">{{field.label}}</span>
-    <markdown [data]="field.value"></markdown>
-    <br/>
-  </li>
-  `
-})
-export class MarkdownTextAreaComponent extends SimpleComponent implements OnInit {
-  field: MarkdownTextArea;
-
-  ngOnInit() {
-    if (!this.field.editMode) {
-      this.field.formatValueForDisplay();
-    }
   }
 }
 
@@ -409,8 +340,7 @@ export class HtmlRawComponent extends SimpleComponent {
   `,
 })
 export class TextBlockComponent extends SimpleComponent {
-  field: TextField;
-
+  field: Container;
   static clName = 'TextBlockComponent';
 }
 

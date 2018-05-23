@@ -1,11 +1,10 @@
-import { TextField, Container, MarkdownTextArea, TextArea, DateTime, AnchorOrButton, SaveButton, CancelButton, HiddenValue, LinkValue, TabOrAccordionContainer, ButtonBarContainer, SelectionField, ParameterRetrieverField, TabNavButton, Spacer } from './form/field-simple';
-import { TextFieldComponent, RepeatableTextfieldComponent} from './form/field-textfield.component';
+import { Container, DateTime, AnchorOrButton, SaveButton, CancelButton, HiddenValue, LinkValue, TabOrAccordionContainer, ButtonBarContainer, SelectionField, ParameterRetrieverField, TabNavButton, Spacer } from './form/field-simple';
+import { TextField, TextFieldComponent, RepeatableTextfieldComponent, TextArea, TextAreaComponent, MarkdownTextArea, MarkdownTextAreaComponent} from './form/field-textfield.component';
 import {
   DropdownFieldComponent,
   TabOrAccordionContainerComponent,
   ButtonBarContainerComponent,
   TextBlockComponent,
-  TextAreaComponent,
   DateTimeComponent,
   AnchorOrButtonComponent,
   SaveButtonComponent,
@@ -14,7 +13,6 @@ import {
   LinkValueComponent,
   SelectionFieldComponent,
   ParameterRetrieverComponent,
-  MarkdownTextAreaComponent,
   TabNavButtonComponent,
   SpacerComponent
 } from './form/field-simple.component';

@@ -101,7 +101,8 @@ export class RelatedObjectSelectorField extends FieldBase<any> {
   onFilterChange() {
     this.filteredPlans = _.filter(this.plans.items, (plan: any) => {
       plan.selected = false;
-      return _.toLower(plan.title[0]).includes(_.toLower(this.searchFilterName));
+      const title = _.isArray(plan.title) ? plan.title[0] : plan.title;
+      return _.toLower(title).includes(_.toLower(this.searchFilterName));
     });
   }
 

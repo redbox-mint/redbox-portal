@@ -790,14 +790,15 @@ module.exports = {
                               }
                             },
                             {
-                              class: 'TextField',
+                              class: 'TextArea',
                               definition: {
                                 name: 'related_notes',
                                 label: '@dmpt-related-publication-notes',
                                 type: 'text',
                                 groupName: 'related_publication',
                                 groupClasses: 'width-30',
-                                cssClasses : "width-80 form-control"
+                                cssClasses : "width-80 form-control",
+                                rows: "1"
                               }
                             }
                           ]
