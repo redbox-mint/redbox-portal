@@ -7,13 +7,15 @@ setup_git() {
 
 commit_website_files() {
   git checkout -b dev_build
+  rm -f .gitignore
+  rm -f .travis.yml
   git add .
   git commit --message "Travis build: $TRAVIS_BUILD_NUMBER"
 }
 
 upload_files() {
   git remote add build-origin "https://andrewbrazzatti:$GH_TOKEN@github.com/redbox-mint/redbox-portal"
-  git push build-origin master:refs/heads/dev_build --force
+  git push build-origin dev_build --force
 }
 
 setup_git
