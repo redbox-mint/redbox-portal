@@ -75,7 +75,8 @@ module.exports.bootstrap = function(cb) {
     })
     .subscribe(retval => {
 
-    sails.log.info(".----------------. .----------------. .----------------. ");
+     sails.log.ship = function() {
+     sails.log.info(".----------------. .----------------. .----------------. ");
      sails.log.info("| .--------------. | .--------------. | .--------------. |");
      sails.log.info("| |  _______     | | |  _________   | | |  ________    | |");
      sails.log.info("| | |_   __ \\    | | | |_   ___  |  | | | |_   ___ `.  | |");
@@ -96,7 +97,9 @@ module.exports.bootstrap = function(cb) {
      sails.log.info("| |  |_______/   | | |   `.____.'   | | | |____||____| | |");
      sails.log.info("| |              | | |              | | |              | |");
      sails.log.info("| '--------------' | '--------------' | '--------------' |");
-      sails.log.info("'----------------' '----------------' '----------------' ");
+     sails.log.info("'----------------' '----------------' '----------------' ");
+     }
+
       sails.log.verbose("Bootstrap complete!");
       // It's very important to trigger this callback method when you are finished
       // with the bootstrap!  (otherwise your server will never lift, since it's waiting on the bootstrap)
