@@ -7,7 +7,7 @@ function removeJs() {
     basename=${tsFile%.*}
     dirname=$(dirname "$tsFile")
     jsfile="${dirname}/${basename}.js"
-    echo "Removing $jsfile"
+  #  echo "Removing $jsfile"
     rm -rf "$jsfile"
   done
 }
@@ -39,31 +39,27 @@ function linkNodeLib() {
 }
 
 function bundleNg2App() {
-  ng2dir="assets/angular"
+  ng2dir="angular"
   echo "Bundling ${ng2dir}/${ng2app}...using build target: ${buildTarget}"
-  cd "${ng2dir}/${ng2app}"
-  if [ -e "rollup-config.js" ]; then
-    ../../../node_modules/.bin/rollup -c rollup-config.js
-    if [ "${buildTarget}" == "PROD" ]; then
-      ../../../node_modules/.bin/uglifyjs -c -o dist-bundle-min.js -- dist-bundle.js
-      mv -f dist-bundle-min.js dist-bundle.js
-    fi
-  else
-    echo "Missing Rollup config for app: ${ng2app}?"
-  fi
+  cd "${ng2dir}"
+  ng build --app=${ng2app} --prod --build-optimizer --output-hashing=none
   cd -
 }
 
 function compileAoT() {
   echo "Running AoT compile..."
-  node_modules/.bin/ngc -p tsconfig-aot.json
-  node_modules/.bin/grunt --gruntfile Gruntfile-ts-compile-sails.js
-  node_modules/.bin/grunt --gruntfile Gruntfile-ts-compile-ng2.js
-  ng2apps=( `find assets/angular -maxdepth 1 -mindepth 1 -type d -printf '%f '` )
+  node_modules/.bin/tsc --project tsconfig.json
+  node_modules/.bin/grunt copy:api
+  ng2apps=( `find angular -maxdepth 1 -mindepth 1 -type d -printf '%f '` )
   for ng2app in "${ng2apps[@]}"
   do
     if [ "$ng2app" != "shared" ]; then
-      bundleNg2App $ng2app
+      if [ "$ng2app" != "e2e" ]; then
+        if [ "$ng2app" != "node_modules" ]; then
+          echo "Bundling ${ng2app}"
+          bundleNg2App $ng2app
+        fi
+      fi
     fi
   done
 }

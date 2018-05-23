@@ -7,21 +7,22 @@
   <div class="col-xs-1">
   </div>
 </div>
-<dmp-form oid="<%= oid %>" editMode="true" recordType="<%= recordType %>" ></dmp-form>
+<<%= appSelector %> oid="<%= oid %>" rdmp="<%= rdmp %>" editMode="true" recordType="<%= recordType %>" ></<%= appSelector %>>
 <!-- DateTime Picker Deps -->
 <script src="/node_modules/bootstrap-datepicker/dist/js/bootstrap-datepicker.min.js"></script>
 <link href='/node_modules/bootstrap-datepicker/dist/css/bootstrap-datepicker3.min.css' rel='stylesheet' type='text/css'>
 <script src="/node_modules/bootstrap-timepicker/js/bootstrap-timepicker.js"></script>
+<script src="https://vocabs.ands.org.au/apps/assets/vocab_widget/js/vocab_widget_v2.js"></script>
+<link rel="stylesheet" type="text/css" href="//vocabs.ands.org.au/apps/assets/vocab_widget/css/vocab_widget_v2.css" />
 <link href='/node_modules/bootstrap-timepicker/css/bootstrap-timepicker.min.css' rel='stylesheet' type='text/css'>
 <link rel="stylesheet" type="text/css" href="/node_modules/leaflet/dist/leaflet.css">
 <link rel="stylesheet" type="text/css" href="/node_modules/leaflet-draw/dist/leaflet.draw.css">
 <script src='//api.tiles.mapbox.com/mapbox.js/plugins/leaflet-omnivore/v0.3.1/leaflet-omnivore.min.js'></script>
-
-
-<% if (!sails.config.ng2.use_bundled) { %>
-<!-- Import and Load angular 2 if on dev mode-->
-<script src="/dynamic/systemjs-config.js?appName=dmp"></script>
-<script>
-  System.import('dmp').catch(function(err){ console.error(err); });
-</script>
-<% } %>
+<%
+var currentMinute = sails.config.startupMinute;
+%>
+<script type="text/javascript" src="/angular/<%= appName %>/inline.bundle.js?ts=<%= currentMinute %>"></script>
+<script type="text/javascript" src="/angular/<%= appName %>/polyfills.bundle.js?ts=<%= currentMinute %>"></script>
+<script type="text/javascript" src="/angular/<%= appName %>/styles.bundle.js?ts=<%= currentMinute %>"></script>
+<script type="text/javascript" src="/angular/<%= appName %>/vendor.bundle.js?ts=<%= currentMinute %>"></script>
+<script type="text/javascript" src="/angular/<%= appName %>/main.bundle.js?ts=<%= currentMinute %>"></script>

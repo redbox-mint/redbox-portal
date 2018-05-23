@@ -127,6 +127,8 @@ api/controllers/typescript/*.js
 api/controllers/typescript/webservice/*.js
 assets/angular/**/*.js
 assets/angular/**/*.json
+assets/angular/**/*.ico
+assets/angular/**/*.html
 BrandingService.js
 PathRulesService.js
 RolesService.js
@@ -161,3 +163,10 @@ TranslationService.js
 EmailService.js
 RecordController.js
 package-lock.json
+redbox-portal/assets/angular
+www
+api/controllers/**/*.js
+typescript/api/controllers/**/*.js
+typescript/api/services/**/*.js
+assets/angular
+api/core/*.js

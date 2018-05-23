@@ -26,7 +26,7 @@ module.exports = {
       class: "AnchorOrButton",
       viewOnly: true,
       definition: {
-        label: 'Edit this plan',
+        label: '@dmp-edit-record-link',
         value: '/@branding/@portal/record/edit/@oid',
         cssClasses: 'btn btn-large btn-info margin-15',
         showPencil: true,
@@ -46,6 +46,7 @@ module.exports = {
       class: "TabOrAccordionContainer",
       compClass: "TabOrAccordionContainerComponent",
       definition: {
+        id: "mainTab",
         fields: [
           // -------------------------------------------------------------------
           // Welcome Tab
@@ -91,38 +92,6 @@ module.exports = {
                   compClass: 'TextBlockComponent',
                   definition: {
                     value: '@dmpt-welcome-par4'
-                  }
-                },
-                {
-                  class: 'Container',
-                  compClass: 'GenericGroupComponent',
-                  definition: {
-                    name: "related_website",
-                    label: "@dmpt-related-website",
-                    fields: [
-                      {
-                        class: 'TextField',
-                        editOnly: true,
-                        definition: {
-                          name: 'related_url',
-                          label: '@dmpt-related-website-url',
-                          type: 'text',
-                          required: true,
-                          groupName: 'related_website'
-                        }
-                      },
-                      {
-                        class: 'TextField',
-                        editOnly: true,
-                        definition: {
-                          name: 'related_title',
-                          label: '@dmpt-related-website-title',
-                          type: 'text',
-                          required: true,
-                          groupName: 'related_website'
-                        }
-                      }
-                    ]
                   }
                 }
               ]
@@ -361,47 +330,23 @@ module.exports = {
                   }
                 },
                 {
-                  class: 'RepeatableContainer',
-                  compClass: 'RepeatableVocabComponent',
+                  class: 'ANDSVocab',
+                  compClass: 'ANDSVocabComponent',
                   definition: {
                     label: "@dmpt-project-anzsrcFor",
                     help: "@dmpt-project-anzsrcFor-help",
                     name: "dc:subject_anzsrc:for",
-                    forceClone: ['sourceData', 'completerService'],
-                    fields: [{
-                      class: 'VocabField',
-                      definition: {
-                        vocabId: 'anzsrc-for',
-                        "validationMessages": {
-                          "required": "Please select a valid value."
-                        },
-                        fieldNames: ['uri', 'label', 'notation'],
-                        searchFields: 'notation,label',
-                        titleFieldArr: ['notation', 'label']
-                      }
-                    }]
+                    vocabId: 'anzsrc-for'
                   }
                 },
                 {
-                  class: 'RepeatableContainer',
-                  compClass: 'RepeatableVocabComponent',
+                  class: 'ANDSVocab',
+                  compClass: 'ANDSVocabComponent',
                   definition: {
                     label: "@dmpt-project-anzsrcSeo",
                     help: "@dmpt-project-anzsrcSeo-help",
                     name: "dc:subject_anzsrc:seo",
-                    forceClone: ['sourceData', 'completerService'],
-                    fields: [{
-                      class: 'VocabField',
-                      definition: {
-                        vocabId: 'anzsrc-seo',
-                        "validationMessages": {
-                          "required": "Please select a valid value."
-                        },
-                        fieldNames: ['uri', 'label', 'notation'],
-                        searchFields: 'notation,label',
-                        titleFieldArr: ['notation', 'label']
-                      }
-                    }]
+                    vocabId: 'anzsrc-seo'
                   }
                 }
               ]
@@ -440,6 +385,7 @@ module.exports = {
                     titleFieldDelim: '',
                     nameColHdr: '@dmpt-people-tab-name-hdr',
                     emailColHdr: '@dmpt-people-tab-email-hdr',
+                    orcidColHdr: '@dmpt-people-tab-orcid-hdr',
                     validation_required_name: '@dmpt-people-tab-validation-name-required',
                     validation_required_email: '@dmpt-people-tab-validation-email-required',
                     validation_invalid_email: '@dmpt-people-tab-validation-email-invalid',
@@ -479,6 +425,7 @@ module.exports = {
                     titleFieldDelim: '',
                     nameColHdr: '@dmpt-people-tab-name-hdr',
                     emailColHdr: '@dmpt-people-tab-email-hdr',
+                    orcidColHdr: '@dmpt-people-tab-orcid-hdr',
                     publish: {
                       onValueUpdate: {
                         modelEventSource: 'valueChanges'
@@ -492,7 +439,7 @@ module.exports = {
                   }
                 },
                 {
-                  class: 'RepeatableContainer',
+                  class: 'RepeatableContributor',
                   compClass: 'RepeatableContributorComponent',
                   definition: {
                     name: "contributors",
@@ -523,6 +470,7 @@ module.exports = {
                         titleFieldDelim: '',
                         nameColHdr: '@dmpt-people-tab-name-hdr',
                         emailColHdr: '@dmpt-people-tab-email-hdr',
+                        orcidColHdr: '@dmpt-people-tab-orcid-hdr',
                         publish: {
                           onValueUpdate: {
                             modelEventSource: 'valueChanges'
@@ -561,6 +509,7 @@ module.exports = {
                     titleFieldDelim: '',
                     nameColHdr: '@dmpt-people-tab-name-hdr',
                     emailColHdr: '@dmpt-people-tab-email-hdr',
+                    orcidColHdr: '@dmpt-people-tab-orcid-hdr',
                     publish: {
                       onValueUpdate: {
                         modelEventSource: 'valueChanges'
@@ -1224,6 +1173,37 @@ module.exports = {
                       {
                         "label": "Description",
                         "property": "description"
+                      },
+                      {
+                        "label": "Location",
+                        "property": "location",
+                        "link": "absolute"
+                      }
+                    ]
+                  }
+                },
+                {
+                  class: 'Container',
+                  compClass: 'TextBlockComponent',
+                  editOnly: true,
+                  definition: {
+                    value: '@dmpt-workspaces-create-title',
+                    type: 'h4'
+                  }
+                },
+                {
+                  class: 'WorkspaceSelectorField',
+                  compClass: 'WorkspaceSelectorFieldComponent',
+                  definition: {
+                    name: 'WorkspaceSelector',
+                    label: '@dmpt-workspace-select-type',
+                    help: '@dmpt-workspace-select-help',
+                    open: '@dmpt-workspace-open',
+                    saveFirst: '@dmpt-workspace-saveFirst',
+                    defaultSelection: [
+                      {
+                        name: '',
+                        label: '@dmpt-select:Empty'
                       }
                     ]
                   }
@@ -1238,7 +1218,25 @@ module.exports = {
       class: "ButtonBarContainer",
       compClass: "ButtonBarContainerComponent",
       definition: {
-        fields: [{
+        fields: [
+          {
+            class: "TabNavButton",
+            definition: {
+              id: 'mainTabNav',
+              prevLabel: "@tab-nav-previous",
+              nextLabel: "@tab-nav-next",
+              targetTabContainerId: "mainTab",
+              cssClasses: 'btn btn-primary'
+            }
+          },
+          {
+            class: "Spacer",
+            definition: {
+              width: '50px',
+              height: 'inherit'
+            }
+          },
+          {
             class: "SaveButton",
             definition: {
               label: 'Save',
@@ -1250,7 +1248,7 @@ module.exports = {
             definition: {
               label: 'Save & Close',
               closeOnSave: true,
-              redirectLocation: '/@branding/@portal/dashboard'
+              redirectLocation: '/@branding/@portal/dashboard/rdmp'
             },
             variableSubstitutionFields: ['redirectLocation']
           },

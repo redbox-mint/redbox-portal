@@ -34,74 +34,74 @@ module.exports.routes = {
 
   '/':  '/default/rdmp/home',
   '/:branding/:portal/home': {
-    controller: 'typescript/RenderViewController',
+    controller: 'RenderViewController',
     action: 'render',
     locals:{
       'view': 'homepage'
     }
   },
   '/:branding/:portal/researcher/home': {
-    controller: 'typescript/RenderViewController',
+    controller: 'RenderViewController',
     action: 'render',
     locals:{
       'view': 'researcher/home'
     }
   },
   '/:branding/:portal/record/view/:oid': {
-    controller: 'typescript/RenderViewController',
+    controller: 'RenderViewController',
     action: 'render',
     locals:{
       'view': 'record/view'
     }
   },
   '/:branding/:portal/record/transfer/:type': {
-    controller: 'typescript/RenderViewController',
+    controller: 'RenderViewController',
     action: 'render',
     locals:{
       'view': 'record/transfer'
     }
   },
   '/:branding/:portal/record/search': {
-    controller: 'typescript/RenderViewController',
+    controller: 'RenderViewController',
     action: 'render',
     locals:{
       'view': 'record/search'
     }
   },
   '/:branding/:portal/record/view-orig/:oid': {
-    controller: 'typescript/RenderViewController',
+    controller: 'RenderViewController',
     action: 'render',
     locals:{
       'view': 'record/view-orig'
     }
   },
   '/:branding/:portal/styles/theme.css': {
-    controller: 'typescript/BrandingController',
+    controller: 'BrandingController',
     action: 'renderCss'
   },
   '/:branding/:portal/images/logo.png': {
-    controller: 'typescript/BrandingController',
+    controller: 'BrandingController',
     action: 'renderImage'
   },
   '/:branding/:portal/admin': {
-    controller: 'typescript/RenderViewController',
+    controller: 'RenderViewController',
     action: 'render',
     locals:{
       'view': 'admin/home'
     }
   },
   '/:branding/:portal/admin/roles': {
-    controller: 'typescript/AdminController',
+    controller: 'AdminController',
     action: 'rolesIndex',
     skipAssets: true
   },
   '/:branding/:portal/admin/users': {
-    controller: 'typescript/AdminController',
+    controller: 'AdminController',
     action: 'usersIndex',
     skipAssets: true
   },
   '/:branding/:portal/user/profile': {
-    controller: 'typescript/UserController',
+    controller: 'UserController',
     action: 'profile',
     skipAssets: true
   },
@@ -114,56 +114,62 @@ module.exports.routes = {
   * for configuration options and examples.                                  *
   *                                                                          *
   ***************************************************************************/
-  'post /user/login_local': 'typescript/UserController.localLogin',
-  'post /user/login_aaf': 'typescript/UserController.aafLogin',
-  'get /user/info': 'typescript/UserController.info',
-  'get /:branding/:portal/user/info': 'typescript/UserController.info',
-  'get /:branding/:portal/user/login': 'typescript/UserController.login',
-  'get /:branding/:portal/user/logout': 'typescript/UserController.logout',
-  'get /:branding/:portal/user/find': 'typescript/UserController.find',
-  'get /:branding/:portal/admin/users/get': 'typescript/AdminController.getUsers',
-  'post /:branding/:portal/admin/users/update': 'typescript/AdminController.updateUserDetails',
-  'post /:branding/:portal/admin/users/genKey': 'typescript/AdminController.generateUserKey',
-  'post /:branding/:portal/admin/users/revokeKey': 'typescript/AdminController.revokeUserKey',
-  'post /:branding/:portal/admin/users/newUser': 'typescript/AdminController.addLocalUser',
-  'get /:branding/:portal/admin/roles/get': 'typescript/AdminController.getBrandRoles',
-  'post /:branding/:portal/admin/roles/user': 'typescript/AdminController.updateUserRoles',
-  'get /:branding/:portal/record/:recordType/edit': 'typescript/RecordController.edit',
-  'get /:branding/:portal/record/edit/:oid': 'typescript/RecordController.edit',
-  'get /:branding/:portal/record/metadata/:oid': 'typescript/RecordController.getMeta',
-  'get /:branding/:portal/record/form/:name': 'typescript/RecordController.getForm',
-  'get /:branding/:portal/record/form/:name/:oid': 'typescript/RecordController.getForm',
-  'get /:branding/:portal/record/search/:type': 'typescript/RecordController.search',
-  'get /:branding/:portal/record/type/:recordType': 'typescript/RecordController.getType',
-  'post /:branding/:portal/recordmeta/:recordType': 'typescript/RecordController.create',
-  'put /:branding/:portal/recordmeta/:oid': 'typescript/RecordController.update',
-  'post /:branding/:portal/record/workflow/step/:targetStep/:oid': 'typescript/RecordController.stepTo',
-  'post /:branding/:portal/record/editors/modify': 'typescript/RecordController.modifyEditors',
-  'post /:branding/:portal/record/responsibility/update': 'typescript/RecordController.updateResponsibilities',
-  'get /:branding/:portal/dashboard': 'typescript/DashboardController.render',
-  'get /:branding/:portal/listPlans': 'typescript/DashboardController.getPlanList',
-  'get /:branding/:portal/vocab/:vocabId': 'typescript/VocabController.get',
-  'get /:branding/:portal/mint/:mintSourceType': 'typescript/VocabController.getMint',
-  'get /:branding/:portal/collection/:collectionId': 'typescript/VocabController.getCollection',
-  'post /:branding/:portal/collection/:collectionId': 'typescript/VocabController.loadCollection',
-  'get /dynamic/:asset': 'typescript/DynamicAssetController.get',
-  'get /:branding/:portal/export': 'typescript/ExportController.index',
-  'get /:branding/:portal/export/record/download/:format': 'typescript/ExportController.downloadRecs',
-  'get /:branding/:portal/asynch/start/:procId': 'typescript/AsynchController.start',
-  'get /:branding/:portal/asynch/progress/:progId': 'typescript/AsynchController.progress',
-  'get /:branding/:portal/admin/reports': 'typescript/ReportsController.render',
-  'get /:branding/:portal/admin/report/:name': 'typescript/ReportController.render',
-  'get /:branding/:portal/admin/getReport': 'typescript/ReportController.get',
-  'get /:branding/:portal/admin/getReportResults': 'typescript/ReportController.getResults',
-  'get /:branding/:portal/admin/downloadReportCSV': 'typescript/ReportController.downloadCSV',
-  'get /:branding/:portal/people/search': 'typescript/VocabController.searchPeople',
-  'get /:branding/:portal/api-docs.apib': 'typescript/BrandingController.renderApiB',
-  'get /:branding/:portal/api-docs.json': 'typescript/BrandingController.renderSwaggerJSON',
-  'get /:branding/:portal/api-docs.yaml': 'typescript/BrandingController.renderSwaggerYAML',
-  'post /:branding/:portal/user/genKey': 'typescript/UserController.generateUserKey',
-  'post /:branding/:portal/user/revokeKey': 'typescript/UserController.revokeUserKey',
-  'post /:branding/:portal/user/update': 'typescript/UserController.update',
-  'get /:branding/:portal/transferconfig/:type': 'typescript/RecordController.getTransferResponsibilityConfig',
+  // 'get /dynamic/': 'UserController.info',
+  'get /dynamic/:asset': 'DynamicAssetController.get',
+  'get /:branding/:portal/dynamic/:asset': 'DynamicAssetController.get',
+  'post /user/login_local': 'UserController.localLogin',
+  'post /user/login_aaf': 'UserController.aafLogin',
+  'get /user/info': 'UserController.info',
+  'get /:branding/:portal/user/info': 'UserController.info',
+  'get /:branding/:portal/user/login': 'UserController.login',
+  'get /:branding/:portal/user/logout': 'UserController.logout',
+  'get /:branding/:portal/user/find': 'UserController.find',
+  'get /:branding/:portal/admin/users/get': 'AdminController.getUsers',
+  'post /:branding/:portal/admin/users/update': 'AdminController.updateUserDetails',
+  'post /:branding/:portal/admin/users/genKey': 'AdminController.generateUserKey',
+  'post /:branding/:portal/admin/users/revokeKey': 'AdminController.revokeUserKey',
+  'post /:branding/:portal/admin/users/newUser': 'AdminController.addLocalUser',
+  'get /:branding/:portal/admin/roles/get': 'AdminController.getBrandRoles',
+  'post /:branding/:portal/admin/roles/user': 'AdminController.updateUserRoles',
+  'get /:branding/:portal/record/metadata/:oid': 'RecordController.getMeta',
+  'get /:branding/:portal/record/form/:name': 'RecordController.getForm',
+  'get /:branding/:portal/record/form/:name/:oid': 'RecordController.getForm',
+  'get /:branding/:portal/record/search/:type': 'RecordController.search',
+  'get /:branding/:portal/record/type/:recordType': 'RecordController.getType',
+  'get /:branding/:portal/record/:recordType/edit': 'RecordController.edit',
+  'get /:branding/:portal/record/edit/:oid': 'RecordController.edit',
+  '/:branding/:portal/record/:oid/attach': 'RecordController.doAttachment',
+  '/:branding/:portal/record/:oid/attach/:attachId': 'RecordController.doAttachment',
+  'get /:branding/:portal/record/wfSteps/:recordType': 'RecordController.getWorkflowSteps',
+  'post /:branding/:portal/recordmeta/:recordType': 'RecordController.create',
+  'put /:branding/:portal/recordmeta/:oid': 'RecordController.update',
+  'post /:branding/:portal/record/workflow/step/:targetStep/:oid': 'RecordController.stepTo',
+  'post /:branding/:portal/record/editors/modify': 'RecordController.modifyEditors',
+  'post /:branding/:portal/record/responsibility/update': 'RecordController.updateResponsibilities',
+  'get /:branding/:portal/dashboard/:recordType': 'DashboardController.render',
+  'get /:branding/:portal/listRecords': 'DashboardController.getRecordList',
+  'get /:branding/:portal/vocab/:vocabId': 'VocabController.get',
+  'get /:branding/:portal/ands/vocab/resourceDetails': 'VocabController.rvaGetResourceDetails',
+  'get /:branding/:portal/mint/:mintSourceType': 'VocabController.getMint',
+  'get /:branding/:portal/collection/:collectionId': 'VocabController.getCollection',
+  'post /:branding/:portal/collection/:collectionId': 'VocabController.loadCollection',
+  'get /:branding/:portal/export': 'ExportController.index',
+  'get /:branding/:portal/export/record/download/:format': 'ExportController.downloadRecs',
+  'get /:branding/:portal/asynch/start/:procId': 'AsynchController.start',
+  'get /:branding/:portal/asynch/progress/:progId': 'AsynchController.progress',
+  'get /:branding/:portal/admin/reports': 'ReportsController.render',
+  'get /:branding/:portal/admin/report/:name': 'ReportController.render',
+  'get /:branding/:portal/admin/getReport': 'ReportController.get',
+  'get /:branding/:portal/admin/getReportResults': 'ReportController.getResults',
+  'get /:branding/:portal/admin/downloadReportCSV': 'ReportController.downloadCSV',
+  'get /:branding/:portal/people/search': 'VocabController.searchPeople',
+  'get /:branding/:portal/api-docs.apib': 'BrandingController.renderApiB',
+  'get /:branding/:portal/api-docs.json': 'BrandingController.renderSwaggerJSON',
+  'get /:branding/:portal/api-docs.yaml': 'BrandingController.renderSwaggerYAML',
+  'post /:branding/:portal/user/genKey': 'UserController.generateUserKey',
+  'post /:branding/:portal/user/revokeKey': 'UserController.revokeUserKey',
+  'post /:branding/:portal/user/update': 'UserController.update',
+  'get /:branding/:portal/transferconfig/:type': 'RecordController.getTransferResponsibilityConfig',
   /***************************************************************************
   *                                                                          *
   * REST API routes                                                          *
@@ -174,19 +180,21 @@ module.exports.routes = {
   *                                                                          *
   ***************************************************************************/
 
-  'post /:branding/:portal/api/records/metadata/:recordType': 'typescript/webservice/RecordController.create',
-  'put /:branding/:portal/api/records/metadata/:oid': 'typescript/webservice/RecordController.updateMeta',
-  'get /:branding/:portal/api/records/metadata/:oid': 'typescript/webservice/RecordController.getMeta',
-  'post /:branding/:portal/api/records/permissions/edit/:oid': 'typescript/webservice/RecordController.addUserEdit',
-  'delete /:branding/:portal/api/records/permissions/edit/:oid': 'typescript/webservice/RecordController.removeUserEdit',
-  'post /:branding/:portal/api/records/permissions/view/:oid': 'typescript/webservice/RecordController.addUserView',
-  'delete /:branding/:portal/api/records/permissions/view/:oid': 'typescript/webservice/RecordController.removeUserView',
-  'get /:branding/:portal/api/records/permissions/:oid': 'typescript/webservice/RecordController.getPermissions',
+  'post /:branding/:portal/api/records/metadata/:recordType': 'webservice/RecordController.create',
+  'put /:branding/:portal/api/records/metadata/:oid': 'webservice/RecordController.updateMeta',
+  'get /:branding/:portal/api/records/metadata/:oid': 'webservice/RecordController.getMeta',
+  'post /:branding/:portal/api/records/permissions/edit/:oid': 'webservice/RecordController.addUserEdit',
+  'delete /:branding/:portal/api/records/permissions/edit/:oid': 'webservice/RecordController.removeUserEdit',
+  'post /:branding/:portal/api/records/permissions/view/:oid': 'webservice/RecordController.addUserView',
+  'delete /:branding/:portal/api/records/permissions/view/:oid': 'webservice/RecordController.removeUserView',
+  'get /:branding/:portal/api/records/permissions/:oid': 'webservice/RecordController.getPermissions',
 
 
-  'get /:branding/:portal/api/users': 'typescript/webservice/UserManagementController.listUsers',
-  'get /:branding/:portal/api/users/find': 'typescript/webservice/UserManagementController.findUser',
+  'get /:branding/:portal/api/users': 'webservice/UserManagementController.listUsers',
+  'get /:branding/:portal/api/users/find': 'webservice/UserManagementController.findUser',
 
-  'post /:branding/:portal/api/sendNotification': 'typescript/EmailController.sendNotification'
+  'post /:branding/:portal/api/sendNotification': 'EmailController.sendNotification',
 
+  'get /:branding/:portal/workspace/types/:name' : 'WorkspaceTypesController.getOne',
+  'get /:branding/:portal/workspace/types' : 'WorkspaceTypesController.get'
 };

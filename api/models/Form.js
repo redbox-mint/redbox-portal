@@ -12,6 +12,9 @@ module.exports = {
       unique: true,
       required: true
     },
+    customAngularApp: {
+      type: 'json'
+    },
     fields: {
       type: 'json'
     },
@@ -32,6 +35,9 @@ module.exports = {
     },
     skipValidationOnSave: {
       type: 'boolean'
+    },
+    attachmentFields: {
+      type: 'json'
     }
   }
 };

@@ -31,6 +31,20 @@ module.exports = function(grunt) {
       dest: '.tmp/public'
     }
   ];
+  var apiFilesConfig = [
+    {
+      expand: true,
+      cwd: './typescript/api/controllers',
+      src: ['**/*.js'],
+      dest: './api/controllers'
+    },
+    {
+      expand: true,
+      cwd: './typescript/api/services',
+      src: ['**/*.js'],
+      dest: './api/services'
+    }
+  ]
   dynAssetConfig.dynamicasset.node_modules.copy.forEach(function(moduleName){
     copyFilesConfig.push({
         expand: true,
@@ -39,9 +53,13 @@ module.exports = function(grunt) {
         dest: '.tmp/public/node_modules/' + moduleName
       });
   });
+  // copy all JS in typescript/api directory
   grunt.config.set('copy', {
     dev: {
       files: copyFilesConfig
+    },
+    api: {
+      files: apiFilesConfig
     },
     build: {
       files: [{

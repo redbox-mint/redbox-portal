@@ -5,7 +5,7 @@ module.exports.dynamicasset = {
     view: "systemjs-config",
     type: "text/javascript"
   },
-  "apiClientConfig.json": {
+  "apiClientConfig": {
     view: "apiClientConfig",
     type: "application/json"
   },
@@ -35,7 +35,8 @@ module.exports.dynamicasset = {
       "@asymmetrik/ngx-leaflet",
       "@asymmetrik/ngx-leaflet-draw",
       "leaflet",
-      "leaflet-draw"
+      "leaflet-draw",
+      "uppy"
     ],
     systemjs_map: {
       '@angular/core': 'npm:@angular/core/bundles/core.umd.js',

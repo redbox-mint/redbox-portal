@@ -17,13 +17,12 @@ module.exports = {
       required: true
     },
     date_started: {
-      type: 'datetime',
-      defaultsTo: function() {
-        return moment().format('YYYY-MM-DDTHH:mm:ss');
-      }
+      type: 'string',
+      columnType: 'datetime'
     },
     date_completed: {
-      type: 'datetime'
+      type: 'string',
+      columnType: 'datetime'
     },
     started_by: {
       type: 'string',

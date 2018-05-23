@@ -10,12 +10,7 @@
 <div class="row">
   <local-auth><!-- Add Angular2 selector --></local-auth>
 </div>
-<% if (!sails.config.ng2.use_bundled) { %>
-<!-- Import and Load angular 2 if on dev mode-->
-<script src="/dynamic/systemjs-config.js?appName=localAuth"></script>
-<script>
-  System.import('localAuth').catch(function(err){ console.error(err); });
-</script>
-<%
-}
-%>
+<script type="text/javascript" src="/angular/localAuth/inline.bundle.js?<%= sails.config.startupMinute %>"></script>
+<script type="text/javascript" src="/angular/localAuth/polyfills.bundle.js?<%= sails.config.startupMinute %>"></script>
+<script type="text/javascript" src="/angular/localAuth/styles.bundle.js?<%= sails.config.startupMinute %>"></script><script type="text/javascript" src="/angular/localAuth/vendor.bundle.js"></script>
+<script type="text/javascript" src="/angular/localAuth/main.bundle.js?<%= sails.config.startupMinute %>"></script>

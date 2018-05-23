@@ -1,6 +1,6 @@
 // [your-sails-app]/config/autoreload.js
 module.exports.autoreload = {
-  active: true,
+  active: false,
   usePolling: false,
   dirs: [
     "api/models",

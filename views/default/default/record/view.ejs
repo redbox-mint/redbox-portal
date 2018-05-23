@@ -10,10 +10,11 @@
   </div>
 </div>
 <dmp-form oid="<%= req.param('oid') %>" editMode="false" ></dmp-form>
-<% if (!sails.config.ng2.use_bundled) { %>
-<!-- Import and Load angular 2 if on dev mode-->
-<script src="/dynamic/systemjs-config.js?appName=dmp"></script>
-<script>
-  System.import('dmp').catch(function(err){ console.error(err); });
-</script>
-<% } %>
+<%
+var currentMinute = sails.config.startupMinute;
+%>
+<script type="text/javascript" src="/angular/dmp/inline.bundle.js?ts=<%= currentMinute %>"></script>
+<script type="text/javascript" src="/angular/dmp/polyfills.bundle.js?ts=<%= currentMinute %>"></script>
+<script type="text/javascript" src="/angular/dmp/styles.bundle.js?ts=<%= currentMinute %>"></script>
+<script type="text/javascript" src="/angular/dmp/vendor.bundle.js?ts=<%= currentMinute %>"></script>
+<script type="text/javascript" src="/angular/dmp/main.bundle.js?ts=<%= currentMinute %>"></script>

@@ -10,10 +10,4 @@
       <div class="row">
         <user-profile></user-profile>
       </div>
-      <% if (!sails.config.ng2.use_bundled) { %>
-      <script src="/dynamic/systemjs-config.js?appName=userProfile"></script>
-      <script>
-        System.import('userProfile').catch(function(err){ console.error(err); });
-      </script>
-      <% } %>
-      
+    <script type="text/javascript" src="/angular/userProfile/inline.bundle.js"></script><script type="text/javascript" src="/angular/userProfile/polyfills.bundle.js"></script><script type="text/javascript" src="/angular/userProfile/styles.bundle.js"></script><script type="text/javascript" src="/angular/userProfile/vendor.bundle.js"></script><script type="text/javascript" src="/angular/userProfile/main.bundle.js"></script>

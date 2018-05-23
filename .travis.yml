@@ -3,7 +3,7 @@ services:
 - docker
 language: node_js
 node_js:
-- '6'
+- '8'
 env:
   global:
   - COMMIT=${TRAVIS_COMMIT::8}
@@ -26,3 +26,4 @@ deploy:
 script: true
 after_success:
 - 'if [ "$TRAVIS_PULL_REQUEST" = "false" ]; then bash dockerhub_deploy.sh; fi'
+- chmod +x deploySnapshotToBranch.sh; ./deploySnapshotToBranch.sh;

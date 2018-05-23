@@ -5,7 +5,7 @@
 
 <div class="default-page">
   <div class="header">
-    <h1 id="main-title" class="container"><%= TranslationService.t('edit-rdmp') %></h1>
+    <h1 id="main-title" class="container"><%= TranslationService.t('edit-dashboard') %> <%= TranslationService.t(recordType+'-title-label') %></h1>
     <div class="container">
     </div>
     <br/>
@@ -20,13 +20,15 @@
     </div>
   </div>
   <div class="main container clearfix">
-    <dashboard branding="<%= typeof branding == 'undefined'? data.branding : branding %>" portal="<%= typeof portal == 'undefined'? data.portal : portal %>"></dashboard>
-<% if (!sails.config.ng2.use_bundled) { %>
-  <script src="/dynamic/systemjs-config.js?appName=dashboard"></script>
-  <script>
-    System.import('dashboard').catch(function(err){ console.error(err); });
-  </script>
-<% } %>
+    <dashboard branding="<%= typeof branding == 'undefined'? data.branding : branding %>" portal="<%= typeof portal == 'undefined'? data.portal : portal %>" recordType="<%= typeof recordType == 'undefined'? data.recordType : recordType %>"></dashboard>
+    <%
+    var currentMinute = sails.config.startupMinute;
+    %>
+    <script type="text/javascript" src="/angular/dashboard/inline.bundle.js?ts=<%= currentMinute %>"></script>
+    <script type="text/javascript" src="/angular/dashboard/polyfills.bundle.js?ts=<%= currentMinute %>"></script>
+    <script type="text/javascript" src="/angular/dashboard/styles.bundle.js?ts=<%= currentMinute %>"></script>
+    <script type="text/javascript" src="/angular/dashboard/vendor.bundle.js?ts=<%= currentMinute %>"></script>
+    <script type="text/javascript" src="/angular/dashboard/main.bundle.js?ts=<%= currentMinute %>"></script>
 
 
   </div>
