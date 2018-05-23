@@ -45,3 +45,25 @@ build-frontend-prod:
 			ng build -a=8 --prod --build-optimizer --output-hashing=none
 			@echo "Building dmp"
 			ng build -a=9 --prod --build-optimizer --output-hashing=none
+
+build-frontend-prod-sourcemaps:
+			@echo "Building local_auth"
+	    ng build -a=0 --prod --build-optimizer --output-hashing=none --sourcemaps=true
+			@echo "Building dashboard"
+			ng build -a=1 --prod --build-optimizer --output-hashing=none --sourcemaps=true
+			@echo "Building record_search"
+			ng build -a=2 --prod --build-optimizer --output-hashing=none --sourcemaps=true
+			@echo "Building transfer_owner"
+			ng build -a=3 --prod --build-optimizer --output-hashing=none --sourcemaps=true
+			@echo "Building report"
+			ng build -a=4 --prod --build-optimizer --output-hashing=none --sourcemaps=true
+			@echo "Building manageRoles"
+			ng build -a=5 --prod --build-optimizer --output-hashing=none --sourcemaps=true
+			@echo "Building manageUsers"
+			ng build -a=6 --prod --build-optimizer --output-hashing=none --sourcemaps=true
+			@echo "Building export"
+			ng build -a=7 --prod --build-optimizer --output-hashing=none --sourcemaps=true
+			@echo "Building userProfile"
+			ng build -a=8 --prod --build-optimizer --output-hashing=none --sourcemaps=true
+			@echo "Building dmp"
+			ng build -a=9 --prod --build-optimizer --output-hashing=none --sourcemaps=true

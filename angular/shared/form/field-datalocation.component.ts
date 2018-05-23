@@ -196,9 +196,8 @@ export class DataLocationComponent extends SimpleComponent {
     console.debug(`Using TUS config:::`);
     console.debug(JSON.stringify(tusConfig));
     this.uppy = Uppy.Core(uppyConfig);
-    console.log(this.uppy);
     this.uppy.use(Uppy.Dashboard, {
-      trigger: '.UppyModalOpenerBtn',
+      // trigger: '.UppyModalOpenerBtn',
       inline: false,
       metaFields: [
         {id: 'notes', name: 'Notes', placeholder: 'Notes about this file.'}
@@ -206,6 +205,7 @@ export class DataLocationComponent extends SimpleComponent {
     })
     .use(Uppy.Tus, tusConfig)
     .run();
+    console.log(this.uppy);
     let fieldVal:any = null;
     // attach event handers...
     this.uppy.on('upload-success', (file, resp, uploadURL) => {
@@ -237,11 +237,14 @@ export class DataLocationComponent extends SimpleComponent {
   }
 
   public isAttachmentsDisabled() {
-    const isDisabled = _.isEmpty(this.oid);
-    return isDisabled;
+    return _.isEmpty(this.oid);
   }
 
   public getAbsUrl(location:string) {
     return `${this.field.recordsService.getBrandingAndPortalUrl}/record/${location}`
+  }
+
+  public openModal() {
+    this.uppy && this.uppy.getPlugin('Dashboard') && this.uppy.getPlugin('Dashboard').openModal();
   }
 }
