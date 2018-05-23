@@ -83,7 +83,7 @@ export class RepeatableContainer extends Container {
           fieldClone.value = _.isArray(valueElem) ? valueElem[fieldCtr] : valueElem;
         }
         fieldCtr++;
-        elems.push(fieldClone.createFormModel(valueElem[fieldCtr]));
+        elems.push(fieldClone.createFormModel());
         return fieldClone;
       });
       this.formModel = this.required ? new FormArray(elems, Validators.required) : new FormArray(elems);
