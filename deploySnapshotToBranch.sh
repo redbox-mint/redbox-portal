@@ -12,7 +12,7 @@ commit_website_files() {
 }
 
 upload_files() {
-  git remote add origin-pages https://${GH_TOKEN}@github.com/redbox-mint/redbox-portal.git > /dev/null 2>&1
+  git remote add origin https://${GH_TOKEN}@github.com/redbox-mint/redbox-portal.git > /dev/null 2>&1
   git push --quiet -u origin dev_build
 }
 

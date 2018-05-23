@@ -57,7 +57,7 @@ export class ANDSVocabField extends FieldBase<any> {
 
   setValue(value: any, emitEvent: boolean = true) {
     _.remove(value, item => {
-      if(item.about == "") {
+      if(item['about'] == "") {
         return true;
       }
     });
@@ -255,21 +255,18 @@ export class ANDSVocabComponent extends SimpleComponent implements AfterViewInit
   handleSelected(event) {
     let node:any = event.node.node;
 
-    if(_.findIndex(this.field.value, item => { return item.about == node.about;}) != -1) {
+    if(_.findIndex(this.field.value, item => { return item['about'] == node.about;}) != -1) {
       this.field.value.push(node.item);
       this.field.setValue(this.field.value);
     }
     return false;
   }
 
-  handleCreated(event) {
-    alert(event);
-  }
 
   handleUnSelected(event) {
     let node = event.node.node;
     _.remove(this.field.value, element => {
-      return element.about == node.item.about;
+      return element['about'] == node.item.about;
     });
     this.field.setValue(this.field.value);
   }
@@ -278,7 +275,7 @@ export class ANDSVocabComponent extends SimpleComponent implements AfterViewInit
     let id = event.id;
     let controller = event.controller;
 
-    if(_.findIndex(this.field.value, item => { return item.about == id;}) != -1) {
+    if(_.findIndex(this.field.value, item => { return item['about'] == id;}) != -1) {
       window.setTimeout(function(){ controller.check(); }, 500)
     }
 

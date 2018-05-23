@@ -74,6 +74,29 @@ module.exports.bootstrap = function(cb) {
       return sails.services.workspacetypesservice.bootstrap(sails.services.brandingservice.getDefault());
     })
     .subscribe(retval => {
+
+    sails.log.info(".----------------. .----------------. .----------------. ");
+     sails.log.info("| .--------------. | .--------------. | .--------------. |");
+     sails.log.info("| |  _______     | | |  _________   | | |  ________    | |");
+     sails.log.info("| | |_   __ \\    | | | |_   ___  |  | | | |_   ___ `.  | |");
+     sails.log.info("| |   | |__) |   | | |   | |_  \\_|  | | |   | |   `. \\ | |");
+     sails.log.info("| |   |  __ /    | | |   |  _|  _   | | |   | |    | | | |");
+     sails.log.info("| |  _| |  \\ \\_  | | |  _| |___/ |  | | |  _| |___.' / | |");
+     sails.log.info("| | |____| |___| | | | |_________|  | | | |________.'  | |");
+     sails.log.info("| |              | | |              | | |              | |");
+     sails.log.info("| '--------------' | '--------------' | '--------------' |");
+     sails.log.info("'----------------' '----------------' '----------------' ");
+    sails.log.info(".----------------. .----------------. .----------------. ");
+     sails.log.info("| .--------------. | .--------------. | .--------------. |");
+     sails.log.info("| |   ______     | | |     ____     | | |  ____  ____  | |");
+     sails.log.info("| |  |_   _ \\    | | |   .'    `.   | | | |_  _||_  _| | |");
+     sails.log.info("| |    | |_) |   | | |  /  .--.  \\  | | |   \\ \\  / /   | |");
+     sails.log.info("| |    |  __'.   | | |  | |    | |  | | |    > `' <    | |");
+     sails.log.info("| |   _| |__) |  | | |  \\  `--'  /  | | |  _/ /'`\\ \\_  | |");
+     sails.log.info("| |  |_______/   | | |   `.____.'   | | | |____||____| | |");
+     sails.log.info("| |              | | |              | | |              | |");
+     sails.log.info("| '--------------' | '--------------' | '--------------' |");
+      sails.log.info("'----------------' '----------------' '----------------' ");
       sails.log.verbose("Bootstrap complete!");
       // It's very important to trigger this callback method when you are finished
       // with the bootstrap!  (otherwise your server will never lift, since it's waiting on the bootstrap)
