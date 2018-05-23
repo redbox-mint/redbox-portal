@@ -4430,9 +4430,9 @@ negotiator@0.6.1:
   version "0.6.1"
   resolved "https://registry.yarnpkg.com/negotiator/-/negotiator-0.6.1.tgz#2b327184e8992101177b28563fb5e7102acd0ca9"
 
-ng2-completer@1.4.0:
-  version "1.4.0"
-  resolved "https://registry.yarnpkg.com/ng2-completer/-/ng2-completer-1.4.0.tgz#43caec0dff44c7ad998327d411307b5d54546527"
+ng2-completer@1.6.3:
+  version "1.6.3"
+  resolved "https://registry.yarnpkg.com/ng2-completer/-/ng2-completer-1.6.3.tgz#b12c902b786f685c6b1256dd87d746e2abf2e505"
 
 ng2-datetime@^1.3.2:
   version "1.4.0"
