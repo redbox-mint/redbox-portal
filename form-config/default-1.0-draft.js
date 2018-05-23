@@ -330,47 +330,23 @@ module.exports = {
                   }
                 },
                 {
-                  class: 'RepeatableContainer',
-                  compClass: 'RepeatableVocabComponent',
+                  class: 'ANDSVocab',
+                  compClass: 'ANDSVocabComponent',
                   definition: {
                     label: "@dmpt-project-anzsrcFor",
                     help: "@dmpt-project-anzsrcFor-help",
                     name: "dc:subject_anzsrc:for",
-                    forceClone: ['sourceData', 'completerService'],
-                    fields: [{
-                      class: 'VocabField',
-                      definition: {
-                        vocabId: 'anzsrc-for',
-                        "validationMessages": {
-                          "required": "Please select a valid value."
-                        },
-                        fieldNames: ['uri', 'label', 'notation'],
-                        searchFields: 'notation,label',
-                        titleFieldArr: ['notation', 'label']
-                      }
-                    }]
+                    vocabId: 'anzsrc-for'
                   }
                 },
                 {
-                  class: 'RepeatableContainer',
-                  compClass: 'RepeatableVocabComponent',
+                  class: 'ANDSVocab',
+                  compClass: 'ANDSVocabComponent',
                   definition: {
                     label: "@dmpt-project-anzsrcSeo",
                     help: "@dmpt-project-anzsrcSeo-help",
                     name: "dc:subject_anzsrc:seo",
-                    forceClone: ['sourceData', 'completerService'],
-                    fields: [{
-                      class: 'VocabField',
-                      definition: {
-                        vocabId: 'anzsrc-seo',
-                        "validationMessages": {
-                          "required": "Please select a valid value."
-                        },
-                        fieldNames: ['uri', 'label', 'notation'],
-                        searchFields: 'notation,label',
-                        titleFieldArr: ['notation', 'label']
-                      }
-                    }]
+                    vocabId: 'anzsrc-seo'
                   }
                 }
               ]
@@ -1272,7 +1248,7 @@ module.exports = {
             definition: {
               label: 'Save & Close',
               closeOnSave: true,
-              redirectLocation: '/@branding/@portal/dashboard'
+              redirectLocation: '/@branding/@portal/dashboard/rdmp'
             },
             variableSubstitutionFields: ['redirectLocation']
           },
