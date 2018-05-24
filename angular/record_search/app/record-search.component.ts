@@ -53,6 +53,8 @@ export class RecordSearchComponent extends LoadableComponent {
   searchMsgType: string;
   searchMsg: string;
   queryStr: string;
+  paramMap: any = {};
+  recTypeNames: string[];
 
   constructor(
    elm: ElementRef,
@@ -66,17 +68,23 @@ export class RecordSearchComponent extends LoadableComponent {
     this.search_str = elm.nativeElement.getAttribute('search_str');
     this.search_url = elm.nativeElement.getAttribute('search_url');
     this.queryStr = elm.nativeElement.getAttribute("full_url").split('?')[1];
-    this.params = new RecordSearchParams(this.record_type);
+    this.recTypeNames = [];
   }
 
   ngOnInit() {
     this.translationService.isReady((tService:any)=> {
-      this.recordsService.getType(this.record_type).then((typeConf: any) => {
-        const searchFilterConfig = [];
-        _.forEach(typeConf.searchFilters, (searchConfig:any)=> {
-          searchFilterConfig.push(new RecordSearchRefiner(searchConfig));
+      this.recordsService.getAllTypes().then((typeConfs: any) => {
+        _.each(typeConfs, typeConf => {
+          this.recTypeNames.push(typeConf.name);
+          const searchParam = new RecordSearchParams(typeConf.name);
+          const searchFilterConfig = [];
+          _.forEach(typeConf.searchFilters, (searchConfig:any)=> {
+            searchFilterConfig.push(new RecordSearchRefiner(searchConfig));
+          });
+          searchParam.setRefinerConfig(searchFilterConfig);
+          this.paramMap[typeConf.name] = searchParam;
         });
-        this.params.setRefinerConfig(searchFilterConfig);
+        this.setRecordType(this.record_type);
         this.setLoading(false);
         if (!_.isEmpty(this.queryStr)) {
           console.log(`Using query string: ${this.queryStr}`);
@@ -94,6 +102,18 @@ export class RecordSearchComponent extends LoadableComponent {
         });
       });
     });
+  }
+
+  setRecordType(recType: string, e: any = null) {
+    if (e) {
+      e.preventDefault();
+    }
+    this.params = this.paramMap[recType];
+    this.record_type = recType;
+  }
+
+  getRecordTypeNames() {
+    return this.recTypeNames;
   }
 
   resetSearch() {

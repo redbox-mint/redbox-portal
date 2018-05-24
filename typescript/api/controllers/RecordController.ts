@@ -54,7 +54,8 @@ export module Controllers {
       'getMeta',
       'getTransferResponsibilityConfig',
       'updateResponsibilities',
-      'doAttachment'
+      'doAttachment',
+      'getAllTypes'
     ];
 
     /**
@@ -626,6 +627,16 @@ export module Controllers {
       const brand = BrandingService.getBrand(req.session.branding);
       RecordTypesService.get(brand, recordType).subscribe(recordType => {
         this.ajaxOk(req, res, null, recordType);
+      }, error => {
+        this.ajaxFail(req, res, error.message);
+      });
+    }
+
+    /** Returns all RecordTypes configuration */
+    public getAllTypes(req, res) {
+      const brand = BrandingService.getBrand(req.session.branding);
+      RecordTypesService.getAll(brand).subscribe(recordTypes => {
+        this.ajaxOk(req, res, null, recordTypes);
       }, error => {
         this.ajaxFail(req, res, error.message);
       });
