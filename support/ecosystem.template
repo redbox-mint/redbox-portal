@@ -4,7 +4,7 @@
  "name"        : "rbportal",
  "script"      : "app.js",
  "args"        : [],
- "watch"       : true,
+ "watch"       : false,
  "node_args"   : "",
  "merge_logs"  : true,
  "cwd"         : "#PATH#",
