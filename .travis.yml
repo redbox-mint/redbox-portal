@@ -25,5 +25,4 @@ deploy:
     branch: master
 script: true
 after_success:
-- 'if [ "$TRAVIS_PULL_REQUEST" = "false" ]; then bash dockerhub_deploy.sh; fi'
-- chmod +x deploySnapshotToBranch.sh; ./deploySnapshotToBranch.sh;
+- 'if [ "$TRAVIS_PULL_REQUEST" = "false" ]; then bash dockerhub_deploy.sh; chmod +x deploySnapshotToBranch.sh; ./deploySnapshotToBranch.sh; fi' 

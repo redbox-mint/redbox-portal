@@ -7,6 +7,7 @@ setup_git() {
 
 commit_website_files() {
   git checkout -b dev_build
+  git rm -r --cached .
   rm -f .gitignore
   rm -f .travis.yml
   git add .
