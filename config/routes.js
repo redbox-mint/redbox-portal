@@ -150,6 +150,7 @@ module.exports.routes = {
   'get /:branding/:portal/dashboard/:recordType': 'DashboardController.render',
   'get /:branding/:portal/listRecords': 'DashboardController.getRecordList',
   'get /:branding/:portal/vocab/:vocabId': 'VocabController.get',
+  'get /:branding/:portal/ands/vocab/resourceDetails': 'VocabController.rvaGetResourceDetails',
   'get /:branding/:portal/mint/:mintSourceType': 'VocabController.getMint',
   'get /:branding/:portal/collection/:collectionId': 'VocabController.getCollection',
   'post /:branding/:portal/collection/:collectionId': 'VocabController.loadCollection',

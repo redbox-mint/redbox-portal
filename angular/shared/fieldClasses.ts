@@ -29,6 +29,7 @@ import { MapField, MapComponent } from './form/field-map.component';
 import { GenericGroupComponent, RepeatableGroupComponent } from './form/field-group.component';
 import { WorkspaceSelectorField } from './form/workspace-field.component';
 import { WorkspaceSelectorComponent, WorkspaceSelectorFieldComponent } from './form/workspace-selector.component';
+import { ANDSVocabField, ANDSVocabComponent } from './form/field-andsvocab.component'
 
 export const fieldClasses=  {
   'TextField': { 'meta': TextField, 'comp': TextFieldComponent },
@@ -59,5 +60,6 @@ export const fieldClasses=  {
   'WorkspaceSelectorField' : { 'meta': WorkspaceSelectorField, 'comp': [WorkspaceSelectorComponent, WorkspaceSelectorFieldComponent] },
   'PublishDataLocationSelector':{ 'meta': PublishDataLocationSelectorField, 'comp': PublishDataLocationSelectorComponent},
   'TabNavButton': {'meta': TabNavButton, 'comp': TabNavButtonComponent},
-  'Spacer': {'meta': Spacer, 'comp': SpacerComponent}
+  'Spacer': {'meta': Spacer, 'comp': SpacerComponent},
+  'ANDSVocab':{ 'meta': ANDSVocabField, 'comp': ANDSVocabComponent}
 };

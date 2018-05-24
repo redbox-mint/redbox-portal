@@ -812,3 +812,36 @@ div.logo img {
 .width-100 {
   width: 100% !important;
 }
+
+tree-internal div.rootless {
+    display: none !important;
+}
+
+tree-internal .tree li {
+    list-style: none;
+    cursor: default;
+}
+
+tree-internal .tree div.node-checkbox {
+    display:inline;
+}
+
+tree-internal .tree div.node-checkbox {
+    display:inline;
+}
+
+tree-internal .tree div.node-value {
+    display:inline;
+}
+
+tree-internal ul.tree {
+    padding-left: 30px;
+}
+
+node-menu {
+  display: none;
+}
+
+tree-internal > ul.rootless > li > tree-internal > ul {
+    padding-left: 0 !important;
+}

@@ -26,7 +26,7 @@ declare var BrandingService, RolesService, DashboardService, RecordsService;
 /**
  * Package that contains all Controllers.
  */
-import controller = require('../core/CoreController.js');
+import controller = require('../../typescript/controllers/CoreController.js');
 export module Controllers {
   /**
    * Responsible for all things related to the Dashboard
@@ -116,8 +116,6 @@ export module Controllers {
       var response = DashboardService.getRecords(workflowState,recordType, start,rows,username,roles,brand,editAccessOnly);
 
       return response.map(results => {
-        sails.log.error("asfsafasfsasf results: ");
-        sails.log.error(results);
 
         var totalItems = results["response"]["numFound"];
         var startIndex = results["response"]["start"];

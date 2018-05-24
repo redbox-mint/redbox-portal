@@ -43,7 +43,8 @@ export module Controllers {
         'getCollection',
         'loadCollection',
         'getMint',
-        'searchPeople'
+        'searchPeople',
+        'rvaGetResourceDetails'
     ];
 
     /**
@@ -109,6 +110,18 @@ export module Controllers {
       const surname = req.param('surname');
 
       sails.config.peopleSearch[source](givenNames, surname, page).subscribe(response => {
+          // only return the response...
+          this.ajaxOk(req, res, null, response, true);
+        }, error => {
+          this.ajaxFail(req, res, null, error, true);
+        });
+
+    }
+
+    public rvaGetResourceDetails(req, res) {
+      const uri = req.param('uri');
+      const vocab = req.param('vocab');
+      VocabService.rvaGetResourceDetails(uri,vocab).subscribe(response => {
           // only return the response...
           this.ajaxOk(req, res, null, response, true);
         }, error => {

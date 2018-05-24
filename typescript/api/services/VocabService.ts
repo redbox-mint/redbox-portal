@@ -43,7 +43,8 @@ export module Services {
       'getVocab',
       'loadCollection',
       'findCollection',
-      'findInMint'
+      'findInMint',
+      'rvaGetResourceDetails'
     ];
 
     public bootstrap() {
@@ -168,6 +169,16 @@ export module Services {
 
     findCollection(collectionId, searchString) {
       return this[sails.config.vocab.collection[collectionId].searchMethod](searchString);
+    }
+
+    public rvaGetResourceDetails(uri,vocab) {
+      const url = sails.config.vocab.rootUrl+`${vocab}/resource.json?uri=${uri}`;
+      const options = {url: url, json:true};
+      sails.log.error("****** URL is: " + url);
+      return Observable.fromPromise(request.get(options)).flatMap(response => {
+        CacheService.set(vocab, response);
+        return Observable.of(response);
+      });
     }
 
     saveInst(instItems) {

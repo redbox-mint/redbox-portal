@@ -847,7 +847,7 @@ module.exports = {
             definition: {
               label: 'Save & Close',
               closeOnSave: true,
-              redirectLocation: '/@branding/@portal/dashboard'
+              redirectLocation: '/@branding/@portal/dashboard/dataRecord'
             },
             variableSubstitutionFields: ['redirectLocation']
           },
