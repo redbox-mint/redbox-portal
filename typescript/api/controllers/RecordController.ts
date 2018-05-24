@@ -712,8 +712,8 @@ export module Controllers {
               res.set('Content-Type', found.mimeType);
               res.set('Content-Disposition', `attachment; filename="${found.name}"`);
               sails.log.verbose(`Returning datastream observable of ${oid}: ${found.name}, attachId: ${attachId}`);
-              return RecordsService.getDatastream(oid, attachId).flatMap(response => {
-                res.send(Buffer.from(response));
+              return RecordsService.getDatastream(oid, attachId).flatMap((response) => {
+                res.end(Buffer.from(response.body), 'binary');
                 return Observable.of(oid);
               });
             } else {
