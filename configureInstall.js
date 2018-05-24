@@ -27,7 +27,7 @@ process.stdin.on('data', function(text) {
             var result = result.replace(/#URL#/g, url);
             var result = result.replace(/#PATH#/g, path);
 
-            fs.writeFile('ecoystem.json', result, 'utf8', function(err) {
+            fs.writeFile('ecosystem.json', result, 'utf8', function(err) {
               if (err) return console.log(err);
               fs.readFile('support/redboxApiKeys.template', 'utf8', function(err, data) {
                 var result = data.replace(/#APIKEY#/g, apiKey);
