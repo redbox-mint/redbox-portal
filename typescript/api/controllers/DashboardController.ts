@@ -26,7 +26,7 @@ declare var BrandingService, RolesService, DashboardService, RecordsService;
 /**
  * Package that contains all Controllers.
  */
-import controller = require('../../typescript/controllers/CoreController.js');
+import controller = require('../core/CoreController.js');
 export module Controllers {
   /**
    * Responsible for all things related to the Dashboard
