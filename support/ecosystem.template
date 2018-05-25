@@ -10,7 +10,7 @@
  "cwd"         : "#PATH#",
  "env": {
    "NODE_ENV": "#ENVIRONMENT#",
-   "redboxApiKey": "#APIKEY#",
+   "sails_redbox__apiKey": "#APIKEY#",
    "sails_appUrl": "#URL#"
  }
 }
