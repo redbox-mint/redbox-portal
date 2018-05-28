@@ -4,7 +4,7 @@ networks:
 services:
   redboxportal:
     build: .
-    image: qcifengineering/redbox-portal:angular-cli
+    image: qcifengineering/redbox-portal:develop_angularcli
     ports:
        - "1500:1500"
     restart: always
