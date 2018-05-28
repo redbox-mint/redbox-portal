@@ -38,8 +38,11 @@ export module Services {
       'bootstrap',
       'create',
       'get',
-      'getAll'
+      'getAll',
+      'getAllCache'
     ];
+
+    protected recordTypes;
 
     public bootstrap = (defBrand) => {
       return super.getObservable(RecordType.find({branding:defBrand.id})).flatMap(recordTypes => {
@@ -51,10 +54,12 @@ export module Services {
             var obs = this.create(defBrand, recordType, config);
             rTypes.push(obs);
           });
+          this.recordTypes = recordTypes;
           return Observable.zip(...rTypes);
         } else {
           sails.log.verbose("Default recordTypes definition(s) exist.");
           sails.log.verbose(JSON.stringify(recordTypes));
+          this.recordTypes = recordTypes;
           return Observable.of(recordTypes);
         }
       });
@@ -83,6 +88,10 @@ export module Services {
         criteria.select = fields;
       }
       return super.getObservable(RecordType.find(criteria));
+    }
+
+    public getAllCache() {
+      return this.recordTypes;
     }
   }
 }
