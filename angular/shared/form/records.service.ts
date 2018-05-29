@@ -114,8 +114,9 @@ export class RecordsService extends BaseService {
     .then((res:any) => this.extractData(res) as RecordActionResult);
   }
 
-  getDashboardUrl() {
-    return `${this.brandingAndPortalUrl}/dashboard`;
+  getDashboardUrl(recType:string='rdmp') {
+    console.log(`Record type is: ${recType}`)
+    return `${this.brandingAndPortalUrl}/dashboard/${recType}`;
   }
 
 
