@@ -285,7 +285,7 @@ export module Controllers {
     public create(req, res) {
       const brand = BrandingService.getBrand(req.session.branding);
       const metadata = req.body;
-      const record = { metaMetadata: {} };
+      let record = { metaMetadata: {} };
       var recordType = req.param('recordType');
       record.authorization = { view: [req.user.username], edit: [req.user.username] };
       record.metaMetadata.brandId = brand.id;
@@ -296,23 +296,35 @@ export module Controllers {
 
       RecordTypesService.get(brand, recordType).subscribe(recordType => {
         let packageType = recordType.packageType;
+        let preSaveCreateHookFunctionString = _.get(recordType,"hooks.onCreate.pre.function",null);
         WorkflowStepsService.getFirst(recordType)
           .subscribe(wfStep => {
-
-            this.updateWorkflowStep(record, wfStep);
-            RecordsService.create(brand, record, packageType).subscribe(response => {
-              if (response && response.code == "200") {
-                response.success = true;
-                this.ajaxOk(req, res, null, response);
-              } else {
-                this.ajaxFail(req, res, null, response);
-              }
-            }, error => {
-              return Observable.throw(`Failed to save record: ${error}`)
-            });
+            if(preSaveCreateHookFunctionString != null) {
+              let preSaveCreateHookFunction = eval(preSaveCreateHookFunctionString);
+              let options = _.get(recordType,"hooks.onCreate.pre.options",{});
+              preSaveCreateHookFunction(record,options).subscribe(record => {
+                return this.createRecord(record,wfStep,brand, packageType, req, res);
+              });
+            } else {
+              return this.createRecord(record,wfStep,brand, packageType, req, res);
+            }
           }, error => {
             this.ajaxFail(req, res, `Failed to save record: ${error}`);
           });
+      });
+    }
+
+    private createRecord(record,wfStep,brand, packageType, req, res) {
+      this.updateWorkflowStep(record, wfStep);
+      RecordsService.create(brand, record, packageType).subscribe(response => {
+        if (response && response.code == "200") {
+          response.success = true;
+          this.ajaxOk(req, res, null, response);
+        } else {
+          this.ajaxFail(req, res, null, response);
+        }
+      }, error => {
+        return Observable.throw(`Failed to save record: ${error}`)
       });
     }
 

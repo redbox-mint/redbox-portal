@@ -3,7 +3,7 @@ module.exports.mint = {
   api: {
     search: {
       method: 'get',
-      url: ''
+      url: '/api/v1/search'
     }
   }
 };

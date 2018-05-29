@@ -64,7 +64,8 @@ export module Services {
         name: name,
         branding: brand.id,
         packageType: config.packageType,
-        searchFilters: config.searchFilters
+        searchFilters: config.searchFilters,
+        hooks: config.hooks
       }));
     }
 
