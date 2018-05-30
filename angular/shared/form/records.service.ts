@@ -74,8 +74,9 @@ export class RecordsService extends BaseService {
   }
 
   getFormFields(recordType:string, oid: string=null, editable:boolean) {
+    const ts = new Date().getTime();
     console.log("Oid is: " + oid);
-    const url = oid ? `${this.brandingAndPortalUrl}/record/form/auto/${oid}?edit=${editable}` : `${this.brandingAndPortalUrl}/record/form/${recordType}?edit=${editable}`;
+    const url = oid ? `${this.brandingAndPortalUrl}/record/form/auto/${oid}?edit=${editable}&ts=${ts}` : `${this.brandingAndPortalUrl}/record/form/${recordType}?edit=${editable}&ts=${ts}`;
     console.log("URL is: " + url);
     return this.http.get(url, this.options)
       .toPromise()
@@ -115,7 +116,6 @@ export class RecordsService extends BaseService {
   }
 
   getDashboardUrl(recType:string='rdmp') {
-    console.log(`Record type is: ${recType}`)
     return `${this.brandingAndPortalUrl}/dashboard/${recType}`;
   }
 
