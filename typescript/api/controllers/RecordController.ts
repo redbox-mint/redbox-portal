@@ -711,27 +711,31 @@ export module Controllers {
       this.initTusServer();
       const method = _.toLower(req.method);
       if (method == 'post') {
-        req.baseUrl = `${sails.config.appPort ? `:${sails.config.appPort}` : ''}/${req.session.branding}/${req.session.portal}/record/${oid}`
+        req.baseUrl = `${sails.config.appPort ? `:${sails.config.appPort}`: ''}/${req.session.branding}/${req.session.portal}/record/${oid}`
       } else {
         req.baseUrl = '';
       }
       return this.getRecord(oid).flatMap(currentRec => {
         return this.hasEditAccess(brand, req.user, currentRec).flatMap(hasEditAccess => {
-          if (!hasEditAccess) {
-            return Observable.throw(new Error(TranslationService.t('edit-error-no-permissions')));
-          }
-          if (method == 'get') {
-            // check if this attachId exists in the record
-            let found = null;
-            _.each(currentRec.metaMetadata.attachmentFields, (attField) => {
-              if (!found) {
-                const attFieldVal = currentRec.metadata[attField];
-                found = _.find(attFieldVal, (attVal) => {
-                  return attVal.fileId == attachId
-                });
-                if (found) {
-                  return false;
+            if(!hasEditAccess) {
+              return Observable.throw(new Error(TranslationService.t('edit-error-no-permissions')));
+            }
+            if (method == 'get') {
+              // check if this attachId exists in the record
+              let found = null;
+              _.each(currentRec.metaMetadata.attachmentFields, (attField) => {
+                if (!found) {
+                  const attFieldVal = currentRec.metadata[attField];
+                  found = _.find(attFieldVal, (attVal) => {
+                    return attVal.fileId == attachId
+                  });
+                  if (found) {
+                    return false;
+                  }
                 }
+              });
+              if (!found) {
+                return Observable.throw(new Error(TranslationService.t('attachment-not-found')))
               }
               res.set('Content-Type', found.mimeType);
               res.set('Content-Disposition', `attachment; filename="${found.name}"`);
@@ -744,38 +748,22 @@ export module Controllers {
               // process the upload...
               this.tusServer.handle(req, res);
               return Observable.of(oid);
-
-            });
-            if (!found) {
-              return Observable.throw(new Error(TranslationService.t('attachment-not-found')))
             }
-            res.set('Content-Type', found.mimeType);
-            res.set('Content-Disposition', `attachment; filename="${found.name}"`);
-            sails.log.verbose(`Returning datastream observable of ${oid}: ${found.name}, attachId: ${attachId}`);
-            return RecordsService.getDatastream(oid, attachId).flatMap(response => {
-              res.send(Buffer.from(response));
-              return Observable.of(oid);
-            });
-          } else {
-            // process the upload...
-            this.tusServer.handle(req, res);
-            return Observable.of(oid);
-          }
-        });
+          });
       })
-        .subscribe(whatever => {
-          // ignore...
-        }, error => {
-          if (this.isAjax(req)) {
-            this.ajaxFail(req, res, error.message);
-          } else {
-            if (error.message == TranslationService.t('edit-error-no-permissions')) {
-              res.forbidden();
-            } else if (error.message == TranslationService.t('attachment-not-found')) {
-              res.notFound();
-            }
+      .subscribe(whatever => {
+        // ignore...
+      }, error => {
+        if (this.isAjax(req)) {
+          this.ajaxFail(req, res, error.message);
+        } else {
+          if (error.message == TranslationService.t('edit-error-no-permissions')) {
+            res.forbidden();
+          } else if (error.message == TranslationService.t('attachment-not-found')) {
+            res.notFound();
           }
-        });
+        }
+      });
     }
 
     public getWorkflowSteps(req, res) {
