@@ -1,6 +1,35 @@
 module.exports.recordtype = {
   "rdmp": {
     "packageType": "rdmp",
+    hooks: {
+      onCreate: {
+        pre: [{
+          function: 'sails.services.rdmpservice.assignPermissions',
+          options: {
+            "emailProperty": "email",
+            "editContributorProperties": [
+              "metadata.contributor_ci",
+              "metadata.contributor_data_manager",
+              "dataowner_email"
+            ],
+            "viewContributorProperties": [
+              "metadata.contributor_ci",
+              "metadata.contributor_data_manager",
+              "metadata.contributor_supervisor",
+              "metadata.contributors"
+            ]
+          }
+        }]
+      },
+      onUpdate: {
+        pre: {
+          function: 'sails.services.rdmpservice.assignPermissions',
+          options: {
+
+          }
+        }
+      }
+    },
     transferResponsibility: {
       /*
         Defines the fields that map to roles in the record
@@ -34,13 +63,12 @@ module.exports.recordtype = {
         they have been set as that role in the record
       */
       canEdit: {
-        dataManager: [ "dataManager", "chiefInvestigator", "dataOwner"],
-        dataOwner: [ "chiefInvestigator","dataOwner"],
+        dataManager: ["dataManager", "chiefInvestigator", "dataOwner"],
+        dataOwner: ["chiefInvestigator", "dataOwner"],
         chiefInvestigator: ["chiefInvestigator"]
       }
     },
-    searchFilters: [
-      {
+    searchFilters: [{
         name: "text_title",
         title: "search-refine-title",
         type: "exact",
@@ -78,11 +106,10 @@ module.exports.recordtype = {
   "dataRecord": {
     "packageType": "dataRecord",
     labels: {
-      name:"Record",
-      namePlural:"Records"
+      name: "Record",
+      namePlural: "Records"
     },
-    searchFilters: [
-      {
+    searchFilters: [{
         name: "text_title",
         title: "search-refine-title",
         type: "exact",
@@ -120,11 +147,10 @@ module.exports.recordtype = {
   "dataPublication": {
     "packageType": "dataPublication",
     labels: {
-      name:"Data Publication",
-      namePlural:"Data Publications"
+      name: "Data Publication",
+      namePlural: "Data Publications"
     },
-    searchFilters: [
-      {
+    searchFilters: [{
         name: "text_title",
         title: "search-refine-title",
         type: "exact",

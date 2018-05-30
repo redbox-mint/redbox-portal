@@ -1,0 +1,18 @@
+{
+"apps" : [{
+ // Application #1
+ "name"        : "rbportal",
+ "script"      : "app.js",
+ "args"        : [],
+ "watch"       : false,
+ "node_args"   : "",
+ "merge_logs"  : true,
+ "cwd"         : "#PATH#",
+ "env": {
+   "NODE_ENV": "#ENVIRONMENT#",
+   "sails_redbox__apiKey": "#APIKEY#",
+   "sails_appUrl": "#URL#"
+ }
+}
+]
+}

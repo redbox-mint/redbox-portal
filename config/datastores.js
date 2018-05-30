@@ -10,13 +10,9 @@ module.exports.datastores = {
   // this file that were actually being used.  Your original `connections` config is
   // still available as `config/connections-old.js.txt`.
 
-  'mongodb': {
-    adapter: 'sails-mongo',
-    host: 'mongodb',
-    port: 27017,
-    user: '',
-    password: '',
-    database: 'redbox-portal'
+  mongodb: {
+    adapter: require('sails-mongo'),
+    url: 'mongodb://localhost:27017/redbox-portal'
   }
 
 };

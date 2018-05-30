@@ -115,13 +115,13 @@ module.exports.auth = {
         token: "123123"
       },
       templatePath: 'local.ejs',
-      postLoginRedir: 'dashboard',
+      postLoginRedir: 'researcher/home',
     },
     aaf: {
       defaultRole: 'Researcher',
       attributesField: 'https://aaf.edu.au/attributes',
       usernameField: 'sub',
-      postLoginRedir: 'dashboard',
+      postLoginRedir: 'researcher/home',
       opts: {
         jsonWebTokenOptions: {
           issuer: 'https://rapid.aaf.edu.au',
