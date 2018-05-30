@@ -3,7 +3,7 @@ module.exports.recordtype = {
     "packageType": "rdmp",
     hooks: {
       onCreate: {
-        pre: {
+        pre: [{
           function: 'sails.services.rdmpservice.assignPermissions',
           options: {
             "emailProperty": "email",
@@ -19,7 +19,7 @@ module.exports.recordtype = {
               "metadata.contributors"
             ]
           }
-        }
+        }]
       },
       onUpdate: {
         pre: {

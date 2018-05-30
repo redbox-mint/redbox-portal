@@ -136,22 +136,23 @@ export module Services {
 
 
         });
-        return Observable.zip(...viewContributorObs)
-      }).map(viewContributorUsers => {
-        let newviewList = [];
+        return Observable.zip(...viewContributorObs).map(viewContributorUsers => {
+          let newviewList = [];
 
-        _.each(viewContributorUsers, viewContributorUser => {
-          _.remove(viewContributorEmails, viewContributorEmail => {
-            return viewContributorEmail == viewContributorUser['email'];
-          });
-          newviewList.push(viewContributorUser['username']);
+          _.each(viewContributorUsers, viewContributorUser => {
+            if(viewContributorUser != null) {
+            _.remove(viewContributorEmails, viewContributorEmail => {
+              return viewContributorEmail == viewContributorUser['email'];
+            });
+            newviewList.push(viewContributorUser['username']);
+          }});
+
+          record.authorization.view = newviewList;
+          record.authorization.viewPending = viewContributorEmails;
+
+          return record;
         });
-
-        record.authorization.view = newviewList;
-        record.authorization.viewPending = viewContributorEmails;
-
-        return record;
-      });
+      })
     }
 
   }
