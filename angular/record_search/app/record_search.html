@@ -10,7 +10,19 @@
         <div class="input-group">
           <span class="input-group-addon" id="basic-search-addon">{{ 'record-search-basic-search' | translate }}</span>
           <input type="text" [disabled]="isSearching" [(ngModel)]="params.basicSearch" class="form-control" placeholder="{{ 'record-search-basic-search-placeholder' | translate}}" (keyup.enter)="search()" aria-describedby="basic-search-addon">
-          <span class="input-group-btn"><button [disabled]="isSearching || !params.basicSearch" class="btn btn-primary" type='button' (click)="search()">{{ 'record-search-submit' | translate }}</button></span>
+          <span class="input-group-btn">
+            <button [disabled]="isSearching || !params.basicSearch" class="btn btn-primary" type='button' (click)="search()">
+              {{ 'record-search-' + record_type + '-submit' | translate }}
+            </button>
+            <button [disabled]="isSearching" class="btn btn-primary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+              <span class="caret"></span>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-right">
+              <li *ngFor="let recTypeName of getRecordTypeNames()">
+                <a href="#" (click)="setRecordType(recTypeName, $event)">{{ 'record-search-' + recTypeName + '-submit' | translate }}</a>
+              </li>
+            </ul>
+          </span>
         </div>
         <div><br/></div>
         <button [disabled]="isSearching" class="btn btn-primary" type='button' (click)="resetSearch()">{{ 'record-search-reset' | translate }}</button>

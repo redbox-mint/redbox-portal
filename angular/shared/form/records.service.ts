@@ -74,8 +74,9 @@ export class RecordsService extends BaseService {
   }
 
   getFormFields(recordType:string, oid: string=null, editable:boolean) {
+    const ts = new Date().getTime();
     console.log("Oid is: " + oid);
-    const url = oid ? `${this.brandingAndPortalUrl}/record/form/auto/${oid}?edit=${editable}` : `${this.brandingAndPortalUrl}/record/form/${recordType}?edit=${editable}`;
+    const url = oid ? `${this.brandingAndPortalUrl}/record/form/auto/${oid}?edit=${editable}&ts=${ts}` : `${this.brandingAndPortalUrl}/record/form/${recordType}?edit=${editable}&ts=${ts}`;
     console.log("URL is: " + url);
     return this.http.get(url, this.options)
       .toPromise()
@@ -114,8 +115,8 @@ export class RecordsService extends BaseService {
     .then((res:any) => this.extractData(res) as RecordActionResult);
   }
 
-  getDashboardUrl() {
-    return `${this.brandingAndPortalUrl}/dashboard`;
+  getDashboardUrl(recType:string='rdmp') {
+    return `${this.brandingAndPortalUrl}/dashboard/${recType}`;
   }
 
 
@@ -168,6 +169,12 @@ export class RecordsService extends BaseService {
 
   getType(name: string) {
     return this.http.get(`${this.brandingAndPortalUrl}/record/type/${name}`, this.getOptionsClient())
+    .toPromise()
+    .then((res:any) => this.extractData(res));
+  }
+
+  getAllTypes() {
+    return this.http.get(`${this.brandingAndPortalUrl}/record/type/`, this.getOptionsClient())
     .toPromise()
     .then((res:any) => this.extractData(res));
   }

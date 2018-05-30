@@ -54,7 +54,8 @@ export module Controllers {
       'getMeta',
       'getTransferResponsibilityConfig',
       'updateResponsibilities',
-      'doAttachment'
+      'doAttachment',
+      'getAllTypes'
     ];
 
     /**
@@ -658,7 +659,18 @@ export module Controllers {
       });
     }
 
-    protected tusServer: any;
+    /** Returns all RecordTypes configuration */
+    public getAllTypes(req, res) {
+      const brand = BrandingService.getBrand(req.session.branding);
+      RecordTypesService.getAll(brand).subscribe(recordTypes => {
+        this.ajaxOk(req, res, null, recordTypes);
+      }, error => {
+        this.ajaxFail(req, res, error.message);
+      });
+    }
+
+    protected tusServer:any;
+
 
     protected initTusServer() {
       if (!this.tusServer) {
@@ -721,6 +733,18 @@ export module Controllers {
                   return false;
                 }
               }
+              res.set('Content-Type', found.mimeType);
+              res.set('Content-Disposition', `attachment; filename="${found.name}"`);
+              sails.log.verbose(`Returning datastream observable of ${oid}: ${found.name}, attachId: ${attachId}`);
+              return RecordsService.getDatastream(oid, attachId).flatMap((response) => {
+                res.end(Buffer.from(response.body), 'binary');
+                return Observable.of(oid);
+              });
+            } else {
+              // process the upload...
+              this.tusServer.handle(req, res);
+              return Observable.of(oid);
+
             });
             if (!found) {
               return Observable.throw(new Error(TranslationService.t('attachment-not-found')))

@@ -46,5 +46,6 @@ module.exports.record = {
   attachments: {
     stageDir: '/attachments/staging',
     path: '/attach'
-  }
+  },
+  helpEmail: 'support@redboxresearchdata.com.au'
 };

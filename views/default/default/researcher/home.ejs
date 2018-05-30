@@ -3,49 +3,66 @@
     <h1 id="main-title" class="container"><%= TranslationService.t('welcome-title') %></h1>
   </div>
 <div class="row equal">
-  <div class="col-md-1">
-  </div>
     <div class="col-md-3 homepanel">
       <div class="panel panel-default">
-               <div class="panel-heading text-center">
-                   <h4 class="panel-title">
-                     <div><img class="overlay" src="<%= BrandingService.getBrandAndPortalPath(req) %>/images/checklist.png" alt="@document.icon" width="43px" height="30px"></div>
-                     <%= TranslationService.t('menu-plan')%></h4>
-               </div>
-               <div class="panel-body">
-                 <div><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/record/rdmp/edit"><%= TranslationService.t('create-rdmp')%></a></div>
-               </div>
-           </div>
+         <div class="panel-heading text-center">
+             <h4 class="panel-title">
+               <div><img class="overlay" src="<%= BrandingService.getBrandAndPortalPath(req) %>/images/checklist.png" alt="@document.icon" width="43px" height="30px"></div>
+               <%= TranslationService.t('menu-plan')%></h4>
+         </div>
+         <div class="panel-body">
+           <div><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/record/rdmp/edit"><%= TranslationService.t('create-rdmp')%></a></div>
+           <div><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/dashboard/rdmp"><%= TranslationService.t('edit-dashboard-rdmp')%></a></div>
+           <div><a href="#"><%= TranslationService.t('rdmp-title-label') %> <%= TranslationService.t('version-history')%></a></div>
+           <div><a href="mailto:<%= sails.config.record.helpEmail %>?subject=<%= TranslationService.t('get-help-subject') %>"><%= TranslationService.t('get-advice') %></a></div>
+         </div>
+      </div>
     </div>
-
+    <div class="col-md-3 homepanel">
+      <div class="panel panel-default">
+        <div class="panel-heading text-center">
+          <div><i class="fa fa-rocket fa-3x"></i></div>
+          <h4 class="panel-title"><%= TranslationService.t('menu-organise-worspace')%></h4>
+        </div>
+        <div class="panel-body">
+          <div><a href="#"><%= TranslationService.t('workspace-request') %></a></div>
+          <div><a href="#"><%= TranslationService.t('workspace-services-list') %></a></div>
+          <div><a href="#"><%= TranslationService.t('workspace-export-data') %></a></div>
+        </div>
+      </div>
+    </div>
     <div class="col-md-3 homepanel">
       <div class="panel panel-default">
         <div class="panel-heading text-center">
             <div><i class="fa fa-laptop fa-3x"></i></div>
             <h4 class="panel-title"><%= TranslationService.t('menu-manage')%></h4>
         </div>
-               <div class="panel-body">
-                  <div><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/dashboard/rdmp"><%= TranslationService.t('edit-dashboard')%> RDMP</a></div>
-                  <div><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/record/dataRecord/edit"><%= TranslationService.t('create-datarecord')%></a></div>
-                  <div><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/dashboard/dataRecord"><%= TranslationService.t('edit-dashboard')%> Data Record</a></div>
-                 <div><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/record/search"><%= TranslationService.t('record-search-link')%></a></div>
-               </div>
-           </div>
+        <div class="panel-body">
+          <div><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/record/dataRecord/edit"><%= TranslationService.t('create-datarecord')%></a></div>
+          <div><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/dashboard/dataRecord"><%= TranslationService.t('edit-dashboard-datarecord')%></a></div>
+          <div><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/record/dataPublication/edit"><%= TranslationService.t('create-data-publication')%></a></div>
+          <div><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/dashboard/dataPublication"><%= TranslationService.t('edit-dashboard-publication')%></a></div>
+          <div><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/record/transfer/rdmp"><%= TranslationService.t('transfer-ownership-rdmp')%></a></div>
+        </div>
+       </div>
     </div>
     <div class="col-md-3 homepanel">
       <div class="panel panel-default">
         <div class="panel-heading text-center">
-            <div><i class="fa fa-rocket fa-3x"></i></div>
-            <h4 class="panel-title"><%= TranslationService.t('menu-publish')%></h4>
+          <div><i class="fa fa-search fa-3x"></i></div>
+          <h4 class="panel-title"><%= TranslationService.t('menu-search')%></h4>
         </div>
         <div class="panel-body">
-          <div><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/record/transfer/rdmp"><%= TranslationService.t('transfer-ownership-rdmp')%></a></div>
-          <div><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/record/dataPublication/edit"><%= TranslationService.t('create-data-publication')%></a></div>
-          <div><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/dashboard/dataPublication"><%= TranslationService.t('edit-dashboard')%> Data Publication</a></div>
+          <form method="get" action="<%= BrandingService.getBrandAndPortalPath(req) %>/record/search" name="form">
+            <div class="input-group">
+              <input name="q" type="text" class="form-control" placeholder="<%= TranslationService.t('record-search-basic-search-placeholder') %>">
+              <span class="input-group-btn">
+                <button class="btn btn-primary" type="button" onClick="form.submit()"><%= TranslationService.t("record-search-basic-search") %></button>
+              </span>
+            </div>
+          </form>
         </div>
       </div>
-    </div>
-    <div class="col-md-1">
     </div>
 </div>
 <!-- simple jquery script to make all the panels equal height -->
@@ -58,4 +75,5 @@
         }).get());
     panels.height(maxHeight);
   });
-</script></div>
+</script>
+</div>

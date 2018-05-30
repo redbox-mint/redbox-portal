@@ -145,11 +145,13 @@ export class DmpFormComponent extends LoadableComponent {
               this.cssClasses = this.formDef.viewCssClasses;
             }
             this.needsSave = false;
+            if (_.isEmpty(this.recordType)) {
+              this.recordType = this.formDef.type;
+            }
             if (form.fieldsMeta) {
               this.fields = form.fieldsMeta;
               this.rebuildForm();
               this.watchForChanges();
-
             }
           });
         }).catch((err:any) => {
@@ -477,7 +479,7 @@ export class DmpFormComponent extends LoadableComponent {
    * @return {[type]}
    */
   gotoDashboard() {
-    window.location.href = this.RecordsService.getDashboardUrl();
+    window.location.href = this.RecordsService.getDashboardUrl(this.recordType);
   }
   /**
    * Form cancellation handler.

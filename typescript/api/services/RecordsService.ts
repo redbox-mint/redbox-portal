@@ -170,9 +170,11 @@ export module Services {
 
     public getDatastream(oid, fileId) {
       const apiConfig = sails.config.record.api.getDatastream;
-      const opts = this.getOptions(`${sails.config.record.baseUrl.redbox}${apiConfig.url}`, oid);
+      const opts:any = this.getOptions(`${sails.config.record.baseUrl.redbox}${apiConfig.url}`, oid, null, false);
       opts.url = `${opts.url}?datastreamId=${fileId}`;
-      opts.json = false;
+      opts.headers['Content-Type'] = 'application/octet-stream';
+      opts.headers['accept'] = 'application/octet-stream';
+      opts.resolveWithFullResponse = true;
       sails.log.verbose(`Getting datastream using: `);
       sails.log.verbose(JSON.stringify(opts));
       return Observable.fromPromise(request[apiConfig.method](opts));
@@ -185,14 +187,21 @@ export module Services {
       });
     }
 
-    protected getOptions(url, oid=null, packageType=null) {
+    protected getOptions(url, oid=null, packageType=null, isJson:boolean=true) {
       if (!_.isEmpty(oid)) {
         url = url.replace('$oid', oid);
       }
       if (!_.isEmpty(packageType)) {
         url = url.replace('$packageType', packageType);
       }
-      return {url:url, json:true, headers: {'Authorization': `Bearer ${sails.config.redbox.apiKey}`, 'Content-Type': 'application/json; charset=utf-8'}};
+      const opts:any = {url:url, headers: {'Authorization': `Bearer ${sails.config.redbox.apiKey}`}};
+      if (isJson == true) {
+        opts.json = true;
+        opts.headers['Content-Type'] = 'application/json; charset=utf-8';
+      } else {
+        opts.encoding = null;
+      }
+      return opts;
     }
 
     /**
