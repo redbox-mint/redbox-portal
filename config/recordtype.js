@@ -22,12 +22,23 @@ module.exports.recordtype = {
         }]
       },
       onUpdate: {
-        pre: {
+        pre: [{
           function: 'sails.services.rdmpservice.assignPermissions',
           options: {
-
+            "emailProperty": "email",
+            "editContributorProperties": [
+              "metadata.contributor_ci",
+              "metadata.contributor_data_manager",
+              "dataowner_email"
+            ],
+            "viewContributorProperties": [
+              "metadata.contributor_ci",
+              "metadata.contributor_data_manager",
+              "metadata.contributor_supervisor",
+              "metadata.contributors"
+            ]
           }
-        }
+        }]
       }
     },
     transferResponsibility: {

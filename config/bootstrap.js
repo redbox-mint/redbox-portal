@@ -50,7 +50,13 @@ module.exports.bootstrap = function(cb) {
       return sails.services.workflowstepsservice.bootstrap(recordTypes);
     })
     .flatMap(workflowSteps => {
+      if(_.isArray(workflowSteps)) {
+          _.each(workflowSteps, workflowStep => {
+            return sails.services.formsservice.bootstrap(workflowStep);
+          });
+      } else {
       return sails.services.formsservice.bootstrap(workflowSteps);
+      }
     })
     .flatMap(whatever => {
       return sails.services.vocabservice.bootstrap();

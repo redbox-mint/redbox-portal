@@ -43,11 +43,12 @@ export module Services {
       'getFormByName'
     ];
 
-    public bootstrap = (workflowSteps): Observable<any> => {
-      if (!workflowSteps || workflowSteps.length == 0 || workflowSteps[0] == null) {
-        return Observable.of(null);
-      } else {
-        return super.getObservable(Form.find({ workflowStep: workflowSteps[0].id })).flatMap(form => {
+    public bootstrap = (workflowStep): Observable<any> => {
+        sails.log.error("About to query.....");
+        sails.log.error(workflowStep);
+        return super.getObservable(Form.find({ workflowStep: workflowStep.id })).flatMap(form => {
+          sails.log.error("Found : ");
+          sails.log.error(form);
           if (!form || form.length == 0) {
             sails.log.verbose("Bootstrapping form definitions... ");
             const formDefs = [];
@@ -56,15 +57,17 @@ export module Services {
             });
             return Observable.from(formDefs);
           } else {
-
-            return Observable.of(null);
+            sails.log.verbose("Not Bootstrapping form definitions... ");
+            return Observable.of(form[0]);
           }
         })
           .flatMap(formName => {
-            const formsObs = [];
-            if (formName) {
-
-              _.each(workflowSteps, function(workflowStep) {
+            sails.log.error("FormName is:");
+            sails.log.error(formName);
+            let observable = Observable.of(null);
+            if (!formName.name) {
+              sails.log.error("workflowStep is:");
+              sails.log.error(workflowStep);
                 if (workflowStep.config.form == formName) {
                   const formObj = {
                     name: formName,
@@ -80,18 +83,35 @@ export module Services {
                   };
 
                   var q = Form.create(formObj);
-                  formsObs.push(Observable.bindCallback(q["exec"].bind(q))());
+                  observable = Observable.bindCallback(q["exec"].bind(q))();
                   // var obs = Observable.bindCallback(q["exec"].bind(q))();
                 }
-              });
+
+            } else {
+              let formObj = formName;
+              formName= formObj.name
+              formObj = {
+                fields: sails.config.form.forms[formName].fields,
+                type: sails.config.form.forms[formName].type,
+                messages: sails.config.form.forms[formName].messages,
+                viewCssClasses: sails.config.form.forms[formName].viewCssClasses,
+                editCssClasses: sails.config.form.forms[formName].editCssClasses,
+                skipValidationOnSave: sails.config.form.forms[formName].skipValidationOnSave,
+                attachmentFields: sails.config.form.forms[formName].attachmentFields,
+                customAngularApp: sails.config.form.forms[formName].customAngularApp || null
+              };
+              sails.log.error("Resaving form object");
+              sails.log.error(formObj);
+              var q = Form.update({name: formName}, formObj);
+              observable = Observable.bindCallback(q["exec"].bind(q))();
             }
-            return Observable.zip(...formsObs);
+            return observable;
           })
           .flatMap(result => {
             if (result) {
               sails.log.verbose("Created form record: ");
               sails.log.verbose(result);
-              return Observable.from(result[0]);
+              return Observable.from(result);
             }
             return Observable.of(result);
           }).flatMap(result => {
@@ -102,9 +122,8 @@ export module Services {
               return Observable.bindCallback(q["exec"].bind(q))();
             }
             return Observable.of(null);
-          })
-          .last();
-      }
+          });
+
     }
 
     public getFormByName = (formName, editMode): Observable<any> => {

@@ -44,7 +44,6 @@ export module Services {
       const emailProperty = _.get(options, "emailProperty", "email");
       const editContributorProperties = _.get(options, "editContributorProperties", []);
 
-
       let authorization = _.get(record, "authorization", {});
 
 
@@ -71,6 +70,8 @@ export module Services {
             }
           });
         } else {
+          sails.log.error(`Edit contributor`);
+          sails.log.error(editContributor);
           let editContributorEmailAddress = _.get(editContributor, emailProperty, null);
 
           var queryObject = {};
