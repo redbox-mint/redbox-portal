@@ -16,8 +16,7 @@ module.exports = {
   attachmentFields: [
     "dataLocations"
   ],
-  fields: [
-    {
+  fields: [{
       class: 'Container',
       compClass: 'TextBlockComponent',
       viewOnly: true,
@@ -37,6 +36,13 @@ module.exports = {
         controlType: 'anchor'
       },
       variableSubstitutionFields: ['value']
+    },
+    {
+      class: "ActionButton",
+      viewOnly: true,
+      definition: {
+        name: "ckanLocation"
+      }
     },
     {
       class: 'MarkdownTextArea',
@@ -61,13 +67,12 @@ module.exports = {
               id: "about",
               label: "@dataPublication-about-tab",
               active: true,
-              fields: [
-                {
+              fields: [{
                   class: "ParameterRetriever",
                   compClass: 'ParameterRetrieverComponent',
                   definition: {
                     name: 'parameterRetriever',
-                    parameterName:'rdmpOid'
+                    parameterName: 'rdmpOid'
                   }
                 },
                 {
@@ -82,10 +87,10 @@ module.exports = {
                         }]
                       },
                       'rdmp': {
-                          relatedObjectSelected: [{
-                            action: 'publishMetadata'
-                          }]
-                        }
+                        relatedObjectSelected: [{
+                          action: 'publishMetadata'
+                        }]
+                      }
                     }
                   }
                 },
@@ -304,7 +309,7 @@ module.exports = {
                   class: 'PublishDataLocationSelector',
                   compClass: 'PublishDataLocationSelectorComponent',
                   definition: {
-                    name:"dataLocations"
+                    name: "dataLocations"
                   }
                 }
               ]
@@ -334,51 +339,48 @@ module.exports = {
                     label: "@dmpt-related-website",
                     help: "@dmpt-related-website-help",
                     forceClone: ['fields', 'fieldMap'],
-                    fields: [
-                      {
-                        class: 'Container',
-                        compClass: 'GenericGroupComponent',
-                        definition: {
-                          name: "related_website",
-                          cssClasses: "form-inline",
-                          fields: [
-                            {
-                              class: 'TextField',
-                              definition: {
-                                name: 'related_url',
-                                label: '@dmpt-related-website-url',
-                                type: 'text',
-                                groupName: 'related_website',
-                                groupClasses: 'width-30',
-                                cssClasses : "width-80 form-control"
-                              }
-                            },
-                            {
-                              class: 'TextField',
-                              definition: {
-                                name: 'related_title',
-                                label: '@dmpt-related-website-title',
-                                type: 'text',
-                                groupName: 'related_website',
-                                groupClasses: 'width-30',
-                                cssClasses : "width-80 form-control"
-                              }
-                            },
-                            {
-                              class: 'TextField',
-                              definition: {
-                                name: 'related_notes',
-                                label: '@dmpt-related-website-notes',
-                                type: 'text',
-                                groupName: 'related_website',
-                                groupClasses: 'width-30',
-                                cssClasses : "width-80 form-control"
-                              }
+                    fields: [{
+                      class: 'Container',
+                      compClass: 'GenericGroupComponent',
+                      definition: {
+                        name: "related_website",
+                        cssClasses: "form-inline",
+                        fields: [{
+                            class: 'TextField',
+                            definition: {
+                              name: 'related_url',
+                              label: '@dmpt-related-website-url',
+                              type: 'text',
+                              groupName: 'related_website',
+                              groupClasses: 'width-30',
+                              cssClasses: "width-80 form-control"
                             }
-                          ]
-                        }
+                          },
+                          {
+                            class: 'TextField',
+                            definition: {
+                              name: 'related_title',
+                              label: '@dmpt-related-website-title',
+                              type: 'text',
+                              groupName: 'related_website',
+                              groupClasses: 'width-30',
+                              cssClasses: "width-80 form-control"
+                            }
+                          },
+                          {
+                            class: 'TextField',
+                            definition: {
+                              name: 'related_notes',
+                              label: '@dmpt-related-website-notes',
+                              type: 'text',
+                              groupName: 'related_website',
+                              groupClasses: 'width-30',
+                              cssClasses: "width-80 form-control"
+                            }
+                          }
+                        ]
                       }
-                    ]
+                    }]
                   }
                 },
                 {
@@ -389,103 +391,96 @@ module.exports = {
                     label: "@dmpt-related-data",
                     help: "@dmpt-related-data-help",
                     forceClone: ['fields', 'fieldMap'],
-                    fields: [
-                      {
-                        class: 'Container',
-                        compClass: 'GenericGroupComponent',
-                        definition: {
-                          name: "related_datum",
-                          cssClasses: "form-inline",
-                          fields: [
-                            {
-                              class: 'SelectionField',
-                              compClass: 'DropdownFieldComponent',
-                              definition: {
-                                name: 'related_relationship',
-                                label: '@dmpt-related-data-relationship',
-                                groupName: 'related_datum',
-                                groupClasses: 'width-40',
-                                cssClasses : "width-80 form-control",
-                                options: [
-                                  {
-                                    value: "@dmpt-related-data-relationship-association-with-val",
-                                    label: "@dmpt-related-data-relationship-association-with"
-                                  }
-                                ]
-                              }
-                            },
-                            {
-                              class: 'TextField',
-                              editOnly: true,
-                              definition: {
-                                name: 'related_title',
-                                label: '@dmpt-related-data-title',
-                                type: 'text',
-                                groupName: 'related_datum',
-                                groupClasses: 'width-20',
-                                cssClasses : "width-80 form-control"
-                              }
-                            },
-                            {
-                              class: 'TextField',
-                              editOnly: true,
-                              definition: {
-                                name: 'related_url',
-                                label: '@dmpt-related-data-url',
-                                type: 'text',
-                                groupName: 'related_datum',
-                                groupClasses: 'width-40',
-                                cssClasses : "width-80 form-control"
-                              }
-                            },
-                            {
-                              class: 'TextField',
-                              editOnly: true,
-                              definition: {
-                                name: 'related_notes',
-                                label: '@dmpt-related-data-notes',
-                                type: 'text',
-                                groupName: 'related_datum',
-                                groupClasses: 'width-30',
-                                cssClasses : "width-80 form-control"
-                              }
-                            },
-                            {
-                              class: 'SelectionField',
-                              compClass: 'SelectionFieldComponent',
-                              definition: {
-                                name: 'related_localdata',
-                                controlType: 'checkbox',
-                                groupName: 'related_datum',
-                                cssClasses : "width-80 form-control",
-                                groupClasses: 'width-30',
-                                options: [{
-                                    value: "@dmpt-related-data-local-val",
-                                    label: "@dmpt-related-data-local"
-                                  }
-                                ]
-                              }
-                            },
-                            {
-                              class: 'SelectionField',
-                              compClass: 'SelectionFieldComponent',
-                              definition: {
-                                name: 'related_publishrda',
-                                controlType: 'checkbox',
-                                groupName: 'related_datum',
-                                groupClasses: 'width-30',
-                                cssClasses : "width-80 form-control",
-                                options: [{
-                                    value: "@dmpt-related-data-rda-val",
-                                    label: "@dmpt-related-data-rda"
-                                  }
-                                ]
-                              }
+                    fields: [{
+                      class: 'Container',
+                      compClass: 'GenericGroupComponent',
+                      definition: {
+                        name: "related_datum",
+                        cssClasses: "form-inline",
+                        fields: [{
+                            class: 'SelectionField',
+                            compClass: 'DropdownFieldComponent',
+                            definition: {
+                              name: 'related_relationship',
+                              label: '@dmpt-related-data-relationship',
+                              groupName: 'related_datum',
+                              groupClasses: 'width-40',
+                              cssClasses: "width-80 form-control",
+                              options: [{
+                                value: "@dmpt-related-data-relationship-association-with-val",
+                                label: "@dmpt-related-data-relationship-association-with"
+                              }]
                             }
-                          ]
-                        }
+                          },
+                          {
+                            class: 'TextField',
+                            editOnly: true,
+                            definition: {
+                              name: 'related_title',
+                              label: '@dmpt-related-data-title',
+                              type: 'text',
+                              groupName: 'related_datum',
+                              groupClasses: 'width-20',
+                              cssClasses: "width-80 form-control"
+                            }
+                          },
+                          {
+                            class: 'TextField',
+                            editOnly: true,
+                            definition: {
+                              name: 'related_url',
+                              label: '@dmpt-related-data-url',
+                              type: 'text',
+                              groupName: 'related_datum',
+                              groupClasses: 'width-40',
+                              cssClasses: "width-80 form-control"
+                            }
+                          },
+                          {
+                            class: 'TextField',
+                            editOnly: true,
+                            definition: {
+                              name: 'related_notes',
+                              label: '@dmpt-related-data-notes',
+                              type: 'text',
+                              groupName: 'related_datum',
+                              groupClasses: 'width-30',
+                              cssClasses: "width-80 form-control"
+                            }
+                          },
+                          {
+                            class: 'SelectionField',
+                            compClass: 'SelectionFieldComponent',
+                            definition: {
+                              name: 'related_localdata',
+                              controlType: 'checkbox',
+                              groupName: 'related_datum',
+                              cssClasses: "width-80 form-control",
+                              groupClasses: 'width-30',
+                              options: [{
+                                value: "@dmpt-related-data-local-val",
+                                label: "@dmpt-related-data-local"
+                              }]
+                            }
+                          },
+                          {
+                            class: 'SelectionField',
+                            compClass: 'SelectionFieldComponent',
+                            definition: {
+                              name: 'related_publishrda',
+                              controlType: 'checkbox',
+                              groupName: 'related_datum',
+                              groupClasses: 'width-30',
+                              cssClasses: "width-80 form-control",
+                              options: [{
+                                value: "@dmpt-related-data-rda-val",
+                                label: "@dmpt-related-data-rda"
+                              }]
+                            }
+                          }
+                        ]
                       }
-                    ]
+                    }]
                   }
                 },
                 {
@@ -496,72 +491,67 @@ module.exports = {
                     label: "@dataPublication-related-services",
                     help: "@dataPublication-related-services-help",
                     forceClone: ['fields', 'fieldMap'],
-                    fields: [
-                      {
-                        class: 'Container',
-                        compClass: 'GenericGroupComponent',
-                        definition: {
-                          name: "related_service",
-                          cssClasses: "form-inline",
-                          fields: [
-                            {
-                              class: 'SelectionField',
-                              compClass: 'DropdownFieldComponent',
-                              definition: {
-                                name: 'related_relationship',
-                                label: '@dmpt-related-data-relationship',
-                                groupName: 'related_service',
-                                groupClasses: 'width-40',
-                                cssClasses : "width-80 form-control",
-                                options: [
-                                  {
-                                    value: "@dmpt-related-data-relationship-association-with-val",
-                                    label: "@dmpt-related-data-relationship-association-with"
-                                  }
-                                ]
-                              }
-                            },
-                            {
-                              class: 'TextField',
-                              editOnly: true,
-                              definition: {
-                                name: 'related_title',
-                                label: '@dmpt-related-data-title',
-                                type: 'text',
-                                groupName: 'related_service',
-                                groupClasses: 'width-20',
-                                cssClasses : "width-80 form-control"
-                              }
-                            },
-                            {
-                              class: 'TextField',
-                              editOnly: true,
-                              definition: {
-                                name: 'service_identifer',
-                                label: '@dataPublication-service-identifier',
-                                type: 'text',
-                                groupName: 'related_service',
-                                groupClasses: 'width-40',
-                                cssClasses : "width-80 form-control"
-                              }
-                            },
-                            {
-                              class: 'TextField',
-                              editOnly: true,
-                              definition: {
-                                name: 'related_notes',
-                                label: '@dmpt-related-data-notes',
-                                type: 'text',
-                                groupName: 'related_service',
-                                groupClasses: 'width-30',
-                                cssClasses : "width-80 form-control"
-                              }
+                    fields: [{
+                      class: 'Container',
+                      compClass: 'GenericGroupComponent',
+                      definition: {
+                        name: "related_service",
+                        cssClasses: "form-inline",
+                        fields: [{
+                            class: 'SelectionField',
+                            compClass: 'DropdownFieldComponent',
+                            definition: {
+                              name: 'related_relationship',
+                              label: '@dmpt-related-data-relationship',
+                              groupName: 'related_service',
+                              groupClasses: 'width-40',
+                              cssClasses: "width-80 form-control",
+                              options: [{
+                                value: "@dmpt-related-data-relationship-association-with-val",
+                                label: "@dmpt-related-data-relationship-association-with"
+                              }]
                             }
+                          },
+                          {
+                            class: 'TextField',
+                            editOnly: true,
+                            definition: {
+                              name: 'related_title',
+                              label: '@dmpt-related-data-title',
+                              type: 'text',
+                              groupName: 'related_service',
+                              groupClasses: 'width-20',
+                              cssClasses: "width-80 form-control"
+                            }
+                          },
+                          {
+                            class: 'TextField',
+                            editOnly: true,
+                            definition: {
+                              name: 'service_identifer',
+                              label: '@dataPublication-service-identifier',
+                              type: 'text',
+                              groupName: 'related_service',
+                              groupClasses: 'width-40',
+                              cssClasses: "width-80 form-control"
+                            }
+                          },
+                          {
+                            class: 'TextField',
+                            editOnly: true,
+                            definition: {
+                              name: 'related_notes',
+                              label: '@dmpt-related-data-notes',
+                              type: 'text',
+                              groupName: 'related_service',
+                              groupClasses: 'width-30',
+                              cssClasses: "width-80 form-control"
+                            }
+                          }
 
-                          ]
-                        }
+                        ]
                       }
-                    ]
+                    }]
                   }
                 }
               ]
@@ -576,14 +566,13 @@ module.exports = {
               id: "technicalMetadata",
               label: "@dataPublication-technicalMetadata-tab",
               fields: [{
-                  class: 'Container',
-                  compClass: 'TextBlockComponent',
-                  definition: {
-                    value: '@dataPublication-technicalMetadata-heading',
-                    type: 'h3'
-                  }
+                class: 'Container',
+                compClass: 'TextBlockComponent',
+                definition: {
+                  value: '@dataPublication-technicalMetadata-heading',
+                  type: 'h3'
                 }
-              ]
+              }]
             }
           },
           // -------------------------------------------------------------------
@@ -595,64 +584,72 @@ module.exports = {
               id: "publication",
               label: "@dataPublication-publication-tab",
               fields: [{
-                class: 'Container',
-                compClass: 'TextBlockComponent',
-                definition: {
-                  value: '@dataPublication-publication-heading',
-                  type: 'h3'
-                }
-              },
-              {
-                class: 'Container',
-                compClass: 'TextBlockComponent',
-                definition: {
-                  value: '@dataPublication-embargo-heading',
-                  type: 'h4'
-                }
-              },
-              {
-                class: 'SelectionField',
-                compClass: 'SelectionFieldComponent',
-                definition: {
-                  name: 'embargoEnabled',
-                  controlType: 'checkbox',
-                  options: [{
+                  class: 'Container',
+                  compClass: 'TextBlockComponent',
+                  definition: {
+                    value: '@dataPublication-publication-heading',
+                    type: 'h3'
+                  }
+                },
+                {
+                  class: 'Container',
+                  compClass: 'TextBlockComponent',
+                  definition: {
+                    value: '@dataPublication-embargo-heading',
+                    type: 'h4'
+                  }
+                },
+                {
+                  class: 'SelectionField',
+                  compClass: 'SelectionFieldComponent',
+                  definition: {
+                    name: 'embargoEnabled',
+                    controlType: 'checkbox',
+                    options: [{
                       value: "embargoed",
                       label: "@dataPublication-embargoEnabled"
-                    }
-                  ]
-                }
-              },
-              {
-                class: 'DateTime',
-                definition: {
-                  name: "embargoUntil",
-                  label: "@dataPublication-embargoUntil",
-                  help: '@dataPublication-embargoUntil-help',
-                  datePickerOpts: {
-                    format: 'dd/mm/yyyy',
-                    icon: 'fa fa-calendar',
-                    autoclose: true
-                  },
-                  timePickerOpts: false,
-                  hasClearButton: false,
-                  valueFormat: 'YYYY-MM-DD',
-                  displayFormat: 'L',
-                  publish: {
-                    onValueUpdate: {
-                      modelEventSource: 'valueChanges'
+                    }]
+                  }
+                },
+                {
+                  class: 'DateTime',
+                  definition: {
+                    name: "embargoUntil",
+                    label: "@dataPublication-embargoUntil",
+                    help: '@dataPublication-embargoUntil-help',
+                    datePickerOpts: {
+                      format: 'dd/mm/yyyy',
+                      icon: 'fa fa-calendar',
+                      autoclose: true
+                    },
+                    timePickerOpts: false,
+                    hasClearButton: false,
+                    valueFormat: 'YYYY-MM-DD',
+                    displayFormat: 'L',
+                    publish: {
+                      onValueUpdate: {
+                        modelEventSource: 'valueChanges'
+                      }
                     }
                   }
+                },
+                {
+                  class: 'TextArea',
+                  definition: {
+                    name: 'embargoNote',
+                    label: '@dataPublication-embargoNote'
+                  }
+                },
+                {
+                  class: 'ActionButton',
+                  definition: {
+                    label: "Publish Record to CKAN",
+                    name: "ckanLocation",
+                    cssClasses: "btn btn-primary",
+                    targetAction: "publishToCKAN"
+                  }
                 }
-              },
-              {
-                class: 'TextArea',
-                definition: {
-                  name: 'embargoNote',
-                  label: '@dataPublication-embargoNote'
-                }
-              }
-            ]
+              ]
             }
           }
         ]
@@ -662,8 +659,7 @@ module.exports = {
       class: "ButtonBarContainer",
       compClass: "ButtonBarContainerComponent",
       definition: {
-        fields: [
-          {
+        fields: [{
             class: "TabNavButton",
             definition: {
               id: 'mainTabNav',

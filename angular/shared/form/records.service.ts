@@ -190,6 +190,13 @@ export class RecordsService extends BaseService {
       .toPromise()
       .then((res: any) => this.extractData(res));
   }
+
+
+    executeAction(action:string, params:any) {
+      return this.http.post(`${this.brandingAndPortalUrl}/action/${action}`, params, this.options)
+        .toPromise()
+        .then((res: any) => this.extractData(res));
+    }
 }
 
 export class RecordActionResult {

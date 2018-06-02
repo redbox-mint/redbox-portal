@@ -21,6 +21,7 @@ import { VocabField, VocabFieldComponent } from './form/field-vocab.component';
 import { RepeatableContainer, RepeatableVocab, RepeatableContributor, RepeatableVocabComponent, RepeatableContributorComponent } from './form/field-repeatable.component';
 import { ContributorField, ContributorComponent } from './form/field-contributor.component';
 import { WorkflowStepButton, WorkflowStepButtonComponent } from './form/workflow-button.component';
+import { ActionButton, ActionButtonComponent } from './form/action-button.component';
 import { RelatedObjectDataField, RelatedObjectDataComponent } from './form/field-relatedobjectdata.component';
 import { RelatedObjectSelectorComponent, RelatedObjectSelectorField } from './form/field-relatedobjectselector.component';
 import { DataLocationComponent, DataLocationField } from './form/field-datalocation.component';
@@ -49,6 +50,7 @@ export const fieldClasses=  {
   'ContributorField': {'meta': ContributorField, 'comp': ContributorComponent, 'lookupService': 'vocabFieldLookupService'},
   'HiddenValue': {'meta': HiddenValue, 'comp': HiddenValueComponent},
   'WorkflowStepButton': {'meta': WorkflowStepButton, 'comp': WorkflowStepButtonComponent},
+  'ActionButton': {'meta': ActionButton, 'comp': ActionButtonComponent},
   'LinkValueComponent': {'meta': LinkValue, 'comp': LinkValueComponent },
   'SelectionField': {'meta': SelectionField, 'comp': [ SelectionFieldComponent, DropdownFieldComponent ]},
   'RelatedObjectDataField': {'meta': RelatedObjectDataField, 'comp': RelatedObjectDataComponent, 'lookupService': 'vocabFieldLookupService'},

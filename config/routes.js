@@ -171,6 +171,7 @@ module.exports.routes = {
   'post /:branding/:portal/user/revokeKey': 'UserController.revokeUserKey',
   'post /:branding/:portal/user/update': 'UserController.update',
   'get /:branding/:portal/transferconfig/:type': 'RecordController.getTransferResponsibilityConfig',
+  'post /:branding/:portal/action/:action': 'ActionController.callService',
   /***************************************************************************
   *                                                                          *
   * REST API routes                                                          *

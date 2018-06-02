@@ -388,6 +388,9 @@ export module Controllers {
           });
 
         }).subscribe(record => {
+          if(record.metadata) {
+            record = Observable.of(record);
+          }
           record.subscribe(currentRec => {
             sails.log.error("record is: ");
             sails.log.error(record);
