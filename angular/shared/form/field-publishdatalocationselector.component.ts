@@ -109,6 +109,13 @@ export class PublishDataLocationSelectorField extends FieldBase<any> {
     });
   }
 
+  public populateDataLocation(oid, config: any) {
+      console.log(oid);
+      this.recordsService.getRecordMeta(oid).then(record => {
+        this.value = record.dataLocations;
+      });
+ }
+
   removeLocation(loc: any) {
     _.remove(this.value, (val:any) => {
       return val.type == loc.type && val.name == loc.name && val.location == loc.location;
@@ -133,6 +140,18 @@ export class PublishDataLocationSelectorComponent extends SimpleComponent {
 
   public ngOnInit() {
 
+  }
+
+  public locationSelected(location){
+    _.each(this.field.value, dataLocation => {
+      if(dataLocation['location'] == location) {
+        if(dataLocation['selected']) {
+          dataLocation['selected'] = false;
+        } else {
+          dataLocation['selected'] = true;
+        }
+      }
+    });
   }
 
   public getDatalocations() {

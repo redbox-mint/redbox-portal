@@ -8,11 +8,12 @@
     <table class="table table-bordered table-striped table-hover">
       <thead>
         <tr>
-          <th width="15%">Type of location</th><th width="40%">Location</th><th width="40%">Notes</th><th width="5%"></th>
+          <th width="5%"></th><th width="15%">Type of location</th><th width="40%">Location</th><th width="40%">Notes</th>
         </tr>
       </thead>
       <tbody>
         <tr *ngFor="let dataLocation of getDatalocations()">
+          <td><input type="checkbox" (change)="locationSelected(dataLocation.location)"/></td>
           <td>{{ field.dataTypeLookup[dataLocation.type] }}</td>
           <td>
             <ng-container *ngIf="dataLocation && dataLocation.type != 'attachment'">
@@ -28,13 +29,11 @@
             </ng-container>
           </td>
           <td>{{ dataLocation.notes }}</td>
-          <td>
-            <a class="fa fa-minus-circle btn text-20 btn-danger" (click)="field.removeLocation(dataLocation)"></a>
-          </td>
+
         </tr>
       </tbody>
     </table>
   </div>
-  <div><button class="btn btn-info">Export</button></div>
+  <!-- <div><button class="btn btn-info">Export</button></div> -->
 </div>
 </div>

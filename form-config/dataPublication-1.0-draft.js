@@ -72,21 +72,21 @@ module.exports = {
                   compClass: 'ParameterRetrieverComponent',
                   definition: {
                     name: 'parameterRetriever',
-                    parameterName: 'rdmpOid'
+                    parameterName: 'dataRecordOid'
                   }
                 },
                 {
                   class: 'RecordMetadataRetriever',
                   compClass: 'RecordMetadataRetrieverComponent',
                   definition: {
-                    name: 'rdmpGetter',
+                    name: 'dataRecordGetter',
                     subscribe: {
                       'parameterRetriever': {
                         onValueUpdate: [{
                           action: 'publishMetadata'
                         }]
                       },
-                      'rdmp': {
+                      'dataRecord': {
                         relatedObjectSelected: [{
                           action: 'publishMetadata'
                         }]
@@ -108,7 +108,7 @@ module.exports = {
                   compClass: 'RelatedObjectSelectorComponent',
                   definition: {
                     label: 'Data record related to this publication',
-                    name: 'rdmp',
+                    name: 'dataRecord',
                     recordType: 'dataRecord',
                     required: true
                   }
@@ -122,7 +122,7 @@ module.exports = {
                     type: 'text',
                     required: true,
                     subscribe: {
-                      'rdmpGetter': {
+                      'dataRecordGetter': {
                         onValueUpdate: [{
                           action: 'utilityService.getPropertyFromObject',
                           field: 'title'
@@ -139,7 +139,15 @@ module.exports = {
                     label: '@dataPublication-description',
                     help: '@dataPublication-description-help',
                     type: 'text',
-                    required: true
+                    required: true,
+                    subscribe: {
+                      'dataRecordGetter': {
+                        onValueUpdate: [{
+                          action: 'utilityService.getPropertyFromObject',
+                          field: 'description'
+                        }]
+                      }
+                    }
                   }
                 },
                 {
@@ -191,7 +199,15 @@ module.exports = {
                       definition: {
                         type: 'text'
                       }
-                    }]
+                    }],
+                    subscribe: {
+                      'dataRecordGetter': {
+                        onValueUpdate: [{
+                          action: 'utilityService.getPropertyFromObject',
+                          field: 'finalKeywords'
+                        }]
+                      }
+                    }
                   }
                 }
 
@@ -309,9 +325,16 @@ module.exports = {
                   class: 'PublishDataLocationSelector',
                   compClass: 'PublishDataLocationSelectorComponent',
                   definition: {
-                    name: "dataLocations"
+                    name: "dataLocations",
+                    subscribe: {
+                    'dataRecord': {
+                      relatedObjectSelected: [{
+                        action: 'populateDataLocation'
+                      }]
+                    }
                   }
                 }
+              }
               ]
             }
           },
