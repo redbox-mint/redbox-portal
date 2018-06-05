@@ -44,11 +44,11 @@ export module Services {
     ];
 
     public bootstrap = (workflowStep): Observable<any> => {
-        sails.log.error("About to query.....");
-        sails.log.error(workflowStep);
+        sails.log.verbose(`About to query.....${workflowStep.id}`);
+        sails.log.verbose(workflowStep);
         return super.getObservable(Form.find({ workflowStep: workflowStep.id })).flatMap(form => {
-          sails.log.error("Found : ");
-          sails.log.error(form);
+          sails.log.verbose("Found : ");
+          sails.log.verbose(form);
           if (!form || form.length == 0) {
             sails.log.verbose("Bootstrapping form definitions... ");
             const formDefs = [];
@@ -62,8 +62,8 @@ export module Services {
           }
         })
           .flatMap(formName => {
-            sails.log.error("FormName is:");
-            sails.log.error(formName);
+            sails.log.verbose("FormName is:");
+            sails.log.verbose(formName);
             let observable = Observable.of(null);
             if (!formName.name) {
               sails.log.error("workflowStep is:");
