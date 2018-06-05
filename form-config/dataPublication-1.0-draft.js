@@ -327,10 +327,12 @@ module.exports = {
                   definition: {
                     name: "dataLocations",
                     subscribe: {
-                    'dataRecord': {
-                      relatedObjectSelected: [{
-                        action: 'populateDataLocation'
-                      }]
+                      'dataRecordGetter': {
+                        onValueUpdate: [{
+                          action: 'utilityService.getPropertyFromObject',
+                          field: 'dataLocations'
+                        }]
+                      }
                     }
                   }
                 }
