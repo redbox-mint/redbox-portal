@@ -300,6 +300,7 @@ export class FieldBase<T> {
   }
 
   public reactEvent(eventName: string, eventData: any, origData: any) {
+    this.value = eventData;
     this.formModel.setValue(eventData, { onlySelf: true, emitEvent: false });
     _.each(this.componentReactors, (compReact) => {
       compReact.reactEvent(eventName, eventData, origData, this);
