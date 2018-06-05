@@ -340,13 +340,13 @@
   "@dataRecord-about-tab": "What?",
   "@dataRecord-about-heading": "What is the data about?",
   "@dataRecord-title": "Data record Title",
-  "@dataRecord-title-help": "",
+  "@dataRecord-title-help": "Data record title help text",
   "@dataRecord-description": "Description",
-  "@dataRecord-description-help": "",
+  "@dataRecord-description-help": "Data description help text",
   "@dataRecord-keywords": "Keywords",
-  "@dataRecord-keywords-help": "",
+  "@dataRecord-keywords-help": "Enter a word or phrase that characterises your research data.",
   "@dataRecord-datatype": "Data Type",
-  "@dataRecord-datatype-help": "",
+  "@dataRecord-datatype-help": "Data type help text",
   "@dataRecord-dataype-select:Empty":"Please select",
   "@dataRecord-dataype-select:catalogueOrIndex":"Catalogue or Index",
   "@dataRecord-dataype-select:collection":"Collection",
@@ -517,5 +517,9 @@
   "@dmpt-people-tab-ci-help": "Chief Investigator help text",
   "@dmpt-people-tab-data-manager-help": "Data manager help text",
   "@dmpt-people-tab-contributors-help": "Contributors help text",
-  "@dmpt-people-tab-supervisor-help": "Supervisor help text"
+  "@dmpt-people-tab-supervisor-help": "Supervisor help text",
+  "@dataPublication-title-help": "Data publication title help text",
+  "@dataPublication-description-help": "Data publication description help text",
+  "@dataPublication-datatype-help": "Data publication data type help text",
+  "@dataPublication-keywords-help": "Data publication keywords help text"
 }
