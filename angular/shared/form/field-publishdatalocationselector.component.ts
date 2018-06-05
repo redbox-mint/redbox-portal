@@ -123,11 +123,6 @@ export class PublishDataLocationSelectorField extends FieldBase<any> {
     this.setValue(this.value);
   }
 
-  public reactEvent(eventName: string, eventData: any, origData: any) {
-    this.value = eventData;
-    this.formModel.setValue(this.value);
-  }
-
 }
 /**
 * Component to display information from related objects within ReDBox
