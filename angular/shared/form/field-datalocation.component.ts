@@ -16,7 +16,7 @@
 // You should have received a copy of the GNU General Public License along
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-import { Input, Component, OnInit, Inject, Injector} from '@angular/core';
+import { Input, Component, OnInit, Inject, Injector } from '@angular/core';
 import { SimpleComponent } from './field-simple.component';
 import { FieldBase } from './field-base';
 import { FormGroup, FormControl, Validators } from '@angular/forms';
@@ -42,8 +42,9 @@ export class DataLocationField extends FieldBase<any> {
   failedObjects: object[];
   recordsService: RecordsService;
   columns: object[];
-  newLocation:any = {type:"url", location:"",notes:""};
-  dataTypes:object[] = [{
+  newLocation: any = { type: "url", location: "", notes: "" };
+  attachmentText: string="Add attachment(s)";
+  dataTypes: object[] = [{
     'label': 'URL',
     'value': 'url',
   },
@@ -59,13 +60,13 @@ export class DataLocationField extends FieldBase<any> {
     'label': 'Attachment',
     'value': 'attachment'
   }
-];
+  ];
 
-  dataTypeLookup:any = {
-    'url':"URL",
-    'physical':"Physical location",
-    'attachment':"Attachment",
-    'file':"File path"
+  dataTypeLookup: any = {
+    'url': "URL",
+    'physical': "Physical location",
+    'attachment': "Attachment",
+    'file': "File path"
   }
 
   constructor(options: any, injector: any) {
@@ -79,8 +80,8 @@ export class DataLocationField extends FieldBase<any> {
     this.recordsService = this.getFromInjector(RecordsService);
   }
 
-  setValue(value:any, emitEvent:boolean = true) {
-    this.formModel.setValue(value, {emitEvent: emitEvent, emitModelToViewChange:true });
+  setValue(value: any, emitEvent: boolean = true) {
+    this.formModel.setValue(value, { emitEvent: emitEvent, emitModelToViewChange: true });
     this.formModel.markAsTouched();
     this.formModel.markAsDirty();
   }
@@ -93,24 +94,24 @@ export class DataLocationField extends FieldBase<any> {
   addLocation() {
     this.value.push(this.newLocation);
     this.setValue(this.value);
-    this.newLocation = {type:"url", location:"",notes:""};
+    this.newLocation = { type: "url", location: "", notes: "" };
   }
 
-  appendLocation(newLoc:any) {
+  appendLocation(newLoc: any) {
     this.value.push(newLoc);
     this.setValue(this.value, true);
   }
 
   clearPendingAtt(value) {
-    _.each(value, (val:any) => {
+    _.each(value, (val: any) => {
       if (val.type == 'attachment') {
-       _.unset(val, 'pending');
+        _.unset(val, 'pending');
       }
     });
   }
 
   removeLocation(loc: any) {
-    _.remove(this.value, (val:any) => {
+    _.remove(this.value, (val: any) => {
       return val.type == loc.type && val.name == loc.name && val.location == loc.location;
     });
     this.setValue(this.value);
@@ -160,7 +161,7 @@ export class DataLocationComponent extends SimpleComponent {
     // temporarily clearing pending values
     const fieldVal = _.cloneDeep(this.field.fieldMap._rootComp.form.value[this.field.name]);
     this.field.clearPendingAtt(fieldVal);
-    this.field.fieldMap._rootComp.form.controls[this.field.name].setValue(fieldVal, {emitEvent: true});
+    this.field.fieldMap._rootComp.form.controls[this.field.name].setValue(fieldVal, { emitEvent: true });
   }
 
   public applyPendingChanges(savedInfo) {
@@ -190,7 +191,7 @@ export class DataLocationComponent extends SimpleComponent {
     console.debug(`Using Uppy config:`);
     console.debug(JSON.stringify(uppyConfig));
     const appConfig = this.field.recordsService.getConfig();
-    const tusConfig =  {
+    const tusConfig = {
       endpoint: `${this.field.recordsService.getBrandingAndPortalUrl}/record/${oid}/attach`
     };
     console.debug(`Using TUS config:::`);
@@ -200,13 +201,13 @@ export class DataLocationComponent extends SimpleComponent {
       // trigger: '.UppyModalOpenerBtn',
       inline: false,
       metaFields: [
-        {id: 'notes', name: 'Notes', placeholder: 'Notes about this file.'}
+        { id: 'notes', name: 'Notes', placeholder: 'Notes about this file.' }
       ]
     })
-    .use(Uppy.Tus, tusConfig)
-    .run();
+      .use(Uppy.Tus, tusConfig)
+      .run();
     console.log(this.uppy);
-    let fieldVal:any = null;
+    let fieldVal: any = null;
     // attach event handers...
     this.uppy.on('upload-success', (file, resp, uploadURL) => {
       console.debug("File info:");
@@ -218,29 +219,35 @@ export class DataLocationComponent extends SimpleComponent {
       const urlParts = uploadURL.split('/');
       const fileId = urlParts[urlParts.length - 1];
       const choppedUrl = urlParts.slice(6, urlParts.length).join('/');
-      const newLoc = {type: "attachment", pending: true, location: choppedUrl, notes: file.meta.notes, mimeType: file.type, name: file.meta.name, fileId: fileId, uploadUrl: uploadURL};
+      const newLoc = { type: "attachment", pending: true, location: choppedUrl, notes: file.meta.notes, mimeType: file.type, name: file.meta.name, fileId: fileId, uploadUrl: uploadURL };
       console.debug(`Adding new location:`);
       console.debug(newLoc);
       this.field.appendLocation(newLoc);
     });
     // clearing all pending attachments...
-    this.field.fieldMap._rootComp.subscribe('onBeforeSave', this.field.name, (savedInfo:any) => {
+    this.field.fieldMap._rootComp.subscribe('onBeforeSave', this.field.name, (savedInfo: any) => {
       console.log(`Before saving record triggered.. `);
       this.field.fieldMap[this.field.name].instance.tempClearPending();
     });
 
     // attach event handling for saving the record
-    this.field.fieldMap._rootComp.subscribe('recordSaved', this.field.name, (savedInfo:any) => {
+    this.field.fieldMap._rootComp.subscribe('recordSaved', this.field.name, (savedInfo: any) => {
       console.log(`Saved record triggered.. `);
       this.field.fieldMap[this.field.name].instance.applyPendingChanges(savedInfo);
     });
   }
 
   public isAttachmentsDisabled() {
-    return _.isEmpty(this.oid);
+    if (_.isEmpty(this.oid)) {
+      this.field.attachmentText="Save your record to attach files";
+      return true;
+    } else {
+      this.field.attachmentText="Add attachment(s)";
+      return false;
+    }
   }
 
-  public getAbsUrl(location:string) {
+  public getAbsUrl(location: string) {
     return `${this.field.recordsService.getBrandingAndPortalUrl}/record/${location}`
   }
 

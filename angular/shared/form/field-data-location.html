@@ -64,7 +64,7 @@
       <input [(ngModel)]="field.newLocation.location" *ngIf="field.newLocation.type != 'attachment'" type="text" class="form-control" />
       <a [class.disabled]="isAttachmentsDisabled()"
       class="btn btn-info UppyModalOpenerBtn"
-      [style.display]="field.newLocation.type == 'attachment' ? 'inherit' : 'none'" (click)="openModal()">Add attachment(s)</a>
+      [style.display]="field.newLocation.type == 'attachment' ? 'inherit' : 'none'" (click)="openModal()">{{ field.attachmentText }}</a>
     </div>
     <div class="col-xs-4">
       <input [(ngModel)]="field.newLocation.notes"  *ngIf="field.newLocation.type != 'attachment'" type="text" class="form-control" />
