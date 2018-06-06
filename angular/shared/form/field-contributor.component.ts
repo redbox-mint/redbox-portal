@@ -112,6 +112,9 @@ export class ContributorField extends FieldBase<any> {
     if (valueElem) {
       this.value = valueElem;
     }
+    if (_.isEmpty(this.value.role)) {
+      this.value.role = this.role;
+    }
 
     if (!this.freeText) {
       this.vocabField.setEmptyValue();

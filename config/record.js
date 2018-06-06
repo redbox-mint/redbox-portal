@@ -31,6 +31,21 @@ module.exports.record = {
       source: 'request',
       type: 'param',
       field: 'oid'
+    },
+    '@user_name': {
+      source: 'request',
+      type: 'user',
+      field: 'name'
+    },
+    '@user_email': {
+      source: 'request',
+      type: 'user',
+      field: 'email'
+    },
+    '@user_username': {
+      source: 'request',
+      type: 'user',
+      field: 'username'
     }
   },
   export: {

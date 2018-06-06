@@ -582,7 +582,8 @@ export module Controllers {
       if (!_.isEmpty(variableSubstitutionFields)) {
         _.forEach(variableSubstitutionFields, fieldName => {
           _.forOwn(sails.config.record.customFields, (customConfig, customKey) => {
-            if (!_.isEmpty(field.definition[fieldName]) && _.isString(field.definition[fieldName]) && field.definition[fieldName].indexOf(customKey) != -1) {
+            const fieldTarget = _.get(field.definition, fieldName);
+            if (!_.isEmpty(fieldTarget) && _.isString(fieldTarget) && fieldTarget.indexOf(customKey) != -1) {
               let replacement = null;
               if (customConfig.source == 'request') {
                 switch (customConfig.type) {
@@ -592,11 +593,14 @@ export module Controllers {
                   case 'param':
                     replacement = req.param(customConfig.field);
                     break;
+                  case 'user':
+                    replacement = req.user[customConfig.field];
+                    break;
                 }
               }
 
               if (!_.isEmpty(replacement)) {
-                field.definition[fieldName] = field.definition[fieldName].replace(customKey, replacement);
+                _.set(field.definition, fieldName, fieldTarget.replace(customKey, replacement));
               }
             }
           });

@@ -437,8 +437,10 @@ module.exports = {
                       'this': {
                         onValueUpdate: []
                       }
-                    }
-                  }
+                    },
+                    value: {name: '@user_name', email: '@user_email', username: '@user_username', text_full_name: '@user_name'}
+                  },
+                  variableSubstitutionFields: ['value.name', 'value.email', 'value.username', 'value.text_full_name']
                 },
                 {
                   class: 'RepeatableContributor',
@@ -1033,8 +1035,10 @@ module.exports = {
                           delim: ''
                         }]
                       }
-                    }
-                  }
+                    },
+                    value: '@user_name'
+                  },
+                  variableSubstitutionFields: ['value']
                 }
               ]
             }
