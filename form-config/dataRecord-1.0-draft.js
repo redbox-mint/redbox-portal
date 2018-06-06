@@ -318,63 +318,19 @@ module.exports = {
                   }
                 },
                 {
-                  class: 'RepeatableVocab',
-                  compClass: 'RepeatableVocabComponent',
+                  class: 'Container',
+                  compClass: 'TextBlockComponent',
                   definition: {
-                    label: "@dmpt-project-anzsrcFor",
-                    help: "@dmpt-project-anzsrcFor-help",
-                    name: "dc:subject_anzsrc:for",
-                    forceClone: ['sourceData', 'completerService'],
-                    fields: [{
-                      class: 'VocabField',
-                      definition: {
-                        vocabId: 'anzsrc-for',
-                        "validationMessages": {
-                          "required": "Please select a valid value."
-                        },
-                        fieldNames: ['uri', 'label', 'notation'],
-                        searchFields: 'notation,label',
-                        titleFieldArr: ['notation', 'label']
-                      }
-                    }],
-                    subscribe: {
-                      'rdmpGetter': {
-                        onValueUpdate: [{
-                          action: 'utilityService.getPropertyFromObject',
-                          field: 'dc:subject_anzsrc:for'
-                        }]
-                      }
-                    }
+                    value: 'TODO: FOR selector will replace this',
+                    type: 'h3'
                   }
                 },
                 {
-                  class: 'RepeatableVocab',
-                  compClass: 'RepeatableVocabComponent',
+                  class: 'Container',
+                  compClass: 'TextBlockComponent',
                   definition: {
-                    label: "@dmpt-project-anzsrcSeo",
-                    help: "@dmpt-project-anzsrcSeo-help",
-                    name: "dc:subject_anzsrc:seo",
-                    forceClone: ['sourceData', 'completerService'],
-                    fields: [{
-                      class: 'VocabField',
-                      definition: {
-                        vocabId: 'anzsrc-seo',
-                        "validationMessages": {
-                          "required": "Please select a valid value."
-                        },
-                        fieldNames: ['uri', 'label', 'notation'],
-                        searchFields: 'notation,label',
-                        titleFieldArr: ['notation', 'label']
-                      }
-                    }],
-                    subscribe: {
-                      'rdmpGetter': {
-                        onValueUpdate: [{
-                          action: 'utilityService.getPropertyFromObject',
-                          field: 'dc:subject_anzsrc:seo'
-                        }]
-                      }
-                    }
+                    value: 'TODO: SEO  selector will replace this',
+                    type: 'h3'
                   }
                 }
               ]

@@ -180,18 +180,20 @@ export class VocabField extends FieldBase<any> {
 
   public getValue(data: any) {
     const valObj = {};
-    if (_.isString(data)) {
-      console.log(`Data is string...`)
-      valObj[this.stringLabelToField] = data;
-      return valObj;
-    }
-    _.forEach(this.fieldNames, (fldName: any) => {
-      if (data.originalObject) {
-        this.getFieldValuePair(fldName, data.originalObject, valObj)
-      } else {
-        this.getFieldValuePair(fldName, data, valObj)
+    if (!_.isUndefined(data) && !_.isEmpty(data)) {
+      if (_.isString(data)) {
+        console.log(`Data is string...`)
+        valObj[this.stringLabelToField] = data;
+        return valObj;
       }
-    });
+      _.forEach(this.fieldNames, (fldName: any) => {
+        if (data.originalObject) {
+          this.getFieldValuePair(fldName, data.originalObject, valObj)
+        } else {
+          this.getFieldValuePair(fldName, data, valObj)
+        }
+      });
+    }
     return valObj;
   }
 
