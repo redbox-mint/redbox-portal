@@ -308,18 +308,19 @@ export module Services {
       var passwordField = authConfig.local.passwordField;
       return this.getUserWithId(userid).flatMap(user => {
         if (user) {
-          user["name"] = name;
+          const update = {name: name};
 
           if (!_.isEmpty(email)) {
-            user["email"] = email;
+            update["email"] = email;
           }
 
           if (!_.isEmpty(password)) {
             var bcrypt = require('bcrypt');
             var salt = salt = bcrypt.genSaltSync(10);
-            user[passwordField] = bcrypt.hashSync(password, salt);
+            update[passwordField] = bcrypt.hashSync(password, salt);
           }
-          return this.getObservable(user, 'save', 'simplecb');
+          const q = User.update({id: userid}, update);
+          return this.getObservable(q, 'exec', 'simplecb');
         } else {
           return Observable.throw(new Error('No such user with id:' + userid));
         }
