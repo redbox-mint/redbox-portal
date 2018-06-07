@@ -14,10 +14,21 @@
     height: auto;
   }
 
+  .print-hidden {
+    display:none;
+  }
+
+  .print-display {
+    display:inherit;
+  }
   .site-branding-area {
       background-color: #b1101a !important;
   }
 
+  div.panel {
+    page-break-inside: avoid;
+  }
+  
   .panel-heading {
     background-color: #b1101a !important;
   }

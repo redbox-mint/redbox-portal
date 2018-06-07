@@ -182,8 +182,9 @@ export module Services {
     }
 
     public listDatastreams(oid, fileId) {
-      const apiConfig = sails.config.record.api.getDatastream;
-      const opts:any = this.getOptions(`${sails.config.record.baseUrl.redbox}${apiConfig.url}`, oid, null, false);
+      const apiConfig = sails.config.record.api.listDatastreams;
+      const opts:any = this.getOptions(`${sails.config.record.baseUrl.redbox}${apiConfig.url}`, oid);
+
       return Observable.fromPromise(request[apiConfig.method](opts));
     }
 

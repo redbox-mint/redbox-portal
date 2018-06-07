@@ -56,6 +56,7 @@ export module Controllers {
       'updateResponsibilities',
       'doAttachment',
       'getAttachments',
+      'getDataStream',
       'getAllTypes'
 
     ];
@@ -844,18 +845,52 @@ export module Controllers {
 
     public getAttachments(req, res) {
       const oid = req.param('oid');
-
-      return RecordsService.listDatastreams.subscribe(datastreams => {
+      return RecordsService.listDatastreams(oid).subscribe(datastreams => {
         let attachments = [];
+
         _.each(datastreams['datastreams'], datastream => {
           let attachment = {};
           attachment['dateUpdated'] = moment(datastream['lastModified']['$date']).format();
           attachment['label'] = datastream['label'];
-          attachment['content=type'] = datastream['content=type'];
+          attachment['contentType'] = datastream['contentType'];
           attachments.push(attachment);
         });
           return this.ajaxOk(req, res, null, attachments);
       });
+    }
+
+    public getDataStream(req, res) {
+      const brand = BrandingService.getBrand(req.session.branding);
+      const oid = req.param('oid');
+      const datastreamId = req.param('datastreamId');
+
+      return this.getRecord(oid).flatMap(currentRec => {
+        return this.hasEditAccess(brand, req.user, currentRec).flatMap(hasEditAccess => {
+          if(!hasEditAccess) {
+            return Observable.throw(new Error(TranslationService.t('edit-error-no-permissions')));
+          } else {
+            const fileName = req.param('fileName')? req.param('fileName') : datastreamId;
+            res.set('Content-Type', 'application/octet-stream');
+            res.set('Content-Disposition', `attachment; filename="${fileName}"`);
+            sails.log.verbose(`Returning datastream observable of ${oid}: ${fileName}, datastreamId: ${datastreamId}`);
+            return RecordsService.getDatastream(oid, datastreamId).flatMap((response) => {
+              res.end(Buffer.from(response.body), 'binary');
+              return Observable.of(oid);
+            });
+          }
+        }) }).subscribe(whatever => {
+          // ignore...
+        }, error => {
+          if (this.isAjax(req)) {
+            this.ajaxFail(req, res, error.message);
+          } else {
+            if (error.message == TranslationService.t('edit-error-no-permissions')) {
+              res.forbidden();
+            } else if (error.message == TranslationService.t('attachment-not-found')) {
+              res.notFound();
+            }
+          }
+        });
     }
 
     /**

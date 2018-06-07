@@ -845,3 +845,9 @@ node-menu {
 tree-internal > ul.rootless > li > tree-internal > ul {
     padding-left: 0 !important;
 }
+
+.btn-secondary {
+  color: #fff;
+  background-color: #6c757d;
+  border-color: #6c757d;
+}

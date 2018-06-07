@@ -119,6 +119,10 @@ export class RecordsService extends BaseService {
     return `${this.brandingAndPortalUrl}/dashboard/${recType}`;
   }
 
+  getAttachments(oid: string) {
+    return this.http.get(`${this.brandingAndPortalUrl}/record/${oid}/attachments`, this.getOptionsClient()).toPromise()
+    .then((res:any) => this.extractData(res));
+  }
 
   modifyEditors(records, username, email) {
     return this.http.post(`${this.brandingAndPortalUrl}/record/editors/modify`, {records:records, username:username, email:email}, this.getOptionsClient())

@@ -1,0 +1,45 @@
+<span class="print-hidden">
+
+<span *ngIf="field.pdfAttachments.length > 0">
+  <!-- <a [attr.href]="getDownloadUrl(field.latestPdf)+'&fileName=rdmp.pdf'" target="_blank" [ngClass]="field.cssClasses"><i class="fa fa-file-pdf-o">&nbsp;</i> Download a PDF of this plan</a>
+  <a *ngIf="field.pdfAttachments.length > 1" data-toggle="modal" data-target="#pdfHistoryModal" [ngClass]="field.cssClasses">Download a previous version</a> -->
+
+
+<div class="btn-group">
+  <a type="button" [attr.href]="getDownloadUrl(field.latestPdf)+'&fileName=rdmp.pdf'" target="_blank" class="btn btn-danger"><i class="fa fa-file-pdf-o">&nbsp;</i> Download a PDF of this plan</a>
+  <button type="button" class="btn btn-danger dropdown-toggle" data-toggle="dropdown">
+    <span class="caret"></span>
+    <span class="sr-only">Toggle Dropdown</span>
+  </button>
+  <ul class="dropdown-menu" role="menu">
+    <li><a data-toggle="modal" data-target="#pdfHistoryModal">Download a previous version</a></li>
+  </ul>
+</div>
+</span>
+
+<!-- Modal -->
+<div class="modal fade" id="pdfHistoryModal" tabindex="-1" role="dialog" aria-labelledby="pdfHistoryModalLabel" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-body">
+        <table class="table">
+          <thead>
+              <tr>
+                  <th>Date created</th><th>Download</th>
+              </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let item of field.pdfAttachments">
+              <td>{{ item.dateUpdated }}</td>
+              <td><a [attr.href]="getDownloadUrl(item)" target="_blank"><i class="fa fa-file-pdf-o"></i> Download</a></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+</span>

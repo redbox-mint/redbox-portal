@@ -23,16 +23,33 @@ module.exports = {
       }
     },
     {
-      class: "AnchorOrButton",
-      viewOnly: true,
+      class: 'Container',
+      compClass: 'GenericGroupComponent',
       definition: {
-        label: '@dmp-edit-record-link',
-        value: '/@branding/@portal/record/edit/@oid',
-        cssClasses: 'btn btn-large btn-info margin-15',
-        showPencil: true,
-        controlType: 'anchor'
-      },
-      variableSubstitutionFields: ['value']
+        cssClasses: "form-inline",
+        fields: [{
+            class: "AnchorOrButton",
+            viewOnly: true,
+            definition: {
+              label: '@dmp-edit-record-link',
+              value: '/@branding/@portal/record/edit/@oid',
+              cssClasses: 'btn btn-large btn-info margin-15',
+              showPencil: true,
+              controlType: 'anchor'
+            },
+            variableSubstitutionFields: ['value']
+          },
+          {
+            class: 'PDFList',
+            viewOnly: true,
+            definition: {
+              name: 'pdf',
+              label: 'pdf',
+              cssClasses: 'btn btn-large btn-info margin-15'
+            }
+          }
+        ]
+      }
     },
     {
       class: 'TextArea',
@@ -440,7 +457,12 @@ module.exports = {
                         onValueUpdate: []
                       }
                     },
-                    value: {name: '@user_name', email: '@user_email', username: '@user_username', text_full_name: '@user_name'}
+                    value: {
+                      name: '@user_name',
+                      email: '@user_email',
+                      username: '@user_username',
+                      text_full_name: '@user_name'
+                    }
                   },
                   variableSubstitutionFields: ['value.name', 'value.email', 'value.username', 'value.text_full_name']
                 },
@@ -1212,12 +1234,10 @@ module.exports = {
                     help: '@dmpt-workspace-select-help',
                     open: '@dmpt-workspace-open',
                     saveFirst: '@dmpt-workspace-saveFirst',
-                    defaultSelection: [
-                      {
-                        name: '',
-                        label: '@dmpt-select:Empty'
-                      }
-                    ]
+                    defaultSelection: [{
+                      name: '',
+                      label: '@dmpt-select:Empty'
+                    }]
                   }
                 }
               ]
@@ -1230,8 +1250,8 @@ module.exports = {
       class: "ButtonBarContainer",
       compClass: "ButtonBarContainerComponent",
       definition: {
-        fields: [
-          {
+        editOnly: true,
+        fields: [{
             class: "TabNavButton",
             definition: {
               id: 'mainTabNav',
