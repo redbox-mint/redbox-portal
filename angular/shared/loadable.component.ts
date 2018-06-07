@@ -66,9 +66,9 @@ export class LoadableComponent  {
 
   synchLoading() {
     if (this.isLoading) {
-      jQuery("#loading").show();
+      jQuery("#loading").removeClass("hidden");
     } else {
-      jQuery("#loading").hide();
+      jQuery("#loading").addClass("hidden"); 
     }
   }
 

@@ -363,6 +363,7 @@ module.exports = {
               fields: [{
                   class: 'ContributorField',
                   showHeader: true,
+                  showRole: false,
                   definition: {
                     name: 'contributor_ci',
                     required: true,
@@ -428,6 +429,7 @@ module.exports = {
                     nameColHdr: '@dmpt-people-tab-name-hdr',
                     emailColHdr: '@dmpt-people-tab-email-hdr',
                     orcidColHdr: '@dmpt-people-tab-orcid-hdr',
+                    showRole: false,
                     publish: {
                       onValueUpdate: {
                         modelEventSource: 'valueChanges'
@@ -476,6 +478,7 @@ module.exports = {
                         nameColHdr: '@dmpt-people-tab-name-hdr',
                         emailColHdr: '@dmpt-people-tab-email-hdr',
                         orcidColHdr: '@dmpt-people-tab-orcid-hdr',
+                        showRole: false,
                         publish: {
                           onValueUpdate: {
                             modelEventSource: 'valueChanges'
@@ -516,6 +519,7 @@ module.exports = {
                     nameColHdr: '@dmpt-people-tab-name-hdr',
                     emailColHdr: '@dmpt-people-tab-email-hdr',
                     orcidColHdr: '@dmpt-people-tab-orcid-hdr',
+                    showRole: false,
                     publish: {
                       onValueUpdate: {
                         modelEventSource: 'valueChanges'

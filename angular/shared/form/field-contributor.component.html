@@ -142,15 +142,16 @@
 <div *ngIf="!field.editMode">
   <label *ngIf="field.label">{{field.label}}</label>
   <div class="row" *ngIf="field.showHeader">
+
     <div class="col-xs-3"><label>{{field.nameColHdr}}</label></div>
-    <div class="col-xs-3"><label>{{field.emailColHdr}}</label></div>
-    <div class="col-xs-3"><label>{{field.roleColHdr}}</label></div>
-    <div class="col-xs-3"><label>{{field.orcidColHdr}}</label></div>
+    <div [attr.class]="field.showRole? 'col-xs-3':'col-xs-4'"><label>{{field.emailColHdr}}</label></div>
+    <div [attr.class]="field.showRole? 'col-xs-3':'hidden'"><label>{{field.roleColHdr}}</label></div>
+    <div [attr.class]="field.showRole? 'col-xs-3':'col-xs-4'"><label>{{field.orcidColHdr}}</label></div>
   </div>
   <div class="row">
     <div class="col-xs-3">{{field.value.text_full_name}}</div>
-    <div class="col-xs-3">{{field.value.email}}</div>
-    <div class="col-xs-3">{{field.value.role}}</div>
-    <div class="col-xs-3">{{field.value.orcid}}</div>
+    <div [attr.class]="field.showRole? 'col-xs-3':'col-xs-4'">{{field.value.email}}</div>
+    <div [attr.class]="field.showRole? 'col-xs-3':'hidden'">{{field.value.role}}</div>
+    <div [attr.class]="field.showRole? 'col-xs-3':'col-xs-4'">{{field.value.orcid}}</div>
   </div>
 </div>

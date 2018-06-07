@@ -1,3 +1,38 @@
+@media only print {
+  .single-product-area dmp-form .row .row, .single-product-area dmp-form .row .row tabcontainer > div:first-child {
+    padding-left: 0;
+    margin-left: 0;
+  }
+
+  .btn, .btn-info, .user-menu, a[href]:after, .mainmenu-area {
+    display: none !important;
+  }
+  .collapse {
+    display: block !important;
+  }
+  #overview {
+    height: auto;
+  }
+
+  .navbar-fixed-bottom {
+    position: relative !important;
+  }
+
+  .footer-bottom-area {
+   /*background: none repeat scroll 0 0 #000 !important;*/
+    display: none !important
+  }
+
+  .copyright {
+    display: none;
+  }
+
+  .btn .btn-large {
+    display:none;
+  }
+}
+
+
 @media only screen and (min-width: 992px) and (max-width: 1280px) {
 div.cart-collaterals ul.products li.product {
   float: left;

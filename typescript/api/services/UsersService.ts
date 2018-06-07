@@ -42,6 +42,7 @@ export module Services {
       'updateUserRoles',
       'updateUserDetails',
       'getUserWithId',
+      'getUserWithUsername',
       'addLocalUser',
       'setUserKey',
       'hasRole',
@@ -277,7 +278,7 @@ export module Services {
         });
     }
 
-    protected getUserWithUsername = (username) => {
+    public getUserWithUsername = (username) => {
       return this.getObservable(User.findOne({ username: username }).populate('roles'));
     }
 

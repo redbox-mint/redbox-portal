@@ -141,6 +141,7 @@ module.exports.routes = {
   'get /:branding/:portal/record/edit/:oid': 'RecordController.edit',
   '/:branding/:portal/record/:oid/attach': 'RecordController.doAttachment',
   '/:branding/:portal/record/:oid/attach/:attachId': 'RecordController.doAttachment',
+  'get /:branding/:portal/record/:oid/attachments': 'RecordController.getAttachments',
   'get /:branding/:portal/record/wfSteps/:recordType': 'RecordController.getWorkflowSteps',
   'post /:branding/:portal/recordmeta/:recordType': 'RecordController.create',
   'put /:branding/:portal/recordmeta/:oid': 'RecordController.update',

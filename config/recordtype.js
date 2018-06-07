@@ -19,6 +19,13 @@ module.exports.recordtype = {
               "metadata.contributors"
             ]
           }
+        }],
+        post: [{
+          function: 'sails.services.pdfservice.createPDF',
+          options: {
+            waitForSelector: 'div#loading.hidden',
+            pdfPrefix: 'rdmp-pdf'
+          }
         }]
       },
       onUpdate: {
@@ -37,6 +44,13 @@ module.exports.recordtype = {
               "metadata.contributor_supervisor",
               "metadata.contributors"
             ]
+          }
+        }],
+        post: [{
+          function: 'sails.services.pdfservice.createPDF',
+          options: {
+            waitForSelector: 'div#loading.hidden',
+            pdfPrefix: 'rdmp-pdf'
           }
         }]
       }

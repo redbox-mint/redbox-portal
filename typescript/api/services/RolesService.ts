@@ -24,7 +24,7 @@ import {Sails, Model} from "sails";
 declare var sails: Sails;
 declare var Role, BrandingConfig: Model;
 declare var ConfigService;
-declare var _this;
+
 
 export module Services {
   /**
@@ -54,40 +54,40 @@ export module Services {
     }
 
     public getRole = (brand, roleName) :Role => {
-      return _this.getRoleWithName(brand.roles, roleName);
+      return this.getRoleWithName(brand.roles, roleName);
     }
 
     public getAdmin = (brand) :Role => {
-      return _this.getRole(brand, _this.getConfigRole('Admin').name);
+      return this.getRole(brand, this.getConfigRole('Admin').name);
     }
 
     public getAdminFromRoles = (roles) :Role => {
-      return _this.getRoleWithName(roles, _this.getConfigRole('Admin').name);
+      return this.getRoleWithName(roles, this.getConfigRole('Admin').name);
     }
 
     public getDefAuthenticatedRole = (brand:BrandingConfig) :Role => {
-      sails.log.verbose(_this.getRoleWithName(brand.roles, _this.getConfigRole(ConfigService.getBrand(brand.name, 'auth').aaf.defaultRole).name));
-      return _this.getRoleWithName(brand.roles, _this.getConfigRole(ConfigService.getBrand(brand.name, 'auth').aaf.defaultRole).name);
+      sails.log.verbose(this.getRoleWithName(brand.roles, this.getConfigRole(ConfigService.getBrand(brand.name, 'auth').aaf.defaultRole).name));
+      return this.getRoleWithName(brand.roles, this.getConfigRole(ConfigService.getBrand(brand.name, 'auth').aaf.defaultRole).name);
     }
 
     public getNestedRoles = (role, brandRoles) => {
       var roles = [];
       switch (role) {
         case "Admin":
-          roles.push(_this.getRoleWithName(brandRoles, 'Admin'));
+          roles.push(this.getRoleWithName(brandRoles, 'Admin'));
         case "Maintainer":
-          roles.push(_this.getRoleWithName(brandRoles, 'Maintainer'));
+          roles.push(this.getRoleWithName(brandRoles, 'Maintainer'));
         case "Researcher":
-          roles.push(_this.getRoleWithName(brandRoles, 'Researcher'));
+          roles.push(this.getRoleWithName(brandRoles, 'Researcher'));
         case "Guest":
-          roles.push(_this.getRoleWithName(brandRoles, 'Guest'));
+          roles.push(this.getRoleWithName(brandRoles, 'Guest'));
           break;
       }
       return roles;
     }
 
     public getDefUnathenticatedRole = (brand: BrandingConfig) :Role => {
-      return _this.getRoleWithName(brand.roles, _this.getConfigRole(ConfigService.getBrand(brand.name, 'auth').defaultRole).name);
+      return this.getRoleWithName(brand.roles, this.getConfigRole(ConfigService.getBrand(brand.name, 'auth').defaultRole).name);
     }
 
     public getRolesWithBrand = (brand) :Observable<any> => {
@@ -100,10 +100,10 @@ export module Services {
     }
 
     public bootstrap = (defBrand) => {
-      var adminRole = _this.getAdmin(defBrand);
+      var adminRole = this.getAdmin(defBrand);
       if (adminRole == null) {
         sails.log.verbose("Creating default admin, and other roles...");
-        return Observable.from(_this.getConfigRoles())
+        return Observable.from(this.getConfigRoles())
                          .flatMap(roleConfig => {
                            return super.getObservable(Role.create(roleConfig))
                                        .flatMap(newRole => {

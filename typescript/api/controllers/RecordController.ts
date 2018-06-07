@@ -55,6 +55,7 @@ export module Controllers {
       'getTransferResponsibilityConfig',
       'updateResponsibilities',
       'doAttachment',
+      'getAttachments',
       'getAllTypes'
 
     ];
@@ -153,8 +154,8 @@ export module Controllers {
       var role = req.body.role;
       var toEmail = req.body.email;
       var toName = req.body.name;
-      sails.log.error("In update responsibilities");
-      sails.log.error(req);
+      sails.log.debug("In update responsibilities");
+      sails.log.debug(req);
       let recordCtr = 0;
       if (records.length > 0) {
         _.forEach(records, rec => {
@@ -320,10 +321,10 @@ export module Controllers {
               });
               return observable.subscribe(obs => {
 
-                return obs.subscribe(record => { return this.createRecord(record, wfStep, brand, packageType, req, res) });
+                return obs.subscribe(record => { return this.createRecord(record, wfStep, brand, packageType, recordType, req, res) });
               });
             } else {
-              return this.createRecord(record, wfStep, brand, packageType, req, res);
+              return this.createRecord(record, wfStep, brand, packageType, recordType, req, res);
             }
           }, error => {
             this.ajaxFail(req, res, `Failed to save record: ${error}`);
@@ -331,11 +332,12 @@ export module Controllers {
       });
     }
 
-    private createRecord(record, wfStep, brand, packageType, req, res) {
+    private createRecord(record, wfStep, brand, packageType, recordType, req, res) {
       this.updateWorkflowStep(record, wfStep);
       RecordsService.create(brand, record, packageType).subscribe(response => {
         if (response && response.code == "200") {
           response.success = true;
+          this.triggerPostSaveTriggers(response['oid'], record, recordType, 'onCreate');
           this.ajaxOk(req, res, null, response);
         } else {
           this.ajaxFail(req, res, null, response);
@@ -343,6 +345,26 @@ export module Controllers {
       }, error => {
         return Observable.throw(`Failed to save record: ${error}`)
       });
+    }
+
+    private triggerPostSaveTriggers(oid:string ,record:any, recordType:any, mode:string = 'onUpdate') {
+      sails.log.debug("Triggering post save triggers ");
+      sails.log.debug(`hooks.${mode}.post`);
+      sails.log.debug(recordType);
+      let postSaveCreateHooks = _.get(recordType, `hooks.${mode}.post`, null);
+      if (_.isArray(postSaveCreateHooks)) {
+        _.each(postSaveCreateHooks, postSaveCreateHook => {
+          sails.log.debug(postSaveCreateHook);
+          let postSaveCreateHookFunctionString = _.get(postSaveCreateHook, "function", null);
+          if (postSaveCreateHookFunctionString != null) {
+            let postSaveCreateHookFunction = eval(postSaveCreateHookFunctionString);
+            let options = _.get(postSaveCreateHook, "options", {});
+            postSaveCreateHookFunction(oid, record, options).subscribe(result => {
+              sails.log.debug(`post-save trigger ${postSaveCreateHookFunctionString} completed for ${oid}`)
+            });
+          }
+        });
+      }
     }
 
     public update(req, res) {
@@ -353,6 +375,7 @@ export module Controllers {
       let currentRec = null;
       let origRecord = null;
       const failedAttachments = [];
+      let recType = null;
       this.getRecord(oid).flatMap(cr => {
         currentRec = cr;
         return this.hasEditAccess(brand, user, currentRec);
@@ -362,13 +385,14 @@ export module Controllers {
         }).flatMap(recordType => {
           return recordType
         }).flatMap(recordType => {
+          recType = recordType;
           origRecord = _.cloneDeep(currentRec);
           currentRec.metadata = metadata;
-          sails.log.error("recordType");
-          sails.log.error(recordType);
+          sails.log.debug("recordType");
+          sails.log.debug(recordType);
           let preSaveUpdateHooks = _.get(recordType, "hooks.onUpdate.pre", null);
-          sails.log.error("preSaveUpdateHooks");
-          sails.log.error(preSaveUpdateHooks);
+          sails.log.debug("preSaveUpdateHooks");
+          sails.log.debug(preSaveUpdateHooks);
           let observable = Observable.of(currentRec);
           if (_.isArray(preSaveUpdateHooks)) {
 
@@ -394,8 +418,6 @@ export module Controllers {
             record = Observable.of(record);
           }
           record.subscribe(currentRec => {
-            sails.log.error("record is: ");
-            sails.log.error(record);
 
             return FormsService.getFormByName(currentRec.metaMetadata.form, true)
               .flatMap(form => {
@@ -404,6 +426,7 @@ export module Controllers {
               })
               .subscribe(response => {
                 if (response && response.code == "200") {
+                  this.triggerPostSaveTriggers(response['oid'], record, recType);
                   return this.updateDataStream(oid, origRecord, metadata, response, req, res);
                 } else {
                   this.ajaxFail(req, res, null, response);
@@ -816,6 +839,22 @@ export module Controllers {
         return WorkflowStepsService.getAllForRecordType(recordType).subscribe(wfSteps => {
           return this.ajaxOk(req, res, null, wfSteps);
         });
+      });
+    }
+
+    public getAttachments(req, res) {
+      const oid = req.param('oid');
+
+      return RecordsService.listDatastreams.subscribe(datastreams => {
+        let attachments = [];
+        _.each(datastreams['datastreams'], datastream => {
+          let attachment = {};
+          attachment['dateUpdated'] = moment(datastream['lastModified']['$date']).format();
+          attachment['label'] = datastream['label'];
+          attachment['content=type'] = datastream['content=type'];
+          attachments.push(attachment);
+        });
+          return this.ajaxOk(req, res, null, attachments);
       });
     }
 
