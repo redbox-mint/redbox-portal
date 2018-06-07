@@ -62,7 +62,7 @@ export class WorkspaceSelectorComponent extends SimpleComponent {
             <h5>{{ field.workspaceApp.subtitle }}</h5>
             <p>{{ field.workspaceApp.description }}</p>
             <span *ngIf="field.rdmp">
-              <a href="{{ field.appLink + field.workspaceApp.name + '/edit?rdmp=' + field.rdmp }}" class="btn btn-primary">{{ field.open }}</a>
+              <button (click)="saveAndOpenWorkspace()"  class="btn btn-primary">{{ field.open }}</button>
             </span>
             <span *ngIf="!field.rdmp">
               <a disabled href="#" class="btn btn-default">{{ field.saveFirst }}</a>
@@ -85,6 +85,12 @@ export class WorkspaceSelectorFieldComponent extends WorkspaceSelectorComponent 
   ngOnInit() {
     this.field.init();
     this.field.registerEvents();
+  }
+
+  saveAndOpenWorkspace(){
+    this.fieldMap._rootComp.onSubmit().subscribe(response => {
+      window.location.href = `${this.field.appLink}${this.field.workspaceApp.name}/edit?rdmp=${this.field.rdmp}`;
+    });
   }
 
 }
