@@ -21,7 +21,7 @@ export class WorkspaceSelectorComponent extends SimpleComponent {
       return '';
     }
   }
-
+  
 }
 
 @Component({

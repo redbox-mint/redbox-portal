@@ -37,6 +37,7 @@ export class ContributorField extends FieldBase<any> {
   roleColHdr: string;
   orcidColHdr: string;
   showHeader: boolean;
+  showRole: boolean;
   roles: string[];
 
   fieldNames: any;
@@ -67,6 +68,8 @@ export class ContributorField extends FieldBase<any> {
     this.orcidColHdr = options['orcidColHdr'] ? this.getTranslated(options['orcidColHdr'], options['orcidColHdr']) : 'ORCID';
 
     this.showHeader = options['showHeader'] || true;
+    this.showHeader = options['showRole'] || true;
+    
     this.roles = options['roles'] || [];
     this.value = options['value'] || this.setEmptyValue();
     this.fieldNames = options['fieldNames'] || [];

@@ -54,6 +54,7 @@ export module Services {
       'removeDatastream',
       'updateDatastream',
       'getDatastream',
+      'listDatastreams',
       'deleteFilesFromStageDir'
     ];
 
@@ -177,6 +178,12 @@ export module Services {
       opts.resolveWithFullResponse = true;
       sails.log.verbose(`Getting datastream using: `);
       sails.log.verbose(JSON.stringify(opts));
+      return Observable.fromPromise(request[apiConfig.method](opts));
+    }
+
+    public listDatastreams(oid, fileId) {
+      const apiConfig = sails.config.record.api.getDatastream;
+      const opts:any = this.getOptions(`${sails.config.record.baseUrl.redbox}${apiConfig.url}`, oid, null, false);
       return Observable.fromPromise(request[apiConfig.method](opts));
     }
 
