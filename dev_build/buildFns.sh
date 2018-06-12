@@ -42,7 +42,7 @@ function bundleNg2App() {
   ng2dir="angular"
   echo "Bundling ${ng2dir}/${ng2app}...using build target: ${buildTarget}"
   cd "${ng2dir}"
-  ng build --app=${ng2app} --prod --build-optimizer --output-hashing=none
+  ng build --app=${ng2app} --prod --build-optimizer --output-hashing=none --extract-css true
   cd -
 }
 

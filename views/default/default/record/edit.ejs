@@ -21,8 +21,8 @@
 <%
 var currentMinute = sails.config.startupMinute;
 %>
+<link href='/angular/<%= appName %>/styles.bundle.css?<%= currentMinute %>' rel='stylesheet' type='text/css'>
 <script type="text/javascript" src="/angular/<%= appName %>/inline.bundle.js?ts=<%= currentMinute %>"></script>
 <script type="text/javascript" src="/angular/<%= appName %>/polyfills.bundle.js?ts=<%= currentMinute %>"></script>
-<script type="text/javascript" src="/angular/<%= appName %>/styles.bundle.js?ts=<%= currentMinute %>"></script>
 <script type="text/javascript" src="/angular/<%= appName %>/vendor.bundle.js?ts=<%= currentMinute %>"></script>
 <script type="text/javascript" src="/angular/<%= appName %>/main.bundle.js?ts=<%= currentMinute %>"></script>

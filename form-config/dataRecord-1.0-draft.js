@@ -318,19 +318,23 @@ module.exports = {
                   }
                 },
                 {
-                  class: 'Container',
-                  compClass: 'TextBlockComponent',
+                  class: 'ANDSVocab',
+                  compClass: 'ANDSVocabComponent',
                   definition: {
-                    value: 'TODO: FOR selector will replace this',
-                    type: 'h3'
+                    label: "@dmpt-project-anzsrcFor",
+                    help: "@dmpt-project-anzsrcFor-help",
+                    name: "dc:subject_anzsrc:for",
+                    vocabId: 'anzsrc-for'
                   }
                 },
                 {
-                  class: 'Container',
-                  compClass: 'TextBlockComponent',
+                  class: 'ANDSVocab',
+                  compClass: 'ANDSVocabComponent',
                   definition: {
-                    value: 'TODO: SEO  selector will replace this',
-                    type: 'h3'
+                    label: "@dmpt-project-anzsrcSeo",
+                    help: "@dmpt-project-anzsrcSeo-help",
+                    name: "dc:subject_anzsrc:seo",
+                    vocabId: 'anzsrc-seo'
                   }
                 }
               ]

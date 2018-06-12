@@ -26,7 +26,6 @@ import { Ng2CompleterModule } from "ng2-completer";
 import { TranslateI18NextModule } from 'ngx-i18next';
 import { LeafletModule } from '@asymmetrik/ngx-leaflet';
 import { LeafletDrawModule } from '@asymmetrik/ngx-leaflet-draw';
-import { TreeModule } from 'ng2-tree';
 import { DmpFieldComponent } from './form/dmp-field.component';
 import { UserSimpleService } from './user.service-simple';
 import { DashboardService } from './dashboard-service';
@@ -41,11 +40,12 @@ import { WorkspaceTypeService } from './workspace-service';
 import { WorkspaceFieldComponent } from './form/workspace-field.component';
 import { WorkspaceSelectorComponent } from './form/workspace-selector.component';
 import { FieldControlMetaService } from './form/field-control-meta.service';
+import { TreeModule } from 'angular-tree-component';
 
 
 @NgModule({
   imports:      [ BrowserModule, FormsModule, ReactiveFormsModule, NKDatetimeModule, Ng2CompleterModule, TranslateI18NextModule, LeafletModule.forRoot(), LeafletDrawModule.forRoot(), MarkdownModule.forRoot(), TreeModule ],
-  exports:      [ NKDatetimeModule, Ng2CompleterModule, TranslateI18NextModule, DmpFieldComponent, TextFieldComponent, DropdownFieldComponent, TabOrAccordionContainerComponent, ButtonBarContainerComponent, TextBlockComponent,MarkdownTextAreaComponent, TextAreaComponent, DateTimeComponent, AnchorOrButtonComponent, VocabFieldComponent, RepeatableVocabComponent, ContributorComponent, RepeatableContributorComponent, HtmlRawComponent, HiddenValueComponent, WorkflowStepButtonComponent, ActionButtonComponent, LinkValueComponent, SelectionFieldComponent, RepeatableTextfieldComponent, StringTemplatePipe, GenericGroupComponent, RepeatableGroupComponent, MapComponent, ParameterRetrieverComponent, RecordMetadataRetrieverComponent, RelatedObjectSelectorComponent, DataLocationComponent, PublishDataLocationSelectorComponent, WorkspaceSelectorFieldComponent, TabNavButtonComponent, SpacerComponent, WorkspaceFieldComponent, WorkspaceSelectorComponent, ANDSVocabComponent, PDFListComponent ],
+  exports:      [ NKDatetimeModule, Ng2CompleterModule, TranslateI18NextModule, DmpFieldComponent, TextFieldComponent, DropdownFieldComponent, TabOrAccordionContainerComponent, ButtonBarContainerComponent, TextBlockComponent,MarkdownTextAreaComponent, TextAreaComponent, DateTimeComponent, AnchorOrButtonComponent, VocabFieldComponent, RepeatableVocabComponent, ContributorComponent, RepeatableContributorComponent, HtmlRawComponent, HiddenValueComponent, WorkflowStepButtonComponent, ActionButtonComponent, LinkValueComponent, SelectionFieldComponent, RepeatableTextfieldComponent, StringTemplatePipe, GenericGroupComponent, RepeatableGroupComponent, MapComponent, ParameterRetrieverComponent, RecordMetadataRetrieverComponent, RelatedObjectSelectorComponent, DataLocationComponent, PublishDataLocationSelectorComponent, WorkspaceSelectorFieldComponent, TabNavButtonComponent, SpacerComponent, WorkspaceFieldComponent, WorkspaceSelectorComponent, ANDSVocabComponent, PDFListComponent, TreeModule ],
   declarations: [ DmpFieldComponent, TextFieldComponent, DropdownFieldComponent, TabOrAccordionContainerComponent, ButtonBarContainerComponent, TextBlockComponent, MarkdownTextAreaComponent, TextAreaComponent, DateTimeComponent, AnchorOrButtonComponent, SaveButtonComponent, CancelButtonComponent, VocabFieldComponent, RepeatableVocabComponent, ContributorComponent, RepeatableContributorComponent, HtmlRawComponent, HiddenValueComponent, WorkflowStepButtonComponent, ActionButtonComponent, LinkValueComponent, SelectionFieldComponent, RepeatableTextfieldComponent, RelatedObjectDataComponent, StringTemplatePipe, GenericGroupComponent, RepeatableGroupComponent, MapComponent, ParameterRetrieverComponent, RecordMetadataRetrieverComponent, RelatedObjectSelectorComponent, DataLocationComponent, PublishDataLocationSelectorComponent, WorkspaceSelectorFieldComponent, TabNavButtonComponent, SpacerComponent, WorkspaceFieldComponent, WorkspaceSelectorComponent, ANDSVocabComponent, PDFListComponent ],
   providers:    [ FieldControlService, RecordsService, VocabFieldLookupService, ConfigService, TranslationService, UserSimpleService, DashboardService, RolesService, EmailNotificationService, UtilityService, WorkspaceTypeService, FieldControlMetaService,ANDSService ],
   bootstrap:    [ ],

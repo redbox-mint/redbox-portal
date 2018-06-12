@@ -22,7 +22,10 @@ import { FieldBase } from './field-base';
 import { FormGroup, FormControl, Validators } from '@angular/forms';
 import { TreeModel, Ng2TreeSettings } from 'ng2-tree';
 import { ANDSService } from '../ands-service';
+import { TreeComponent, TreeNode, ITreeOptions, ITreeState } from 'angular-tree-component';
 import * as _ from "lodash-es";
+
+declare var jQuery: any;
 
 
 /**
@@ -33,16 +36,6 @@ import * as _ from "lodash-es";
  *
  */
 export class ANDSVocabField extends FieldBase<any> {
-  public settings: Ng2TreeSettings = {
-    rootIsVisible: false,
-    showCheckboxes: true,
-    cascadeCheckboxSelectToChildren: false
-  };
-  public tree: TreeModel = {
-    value: 'Icons',
-    children: [
-    ]
-  };
 
   public andsService:ANDSService;
   public vocabId:string;
@@ -56,13 +49,6 @@ export class ANDSVocabField extends FieldBase<any> {
   }
 
   setValue(value: any, emitEvent: boolean = true) {
-    _.remove(value, item => {
-      if(item['about'] == "") {
-        return true;
-      }
-    });
-
-
     this.formModel.setValue(value, { emitEvent: emitEvent, emitModelToViewChange: true });
     this.formModel.markAsTouched();
     this.formModel.markAsDirty();
@@ -86,199 +72,113 @@ export class ANDSVocabField extends FieldBase<any> {
   templateUrl: './field-andsvocab.html',
   styles: ['span.node-name { font-size: 300%; }']
 })
-export class ANDSVocabComponent extends SimpleComponent implements AfterViewInit {
+export class ANDSVocabComponent extends SimpleComponent {
   field: ANDSVocabField;
   elementRef: ElementRef;
-  andsWidget: any;
-  callbackMap: any = {};
-  topElements: any = [];
   treeData: any = [];
-  narrowingArray:any = [];
   initialisingTree: boolean = true;
-  childNodeMap: any = {};
-  @ViewChild('andsTree') public andsTree;
+  @ViewChild('andsTree') public andsTree : TreeComponent;
+  options: any;
 
   constructor(@Inject(ElementRef) elementRef: ElementRef) {
     super();
     this.elementRef = elementRef;
-  }
+    this.treeData = [];
 
-  public ngOnInit() {
-    if(this.field.editMode) {
-    let that = this;
-    jQuery(this.elementRef.nativeElement)['vocab_widget']({
-      repository: this.field.vocabId,
-      endpoint: 'https://vocabs.ands.org.au/apps/vocab_widget/proxy/',
-      fields:["label", "notation", "about"],
-      cache: false
-    });
-
-    jQuery(this.elementRef.nativeElement).on('narrow.vocab.ands', function(event, data) {
-        if (that.initialisingTree) {
-          if (data.items.length > 0) {
-            let broader = data['items'][0]['broader'];
-            let items = [];
-            _.each(data.items, item => {
-              let child = {};
-              if (item.narrower && item.narrower.length > 0) {
-                child['children'] = [{ value: "won't be displayed" }];
-                child['loadChildren'] = function(callback) {
-                  that.callbackMap[item.about] = callback;
-                  jQuery(that.elementRef.nativeElement)['vocab_widget']('narrow', item.about);
-                };
-              }
-
-              child['value'] = item.notation + " - " + item.label;
-              child['id'] = item.about;
-              child['item'] = item;
-              if (that.childNodeMap[item.about]) {
-                child['children'] = that.childNodeMap[item.about];
-                that.childNodeMap = _.omit(that.childNodeMap, item.about);
-              }
-              items.push(child);
-            });
-            that.childNodeMap[broader] = items;
-            that.field.andsService.getResourceDetails(broader, that.field.vocabId).then(data=> {
-              if(data["result"]["primaryTopic"]["broader"]) {
-                  jQuery(that.elementRef.nativeElement)['vocab_widget']('narrow', data["result"]["primaryTopic"]["broader"]);
-                  that.narrowingArray.push( data["result"]["primaryTopic"]["broader"]);
-              }
-               that.narrowingArray = _.pull(that.narrowingArray, broader);
-               if(that.narrowingArray.length == 0) {
-                 that.initialisingTree = false;
-                 that.buildTree();
-               }
-            })
-          }
-        } else {
-          let items = [];
-          if (data.items.length > 0) {
-            let callback = that.callbackMap[data.items[0]['broader']];
-            _.each(data.items, item => {
-              let child = {};
-              if (item.narrower && item.narrower.length > 0) {
-                child['children'] = [{ value: "won't be displayed" }];
-                child['loadChildren'] = function(callback) {
-                  that.callbackMap[item.about] = callback;
-                  jQuery(that.elementRef.nativeElement)['vocab_widget']('narrow', item.about);
-                };
-              }
-              child['value'] = item.notation + " - " + item.label;
-              child['id'] = item.about;
-              child['item'] = item;
-              items.push(child);
-            });
-            callback(items);
-          }
-        }
-      });
-
-    jQuery(this.elementRef.nativeElement).on('top.vocab.ands', function(event, data) {
-      if (that.field.value.length > 0) {
-        that.treeData = data;
-        let foundBroader = false;
-        _.each(that.field.value, item => {
-          if (item['broader']) {
-            foundBroader = true;
-            jQuery(that.elementRef.nativeElement)['vocab_widget']('narrow', item.broader);
-            that.narrowingArray.push(item.broader);
-          }
-        });
-        if(!foundBroader) {
-          that.buildTree();
-        }
-      } else {
-        that.treeData = data;
-        that.buildTree();
-      }
-    });
-
-    jQuery(this.elementRef.nativeElement)['vocab_widget']('top');
-    }
-  }
-
-  buildTree() {
-    var items = [];
-    let that = this;
-    _.each(this.treeData.items, item => {
-      let child = {
-        children: [{ value: "won't be displayed" }],
-
-      };
-      if (that.childNodeMap[item.about]) {
-        child['children'] = that.childNodeMap[item.about];
-        that.childNodeMap = _.omit(that.childNodeMap, item.about);
-      } else {
-        child['loadChildren'] = function(callback) {
-          that.callbackMap[item.about] = callback;
-          jQuery(that.elementRef.nativeElement)['vocab_widget']('narrow', item.about);
-        }
-      }
-      child['value'] = item.notation + " - " + item.label;
-      child['id'] = item.about;
-      child['item'] = item;
-      items.push(child);
-    });
-    this.initialisingTree = false;
-    this.field.tree = {
-      value: '',
-      children: items,
-      settings: {
-        cssClasses: {
-          expanded: 'fa fa-caret-down',
-          collapsed: 'fa fa-caret-right',
-          empty: 'fa fa-caret-right disabled',
-          leaf: 'fa'
-        }
-      }
+    this.options = {
+      useCheckbox: true,
+      useTriState: false,
+      getChildren: this.getChildren.bind(this)
     };
   }
 
-  ngAfterViewInit() {
-    if(this.field.editMode) {
-      _.each(this.field.value, item => {
-        this.checkNode(item.about);
+  public ngOnInit() {
+    if (this.field.editMode) {
+      jQuery(this.elementRef.nativeElement)['vocab_widget']({
+        repository: this.field.vocabId,
+        endpoint: 'https://vocabs.ands.org.au/apps/vocab_widget/proxy/',
+        fields:["label", "notation", "about"],
+        cache: false
       });
     }
   }
 
-
-  public checkNode(id: string): void {
-    const treeController = this.andsTree.getControllerByNodeId(id);
-    if (treeController) {
-      treeController.check();
-    } else {
-      console.log(`Controller is absent for a node with id: ${id}`);
+  public ngAfterViewInit() {
+    const that = this;
+    if (this.initialisingTree) {
+      jQuery(this.elementRef.nativeElement).on('top.vocab.ands', function(event, data) {
+        if (_.isEmpty(that.treeData)) {
+          that.treeData = that.mapItemsToChildren(data.items);
+          that.updateTreeView();
+          that.initialisingTree = false;
+        }
+      });
+      jQuery(this.elementRef.nativeElement)['vocab_widget']('top');
+      this.andsTree.treeModel.subscribeToState(this.onTreeState.bind(this));
     }
   }
 
-  handleSelected(event) {
-    let node:any = event.node.node;
-
-    if(_.findIndex(this.field.value, item => { return item['about'] == node.about;}) != -1) {
-      this.field.value.push(node.item);
-      this.field.setValue(this.field.value);
+  public onTreeState(state:ITreeState) {
+    if (this.initialisingTree == false) {
+      const selData = [];
+      _.forOwn(state.selectedLeafNodeIds, (val, nodeId) => {
+        selData.push(this.getValueFromChildData(this.andsTree.treeModel.getNodeById(nodeId)));
+      });
+      this.field.setValue(selData);
     }
-    return false;
   }
 
+  public updateTreeView() {
 
-  handleUnSelected(event) {
-    let node = event.node.node;
-    _.remove(this.field.value, element => {
-      return element['about'] == node.item.about;
+    const state = {
+      expandedNodeIds: {},
+      selectedLeafNodeIds: {}
+    };
+    _.each(this.field.value, (val) => {
+      state.selectedLeafNodeIds[val.notation] = true;
+      _.each(val.geneaology, (parentId) => {
+        state.expandedNodeIds[parentId] = true;
+      });
     });
-    this.field.setValue(this.field.value);
+    this.andsTree.treeModel.setState(state);
   }
 
-  controllerCreated(event) {
-    let id = event.id;
-    let controller = event.controller;
+  public getChildren(node: any) {
+    const that = this;
+    const promise = new Promise((resolve, reject)=> {
+      jQuery(this.elementRef.nativeElement).on('narrow.vocab.ands', function(event, data) {
+        return resolve(that.mapItemsToChildren(data.items));
+      });
+    });
+    jQuery(this.elementRef.nativeElement)['vocab_widget']('narrow', {uri: node.data.about});
+    return promise;
+  }
 
-    if(_.findIndex(this.field.value, item => { return item['about'] == id;}) != -1) {
-      window.setTimeout(function(){ controller.check(); }, 500)
+  public mapItemsToChildren(items: any[]) {
+    return _.map(items, (item:any) => {
+      return { id: item.notation, name: `${item.notation} - ${item.label}`, hasChildren:item.narrower && item.narrower.length > 0,  ...item }
+    });
+  }
+
+  public getValueFromChildData(childNode: any) {
+    const data = childNode.data;
+    const val = { name: `${data.notation} - ${data.label}`,  label: data.label, notation: data.notation };
+    this.setParentTree(val, childNode);
+    return val;
+  }
+
+  public setParentTree(val:any, childNode: any) {
+    const parentNotation = _.get(childNode, 'parent.data.notation');
+    if (!_.isUndefined(parentNotation)) {
+      if (_.isUndefined(val['geneaology'])) {
+        val['geneaology'] = [];
+      }
+      val['geneaology'].push(parentNotation);
+      if (childNode.parent.parent) {
+        this.setParentTree(val, childNode.parent);
+      }
+    } else if (!_.isUndefined(val['geneaology'])) {
+      val['geneaology'] = _.sortBy(val['geneaology']);
     }
-
   }
-
 }
