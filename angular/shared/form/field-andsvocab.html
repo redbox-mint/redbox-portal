@@ -16,6 +16,9 @@
       id="andsTree"
       [nodes]="treeData"
       [options]="options"
+      (nodeActivate)="onNodeActivate($event)"
+      (nodeDeactivate)="onNodeDeactivate($event)"
+      (event)="onEvent($event)"
       >
   </tree-root>
   <div class="text-danger" *ngIf="hasRequiredError()">{{field.validationMessages.required}}</div>

@@ -24,6 +24,10 @@ import { TreeModel, Ng2TreeSettings } from 'ng2-tree';
 import { ANDSService } from '../ands-service';
 import { TreeComponent, TreeNode, ITreeOptions, ITreeState } from 'angular-tree-component';
 import * as _ from "lodash-es";
+import { Observable } from 'rxjs/Observable';
+import { Subject } from 'rxjs/Subject';
+import 'rxjs/add/operator/bufferTime';
+import 'rxjs/add/operator/filter';
 
 declare var jQuery: any;
 
@@ -59,6 +63,18 @@ export class ANDSVocabField extends FieldBase<any> {
     return this.value;
   }
 
+  setSelected(item:any, flag) {
+    const curVal = this.formModel.value;
+    if (flag) {
+      curVal.push(item);
+    } else {
+      _.remove(curVal, (entry:any) => {
+        return entry.notation == item.notation;
+      });
+    }
+    this.setValue(curVal);
+  }
+
 }
 /**
 * Component utilising the ANDS Vocabb selector widget
@@ -76,9 +92,13 @@ export class ANDSVocabComponent extends SimpleComponent {
   field: ANDSVocabField;
   elementRef: ElementRef;
   treeData: any = [];
-  initialisingTree: boolean = true;
+  loadState: string = 'init';
   @ViewChild('andsTree') public andsTree : TreeComponent;
   options: any;
+  nodeEventSubject: Subject<any>;
+  treeInitListener: any;
+  expandNodeIds: any;
+
 
   constructor(@Inject(ElementRef) elementRef: ElementRef) {
     super();
@@ -88,8 +108,10 @@ export class ANDSVocabComponent extends SimpleComponent {
     this.options = {
       useCheckbox: true,
       useTriState: false,
-      getChildren: this.getChildren.bind(this)
+      getChildren: this.getChildren.bind(this),
+      scrollContainer: document.body.parentElement
     };
+    this.nodeEventSubject = new Subject<any>();
   }
 
   public ngOnInit() {
@@ -105,42 +127,125 @@ export class ANDSVocabComponent extends SimpleComponent {
 
   public ngAfterViewInit() {
     const that = this;
-    if (this.initialisingTree) {
+    if (this.loadState == 'init') {
+      this.loadState = 'loading';
       jQuery(this.elementRef.nativeElement).on('top.vocab.ands', function(event, data) {
         if (_.isEmpty(that.treeData)) {
           that.treeData = that.mapItemsToChildren(data.items);
-          that.updateTreeView();
-          that.initialisingTree = false;
+          that.loadState = 'loaded';
         }
       });
       jQuery(this.elementRef.nativeElement)['vocab_widget']('top');
-      this.andsTree.treeModel.subscribeToState(this.onTreeState.bind(this));
-    }
-  }
 
-  public onTreeState(state:ITreeState) {
-    if (this.initialisingTree == false) {
-      const selData = [];
-      _.forOwn(state.selectedLeafNodeIds, (val, nodeId) => {
-        selData.push(this.getValueFromChildData(this.andsTree.treeModel.getNodeById(nodeId)));
+      this.nodeEventSubject.bufferTime(1000)
+      .filter(eventArr => {
+        return eventArr.length > 0
+      })
+      .subscribe(eventArr => {
+        this.handleNodeEvent(eventArr);
       });
-      this.field.setValue(selData);
+
+      this.treeInitListener = Observable.interval(1000).subscribe(()=> {
+        if (!_.isEmpty(this.expandNodeIds)) {
+          this.expandNodes();
+        } else if (!_.isEmpty(this.andsTree.treeModel.getVisibleRoots()) && this.loadState == 'loaded') {
+          this.loadState = 'expanding';
+          this.updateTreeView(this);
+          this.expandNodes();
+        } else if (this.loadState == 'expanding') {
+          this.treeInitListener.unsubscribe();
+          this.loadState = 'expanded';
+        }
+      });
     }
   }
 
-  public updateTreeView() {
+  public onEvent(event) {
+    switch(event.eventName) {
+      case "select":
+        this.updateSingleNodeSelectedState(event.node, true);
+        break;
+      case "deselect":
+        this.updateSingleNodeSelectedState(event.node, false);
+        break;
+    }
+  }
 
-    const state = {
-      expandedNodeIds: {},
-      selectedLeafNodeIds: {}
-    };
-    _.each(this.field.value, (val) => {
-      state.selectedLeafNodeIds[val.notation] = true;
+  protected handleNodeEvent(eventArr) {
+    let event = eventArr[0];
+    if (eventArr.length >= 2) {
+      event = eventArr[1];
+    }
+    let currentState = this.getNodeSelected(event.node.id);
+    switch(event.eventName) {
+      case "nodeActivate":
+        if (currentState == undefined) {
+          currentState = true;
+        } else {
+          currentState = false;
+        }
+        this.updateSingleNodeSelectedState(event.node, currentState);
+        break;
+      case "nodeDeactivate":
+        this.updateSingleNodeSelectedState(event.node, false);
+        break;
+    }
+  }
+
+  protected updateSingleNodeSelectedState(node, state) {
+    const nodeId = node.id;
+    const curState = this.andsTree.treeModel.getState();
+    this.setNodeSelected(curState, nodeId, state);
+    this.andsTree.treeModel.setState(curState);
+    this.andsTree.treeModel.update();
+    this.field.setSelected(this.getValueFromChildData(node), state);
+  }
+
+  public onNodeActivate(event: any) {
+    this.nodeEventSubject.next(event);
+  }
+
+  public onNodeDeactivate(event: any) {
+    this.nodeEventSubject.next(event);
+  }
+
+  public updateTreeView(that) {
+    const state = that.andsTree.treeModel.getState();
+    that.expandNodeIds = [];
+    _.each(that.field.value, (val) => {
+      this.setNodeSelected(state, val.notation, true);
       _.each(val.geneaology, (parentId) => {
-        state.expandedNodeIds[parentId] = true;
+        if (!_.includes(that.expandNodeIds, parentId)) {
+          that.expandNodeIds.push(parentId);
+        }
       });
     });
-    this.andsTree.treeModel.setState(state);
+    that.andsTree.treeModel.setState(state);
+    that.andsTree.treeModel.update();
+    that.expandNodeIds = _.sortBy(that.expandNodeIds, (o) => { return _.isString(o) ? o.length : 0 });
+  }
+
+  protected expandNodes() {
+    if (!_.isEmpty(this.expandNodeIds)) {
+      const parentId = this.expandNodeIds[0];
+      const node = this.andsTree.treeModel.getNodeById(parentId);
+      if (node) {
+        node.expand();
+        _.remove(this.expandNodeIds, (id) => { return id == parentId });
+      }
+    }
+  }
+
+  protected setNodeSelected(state, nodeId, flag) {
+    if (flag) {
+      state.selectedLeafNodeIds[nodeId] = flag;
+    } else {
+      _.unset(state.selectedLeafNodeIds, nodeId);
+    }
+  }
+
+  protected getNodeSelected(nodeId) {
+    return this.andsTree.treeModel.getState().selectedLeafNodeIds[nodeId];
   }
 
   public getChildren(node: any) {
