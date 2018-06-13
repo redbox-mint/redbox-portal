@@ -162,10 +162,10 @@ export class ANDSVocabComponent extends SimpleComponent {
   public onEvent(event) {
     switch(event.eventName) {
       case "select":
-        this.updateSingleNodeSelectedState(event.node, true);
+        this.field.setSelected(this.getValueFromChildData(event.node), true);
         break;
       case "deselect":
-        this.updateSingleNodeSelectedState(event.node, false);
+        this.field.setSelected(this.getValueFromChildData(event.node), false);
         break;
     }
   }
