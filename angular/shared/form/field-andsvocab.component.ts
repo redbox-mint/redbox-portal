@@ -20,7 +20,6 @@ import { Input, Component, OnInit, Inject, Injector, ElementRef, ViewChild, Afte
 import { SimpleComponent } from './field-simple.component';
 import { FieldBase } from './field-base';
 import { FormGroup, FormControl, Validators } from '@angular/forms';
-import { TreeModel, Ng2TreeSettings } from 'ng2-tree';
 import { ANDSService } from '../ands-service';
 import { TreeComponent, TreeNode, ITreeOptions, ITreeState } from 'angular-tree-component';
 import * as _ from "lodash-es";

@@ -4066,10 +4066,6 @@ ng2-datetime@^1.4.0:
     bootstrap-timepicker "^0.5.2"
     jquery ">=2.2.1"
 
-"ng2-tree@github:andrewbrazzatti/ng2-tree":
-  version "2.0.0-rc.11"
-  resolved "https://codeload.github.com/andrewbrazzatti/ng2-tree/tar.gz/f1fe6b113fc27210e176b4ca985d7b1e4929d335"
-
 ngx-bootstrap@^2.0.3:
   version "2.0.3"
   resolved "https://registry.yarnpkg.com/ngx-bootstrap/-/ngx-bootstrap-2.0.3.tgz#b8ca4be305be4e2e99f60d941cc8a3e906f198d7"
