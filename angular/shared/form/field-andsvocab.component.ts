@@ -125,37 +125,39 @@ export class ANDSVocabComponent extends SimpleComponent {
   }
 
   public ngAfterViewInit() {
-    const that = this;
-    if (this.loadState == 'init') {
-      this.loadState = 'loading';
-      jQuery(this.elementRef.nativeElement).on('top.vocab.ands', function(event, data) {
-        if (_.isEmpty(that.treeData)) {
-          that.treeData = that.mapItemsToChildren(data.items);
-          that.loadState = 'loaded';
-        }
-      });
-      jQuery(this.elementRef.nativeElement)['vocab_widget']('top');
+    if (this.field.editMode) {
+      const that = this;
+      if (this.loadState == 'init') {
+        this.loadState = 'loading';
+        jQuery(this.elementRef.nativeElement).on('top.vocab.ands', function(event, data) {
+          if (_.isEmpty(that.treeData)) {
+            that.treeData = that.mapItemsToChildren(data.items);
+            that.loadState = 'loaded';
+          }
+        });
+        jQuery(this.elementRef.nativeElement)['vocab_widget']('top');
 
-      this.nodeEventSubject.bufferTime(1000)
-      .filter(eventArr => {
-        return eventArr.length > 0
-      })
-      .subscribe(eventArr => {
-        this.handleNodeEvent(eventArr);
-      });
+        this.nodeEventSubject.bufferTime(1000)
+        .filter(eventArr => {
+          return eventArr.length > 0
+        })
+        .subscribe(eventArr => {
+          this.handleNodeEvent(eventArr);
+        });
 
-      this.treeInitListener = Observable.interval(1000).subscribe(()=> {
-        if (!_.isEmpty(this.expandNodeIds)) {
-          this.expandNodes();
-        } else if (!_.isEmpty(this.andsTree.treeModel.getVisibleRoots()) && this.loadState == 'loaded') {
-          this.loadState = 'expanding';
-          this.updateTreeView(this);
-          this.expandNodes();
-        } else if (this.loadState == 'expanding') {
-          this.treeInitListener.unsubscribe();
-          this.loadState = 'expanded';
-        }
-      });
+        this.treeInitListener = Observable.interval(1000).subscribe(()=> {
+          if (!_.isEmpty(this.expandNodeIds)) {
+            this.expandNodes();
+          } else if (!_.isEmpty(this.andsTree.treeModel.getVisibleRoots()) && this.loadState == 'loaded') {
+            this.loadState = 'expanding';
+            this.updateTreeView(this);
+            this.expandNodes();
+          } else if (this.loadState == 'expanding') {
+            this.treeInitListener.unsubscribe();
+            this.loadState = 'expanded';
+          }
+        });
+      }
     }
   }
 
