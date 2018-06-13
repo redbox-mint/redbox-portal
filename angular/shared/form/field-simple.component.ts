@@ -203,13 +203,23 @@ export class DropdownFieldComponent extends SelectionComponent {
     </ng-container>
     <ng-container *ngIf="!isRadio()">
       <span *ngIf="field.label" class="key">{{field.label}}</span>
-      <span class="value">{{getLabel(value)}}<br/></span>
+      <span class="value" *ngIf="!isValArray()">{{getLabel(field.value)}}</span>
+      <ng-container *ngIf="isValArray()">
+        <div class="value" *ngFor="let val of field.value">
+          {{getLabel(val)}}
+        </div>
+      </ng-container>
     </ng-container>
+    <div>&nbsp;</div>
   </div>
   `,
 })
 export class SelectionFieldComponent extends SelectionComponent {
   static clName = 'SelectionFieldComponent';
+
+  isValArray() {
+    return _.isArray(this.field.value);
+  }
 
   isRadio() {
     return this.field.controlType == 'radio';
