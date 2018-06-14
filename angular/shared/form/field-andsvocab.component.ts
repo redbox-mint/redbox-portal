@@ -91,13 +91,17 @@ export class ANDSVocabComponent extends SimpleComponent {
   field: ANDSVocabField;
   elementRef: ElementRef;
   treeData: any = [];
-  loadState: string = 'init';
   @ViewChild('andsTree') public andsTree : TreeComponent;
   options: any;
   nodeEventSubject: Subject<any>;
   treeInitListener: any;
-  expandNodeIds: any;
-
+  expandNodeIds: any = [];
+  readonly STATUS_INIT = 0;
+  readonly STATUS_LOADING = 1;
+  readonly STATUS_LOADED = 2;
+  readonly STATUS_EXPANDING = 3;
+  readonly STATUS_EXPANDED = 4;
+  loadState: any;
 
   constructor(@Inject(ElementRef) elementRef: ElementRef) {
     super();
@@ -111,6 +115,7 @@ export class ANDSVocabComponent extends SimpleComponent {
       scrollContainer: document.body.parentElement
     };
     this.nodeEventSubject = new Subject<any>();
+    this.loadState = this.STATUS_INIT;
   }
 
   public ngOnInit() {
@@ -121,18 +126,19 @@ export class ANDSVocabComponent extends SimpleComponent {
         fields:["label", "notation", "about"],
         cache: false
       });
+      this.field.componentReactors.push(this);
     }
   }
 
   public ngAfterViewInit() {
     if (this.field.editMode) {
       const that = this;
-      if (this.loadState == 'init') {
-        this.loadState = 'loading';
+      if (this.loadState == this.STATUS_INIT) {
+        this.loadState = this.STATUS_LOADING;
         jQuery(this.elementRef.nativeElement).on('top.vocab.ands', function(event, data) {
           if (_.isEmpty(that.treeData)) {
             that.treeData = that.mapItemsToChildren(data.items);
-            that.loadState = 'loaded';
+            that.loadState = that.STATUS_LOADED;
           }
         });
         jQuery(this.elementRef.nativeElement)['vocab_widget']('top');
@@ -145,20 +151,24 @@ export class ANDSVocabComponent extends SimpleComponent {
           this.handleNodeEvent(eventArr);
         });
 
-        this.treeInitListener = Observable.interval(1000).subscribe(()=> {
-          if (!_.isEmpty(this.expandNodeIds)) {
-            this.expandNodes();
-          } else if (!_.isEmpty(this.andsTree.treeModel.getVisibleRoots()) && this.loadState == 'loaded') {
-            this.loadState = 'expanding';
-            this.updateTreeView(this);
-            this.expandNodes();
-          } else if (this.loadState == 'expanding') {
-            this.treeInitListener.unsubscribe();
-            this.loadState = 'expanded';
-          }
-        });
+        this.startTreeInit();
       }
     }
+  }
+
+  protected startTreeInit() {
+    this.treeInitListener = Observable.interval(1000).subscribe(()=> {
+      if (!_.isEmpty(this.expandNodeIds)) {
+        this.expandNodes();
+      } else if (!_.isEmpty(this.andsTree.treeModel.getVisibleRoots()) && this.loadState == this.STATUS_LOADED) {
+        this.loadState = this.STATUS_EXPANDING;
+        this.updateTreeView(this);
+        this.expandNodes();
+      } else if (this.loadState == this.STATUS_EXPANDING) {
+        this.treeInitListener.unsubscribe();
+        this.loadState = this.STATUS_EXPANDED;
+      }
+    });
   }
 
   public onEvent(event) {
@@ -237,6 +247,10 @@ export class ANDSVocabComponent extends SimpleComponent {
     }
   }
 
+  protected collapseNodes() {
+    this.andsTree.treeModel.collapseAll();
+  }
+
   protected setNodeSelected(state, nodeId, flag) {
     if (flag) {
       state.selectedLeafNodeIds[nodeId] = flag;
@@ -286,5 +300,11 @@ export class ANDSVocabComponent extends SimpleComponent {
     } else if (!_.isUndefined(val['geneaology'])) {
       val['geneaology'] = _.sortBy(val['geneaology']);
     }
+  }
+
+  public reactEvent(eventName: string, eventData: any, origData: any, elem:any) {
+    this.collapseNodes();
+    this.loadState = this.STATUS_LOADED;
+    this.startTreeInit();
   }
 }
