@@ -52,13 +52,13 @@ module.exports = {
         id: "mainTab",
         fields: [
           // -------------------------------------------------------------------
-          // About Tab
+          // Why Tab
           // -------------------------------------------------------------------
           {
             class: "Container",
             definition: {
-              id: "about",
-              label: "@dataRecord-about-tab",
+              id: "aim",
+              label: "@dataRecord-aim-tab",
               active: true,
               fields: [
                 {
@@ -88,12 +88,11 @@ module.exports = {
                     }
                   }
                 },
-
                 {
                   class: 'Container',
                   compClass: 'TextBlockComponent',
                   definition: {
-                    value: '@dataRecord-about-heading',
+                    value: '@dataRecord-aim-heading',
                     type: 'h3'
                   }
                 },
@@ -104,117 +103,6 @@ module.exports = {
                     label: 'RDMP related to this data record',
                     name: 'rdmp',
                     recordType: 'rdmp'
-                  }
-                },
-                {
-                  class: 'TextField',
-                  definition: {
-                    name: 'title',
-                    label: '@dataRecord-title',
-                    help: '@dataRecord-title-help',
-                    type: 'text',
-                    required: true
-                  }
-                },
-                {
-                  class: 'TextArea',
-                  compClass: 'TextAreaComponent',
-                  definition: {
-                    name: 'description',
-                    label: '@dataRecord-description',
-                    help: '@dataRecord-description-help',
-                    type: 'text',
-                    required: true,
-                    subscribe: {
-                      'rdmpGetter': {
-                        onValueUpdate: [{
-                          action: 'utilityService.getPropertyFromObject',
-                          field: 'description'
-                        }]
-                      }
-                    }
-                  }
-                },
-                {
-                  class: 'SelectionField',
-                  compClass: 'DropdownFieldComponent',
-                  definition: {
-                    name: 'datatype',
-                    label: '@dataRecord-datatype',
-                    help: '@dataRecord-datatype-help',
-                    required: true,
-                    options: [{
-                        value: "",
-                        label: "@dataRecord-dataype-select:Empty"
-                      },
-                      {
-                        value: "catalogueOrIndex",
-                        label: "@dataRecord-dataype-select:catalogueOrIndex"
-                      },
-                      {
-                        value: "collection",
-                        label: "@dataRecord-dataype-select:collection"
-                      },
-                      {
-                        value: "dataset",
-                        label: "@dataRecord-dataype-select:dataset"
-                      },
-                      {
-                        value: "registry",
-                        label: "@dataRecord-dataype-select:registry"
-                      },
-                      {
-                        value: "repository",
-                        label: "@dataRecord-dataype-select:repository"
-                      }
-                    ]
-                  }
-                },
-                {
-                  class: 'RepeatableContainer',
-                  compClass: 'RepeatableTextfieldComponent',
-                  definition: {
-                    label: "@dataRecord-keywords",
-                    help: "@dataRecord-keywords-help",
-                    name: "finalKeywords",
-                    required: true,
-                    fields: [{
-                      class: 'TextField',
-                      definition: {
-                        required: true,
-                        type: 'text',
-                        validationMessages: {
-                          required: "@dataRecord-keywords-required"
-                        }
-                      }
-                    }],
-                    subscribe: {
-                      'rdmpGetter': {
-                        onValueUpdate: [{
-                          action: 'utilityService.getPropertyFromObject',
-                          field: 'finalKeywords'
-                        }]
-                      }
-                    }
-                  }
-                }
-              ]
-            }
-          },
-          // -------------------------------------------------------------------
-          // Aim Tab
-          // -------------------------------------------------------------------
-          {
-            class: "Container",
-            definition: {
-              id: "aim",
-              label: "@dataRecord-aim-tab",
-              fields: [{
-                  class: 'Container',
-                  compClass: 'TextBlockComponent',
-                  definition: {
-                    value: '@dataRecord-aim-heading',
-                    type: 'h3'
                   }
                 },
                 {
@@ -324,7 +212,15 @@ module.exports = {
                     label: "@dmpt-project-anzsrcFor",
                     help: "@dmpt-project-anzsrcFor-help",
                     name: "dc:subject_anzsrc:for",
-                    vocabId: 'anzsrc-for'
+                    vocabId: 'anzsrc-for',
+                    subscribe: {
+                      'rdmpGetter': {
+                        onValueUpdate: [{
+                          action: 'utilityService.getPropertyFromObject',
+                          field: 'dc:subject_anzsrc:for'
+                        }]
+                      }
+                    }
                   }
                 },
                 {
@@ -334,7 +230,127 @@ module.exports = {
                     label: "@dmpt-project-anzsrcSeo",
                     help: "@dmpt-project-anzsrcSeo-help",
                     name: "dc:subject_anzsrc:seo",
-                    vocabId: 'anzsrc-seo'
+                    vocabId: 'anzsrc-seo',
+                    subscribe: {
+                      'rdmpGetter': {
+                        onValueUpdate: [{
+                          action: 'utilityService.getPropertyFromObject',
+                          field: 'dc:subject_anzsrc:seo'
+                        }]
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          // -------------------------------------------------------------------
+          // What Tab
+          // -------------------------------------------------------------------
+          {
+            class: "Container",
+            definition: {
+              id: "about",
+              label: "@dataRecord-about-tab",
+              fields: [
+                {
+                  class: 'Container',
+                  compClass: 'TextBlockComponent',
+                  definition: {
+                    value: '@dataRecord-about-heading',
+                    type: 'h3'
+                  }
+                },
+                {
+                  class: 'TextField',
+                  definition: {
+                    name: 'title',
+                    label: '@dataRecord-title',
+                    help: '@dataRecord-title-help',
+                    type: 'text',
+                    required: true
+                  }
+                },
+                {
+                  class: 'TextArea',
+                  compClass: 'TextAreaComponent',
+                  definition: {
+                    name: 'description',
+                    label: '@dataRecord-description',
+                    help: '@dataRecord-description-help',
+                    type: 'text',
+                    required: true,
+                    subscribe: {
+                      'rdmpGetter': {
+                        onValueUpdate: [{
+                          action: 'utilityService.getPropertyFromObject',
+                          field: 'description'
+                        }]
+                      }
+                    }
+                  }
+                },
+                {
+                  class: 'SelectionField',
+                  compClass: 'DropdownFieldComponent',
+                  definition: {
+                    name: 'datatype',
+                    label: '@dataRecord-datatype',
+                    help: '@dataRecord-datatype-help',
+                    required: true,
+                    options: [{
+                        value: "",
+                        label: "@dataRecord-dataype-select:Empty"
+                      },
+                      {
+                        value: "catalogueOrIndex",
+                        label: "@dataRecord-dataype-select:catalogueOrIndex"
+                      },
+                      {
+                        value: "collection",
+                        label: "@dataRecord-dataype-select:collection"
+                      },
+                      {
+                        value: "dataset",
+                        label: "@dataRecord-dataype-select:dataset"
+                      },
+                      {
+                        value: "registry",
+                        label: "@dataRecord-dataype-select:registry"
+                      },
+                      {
+                        value: "repository",
+                        label: "@dataRecord-dataype-select:repository"
+                      }
+                    ]
+                  }
+                },
+                {
+                  class: 'RepeatableContainer',
+                  compClass: 'RepeatableTextfieldComponent',
+                  definition: {
+                    label: "@dataRecord-keywords",
+                    help: "@dataRecord-keywords-help",
+                    name: "finalKeywords",
+                    required: true,
+                    fields: [{
+                      class: 'TextField',
+                      definition: {
+                        required: true,
+                        type: 'text',
+                        validationMessages: {
+                          required: "@dataRecord-keywords-required"
+                        }
+                      }
+                    }],
+                    subscribe: {
+                      'rdmpGetter': {
+                        onValueUpdate: [{
+                          action: 'utilityService.getPropertyFromObject',
+                          field: 'finalKeywords'
+                        }]
+                      }
+                    }
                   }
                 }
               ]
