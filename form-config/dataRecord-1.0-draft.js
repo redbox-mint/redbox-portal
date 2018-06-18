@@ -590,7 +590,8 @@ module.exports = {
                   class: 'DataLocation',
                   compClass: 'DataLocationComponent',
                   definition: {
-                    name:"dataLocations"
+                    name:"dataLocations",
+                    maxFileSize: 524288000
                   }
                 },
                 {

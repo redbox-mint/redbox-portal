@@ -69,12 +69,19 @@ export class DataLocationField extends FieldBase<any> {
     'file': "File path"
   }
 
+  maxFileSize: number; // in bytes
+  maxNumberOfFiles: number;
+  allowedFileTypes: any[];
+
   constructor(options: any, injector: any) {
     super(options, injector);
     this.accessDeniedObjects = [];
 
     this.columns = options['columns'] || [];
 
+    this.maxFileSize = options['maxFileSize'] || null;
+    this.maxNumberOfFiles = options['maxNumberOfFiles'] || null;
+    this.allowedFileTypes = options['allowedFileTypes'] || null;
 
     this.value = options['value'] || this.setEmptyValue();
     this.recordsService = this.getFromInjector(RecordsService);
@@ -186,7 +193,12 @@ export class DataLocationComponent extends SimpleComponent {
     }
     const uppyConfig = {
       debug: true,
-      autoProceed: false
+      autoProceed: false,
+      restrictions: {
+        maxFileSize: this.field.maxFileSize,
+        maxNumberOfFiles: this.field.maxNumberOfFiles,
+        allowedFileTypes: this.field.allowedFileTypes
+      }
     };
     console.debug(`Using Uppy config:`);
     console.debug(JSON.stringify(uppyConfig));
