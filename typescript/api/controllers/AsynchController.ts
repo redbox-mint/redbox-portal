@@ -107,17 +107,24 @@ export module Controllers {
 
     public progress(req, res) {
       const fq = this.getQuery(req.param('fq'));
+      if (_.isEmpty(fq)) {
+        return this.ajaxFail(req, res, 'Empty queries are not allowed.');
+      }
+      const brand = BrandingService.getBrand(req.session.branding);
+      fq.branding = brand.id;
       AsynchsService.get(fq).subscribe(progress => {
         this.ajaxOk(req, res, null, progress, true);
       });
     }
 
     protected getQuery(fq) {
-      const query = {};
-      _.each(fq.split(','), (filter) => {
-        const fqPair = filter.split(':');
-        query[`${fqPair[0]}`] = fqPair[1];
-      });
+      if (_.isString(fq)) {
+        fq = JSON.parse(fq);
+      }
+      _.unset(fq, '$where');
+      _.unset(fq, 'group');
+      _.unset(fq, 'mapReduce');
+      return fq;
     }
     /**
      **************************************************************************************************
