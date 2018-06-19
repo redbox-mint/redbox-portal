@@ -48,7 +48,9 @@ export module Services {
     ];
 
     public bootstrap() {
-      return Observable.from(sails.config.vocab.bootStrapVocabs)
+      return _.isEmpty(sails.config.vocab.bootStrapVocabs) ?
+      Observable.of(null)
+      : Observable.from(sails.config.vocab.bootStrapVocabs)
       .flatMap(vocabId => {
         return this.getVocab(vocabId);
       })

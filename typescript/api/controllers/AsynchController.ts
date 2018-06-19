@@ -21,6 +21,8 @@
 declare var module;
 declare var sails;
 import { Observable } from 'rxjs/Rx';
+import moment from 'moment-es6';
+
 declare function require(name:string);
 declare var AsynchsService, VocabService, BrandingService;
 /**
@@ -41,7 +43,9 @@ export module Controllers {
     protected _exportedMethods: any = [
         'index',
         'start',
-        'progress'
+        'progress',
+        'stop',
+        'update'
     ];
 
     /**
@@ -54,65 +58,66 @@ export module Controllers {
     }
 
     public start(req, res) {
-      const procId = req.param("procId");
-      const forceHarvest = req.query.force == "true";
+      const progressObj = this.createProgressObjFromRequest(req);
+      AsynchsService.start(progressObj).subscribe(progress => {
+        this.ajaxOk(req, res, null, progress, true);
+      });
+    }
+
+    public stop(req, res) {
+      const id = req.param('id');
+      AsynchsService.finish(id).subscribe(progress => {
+        this.ajaxOk(req, res, null, progress, true);
+      });
+    }
+
+    public update(req, res) {
+      const id = req.param('id');
+      const progressObj = this.createProgressObjFromRequest(req);
+      AsynchsService.update({id: id}, progressObj).subscribe(progress => {
+        this.ajaxOk(req, res, null, progress, true);
+      });
+    }
+
+    protected createProgressObjFromRequest(req) {
       const brand = BrandingService.getBrand(req.session.branding);
       const username = req.user.username;
-      switch (procId) {
-        case "load_grid":
-          AsynchsService.start(brand.id, 'Load Institution Lookup data.', username)
-          .subscribe(progress => {
-            this.ajaxOk(req, res, null, {status: 'Starting', progressId: progress.id}, true);
-            const progressId = progress.id;
-            VocabService.loadCollection('grid', progressId, forceHarvest).subscribe(prog=> {
-              console.log(`Asynch progress: `);
-              console.log(prog);
-            },
-            error => {
-              console.error(`Asynch Error: `);
-              console.error(error);
-              AsynchsService.finish(progressId, {id: progressId, status: 'errored', message: error.message}).subscribe(finish => {
-                console.log(`Asynch error update completed.`);
-              });
-            });
-            // // start the asynch process...
-            // const context = {progressId: progress.id, asynchService: AsynchsService, vocabService: VocabService};
-            // const subs = Observable.start(()=> {
-            //   this.vocabService.loadCollection('grid', progressId).subscribe(prog=> {
-            //     sails.log.verbose(`Asynch progress: `);
-            //     sails.log.verbose(prog);
-            //   },
-            //   error => {
-            //     sails.log.error(`Asynch Error: `);
-            //     sails.log.error(error);
-            //     this.asynchService.finish({id: this.progressId, status: 'errored'}).subscribe(finish => {
-            //       sails.log.verbose(`Asynch record update completed.`);
-            //     });
-            //   },
-            //   () => {
-            //     sails.log.verbose(`Asynch completed:`);
-            //     this.asynchService.finish({id: this.progressId}).subscribe(finish => {
-            //       sails.log.verbose(`Asynch record update completed.`);
-            //     });
-            //   });
-            // }, context, Scheduler.timeout);
-            // subs.subscribe((x)=> {
-            //   sails.log.verbose(`Starting asynch...`);
-            // }, error => {
-            //   sails.log.error(`Asynch process failed.`);
-            // }, () => {
-            //   sails.log.verbose(`Asynch wrapper completed.`);
-            // });
-          });
-          break
-        default:
-          this.ajaxFail(req, res, null, {message: 'Invalid process id.'}, true);
-          break
+      const name = req.param('name');
+      const recordOid = req.param('relatedRecordId');
+      const metadata = req.param('metadata') ? req.param('metadata') : null;
+      const method = req.method;
+      const status = req.param('status');
+      const progressObj:any = {
+         name: name,
+         started_by: username,
+         branding: brand.id,
+         status:status,
+         metadata: metadata,
+         relatedRecordId: recordOid,
+         message: req.param('message')
+      };
+      if (!_.isUndefined(req.param('targetIdx'))) {
+        progressObj.targetIdx = req.param('targetIdx');
       }
+      if (!_.isUndefined(req.param('currentIdx'))) {
+        progressObj.currentIdx = req.param('currentIdx')
+      }
+      return progressObj;
     }
 
     public progress(req, res) {
+      const fq = this.getQuery(req.param('fq'));
+      AsynchsService.get(fq).subscribe(progress => {
+        this.ajaxOk(req, res, null, progress, true);
+      });
+    }
 
+    protected getQuery(fq) {
+      const query = {};
+      _.each(fq.split(','), (filter) => {
+        const fqPair = filter.split(':');
+        query[`${fqPair[0]}`] = fqPair[1];
+      });
     }
     /**
      **************************************************************************************************

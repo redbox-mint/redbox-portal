@@ -10,7 +10,7 @@ module.exports.record = {
     getMeta: {method: 'get', url: "/api/v1/recordmetadata/$oid"},
     updateMeta: {method: 'post', url: "/api/v1/recordmetadata/$oid"},
     harvest: {method: 'post', url:"/api/v1.1/harvest/$packageType"},
-    getDatastream: {method: 'get', url:"/api/v1/datastream/$oid"},
+    getDatastream: {method: 'get', url:"/api/v1/datastream/$oid", readTimeout: 120000},
     addDatastream: {method: 'post', url:"/api/v1/datastream/$oid"},
     removeDatastream: {method: 'delete', url:"/api/v1/datastream/$oid"},
     addDatastreams: {method: 'put', url:"/api/v1/datastream/$oid"},

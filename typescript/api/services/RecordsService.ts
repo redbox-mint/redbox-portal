@@ -176,6 +176,7 @@ export module Services {
       opts.headers['Content-Type'] = 'application/octet-stream';
       opts.headers['accept'] = 'application/octet-stream';
       opts.resolveWithFullResponse = true;
+      opts.timeout = apiConfig.readTimeout;
       sails.log.verbose(`Getting datastream using: `);
       sails.log.verbose(JSON.stringify(opts));
       return Observable.fromPromise(request[apiConfig.method](opts));

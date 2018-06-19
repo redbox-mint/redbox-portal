@@ -36,11 +36,15 @@ export module Services {
     protected _exportedMethods: any = [
       'start',
       'update',
-      'finish'
+      'finish',
+      'get'
     ];
 
-    public start(brandId, processName, username) {
-      return super.getObservable(AsynchProgress.create({name: processName, started_by: username, branding: brandId, status:'starting', date_started: moment().format('YYYY-MM-DDTHH:mm:ss')}));
+    public start(progressObj) {
+      if (_.isEmpty(progressObj.date_started) || _.isUndefined(progressObj.date_completed)) {
+        progressObj.date_started = moment().format('YYYY-MM-DDTHH:mm:ss');
+      }
+      return super.getObservable(AsynchProgress.create(progressObj));
     }
 
     public update(criteria, progressObj) {
@@ -55,6 +59,10 @@ export module Services {
       }
       progressObj.status = 'finished';
       return super.getObservable(AsynchProgress.update({id:progressId}, progressObj));
+    }
+
+    public get(criteria) {
+      return super.getObservable(AsynchProgress.find(criteria));
     }
 
   }
