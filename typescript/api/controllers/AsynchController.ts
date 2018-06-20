@@ -45,7 +45,9 @@ export module Controllers {
         'start',
         'progress',
         'stop',
-        'update'
+        'update',
+        'subscribe',
+        'unsubscribe'
     ];
 
     /**
@@ -60,6 +62,7 @@ export module Controllers {
     public start(req, res) {
       const progressObj = this.createProgressObjFromRequest(req);
       AsynchsService.start(progressObj).subscribe(progress => {
+        this.broadcast(req, 'start', progress);
         this.ajaxOk(req, res, null, progress, true);
       });
     }
@@ -67,6 +70,7 @@ export module Controllers {
     public stop(req, res) {
       const id = req.param('id');
       AsynchsService.finish(id).subscribe(progress => {
+        this.broadcast(req, 'stop', progress);
         this.ajaxOk(req, res, null, progress, true);
       });
     }
@@ -75,6 +79,7 @@ export module Controllers {
       const id = req.param('id');
       const progressObj = this.createProgressObjFromRequest(req);
       AsynchsService.update({id: id}, progressObj).subscribe(progress => {
+        this.broadcast(req, 'update', progress);
         this.ajaxOk(req, res, null, progress, true);
       });
     }
@@ -126,6 +131,47 @@ export module Controllers {
       _.unset(fq, 'mapReduce');
       return fq;
     }
+
+    public subscribe(req, res) {
+      if (!req.isSocket) {
+        return res.badRequest();
+      }
+      const roomId = req.param('roomId')
+      sails.sockets.join(req, roomId, (err) => {
+        if (err) {
+          return this.ajaxFail(req, res, `Failed to join room: ${roomId}`, err, true);
+        }
+        return this.ajaxOk(req, res, null, {
+          status: true,
+          message: `Successfully joined: ${roomId}`
+        },
+        true);
+      });
+    }
+
+    public unsubscribe(req, res) {
+      if (!req.isSocket) {
+        return res.badRequest();
+      }
+      const roomId = req.param('roomId')
+      sails.sockets.leave(req, roomId, (err) => {
+        if (err) {
+          return this.ajaxFail(req, res, `Failed to leave room: ${roomId}`, err, true);
+        }
+        return this.ajaxOk(req, res, null, {
+          status: true,
+          message: `Successfully left: ${roomId}`
+        },
+        true);
+      });
+    }
+
+    protected broadcast(req, eventName, progressObj) {
+      if (!_.isEmpty(progressObj.relatedRecordId) && !_.isUndefined(progressObj.relatedRecordId)) {
+        sails.sockets.broadcast(progressObj.relatedRecordId, eventName, progressObj);
+      }
+    }
+
     /**
      **************************************************************************************************
      **************************************** Override magic methods **********************************

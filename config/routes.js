@@ -163,6 +163,8 @@ module.exports.routes = {
   'delete /:branding/:portal/asynch': 'AsynchController.stop',
   'put /:branding/:portal/asynch': 'AsynchController.update',
   'get /:branding/:portal/asynch': 'AsynchController.progress',
+  'get /:branding/:portal/asynch/subscribe/:roomId': 'AsynchController.subscribe',
+  'delete /:branding/:portal/asynch/subscribe/:roomId': 'AsynchController.unsubscribe',
   'get /:branding/:portal/admin/reports': 'ReportsController.render',
   'get /:branding/:portal/admin/report/:name': 'ReportController.render',
   'get /:branding/:portal/admin/getReport': 'ReportController.get',
