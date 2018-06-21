@@ -26,7 +26,7 @@ import { FieldControlMetaService } from './field-control-meta.service';
 import { Observable } from 'rxjs/Observable';
 import * as _ from "lodash-es";
 import { ConfigService } from '../config-service';
-
+declare var io: any;
 /**
  * Plan Client-side services
  *
@@ -196,11 +196,21 @@ export class RecordsService extends BaseService {
   }
 
 
-    executeAction(action:string, params:any) {
-      return this.http.post(`${this.brandingAndPortalUrl}/action/${action}`, params, this.options)
-        .toPromise()
-        .then((res: any) => this.extractData(res));
-    }
+  executeAction(action:string, params:any) {
+    return this.http.post(`${this.brandingAndPortalUrl}/action/${action}`, params, this.options)
+      .toPromise()
+      .then((res: any) => this.extractData(res));
+  }
+
+  getAsyncProgress(fq:string) {
+    return this.http.get(`${this.brandingAndPortalUrl}/asynch?fq=${fq}`, this.options)
+    .toPromise()
+    .then((res: any) => this.extractData(res));
+  }
+
+  subscribeToAsyncProgress(oid: string = null, connectCb) {
+    io.socket.get(`${this.brandingAndPortalUrl}/asynch/subscribe/${oid}`, connectCb);
+  }
 }
 
 export class RecordActionResult {

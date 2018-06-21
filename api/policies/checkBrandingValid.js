@@ -2,9 +2,15 @@ module.exports = function(req, res, next) {
   // Checks the branding parameter, if it's not present in the availableBrandings array of the BrandingService return 404.
   var url = req.url;
   var splitUrl = url.split('/');
-  if (splitUrl.length > 3) {
-    var branding = splitUrl[1];
-    var portal = splitUrl[2];
+  let brandingIdx = 1;
+  if (req.isSocket) {
+    brandingIdx = brandingIdx + 2;
+  }
+  const portalIdx = brandingIdx + 1;
+  const minLength = portalIdx + 1;
+  if (splitUrl.length > minLength) {
+    var branding = splitUrl[brandingIdx];
+    var portal = splitUrl[portalIdx];
     if(_.includes(BrandingService.getAvailable(),branding)) {
       return next();
     } else {

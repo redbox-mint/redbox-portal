@@ -79,7 +79,7 @@ module.exports.auth = {
     },
     {
       path: '/:branding/:portal/asynch(/*)',
-      role: 'Admin',
+      role: 'Researcher',
       can_update:true
     },
     {

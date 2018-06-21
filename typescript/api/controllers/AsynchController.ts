@@ -70,8 +70,8 @@ export module Controllers {
     public stop(req, res) {
       const id = req.param('id');
       AsynchsService.finish(id).subscribe(progress => {
-        this.broadcast(req, 'stop', progress);
-        this.ajaxOk(req, res, null, progress, true);
+        this.broadcast(req, 'stop', progress[0]);
+        this.ajaxOk(req, res, null, progress[0], true);
       });
     }
 
@@ -79,8 +79,8 @@ export module Controllers {
       const id = req.param('id');
       const progressObj = this.createProgressObjFromRequest(req);
       AsynchsService.update({id: id}, progressObj).subscribe(progress => {
-        this.broadcast(req, 'update', progress);
-        this.ajaxOk(req, res, null, progress, true);
+        this.broadcast(req, 'update', progress[0]);
+        this.ajaxOk(req, res, null, progress[0], true);
       });
     }
 
@@ -99,7 +99,8 @@ export module Controllers {
          status:status,
          metadata: metadata,
          relatedRecordId: recordOid,
-         message: req.param('message')
+         message: req.param('message'),
+         taskType: req.param('taskType')
       };
       if (!_.isUndefined(req.param('targetIdx'))) {
         progressObj.targetIdx = req.param('targetIdx');
@@ -116,7 +117,7 @@ export module Controllers {
         return this.ajaxFail(req, res, 'Empty queries are not allowed.');
       }
       const brand = BrandingService.getBrand(req.session.branding);
-      fq.branding = brand.id;
+      fq.where.branding = brand.id;
       AsynchsService.get(fq).subscribe(progress => {
         this.ajaxOk(req, res, null, progress, true);
       });
@@ -133,14 +134,18 @@ export module Controllers {
     }
 
     public subscribe(req, res) {
+      const roomId = req.param('roomId');
+      console.log(`Trying to join: ${roomId}`);
       if (!req.isSocket) {
         return res.badRequest();
       }
-      const roomId = req.param('roomId')
+
       sails.sockets.join(req, roomId, (err) => {
         if (err) {
+          console.log(`Failed to join room`);
           return this.ajaxFail(req, res, `Failed to join room: ${roomId}`, err, true);
         }
+        console.log(`Joined room: ${roomId}`);
         return this.ajaxOk(req, res, null, {
           status: true,
           message: `Successfully joined: ${roomId}`
@@ -168,7 +173,11 @@ export module Controllers {
 
     protected broadcast(req, eventName, progressObj) {
       if (!_.isEmpty(progressObj.relatedRecordId) && !_.isUndefined(progressObj.relatedRecordId)) {
-        sails.sockets.broadcast(progressObj.relatedRecordId, eventName, progressObj);
+        sails.sockets.broadcast(progressObj.relatedRecordId, eventName, progressObj, req);
+        sails.sockets.broadcast(progressObj.id, eventName, progressObj, req);
+        if (progressObj.taskType) {
+          sails.sockets.broadcast(`${progressObj.relatedRecordId}-${progressObj.taskType}`, eventName, progressObj, req);
+        }
       }
     }
 

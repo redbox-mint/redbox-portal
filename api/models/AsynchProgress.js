@@ -45,6 +45,9 @@ module.exports = {
     },
     relatedRecordId: {
       type: 'string'
+    },
+    taskType: {
+      type: 'string'
     }
   }
 };

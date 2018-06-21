@@ -521,5 +521,21 @@
   "@dataPublication-title-help": "Data publication title help text",
   "@dataPublication-description-help": "Data publication description help text",
   "@dataPublication-datatype-help": "Data publication data type help text",
-  "@dataPublication-keywords-help": "Data publication keywords help text"
+  "@dataPublication-keywords-help": "Data publication keywords help text",
+  "@asynch-label": "Background Tasks",
+  "@asynch-name": "Name",
+  "@asynch-status": "Status",
+  "@asynch-dateStarted": "Started",
+  "@asynch-dateCompleted": "Completed",
+  "@asynch-startedBy": "By Username",
+  "@asynch-message": "Message",
+  "@asynch-completion": "Progress",
+  "@asynch-lastUpdate": "Last Updated",
+  "@asynch-status-starting": "Starting",
+  "@asynch-status-started": "Started",
+  "@asynch-status-inprogress": "In Progress",
+  "@asynch-status-paused": "Paused",
+  "@asynch-status-aborted": "Cancelled",
+  "@asynch-status-errored": "Errored",
+  "@asynch-status-finished": "Completed"
 }
