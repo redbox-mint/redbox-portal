@@ -113,6 +113,7 @@ export module Controllers {
 
     protected getRecords(workflowState, recordType, start,rows,user, roles, brand, editAccessOnly=undefined) {
       const username = user.username;
+      recordType = recordType.split(',');
       var response = DashboardService.getRecords(workflowState,recordType, start,rows,username,roles,brand,editAccessOnly);
 
       return response.map(results => {

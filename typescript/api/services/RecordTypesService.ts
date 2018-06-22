@@ -71,7 +71,9 @@ export module Services {
         branding: brand.id,
         packageType: config.packageType,
         searchFilters: config.searchFilters,
-        hooks: config.hooks
+        hooks: config.hooks,
+        transferResponsibility: config.transferResponsibility,
+        relatedTo: config.relatedTo
       }));
     }
 

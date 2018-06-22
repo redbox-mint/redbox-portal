@@ -19,7 +19,7 @@
 
 import { Observable } from 'rxjs/Rx';
 import services = require('../core/CoreService.js');
-import {Sails, Model} from "sails";
+import { Sails, Model } from "sails";
 import * as request from "request-promise";
 
 declare var sails: Sails;
@@ -40,27 +40,37 @@ export module Services {
     ];
 
 
-    public getRecords(workflowState, recordType, start, rows = 10, username, roles, brand, editAccessOnly=undefined) {
+    public getRecords(workflowState, recordType, start, rows = 10, username, roles, brand, editAccessOnly = undefined) {
 
-      var url = sails.config.record.baseUrl.redbox + sails.config.record.api.query.url+"?collection=metadataDocuments";
+      var url = sails.config.record.baseUrl.redbox + sails.config.record.api.query.url + "?collection=metadataDocuments";
       url = this.addPaginationParams(url, start, rows);
       // url = this.addAuthFilter(url, username, roles, brand, editAccessOnly)
       // url = url+"&fq=metaMetadata_brandId:"+brand.id
-      let roleNames= this.getRoleNames(roles,brand);
+      let roleNames = this.getRoleNames(roles, brand);
+      let andArray = [];
+      let permissions = {
+        "$or": [{ "authorization.view": username },
+        { "authorization.edit": username },
+        { "authorization.editRoles": { "$in": roleNames } },
+        { "authorization.viewRoles": { "$in": roleNames } }]
+      };
+      andArray.push(permissions);
+      let typeArray = [];
+      _.each(recordType, rType => {
+        typeArray.push({ "metaMetadata.type": rType });
+      });
+      let types = { "$or": typeArray };
+      andArray.push(types);
       let query = {
-            "metaMetadata.brandId": brand.id,
-            "metaMetadata.type": recordType,
-            "$or":[
-            {"authorization.view": username},
-            {"authorization.edit": username},
-            {"authorization.editRoles": {"$in": roleNames}},
-            {"authorization.viewRoles": {"$in": roleNames}}]
-          };
+        "metaMetadata.brandId": brand.id,
+        "$and":andArray
+      };
 
-          if(workflowState != undefined) {
-           query["workflow.stage"] = workflowState;
-          }
+      if (workflowState != undefined) {
+        query["workflow.stage"] = workflowState;
+      }
 
+      sails.log.info(query);
       var options = this.getOptions(url);
       options['body'] = query;
 
@@ -68,14 +78,14 @@ export module Services {
     }
 
     exportAllPlans(username, roles, brand, format, modBefore, modAfter) {
-      const dateQ = modBefore || modAfter ? ` AND date_object_modified:[${modAfter ? `${modAfter}T00:00:00Z`: '*'} TO ${modBefore ? `${modBefore}T23:59:59Z` : '*'}]` : '';
+      const dateQ = modBefore || modAfter ? ` AND date_object_modified:[${modAfter ? `${modAfter}T00:00:00Z` : '*'} TO ${modBefore ? `${modBefore}T23:59:59Z` : '*'}]` : '';
       var url = sails.config.record.baseUrl.redbox;
       url = `${url}${sails.config.record.api.search.url}?q=metaMetadata_type:rdmp${dateQ}&sort=date_object_modified desc&version=2.2&wt=${format}`;
       url = `${url}&start=0&rows=${sails.config.record.export.maxRecords}`;
       url = this.addAuthFilter(url, username, roles, brand)
-      url = url+"&fq=metaMetadata_brandId:"+brand.id
+      url = url + "&fq=metaMetadata_brandId:" + brand.id
       var options = this.getOptions(url);
-      sails.log.verbose("Query URL is: "+ url);
+      sails.log.verbose("Query URL is: " + url);
       return Observable.fromPromise(request[sails.config.record.api.search.method](options));
     }
 
@@ -90,8 +100,8 @@ export module Services {
       return url;
     }
 
-    protected getRoleNames(roles,brand) {
-      var roleNames =[];
+    protected getRoleNames(roles, brand) {
+      var roleNames = [];
 
       for (var i = 0; i < roles.length; i++) {
         var role = roles[i]
@@ -103,7 +113,7 @@ export module Services {
       return roleNames;
     }
 
-    protected addAuthFilter(url, username, roles, brand, editAccessOnly=undefined) {
+    protected addAuthFilter(url, username, roles, brand, editAccessOnly = undefined) {
 
       var roleString = ""
       var matched = false;
@@ -118,7 +128,7 @@ export module Services {
           matched = true;
         }
       }
-      url = url + "&fq=authorization_edit:" + username + (editAccessOnly ?  "" : ( " OR authorization_view:" + username  + " OR authorization_viewRoles:(" + roleString + ")" )) + " OR authorization_editRoles:(" + roleString + ")";
+      url = url + "&fq=authorization_edit:" + username + (editAccessOnly ? "" : (" OR authorization_view:" + username + " OR authorization_viewRoles:(" + roleString + ")")) + " OR authorization_editRoles:(" + roleString + ")";
       return url;
     }
 

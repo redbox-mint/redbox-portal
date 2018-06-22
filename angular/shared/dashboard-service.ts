@@ -19,7 +19,7 @@ export class DashboardService extends BaseService {
     super(http, configService);
   }
 
-  getAlllDraftPlansCanEdit(): Promise<PlanTable> {
+  getAllDraftPlansCanEdit(): Promise<PlanTable> {
     const rows = this.config.maxTransferRowsPerPage;
     const start = 0;
     return this.http.get(`${this.brandingAndPortalUrl}/listRecords?recordType=rdmp&state=draft&editOnly=true&start=`+start+`&rows=`+rows, this.options)
@@ -30,9 +30,10 @@ export class DashboardService extends BaseService {
   getAllRecordsCanEdit(recordType:string, state:string): Promise<PlanTable> {
     const rows = this.config.maxTransferRowsPerPage;
     const start = 0;
+
     let url = `${this.brandingAndPortalUrl}/listRecords?recordType=${recordType}&editOnly=true&start=`+start+`&rows=`+rows;
     if(state != '') {
-      url += `&state=${start}`;
+      url += `&state=${state}`;
     }
     return this.http.get(url, this.options)
       .toPromise()

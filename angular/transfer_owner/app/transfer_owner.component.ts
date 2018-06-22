@@ -102,7 +102,7 @@ export class TransferOwnerComponent extends LoadableComponent {
 
   protected loadPlans(transferredRecords: any[] = null) {
     this.translationService.isReady(tService => {
-      this.dashboardService.getAlllDraftPlansCanEdit().then((draftPlans: PlanTable) => {
+      this.dashboardService.getAllRecordsCanEdit('rdmp,dataRecord','draft').then((draftPlans: PlanTable) => {
         this.dashboardService.setDashboardTitle(draftPlans);
         // skip transferred records...
         _.remove(draftPlans.items, (item: any) => {

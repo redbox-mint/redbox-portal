@@ -19,13 +19,13 @@
 
 import { Observable } from 'rxjs/Rx';
 import services = require('../core/CoreService.js');
-import {Sails, Model} from "sails";
+import { Sails, Model } from "sails";
 import * as request from "request-promise";
 import * as luceneEscapeQuery from "lucene-escape-query";
 import * as fs from 'fs';
 const util = require('util');
 
-declare var FormsService, RolesService, UsersService, WorkflowStepsService;
+declare var FormsService, RolesService, UsersService, WorkflowStepsService, RecordTypesService;
 declare var sails: Sails;
 declare var _;
 declare var _this;
@@ -55,27 +55,28 @@ export module Services {
       'updateDatastream',
       'getDatastream',
       'listDatastreams',
-      'deleteFilesFromStageDir'
+      'deleteFilesFromStageDir',
+      'getRelatedRecords'
     ];
 
-    public create(brand, record, packageType, formName=sails.config.form.defaultForm): Observable<any> {
+    public create(brand, record, packageType, formName = sails.config.form.defaultForm): Observable<any> {
       // TODO: validate metadata with the form...
-      const options = this.getOptions(sails.config.record.baseUrl.redbox+sails.config.record.api.create.url, null, packageType);
+      const options = this.getOptions(sails.config.record.baseUrl.redbox + sails.config.record.api.create.url, null, packageType);
 
       options.body = record;
-      sails.log.verbose(util.inspect(options, {showHidden: false, depth: null}))
+      sails.log.verbose(util.inspect(options, { showHidden: false, depth: null }))
       return Observable.fromPromise(request[sails.config.record.api.create.method](options));
     }
 
     public updateMeta(brand, oid, record): Observable<any> {
       // TODO: validate metadata with the form...
-      const options = this.getOptions(sails.config.record.baseUrl.redbox+sails.config.record.api.updateMeta.url, oid);
+      const options = this.getOptions(sails.config.record.baseUrl.redbox + sails.config.record.api.updateMeta.url, oid);
       options.body = record;
       return Observable.fromPromise(request[sails.config.record.api.updateMeta.method](options));
     }
 
     public getMeta(oid) {
-      const options = this.getOptions(sails.config.record.baseUrl.redbox+sails.config.record.api.getMeta.url, oid);
+      const options = this.getOptions(sails.config.record.baseUrl.redbox + sails.config.record.api.getMeta.url, oid);
       return Observable.fromPromise(request[sails.config.record.api.getMeta.method](options));
     }
     /**
@@ -83,7 +84,7 @@ export module Services {
      */
     public updateDatastream(oid, record, newMetadata, fileRoot, fileIdsAdded) {
       // loop thru the attachment fields and determine if we need to add or remove
-      return FormsService.getFormByName(record.metaMetadata.form, true).flatMap(form =>{
+      return FormsService.getFormByName(record.metaMetadata.form, true).flatMap(form => {
         const reqs = [];
         record.metaMetadata.attachmentFields = form.attachmentFields;
         _.each(form.attachmentFields, (attField) => {
@@ -101,7 +102,7 @@ export module Services {
           }
           // process additions
           if (!_.isUndefined(newAttachments) && !_.isNull(newAttachments)) {
-            const toAdd =  _.differenceBy(newAttachments, oldAttachments, 'fileId');
+            const toAdd = _.differenceBy(newAttachments, oldAttachments, 'fileId');
             _.each(toAdd, (addAtt) => {
               if (addAtt.type == 'attachment') {
                 fileIdsAdded.push(addAtt.fileId);
@@ -136,7 +137,7 @@ export module Services {
       return request[apiConfig.method](opts);
     }
 
-    public addAndRemoveDatastreams(oid, addIds:any[], removeIds: any[]) {
+    public addAndRemoveDatastreams(oid, addIds: any[], removeIds: any[]) {
       const apiConfig = sails.config.record.api.addAndRemoveDatastreams;
       const opts = this.getOptions(`${sails.config.record.baseUrl.redbox}${apiConfig.url}`, oid);
       opts.url = `${opts.url}?skipReindex=false`;
@@ -171,7 +172,7 @@ export module Services {
 
     public getDatastream(oid, fileId) {
       const apiConfig = sails.config.record.api.getDatastream;
-      const opts:any = this.getOptions(`${sails.config.record.baseUrl.redbox}${apiConfig.url}`, oid, null, false);
+      const opts: any = this.getOptions(`${sails.config.record.baseUrl.redbox}${apiConfig.url}`, oid, null, false);
       opts.url = `${opts.url}?datastreamId=${fileId}`;
       opts.headers['Content-Type'] = 'application/octet-stream';
       opts.headers['accept'] = 'application/octet-stream';
@@ -184,7 +185,7 @@ export module Services {
 
     public listDatastreams(oid, fileId) {
       const apiConfig = sails.config.record.api.listDatastreams;
-      const opts:any = this.getOptions(`${sails.config.record.baseUrl.redbox}${apiConfig.url}`, oid);
+      const opts: any = this.getOptions(`${sails.config.record.baseUrl.redbox}${apiConfig.url}`, oid);
 
       return Observable.fromPromise(request[apiConfig.method](opts));
     }
@@ -196,14 +197,14 @@ export module Services {
       });
     }
 
-    protected getOptions(url, oid=null, packageType=null, isJson:boolean=true) {
+    protected getOptions(url, oid = null, packageType = null, isJson: boolean = true) {
       if (!_.isEmpty(oid)) {
         url = url.replace('$oid', oid);
       }
       if (!_.isEmpty(packageType)) {
         url = url.replace('$packageType', packageType);
       }
-      const opts:any = {url:url, headers: {'Authorization': `Bearer ${sails.config.redbox.apiKey}`}};
+      const opts: any = { url: url, headers: { 'Authorization': `Bearer ${sails.config.redbox.apiKey}` } };
       if (isJson == true) {
         opts.json = true;
         opts.headers['Content-Type'] = 'application/json; charset=utf-8';
@@ -224,7 +225,7 @@ export module Services {
 
       const uname = user.username;
 
-      const isInUserView = _.find(viewArr, username=> {
+      const isInUserView = _.find(viewArr, username => {
         return uname == username;
       });
       if (!_.isUndefined(isInUserView)) {
@@ -233,7 +234,7 @@ export module Services {
       const isInRoleView = _.find(viewRolesArr, roleName => {
         const role = RolesService.getRole(brand, roleName);
         return role && !_.isUndefined(_.find(roles, r => {
-            return role.id == r.id;
+          return role.id == r.id;
         }));
       });
       return !_.isUndefined(isInRoleView);
@@ -262,7 +263,7 @@ export module Services {
       const editRolesArr = record.authorization ? record.authorization.editRoles : record.authorization_editRoles;
       const uname = user.username;
 
-      const isInUserEdit = _.find(editArr, username=> {
+      const isInUserEdit = _.find(editArr, username => {
         sails.log.verbose(`Username: ${uname} == ${username}`);
         return uname == username;
       });
@@ -273,7 +274,7 @@ export module Services {
       const isInRoleEdit = _.find(editRolesArr, roleName => {
         const role = RolesService.getRole(brand, roleName);
         return role && !_.isUndefined(_.find(roles, r => {
-            return role.id == r.id;
+          return role.id == r.id;
         }));
       });
       return !_.isUndefined(isInRoleEdit);
@@ -294,11 +295,11 @@ export module Services {
     }
 
     public createBatch(type, data, harvestIdFldName) {
-      const options = this.getOptions(sails.config.record.baseUrl.redbox+sails.config.record.api.harvest.url, null, type);
+      const options = this.getOptions(sails.config.record.baseUrl.redbox + sails.config.record.api.harvest.url, null, type);
       data = _.map(data, dataItem => {
-        return {harvest_id: _.get(dataItem, harvestIdFldName, ''), metadata: {metadata: dataItem, metaMetadata: {type:type}}};
+        return { harvest_id: _.get(dataItem, harvestIdFldName, ''), metadata: { metadata: dataItem, metaMetadata: { type: type } } };
       });
-      options.body = {records: data};
+      options.body = { records: data };
       sails.log.verbose(`Sending data:`);
       sails.log.verbose(options.body);
       return Observable.fromPromise(request[sails.config.record.api.harvest.method](options));
@@ -309,17 +310,17 @@ export module Services {
       sails.log.verbose(`Searching using: ${url}`);
       const options = this.getOptions(url);
       return Observable.fromPromise(request[sails.config.record.api.search.method](options))
-              .flatMap(response => {
-                const customResp = [];
-                _.forEach(response.response.docs, solrdoc => {
-                  const customDoc = {};
-                  _.forEach(returnFields, retField => {
-                    customDoc[retField] = solrdoc[retField][0];
-                  });
-                  customResp.push(customDoc);
-                });
-                return Observable.of(customResp);
-              });
+        .flatMap(response => {
+          const customResp = [];
+          _.forEach(response.response.docs, solrdoc => {
+            const customDoc = {};
+            _.forEach(returnFields, retField => {
+              customDoc[retField] = solrdoc[retField][0];
+            });
+            customResp.push(customDoc);
+          });
+          return Observable.of(customResp);
+        });
     }
 
     public searchFuzzy(type, workflowState, searchQuery, exactSearches, facetSearches, brand, user, roles, returnFields) {
@@ -342,40 +343,40 @@ export module Services {
       sails.log.verbose(`Searching fuzzy using: ${url}`);
       const options = this.getOptions(url);
       return Observable.fromPromise(request[sails.config.record.api.search.method](options))
-              .flatMap(response => {
-                const customResp = {records: []};
-                _.forEach(response.response.docs, solrdoc => {
-                  const customDoc = {};
-                  _.forEach(returnFields, retField => {
-                    if (_.isArray(solrdoc[retField])) {
-                      customDoc[retField] = solrdoc[retField][0];
-                    } else {
-                      customDoc[retField] = solrdoc[retField];
-                    }
-                  });
-                  customDoc["hasEditAccess"] = this.hasEditAccess(brand, user, roles, solrdoc);
-                  customResp.records.push(customDoc);
+        .flatMap(response => {
+          const customResp = { records: [] };
+          _.forEach(response.response.docs, solrdoc => {
+            const customDoc = {};
+            _.forEach(returnFields, retField => {
+              if (_.isArray(solrdoc[retField])) {
+                customDoc[retField] = solrdoc[retField][0];
+              } else {
+                customDoc[retField] = solrdoc[retField];
+              }
+            });
+            customDoc["hasEditAccess"] = this.hasEditAccess(brand, user, roles, solrdoc);
+            customResp.records.push(customDoc);
+          });
+          // check if have facets turned on...
+          if (response.facet_counts) {
+            customResp['facets'] = [];
+            _.forOwn(response.facet_counts.facet_fields, (facet_field, facet_name) => {
+              const numFacetsValues = _.size(facet_field) / 2;
+              const facetValues = [];
+              for (var i = 0, j = 0; i < numFacetsValues; i++) {
+                facetValues.push({
+                  value: facet_field[j++],
+                  count: facet_field[j++]
                 });
-                // check if have facets turned on...
-                if (response.facet_counts) {
-                  customResp['facets'] = [];
-                  _.forOwn(response.facet_counts.facet_fields, (facet_field, facet_name) => {
-                    const numFacetsValues = _.size(facet_field) / 2;
-                    const facetValues = [];
-                    for (var i=0,j=0; i < numFacetsValues;i++) {
-                      facetValues.push({
-                        value: facet_field[j++],
-                        count: facet_field[j++]
-                      });
-                    }
-                    customResp['facets'].push({name: facet_name, values: facetValues});
-                  });
-                }
-                return Observable.of(customResp);
-              });
+              }
+              customResp['facets'].push({ name: facet_name, values: facetValues });
+            });
+          }
+          return Observable.of(customResp);
+        });
     }
 
-    protected addAuthFilter(url, username, roles, brand, editAccessOnly=undefined) {
+    protected addAuthFilter(url, username, roles, brand, editAccessOnly = undefined) {
 
       var roleString = ""
       var matched = false;
@@ -390,7 +391,7 @@ export module Services {
           matched = true;
         }
       }
-      url = url + "&fq=authorization_edit:" + username + (editAccessOnly ?  "" : ( " OR authorization_view:" + username  + " OR authorization_viewRoles:(" + roleString + ")" )) + " OR authorization_editRoles:(" + roleString + ")";
+      url = url + "&fq=authorization_edit:" + username + (editAccessOnly ? "" : (" OR authorization_view:" + username + " OR authorization_viewRoles:(" + roleString + ")")) + " OR authorization_editRoles:(" + roleString + ")";
       return url;
     }
 
@@ -399,53 +400,149 @@ export module Services {
       sails.log.verbose(`Getting one using url: ${url}`);
       const options = this.getOptions(url);
       return Observable.fromPromise(request[sails.config.record.api.search.method](options))
-            .flatMap(response => {
-              return Observable.of(response.response.docs);
-            });
+        .flatMap(response => {
+          return Observable.of(response.response.docs);
+        });
     }
 
-    protected getSearchTypeUrl(type, searchField=null, searchStr=null) {
+    protected getSearchTypeUrl(type, searchField = null, searchStr = null) {
       const searchParam = searchField ? ` AND ${searchField}:${searchStr}*` : '';
       return `${sails.config.record.baseUrl.redbox}${sails.config.record.api.search.url}?q=metaMetadata_type:${type}${searchParam}&version=2.2&wt=json&sort=date_object_modified desc`;
     }
 
-    protected provideUserAccessAndRemovePendingAccess(oid,userid,pendingValue) {
+    protected provideUserAccessAndRemovePendingAccess(oid, userid, pendingValue) {
       var metadataResponse = this.getMeta(oid);
 
-      metadataResponse.subscribe(metadata =>{
-      // remove pending edit access and add real edit access with userid
-      var pendingEditArray = metadata['authorization']['editPending'];
-      var editArray = metadata['authorization']['edit'];
-      for(var i=0; i < pendingEditArray.length; i++) {
-        if(pendingEditArray[i] == pendingValue) {
-          pendingEditArray = pendingEditArray.filter(e => e !== pendingValue);
-          editArray = editArray.filter(e => e !== userid);
-          editArray.push(userid);
+      metadataResponse.subscribe(metadata => {
+        // remove pending edit access and add real edit access with userid
+        var pendingEditArray = metadata['authorization']['editPending'];
+        var editArray = metadata['authorization']['edit'];
+        for (var i = 0; i < pendingEditArray.length; i++) {
+          if (pendingEditArray[i] == pendingValue) {
+            pendingEditArray = pendingEditArray.filter(e => e !== pendingValue);
+            editArray = editArray.filter(e => e !== userid);
+            editArray.push(userid);
+          }
         }
-      }
-      metadata['authorization']['editPending'] = pendingEditArray;
-      metadata['authorization']['edit'] = editArray;
+        metadata['authorization']['editPending'] = pendingEditArray;
+        metadata['authorization']['edit'] = editArray;
 
-      var pendingViewArray = metadata['authorization']['viewPending'];
-      var viewArray = metadata['authorization']['view'];
-      for(var i=0; i < pendingViewArray.length; i++) {
-        if(pendingViewArray[i] == pendingValue) {
-          pendingViewArray = pendingViewArray.filter(e => e !== pendingValue);
-          viewArray = viewArray.filter(e => e !== userid);
-          viewArray.push(userid);
+        var pendingViewArray = metadata['authorization']['viewPending'];
+        var viewArray = metadata['authorization']['view'];
+        for (var i = 0; i < pendingViewArray.length; i++) {
+          if (pendingViewArray[i] == pendingValue) {
+            pendingViewArray = pendingViewArray.filter(e => e !== pendingValue);
+            viewArray = viewArray.filter(e => e !== userid);
+            viewArray.push(userid);
+          }
         }
-      }
-      metadata['authorization']['viewPending'] = pendingViewArray;
-      metadata['authorization']['view'] = viewArray;
+        metadata['authorization']['viewPending'] = pendingViewArray;
+        metadata['authorization']['view'] = viewArray;
 
-      this.updateMeta(null, oid, metadata);
-    });
+        this.updateMeta(null, oid, metadata);
+      });
 
     }
 
     protected luceneEscape(str: string) {
       return luceneEscapeQuery.escape(str);
     }
+
+    private async getRelatedRecordsInternal(oid, recordTypeName, brand, mappingContext) {
+      sails.log.debug("Getting related Records for oid: "+oid);
+      let record = await this.getMeta(oid).toPromise();
+
+      let recordType = await RecordTypesService.get(brand, recordTypeName).toPromise();
+
+      let relationships = [];
+      let processedRelationships = [];
+      processedRelationships.push(recordType.name);
+      let relatedTo = recordType['relatedTo'];
+      if (_.isArray(relatedTo)) {
+        _.each(relatedTo, relatedObject => {
+          relationships.push({
+            collection: relatedObject['recordType'],
+            foreignField: relatedObject['foreignField'],
+            localField: relatedObject['localField']
+          });
+        });
+
+        const options = this.getOptions(sails.config.record.baseUrl.redbox + sails.config.record.api.getRecordRelationships.url, oid);
+        options.body = {
+          oid: oid,
+          relationships: relationships
+        };
+        let relatedRecords = await request[sails.config.record.api.updateMeta.method](options);
+
+        for(let i=0; i< relationships.length; i++) {
+          let relationship = relationships[i];
+          let collectionName = relationship['collection'];
+          let recordRelationships = relatedRecords[collectionName];
+
+          let newRelatedObjects = {};
+          newRelatedObjects[collectionName] = recordRelationships;
+          _.merge(mappingContext, { relatedObjects: newRelatedObjects});
+          if(_.indexOf(mappingContext['processedRelationships'], collectionName) < 0) {
+            mappingContext['processedRelationships'].push(collectionName);
+           for(let j=0; j< recordRelationships.length; j++) {
+             let recordRelationship = recordRelationships[j];
+              mappingContext = await this.getRelatedRecordsInternal(recordRelationship.redboxOid, collectionName, brand, mappingContext);
+            }
+          }
+        }
+
+        }
+        return mappingContext;
+    }
+
+    public async getRelatedRecords(oid, brand) {
+      let record = await this.getMeta(oid).toPromise();
+
+      let recordTypeName = record['metaMetadata']['type'];
+      let recordType = await RecordTypesService.get(brand, recordTypeName).toPromise();
+
+      let mappingContext = { 'processedRelationships':[], 'relatedObjects': {} };
+      let relationships = [];
+      let processedRelationships = [];
+      processedRelationships.push(recordType.name);
+      let relatedTo = recordType['relatedTo'];
+      if (_.isArray(relatedTo)) {
+        _.each(relatedTo, relatedObject => {
+          relationships.push({
+            collection: relatedObject['recordType'],
+            foreignField: relatedObject['foreignField'],
+            localField: relatedObject['localField']
+          });
+        });
+
+        const options = this.getOptions(sails.config.record.baseUrl.redbox + sails.config.record.api.getRecordRelationships.url, oid);
+        options.body = {
+          oid: oid,
+          relationships: relationships
+        };
+        let relatedRecords = await request[sails.config.record.api.updateMeta.method](options);
+
+        for(let i=0; i< relationships.length; i++) {
+          let relationship = relationships[i];
+          let collectionName = relationship['collection'];
+          let recordRelationships = relatedRecords[collectionName];
+
+          let newRelatedObjects = {};
+          mappingContext['processedRelationships'].push(collectionName);
+          newRelatedObjects[collectionName] = recordRelationships;
+          _.merge(mappingContext, { relatedObjects: newRelatedObjects});
+          for(let j=0; j< recordRelationships.length; j++) {
+            let recordRelationship = recordRelationships[j];
+            mappingContext = await this.getRelatedRecordsInternal(recordRelationship.redboxOid, collectionName, brand, mappingContext);
+          }
+        }
+
+        return mappingContext;
+      } else {
+        return {};
+      }
+    }
+
   }
 }
 module.exports = new Services.Records().exports();
