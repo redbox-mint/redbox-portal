@@ -1,0 +1,30 @@
+<div *ngIf="isListening">
+  <div>&nbsp;</div>
+  <h4> {{ field.label }} </h4>
+  <table class='table table-striped'>
+    <thead>
+      <tr>
+        <th>{{ field.nameLabel }} </th>
+        <th>{{ field.statusLabel }} </th>
+        <th>{{ field.completionLabel }} </th>
+        <th>{{ field.messageLabel }} </th>
+        <th>{{ field.dateStartedLabel }} </th>
+        <th>{{ field.startedByLabel }} </th>
+        <th>{{ field.lastUpdateLabel }} </th>
+        <th>{{ field.dateCompletedLabel }} </th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let progress of field.progressArr">
+        <td>{{ progress.name }}</td>
+        <td>{{ field.getStatusLabel(progress.status) }}</td>
+        <td *ngIf="field.completionRateType == 'percentage'">{{ progress.completionRate | percent:'1.0-0':locale }}</td>
+        <td>{{ progress.message }}</td>
+        <td>{{ formatDateForDisplay(progress.date_started) }}</td>
+        <td>{{ progress.started_by }}</td>
+        <td>{{ formatDateForDisplay(progress.updatedAt) }}</td>
+        <td>{{ formatDateForDisplay(progress.date_completed) }}</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
