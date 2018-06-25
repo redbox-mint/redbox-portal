@@ -108,7 +108,8 @@ export module Services {
         const viewContributorProperties = _.get(options, "viewContributorProperties", []);
 
         let viewContributorObs = [];
-
+        //need the record for the next map so we'll put it in first.
+        viewContributorObs.push(Observable.of(record));
         _.each(viewContributorProperties, viewContributorProperty => {
           let viewContributor = _.get(record, viewContributorProperty, {});
 
@@ -137,23 +138,25 @@ export module Services {
 
 
         });
-        return Observable.zip(...viewContributorObs).map(viewContributorUsers => {
-          let newviewList = [];
+        return Observable.zip(...viewContributorObs);
+      }).flatMap(viewContributorUsers => {
+        return viewContributorUsers;}).flatMap(viewContributorUsers => {
+        let record = viewContributorUsers[0];
+        viewContributorUsers = _.slice(viewContributorUsers, 1);
+        let newviewList = [];
+        _.each(viewContributorUsers, viewContributorUser => {
+          if(viewContributorUser != null) {
+          _.remove(viewContributorEmails, viewContributorEmail => {
+            return viewContributorEmail == viewContributorUser['email'];
+          });
+          newviewList.push(viewContributorUser['username']);
+        }});
 
-          _.each(viewContributorUsers, viewContributorUser => {
-            if(viewContributorUser != null) {
-            _.remove(viewContributorEmails, viewContributorEmail => {
-              return viewContributorEmail == viewContributorUser['email'];
-            });
-            newviewList.push(viewContributorUser['username']);
-          }});
+        record.authorization.view = newviewList;
+        record.authorization.viewPending = viewContributorEmails;
 
-          record.authorization.view = newviewList;
-          record.authorization.viewPending = viewContributorEmails;
-
-          return record;
-        });
-      })
+        return Observable.of(record);
+      });
     }
 
   }

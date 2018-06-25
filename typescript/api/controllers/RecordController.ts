@@ -159,7 +159,7 @@ export module Controllers {
         let completeRecordSet = [];
         _.forEach(records, rec => {
           let relatedRecords = RecordsService.getRelatedRecords(rec.oid, brand);
-          
+
           relatedRecords.then(relatedRecords =>{
 
               let relationships = relatedRecords['processedRelationships'];
@@ -357,9 +357,9 @@ export module Controllers {
                   }
                 }
               });
-              return observable.subscribe(obs => {
+              return observable.subscribe(record => {
 
-                return obs.subscribe(record => { return this.createRecord(record, wfStep, brand, packageType, recordType, req, res) });
+               return this.createRecord(record, wfStep, brand, packageType, recordType, req, res);
               });
             } else {
               return this.createRecord(record, wfStep, brand, packageType, recordType, req, res);
