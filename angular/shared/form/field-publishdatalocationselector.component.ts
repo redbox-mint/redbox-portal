@@ -122,7 +122,6 @@ export class PublishDataLocationSelectorField extends FieldBase<any> {
     });
     this.setValue(this.value);
   }
-
 }
 /**
 * Component to display information from related objects within ReDBox
