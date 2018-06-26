@@ -35,6 +35,7 @@ export class FieldControlMetaService extends BaseService {
         }
       const inst = new this.classes[f.class].meta(f.definition, this.app['_injector']);
       inst.utilityService = this.getInjectedService('utilityService');
+      inst.appConfig = this.getInjectedService('configService').config;
       // set the component class
       if (_.isArray(this.classes[f.class].comp)) {
         inst.compClass = _.find(this.classes[f.class].comp, (c:any)=> {
