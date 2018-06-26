@@ -101,11 +101,12 @@ export class FieldBase<T> {
     this.cssClasses = options.cssClasses || {}; // array of
     this.groupClasses = options['groupClasses'] || '';
     this.groupName = options.groupName || null;
-    this.editMode = options.editMode || false;
-    this.readOnly = options.readOnly || false;
+    this.editMode = _.isUndefined(options.editMode) ? false : options.editMode;
+    this.readOnly = _.isUndefined(options.readOnly) ? false : options.readOnly;
     this.onChange = options['onChange'] || null;
     this.publish = options['publish'] || null;
     this.subscribe = options['subscribe'] || null;
+    this.visible = _.isUndefined(options['visible']) ? true : options['visible'];
 
     if (this.groupName) {
       this.hasGroup = true;
@@ -327,5 +328,9 @@ export class FieldBase<T> {
   public setValue(value:any, emitEvent:boolean=true) {
     this.value = value;
     this.formModel.setValue(value, { onlySelf: true, emitEvent: emitEvent });
+  }
+
+  public toggleVisibility() {
+    this.visible = !this.visible;
   }
 }
