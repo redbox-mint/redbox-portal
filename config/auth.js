@@ -23,6 +23,41 @@ module.exports.auth = {
   // default rules for the default brand...
   rules: [
     {
+      path: '/:branding/:portal/admin',
+      role: 'Librarians',
+      can_update:true
+    },
+    {
+      path: '/:branding/:portal/admin',
+      role: 'Librarians',
+      can_update:true
+    },
+    {
+      path: '/:branding/:portal/admin/reports',
+      role: 'Librarians',
+      can_update:true
+    },
+    {
+      path: '/:branding/:portal/admin/getReport',
+      role: 'Librarians',
+      can_update:true
+    },
+    {
+      path: '/:branding/:portal/admin/getReportResults',
+      role: 'Librarians',
+      can_update:true
+    },
+    {
+      path: '/:branding/:portal/admin/downloadReportCSV',
+      role: 'Librarians',
+      can_update:true
+    },
+    {
+      path: '/:branding/:portal/admin/report(/*)',
+      role: 'Librarians',
+      can_update:true
+    },
+    {
       path: '/:branding/:portal/admin(/*)',
       role: 'Admin',
       can_update:true
@@ -74,7 +109,7 @@ module.exports.auth = {
     },
     {
       path: '/:branding/:portal/export(/*)',
-      role: 'Admin',
+      role: 'Librarians',
       can_update:true
     },
     {

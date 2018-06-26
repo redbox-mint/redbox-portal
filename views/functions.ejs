@@ -30,4 +30,11 @@ hasAdminRole = function(req) {
   return UsersService.hasRole(req.user, RolesService.getAdmin(BrandingService.getBrand(req.session.branding)));
 }
 
+/**
+ *  Returns true if the user has the given role
+ */
+hasRole = function(req, role) {
+  return UsersService.hasRole(req.user, RolesService.getRoleByName(BrandingService.getBrand(req.session.branding), role));
+}
+
 %>
