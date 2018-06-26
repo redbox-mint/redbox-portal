@@ -288,8 +288,7 @@ module.exports = {
                     name: 'timePeriod',
                     label: '@dataPublication-timePeriod',
                     help: '@dataPublication-timePeriod-help',
-                    type: 'text',
-                    required: true
+                    type: 'text'
                   }
                 },
                 {
