@@ -70,4 +70,20 @@ export class UtilityService {
     const fieldPath = config.field;
     return _.get(data,fieldPath);
   }
+  /**
+   * returns value based on mapping
+   *
+   * Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a>
+   * @param {any} data
+   * @param  {any} config - dict of field: field path of data, mapping - array of dict with 'key', the value and the actual mapping value 'val', 'default' - the value if there's no match
+   * @return {string}
+   */
+  public getPropertyFromObjectMapping(data: any, config:any) {
+    const fieldPath = config.field;
+    const val = _.isUndefined(fieldPath) ? data : _.get(data, fieldPath);
+    const foundMapping = _.find(config.mapping, (mapEntry) => {
+      return `${mapEntry.key}` == `${val}`;
+    });
+    return foundMapping ? foundMapping.value : config.default;
+  }
 }
