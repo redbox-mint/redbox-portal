@@ -89,7 +89,7 @@ export class TextArea extends FieldBase<string> {
 @Component({
   selector: 'textfield',
   template: `
-  <div *ngIf="field.editMode" [ngClass]="getGroupClass()">
+  <div *ngIf="field.editMode && field.visible" [ngClass]="getGroupClass()">
     <div *ngIf="!isEmbedded" >
       <label [attr.for]="field.name">
         {{field.label}} {{ getRequiredLabelStr() }}
