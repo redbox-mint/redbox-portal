@@ -1,4 +1,4 @@
-import { Container, DateTime, AnchorOrButton, SaveButton, CancelButton, HiddenValue, LinkValue, TabOrAccordionContainer, ButtonBarContainer, SelectionField, ParameterRetrieverField, TabNavButton, Spacer } from './form/field-simple';
+import { HtmlRaw, Container, DateTime, AnchorOrButton, SaveButton, CancelButton, HiddenValue, LinkValue, TabOrAccordionContainer, ButtonBarContainer, SelectionField, ParameterRetrieverField, TabNavButton, Spacer, Toggle } from './form/field-simple';
 import { TextField, TextFieldComponent, RepeatableTextfieldComponent, TextArea, TextAreaComponent, MarkdownTextArea, MarkdownTextAreaComponent} from './form/field-textfield.component';
 import {
   DropdownFieldComponent,
@@ -14,7 +14,9 @@ import {
   SelectionFieldComponent,
   ParameterRetrieverComponent,
   TabNavButtonComponent,
-  SpacerComponent
+  SpacerComponent,
+  ToggleComponent,
+  HtmlRawComponent
 } from './form/field-simple.component';
 import { RecordMetadataRetrieverField, RecordMetadataRetrieverComponent } from './form/record-meta.component';
 import { VocabField, VocabFieldComponent } from './form/field-vocab.component';
@@ -67,5 +69,7 @@ export const fieldClasses=  {
   'Spacer': {'meta': Spacer, 'comp': SpacerComponent},
   'ANDSVocab':{ 'meta': ANDSVocabField, 'comp': ANDSVocabComponent},
   'PDFList': { 'meta': PDFListField, 'comp': PDFListComponent},
-  'AsynchField': {'meta': AsynchField, 'comp': AsynchComponent }
+  'AsynchField': {'meta': AsynchField, 'comp': AsynchComponent },
+  'Toggle': {'meta': Toggle, 'comp': ToggleComponent},
+  'HtmlRaw': {'meta': HtmlRaw, 'comp': HtmlRawComponent}
 };

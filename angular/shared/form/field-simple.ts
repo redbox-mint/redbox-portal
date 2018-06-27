@@ -306,7 +306,25 @@ export class ParameterRetrieverField extends FieldBase<string> {
 
 }
 
-export class Spacer extends FieldBase<string> {
+export class NotInFormField extends FieldBase<any> {
+  constructor(options: any, injector: any) {
+    super(options, injector);
+  }
+
+  public createFormModel(valueElem:any = null): any {
+  }
+
+  public getGroup(group: any, fieldMap: any) : any {
+    this.fieldMap = fieldMap;
+    _.set(fieldMap, `${this.getFullFieldName()}.field`, this);
+  }
+
+  public reactEvent(eventName: string, eventData: any, origData: any) {
+
+  }
+}
+
+export class Spacer extends NotInFormField {
   width: string;
   height: string;
 
@@ -314,5 +332,23 @@ export class Spacer extends FieldBase<string> {
     super(options, injector);
     this.width = options.width;
     this.height = options.height;
+  }
+}
+
+export class Toggle extends FieldBase<boolean> {
+  type: string;
+
+  constructor(options: any, injector: any) {
+    super(options, injector);
+    this.type = options['type'] || 'checkbox';
+    this.value = options['value'] || false;
+  }
+}
+
+export class HtmlRaw extends NotInFormField {
+
+  public getGroup(group: any, fieldMap: any) : any {
+    super.getGroup(group, fieldMap);
+    this.value = this.replaceValWithConfig(this.value);
   }
 }
