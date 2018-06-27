@@ -60,6 +60,25 @@ export class SelectionField extends FieldBase<any>  {
       return super.createFormModel();
     }
   }
+
+  nextOption() {
+    if (this.controlType == 'radio') {
+      let nextIdx = 0;
+      const opt = _.find(this.options, (opt, idx)=> {
+        const match = opt.value == this.value;
+        if (match) {
+          nextIdx = ++idx;
+        }
+        return match;
+      });
+      if (nextIdx >= this.options.length) {
+        nextIdx = 0;
+      }
+      const value = this.options[nextIdx].value;
+      this.setValue(value);
+    }
+    return this.value;
+  }
 }
 
 export class Container extends FieldBase<any> {
@@ -100,6 +119,17 @@ export class Container extends FieldBase<any> {
     });
     this.formModel = this.required ? new FormGroup(grp, Validators.required) : new FormGroup(grp);
     return this.formModel;
+  }
+
+  public setValue(value:any, emitEvent:boolean=true) {
+    this.value = value;
+    _.forOwn(value, (val, key) => {
+      const fld = _.find(this.fields, (fldItem) => {
+        return fldItem.name == key;
+      });
+      fld.setValue(val, emitEvent);
+    });
+    // this.formModel.setValue(value, { onlySelf: true, emitEvent: emitEvent });
   }
 
 }
