@@ -67,6 +67,7 @@ export class FieldBase<T> {
   visibilityCriteria: any;
 
   @Output() public onValueUpdate: EventEmitter<any> = new EventEmitter<any>();
+  @Output() public onValueLoaded: EventEmitter<any> = new EventEmitter<any>();
 
 
   constructor(options = {}, injector) {
@@ -253,7 +254,7 @@ export class FieldBase<T> {
 
       _.forOwn(subscribeConfig, (subConfig, srcName) => {
         _.forOwn(subConfig, (eventConfArr, eventName) => {
-          const eventEmitter = srcName == "this" ? this[eventName] : this.fieldMap[srcName].field[eventName];
+          const eventEmitter = this.getEventEmitter(eventName, srcName);
           eventEmitter.subscribe((value:any) => {
             let curValue = value;
             if (_.isArray(value)) {
@@ -298,6 +299,16 @@ export class FieldBase<T> {
         });
       });
     }
+  }
+
+  protected getEventEmitter(eventName, srcName) {
+    if (srcName == "this") {
+      return this[eventName];
+    }
+    if (srcName == "form") {
+      return this.fieldMap['_rootComp'][eventName];
+    }
+    return this.fieldMap[srcName].field[eventName];
   }
 
   public emitEvent(eventName: string, eventData: any, origData: any) {
@@ -355,5 +366,9 @@ export class FieldBase<T> {
 
   public getConfigEntry(name, defValue) {
     return _.isUndefined(_.get(this.appConfig, name)) ? defValue : _.get(this.appConfig, name);
+  }
+
+  public publishValueLoaded() {
+    this.onValueLoaded.emit(this.value);
   }
 }

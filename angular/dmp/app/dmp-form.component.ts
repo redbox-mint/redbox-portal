@@ -109,11 +109,13 @@ export class DmpFormComponent extends LoadableComponent {
   @Output() recordCreated: EventEmitter<any> = new EventEmitter<any>();
   @Output() recordSaved: EventEmitter<any> = new EventEmitter<any>();
   @Output() onBeforeSave: EventEmitter<any> = new EventEmitter<any>();
+  @Output() onFormLoaded: EventEmitter<any> = new EventEmitter<any>();
 
   subs = {
     recordCreated: {},
     recordSaved: {},
-    onBeforeSave: {}
+    onBeforeSave: {},
+    onFormLoaded: {}
   };
   /**
    * Expects a number of DI'ed elements.
@@ -330,6 +332,7 @@ export class DmpFormComponent extends LoadableComponent {
         this.needsSave = true;
       });
     }
+    this.onFormLoaded.emit({oid:this.oid});
   }
   /**
    * Trigger form validation
