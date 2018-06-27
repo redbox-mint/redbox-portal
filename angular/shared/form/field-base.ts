@@ -294,7 +294,10 @@ export class FieldBase<T> {
                 }
               });
             }
-            this.reactEvent(eventName, curValue, value);
+            if (!_.isUndefined(curValue)) {
+              // cascade the event instance wide if only there's a valid value
+              this.reactEvent(eventName, curValue, value);
+            }
           });
         });
       });
@@ -352,9 +355,7 @@ export class FieldBase<T> {
   }
 
   public setVisibility(data) {
-    console.log(`Setting visiblity of ${this.name} to: ${data}`);
     this.visible = _.isEqual(data, this.visibilityCriteria);
-    console.log(`This visible: ${this.visible}`);
   }
 
   public replaceValWithConfig(val) {
