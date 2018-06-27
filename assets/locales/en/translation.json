@@ -539,5 +539,15 @@
   "@asynch-status-paused": "Paused",
   "@asynch-status-aborted": "Cancelled",
   "@asynch-status-errored": "Errored",
-  "@asynch-status-finished": "Completed"
+  "@asynch-status-finished": "Completed",
+  "@dataPublication-dc:accessRights": "Access conditions",
+  "@dataPublication-dc:accessRights-help": "Access conditions placeholder help text",
+  "@dataPublication-dc:accessRights-open": "Open",
+  "@dataPublication-dc:accessRights-restricted": "Restricted",
+  "@dataPublication-dc:accessRights-restricted-val": "Restricted",
+  "@dataPublication-dataLicensingAccess_manager": "The data manager is recorded as:",
+  "@dataPublication-data-manager": "<h4>Access to the data will be managed by the data manager:</h4>",
+  "@dataPublication-data_manager-transferResponsibility": "To change the data manager please <a href='/@branding/@portal/record/transfer/rdmp'>transfer data responsibilities</a>.",
+  "@dataPublication-accessRights_url": "Access conditions URL",
+  "@dataPublication-accessRights_url-help": "Access conditions URL help text placeholder"
 }

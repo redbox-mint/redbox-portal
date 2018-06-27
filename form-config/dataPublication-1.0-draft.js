@@ -182,7 +182,15 @@ module.exports = {
                         value: "repository",
                         label: "@dataPublication-dataype-select:repository"
                       }
-                    ]
+                    ],
+                    subscribe: {
+                      'dataRecordGetter': {
+                        onValueUpdate: [{
+                          action: 'utilityService.getPropertyFromObject',
+                          field: 'datatype'
+                        }]
+                      }
+                    }
                   }
                 },
                 {
@@ -209,8 +217,116 @@ module.exports = {
                       }
                     }
                   }
+                },
+                {
+                  class: 'RepeatableVocab',
+                  compClass: 'RepeatableVocabComponent',
+                  definition: {
+                    name: 'foaf:fundedBy_foaf:Agent',
+                    label: "@dmpt-foaf:fundedBy_foaf:Agent",
+                    help: "@dmpt-foaf:fundedBy_foaf:Agent-help",
+                    forceClone: ['lookupService', 'completerService'],
+                    fields: [{
+                      class: 'VocabField',
+                      definition: {
+                        disableEditAfterSelect: false,
+                        vocabId: 'Funding Bodies',
+                        sourceType: 'mint',
+                        fieldNames: ['dc_title', 'dc_identifier', 'ID', 'repository_name'],
+                        searchFields: 'dc_title',
+                        titleFieldArr: ['dc_title'],
+                        stringLabelToField: 'dc_title'
+                      }
+                    }],
+                    subscribe: {
+                      'dataRecordGetter': {
+                        onValueUpdate: [{
+                          action: 'utilityService.getPropertyFromObject',
+                          field: 'foaf:fundedBy_foaf:Agent'
+                        }]
+                      }
+                    }
+                  }
+                },
+                {
+                  class: 'RepeatableVocab',
+                  compClass: 'RepeatableVocabComponent',
+                  definition: {
+                    name: 'foaf:fundedBy_vivo:Grant',
+                    label: "@dmpt-foaf:fundedBy_vivo:Grant",
+                    help: "@dmpt-foaf:fundedBy_vivo:Grant-help",
+                    forceClone: ['lookupService', 'completerService'],
+                    fields: [{
+                      class: 'VocabField',
+                      definition: {
+                        disableEditAfterSelect: false,
+                        vocabId: 'Research Activities',
+                        sourceType: 'mint',
+                        fieldNames: ['dc_title', 'grant_number', 'foaf_name', 'dc_identifier', 'known_ids', 'repository_name'],
+                        searchFields: 'grant_number,dc_title',
+                        titleFieldArr: ['grant_number', 'repository_name', 'dc_title'],
+                        titleFieldDelim: [{
+                            prefix: '[',
+                            suffix: ']'
+                          },
+                          {
+                            prefix: ' (',
+                            suffix: ')'
+                          },
+                          {
+                            prefix: ' ',
+                            suffix: ''
+                          }
+                        ],
+                        stringLabelToField: 'dc_title'
+                      }
+                    }],
+                    subscribe: {
+                      'dataRecordGetter': {
+                        onValueUpdate: [{
+                          action: 'utilityService.getPropertyFromObject',
+                          field: 'foaf:fundedBy_vivo:Grant'
+                        }]
+                      }
+                    }
+                  }
+                },
+                {
+                  class: 'ANDSVocab',
+                  compClass: 'ANDSVocabComponent',
+                  definition: {
+                    label: "@dmpt-project-anzsrcFor",
+                    help: "@dmpt-project-anzsrcFor-help",
+                    name: "dc:subject_anzsrc:for",
+                    vocabId: 'anzsrc-for',
+                    subscribe: {
+                      'dataRecordGetter': {
+                        onValueUpdate: [{
+                          action: 'utilityService.getPropertyFromObject',
+                          field: 'dc:subject_anzsrc:for'
+                        }]
+                      }
+                    }
+                  }
+                },
+                {
+                  class: 'ANDSVocab',
+                  compClass: 'ANDSVocabComponent',
+                  definition: {
+                    label: "@dmpt-project-anzsrcSeo",
+                    help: "@dmpt-project-anzsrcSeo-help",
+                    name: "dc:subject_anzsrc:seo",
+                    vocabId: 'anzsrc-seo',
+                    subscribe: {
+                      'dataRecordGetter': {
+                        onValueUpdate: [{
+                          action: 'utilityService.getPropertyFromObject',
+                          field: 'dc:subject_anzsrc:seo'
+                        }]
+                      }
+                    }
+                  }
                 }
-
               ]
             }
           },
@@ -321,18 +437,165 @@ module.exports = {
                   }
                 },
                 {
+                  class: 'Toggle',
+                  compClass: 'ToggleComponent',
+                  editOnly: true,
+                  definition: {
+                    name: 'accessRightsToggle',
+                    defaultValue: false,
+                    label: '@dataPublication-publish-metadata-only',
+                    help: '@dataPublication-publish-metadata-only-help',
+                    controlType: 'checkbox',
+                    publish: {
+                      onValueUpdate: {
+                        modelEventSource: 'valueChanges'
+                      }
+                    },
+                    subscribe: {
+                      'form': {
+                        onFormLoaded: [
+                          { action: 'publishValueLoaded' }
+                        ]
+                      }
+                    }
+                  }
+                },
+                {
                   class: 'PublishDataLocationSelector',
                   compClass: 'PublishDataLocationSelectorComponent',
                   definition: {
-                    name: "dataLocations",
+                    name: "dataLocations", // this will create another entry on form group that will contain the list of those selected
+                    visibilityCriteria: false, // hidden when access rights is unchecked
                     subscribe: {
                       'dataRecordGetter': {
                         onValueUpdate: [{
                           action: 'utilityService.getPropertyFromObject',
                           field: 'dataLocations'
                         }]
+                      },
+                      'accessRightsToggle': {
+                        onValueUpdate: [
+                          { action: 'setVisibility' }
+                        ],
+                        onValueLoaded: [
+                          { action: 'setVisibility' }
+                        ]
                       }
                     }
+                  }
+                },
+                {
+                  class: 'HtmlRaw',
+                  compClass: 'HtmlRawComponent',
+                  editOnly:true,
+                  definition: {
+                    name: "dataPub-dm-prefix-0",
+                    value: '@dataPublication-data-manager',
+                    visibilityCriteria: true, // visible when access rights is checked
+                    subscribe: {
+                      'accessRightsToggle': {
+                        onValueUpdate: [
+                          { action: 'setVisibility' }
+                        ],
+                        onValueLoaded: [
+                          { action: 'setVisibility' }
+                        ]
+                      }
+                    }
+                  }
+                },
+                {
+                  class: 'TextField',
+                  definition: {
+                    name: 'dataLicensingAccess_manager',
+                    label: '@dataPublication-dataLicensingAccess_manager',
+                    type: 'text',
+                    readOnly: true,
+                    visibilityCriteria: true, // visible when access rights is checked
+                    subscribe: {
+                      'dataRecordGetter': {
+                        onValueUpdate: [{
+                          action: 'utilityService.getPropertyFromObject',
+                          field: 'contributor_data_manager.text_full_name'
+                        }]
+                      },
+                      'accessRightsToggle': {
+                        onValueUpdate: [
+                          { action: 'setVisibility' }
+                        ],
+                        onValueLoaded: [
+                          { action: 'setVisibility' }
+                        ]
+                      }
+                    }
+                  }
+                },
+                {
+                  class: 'HtmlRaw',
+                  compClass: 'HtmlRawComponent',
+                  editOnly:true,
+                  definition: {
+                    name: "dataPub-dm-suffix-0",
+                    value: '@dataPublication-data_manager-transferResponsibility',
+                    visibilityCriteria: true, // visible when access rights is checked
+                    subscribe: {
+                      'accessRightsToggle': {
+                        onValueUpdate: [
+                          { action: 'setVisibility' }
+                        ],
+                        onValueLoaded: [
+                          { action: 'setVisibility' }
+                        ]
+                      }
+                    }
+                  }
+                },
+                {
+                  class: 'SelectionField',
+                  compClass: 'SelectionFieldComponent',
+                  definition: {
+                    name: 'dc:accessRights',
+                    label: '@dataPublication-dc:accessRights',
+                    help: '@dataPublication-dc:accessRights-help',
+                    defaultValue: '@dataPublication-dc:accessRights-open',
+                    controlType: 'radio',
+                    readOnly:true,
+                    options: [
+                      {
+                        value: "@dataPublication-dc:accessRights-open",
+                        label: "@dataPublication-dc:accessRights-open"
+                      },
+                      {
+                        value: "@dataPublication-dc:accessRights-restricted-val",
+                        label: "@dataPublication-dc:accessRights-restricted"
+                      }
+                    ],
+                    subscribe: {
+                      'accessRightsToggle': {
+                        onValueUpdate: [{
+                          action: 'utilityService.getPropertyFromObjectMapping',
+                          mapping: [
+                            {
+                              key: 'true',
+                              value: 'Restricted'
+                            },
+                            {
+                              key: 'false',
+                              value: 'Open'
+                            }
+                          ]
+                        }]
+                      }
+                    }
+                  }
+                },
+                {
+                  class: 'TextField',
+                  definition: {
+                    name: 'accessRights_url',
+                    label: '@dataPublication-accessRights_url',
+                    help: '@dataPublication-accessRights_url-help',
+                    type: 'text'
                   }
                 }
               ]
