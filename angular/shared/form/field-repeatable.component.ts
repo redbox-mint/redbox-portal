@@ -107,14 +107,20 @@ export class RepeatableContainer extends Container {
 
   createNewElem(baseFieldInst: any, value:any = null) {
     const newOpts = _.cloneDeep(baseFieldInst.options);
-    newOpts.value = null;
+    newOpts.value = value;
     const newInst = new baseFieldInst.constructor(newOpts, this.injector);
     _.forEach(this.skipClone, (f: any)=> {
       newInst[f] = null;
     });
+
     _.forEach(this.forceClone, (f: any) => {
       if (_.isString(f)) {
-        newInst[f] = _.cloneDeep(baseFieldInst[f]);
+        newInst[f] = _.cloneDeepWith(baseFieldInst[f], this.getCloneCustomizer(
+          {
+            skipClone: ['fields', 'fieldMap', 'formModel', 'injector', 'onValueUpdate', 'onValueLoaded', 'translationService', 'utilityService', 'componentReactors'],
+            copy: ['fieldMap', 'injector', 'translationService', 'utilityService']
+          }
+        ));
       } else {
         newInst[f.field] = _.cloneDeepWith(baseFieldInst[f.field], this.getCloneCustomizer(f));
       }
@@ -127,8 +133,12 @@ export class RepeatableContainer extends Container {
   }
 
   getCloneCustomizer(cloneOpts:any) {
+    const that = this;
     return function(value: any, key: any) {
-      if (_.find(cloneOpts.skipClone, (skippedEntry:any) => { return skippedEntry == key}) ) {
+      if (_.includes(cloneOpts.skipClone, key) ) {
+        if (_.includes(cloneOpts.copy, key)) {
+          return that[key];
+        }
         return false;
       }
     };
@@ -164,10 +174,8 @@ export class RepeatableContainer extends Container {
     console.log(`Repeatable container field reacting: ${eventName}`);
     console.log(eventData);
     // delete first...
-    if (this.fields.length > eventData.length) {
-      for (let toDelIdx = eventData.length - 1; toDelIdx <= this.fields.length; toDelIdx++ ) {
-          this.removeElem(toDelIdx);
-      }
+    for (let toDelIdx = 1; toDelIdx < this.fields.length; toDelIdx++ ) {
+      this.removeElem(toDelIdx);
     }
     _.each(eventData, (entry, idx) => {
       if (idx >= this.formModel.controls.length) {
