@@ -141,15 +141,9 @@ export class PublishDataLocationSelectorComponent extends SimpleComponent {
 
   }
 
-  public locationSelected(location){
-    _.each(this.field.value, dataLocation => {
-      if(dataLocation['location'] == location) {
-        if(dataLocation['selected']) {
-          dataLocation['selected'] = false;
-        } else {
-          dataLocation['selected'] = true;
-        }
-      }
+  public selectAllLocations(checked){
+    _.each(this.field.value, (dataLocation:any) => {
+      dataLocation.selected = checked;
     });
   }
 
