@@ -741,7 +741,7 @@ module.exports = {
                     name: "related_publications",
                     label: "@dmpt-related-publication",
                     help: "@dmpt-related-publication-help",
-                    forceClone: ['fields', 'fieldMap'],
+                    forceClone: ['fields'],
                     fields: [
                       {
                         class: 'Container',
