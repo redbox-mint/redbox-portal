@@ -1213,7 +1213,8 @@ module.exports = {
             definition: {
               id: "publication",
               label: "@dataPublication-publication-tab",
-              fields: [{
+              fields: [
+                {
                   class: 'Container',
                   compClass: 'TextBlockComponent',
                   definition: {
@@ -1222,23 +1223,27 @@ module.exports = {
                   }
                 },
                 {
-                  class: 'Container',
-                  compClass: 'TextBlockComponent',
+                  class: 'Toggle',
+                  compClass: 'ToggleComponent',
+                  editOnly: true,
                   definition: {
-                    value: '@dataPublication-embargo-heading',
-                    type: 'h4'
-                  }
-                },
-                {
-                  class: 'SelectionField',
-                  compClass: 'SelectionFieldComponent',
-                  definition: {
-                    name: 'embargoEnabled',
+                    name: 'embargoByDate',
+                    defaultValue: false,
+                    label: '@dataPublication-embargoEnabled',
+                    help: '@dataPublication-embargoEnabled-help',
                     controlType: 'checkbox',
-                    options: [{
-                      value: "embargoed",
-                      label: "@dataPublication-embargoEnabled"
-                    }]
+                    publish: {
+                      onValueUpdate: {
+                        modelEventSource: 'valueChanges'
+                      }
+                    },
+                    subscribe: {
+                      'form': {
+                        onFormLoaded: [
+                          { action: 'publishValueLoaded' }
+                        ]
+                      }
+                    }
                   }
                 },
                 {
@@ -1260,6 +1265,16 @@ module.exports = {
                       onValueUpdate: {
                         modelEventSource: 'valueChanges'
                       }
+                    },
+                    subscribe: {
+                      'embargoByDate': {
+                        onValueLoaded: [
+                          { action: 'setRequiredAndClearValueOnFalse' }
+                        ],
+                        onValueUpdate: [
+                          { action: 'setRequiredAndClearValueOnFalse' }
+                        ]
+                      }
                     }
                   }
                 },
@@ -1267,7 +1282,16 @@ module.exports = {
                   class: 'TextArea',
                   definition: {
                     name: 'embargoNote',
-                    label: '@dataPublication-embargoNote'
+                    label: '@dataPublication-embargoNote',
+                    help: '@dataPublication-embargoNote-help'
+                  }
+                },
+                {
+                  class: 'TextArea',
+                  definition: {
+                    name: 'reviewerNote',
+                    label: '@dataPublication-reviewerNote',
+                    help: '@dataPublication-reviewerNote-help'
                   }
                 },
                 {
