@@ -86,4 +86,9 @@ export class UtilityService {
     });
     return foundMapping ? foundMapping.value : config.default;
   }
+
+  public hasValue(data: any, config:any = null) {
+    return !_.isEmpty(data) && !_.isUndefined(data) && !_.isNull(data);
+  }
+
 }

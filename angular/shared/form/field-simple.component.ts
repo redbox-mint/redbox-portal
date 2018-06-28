@@ -180,7 +180,7 @@ export class DropdownFieldComponent extends SelectionComponent {
 @Component({
   selector: 'selectionfield',
   template: `
-  <div [formGroup]='form' *ngIf="field.editMode" class="form-group">
+  <div [formGroup]='form' *ngIf="field.editMode && field.visible" class="form-group">
      <label [attr.for]="field.name">
       {{field.label}} {{ getRequiredLabelStr()}}
       <button type="button" class="btn btn-default" *ngIf="field.help" (click)="toggleHelp()"><span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span></button>
@@ -188,8 +188,8 @@ export class DropdownFieldComponent extends SelectionComponent {
      <span id="{{ 'helpBlock_' + field.name }}" class="help-block" *ngIf="this.helpShow" [innerHtml]="field.help"></span>
      <span *ngFor="let opt of field.options">
       <!-- radio type hard-coded otherwise accessor directive will not work! -->
-      <input *ngIf="isRadio()" type="radio" name="{{field.name}}" [id]="field.name + '_' + opt.value" [formControl]="getFormControl()" [value]="opt.value" [attr.disabled]="field.readOnly">
-      <input *ngIf="!isRadio()" type="{{field.controlType}}" name="{{field.name}}" [id]="field.name + '_' + opt.value" [value]="opt.value" (change)="onChange(opt, $event)" [attr.selected]="getControlFromOption(opt)" [attr.checked]="getControlFromOption(opt)" [attr.disabled]="field.readOnly">
+      <input *ngIf="isRadio()" type="radio" name="{{field.name}}" [id]="field.name + '_' + opt.value" [formControl]="getFormControl()" [value]="opt.value" [attr.disabled]="field.readOnly ? '' : null ">
+      <input *ngIf="!isRadio()" type="{{field.controlType}}" name="{{field.name}}" [id]="field.name + '_' + opt.value" [value]="opt.value" (change)="onChange(opt, $event)" [attr.selected]="getControlFromOption(opt)" [attr.checked]="getControlFromOption(opt)" [attr.disabled]="field.readOnly ? '' : null ">
       <label for="{{field.name + '_' + opt.value}}" class="radio-label">{{ opt.label }}</label>
       <br/>
      </span>

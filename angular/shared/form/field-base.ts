@@ -205,12 +205,10 @@ export class FieldBase<T> {
   public setupEventHandlers() {
     const publishConfig = this.publish;
     const subscribeConfig = this.subscribe;
-    console.log(`Setting up event handler: ${this.name}`);
     if (!_.isEmpty(this.formModel)) {
 
       if (!_.isEmpty(publishConfig)) {
         _.forOwn(publishConfig, (eventConfig, eventName) => {
-          console.log(`Setting up ${eventName} handlers for field: ${this.name}`)
           const eventSource = eventConfig.modelEventSource;
           this.formModel[eventSource].subscribe((value:any) => {
             if (this.valueNotNull(value)) {
@@ -355,7 +353,21 @@ export class FieldBase<T> {
   }
 
   public setVisibility(data) {
-    this.visible = _.isEqual(data, this.visibilityCriteria);
+    if (_.isObject(this.visibilityCriteria) && this.visibilityCriteria.type == 'function') {
+      const fn:any = _.get(this, this.visibilityCriteria.action);
+      if (fn) {
+        let boundFunction = fn;
+        if(this.visibilityCriteria.action.indexOf(".") == -1) {
+          boundFunction = fn.bind(this);
+        } else {
+          var objectName = this.visibilityCriteria.action.substring(0,this.visibilityCriteria.action.indexOf("."));
+          boundFunction = fn.bind(this[objectName]);
+        }
+        this.visible = boundFunction(data);
+      }
+    } else {
+      this.visible = _.isEqual(data, this.visibilityCriteria);
+    }
   }
 
   public replaceValWithConfig(val) {
