@@ -29,17 +29,17 @@ export class FieldControlMetaService extends BaseService {
 
   getFieldsMeta(fieldsArr: any) {
     const fields = _.map(fieldsArr, (f:any) => {
-        console.log(f.class);
-        if(typeof this.classes[f.class] != 'undefined'){
-          console.log(f.class + ' is null');
-        }
+        // console.log(f.class);
+        // if(typeof this.classes[f.class] != 'undefined'){
+        //   console.log(f.class + ' is null');
+        // }
       const inst = new this.classes[f.class].meta(f.definition, this.app['_injector']);
       inst.utilityService = this.getInjectedService('utilityService');
       inst.appConfig = this.getInjectedService('configService').config;
       // set the component class
       if (_.isArray(this.classes[f.class].comp)) {
         inst.compClass = _.find(this.classes[f.class].comp, (c:any)=> {
-          console.log(`Checking if ${c.clName} == ${f.compClass}`);
+          // console.log(`Checking if ${c.clName} == ${f.compClass}`);
           return c.clName == f.compClass
         });
         // defaults to the first entry when compClass is undefined
