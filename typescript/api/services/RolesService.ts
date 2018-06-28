@@ -44,6 +44,7 @@ export module Services {
       'getRolesWithBrand',
       'getAdminFromRoles',
       'getRoleWithName',
+      'getRoleByName',
       'getDefAuthenticatedRole',
       'getDefUnathenticatedRole',
       'getNestedRoles'
@@ -55,6 +56,10 @@ export module Services {
 
     public getRole = (brand, roleName) :Role => {
       return this.getRoleWithName(brand.roles, roleName);
+    }
+
+    public getRoleByName = (brand, roleName) :Role => {
+      return this.getRoleWithName(brand.roles, this.getConfigRole(roleName).name);
     }
 
     public getAdmin = (brand) :Role => {

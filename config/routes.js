@@ -105,6 +105,27 @@ module.exports.routes = {
     action: 'profile',
     skipAssets: true
   },
+  '/:branding/:portal/admin': {
+    controller: 'RenderViewController',
+    action: 'render',
+    locals:{
+      'view': 'admin/home'
+    }
+  },
+  '/:branding/:portal/availableServicesList': {
+    controller: 'RenderViewController',
+    action: 'render',
+    locals:{
+      'view': 'availableServicesList'
+    }
+  },
+  '/:branding/:portal/getAdvice': {
+    controller: 'RenderViewController',
+    action: 'render',
+    locals:{
+      'view': 'getAdvice'
+    }
+  },
   /***************************************************************************
   *                                                                          *
   * Custom routes here...                                                    *

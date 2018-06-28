@@ -15,7 +15,7 @@
            </div>
            <!-- end panel-primary -->
     </div>
-
+    <% if ( hasRole(req,'Admin')) {%>
     <div class="col-md-3">
       <div class="panel panel-default">
                <div class="panel-heading">
@@ -30,6 +30,7 @@
            </div>
            <!-- end panel-primary -->
     </div>
+    <% }%>
     <div class="col-md-3">
 
     </div>

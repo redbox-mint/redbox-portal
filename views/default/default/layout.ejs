@@ -117,7 +117,7 @@
                   </ul>
                 </li>
               <%
-                if (hasAdminRole(req)) {%>
+                if ( hasRole(req,'Admin') || hasRole(req,'Librarians')) {%>
               <li class="dropdown">
                 <a href="<%= BrandingService.getBrandAndPortalPath(req) %>/admin"><%= TranslationService.t('menu-admin')%></a>
               </li>

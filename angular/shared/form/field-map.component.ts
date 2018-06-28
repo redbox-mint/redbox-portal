@@ -176,7 +176,7 @@ export class MapField extends FieldBase<any> {
         layer = e.layer;
       that.layers.push(layer);
       that.layerGeoJSON = L.featureGroup(that.layers).toGeoJSON();
-
+      that.setValue(that.layerGeoJSON);
       return false;
     });
 

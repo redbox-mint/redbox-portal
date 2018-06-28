@@ -571,41 +571,6 @@ module.exports = {
             }
           },
           // -------------------------------------------------------------------
-          // Data Tab
-          // -------------------------------------------------------------------
-          {
-            class: "Container",
-            definition: {
-              id: "data",
-              label: "@dataRecord-data-tab",
-              fields: [{
-                  class: 'Container',
-                  compClass: 'TextBlockComponent',
-                  definition: {
-                    value: '@dataRecord-data-heading',
-                    type: 'h3'
-                  }
-                },
-                {
-                  class: 'DataLocation',
-                  compClass: 'DataLocationComponent',
-                  definition: {
-                    name:"dataLocations",
-                    maxFileSize: 524288000
-                  }
-                },
-                {
-                  class: 'TextArea',
-                  definition: {
-                    name: 'software_equipment',
-                    label: '@dataRecord-data-software',
-                    type: 'text'
-                  }
-                }
-              ]
-            }
-          },
-          // -------------------------------------------------------------------
           // Relationships Tab
           // -------------------------------------------------------------------
           {
@@ -788,6 +753,41 @@ module.exports = {
                         }
                       }
                     ]
+                  }
+                }
+              ]
+            }
+          },
+          // -------------------------------------------------------------------
+          // Data Tab
+          // -------------------------------------------------------------------
+          {
+            class: "Container",
+            definition: {
+              id: "data",
+              label: "@dataRecord-data-tab",
+              fields: [{
+                  class: 'Container',
+                  compClass: 'TextBlockComponent',
+                  definition: {
+                    value: '@dataRecord-data-heading',
+                    type: 'h3'
+                  }
+                },
+                {
+                  class: 'DataLocation',
+                  compClass: 'DataLocationComponent',
+                  definition: {
+                    name:"dataLocations",
+                    maxFileSize: 524288000
+                  }
+                },
+                {
+                  class: 'TextArea',
+                  definition: {
+                    name: 'software_equipment',
+                    label: '@dataRecord-data-software',
+                    type: 'text'
                   }
                 }
               ]
