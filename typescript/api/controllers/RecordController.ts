@@ -25,7 +25,7 @@ import moment from 'moment-es6';
 import * as tus from 'tus-node-server';
 import * as fs from 'fs';
 
-declare var FormsService, RecordsService, WorkflowStepsService, BrandingService, RecordTypesService, TranslationService, User, EmailService;
+declare var FormsService, RecordsService, WorkflowStepsService, BrandingService, RecordTypesService, TranslationService, User, EmailService, RolesService;
 /**
  * Package that contains all Controllers.
  */
@@ -628,12 +628,23 @@ export module Controllers {
     }
 
     protected mergeFields(req, res, fields, metadata) {
+      const fieldsToDelete = [];
       _.forEach(fields, field => {
         if (_.has(metadata, field.definition.name)) {
           field.definition.value = metadata[field.definition.name];
         }
         this.replaceCustomFields(req, res, field, metadata);
         const val = field.definition.value;
+        if (field.roles) {
+          let hasAccess = false;
+          _.each(field.roles, (r) => {
+            hasAccess = RolesService.getRoleWithName(req.user.roles, r); 
+            if (hasAccess) return false;
+          });
+          if (!hasAccess) {
+            fieldsToDelete.push(field);
+          }
+        }
         if (field.definition.fields && _.isObject(val) && !_.isString(val) && !_.isUndefined(val) && !_.isNull(val) && !_.isEmpty(val)) {
           _.each(field.definition.fields, fld => {
             fld.definition.value = _.get(metadata, `${field.definition.name}.${fld.definition.name}`);
@@ -643,6 +654,7 @@ export module Controllers {
             this.mergeFields(req, res, field.definition.fields, metadata);
           }
       });
+      _.remove(fields, (f) => { return _.includes(fieldsToDelete, f); });
     }
 
     protected replaceCustomFields(req, res, field, metadata) {
