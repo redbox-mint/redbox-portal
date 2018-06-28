@@ -1033,6 +1033,179 @@ module.exports = {
             }
           },
           // -------------------------------------------------------------------
+          // Citation Tab
+          // -------------------------------------------------------------------
+          {
+            class: "Container",
+            definition: {
+              id: "citation",
+              label: "@dataPublication-citation-tab",
+              fields: [
+                {
+                  class: 'Container',
+                  compClass: 'TextBlockComponent',
+                  definition: {
+                    value: "@dataPublication-citation-tab-heading",
+                    type: 'h3'
+                  }
+                },
+                {
+                  class: 'TextField',
+                  definition: {
+                    name: 'citation_doi',
+                    label: '@dataPublication-citation-identifier',
+                    type: 'text',
+                    readOnly:true,
+                    subscribe: {
+                      'form': {
+                        onFormLoaded: [
+                          { action: 'publishValueLoaded' }
+                        ]
+                      },
+                      'this': {
+                        onValueLoaded: [
+                          { action: 'setVisibility' }
+                        ]
+                      }
+                    },
+                    visibilityCriteria: {
+                      type: 'function',
+                      action: 'utilityService.hasValue'
+                    }
+                  }
+                },
+                {
+                  class: 'SelectionField',
+                  compClass: 'SelectionFieldComponent',
+                  editOnly: true,
+                  definition: {
+                    name: 'requestIdentifier',
+                    controlType: 'checkbox',
+                    options: [
+                      {
+                        value: "request",
+                        label: "@dataPublication-citation-request-identifier"
+                      }
+                    ],
+                    visibilityCriteria: undefined, // when doi is undefined, this is visible
+                    subscribe: {
+                      'citation_doi': {
+                        onValueLoaded: [
+                          { action: 'setVisibility' }
+                        ]
+                      }
+                    }
+                  }
+                },
+                {
+                  class: 'TextField',
+                  definition: {
+                    name: 'citation_title',
+                    label: '@dataPublication-citation-title',
+                    help: '@dataPublication-citation-title-help',
+                    type: 'text',
+                    required: true
+                  }
+                },
+                {
+                  class: 'RepeatableContributor',
+                  compClass: 'RepeatableContributorComponent',
+                  definition: {
+                    name: "creators",
+                    canSort: true,
+                    skipClone: ['showHeader', 'initialValue'],
+                    forceClone: [{
+                        field: 'vocabField',
+                        skipClone: ['injector']
+                      }
+                    ],
+                    fields: [{
+                      class: 'ContributorField',
+                      showHeader: true,
+                      definition: {
+                        required: false,
+                        label: '@dataPublication-creators',
+                        help: '@dataPublication-creators-help',
+                        freeText: false,
+                        vocabId: 'Parties AND repository_name:People',
+                        sourceType: 'mint',
+                        fieldNames: [{
+                          'text_full_name': 'text_full_name'
+                        }, {
+                          'full_name_honorific': 'text_full_name_honorific'
+                        }, {
+                          'email': 'Email[0]'
+                        }],
+                        searchFields: 'text_given_name,text_family_name,text_full_name,text_full_name_honorific',
+                        titleFieldArr: ['text_full_name'],
+                        titleFieldDelim: '',
+                        nameColHdr: '@dmpt-people-tab-name-hdr',
+                        emailColHdr: '@dmpt-people-tab-email-hdr',
+                        orcidColHdr: '@dmpt-people-tab-orcid-hdr',
+                        publish: {
+                          onValueUpdate: {
+                            modelEventSource: 'valueChanges'
+                          }
+                        },
+                        subscribe: {
+                          'this': {
+                            onValueUpdate: []
+                          }
+                        }
+                      }
+                    }],
+                    subscribe: {
+                      'dataRecordGetter': {
+                        onValueUpdate: [{
+                          action: 'utilityService.getPropertyFromObjectConcat',
+                          field: ['contributor_ci', 'contributor_data_manager', 'contributors', 'contributor_supervisor']
+                        }]
+                      }
+                    }
+                  }
+                },
+                {
+                  class: 'TextField',
+                  definition: {
+                    name: 'citation_publisher',
+                    label: '@dataPublication-citation-publisher',
+                    help: '@dataPublication-citation-publisher-help',
+                    defaultValue: '@dataPublication-citation-publisher-default',
+                    type: 'text',
+                    required: true
+                  }
+                },
+                {
+                  class: 'TextField',
+                  definition: {
+                    name: 'citation_url',
+                    label: '@dataPublication-citation-url',
+                    help: '@dataPublication-citation-url-help',
+                    type: 'text',
+                    required: true
+                  }
+                },
+                {
+                  class: 'DateTime',
+                  definition: {
+                    name: "citation_publication_date",
+                    label: "@dataPublication-citation-publication-date",
+                    help: '@dataPublication-citation-publication-datel-help',
+                    datePickerOpts: {
+                      format: 'dd/mm/yyyy',
+                      icon: 'fa fa-calendar',
+                      autoclose: true
+                    },
+                    timePickerOpts: false,
+                    hasClearButton: false,
+                    valueFormat: 'YYYY-MM-DD',
+                    displayFormat: 'L'
+                  }
+                }
+              ]
+            }
+          },
+          // -------------------------------------------------------------------
           // Publication Tab
           // -------------------------------------------------------------------
           {
