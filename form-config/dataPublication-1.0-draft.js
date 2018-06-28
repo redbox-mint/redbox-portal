@@ -1352,7 +1352,7 @@ module.exports = {
               label: 'Withdraw',
               closeOnSave: true,
               redirectLocation: '/@branding/@portal/dashboard/dataPublication',
-              targetStep: 'withdraw'
+              additionalData: { withdraw: true }
             },
             variableSubstitutionFields: ['redirectLocation']
           },

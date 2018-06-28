@@ -177,13 +177,16 @@ export class DmpFormComponent extends LoadableComponent {
    * @param  {boolean=false} forceValidate
    * @return {[type]}
    */
-  onSubmit(nextStep:boolean = false, targetStep:string = null, forceValidate:boolean=false) {
+  onSubmit(nextStep:boolean = false, targetStep:string = null, forceValidate:boolean=false, additionalData: any = null) {
     this.onBeforeSave.emit({oid: this.oid});
     if (!this.isValid(forceValidate)) {
       return Observable.of(false);
     }
     this.setSaving(this.getMessage(this.formDef.messages.saving));
-    const values = this.formatValues(this.form.value);
+    let values = this.formatValues(this.form.value);
+    if (!_.isEmpty(additionalData)) {
+      _.assign(values, additionalData);
+    }
     this.payLoad = JSON.stringify(values);
     console.log("Saving the following values:");
     console.log(this.payLoad);
