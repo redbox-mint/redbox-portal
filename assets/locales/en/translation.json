@@ -589,5 +589,7 @@
   "@dataPublication-citation-url": "URL",
   "@dataPublication-citation-url-help": "Help text place holder",
   "@dataPublication-citation-publication-date": "Publication Date",
-  "@dataPublication-citation-publication-date-help": "Help text place holder"
+  "@dataPublication-citation-publication-date-help": "Help text place holder",
+  "@dataPublication-creators": "Creators",
+  "@dataPublication-creators-help": "Creators help text placehodler"
 }
