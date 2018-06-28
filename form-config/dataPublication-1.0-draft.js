@@ -926,7 +926,7 @@ module.exports = {
                   class: 'SelectionField',
                   compClass: 'DropdownFieldComponent',
                   definition: {
-                    name: 'dc:license.dc:identifier',
+                    name: 'license_identifier',
                     label: '@dataPublication-dc:license.dc:identifier',
                     help: '@dataPublication-dc:license.dc:identifier-help',
                     options: [
@@ -996,14 +996,14 @@ module.exports = {
                 {
                   class: 'MarkdownTextArea',
                   definition: {
-                    name: 'dc:license.rdf:Alt.skos:prefLabel',
+                    name: 'license_notes',
                     label: '@dataPublication-dc:license.rdf:Alt.skos:prefLabel'
                   }
                 },
                 {
                   class: 'TextField',
                   definition: {
-                    name: 'dc:license.rdf:Alt.dc:identifier',
+                    name: 'license_other_url',
                     label: '@dataPublication-dc:license.rdf:Alt.dc:identifier',
                     help: '@dataPublication-dc:license.rdf:Alt.dc:identifier-help',
                     type: 'text'
@@ -1012,7 +1012,7 @@ module.exports = {
                 {
                   class: 'TextField',
                   definition: {
-                    name: 'dc:accessRights.dc:RightsStatement.skos:prefLabel',
+                    name: 'license_statement',
                     label: '@dataPublication-dc:accessRights.dc:RightsStatement.skos:prefLabel',
                     help: '@dataPublication-dc:accessRights.dc:RightsStatement.skos:prefLabel-help',
                     type: 'text',
@@ -1023,7 +1023,7 @@ module.exports = {
                 {
                   class: 'TextField',
                   definition: {
-                    name: 'dc:accessRights.dc:RightsStatement.dc:identifier',
+                    name: 'license_statement_url',
                     label: '@dataPublication-dc:accessRights.dc:RightsStatement.dc:identifier',
                     help: '@dataPublication-dc:accessRights.dc:RightsStatement.dc:identifier-help',
                     type: 'text'

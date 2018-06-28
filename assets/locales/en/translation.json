@@ -576,5 +576,18 @@
   "@dataPublication-dc:accessRights.dc:RightsStatement.skos:prefLabel-help": "Statement data help text place holder",
   "@dataPublication-dc:accessRights.dc:RightsStatement.skos:prefLabel-default": "Copyright ReDBox Research Data 2018",
   "@dataPublication-dc:accessRights.dc:RightsStatement.dc:identifier": "URL",
-  "@dataPublication-dc:accessRights.dc:RightsStatement.dc:identifier-help": "Statement of rights help text place holder"
+  "@dataPublication-dc:accessRights.dc:RightsStatement.dc:identifier-help": "Statement of rights help text place holder",
+  "@dataPublication-citation-tab": "Citation",
+  "@dataPublication-citation-tab-heading":"Specify how the data should be cited",
+  "@dataPublication-citation-request-identifier": "Request a DOI checkbox",
+  "@dataPublication-citation-identifier": "Identifier",
+  "@dataPublication-citation-title": "Title",
+  "@dataPublication-citation-title-help": "Citation title help text placeholder",
+  "@dataPublication-citation-publisher": "Publisher",
+  "@dataPublication-citation-publisher-help": "Publisher help text place holder",
+  "@dataPublication-citation-publisher-default": "ReDBox Research Data",
+  "@dataPublication-citation-url": "URL",
+  "@dataPublication-citation-url-help": "Help text place holder",
+  "@dataPublication-citation-publication-date": "Publication Date",
+  "@dataPublication-citation-publication-date-help": "Help text place holder"
 }
