@@ -489,12 +489,12 @@
   "@dataPublication-relationships-heading": "Specify related entities that contextualise the data",
   "@dataPublication-related-services": "Related Services",
   "@dataPublication-service-identifier": "Service Identifier",
-  "@dataPublication-publication-tab": "Publish",
-  "@dataPublication-publication-heading": "Specify related entities that contextualise the data",
+  "@dataPublication-publication-tab": "Submit",
+  "@dataPublication-publication-heading": "Submit data for publication",
   "@dataPublication-embargo-heading": "Embargo",
-  "@dataPublication-embargoEnabled": "Embargo this record",
+  "@dataPublication-embargoEnabled": "Embargo this record by date",
   "@dataPublication-embargoUntil": "Embargo until",
-  "@dataPublication-embargoUntil-help": "",
+  "@dataPublication-embargoUntil-help": "Embargo until help text placeholder",
   "@dataPublication-embargoNote": "Embargo note",
   "@dataPublication-publish-metadata-only": "Publish metadata only (no data)?",
   "@dataPublication-publish-metadata-only-help": "Publish metadata only help place holder.",
@@ -591,5 +591,9 @@
   "@dataPublication-citation-publication-date": "Publication Date",
   "@dataPublication-citation-publication-date-help": "Help text place holder",
   "@dataPublication-creators": "Creators",
-  "@dataPublication-creators-help": "Creators help text placehodler"
+  "@dataPublication-creators-help": "Creators help text placehodler",
+  "@dataPublication-embargoEnabled-help": "Help text placeholder",
+  "@dataPublication-embargoNote-help": "Help text placeholder",
+  "@dataPublication-reviewerNote": "Please add any further information/queries below - these will be followed up by the reviewer",
+  "@dataPublication-reviewerNote-help": "Help text placeholder"
 }
