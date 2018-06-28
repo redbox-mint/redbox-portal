@@ -19,7 +19,7 @@
 import { Input, Component, ChangeDetectorRef } from '@angular/core';
 import { PercentPipe } from '@angular/common';
 import { SimpleComponent } from './field-simple.component';
-import { FieldBase } from './field-base';
+import { NotInFormField } from './field-simple';
 import { RecordsService } from './records.service';
 import { FormGroup, FormControl, Validators } from '@angular/forms';
 import * as _ from "lodash-es";
@@ -38,7 +38,7 @@ declare var io: any;
  * @author <a target='_' href='https://github.com/shilob'>Shilo Banihit</a>
  *
  */
-export class AsynchField extends FieldBase<any> {
+export class AsynchField extends NotInFormField {
   public listenType: any;
   public relatedRecordId: string;
   public criteria: any;
@@ -78,14 +78,6 @@ export class AsynchField extends FieldBase<any> {
 
   public getStatusLabel(status) {
     return this.getTranslated(`${this.options.statusLabel}-${status}`, status);
-  }
-
-  public createFormModel(valueElem:any = null): any {
-
-  }
-
-  public getGroup(group: any, fieldMap: any) : any {
-    this.fieldMap = fieldMap;
   }
 
 }
