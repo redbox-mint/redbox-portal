@@ -46,6 +46,7 @@ export class ContributorField extends FieldBase<any> {
   validators: any;
   enabledValidators: boolean;
   marginTop: string;
+  baseMarginTop: string;
   role: string;
   // Frankenstein begin
   vocabField: VocabField;
@@ -68,8 +69,9 @@ export class ContributorField extends FieldBase<any> {
     this.orcidColHdr = options['orcidColHdr'] ? this.getTranslated(options['orcidColHdr'], options['orcidColHdr']) : 'ORCID';
 
     this.showHeader = options['showHeader'] || true;
-    this.showHeader = options['showRole'] || true;
-    
+    this.showRole = options['showRole'] || true;
+    this.baseMarginTop = options['baseMarginTop'] || '45px';
+
     this.roles = options['roles'] || [];
     this.value = options['value'] || this.setEmptyValue();
     this.fieldNames = options['fieldNames'] || [];

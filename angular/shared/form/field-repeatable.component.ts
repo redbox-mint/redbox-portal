@@ -40,6 +40,8 @@ export class RepeatableContainer extends Container {
   removeButtonTextClass: any;
   addButtonClass: any;
   removeButtonClass: any;
+  moveUpButtonClass: any;
+  moveDownButtonClass: any;
 
   constructor(options: any, injector: any) {
     super(options, injector);
@@ -52,6 +54,8 @@ export class RepeatableContainer extends Container {
     this.addButtonClass = options['addButtonClass'] || 'fa fa-plus-circle btn text-20 pull-right btn-success';
     this.removeButtonTextClass = options['removeButtonTextClass'] || 'btn btn-danger pull-right';
     this.removeButtonClass = options['removeButtonClass'] || 'fa fa-minus-circle btn text-20 pull-right btn-danger';
+    this.moveUpButtonClass = options['addButtonClass'] || 'fa fa-chevron-circle-up btn text-20 pull-left btn-primary';
+    this.moveDownButtonClass = options['addButtonClass'] || 'fa fa-chevron-circle-down btn text-20 pull-left btn-primary';
   }
 
   getInitArrayEntry() {
@@ -158,6 +162,15 @@ export class RepeatableContainer extends Container {
   removeElem(index: number) {
     _.remove(this.fields, (val:any, idx: number) => { return idx == index });
     this.formModel.removeAt(index);
+  }
+
+  swap(fromIdx, toIdx) {
+    let temp = this.fields[toIdx];
+    this.fields[toIdx] = this.fields[fromIdx];
+    this.fields[fromIdx] = temp;
+    temp = this.formModel.at(toIdx);
+    this.formModel.setControl(toIdx, this.formModel.at(fromIdx));
+    this.formModel.setControl(fromIdx, temp);
   }
 
   setValueAtElem(index, value:any) {
@@ -278,6 +291,12 @@ export class RepeatableVocabComponent extends RepeatableComponent {
 
 export class RepeatableContributor extends RepeatableContainer {
   fields: ContributorField[];
+  canSort: boolean;
+
+  constructor(options: any, injector: any) {
+    super(options, injector);
+    this.canSort = _.isUndefined(options['canSort']) ? false : options['canSort'];
+  }
 
   setValueAtElem(index, value:any) {
     this.fields[index].component.onSelect(value, false, true);
@@ -289,10 +308,12 @@ export class RepeatableContributor extends RepeatableContainer {
   template: `
   <div *ngIf="field.editMode">
     <div *ngFor="let fieldElem of field.fields; let i = index;" class="row">
-      <span class="col-xs-10">
+      <span class="col-xs-9">
         <rb-contributor [field]="fieldElem" [form]="form" [fieldMap]="fieldMap" [isEmbedded]="true"></rb-contributor>
       </span>
-      <span class="col-xs-2">
+      <span class="col-xs-3">
+        <button type='button' *ngIf="field.fields.length > 1 && field.canSort"  (click)="moveUp($event, i)" [ngClass]="field.moveUpButtonClass" [ngStyle]="{'margin-top': fieldElem.marginTop}" ></button>
+        <button type='button' *ngIf="field.fields.length > 1 && field.canSort"  (click)="moveDown($event, i)" [ngClass]="field.moveDownButtonClass" [ngStyle]="{'margin-top': fieldElem.marginTop}" ></button>
         <button type='button' *ngIf="field.fields.length > 1 && field.removeButtonText" (click)="removeElem($event, i)"  [ngClass]="field.removeButtonTextClass" [ngStyle]="{'margin-top': fieldElem.marginTop}" >{{field.removeButtonText}}</button>
         <button type='button' *ngIf="field.fields.length > 1 && !field.removeButtonText" (click)="removeElem($event, i)" [ngClass]="field.removeButtonClass" [ngStyle]="{'margin-top': fieldElem.marginTop}" ></button>
       </span>
@@ -324,7 +345,7 @@ export class RepeatableContributorComponent extends RepeatableComponent implemen
   field: RepeatableContributor;
 
   ngOnInit() {
-    this.field.fields[0].marginTop = '25px';
+    this.field.fields[0].marginTop = this.field.fields[0].baseMarginTop;
     this.field.fields[0].componentReactors.push(this);
   }
 
@@ -339,7 +360,7 @@ export class RepeatableContributorComponent extends RepeatableComponent implemen
   removeElem(event: any, i: number) {
     this.field.removeElem(i);
     if (i == 0) {
-      this.field.fields[0].marginTop = '25px';
+      this.field.fields[0].marginTop = this.field.fields[0].baseMarginTop;
       this.field.fields[0]["showHeader"] = true;
     }
   }
@@ -350,6 +371,32 @@ export class RepeatableContributorComponent extends RepeatableComponent implemen
       elem.vocabField.initialValue = eventData;
       elem.setupEventHandlers();
       elem.componentReactors.push(this);
+    }
+  }
+
+  public moveUp(event: any, i:number) {
+    const newIdx = i - 1;
+    if (newIdx >= 0) {
+      this.field.swap(i, newIdx);
+      if (newIdx == 0) {
+        this.field.fields[i].showHeader = false;
+        this.field.fields[i].marginTop = '';
+        this.field.fields[newIdx].showHeader = true;
+        this.field.fields[newIdx].marginTop = this.field.fields[newIdx].baseMarginTop;
+      }
+    }
+  }
+
+  public moveDown(event: any, i:number) {
+    const newIdx = i + 1;
+    if (newIdx < this.field.fields.length) {
+      this.field.swap(i, newIdx);
+      if (i == 0) {
+        this.field.fields[i].showHeader = true;
+        this.field.fields[i].marginTop = this.field.fields[i].baseMarginTop;
+        this.field.fields[newIdx].showHeader = false;
+        this.field.fields[newIdx].marginTop = '';
+      }
     }
   }
 }
