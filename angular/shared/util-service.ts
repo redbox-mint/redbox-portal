@@ -76,7 +76,7 @@ export class UtilityService {
    * Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a>
    * @param {any} data
    * @param  {any} config - dict of field: field path of data, mapping - array of dict with 'key', the value and the actual mapping value 'val', 'default' - the value if there's no match
-   * @return {string}
+   * @return {any}
    */
   public getPropertyFromObjectMapping(data: any, config:any) {
     const fieldPath = config.field;
@@ -87,8 +87,31 @@ export class UtilityService {
     return foundMapping ? foundMapping.value : config.default;
   }
 
+  /**
+   * returns true if value is not null, undefined, empty
+   *
+   * Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a>
+   * @param {any} data
+   * @param  {any} config
+   * @return {string}
+   */
   public hasValue(data: any, config:any = null) {
     return !_.isEmpty(data) && !_.isUndefined(data) && !_.isNull(data);
   }
 
+  /**
+   * returns an array of concatenated values
+   *
+   * Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a>
+   * @param {any} data
+   * @param  {any} config - dict of field: array of field paths to concat
+   * @return {string}
+   */
+  public getPropertyFromObjectConcat(data:any, config:any) {
+    let values = [];
+    _.each(config.field, (f) => {
+      values.push(_.get(data, f));
+    });
+    return _.concat([], ...values);
+  }
 }
