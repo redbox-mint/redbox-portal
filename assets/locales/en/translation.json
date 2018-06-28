@@ -595,5 +595,7 @@
   "@dataPublication-embargoEnabled-help": "Help text placeholder",
   "@dataPublication-embargoNote-help": "Help text placeholder",
   "@dataPublication-reviewerNote": "Please add any further information/queries below - these will be followed up by the reviewer",
-  "@dataPublication-reviewerNote-help": "Help text placeholder"
+  "@dataPublication-reviewerNote-help": "Help text placeholder",
+  "@dataPublication-reviewer-tab": "Reviewer",
+  "@dataPublication-reviewer-tab-heading": "Data Publication review"
 }
