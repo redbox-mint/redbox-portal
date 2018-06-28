@@ -65,6 +65,7 @@ export class FieldBase<T> {
   visible: boolean;
   appConfig: any;
   visibilityCriteria: any;
+  validators: any;
 
   @Output() public onValueUpdate: EventEmitter<any> = new EventEmitter<any>();
   @Output() public onValueLoaded: EventEmitter<any> = new EventEmitter<any>();
@@ -74,6 +75,7 @@ export class FieldBase<T> {
     this.injector = injector;
     this.translationService = this.getFromInjector(TranslationService);
     this.setOptions(options);
+    this.validators = null;
   }
 
   getFromInjector(token:any) {
@@ -151,8 +153,10 @@ export class FieldBase<T> {
     if (valueElem) {
       this.value = valueElem;
     }
-    this.formModel = this.required ? new FormControl(this.value || '', Validators.required)
-                                      : new FormControl(this.value || '');
+    if (this.required) {
+      this.validators = Validators.required;
+    }
+    this.formModel = new FormControl(this.value || '', this.validators);
     return this.formModel;
   }
 
@@ -383,5 +387,20 @@ export class FieldBase<T> {
 
   public publishValueLoaded() {
     this.onValueLoaded.emit(this.value);
+  }
+
+  setRequiredAndClearValueOnFalse(flag) {
+    this.required = flag;
+    if (flag) {
+      this.validators = Validators.required;
+      this.formModel.setValidators(this.validators);
+    } else {
+      if (_.isFunction(this.validators) && _.isEqual(this.validators, Validators.required)) {
+        this.validators = null;
+      }
+      this.formModel.clearValidators();
+      this.formModel.setValue(null);
+      this.value = null;
+    }
   }
 }

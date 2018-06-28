@@ -43,7 +43,6 @@ export class ContributorField extends FieldBase<any> {
   fieldNames: any;
   fullNameResponseField: string = "text_full_name";
   groupFieldNames: string[];
-  validators: any;
   enabledValidators: boolean;
   marginTop: string;
   baseMarginTop: string;
