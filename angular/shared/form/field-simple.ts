@@ -216,6 +216,7 @@ export class SaveButton extends FieldBase<string> {
   redirectLocation: string;
   closeOnSave: boolean;
   buttonClass: string;
+  targetStep: string;
 
 
   constructor(options: any, injector: any) {
@@ -224,6 +225,7 @@ export class SaveButton extends FieldBase<string> {
     this.closeOnSave = options['closeOnSave'] || false;
     this.redirectLocation = options['redirectLocation'] || false;
     this.cssClasses = options['cssClasses'] || "btn-primary";
+    this.targetStep = options['targetStep'] || null;
   }
 }
 
