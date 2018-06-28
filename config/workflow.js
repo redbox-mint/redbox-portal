@@ -45,6 +45,19 @@ module.exports.workflow = {
         form: 'dataPublication-1.0-draft'
       },
       starting: true
+    },
+    "queued": {
+      config: {
+        workflow: {
+          stage: 'queued',
+          stageLabel: 'Queued',
+        },
+        authorization: {
+          viewRoles: ['Admin', 'Librarians'],
+          editRoles: ['Admin', 'Librarians']
+        },
+        form: 'dataPublication-1.0-queued'
+      }
     }
   }
 };
