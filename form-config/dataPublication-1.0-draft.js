@@ -1302,32 +1302,6 @@ module.exports = {
                     cssClasses: "btn btn-primary",
                     targetAction: "publishToCKAN"
                   }
-                },
-                {
-                  class: 'AsynchField',
-                  definition: {
-                    name: 'asynchprogress',
-                    label:"@asynch-label",
-                    nameLabel: "@asynch-name",
-                    statusLabel: "@asynch-status",
-                    dateStartedLabel: "@asynch-dateStarted",
-                    dateCompletedLabel: "@asynch-dateCompleted",
-                    startedByLabel: "@asynch-startedBy",
-                    messageLabel: "@asynch-message",
-                    completionLabel: "@asynch-completion",
-                    lastUpdateLabel: "@asynch-lastUpdate",
-                    listenType: "taskType",
-                    taskType: "publication",
-                    relatedRecordId: "@oid",
-                    criteria: {
-                      where: {
-                        relatedRecordId: "@oid",
-                        taskType: "publication"
-                      }
-                    },
-                    dateFormat: 'L LT'
-                  },
-                  variableSubstitutionFields: ['relatedRecordId']
                 }
               ]
             }
@@ -1369,6 +1343,26 @@ module.exports = {
               label: 'Save & Close',
               closeOnSave: true,
               redirectLocation: '/@branding/@portal/dashboard/dataPublication'
+            },
+            variableSubstitutionFields: ['redirectLocation']
+          },
+          {
+            class: "SaveButton",
+            definition: {
+              label: 'Withdraw',
+              closeOnSave: true,
+              redirectLocation: '/@branding/@portal/dashboard/dataPublication',
+              targetStep: 'withdraw'
+            },
+            variableSubstitutionFields: ['redirectLocation']
+          },
+          {
+            class: "SaveButton",
+            definition: {
+              label: 'Submit for Publication',
+              closeOnSave: true,
+              redirectLocation: '/@branding/@portal/dashboard/dataPublication',
+              targetStep: 'queued'
             },
             variableSubstitutionFields: ['redirectLocation']
           },
