@@ -399,7 +399,7 @@ module.exports = {
                     }, {
                       'email': 'Email[0]'
                     }],
-                    searchFields: 'text_given_name,text_family_name,text_full_name,text_full_name_honorific',
+                    searchFields: 'autocomplete_given_name,autocomplete_family_name,autocomplete_full_name,autocomplete_full_name_honorific',
                     titleFieldArr: ['text_full_name'],
                     titleFieldDelim: '',
                     nameColHdr: '@dmpt-people-tab-name-hdr',
@@ -440,7 +440,7 @@ module.exports = {
                     }, {
                       'email': 'Email[0]'
                     }],
-                    searchFields: 'text_given_name,text_family_name,text_full_name,text_full_name_honorific',
+                    searchFields: 'autocomplete_given_name,autocomplete_family_name,autocomplete_full_name,autocomplete_full_name_honorific',
                     titleFieldArr: ['text_full_name'],
                     titleFieldDelim: '',
                     nameColHdr: '@dmpt-people-tab-name-hdr',
@@ -494,7 +494,7 @@ module.exports = {
                         }, {
                           'email': 'Email[0]'
                         }],
-                        searchFields: 'text_given_name,text_family_name,text_full_name,text_full_name_honorific',
+                        searchFields: 'autocomplete_given_name,autocomplete_family_name,autocomplete_full_name,autocomplete_full_name_honorific',
                         titleFieldArr: ['text_full_name'],
                         titleFieldDelim: '',
                         nameColHdr: '@dmpt-people-tab-name-hdr',
@@ -535,7 +535,7 @@ module.exports = {
                     }, {
                       'email': 'Email[0]'
                     }],
-                    searchFields: 'text_given_name,text_family_name,text_full_name,text_full_name_honorific',
+                    searchFields: 'autocomplete_given_name,autocomplete_family_name,autocomplete_full_name,autocomplete_full_name_honorific',
                     titleFieldArr: ['text_full_name'],
                     titleFieldDelim: '',
                     nameColHdr: '@dmpt-people-tab-name-hdr',
