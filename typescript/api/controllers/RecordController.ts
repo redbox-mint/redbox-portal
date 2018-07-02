@@ -600,7 +600,10 @@ export module Controllers {
             if (!hasEditAccess) {
               return Observable.throw(new Error(TranslationService.t('edit-error-no-permissions')));
             }
-            return WorkflowStepsService.get(brand, targetStep)
+            return RecordTypesService.get(brand, origRecord.metaMetadata.type);
+          })
+          .flatMap(recType => {
+            return WorkflowStepsService.get(recType, targetStep)
               .flatMap(nextStep => {
                 currentRec.metadata = metadata;
                 sails.log.verbose("Current rec:");
@@ -610,13 +613,12 @@ export module Controllers {
                 this.updateWorkflowStep(currentRec, nextStep);
                 return this.updateMetadata(brand, oid, currentRec, req.user.username);
               });
-          });
+          })
       })
         .subscribe(response => {
           if (response && response.code == "200") {
             response.success = true;
             this.ajaxOk(req, res, null, response);
-            return this.updateDataStream(oid, origRecord, metadata, response, req, res);
           } else {
             this.ajaxFail(req, res, null, response);
           }
@@ -638,7 +640,7 @@ export module Controllers {
         if (field.roles) {
           let hasAccess = false;
           _.each(field.roles, (r) => {
-            hasAccess = RolesService.getRoleWithName(req.user.roles, r); 
+            hasAccess = RolesService.getRoleWithName(req.user.roles, r);
             if (hasAccess) return false;
           });
           if (!hasAccess) {
