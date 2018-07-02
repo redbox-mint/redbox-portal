@@ -13,9 +13,6 @@ module.exports = {
     "saveSuccess": ["@dmpt-form-save-success"],
     "saveError": ["@dmpt-form-save-error"]
   },
-  attachmentFields: [
-    "dataLocations"
-  ],
   fields: [{
       class: 'Container',
       compClass: 'TextBlockComponent',
