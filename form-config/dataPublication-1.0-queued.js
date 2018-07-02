@@ -1346,6 +1346,18 @@ module.exports = {
                     dateFormat: 'L LT'
                   },
                   variableSubstitutionFields: ['relatedRecordId']
+                },
+                {
+                  class: "SaveButton",
+                  roles: ["Admin"],
+                  definition: {
+                    label: '@dataPublication-delete',
+                    closeOnSave: true,
+                    redirectLocation: '/@branding/@portal/dashboard/dataPublication',
+                    additionalData: { delete: true },
+                    cssClasses: 'btn-danger'
+                  },
+                  variableSubstitutionFields: ['redirectLocation']
                 }
               ]
             }
@@ -1393,7 +1405,7 @@ module.exports = {
           {
             class: "SaveButton",
             definition: {
-              label: 'Withdraw',
+              label: '@dataPublication-withdraw',
               closeOnSave: true,
               redirectLocation: '/@branding/@portal/dashboard/dataPublication',
               additionalData: { withdraw: true }
