@@ -184,7 +184,7 @@ export class DmpFormComponent extends LoadableComponent {
     }
     this.setSaving(this.getMessage(this.formDef.messages.saving));
     let values = this.formatValues(this.form.value);
-    if (!_.isEmpty(additionalData)) {
+    if (!_.isEmpty(additionalData) && !_.isNull(additionalData)) {
       _.assign(values, additionalData);
     }
     this.payLoad = JSON.stringify(values);
@@ -202,7 +202,7 @@ export class DmpFormComponent extends LoadableComponent {
           this.LocationService.go(`record/edit/${this.oid}`);
           this.setSuccess(this.getMessage(this.formDef.messages.saveSuccess));
           if (nextStep) {
-            this.stepTo(targetStep);
+            return this.stepTo(targetStep);
           }
           return Observable.of(true);
         } else {
@@ -219,6 +219,10 @@ export class DmpFormComponent extends LoadableComponent {
         console.log("Update Response:");
         console.log(res);
         if (res.success) {
+          if (nextStep) {
+            console.log(`Stepping to: ${targetStep}`)
+            return this.stepTo(targetStep);
+          }
           this.recordSaved.emit({oid: this.oid, success:true});
           this.setSuccess(this.getMessage(this.formDef.messages.saveSuccess));
           return Observable.of(true);
@@ -422,24 +426,26 @@ export class DmpFormComponent extends LoadableComponent {
     }
     this.needsSave = false;
     if (_.isEmpty(this.oid)) {
-      this.onSubmit(true, targetStep, true);
+      return this.onSubmit(true, targetStep, true);
     } else {
       this.setSaving(this.getMessage(this.formDef.messages.saving));
       const values = this.formatValues(this.form.value);
       this.payLoad = JSON.stringify(values);
       console.log(this.payLoad);
-      this.RecordsService.stepTo(this.oid, this.payLoad, targetStep).then((res:any) => {
+      return this.RecordsService.stepTo(this.oid, this.payLoad, targetStep).flatMap((res:any) => {
         this.clearSaving();
-        console.log("Update Response:");
+        console.log("Step to Response:");
         console.log(res);
         if (res.success) {
           this.setSuccess(this.getMessage(this.formDef.messages.saveSuccess));
-          this.gotoDashboard();
+          return Observable.of(true);
         } else {
           this.setError(`${this.getMessage(this.formDef.messages.saveError)} ${res.message}`);
+          return Observable.of(false);
         }
       }).catch((err:any)=>{
         this.setError(`${this.getMessage(this.formDef.messages.saveError)} ${err}`);
+        return Observable.of(false);
       });
     }
   }
