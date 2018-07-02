@@ -111,8 +111,7 @@ export class RecordsService extends BaseService {
 
   stepTo(oid: string, record: any, targetStep: string) {
     return this.http.post(`${this.brandingAndPortalUrl}/record/workflow/step/${targetStep}/${oid}`, record, this.getOptionsClient())
-    .toPromise()
-    .then((res:any) => this.extractData(res) as RecordActionResult);
+    .map((res:any) => this.extractData(res) as RecordActionResult);
   }
 
   getDashboardUrl(recType:string='rdmp') {
