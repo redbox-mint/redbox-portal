@@ -597,5 +597,7 @@
   "@dataPublication-reviewerNote": "Please add any further information/queries below - these will be followed up by the reviewer",
   "@dataPublication-reviewerNote-help": "Help text placeholder",
   "@dataPublication-reviewer-tab": "Reviewer",
-  "@dataPublication-reviewer-tab-heading": "Data Publication review"
+  "@dataPublication-reviewer-tab-heading": "Data Publication review",
+  "@dataPublication-withdraw": "Withdraw",
+  "@dataPublication-delete": "DELETE"
 }

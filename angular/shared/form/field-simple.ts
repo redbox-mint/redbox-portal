@@ -222,7 +222,7 @@ export class SaveButton extends FieldBase<string> {
 
   constructor(options: any, injector: any) {
     super(options, injector);
-    this.label = options['label'];
+    this.label = this.getTranslated(options['label'], 'Save');
     this.closeOnSave = options['closeOnSave'] || false;
     this.redirectLocation = options['redirectLocation'] || false;
     this.cssClasses = options['cssClasses'] || "btn-primary";
@@ -235,7 +235,7 @@ export class CancelButton extends FieldBase<string> {
   label: string;
   constructor(options: any, injector: any) {
     super(options, injector);
-    this.label = options['label'];
+    this.label =  this.getTranslated(options['label'], 'Cancel');
   }
 }
 
