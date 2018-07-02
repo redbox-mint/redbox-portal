@@ -68,6 +68,11 @@ module.exports.auth = {
       can_update:true
     },
     {
+      path: '/:branding/:portal/record(/*)',
+      role: 'Librarians',
+      can_update:true
+    },
+    {
       path: '/:branding/:portal/recordmeta(/*)',
       role: 'Researcher',
       can_update:true
@@ -108,6 +113,11 @@ module.exports.auth = {
       can_update:true
     },
     {
+      path: '/:branding/:portal/researcher/home',
+      role: 'Librarians',
+      can_update:true
+    },
+    {
       path: '/:branding/:portal/export(/*)',
       role: 'Librarians',
       can_update:true
@@ -115,6 +125,11 @@ module.exports.auth = {
     {
       path: '/:branding/:portal/asynch(/*)',
       role: 'Researcher',
+      can_update:true
+    },
+    {
+      path: '/:branding/:portal/asynch(/*)',
+      role: 'Librarians',
       can_update:true
     },
     {
