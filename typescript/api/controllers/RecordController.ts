@@ -95,7 +95,7 @@ export module Controllers {
       let appName = 'dmp';
       sails.log.debug('RECORD::APP: ' + appName)
       if (recordType != '') {
-        FormsService.getForm(brand.id, recordType, true).subscribe(form => {
+        FormsService.getForm(brand.id, recordType, true, true).subscribe(form => {
           if (form['customAngularApp'] != null) {
             appSelector = form['customAngularApp']['appSelector'];
             appName = form['customAngularApp']['appName'];
@@ -262,7 +262,7 @@ export module Controllers {
 
       let obs = null;
       if (_.isEmpty(oid)) {
-        obs = FormsService.getForm(brand.id, name, editMode).flatMap(form => {
+        obs = FormsService.getForm(brand.id, name, editMode, true).flatMap(form => {
           this.mergeFields(req, res, form.fields, {});
           return Observable.of(form);
         });

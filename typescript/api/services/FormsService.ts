@@ -136,12 +136,12 @@ export module Services {
       });
     }
 
-    public getForm = (branding, recordType, editMode): Observable<any> => {
+    public getForm = (branding, recordType, editMode, starting: boolean): Observable<any> => {
 
       return super.getObservable(RecordType.findOne({ key: branding + "_" + recordType }))
         .flatMap(recordType => {
 
-          return super.getObservable(WorkflowStep.findOne({ recordType: recordType.id }));
+          return super.getObservable(WorkflowStep.findOne({ recordType: recordType.id, starting: starting  }));
         }).flatMap(workflowStep => {
 
           if (workflowStep.starting == true) {
