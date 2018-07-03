@@ -85,9 +85,9 @@ export module Services {
       return super.getObservable(PathRule.find({}).populate('role').populate('branding'))
                   .flatMap(rules => {
                     this.pathRules = rules;
-                    this.rulePatterns = {};
+                    this.rulePatterns = [];
                     _.forEach(rules, (rule) => {
-                      this.rulePatterns[rule.path] = {pattern: new UrlPattern(rule.path), rule: rule};
+                      this.rulePatterns.push({pattern: new UrlPattern(rule.path), rule: rule});
                     });
                     return Observable.of(this.pathRules);
                   });
