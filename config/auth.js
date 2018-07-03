@@ -23,6 +23,11 @@ module.exports.auth = {
   // default rules for the default brand...
   rules: [
     {
+      path: '/:branding/:portal/record/delete(/*)',
+      role: 'Admin',
+      can_update:true
+    },
+    {
       path: '/:branding/:portal/admin',
       role: 'Librarians',
       can_update:true
@@ -136,8 +141,8 @@ module.exports.auth = {
       path: '/:branding/:portal/api(/*)',
       role: 'Admin',
       can_update:true
-    }
-    ,{
+    },
+    {
       path: '/:branding/:portal/home',
       role: 'Guest',
       can_read: true

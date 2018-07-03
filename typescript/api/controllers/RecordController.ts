@@ -57,8 +57,8 @@ export module Controllers {
       'doAttachment',
       'getAttachments',
       'getDataStream',
-      'getAllTypes'
-
+      'getAllTypes',
+      'delete'
     ];
 
     /**
@@ -407,6 +407,45 @@ export module Controllers {
       }
     }
 
+    public delete(req, res) {
+      const brand = BrandingService.getBrand(req.session.branding);
+      const metadata = req.body;
+      const oid = req.param('oid');
+      const user = req.user;
+      let currentRec = null;
+      let message = null;
+      this.getRecord(oid).flatMap(cr => {
+        currentRec = cr;
+        return this.hasEditAccess(brand, user, currentRec);
+      })
+      .flatMap(hasEditAccess => {
+        if (hasEditAccess) {
+          return RecordsService.delete(oid);
+        }
+        message = TranslationService.t('edit-error-no-permissions');
+        return Observable.throw(new Error(TranslationService.t('edit-error-no-permissions')));
+      })
+      .subscribe(response => {
+        if (response && response.code == "200") {
+          const resp = {success:true, oid: oid};
+          sails.log.verbose(`Successfully deleted: ${oid}`);
+          this.ajaxOk(req, res, null, resp);
+        } else {
+          this.ajaxFail(req, res, TranslationService.t('failed-delete'), {success: false, oid: oid, message: response.message});
+        }
+      }, error => {
+        sails.log.error("Error deleting:");
+        sails.log.error(error);
+        if (message == null) {
+          message = error.message;
+        } else
+        if (error.error && error.error.code == 500) {
+          message = TranslationService.t('missing-record');
+        }
+        this.ajaxFail(req, res, message);
+      });
+    }
+
     public update(req, res) {
       const brand = BrandingService.getBrand(req.session.branding);
       const metadata = req.body;
@@ -422,8 +461,6 @@ export module Controllers {
       })
         .map(hasEditAccess => {
           return RecordTypesService.get(brand, currentRec.metaMetadata.type)
-        }).flatMap(recordType => {
-          return recordType
         }).flatMap(recordType => {
           if (metadata.delete) {
             return Observable.of(currentRec);
@@ -441,10 +478,11 @@ export module Controllers {
           if (metadata.delete) {
             RecordsService.delete(oid).subscribe(response => {
               if (response && response.code == "200") {
+                response.success = true;
                 sails.log.verbose(`Successfully deleted: ${oid}`);
                 this.ajaxOk(req, res, null, response);
               } else {
-                this.ajaxFail(req, res, null, response);
+                this.ajaxFail(req, res, TranslationService.t('failed-delete'), response);
               }
             }, error => {
               sails.log.error(`Error deleting: ${oid}`);

@@ -239,6 +239,7 @@ export class SaveButton extends NotInFormField {
   confirmationTitle: string;
   cancelButtonMessage: string;
   confirmButtonMessage: string;
+  isDelete: boolean;
 
   constructor(options: any, injector: any) {
     super(options, injector);
@@ -252,6 +253,7 @@ export class SaveButton extends NotInFormField {
     this.confirmationTitle = options['confirmationTitle'] ? this.getTranslated(options['confirmationTitle'], null) : null;
     this.cancelButtonMessage = options['cancelButtonMessage'] ? this.getTranslated(options['cancelButtonMessage'], null ) : null;
     this.confirmButtonMessage = options['confirmButtonMessage'] ? this.getTranslated(options['confirmButtonMessage'], null) : null;
+    this.isDelete = options['isDelete'];
   }
 }
 

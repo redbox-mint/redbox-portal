@@ -1355,12 +1355,12 @@ module.exports = {
                     label: '@dataPublication-delete',
                     closeOnSave: true,
                     redirectLocation: '/@branding/@portal/dashboard/dataPublication',
-                    additionalData: { delete: true },
                     cssClasses: 'btn-danger',
                     confirmationMessage: '@dataPublication-confirmDelete',
                     confirmationTitle: '@dataPublication-confirmDeleteTitle',
                     cancelButtonMessage: '@dataPublication-cancelButtonMessage',
-                    confirmButtonMessage: '@dataPublication-confirmButtonMessage'
+                    confirmButtonMessage: '@dataPublication-confirmButtonMessage',
+                    isDelete: true
                   },
                   variableSubstitutionFields: ['redirectLocation']
                 }

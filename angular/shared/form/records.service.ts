@@ -210,6 +210,11 @@ export class RecordsService extends BaseService {
   subscribeToAsyncProgress(oid: string = null, connectCb) {
     io.socket.get(`${this.brandingAndPortalUrl}/asynch/subscribe/${oid}`, connectCb);
   }
+
+  delete(oid: string) {
+    return this.http.delete(`${this.brandingAndPortalUrl}/record/delete/${oid}`, this.getOptionsClient())
+    .map((res:any) => this.extractData(res));
+  }
 }
 
 export class RecordActionResult {

@@ -420,22 +420,25 @@ export class SaveButtonComponent extends SimpleComponent {
   }
 
   public doAction() {
-    if(this.field.closeOnSave == true) {
-      var successObs = this.field.targetStep ?
+    var successObs = null;
+    if (this.field.isDelete) {
+      successObs = this.fieldMap._rootComp.delete();
+    } else {
+      successObs = this.field.targetStep ?
       this.fieldMap._rootComp.onSubmit(true, this.field.targetStep, false, this.field.additionalData)
       : this.fieldMap._rootComp.onSubmit(false, null, false, this.field.additionalData);
-
-      successObs.subscribe( status =>  {
-        if(status || status.code == "200" ) {
-           window.location.href= this.field.redirectLocation;
-        }
-        if (this.field.confirmationMessage) {
-          this.hideConfirmDlg();
-        }
-      });
-    } else {
-      this.fieldMap._rootComp.onSubmit().subscribe();
     }
+    successObs.subscribe( status =>  {
+      if (status) {
+        if (this.field.closeOnSave == true) {
+          window.location.href= this.field.redirectLocation;
+        }
+      }
+      if (this.field.confirmationMessage) {
+        this.hideConfirmDlg();
+      }
+    });
+
   }
 }
 

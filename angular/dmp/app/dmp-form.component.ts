@@ -239,6 +239,26 @@ export class DmpFormComponent extends LoadableComponent {
     }
   }
 
+  delete() {
+    this.setSaving(this.getMessage(this.formDef.messages.saving));
+    return this.RecordsService.delete(this.oid)
+    .flatMap((res:any)=>{
+      this.clearSaving();
+      console.log("Delete Response:");
+      console.log(res);
+      if (res.success) {
+        this.setSuccess(this.getMessage(this.formDef.messages.saveSuccess));
+        return Observable.of(true);
+      } else {
+        this.setError(`${this.getMessage(this.formDef.messages.saveError)} ${res.message}`);
+        return Observable.of(false);
+      }
+    }).catch((err:any)=>{
+      this.setError(`${this.getMessage(this.formDef.messages.saveError)} ${err}`);
+      return Observable.of(false);
+    });
+  }
+
   /**
    * Sets the form message status.
    *
