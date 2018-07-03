@@ -296,8 +296,8 @@ export module Services {
     public setUserKey = (userid, uuid) => {
       return this.getUserWithId(userid).flatMap(user => {
         if (user) {
-          user["token"] = uuid;
-          return this.getObservable(user, 'save', 'simplecb');
+          const q = User.update({id:userid}, {token: uuid});
+          return this.getObservable(q, 'exec', 'simplecb');
         } else {
           return Observable.throw(new Error('No such user with id:' + userid));
         }
