@@ -373,39 +373,70 @@ export class TextBlockComponent extends SimpleComponent {
 *        }
 * ```
 *
-*| Property Name    | Description                                                    | Required | Default |
-*|------------------|----------------------------------------------------------------|----------|---------|
-*| label            | The text to display on the button                              | Yes      |         |
-*| closeOnSave      | Flag to leave the page on successful save                      | No       | false   |
-*| redirectLocation | The location to redirect to if closeOnSave flag is set to true | No       |         |
+*| Property Name       | Description                                                    | Required | Default |
+*|---------------------|----------------------------------------------------------------|----------|---------|
+*| label               | The text to display on the button                              | Yes      |         |
+*| closeOnSave         | Flag to leave the page on successful save                      | No       | false   |
+*| redirectLocation    | The location to redirect to if closeOnSave flag is set to true | No       |         |
 */
 @Component({
   selector: 'save-button',
   template: `
     <button type="button" (click)="onClick($event)" class="btn" [ngClass]="field.cssClasses" [disabled]="!fieldMap._rootComp.needsSave || fieldMap._rootComp.isSaving()">{{field.label}}</button>
+    <div *ngIf="field.confirmationMessage" class="modal fade" id="{{ field.name }}_confirmation" tabindex="-1" role="dialog" >
+      <div class="modal-dialog" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+            <h4 class="modal-title" id="{{ field.name }}_confirmation_label" [innerHtml]="field.confirmationTitle"></h4>
+          </div>
+          <div class="modal-body" [innerHtml]="field.confirmationMessage"></div>
+          <div class="modal-footer">
+            <button (click)="hideConfirmDlg()" type="button" class="btn btn-default" data-dismiss="modal" [innerHtml]="field.cancelButtonMessage"></button>
+            <button (click)="doAction()" type="button" class="btn btn-primary" [innerHtml]="field.confirmButtonMessage"></button>
+          </div>
+        </div>
+      </div>
+    </div>
   `,
 })
 export class SaveButtonComponent extends SimpleComponent {
   public field: SaveButton;
 
   public onClick(event: any) {
+    if (this.field.confirmationMessage) {
+      this.showConfirmDlg();
+      return;
+    }
+    this.doAction();
+  }
+
+  showConfirmDlg() {
+    jQuery(`#${this.field.name}_confirmation`).modal('show');
+  }
+
+  hideConfirmDlg() {
+    jQuery(`#${this.field.name}_confirmation`).modal('hide');
+  }
+
+  public doAction() {
     if(this.field.closeOnSave == true) {
       var successObs = this.field.targetStep ?
       this.fieldMap._rootComp.onSubmit(true, this.field.targetStep, false, this.field.additionalData)
       : this.fieldMap._rootComp.onSubmit(false, null, false, this.field.additionalData);
 
-      successObs.subscribe( successful =>  {
-        if(successful) {
+      successObs.subscribe( status =>  {
+        if(status || status.code == "200" ) {
            window.location.href= this.field.redirectLocation;
+        }
+        if (this.field.confirmationMessage) {
+          this.hideConfirmDlg();
         }
       });
     } else {
       this.fieldMap._rootComp.onSubmit().subscribe();
     }
   }
-
-
-
 }
 
 /**

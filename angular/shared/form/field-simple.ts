@@ -22,6 +22,23 @@ import { FormControl, FormGroup, FormArray, Validators } from '@angular/forms';
 import * as _ from "lodash-es";
 import moment from 'moment-es6';
 
+export class NotInFormField extends FieldBase<any> {
+  constructor(options: any, injector: any) {
+    super(options, injector);
+  }
+
+  public createFormModel(valueElem:any = null): any {
+  }
+
+  public getGroup(group: any, fieldMap: any) : any {
+    this.fieldMap = fieldMap;
+    _.set(fieldMap, `${this.getFullFieldName()}.field`, this);
+  }
+
+  public reactEvent(eventName: string, eventData: any, origData: any) {
+
+  }
+}
 
 export class SelectionField extends FieldBase<any>  {
   options: any[] = [];
@@ -211,14 +228,17 @@ export class DateTime extends FieldBase<any> {
 
 
 
-export class SaveButton extends FieldBase<string> {
+export class SaveButton extends NotInFormField {
   label: string;
   redirectLocation: string;
   closeOnSave: boolean;
   buttonClass: string;
   targetStep: string;
   additionalData: any;
-
+  confirmationMessage: string;
+  confirmationTitle: string;
+  cancelButtonMessage: string;
+  confirmButtonMessage: string;
 
   constructor(options: any, injector: any) {
     super(options, injector);
@@ -228,6 +248,10 @@ export class SaveButton extends FieldBase<string> {
     this.cssClasses = options['cssClasses'] || "btn-primary";
     this.targetStep = options['targetStep'] || null;
     this.additionalData = options['additionalData'] || null;
+    this.confirmationMessage = options['confirmationMessage'] ? this.getTranslated(options['confirmationMessage'], null) : null;
+    this.confirmationTitle = options['confirmationTitle'] ? this.getTranslated(options['confirmationTitle'], null) : null;
+    this.cancelButtonMessage = options['cancelButtonMessage'] ? this.getTranslated(options['cancelButtonMessage'], null ) : null;
+    this.confirmButtonMessage = options['confirmButtonMessage'] ? this.getTranslated(options['confirmButtonMessage'], null) : null;
   }
 }
 
@@ -340,24 +364,6 @@ export class ParameterRetrieverField extends FieldBase<string> {
     this.onValueUpdate.emit(value);
   }
 
-}
-
-export class NotInFormField extends FieldBase<any> {
-  constructor(options: any, injector: any) {
-    super(options, injector);
-  }
-
-  public createFormModel(valueElem:any = null): any {
-  }
-
-  public getGroup(group: any, fieldMap: any) : any {
-    this.fieldMap = fieldMap;
-    _.set(fieldMap, `${this.getFullFieldName()}.field`, this);
-  }
-
-  public reactEvent(eventName: string, eventData: any, origData: any) {
-
-  }
 }
 
 export class Spacer extends NotInFormField {
