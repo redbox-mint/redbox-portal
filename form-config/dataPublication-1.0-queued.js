@@ -1351,11 +1351,16 @@ module.exports = {
                   class: "SaveButton",
                   roles: ["Admin"],
                   definition: {
+                    name: "confirmDelete",
                     label: '@dataPublication-delete',
                     closeOnSave: true,
                     redirectLocation: '/@branding/@portal/dashboard/dataPublication',
                     additionalData: { delete: true },
-                    cssClasses: 'btn-danger'
+                    cssClasses: 'btn-danger',
+                    confirmationMessage: '@dataPublication-confirmDelete',
+                    confirmationTitle: '@dataPublication-confirmDeleteTitle',
+                    cancelButtonMessage: '@dataPublication-cancelButtonMessage',
+                    confirmButtonMessage: '@dataPublication-confirmButtonMessage'
                   },
                   variableSubstitutionFields: ['redirectLocation']
                 }

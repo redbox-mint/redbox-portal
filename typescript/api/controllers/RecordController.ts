@@ -113,6 +113,8 @@ export module Controllers {
             appName = form['customAngularApp']['appName'];
           }
           return this.sendView(req, res, 'record/edit', { oid: oid, rdmp: rdmp, recordType: recordType, appSelector: appSelector, appName: appName });
+        }, error => {
+          return this.sendView(req, res, 'record/edit', { oid: oid, rdmp: rdmp, recordType: recordType, appSelector: appSelector, appName: appName });
         });
 
       }
@@ -423,6 +425,9 @@ export module Controllers {
         }).flatMap(recordType => {
           return recordType
         }).flatMap(recordType => {
+          if (metadata.delete) {
+            return Observable.of(currentRec);
+          }
           recType = recordType;
           origRecord = _.cloneDeep(currentRec);
           currentRec.metadata = metadata;
@@ -433,6 +438,21 @@ export module Controllers {
           });
 
         }).subscribe(record => {
+          if (metadata.delete) {
+            RecordsService.delete(oid).subscribe(response => {
+              if (response && response.code == "200") {
+                sails.log.verbose(`Successfully deleted: ${oid}`);
+                this.ajaxOk(req, res, null, response);
+              } else {
+                this.ajaxFail(req, res, null, response);
+              }
+            }, error => {
+              sails.log.error(`Error deleting: ${oid}`);
+              sails.log.error(error);
+              this.ajaxFail(req, res, error.message);
+            });
+            return;
+          }
           if (record.metadata) {
             record = Observable.of(record);
           }

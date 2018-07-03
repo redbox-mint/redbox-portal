@@ -56,7 +56,8 @@ export module Services {
       'getDatastream',
       'listDatastreams',
       'deleteFilesFromStageDir',
-      'getRelatedRecords'
+      'getRelatedRecords',
+      'delete'
     ];
 
     public create(brand, record, packageType, formName = sails.config.form.defaultForm): Observable<any> {
@@ -66,6 +67,11 @@ export module Services {
       options.body = record;
       sails.log.verbose(util.inspect(options, { showHidden: false, depth: null }))
       return Observable.fromPromise(request[sails.config.record.api.create.method](options));
+    }
+
+    public delete(oid): Observable<any> {
+      const options = this.getOptions(sails.config.record.baseUrl.redbox + sails.config.record.api.delete.url, oid);
+      return Observable.fromPromise(request[sails.config.record.api.delete.method](options));
     }
 
     public updateMeta(brand, oid, record): Observable<any> {
