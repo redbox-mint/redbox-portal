@@ -121,10 +121,21 @@
               <li class="dropdown">
                 <a href="<%= BrandingService.getBrandAndPortalPath(req) %>/admin"><%= TranslationService.t('menu-admin')%></a>
               </li>
-            <% }
-              } else { %>
+            <% } %>
+            <li class="dropdown">
+              <form class="nav-search-bar form-inline" method="get" action="<%= BrandingService.getBrandAndPortalPath(req) %>/record/search" name="form">
+                <div class="input-group">
+                  <input name="q" type="text" class="form-control" placeholder="<%= TranslationService.t('record-search-basic-search-placeholder') %>">
+                  <span class="input-group-btn">
+                    <button class="btn btn-primary" type="button" onClick="form.submit()"><%= TranslationService.t("record-search-basic-search") %></button>
+                  </span>
+                </div>
+              </form>
+            </li>
+            <%  } else { %>
               <li class="active"><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/home"><%= TranslationService.t('menu-home') %></a></li>
             <% } %>
+
           </ul>
 
         </div>
