@@ -299,11 +299,29 @@ module.exports.recordtype = {
         typeLabel: null,
         alwaysActive: true
       }
-    ]
-  },
-  relatedTo: [{
-    "recordType": "dataRecord",
-    "localField": "metadata.dataRecord.oid",
-    "foreignField": "redboxOid"
-  }]
+    ],
+    hooks: {
+      onUpdate: {
+        pre: [
+          //Transition workflow from queued to reviewing. TODO: Condition needs to be changed to check when staging location set
+          {
+          function: 'sails.services.triggerservice.transitionWorkflow',
+          options: {
+            "triggerCondition": "<%= workflow.stage == 'queued'%>",
+            "targetWorkflowStageName": "reviewing",
+            "targetWorkflowStageLabel": "Reviewing"
+          }
+        },
+        //Transition workflow from publishing to published. TODO: Condition needs to be changed to check when published location set
+        {
+          function: 'sails.services.triggerservice.transitionWorkflow',
+          options: {
+            "triggerCondition": "<%= workflow.stage == 'publishing'%>",
+            "targetWorkflowStageName": "published",
+            "targetWorkflowStageLabel": "Published"
+          }
+        }]
+      }
+    }
+  }
 };

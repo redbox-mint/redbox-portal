@@ -200,7 +200,7 @@ export module Controllers {
                             }
 
                             let observable = this.triggerPreSaveTriggers(oid, record, recordType);
-                            observable.subscribe(record => {
+                            observable.then(record => {
 
                                     RecordsService.updateMeta(brand, oid, record).subscribe(response => {
                                       relationshipObjectCount++;
@@ -462,6 +462,8 @@ export module Controllers {
         .map(hasEditAccess => {
           return RecordTypesService.get(brand, currentRec.metaMetadata.type)
         }).flatMap(recordType => {
+          return recordType;
+        }).flatMap(recordType => {
           if (metadata.delete) {
             return Observable.of(currentRec);
           }
@@ -470,7 +472,7 @@ export module Controllers {
           currentRec.metadata = metadata;
           let observable = this.triggerPreSaveTriggers(oid, currentRec, recordType);
 
-          return observable.map(record => {
+          return observable.then(record => {
             return record
           });
 
@@ -491,10 +493,12 @@ export module Controllers {
             });
             return;
           }
+
           if (record.metadata) {
             record = Observable.of(record);
           }
           record.subscribe(currentRec => {
+
 
             return FormsService.getFormByName(currentRec.metaMetadata.form, true)
               .flatMap(form => {
@@ -515,33 +519,36 @@ export module Controllers {
               });
           });
         });
+
     }
 
 
-    private triggerPreSaveTriggers(oid: string, record: any, recordType: any, mode: string = 'onUpdate') {
+
+    private async triggerPreSaveTriggers(oid: string, record: any, recordType: any, mode: string = 'onUpdate') {
       sails.log.debug("Triggering pre save triggers ");
       sails.log.debug(`hooks.${mode}.pre`);
 
       let preSaveUpdateHooks = _.get(recordType, `hooks.${mode}.pre`, null);
       sails.log.debug(preSaveUpdateHooks);
-      let observable = Observable.of(record);
+
       if (_.isArray(preSaveUpdateHooks)) {
 
-        _.each(preSaveUpdateHooks, preSaveUpdateHook => {
+        for(var i=0; i <preSaveUpdateHooks.length; i++) {
+        let preSaveUpdateHook = preSaveUpdateHooks[i];
           let preSaveUpdateHookFunctionString = _.get(preSaveUpdateHook, "function", null);
           if (preSaveUpdateHookFunctionString != null) {
             let preSaveUpdateHookFunction = eval(preSaveUpdateHookFunctionString);
             let options = _.get(preSaveUpdateHook, "options", {});
 
-            observable = observable.flatMap(record => {
+
               sails.log.debug(`Triggering pre save triggers: ${preSaveUpdateHookFunctionString}`);
-              return preSaveUpdateHookFunction(record, options);
-            });
+              record = await preSaveUpdateHookFunction(record, options).toPromise();
+
 
           }
-        });
+        }
       }
-      return observable;
+      return record;
     }
     /**
      * Handles data stream updates, atm, this call is terminal.
