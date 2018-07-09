@@ -42,7 +42,8 @@ module.exports.workflow = {
           viewRoles: ['Admin', 'Librarians'],
           editRoles: ['Admin', 'Librarians']
         },
-        form: 'dataPublication-1.0-draft'
+        form: 'dataPublication-1.0-draft',
+        displayIndex: 1
       },
       starting: true
     },
@@ -56,7 +57,8 @@ module.exports.workflow = {
           viewRoles: ['Admin', 'Librarians'],
           editRoles: ['Admin', 'Librarians']
         },
-        form: 'dataPublication-1.0-queued'
+        form: 'dataPublication-1.0-queued',
+        displayIndex: 2
       }
     },
     "embargoed": {
@@ -69,7 +71,8 @@ module.exports.workflow = {
           viewRoles: ['Admin', 'Librarians'],
           editRoles: ['Admin', 'Librarians']
         },
-        form: 'dataPublication-1.0-embargoed'
+        form: 'dataPublication-1.0-embargoed',
+        displayIndex: 3
       }
     },
     "reviewing": {
@@ -82,7 +85,8 @@ module.exports.workflow = {
           viewRoles: ['Admin', 'Librarians'],
           editRoles: ['Admin']
         },
-        form: 'dataPublication-1.0-reviewing'
+        form: 'dataPublication-1.0-reviewing',
+        displayIndex: 4
       }
     },
     "publishing": {
@@ -95,7 +99,8 @@ module.exports.workflow = {
           viewRoles: ['Admin', 'Librarians'],
           editRoles: ['Admin', 'Librarians']
         },
-        form: 'dataPublication-1.0-publishing'
+        form: 'dataPublication-1.0-publishing',
+        displayIndex: 5
       }
     },
     "published": {
@@ -108,7 +113,8 @@ module.exports.workflow = {
           viewRoles: ['Admin', 'Librarians'],
           editRoles: ['Admin']
         },
-        form: 'dataPublication-1.0-published'
+        form: 'dataPublication-1.0-published',
+        displayIndex: 6
       }
     },
     "retired": {
@@ -121,7 +127,8 @@ module.exports.workflow = {
           viewRoles: ['Admin', 'Librarians'],
           editRoles: ['Admin']
         },
-        form: 'dataPublication-1.0-retired'
+        form: 'dataPublication-1.0-retired',
+        displayIndex: 7
       }
     }
 

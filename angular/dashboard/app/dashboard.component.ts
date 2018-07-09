@@ -51,6 +51,7 @@ export class DashboardComponent extends LoadableComponent  {
           this.typeLabel = this.getTranslated(`${this.recordType}-name-plural`, "Records");
         });
         recordsService.getWorkflowSteps(this.recordType).then(steps =>{
+          steps = _.orderBy(steps,['config.displayIndex'],['asc'])
           this.workflowSteps = steps;
           _.each(steps,step => {
             dashboardService.getRecords(this.recordType,step.name,1).then((stagedRecords: PlanTable) => {

@@ -851,3 +851,8 @@ tree-internal > ul.rootless > li > tree-internal > ul {
   background-color: #6c757d;
   border-color: #6c757d;
 }
+
+.nav-search-bar {
+  padding-top: 10px;
+  padding-left: 10px;
+}
