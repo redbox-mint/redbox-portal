@@ -5,6 +5,9 @@ import { SimpleComponent } from './field-simple.component';
 import * as _ from "lodash-es";
 import { WorkspaceTypeService } from '../workspace-service';
 
+declare var jQuery: any;
+declare var $: any;
+
 /**
  * Base component for a Workspace field.
  *
