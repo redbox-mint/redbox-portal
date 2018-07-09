@@ -70,7 +70,8 @@
       <input [(ngModel)]="field.newLocation.notes"  *ngIf="field.newLocation.type != 'attachment'" type="text" class="form-control" />
     </div>
     <div class="col-xs-1">
-      <a  *ngIf="field.newLocation.type != 'attachment'" class="fa fa-plus-circle btn text-20 pull-right btn-success" (click)="field.addLocation()"></a>
+      <a  *ngIf="field.newLocation.type != 'attachment' && !field.locationAddText" class="fa fa-plus-circle btn text-20 pull-right btn-success" (click)="field.addLocation()"></a>
+      <button *ngIf="field.newLocation.type != 'attachment' && field.locationAddText" class="btn btn-success" type='button' (click)="field.addLocation()">Enter</button>
     </div>
   </div>
 </div>

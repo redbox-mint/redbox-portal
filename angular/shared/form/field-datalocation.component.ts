@@ -72,11 +72,12 @@ export class DataLocationField extends FieldBase<any> {
   maxFileSize: number; // in bytes
   maxNumberOfFiles: number;
   allowedFileTypes: any[];
+  locationAddText: string;
 
   constructor(options: any, injector: any) {
     super(options, injector);
     this.accessDeniedObjects = [];
-
+    this.locationAddText = this.getTranslated(options['locationAddText'], null);
     this.columns = options['columns'] || [];
 
     this.maxFileSize = options['maxFileSize'] || null;
