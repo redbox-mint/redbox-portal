@@ -1,6 +1,6 @@
 import { Injectable, Inject, ApplicationRef }   from '@angular/core';
 import { Observable } from 'rxjs/Observable';
-import * as _ from "lodash-es";
+import * as _ from "lodash";
 import  { fieldClasses }from '../fieldClasses';
 
 import { ConfigService } from '../config-service';

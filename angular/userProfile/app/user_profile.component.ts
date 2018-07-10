@@ -22,7 +22,7 @@ import { DOCUMENT } from '@angular/platform-browser';
 import { Location, LocationStrategy, PathLocationStrategy } from '@angular/common';
 import { FormArray, FormGroup, FormControl, Validators, FormBuilder } from '@angular/forms';
 import { ModalDirective } from 'ngx-bootstrap';
-import * as _ from "lodash-es";
+import * as _ from "lodash";
 
 import { UserSimpleService } from './shared/user.service-simple';
 import { Role, User, LoginResult, SaveResult } from './shared/user-models';

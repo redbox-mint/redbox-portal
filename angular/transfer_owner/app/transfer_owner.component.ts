@@ -20,7 +20,7 @@ import { DOCUMENT } from '@angular/platform-browser';
 import { Component, Injectable, Inject, ApplicationRef, ElementRef } from '@angular/core';
 import { FormArray, FormGroup, FormControl, Validators } from '@angular/forms';
 import { DashboardService } from './shared/dashboard-service';
-import * as _ from "lodash-es";
+import * as _ from "lodash";
 import { LoadableComponent } from './shared/loadable.component';
 import { TranslationService } from './shared/translation-service';
 import { PlanTable, Plan } from './shared/dashboard-models';

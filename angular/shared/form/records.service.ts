@@ -24,7 +24,7 @@ import { Http } from '@angular/http';
 import 'rxjs/add/operator/toPromise';
 import { FieldControlMetaService } from './field-control-meta.service';
 import { Observable } from 'rxjs/Observable';
-import * as _ from "lodash-es";
+import * as _ from "lodash";
 import { ConfigService } from '../config-service';
 declare var io: any;
 /**

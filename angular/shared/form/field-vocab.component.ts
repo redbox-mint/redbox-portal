@@ -21,7 +21,7 @@ import { Input, Component, Injectable , Inject, OnInit, Output, EventEmitter, El
 import { SimpleComponent } from './field-simple.component';
 import { FieldBase } from './field-base';
 import { FormGroup, FormControl, Validators } from '@angular/forms';
-import * as _ from "lodash-es";
+import * as _ from "lodash";
 import { Observable } from 'rxjs';
 import { Subject } from "rxjs/Subject";
 import 'rxjs/add/operator/toPromise';

@@ -22,7 +22,7 @@ import { FieldBase } from './field-base';
 import { HtmlRaw, Container, DateTime, AnchorOrButton, SaveButton, CancelButton, TabOrAccordionContainer,ParameterRetrieverField, TabNavButton, Spacer, Toggle } from './field-simple';
 import { RecordMetadataRetrieverField } from './record-meta.component';
 import { FormGroup, FormControl, FormArray } from '@angular/forms';
-import * as _ from "lodash-es";
+import * as _ from "lodash";
 import moment from 'moment-es6';
 declare var jQuery: any;
 declare var window: any;

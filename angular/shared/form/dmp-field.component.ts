@@ -21,7 +21,7 @@ import { Component, Input, Inject, ViewChild, ViewContainerRef, ComponentFactory
 import { FormGroup } from '@angular/forms';
 import { FieldBase } from './field-base';
 import { SimpleComponent } from './field-simple.component';
-import * as _ from "lodash-es";
+import * as _ from "lodash";
 declare var jQuery: any;
 declare var $: any;
 /**
@@ -99,11 +99,14 @@ export class DmpFieldComponent {
   public isDisabled() {
 
     var disabledExpression = this.field.options['disabledExpression'];
+
     if(disabledExpression != null) {
 
       var imports = this.fieldAnchor;
-      var variables= {};
-      variables['imports'] = this.fieldMap._rootComp;
+      var variables= {imports: {}};
+      _.forOwn(this.fieldMap._rootComp, (val, key) => {
+        variables.imports[key] = val;
+      });
       var compiled = _.template(disabledExpression, variables);
       var parentElement = jQuery(this.fieldElement.nativeElement.parentElement);
       if(compiled() == "true") {

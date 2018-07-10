@@ -22,7 +22,7 @@ import { Observable } from 'rxjs/Observable';
 import 'rxjs/add/observable/interval';
 import 'rxjs/add/observable/of';
 import 'rxjs/add/operator/mergeMap';
-import * as _ from "lodash-es";
+import * as _ from "lodash";
 import { Subject } from 'rxjs/Subject';
 /**
  * Base class for all client-side services...

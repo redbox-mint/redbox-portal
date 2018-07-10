@@ -22,7 +22,7 @@ import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { TranslationService } from '../translation-service';
 import { UtilityService } from '../util-service';
 
-import * as _ from "lodash-es";
+import * as _ from "lodash";
 /**
  * Base class for dynamic form models...
  *

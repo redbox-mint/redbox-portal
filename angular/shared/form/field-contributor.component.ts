@@ -21,7 +21,7 @@ import { Input, Component, OnInit, ViewChild, ElementRef} from '@angular/core';
 import { SimpleComponent } from './field-simple.component';
 import { FieldBase } from './field-base';
 import { FormGroup, FormControl, Validators } from '@angular/forms';
-import * as _ from "lodash-es";
+import * as _ from "lodash";
 import { RbValidator } from './validators';
 import { VocabField } from './field-vocab.component';
 /**

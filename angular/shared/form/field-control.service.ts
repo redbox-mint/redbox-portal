@@ -18,7 +18,7 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 import { Injectable, Inject, ApplicationRef, Output, EventEmitter }   from '@angular/core';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
-import * as _ from "lodash-es";
+import * as _ from "lodash";
 import { Observable } from 'rxjs/Observable';
 import 'rxjs/add/observable/of';
 import 'rxjs/add/operator/mergeMap';

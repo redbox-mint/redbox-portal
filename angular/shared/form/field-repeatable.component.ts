@@ -22,7 +22,7 @@ import { SimpleComponent } from './field-simple.component';
 import { VocabField } from './field-vocab.component';
 import { Container } from './field-simple';
 import { FormControl, FormArray, Validators } from '@angular/forms';
-import * as _ from "lodash-es";
+import * as _ from "lodash";
 import { ChangeDetectorRef } from '@angular/core';
 import { ContributorField } from './field-contributor.component';
 /**

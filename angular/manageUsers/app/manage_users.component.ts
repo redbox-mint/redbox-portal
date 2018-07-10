@@ -21,7 +21,7 @@ import { Component, Injectable, Inject, ViewChild } from '@angular/core';
 import { DOCUMENT } from '@angular/platform-browser';
 import { FormArray, FormGroup, FormControl, Validators, FormBuilder } from '@angular/forms';
 import { ModalDirective } from 'ngx-bootstrap';
-import * as _ from "lodash-es";
+import * as _ from "lodash";
 
 import { UserSimpleService } from './shared/user.service-simple';
 import { RolesService } from './shared/roles-service';

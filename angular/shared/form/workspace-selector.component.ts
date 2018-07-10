@@ -3,7 +3,7 @@ import { SimpleComponent } from './field-simple.component';
 import { FieldBase } from './field-base';
 import { WorkspaceSelectorField } from './workspace-field.component';
 
-import * as _ from "lodash-es";
+import * as _ from "lodash";
 @Component({
   selector: 'workspace-selector-parent',
   template: ''

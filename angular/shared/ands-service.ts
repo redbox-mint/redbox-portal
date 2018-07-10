@@ -7,7 +7,7 @@ import { BaseService } from '../shared/base-service'
 import { PlanTable, Plan } from './dashboard-models'
 import { ConfigService } from './config-service';
 import { TranslationService } from './translation-service';
-import * as _ from "lodash-es";
+import * as _ from "lodash";
 
 @Injectable()
 export class ANDSService extends BaseService {

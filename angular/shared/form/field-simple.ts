@@ -19,7 +19,7 @@
 import { Output, EventEmitter } from '@angular/core';
 import { FieldBase } from './field-base';
 import { FormControl, FormGroup, FormArray, Validators } from '@angular/forms';
-import * as _ from "lodash-es";
+import * as _ from "lodash";
 import moment from 'moment-es6';
 
 export class NotInFormField extends FieldBase<any> {

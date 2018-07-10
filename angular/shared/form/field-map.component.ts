@@ -20,7 +20,7 @@ import { Input, Component, OnInit, Inject, Injector } from '@angular/core';
 import { SimpleComponent } from './field-simple.component';
 import { FieldBase } from './field-base';
 import { FormGroup, FormControl, Validators } from '@angular/forms';
-import * as _ from "lodash-es";
+import * as _ from "lodash";
 import { RecordsService } from './records.service';
 import {  Map,  GeoJSON,   } from 'leaflet';
 declare var omnivore: any;

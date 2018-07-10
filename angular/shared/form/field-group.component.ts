@@ -18,7 +18,7 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 import { Input, Component, ViewChild, ViewContainerRef, OnInit } from '@angular/core';
 import { EmbeddableComponent, RepeatableComponent } from './field-repeatable.component';
-import * as _ from "lodash-es";
+import * as _ from "lodash";
 /**
 #### Generic Group Component
 

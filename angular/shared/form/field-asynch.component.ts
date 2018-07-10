@@ -22,7 +22,7 @@ import { SimpleComponent } from './field-simple.component';
 import { NotInFormField } from './field-simple';
 import { RecordsService } from './records.service';
 import { FormGroup, FormControl, Validators } from '@angular/forms';
-import * as _ from "lodash-es";
+import * as _ from "lodash";
 import { Observable } from 'rxjs/Observable';
 import { Subject } from 'rxjs/Subject';
 import 'rxjs/add/operator/bufferTime';

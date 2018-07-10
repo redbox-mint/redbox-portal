@@ -24,7 +24,7 @@ import { Subject } from 'rxjs/Subject';
 import 'rxjs/add/observable/interval';
 import 'rxjs/add/observable/of';
 import 'rxjs/add/operator/mergeMap';
-import * as _ from "lodash-es";
+import * as _ from "lodash";
 /**
  * Handles client-side global configuration
  *

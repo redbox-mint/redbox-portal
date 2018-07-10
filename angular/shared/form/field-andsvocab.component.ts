@@ -22,7 +22,7 @@ import { FieldBase } from './field-base';
 import { FormGroup, FormControl, Validators } from '@angular/forms';
 import { ANDSService } from '../ands-service';
 import { TreeComponent, TreeNode, ITreeOptions, ITreeState } from 'angular-tree-component';
-import * as _ from "lodash-es";
+import * as _ from "lodash";
 import { Observable } from 'rxjs/Observable';
 import { Subject } from 'rxjs/Subject';
 import 'rxjs/add/operator/bufferTime';

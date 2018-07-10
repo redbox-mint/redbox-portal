@@ -18,7 +18,7 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 import { ValidatorFn, Validators, AbstractControl, FormGroup } from '@angular/forms';
-import * as _ from "lodash-es";
+import * as _ from "lodash";
 
 /**
  * Custom RB-Specific Validators - static methods only

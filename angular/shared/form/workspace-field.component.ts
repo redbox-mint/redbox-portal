@@ -2,7 +2,7 @@ import { Component, Input, Inject, ViewChild, ViewContainerRef, ComponentFactory
 import { FieldBase } from './field-base';
 import { FormControl, FormGroup, FormArray } from '@angular/forms';
 import { SimpleComponent } from './field-simple.component';
-import * as _ from "lodash-es";
+import * as _ from "lodash";
 import { WorkspaceTypeService } from '../workspace-service';
 
 declare var jQuery: any;

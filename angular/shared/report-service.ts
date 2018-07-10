@@ -7,7 +7,7 @@ import { BaseService } from '../shared/base-service'
 import { Report, ReportResults } from './report-models'
 import { ConfigService } from './config-service';
 import { TranslationService } from './translation-service';
-import * as _ from "lodash-es";
+import * as _ from "lodash";
 
 @Injectable()
 export class ReportService extends BaseService {

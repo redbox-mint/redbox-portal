@@ -4,7 +4,7 @@ import { FormArray, FormGroup, FormControl, Validators, FormBuilder } from '@ang
 import { UserSimpleService } from './shared/user.service-simple';
 import { DashboardService } from './shared/dashboard-service';
 import { PlanTable, Plan } from './shared/dashboard-models';
-import * as _ from "lodash-es";
+import * as _ from "lodash";
 import { LoadableComponent } from './shared/loadable.component';
 import { OnInit } from '@angular/core';
 import { PaginationModule, TooltipModule} from 'ngx-bootstrap';

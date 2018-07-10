@@ -23,7 +23,7 @@ import { FormArray, FormGroup, FormControl, Validators, FormBuilder } from '@ang
 import { UserSimpleService } from './shared/user.service-simple';
 import { RolesService } from './shared/roles-service';
 import { Role, User, LoginResult, SaveResult } from './shared/user-models';
-import * as _ from "lodash-es";
+import * as _ from "lodash";
 import { LoadableComponent } from './shared/loadable.component';
 import { TranslationService } from './shared/translation-service';
 
