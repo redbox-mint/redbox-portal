@@ -25,6 +25,7 @@ export class DashboardComponent extends LoadableComponent  {
   branding: string;
   portal: string;
   recordType: string;
+  recordTitle: string;
   typeLabel:string;
   workflowSteps:any = [];
   draftPlans: PlanTable;
@@ -49,6 +50,7 @@ export class DashboardComponent extends LoadableComponent  {
       translationService.isReady(tService => {
         recordsService.getType(this.recordType).then(type => {
           this.typeLabel = this.getTranslated(`${this.recordType}-name-plural`, "Records");
+          this.recordTitle = this.getTranslated(`${this.recordType}-title`, "Title");
         });
         recordsService.getWorkflowSteps(this.recordType).then(steps =>{
           steps = _.orderBy(steps,['config.displayIndex'],['asc'])
