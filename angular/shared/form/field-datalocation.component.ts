@@ -213,6 +213,7 @@ export class DataLocationComponent extends SimpleComponent {
     this.uppy.use(Uppy.Dashboard, {
       // trigger: '.UppyModalOpenerBtn',
       inline: false,
+      hideProgressAfterFinish: true,
       metaFields: [
         { id: 'notes', name: 'Notes', placeholder: 'Notes about this file.' }
       ]
