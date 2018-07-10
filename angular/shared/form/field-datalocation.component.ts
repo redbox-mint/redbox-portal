@@ -24,7 +24,7 @@ import * as _ from "lodash-es";
 import { RecordsService } from './records.service';
 import * as Uppy from 'uppy';
 
-
+declare var jQuery: any;
 /**
  * Contributor Model
  *
@@ -37,7 +37,7 @@ export class DataLocationField extends FieldBase<any> {
   showHeader: boolean;
   validators: any;
   enabledValidators: boolean;
-  value: object[];
+  value: any[];
   accessDeniedObjects: object[];
   failedObjects: object[];
   recordsService: RecordsService;
@@ -73,11 +73,22 @@ export class DataLocationField extends FieldBase<any> {
   maxNumberOfFiles: number;
   allowedFileTypes: any[];
   locationAddText: string;
+  editNotesButtonText: string;
+  editNotesTitle: string;
+  cancelEditNotesButtonText: string;
+  applyEditNotesButtonText: string;
+  editNotesCssClasses: any;
 
   constructor(options: any, injector: any) {
     super(options, injector);
     this.accessDeniedObjects = [];
     this.locationAddText = this.getTranslated(options['locationAddText'], null);
+    this.editNotesButtonText = this.getTranslated(options['editNotesButtonText'], 'Edit');
+    this.editNotesTitle = this.getTranslated(options['editNotesTitle'], 'Edit Notes');
+    this.cancelEditNotesButtonText = this.getTranslated(options['cancelEditNotesButtonText'], 'Cancel');
+    this.applyEditNotesButtonText = this.getTranslated(options['applyEditNotesButtonText'], 'Apply');
+    this.editNotesCssClasses = options['editNotesCssClasses'] || 'form-control';
+
     this.columns = options['columns'] || [];
 
     this.maxFileSize = options['maxFileSize'] || null;
@@ -125,6 +136,8 @@ export class DataLocationField extends FieldBase<any> {
     this.setValue(this.value);
   }
 
+
+
 }
 /**
 * Component to display information from related objects within ReDBox
@@ -141,6 +154,7 @@ export class DataLocationComponent extends SimpleComponent {
   field: DataLocationField;
   uppy: any = null;
   oid: any = null;
+  editingNotes: any = {notes: '', index:-1};
 
   public ngOnInit() {
     let oid = this.field.fieldMap._rootComp.oid;
@@ -267,5 +281,19 @@ export class DataLocationComponent extends SimpleComponent {
 
   public openModal() {
     this.uppy && this.uppy.getPlugin('Dashboard') && this.uppy.getPlugin('Dashboard').openModal();
+  }
+
+  public editNotes(dataLocation, i) {
+    this.editingNotes = {notes: dataLocation.notes, index:i};
+    jQuery(`#${this.field.name}_editnotes`).modal('show');
+  }
+
+  public hideEditNotes() {
+    jQuery(`#${this.field.name}_editnotes`).modal('hide');
+  }
+
+  public saveNotes() {
+    jQuery(`#${this.field.name}_editnotes`).modal('hide');
+    this.field.value[this.editingNotes.index].notes = this.editingNotes.notes;
   }
 }
