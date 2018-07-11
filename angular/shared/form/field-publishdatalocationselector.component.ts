@@ -24,7 +24,7 @@ import * as _ from "lodash";
 import { RecordsService } from './records.service';
 import * as Uppy from 'uppy';
 
-
+declare var jQuery: any;
 /**
  * Contributor Model
  *
@@ -37,7 +37,7 @@ export class PublishDataLocationSelectorField extends FieldBase<any> {
   showHeader: boolean;
   validators: any;
   enabledValidators: boolean;
-  value: object[];
+  value: any[];
   accessDeniedObjects: object[];
   failedObjects: object[];
   recordsService: RecordsService;
@@ -68,12 +68,23 @@ export class PublishDataLocationSelectorField extends FieldBase<any> {
     'file':"File path"
   }
 
+  editNotesButtonText: string;
+  editNotesTitle: string;
+  cancelEditNotesButtonText: string;
+  applyEditNotesButtonText: string;
+  editNotesCssClasses: any;
+
   constructor(options: any, injector: any) {
     super(options, injector);
     this.accessDeniedObjects = [];
 
     this.columns = options['columns'] || [];
 
+    this.editNotesButtonText = this.getTranslated(options['editNotesButtonText'], 'Edit');
+    this.editNotesTitle = this.getTranslated(options['editNotesTitle'], 'Edit Notes');
+    this.cancelEditNotesButtonText = this.getTranslated(options['cancelEditNotesButtonText'], 'Cancel');
+    this.applyEditNotesButtonText = this.getTranslated(options['applyEditNotesButtonText'], 'Apply');
+    this.editNotesCssClasses = options['editNotesCssClasses'] || 'form-control';
 
     this.value = options['value'] || this.setEmptyValue();
     this.recordsService = this.getFromInjector(RecordsService);
@@ -136,6 +147,7 @@ export class PublishDataLocationSelectorField extends FieldBase<any> {
 })
 export class PublishDataLocationSelectorComponent extends SimpleComponent {
   field: PublishDataLocationSelectorField;
+  editingNotes: any = {notes: '', index:-1};
 
   public ngOnInit() {
 
@@ -153,5 +165,19 @@ export class PublishDataLocationSelectorComponent extends SimpleComponent {
 
   public getAbsUrl(location:string) {
     return `${this.field.recordsService.getBrandingAndPortalUrl}/record/${location}`
+  }
+
+  public editNotes(dataLocation, i) {
+    this.editingNotes = {notes: dataLocation.notes, index:i};
+    jQuery(`#${this.field.name}_editnotes`).modal('show');
+  }
+
+  public hideEditNotes() {
+    jQuery(`#${this.field.name}_editnotes`).modal('hide');
+  }
+
+  public saveNotes() {
+    jQuery(`#${this.field.name}_editnotes`).modal('hide');
+    this.field.value[this.editingNotes.index].notes = this.editingNotes.notes;
   }
 }

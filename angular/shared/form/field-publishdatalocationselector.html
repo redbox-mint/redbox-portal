@@ -15,7 +15,7 @@
         </tr>
       </thead>
       <tbody>
-        <tr *ngFor="let dataLocation of getDatalocations()">
+        <tr *ngFor="let dataLocation of getDatalocations(); let i = index;">
           <td><input type="checkbox" [(ngModel)]="dataLocation.selected"/></td>
           <td>{{ field.dataTypeLookup[dataLocation.type] }}</td>
           <td>
@@ -31,7 +31,10 @@
               </a>
             </ng-container>
           </td>
-          <td>{{ dataLocation.notes }}</td>
+          <td>
+            {{ dataLocation.notes }}
+            <button type='button' class="btn btn-primary pull-right" (click)="editNotes(dataLocation, i)">{{ field.editNotesButtonText }}</button>
+          </td>
 
         </tr>
       </tbody>
@@ -39,4 +42,22 @@
   </div>
   <!-- <div><button class="btn btn-info">Export</button></div> -->
 </div>
+</div>
+<!--- Edit notes modal -->
+<div class="modal fade" id="{{ field.name }}_editnotes" tabindex="-1" role="dialog" >
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+        <h4 class="modal-title" [innerHtml]="field.editNotesTitle"></h4>
+      </div>
+      <div class="modal-body">
+        <input type='text' [ngClass]="field.editNotesCssClasses" [(ngModel)]="editingNotes.notes" />
+      </div>
+      <div class="modal-footer">
+        <button (click)="hideEditNotes()" type="button" class="btn btn-default" data-dismiss="modal" [innerHtml]="field.cancelEditNotesButtonText"></button>
+        <button (click)="saveNotes()" type="button" class="btn btn-primary" [innerHtml]="field.applyEditNotesButtonText"></button>
+      </div>
+    </div>
+  </div>
 </div>
