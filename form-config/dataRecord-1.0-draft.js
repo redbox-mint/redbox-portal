@@ -389,6 +389,18 @@ module.exports = {
                       'full_name_honorific': 'text_full_name_honorific'
                     }, {
                       'email': 'Email[0]'
+                    },
+                    {
+                      'given_name': 'Given_Name[0]'
+                    },
+                    {
+                      'family_name': 'Family_Name[0]'
+                    },
+                    {
+                      'honorific': 'Honorific[0]'
+                    },
+                    {
+                      'full_name_family_name_first': 'dc_title'
                     }],
                     searchFields: 'autocomplete_given_name,autocomplete_family_name,autocomplete_full_name,autocomplete_full_name_honorific',
                     titleFieldArr: ['text_full_name'],
@@ -436,6 +448,18 @@ module.exports = {
                       'full_name_honorific': 'text_full_name_honorific'
                     }, {
                       'email': 'Email[0]'
+                    },
+                    {
+                      'given_name': 'Given_Name[0]'
+                    },
+                    {
+                      'family_name': 'Family_Name[0]'
+                    },
+                    {
+                      'honorific': 'Honorific[0]'
+                    },
+                    {
+                      'full_name_family_name_first': 'dc_title'
                     }],
                     searchFields: 'autocomplete_given_name,autocomplete_family_name,autocomplete_full_name,autocomplete_full_name_honorific',
                     titleFieldArr: ['text_full_name'],
@@ -491,6 +515,18 @@ module.exports = {
                           'full_name_honorific': 'text_full_name_honorific'
                         }, {
                           'email': 'Email[0]'
+                        },
+                        {
+                          'given_name': 'Given_Name[0]'
+                        },
+                        {
+                          'family_name': 'Family_Name[0]'
+                        },
+                        {
+                          'honorific': 'Honorific[0]'
+                        },
+                        {
+                          'full_name_family_name_first': 'dc_title'
                         }],
                         searchFields: 'autocomplete_given_name,autocomplete_family_name,autocomplete_full_name,autocomplete_full_name_honorific',
                         titleFieldArr: ['text_full_name'],
@@ -539,8 +575,20 @@ module.exports = {
                       'full_name_honorific': 'text_full_name_honorific'
                     }, {
                       'email': 'Email[0]'
+                    },
+                    {
+                      'given_name': 'Given_Name[0]'
+                    },
+                    {
+                      'family_name': 'Family_Name[0]'
+                    },
+                    {
+                      'honorific': 'Honorific[0]'
+                    },
+                    {
+                      'full_name_family_name_first': 'dc_title'
                     }],
-                    searchFields: 'autocomplete_given_name,autocomplete_family_name,autocomplete_full_name,autocomplete_full_name_honorific',
+                    searchFields: 'autocomplete_given_name,autocomplete_family_name,autocomplete_full_name',
                     titleFieldArr: ['text_full_name'],
                     titleFieldDelim: '',
                     nameColHdr: '@dmpt-people-tab-name-hdr',

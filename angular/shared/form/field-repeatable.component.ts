@@ -301,6 +301,11 @@ export class RepeatableContributor extends RepeatableContainer {
   setValueAtElem(index, value:any) {
     this.fields[index].component.onSelect(value, false, true);
   }
+
+  addElem(val:any = null) {
+    this.fields[0].setMissingFields(val);
+    super.addElem(val);
+  }
 }
 
 @Component({

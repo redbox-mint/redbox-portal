@@ -54,6 +54,9 @@ export class ContributorField extends FieldBase<any> {
   hasInit: boolean;
   freeText: boolean;
   forceLookupOnly: boolean;
+  splitNames: boolean;
+  familyNameHdr: string;
+  givenNameHdr: string;
   // Frankenstein end
   component: any;
 
@@ -62,6 +65,9 @@ export class ContributorField extends FieldBase<any> {
     super(options, injector);
     this.clName = 'ContributorField';
     this.controlType = 'textbox';
+    this.splitNames = options['splitNames'] || false;
+    this.familyNameHdr = options['familyNameHdr'] ? this.getTranslated(options['familyNameHdr'], options['familyNameHdr']) : 'Family';
+    this.givenNameHdr = options['givenNameHdr'] ? this.getTranslated(options['givenNameHdr'], options['givenNameHdr']) : 'Given';
     this.nameColHdr = options['nameColHdr'] ? this.getTranslated(options['nameColHdr'], options['nameColHdr']) : 'Researcher Name';
     this.emailColHdr = options['emailColHdr'] ? this.getTranslated(options['emailColHdr'], options['emailColHdr']) : 'Email Address';
     this.roleColHdr = options['roleColHdr'] ? this.getTranslated(options['roleColHdr'], options['roleColHdr']) : 'Project Role';
@@ -81,9 +87,12 @@ export class ContributorField extends FieldBase<any> {
     this.fullNameResponseField = textFullNameFieldName['text_full_name'];
     }
     this.validationMessages = options['validationMessages'] || {required: {
-      email: this.getTranslated(options['validation_required_email'], 'Email required'),
-      text_full_name: this.getTranslated(options['validation_required_name'], 'Name is required'),
-      role: this.getTranslated(options['validation_required_role'],'Select a role')},
+        email: this.getTranslated(options['validation_required_email'], 'Email required'),
+        text_full_name: this.getTranslated(options['validation_required_name'], 'Name is required'),
+        role: this.getTranslated(options['validation_required_role'],'Select a role'),
+        family_name: this.getTranslated(options['validation_required_family_name'], 'Family name is required'),
+        given_name: this.getTranslated(options['validation_required_given_name'], 'Given name is required'),
+      },
       invalid: { email: this.getTranslated(options['validation_invalid_email'], 'Email format is incorrect')}};
     this.groupFieldNames = ['text_full_name', 'email'];
     this.freeText = options['freeText'] || false;
@@ -103,6 +112,12 @@ export class ContributorField extends FieldBase<any> {
     if (!this.freeText) {
       this.vocabField = new VocabField(this.options, this.injector);
       this.hasLookup = true;
+    }
+    if (this.splitNames) {
+      this.groupFieldNames.push('family_name');
+      this.groupFieldNames.push('given_name');
+      this.validators['family_name'] = [Validators.required];
+      this.validators['given_name'] = [Validators.required];
     }
   }
 
@@ -136,14 +151,19 @@ export class ContributorField extends FieldBase<any> {
                                    username: new FormControl(this.value.username || ''),
                                    orcid: new FormControl(this.value.orcid || '')
                                  });
+      if (this.splitNames) {
+        this.formModel.addControl('family_name', new FormControl(this.value.family_name));
+        this.formModel.addControl('given_name', new FormControl(this.value.given_name));
+      }
     }
-    if(this.required) {
+    if (this.required) {
       this.enableValidators();
     }
     return this.formModel;
   }
 
   setValue(value:any, emitEvent:boolean=true, updateTitle:boolean=false) {
+    this.setMissingFields(value);
     if (!this.hasInit) {
       this.hasInit = true;
       value.username = _.isUndefined(value.username) ? '' : value.username;
@@ -156,7 +176,7 @@ export class ContributorField extends FieldBase<any> {
     this.formModel.patchValue(value, {emitEvent: emitEvent});
     this.formModel.markAsTouched();
     this.formModel.markAsDirty();
-    if (updateTitle) {
+    if (updateTitle && !this.freeText) {
       this.component.ngCompleter.ctrInput.nativeElement.value = this.vocabField.getTitle(value);
     }
   }
@@ -243,6 +263,25 @@ export class ContributorField extends FieldBase<any> {
     return errObj;
   }
 
+  /**
+   * This method was created to try to guess the family and given names from a value that's got these 2 merged.
+   *
+   * @author <a target='_' href='https://github.com/shilob'>Shilo Banihit</a>
+   * @param  value
+   * @return
+   */
+  public setMissingFields(value: any) {
+    if (this.splitNames && (value && (_.isEmpty(value.family_name) || _.isUndefined(value.family_name)))) {
+      // guess work begins...
+      const names = value.text_full_name.split(' ');
+      value['given_name'] = names[0];
+      names.splice(0, 1);
+      value['family_name'] = names.join(' ');
+      value['full_name_family_name_first'] = `${value['family_name']}, ${value['given_name']}`;
+    }
+    return value;
+  }
+
   public reactEvent(eventName: string, eventData: any, origData: any) {
     this.setValue(eventData, false);
     _.each(this.componentReactors, (compReact) => {
@@ -271,7 +310,8 @@ export class ContributorComponent extends SimpleComponent {
     if (!hasError && fldName == 'email') {
       hasError = hasError || (this.field.formModel.controls[fldName].hasError('email'));
     }
-    return `col-xs-3 form-group${hasError ? ' has-error' : ''}`;
+    const additionalClass = this.field.splitNames ? ' padding-remove' : '';
+    return `col-xs-2 form-group${additionalClass}${hasError ? ' has-error' : ''}`;
   }
 
   onSelect(selected: any, emitEvent:boolean=true, updateTitle:boolean=false) {
@@ -282,17 +322,23 @@ export class ContributorComponent extends SimpleComponent {
         return;
       }
       let val:any;
-      if (selected.text_full_name) {
-        val = this.field.vocabField.getValue(selected);
-      } else if(selected[this.field.fullNameResponseField]) {
-        val = this.field.vocabField.getValue(selected);
+      if (!this.field.freeText) {
+        if (selected.text_full_name) {
+          val = this.field.vocabField.getValue(selected);
+        } else if(selected[this.field.fullNameResponseField]) {
+          val = this.field.vocabField.getValue(selected);
+        } else {
+          val = {text_full_name: selected.title};
+        }
+
+        val.role = this.field.role;
+        console.log(`Using val:`);
+        console.log(JSON.stringify(val));
+        this.field.setValue(val, emitEvent, updateTitle);
       } else {
-        val = {text_full_name: selected.title};
+        val = this.field.setMissingFields(selected);
+        this.field.setValue(val, emitEvent, updateTitle);
       }
-      val.role = this.field.role;
-      console.log(`Using val:`);
-      console.log(JSON.stringify(val));
-      this.field.setValue(val, emitEvent, updateTitle);
     } else {
       console.log(`No selected user.`)
       if (this.field.forceLookupOnly) {

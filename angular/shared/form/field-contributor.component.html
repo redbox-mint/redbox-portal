@@ -31,12 +31,28 @@
         <div class="row">
           <span class='col-xs-10' >
             <!-- Free text not embedded version -->
-            <div class='col-xs-1'>
+            <!-- Name not split -->
+            <div class='col-xs-1' *ngIf="!field.splitNames">
               <span class='text-right'>{{ field.nameColHdr }}</span>
             </div>
-            <div [ngClass]="getGroupClass('text_full_name')">
+            <div [ngClass]="getGroupClass('text_full_name')" *ngIf="!field.splitNames">
               <input formControlName="text_full_name" type="text" class="form-control"/>
               <div class="text-danger" *ngIf="field.formModel.controls['text_full_name'].touched && field.formModel.controls['text_full_name'].hasError('required')">{{field.validationMessages.required.text_full_name}}</div>
+            </div>
+            <!-- Name split to family name, give name -->
+            <div class='col-xs-1' *ngIf="field.splitNames">
+              <span class='text-right'>{{ field.familyNameHdr }}</span>
+            </div>
+            <div [ngClass]="getGroupClass('family_name')" *ngIf="field.splitNames">
+              <input formControlName="family_name" type="text" class="form-control"/>
+              <div class="text-danger" *ngIf="field.formModel.controls['family_name'].touched && field.formModel.controls['family_name'].hasError('required')">{{field.validationMessages.required.family_name}}</div>
+            </div>
+            <div class='col-xs-1' *ngIf="field.splitNames">
+              <span class='text-right'>{{ field.givenNameHdr }}</span>
+            </div>
+            <div [ngClass]="getGroupClass('given_name')" *ngIf="field.splitNames">
+              <input formControlName="given_name" type="text" class="form-control"/>
+              <div class="text-danger" *ngIf="field.formModel.controls['given_name'].touched && field.formModel.controls['given_name'].hasError('required')">{{field.validationMessages.required.given_name}}</div>
             </div>
             <div class='col-xs-1'>
               <span class='text-right'>{{ field.emailColHdr }}</span>
@@ -58,12 +74,28 @@
 
       <ng-container *ngIf="isEmbedded">
         <!-- Embedded free text version -->
-        <div class='col-xs-1'>
+        <!-- Names unsplit -->
+        <div class='col-xs-1' *ngIf="!field.splitNames">
           <span class='text-right'>{{ field.nameColHdr }}</span>
         </div>
-        <div [ngClass]="getGroupClass('text_full_name')">
+        <div [ngClass]="getGroupClass('text_full_name')" *ngIf="!field.splitNames">
           <input formControlName="text_full_name" type="text" class="form-control"/>
           <div class="text-danger" *ngIf="field.formModel.controls['text_full_name'].touched && field.formModel.controls['text_full_name'].hasError('required')">{{field.validationMessages.required.text_full_name}}</div>
+        </div>
+        <!-- Names are split -->
+        <div class='col-xs-1' *ngIf="field.splitNames">
+          <span class='text-right'>{{ field.familyNameHdr }}</span>
+        </div>
+        <div [ngClass]="getGroupClass('family_name')" *ngIf="field.splitNames">
+          <input formControlName="family_name" type="text" class="form-control"/>
+          <div class="text-danger" *ngIf="field.formModel.controls['family_name'].touched && field.formModel.controls['family_name'].hasError('required')">{{field.validationMessages.required.family_name}}</div>
+        </div>
+        <div class='col-xs-1' *ngIf="field.splitNames">
+          <span class='text-right'>{{ field.givenNameHdr }}</span>
+        </div>
+        <div [ngClass]="getGroupClass('given_name')" *ngIf="field.splitNames">
+          <input formControlName="given_name" type="text" class="form-control"/>
+          <div class="text-danger" *ngIf="field.formModel.controls['given_name'].touched && field.formModel.controls['given_name'].hasError('required')">{{field.validationMessages.required.given_name}}</div>
         </div>
         <div class='col-xs-1'>
           <span class='text-right'>{{ field.emailColHdr }}</span>

@@ -604,5 +604,7 @@
   "@dataPublication-confirmDelete": "Are you sure you want to delete?",
   "@dataPublication-confirmDeleteTitle": "Confirm Publication Delete",
   "@dataPublication-cancelButtonMessage": "Cancel",
-  "@dataPublication-confirmButtonMessage": "Yes, please DELETE"
+  "@dataPublication-confirmButtonMessage": "Yes, please DELETE",
+  "@dmpt-people-family-hdr": "Family",
+  "@dmpt-people-given-hdr": "Given"
 }
