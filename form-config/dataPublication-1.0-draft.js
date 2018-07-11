@@ -1124,31 +1124,7 @@ module.exports = {
                         label: '@dataPublication-creators',
                         help: '@dataPublication-creators-help',
                         freeText: true,
-                        vocabId: 'Parties AND repository_name:People',
-                        sourceType: 'mint',
                         splitNames: true,
-                        fieldNames: [{
-                          'text_full_name': 'text_full_name'
-                        }, {
-                          'full_name_honorific': 'text_full_name_honorific'
-                        }, {
-                          'email': 'Email[0]'
-                        },
-                        {
-                          'given_name': 'Given_Name[0]'
-                        },
-                        {
-                          'family_name': 'Family_Name[0]'
-                        },
-                        {
-                          'honorific': 'Honorific[0]'
-                        },
-                        {
-                          'full_name_family_name_first': 'dc_title'
-                        }],
-                        searchFields: 'text_given_name,text_family_name,text_full_name,text_full_name_honorific',
-                        titleFieldArr: ['text_full_name'],
-                        titleFieldDelim: '',
                         familyNameHdr: '@dmpt-people-family-hdr',
                         givenNameHdr: '@dmpt-people-given-hdr',
                         nameColHdr: '@dmpt-people-tab-name-hdr',
