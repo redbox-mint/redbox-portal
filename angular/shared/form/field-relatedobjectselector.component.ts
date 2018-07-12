@@ -59,7 +59,6 @@ export class RelatedObjectSelectorField extends FieldBase<any> {
     var that = this;
     this.dashboardService.getAllRecordsCanEdit(this.recordType,'').then((draftPlans: PlanTable) => {
       this.plans = draftPlans;
-      this.onFilterChange();
     });
   }
 
@@ -126,4 +125,7 @@ export class RelatedObjectSelectorField extends FieldBase<any> {
 export class RelatedObjectSelectorComponent extends SimpleComponent {
   field: RelatedObjectSelectorField;
 
+  hasFilteredResults() {
+    return this.field.searchFilterName && !_.isEmpty(_.trim(this.field.searchFilterName)) && this.field.filteredPlans.length > 0;
+  }
 }
