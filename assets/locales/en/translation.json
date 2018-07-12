@@ -609,5 +609,7 @@
   "@dataPublication-cancelButtonMessage": "Cancel",
   "@dataPublication-confirmButtonMessage": "Yes, please DELETE",
   "@dmpt-people-family-hdr": "Family",
-  "@dmpt-people-given-hdr": "Given"
+  "@dmpt-people-given-hdr": "Given",
+  "search-by-name": "Search by name",
+  "change-text": "Change" 
 }
