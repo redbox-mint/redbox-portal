@@ -512,6 +512,8 @@
   "@tab-nav-previous": "Previous",
   "@tab-nav-next": "Next",
   "@dmp-edit-record-link": "Edit this plan",
+  "@dmp-create-datarecord-link": "Create a data record for this plan",
+  "@dmp-create-datapublication-link":"Create a data publication for this record",
   "@data-record-edit-record-link": "Edit this record",
   "workspace-request": "Request a Workspace",
   "workspace-services-list": "List of available services",
@@ -611,5 +613,5 @@
   "@dmpt-people-family-hdr": "Family",
   "@dmpt-people-given-hdr": "Given",
   "search-by-name": "Search by name",
-  "change-text": "Change" 
+  "change-text": "Change"
 }

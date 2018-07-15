@@ -32,6 +32,7 @@ export class RecordMetadataRetrieverField extends FieldBase<string> {
 
   public publishMetadata(oid: any, config: any) {
     this.recordsService.getRecordMeta(oid).then(data => {
+      data.oid = oid;
       this.onValueUpdate.emit(data);
     });
   }

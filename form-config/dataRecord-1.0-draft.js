@@ -23,16 +23,36 @@ module.exports = {
       }
     },
     {
-      class: "AnchorOrButton",
-      viewOnly: true,
+      class: 'Container',
+      compClass: 'GenericGroupComponent',
       definition: {
-        label: '@data-record-edit-record-link',
-        value: '/@branding/@portal/record/edit/@oid',
-        cssClasses: 'btn btn-large btn-info margin-15',
-        showPencil: true,
-        controlType: 'anchor'
-      },
-      variableSubstitutionFields: ['value']
+        cssClasses: "form-inline",
+        fields: [
+          {
+            class: "AnchorOrButton",
+            viewOnly: true,
+            definition: {
+              label: '@data-record-edit-record-link',
+              value: '/@branding/@portal/record/edit/@oid',
+              cssClasses: 'btn btn-large btn-info margin-15',
+              showPencil: true,
+              controlType: 'anchor'
+            },
+            variableSubstitutionFields: ['value']
+          },
+          {
+              class: "AnchorOrButton",
+              viewOnly: true,
+              definition: {
+                label: '@dmp-create-datapublication-link',
+                value: '/@branding/@portal/record/dataPublication/edit?dataRecordOid=@oid',
+                cssClasses: 'btn btn-large btn-info margin-15',
+                controlType: 'anchor'
+              },
+              variableSubstitutionFields: ['value']
+            }
+        ]
+      }
     },
     {
       class: 'TextArea',
@@ -99,8 +119,16 @@ module.exports = {
                   definition: {
                     label: 'RDMP related to this data record',
                     name: 'rdmp',
-                    recordType: 'rdmp'
+                    recordType: 'rdmp',
+                    subscribe: {
+                      'rdmpGetter': {
+                        onValueUpdate: [{
+                          action: 'recordSelected'
+                    }
+                  ]
                   }
+                }
+              }
                 },
                 {
                   class: 'TextField',

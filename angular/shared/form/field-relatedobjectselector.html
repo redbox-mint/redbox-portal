@@ -22,7 +22,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let plan of field.filteredPlans" (click)="field.recordSelected(plan,$event)">
+            <tr *ngFor="let plan of field.filteredPlans" (click)="field.recordSelectedEmit(plan,$event)">
               <td>{{ plan.title }}</td>
             </tr>
           </tbody>
