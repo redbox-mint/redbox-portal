@@ -22,14 +22,18 @@
         <table class="table table-bordered table-striped table-hover">
           <thead>
             <tr>
-              <th class="text-center" style="width: 10%;">{{ 'transfer-ownership-select' | translate }}</th>
+              <th class="text-center" style="width: 10%;"><input type="checkbox" [(ngModel)]="selectAllChecked" (change)="selectAllLocations($event.target.checked)"/></th>
               <th>{{ 'transfer-ownership-plan-name' | translate }}</th>
+              <th *ngFor="let field of fieldsForUpdate">{{ field.label | translate }}</th>
             </tr>
           </thead>
           <tbody>
             <tr *ngFor="let plan of filteredPlans" (click)="toggleSelect(plan,$event)">
               <td class="text-center"><input type='checkbox' (click)="true" [(ngModel)]="plan.selected"/></td>
               <td>{{ plan.dashboardTitle }}</td>
+              <td>{{ plan.metadata.metadata.contributor_ci.text_full_name }}</td>
+              <td>{{ plan.metadata.metadata.contributor_data_manager.text_full_name }}</td>
+              <td><span *ngIf="plan.metadata.metadata.dataowner_name">{{ plan.metadata.metadata.dataowner_name }}</span></td>
             </tr>
           </tbody>
         </table>
