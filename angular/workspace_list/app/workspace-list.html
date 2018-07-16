@@ -1,0 +1,34 @@
+
+<div *ngIf="!isLoading">
+  <div class="row"></div>
+
+    <div *ngIf="records.totalItems > 0">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>{{ recordColLabel }}</th>
+            <th>{{ typeColLabel }}</th>
+            <th>{{ linkColLlabel }}</th>
+            <th>{{ rdmpColLabel }}</th>
+          </tr>
+        </thead>
+        <tbody *ngFor="let plan of records.items">
+            <tr>
+                <td>
+                  <a href='/{{ branding }}/{{ portal }}/record/view/{{ plan.oid }}'>{{ plan.dashboardTitle }}</a>
+                  <span class="dashboard-controls">
+                    <a *ngIf="plan.hasEditAccess" class="glyphicon glyphicon-pencil" href="/{{ branding }}/{{ portal }}/record/edit/{{ plan.oid }}"  ></a>
+                  </span>
+                </td>
+                <td>{{ plan.metadata.metadata.type }}</td>
+                <td>{{ plan.metadata.metadata.location }}</td>
+                <td>{{ plan.metadata.metadata.rdmpTitle }}</td>
+            </tr>
+        </tbody>
+      </table>
+
+    <pagination *ngIf="records.totalItems > 0" [directionLinks]="false" [boundaryLinks]="true" [totalItems]="records.totalItems"
+              [(ngModel)]="records.currentPage" (pageChanged)="pageChanged($event)" class="pagination-sm"></pagination>
+    </div>
+
+</div>

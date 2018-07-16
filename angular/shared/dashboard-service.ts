@@ -56,10 +56,13 @@ export class DashboardService extends BaseService {
       .then((res: any) => this.formatDates(this.extractData(res)) as PlanTable);
   }
 
-  getRecords(recordType:string,state:string,pageNumber:number): Promise<PlanTable> {
+  getRecords(recordType:string,state:string,pageNumber:number,packageType:string=undefined): Promise<PlanTable> {
     var rows = 10;
     var start = (pageNumber-1) * rows;
-    return this.http.get(`${this.brandingAndPortalUrl}/listRecords?recordType=${recordType}&state=${state}&start=`+start+`&rows=`+rows, this.options)
+    recordType = (!_.isEmpty(recordType) && !_.isUndefined(recordType)) ? `recordType=${recordType}` : '';
+    packageType = (!_.isEmpty(packageType) && !_.isUndefined(packageType)) ? `packageType=${packageType}` : '';
+    state = (!_.isEmpty(state) && !_.isUndefined(state)) ? `&state=${state}` : '';
+    return this.http.get(`${this.brandingAndPortalUrl}/listRecords?${recordType}${packageType}${state}&start=`+start+`&rows=`+rows, this.options)
       .toPromise()
       .then((res: any) => this.formatDates(this.extractData(res)) as PlanTable);
   }

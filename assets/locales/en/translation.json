@@ -611,5 +611,7 @@
   "@dmpt-people-family-hdr": "Family",
   "@dmpt-people-given-hdr": "Given",
   "search-by-name": "Search by name",
-  "change-text": "Change" 
+  "change-text": "Change",
+  "workspaces": "Workspaces",
+  "create-workspace": "Create Workspace"
 }

@@ -82,7 +82,8 @@ export module Controllers {
       const workflowState = req.param('state');
       const start = req.param('start');
       const rows = req.param('rows');
-      this.getRecords(workflowState, recordType, start,rows,user,roles,brand,editAccessOnly).flatMap(results => {
+      const packageType = req.param('packageType');
+      this.getRecords(workflowState, recordType, start,rows,user,roles,brand,editAccessOnly, packageType).flatMap(results => {
           return results;
         }).subscribe(response => {
           if (response && response.code == "200") {
@@ -111,10 +112,15 @@ export module Controllers {
       return metadata;
     }
 
-    protected getRecords(workflowState, recordType, start,rows,user, roles, brand, editAccessOnly=undefined) {
+    protected getRecords(workflowState, recordType, start,rows,user, roles, brand, editAccessOnly=undefined, packageType = undefined) {
       const username = user.username;
-      recordType = recordType.split(',');
-      var response = DashboardService.getRecords(workflowState,recordType, start,rows,username,roles,brand,editAccessOnly);
+      if (!_.isUndefined(recordType) && !_.isEmpty(recordType)) {
+        recordType = recordType.split(',');
+      }
+      if (!_.isUndefined(packageType) && !_.isEmpty(packageType)) {
+        packageType = packageType.split(',');
+      }
+      var response = DashboardService.getRecords(workflowState,recordType, start,rows,username,roles,brand,editAccessOnly, packageType);
 
       return response.map(results => {
 

@@ -119,6 +119,13 @@ module.exports.routes = {
       'view': 'availableServicesList'
     }
   },
+  '/:branding/:portal/workspaces/list': {
+    controller: 'RenderViewController',
+    action: 'render',
+    locals:{
+      'view': 'listWorkspaces'
+    }
+  },
   '/:branding/:portal/getAdvice': {
     controller: 'RenderViewController',
     action: 'render',

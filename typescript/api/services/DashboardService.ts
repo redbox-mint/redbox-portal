@@ -40,7 +40,7 @@ export module Services {
     ];
 
 
-    public getRecords(workflowState, recordType, start, rows = 10, username, roles, brand, editAccessOnly = undefined) {
+    public getRecords(workflowState, recordType = undefined, start, rows = 10, username, roles, brand, editAccessOnly = undefined, packageType = undefined) {
 
       var url = sails.config.record.baseUrl.redbox + sails.config.record.api.query.url + "?collection=metadataDocuments";
       url = this.addPaginationParams(url, start, rows);
@@ -55,12 +55,23 @@ export module Services {
         { "authorization.viewRoles": { "$in": roleNames } }]
       };
       andArray.push(permissions);
-      let typeArray = [];
-      _.each(recordType, rType => {
-        typeArray.push({ "metaMetadata.type": rType });
-      });
-      let types = { "$or": typeArray };
-      andArray.push(types);
+      if (!_.isUndefined(recordType) && !_.isEmpty(recordType)) {
+        let typeArray = [];
+        _.each(recordType, rType => {
+          typeArray.push({ "metaMetadata.type": rType });
+        });
+        let types = { "$or": typeArray };
+        andArray.push(types);
+      }
+      if (!_.isUndefined(packageType) && !_.isEmpty(packageType)) {
+        let typeArray = [];
+        _.each(packageType, rType => {
+          typeArray.push({ "packageType": rType });
+        });
+        let types = { "$or": typeArray };
+        andArray.push(types);
+      }
+
       let query = {
         "metaMetadata.brandId": brand.id,
         "$and":andArray
@@ -70,7 +81,7 @@ export module Services {
         query["workflow.stage"] = workflowState;
       }
 
-      sails.log.info(query);
+      sails.log.verbose(JSON.stringify(query));
       var options = this.getOptions(url);
       options['body'] = query;
 
