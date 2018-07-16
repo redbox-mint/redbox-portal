@@ -1,10 +1,8 @@
 <% include ../../../functions %>
 <div class='container'>
-<%
-var currentAuthConfig = ConfigService.getBrand(branding, 'auth');
-for (var i=0; i < currentAuthConfig.active.length; i++) {
-  var activeAuth = currentAuthConfig[currentAuthConfig.active[i]];
-%>
-<%- superPartial("/user/"+activeAuth.templatePath, branding, portal) %>
-<% } %>
+<%- superPartial("/user/aaf.ejs", branding, portal) %>
+<div style="text-align: center;"><a id="adminLoginLink" href="#" onclick="jQuery('#adminLogin').show();jQuery('#adminLoginLink').hide();return false;">Login as an administrator</a></div>
+<div id="adminLogin" style="display:none">
+  <%- superPartial("/user/local.ejs", branding, portal) %>
+</div>
 </div>

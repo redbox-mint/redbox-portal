@@ -210,7 +210,7 @@ export class DropdownFieldComponent extends SelectionComponent {
         </div>
       </ng-container>
     </ng-container>
-    <div>&nbsp;</div>
+
   </div>
   `,
 })

@@ -207,7 +207,7 @@ export class RepeatableTextfieldComponent extends RepeatableComponent {
       {{line}}
       <br/>
     </span>
-    <br/>
+    
   </li>
   `
 })
