@@ -507,12 +507,34 @@ export class TabNavButtonComponent extends SimpleComponent {
     })
   }
 
+  ngAfterViewInit() {
+    const focusTabId = this.getUrlParameter('focusTabId');
+    if (!_.isEmpty(focusTabId)) {
+      this.fieldMap._rootComp.gotoTab(focusTabId);
+    }
+  }
+
   public stepToTab(step: number) {
     const tabId = this.field.getTabId(step);
     if (tabId) {
       this.fieldMap._rootComp.gotoTab(tabId);
     } else {
       console.log(`Invalid tab: ${tabId}`);
+    }
+  }
+
+  getUrlParameter(param:string) {
+    var pageURL = decodeURIComponent(window.location.search.substring(1)),
+        urlVariables = pageURL.split('&'),
+        parameterName,
+        i;
+
+    for (i = 0; i < urlVariables.length; i++) {
+        parameterName = urlVariables[i].split('=');
+
+        if (parameterName[0] === param) {
+            return parameterName[1] === undefined ? null : parameterName[1];
+        }
     }
   }
 }

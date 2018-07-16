@@ -1,8 +1,7 @@
 
 <div *ngIf="!isLoading">
   <div class="row"></div>
-
-    <div *ngIf="records.totalItems > 0">
+    <div *ngIf="records.totalItems > 0 && !createMode">
       <table class="table">
         <thead>
           <tr>
@@ -27,8 +26,16 @@
         </tbody>
       </table>
 
-    <pagination *ngIf="records.totalItems > 0" [directionLinks]="false" [boundaryLinks]="true" [totalItems]="records.totalItems"
+      <pagination *ngIf="records.totalItems > 0" [directionLinks]="false" [boundaryLinks]="true" [totalItems]="records.totalItems"
               [(ngModel)]="records.currentPage" (pageChanged)="pageChanged($event)" class="pagination-sm"></pagination>
     </div>
 
+    <div class="row" *ngIf="createMode">
+      <rb-RelatedObjectSelector [field]="selectorField"></rb-RelatedObjectSelector>
+      <button (click)="cancelCreate()" class="btn btn-primary">{{ backButtonLabel }}</button>
+      <a href="{{ selectedRdmpUrl }}" [attr.disabled]="hasSelectedRdmp() ? null : ''" class="btn btn-primary">{{ nextButtonLabel }}</a>
+    </div>
+  <div class="row" *ngIf="!createMode">
+    <button type='button' (click)="createWorkspace()" class="btn btn-primary"> {{ createWorkspaceLabel }} </button>
+  </div>
 </div>

@@ -1,4 +1,4 @@
-import { Component, Injectable, Inject, ElementRef } from '@angular/core';
+import { Component, Injectable, Inject, ElementRef, ApplicationRef} from '@angular/core';
 import { DOCUMENT } from '@angular/platform-browser';
 import { FormArray, FormGroup, FormControl, Validators, FormBuilder } from '@angular/forms';
 import { UserSimpleService } from './shared/user.service-simple';
@@ -10,6 +10,7 @@ import { OnInit } from '@angular/core';
 import { PaginationModule, TooltipModule} from 'ngx-bootstrap';
 import { TranslationService } from './shared/translation-service';
 import { RecordsService } from './shared/form/records.service';
+import { RelatedObjectSelectorField } from './shared/form/field-relatedobjectselector.component';
 
 declare var pageData: any;
 declare var jQuery: any;
@@ -28,13 +29,20 @@ export class WorkspaceListComponent extends LoadableComponent implements OnInit 
   typeColLabel:string;
   linkColLlabel: string;
   rdmpColLabel: string;
+  createWorkspaceLabel: string;
 
   workflowSteps:any = [];
   records:any;
   saveMsgType = "info";
   initSubs: any;
+  createMode: boolean;
+  selectorField: RelatedObjectSelectorField;
+  selectedRdmpUrl: string;
+  nextButtonLabel: string;
+  backButtonLabel: string;
 
-  constructor( @Inject(DashboardService) protected dashboardService: DashboardService,  protected recordsService: RecordsService, @Inject(DOCUMENT) protected document: any, protected elementRef: ElementRef, public translationService:TranslationService ) {
+  constructor( @Inject(DashboardService) protected dashboardService: DashboardService,  protected recordsService: RecordsService, @Inject(DOCUMENT) protected document: any, protected elementRef: ElementRef, public translationService:TranslationService,
+protected app: ApplicationRef ) {
     super();
     this.setLoading(true);
     this.initTranslator(this.translationService);
@@ -51,6 +59,9 @@ export class WorkspaceListComponent extends LoadableComponent implements OnInit 
         this.recordColLabel = this.getTranslated(`workspaces-title-column`, "Workspace");
         this.linkColLlabel = this.getTranslated(`workspaces-link-column`, "Link");
         this.rdmpColLabel = this.getTranslated(`workspaces-rdmp-column`, "RDMP");
+        this.createWorkspaceLabel = this.getTranslated('create-workspace', "Create Workspace");
+        this.nextButtonLabel = this.getTranslated('create-workspace-next', "Next");
+        this.backButtonLabel = this.getTranslated('create-workspace-back', "Back");
         this.dashboardService.getRecords(null,null,1,this.packageType).then((stagedRecords: PlanTable) => {
           this.setDashboardTitle(stagedRecords);
           this.records = stagedRecords;
@@ -94,6 +105,38 @@ export class WorkspaceListComponent extends LoadableComponent implements OnInit 
     } else {
       return defValue;
     }
+  }
+
+  createWorkspace() {
+    this.createMode = true;
+    if (!this.selectorField) {
+      this.selectorField = new RelatedObjectSelectorField(
+        {
+          label: this.getTranslated('create-workspace-selector-header', 'RDMP related to this workspace'),
+          name: 'rdmp',
+          recordType: 'rdmp'
+        },
+        this.app['_injector']
+      );
+      this.selectorField.createFormModel();
+
+      this.selectorField.relatedObjectSelected.subscribe((oid) => {
+        this.selectedRdmpUrl = `${this.dashboardService.getBrandingAndPortalUrl}/record/edit/${oid}?focusTabId=workspaces`;
+      });
+      this.selectorField.resetSelectorEvent.subscribe(() => {
+        this.selectedRdmpUrl = null;
+      });
+    }
+  }
+
+  cancelCreate() {
+    this.createMode = false;
+    this.selectorField = null;
+    this.selectedRdmpUrl = null;
+  }
+
+  hasSelectedRdmp() {
+    return !_.isEmpty(this.selectedRdmpUrl) && !_.isUndefined(this.selectedRdmpUrl);
   }
 
 }

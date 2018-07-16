@@ -47,6 +47,7 @@ export class RelatedObjectSelectorField extends FieldBase<any> {
   columnTitle:string;
 
   relatedObjectSelected:EventEmitter<string> = new EventEmitter<string>();
+  resetSelectorEvent: EventEmitter<any> = new EventEmitter<any>();
 
   constructor(options: any, injector: any) {
     super(options, injector);
@@ -70,6 +71,7 @@ export class RelatedObjectSelectorField extends FieldBase<any> {
 
   resetSelector() {
     this.setEmptyValue();
+    this.resetSelectorEvent.emit();
   }
 
   createFormModel(valueElem: any = undefined): any {
@@ -123,9 +125,9 @@ export class RelatedObjectSelectorField extends FieldBase<any> {
   templateUrl: './field-relatedobjectselector.html'
 })
 export class RelatedObjectSelectorComponent extends SimpleComponent {
-  field: RelatedObjectSelectorField;
+  @Input() field: RelatedObjectSelectorField;
 
   hasFilteredResults() {
-    return this.field.searchFilterName && !_.isEmpty(_.trim(this.field.searchFilterName)) && this.field.filteredPlans.length > 0;
+    return this.field.searchFilterName && !_.isEmpty(_.trim(this.field.searchFilterName)) && this.field.filteredPlans && this.field.filteredPlans.length > 0;
   }
 }

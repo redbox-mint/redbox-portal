@@ -23,6 +23,21 @@ module.exports.auth = {
   // default rules for the default brand...
   rules: [
     {
+      path: '/:branding/:portal/workspaces(/*)',
+      role: 'Admin',
+      can_update:true
+    },
+    {
+      path: '/:branding/:portal/workspaces(/*)',
+      role: 'Librarians',
+      can_update:true
+    },
+    {
+      path: '/:branding/:portal/workspaces(/*)',
+      role: 'Researcher',
+      can_update:true
+    },
+    {
       path: '/:branding/:portal/record/delete(/*)',
       role: 'Admin',
       can_update:true
