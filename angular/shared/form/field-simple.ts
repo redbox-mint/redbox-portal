@@ -160,6 +160,7 @@ export class TabOrAccordionContainer extends Container {
   tabContentClass: any;
   accContainerClass: any;
   accClass: any;
+  allExpanded:boolean = false;
 
   constructor(options: any, injector: any) {
     super(options, injector);

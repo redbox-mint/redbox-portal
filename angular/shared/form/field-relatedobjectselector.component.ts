@@ -63,8 +63,11 @@ export class RelatedObjectSelectorField extends FieldBase<any> {
     });
   }
 
-
-  recordSelected(record, event) {
+  recordSelected(record: any, config: any) {
+    this.setValue({oid: record.oid, title:record.title});
+  }
+  
+  recordSelectedEmit(record, event) {
     this.setValue({oid: record.oid, title:record.title});
     this.relatedObjectSelected.emit(record.oid);
   }

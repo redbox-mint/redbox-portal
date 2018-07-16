@@ -279,10 +279,11 @@ Container components
   </div>
   <div *ngIf="!field.editMode" [ngClass]="field.accContainerClass">
     <div class="panel-group">
+      <a href="#" (click)="expandCollapseAll()">Expand/Collapse all</a>
       <div *ngFor="let tab of field.fields" [ngClass]="field.accClass">
         <div class="panel-heading">
           <h4 class="panel-title">
-            <a data-toggle="collapse" href="#{{tab.id}}">{{tab.label}}</a>
+            <a data-toggle="collapse" (click)="accordionHeaderClicked(tab.id)" href="#{{tab.id}}"><span *ngIf="!tab.expanded">+</span><span *ngIf="tab.expanded">-</span> {{tab.label}}</a>
           </h4>
         </div>
         <div id="{{tab.id}}" class="panel-collapse collapse">
@@ -307,6 +308,38 @@ export class TabOrAccordionContainerComponent extends SimpleComponent implements
 
     });
 
+  }
+
+  accordionHeaderClicked(tabId) {
+    _.each(this.field.fields, tab => {
+      if(tabId == tab.id) {
+        if(tab["expanded"]) {
+           tab["expanded"] = false;
+        } else {
+          tab["expanded"] = true;
+        }
+        return false;
+      }
+    })
+  }
+
+  expandCollapseAll() {
+    if(this.field.allExpanded) {
+      _.each(this.field.fields, tab => {
+          if(tab["expanded"]) {
+            jQuery(`[href='#${tab.id}']`)[0].click();
+          }
+      });
+      this.field.allExpanded = false;
+    } else {
+      _.each(this.field.fields, tab => {
+          if(!tab["expanded"]) {
+            jQuery(`[href='#${tab.id}']`)[0].click();
+          }
+      });
+      this.field.allExpanded = true;
+    }
+    return false;
   }
 }
 

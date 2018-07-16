@@ -107,9 +107,17 @@ module.exports = {
                     label: 'Data record related to this publication',
                     name: 'dataRecord',
                     recordType: 'dataRecord',
-                    required: true
+                    required: true,
+                    subscribe: {
+                      'dataRecordGetter': {
+                        onValueUpdate: [{
+                          action: 'recordSelected'
+                    }
+                  ]
                   }
-                },
+                  }
+                }
+              },
                 {
                   class: 'TextField',
                   definition: {

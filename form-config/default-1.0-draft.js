@@ -33,12 +33,23 @@ module.exports = {
             definition: {
               label: '@dmp-edit-record-link',
               value: '/@branding/@portal/record/edit/@oid',
-              cssClasses: 'btn btn-large btn-info margin-15',
+              cssClasses: 'btn btn-large btn-info',
               showPencil: true,
               controlType: 'anchor'
             },
             variableSubstitutionFields: ['value']
           },
+          {
+              class: "AnchorOrButton",
+              viewOnly: true,
+              definition: {
+                label: '@dmp-create-datarecord-link',
+                value: '/@branding/@portal/record/dataRecord/edit?rdmpOid=@oid',
+                cssClasses: 'btn btn-large btn-info margin-15',
+                controlType: 'anchor'
+              },
+              variableSubstitutionFields: ['value']
+            },
           {
             class: 'PDFList',
             viewOnly: true,
@@ -143,7 +154,6 @@ module.exports = {
                 },
                 {
                   class: 'TextField',
-                  editOnly: true,
                   definition: {
                     name: 'dc:identifier',
                     label: '@dmpt-project-id',
