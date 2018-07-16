@@ -613,5 +613,6 @@
   "search-by-name": "Search by name",
   "change-text": "Change",
   "workspaces": "Workspaces",
-  "create-workspace": "Create Workspace"
+  "create-workspace": "Create Workspace",
+  "workspaces-dashboard": "View workspaces"
 }

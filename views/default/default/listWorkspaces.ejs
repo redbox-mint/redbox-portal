@@ -7,6 +7,15 @@
     <h1 id="main-title" class="container"><%= TranslationService.t('workspaces') %></h1>
     <br/>
   </div>
+  <div class="row" id="loading">
+    <div class="col-xs-1">
+    </div>
+    <div class="col-xs-10">
+      <img class="center-block" src="/images/loading.svg">
+    </div>
+    <div class="col-xs-1">
+    </div>
+  </div>
   <div class="main container clearfix">
     <workspace-list branding="<%= typeof branding == 'undefined'? data.branding : branding %>" portal="<%= typeof portal == 'undefined'? data.portal : portal %>" packageType="workspace"></workspace-list>
     <%
@@ -18,14 +27,5 @@
     <script type="text/javascript" src="/angular/workspace_list/vendor.bundle.js?ts=<%= currentMinute %>"></script>
     <script type="text/javascript" src="/angular/workspace_list/main.bundle.js?ts=<%= currentMinute %>"></script>
 
-    <div class="row" id="loading">
-      <div class="col-xs-1">
-      </div>
-      <div class="col-xs-10">
-        <img class="center-block" src="/images/loading.svg">
-      </div>
-      <div class="col-xs-1">
-      </div>
-    </div>
   </div>
 </div>
