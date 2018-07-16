@@ -154,7 +154,6 @@ module.exports = {
                 },
                 {
                   class: 'TextField',
-                  editOnly: true,
                   definition: {
                     name: 'dc:identifier',
                     label: '@dmpt-project-id',
