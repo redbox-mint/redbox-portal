@@ -23,6 +23,8 @@ build-frontend:
 			ng build -a=8 --extract-css true
 			@echo "Building dmp"
 			ng build -a=9 --extract-css true
+			@echo "Building workspace_list"
+			ng build -a=10 --extract-css true
 
 build-frontend-prod:
 			@echo "Building local_auth"
@@ -45,6 +47,8 @@ build-frontend-prod:
 			ng build -a=8 --prod --build-optimizer --output-hashing=none --extract-css true
 			@echo "Building dmp"
 			ng build -a=9 --prod --build-optimizer --output-hashing=none --extract-css true
+			@echo "Building workspace_list"
+			ng build -a=10 --prod --build-optimizer --output-hashing=none --extract-css true
 
 build-frontend-prod-sourcemaps:
 			@echo "Building local_auth"
@@ -67,3 +71,5 @@ build-frontend-prod-sourcemaps:
 			ng build -a=8 --prod --build-optimizer --output-hashing=none --sourcemaps=true --extract-css true
 			@echo "Building dmp"
 			ng build -a=9 --prod --build-optimizer --output-hashing=none --sourcemaps=true --extract-css true
+			@echo "Building workspace_list"
+			ng build -a=10 --prod --build-optimizer --output-hashing=none --sourcemaps=true --extract-css true

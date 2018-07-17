@@ -3,7 +3,7 @@
     <h1 id="main-title" class="container"><%= TranslationService.t('welcome-title') %></h1>
   </div>
 <div class="row equal">
-    <div class="col-md-3 homepanel">
+    <div class="col-md-4 homepanel">
       <div class="panel panel-default">
          <div class="panel-heading text-center">
              <h4 class="panel-title">
@@ -17,7 +17,7 @@
          </div>
       </div>
     </div>
-    <div class="col-md-3 homepanel">
+    <div class="col-md-4 homepanel">
       <div class="panel panel-default">
         <div class="panel-heading text-center">
           <div><i class="fa fa-rocket fa-3x"></i></div>
@@ -30,7 +30,7 @@
         </div>
       </div>
     </div>
-    <div class="col-md-3 homepanel">
+    <div class="col-md-4 homepanel">
       <div class="panel panel-default">
         <div class="panel-heading text-center">
             <div><i class="fa fa-laptop fa-3x"></i></div>
@@ -45,24 +45,7 @@
         </div>
        </div>
     </div>
-    <div class="col-md-3 homepanel">
-      <div class="panel panel-default">
-        <div class="panel-heading text-center">
-          <div><i class="fa fa-search fa-3x"></i></div>
-          <h4 class="panel-title"><%= TranslationService.t('menu-search')%></h4>
-        </div>
-        <div class="panel-body">
-          <form method="get" action="<%= BrandingService.getBrandAndPortalPath(req) %>/record/search" name="form">
-            <div class="input-group">
-              <input name="q" type="text" class="form-control" placeholder="<%= TranslationService.t('record-search-basic-search-placeholder') %>">
-              <span class="input-group-btn">
-                <button class="btn btn-primary" type="button" onClick="form.submit()"><%= TranslationService.t("record-search-basic-search") %></button>
-              </span>
-            </div>
-          </form>
-        </div>
-      </div>
-    </div>
+
 </div>
 <!-- simple jquery script to make all the panels equal height -->
 <script>

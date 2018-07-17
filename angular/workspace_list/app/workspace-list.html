@@ -14,10 +14,7 @@
         <tbody *ngFor="let plan of records.items">
             <tr>
                 <td>
-                  <a href='/{{ branding }}/{{ portal }}/record/view/{{ plan.oid }}'>{{ plan.dashboardTitle }}</a>
-                  <span class="dashboard-controls">
-                    <a *ngIf="plan.hasEditAccess" class="glyphicon glyphicon-pencil" href="/{{ branding }}/{{ portal }}/record/edit/{{ plan.oid }}"  ></a>
-                  </span>
+                  {{ plan.dashboardTitle }}
                 </td>
                 <td>{{ plan.metadata.metadata.type }}</td>
                 <td>{{ plan.metadata.metadata.location }}</td>
