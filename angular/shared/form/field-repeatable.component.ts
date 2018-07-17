@@ -313,10 +313,10 @@ export class RepeatableContributor extends RepeatableContainer {
   template: `
   <div *ngIf="field.editMode">
     <div *ngFor="let fieldElem of field.fields; let i = index;" class="row">
-      <span class="col-xs-9">
+      <span class="col-xs-10">
         <rb-contributor [field]="fieldElem" [form]="form" [fieldMap]="fieldMap" [isEmbedded]="true"></rb-contributor>
       </span>
-      <span class="col-xs-3">
+      <span class="col-xs-2">
         <button type='button' *ngIf="field.fields.length > 1 && field.canSort"  (click)="moveUp($event, i)" [ngClass]="field.moveUpButtonClass" [ngStyle]="{'margin-top': fieldElem.marginTop}" ></button>
         <button type='button' *ngIf="field.fields.length > 1 && field.canSort"  (click)="moveDown($event, i)" [ngClass]="field.moveDownButtonClass" [ngStyle]="{'margin-top': fieldElem.marginTop}" ></button>
         <button type='button' *ngIf="field.fields.length > 1 && field.removeButtonText" (click)="removeElem($event, i)"  [ngClass]="field.removeButtonTextClass" [ngStyle]="{'margin-top': fieldElem.marginTop}" >{{field.removeButtonText}}</button>
