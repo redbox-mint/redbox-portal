@@ -3,7 +3,7 @@
     <h1 id="main-title" class="container"><%= TranslationService.t('welcome-title') %></h1>
   </div>
 <div class="row equal">
-    <div class="col-md-4 homepanel">
+    <div class="col-md-3 homepanel">
       <div class="panel panel-default">
          <div class="panel-heading text-center">
              <h4 class="panel-title">
@@ -17,10 +17,10 @@
          </div>
       </div>
     </div>
-    <div class="col-md-4 homepanel">
+    <div class="col-md-3 homepanel">
       <div class="panel panel-default">
         <div class="panel-heading text-center">
-          <div><i class="fa fa-rocket fa-3x"></i></div>
+          <div><i class="fa fa-sitemap fa-3x"></i></div>
           <h4 class="panel-title"><%= TranslationService.t('menu-organise-worspace')%></h4>
         </div>
         <div class="panel-body">
@@ -30,7 +30,7 @@
         </div>
       </div>
     </div>
-    <div class="col-md-4 homepanel">
+    <div class="col-md-3 homepanel">
       <div class="panel panel-default">
         <div class="panel-heading text-center">
             <div><i class="fa fa-laptop fa-3x"></i></div>
@@ -39,9 +39,19 @@
         <div class="panel-body">
           <div><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/record/dataRecord/edit"><%= TranslationService.t('create-datarecord')%></a></div>
           <div><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/dashboard/dataRecord"><%= TranslationService.t('edit-dashboard-datarecord')%></a></div>
+          <div><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/record/transfer/rdmp"><%= TranslationService.t('transfer-ownership-rdmp')%></a></div>
+        </div>
+       </div>
+    </div>
+    <div class="col-md-3 homepanel">
+      <div class="panel panel-default">
+        <div class="panel-heading text-center">
+            <div><i class="fa fa-rocket fa-3x"></i></div>
+            <h4 class="panel-title"><%= TranslationService.t('menu-publish')%></h4>
+        </div>
+        <div class="panel-body">
           <div><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/record/dataPublication/edit"><%= TranslationService.t('create-data-publication')%></a></div>
           <div><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/dashboard/dataPublication"><%= TranslationService.t('edit-dashboard-publication')%></a></div>
-          <div><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/record/transfer/rdmp"><%= TranslationService.t('transfer-ownership-rdmp')%></a></div>
         </div>
        </div>
     </div>

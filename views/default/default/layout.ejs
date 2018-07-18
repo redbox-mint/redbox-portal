@@ -114,11 +114,16 @@
                 <ul class="dropdown-menu">
                   <li><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/record/dataRecord/edit"><%= TranslationService.t('create-datarecord')%></a></li>
                   <li><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/dashboard/dataRecord"><%= TranslationService.t('edit-dashboard-datarecord')%></a></li>
-                  <li><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/record/dataPublication/edit"><%= TranslationService.t('create-data-publication')%></a></li>
-                  <li><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/dashboard/dataPublication"><%= TranslationService.t('edit-dashboard-publication')%></a></li>
                   <li><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/record/transfer/rdmp"><%= TranslationService.t('transfer-ownership-rdmp')%></a></li>
                 </ul>
               </li>
+              <li class="dropdown">
+                  <a class="dropdown-toggle" data-toggle="dropdown" href="#"><%= TranslationService.t('menu-publish-nav')%><span class="caret"></span></a>
+                  <ul class="dropdown-menu">
+                    <li><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/record/dataPublication/edit"><%= TranslationService.t('create-data-publication')%></a></li>
+                    <li><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/dashboard/dataPublication"><%= TranslationService.t('edit-dashboard-publication')%></a></li>
+                  </ul>
+                </li>
               <%
                 if ( hasRole(req,'Admin') || hasRole(req,'Librarians')) {%>
               <li class="dropdown">
