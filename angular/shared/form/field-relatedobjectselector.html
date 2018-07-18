@@ -1,11 +1,15 @@
-<div class="panel panel-primary" >
+<div *ngIf="field.value.oid && !field.editMode" class="key-value-pair">
+   <span *ngIf="field.label" class="key">{{field.label}}</span>
+   <span class="value">{{ field.value.title }}</span>
+</div>
+<div class="panel panel-primary" *ngIf="field.editMode">
   <div class="panel-body">
     <label [attr.for]="field.name">
       {{field.label}} {{ getRequiredLabelStr()}}
       <button type="button" class="btn btn-default" *ngIf="field.help" (click)="toggleHelp()"><span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span></button>
     </label><br/>
     <div *ngIf="field.value.oid">
-       {{ field.value.title }} <button *ngIf="field.editMode" class="btn btn-info" (click)="field.resetSelector()">{{ 'change-text' | translate }}</button>
+       {{ field.value.title }} <button class="btn btn-info" (click)="field.resetSelector()">{{ 'change-text' | translate }}</button>
     </div>
     <div *ngIf="!field.value.oid">
       <div class="input-group">
