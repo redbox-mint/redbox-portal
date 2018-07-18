@@ -331,6 +331,7 @@ export class RepeatableContributor extends RepeatableContainer {
     </div>
   </div>
   <ng-container  *ngIf="!field.editMode">
+  <label *ngIf="field.fields[0].label">{{field.fields[0].label}}</label>
     <div class="row">
       <div class="col-xs-3"><label>{{field.fields[0].nameColHdr}}</label></div>
       <div class="col-xs-3"><label>{{field.fields[0].emailColHdr}}</label></div>
