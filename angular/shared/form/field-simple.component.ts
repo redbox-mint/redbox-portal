@@ -706,7 +706,7 @@ export class SpacerComponent extends SimpleComponent {
   selector: 'toggle',
   template: `
     <div *ngIf="field.type == 'checkbox'" [formGroup]='form'>
-      <input type="checkbox" name="{{field.name}}" [id]="field.name" [formControl]="getFormControl()" >
+      <input type="checkbox" name="{{field.name}}" [id]="field.name" [formControl]="getFormControl()" [attr.disabled]="field.editMode ? null : ''" >
       <label for="{{ field.name }}" class="radio-label">{{ field.label }}</label>
     </div>
   `

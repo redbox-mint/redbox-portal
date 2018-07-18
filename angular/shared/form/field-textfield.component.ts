@@ -110,7 +110,7 @@ export class TextArea extends FieldBase<string> {
       <div class="text-danger" *ngIf="field.validationMessages?.required">{{field.validationMessages.required}}</div>
     </div>
   </div>
-  <div *ngIf="!field.editMode" class="key-value-pair">
+  <div *ngIf="!field.editMode && field.visible" class="key-value-pair">
     <span class="key" *ngIf="field.label">{{field.label}}</span>
     <span class="value">{{field.value}}</span>
   </div>
@@ -207,7 +207,7 @@ export class RepeatableTextfieldComponent extends RepeatableComponent {
       {{line}}
       <br/>
     </span>
-    
+
   </li>
   `
 })

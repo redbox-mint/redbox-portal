@@ -444,7 +444,6 @@ module.exports = {
                 {
                   class: 'Toggle',
                   compClass: 'ToggleComponent',
-                  editOnly: true,
                   definition: {
                     name: 'accessRightsToggle',
                     defaultValue: false,
@@ -1221,7 +1220,6 @@ module.exports = {
                 {
                   class: 'Toggle',
                   compClass: 'ToggleComponent',
-                  editOnly: true,
                   definition: {
                     name: 'embargoByDate',
                     defaultValue: false,
