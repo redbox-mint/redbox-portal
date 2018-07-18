@@ -279,11 +279,14 @@ Container components
   </div>
   <div *ngIf="!field.editMode" [ngClass]="field.accContainerClass">
     <div class="panel-group">
-      <a href="#" (click)="expandCollapseAll()">Expand/Collapse all</a>
+      <a href="#" (click)="expandCollapseAll(); false">Expand/Collapse all</a>
       <div *ngFor="let tab of field.fields" [ngClass]="field.accClass">
         <div class="panel-heading">
           <h4 class="panel-title">
-            <a data-toggle="collapse" (click)="accordionHeaderClicked(tab.id)" href="#{{tab.id}}"><span *ngIf="!tab.expanded">+</span><span *ngIf="tab.expanded">-</span> {{tab.label}}</a>
+            <a data-toggle="collapse" (click)="accordionHeaderClicked(tab.id); false" href="#{{tab.id}}">
+              <ng-container *ngIf="!tab.expanded">+</ng-container><ng-container *ngIf="tab.expanded">-</ng-container>
+              {{tab.label}}
+            </a>
           </h4>
         </div>
         <div id="{{tab.id}}" class="panel-collapse collapse">
