@@ -112,7 +112,7 @@ export class PDFListComponent extends SimpleComponent implements OnInit {
 
             attachment.dateUpdated = moment(attachment.dateUpdated).format('LLL');
             this.field.pdfAttachments.push(attachment);
-            if(this.field.latestPdf == null || moment(this.field.latestPdf['dateUploaded']).isBefore(moment(attachment.dateUpdated))) {
+            if(this.field.latestPdf == null || moment(this.field.latestPdf['dateUpdated']).isBefore(moment(attachment.dateUpdated))) {
               this.field.latestPdf = attachment;
             }
           }
@@ -121,7 +121,7 @@ export class PDFListComponent extends SimpleComponent implements OnInit {
         this.field.pdfAttachments.sort(function compare(a, b) {
           let before = moment(a['dateUpdated']).isBefore(moment(b['dateUpdated']));
           //We want descending order so let's reverse it
-          return before ? 1 : -1;
+          return before ? -1 : 1;
         });
 
       });

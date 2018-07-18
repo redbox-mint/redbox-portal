@@ -425,6 +425,10 @@ export class VocabFieldComponent extends SimpleComponent {
   }
 
   onKeyup(value: any) {
+    console.log(this.ngCompleter['completer'].dropdown)
+    if(value.key == "Enter") {
+      console.log(this.ngCompleter['ctrInput']['handleSelection']);
+    }
     let disableEditAfterSelect = this.disableEditAfterSelect && this.field.disableEditAfterSelect;
     if (!disableEditAfterSelect) {
       this.field.formModel.setValue(this.field.getValue(this.field.searchStr));
