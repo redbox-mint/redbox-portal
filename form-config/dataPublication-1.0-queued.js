@@ -1405,16 +1405,6 @@ module.exports = {
             variableSubstitutionFields: ['redirectLocation']
           },
           {
-            class: "SaveButton",
-            definition: {
-              label: 'Submit for Publication',
-              closeOnSave: true,
-              redirectLocation: '/@branding/@portal/dashboard/dataPublication',
-              targetStep: 'queued'
-            },
-            variableSubstitutionFields: ['redirectLocation']
-          },
-          {
             class: "CancelButton",
             definition: {
               label: 'Close',
