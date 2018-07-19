@@ -141,7 +141,8 @@ export class TransferOwnerComponent extends LoadableComponent {
       titleFieldArr: ['text_full_name'],
       vocabId: 'Parties AND repository_name:People',
       editMode: true,
-      placeHolder: this.translationService.t('transfer-ownership-researcher-name')
+      placeHolder: this.translationService.t('transfer-ownership-researcher-name'),
+      restrictToSelection: true
     };
     this.userLookupMeta = new VocabField(userLookupOptions, this.app['_injector']);
     this.userLookupMeta.completerService = this.completerService;
@@ -247,11 +248,11 @@ export class TransferOwnerComponent extends LoadableComponent {
   }
 
   getSelResearcher() {
-    return this.formGroup.value.researcher_name;
+    return this.userLookupMeta.formModel.getValue();
   }
 
   clearSelResearcher() {
-    this.formGroup.value.researcher_name = "";
+    this.userLookupMeta.setEmptyValue(true);
   }
 
   canTransfer() {
