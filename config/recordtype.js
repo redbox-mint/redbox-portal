@@ -66,26 +66,20 @@ module.exports.recordtype = {
       fields: {
         chiefInvestigator: {
           label: "@dmpt-people-tab-ci", // The label to show in the radio button options
-          fieldNames: {
-            email: "contributor_ci.email", // The email address field in the form, used for matching as well
-            name: "contributor_ci.text_full_name" // The name field in the form
-          }
+          updateField: "contributor_ci",
+          updateAlso: ['dataOwner']
         },
         dataManager: {
           label: "@dmpt-people-tab-data-manager", // The label to show in the radio button options
-          fieldNames: {
-            email: "contributor_data_manager.email", // The email address field in the form, used for matching as well
-            name: "contributor_data_manager.text_full_name" // The name field in the form
-          }
+          updateField: 'contributor_data_manager'
         },
         dataOwner: {
           label: "@dmpt-people-tab-data-owner", // The label to show in the radio button options
           fieldNames: {
             email: "dataowner_email", // The email address field in the form, used for matching as well
-            name: "dataowner_name" // The name field in the form
+            text_full_name: "dataowner_name" // The name field in the form
           }
-        },
-
+        }
       },
       /*
         canEdit block defines which fields the user may edit if
@@ -188,26 +182,20 @@ module.exports.recordtype = {
       fields: {
         chiefInvestigator: {
           label: "@dmpt-people-tab-ci", // The label to show in the radio button options
-          fieldNames: {
-            email: "contributor_ci.email", // The email address field in the form, used for matching as well
-            name: "contributor_ci.text_full_name" // The name field in the form
-          }
+          updateField: "contributor_ci",
+          updateAlso: ['dataOwner']
         },
         dataManager: {
           label: "@dmpt-people-tab-data-manager", // The label to show in the radio button options
-          fieldNames: {
-            email: "contributor_data_manager.email", // The email address field in the form, used for matching as well
-            name: "contributor_data_manager.text_full_name" // The name field in the form
-          }
+          updateField: 'contributor_data_manager'
         },
         dataOwner: {
           label: "@dmpt-people-tab-data-owner", // The label to show in the radio button options
           fieldNames: {
             email: "dataowner_email", // The email address field in the form, used for matching as well
-            name: "dataowner_name" // The name field in the form
+            text_full_name: "dataowner_name" // The name field in the form
           }
-        },
-
+        }
       },
       /*
         canEdit block defines which fields the user may edit if
