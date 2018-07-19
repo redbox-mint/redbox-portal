@@ -402,9 +402,7 @@ export module Services {
 
             RecordsService.provideUserAccessAndRemovePendingAccess(oid, userid, pendingValue);
           }
-        } else {
-          sails.log.error(results);
-        }
+        } 
       });
 
     }
