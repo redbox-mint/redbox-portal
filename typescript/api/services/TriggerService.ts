@@ -43,7 +43,7 @@ export module Services {
 
     public transitionWorkflow(record, options) {
       const triggerCondition = _.get(options, "triggerCondition", "");
-      sails.log.error("record");
+      
       var variables= {};
       variables['imports'] = record;
       var compiled = _.template(triggerCondition, variables);

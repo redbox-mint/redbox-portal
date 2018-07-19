@@ -67,7 +67,7 @@ export module Services {
       const mintUrl = `${sails.config.record.baseUrl.mint}${sails.config.mint.api.search.url}?q=repository_type:${sourceType}${searchString}&version=2.2&wt=json&start=0`;
       sails.log(mintUrl);
       const options = this.getMintOptions(mintUrl);
-      sails.log.error(options);
+      sails.log.verbose(options);
       return Observable.fromPromise(request[sails.config.record.api.search.method](options));
     }
 
@@ -179,7 +179,7 @@ export module Services {
     public rvaGetResourceDetails(uri,vocab) {
       const url = sails.config.vocab.rootUrl+`${vocab}/resource.json?uri=${uri}`;
       const options = {url: url, json:true};
-      sails.log.error("****** URL is: " + url);
+      
       return Observable.fromPromise(request.get(options)).flatMap(response => {
         CacheService.set(vocab, response);
         return Observable.of(response);

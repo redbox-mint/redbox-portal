@@ -129,8 +129,8 @@ export class RecordsService extends BaseService {
     .then((res:any) => this.extractData(res) as RecordActionResult);
   }
 
-  updateResponsibilities(records, role, email, name) {
-    return this.http.post(`${this.brandingAndPortalUrl}/record/responsibility/update`, {records:records, role:role, email:email, name:name}, this.getOptionsClient())
+  updateResponsibilities(records, role, updateData) {
+    return this.http.post(`${this.brandingAndPortalUrl}/record/responsibility/update`, {records:records, role:role, updateData:updateData}, this.getOptionsClient())
     .toPromise()
     .then((res:any) => this.extractData(res) as RecordActionResult);
   }

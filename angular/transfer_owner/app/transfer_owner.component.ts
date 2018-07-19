@@ -77,23 +77,28 @@ export class TransferOwnerComponent extends LoadableComponent {
 
     this.initSubs = dashboardService.waitForInit((initStat: boolean) => {
       this.initSubs.unsubscribe();
+      this.translationService.isReady(tService => {
+        if (!this.transferConfig) {
+          this.loadTransferConfig().then(config => {
+            this.transferConfig = config;
 
-      this.loadTransferConfig().then(config => {
-        this.transferConfig = config;
-
-        for (var key in this.transferConfig["fields"]) {
-          var config = this.transferConfig["fields"][key];
-          config.key = key;
-          this.fieldsForUpdate.push(config);
+            for (var key in this.transferConfig["fields"]) {
+              var config = this.transferConfig["fields"][key];
+              config.key = key;
+              this.fieldsForUpdate.push(config);
+            }
+            this.fieldForUpdate = this.fieldsForUpdate[0].key;
+            if (_.isUndefined(this.userLookupMeta) || _.isNull(this.userLookupMeta)) {
+              this.initUserlookup();
+            }
+            this.loadPlans();
+            userService.waitForInit((initStat: boolean) => { userService.getInfo().then(
+              user =>
+              this.user = user);
+            });
+          });
         }
-        this.fieldForUpdate = this.fieldsForUpdate[0].key;
       });
-
-      this.loadPlans();
-    });
-    userService.waitForInit((initStat: boolean) => { userService.getInfo().then(
-      user =>
-      this.user = user);
     });
   }
 
@@ -108,26 +113,18 @@ export class TransferOwnerComponent extends LoadableComponent {
   }
 
   protected loadPlans(transferredRecords: any[] = null) {
+    this.setLoading(true);
     this.translationService.isReady(tService => {
       this.dashboardService.getAllRecordsCanEdit('rdmp,dataRecord','draft').then((draftPlans: PlanTable) => {
         this.dashboardService.setDashboardTitle(draftPlans);
-        // skip transferred records...
-        _.remove(draftPlans.items, (item: any) => {
-          console.log(item);
-          return _.find(transferredRecords, (rec: any) => {
-            return rec.oid == item.oid;
-          });
-        });
         draftPlans.noItems = draftPlans.items.length;
         this.plans = draftPlans;
         this.filteredPlans = this.plans.items;
-        if (!this.userLookupMeta) {
-          this.initUserlookup();
-        }
         this.saveMsg = "";
         this.saveMsgType = "";
         this.setLoading(false);
-        this.onFilterChange();
+        this.resetFilter();
+        this.clearSelResearcher();
       });
     });
   }
@@ -136,12 +133,13 @@ export class TransferOwnerComponent extends LoadableComponent {
     // create meta object for vocab
     const userLookupOptions = {
       sourceType: 'mint',
-      fieldNames: ['text_full_name', 'storage_id', 'Email'],
+      fieldNames: ['text_full_name', 'storage_id', {'email': 'Email[0]'}, {'full_name_honorific': 'text_full_name_honorific'}, {'given_name': 'text_given_name'}, {'family_name': 'text_family_name'}, {'honorific': 'Honorific[0]'}, {'full_name_family_name_first': 'dc_title'}, {'username': 'username'} ],
       searchFields: 'text_full_name',
       titleFieldArr: ['text_full_name'],
       vocabId: 'Parties AND repository_name:People',
       editMode: true,
-      placeHolder: this.translationService.t('transfer-ownership-researcher-name')
+      placeHolder: this.translationService.t('transfer-ownership-researcher-name'),
+      restrictToSelection: true
     };
     this.userLookupMeta = new VocabField(userLookupOptions, this.app['_injector']);
     this.userLookupMeta.completerService = this.completerService;
@@ -216,14 +214,11 @@ export class TransferOwnerComponent extends LoadableComponent {
         recordMeta.push(record);
       }
     });
-    console.log(this.formGroup);
-    const name = this.getSelResearcher()['text_full_name'];
-    const email = this.getSelResearcher()['Email'];
+    const selectedUser = this.getSelResearcher();
 
     this.saveMsg = `${this.translationService.t('transfer-ownership-transferring')}${this.spinnerElem}`;
     this.saveMsgType = "info";
-    this.clearSelResearcher();
-    this.recordService.updateResponsibilities(records, this.fieldForUpdate, email, name).then((res: any) => {
+    this.recordService.updateResponsibilities(records, this.fieldForUpdate, selectedUser).then((res: any) => {
       this.saveMsg = this.translationService.t('transfer-ownership-transfer-ok');
       this.saveMsgType = "success";
 
@@ -235,10 +230,7 @@ export class TransferOwnerComponent extends LoadableComponent {
       //   this.emailService.sendNotification(email, 'transferOwnerTo', data)
       //     .then(function(res) { console.log(`Email result: ${JSON.stringify(res)}`) }); // what should we do with this?
       // }
-
-      this.setLoading(true);
       this.loadPlans(records);
-      this.resetFilter();
     }).catch((err: any) => {
       this.saveMsg = err;
       this.saveMsgType = "danger";
@@ -247,11 +239,12 @@ export class TransferOwnerComponent extends LoadableComponent {
   }
 
   getSelResearcher() {
-    return this.formGroup.value.researcher_name;
+    return (this.userLookupMeta && this.userLookupMeta.formModel) ? this.userLookupMeta.formModel.value : null;
   }
 
   clearSelResearcher() {
-    this.formGroup.value.researcher_name = "";
+    this.userLookupMeta.setEmptyValue(true);
+    this.formGroup.setValue({researcher_name: null}, {emitEvent: true});
   }
 
   canTransfer() {

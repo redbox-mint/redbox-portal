@@ -150,16 +150,39 @@ export module Controllers {
       });
     }
 
+    protected updateResponsibility(transferConfig, role, record, updateData) {
+      const respConfig = transferConfig.fields[role];
+      if (respConfig.updateField) {
+        _.forOwn(updateData, (val, key) => {
+          _.set(record, `metadata.${respConfig.updateField}.${key}`, val);
+        });
+      }
+      if (respConfig.fieldNames) {
+        _.forOwn(respConfig.fieldNames, (val, key) => {
+          _.set(record, `metadata.${val}`, _.get(updateData, key));
+        });
+      }
+      if (respConfig.updateAlso) {
+        _.each(respConfig.updateAlso, (relatedRole) => {
+          record = this.updateResponsibility(transferConfig, relatedRole, record, updateData);
+        });
+      }
+      return record;
+    }
+
     public updateResponsibilities(req, res) {
       const brand = BrandingService.getBrand(req.session.branding);
       const records = req.body.records;
+      const updateData = req.body.updateData;
       var role = req.body.role;
-      var toEmail = req.body.email;
-      var toName = req.body.name;
+      var toEmail = updateData.email;
+      var toName = updateData.text_full_name;
       let recordCtr = 0;
       if (records.length > 0) {
         let completeRecordSet = [];
+        let hasError = false;
         _.forEach(records, rec => {
+          let recType = rec.metadata.metaMetadata.type;
           let relatedRecords = RecordsService.getRelatedRecords(rec.oid, brand);
 
           relatedRecords.then(relatedRecords =>{
@@ -167,6 +190,12 @@ export module Controllers {
               let relationships = relatedRecords['processedRelationships'];
 
               let relatedObjects = relatedRecords['relatedObjects'];
+
+              //If there are no relationships, the record isn't related to any others so manually inject the info needed to have this record processed
+              if(relationships.indexOf(recType) == -1) {
+                relationships.push(recType);
+                relatedObjects[recType] = [ {redboxOid: rec.oid} ];
+              }
               let relationshipCount = 0;
               _.each(relationships, relationship => {
                  let relationshipObjects = relatedObjects[relationship];
@@ -180,24 +209,7 @@ export module Controllers {
                        let recordType = record.metaMetadata.type;
                        this.getTransferResponsibilityConfigObject(brand, recordType).subscribe(transferConfig => {
                          if(transferConfig){
-
-                            var nameField = transferConfig.fields[role].fieldNames.name;
-                            var emailField = transferConfig.fields[role].fieldNames.email;
-
-
-                            _.set(record, "metadata." + nameField, toName);
-                            _.set(record, "metadata." + emailField, toEmail);
-
-                            if (role == "chiefInvestigator") {
-                              nameField = transferConfig.fields["dataOwner"].fieldNames.name;
-                              emailField = transferConfig.fields["dataOwner"].fieldNames.email;
-                              _.set(record, "metadata." + nameField, toName);
-                              _.set(record, "metadata." + emailField, toEmail);
-                            }
-
-                            if (role == "dataManager") {
-                              _.set(record, "metadata.dataLicensingAccess_manager", toName);
-                            }
+                            record = this.updateResponsibility(transferConfig, role, record, updateData);
 
                             let observable = this.triggerPreSaveTriggers(oid, record, recordType);
                             observable.then(record => {
@@ -221,20 +233,40 @@ export module Controllers {
 
 
                                         if (recordCtr == records.length && relationshipCount == relationships.length && relationshipObjectCount == relationshipObjects.length) {
-                                          response.success = true;
-                                          //TODO: respond when complete
-                                          // this.ajaxOk(req, res, null, response);
-
+                                          completeRecordSet.push({success:true, record: record});
+                                          if (completeRecordSet.length == records.length) {
+                                            if (hasError) {
+                                              return this.ajaxFail(req, res, null, completeRecordSet);
+                                            } else {
+                                              return this.ajaxOk(req, res, null, completeRecordSet);
+                                            }
+                                          }
                                         }
                                       } else {
                                         sails.log.error(`Failed to update authorization:`);
                                         sails.log.error(response);
-                                        this.ajaxFail(req, res, TranslationService.t('auth-update-error'));
+                                        hasError = true;
+                                        completeRecordSet.push({success:false, error:response, record: record});
+                                        if (completeRecordSet.length == records.length) {
+                                          if (hasError) {
+                                            return this.ajaxFail(req, res, null, completeRecordSet);
+                                          } else {
+                                            return this.ajaxOk(req, res, null, completeRecordSet);
+                                          }
+                                        }
                                       }
                                     }, error => {
                                       sails.log.error("Error updating auth:");
                                       sails.log.error(error);
-                                      this.ajaxFail(req, res, error.message);
+                                      hasError = true;
+                                      completeRecordSet.push({success:false, error: error.message, record: record});
+                                      if (completeRecordSet.length == records.length) {
+                                        if (hasError) {
+                                          return this.ajaxFail(req, res, null, completeRecordSet);
+                                        } else {
+                                          return this.ajaxOk(req, res, null, completeRecordSet);
+                                        }
+                                      }
                                     });
                                   });
 
@@ -248,10 +280,8 @@ export module Controllers {
             });
 
         });
-          this.ajaxFail(req, res, 'No records specified');
-
       } else {
-        this.ajaxFail(req, res, 'No records specified');
+        return this.ajaxFail(req, res, 'No records specified');
       }
     }
 

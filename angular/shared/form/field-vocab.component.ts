@@ -49,14 +49,14 @@ export class VocabField extends FieldBase<any> {
   public titleFieldArr: string[];
   public titleFieldDelim: any;
   public searchFields: string;
-  public fieldNames: string[];
+  public fieldNames: any[];
   public sourceType: string;
   public lookupService: any;
   public placeHolder: string;
   public disableEditAfterSelect: boolean;
   public stringLabelToField: string;
   public component:any;
-
+  public restrictToSelection: boolean;
 
   constructor(options: any, injector: any) {
     super(options, injector);
@@ -73,6 +73,7 @@ export class VocabField extends FieldBase<any> {
     this.placeHolder = options['placeHolder'] || 'Select a valid value';
     this.disableEditAfterSelect = options['disableEditAfterSelect'] == undefined ? true : options['disableEditAfterSelect'];
     this.stringLabelToField = options['stringLabelToField'] ? options['stringLabelToField'] : 'dc_title';
+    this.restrictToSelection = _.isUndefined(options['restrictToSelection']) ? false : options['restrictToSelection'];
   }
 
   createFormModel(valueElem: any = undefined, createFormGroup:boolean=false) {
@@ -111,8 +112,14 @@ export class VocabField extends FieldBase<any> {
     this.initLookupData();
   }
 
-  setEmptyValue() {
+  setEmptyValue(updateTitle:boolean = false) {
     this.value = null;
+    if (this.formModel) {
+      this.formModel.setValue(null, {emitEvent: true});
+    }
+    if (updateTitle) {
+      this.component.ngCompleter.ctrInput.nativeElement.value = null;
+    }
     return this.value;
   }
 
@@ -358,14 +365,14 @@ export class VocabFieldLookupService extends BaseService {
       <button type="button" class="btn btn-default" *ngIf="field.help" (click)="toggleHelp()"><span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span></button>
     </label>
     <span id="{{ 'helpBlock_' + field.name }}" class="help-block" *ngIf="this.helpShow" >{{field.help}}</span>
-    <ng2-completer #ngCompleter [(ngModel)]="field.searchStr" [ngModelOptions]="{standalone: true}" [disableInput]="disableInput" [placeholder]="field.placeHolder" [clearUnselected]="disableEditAfterSelect && field.disableEditAfterSelect" (keyup)="onKeyup($event)" (selected)="onSelect($event)" [datasource]="field.dataService" [minSearchLength]="0" [inputClass]="'form-control'" [initialValue]="field.initialValue"></ng2-completer>
+    <ng2-completer #ngCompleter [(ngModel)]="field.searchStr" [ngModelOptions]="{standalone: true}" [disableInput]="disableInput" [placeholder]="field.placeHolder" [clearUnselected]="getClearUnselected()" (selected)="onSelect($event)" [datasource]="field.dataService" [minSearchLength]="0" [inputClass]="'form-control'" [initialValue]="field.initialValue"></ng2-completer>
     <div class="text-danger" *ngIf="hasRequiredError()">{{field.validationMessages.required}}</div>
   </div>
   <div *ngIf="field.editMode && isEmbedded" [formGroup]='form' [ngClass]="getGroupClass()">
     <div class="row">
       <span id="{{ 'helpBlock_' + field.name }}" class="help-block" *ngIf="this.helpShow" >{{field.help}}</span>
       <div class="col-xs-11 padding-remove">
-        <ng2-completer #ngCompleter [(ngModel)]="field.searchStr" [ngModelOptions]="{standalone: true}" [disableInput]="disableInput" [placeholder]="field.placeHolder" [clearUnselected]="disableEditAfterSelect && field.disableEditAfterSelect" (keyup)="onKeyup($event)" (selected)="onSelect($event)" [datasource]="field.dataService" [minSearchLength]="0" [inputClass]="'form-control'" [initialValue]="field.initialValue"></ng2-completer>
+        <ng2-completer #ngCompleter [(ngModel)]="field.searchStr" [ngModelOptions]="{standalone: true}" [disableInput]="disableInput" [placeholder]="field.placeHolder" [clearUnselected]="getClearUnselected()" (selected)="onSelect($event)" [datasource]="field.dataService" [minSearchLength]="0" [inputClass]="'form-control'" [initialValue]="field.initialValue"></ng2-completer>
       </div>
       <div class="col-xs-1 padding-remove">
         <button type='button' *ngIf="removeBtnText" [disabled]="!canRemove" (click)="onRemove($event)" [ngClass]="removeBtnClass" >{{removeBtnText}}</button>
@@ -408,6 +415,8 @@ export class VocabFieldComponent extends SimpleComponent {
   }
 
   onSelect(selected: any, emitEvent:boolean = true, updateTitle:boolean = false) {
+    console.log(`On select:`);
+    console.log(selected);
     let disableEditAfterSelect = this.disableEditAfterSelect && this.field.disableEditAfterSelect;
     if (selected) {
       this.field.setValue(this.field.getValue(selected), emitEvent, updateTitle);
@@ -425,14 +434,11 @@ export class VocabFieldComponent extends SimpleComponent {
   }
 
   onKeyup(value: any) {
-    console.log(this.ngCompleter['completer'].dropdown)
-    if(value.key == "Enter") {
-      console.log(this.ngCompleter['ctrInput']['handleSelection']);
-    }
     let disableEditAfterSelect = this.disableEditAfterSelect && this.field.disableEditAfterSelect;
     if (!disableEditAfterSelect) {
       this.field.formModel.setValue(this.field.getValue(this.field.searchStr));
     }
+
   }
 
   onRemove(event: any) {
@@ -441,5 +447,13 @@ export class VocabFieldComponent extends SimpleComponent {
 
   getTitle() {
     return this.field && _.isFunction(this.field.getTitle) ? this.field.getTitle(this.field.value) : '';
+  }
+
+  getClearUnselected() {
+    if (this.field.restrictToSelection) {
+      return true;
+    } else {
+      return this.disableEditAfterSelect && this.field.disableEditAfterSelect;
+    }
   }
 }
