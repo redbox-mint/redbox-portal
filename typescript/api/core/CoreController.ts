@@ -223,10 +223,10 @@ export module Controllers.Core {
       mergedLocal.view.ext = 'ejs';
       // merge with ng2 app...
       _.merge(mergedLocal, this.getNg2Apps(view));
-      sails.log.error("resolvedView");
-      sails.log.error(resolvedView);
-      sails.log.error("mergedLocal");
-      sails.log.error(mergedLocal);
+      sails.log.debug("resolvedView");
+      sails.log.debug(resolvedView);
+      sails.log.debug("mergedLocal");
+      sails.log.debug(mergedLocal);
       res.view(resolvedView, mergedLocal);
     }
 

@@ -55,8 +55,8 @@ export module Services {
 
 
         if (_.isArray(editContributor)) {
-          sails.log.error(`Edit contributor array`);
-          sails.log.error(editContributor);
+          sails.log.verbose(`Edit contributor array`);
+          sails.log.verbose(editContributor);
           _.each(editContributor, contributor => {
 
             let editContributorEmailAddress = _.get(contributor, emailProperty, null);
@@ -65,13 +65,13 @@ export module Services {
             let obs = this.getObservable(User.findOne(queryObject));
             editContributorObs.push(obs);
             if (editContributorEmailAddress != null) {
-              sails.log.error(`Pushing email address ${editContributorEmailAddress}`)
+              sails.log.verbose(`Pushing email address ${editContributorEmailAddress}`)
               editContributorEmails.push(editContributorEmailAddress);
             }
           });
         } else {
-          sails.log.error(`Edit contributor`);
-          sails.log.error(editContributor);
+          sails.log.verbose(`Edit contributor`);
+          sails.log.verbose(editContributor);
           let editContributorEmailAddress = _.get(editContributor, emailProperty, null);
 
           var queryObject = {};
@@ -80,7 +80,7 @@ export module Services {
           editContributorObs.push(obs);
           if (editContributorEmailAddress != null) {
             editContributorEmails.push(editContributorEmailAddress);
-            sails.log.error(`Pushing email address ${editContributorEmailAddress}`);
+            sails.log.verbose(`Pushing email address ${editContributorEmailAddress}`);
           }
         }
 

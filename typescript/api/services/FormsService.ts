@@ -66,8 +66,8 @@ export module Services {
             sails.log.verbose(formName);
             let observable = Observable.of(null);
             if (!formName.name) {
-              sails.log.error("workflowStep is:");
-              sails.log.error(workflowStep);
+              sails.log.verbose("workflowStep is:");
+              sails.log.verbose(workflowStep);
                 if (workflowStep.config.form == formName) {
                   const formObj = {
                     name: formName,
@@ -100,8 +100,8 @@ export module Services {
                 attachmentFields: sails.config.form.forms[formName].attachmentFields,
                 customAngularApp: sails.config.form.forms[formName].customAngularApp || null
               };
-              sails.log.error("Resaving form object");
-              sails.log.error(formObj);
+              sails.log.verbose("Resaving form object");
+              sails.log.verbose(formObj);
               var q = Form.update({name: formName}, formObj);
               observable = Observable.bindCallback(q["exec"].bind(q))();
             }
