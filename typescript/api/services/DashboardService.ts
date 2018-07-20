@@ -40,12 +40,14 @@ export module Services {
     ];
 
 
-    public getRecords(workflowState, recordType = undefined, start, rows = 10, username, roles, brand, editAccessOnly = undefined, packageType = undefined) {
+    public getRecords(workflowState, recordType = undefined, start, rows = 10, username, roles, brand, editAccessOnly = undefined, packageType = undefined, sort=undefined) {
 
       var url = sails.config.record.baseUrl.redbox + sails.config.record.api.query.url + "?collection=metadataDocuments";
       url = this.addPaginationParams(url, start, rows);
-      // url = this.addAuthFilter(url, username, roles, brand, editAccessOnly)
-      // url = url+"&fq=metaMetadata_brandId:"+brand.id
+      if(sort) {
+        url = url+`&sort=${sort}`
+      }
+
       let roleNames = this.getRoleNames(roles, brand);
       let andArray = [];
       let permissions = {
@@ -74,7 +76,7 @@ export module Services {
 
       let query = {
         "metaMetadata.brandId": brand.id,
-        "$and":andArray
+        "$and":andArray,
       };
 
       if (workflowState != undefined) {

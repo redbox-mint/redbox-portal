@@ -75,6 +75,8 @@ module.exports = {
       compClass: "TabOrAccordionContainerComponent",
       definition: {
         id: "mainTab",
+        accContainerClass: "view-accordion",
+        expandAccordionsOnOpen: true,
         fields: [
           // -------------------------------------------------------------------
           // Welcome Tab

@@ -56,7 +56,7 @@ export class DashboardComponent extends LoadableComponent  {
           steps = _.orderBy(steps,['config.displayIndex'],['asc'])
           this.workflowSteps = steps;
           _.each(steps,step => {
-            dashboardService.getRecords(this.recordType,step.name,1).then((stagedRecords: PlanTable) => {
+            dashboardService.getRecords(this.recordType,step.name,1,null,'date_object_modified:-1').then((stagedRecords: PlanTable) => {
               this.setDashboardTitle(stagedRecords);
               this.records[step.name] = stagedRecords;
               this.initTracker.draftLoaded = true;

@@ -856,3 +856,19 @@ tree-internal > ul.rootless > li > tree-internal > ul {
   padding-top: 10px;
   padding-left: 10px;
 }
+
+.view-accordion {
+  margin-top: 20px;
+}
+
+.panel-body .key-value-pair {
+    margin-top: 10px;
+}
+
+.panel-body h4 {
+    margin-top: 10px;
+}
+
+.view-contributor {
+  margin-top: 10px;
+}

@@ -308,9 +308,12 @@ export class TabOrAccordionContainerComponent extends SimpleComponent implements
     let that = this;
     jQuery("[role='tab']").on('shown.bs.tab', function () {
       that.field.onTabChange.emit(this.getAttribute("href").substring(1,this.getAttribute("href").length));
-
     });
 
+    if(!this.field.editMode && this.field.expandAccordionsOnOpen) {
+      this.field.allExpanded = false;
+      this.expandCollapseAll();
+    }
   }
 
   accordionHeaderClicked(tabId) {

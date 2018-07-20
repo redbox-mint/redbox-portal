@@ -34,7 +34,7 @@
             </td>
             <td>
               {{ dataLocation.notes }}
-              <button type='button' class="btn btn-primary pull-right" (click)="editNotes(dataLocation, i)">{{ field.editNotesButtonText }}</button>
+              <button *ngIf="field.editMode" type='button' class="btn btn-primary pull-right" (click)="editNotes(dataLocation, i)">{{ field.editNotesButtonText }}</button>
             </td>
             <td *ngIf="field.editMode">
               <a class="fa fa-minus-circle btn text-20 btn-danger" (click)="field.removeLocation(dataLocation)"></a>
