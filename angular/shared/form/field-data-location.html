@@ -45,13 +45,13 @@
     </div>
     <div class="row" *ngIf="field.editMode">
       <div class="col-xs-3">
-        <label>Type of location</label>
+        <label>{{ field.typeHeader }}</label>
       </div>
       <div class="col-xs-4">
-        <label>Location</label>
+        <label>{{ field.locationHeader }}</label>
       </div>
       <div class="col-xs-5">
-        <label *ngIf="field.newLocation.type != 'attachment'">Notes</label>
+        <label *ngIf="field.newLocation.type != 'attachment'">{{ field.notesHeader }}</label>
       </div>
 
     </div>
