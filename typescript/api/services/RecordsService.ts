@@ -158,7 +158,10 @@ export module Services {
           formData[fileId] = fs.createReadStream(fpath);
         });
         opts['formData'] = formData;
+        opts.json = false;
+        opts.headers['Content-Type'] = 'application/octet-stream';
       }
+
       return request[apiConfig.method](opts);
     }
 
