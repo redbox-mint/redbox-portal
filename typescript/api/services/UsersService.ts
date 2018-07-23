@@ -244,13 +244,19 @@ export module Services {
         if (user) {
           return Observable.throw(new Error('Username already exists'));
         } else {
-          var newUser = { type: 'local', name: name};
-          if (!_.isEmpty(email)){
-            newUser["email"] = email;
-          }
-          newUser[usernameField] = username;
-          newUser[passwordField] = password;
-          return super.getObservable(User.create(newUser));
+          return this.findUsersWithEmail(email, null, null).flatMap(emailCheck => {
+            if (_.size(emailCheck) > 0) {
+              return Observable.throw(new Error('Email already exists, it must be unique.'));
+            } else {
+              var newUser = { type: 'local', name: name};
+              if (!_.isEmpty(email)){
+                newUser["email"] = email;
+              }
+              newUser[usernameField] = username;
+              newUser[passwordField] = password;
+              return super.getObservable(User.create(newUser));
+            }
+          });
         }
       });
 
@@ -402,7 +408,7 @@ export module Services {
 
             RecordsService.provideUserAccessAndRemovePendingAccess(oid, userid, pendingValue);
           }
-        } 
+        }
       });
 
     }

@@ -12,7 +12,7 @@ module.exports = {
     lastLogin: {type: 'string', columnType: 'datetime'},
     type : { type: 'string', required: true},
     name : { type: 'string', required: true},
-    email: { type: 'string'},
+    email: { type: 'string', required: true, unique: true},
     token: { type: 'string'},
     // users have many workspace apps
     workspaceApps: { collection: 'workspaceApp', via: 'user' },

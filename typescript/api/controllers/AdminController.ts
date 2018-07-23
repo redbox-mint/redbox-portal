@@ -163,7 +163,7 @@ export module Controllers {
               this.ajaxFail(req, res, error.message);
             });
           } else {
-          this.ajaxOk(req, res, "User created successfully");
+            this.ajaxOk(req, res, "User created successfully");
           }
         }, error => {
           sails.log.error("Failed to create user:");
