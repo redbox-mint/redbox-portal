@@ -78,6 +78,9 @@ export class DataLocationField extends FieldBase<any> {
   cancelEditNotesButtonText: string;
   applyEditNotesButtonText: string;
   editNotesCssClasses: any;
+  typeHeader: string;
+  locationHeader: string;
+  notesHeader: string;
 
   constructor(options: any, injector: any) {
     super(options, injector);
@@ -88,6 +91,9 @@ export class DataLocationField extends FieldBase<any> {
     this.cancelEditNotesButtonText = this.getTranslated(options['cancelEditNotesButtonText'], 'Cancel');
     this.applyEditNotesButtonText = this.getTranslated(options['applyEditNotesButtonText'], 'Apply');
     this.editNotesCssClasses = options['editNotesCssClasses'] || 'form-control';
+    this.typeHeader =  this.getTranslated(options['typeHeader'], 'Type');
+    this.locationHeader =  this.getTranslated(options['locationHeader'], 'Location');
+    this.notesHeader =  this.getTranslated(options['notesHeader'], 'Notes');
 
     this.columns = options['columns'] || [];
 

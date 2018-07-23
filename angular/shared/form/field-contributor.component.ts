@@ -283,10 +283,13 @@ export class ContributorField extends FieldBase<any> {
   }
 
   public reactEvent(eventName: string, eventData: any, origData: any) {
-    this.setValue(eventData, false);
-    _.each(this.componentReactors, (compReact) => {
-      compReact.reactEvent(eventName, eventData, origData);
-    });
+    if (_.isEmpty(this.componentReactors)) {
+      this.setValue(eventData, false, true);
+    } else {
+      _.each(this.componentReactors, (compReact) => {
+        compReact.reactEvent(eventName, eventData, origData);
+      });
+    }
   }
 }
 
@@ -316,19 +319,29 @@ export class ContributorComponent extends SimpleComponent {
 
   onSelect(selected: any, emitEvent:boolean=true, updateTitle:boolean=false) {
     if (selected) {
-      if ((_.isUndefined(selected.title) && _.isUndefined(selected.text_full_name) && _.isEmpty(selected.title) && _.isEmpty(selected.text_full_name))
-          || (selected.title && selected.title == this.field.formModel.value.text_full_name)) {
+      if ( (_.isEmpty(selected.title) || _.isUndefined(selected.title)) && (_.isEmpty(selected.text_full_name) || _.isUndefined(selected.text_full_name))) {
         console.log(`Same or empty selection, returning...`);
         return;
+      } else {
+        if (selected.title && selected.title == this.field.formModel.value.text_full_name) {
+          console.log(`Same or empty selection, returning...`);
+          return;
+        }
       }
       let val:any;
       if (!this.field.freeText) {
-        if (selected.text_full_name) {
+        if (_.isEmpty(selected.text_full_name)) {
           val = this.field.vocabField.getValue(selected);
         } else if(selected[this.field.fullNameResponseField]) {
           val = this.field.vocabField.getValue(selected);
         } else {
           val = {text_full_name: selected.title};
+        }
+        if (!_.isEmpty(selected.orcid) && !_.isUndefined(selected.orcid)) {
+          val['orcid'] = selected.orcid;
+        }
+        if (!_.isEmpty(selected.username) && !_.isUndefined(selected.username)) {
+          val['username'] = selected.username;
         }
 
         val.role = this.field.role;

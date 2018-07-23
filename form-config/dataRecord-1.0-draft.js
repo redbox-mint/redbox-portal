@@ -449,9 +449,6 @@ module.exports = {
                       }
                     },
                     subscribe: {
-                      'this': {
-                        onValueUpdate: []
-                      },
                       'rdmpGetter': {
                         onValueUpdate: [{
                           action: 'utilityService.getPropertyFromObject',
@@ -505,9 +502,6 @@ module.exports = {
                       }
                     },
                     subscribe: {
-                      'this': {
-                        onValueUpdate: []
-                      },
                       'rdmpGetter': {
                         onValueUpdate: [{
                           action: 'utilityService.getPropertyFromObject',
@@ -570,11 +564,6 @@ module.exports = {
                           onValueUpdate: {
                             modelEventSource: 'valueChanges'
                           }
-                        },
-                        subscribe: {
-                          'this': {
-                            onValueUpdate: []
-                          }
                         }
                       }
                     }],
@@ -632,9 +621,6 @@ module.exports = {
                       }
                     },
                     subscribe: {
-                      'this': {
-                        onValueUpdate: []
-                      },
                       'rdmpGetter': {
                         onValueUpdate: [{
                           action: 'utilityService.getPropertyFromObject',
