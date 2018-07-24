@@ -3,6 +3,7 @@ import { BrowserModule } from '@angular/platform-browser';
 import { ReactiveFormsModule, FormsModule} from "@angular/forms";
 import { HttpModule } from '@angular/http';
 import { DashboardComponent }  from './dashboard.component';
+import { SortComponent } from './sort.component';
 import { PaginationModule,TooltipModule } from 'ngx-bootstrap';
 import { SharedModule } from './shared/shared.module';
 import * as $ from 'jquery';
@@ -20,7 +21,7 @@ import * as $ from 'jquery';
  */
 @NgModule({
   imports:      [ BrowserModule, HttpModule, ReactiveFormsModule, FormsModule, PaginationModule.forRoot(), TooltipModule.forRoot(), SharedModule ],
-  declarations: [ DashboardComponent ],
+  declarations: [ DashboardComponent, SortComponent ],
   providers:    [  ],
   bootstrap:    [ DashboardComponent ]
 })

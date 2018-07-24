@@ -34,6 +34,7 @@ export class DashboardComponent extends LoadableComponent  {
   saveMsgType = "info";
   initSubs: any;
   initTracker: any = {draftLoaded:false, activeLoaded: false};
+  sortMap:any = {};
 
 
   constructor( @Inject(DashboardService) protected dashboardService: DashboardService,  protected recordsService: RecordsService, @Inject(DOCUMENT) protected document: any, elementRef: ElementRef, translationService:TranslationService ) {
@@ -56,6 +57,13 @@ export class DashboardComponent extends LoadableComponent  {
           steps = _.orderBy(steps,['config.displayIndex'],['asc'])
           this.workflowSteps = steps;
           _.each(steps,step => {
+            this.sortMap[step.name] = {};
+            this.sortMap[step.name]['date_object_modified'] = {sort:'desc'};
+            this.sortMap[step.name]['date_object_created'] = {sort:null};
+            this.sortMap[step.name]['metadata.title'] = {sort:null};
+            this.sortMap[step.name]['metadata.contributor_ci.text_full_name'] = {sort:null};
+            this.sortMap[step.name]['metadata.contributor_data_manager.text_full_name'] = {sort:null};
+
             dashboardService.getRecords(this.recordType,step.name,1,null,'date_object_modified:-1').then((stagedRecords: PlanTable) => {
               this.setDashboardTitle(stagedRecords);
               this.records[step.name] = stagedRecords;
@@ -102,6 +110,34 @@ export class DashboardComponent extends LoadableComponent  {
     } else {
       return defValue;
     }
+  }
+
+  sortChanged(data) {
+    let sortString = `'${data.variable}':`;
+    if(data.sort == 'desc') {
+      sortString = sortString+"-1";
+    } else {
+      sortString = sortString+"1";
+    }
+    this.dashboardService.getRecords(this.recordType,data.step,1,null,sortString).then((stagedRecords: PlanTable) => {
+      this.setDashboardTitle(stagedRecords);
+      this.records[data.step] = stagedRecords;
+    });
+    this.updateSortMap(data);
+  }
+
+  updateSortMap(sortData) {
+    let sortDetails = this.sortMap[sortData.step];
+
+    sortDetails['date_object_modified'] = {sort:null};
+    sortDetails['date_object_created'] = {sort:null};
+    sortDetails['metadata.title'] = {sort:null};
+    sortDetails['metadata.contributor_ci.text_full_name'] = {sort:null};
+    sortDetails['metadata.contributor_data_manager.text_full_name'] = {sort:null};
+
+    sortDetails[sortData.variable] = {sort: sortData.sort};
+
+    this.sortMap[sortData.step] = sortDetails;
   }
 
 }
