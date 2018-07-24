@@ -1,14 +1,14 @@
 <div *ngIf="form && !isLoading" class="col-md-offset-5 col-md-3" >
   <div class="panel panel-default">
     <div class="panel-heading">
-      <h3 class="panel-title">{{ 'local-creds-header' | translate }}</h3>
+      <span class="panel-title">{{ 'local-creds-header' | translate }}</span>
     </div>
     <div class="panel-body">
       <div class="form-login">
       <form [formGroup]="form" (ngSubmit)='onLogin($event)'>
-        <input type="text" id="username" class="form-control input-sm chat-input" placeholder="Username" formControlName="username" />
+        <input type="text" id="username" class="form-control input-sm chat-input" placeholder="Username" formControlName="username" [attr.aria-label]="'local-creds-input-username-label' | translate "/>
         <br/>
-        <input type="password" id="password" class="form-control input-sm chat-input" placeholder="Password" formControlName="password"/>
+        <input type="password" id="password" class="form-control input-sm chat-input" placeholder="Password" formControlName="password" [attr.aria-label]="'local-creds-input-password-label' | translate "/>
         <br/>
         <div class="wrapper">
           <span class="group-btn">

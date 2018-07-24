@@ -6,9 +6,10 @@
     <div class="col-md-3 homepanel">
       <div class="panel panel-default">
          <div class="panel-heading text-center">
-             <h4 class="panel-title">
+             <span class="panel-title">
                <div><img class="overlay" src="<%= BrandingService.getBrandAndPortalPath(req) %>/images/checklist.png" alt="@document.icon" width="43px" height="30px"></div>
-               <%= TranslationService.t('menu-plan')%></h4>
+               <%= TranslationService.t('menu-plan')%>
+             </span>
          </div>
          <div class="panel-body">
            <div><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/record/rdmp/edit"><%= TranslationService.t('create-rdmp')%></a></div>
@@ -21,7 +22,7 @@
       <div class="panel panel-default">
         <div class="panel-heading text-center">
           <div><i class="fa fa-sitemap fa-3x"></i></div>
-          <h4 class="panel-title"><%= TranslationService.t('menu-organise-worspace')%></h4>
+          <span class="panel-title"><%= TranslationService.t('menu-organise-worspace')%></span>
         </div>
         <div class="panel-body">
           <div><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/workspaces/list"><%= TranslationService.t('workspaces-dashboard')%></a></div>
@@ -33,7 +34,7 @@
       <div class="panel panel-default">
         <div class="panel-heading text-center">
             <div><i class="fa fa-laptop fa-3x"></i></div>
-            <h4 class="panel-title"><%= TranslationService.t('menu-manage')%></h4>
+            <span class="panel-title"><%= TranslationService.t('menu-manage')%></span>
         </div>
         <div class="panel-body">
           <div><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/record/dataRecord/edit"><%= TranslationService.t('create-datarecord')%></a></div>
@@ -46,7 +47,7 @@
       <div class="panel panel-default">
         <div class="panel-heading text-center">
             <div><i class="fa fa-rocket fa-3x"></i></div>
-            <h4 class="panel-title"><%= TranslationService.t('menu-publish')%></h4>
+            <span class="panel-title"><%= TranslationService.t('menu-publish')%></span>
         </div>
         <div class="panel-body">
           <div><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/record/dataPublication/edit"><%= TranslationService.t('create-data-publication')%></a></div>

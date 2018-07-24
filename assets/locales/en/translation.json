@@ -621,5 +621,10 @@
   "create-workspace": "Create Workspace",
   "workspaces-dashboard": "View workspaces",
   "@dataLocations-help": "Data locations help placeholder text",
-  "@dataLocations-label": "Data Locations"
+  "@dataLocations-label": "Data Locations",
+  "logo-alt-text": "ReDBox Logo",
+  "aaf-logo-alt-text": "AAF Logo",
+  "loading-alt-text": "Loading...",
+  "local-creds-input-username-label": "Username",
+  "local-creds-input-password-label": "Password"
 }
