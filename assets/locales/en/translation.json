@@ -617,5 +617,7 @@
   "change-text": "Change",
   "workspaces": "Workspaces",
   "create-workspace": "Create Workspace",
-  "workspaces-dashboard": "View workspaces"
+  "workspaces-dashboard": "View workspaces",
+  "@dataLocations-help": "Data locations help placeholder text",
+  "@dataLocations-label": "Data Locations"
 }

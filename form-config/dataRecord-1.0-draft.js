@@ -71,6 +71,7 @@ module.exports = {
       definition: {
         id: "mainTab",
         accContainerClass: "view-accordion",
+        expandAccordionsOnOpen: true,
         fields: [
           // -------------------------------------------------------------------
           // Why Tab
@@ -842,8 +843,10 @@ module.exports = {
                   compClass: 'DataLocationComponent',
                   definition: {
                     name:"dataLocations",
+                    label: "@dataLocations-label",
                     maxFileSize: 1073741824,
-                    locationAddText: 'Enter'
+                    locationAddText: 'Enter',
+                    help: '@dataLocations-help'
                   }
                 },
                 {

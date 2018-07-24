@@ -3,7 +3,6 @@
 <div class='padding-bottom-10'>
   <label [attr.for]="field.name">
     {{field.label}} {{ getRequiredLabelStr()}}
-    <button type="button" class="btn btn-default" *ngIf="field.help" (click)="toggleHelp()"><span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span></button>
   </label><br/>
   <div>
       <div class="table-responsive">
@@ -43,20 +42,24 @@
         </tbody>
       </table>
     </div>
-    <div class="row" *ngIf="field.editMode">
+    <div class="row padding-bottom-10" *ngIf="field.editMode">
       <div class="col-xs-3">
         <label>{{ field.typeHeader }}</label>
       </div>
       <div class="col-xs-4">
         <label>{{ field.locationHeader }}</label>
       </div>
-      <div class="col-xs-5">
+      <div class="col-xs-4">
         <label *ngIf="field.newLocation.type != 'attachment'">{{ field.notesHeader }}</label>
       </div>
-
+      <div class="col-xs-1">
+        <button type="button" class="btn btn-default" *ngIf="field.help" (click)="toggleHelp()"><span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span></button>
+      </div>
+    </div>
+    <div *ngIf="this.helpShow">
+      <span id="{{ 'helpBlock_' + field.name }}" class="help-block" [innerHtml]="field.help"></span>
     </div>
     <div class="row" *ngIf="field.editMode">
-
       <div class="col-xs-3">
         <select [(ngModel)]="field.newLocation.type" [id]="field.newLocation.type" class="form-control">
            <option *ngFor="let opt of field.dataTypes" [value]="opt.value">{{opt.label}}</option>
