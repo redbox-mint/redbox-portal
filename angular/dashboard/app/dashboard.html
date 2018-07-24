@@ -24,7 +24,7 @@
                 <td>
                   <a href='/{{ branding }}/{{ portal }}/record/view/{{ plan.oid }}'>{{ plan.dashboardTitle }}</a>
                   <span class="dashboard-controls">
-                    <a *ngIf="plan.hasEditAccess" class="glyphicon glyphicon-pencil" href="/{{ branding }}/{{ portal }}/record/edit/{{ plan.oid }}"  ></a>
+                    <a *ngIf="plan.hasEditAccess" href="/{{ branding }}/{{ portal }}/record/edit/{{ plan.oid }}" [attr.aria-label]="'edit-link-label' | translate"><i class="fa fa-pencil" aria-hidden="true"></i></a>
                   </span>
                 </td>
                 <td>{{ plan.metadata.metadata.contributor_ci.text_full_name }}</td>

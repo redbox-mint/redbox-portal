@@ -626,5 +626,6 @@
   "aaf-logo-alt-text": "AAF Logo",
   "loading-alt-text": "Loading...",
   "local-creds-input-username-label": "Username",
-  "local-creds-input-password-label": "Password"
+  "local-creds-input-password-label": "Password",
+  "edit-link-label": "Edit"
 }
