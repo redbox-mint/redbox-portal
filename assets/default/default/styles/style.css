@@ -872,3 +872,46 @@ tree-internal > ul.rootless > li > tree-internal > ul {
 .view-contributor {
   margin-top: 10px;
 }
+
+.field-label {
+  font-size: 110%;
+  font-weight: bold;
+}
+
+.label-font {
+  font-weight: bold;
+}
+
+.tab-header-font {
+  font-weight: bold;
+}
+
+.h1-header {
+  font-size: 36px;
+  font-weight: bold;
+}
+
+.h2-header {
+  font-size: 30px;
+  font-weight: bold;
+}
+
+.h3-header {
+  font-size: 24px;
+  font-weight: bold;
+}
+
+.h4-header {
+  font-size: 18px;
+  font-weight: bold;
+}
+
+.h5-header {
+  font-size: 14px;
+  font-weight: bold;
+}
+
+.h6-header {
+  font-size: 12px;
+  font-weight: bold;
+}

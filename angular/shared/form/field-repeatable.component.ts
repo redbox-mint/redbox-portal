@@ -304,7 +304,7 @@ export class RepeatableContributor extends RepeatableContainer {
 
   addElem(val:any = null) {
     this.fields[0].setMissingFields(val);
-    super.addElem(val);
+    return super.addElem(val);
   }
 }
 
@@ -331,20 +331,22 @@ export class RepeatableContributor extends RepeatableContainer {
     </div>
   </div>
   <ng-container  *ngIf="!field.editMode">
-  <div class="view-contributor">
-  <label *ngIf="field.fields[0].label">{{field.fields[0].label}}</label>
-    <div class="row">
-      <div class="col-xs-3"><label>{{field.fields[0].nameColHdr}}</label></div>
-      <div class="col-xs-3"><label>{{field.fields[0].emailColHdr}}</label></div>
-      <div class="col-xs-3"><label>{{field.fields[0].roleColHdr}}</label></div>
-      <div class="col-xs-3"><label>{{field.fields[0].orcidColHdr}}</label></div>
-    </div>
-    <div class="row" *ngFor="let fieldElem of field.fields; let i = index;">
-      <div class="col-xs-3">{{fieldElem.value.text_full_name}}</div>
-      <div class="col-xs-3">{{fieldElem.value.email}}</div>
-      <div class="col-xs-3">{{fieldElem.value.role}}</div>
-      <div class="col-xs-3">{{fieldElem.value.orcid}}</div>
-    </div>
+    <div class="view-contributor">
+      <div *ngIf="field.fields[0].label" class="row">
+        <div class="col-xs-12 key-value-pair"><span class="key">{{field.fields[0].label}}</span></div>
+      </div>
+      <div class="row view-contributor">
+        <div class="col-xs-3 label-font">{{field.fields[0].nameColHdr}}</div>
+        <div class="col-xs-3 label-font">{{field.fields[0].emailColHdr}}</div>
+        <div class="col-xs-3 label-font">{{field.fields[0].roleColHdr}}</div>
+        <div class="col-xs-3 label-font">{{field.fields[0].orcidColHdr}}</div>
+      </div>
+      <div class="row view-contributor" *ngFor="let fieldElem of field.fields; let i = index;">
+        <div class="col-xs-3">{{fieldElem.value.text_full_name}}</div>
+        <div class="col-xs-3">{{fieldElem.value.email}}</div>
+        <div class="col-xs-3">{{fieldElem.value.role}}</div>
+        <div class="col-xs-3">{{fieldElem.value.orcid}}</div>
+      </div>
     </div>
   </ng-container>
   `,

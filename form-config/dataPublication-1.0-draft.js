@@ -1142,11 +1142,6 @@ module.exports = {
                           onValueUpdate: {
                             modelEventSource: 'valueChanges'
                           }
-                        },
-                        subscribe: {
-                          'this': {
-                            onValueUpdate: []
-                          }
                         }
                       }
                     }],

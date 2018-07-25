@@ -136,7 +136,7 @@ export class ContributorField extends FieldBase<any> {
     }
 
     if (!this.freeText) {
-      this.vocabField.setEmptyValue();
+      // this.vocabField.setEmptyValue();
       this.formModel = this.vocabField.createFormModel(this.value, true);
       this.formModel.addControl('username', new FormControl(this.value.username));
       this.formModel.addControl('role', new FormControl(this.value.role));
@@ -158,6 +158,8 @@ export class ContributorField extends FieldBase<any> {
     }
     if (this.required) {
       this.enableValidators();
+    } else {
+      // TODO: cherry pick validators, like email, etc.
     }
     return this.formModel;
   }
@@ -287,7 +289,7 @@ export class ContributorField extends FieldBase<any> {
       this.setValue(eventData, false, true);
     } else {
       _.each(this.componentReactors, (compReact) => {
-        compReact.reactEvent(eventName, eventData, origData);
+        compReact.reactEvent(eventName, eventData, origData, this);
       });
     }
   }
@@ -345,8 +347,8 @@ export class ContributorComponent extends SimpleComponent {
         }
 
         val.role = this.field.role;
-        console.log(`Using val:`);
-        console.log(JSON.stringify(val));
+        // console.log(`Using val:`);
+        // console.log(JSON.stringify(val));
         this.field.setValue(val, emitEvent, updateTitle);
       } else {
         val = this.field.setMissingFields(selected);

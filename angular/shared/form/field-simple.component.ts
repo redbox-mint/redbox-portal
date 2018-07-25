@@ -282,12 +282,11 @@ Container components
       <a href="#" (click)="expandCollapseAll(); false">Expand/Collapse all</a>
       <div *ngFor="let tab of field.fields" [ngClass]="field.accClass">
         <div class="panel-heading">
-          <h4 class="panel-title">
-            <a data-toggle="collapse" (click)="accordionHeaderClicked(tab.id); false" href="#{{tab.id}}">
-              <ng-container *ngIf="!tab.expanded">+</ng-container><ng-container *ngIf="tab.expanded">-</ng-container>
-              {{tab.label}}
+          <span class="panel-title tab-header-font">
+            <a data-toggle="collapse" href="#{{tab.id}}">
+              {{ tab.expandedChar }} {{ tab.label }}
             </a>
-          </h4>
+          </span>
         </div>
         <div id="{{tab.id}}" class="panel-collapse collapse">
           <div class="panel-body">
@@ -301,13 +300,25 @@ Container components
   </div>
   `
 })
-export class TabOrAccordionContainerComponent extends SimpleComponent implements AfterViewChecked{
+export class TabOrAccordionContainerComponent extends SimpleComponent {
   field: TabOrAccordionContainer;
 
-  ngAfterViewChecked() {
+  constructor(private changeRef: ChangeDetectorRef) {
+    super();
+  }
+
+  ngAfterViewInit() {
     let that = this;
-    jQuery("[role='tab']").on('shown.bs.tab', function () {
-      that.field.onTabChange.emit(this.getAttribute("href").substring(1,this.getAttribute("href").length));
+    _.each(this.field.fields, tab => {
+        tab['expandedChar'] = '+';
+        jQuery(`#${tab.id}`).on('shown.bs.collapse', ()=> {
+          tab["expandedChar"] = '-';
+          that.changeRef.detectChanges();
+        });
+        jQuery(`#${tab.id}`).on('hidden.bs.collapse', ()=> {
+          tab["expandedChar"] = '+';
+          that.changeRef.detectChanges();
+        });
     });
 
     if(!this.field.editMode && this.field.expandAccordionsOnOpen) {
@@ -316,32 +327,15 @@ export class TabOrAccordionContainerComponent extends SimpleComponent implements
     }
   }
 
-  accordionHeaderClicked(tabId) {
-    _.each(this.field.fields, tab => {
-      if(tabId == tab.id) {
-        if(tab["expanded"]) {
-           tab["expanded"] = false;
-        } else {
-          tab["expanded"] = true;
-        }
-        return false;
-      }
-    })
-  }
-
   expandCollapseAll() {
     if(this.field.allExpanded) {
       _.each(this.field.fields, tab => {
-          if(tab["expanded"]) {
-            jQuery(`[href='#${tab.id}']`)[0].click();
-          }
+          jQuery(`#${tab.id}`).collapse('hide');
       });
       this.field.allExpanded = false;
     } else {
       _.each(this.field.fields, tab => {
-          if(!tab["expanded"]) {
-            jQuery(`[href='#${tab.id}']`)[0].click();
-          }
+          jQuery(`#${tab.id}`).collapse('show');
       });
       this.field.allExpanded = true;
     }
@@ -378,11 +372,12 @@ export class HtmlRawComponent extends SimpleComponent {
   selector: 'text-block',
   template: `
   <div *ngIf="field.visible" [ngSwitch]="field.type">
-    <h1 *ngSwitchCase="'h1'" [ngClass]="field.cssClasses">{{field.value}}</h1>
-    <h2 *ngSwitchCase="'h2'" [ngClass]="field.cssClasses">{{field.value}}</h2>
-    <h3 *ngSwitchCase="'h3'" [ngClass]="field.cssClasses">{{field.value}}</h3>
-    <h4 *ngSwitchCase="'h4'" [ngClass]="field.cssClasses">{{field.value}}</h4>
-    <h5 *ngSwitchCase="'h5'" [ngClass]="field.cssClasses">{{field.value}}</h5>
+    <span *ngSwitchCase="'h1'" [ngClass]="field.cssClasses">{{field.value}}</span>
+    <span *ngSwitchCase="'h2'" [ngClass]="field.cssClasses">{{field.value}}</span>
+    <span *ngSwitchCase="'h3'" [ngClass]="field.cssClasses">{{field.value}}</span>
+    <span *ngSwitchCase="'h4'" [ngClass]="field.cssClasses">{{field.value}}</span>
+    <span *ngSwitchCase="'h5'" [ngClass]="field.cssClasses">{{field.value}}</span>
+    <span *ngSwitchCase="'h6'" [ngClass]="field.cssClasses">{{field.value}}</span>
     <hr *ngSwitchCase="'hr'" [ngClass]="field.cssClasses">
     <span *ngSwitchCase="'span'" [ngClass]="field.cssClasses">{{field.value}}</span>
     <p *ngSwitchDefault [ngClass]="field.cssClasses">{{field.value}}</p>

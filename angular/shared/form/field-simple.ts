@@ -112,6 +112,10 @@ export class Container extends FieldBase<any> {
     this.type = options['type'] || '';
     this.isGroup = true;
     this.hasControl = _.isUndefined(this.groupName);
+    if (_.isEmpty(this.cssClasses) && _.startsWith(this.type, 'h')) {
+      this.cssClasses = [`${this.type}-header`];
+    }
+
   }
 
   public getGroup(group: any, fieldMap: any) : any {
