@@ -627,5 +627,9 @@
   "loading-alt-text": "Loading...",
   "local-creds-input-username-label": "Username",
   "local-creds-input-password-label": "Password",
-  "edit-link-label": "Edit"
+  "edit-link-label": "Edit",
+  "pdf-history-modal-label": "PDF History Modal",
+  "help": "Help",
+  "add-button-label": "Add Item",
+  "remove-button-label": "Remove Item"
 }

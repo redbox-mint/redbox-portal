@@ -2,7 +2,7 @@
   <div *ngIf="field.editMode" [formGroup]='form' class="form-group">
   <label [attr.for]="field.name">
     {{field.label}} {{ getRequiredLabelStr()}}
-    <button type="button" class="btn btn-default" *ngIf="field.help" (click)="toggleHelp()"><span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span></button>
+    <button type="button" class="btn btn-default" *ngIf="field.help" (click)="toggleHelp()" [attr.aria-label]="'help' | translate "><span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span></button>
   </label><br/>
   <span id="{{ 'helpBlock_' + field.name }}" class="help-block" *ngIf="this.helpShow" [innerHtml]="field.help"></span>
 

@@ -436,11 +436,6 @@ module.exports = {
                       onValueUpdate: {
                         modelEventSource: 'valueChanges'
                       }
-                    },
-                    subscribe: {
-                      'this': {
-                        onValueUpdate: []
-                      }
                     }
                   }
                 },
@@ -486,11 +481,6 @@ module.exports = {
                     publish: {
                       onValueUpdate: {
                         modelEventSource: 'valueChanges'
-                      }
-                    },
-                    subscribe: {
-                      'this': {
-                        onValueUpdate: []
                       }
                     },
                     value: {
@@ -548,17 +538,7 @@ module.exports = {
                         nameColHdr: '@dmpt-people-tab-name-hdr',
                         emailColHdr: '@dmpt-people-tab-email-hdr',
                         orcidColHdr: '@dmpt-people-tab-orcid-hdr',
-                        showRole: false,
-                        publish: {
-                          onValueUpdate: {
-                            modelEventSource: 'valueChanges'
-                          }
-                        },
-                        subscribe: {
-                          'this': {
-                            onValueUpdate: []
-                          }
-                        }
+                        showRole: false
                       }
                     }]
                   }
@@ -605,11 +585,6 @@ module.exports = {
                     publish: {
                       onValueUpdate: {
                         modelEventSource: 'valueChanges'
-                      }
-                    },
-                    subscribe: {
-                      'this': {
-                        onValueUpdate: []
                       }
                     }
                   }

@@ -93,16 +93,16 @@ export class TextArea extends FieldBase<string> {
     <div *ngIf="!isEmbedded" >
       <label [attr.for]="field.name">
         {{field.label}} {{ getRequiredLabelStr() }}
-        <button type="button" class="btn btn-default" *ngIf="field.help" (click)="toggleHelp()"><span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span></button>
+        <button type="button" class="btn btn-default" *ngIf="field.help" (click)="toggleHelp()" [attr.aria-label]="'help' | translate "><span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span></button>
         <span id="{{ 'helpBlock_' + field.name }}" class="help-block" *ngIf="this.helpShow" [innerHtml]="field.help"></span>
       </label>
-      <input [formGroup]='form' [formControl]="getFormControl()"  [id]="field.name" [type]="field.type" [readonly]="field.readOnly" [ngClass]="field.cssClasses" [attr.aria-describedby]="field.help ? 'helpBlock_' + field.name : null">
+      <input [formGroup]='form' [formControl]="getFormControl()"  [id]="field.name" [type]="field.type" [readonly]="field.readOnly" [ngClass]="field.cssClasses" [attr.aria-label]="''" >
     </div>
     <div *ngIf="isEmbedded" class="input-group padding-bottom-15">
-      <input [formControl]="getFormControl(name, index)"  [id]="field.name" [type]="field.type" [readonly]="field.readOnly" [ngClass]="field.cssClasses" [attr.aria-describedby]="field.help ? 'helpBlock_' + field.name : null">
+      <input [formControl]="getFormControl(name, index)"  [id]="field.name" [type]="field.type" [readonly]="field.readOnly" [ngClass]="field.cssClasses" [attr.aria-labelledby]="name">
       <span class="input-group-btn">
         <button type='button' *ngIf="removeBtnText" [disabled]="!canRemove" (click)="onRemove($event)" [ngClass]="removeBtnClass" >{{removeBtnText}}</button>
-        <button [disabled]="!canRemove" type='button' [ngClass]="removeBtnClass" (click)="onRemove($event)"></button>
+        <button [disabled]="!canRemove" type='button' [ngClass]="removeBtnClass" (click)="onRemove($event)" [attr.aria-label]="'remove-button-label' | translate"></button>
       </span>
     </div>
     <div *ngIf="field.required" [style.visibility]="getFormControl() && getFormControl().hasError('required') && getFormControl().touched ? 'inherit':'hidden'">
@@ -126,10 +126,10 @@ export class TextFieldComponent extends EmbeddableComponent {
   <div *ngIf="field.editMode">
     <div class="row">
       <div class="col-xs-12">
-      <label>
+      <span class="label-font" [id]="field.name">
         {{field.label}} {{ getRequiredLabelStr() }}
-        <button type="button" class="btn btn-default" *ngIf="field.help" (click)="toggleHelp()"><span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span></button>
-      </label>
+        <button type="button" class="btn btn-default" *ngIf="field.help" (click)="toggleHelp()" [attr.aria-label]="'help' | translate "><span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span></button>
+      </span>
       <span id="{{ 'helpBlock_' + field.name }}" class="help-block" *ngIf="this.helpShow" [innerHtml]="field.help"></span>
       </div>
     </div>
@@ -141,7 +141,7 @@ export class TextFieldComponent extends EmbeddableComponent {
     <div class="row">
       <span class="col-xs-12">
         <button *ngIf="field.addButtonText" type='button' (click)="addElem($event)" [ngClass]="field.addButtonTextClass" >{{field.addButtonText}}</button>
-        <button *ngIf="!field.addButtonText" type='button' (click)="addElem($event)" [ngClass]="field.addButtonClass"></button>
+        <button *ngIf="!field.addButtonText" type='button' (click)="addElem($event)" [ngClass]="field.addButtonClass" [attr.aria-label]="'add-button-label' | translate"></button>
       </span>
     </div>
   </div>
@@ -181,7 +181,7 @@ export class RepeatableTextfieldComponent extends RepeatableComponent {
   <div *ngIf="field.editMode" [formGroup]='form' [ngClass]="getGroupClass()">
     <label [attr.for]="field.name">
       {{field.label}} {{ getRequiredLabelStr()}}
-      <button type="button" class="btn btn-default" *ngIf="field.help" (click)="toggleHelp()"><span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span></button>
+      <button type="button" class="btn btn-default" *ngIf="field.help" (click)="toggleHelp()" [attr.aria-label]="'help' | translate "><span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span></button>
     </label>
     <!-- Normal version -->
     <ng-container *ngIf="!field.isEmbedded">
@@ -227,7 +227,7 @@ export class TextAreaComponent extends EmbeddableComponent implements OnInit {
   <div *ngIf="field.editMode" [formGroup]='form' class="form-group">
     <label [attr.for]="field.name">
       {{field.label}} {{ getRequiredLabelStr()}}
-      <button type="button" class="btn btn-default" *ngIf="field.help" (click)="toggleHelp()"><span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span></button>
+      <button type="button" class="btn btn-default" *ngIf="field.help" (click)="toggleHelp()" [attr.aria-label]="'help' | translate "><span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span></button>
     </label><br/>
     <span id="{{ 'helpBlock_' + field.name }}" class="help-block" *ngIf="this.helpShow" [innerHtml]="field.help"></span>
     <textarea [formControl]="getFormControl()"  [attr.rows]="field.rows" [attr.cols]="field.cols" [id]="field.name" class="form-control" [(ngModel)]="field.value"></textarea>

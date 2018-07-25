@@ -158,7 +158,7 @@ export class SelectionComponent extends SimpleComponent {
   <div [formGroup]='form' *ngIf="field.editMode" [ngClass]="getGroupClass()">
      <label [attr.for]="field.name">
       {{field.label}} {{ getRequiredLabelStr()}}
-      <button type="button" class="btn btn-default" *ngIf="field.help" (click)="toggleHelp()"><span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span></button>
+      <button type="button" class="btn btn-default" *ngIf="field.help" (click)="toggleHelp()" [attr.aria-label]="'help' | translate "><span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span></button>
      </label><br/>
      <span id="{{ 'helpBlock_' + field.name }}" class="help-block" *ngIf="this.helpShow" [innerHtml]="field.help"></span>
      <select [formControl]="getFormControl()"  [id]="field.name" [ngClass]="field.cssClasses">
@@ -183,7 +183,7 @@ export class DropdownFieldComponent extends SelectionComponent {
   <div [formGroup]='form' *ngIf="field.editMode && field.visible" class="form-group">
      <label [attr.for]="field.name">
       {{field.label}} {{ getRequiredLabelStr()}}
-      <button type="button" class="btn btn-default" *ngIf="field.help" (click)="toggleHelp()"><span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span></button>
+      <button type="button" class="btn btn-default" *ngIf="field.help" (click)="toggleHelp()" [attr.aria-label]="'help' | translate "><span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span></button>
      </label><br/>
      <span id="{{ 'helpBlock_' + field.name }}" class="help-block" *ngIf="this.helpShow" [innerHtml]="field.help"></span>
      <span *ngFor="let opt of field.options">
@@ -630,7 +630,7 @@ Based on: https://bootstrap-datepicker.readthedocs.io/en/stable/
   <div *ngIf="field.editMode" [formGroup]='form' class="form-group">
     <label [attr.for]="field.name">
       {{field.label}} {{ getRequiredLabelStr()}}
-      <button type="button" class="btn btn-default" *ngIf="field.help" (click)="toggleHelp()"><span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span></button>
+      <button type="button" class="btn btn-default" *ngIf="field.help" (click)="toggleHelp()" [attr.aria-label]="'help' | translate "><span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span></button>
     </label><br/>
     <span id="{{ 'helpBlock_' + field.name }}" class="help-block" *ngIf="this.helpShow" [innerHtml]="field.help"></span>
     <datetime #dateTime [formControl]="getFormControl()" [timepicker]="field.timePickerOpts" [datepicker]="field.datePickerOpts" [hasClearButton]="field.hasClearButton"></datetime>

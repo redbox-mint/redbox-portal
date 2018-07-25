@@ -30,7 +30,7 @@ export class WorkspaceSelectorComponent extends SimpleComponent {
   <div [formGroup]='form' *ngIf="field.editMode" [ngClass]="getGroupClass()">
   <label [attr.for]="field.name">
     {{field.label}} {{ getRequiredLabelStr()}}
-    <button type="button" class="btn btn-default" *ngIf="field.help" (click)="toggleHelp()"><span
+    <button type="button" class="btn btn-default" *ngIf="field.help" (click)="toggleHelp()" [attr.aria-label]="'help' | translate "><span
       class="glyphicon glyphicon-question-sign" aria-hidden="true"></span></button>
   </label>
   <br/>
