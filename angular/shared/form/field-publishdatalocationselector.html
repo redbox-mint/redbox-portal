@@ -1,22 +1,22 @@
 <div class='padding-bottom-10' *ngIf="field.visible">
-  <label [attr.for]="field.name">
+  <span class="label-font">
     {{field.label}} {{ getRequiredLabelStr()}}
     <button type="button" class="btn btn-default" *ngIf="field.help" (click)="toggleHelp()" [attr.aria-label]="'help' | translate "><span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span></button>
-  </label><br/>
+  </span><br/>
   <div>
     <div class="table-responsive">
     <table class="table table-bordered table-striped table-hover">
       <thead>
         <tr>
-          <th width="5%"><input type="checkbox" (change)="selectAllLocations($event.target.checked)" *ngIf="field.editMode"/></th>
-          <th width="15%">Type of location</th>
-          <th width="40%">Location</th>
-          <th width="40%">Notes</th>
+          <th width="5%"><input type="checkbox" (change)="selectAllLocations($event.target.checked)" *ngIf="field.editMode" [attr.aria-label]="'select-all-items' | translate"/><span [hidden]="true">Select</span></th>
+          <th width="15%">{{ field.typeHeader }}</th>
+          <th width="40%">{{ field.locationHeader }}</th>
+          <th width="40%">{{ field.notesHeader }}</th>
         </tr>
       </thead>
       <tbody>
         <tr *ngFor="let dataLocation of getDatalocations(); let i = index;">
-          <td><input type="checkbox" [(ngModel)]="dataLocation.selected" [attr.disabled]="field.editMode ? null : ''" /></td>
+          <td><input type="checkbox" [(ngModel)]="dataLocation.selected" [attr.disabled]="field.editMode ? null : ''"  [attr.aria-label]="'select-item' | translate"/></td>
           <td>{{ field.dataTypeLookup[dataLocation.type] }}</td>
           <td>
             <ng-container *ngIf="dataLocation && dataLocation.type != 'attachment'">
@@ -44,15 +44,15 @@
 </div>
 </div>
 <!--- Edit notes modal -->
-<div class="modal fade" id="{{ field.name }}_editnotes" tabindex="-1" role="dialog" >
+<div *ngIf="field.editMode" class="modal fade" id="{{ field.name }}_editnotes" tabindex="-1" role="dialog" >
   <div class="modal-dialog" role="document">
     <div class="modal-content">
       <div class="modal-header">
         <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-        <h4 class="modal-title" [innerHtml]="field.editNotesTitle"></h4>
+        <span class="modal-title" [innerHtml]="field.editNotesTitle"></span>
       </div>
       <div class="modal-body">
-        <input type='text' [ngClass]="field.editNotesCssClasses" [(ngModel)]="editingNotes.notes" />
+        <input type='text' [ngClass]="field.editNotesCssClasses" [(ngModel)]="editingNotes.notes" [attr.aria-label]="field.notesHeader"/>
       </div>
       <div class="modal-footer">
         <button (click)="hideEditNotes()" type="button" class="btn btn-default" data-dismiss="modal" [innerHtml]="field.cancelEditNotesButtonText"></button>

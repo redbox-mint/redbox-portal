@@ -310,7 +310,7 @@ export class ContributorComponent extends SimpleComponent {
   }
 
   public ngAfterViewInit() {
-    if (this.field.editMode) {
+    if (this.field.editMode && this.ngCompleter) {
       this.ngCompleter.ctrInput.nativeElement.setAttribute('aria-label', 'Name');
     }
   }

@@ -14,7 +14,7 @@
        [leafletLayersControl]="field.layersControl">
   </div>
   <div class='padding-top-10'>
-  <div><label>Enter KML or GeoJSON</label><br/><textarea class="form-control" rows="5" [(ngModel)]="field.importDataString" [ngModelOptions]="{standalone: true}"></textarea></div>
+  <div><label [attr.for]="field.name">Enter KML or GeoJSON</label><br/><textarea [id]="field.name" class="form-control" rows="5" [(ngModel)]="field.importDataString" [ngModelOptions]="{standalone: true}"></textarea></div>
   <div class="padding-top-10"><a class="btn btn-info" (click)="field.importData()">Import</a> <span *ngIf="field.importFailed" class="text-danger">Entered text is not a valid KML or GeoJSON</span></div>
 </div>
 </div>

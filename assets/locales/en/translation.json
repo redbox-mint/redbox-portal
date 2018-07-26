@@ -631,5 +631,9 @@
   "pdf-history-modal-label": "PDF History Modal",
   "help": "Help",
   "add-button-label": "Add Item",
-  "remove-button-label": "Remove Item"
+  "remove-button-label": "Remove Item",
+  "select-all-items": "Select All Items",
+  "select-item": "Select",
+  "move-up-button": "Move entry up",
+  "move-down-button": "Move entry down"
 }
