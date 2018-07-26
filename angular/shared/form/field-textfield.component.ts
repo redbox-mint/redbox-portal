@@ -238,7 +238,7 @@ export class TextAreaComponent extends EmbeddableComponent implements OnInit {
   </div>
   <li *ngIf="!field.editMode" class="key-value-pair">
     <span class="key" *ngIf="field.label">{{field.label}}</span>
-    <markdown [data]="field.value"></markdown>
+    <markdown *ngIf="field.value" [data]="field.value"></markdown>
     <br/>
   </li>
   `

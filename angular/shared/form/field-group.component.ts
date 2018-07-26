@@ -96,7 +96,7 @@ Generic component for grouping components together. The resulting JSON will have
           </div>
           <div class="col-xs-1">
             <button type='button' *ngIf="removeBtnText" [disabled]="!canRemove" (click)="onRemove($event)" [ngClass]="removeBtnClass" >{{removeBtnText}}</button>
-            <button [disabled]="!canRemove" type='button' [ngClass]="removeBtnClass" (click)="onRemove($event)"></button>
+            <button [disabled]="!canRemove" type='button' [ngClass]="removeBtnClass" (click)="onRemove($event)" [attr.aria-label]="'remove-button-label' | translate"></button>
           </div>
         </div>
       </div>
@@ -193,10 +193,10 @@ export class GenericGroupComponent extends EmbeddableComponent {
   template: `
   <div *ngIf="field.editMode">
     <div *ngIf="field.label">
-      <label>
+      <span class="label-font">
         {{field.label}} {{getRequiredLabelStr()}}
         <button type="button" class="btn btn-default" *ngIf="field.help" (click)="toggleHelp()" [attr.aria-label]="'help' | translate "><span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span></button>
-      </label>
+      </span>
       <span id="{{ 'helpBlock_' + field.name }}" class="help-block" *ngIf="this.helpShow" >{{field.help}}</span>
     </div>
     <ng-container *ngFor="let fieldElem of field.fields; let i = index;" >
@@ -214,7 +214,7 @@ export class GenericGroupComponent extends EmbeddableComponent {
       </span>
       <span class="col-xs-1">
         <button *ngIf="field.addButtonText" type='button' (click)="addElem($event)" [ngClass]="field.addButtonTextClass" >{{field.addButtonText}}</button>
-        <button *ngIf="!field.addButtonText" type='button' (click)="addElem($event)" [ngClass]="field.addButtonClass"></button>
+        <button *ngIf="!field.addButtonText" type='button' (click)="addElem($event)" [ngClass]="field.addButtonClass" [attr.aria-label]="'add-button-label' | translate"></button>
       </span>
     </div>
   </div>

@@ -164,15 +164,23 @@ export class DataLocationComponent extends SimpleComponent {
 
   public ngOnInit() {
     let oid = this.field.fieldMap._rootComp.oid;
-    if (_.isNull(oid) || _.isUndefined(oid) || _.isEmpty(oid)) {
-      // wait for the OID to be set when record is created
-      if (!this.field.fieldMap._rootComp.getSubscription('recordCreated')) {
-        console.log(`Subscribing to record creation..... ${this.field.name}`);
-        this.field.fieldMap._rootComp.subscribe('recordCreated', this.field.name, this.eventRecordCreate.bind(this));
-        this.initUppy(oid);
+    if (this.field.editMode) {
+      if (_.isNull(oid) || _.isUndefined(oid) || _.isEmpty(oid)) {
+        // wait for the OID to be set when record is created
+        if (!this.field.fieldMap._rootComp.getSubscription('recordCreated')) {
+          console.log(`Subscribing to record creation..... ${this.field.name}`);
+          this.field.fieldMap._rootComp.subscribe('recordCreated', this.field.name, this.eventRecordCreate.bind(this));
+          this.initUppy(oid);
+        }
       }
+      this.initUppy(oid);
     }
-    this.initUppy(oid);
+  }
+
+  public ngAfterViewInit() {
+    if (this.field.editMode) {
+      jQuery(`.uppy-Dashboard-input`).attr('aria-label', this.field.label);
+    }
   }
 
   public getDatalocations() {

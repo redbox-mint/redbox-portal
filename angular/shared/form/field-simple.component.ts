@@ -653,7 +653,9 @@ export class DateTimeComponent extends SimpleComponent {
   @ViewChild('dateTime') public dateTime: any;
 
   ngAfterViewInit() {
-    jQuery(`#${this.dateTime.idDatePicker}`).attr('aria-label', this.field.label);
+    if (this.field.editMode) {
+      jQuery(`#${this.dateTime.idDatePicker}`).attr('aria-label', this.field.label);
+    }
   }
   /**
    * Component method that formats the value, delegates to field.

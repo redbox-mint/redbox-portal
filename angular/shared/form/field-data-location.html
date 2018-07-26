@@ -1,9 +1,9 @@
 <!-- Basic Uppy styles -->
 <link rel="stylesheet" href="/node_modules/uppy/dist/uppy.min.css">
 <div class='padding-bottom-10'>
-  <label [attr.for]="field.name">
+  <span class="label-font">
     {{field.label}} {{ getRequiredLabelStr()}}
-  </label><br/>
+  </span><br/>
   <div>
       <div class="table-responsive">
       <table class="table table-bordered table-striped table-hover">
@@ -12,7 +12,7 @@
             <th width="15%">{{ field.typeHeader }}</th>
             <th width="40%">{{ field.locationHeader }}</th>
             <th width="40%">{{ field.notesHeader }}</th>
-            <th width="5%" *ngIf="field.editMode"></th>
+            <th width="5%" *ngIf="field.editMode"><span [hidden]="true">Action</span></th>
           </tr>
         </thead>
         <tbody>
@@ -44,13 +44,13 @@
     </div>
     <div class="row padding-bottom-10" *ngIf="field.editMode">
       <div class="col-xs-3">
-        <label>{{ field.typeHeader }}</label>
+        <span class="label-font">{{ field.typeHeader }}</span>
       </div>
       <div class="col-xs-4">
-        <label>{{ field.locationHeader }}</label>
+        <span class="label-font">{{ field.locationHeader }}</span>
       </div>
       <div class="col-xs-4">
-        <label *ngIf="field.newLocation.type != 'attachment'">{{ field.notesHeader }}</label>
+        <span class="label-font" *ngIf="field.newLocation.type != 'attachment'">{{ field.notesHeader }}</span>
       </div>
       <div class="col-xs-1">
         <button type="button" class="btn btn-default" *ngIf="field.help" (click)="toggleHelp()" [attr.aria-label]="'help' | translate "><span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span></button>
@@ -61,19 +61,19 @@
     </div>
     <div class="row" *ngIf="field.editMode">
       <div class="col-xs-3">
-        <select [(ngModel)]="field.newLocation.type" [id]="field.newLocation.type" class="form-control">
+        <select [(ngModel)]="field.newLocation.type" [id]="field.newLocation.type" class="form-control" [attr.aria-label]="field.typeHeader">
            <option *ngFor="let opt of field.dataTypes" [value]="opt.value">{{opt.label}}</option>
         </select>
       </div>
 
       <div class="col-xs-4">
-        <input [(ngModel)]="field.newLocation.location" *ngIf="field.newLocation.type != 'attachment'" type="text" class="form-control" />
+        <input [(ngModel)]="field.newLocation.location" *ngIf="field.newLocation.type != 'attachment'" type="text" class="form-control" [attr.aria-label]="field.locationHeader" />
         <a [class.disabled]="isAttachmentsDisabled()"
         class="btn btn-info UppyModalOpenerBtn"
         [style.display]="field.newLocation.type == 'attachment' ? 'inherit' : 'none'" (click)="openModal()">{{ field.attachmentText }}</a>
       </div>
       <div class="col-xs-4">
-        <input [(ngModel)]="field.newLocation.notes"  *ngIf="field.newLocation.type != 'attachment'" type="text" class="form-control" />
+        <input [(ngModel)]="field.newLocation.notes"  *ngIf="field.newLocation.type != 'attachment'" type="text" class="form-control" [attr.aria-label]="field.notesHeader" />
       </div>
       <div class="col-xs-1">
         <a  *ngIf="field.newLocation.type != 'attachment' && !field.locationAddText" class="fa fa-plus-circle btn text-20 pull-right btn-success" (click)="field.addLocation()"></a>
@@ -85,10 +85,10 @@
           <div class="modal-content">
             <div class="modal-header">
               <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-              <h4 class="modal-title" [innerHtml]="field.editNotesTitle"></h4>
+              <span class="modal-title" [innerHtml]="field.editNotesTitle"></span>
             </div>
             <div class="modal-body">
-              <input type='text' [ngClass]="field.editNotesCssClasses" [(ngModel)]="editingNotes.notes" />
+              <input type='text' [ngClass]="field.editNotesCssClasses" [(ngModel)]="editingNotes.notes" [attr.aria-label]="field.notesHeader"/>
             </div>
             <div class="modal-footer">
               <button (click)="hideEditNotes()" type="button" class="btn btn-default" data-dismiss="modal" [innerHtml]="field.cancelEditNotesButtonText"></button>
