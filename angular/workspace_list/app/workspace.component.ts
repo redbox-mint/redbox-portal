@@ -114,7 +114,8 @@ protected app: ApplicationRef ) {
         {
           label: this.getTranslated('create-workspace-selector-header', 'RDMP related to this workspace'),
           name: 'rdmp',
-          recordType: 'rdmp'
+          recordType: 'rdmp',
+          editMode: true
         },
         this.app['_injector']
       );
