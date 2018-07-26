@@ -302,11 +302,15 @@ export class ContributorField extends FieldBase<any> {
 export class ContributorComponent extends SimpleComponent {
   field: ContributorField;
   @Input() isEmbedded: boolean = false;
-  @ViewChild('ngCompleter') public ngCompleter: ElementRef;
+  @ViewChild('ngCompleter') public ngCompleter: any;
 
   public ngOnInit() {
     this.field.componentReactors.push(this);
     this.field.component = this;
+  }
+
+  public ngAfterViewInit() {
+    this.ngCompleter.ctrInput.nativeElement.setAttribute('aria-label', 'Name');
   }
 
   public getGroupClass(fldName:any): string {

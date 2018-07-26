@@ -181,18 +181,21 @@ export class DropdownFieldComponent extends SelectionComponent {
   selector: 'selectionfield',
   template: `
   <div [formGroup]='form' *ngIf="field.editMode && field.visible" class="form-group">
-     <label [attr.for]="field.name">
+     <span class="label-font">
       {{field.label}} {{ getRequiredLabelStr()}}
       <button type="button" class="btn btn-default" *ngIf="field.help" (click)="toggleHelp()" [attr.aria-label]="'help' | translate "><span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span></button>
-     </label><br/>
+     </span><br/>
      <span id="{{ 'helpBlock_' + field.name }}" class="help-block" *ngIf="this.helpShow" [innerHtml]="field.help"></span>
-     <span *ngFor="let opt of field.options">
-      <!-- radio type hard-coded otherwise accessor directive will not work! -->
-      <input *ngIf="isRadio()" type="radio" name="{{field.name}}" [id]="field.name + '_' + opt.value" [formControl]="getFormControl()" [value]="opt.value" [attr.disabled]="field.readOnly ? '' : null ">
-      <input *ngIf="!isRadio()" type="{{field.controlType}}" name="{{field.name}}" [id]="field.name + '_' + opt.value" [value]="opt.value" (change)="onChange(opt, $event)" [attr.selected]="getControlFromOption(opt)" [attr.checked]="getControlFromOption(opt)" [attr.disabled]="field.readOnly ? '' : null ">
-      <label for="{{field.name + '_' + opt.value}}" class="radio-label">{{ opt.label }}</label>
-      <br/>
-     </span>
+     <fieldset>
+      <legend [hidden]="true"><span></span></legend>
+        <span *ngFor="let opt of field.options">
+          <!-- radio type hard-coded otherwise accessor directive will not work! -->
+          <input *ngIf="isRadio()" type="radio" name="{{field.name}}" [id]="field.name + '_' + opt.value" [formControl]="getFormControl()" [value]="opt.value" [attr.disabled]="field.readOnly ? '' : null ">
+          <input *ngIf="!isRadio()" type="{{field.controlType}}" name="{{field.name}}" [id]="field.name + '_' + opt.value" [value]="opt.value" (change)="onChange(opt, $event)" [attr.selected]="getControlFromOption(opt)" [attr.checked]="getControlFromOption(opt)" [attr.disabled]="field.readOnly ? '' : null ">
+          <label for="{{field.name + '_' + opt.value}}" class="radio-label">{{ opt.label }}</label>
+          <br/>
+        </span>
+     </fieldset>
      <div class="text-danger" *ngIf="getFormControl().hasError('required') && getFormControl().touched && !field.validationMessages?.required">{{field.label}} is required</div>
      <div class="text-danger" *ngIf="getFormControl().hasError('required') && getFormControl().touched && field.validationMessages?.required">{{field.validationMessages.required}}</div>
   </div>
@@ -628,10 +631,10 @@ Based on: https://bootstrap-datepicker.readthedocs.io/en/stable/
   selector: 'date-time',
   template: `
   <div *ngIf="field.editMode" [formGroup]='form' class="form-group">
-    <label [attr.for]="field.name">
+    <span class="label-font">
       {{field.label}} {{ getRequiredLabelStr()}}
       <button type="button" class="btn btn-default" *ngIf="field.help" (click)="toggleHelp()" [attr.aria-label]="'help' | translate "><span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span></button>
-    </label><br/>
+    </span><br/>
     <span id="{{ 'helpBlock_' + field.name }}" class="help-block" *ngIf="this.helpShow" [innerHtml]="field.help"></span>
     <datetime #dateTime [formControl]="getFormControl()" [timepicker]="field.timePickerOpts" [datepicker]="field.datePickerOpts" [hasClearButton]="field.hasClearButton"></datetime>
   </div>
@@ -646,6 +649,12 @@ export class DateTimeComponent extends SimpleComponent {
    * The field model
    */
   public field: DateTime;
+
+  @ViewChild('dateTime') public dateTime: any;
+
+  ngAfterViewInit() {
+    jQuery(`#${this.dateTime.idDatePicker}`).attr('aria-label', this.field.label);
+  }
   /**
    * Component method that formats the value, delegates to field.
    */

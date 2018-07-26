@@ -1,10 +1,10 @@
 <div *ngIf="field.editMode" class='padding-bottom-10'>
   <div class="row" *ngIf="field.label && field.showHeader">
     <div class="col-xs-4">
-      <h5>
+      <span class="label-font">
         {{field.label}} {{getRequiredLabelStr()}}
         <button type="button" class="btn btn-default" *ngIf="field.help" (click)="toggleHelp()" [attr.aria-label]="'help' | translate "><span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span></button>
-      </h5>
+      </span>
       <span id="{{ 'helpBlock_' + field.name }}" class="help-block" *ngIf="this.helpShow" [innerHtml]="field.help"></span>
     </div>
   </div>
@@ -36,7 +36,7 @@
               <span class='text-right'>{{ field.nameColHdr }}</span>
             </div>
             <div [ngClass]="getGroupClass('text_full_name')" *ngIf="!field.splitNames">
-              <input formControlName="text_full_name" type="text" class="form-control"/>
+              <input formControlName="text_full_name" type="text" class="form-control" [attr.aria-label]="field.nameColHdr"/>
               <div class="text-danger" *ngIf="field.formModel.controls['text_full_name'].touched && field.formModel.controls['text_full_name'].hasError('required')">{{field.validationMessages.required.text_full_name}}</div>
             </div>
             <!-- Name split to family name, give name -->
@@ -45,20 +45,20 @@
             </div>
             <div [ngClass]="getGroupClass('family_name')" *ngIf="field.splitNames">
               <input formControlName="family_name" type="text" class="form-control"/>
-              <div class="text-danger" *ngIf="field.formModel.controls['family_name'].touched && field.formModel.controls['family_name'].hasError('required')">{{field.validationMessages.required.family_name}}</div>
+              <div class="text-danger" *ngIf="field.formModel.controls['family_name'].touched && field.formModel.controls['family_name'].hasError('required')" [attr.aria-label]="field.familyNameHdr">{{field.validationMessages.required.family_name}}</div>
             </div>
             <div class='col-xs-1' *ngIf="field.splitNames">
               <span class='text-right'>{{ field.givenNameHdr }}</span>
             </div>
             <div [ngClass]="getGroupClass('given_name')" *ngIf="field.splitNames">
               <input formControlName="given_name" type="text" class="form-control"/>
-              <div class="text-danger" *ngIf="field.formModel.controls['given_name'].touched && field.formModel.controls['given_name'].hasError('required')">{{field.validationMessages.required.given_name}}</div>
+              <div class="text-danger" *ngIf="field.formModel.controls['given_name'].touched && field.formModel.controls['given_name'].hasError('required')" [attr.aria-label]="field.givenNameHdr">{{field.validationMessages.required.given_name}}</div>
             </div>
             <div class='col-xs-1'>
               <span class='text-right'>{{ field.emailColHdr }}</span>
             </div>
             <div [ngClass]="getGroupClass('email')">
-              <input formControlName="email" type="text" class="form-control" />
+              <input formControlName="email" type="text" class="form-control" [attr.aria-label]="field.emailColHdr"/>
               <div class="text-danger" *ngIf="field.formModel.controls['email'].touched && field.formModel.controls['email'].hasError('email')">{{field.validationMessages.invalid.email}}</div>
               <div class="text-danger" *ngIf="field.formModel.controls['email'].touched && field.formModel.controls['email'].hasError('required')">{{field.validationMessages.required.email}}</div>
             </div>
@@ -66,7 +66,7 @@
               <span class='text-right'>{{ field.orcidColHdr }}</span>
             </div>
             <div [ngClass]="getGroupClass('orcid')">
-              <input formControlName="orcid" type="text" class="form-control"/>
+              <input formControlName="orcid" type="text" class="form-control" [attr.aria-label]="field.orcidColHdr"/>
             </div>
           </span>
         </div>
@@ -79,7 +79,7 @@
           <span class='text-right'>{{ field.nameColHdr }}</span>
         </div>
         <div [ngClass]="getGroupClass('text_full_name')" *ngIf="!field.splitNames">
-          <input formControlName="text_full_name" type="text" class="form-control"/>
+          <input formControlName="text_full_name" type="text" class="form-control" [attr.aria-label]="field.nameColHdr"/>
           <div class="text-danger" *ngIf="field.formModel.controls['text_full_name'].touched && field.formModel.controls['text_full_name'].hasError('required')">{{field.validationMessages.required.text_full_name}}</div>
         </div>
         <!-- Names are split -->
@@ -87,21 +87,21 @@
           <span class='text-right'>{{ field.familyNameHdr }}</span>
         </div>
         <div [ngClass]="getGroupClass('family_name')" *ngIf="field.splitNames">
-          <input formControlName="family_name" type="text" class="form-control"/>
+          <input formControlName="family_name" type="text" class="form-control" [attr.aria-label]="field.familyNameHdr"/>
           <div class="text-danger" *ngIf="field.formModel.controls['family_name'].touched && field.formModel.controls['family_name'].hasError('required')">{{field.validationMessages.required.family_name}}</div>
         </div>
         <div class='col-xs-1' *ngIf="field.splitNames">
           <span class='text-right'>{{ field.givenNameHdr }}</span>
         </div>
         <div [ngClass]="getGroupClass('given_name')" *ngIf="field.splitNames">
-          <input formControlName="given_name" type="text" class="form-control"/>
+          <input formControlName="given_name" type="text" class="form-control" [attr.aria-label]="field.givenNameHdr"/>
           <div class="text-danger" *ngIf="field.formModel.controls['given_name'].touched && field.formModel.controls['given_name'].hasError('required')">{{field.validationMessages.required.given_name}}</div>
         </div>
         <div class='col-xs-1'>
           <span class='text-right'>{{ field.emailColHdr }}</span>
         </div>
         <div [ngClass]="getGroupClass('email')">
-          <input formControlName="email" type="text" class="form-control" />
+          <input formControlName="email" type="text" class="form-control" [attr.aria-label]="field.emailColHdr"/>
           <div class="text-danger" *ngIf="field.formModel.controls['email'].touched && field.formModel.controls['email'].hasError('email')">{{field.validationMessages.invalid.email}}</div>
           <div class="text-danger" *ngIf="field.formModel.controls['email'].touched && field.formModel.controls['email'].hasError('required')">{{field.validationMessages.required.email}}</div>
         </div>
@@ -109,7 +109,7 @@
           <span class='text-right'>{{ field.orcidColHdr }}</span>
         </div>
         <div [ngClass]="getGroupClass('orcid')">
-          <input formControlName="orcid" type="text" class="form-control" />
+          <input formControlName="orcid" type="text" class="form-control" [attr.aria-label]="field.orcidColHdr"/>
         </div>
       </ng-container>
 
@@ -131,7 +131,7 @@
               <span class='text-right'>{{ field.emailColHdr }}</span>
             </div>
             <div [ngClass]="getGroupClass('email')">
-              <input formControlName="email" type="text" class="form-control" [readOnly]="field.forceLookupOnly"/>
+              <input formControlName="email" type="text" class="form-control" [readOnly]="field.forceLookupOnly" [attr.aria-label]="field.emailColHdr"/>
               <div class="text-danger" *ngIf="field.formModel.controls['email'].touched && field.formModel.controls['email'].hasError('email')">{{field.validationMessages.invalid.email}}</div>
               <div class="text-danger" *ngIf="field.formModel.controls['email'].touched && field.formModel.controls['email'].hasError('required')">{{field.validationMessages.required.email}}</div>
             </div>
@@ -139,7 +139,7 @@
               <span class='text-right'>{{ field.orcidColHdr }}</span>
             </div>
             <div [ngClass]="getGroupClass('orcid')">
-              <input formControlName="orcid" type="text" class="form-control" />
+              <input formControlName="orcid" type="text" class="form-control" [attr.aria-label]="field.orcidColHdr"/>
             </div>
           </span>
         </div>
@@ -157,7 +157,7 @@
           <span class='text-right'>{{ field.emailColHdr }}</span>
         </div>
         <div [ngClass]="getGroupClass('email')">
-          <input formControlName="email" type="text" class="form-control" [readOnly]="field.forceLookupOnly"/>
+          <input formControlName="email" type="text" class="form-control" [readOnly]="field.forceLookupOnly" [attr.aria-label]="field.emailColHdr"/>
           <div class="text-danger" *ngIf="field.formModel.controls['email'].touched && field.formModel.controls['email'].hasError('email')">{{field.validationMessages.invalid.email}}</div>
           <div class="text-danger" *ngIf="field.formModel.controls['email'].touched && field.formModel.controls['email'].hasError('required')">{{field.validationMessages.required.email}}</div>
         </div>
@@ -165,7 +165,7 @@
           <span class='text-right'>{{ field.orcidColHdr }}</span>
         </div>
         <div [ngClass]="getGroupClass('orcid')">
-          <input formControlName="orcid" type="text" class="form-control" />
+          <input formControlName="orcid" type="text" class="form-control" [attr.aria-label]="field.orcidColHdr" />
         </div>
       </ng-container>
     </ng-container>

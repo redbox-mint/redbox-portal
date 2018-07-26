@@ -21,7 +21,7 @@ export class WorkspaceSelectorComponent extends SimpleComponent {
       return '';
     }
   }
-  
+
 }
 
 @Component({
@@ -35,7 +35,7 @@ export class WorkspaceSelectorComponent extends SimpleComponent {
   </label>
   <br/>
   <span id="{{ 'helpBlock_' + field.name }}" class="help-block" *ngIf="this.helpShow" [innerHtml]="field.help"></span>
-  <select [ngClass]="field.cssClasses"
+  <select [id]="field.name" [ngClass]="field.cssClasses"
           (change)="field.loadWorkspaceDetails($event.target.value)">
     <option *ngFor="let opt of field.workspaceApps; let i = index"
      [ngValue]="opt" [selected]="i == 0"
