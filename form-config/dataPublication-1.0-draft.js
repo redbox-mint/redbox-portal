@@ -1192,6 +1192,36 @@ module.exports = {
                     valueFormat: 'YYYY-MM-DD',
                     displayFormat: 'L'
                   }
+                },
+                {
+                  class: 'HiddenValue',
+                  compClass: 'HiddenValueComponent',
+                  definition: {
+                    name: 'dataowner_name',
+                    subscribe: {
+                      'dataRecordGetter': {
+                        onValueUpdate: [{
+                          action: 'utilityService.getPropertyFromObject',
+                          field: 'dataowner_name'
+                        }]
+                      }
+                    }
+                  }
+                },
+                {
+                  class: 'HiddenValue',
+                  compClass: 'HiddenValueComponent',
+                  definition: {
+                    name: 'dataowner_email',
+                    subscribe: {
+                      'dataRecordGetter': {
+                        onValueUpdate: [{
+                          action: 'utilityService.getPropertyFromObject',
+                          field: 'dataowner_email'
+                        }]
+                      }
+                    }
+                  }
                 }
               ]
             }

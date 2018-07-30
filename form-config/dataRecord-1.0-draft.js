@@ -630,6 +630,50 @@ module.exports = {
                       }
                     }
                   }
+                },
+                {
+                  class: 'HiddenValue',
+                  compClass: 'HiddenValueComponent',
+                  definition: {
+                    name: 'dataowner_name',
+                    subscribe: {
+                      'contributor_ci': {
+                        onValueUpdate: [{
+                          action: 'utilityService.concatenate',
+                          fields: ['text_full_name'],
+                          delim: ''
+                        }]
+                      },
+                      'rdmpGetter': {
+                        onValueUpdate: [{
+                          action: 'utilityService.getPropertyFromObject',
+                          field: 'dataowner_name'
+                        }]
+                      }
+                    }
+                  }
+                },
+                {
+                  class: 'HiddenValue',
+                  compClass: 'HiddenValueComponent',
+                  definition: {
+                    name: 'dataowner_email',
+                    subscribe: {
+                      'contributor_ci': {
+                        onValueUpdate: [{
+                          action: 'utilityService.concatenate',
+                          fields: ['email'],
+                          delim: ''
+                        }]
+                      },
+                      'rdmpGetter': {
+                        onValueUpdate: [{
+                          action: 'utilityService.getPropertyFromObject',
+                          field: 'dataowner_email'
+                        }]
+                      }
+                    }
+                  }
                 }
               ]
             }
