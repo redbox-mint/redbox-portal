@@ -415,7 +415,7 @@ module.exports = {
                     forceLookupOnly: true,
                     vocabId: 'Parties AND repository_name:People',
                     sourceType: 'mint',
-                    disabledExpression: '<%= !_.isEmpty(oid) %>',
+                    disabledExpression: '<%= !_.isEmpty(oid) || !_.isEmpty(relatedRecordId) %>',
                     fieldNames: [{
                       'text_full_name': 'text_full_name'
                     }, {

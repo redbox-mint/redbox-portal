@@ -117,6 +117,8 @@ export class DmpFormComponent extends LoadableComponent {
     onBeforeSave: {},
     onFormLoaded: {}
   };
+
+  private relatedRecordId: any = null;
   /**
    * Expects a number of DI'ed elements.
    */
