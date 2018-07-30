@@ -18,6 +18,7 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 import { TranslationService } from './translation-service';
 
+import * as _ from "lodash";
 declare var jQuery: any;
 /**
  * Convenience class to wrap JQuery calls ...
@@ -68,8 +69,19 @@ export class LoadableComponent  {
     if (this.isLoading) {
       jQuery("#loading").removeClass("hidden");
     } else {
-      jQuery("#loading").addClass("hidden"); 
+      jQuery("#loading").addClass("hidden");
     }
   }
 
+  getTranslated(key, defValue) {
+    if (!_.isEmpty(key) && !_.isUndefined(key)) {
+      if (_.isFunction(key.startsWith) && key.startsWith('@') && this.translationService) {
+        return this.translationService.t(key);
+      } else {
+        return key;
+      }
+    } else {
+      return defValue;
+    }
+  }
 }

@@ -117,7 +117,7 @@ export class VocabField extends FieldBase<any> {
     if (this.formModel) {
       this.formModel.setValue(null, {emitEvent: true});
     }
-    if (updateTitle) {
+    if (updateTitle && this.component.ngCompleter) {
       this.component.ngCompleter.ctrInput.nativeElement.value = null;
     }
     return this.value;
@@ -360,7 +360,7 @@ export class VocabFieldLookupService extends BaseService {
   selector: 'rb-vocab',
   template: `
   <div *ngIf="field.editMode && !isEmbedded" [formGroup]='form' [ngClass]="getGroupClass()">
-    <label [attr.for]="field.name">
+    <label [attr.for]="field.name" *ngIf="field.label">
       {{field.label}} {{getRequiredLabelStr()}}
       <button type="button" class="btn btn-default" *ngIf="field.help" (click)="toggleHelp()" [attr.aria-label]="'help' | translate "><span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span></button>
     </label>

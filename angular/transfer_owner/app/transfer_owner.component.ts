@@ -132,6 +132,7 @@ export class TransferOwnerComponent extends LoadableComponent {
   protected initUserlookup() {
     // create meta object for vocab
     const userLookupOptions = {
+      name: 'userlookup',
       sourceType: 'mint',
       fieldNames: ['text_full_name', 'storage_id', {'email': 'Email[0]'}, {'full_name_honorific': 'text_full_name_honorific'}, {'given_name': 'text_given_name'}, {'family_name': 'text_family_name'}, {'honorific': 'Honorific[0]'}, {'full_name_family_name_first': 'dc_title'}, {'username': 'username'} ],
       searchFields: 'text_full_name',

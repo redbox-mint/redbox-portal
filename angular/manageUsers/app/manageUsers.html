@@ -1,16 +1,16 @@
 <div class="col-md-offset-2 col-md-8" *ngIf="!isLoading">
   <div class="panel panel-default">
     <div class="panel-heading">
-      <h3 class="panel-title">
+      <span class="panel-title">
         {{ 'manage-users-title' | translate }}
-      </h3>
+      </span>
     </div>
     <div class="panel-body" style="overflow:scroll">
       <div class="row">
         <div class="col-sm-9">
           <div class="input-group">
             <span class="input-group-addon" id="name-addon">{{ 'manage-users-filter-name' | translate }}</span>
-            <input type="text" (keyup)="onFilterChange()" [(ngModel)]="searchFilter.name" class="form-control" placeholder="{{ 'manage-users-filter-name-placeholder' | translate }}" aria-describedby="name-addon">
+            <input type="text" (keyup)="onFilterChange()" [(ngModel)]="searchFilter.name" class="form-control" placeholder="{{ 'manage-users-filter-name-placeholder' | translate }}" [attr.aria-label]="'manage-users-filter-name' | translate">
             <span (click)="resetFilter()" class="input-group-btn"><button class="btn btn-primary" type='button'>Reset</button></span>
           </div>
         </div>
