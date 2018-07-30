@@ -114,4 +114,24 @@ export class UtilityService {
     });
     return _.concat([], ...values);
   }
+
+
+  /**
+   * Splits a string into an array by it's delimiter
+   *
+   * Author: <a href='https://github.com/andrewbrazzatti' target='_blank'>Andrew Brazzatti</a>
+   * @param {any} data
+   * @param  {any} config - The delimiter
+   * @return {string}
+   */
+  public splitStringToArray(data:any, config:any) {
+    let delim = config.delim;
+    let field = config.field;
+    let value = data;
+    if(field) {
+      value = _.get(data,field);
+    }
+    return value.split(delim);
+  }
+
 }
