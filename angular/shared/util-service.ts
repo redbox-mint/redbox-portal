@@ -134,4 +134,26 @@ export class UtilityService {
     return value.split(delim);
   }
 
+  /**
+   * Splits a string of arrays into an array by it's delimiter
+   *
+   * Author: <a href='https://github.com/moisbo' target='_blank'>Moises Sacal Bonequi</a>
+   * @param {any} data
+   * @param  {any} config - The delimiter
+   * @return {array}
+   */
+   public splitArrayStringsToArray(data:any, config:any) {
+     let delim = config.delim;
+     let field = config.field;
+     let value = data;
+     if(field) {
+       value = _.get(data,field);
+     }
+     const values = [];
+     _.each(value, (v) => {
+       values.push(v.split(delim));
+     });
+     return _.concat([], ...values);
+   }
+
 }
