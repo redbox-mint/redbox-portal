@@ -639,6 +639,10 @@ Based on: https://bootstrap-datepicker.readthedocs.io/en/stable/
     </span><br/>
     <span id="{{ 'helpBlock_' + field.name }}" class="help-block" *ngIf="this.helpShow" [innerHtml]="field.help"></span>
     <datetime #dateTime [formControl]="getFormControl()" [timepicker]="field.timePickerOpts" [datepicker]="field.datePickerOpts" [hasClearButton]="field.hasClearButton"></datetime>
+    <div *ngIf="field.required" [style.visibility]="getFormControl() && getFormControl().hasError('required') && getFormControl().touched ? 'inherit':'hidden'">
+      <div class="text-danger" *ngIf="!field.validationMessages?.required">{{field.label}} is required</div>
+      <div class="text-danger" *ngIf="field.validationMessages?.required">{{field.validationMessages.required}}</div>
+    </div>
   </div>
   <li *ngIf="!field.editMode" class="key-value-pair">
     <span class="key" *ngIf="field.label">{{field.label}}</span>

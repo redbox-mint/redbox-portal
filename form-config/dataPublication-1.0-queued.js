@@ -374,6 +374,14 @@ module.exports = {
                       onValueUpdate: {
                         modelEventSource: 'valueChanges'
                       }
+                    },
+                    requiredIfHasValue: ['startDate', 'endDate'],
+                    subscribe: {
+                      'form': {
+                        onValueChange: [
+                          { action: 'setRequiredIfDependenciesHaveValue' }
+                        ]
+                      }
                     }
                   }
                 },
@@ -392,9 +400,18 @@ module.exports = {
                     hasClearButton: false,
                     valueFormat: 'YYYY-MM-DD',
                     displayFormat: 'L',
-                    publish: {
-                      onValueUpdate: {
-                        modelEventSource: 'valueChanges'
+                    adjustStartRange: true,
+                    requiredIfHasValue: ['startDate', 'endDate'],
+                    subscribe: {
+                      'startDate': {
+                        onValueUpdate: [
+                          {}
+                        ]
+                      },
+                      'form': {
+                        onValueChange: [
+                          { action: 'setRequiredIfDependenciesHaveValue' }
+                        ]
                       }
                     }
                   }

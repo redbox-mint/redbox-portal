@@ -110,12 +110,14 @@ export class DmpFormComponent extends LoadableComponent {
   @Output() recordSaved: EventEmitter<any> = new EventEmitter<any>();
   @Output() onBeforeSave: EventEmitter<any> = new EventEmitter<any>();
   @Output() onFormLoaded: EventEmitter<any> = new EventEmitter<any>();
+  @Output() onValueChange: EventEmitter<any> = new EventEmitter<any>();
 
   subs = {
     recordCreated: {},
     recordSaved: {},
     onBeforeSave: {},
-    onFormLoaded: {}
+    onFormLoaded: {},
+    onValueChange: {}
   };
 
   private relatedRecordId: any = null;
@@ -359,6 +361,7 @@ export class DmpFormComponent extends LoadableComponent {
     if (this.editMode) {
       this.form.valueChanges.subscribe((data:any) => {
         this.needsSave = true;
+        this.onValueChange.emit(data);
       });
     }
     this.onFormLoaded.emit({oid:this.oid});
@@ -547,5 +550,9 @@ export class DmpFormComponent extends LoadableComponent {
       field = this.getFieldWithId(fieldId, fields.fields);
     }
     return field;
+  }
+
+  getFieldValue(fieldName) {
+    return this.form.value[fieldName];
   }
 }

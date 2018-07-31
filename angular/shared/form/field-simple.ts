@@ -196,6 +196,7 @@ export class DateTime extends FieldBase<any> {
   hasClearButton: boolean;
   valueFormat: string;
   displayFormat: string;
+  adjustStartRange: boolean;
 
   constructor(options: any, injector: any) {
     super(options, injector);
@@ -206,6 +207,7 @@ export class DateTime extends FieldBase<any> {
     this.displayFormat = options['displayFormat'] || 'YYYY-MM-DD';
     this.controlType = 'datetime';
     this.value = this.value ? this.parseToDate(this.value) : this.value;
+    this.adjustStartRange = !_.isUndefined(options['adjustStartRange']) ? options['adjustStartRange'] : false;
   }
 
   formatValue(value: any) {
@@ -224,14 +226,16 @@ export class DateTime extends FieldBase<any> {
   }
 
   public reactEvent(eventName: string, eventData: any, origData: any) {
-    const thisDate = moment(eventData);
-    const prevStartDate = moment(this.formModel.value);
-    if (!prevStartDate.isValid() || thisDate.isAfter(prevStartDate)) {
-      this.formModel.setValue(eventData);
+    if (this.adjustStartRange) {
+      const thisDate = moment(eventData);
+      const prevStartDate = moment(this.formModel.value);
+      if (!prevStartDate.isValid() || thisDate.isAfter(prevStartDate)) {
+        this.formModel.setValue(eventData);
+      }
+      const newOpts = _.cloneDeep(this.datePickerOpts);
+      newOpts.startDate = eventData;
+      this.datePickerOpts = newOpts;
     }
-    const newOpts = _.cloneDeep(this.datePickerOpts);
-    newOpts.startDate = eventData;
-    this.datePickerOpts = newOpts;
   }
 }
 

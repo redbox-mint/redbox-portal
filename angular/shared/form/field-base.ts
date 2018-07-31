@@ -66,6 +66,7 @@ export class FieldBase<T> {
   appConfig: any;
   visibilityCriteria: any;
   validators: any;
+  requiredIfHasValue: any[];
 
   @Output() public onValueUpdate: EventEmitter<any> = new EventEmitter<any>();
   @Output() public onValueLoaded: EventEmitter<any> = new EventEmitter<any>();
@@ -114,6 +115,7 @@ export class FieldBase<T> {
     this.subscribe = options['subscribe'] || null;
     this.visible = _.isUndefined(options['visible']) ? true : options['visible'];
     this.visibilityCriteria = options['visibilityCriteria'];
+    this.requiredIfHasValue = options['requiredIfHasValue'] || [];
 
     if (this.groupName) {
       this.hasGroup = true;
@@ -308,12 +310,12 @@ export class FieldBase<T> {
 
   protected getEventEmitter(eventName, srcName) {
     if (srcName == "this") {
-      return this[eventName];
+      return _.get(this, eventName);
     }
     if (srcName == "form") {
-      return this.fieldMap['_rootComp'][eventName];
+      return _.get(this.fieldMap['_rootComp'], eventName);
     }
-    return this.fieldMap[srcName].field[eventName];
+    return _.get(this.fieldMap[srcName].field, eventName);
   }
 
   public emitEvent(eventName: string, eventData: any, origData: any) {
@@ -402,5 +404,40 @@ export class FieldBase<T> {
       this.formModel.setValue(null);
       this.value = null;
     }
+  }
+
+  setRequired(flag) {
+    this.required = flag;
+    if (flag) {
+      this.validators = Validators.required;
+    } else {
+      if (_.isFunction(this.validators) && _.isEqual(this.validators, Validators.required)) {
+        this.validators = null;
+      } else {
+        _.remove(this.validators, (v) => {
+          return _.isEqual(v, Validators.required);
+        });
+      }
+    }
+    if (this.validators) {
+      this.formModel.setValidators(this.validators);
+    } else {
+      this.formModel.clearValidators();
+    }
+  }
+
+  setRequiredIfDependenciesHaveValue(data) {
+    let retVal = false;
+    _.each(this.requiredIfHasValue, (name) => {
+      const depVal = this.fieldMap._rootComp.getFieldValue(name);
+      let hasVal = false;
+      if (_.isArrayLike(depVal)) {
+        hasVal = !_.isEmpty(depVal);
+      } else {
+        hasVal = !_.isUndefined(depVal) && !_.isNull(depVal);
+      }
+      retVal = retVal || hasVal;
+    });
+    this.setRequired(retVal);
   }
 }
