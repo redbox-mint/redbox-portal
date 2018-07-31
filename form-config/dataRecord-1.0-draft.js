@@ -879,7 +879,6 @@ module.exports = {
                   compClass: 'DataLocationComponent',
                   definition: {
                     name:"dataLocations",
-                    label: "@dataLocations-label",
                     maxFileSize: 1073741824,
                     locationAddText: 'Enter',
                     help: '@dataLocations-help'
