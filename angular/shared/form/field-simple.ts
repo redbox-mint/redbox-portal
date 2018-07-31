@@ -158,6 +158,8 @@ export class Container extends FieldBase<any> {
 export class TabOrAccordionContainer extends Container {
 
   @Output() onTabChange: EventEmitter<any> = new EventEmitter<any>();
+  public onAccordionCollapseExpand: EventEmitter<any> = new EventEmitter<any>();
+
   tabNavContainerClass: any;
   tabNavClass: any;
   tabContentContainerClass: any;

@@ -538,4 +538,14 @@ export class DmpFormComponent extends LoadableComponent {
   getSubscription(eventName, subscriberName) {
     return this.subs[eventName][subscriberName];
   }
+
+  getFieldWithId(fieldId, fields:any = this.fields) {
+    let field = _.find(fields, (f) => {
+      return f.id == fieldId;
+    });
+    if (_.isUndefined(field) && !_.isEmpty(fields.fields)) {
+      field = this.getFieldWithId(fieldId, fields.fields);
+    }
+    return field;
+  }
 }

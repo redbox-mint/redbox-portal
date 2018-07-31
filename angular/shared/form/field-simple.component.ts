@@ -317,10 +317,12 @@ export class TabOrAccordionContainerComponent extends SimpleComponent {
         jQuery(`#${tab.id}`).on('shown.bs.collapse', ()=> {
           tab["expandedChar"] = '-';
           that.changeRef.detectChanges();
+          that.field.onAccordionCollapseExpand.emit({shown:true, tabId: tab.id});
         });
         jQuery(`#${tab.id}`).on('hidden.bs.collapse', ()=> {
           tab["expandedChar"] = '+';
           that.changeRef.detectChanges();
+          that.field.onAccordionCollapseExpand.emit({shown:false, tabId: tab.id});
         });
     });
 

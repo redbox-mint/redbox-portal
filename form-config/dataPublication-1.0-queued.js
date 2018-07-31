@@ -415,7 +415,8 @@ module.exports = {
                     name: 'geospatial',
                     label: '@dataPublication-geospatial',
                     help: '@dataPublication-geospatial-help',
-                    tabId: 'coverage'
+                    tabId: 'coverage',
+                    mainTabId: 'mainTab'
                   }
                 }
               ]
