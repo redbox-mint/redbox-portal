@@ -60,6 +60,9 @@ export class MarkdownTextArea extends FieldBase<string> {
     this.rows = options['rows'] || 5;
     this.cols = options['cols'] || null;
     this.controlType = 'textarea';
+    if (_.isUndefined(this.value)) {
+      this.value = "";
+    }
   }
 
   formatValueForDisplay() {
