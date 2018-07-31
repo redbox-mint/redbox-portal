@@ -931,6 +931,10 @@ module.exports = {
                     help: '@dataPublication-dc:license.dc:identifier-help',
                     options: [
                       {
+                          value: "",
+                          label: "@dmpt-select:Empty"
+                      },
+                      {
                           "value": "http://creativecommons.org/licenses/by/3.0/au",
                           "label": "CC BY: Attribution 3.0 AU"
                       },
