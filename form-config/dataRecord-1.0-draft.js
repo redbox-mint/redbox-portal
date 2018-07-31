@@ -309,15 +309,7 @@ module.exports = {
                     label: '@dataRecord-description',
                     help: '@dataRecord-description-help',
                     type: 'text',
-                    required: true,
-                    subscribe: {
-                      'rdmpGetter': {
-                        onValueUpdate: [{
-                          action: 'utilityService.getPropertyFromObject',
-                          field: 'description'
-                        }]
-                      }
-                    }
+                    required: true
                   }
                 },
                 {
