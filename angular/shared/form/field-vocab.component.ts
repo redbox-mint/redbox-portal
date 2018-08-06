@@ -128,7 +128,7 @@ export class VocabField extends FieldBase<any> {
     if (this.formModel) {
       this.formModel.setValue(null, { emitEvent: true });
     }
-    if (updateTitle) {
+    if (updateTitle && this.component.ngCompleter) {
       this.component.ngCompleter.ctrInput.nativeElement.value = null;
     }
     return this.value;
@@ -432,7 +432,11 @@ export class VocabFieldComponent extends SimpleComponent {
   }
 
   public getGroupClass(fldName: string = null): string {
-    return `col-xs-12 form-group ${this.hasRequiredError() ? 'has-error' : ''}`;
+    if(this.isEmbedded) {
+      return `col-xs-12 form-group ${this.hasRequiredError() ? 'has-error' : ''}`;
+    } else {
+      return '';
+    }
   }
 
   onSelect(selected: any, emitEvent: boolean = true, updateTitle: boolean = false) {
