@@ -243,7 +243,9 @@ export class RepeatableVocab extends RepeatableContainer {
   setValueAtElem(index, value:any) {
     console.log(`Repeatable vocab setting value at: ${index}`);
     console.log(value);
-    this.fields[index].component.onSelect(value, false, true);
+    let selected = {};
+    selected['originalObject'] = value;
+    this.fields[index].component.onSelect(selected, false, true);
   }
 }
 

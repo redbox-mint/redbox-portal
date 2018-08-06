@@ -17,7 +17,7 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { Component, Inject, Input, ElementRef, EventEmitter, Output } from '@angular/core';
+import { Component, Inject, Input, ElementRef, EventEmitter, Output, ChangeDetectorRef } from '@angular/core';
 import { Location, LocationStrategy, PathLocationStrategy } from '@angular/common';
 import { FormGroup } from '@angular/forms';
 import { RecordsService } from './shared/form/records.service';
@@ -129,7 +129,8 @@ export class DmpFormComponent extends LoadableComponent {
     @Inject(RecordsService) protected RecordsService: RecordsService,
     @Inject(FieldControlService) protected fcs: FieldControlService,
     @Inject(Location) protected LocationService: Location,
-    public translationService: TranslationService
+    public translationService: TranslationService,
+    private changeRef: ChangeDetectorRef
   ) {
     super();
 
@@ -554,5 +555,14 @@ export class DmpFormComponent extends LoadableComponent {
 
   getFieldValue(fieldName) {
     return this.form.value[fieldName];
+  }
+
+  triggerChangeDetection() {
+    this.changeRef.detectChanges();
+  }
+
+  setRelatedRecordId(oid) {
+    this.relatedRecordId = oid;
+    this.triggerChangeDetection();
   }
 }
