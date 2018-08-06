@@ -722,7 +722,8 @@ export class SpacerComponent extends SimpleComponent {
   template: `
     <div *ngIf="field.type == 'checkbox'" [formGroup]='form'>
       <input type="checkbox" name="{{field.name}}" [id]="field.name" [formControl]="getFormControl()" [attr.disabled]="field.editMode ? null : ''" >
-      <label for="{{ field.name }}" class="radio-label">{{ field.label }}</label>
+      <label for="{{ field.name }}" class="radio-label">{{ field.label }} <button *ngIf="field.editMode" type="button" class="btn btn-default" *ngIf="field.help" (click)="toggleHelp()" [attr.aria-label]="'help' | translate "><span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span></button></label>
+      <span id="{{ 'helpBlock_' + field.name }}" class="help-block" *ngIf="this.helpShow" [innerHtml]="field.help"></span>
     </div>
   `
 })
