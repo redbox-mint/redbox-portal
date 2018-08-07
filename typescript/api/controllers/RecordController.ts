@@ -227,7 +227,7 @@ export module Controllers {
                                         var data = {};
                                         data['record'] = record;
                                         data['name'] = toName;
-                                        data['oid'] = toName;
+                                        data['oid'] = oid;
                                         EmailService.sendTemplate(to, subject, "transferOwnerTo", data);
 
 
