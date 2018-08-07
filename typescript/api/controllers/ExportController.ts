@@ -22,7 +22,7 @@ declare var module;
 declare var sails;
 import { Observable } from 'rxjs/Rx';
 import moment from 'moment-es6';
-declare var RecordsService, DashboardService, BrandingService;
+declare var RecordsService, DashboardService, BrandingService, TranslationService;
 /**
  * Package that contains all Controllers.
  */
@@ -55,13 +55,14 @@ export module Controllers {
     public downloadRecs(req, res) {
       const brand = BrandingService.getBrand(req.session.branding);
       const format = req.param('format');
+      const recType = req.param('recType');
       const before = _.isEmpty(req.query.before) ? null : req.query.before;
       const after = _.isEmpty(req.query.after) ? null : req.query.after;
-      const filename = `Exported Records.${format}`;
+      const filename = `${TranslationService.t(`${recType}-title`)} - Exported Records.${format}`;
       if (format == 'csv') {
         res.set('Content-Type', 'text/csv');
         res.set('Content-Disposition', `attachment; filename="${filename}"`);
-        DashboardService.exportAllPlans(req.user.username, req.user.roles, brand, format, before, after).subscribe(response => {
+        DashboardService.exportAllPlans(req.user.username, req.user.roles, brand, format, before, after, recType).subscribe(response => {
           return res.send(200, response);
         });
       } else {

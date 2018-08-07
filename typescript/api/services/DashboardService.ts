@@ -90,10 +90,10 @@ export module Services {
       return Observable.fromPromise(request[sails.config.record.api.query.method](options));
     }
 
-    exportAllPlans(username, roles, brand, format, modBefore, modAfter) {
+    exportAllPlans(username, roles, brand, format, modBefore, modAfter, recType) {
       const dateQ = modBefore || modAfter ? ` AND date_object_modified:[${modAfter ? `${modAfter}T00:00:00Z` : '*'} TO ${modBefore ? `${modBefore}T23:59:59Z` : '*'}]` : '';
       var url = sails.config.record.baseUrl.redbox;
-      url = `${url}${sails.config.record.api.search.url}?q=metaMetadata_type:rdmp${dateQ}&sort=date_object_modified desc&version=2.2&wt=${format}`;
+      url = `${url}${sails.config.record.api.search.url}?q=metaMetadata_type:${recType}${dateQ}&sort=date_object_modified desc&version=2.2&wt=${format}`;
       url = `${url}&start=0&rows=${sails.config.record.export.maxRecords}`;
       url = this.addAuthFilter(url, username, roles, brand)
       url = url + "&fq=metaMetadata_brandId:" + brand.id
