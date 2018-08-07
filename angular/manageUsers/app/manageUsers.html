@@ -1,16 +1,16 @@
 <div class="col-md-offset-2 col-md-8" *ngIf="!isLoading">
   <div class="panel panel-default">
     <div class="panel-heading">
-      <h3 class="panel-title">
+      <span class="panel-title">
         {{ 'manage-users-title' | translate }}
-      </h3>
+      </span>
     </div>
     <div class="panel-body" style="overflow:scroll">
       <div class="row">
         <div class="col-sm-9">
           <div class="input-group">
             <span class="input-group-addon" id="name-addon">{{ 'manage-users-filter-name' | translate }}</span>
-            <input type="text" (keyup)="onFilterChange()" [(ngModel)]="searchFilter.name" class="form-control" placeholder="{{ 'manage-users-filter-name-placeholder' | translate }}" aria-describedby="name-addon">
+            <input type="text" (keyup)="onFilterChange()" [(ngModel)]="searchFilter.name" class="form-control" placeholder="{{ 'manage-users-filter-name-placeholder' | translate }}" [attr.aria-label]="'manage-users-filter-name' | translate">
             <span (click)="resetFilter()" class="input-group-btn"><button class="btn btn-primary" type='button'>Reset</button></span>
           </div>
         </div>
@@ -157,7 +157,7 @@
       <div class="modal-content">
           <div class="modal-header">
             <button type="button" class="close" (click)="hideNewUserModal()">&times;</button>
-            <h4 class="modal-title">{{ 'manage-users-new' | translate }}</h4>
+            <span class="modal-title h4-header">{{ 'manage-users-new' | translate }}</span>
           </div>
           <div class="modal-body">
           <form id="newform" [formGroup]="newUserForm" novalidate (ngSubmit)="newUserSubmit(newUserForm.value, newUserForm.valid)">
@@ -167,7 +167,7 @@
                     <tr>
                         <td>{{ 'manage-users-username' | translate }}</td>
                         <td>
-                            <input type="text" formControlName="username" class="form-control input-sm chat-input" placeholder="{{ 'manage-users-username' | translate }}"/>
+                            <input type="text" formControlName="username" class="form-control input-sm chat-input" placeholder="{{ 'manage-users-username' | translate }}" [attr.aria-label]="'manage-users-username' | translate"/>
                             <div class='form-text error' *ngIf='newUserForm.controls.username.touched || submitted'>
                                 <div *ngIf="newUserForm.controls.username.hasError('required')">{{ 'manage-users-validation-username' | translate }}</div>
                               </div>
@@ -176,7 +176,7 @@
                     <tr>
                       <td>{{ 'manage-users-name' | translate }}</td>
                       <td>
-                          <input type="text" formControlName="name" class="form-control input-sm chat-input" placeholder="{{ 'manage-users-name' | translate }}"/>
+                          <input type="text" formControlName="name" class="form-control input-sm chat-input" placeholder="{{ 'manage-users-name' | translate }}" [attr.aria-label]="'manage-users-name' | translate "/>
                           <div class='form-text error' *ngIf='newUserForm.controls.name.touched || submitted'>
                               <div *ngIf="newUserForm.controls.name.hasError('required')">{{ 'manage-users-validation-name' | translate }}</div>
                             </div>
@@ -185,7 +185,7 @@
                     <tr>
                       <td>{{ 'manage-users-email' | translate }}</td>
                       <td>
-                          <input type="email" formControlName="email" class="form-control input-sm chat-input" placeholder="{{ 'manage-users-email' | translate }}"/>
+                          <input type="email" formControlName="email" class="form-control input-sm chat-input" placeholder="{{ 'manage-users-email' | translate }}" [attr.aria-label]="'manage-users-email' | translate"/>
                           <div class='form-text error' *ngIf='newUserForm.controls.email.touched || submitted'>
                               <div *ngIf="newUserForm.controls.email.hasError('invalidEmail')">{{ 'manage-users-validation-email' | translate }}</div>
                             </div>
@@ -195,7 +195,7 @@
                       <td>{{ 'manage-users-password' | translate }}</td>
                       <td>
                           <div formGroupName="passwords">
-                              <input type="password" formControlName="password" class="form-control input-sm chat-input" placeholder="{{ 'manage-users-password' | translate }}"/>
+                              <input type="password" formControlName="password" class="form-control input-sm chat-input" placeholder="{{ 'manage-users-password' | translate }}" [attr.aria-label]="'manage-users-password' | translate "/>
                           </div>
                           <div class='form-text error' *ngIf="newUserForm.controls.passwords.controls.password.touched || submitted">
                               <div *ngIf="newUserForm.controls.passwords.controls.password.hasError('required')">{{ 'manage-users-validation-password' | translate }}</div>
@@ -206,7 +206,7 @@
                         <td>{{ 'manage-users-confirm-password' | translate }}</td>
                         <td>
                             <div formGroupName="passwords">
-                                <input type="password" formControlName="confirmPassword" class="form-control input-sm chat-input" placeholder="{{ 'manage-users-confirm-password' | translate }}"/>
+                                <input type="password" formControlName="confirmPassword" class="form-control input-sm chat-input" placeholder="{{ 'manage-users-confirm-password' | translate }}" [attr.aria-label]="'manage-users-confirm-password' | translate"/>
                               </div>
                               <div class='form-text error' *ngIf="newUserForm.controls.passwords.controls.confirmPassword.touched || submitted">
                                   <div *ngIf="newUserForm.controls.passwords.hasError('mismatched')">{{ 'manage-users-validation-confirmpassword' | translate }}</div>

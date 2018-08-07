@@ -317,10 +317,12 @@ export class TabOrAccordionContainerComponent extends SimpleComponent {
         jQuery(`#${tab.id}`).on('shown.bs.collapse', ()=> {
           tab["expandedChar"] = '-';
           that.changeRef.detectChanges();
+          that.field.onAccordionCollapseExpand.emit({shown:true, tabId: tab.id});
         });
         jQuery(`#${tab.id}`).on('hidden.bs.collapse', ()=> {
           tab["expandedChar"] = '+';
           that.changeRef.detectChanges();
+          that.field.onAccordionCollapseExpand.emit({shown:false, tabId: tab.id});
         });
     });
 
@@ -637,6 +639,10 @@ Based on: https://bootstrap-datepicker.readthedocs.io/en/stable/
     </span><br/>
     <span id="{{ 'helpBlock_' + field.name }}" class="help-block" *ngIf="this.helpShow" [innerHtml]="field.help"></span>
     <datetime #dateTime [formControl]="getFormControl()" [timepicker]="field.timePickerOpts" [datepicker]="field.datePickerOpts" [hasClearButton]="field.hasClearButton"></datetime>
+    <div *ngIf="field.required" [style.visibility]="getFormControl() && getFormControl().hasError('required') && getFormControl().touched ? 'inherit':'hidden'">
+      <div class="text-danger" *ngIf="!field.validationMessages?.required">{{field.label}} is required</div>
+      <div class="text-danger" *ngIf="field.validationMessages?.required">{{field.validationMessages.required}}</div>
+    </div>
   </div>
   <li *ngIf="!field.editMode" class="key-value-pair">
     <span class="key" *ngIf="field.label">{{field.label}}</span>
@@ -716,7 +722,8 @@ export class SpacerComponent extends SimpleComponent {
   template: `
     <div *ngIf="field.type == 'checkbox'" [formGroup]='form'>
       <input type="checkbox" name="{{field.name}}" [id]="field.name" [formControl]="getFormControl()" [attr.disabled]="field.editMode ? null : ''" >
-      <label for="{{ field.name }}" class="radio-label">{{ field.label }}</label>
+      <label for="{{ field.name }}" class="radio-label">{{ field.label }} <button *ngIf="field.editMode && field.help" type="button" class="btn btn-default" (click)="toggleHelp()" [attr.aria-label]="'help' | translate "><span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span></button></label>
+      <span id="{{ 'helpBlock_' + field.name }}" class="help-block" *ngIf="this.helpShow" [innerHtml]="field.help"></span>
     </div>
   `
 })

@@ -263,6 +263,12 @@ export class ANDSVocabComponent extends SimpleComponent {
     return this.andsTree.treeModel.getState().selectedLeafNodeIds[nodeId];
   }
 
+  protected clearSelectedNodes() {
+    const state = this.andsTree.treeModel.getState();
+    state.selectedLeafNodeIds = {};
+    this.andsTree.treeModel.setState(state);
+  }
+
   public getChildren(node: any) {
     const that = this;
     const promise = new Promise((resolve, reject)=> {
@@ -304,6 +310,7 @@ export class ANDSVocabComponent extends SimpleComponent {
 
   public reactEvent(eventName: string, eventData: any, origData: any, elem:any) {
     this.collapseNodes();
+    this.clearSelectedNodes();
     this.loadState = this.STATUS_LOADED;
     this.startTreeInit();
   }

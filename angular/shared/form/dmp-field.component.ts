@@ -72,6 +72,7 @@ export class DmpFieldComponent {
 
   @ViewChild('field') fieldElement;
 
+  public disabled:boolean = false;
   /**
   * Elements that were already disabled before we ran isDisabled (so they can be restored disabled)
   */
@@ -110,15 +111,33 @@ export class DmpFieldComponent {
       var compiled = _.template(disabledExpression, variables);
       var parentElement = jQuery(this.fieldElement.nativeElement.parentElement);
       if(compiled() == "true") {
-        //take note of which elements where already disabled as we dont want to enable them if whole component becomes enabled again
-        this.disabledElements = parentElement.find('*:disabled');
-        parentElement.find('input').prop( "disabled", true );
+        if (!this.disabled) {
+          //take note of which elements where already disabled as we dont want to enable them if whole component becomes enabled again
+          this.disabledElements = parentElement.find('*:disabled');
+          parentElement.find('input').prop( "disabled", true );
+          parentElement.find('button').prop( "disabled", true );
+          parentElement.find('textarea').prop( "disabled", true );
+          parentElement.find('select').prop( "disabled", true );
+          this.disabled = true;
+        }
         return 'disabled';
       } else {
-        if(jQuery(this.fieldElement.nativeElement).prop('disabled') == 'disabled') {
+        if(this.disabled) {
           //previously disabled so lets re-enable
           parentElement.find('input').prop( "disabled", false );
-          _.each(this.disabledElements, disabledElement => disabledElement.prop("disabled",true));
+          parentElement.find('button').prop( "disabled", false );
+          parentElement.find('textarea').prop( "disabled", false );
+          parentElement.find('select').prop( "disabled", false );
+          _.each(this.disabledElements, disabledElement => {
+            if (_.isFunction(disabledElement.prop)) {
+              disabledElement.prop("disabled",true)
+            } else {
+              console.log("Not a function:");
+              console.log(disabledElement);
+            }
+          });
+          this.disabledElements = [];
+          this.disabled = false;
         }
         return null;
       }

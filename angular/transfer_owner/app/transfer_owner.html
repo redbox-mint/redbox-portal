@@ -1,9 +1,9 @@
 <div class="col-md-offset-2 col-md-8" *ngIf="!isLoading">
   <div class="panel panel-default">
     <div class="panel-heading">
-      <h3 class="panel-title">
+      <span class="panel-title">
         {{ 'transfer-ownership-title' | translate }}
-      </h3>
+      </span>
     </div>
     <div class="panel-body" style="overflow:scroll" *ngIf="formGroup">
       <div>{{ 'transfer-ownership-step-1' | translate }}</div>
@@ -14,7 +14,7 @@
       <div>{{ 'transfer-ownership-step-2' | translate }}</div>
       <div class="input-group">
         <span class="input-group-addon" id="name-addon">{{ 'transfer-ownership-filter-plan-name' | translate }}</span>
-        <input type="text" (keyup)="onFilterChange()" [(ngModel)]="searchFilterName" class="form-control" placeholder="{{ 'transfer-ownership-filter-plan-name-placeholder' | translate}}" aria-describedby="name-addon">
+        <input type="text" (keyup)="onFilterChange()" [(ngModel)]="searchFilterName" class="form-control" placeholder="{{ 'transfer-ownership-filter-plan-name-placeholder' | translate}}" [attr.aria-label]="'transfer-ownership-filter-plan-name' | translate">
         <span  (click)="resetFilter()" class="input-group-btn"><button class="btn btn-primary" type='button'>{{ 'transfer-ownership-reset' | translate }}</button></span>
       </div>
       <div><br/></div>
@@ -22,14 +22,19 @@
         <table class="table table-bordered table-striped table-hover">
           <thead>
             <tr>
-              <th class="text-center" style="width: 10%;"><input type="checkbox" [(ngModel)]="selectAllChecked" (change)="selectAllLocations($event.target.checked)"/></th>
+              <th class="text-center" style="width: 10%;">
+                <input type="checkbox" [(ngModel)]="selectAllChecked" (change)="selectAllLocations($event.target.checked)" [attr.aria-label]="'select-all-items' | translate"/>
+                <span [hidden]="true">{{ 'select-all-items' | translate }}</span>
+              </th>
               <th>{{ 'transfer-ownership-plan-name' | translate }}</th>
               <th *ngFor="let field of fieldsForUpdate">{{ field.label | translate }}</th>
             </tr>
           </thead>
           <tbody>
             <tr *ngFor="let plan of filteredPlans" (click)="toggleSelect(plan,$event)">
-              <td class="text-center"><input type='checkbox' (click)="true" [(ngModel)]="plan.selected"/></td>
+              <td class="text-center">
+                <input type='checkbox' (click)="true" [(ngModel)]="plan.selected" [attr.aria-label]="'select-item' | translate"/>
+              </td>
               <td>{{ plan.dashboardTitle }}</td>
               <td>{{ plan.metadata.metadata.contributor_ci.text_full_name }}</td>
               <td>{{ plan.metadata.metadata.contributor_data_manager.text_full_name }}</td>
@@ -39,7 +44,10 @@
         </table>
       </div>
       <div><br/></div>
-      <div>{{ 'transfer-ownership-step-3' | translate }}</div>
+      <div>
+        {{ 'transfer-ownership-step-3' | translate }}
+        <label [hidden]="true" for="userlookup">{{ 'transfer-ownership-step-3' | translate }}</label>
+      </div>
       <rb-vocab [field]="userLookupMeta" [form]="formGroup" [disableEditAfterSelect]="false"></rb-vocab>
       <button [disabled]="!canTransfer()" class="btn btn-primary" type='button' data-toggle="modal" data-target="#myModal">{{ 'transfer-ownership-execute' | translate }}</button>
       <div><br/></div>
@@ -55,10 +63,10 @@
     <div class="modal-content">
       <div class="modal-header">
         <button type="button" class="close" data-dismiss="modal">&times;</button>
-        <h4 class="modal-title">{{ 'transfer-ownership-confirm-title' | translate }}</h4>
+        <span class="modal-title">{{ 'transfer-ownership-confirm-title' | translate }}</span>
       </div>
       <div class="modal-body">
-        <h5>{{ 'transfer-ownership-confirm-body' | translate }}</h5>
+        <span>{{ 'transfer-ownership-confirm-body' | translate }}</span>
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-primary" (click)="transferOwnership($event)">{{ 'transfer-ownership-confirm-yes' | translate }}</button>

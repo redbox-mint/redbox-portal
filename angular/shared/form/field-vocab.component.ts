@@ -17,7 +17,7 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { Input, Component, Injectable , Inject, OnInit, Output, EventEmitter, ElementRef, ViewChild } from '@angular/core';
+import { Input, Component, Injectable, Inject, OnInit, Output, EventEmitter, ElementRef, ViewChild } from '@angular/core';
 import { SimpleComponent } from './field-simple.component';
 import { FieldBase } from './field-base';
 import { FormGroup, FormControl, Validators } from '@angular/forms';
@@ -55,8 +55,10 @@ export class VocabField extends FieldBase<any> {
   public placeHolder: string;
   public disableEditAfterSelect: boolean;
   public stringLabelToField: string;
-  public component:any;
+  public component: any;
   public restrictToSelection: boolean;
+  public storeLabelOnly: boolean;
+  @Output() onItemSelect: EventEmitter<any> = new EventEmitter<any>();
 
   constructor(options: any, injector: any) {
     super(options, injector);
@@ -74,9 +76,10 @@ export class VocabField extends FieldBase<any> {
     this.disableEditAfterSelect = options['disableEditAfterSelect'] == undefined ? true : options['disableEditAfterSelect'];
     this.stringLabelToField = options['stringLabelToField'] ? options['stringLabelToField'] : 'dc_title';
     this.restrictToSelection = _.isUndefined(options['restrictToSelection']) ? false : options['restrictToSelection'];
+    this.storeLabelOnly = options['storeLabelOnly'] ? options['storeLabelOnly'] : false;
   }
 
-  createFormModel(valueElem: any = undefined, createFormGroup:boolean=false) {
+  createFormModel(valueElem: any = undefined, createFormGroup: boolean = false) {
     if (valueElem) {
       this.value = valueElem;
     }
@@ -92,9 +95,17 @@ export class VocabField extends FieldBase<any> {
       this.formModel = new FormControl(this.value || '');
     }
     if (this.value) {
+      if(!_.isString(this.value)) {
       const init = _.cloneDeep(this.value);
       init.title = this.getTitle(this.value);
       this.initialValue = init;
+    } else {
+      let init = {};
+      init['title'] = this.value;
+      init[this.stringLabelToField] = this.value;
+      this.initialValue = init;
+    }
+
     }
 
     if (this.required) {
@@ -112,12 +123,12 @@ export class VocabField extends FieldBase<any> {
     this.initLookupData();
   }
 
-  setEmptyValue(updateTitle:boolean = false) {
+  setEmptyValue(updateTitle: boolean = false) {
     this.value = null;
     if (this.formModel) {
-      this.formModel.setValue(null, {emitEvent: true});
+      this.formModel.setValue(null, { emitEvent: true });
     }
-    if (updateTitle) {
+    if (updateTitle && this.component.ngCompleter) {
       this.component.ngCompleter.ctrInput.nativeElement.value = null;
     }
     return this.value;
@@ -164,6 +175,9 @@ export class VocabField extends FieldBase<any> {
   public getTitle(data: any): string {
     let title = '';
     if (data) {
+      if(_.isString(data)) {
+        return data;
+      }
       if (_.isString(this.titleFieldDelim)) {
         _.forEach(this.titleFieldArr, (titleFld: string) => {
           const titleVal = data[titleFld];
@@ -190,41 +204,47 @@ export class VocabField extends FieldBase<any> {
     if (!_.isUndefined(data) && !_.isEmpty(data)) {
       if (_.isString(data)) {
         console.log(`Data is string...`)
-        valObj[this.stringLabelToField] = data;
+        if (this.storeLabelOnly) {
+          return data;
+        } else {
+          valObj[this.stringLabelToField] = data;
+        }
         return valObj;
       }
-      _.forEach(this.fieldNames, (fldName: any) => {
-        if (data.originalObject) {
-          this.getFieldValuePair(fldName, data.originalObject, valObj)
-        } else {
-          this.getFieldValuePair(fldName, data, valObj)
-        }
-      });
+
+        _.forEach(this.fieldNames, (fldName: any) => {
+          if (data.originalObject) {
+            this.getFieldValuePair(fldName, data.originalObject, valObj)
+          } else {
+            this.getFieldValuePair(fldName, data, valObj)
+          }
+        });
+
     }
     return valObj;
   }
 
   public getFieldValuePair(fldName: any, data: any, valObj: any) {
-     if (_.isString(fldName)) {
+    if (_.isString(fldName)) {
       valObj[fldName] = _.get(data, fldName);
-     } else {
-       // expects a value pair
-       _.forOwn(fldName, (srcFld, targetFld) => {
+    } else {
+      // expects a value pair
+      _.forOwn(fldName, (srcFld, targetFld) => {
         if (_.get(data, srcFld)) {
           valObj[targetFld] = _.get(data, srcFld);
         } else {
           valObj[targetFld] = _.get(data, targetFld);
-         }
-       });
-     }
-   }
+        }
+      });
+    }
+  }
 
-   public setValue(value:any, emitEvent:boolean=true, updateTitle:boolean=false) {
-     this.formModel.setValue(value, {emitEvent: emitEvent});
-     if (updateTitle) {
-       this.component.ngCompleter.ctrInput.nativeElement.value = this.getTitle(value);
-     }
-   }
+  public setValue(value: any, emitEvent: boolean = true, updateTitle: boolean = false) {
+    this.formModel.setValue(value, { emitEvent: emitEvent });
+    if (updateTitle) {
+      this.component.ngCompleter.ctrInput.nativeElement.value = this.getTitle(value);
+    }
+  }
 
 }
 
@@ -232,21 +252,20 @@ class MintLookupDataService extends Subject<CompleterItem[]> implements Complete
 
   searchFields: any[];
 
-  constructor(private url:string,
+  constructor(private url: string,
     private http: Http,
     private fields: string[],
     private compositeTitleName: string,
     private titleFieldArr: string[],
     private titleFieldDelim: any[],
-    searchFieldStr: any)
-  {
+    searchFieldStr: any) {
     super();
     this.searchFields = searchFieldStr.split(',');
   }
 
   public search(term: string): void {
     term = _.trim(luceneEscapeQuery.escape(term));
-    let searchString='';
+    let searchString = '';
     if (!_.isEmpty(term)) {
       term = _.toLower(term);
       _.forEach(this.searchFields, (searchFld) => {
@@ -254,7 +273,7 @@ class MintLookupDataService extends Subject<CompleterItem[]> implements Complete
       });
     }
     const searchUrl = `${this.url}${searchString}`;
-    this.http.get(`${searchUrl}`).map((res: any, index:number) => {
+    this.http.get(`${searchUrl}`).map((res: any, index: number) => {
       // Convert the result to CompleterItem[]
       let data = res.json();
       let matches: CompleterItem[] = _.map(data, (mintDataItem: any) => { return this.convertToItem(mintDataItem); });
@@ -286,8 +305,10 @@ class MintLookupDataService extends Subject<CompleterItem[]> implements Complete
       }
     });
     // build the title,
-    item[this.compositeTitleName] = this.getTitle(data);
-    return item as CompleterItem;
+    let completerItem = {};
+    completerItem[this.compositeTitleName] = this.getTitle(data);
+    completerItem['originalObject'] = item;
+    return completerItem as CompleterItem;
   }
 
   getTitle(data: any): string {
@@ -318,12 +339,12 @@ class MintLookupDataService extends Subject<CompleterItem[]> implements Complete
 @Injectable()
 export class VocabFieldLookupService extends BaseService {
 
-  constructor (@Inject(Http) http: Http, @Inject(ConfigService) protected configService: ConfigService) {
+  constructor(@Inject(Http) http: Http, @Inject(ConfigService) protected configService: ConfigService) {
     super(http, configService);
   }
 
   getLookupData(field: VocabField) {
-    const vocabId  = field.vocabId;
+    const vocabId = field.vocabId;
     // only retrieving static data when on vocab mode
     if (field.sourceType == "vocab") {
       const url = `${this.brandingAndPortalUrl}/${this.config.vocabRootUrl}/${vocabId}`;
@@ -364,13 +385,13 @@ export class VocabFieldLookupService extends BaseService {
       {{field.label}} {{getRequiredLabelStr()}}
       <button type="button" class="btn btn-default" *ngIf="field.help" (click)="toggleHelp()" [attr.aria-label]="'help' | translate "><span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span></button>
     </label>
-    <span id="{{ 'helpBlock_' + field.name }}" class="help-block" *ngIf="this.helpShow" >{{field.help}}</span>
+    <span id="{{ 'helpBlock_' + field.name }}" class="help-block" *ngIf="this.helpShow" [innerHtml]="field.help">{{field.help}}</span>
     <ng2-completer #ngCompleter [inputId]="field.name" [(ngModel)]="field.searchStr" [ngModelOptions]="{standalone: true}" [disableInput]="disableInput" [placeholder]="field.placeHolder" [clearUnselected]="getClearUnselected()" (selected)="onSelect($event)" [datasource]="field.dataService" [minSearchLength]="0" [inputClass]="'form-control'" [initialValue]="field.initialValue"></ng2-completer>
     <div class="text-danger" *ngIf="hasRequiredError()">{{field.validationMessages.required}}</div>
   </div>
   <div *ngIf="field.editMode && isEmbedded" [formGroup]='form' [ngClass]="getGroupClass()">
     <div class="row">
-      <span id="{{ 'helpBlock_' + field.name }}" class="help-block" *ngIf="this.helpShow" >{{field.help}}</span>
+      <span id="{{ 'helpBlock_' + field.name }}" class="help-block" *ngIf="this.helpShow" [innerHtml]="field.help">{{field.help}}</span>
       <div class="col-xs-11 padding-remove">
         <ng2-completer #ngCompleter [inputId]="name" [(ngModel)]="field.searchStr" [ngModelOptions]="{standalone: true}" [disableInput]="disableInput" [placeholder]="field.placeHolder" [clearUnselected]="getClearUnselected()" (selected)="onSelect($event)" [datasource]="field.dataService" [minSearchLength]="0" [inputClass]="'form-control'" [initialValue]="field.initialValue"></ng2-completer>
       </div>
@@ -410,16 +431,25 @@ export class VocabFieldComponent extends SimpleComponent {
     this.field.component = this;
   }
 
-  public getGroupClass(fldName:string=null): string {
-    return `col-xs-12 form-group ${this.hasRequiredError() ? 'has-error' : '' }`;
+  public getGroupClass(fldName: string = null): string {
+    if(this.isEmbedded) {
+      return `col-xs-12 form-group ${this.hasRequiredError() ? 'has-error' : ''}`;
+    } else {
+      return '';
+    }
   }
 
-  onSelect(selected: any, emitEvent:boolean = true, updateTitle:boolean = false) {
+  onSelect(selected: any, emitEvent: boolean = true, updateTitle: boolean = false) {
     console.log(`On select:`);
     console.log(selected);
     let disableEditAfterSelect = this.disableEditAfterSelect && this.field.disableEditAfterSelect;
     if (selected) {
-      this.field.setValue(this.field.getValue(selected), emitEvent, updateTitle);
+      this.field.onItemSelect.emit(selected['originalObject']);
+      if(this.field.storeLabelOnly){
+        this.field.setValue(this.field.getValue(selected.title), emitEvent, updateTitle);
+      } else {
+        this.field.setValue(this.field.getValue(selected['originalObject']), emitEvent, updateTitle);
+      }
       if (disableEditAfterSelect)
         this.disableInput = true;
     } else {

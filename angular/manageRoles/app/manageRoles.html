@@ -1,14 +1,14 @@
 <div class="col-md-offset-2 col-md-8" *ngIf="!isLoading">
   <div class="panel panel-default">
     <div class="panel-heading">
-      <h3 class="panel-title">
+      <span class="panel-title">
         {{ 'manage-roles-title' | translate }}
-      </h3>
+      </span>
     </div>
     <div class="panel-body" style="overflow:scroll" >
       <div class="input-group">
         <span class="input-group-addon" id="name-addon">{{ 'manage-roles-filter-name' | translate }}</span>
-        <input type="text" (keyup)="onFilterChange(null)" [(ngModel)]="searchFilter.name" class="form-control" placeholder="{{ 'manage-roles-filter-name-placeholder' | translate }}" aria-describedby="name-addon">
+        <input type="text" (keyup)="onFilterChange(null)" [(ngModel)]="searchFilter.name" class="form-control" placeholder="{{ 'manage-roles-filter-name-placeholder' | translate }}" [attr.aria-label]="'manage-roles-filter-name' | translate ">
         <span (click)="resetFilter()" class="input-group-btn"><button class="btn btn-primary" type='button'>Reset</button></span>
       </div>
       <div>
@@ -19,10 +19,13 @@
           {{ 'manage-roles-filter-label' | translate }}
         </div>
         <div class="col-xs-4" >
-          <div *ngFor="let roleFilter of searchFilter.roles"  >
-            <input [checked]="roleFilter.checked" (change)="onFilterChange(roleFilter)" id="role-{{roleFilter.value}}" name="role-filter" type="radio" aria-describedby="role-addon">
-            <label for="role-{{roleFilter.value}}" >&nbsp;{{roleFilter.label}}</label>
-          </div>
+          <fieldset>
+            <legend [hidden]="true"><span></span></legend>
+            <div *ngFor="let roleFilter of searchFilter.roles"  >
+              <input [checked]="roleFilter.checked" (change)="onFilterChange(roleFilter)" id="role-{{roleFilter.value}}" name="role-filter" type="radio" >
+              <label for="role-{{roleFilter.value}}" >&nbsp;{{roleFilter.label}}</label>
+            </div>
+          </fieldset>
         </div>
         <div class="col-xs-4" ></div>
       </div>
@@ -61,7 +64,7 @@
     <div class="modal-content">
       <div class="modal-header">
         <button type="button" class="close" data-dismiss="modal">&times;</button>
-        <h4 class="modal-title">{{ 'manage-roles-edit' | translate }}</h4>
+        <span class="modal-title h4-header">{{ 'manage-roles-edit' | translate }}</span>
       </div>
       <div class="modal-body">
         <form >

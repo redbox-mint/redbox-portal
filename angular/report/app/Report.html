@@ -4,7 +4,7 @@
   <div class="row">
 
     <div class="col-xs-12">
-      <h1 class="text-center">
+      <h1 class="text-center" *ngIf="report.title">
         {{ report.title }}
       </h1>
     </div>
@@ -14,9 +14,9 @@
     <div class="panel panel-default">
   <div class="panel-body">
     <div class="row">
-      <h4 class="text-center">
+      <span class="text-center h4-header">
         {{ report.filter.message }}
-      </h4>
+      </span>
     </div>
     <div class="row">
     <div class="col-xs-2">
@@ -25,9 +25,9 @@
     <div class="col-xs-3">
       <div class="form-horizontal">
             <div class="form-group">
-              <label class="col-xs-3 control-label">{{ 'report-filter-date-from' | translate }}</label>
+              <span class="col-xs-3 control-label">{{ 'report-filter-date-from' | translate }}</span>
               <span class="col-xs-9">
-                <datetime [timepicker]="false" [datepicker]="{format: 'd/m/yyyy'}" [(ngModel)]="filterParams.fromDate"></datetime>
+                <datetime #dateTime1 [timepicker]="false" [datepicker]="{format: 'd/m/yyyy'}" [(ngModel)]="filterParams.fromDate"></datetime>
               </span>
             </div>
       </div>
@@ -35,9 +35,9 @@
     <div class="col-xs-3">
       <div class="form-horizontal">
             <div class="form-group">
-              <label class="col-xs-2 control-label">{{ 'report-filter-date-to' | translate }}</label>
-              <span class="col-xs-10">
-                <datetime [timepicker]="false"  [datepicker]="{format: 'd/m/yyyy'}" [(ngModel)]="filterParams.toDate"></datetime>
+              <span class="col-xs-2 control-label">{{ 'report-filter-date-to' | translate }}</span>
+              <span class="col-xs-10"> 
+                <datetime #dateTime2 [timepicker]="false"  [datepicker]="{format: 'd/m/yyyy'}" [(ngModel)]="filterParams.toDate"></datetime>
               </span>
             </div>
       </div>
@@ -62,8 +62,6 @@
       <span *ngIf="initTracker.resultsReturned == true" [innerHTML]='"report-results-returned" | translate:{count: reportResults.totalItems}'></span>
     </div>
     <div class="col-xs-8">
-      <h1>
-      </h1>
     </div>
     <div class="col-xs-2">
       <a class="btn btn-large btn-info" href="/{{ branding }}/{{ portal }}/admin/downloadReportCSV?name={{ name }}">

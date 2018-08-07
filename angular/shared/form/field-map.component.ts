@@ -25,6 +25,7 @@ import { RecordsService } from './records.service';
 import {  Map,  GeoJSON,   } from 'leaflet';
 declare var omnivore: any;
 declare var L: any;
+declare var jQuery: any;
 
 
 /**
@@ -113,6 +114,8 @@ export class MapField extends FieldBase<any> {
     }
   };
 
+  mainTabId: any;
+
   constructor(options: any, injector: any) {
     super(options, injector);
     this.clName = 'MapField';
@@ -128,6 +131,7 @@ export class MapField extends FieldBase<any> {
     this.tabId = options['tabId'] || null;
 
     this.layerGeoJSON = options.value;
+    this.mainTabId = options['mainTabId'] || null;
   }
 
   onMapReady(map: Map) {
@@ -145,26 +149,35 @@ export class MapField extends FieldBase<any> {
       map.fitBounds(this.drawnItems.getBounds());
     } else {
       if (this.editMode) {
-        // TODO: need a better way to select the tab component
-        this.fieldMap._rootComp.fields[0]["onTabChange"].subscribe(tabName => {
-          if (tabName == this.tabId) {
-            map.invalidateSize();
-            if (!that.initialised) {
-              try {
-                // if there are no layers present this will throw an error
-                map.fitBounds(this.drawnItems.getBounds());
-              } catch (e) {
-
-              }
-              that.initialised = true;
-            }
+        // Note: this assumes the tabId is unqiue in the page, which may not be when there are multiple tab layouts.
+        jQuery('a[data-toggle="tab"]').on('shown.bs.tab', (e) => {
+          const curTabId = e.target.href.split('#')[1];
+          if (curTabId == that.tabId) {
+            that.initMap(map, that);
           }
         });
-
       } else {
-        setTimeout(5000, function() { map.invalidateSize(); });
+        const field = this.fieldMap._rootComp.getFieldWithId(this.mainTabId, this.fieldMap._rootComp.fields);
+        field.onAccordionCollapseExpand.subscribe((event) => {
+          if (event.shown == true && event.tabId == that.tabId && !that.initialised) {
+            that.initMap(map, that);
+            that.initialised = true;
+          }
+        });
       }
     }
+  }
+
+  public initMap(map, that) {
+    map.invalidateSize();
+
+      try {
+        // if there are no layers present this will throw an error
+        map.fitBounds(this.drawnItems.getBounds());
+      } catch (e) {
+
+      }
+
   }
 
 
@@ -346,4 +359,9 @@ if (typeof aotMode == 'undefined') {
 export class MapComponent extends SimpleComponent {
   field: MapField;
 
+  ngAfterViewInit() {
+    if (!this.field.editMode) {
+      this.field.initMap(this.field.map, this.field);
+    }
+  }
 }

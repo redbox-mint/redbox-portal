@@ -1,4 +1,4 @@
-import { Component, Injectable, Inject, ElementRef } from '@angular/core';
+import { Component, Injectable, Inject, ElementRef, ViewChildren } from '@angular/core';
 import { DOCUMENT } from '@angular/platform-browser';
 import { FormArray, FormGroup, FormControl, Validators, FormBuilder } from '@angular/forms';
 import { UserSimpleService } from './shared/user.service-simple';
@@ -33,6 +33,8 @@ export class ReportComponent extends LoadableComponent {
   initTracker: any = { reportLoaded: false, resultsReturned: false };
   resultCountParam: object;
   filterParams: object;
+  @ViewChildren('dateTime1') public dateTime1: any;
+  @ViewChildren('dateTime2') public dateTime2: any;
 
 
   constructor( @Inject(ReportService) protected reportService: ReportService, @Inject(DOCUMENT) protected document: any, elementRef: ElementRef, translationService: TranslationService) {
@@ -52,6 +54,15 @@ export class ReportComponent extends LoadableComponent {
         this.getReportResults(1, {});
         this.checkIfHasLoaded();
       });
+    });
+  }
+
+  ngAfterViewInit() {
+    this.dateTime1.changes.subscribe((dateTime:any) => {
+      jQuery(`#${dateTime.first.idDatePicker}`).attr('aria-label', this.getTranslated('report-filter-date-from', 'From'));
+    });
+    this.dateTime2.changes.subscribe((dateTime:any) => {
+      jQuery(`#${dateTime.first.idDatePicker}`).attr('aria-label', this.getTranslated('report-filter-date-to', 'To'));
     });
   }
 

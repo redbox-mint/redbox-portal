@@ -86,7 +86,7 @@ Generic component for grouping components together. The resulting JSON will have
         {{field.label}} {{getRequiredLabelStr()}}
         <button type="button" class="btn btn-default" *ngIf="field.help" (click)="toggleHelp()" [attr.aria-label]="'help' | translate "><span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span></button>
       </label>
-      <span id="{{ 'helpBlock_' + field.name }}" class="help-block" *ngIf="this.helpShow" >{{field.help}}</span>
+      <span id="{{ 'helpBlock_' + field.name }}" class="help-block" *ngIf="this.helpShow" [innerHtml]="field.help">{{field.help}}</span>
     </div>
     <ng-container *ngIf="isEmbedded">
       <div [formGroup]='form' [ngClass]="field.cssClasses">
@@ -197,7 +197,7 @@ export class GenericGroupComponent extends EmbeddableComponent {
         {{field.label}} {{getRequiredLabelStr()}}
         <button type="button" class="btn btn-default" *ngIf="field.help" (click)="toggleHelp()" [attr.aria-label]="'help' | translate "><span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span></button>
       </span>
-      <span id="{{ 'helpBlock_' + field.name }}" class="help-block" *ngIf="this.helpShow" >{{field.help}}</span>
+      <span id="{{ 'helpBlock_' + field.name }}" class="help-block" *ngIf="this.helpShow" [innerHtml]="field.help">{{field.help}}</span>
     </div>
     <ng-container *ngFor="let fieldElem of field.fields; let i = index;" >
       <div class="row">

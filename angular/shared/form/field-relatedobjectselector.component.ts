@@ -65,15 +65,24 @@ export class RelatedObjectSelectorField extends FieldBase<any> {
 
   recordSelected(record: any, config: any) {
     this.setValue({oid: record.oid, title:record.title});
+    if(this.fieldMap) {
+      this.fieldMap._rootComp.setRelatedRecordId(record.oid);
+    }
   }
-  
+
   recordSelectedEmit(record, event) {
     this.setValue({oid: record.oid, title:record.title});
+    if(this.fieldMap) {
+      this.fieldMap._rootComp.setRelatedRecordId(record.oid);
+    }
     this.relatedObjectSelected.emit(record.oid);
   }
 
   resetSelector() {
     this.setEmptyValue();
+    if(this.fieldMap) {
+      this.fieldMap._rootComp.setRelatedRecordId(null);
+    }
     this.resetSelectorEvent.emit();
   }
 
@@ -86,6 +95,9 @@ export class RelatedObjectSelectorField extends FieldBase<any> {
 
       if (this.value) {
         this.setValue(this.value);
+        if(this.fieldMap) {
+          this.fieldMap._rootComp.setRelatedRecordId(this.value.oid);
+        }
       }
 
     return this.formModel;

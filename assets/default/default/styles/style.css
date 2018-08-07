@@ -880,6 +880,8 @@ tree-internal > ul.rootless > li > tree-internal > ul {
 
 .label-font {
   font-weight: bold;
+  display: inline-block;
+  margin-bottom: 5px;
 }
 
 .tab-header-font {
@@ -914,4 +916,8 @@ tree-internal > ul.rootless > li > tree-internal > ul {
 .h6-header {
   font-size: 12px;
   font-weight: bold;
+}
+
+.normal-font: {
+  font-weight: normal;
 }

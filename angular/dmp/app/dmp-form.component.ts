@@ -17,7 +17,7 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { Component, Inject, Input, ElementRef, EventEmitter, Output } from '@angular/core';
+import { Component, Inject, Input, ElementRef, EventEmitter, Output, ChangeDetectorRef } from '@angular/core';
 import { Location, LocationStrategy, PathLocationStrategy } from '@angular/common';
 import { FormGroup } from '@angular/forms';
 import { RecordsService } from './shared/form/records.service';
@@ -110,13 +110,17 @@ export class DmpFormComponent extends LoadableComponent {
   @Output() recordSaved: EventEmitter<any> = new EventEmitter<any>();
   @Output() onBeforeSave: EventEmitter<any> = new EventEmitter<any>();
   @Output() onFormLoaded: EventEmitter<any> = new EventEmitter<any>();
+  @Output() onValueChange: EventEmitter<any> = new EventEmitter<any>();
 
   subs = {
     recordCreated: {},
     recordSaved: {},
     onBeforeSave: {},
-    onFormLoaded: {}
+    onFormLoaded: {},
+    onValueChange: {}
   };
+
+  private relatedRecordId: any = null;
   /**
    * Expects a number of DI'ed elements.
    */
@@ -125,7 +129,8 @@ export class DmpFormComponent extends LoadableComponent {
     @Inject(RecordsService) protected RecordsService: RecordsService,
     @Inject(FieldControlService) protected fcs: FieldControlService,
     @Inject(Location) protected LocationService: Location,
-    public translationService: TranslationService
+    public translationService: TranslationService,
+    private changeRef: ChangeDetectorRef
   ) {
     super();
 
@@ -357,6 +362,7 @@ export class DmpFormComponent extends LoadableComponent {
     if (this.editMode) {
       this.form.valueChanges.subscribe((data:any) => {
         this.needsSave = true;
+        this.onValueChange.emit(data);
       });
     }
     this.onFormLoaded.emit({oid:this.oid});
@@ -535,5 +541,28 @@ export class DmpFormComponent extends LoadableComponent {
 
   getSubscription(eventName, subscriberName) {
     return this.subs[eventName][subscriberName];
+  }
+
+  getFieldWithId(fieldId, fields:any = this.fields) {
+    let field = _.find(fields, (f) => {
+      return f.id == fieldId;
+    });
+    if (_.isUndefined(field) && !_.isEmpty(fields.fields)) {
+      field = this.getFieldWithId(fieldId, fields.fields);
+    }
+    return field;
+  }
+
+  getFieldValue(fieldName) {
+    return this.form.value[fieldName];
+  }
+
+  triggerChangeDetection() {
+    this.changeRef.detectChanges();
+  }
+
+  setRelatedRecordId(oid) {
+    this.relatedRecordId = oid;
+    this.triggerChangeDetection();
   }
 }
