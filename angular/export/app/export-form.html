@@ -16,8 +16,22 @@
         </span>
       </div>
       <div class="form-group">
-        <div class="col-xs-offset-2 col-xs-10">
-          <button (click)="download()" class="btn btn-primary">{{ 'export-download' | translate }}</button>
+        <div class="col-xs-offset-2 col-xs-2">
+          <span class="input-group-btn">
+            <button (click)="download()" class="btn btn-primary">
+              {{ 'export-csv-' + record_type  | translate }}
+            </button>
+            <button class="btn btn-primary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+              <span class="caret"></span>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-right">
+              <li *ngFor="let recTypeName of getRecordTypeNames()">
+                <a href="#" (click)="setRecordType(recTypeName, $event)">
+                  {{ 'export-csv-' + recTypeName  | translate }}
+                </a>
+              </li>
+            </ul>
+          </span>
         </div>
       </div>
     </div>

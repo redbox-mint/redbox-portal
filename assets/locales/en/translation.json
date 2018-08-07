@@ -635,5 +635,10 @@
   "select-all-items": "Select All Items",
   "select-item": "Select",
   "move-up-button": "Move entry up",
-  "move-down-button": "Move entry down"
+  "move-down-button": "Move entry down",
+  "export-csv-rdmp": "Download Plans CSV",
+  "export-csv-dataRecord": "Download Data Records CSV",
+  "export-csv-dataPublication": "Download Data Publications CSV",
+  "dataRecord-title": "Data Record",
+  "dataPublication-title": "Data Publication"
 }

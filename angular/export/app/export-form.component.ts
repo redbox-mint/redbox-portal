@@ -22,6 +22,8 @@ import { Location, LocationStrategy, PathLocationStrategy } from '@angular/commo
 import { LoadableComponent } from './shared/loadable.component';
 import moment from 'moment-es6';
 import { TranslationService } from './shared/translation-service';
+import { RecordsService } from './shared/form/records.service';
+import * as _ from "lodash";
 
 /**
  * Main Export component
@@ -44,11 +46,14 @@ export class ExportFormComponent extends LoadableComponent {
   datePickerOpts: any;
   timePickerOpts: any;
   hasClearButton: boolean;
+  recTypeNames: string[];
+  record_type: string;
 
   constructor(
     elm: ElementRef,
     @Inject(Location) protected LocationService: Location,
-    translationService:TranslationService
+    translationService:TranslationService,
+    protected recordsService: RecordsService
   ) {
     super();
     this.timePickerOpts = false;
@@ -56,15 +61,34 @@ export class ExportFormComponent extends LoadableComponent {
     this.datePickerOpts = {placeholder: 'dd/mm/yyyy', format: 'dd/mm/yyyy', icon: 'fa fa-calendar'};
     this.initTranslator(translationService);
     translationService.isReady(tService => {
-      this.checkIfHasLoaded();
+      this.recordsService.getAllTypes().then((typeConfs: any) => {
+        this.recTypeNames = [];
+        _.each(typeConfs, typeConf => {
+          this.recTypeNames.push(typeConf.name);
+        });
+        this.record_type = this.recTypeNames[0];
+        this.checkIfHasLoaded();
+      });
+
     });
   }
 
   download() {
     const before = this.modBefore ? moment(this.modBefore).format('YYYY-MM-DD') : '';
     const after = this.modAfter ? moment(this.modAfter).format('YYYY-MM-DD') : '';
-    const url = this.LocationService.prepareExternalUrl(`export/record/download/csv?before=${before}&after=${after}`);
+    const url = this.LocationService.prepareExternalUrl(`export/record/download/csv?before=${before}&after=${after}&recType=${this.record_type}`);
     window.open(url, '_blank');
+  }
+
+  getRecordTypeNames() {
+    return this.recTypeNames;
+  }
+
+  setRecordType(recType, e) {
+    if (e) {
+      e.preventDefault();
+    }
+    this.record_type = recType;
   }
 
 }
