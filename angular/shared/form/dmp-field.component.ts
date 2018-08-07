@@ -131,9 +131,6 @@ export class DmpFieldComponent {
           _.each(this.disabledElements, disabledElement => {
             if (_.isFunction(disabledElement.prop)) {
               disabledElement.prop("disabled",true)
-            } else {
-              console.log("Not a function:");
-              console.log(disabledElement);
             }
           });
           this.disabledElements = [];

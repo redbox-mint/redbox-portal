@@ -41,12 +41,12 @@ export class NotInFormField extends FieldBase<any> {
 }
 
 export class SelectionField extends FieldBase<any>  {
-  options: any[] = [];
+  selectOptions: any[] = [];
 
   constructor(options: any, injector: any) {
     super(options, injector);
     // this.options = options['options'] || [];
-    this.options = _.map(options['options'] || [], (option)=> {
+    this.selectOptions = _.map(options['options'] || [], (option)=> {
       option['label'] = this.getTranslated(option['label'], option['label']);
       option['value'] = this.getTranslated(option['value'], option['value']);
       return option;
@@ -58,7 +58,7 @@ export class SelectionField extends FieldBase<any>  {
     if (this.controlType == 'checkbox') {
       const fgDef = [];
 
-      _.map(this.options, (opt)=>{
+      _.map(this.selectOptions, (opt)=>{
         const hasValue = _.find(this.value, (val) => {
           return val == opt.value;
         });
@@ -81,17 +81,17 @@ export class SelectionField extends FieldBase<any>  {
   nextOption() {
     if (this.controlType == 'radio') {
       let nextIdx = 0;
-      const opt = _.find(this.options, (opt, idx)=> {
+      const opt = _.find(this.selectOptions, (opt, idx)=> {
         const match = opt.value == this.value;
         if (match) {
           nextIdx = ++idx;
         }
         return match;
       });
-      if (nextIdx >= this.options.length) {
+      if (nextIdx >= this.selectOptions.length) {
         nextIdx = 0;
       }
-      const value = this.options[nextIdx].value;
+      const value = this.selectOptions[nextIdx].value;
       this.setValue(value);
     }
     return this.value;

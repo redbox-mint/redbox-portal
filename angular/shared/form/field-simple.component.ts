@@ -19,7 +19,7 @@
 
 import { Input, Component, ViewChild, ViewContainerRef, OnInit, Injector, AfterViewInit, AfterViewChecked, ChangeDetectorRef } from '@angular/core';
 import { FieldBase } from './field-base';
-import { HtmlRaw, Container, DateTime, AnchorOrButton, SaveButton, CancelButton, TabOrAccordionContainer,ParameterRetrieverField, TabNavButton, Spacer, Toggle } from './field-simple';
+import { SelectionField, HtmlRaw, Container, DateTime, AnchorOrButton, SaveButton, CancelButton, TabOrAccordionContainer,ParameterRetrieverField, TabNavButton, Spacer, Toggle } from './field-simple';
 import { RecordMetadataRetrieverField } from './record-meta.component';
 import { FormGroup, FormControl, FormArray } from '@angular/forms';
 import * as _ from "lodash";
@@ -139,9 +139,10 @@ export class SimpleComponent {
 }
 
 export class SelectionComponent extends SimpleComponent {
+  field: SelectionField;
 
   getLabel(val: any): string {
-    const opt = _.find(this.field.options, (opt)=> {
+    const opt = _.find(this.field.selectOptions, (opt)=> {
       return opt.value == val;
     });
     if (opt) {
@@ -162,7 +163,7 @@ export class SelectionComponent extends SimpleComponent {
      </label><br/>
      <span id="{{ 'helpBlock_' + field.name }}" class="help-block" *ngIf="this.helpShow" [innerHtml]="field.help"></span>
      <select [formControl]="getFormControl()"  [id]="field.name" [ngClass]="field.cssClasses">
-        <option *ngFor="let opt of field.options" [value]="opt.value">{{opt.label}}</option>
+        <option *ngFor="let opt of field.selectOptions" [value]="opt.value">{{opt.label}}</option>
      </select>
      <div class="text-danger" *ngIf="getFormControl().hasError('required') && getFormControl().touched && !field.validationMessages?.required">{{field.label}} is required</div>
      <div class="text-danger" *ngIf="getFormControl().hasError('required') && getFormControl().touched && field.validationMessages?.required">{{field.validationMessages.required}}</div>
@@ -188,7 +189,7 @@ export class DropdownFieldComponent extends SelectionComponent {
      <span id="{{ 'helpBlock_' + field.name }}" class="help-block" *ngIf="this.helpShow" [innerHtml]="field.help"></span>
      <fieldset>
       <legend [hidden]="true"><span></span></legend>
-        <span *ngFor="let opt of field.options">
+        <span *ngFor="let opt of field.selectOptions">
           <!-- radio type hard-coded otherwise accessor directive will not work! -->
           <input *ngIf="isRadio()" type="radio" name="{{field.name}}" [id]="field.name + '_' + opt.value" [formControl]="getFormControl()" [value]="opt.value" [attr.disabled]="field.readOnly ? '' : null ">
           <input *ngIf="!isRadio()" type="{{field.controlType}}" name="{{field.name}}" [id]="field.name + '_' + opt.value" [value]="opt.value" (change)="onChange(opt, $event)" [attr.selected]="getControlFromOption(opt)" [attr.checked]="getControlFromOption(opt)" [attr.disabled]="field.readOnly ? '' : null ">
