@@ -143,7 +143,9 @@ export class UtilityService {
    * @return {array}
    */
    public splitArrayStringsToArray(data:any, config:any) {
-     let delim = config.delim;
+     let regex = config.regex;
+     let flags = config.flags;
+     const reg = new RegExp(regex, flags);
      let field = config.field;
      let value = data;
      if(field) {
@@ -151,7 +153,7 @@ export class UtilityService {
      }
      const values = [];
      _.each(value, (v) => {
-       values.push(v.split(delim));
+       values.push(v.split(reg));
      });
      return _.concat([], ...values);
    }

@@ -17,7 +17,7 @@
                   {{ plan.dashboardTitle }}
                 </td>
                 <td>{{ plan.metadata.metadata.type }}</td>
-                <td>{{ plan.metadata.metadata.location }}</td>
+                <td><a target="_blank" rel="noopener noreferrer" href="{{ plan.metadata.metadata.location }}">{{ plan.metadata.metadata.location }}</a></td>
                 <td><a href="/{{ branding }}/{{ portal }}/record/view/{{ plan.metadata.metadata.rdmpOid }}">{{ plan.metadata.metadata.rdmpTitle }}</a></td>
             </tr>
         </tbody>
