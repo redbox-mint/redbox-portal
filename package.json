@@ -63,7 +63,7 @@
     "ts-node": "^5.0.1",
     "ts-smart-logger": "0.0.4",
     "tus-node-server": "^0.2.11",
-    "typescript": "2.5.3",
+    "typescript": "2.8.3",
     "typescript-require": "~0.2.9-1",
     "uppy": "^0.23.3",
     "url-pattern": "^1.0.3",
