@@ -41,9 +41,9 @@ export module Services {
       'transitionWorkflow'
     ];
 
-    public transitionWorkflow(record, options) {
+    public transitionWorkflow(oid, record, options) {
       const triggerCondition = _.get(options, "triggerCondition", "");
-      
+
       var variables= {};
       variables['imports'] = record;
       var compiled = _.template(triggerCondition, variables);

@@ -40,7 +40,7 @@ export module Services {
     ];
 
 
-    public assignPermissions(record, options) {
+    public assignPermissions(oid, record, options) {
       const emailProperty = _.get(options, "emailProperty", "email");
       const editContributorProperties = _.get(options, "editContributorProperties", []);
 

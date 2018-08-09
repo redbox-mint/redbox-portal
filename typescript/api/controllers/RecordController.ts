@@ -359,19 +359,22 @@ export module Controllers {
       const brand = BrandingService.getBrand(req.session.branding);
       const metadata = req.body;
       let record = { metaMetadata: {} };
-      var recordType = req.param('recordType');
+      var recType = req.param('recordType');
+      const targetStep = req.param('targetStep');
       record.authorization = { view: [req.user.username], edit: [req.user.username] };
       record.metaMetadata.brandId = brand.id;
       record.metaMetadata.createdBy = req.user.username;
       //TODO: This is currently hardcoded
-      record.metaMetadata.type = recordType;
+      record.metaMetadata.type = recType;
       record.metadata = metadata;
 
-      RecordTypesService.get(brand, recordType).subscribe(recordType => {
+      RecordTypesService.get(brand, recType).subscribe(recordType => {
         let packageType = recordType.packageType;
-
-        WorkflowStepsService.getFirst(recordType)
-          .subscribe(wfStep => {
+        let wfStepObs = WorkflowStepsService.getFirst(recordType);
+        if (targetStep) {
+          wfStepObs = WorkflowStepsService.get(recType, targetStep);
+        }
+        wfStepObs.subscribe(wfStep => {
             let preSaveCreateHooks = _.get(recordType, "hooks.onCreate.pre", null);
             if (_.isArray(preSaveCreateHooks)) {
               let observable = null;
@@ -429,9 +432,14 @@ export module Controllers {
           if (postSaveCreateHookFunctionString != null) {
             let postSaveCreateHookFunction = eval(postSaveCreateHookFunctionString);
             let options = _.get(postSaveCreateHook, "options", {});
-            postSaveCreateHookFunction(oid, record, options).subscribe(result => {
-              sails.log.debug(`post-save trigger ${postSaveCreateHookFunctionString} completed for ${oid}`)
-            });
+            if (_.isFunction(postSaveCreateHookFunction)) {
+              postSaveCreateHookFunction(oid, record, options).subscribe(result => {
+                sails.log.debug(`post-save trigger ${postSaveCreateHookFunctionString} completed for ${oid}`)
+              });
+            } else {
+              sails.log.error(`Post save function: '${postSaveCreateHookFunctionString}' did not resolve to a valid function, what I got:`);
+              sails.log.error(postSaveCreateHookFunction);
+            }
           }
         });
       }
@@ -480,6 +488,7 @@ export module Controllers {
       const brand = BrandingService.getBrand(req.session.branding);
       const metadata = req.body;
       const oid = req.param('oid');
+      const targetStep = req.param('targetStep');
       const user = req.user;
       let currentRec = null;
       let origRecord = null;
@@ -489,18 +498,24 @@ export module Controllers {
         currentRec = cr;
         return this.hasEditAccess(brand, user, currentRec);
       })
-        .map(hasEditAccess => {
+        .flatMap(hasEditAccess => {
           return RecordTypesService.get(brand, currentRec.metaMetadata.type)
         }).flatMap(recordType => {
-          return recordType;
-        }).flatMap(recordType => {
+          recType = recordType;
+          if (targetStep) {
+            return WorkflowStepsService.get(recType, targetStep);
+          } else {
+            return Observable.of(null);
+          }
+        }).flatMap(nextStep => {
           if (metadata.delete) {
             return Observable.of(currentRec);
           }
-          recType = recordType;
+          this.updateWorkflowStep(currentRec, nextStep);
           origRecord = _.cloneDeep(currentRec);
           currentRec.metadata = metadata;
-          let observable = this.triggerPreSaveTriggers(oid, currentRec, recordType);
+
+          let observable = this.triggerPreSaveTriggers(oid, currentRec, recType);
 
           return observable.then(record => {
             return record
@@ -537,7 +552,7 @@ export module Controllers {
               })
               .subscribe(response => {
                 if (response && response.code == "200") {
-                  this.triggerPostSaveTriggers(response['oid'], record, recType);
+                  this.triggerPostSaveTriggers(response['oid'], currentRec, recType);
                   return this.updateDataStream(oid, origRecord, metadata, response, req, res);
                 } else {
                   this.ajaxFail(req, res, null, response);
@@ -572,7 +587,7 @@ export module Controllers {
 
 
               sails.log.debug(`Triggering pre save triggers: ${preSaveUpdateHookFunctionString}`);
-              record = await preSaveUpdateHookFunction(record, options).toPromise();
+              record = await preSaveUpdateHookFunction(oid, record, options).toPromise();
 
 
           }
@@ -642,6 +657,7 @@ export module Controllers {
 
     protected updateWorkflowStep(currentRec, nextStep) {
       if (!_.isEmpty(nextStep)) {
+        currentRec.previousWorkflow = currentRec.workflow;
         currentRec.workflow = nextStep.config.workflow;
         // TODO: validate data with form fields
         currentRec.metaMetadata.form = nextStep.config.form;
