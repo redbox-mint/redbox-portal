@@ -99,14 +99,18 @@ export class RecordsService extends BaseService {
     });
   }
 
-  create(record: any, recordType: string) {
-    return this.http.post(`${this.brandingAndPortalUrl}/recordmeta/${recordType}`, record, this.getOptionsClient())
+  create(record: any, recordType: string, targetStep: string = '') {
+    return this.http.post(`${this.brandingAndPortalUrl}/recordmeta/${recordType}${ this.getTargetStepParam(targetStep, '?') }`, record, this.getOptionsClient())
     .map((res:any) => this.extractData(res) as RecordActionResult);
   }
 
-  update(oid: string, record: any) {
-    return this.http.put(`${this.brandingAndPortalUrl}/recordmeta/${oid}`, record, this.getOptionsClient())
+  update(oid: string, record: any, targetStep: string = '') {
+    return this.http.put(`${this.brandingAndPortalUrl}/recordmeta/${oid}${ this.getTargetStepParam(targetStep, '?') }`, record, this.getOptionsClient())
     .map((res:any) => this.extractData(res));
+  }
+
+  protected getTargetStepParam(targetStep, delim) {
+    return _.isEmpty(targetStep) ? '' : `${delim}targetStep=${targetStep}`;
   }
 
   stepTo(oid: string, record: any, targetStep: string) {

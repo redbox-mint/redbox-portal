@@ -23,6 +23,7 @@ import { Sails, Model } from "sails";
 import * as request from "request-promise";
 import * as luceneEscapeQuery from "lucene-escape-query";
 import * as fs from 'fs';
+import moment from 'moment-es6';
 const util = require('util');
 
 declare var FormsService, RolesService, UsersService, WorkflowStepsService, RecordTypesService;
@@ -57,7 +58,8 @@ export module Services {
       'listDatastreams',
       'deleteFilesFromStageDir',
       'getRelatedRecords',
-      'delete'
+      'delete',
+      'updateNotificationLog'
     ];
 
     public create(brand, record, packageType, formName = sails.config.form.defaultForm): Observable<any> {
@@ -115,7 +117,10 @@ export module Services {
               }
             });
           }
-          reqs.push(this.addAndRemoveDatastreams(oid, fileIdsAdded, removeIds));
+          const req = this.addAndRemoveDatastreams(oid, fileIdsAdded, removeIds);
+          if (req) {
+            reqs.push(req);
+          }
         });
         if (!_.isEmpty(reqs)) {
           return Observable.of(reqs);
@@ -161,8 +166,9 @@ export module Services {
         opts.json = false;
         opts.headers['Content-Type'] = 'application/octet-stream';
       }
-
-      return request[apiConfig.method](opts);
+      if (_.size(addIds) > 0 && _.size(removeIds) > 0) {
+        return request[apiConfig.method](opts);
+      }
     }
 
     public addDatastreams(oid, fileIds: any[]) {
@@ -550,6 +556,49 @@ export module Services {
       } else {
         return {};
       }
+    }
+
+    updateNotificationLog(oid, record, options) {
+      if (this.metTriggerCondition(oid, record, options) == "true") {
+        sails.log.verbose(`Updating notification log for oid: ${oid}`);
+        const logName = _.get(options, 'logName', null);
+        if (logName) {
+          let log = _.get(record, logName, null);
+          const entry = { date: moment().format('YYYY-MM-DDTHH:mm:ss') };
+          if (log) {
+            log.push(entry);
+          } else {
+            log = [entry];
+          }
+          _.set(record, logName, log);
+        }
+        const updateFlagName = _.get(options, 'flagName', null);
+        if (updateFlagName) {
+           _.set(record, updateFlagName, _.get(options, 'flagVal', null));
+        }
+        sails.log.verbose(`======== Notification log updates =========`);
+        sails.log.verbose(JSON.stringify(record));
+        sails.log.verbose(`======== End update =========`);
+        // ready to update
+        if (_.get(options, "saveRecord", false)) {
+          const updateOptions = this.getOptions(sails.config.record.baseUrl.redbox + sails.config.record.api.updateMeta.url, oid);
+          updateOptions.body = record;
+          return Observable.fromPromise(request[sails.config.record.api.updateMeta.method](updateOptions))
+            .flatMap(response => {
+              if (response && response.code != "200") {
+                sails.log.error(`Error updating notification log: ${oid}`);
+                sails.log.error(JSON.stringify(response));
+                return Observable.throw(new Error('Failed to update notification log'));
+              }
+              return Observable.of(record);
+            });
+        }
+      } else {
+        sails.log.verbose(`Notification log name: '${options.name}', for oid: ${oid}, not running, condition not met: ${options.triggerCondition}`);
+        sails.log.verbose(JSON.stringify(record));
+      }
+      // no updates or condition not met ... just return the record
+      return Observable.of(record);
     }
 
   }

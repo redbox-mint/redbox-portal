@@ -1,0 +1,13 @@
+<p>
+  Attention: <%= record.metadata.contributor_ci.text_full_name %>,<%= record.metadata.contributor_data_manager.text_full_name %>,<%= record.metadata.contributor_supervisor.text_full_name %>
+  <%= _.isEmpty(record.metadata.creators) ? '' : _.join(_.map(record.metadata.creators, (creator)=>{ return creator.text_full_name; }), ',') %>
+</p>
+
+<p>
+  A data publication, <%= record.metadata.title %>, has been published.
+
+  TODO: Place link here to RDA.
+</p>
+
+<p>Kind regards</p>
+<p>ReDBox Team</p>

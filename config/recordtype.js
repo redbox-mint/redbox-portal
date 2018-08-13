@@ -293,22 +293,93 @@ module.exports.recordtype = {
         pre: [
           //Transition workflow from queued to reviewing. TODO: Condition needs to be changed to check when staging location set
           {
-          function: 'sails.services.triggerservice.transitionWorkflow',
-          options: {
-            "triggerCondition": "<%= workflow.stage == 'queued'%>",
-            "targetWorkflowStageName": "reviewing",
-            "targetWorkflowStageLabel": "Reviewing"
+            function: 'sails.services.triggerservice.transitionWorkflow',
+            options: {
+              "triggerCondition": "<%= workflow.stage == 'queued'%>",
+              "targetWorkflowStageName": "reviewing",
+              "targetWorkflowStageLabel": "Reviewing"
+            }
+          },
+          //Transition workflow from publishing to published. TODO: Condition needs to be changed to check when published location set
+          {
+            function: 'sails.services.triggerservice.transitionWorkflow',
+            options: {
+              "triggerCondition": "<%= workflow.stage == 'publishing'%>",
+              "targetWorkflowStageName": "published",
+              "targetWorkflowStageLabel": "Published"
+            }
+          },
+          // Set the notification state for draft publications
+          {
+            function: 'sails.services.recordsservice.updateNotificationLog',
+            options: {
+              name: "Set Notification to Draft",
+              // when notification is undefined, start with 'draft', so skipping stages will still work (as with the shipped behavior above)
+              triggerCondition: "<%= typeof record.notification == 'undefined'%>",
+              flagName: 'notification.state', // the record's path to the notification flag
+              flagVal: 'draft', // hard coded value
+              saveRecord: false // when true, do metadata update -> false, since this is on a pre-save hook, gets saved anyway
+            }
           }
-        },
-        //Transition workflow from publishing to published. TODO: Condition needs to be changed to check when published location set
-        {
-          function: 'sails.services.triggerservice.transitionWorkflow',
-          options: {
-            "triggerCondition": "<%= workflow.stage == 'publishing'%>",
-            "targetWorkflowStageName": "published",
-            "targetWorkflowStageLabel": "Published"
+        ],
+        post: [
+          // `Email "data publication is staged" notification to FNCI, DM, Supervisor with link to landing page on Staging`
+          {
+            function: 'sails.services.emailservice.sendRecordNotification',
+            options: {
+              triggerCondition: "<%= record.notification != null && record.notification.state == 'draft' && record.workflow.stage == 'reviewing' %>",
+              to: "<%= record.metadata.contributor_ci.email %>,<%= record.metadata.contributor_data_manager.email %>,<%= record.metadata.contributor_supervisor.email %>",
+              subject: "A publication has been staged for publishing.",
+              template: "publicationStaged",
+              onNotifySuccess: [
+                // `Email "data publication is ready for review" notification to Librarian data-librarian@uts.edu.au with a link to the data publication record`
+                {
+                  function: 'sails.services.emailservice.sendRecordNotification',
+                  options: {
+                    forceRun: true,
+                    to: "librarian@redboxresearchdata.com.au",
+                    subject: "Data publication ready for review",
+                    template: "publicationReview"
+                  }
+                },
+                {
+                  function: 'sails.services.recordsservice.updateNotificationLog',
+                  options: {
+                    name: "Set Notification to Emailed-Reviewing",
+                    forceRun: true,
+                    flagName: 'notification.state',
+                    flagVal: 'emailed-reviewing',
+                    logName: 'notification.log.reviewing', // record's path to the log
+                    saveRecord: true // when true, do a metadata update
+                  }
+                }
+              ]
+            }
+          },
+          // Triggers "Published" Email Notification to FNCI, DM, Collaborators, CC: librarian with RDA link
+          {
+            function: 'sails.services.emailservice.sendRecordNotification',
+            options: {
+              triggerCondition: "<%= record.notification != null && record.notification.state == 'emailed-reviewing' && record.workflow.stage == 'published' %>",
+              to: "<%= record.metadata.contributor_ci.email %>,<%= record.metadata.contributor_data_manager.email %>,<%= record.metadata.contributor_supervisor.email %>,librarian@redboxresearchdata.com.au,<%= _.isEmpty(record.metadata.creators) ? '' : _.join(_.map(record.metadata.creators, (creator)=>{ return creator.email; }), ',') %>",
+              subject: "A publication has been successfully published",
+              template: "publicationPublished",
+              onNotifySuccess: [
+                {
+                  function: 'sails.services.recordsservice.updateNotificationLog',
+                  options: {
+                    name: "Set Notification to Emailed-Published",
+                    forceRun: true,
+                    flagName: 'notification.state',
+                    flagVal: 'emailed-published',
+                    logName: 'notification.log.published', // record's path to the log
+                    saveRecord: true // when true, do a metadata update
+                  }
+                }
+              ]
+            }
           }
-        }]
+        ]
       }
     }
   }

@@ -1306,6 +1306,21 @@ module.exports = {
                       }
                     }
                   }
+                },
+                {
+                  class: 'HiddenValue',
+                  compClass: 'HiddenValueComponent',
+                  definition: {
+                    name: 'contributor_supervisor',
+                    subscribe: {
+                      'dataRecordGetter': {
+                        onValueUpdate: [{
+                          action: 'utilityService.getPropertyFromObject',
+                          field: 'contributor_supervisor'
+                        }]
+                      }
+                    }
+                  }
                 }
               ]
             }

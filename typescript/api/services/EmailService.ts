@@ -39,7 +39,8 @@ export module Services {
         protected _exportedMethods: any = [
             'sendMessage',
             'buildFromTemplate',
-            'sendTemplate'
+            'sendTemplate',
+            'sendRecordNotification'
         ];
 
       /**
@@ -155,6 +156,67 @@ export module Services {
                 });
             }
         });
+      }
+
+      protected runTemplate(template:string, variables) {
+        if (template && template.indexOf('<%') != -1) {
+          return _.template(template, variables)();
+        }
+        return template;
+      }
+
+      public sendRecordNotification(oid, record, options) {
+        if(this.metTriggerCondition(oid, record, options) == "true") {
+          const variables = {imports: {
+            record: record,
+            oid: oid
+          }};
+          sails.log.verbose(`Sending record notification for oid: ${oid}`);
+          sails.log.verbose(options);
+          // send record notification
+          const to = this.runTemplate(_.get(options, "to", null), variables);
+          if (!to) {
+            sails.log.error(`Error sending notification for oid: ${oid}, invalid 'To' address: ${to}. Please check your configuration 'to' option: ${_.get(options, 'to')}`);
+            return Observable.of(null);
+          }
+          const subject = this.runTemplate(_.get(options, "subject", null), variables);
+          const templateName = _.get(options, "template", "");
+          const data = {};
+          data['record'] = record;
+          data['oid'] = oid;
+          return this.buildFromTemplate(templateName, data)
+          .flatMap(buildResult => {
+            if (buildResult['status'] != 200) {
+              sails.log.error(`Failed to build email result:`);
+              sails.log.error(buildResult);
+              return Observable.throw(new Error('Failed to build email body.'));
+            }
+            return this.sendMessage(to, buildResult['body'], subject);
+          })
+          .flatMap(sendResult => {
+            if (sendResult['code'] == '200') {
+              // perform additional processing on success...
+              const postSendHooks = _.get(options, "onNotifySuccess", null);
+              if (postSendHooks) {
+                _.each(postSendHooks, (postSendHook) => {
+                  const postSendHookFnName = _.get(postSendHook, 'function', null);
+                  if (postSendHookFnName) {
+                    const postSendHookFn = eval(postSendHookFnName);
+                    const postSendHookOpts = _.get(postSendHook, 'options', null);
+                    postSendHookFn(oid, record, postSendHookOpts).subscribe(postSendRes => {
+                      sails.log.verbose(`Post notification sending hook completed: ${postSendHookFnName}`);
+                    });
+                  }
+                });
+              }
+            }
+            return Observable.of(sendResult);
+          });
+        } else {
+          sails.log.verbose(`Not sending notification log for: ${oid}, condition not met: ${_.get(options, "triggerCondition", "")}`)
+          sails.log.verbose(JSON.stringify(record));
+        }
+        return Observable.of(null);
       }
     }
 

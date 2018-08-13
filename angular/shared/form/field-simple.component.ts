@@ -465,8 +465,8 @@ export class SaveButtonComponent extends SimpleComponent {
       successObs = this.fieldMap._rootComp.delete();
     } else {
       successObs = this.field.targetStep ?
-      this.fieldMap._rootComp.onSubmit(true, this.field.targetStep, false, this.field.additionalData)
-      : this.fieldMap._rootComp.onSubmit(false, null, false, this.field.additionalData);
+      this.fieldMap._rootComp.onSubmit(this.field.targetStep, false, this.field.additionalData)
+      : this.fieldMap._rootComp.onSubmit(null, false, this.field.additionalData);
     }
     successObs.subscribe( status =>  {
       if (status) {

@@ -1,4 +1,5 @@
 import { Observable } from 'rxjs/Rx';
+declare var sails: Sails;
 
 export module Services.Core {
   export class Service {
@@ -61,6 +62,35 @@ export module Services.Core {
       }
 
       return exportedMethods;
+    }
+
+    /**
+     * returns a string that is 'true' or 'false' (literal) depending on whether the 'options.triggerCondition' is met!
+     *
+     * @author <a target='_' href='https://github.com/shilob'>Shilo Banihit</a>
+     * @param  oid
+     * @param  record
+     * @param  options
+     * @return
+     */
+    protected metTriggerCondition(oid, record, options) {
+      const triggerCondition = _.get(options, "triggerCondition", "");
+      const forceRun = _.get(options, "forceRun", false);
+      const variables = {
+        imports: {
+          record: record,
+          oid: oid
+        }
+      };
+      if (!_.isUndefined(triggerCondition) && !_.isEmpty(triggerCondition)) {
+        const compiled = _.template(triggerCondition, variables);
+        return compiled();
+      } else if (forceRun) {
+        return "true";
+      } else {
+        // if trigger condition is not set, fail fast!
+        return "false";
+      }
     }
   }
 }
