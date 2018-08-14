@@ -124,7 +124,7 @@
               <span class='text-right'>{{ field.nameColHdr }}</span>
             </div>
             <div [ngClass]="getGroupClass('text_full_name')">
-              <ng2-completer #ngCompleter [overrideSuggested]="!field.forceLookupOnly" [inputClass]="'form-control'" [placeholder]="field.vocabField.placeHolder" [clearUnselected]="field.forceLookupOnly" (selected)="onSelect($event)" [datasource]="field.vocabField.dataService" [minSearchLength]="0" [initialValue]="field.vocabField.initialValue"></ng2-completer>
+              <ng2-completer #ngCompleter (keydown)="onKeydown($event)" [overrideSuggested]="!field.forceLookupOnly" [inputClass]="'form-control'" [placeholder]="field.vocabField.placeHolder" [clearUnselected]="field.forceLookupOnly" (selected)="onSelect($event)" [datasource]="field.vocabField.dataService" [minSearchLength]="0" [initialValue]="field.vocabField.initialValue"></ng2-completer>
               <div class="text-danger" *ngIf="field.formModel.controls['text_full_name'].hasError('required')">{{field.validationMessages.required.text_full_name}}</div>
             </div>
             <div class='col-xs-1'>

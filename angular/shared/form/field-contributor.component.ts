@@ -31,6 +31,9 @@ import { VocabField } from './field-vocab.component';
  * Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a>
  *
  */
+const KEY_TAB = 9;
+const KEY_EN = 13;
+
 export class ContributorField extends FieldBase<any> {
   nameColHdr: string;
   emailColHdr: string;
@@ -303,6 +306,8 @@ export class ContributorComponent extends SimpleComponent {
   field: ContributorField;
   @Input() isEmbedded: boolean = false;
   @ViewChild('ngCompleter') public ngCompleter: any;
+  lastSelected: any;
+  emptied: boolean = false;
 
   public ngOnInit() {
     this.field.componentReactors.push(this);
@@ -311,7 +316,11 @@ export class ContributorComponent extends SimpleComponent {
 
   public ngAfterViewInit() {
     if (this.field.editMode && this.ngCompleter) {
+      const that = this;
       this.ngCompleter.ctrInput.nativeElement.setAttribute('aria-label', 'Name');
+      this.ngCompleter.registerOnChange((v) => {
+        that.emptied = _.isEmpty(v);
+      });
     }
   }
 
@@ -329,6 +338,7 @@ export class ContributorComponent extends SimpleComponent {
     if (selected) {
       if ( (_.isEmpty(selected.title) || _.isUndefined(selected.title)) && (_.isEmpty(selected.text_full_name) || _.isUndefined(selected.text_full_name))) {
         console.log(`Same or empty selection, returning...`);
+        this.lastSelected = null;
         return;
       } else {
         if (selected.title && selected.title == this.field.formModel.value.text_full_name) {
@@ -336,6 +346,7 @@ export class ContributorComponent extends SimpleComponent {
           return;
         }
       }
+      this.lastSelected = selected;
       let val:any;
       if (!this.field.freeText) {
         if (_.isEmpty(selected.text_full_name)) {
@@ -365,6 +376,7 @@ export class ContributorComponent extends SimpleComponent {
       if (this.field.forceLookupOnly) {
         console.log(`Forced lookup, clearing data..`)
         this.field.setEmptyValue(emitEvent);
+        this.lastSelected = null;
       }
     }
   }
@@ -374,5 +386,17 @@ export class ContributorComponent extends SimpleComponent {
     console.log(eventData);
     this.onSelect(eventData, false, true);
   }
+
+  public onKeydown(event) {
+    if (event.keyCode === KEY_EN || event.keyCode === KEY_TAB ) {
+      if (this.lastSelected && this.emptied) {
+        const that = this;
+        setTimeout(() => {
+          that.ngCompleter.ctrInput.nativeElement.value = that.lastSelected.title;
+        }, 40);
+      }
+    }
+  }
+
 
 }
