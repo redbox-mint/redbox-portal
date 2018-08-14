@@ -39,122 +39,104 @@ export module Services {
       'assignPermissions'
     ];
 
+    protected populateContribList(contribProperties, record, emailProperty, emailList) {
+      _.each(contribProperties, editContributorProperty => {
+        let editContributor = _.get(record, editContributorProperty, null);
 
-    public assignPermissions(oid, record, options) {
-      const emailProperty = _.get(options, "emailProperty", "email");
-      const editContributorProperties = _.get(options, "editContributorProperties", []);
-
-      let authorization = _.get(record, "authorization", {});
-
-
-      let editContributorObs = [];
-      let editContributorEmails = [];
-      let viewContributorEmails = [];
-      _.each(editContributorProperties, editContributorProperty => {
-        let editContributor = _.get(record, editContributorProperty, {});
-
-
-        if (_.isArray(editContributor)) {
-          sails.log.verbose(`Edit contributor array`);
-          sails.log.verbose(editContributor);
-          _.each(editContributor, contributor => {
-
-            let editContributorEmailAddress = _.get(contributor, emailProperty, null);
-            var queryObject = {};
-            queryObject["email"] = editContributorEmailAddress;
-            let obs = this.getObservable(User.findOne(queryObject));
-            editContributorObs.push(obs);
-            if (editContributorEmailAddress != null) {
-              sails.log.verbose(`Pushing email address ${editContributorEmailAddress}`)
-              editContributorEmails.push(editContributorEmailAddress);
-            }
-          });
-        } else {
-          sails.log.verbose(`Edit contributor`);
-          sails.log.verbose(editContributor);
-          let editContributorEmailAddress = _.get(editContributor, emailProperty, null);
-
-          var queryObject = {};
-          queryObject["email"] = editContributorEmailAddress;
-          let obs = this.getObservable(User.findOne(queryObject));
-          editContributorObs.push(obs);
-          if (editContributorEmailAddress != null) {
-            editContributorEmails.push(editContributorEmailAddress);
-            sails.log.verbose(`Pushing email address ${editContributorEmailAddress}`);
-          }
-        }
-
-
-      });
-      return Observable.zip(...editContributorObs).map(editContributorUsers => {
-        let newEditList = [];
-
-        _.each(editContributorUsers, editContributorUser => {
-          if (editContributorUser != null) {
-            _.remove(editContributorEmails, editContributorEmail => {
-              return editContributorEmail == editContributorUser['email'];
-            });
-            newEditList.push(editContributorUser['username']);
-          }
-        });
-
-        record.authorization.edit = newEditList;
-
-        record.authorization.editPending = editContributorEmails;
-
-        return record;
-      }).map(record => {
-        const emailProperty = _.get(options, "emailProperty", "email");
-        const viewContributorProperties = _.get(options, "viewContributorProperties", []);
-
-        let viewContributorObs = [];
-        //need the record for the next map so we'll put it in first.
-        viewContributorObs.push(Observable.of(record));
-        _.each(viewContributorProperties, viewContributorProperty => {
-          let viewContributor = _.get(record, viewContributorProperty, {});
-
-
-          if (_.isArray(viewContributor)) {
-            _.each(viewContributor, contributor => {
-              let viewContributorEmailAddress = _.get(contributor, emailProperty, null);
-              var queryObject = {};
-              queryObject["email"] = viewContributorEmailAddress;
-              let obs = this.getObservable(User.findOne(queryObject));
-              viewContributorObs.push(obs);
-              if (viewContributorEmailAddress != null) {
-                viewContributorEmails.push(viewContributorEmailAddress);
+        if (editContributor) {
+          if (_.isArray(editContributor)) {
+            sails.log.verbose(`Contributor array`);
+            sails.log.verbose(editContributor);
+            _.each(editContributor, contributor => {
+              let editContributorEmailAddress = _.get(contributor, emailProperty, null);
+              if (!editContributorEmailAddress) {
+                if (!contributor) {
+                  return;
+                }
+                editContributorEmailAddress = contributor;
+              }
+              if (editContributorEmailAddress != null) {
+                sails.log.verbose(`Pushing contrib email address ${editContributorEmailAddress}`)
+                emailList.push(editContributorEmailAddress);
               }
             });
           } else {
-            let viewContributorEmailAddress = _.get(viewContributor, emailProperty, null);
-            var queryObject = {};
-            queryObject["email"] = viewContributorEmailAddress;
-            let obs = this.getObservable(User.findOne(queryObject));
-            viewContributorObs.push(obs);
-            if (viewContributorEmailAddress != null) {
-              viewContributorEmails.push(viewContributorEmailAddress);
+            sails.log.verbose(`Contributor`);
+            sails.log.verbose(editContributor);
+            let editContributorEmailAddress = _.get(editContributor, emailProperty, null);
+            if (!editContributorEmailAddress) {
+              if (!editContributor) {
+                return;
+              }
+              editContributorEmailAddress = editContributor;
+            }
+            if (editContributorEmailAddress != null) {
+              emailList.push(editContributorEmailAddress);
+              sails.log.verbose(`Pushing contrib email address ${editContributorEmailAddress}`);
             }
           }
+        }
+      });
+      return _.uniq(emailList);
+    }
 
-
-        });
-        return Observable.zip(...viewContributorObs);
-      }).flatMap(viewContributorUsers => {
-        return viewContributorUsers;}).flatMap(viewContributorUsers => {
-        let record = viewContributorUsers[0];
-        viewContributorUsers = _.slice(viewContributorUsers, 1);
-        let newviewList = [];
-        _.each(viewContributorUsers, viewContributorUser => {
-          if(viewContributorUser != null) {
-          _.remove(viewContributorEmails, viewContributorEmail => {
-            return viewContributorEmail == viewContributorUser['email'];
+    protected filterPending(users, userEmails, userList) {
+      _.each(users, user => {
+        if (user != null) {
+          _.remove(userEmails, email => {
+            return email == user['email'];
           });
-          newviewList.push(viewContributorUser['username']);
-        }});
+          userList.push(user['username']);
+        }
+      });
+    }
 
+
+    public assignPermissions(oid, record, options) {
+      sails.log.verbose(`Assign Permissions executing on oid: ${oid}, using options:`);
+      sails.log.verbose(JSON.stringify(options));
+      sails.log.verbose(`With record: `);
+      sails.log.verbose(record);
+      const emailProperty = _.get(options, "emailProperty", "email");
+      const editContributorProperties = _.get(options, "editContributorProperties", []);
+      const viewContributorProperties = _.get(options, "viewContributorProperties", []);
+      let authorization = _.get(record, "authorization", {});
+      let editContributorObs = [];
+      let viewContributorObs = [];
+      let editContributorEmails = [];
+      let viewContributorEmails = [];
+
+      // get the new editor list...
+      editContributorEmails = this.populateContribList(editContributorProperties, record, emailProperty, editContributorEmails);
+      // get the new viewer list...
+      viewContributorEmails = this.populateContribList(viewContributorProperties, record, emailProperty, viewContributorEmails);
+
+      if (_.isEmpty(editContributorEmails)) {
+        sails.log.error(`No editors for record: ${oid}`);
+      }
+      if (_.isEmpty(viewContributorEmails)) {
+        sails.log.error(`No viewers for record: ${oid}`);
+      }
+      _.each(editContributorEmails, editorEmail => {
+        editContributorObs.push(this.getObservable(User.findOne({email: editorEmail})));
+      });
+      _.each(viewContributorEmails, viewerEmail => {
+        viewContributorObs.push(this.getObservable(User.findOne({email: viewerEmail})));
+      });
+
+      return Observable.zip(...editContributorObs)
+      .flatMap(editContributorUsers => {
+        let newEditList = [];
+        this.filterPending(editContributorUsers, editContributorEmails, newEditList);
+        record.authorization.edit = newEditList;
+        record.authorization.editPending = editContributorEmails;
+        return Observable.zip(...viewContributorObs);
+      })
+      .flatMap(viewContributorUsers => {
+        let newviewList = [];
+        this.filterPending(viewContributorUsers, editContributorEmails, newviewList);
         record.authorization.view = newviewList;
         record.authorization.viewPending = viewContributorEmails;
-
         return Observable.of(record);
       });
     }

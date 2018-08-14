@@ -10,7 +10,7 @@ module.exports.recordtype = {
             "editContributorProperties": [
               "metadata.contributor_ci",
               "metadata.contributor_data_manager",
-              "dataowner_email"
+              "metadata.dataowner_email"
             ],
             "viewContributorProperties": [
               "metadata.contributor_ci",
@@ -36,7 +36,7 @@ module.exports.recordtype = {
             "editContributorProperties": [
               "metadata.contributor_ci",
               "metadata.contributor_data_manager",
-              "dataowner_email"
+              "metadata.dataowner_email"
             ],
             "viewContributorProperties": [
               "metadata.contributor_ci",
@@ -216,7 +216,7 @@ module.exports.recordtype = {
             "editContributorProperties": [
               "metadata.contributor_ci",
               "metadata.contributor_data_manager",
-              "dataowner_email"
+              "metadata.dataowner_email"
             ],
             "viewContributorProperties": [
               "metadata.contributor_ci",
@@ -235,7 +235,7 @@ module.exports.recordtype = {
             "editContributorProperties": [
               "metadata.contributor_ci",
               "metadata.contributor_data_manager",
-              "dataowner_email"
+              "metadata.dataowner_email"
             ],
             "viewContributorProperties": [
               "metadata.contributor_ci",

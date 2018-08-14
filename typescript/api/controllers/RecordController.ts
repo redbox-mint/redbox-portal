@@ -172,6 +172,7 @@ export module Controllers {
 
     public updateResponsibilities(req, res) {
       const brand = BrandingService.getBrand(req.session.branding);
+      const user = req.user;
       const records = req.body.records;
       const updateData = req.body.updateData;
       var role = req.body.role;
@@ -182,46 +183,54 @@ export module Controllers {
         let completeRecordSet = [];
         let hasError = false;
         _.forEach(records, rec => {
-          let recType = rec.metadata.metaMetadata.type;
-          let relatedRecords = RecordsService.getRelatedRecords(rec.oid, brand);
+          // First: check if this user has edit access to this record, we don't want Gremlins sneaking in on us
+          // Not trusting what was posted, retrieving from DB...
+          this.getRecord(rec.oid).subscribe(recObj => {
+            if (RecordsService.hasEditAccess(brand, user, user.roles, recObj)) {
+              let recType = rec.metadata.metaMetadata.type;
+              let relatedRecords = RecordsService.getRelatedRecords(rec.oid, brand);
 
-          relatedRecords.then(relatedRecords =>{
+              relatedRecords.then(relatedRecords =>{
 
-              let relationships = relatedRecords['processedRelationships'];
+                  let relationships = relatedRecords['processedRelationships'];
 
-              let relatedObjects = relatedRecords['relatedObjects'];
+                  let relatedObjects = relatedRecords['relatedObjects'];
 
-              //If there are no relationships, the record isn't related to any others so manually inject the info needed to have this record processed
-              if(relationships.indexOf(recType) == -1) {
-                relationships.push(recType);
-                relatedObjects[recType] = [ {redboxOid: rec.oid} ];
-              }
-              let relationshipCount = 0;
-              _.each(relationships, relationship => {
-                 let relationshipObjects = relatedObjects[relationship];
-                  relationshipCount++;
-                  let relationshipObjectCount = 0;
-                 _.each(relationshipObjects, relationshipObject => {
+                  //If there are no relationships, the record isn't related to any others so manually inject the info needed to have this record processed
+                  if(relationships.indexOf(recType) == -1) {
+                    relationships.push(recType);
+                    relatedObjects[recType] = [ {redboxOid: rec.oid} ];
+                  }
+                  let relationshipCount = 0;
+                  _.each(relationships, relationship => {
+                     let relationshipObjects = relatedObjects[relationship];
+                      relationshipCount++;
+                      let relationshipObjectCount = 0;
+                     _.each(relationshipObjects, relationshipObject => {
 
-                   const oid = relationshipObject.redboxOid;
-
-                     this.getRecord(oid).subscribe(record => {
-                       let recordType = record.metaMetadata.type;
-                       this.getTransferResponsibilityConfigObject(brand, recordType).subscribe(transferConfig => {
-                         if(transferConfig){
+                       const oid = relationshipObject.redboxOid;
+                       let record = null;
+                         this.getRecord(oid)
+                         .flatMap((rec)=> {
+                           record = rec;
+                           return RecordTypesService.get(brand, record.metaMetadata.type);
+                         })
+                         .subscribe(recordTypeObj => {
+                           let recordType = record.metaMetadata.type;
+                           const transferConfig  = recordTypeObj['transferResponsibility'];
+                           if(transferConfig){
                             record = this.updateResponsibility(transferConfig, role, record, updateData);
-
-                            let observable = this.triggerPreSaveTriggers(oid, record, recordType);
+                            sails.log.verbose(`Triggering pre-save for: ${oid}`);
+                            let observable = this.triggerPreSaveTriggers(oid, record, recordTypeObj);
                             observable.then(record => {
-
+                                    sails.log.verbose(`Updating record ${oid}`);
+                                    sails.log.verbose(JSON.stringify(record));
                                     RecordsService.updateMeta(brand, oid, record).subscribe(response => {
                                       relationshipObjectCount++;
-                                      sails.log.error(`Updating record ${oid}`);
                                       if (response && response.code == "200") {
                                         if(oid == rec.oid) {
                                           recordCtr++;
                                         }
-
                                         var to = toEmail;
                                         var subject = "Ownership transfered";
                                         var data = {};
@@ -232,7 +241,7 @@ export module Controllers {
 
 
 
-                                        if (recordCtr == records.length && relationshipCount == relationships.length && relationshipObjectCount == relationshipObjects.length) {
+                                        if (relationshipCount == relationships.length && relationshipObjectCount == relationshipObjects.length) {
                                           completeRecordSet.push({success:true, record: record});
                                           if (completeRecordSet.length == records.length) {
                                             if (hasError) {
@@ -240,7 +249,13 @@ export module Controllers {
                                             } else {
                                               return this.ajaxOk(req, res, null, completeRecordSet);
                                             }
+                                          } else {
+                                            sails.log.verbose(`Completed record set:`);
+                                            sails.log.verbose(`${completeRecordSet.length} == ${records.length}`);
                                           }
+                                        } else {
+                                          sails.log.verbose(`Record counter:`);
+                                          sails.log.verbose(`${recordCtr} == ${records.length} && ${relationshipCount} == ${relationships.length} && ${relationshipObjectCount} == ${relationshipObjects.length}`);
                                         }
                                       } else {
                                         sails.log.error(`Failed to update authorization:`);
@@ -271,14 +286,25 @@ export module Controllers {
                                   });
 
                                 }
-                    });
+                         });
                      });
 
-                 });
-
-              })
-            });
-
+                  })
+                });
+            } else {
+              const errorMsg = `Attempted to transfer responsibilities, but user: '${user.username}' has no access to record: ${rec.oid}`;
+              sails.log.error(errorMsg);
+              completeRecordSet.push({success:false, error:errorMsg, record: rec});
+              // send response in case failures occur in the last entry of the array
+              if (completeRecordSet.length == records.length) {
+                if (hasError) {
+                  return this.ajaxFail(req, res, null, completeRecordSet);
+                } else {
+                  return this.ajaxOk(req, res, null, completeRecordSet);
+                }
+              }
+            }
+          });
         });
       } else {
         return this.ajaxFail(req, res, 'No records specified');
@@ -569,9 +595,10 @@ export module Controllers {
 
 
 
-    private async triggerPreSaveTriggers(oid: string, record: any, recordType: any, mode: string = 'onUpdate') {
-      sails.log.debug("Triggering pre save triggers ");
-      sails.log.debug(`hooks.${mode}.pre`);
+    private async triggerPreSaveTriggers(oid: string, record: any, recordType: object, mode: string = 'onUpdate') {
+      sails.log.verbose("Triggering pre save triggers for record type: ");
+      sails.log.verbose(`hooks.${mode}.pre`);
+      sails.log.verbose(JSON.stringify(recordType));
 
       let preSaveUpdateHooks = _.get(recordType, `hooks.${mode}.pre`, null);
       sails.log.debug(preSaveUpdateHooks);
@@ -586,7 +613,7 @@ export module Controllers {
             let options = _.get(preSaveUpdateHook, "options", {});
 
 
-              sails.log.debug(`Triggering pre save triggers: ${preSaveUpdateHookFunctionString}`);
+              sails.log.verbose(`Triggering pre save triggers: ${preSaveUpdateHookFunctionString}`);
               record = await preSaveUpdateHookFunction(oid, record, options).toPromise();
 
 
