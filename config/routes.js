@@ -184,6 +184,7 @@ module.exports.routes = {
   'get /:branding/:portal/vocab/:vocabId': 'VocabController.get',
   'get /:branding/:portal/ands/vocab/resourceDetails': 'VocabController.rvaGetResourceDetails',
   'get /:branding/:portal/mint/:mintSourceType': 'VocabController.getMint',
+  'post /:branding/:portal/external/vocab/:provider': 'VocabController.searchExternalService',
   'get /:branding/:portal/collection/:collectionId': 'VocabController.getCollection',
   'post /:branding/:portal/collection/:collectionId': 'VocabController.loadCollection',
   'get /:branding/:portal/export': 'ExportController.index',
