@@ -227,6 +227,8 @@ module.exports.routes = {
   'post /:branding/:portal/api/records/permissions/view/:oid': 'webservice/RecordController.addUserView',
   'delete /:branding/:portal/api/records/permissions/view/:oid': 'webservice/RecordController.removeUserView',
   'get /:branding/:portal/api/records/permissions/:oid': 'webservice/RecordController.getPermissions',
+  'get /:branding/:portal/api/records/datastreams/:oid': 'webservice/RecordController.getDataStream',
+
 
 
   'get /:branding/:portal/api/users': 'webservice/UserManagementController.listUsers',

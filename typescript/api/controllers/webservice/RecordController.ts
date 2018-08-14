@@ -28,6 +28,7 @@ declare var FormsService;
 declare var RecordTypesService;
 declare var WorkflowStepsService;
 declare var RecordsService;
+import { Observable } from 'rxjs/Rx';
 
 declare var User;
 /**
@@ -53,7 +54,8 @@ export module Controllers {
       'removeUserEdit',
       'addUserView',
       'removeUserView',
-      'getPermissions'
+      'getPermissions',
+      'getDataStream'
     ];
 
     /**
@@ -310,6 +312,27 @@ export module Controllers {
         }
         );
       }
+    }
+
+    public getDataStream(req, res) {
+      const brand = BrandingService.getBrand(req.session.branding);
+      const oid = req.param('oid');
+      const datastreamId = req.param('datastreamId');
+      sails.log.error("Datastream get")
+      return RecordsService.getMeta(oid).flatMap(currentRec => {
+            const fileName = req.param('fileName') ? req.param('fileName') : datastreamId;
+            res.set('Content-Type', 'application/octet-stream');
+            res.set('Content-Disposition', `attachment; filename="${fileName}"`);
+            sails.log.verbose(`Returning datastream observable of ${oid}: ${fileName}, datastreamId: ${datastreamId}`);
+            return RecordsService.getDatastream(oid, datastreamId).flatMap((response) => {
+              res.end(Buffer.from(response.body), 'binary');
+              return Observable.of(oid);
+            });
+      }).subscribe(whatever => {
+        // ignore...
+      }, error => {
+      return res.status(500).json({message: error});
+      });
     }
 
 
