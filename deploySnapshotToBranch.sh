@@ -10,7 +10,7 @@ commit_website_files() {
   git rm -r --cached .
   rm -f .gitignore
   rm -f .travis.yml
-  rm -Rf node_modules/puppeteer
+  rm -Rf node_modules
   git add .
   git commit --message "Travis build: $TRAVIS_BUILD_NUMBER"
 }
