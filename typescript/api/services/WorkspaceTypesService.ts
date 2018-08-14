@@ -42,9 +42,11 @@ export module Services {
     ];
 
     public bootstrap = (defBrand) => {
-      return super.getObservable(WorkspaceType.find({branding: defBrand.id})).flatMap(workspaceTypes => {
+      return super.getObservable(WorkspaceType.destroy({branding: defBrand.id})).flatMap(whatever => {
         sails.log.debug('WorkspaceTypes::Bootstrap');
-        if (_.isEmpty(workspaceTypes) && !_.isEmpty(sails.config.workspacetype)) {
+        sails.log.debug(sails.config.workspacetype);
+         let workspaceTypes = [];
+        if (!_.isEmpty(sails.config.workspacetype)) {
           var wTypes = [];
           sails.log.verbose("Bootstrapping workspace type definitions... ");
           _.forOwn(sails.config.workspacetype, (config, workspaceType) => {
@@ -55,7 +57,6 @@ export module Services {
           return Observable.zip(...wTypes);
         } else {
           sails.log.verbose("Default or no workspaceTypes definition(s).");
-          sails.log.verbose(workspaceTypes);
           return Observable.of('');
         }
       });

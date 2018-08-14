@@ -52,12 +52,14 @@ export class WorkspaceSelectorComponent extends SimpleComponent {
         <div class="row">
           <div class="col-md-8 col-sm-8 col-xs-8 col-lg-8">
             <h5>{{ field.workspaceApp.subtitle }}</h5>
-            <p>{{ field.workspaceApp.description }}</p>
             <span *ngIf="field.rdmp">
+              <p>{{ field.workspaceApp.description }}</p>
               <button (click)="saveAndOpenWorkspace()"  class="btn btn-primary">{{ field.open }}</button>
             </span>
             <span *ngIf="!field.rdmp">
-              <a disabled href="#" class="btn btn-default">{{ field.saveFirst }}</a>
+              <p class="text-danger">
+                <strong>{{ field.saveFirst }}</strong>
+              </p>
             </span>
           </div>
           <div class="col-md-4 col-sm-4 col-xs-4 col-lg-4">

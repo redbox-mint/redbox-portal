@@ -58,6 +58,9 @@ export class VocabField extends FieldBase<any> {
   public component: any;
   public restrictToSelection: boolean;
   public storeLabelOnly: boolean;
+  public provider: string;
+  public resultArrayProperty: string;
+
   @Output() onItemSelect: EventEmitter<any> = new EventEmitter<any>();
 
   constructor(options: any, injector: any) {
@@ -77,6 +80,8 @@ export class VocabField extends FieldBase<any> {
     this.stringLabelToField = options['stringLabelToField'] ? options['stringLabelToField'] : 'dc_title';
     this.restrictToSelection = _.isUndefined(options['restrictToSelection']) ? false : options['restrictToSelection'];
     this.storeLabelOnly = options['storeLabelOnly'] ? options['storeLabelOnly'] : false;
+    this.provider = options['provider'] ? options['provider'] : '';
+    this.resultArrayProperty = options['resultArrayProperty'] ? options['resultArrayProperty'] : '';
   }
 
   createFormModel(valueElem: any = undefined, createFormGroup: boolean = false) {
@@ -169,7 +174,18 @@ export class VocabField extends FieldBase<any> {
         this.titleFieldArr,
         this.titleFieldDelim,
         this.searchFields);
+    } else if (this.sourceType == "external") {
+      const url = this.lookupService.getExternalServiceUrl(this.provider);
+      this.dataService = new ExternalLookupDataService(
+        url,
+        this.lookupService.http,
+        this.resultArrayProperty,
+        this.titleFieldName,
+        this.titleFieldArr,
+        this.titleFieldDelim
+      );
     }
+
   }
 
   public getTitle(data: any): string {
@@ -248,6 +264,71 @@ export class VocabField extends FieldBase<any> {
 
 }
 
+class ExternalLookupDataService extends Subject<CompleterItem[]> implements CompleterData {
+
+    constructor(private url: string,
+      private http: Http,
+      private arrayProperty: string,
+      private compositeTitleName: string,
+      private titleFieldArr: string[],
+      private titleFieldDelim: string) {
+      super();
+    }
+
+    public search(term: string): void {
+
+      this.http.post(this.url,{options:{query: term}}).map((res: any, index: number) => {
+        // Convert the result to CompleterItem[]
+        let data = res.json();
+        let itemArray = _.get(data, this.arrayProperty);
+        let matches: CompleterItem[] = [];
+        _.each(itemArray, item => {
+          matches.push(this.convertToItem(item));
+        })
+
+        this.next(matches);
+      }).subscribe();
+    }
+
+    public cancel() {
+      // Handle cancel
+    }
+
+    public convertToItem(data: any): CompleterItem | null {
+      if (!data) {
+        return null;
+      }
+      let completerItem = {};
+      completerItem[this.compositeTitleName] = this.getTitle(data);
+      completerItem['originalObject'] = data;
+      return completerItem as CompleterItem;
+    }
+
+    getTitle(data: any): string {
+      let title = '';
+      if (data) {
+        if (_.isString(this.titleFieldDelim)) {
+          _.forEach(this.titleFieldArr, (titleFld: string) => {
+            const titleVal = _.get(data, titleFld);
+            if (titleVal) {
+              title = `${title}${_.isEmpty(title) ? '' : this.titleFieldDelim}${titleVal}`;
+            }
+          });
+        } else {
+          // // expecting a delim pair array, 'prefix', 'suffix'
+          // _.forEach(this.titleFieldArr, (titleFld: string, idx) => {
+          //   const delimPair = this.titleFieldDelim[idx];
+          //   const titleVal = data[titleFld];
+          //   if (titleVal) {
+          //     title = `${title} ${titleVal}`;
+          //   }
+          // });
+        }
+      }
+      return title;
+    }
+
+}
 class MintLookupDataService extends Subject<CompleterItem[]> implements CompleterData {
 
   searchFields: any[];
@@ -327,7 +408,7 @@ class MintLookupDataService extends Subject<CompleterItem[]> implements Complete
           const delimPair = this.titleFieldDelim[idx];
           const titleVal = data[titleFld];
           if (titleVal) {
-            title = `${title}${delimPair.prefix}${titleVal}${delimPair.suffix}`;
+            title = `${title} ${titleVal}${delimPair.suffix}`;
           }
         });
       }
@@ -374,6 +455,10 @@ export class VocabFieldLookupService extends BaseService {
 
   getMintRootUrl(source: string) {
     return `${this.brandingAndPortalUrl}/${this.config.mintRootUri}/${source}/?search=`;
+  }
+
+  getExternalServiceUrl(provider: string) {
+    return `${this.brandingAndPortalUrl}/external/vocab/${provider}`;
   }
 }
 
