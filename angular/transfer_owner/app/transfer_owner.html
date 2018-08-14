@@ -49,6 +49,7 @@
         <label [hidden]="true" for="userlookup">{{ 'transfer-ownership-step-3' | translate }}</label>
       </div>
       <rb-vocab [field]="userLookupMeta" [form]="formGroup" [disableEditAfterSelect]="false"></rb-vocab>
+      <div><br/></div>
       <button [disabled]="!canTransfer()" class="btn btn-primary" type='button' data-toggle="modal" data-target="#myModal">{{ 'transfer-ownership-execute' | translate }}</button>
       <div><br/></div>
       <div>{{ 'transfer-ownership-step-2-update' | translate }}</div>

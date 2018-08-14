@@ -180,9 +180,9 @@ export class TransferOwnerComponent extends LoadableComponent {
     var userEmail = this.user.email;
 
     _.each(allowedToEdit, projectRole => {
-
-      var fieldName = this.transferConfig["fields"][projectRole].fieldNames.email;
-      if (_.some(plan.metadata[fieldName]) && plan.metadata[fieldName][0] == userEmail) {
+      const fieldSource = !_.isUndefined(this.transferConfig["fields"][projectRole].updateField)? `${ this.transferConfig["fields"][projectRole].updateField }.email` : `${this.transferConfig["fields"][projectRole].fieldNames.email}`;
+      const fieldVal = _.get(plan.metadata.metadata, fieldSource);
+      if (fieldVal == userEmail) {
         canEdit = true;
       }
     });

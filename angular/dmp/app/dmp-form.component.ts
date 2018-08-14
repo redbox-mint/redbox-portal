@@ -177,12 +177,11 @@ export class DmpFormComponent extends LoadableComponent {
   /**
    * Main submit method.
    *
-   * @param  {boolean    =             false} nextStep
    * @param  {string     =             null}  targetStep
    * @param  {boolean=false} forceValidate
    * @return {[type]}
    */
-  onSubmit(nextStep:boolean = false, targetStep:string = null, forceValidate:boolean=false, additionalData: any = null) {
+  onSubmit(targetStep:string = null, forceValidate:boolean=false, additionalData: any = null) {
     this.onBeforeSave.emit({oid: this.oid});
     if (!this.isValid(forceValidate)) {
       return Observable.of(false);
@@ -197,7 +196,7 @@ export class DmpFormComponent extends LoadableComponent {
     console.log(this.payLoad);
     this.needsSave = false;
     if (_.isEmpty(this.oid)) {
-      return this.RecordsService.create(this.payLoad, this.recordType).flatMap((res:any)=>{
+      return this.RecordsService.create(this.payLoad, this.recordType, targetStep).flatMap((res:any)=>{
         this.clearSaving();
         console.log("Create Response:");
         console.log(res);
@@ -206,9 +205,6 @@ export class DmpFormComponent extends LoadableComponent {
           this.recordCreated.emit({oid: this.oid});
           this.LocationService.go(`record/edit/${this.oid}`);
           this.setSuccess(this.getMessage(this.formDef.messages.saveSuccess));
-          if (nextStep) {
-            return this.stepTo(targetStep);
-          }
           return Observable.of(true);
         } else {
           this.setError(`${this.getMessage(this.formDef.messages.saveError)} ${res.message}`);
@@ -219,15 +215,11 @@ export class DmpFormComponent extends LoadableComponent {
         return Observable.of(false);
       });
     } else {
-      return this.RecordsService.update(this.oid, this.payLoad).flatMap((res:any)=>{
+      return this.RecordsService.update(this.oid, this.payLoad, targetStep).flatMap((res:any)=>{
         this.clearSaving();
         console.log("Update Response:");
         console.log(res);
         if (res.success) {
-          if (nextStep) {
-            console.log(`Stepping to: ${targetStep}`)
-            return this.stepTo(targetStep);
-          }
           this.recordSaved.emit({oid: this.oid, success:true});
           this.setSuccess(this.getMessage(this.formDef.messages.saveSuccess));
           return Observable.of(true);
@@ -441,43 +433,7 @@ export class DmpFormComponent extends LoadableComponent {
     });
     return message;
   }
-  /**
-   * Submit the form towards a target step.
-   *
-   * @param  {string} targetStep
-   * @return {[type]}
-   */
-  stepTo(targetStep: string) {
-    this.onBeforeSave.emit({oid: this.oid});
-    console.log(this.form.value);
-    if (!this.isValid(true)) {
-      return;
-    }
-    this.needsSave = false;
-    if (_.isEmpty(this.oid)) {
-      return this.onSubmit(true, targetStep, true);
-    } else {
-      this.setSaving(this.getMessage(this.formDef.messages.saving));
-      const values = this.formatValues(this.form.value);
-      this.payLoad = JSON.stringify(values);
-      console.log(this.payLoad);
-      return this.RecordsService.stepTo(this.oid, this.payLoad, targetStep).flatMap((res:any) => {
-        this.clearSaving();
-        console.log("Step to Response:");
-        console.log(res);
-        if (res.success) {
-          this.setSuccess(this.getMessage(this.formDef.messages.saveSuccess));
-          return Observable.of(true);
-        } else {
-          this.setError(`${this.getMessage(this.formDef.messages.saveError)} ${res.message}`);
-          return Observable.of(false);
-        }
-      }).catch((err:any)=>{
-        this.setError(`${this.getMessage(this.formDef.messages.saveError)} ${err}`);
-        return Observable.of(false);
-      });
-    }
-  }
+
   /**
    * Trigger form elements to format their values.
    *
