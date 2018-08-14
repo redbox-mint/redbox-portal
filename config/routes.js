@@ -184,6 +184,7 @@ module.exports.routes = {
   'get /:branding/:portal/vocab/:vocabId': 'VocabController.get',
   'get /:branding/:portal/ands/vocab/resourceDetails': 'VocabController.rvaGetResourceDetails',
   'get /:branding/:portal/mint/:mintSourceType': 'VocabController.getMint',
+  'post /:branding/:portal/external/vocab/:provider': 'VocabController.searchExternalService',
   'get /:branding/:portal/collection/:collectionId': 'VocabController.getCollection',
   'post /:branding/:portal/collection/:collectionId': 'VocabController.loadCollection',
   'get /:branding/:portal/export': 'ExportController.index',
@@ -226,6 +227,8 @@ module.exports.routes = {
   'post /:branding/:portal/api/records/permissions/view/:oid': 'webservice/RecordController.addUserView',
   'delete /:branding/:portal/api/records/permissions/view/:oid': 'webservice/RecordController.removeUserView',
   'get /:branding/:portal/api/records/permissions/:oid': 'webservice/RecordController.getPermissions',
+  'get /:branding/:portal/api/records/datastreams/:oid': 'webservice/RecordController.getDataStream',
+
 
 
   'get /:branding/:portal/api/users': 'webservice/UserManagementController.listUsers',

@@ -43,6 +43,7 @@ export module Controllers {
         'getCollection',
         'loadCollection',
         'getMint',
+        'searchExternalService',
         'searchPeople',
         'rvaGetResourceDetails'
     ];
@@ -98,6 +99,17 @@ export module Controllers {
       VocabService.findInMint(mintSourceType, searchString).subscribe(mintResponse => {
         // only return the response...
         this.ajaxOk(req, res, null, mintResponse.response.docs, true);
+      }, error => {
+        this.ajaxFail(req, res, null, error, true);
+      });
+    }
+
+    public searchExternalService(req, res) {
+      const providerName = req.param('provider');
+      const params = req.body;
+      VocabService.findInExternalService(providerName, params).subscribe(response => {
+        // only return the response...
+        this.ajaxOk(req, res, null, response, true);
       }, error => {
         this.ajaxFail(req, res, null, error, true);
       });

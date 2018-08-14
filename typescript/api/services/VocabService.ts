@@ -44,6 +44,7 @@ export module Services {
       'loadCollection',
       'findCollection',
       'findInMint',
+      'findInExternalService',
       'rvaGetResourceDetails'
     ];
 
@@ -69,6 +70,36 @@ export module Services {
       const options = this.getMintOptions(mintUrl);
       sails.log.verbose(options);
       return Observable.fromPromise(request[sails.config.record.api.search.method](options));
+    }
+
+    public findInExternalService(providerName, params) {
+      const method = sails.config.vocab.providers[providerName].method;
+      let url = sails.config.vocab.providers[providerName].url;
+
+      let templateFunction = this.getTemplateStringFunction(url);
+      url = templateFunction(params.options);
+
+      sails.log.info(url);
+      let options = sails.config.vocab.providers[providerName].options;
+      options['url'] = url;
+      options['json'] = true;
+      sails.log.verbose(options);
+
+      if(method == 'post') {
+        options['body'] = params.postBody;
+      }
+      return Observable.fromPromise(request[sails.config.record.api.search.method](options));
+    }
+
+    private getTemplateStringFunction(template) {
+      var sanitized = template
+          .replace(/\$\{([\s]*[^;\s\{]+[\s]*)\}/g, function(_, match){
+              return `\$\{map.${match.trim()}\}`;
+              })
+          // Afterwards, replace anything that's not ${map.expressions}' (etc) with a blank string.
+          .replace(/(\$\{(?!map\.)[^}]+\})/g, '');
+
+      return Function('map', `return \`${sanitized}\``);
     }
 
 
@@ -179,7 +210,7 @@ export module Services {
     public rvaGetResourceDetails(uri,vocab) {
       const url = sails.config.vocab.rootUrl+`${vocab}/resource.json?uri=${uri}`;
       const options = {url: url, json:true};
-      
+
       return Observable.fromPromise(request.get(options)).flatMap(response => {
         CacheService.set(vocab, response);
         return Observable.of(response);

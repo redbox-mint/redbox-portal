@@ -10,7 +10,7 @@
 superPartial = function(value, branding,portal) {
     var partialLocation = value;
     <!-- Resolve the actual location of the partial -->
-    partialLocation = ViewUtils.resolvePartialPath(value,branding,portal,__dirname);
+    partialLocation = ViewUtils.resolvePartialPath(value,branding,portal,templateDirectoryLocation);
 
     return partial(partialLocation);
 }
