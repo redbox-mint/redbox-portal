@@ -401,30 +401,10 @@ export module Controllers {
           wfStepObs = WorkflowStepsService.get(recType, targetStep);
         }
         wfStepObs.subscribe(wfStep => {
-            let preSaveCreateHooks = _.get(recordType, "hooks.onCreate.pre", null);
-            if (_.isArray(preSaveCreateHooks)) {
-              let observable = null;
-              _.each(preSaveCreateHooks, preSaveCreateHook => {
-                let preSaveCreateHookFunctionString = _.get(preSaveCreateHook, "function", null);
-                if (preSaveCreateHookFunctionString != null) {
-                  let preSaveCreateHookFunction = eval(preSaveCreateHookFunctionString);
-                  let options = _.get(preSaveCreateHook, "options", {});
-                  if (observable == null) {
-                    observable = preSaveCreateHookFunction(record, options);
-                  } else {
-                    observable = observable.flatMap(record => {
-                      return preSaveCreateHookFunction(record, options);
-                    });
-                  }
-                }
-              });
-              return observable.subscribe(record => {
-
-               return this.createRecord(record, wfStep, brand, packageType, recordType, req, res);
-              });
-            } else {
+            let obs = this.triggerPreSaveTriggers(null, record, recordType, "onCreate");
+            obs.then(record => {
               return this.createRecord(record, wfStep, brand, packageType, recordType, req, res);
-            }
+            });
           }, error => {
             this.ajaxFail(req, res, `Failed to save record: ${error}`);
           });
