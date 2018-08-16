@@ -39,41 +39,33 @@ export module Services {
       'assignPermissions'
     ];
 
+    protected addEmailToList(contributor, emailProperty, emailList) {
+      let editContributorEmailAddress = _.get(contributor, emailProperty, null);
+      if (!editContributorEmailAddress) {
+        if (!contributor) {
+          return;
+        }
+        editContributorEmailAddress = contributor;
+      }
+      if (editContributorEmailAddress != null && !_.isEmpty(editContributorEmailAddress) && !_.isUndefined(editContributorEmailAddress) && _.isString(editContributorEmailAddress)) {
+        sails.log.verbose(`Pushing contrib email address ${editContributorEmailAddress}`)
+        emailList.push(editContributorEmailAddress);
+      }
+    }
+
     protected populateContribList(contribProperties, record, emailProperty, emailList) {
       _.each(contribProperties, editContributorProperty => {
         let editContributor = _.get(record, editContributorProperty, null);
 
         if (editContributor) {
+          sails.log.verbose(`Contributor:`);
+          sails.log.verbose(JSON.stringify(editContributor));
           if (_.isArray(editContributor)) {
-            sails.log.verbose(`Contributor array`);
-            sails.log.verbose(editContributor);
             _.each(editContributor, contributor => {
-              let editContributorEmailAddress = _.get(contributor, emailProperty, null);
-              if (!editContributorEmailAddress) {
-                if (!contributor) {
-                  return;
-                }
-                editContributorEmailAddress = contributor;
-              }
-              if (editContributorEmailAddress != null) {
-                sails.log.verbose(`Pushing contrib email address ${editContributorEmailAddress}`)
-                emailList.push(editContributorEmailAddress);
-              }
+              this.addEmailToList(contributor, emailProperty, emailList);
             });
           } else {
-            sails.log.verbose(`Contributor`);
-            sails.log.verbose(editContributor);
-            let editContributorEmailAddress = _.get(editContributor, emailProperty, null);
-            if (!editContributorEmailAddress) {
-              if (!editContributor) {
-                return;
-              }
-              editContributorEmailAddress = editContributor;
-            }
-            if (editContributorEmailAddress != null) {
-              emailList.push(editContributorEmailAddress);
-              sails.log.verbose(`Pushing contrib email address ${editContributorEmailAddress}`);
-            }
+            this.addEmailToList(editContributor, emailProperty, emailList);
           }
         }
       });
