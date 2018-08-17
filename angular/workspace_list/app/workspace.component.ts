@@ -29,6 +29,7 @@ export class WorkspaceListComponent extends LoadableComponent implements OnInit 
   typeColLabel:string;
   linkColLlabel: string;
   rdmpColLabel: string;
+  descriptionColLabel: string;
   createWorkspaceLabel: string;
 
   workflowSteps:any = [];
@@ -56,9 +57,10 @@ protected app: ApplicationRef ) {
       this.initSubs.unsubscribe();
       this.translationService.isReady(tService => {
         this.typeColLabel = this.getTranslated(`workspaces-type-column`, "Type");
-        this.recordColLabel = this.getTranslated(`workspaces-title-column`, "Workspace");
-        this.linkColLlabel = this.getTranslated(`workspaces-link-column`, "Link");
-        this.rdmpColLabel = this.getTranslated(`workspaces-rdmp-column`, "RDMP");
+        this.descriptionColLabel = this.getTranslated(`workspaces-description-column`, "Description");
+        this.recordColLabel = this.getTranslated(`workspaces-title-column`, "Name");
+        this.linkColLlabel = this.getTranslated(`workspaces-link-column`, "Location");
+        this.rdmpColLabel = this.getTranslated(`workspaces-rdmp-column`, "Plan");
         this.createWorkspaceLabel = this.getTranslated('create-workspace', "Create Workspace");
         this.nextButtonLabel = this.getTranslated('create-workspace-next', "Next");
         this.backButtonLabel = this.getTranslated('create-workspace-back', "Back");

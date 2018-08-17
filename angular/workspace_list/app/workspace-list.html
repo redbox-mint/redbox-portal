@@ -6,9 +6,10 @@
         <thead>
           <tr>
             <th>{{ recordColLabel }}</th>
-            <th>{{ typeColLabel }}</th>
+            <th>{{ descriptionColLabel }}</th>
             <th>{{ linkColLlabel }}</th>
             <th>{{ rdmpColLabel }}</th>
+            <th>{{ typeColLabel }}</th>
           </tr>
         </thead>
         <tbody *ngFor="let plan of records.items">
@@ -16,9 +17,10 @@
                 <td>
                   {{ plan.dashboardTitle }}
                 </td>
-                <td>{{ plan.metadata.metadata.type }}</td>
+                <td>{{ plan.metadata.metadata.description }}</td>
                 <td><a target="_blank" rel="noopener noreferrer" href="{{ plan.metadata.metadata.location }}">{{ plan.metadata.metadata.location }}</a></td>
                 <td><a href="/{{ branding }}/{{ portal }}/record/view/{{ plan.metadata.metadata.rdmpOid }}">{{ plan.metadata.metadata.rdmpTitle }}</a></td>
+                <td>{{ plan.metadata.metadata.type }}</td>
             </tr>
         </tbody>
       </table>
