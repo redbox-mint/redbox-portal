@@ -166,7 +166,7 @@ export module Services {
         opts.json = false;
         opts.headers['Content-Type'] = 'application/octet-stream';
       }
-      if (_.size(addIds) > 0 && _.size(removeIds) > 0) {
+      if (_.size(addIds) > 0 || _.size(removeIds) > 0) {
         return request[apiConfig.method](opts);
       }
     }

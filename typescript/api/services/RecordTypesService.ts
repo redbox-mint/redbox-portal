@@ -45,7 +45,14 @@ export module Services {
     protected recordTypes;
 
     public bootstrap = (defBrand) => {
-      return super.getObservable(RecordType.find({branding:defBrand.id})).flatMap(recordTypes => {
+      let startQ = RecordType.find({branding:defBrand.id});
+      if (sails.config.appmode.bootstrapAlways) {
+        startQ = RecordType.destroy({branding:defBrand.id});
+      }
+      return super.getObservable(startQ).flatMap(recordTypes => {
+        if (_.isUndefined(recordTypes)) {
+          recordTypes = [];
+        }
         if (_.isEmpty(recordTypes)) {
           var rTypes = [];
           sails.log.verbose("Bootstrapping record type definitions... ");

@@ -69,6 +69,11 @@ export class SimpleComponent {
   parentId: string;
 
   /**
+   * Loaded flag
+   */
+  loaded: boolean;
+
+  /**
    * Return the NG2 FormControl or subclass thereof
    * @param  {string = null} name
    * @return {FormControl}

@@ -331,7 +331,7 @@ export module Controllers {
       }).subscribe(whatever => {
         // ignore...
       }, error => {
-      return res.status(500).json({message: error});
+        return res.status(500).json({message: error.error.toString('UTF-8')});
       });
     }
 

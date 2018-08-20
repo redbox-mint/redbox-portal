@@ -44,85 +44,89 @@ export module Services {
     ];
 
     public bootstrap = (workflowStep): Observable<any> => {
-        sails.log.verbose(`About to query.....${workflowStep.id}`);
-        sails.log.verbose(workflowStep);
-        return super.getObservable(Form.find({ workflowStep: workflowStep.id })).flatMap(form => {
-          sails.log.verbose("Found : ");
-          sails.log.verbose(form);
-          if (!form || form.length == 0) {
-            sails.log.verbose("Bootstrapping form definitions... ");
-            const formDefs = [];
-            _.forOwn(sails.config.form.forms, (formDef, formName) => {
+      let startQ = Form.find({ workflowStep: workflowStep.id })
+      if (sails.config.appmode.bootstrapAlways) {
+        sails.log.verbose(`Destroying existing form definitions: ${workflowStep.config.form}`);
+        startQ = Form.destroy({ name: workflowStep.config.form })
+      }
+      let formDefs = [];
+      return super.getObservable(startQ)
+      .flatMap(form => {
+        sails.log.verbose("Found : ");
+        sails.log.verbose(form);
+        if (!form || form.length == 0) {
+          sails.log.verbose("Bootstrapping form definitions..");
+          // only bootstrap the form for this workflow step
+          _.forOwn(sails.config.form.forms, (formDef, formName) => {
+            if (formName == workflowStep.config.form){
               formDefs.push(formName);
-            });
-            return Observable.from(formDefs);
-          } else {
-            sails.log.verbose("Not Bootstrapping form definitions... ");
-            return Observable.of(form[0]);
-          }
-        })
-          .flatMap(formName => {
-            sails.log.verbose("FormName is:");
-            sails.log.verbose(formName);
-            let observable = Observable.of(null);
-            if (!formName.name) {
-              sails.log.verbose("workflowStep is:");
-              sails.log.verbose(workflowStep);
-                if (workflowStep.config.form == formName) {
-                  const formObj = {
-                    name: formName,
-                    fields: sails.config.form.forms[formName].fields,
-                    workflowStep: workflowStep.id,
-                    type: sails.config.form.forms[formName].type,
-                    messages: sails.config.form.forms[formName].messages,
-                    viewCssClasses: sails.config.form.forms[formName].viewCssClasses,
-                    editCssClasses: sails.config.form.forms[formName].editCssClasses,
-                    skipValidationOnSave: sails.config.form.forms[formName].skipValidationOnSave,
-                    attachmentFields: sails.config.form.forms[formName].attachmentFields,
-                    customAngularApp: sails.config.form.forms[formName].customAngularApp || null
-                  };
-
-                  var q = Form.create(formObj);
-                  observable = Observable.bindCallback(q["exec"].bind(q))();
-                  // var obs = Observable.bindCallback(q["exec"].bind(q))();
-                }
-
-            } else {
-              let formObj = formName;
-              formName= formObj.name
-              formObj = {
-                fields: sails.config.form.forms[formName].fields,
-                type: sails.config.form.forms[formName].type,
-                messages: sails.config.form.forms[formName].messages,
-                viewCssClasses: sails.config.form.forms[formName].viewCssClasses,
-                editCssClasses: sails.config.form.forms[formName].editCssClasses,
-                skipValidationOnSave: sails.config.form.forms[formName].skipValidationOnSave,
-                attachmentFields: sails.config.form.forms[formName].attachmentFields,
-                customAngularApp: sails.config.form.forms[formName].customAngularApp || null
-              };
-              sails.log.verbose("Resaving form object");
-              sails.log.verbose(formObj);
-              var q = Form.update({name: formName}, formObj);
-              observable = Observable.bindCallback(q["exec"].bind(q))();
             }
-            return observable;
-          })
-          .flatMap(result => {
-            if (result) {
-              sails.log.verbose("Created form record: ");
-              sails.log.verbose(result);
-              return Observable.from(result);
-            }
-            return Observable.of(result);
-          }).flatMap(result => {
-            if (result) {
-              sails.log.verbose(`Updating workflowstep ${result.workflowStep} to: ${result.id}`);
-              // update the workflow step...
-              const q = WorkflowStep.update({id: result.workflowStep}).set({form: result.id});
-              return Observable.bindCallback(q["exec"].bind(q))();
-            }
-            return Observable.of(null);
           });
+          formDefs = _.uniq(formDefs)
+          sails.log.verbose(JSON.stringify(formDefs));
+          return Observable.from(formDefs);
+        } else {
+          sails.log.verbose("Not Bootstrapping form definitions... ");
+          return Observable.of(null);
+        }
+      })
+      .flatMap(formName => {
+        // check now if the form already exists, if it does, ignore...
+        return this.getObservable(Form.find({name: formName})).flatMap(existingFormDef => {
+          return Observable.of({formName: formName, existingFormDef: existingFormDef});
+        });
+      })
+      .flatMap(existCheck => {
+        sails.log.verbose(`Existing form check: ${existCheck.formName}`);
+        sails.log.verbose(JSON.stringify(existCheck));
+        if (_.isUndefined(existCheck.existingFormDef) || _.isEmpty(existCheck.existingFormDef)) {
+          return Observable.of(existCheck.formName);
+        } else {
+          sails.log.verbose(`Existing form definition for form name: ${existCheck.existingFormDef.name}, ignoring bootstrap.`);
+          return Observable.of(null);
+        }
+      })
+      .flatMap(formName => {
+        sails.log.verbose("FormName is:");
+        sails.log.verbose(formName);
+        let observable = Observable.of(null);
+        if (!_.isNull(formName)) {
+          sails.log.verbose(`Preparing to create form...`);
+          const formObj = {
+            name: formName,
+            fields: sails.config.form.forms[formName].fields,
+            workflowStep: workflowStep.id,
+            type: sails.config.form.forms[formName].type,
+            messages: sails.config.form.forms[formName].messages,
+            viewCssClasses: sails.config.form.forms[formName].viewCssClasses,
+            editCssClasses: sails.config.form.forms[formName].editCssClasses,
+            skipValidationOnSave: sails.config.form.forms[formName].skipValidationOnSave,
+            attachmentFields: sails.config.form.forms[formName].attachmentFields,
+            customAngularApp: sails.config.form.forms[formName].customAngularApp || null
+          };
+
+          var q = Form.create(formObj);
+          observable = Observable.bindCallback(q["exec"].bind(q))();
+          // var obs = Observable.bindCallback(q["exec"].bind(q))();
+        }
+        return observable;
+      })
+      .flatMap(result => {
+        if (result) {
+          sails.log.verbose("Created form record: ");
+          sails.log.verbose(result);
+          return Observable.from(result);
+        }
+        return Observable.of(result);
+      }).flatMap(result => {
+        if (result) {
+          sails.log.verbose(`Updating workflowstep ${result.workflowStep} to: ${result.id}`);
+          // update the workflow step...
+          const q = WorkflowStep.update({id: result.workflowStep}).set({form: result.id});
+          return Observable.bindCallback(q["exec"].bind(q))();
+        }
+        return Observable.of(null);
+      });
 
     }
 

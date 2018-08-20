@@ -471,14 +471,14 @@ export class VocabFieldLookupService extends BaseService {
       <button type="button" class="btn btn-default" *ngIf="field.help" (click)="toggleHelp()" [attr.aria-label]="'help' | translate "><span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span></button>
     </label>
     <span id="{{ 'helpBlock_' + field.name }}" class="help-block" *ngIf="this.helpShow" [innerHtml]="field.help">{{field.help}}</span>
-    <ng2-completer #ngCompleter [inputId]="field.name" [(ngModel)]="field.searchStr" [ngModelOptions]="{standalone: true}" [disableInput]="disableInput" [placeholder]="field.placeHolder" [clearUnselected]="getClearUnselected()" (selected)="onSelect($event)" [datasource]="field.dataService" [minSearchLength]="0" [inputClass]="'form-control'" [initialValue]="field.initialValue"></ng2-completer>
+    <ng2-completer #ngCompleter  (keyup)="onKeyup($event)" [inputId]="field.name" [(ngModel)]="field.searchStr" [ngModelOptions]="{standalone: true}" [disableInput]="disableInput" [placeholder]="field.placeHolder" [clearUnselected]="getClearUnselected()" (selected)="onSelect($event)" [datasource]="field.dataService" [minSearchLength]="0" [inputClass]="'form-control'" [initialValue]="field.initialValue"></ng2-completer>
     <div class="text-danger" *ngIf="hasRequiredError()">{{field.validationMessages.required}}</div>
   </div>
   <div *ngIf="field.editMode && isEmbedded" [formGroup]='form' [ngClass]="getGroupClass()">
     <div class="row">
       <span id="{{ 'helpBlock_' + field.name }}" class="help-block" *ngIf="this.helpShow" [innerHtml]="field.help">{{field.help}}</span>
       <div class="col-xs-11 padding-remove">
-        <ng2-completer #ngCompleter [inputId]="name" [(ngModel)]="field.searchStr" [ngModelOptions]="{standalone: true}" [disableInput]="disableInput" [placeholder]="field.placeHolder" [clearUnselected]="getClearUnselected()" (selected)="onSelect($event)" [datasource]="field.dataService" [minSearchLength]="0" [inputClass]="'form-control'" [initialValue]="field.initialValue"></ng2-completer>
+        <ng2-completer #ngCompleter  (keyup)="onKeyup($event)" [inputId]="name" [(ngModel)]="field.searchStr" [ngModelOptions]="{standalone: true}" [disableInput]="disableInput" [placeholder]="field.placeHolder" [clearUnselected]="getClearUnselected()" (selected)="onSelect($event)" [datasource]="field.dataService" [minSearchLength]="0" [inputClass]="'form-control'" [initialValue]="field.initialValue"></ng2-completer>
       </div>
       <div class="col-xs-1 padding-remove">
         <button type='button' *ngIf="removeBtnText" [disabled]="!canRemove" (click)="onRemove($event)" [ngClass]="removeBtnClass" >{{removeBtnText}}</button>
@@ -514,6 +514,9 @@ export class VocabFieldComponent extends SimpleComponent {
 
   ngOnInit() {
     this.field.component = this;
+    if (_.isEmpty(this.field.value) || _.isNull(this.field.value) || _.isUndefined(this.field.value)) {
+      this.loaded = true;
+    }
   }
 
   public getGroupClass(fldName: string = null): string {
@@ -529,7 +532,12 @@ export class VocabFieldComponent extends SimpleComponent {
     console.log(selected);
     let disableEditAfterSelect = this.disableEditAfterSelect && this.field.disableEditAfterSelect;
     if (selected) {
-      this.field.onItemSelect.emit(selected['originalObject']);
+      if (this.loaded) {
+        this.field.onItemSelect.emit(selected['originalObject']);
+      } else {
+        // set the flag after initial call
+        this.loaded = true;
+      }
       if(this.field.storeLabelOnly){
         this.field.setValue(this.field.getValue(selected.title), emitEvent, updateTitle);
       } else {
@@ -550,7 +558,7 @@ export class VocabFieldComponent extends SimpleComponent {
 
   onKeyup(value: any) {
     let disableEditAfterSelect = this.disableEditAfterSelect && this.field.disableEditAfterSelect;
-    if (!disableEditAfterSelect) {
+    if (!disableEditAfterSelect && !this.field.restrictToSelection) {
       this.field.formModel.setValue(this.field.getValue(this.field.searchStr));
     }
 

@@ -45,7 +45,11 @@ export module Services {
     ];
 
     public bootstrap = (recordTypes) => {
-      return super.getObservable(WorkflowStep.find())
+      let startQ = WorkflowStep.find({});
+      if (sails.config.appmode.bootstrapAlways) {
+        startQ = WorkflowStep.destroy({});
+      }
+      return super.getObservable(startQ)
         .flatMap(workflows => {
           if (_.isEmpty(workflows)) {
             sails.log.verbose("Bootstrapping workflow definitions... ");
