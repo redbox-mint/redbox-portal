@@ -229,6 +229,7 @@ export class DataLocationComponent extends SimpleComponent {
         allowedFileTypes: this.field.allowedFileTypes
       }
     };
+    const notesHeader = this.field.notesHeader;
     console.debug(`Using Uppy config:`);
     console.debug(JSON.stringify(uppyConfig));
     const appConfig = this.field.recordsService.getConfig();
@@ -242,6 +243,7 @@ export class DataLocationComponent extends SimpleComponent {
       // trigger: '.UppyModalOpenerBtn',
       inline: false,
       hideProgressAfterFinish: true,
+      note: notesHeader,
       metaFields: [
         { id: 'notes', name: 'Notes', placeholder: 'Notes about this file.' }
       ]
