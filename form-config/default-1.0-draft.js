@@ -40,16 +40,16 @@ module.exports = {
             variableSubstitutionFields: ['value']
           },
           {
-              class: "AnchorOrButton",
-              viewOnly: true,
-              definition: {
-                label: '@dmp-create-datarecord-link',
-                value: '/@branding/@portal/record/dataRecord/edit?rdmpOid=@oid',
-                cssClasses: 'btn btn-large btn-info margin-15',
-                controlType: 'anchor'
-              },
-              variableSubstitutionFields: ['value']
+            class: "AnchorOrButton",
+            viewOnly: true,
+            definition: {
+              label: '@dmp-create-datarecord-link',
+              value: '/@branding/@portal/record/dataRecord/edit?rdmpOid=@oid',
+              cssClasses: 'btn btn-large btn-info margin-15',
+              controlType: 'anchor'
             },
+            variableSubstitutionFields: ['value']
+          },
           {
             class: 'PDFList',
             viewOnly: true,
@@ -155,6 +155,28 @@ module.exports = {
                   }
                 },
                 {
+                  "class": "VocabField",
+                  "compClass": "VocabFieldComponent",
+                  "definition": {
+                    "name": "title2",
+                    "label": "@dmpt-project-title",
+                    "help": "@dmpt-project-title-help",
+                    "forceClone": [
+                      "lookupService",
+                      "completerService"
+                    ],
+                    "disableEditAfterSelect": false,
+                    "provider": "water",
+                    "sourceType": "external",
+                    "resultArrayProperty": "result.items",
+                    "titleFieldArr": [
+                      "prefLabel._value"
+                    ],
+                    "storeAsString": true,
+                    "stringLabelToField": "about"
+                  }
+                },
+                {
                   class: 'TextField',
                   definition: {
                     name: 'dc:identifier',
@@ -178,13 +200,6 @@ module.exports = {
                   }
                 },
                 {
-                  class: 'Container',
-                  compClass: 'TextBlockComponent',
-                  definition: {
-                    type: 'hr'
-                  }
-                },
-                {
                   class: 'RepeatableContainer',
                   compClass: 'RepeatableTextfieldComponent',
                   definition: {
@@ -198,13 +213,6 @@ module.exports = {
                         type: 'text'
                       }
                     }]
-                  }
-                },
-                {
-                  class: 'Container',
-                  compClass: 'TextBlockComponent',
-                  definition: {
-                    type: 'hr'
                   }
                 },
                 {
@@ -405,24 +413,25 @@ module.exports = {
                     sourceType: 'mint',
                     disabledExpression: '<%= !_.isEmpty(oid) %>',
                     fieldNames: [{
-                      'text_full_name': 'text_full_name'
-                    }, {
-                      'full_name_honorific': 'text_full_name_honorific'
-                    }, {
-                      'email': 'Email[0]'
-                    },
-                    {
-                      'given_name': 'Given_Name[0]'
-                    },
-                    {
-                      'family_name': 'Family_Name[0]'
-                    },
-                    {
-                      'honorific': 'Honorific[0]'
-                    },
-                    {
-                      'full_name_family_name_first': 'dc_title'
-                    }],
+                        'text_full_name': 'text_full_name'
+                      }, {
+                        'full_name_honorific': 'text_full_name_honorific'
+                      }, {
+                        'email': 'Email[0]'
+                      },
+                      {
+                        'given_name': 'Given_Name[0]'
+                      },
+                      {
+                        'family_name': 'Family_Name[0]'
+                      },
+                      {
+                        'honorific': 'Honorific[0]'
+                      },
+                      {
+                        'full_name_family_name_first': 'dc_title'
+                      }
+                    ],
                     searchFields: 'autocomplete_given_name,autocomplete_family_name,autocomplete_full_name',
                     titleFieldArr: ['text_full_name'],
                     titleFieldDelim: '',
@@ -453,24 +462,25 @@ module.exports = {
                     sourceType: 'mint',
                     disabledExpression: '<%= !_.isEmpty(oid) %>',
                     fieldNames: [{
-                      'text_full_name': 'text_full_name'
-                    }, {
-                      'full_name_honorific': 'text_full_name_honorific'
-                    }, {
-                      'email': 'Email[0]'
-                    },
-                    {
-                      'given_name': 'Given_Name[0]'
-                    },
-                    {
-                      'family_name': 'Family_Name[0]'
-                    },
-                    {
-                      'honorific': 'Honorific[0]'
-                    },
-                    {
-                      'full_name_family_name_first': 'dc_title'
-                    }],
+                        'text_full_name': 'text_full_name'
+                      }, {
+                        'full_name_honorific': 'text_full_name_honorific'
+                      }, {
+                        'email': 'Email[0]'
+                      },
+                      {
+                        'given_name': 'Given_Name[0]'
+                      },
+                      {
+                        'family_name': 'Family_Name[0]'
+                      },
+                      {
+                        'honorific': 'Honorific[0]'
+                      },
+                      {
+                        'full_name_family_name_first': 'dc_title'
+                      }
+                    ],
                     searchFields: 'autocomplete_given_name,autocomplete_family_name,autocomplete_full_name',
                     titleFieldArr: ['text_full_name'],
                     titleFieldDelim: '',
@@ -514,24 +524,25 @@ module.exports = {
                         vocabId: 'Parties AND repository_name:People',
                         sourceType: 'mint',
                         fieldNames: [{
-                          'text_full_name': 'text_full_name'
-                        }, {
-                          'full_name_honorific': 'text_full_name_honorific'
-                        }, {
-                          'email': 'Email[0]'
-                        },
-                        {
-                          'given_name': 'Given_Name[0]'
-                        },
-                        {
-                          'family_name': 'Family_Name[0]'
-                        },
-                        {
-                          'honorific': 'Honorific[0]'
-                        },
-                        {
-                          'full_name_family_name_first': 'dc_title'
-                        }],
+                            'text_full_name': 'text_full_name'
+                          }, {
+                            'full_name_honorific': 'text_full_name_honorific'
+                          }, {
+                            'email': 'Email[0]'
+                          },
+                          {
+                            'given_name': 'Given_Name[0]'
+                          },
+                          {
+                            'family_name': 'Family_Name[0]'
+                          },
+                          {
+                            'honorific': 'Honorific[0]'
+                          },
+                          {
+                            'full_name_family_name_first': 'dc_title'
+                          }
+                        ],
                         searchFields: 'autocomplete_given_name,autocomplete_family_name,autocomplete_full_name',
                         titleFieldArr: ['text_full_name'],
                         titleFieldDelim: '',
@@ -557,24 +568,25 @@ module.exports = {
                     vocabId: 'Parties AND repository_name:People',
                     sourceType: 'mint',
                     fieldNames: [{
-                      'text_full_name': 'text_full_name'
-                    }, {
-                      'full_name_honorific': 'text_full_name_honorific'
-                    }, {
-                      'email': 'Email[0]'
-                    },
-                    {
-                      'given_name': 'Given_Name[0]'
-                    },
-                    {
-                      'family_name': 'Family_Name[0]'
-                    },
-                    {
-                      'honorific': 'Honorific[0]'
-                    },
-                    {
-                      'full_name_family_name_first': 'dc_title'
-                    }],
+                        'text_full_name': 'text_full_name'
+                      }, {
+                        'full_name_honorific': 'text_full_name_honorific'
+                      }, {
+                        'email': 'Email[0]'
+                      },
+                      {
+                        'given_name': 'Given_Name[0]'
+                      },
+                      {
+                        'family_name': 'Family_Name[0]'
+                      },
+                      {
+                        'honorific': 'Honorific[0]'
+                      },
+                      {
+                        'full_name_family_name_first': 'dc_title'
+                      }
+                    ],
                     searchFields: 'autocomplete_given_name,autocomplete_family_name,autocomplete_full_name',
                     titleFieldArr: ['text_full_name'],
                     titleFieldDelim: '',
