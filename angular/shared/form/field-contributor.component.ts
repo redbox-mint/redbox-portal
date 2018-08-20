@@ -308,6 +308,7 @@ export class ContributorComponent extends SimpleComponent {
   @ViewChild('ngCompleter') public ngCompleter: any;
   lastSelected: any;
   emptied: boolean = false;
+  blurred: boolean = false;
 
   public ngOnInit() {
     this.field.componentReactors.push(this);
@@ -320,6 +321,12 @@ export class ContributorComponent extends SimpleComponent {
       this.ngCompleter.ctrInput.nativeElement.setAttribute('aria-label', 'Name');
       this.ngCompleter.registerOnChange((v) => {
         that.emptied = _.isEmpty(v);
+        if (that.emptied && that.blurred) {
+          that.blurred = false;
+          console.log(`Forced lookup, clearing data..`)
+          this.field.setEmptyValue(true);
+          this.lastSelected = null;
+        }
       });
     }
   }
@@ -350,7 +357,11 @@ export class ContributorComponent extends SimpleComponent {
       let val:any;
       if (!this.field.freeText) {
         if (_.isEmpty(selected.text_full_name)) {
-          val = this.field.vocabField.getValue(selected);
+          if (this.field.vocabField.restrictToSelection || selected.originalObject) {
+            val = this.field.vocabField.getValue(selected);
+          } else {
+            val = {text_full_name: selected.title};
+          }
         } else if(selected[this.field.fullNameResponseField]) {
           val = this.field.vocabField.getValue(selected);
         } else {
@@ -364,6 +375,8 @@ export class ContributorComponent extends SimpleComponent {
         }
 
         val.role = this.field.role;
+        // console.log(`With selected:`);
+        // console.log(JSON.stringify(selected));
         // console.log(`Using val:`);
         // console.log(JSON.stringify(val));
         this.field.setValue(val, emitEvent, updateTitle);
@@ -388,13 +401,28 @@ export class ContributorComponent extends SimpleComponent {
   }
 
   public onKeydown(event) {
-    if (event.keyCode === KEY_EN || event.keyCode === KEY_TAB ) {
+    if (event && (event.keyCode === KEY_EN || event.keyCode === KEY_TAB )) {
       if (this.lastSelected && this.emptied) {
         const that = this;
         setTimeout(() => {
           that.ngCompleter.ctrInput.nativeElement.value = that.lastSelected.title;
         }, 40);
+      } else {
+        if (this.emptied && this.field.forceLookupOnly) {
+          console.log(`Forced lookup, clearing data..`)
+          this.field.setEmptyValue(true);
+          this.lastSelected = null;
+        }
       }
+    } else {
+      const val = this.field.vocabField.getValue({text_full_name: this.ngCompleter.ctrInput.nativeElement.value });
+      this.field.setValue(val, true, false);
+    }
+  }
+
+  public onBlur() {
+    if (this.field.forceLookupOnly) {
+      this.blurred = true;
     }
   }
 
