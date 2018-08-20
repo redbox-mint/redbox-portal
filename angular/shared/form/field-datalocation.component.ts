@@ -81,6 +81,7 @@ export class DataLocationField extends FieldBase<any> {
   typeHeader: string;
   locationHeader: string;
   notesHeader: string;
+  uppyDashboardNote: string;
 
   constructor(options: any, injector: any) {
     super(options, injector);
@@ -94,7 +95,7 @@ export class DataLocationField extends FieldBase<any> {
     this.typeHeader =  this.getTranslated(options['typeHeader'], 'Type');
     this.locationHeader =  this.getTranslated(options['locationHeader'], 'Location');
     this.notesHeader =  this.getTranslated(options['notesHeader'], 'Notes');
-
+    this.uppyDashboardNote = this.getTranslated(options['uppyDashboardNote'], 'Maximum upload size: 1 Gb per file');
     this.columns = options['columns'] || [];
 
     this.maxFileSize = options['maxFileSize'] || null;
@@ -229,6 +230,7 @@ export class DataLocationComponent extends SimpleComponent {
         allowedFileTypes: this.field.allowedFileTypes
       }
     };
+    const uppyDashboardNote = this.field.uppyDashboardNote;
     console.debug(`Using Uppy config:`);
     console.debug(JSON.stringify(uppyConfig));
     const appConfig = this.field.recordsService.getConfig();
@@ -242,6 +244,7 @@ export class DataLocationComponent extends SimpleComponent {
       // trigger: '.UppyModalOpenerBtn',
       inline: false,
       hideProgressAfterFinish: true,
+      note: uppyDashboardNote,
       metaFields: [
         { id: 'notes', name: 'Notes', placeholder: 'Notes about this file.' }
       ]
