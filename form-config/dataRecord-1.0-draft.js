@@ -879,8 +879,11 @@ module.exports = {
                   compClass: 'DataLocationComponent',
                   definition: {
                     name:"dataLocations",
-                    maxFileSize: 1073741824,
-                    locationAddText: 'Enter',
+                    maxFileSize: 1073741824, // <- Configure web server to match this
+                    maxNumberOfFiles: 50,
+                    notesHeader: '@dataLocations-notes',
+                    uppyDashboardNote: '@dataLocations-uploader-note',
+                    locationAddText: '@dataLocations-addText',
                     help: '@dataLocations-help'
                   }
                 },
