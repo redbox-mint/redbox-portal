@@ -155,28 +155,6 @@ module.exports = {
                   }
                 },
                 {
-                  "class": "VocabField",
-                  "compClass": "VocabFieldComponent",
-                  "definition": {
-                    "name": "title2",
-                    "label": "@dmpt-project-title",
-                    "help": "@dmpt-project-title-help",
-                    "forceClone": [
-                      "lookupService",
-                      "completerService"
-                    ],
-                    "disableEditAfterSelect": false,
-                    "provider": "water",
-                    "sourceType": "external",
-                    "resultArrayProperty": "result.items",
-                    "titleFieldArr": [
-                      "prefLabel._value"
-                    ],
-                    "storeAsString": true,
-                    "stringLabelToField": "about"
-                  }
-                },
-                {
                   class: 'TextField',
                   definition: {
                     name: 'dc:identifier',
