@@ -115,7 +115,10 @@ export class DmpFieldComponent {
           //take note of which elements where already disabled as we dont want to enable them if whole component becomes enabled again
           this.disabledElements = parentElement.find('*:disabled');
           parentElement.find('input').prop( "disabled", true );
-          parentElement.find('button').prop( "disabled", true );
+          parentElement.find('button').filter((index, buttonElem) => {
+            const isHelp = jQuery(buttonElem).find("span[class='glyphicon glyphicon-question-sign']");
+            return isHelp.length <= 0;
+          }).prop( "disabled", true );
           parentElement.find('textarea').prop( "disabled", true );
           parentElement.find('select').prop( "disabled", true );
           this.disabled = true;
