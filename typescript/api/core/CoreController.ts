@@ -265,6 +265,9 @@ export module Controllers.Core {
     protected ajaxRespond(req, res, jsonObj=null, forceAjax) {
       var notAjaxMsg = "Got non-ajax request, don't know what do...";
       this.respond(req, res, (req, res) => {
+        res.set('Cache-control', 'no-cache');
+        res.set('Pragma', 'no-cache');
+        res.set('Expires', 0);
         return res.json(jsonObj);
       }, (req, res)=> {
         sails.log.verbose(notAjaxMsg);
