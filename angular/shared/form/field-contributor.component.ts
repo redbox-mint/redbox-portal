@@ -78,7 +78,7 @@ export class ContributorField extends FieldBase<any> {
 
     this.showHeader = options['showHeader'] || true;
     this.showRole = options['showRole'] || true;
-    this.baseMarginTop = options['baseMarginTop'] || '45px';
+    this.baseMarginTop = options['baseMarginTop'] || '';
 
     this.roles = options['roles'] || [];
     this.value = options['value'] || this.setEmptyValue();
@@ -331,14 +331,14 @@ export class ContributorComponent extends SimpleComponent {
     }
   }
 
-  public getGroupClass(fldName:any): string {
+  public getGroupClass(fldName:any, wideMode:boolean = false): string {
     let hasError = false;
     hasError = hasError || (this.field.formModel.controls[fldName].hasError('required'));
     if (!hasError && fldName == 'email') {
       hasError = hasError || (this.field.formModel.controls[fldName].hasError('email'));
     }
     const additionalClass = this.field.splitNames ? ' padding-remove' : '';
-    return `col-xs-2 form-group${additionalClass}${hasError ? ' has-error' : ''}`;
+    return `col-xs-${wideMode ? '3' : '2'} form-group${additionalClass}${hasError ? ' has-error' : ''}`;
   }
 
   onSelect(selected: any, emitEvent:boolean=true, updateTitle:boolean=false) {
