@@ -303,6 +303,8 @@ export class MapField extends FieldBase<any> {
         this.importDataString = "";
         this.importFailed = false;
       }
+      this.layerGeoJSON = L.featureGroup(this.layers).toGeoJSON();
+      this.setValue(this.layerGeoJSON);
     } catch (e) {
       this.importFailed = true;
     }
