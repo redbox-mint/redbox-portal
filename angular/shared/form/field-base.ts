@@ -21,6 +21,7 @@ import { Output, EventEmitter, Injector } from '@angular/core';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { TranslationService } from '../translation-service';
 import { UtilityService } from '../util-service';
+import { Observable } from 'rxjs/Observable';
 
 import * as _ from "lodash";
 /**
@@ -439,5 +440,10 @@ export class FieldBase<T> {
       retVal = retVal || hasVal;
     });
     this.setRequired(retVal);
+  }
+
+  //Default asyncLoadData function. No async load required so return empty Observable.
+  asyncLoadData() {
+    return Observable.of(null);
   }
 }
