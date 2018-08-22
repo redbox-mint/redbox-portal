@@ -75,7 +75,8 @@ export class LoadableComponent  {
 
   getTranslated(key, defValue) {
     if (!_.isEmpty(key) && !_.isUndefined(key)) {
-      if (_.isFunction(key.startsWith) && key.startsWith('@') && this.translationService) {
+      // Keys can now be any string, previously, these were required to start with the '@' character
+      if (this.translationService) {
         return this.translationService.t(key);
       } else {
         return key;
