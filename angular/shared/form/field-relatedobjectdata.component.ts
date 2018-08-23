@@ -16,12 +16,15 @@
 // You should have received a copy of the GNU General Public License along
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-import { Input, Component, OnInit, Inject, Injector} from '@angular/core';
+import { Input, Component, OnInit, Inject, Injector } from '@angular/core';
 import { SimpleComponent } from './field-simple.component';
 import { FieldBase } from './field-base';
 import { FormGroup, FormControl, Validators } from '@angular/forms';
 import * as _ from "lodash";
 import { RecordsService } from './records.service';
+import { Observable } from 'rxjs/Observable';
+import 'rxjs/add/observable/zip';
+import { fromPromise } from 'rxjs/observable/fromPromise';
 
 
 
@@ -54,40 +57,48 @@ export class RelatedObjectDataField extends FieldBase<any> {
     var relatedObjects = this.relatedObjects;
     this.value = options['value'] || this.setEmptyValue();
     this.recordsService = this.getFromInjector(RecordsService);
+
+  }
+
+/**
+* Loading the metadata for each related object in the array
+*/
+  asyncLoadData() {
+    let getRecordMetaObs = [];
     var that = this;
-    _.forEach(this.value, (item:any) => {
-       this.recordsService.getRecordMeta(item.id).then(function (meta) {
-         if(!meta) {
-           that.failedObjects.push(meta);
-         } else if(meta.status =="Access Denied") {
+    _.forEach(this.value, (item: any) => {
+      getRecordMetaObs.push(fromPromise(this.recordsService.getRecordMeta(item.id)).flatMap(meta => {
+        if (!meta) {
+          that.failedObjects.push(meta);
+        } else if (meta['status'] == "Access Denied") {
           that.accessDeniedObjects.push(meta);
-        } else if(meta.title) {
+        } else if (meta['title']) {
           that.relatedObjects.push(meta);
         } else {
           that.failedObjects.push(meta);
         }
-      });
+        return Observable.of(null);
+      }));
     });
+    return Observable.zip(...getRecordMetaObs);
   }
-
-
 
   createFormModel(valueElem: any = undefined): any {
     if (valueElem) {
       this.value = valueElem;
     }
 
-      this.formModel = new FormControl(this.value || []);
+    this.formModel = new FormControl(this.value || []);
 
-      if (this.value) {
-        this.setValue(this.value);
-      }
+    if (this.value) {
+      this.setValue(this.value);
+    }
 
     return this.formModel;
   }
 
-  setValue(value:any) {
-    this.formModel.patchValue(value, {emitEvent: false });
+  setValue(value: any) {
+    this.formModel.patchValue(value, { emitEvent: false });
     this.formModel.markAsTouched();
   }
 
@@ -100,7 +111,7 @@ export class RelatedObjectDataField extends FieldBase<any> {
 declare var aotMode
 // Setting the template url to a constant rather than directly in the component as the latter breaks document generation
 let rbRelatedObjectDataTemplate = './field-relatedobjectdata.html';
-if(typeof aotMode == 'undefined') {
+if (typeof aotMode == 'undefined') {
   rbRelatedObjectDataTemplate = '../angular/shared/form/field-relatedobjectdata.html';
 }
 
