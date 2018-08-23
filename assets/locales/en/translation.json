@@ -643,5 +643,6 @@
   "export-csv-dataRecord": "Download Data Records CSV",
   "export-csv-dataPublication": "Download Data Publications CSV",
   "dataRecord-title": "Data Record",
-  "dataPublication-title": "Data Publication"
+  "dataPublication-title": "Data Publication",
+  "@dataPublication-publish": "Submit for Publication"
 }

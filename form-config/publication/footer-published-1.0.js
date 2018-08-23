@@ -24,8 +24,7 @@ module.exports = [
           class: "SaveButton",
           definition: {
             label: 'Save',
-            cssClasses: 'btn-success',
-            disabledExpression: '<%= _.isEmpty(relatedRecordId) %>'
+            cssClasses: 'btn-success'
           }
         },
         {
@@ -33,30 +32,17 @@ module.exports = [
           definition: {
             label: 'Save & Close',
             closeOnSave: true,
-            redirectLocation: '/@branding/@portal/dashboard/dataPublication',
-            disabledExpression: '<%= _.isEmpty(relatedRecordId) %>'
+            redirectLocation: '/@branding/@portal/dashboard/dataPublication'
           },
           variableSubstitutionFields: ['redirectLocation']
         },
         {
           class: "SaveButton",
           definition: {
-            label: 'Withdraw',
+            label: '@dataPublication-withdraw',
             closeOnSave: true,
             redirectLocation: '/@branding/@portal/dashboard/dataPublication',
-            additionalData: { withdraw: true },
-            disabledExpression: '<%= _.isEmpty(relatedRecordId) %>'
-          },
-          variableSubstitutionFields: ['redirectLocation']
-        },
-        {
-          class: "SaveButton",
-          definition: {
-            label: '@dataPublication-publish',
-            closeOnSave: true,
-            redirectLocation: '/@branding/@portal/dashboard/dataPublication',
-            targetStep: 'queued',
-            disabledExpression: '<%= _.isEmpty(relatedRecordId) %>'
+            additionalData: { withdraw: true }
           },
           variableSubstitutionFields: ['redirectLocation']
         },

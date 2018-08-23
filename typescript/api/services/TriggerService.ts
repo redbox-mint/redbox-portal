@@ -47,12 +47,16 @@ export module Services {
       var variables= {};
       variables['imports'] = record;
       var compiled = _.template(triggerCondition, variables);
-
-      if(compiled() == "true") {
+      const compileResult = compiled();
+      sails.log.verbose(`Trigger condition for ${oid} ==> "${triggerCondition}", has result: '${compileResult}'`);
+      if(_.isEqual(compileResult, "true")) {
         const workflowStageTarget = _.get(options, "targetWorkflowStageName", record.workflow.stage);
         const workflowStageLabel = _.get(options, "targetWorkflowStageLabel", record.workflow.stageLabel);
+        sails.log.verbose(`Trigger condition met for ${oid}, transitioning to: ${workflowStageTarget}`);
         _.set(record,"workflow.stage",workflowStageTarget);
         _.set(record,"workflow.stageLabel",workflowStageLabel);
+        // we need to update the form too!!!!
+        _.set(record, "metaMetadata.form", _.get(options, "targetForm", record.metaMetadata.form));
       }
 
       return Observable.of(record);

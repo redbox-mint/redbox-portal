@@ -295,9 +295,19 @@ module.exports.recordtype = {
           {
             function: 'sails.services.triggerservice.transitionWorkflow',
             options: {
-              "triggerCondition": "<%= workflow.stage == 'queued'%>",
+              "triggerCondition": "<%= _.isEqual(workflow.stage, 'queued') && _.isEqual(metadata.embargoByDate, '') %>",
               "targetWorkflowStageName": "reviewing",
-              "targetWorkflowStageLabel": "Reviewing"
+              "targetWorkflowStageLabel": "Reviewing",
+              "targetForm": "dataPublication-1.0-reviewing"
+            }
+          },
+          {
+            function: 'sails.services.triggerservice.transitionWorkflow',
+            options: {
+              "triggerCondition": "<%= _.isEqual(workflow.stage, 'queued') && _.isEqual(metadata.embargoByDate, true) %>",
+              "targetWorkflowStageName": "embargoed",
+              "targetWorkflowStageLabel": "Embargoed",
+              "targetForm": "dataPublication-1.0-embargoed"
             }
           },
           //Transition workflow from publishing to published. TODO: Condition needs to be changed to check when published location set
@@ -306,7 +316,8 @@ module.exports.recordtype = {
             options: {
               "triggerCondition": "<%= workflow.stage == 'publishing'%>",
               "targetWorkflowStageName": "published",
-              "targetWorkflowStageLabel": "Published"
+              "targetWorkflowStageLabel": "Published",
+              "targetForm": "dataPublication-1.0-published"
             }
           },
           // Set the notification state for draft publications

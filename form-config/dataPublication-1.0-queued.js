@@ -8,7 +8,7 @@ var _ = require('lodash');
 var mainViewOnly = require('../form-config/publication/header-view-only-1.0.js');
 var mainTab = require('../form-config/publication/tab-main-1.0.js');
 // Non-draft specific footer
-var footerDraft = require('../form-config/publication/footer-non-draft-1.0.js');
+var footer = require('../form-config/publication/footer-non-draft-1.0.js');
 // Start building the main tab and child tabs...
 var startTab = require('../form-config/publication/tab-start-1.0.js');
 var coverageTab = require('../form-config/publication/tab-coverage-1.0.js');
@@ -20,7 +20,7 @@ var submitTab = require('../form-config/publication/tab-submit-1.0.js');
 var reviewerTab = require('../form-config/publication/tab-reviewer-1.0.js');
 mainTab[0].definition.fields = _.concat(startTab, coverageTab, dataTab, supplementsTab, licenseTab, citationTab, submitTab, reviewerTab);
 // now buid the main elements of the form....
-var fields = _.concat(mainViewOnly, mainTab, footerDraft);
+var fields = _.concat(mainViewOnly, mainTab, footer);
 module.exports = {
   name: 'dataPublication-1.0-queued',
   type: 'dataPublication',
