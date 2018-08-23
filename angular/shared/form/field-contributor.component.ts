@@ -276,7 +276,7 @@ export class ContributorField extends FieldBase<any> {
    * @return
    */
   public setMissingFields(value: any) {
-    if (this.splitNames && (value && (_.isEmpty(value.family_name) || _.isUndefined(value.family_name)))) {
+    if (this.splitNames && (value && value.text_full_name && (_.isEmpty(value.family_name) || _.isUndefined(value.family_name)))) {
       // guess work begins...
       const names = value.text_full_name.split(' ');
       value['given_name'] = names[0];
