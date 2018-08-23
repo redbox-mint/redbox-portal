@@ -80,7 +80,11 @@ export class RelatedObjectDataField extends FieldBase<any> {
         return Observable.of(null);
       }));
     });
-    return Observable.zip(...getRecordMetaObs);
+    if ( getRecordMetaObs.length > 0 ) {
+      return Observable.zip(...getRecordMetaObs);
+    } else {
+      return Observable.of(null);
+    }
   }
 
   createFormModel(valueElem: any = undefined): any {
