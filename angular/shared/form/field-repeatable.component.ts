@@ -198,6 +198,12 @@ export class RepeatableContainer extends Container {
       }
     });
   }
+
+  public removeAllElems() {
+    _.each(this.fields, (f, idx) => {
+      this.removeElem(idx);
+    });
+  }
 }
 
 export class EmbeddableComponent extends SimpleComponent {
