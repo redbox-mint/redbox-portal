@@ -401,6 +401,7 @@ export module Controllers {
           wfStepObs = WorkflowStepsService.get(recType, targetStep);
         }
         wfStepObs.subscribe(wfStep => {
+            this.updateWorkflowStep(record, wfStep);
             let obs = this.triggerPreSaveTriggers(null, record, recordType, "onCreate");
             obs.then(record => {
               return this.createRecord(record, wfStep, brand, packageType, recordType, req, res);
@@ -412,7 +413,6 @@ export module Controllers {
     }
 
     private createRecord(record, wfStep, brand, packageType, recordType, req, res) {
-      this.updateWorkflowStep(record, wfStep);
       RecordsService.create(brand, record, packageType).subscribe(response => {
         if (response && response.code == "200") {
           response.success = true;

@@ -50,8 +50,8 @@ export module Services {
       const compileResult = compiled();
       sails.log.verbose(`Trigger condition for ${oid} ==> "${triggerCondition}", has result: '${compileResult}'`);
       if(_.isEqual(compileResult, "true")) {
-        const workflowStageTarget = _.get(options, "targetWorkflowStageName", record.workflow.stage);
-        const workflowStageLabel = _.get(options, "targetWorkflowStageLabel", record.workflow.stageLabel);
+        const workflowStageTarget = _.get(options, "targetWorkflowStageName", _.get(record, 'workflow.stage'));
+        const workflowStageLabel = _.get(options, "targetWorkflowStageLabel", _.get(record, 'workflow.stageLabel'));
         sails.log.verbose(`Trigger condition met for ${oid}, transitioning to: ${workflowStageTarget}`);
         _.set(record,"workflow.stage",workflowStageTarget);
         _.set(record,"workflow.stageLabel",workflowStageLabel);
