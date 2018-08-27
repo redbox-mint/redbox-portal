@@ -44,7 +44,7 @@ module.exports = [
             label: 'Withdraw',
             closeOnSave: true,
             redirectLocation: '/@branding/@portal/dashboard/dataPublication',
-            additionalData: { withdraw: true },
+            targetStep: 'draft',
             disabledExpression: '<%= _.isEmpty(relatedRecordId) %>'
           },
           variableSubstitutionFields: ['redirectLocation']

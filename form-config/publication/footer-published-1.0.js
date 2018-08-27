@@ -37,16 +37,6 @@ module.exports = [
           variableSubstitutionFields: ['redirectLocation']
         },
         {
-          class: "SaveButton",
-          definition: {
-            label: '@dataPublication-withdraw',
-            closeOnSave: true,
-            redirectLocation: '/@branding/@portal/dashboard/dataPublication',
-            additionalData: { withdraw: true }
-          },
-          variableSubstitutionFields: ['redirectLocation']
-        },
-        {
           class: "CancelButton",
           definition: {
             label: 'Close',

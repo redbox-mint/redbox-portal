@@ -22,6 +22,7 @@ import { FormGroup } from '@angular/forms';
 import { FieldBase } from './field-base';
 import { SimpleComponent } from './field-simple.component';
 import * as _ from "lodash";
+import moment from 'moment-es6';
 declare var jQuery: any;
 declare var $: any;
 /**
@@ -108,6 +109,7 @@ export class DmpFieldComponent {
       _.forOwn(this.fieldMap._rootComp, (val, key) => {
         variables.imports[key] = val;
       });
+      variables.imports['moment'] = moment;
       var compiled = _.template(disabledExpression, variables);
       var parentElement = jQuery(this.fieldElement.nativeElement.parentElement);
       if(compiled() == "true") {
