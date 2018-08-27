@@ -143,6 +143,11 @@ module.exports.auth = {
       can_update:true
     },
     {
+      path: '/:branding/:portal/export(/*)',
+      role: 'Admin',
+      can_update:true
+    },
+    {
       path: '/:branding/:portal/asynch(/*)',
       role: 'Researcher',
       can_update:true
