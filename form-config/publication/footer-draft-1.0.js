@@ -56,7 +56,7 @@ module.exports = [
             closeOnSave: true,
             redirectLocation: '/@branding/@portal/dashboard/dataPublication',
             targetStep: 'queued',
-            disabledExpression: '<%= _.isEmpty(relatedRecordId) %>'
+            disabledExpression: '<%= _.isEmpty(relatedRecordId) || ( fieldMap.embargoByDate.control.value == true && fieldMap.embargoUntil.control.value && moment(fieldMap.embargoUntil.control.value).isSameOrAfter(moment())  ) %>'
           },
           variableSubstitutionFields: ['redirectLocation']
         },
