@@ -158,7 +158,11 @@ module.exports = [
             fields: [{
               class: 'TextField',
               definition: {
-                type: 'text'
+                type: 'text',
+                required: true,
+                validationMessages: {
+                  required: "@dataRecord-keywords-required"
+                }
               }
             }],
             subscribe: {

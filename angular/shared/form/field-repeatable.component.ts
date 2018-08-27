@@ -42,6 +42,7 @@ export class RepeatableContainer extends Container {
   removeButtonClass: any;
   moveUpButtonClass: any;
   moveDownButtonClass: any;
+  delegateErrorHandling: boolean;
 
   constructor(options: any, injector: any) {
     super(options, injector);
@@ -56,6 +57,7 @@ export class RepeatableContainer extends Container {
     this.removeButtonClass = options['removeButtonClass'] || 'fa fa-minus-circle btn text-20 pull-right btn-danger';
     this.moveUpButtonClass = options['addButtonClass'] || 'fa fa-chevron-circle-up btn text-20 pull-left btn-primary';
     this.moveDownButtonClass = options['addButtonClass'] || 'fa fa-chevron-circle-down btn text-20 pull-left btn-primary';
+    this.delegateErrorHandling = !_.isUndefined(options['delegateErrorHandling']) ? options['delegateErrorHandling'] : true;
   }
 
   getInitArrayEntry() {
@@ -235,6 +237,17 @@ export class RepeatableComponent extends SimpleComponent {
 
   removeElem(event: any, i: number) {
     this.field.removeElem(i);
+  }
+
+  hasRequiredError() {
+    let hasError = false;
+    _.each(this.field.formModel.controls, (c) => {
+      if (c.hasError('required')) {
+        hasError = true;
+        return false;
+      }
+    });
+    return hasError;
   }
 }
 

@@ -108,7 +108,7 @@ export class TextArea extends FieldBase<string> {
         <button [disabled]="!canRemove" type='button' [ngClass]="removeBtnClass" (click)="onRemove($event)" [attr.aria-label]="'remove-button-label' | translate"></button>
       </span>
     </div>
-    <div *ngIf="field.required" [style.visibility]="getFormControl() && getFormControl().hasError('required') && getFormControl().touched ? 'inherit':'hidden'">
+    <div *ngIf="field.required && (field.label || (field.validationMessages && field.validationMessages.required))" [style.visibility]="getFormControl() && getFormControl().hasError('required') && getFormControl().touched ? 'inherit':'hidden'">
       <div class="text-danger" *ngIf="!field.validationMessages?.required">{{field.label}} is required</div>
       <div class="text-danger" *ngIf="field.validationMessages?.required">{{field.validationMessages.required}}</div>
     </div>
@@ -140,6 +140,12 @@ export class TextFieldComponent extends EmbeddableComponent {
       <span class="col-xs-12">
         <textfield [name]="field.name" [field]="fieldElem" [form]="form" [fieldMap]="fieldMap" [isEmbedded]="true" [removeBtnText]="field.removeButtonText" [removeBtnClass]="field.removeButtonClass" [canRemove]="field.fields.length > 1" (onRemoveBtnClick)="removeElem($event[0], $event[1])" [index]="i"></textfield>
       </span>
+    </div>
+    <div class="row">
+      <div class="col-xs-12" *ngIf="field.required && !field.delegateErrorHandling && (field.label || (field.validationMessages && field.validationMessages.required))" [style.visibility]="getFormControl() && hasRequiredError() && getFormControl().touched ? 'inherit':'hidden'">
+        <div class="text-danger" *ngIf="!field.validationMessages?.required">{{field.label}} is required</div>
+        <div class="text-danger" *ngIf="field.validationMessages?.required">{{field.validationMessages.required}}</div>
+      </div>
     </div>
     <div class="row">
       <span class="col-xs-12">
