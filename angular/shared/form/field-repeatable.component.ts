@@ -206,6 +206,15 @@ export class RepeatableContainer extends Container {
       this.removeElem(idx);
     });
   }
+
+  public reset() {
+    this.fields[0].setValue(null);
+    if (this.fields.length > 1) {
+      for (var i=1; i<this.fields.length; i++) {
+        this.removeElem(i);
+      }
+    }
+  }
 }
 
 export class EmbeddableComponent extends SimpleComponent {
