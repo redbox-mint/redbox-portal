@@ -207,14 +207,15 @@ export class RepeatableContainer extends Container {
     });
   }
 
-  public reset() {
+  public reset(data=null, eventConfig=null) {
     this.fields[0].setValue(null);
     if (this.fields.length > 1) {
       for (var i=1; i<this.fields.length; i++) {
         this.removeElem(i);
       }
     }
-  }
+    return data;
+  } 
 }
 
 export class EmbeddableComponent extends SimpleComponent {
