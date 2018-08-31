@@ -22,7 +22,7 @@ module.exports.bootstrap = function(cb) {
       console.log("Using NG2 Bundled files.......");
     }
     // actual bootstrap...
-
+    sails.log.debug(`Starting boostrap process with boostrapAlways set to: ${sails.config.appmode.bootstrapAlways}`);
     sails.services.brandingservice.bootstrap()
     .flatMap(defaultBrand => {
       sails.log.verbose("Bootstrapping roles...");

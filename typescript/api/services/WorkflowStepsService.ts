@@ -51,6 +51,7 @@ export module Services {
       }
       return super.getObservable(startQ)
         .flatMap(workflows => {
+          sails.log.debug(`WorkflowSteps found: ${workflows} and boostrapAlways set to: ${sails.config.appmode.bootstrapAlways}`);
           if (_.isEmpty(workflows)) {
             sails.log.verbose("Bootstrapping workflow definitions... ");
             const wfSteps = {};

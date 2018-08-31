@@ -186,8 +186,7 @@ module.exports.auth = {
       default: {
         adminUser: 'admin',
         adminPw: 'rbadmin',
-        email: 'admin@redboxresearchdata.com.au',
-        token: "123123"
+        email: 'admin@redboxresearchdata.com.au'
       },
       templatePath: 'local.ejs',
       postLoginRedir: 'researcher/home',

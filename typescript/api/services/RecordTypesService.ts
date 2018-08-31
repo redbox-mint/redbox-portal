@@ -53,6 +53,7 @@ export module Services {
         if (_.isUndefined(recordTypes)) {
           recordTypes = [];
         }
+        sails.log.debug(`RecordTypes found: ${recordTypes} and boostrapAlways set to: ${sails.config.appmode.bootstrapAlways}`);
         if (_.isEmpty(recordTypes)) {
           var rTypes = [];
           sails.log.verbose("Bootstrapping record type definitions... ");
