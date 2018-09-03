@@ -19,6 +19,7 @@
 
 import { Injectable } from '@angular/core';
 import * as _ from "lodash";
+import moment from 'moment-es6';
 /**
  * Utility service...
  *
@@ -174,5 +175,16 @@ export class UtilityService {
         value = _.get(data,field);
       }
       return _.first(value);
+    }
+
+    public joinArray(data:any, config:any, fieldName:string=null, fieldSeparator:string=null) {
+      return _.join(_.get(data, fieldName ? fieldName : config.field), fieldSeparator ? fieldSeparator : config.separator);
+    }
+
+    public runTemplate(data:any, config:any) {
+      const imports = _.extend({data:data, config:config, moment:moment}, this);
+      const templateData = {imports: imports};
+      const template = _.template(config.template, templateData);
+      return template();
     }
 }
