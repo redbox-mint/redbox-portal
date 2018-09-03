@@ -8,6 +8,7 @@
       {{field.label}} {{ getRequiredLabelStr()}}
       <button type="button" class="btn btn-default" *ngIf="field.help" (click)="toggleHelp()" [attr.aria-label]="'help' | translate "><span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span></button>
     </span><br/>
+    <span id="{{ 'helpBlock_' + field.name }}" class="help-block" *ngIf="this.helpShow" [innerHtml]="field.help"></span>
     <div *ngIf="field.value.oid">
        {{ field.value.title }} <button class="btn btn-info" (click)="field.resetSelector()">{{ 'change-text' | translate }}</button>
     </div>
