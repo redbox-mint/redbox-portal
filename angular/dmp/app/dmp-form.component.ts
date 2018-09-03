@@ -21,6 +21,7 @@ import { Component, Inject, Input, ElementRef, EventEmitter, Output, ChangeDetec
 import { Location, LocationStrategy, PathLocationStrategy } from '@angular/common';
 import { FormGroup } from '@angular/forms';
 import { RecordsService } from './shared/form/records.service';
+import { UserSimpleService } from './shared/user.service-simple';
 import { LoadableComponent } from './shared/loadable.component';
 import { FieldControlService } from './shared/form/field-control.service';
 import { Observable } from 'rxjs/Observable';
@@ -59,6 +60,9 @@ export class DmpFormComponent extends LoadableComponent {
    *
    */
   @Input() recordType: string;
+
+  user:any = {};
+
   /**
    * Fields for the form
    */
@@ -128,6 +132,7 @@ export class DmpFormComponent extends LoadableComponent {
   constructor(
     elm: ElementRef,
     @Inject(RecordsService) protected RecordsService: RecordsService,
+    @Inject(UserSimpleService) protected UserSimpleService: UserSimpleService,
     @Inject(FieldControlService) protected fcs: FieldControlService,
     @Inject(Location) protected LocationService: Location,
     public translationService: TranslationService,
@@ -169,6 +174,18 @@ export class DmpFormComponent extends LoadableComponent {
                 this.watchForChanges();
               });
             }
+          });
+
+
+          UserSimpleService.getInfo().then(userInfo => {
+            let user = _.clone(userInfo);
+            //TODO: This roles transform ignores branding making
+            user.roles = [];
+            _.each(userInfo.roles, role => {
+              user.roles.push(role.name);
+            });
+
+            this.user = user;
           });
         }).catch((err:any) => {
           console.log("Error loading form...");
