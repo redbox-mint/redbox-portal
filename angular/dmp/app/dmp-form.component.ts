@@ -181,8 +181,8 @@ export class DmpFormComponent extends LoadableComponent {
             let user = _.clone(userInfo);
             //TODO: This roles transform ignores branding making
             user.roles = [];
-            _.each(userInfo.roles, role => {
-              user.roles.push(role.name);
+            _.each(userInfo.roles, (roleDetails:any) => {
+              user.roles.push(roleDetails['name']);
             });
 
             this.user = user;
