@@ -921,3 +921,14 @@ tree-internal > ul.rootless > li > tree-internal > ul {
 .normal-font: {
   font-weight: normal;
 }
+
+.view-contributor > .col-xs-3 {
+    white-space: -moz-pre-wrap !important;
+    white-space: -webkit-pre-wrap;
+    white-space: -pre-wrap;
+    white-space: -o-pre-wrap;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    word-break: break-all;
+    white-space: normal;
+}

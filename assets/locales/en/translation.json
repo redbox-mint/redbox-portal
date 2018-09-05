@@ -416,6 +416,8 @@
   "@dataRecord-embargoNote": "Embargo note",
   "@dataRecord-geospatial": "Geospatial location",
   "@dataRecord-geospatial-help": "",
+  "@dataPublication-geolocation": "Locations",
+  "@dataPublication-geolocation-help": "",
   "@dmp-create-datapublication-link": "Create a data publication from this record",
   "report-results-returned": "{count} result returned",
   "report-results-returned_plural": "{count} results returned",

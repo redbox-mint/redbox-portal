@@ -97,6 +97,30 @@ module.exports = [
           }
         },
         {
+          class: 'RepeatableContainer',
+          compClass: 'RepeatableVocabComponent',
+          definition: {
+            name: 'geolocations',
+            label: "@dataPublication-geolocation",
+            help: "@dataPublication-geolocation-help",
+            forceClone: ['lookupService', 'completerService'],
+            fields: [{
+              class: 'VocabField',
+              definition: {
+                disableEditAfterSelect: false,
+                provider: 'geonames',
+                sourceType: 'external',
+                titleFieldName: 'title',
+                titleFieldArr: ['basic_name'],
+                fieldNames:['basic_name','latitude','longitude'],
+                stringLabelToField: 'basic_name',
+                resultArrayProperty: 'results'
+              }
+            }],
+            disabledExpression: '<%= _.isEmpty(relatedRecordId) %>'
+          }
+        },
+        {
           class: 'MapField',
           compClass: 'MapComponent',
           definition: {
