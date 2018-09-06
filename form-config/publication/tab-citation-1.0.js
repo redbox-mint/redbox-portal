@@ -173,7 +173,7 @@ module.exports = [
                 onValueChange: [
                   {
                     action: 'utilityService.runTemplate',
-                    template: '<%= _.join(_.map(_.get(data, "creators"), (c)=> {return (c.family_name ? c.family_name : "") + ", " + (c.given_name ? c.given_name : "") }), "; ") + " ("+ moment(_.get(data, "citation_publication_date")).format("YYYY") + "): " + _.get(data, "citation_title") + ". " + _.get(data, "citation_publisher") + ". {ID_WILL_BE_HERE}" %>'
+                    template: '<%= _.join(_.map(_.get(data, "creators"), (c)=> {return c.family_name || c.given_name ? ((c.family_name ? c.family_name : "") + ", " + (c.given_name ? c.given_name : "")) : "" }), "; ") + " ("+ moment(_.get(data, "citation_publication_date")).format("YYYY") + "): " + _.get(data, "citation_title") + ". " + _.get(data, "citation_publisher") + ". {ID_WILL_BE_HERE}" %>'
                   }
                 ]
               }
