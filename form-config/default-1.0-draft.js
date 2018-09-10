@@ -185,9 +185,11 @@ module.exports = {
                     help: "@dmpt-finalKeywords-help",
                     name: "finalKeywords",
                     editOnly: true,
+                    required: true,
                     fields: [{
                       class: 'TextField',
                       definition: {
+                        required: true,
                         type: 'text'
                       }
                     }]
