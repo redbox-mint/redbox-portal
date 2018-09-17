@@ -153,9 +153,12 @@ export module Controllers {
     protected updateResponsibility(transferConfig, role, record, updateData) {
       const respConfig = transferConfig.fields[role];
       if (respConfig.updateField) {
-        _.forOwn(updateData, (val, key) => {
-          _.set(record, `metadata.${respConfig.updateField}.${key}`, val);
-        });
+        // overwrite the whole field instead of 'merging'...
+        _.set(record, `metadata.${respConfig.updateField}`, updateData);
+        // 'merge' code commented out:
+        // _.forOwn(updateData, (val, key) => {
+        //   _.set(record, `metadata.${respConfig.updateField}.${key}`, val);
+        // });
       }
       if (respConfig.fieldNames) {
         _.forOwn(respConfig.fieldNames, (val, key) => {
