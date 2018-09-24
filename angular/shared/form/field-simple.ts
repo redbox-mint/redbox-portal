@@ -284,12 +284,14 @@ export class TabNavButton extends FieldBase<string> {
   currentTab: string;
   tabs: string[] = [];
   targetTabContainerId: string;
+  endDisplayMode: string;
 
   constructor(options: any, injector: any) {
     super(options, injector);
     this.prevLabel = this.getTranslated(options.prevLabel, 'Previous');
     this.nextLabel = this.getTranslated(options.nextLabel, 'Next');
     this.targetTabContainerId = options.targetTabContainerId;
+    this.endDisplayMode = options.endDisplayMode == 'hidden' ? 'hidden': 'disabled';
   }
 
   public getTabs() {
