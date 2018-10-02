@@ -24,6 +24,7 @@ import 'rxjs/add/operator/toPromise';
 import * as request from "request-promise";
 import * as ejs from 'ejs';
 import * as fs from 'graceful-fs';
+import path = require('path');
 
 declare var sails: Sails;
 declare var RecordsService;
@@ -42,61 +43,112 @@ export module Services {
    */
   export class DataPublication extends services.Services.Core.Service {
 
-  protected _exportedMethods: any = [
-  	'exportDataset'
-  ];
+  	protected _exportedMethods: any = [
+  		'exportDataset'
+  	];
 
 
 
-  public exportDataset(oid, record, options): Observable<any> {
-   	if( this.metTriggerCondition(oid, record, options) === "true") {
-   		sails.log.info("Called exportDataset on update");
-      sails.log.info("oid: " + oid);
-      sails.log.info("options: " + JSON.stringify(options));
-			const sitedir = sails.config.datapubs.sites[options['site']];
-			if( ! sitedir ) {
-				sails.log.error("Unknown publication site " + options['site']);
-				return Observable.of(null);
-			}
+  	public exportDataset(oid, record, options): Observable<any> {
+  		sails.log.info("!exportDataset! " + oid);
+   		if( this.metTriggerCondition(oid, record, options) === "true") {
 
-			const drec = record['dataRecord'];
-			const drid = drec ? drec['oid'] : undefined;
+   			sails.log.info("Called exportDataset on update");
+      	sails.log.info("oid: " + oid);
+      	sails.log.info("options: " + JSON.stringify(options));
+				const sitedir = sails.config.datapubs.sites[options['site']];
+				if( ! sitedir ) {
+					sails.log.error("Unknown publication site " + options['site']);
+					return Observable.of(null);
+				}
 
-			if( ! drid ) {
-				sails.log.error("Couldn't find dataRecord or id for data pub " + oid);
-				return Observable.of(null)
-			}
+				const md = record['metadata'];
 
-			const attachments = record['dataLocations'].filter(
-				(a) => a['type'] === 'attachment'
-			);
-			const dir = path.join(sitedir, oid);
+				const drec = md['dataRecord'];
+				const drid = drec ? drec['oid'] : undefined;
 
-			return Observable.of(attachments)
-				.concatMap( (a) => {
-					return RecordsService.getDatastream(drid, a['fileId'])
-						.flatMap((response) => {
+				if( ! drid ) {
+					sails.log.error("Couldn't find dataRecord or id for data pub " + oid);
+					sails.log.info(JSON.stringify(record));
+					return Observable.of(null)
+				}
+
+				sails.log.info("Got data record: " + drid);
+
+				const attachments = md['dataLocations'].filter(
+					(a) => a['type'] === 'attachment'
+				);
+
+				const dir = path.join(sitedir, oid);
+				try {
+
+					sails.log.info("making dataset dir: " + dir);
+					fs.mkdirSync(dir);
+				} catch(e) {
+					sails.log.error("Couldn't create dataset dir " + dir);
+					sails.log.error(e.name);
+					sails.log.error(e.message);
+					sails.log.error(e.stack);
+					return Observable.of(null);
+				}
+				
+				sails.log.info("Going to write attachments");
+				
+				// build a list of observables, each of which writes out an
+				// attachment
+
+				const obs = attachments.map((a) => {
+					sails.log.info("building attachment observable " + a['name']);
+					return RecordsService.getDatastream(drid, a['fileId']).
+						flatMap(ds => {
 							const filename = path.join(dir, a['name']);
-							sails.log.info(`Writing out attachment ${a['fileId']} ${a['name']}`);
-							return Observable.fromPromise(this.writeDatastream(response, filename))
-						})
+							sails.log.info("about to write " + filename);
+							return Observable.fromPromise(this.writeDatastream(ds, filename))
+								.catch(error => {
+									sails.log.error("Error writing attachment " + a['fileId']);
+									sails.log.error(e.name);
+									sails.log.error(e.message);
+								});
+						});
 				});
-    } else {
-     	sails.log.info(`Not sending notification log for: ${oid}, condition not met: ${_.get(options, "triggerCondition", "")}`)
-    	return Observable.of(null);
-   	}
-  }
 
-	private writeDatastream(stream: Readable, fn: string): Promise<boolean> {
-  	var wstream = fs.createWriteStream(fn);
-  	stream.pipe(wstream);
-  	return new Promise<boolean>( (resolve, reject) => {
-    	wstream.on('finish', () => { resolve(true) }); 
-    	wstream.on('error', reject);
-  	});
+				return Observable.merge(...obs)
+					.flatMap((dummy) => {
+						sails.log.info("One last part of the pipeline");
+						return Observable.of({});
+					});
+					// .subscribe(response => {
+					// 	sails.log.info("exportDataset response: " + JSON.stringify(response));
+					// 	return Observable.of({});
+					// },
+					// error => {
+					// 	sails.log.error("Error writing attachments");
+					// 	sails.log.error(e.name);
+					// 	sails.log.error(e.message);
+					// 	return Observable.of(null);
+					// },
+					// () => {
+					// 	sails.log.info("exportDataset (): " + JSON.stringify(response));
+					// 	return Observable.of({});
+					// }
+    	} else {
+     		sails.log.info(`Not sending notification log for: ${oid}, condition not met: ${_.get(options, "triggerCondition", "")}`)
+    		return Observable.of(null);
+   		}
+  	}
+
+
+		private writeDatastream(stream: Readable, fn: string): Promise<boolean> {
+  		var wstream = fs.createWriteStream(fn);
+  		sails.log.info("in writeDatastream " + fn);
+  		stream.pipe(wstream);
+  		return new Promise<boolean>( (resolve, reject) => {
+    		wstream.on('finish', () => { resolve(true) }); 
+    		wstream.on('error', reject);
+  		});
+		}	
+
 	}
-
-
 
 }
 
