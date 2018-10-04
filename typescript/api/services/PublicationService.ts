@@ -108,7 +108,7 @@ export module Services {
 						flatMap(ds => {
 							const filename = path.join(dir, a['name']);
 							sails.log.info("about to write " + filename);
-							return Observable.fromPromise(this.writeDatastream(ds, filename))
+							return Observable.fromPromise(this.writeData(ds, filename))
 								.catch(error => {
 									sails.log.error("Error writing attachment " + a['fileId']);
 									sails.log.error(e.name);
@@ -127,16 +127,46 @@ export module Services {
   	}
 
 
+		// this version works, but I'm worried that it will put the whole of
+		// the buffer in RAM. See writeDatastream for my first attempt, which
+		// doesnt' work.
+
+		private writeData(buffer: Buffer, fn: string): Promise<boolean> {
+			return new Promise<boolean>( ( resolve, reject ) => {
+				try {
+					fs.writeFile(fn, buffer, () => {
+						sails.log.info("wrote to " + fn);
+						resolve(true)
+					});
+				} catch(e) {
+					sails.log.error("attachment write error");
+					sails.log.error(e.name);
+					sails.log.error(e.message);
+					reject;
+				}
+			});
+		}
+
+
+		// This is the first attempt, but it doesn't work - the files it 
+		// writes out are always empty. I think it's because the API call
+		// to get the attachment isn't requesting a stream, so it's coming
+		// back as a buffer.
+
 		private writeDatastream(stream: Readable, fn: string): Promise<boolean> {
-  		var wstream = fs.createWriteStream(fn);
-  		sails.log.info("start writeDatastream " + fn);
-  		stream.pipe(wstream);
-  		return new Promise<boolean>( (resolve, reject) => {
+			return new Promise<boolean>( (resolve, reject) => {
+  			var wstream = fs.createWriteStream(fn);
+  			sails.log.info("start writeDatastream " + fn);
+  			stream.pipe(wstream);
+  			stream.end();
     		wstream.on('finish', () => {
     			sails.log.info("finished writeDatastream " + fn);
-    			resolve(true)
+    			resolve(true);
     		}); 
-    		wstream.on('error', reject);
+    		wstream.on('error', (e) => {
+    			sails.log.error("File write error");
+    			reject}
+    			);
   		});
 		}
 
