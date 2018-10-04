@@ -26,8 +26,13 @@ import * as ejs from 'ejs';
 import * as fs from 'graceful-fs';
 import path = require('path');
 
+import { Index, jsonld } from 'calcyte';
+const datacrate = require('datacrate').catalog;
+
 declare var sails: Sails;
 declare var RecordsService;
+
+// NOTE: the publication isn't being triggered if you 
 
 // Note: onNotifySuccess doesn't work as simply as I hoped, the method calling 
 // it has to explicitly look for it
@@ -112,25 +117,9 @@ export module Services {
 						});
 				});
 
-				return Observable.merge(...obs)
-					.flatMap((dummy) => {
-						sails.log.info("One last part of the pipeline");
-						return Observable.of({});
-					});
-					// .subscribe(response => {
-					// 	sails.log.info("exportDataset response: " + JSON.stringify(response));
-					// 	return Observable.of({});
-					// },
-					// error => {
-					// 	sails.log.error("Error writing attachments");
-					// 	sails.log.error(e.name);
-					// 	sails.log.error(e.message);
-					// 	return Observable.of(null);
-					// },
-					// () => {
-					// 	sails.log.info("exportDataset (): " + JSON.stringify(response));
-					// 	return Observable.of({});
-					// }
+				obs.push(this.makeDataCrate(oid, dir, md));
+
+				return Observable.merge(...obs);
     	} else {
      		sails.log.info(`Not sending notification log for: ${oid}, condition not met: ${_.get(options, "triggerCondition", "")}`)
     		return Observable.of(null);
@@ -140,16 +129,62 @@ export module Services {
 
 		private writeDatastream(stream: Readable, fn: string): Promise<boolean> {
   		var wstream = fs.createWriteStream(fn);
-  		sails.log.info("in writeDatastream " + fn);
+  		sails.log.info("start writeDatastream " + fn);
   		stream.pipe(wstream);
   		return new Promise<boolean>( (resolve, reject) => {
-    		wstream.on('finish', () => { resolve(true) }); 
+    		wstream.on('finish', () => {
+    			sails.log.info("finished writeDatastream " + fn);
+    			resolve(true)
+    		}); 
     		wstream.on('error', reject);
   		});
-		}	
+		}
 
+
+		private makeDataCrate(oid: string, dir: string, metadata: Object): Observable<any> {
+
+			const owner = 'TODO@shouldnt.the.owner.come.from.the.datapub';
+			const approver = 'TODO@get.the.logged-in.user';
+
+			return Observable.of({})
+				.flatMap(() => {
+					return Observable.fromPromise(datacrate.datapub2catalog({
+						'id': oid,
+						'datapub': metadata,
+						'organisation': sails.config.datapubs.datacrate.organization,
+						'owner': owner,
+						'approver': approver
+					}))
+				}).flatMap((catalog) => {
+					// the following writes out the CATALOG.json and CATALOG.html, and it's all
+					// sync because of legacy code in calcyte.
+					try {
+						const jsonld_h = new jsonld();
+						const catalog_json = path.join(dir, sails.config.datapubs.datacrate.catalog_json);
+						sails.log.info(`Writing CATALOG.json`);
+						jsonld_h.init(catalog);
+						jsonld_h.trim_context();
+						fs.writeFileSync(catalog_json, JSON.stringify(jsonld_h.json_ld, null, 2));
+						const index = new Index();
+						index.init(catalog, dir, false);
+						sails.log.info(`Writing CATALOG.html`);
+						index.make_index_html("text_citation", "zip_path"); //writeFileSync
+						return Observable.of({});
+					} catch (e) {
+						sails.log.error("Error while creating DataCrate");
+						sails.log.error(e.name);
+						sails.log.error(e.message);
+						sails.log.error(e.stack);
+						return Observable.of(null);
+					}
+				}).catch(error => {
+					sails.log.error("Error while creating DataCrate");
+					sails.log.error(error.name);
+					sails.log.error(error.message);
+					return Observable.of({});
+				});
+		}
 	}
-
 }
 
 module.exports = new Services.DataPublication().exports();
