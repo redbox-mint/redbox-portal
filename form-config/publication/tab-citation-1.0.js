@@ -133,13 +133,13 @@ module.exports = [
           }
         },
         {
-          class: 'TextField',
+          class: 'LinkValueComponent',
           definition: {
             name: 'citation_url',
             label: '@dataPublication-citation-url',
             help: '@dataPublication-citation-url-help',
             type: 'text',
-            required: true,
+            readOnly: true,
             disabledExpression: '<%= _.isEmpty(relatedRecordId) %>'
           }
         },

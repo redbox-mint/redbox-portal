@@ -55,7 +55,6 @@ export module Services {
 
 
   	public exportDataset(oid, record, options): Observable<any> {
-  		sails.log.info("!exportDataset! " + oid);
    		if( this.metTriggerCondition(oid, record, options) === "true") {
 
    			sails.log.info("Called exportDataset on update");
