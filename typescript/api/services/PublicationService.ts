@@ -32,10 +32,10 @@ const datacrate = require('datacrate').catalog;
 declare var sails: Sails;
 declare var RecordsService;
 
-// NOTE: the publication isn't being triggered if you 
+// NOTE: the publication isn't being triggered if you go straight to review
+// from a new data pub
 
-// Note: onNotifySuccess doesn't work as simply as I hoped, the method calling 
-// it has to explicitly look for it
+
 
 export module Services {
   /**
