@@ -108,7 +108,7 @@ export module Services {
 						flatMap(ds => {
 							const filename = path.join(dir, a['name']);
 							sails.log.info("about to write " + filename);
-							return Observable.fromPromise(this.writeData(ds, filename))
+							return Observable.fromPromise(this.writeData(ds.body, filename))
 								.catch(error => {
 									sails.log.error("Error writing attachment " + a['fileId']);
 									sails.log.error(e.name);
