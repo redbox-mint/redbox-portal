@@ -159,15 +159,15 @@ export module Services {
   			sails.log.info("start writeDatastream " + fn);
   			stream.pipe(wstream);
   			stream.end();
-    		wstream.on('finish', () => {
-    			sails.log.info("finished writeDatastream " + fn);
-    			resolve(true);
-    		}); 
-    		wstream.on('error', (e) => {
-    			sails.log.error("File write error");
-    			reject}
-    			);
-  		});
+				wstream.on('finish', () => {
+					sails.log.info("finished writeDatastream " + fn);
+					resolve(true);
+				}); 
+				wstream.on('error', (e) => {
+					sails.log.error("File write error");
+					reject
+    		});
+			});
 		}
 
 
