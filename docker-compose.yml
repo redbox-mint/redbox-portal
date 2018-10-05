@@ -34,10 +34,11 @@ services:
       - "8080:8080"
     restart: always
     volumes:
-      - "/mnt/data/publication/staging:/staging"
-      - "/mnt/data/publication/public:/public"
+      - "/mnt/data/publication:/usr/share/nginx/html"
+      - "/mnt/nginx.conf:/etc/nginx/conf.d"
     expose:
       - "8080"
+
 
   redbox:
     image: qcifengineering/redbox:2.x
