@@ -1,8 +1,14 @@
 module.exports.datapubs = {
 
   "sites": {
-  	"staging": "/publication/staging",
-  	"public": "/publication/public"
+  	"staging": {
+      "dir": "/publication/staging",
+      "url": "http://localhost:8080/staging"
+    },
+  	"public": {
+      "dir": "/publication/public",
+      "url": "http://localhost:8080/public"
+    }
   },
 
   "datacrate": {

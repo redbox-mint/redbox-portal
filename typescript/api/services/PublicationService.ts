@@ -31,6 +31,7 @@ const datacrate = require('datacrate').catalog;
 
 declare var sails: Sails;
 declare var RecordsService;
+declare var BrandingService;
 
 // NOTE: the publication isn't being triggered if you go straight to review
 // from a new data pub
@@ -60,8 +61,8 @@ export module Services {
    			sails.log.info("Called exportDataset on update");
       	sails.log.info("oid: " + oid);
       	sails.log.info("options: " + JSON.stringify(options));
-				const sitedir = sails.config.datapubs.sites[options['site']];
-				if( ! sitedir ) {
+				const site = sails.config.datapubs.sites[options['site']];
+				if( ! site ) {
 					sails.log.error("Unknown publication site " + options['site']);
 					return Observable.of(null);
 				}
@@ -83,7 +84,7 @@ export module Services {
 					(a) => a['type'] === 'attachment'
 				);
 
-				const dir = path.join(sitedir, oid);
+				const dir = path.join(site['dir'], oid);
 				try {
 
 					sails.log.info("making dataset dir: " + dir);
@@ -117,6 +118,7 @@ export module Services {
 				});
 
 				obs.push(this.makeDataCrate(oid, dir, md));
+				obs.push(this.updateUrl(oid, record, site['url']));
 
 				return Observable.merge(...obs);
     	} else {
@@ -167,6 +169,12 @@ export module Services {
 					reject
     		});
 			});
+		}
+
+		private updateUrl(oid: string, record: Object, baseUrl: string): Observable<any> {
+			const branding = sails.config.auth.defaultBrand; // fix me
+			record['metadata']['citation_url'] = baseUrl + '/' + oid;
+			return RecordsService.updateMeta(branding, oid, record);
 		}
 
 
