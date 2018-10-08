@@ -94,6 +94,8 @@ export class BaseService {
   protected getOptionsClient(headersObj: any = {}) {
     headersObj['X-Source'] = 'jsclient';
     headersObj['Content-Type'] = 'application/json;charset=utf-8';
+    headersObj['X-CSRF-Token'] = this.config.csrfToken;
+    
     return this.getOptions(headersObj);
   }
 }

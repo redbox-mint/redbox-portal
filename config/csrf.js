@@ -62,3 +62,6 @@
 //    grantTokenViaAjax: true,
 //    origin: ''
 // }
+module.exports.security = {
+  csrf: true
+};

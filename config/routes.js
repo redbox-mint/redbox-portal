@@ -31,7 +31,7 @@ module.exports.routes = {
   * `assets` directory)                                                      *
   *                                                                          *
   ***************************************************************************/
-
+  'GET /csrfToken': { action: 'security/grant-csrf-token' },
   '/':  '/default/rdmp/home',
   '/:branding/:portal/home': {
     controller: 'RenderViewController',
