@@ -19,9 +19,10 @@ module.exports = {
     // users have many roles
     roles: { collection: 'role', via: 'users'}
   },
-  customJSON: function() {
-      var obj = this.toObject();
-      delete obj.password;
+  customToJSON: function() {
+      var obj = {};
+      _.assign(obj, this);
+      _.unset(obj, 'password');
       return obj;
   },
   beforeCreate: function(user, cb) {
