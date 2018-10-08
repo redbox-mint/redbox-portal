@@ -182,11 +182,16 @@ export module Services {
       var BearerStrategy = require('passport-http-bearer').Strategy;
       sails.config.passport.use('bearer', new BearerStrategy(
         function(token, done) {
-          User.findOne({ token: token }).populate('roles').exec(function(err, user) {
-            if (err) { return done(err); }
-            if (!user) { return done(null, false); }
-            return done(null, user, { scope: 'all' });
-          });
+          if (!_.isEmpty(token) && !_.isUndefined(token)) {
+            User.findOne({ token: token }).populate('roles').exec(function(err, user) {
+              if (err) { return done(err); }
+              if (!user) { return done(null, false); }
+              return done(null, user, { scope: 'all' });
+            });
+          } else {
+            // empty token, deny
+            return done(null, false);
+          }
         }
       ));
     }
