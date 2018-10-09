@@ -7545,15 +7545,15 @@ typescript-require@~0.2.9-1:
   dependencies:
     typescript ">= 0.8.2"
 
-typescript@2.5.3:
-  version "2.5.3"
-  resolved "https://registry.yarnpkg.com/typescript/-/typescript-2.5.3.tgz#df3dcdc38f3beb800d4bc322646b04a3f6ca7f0d"
-  integrity sha512-ptLSQs2S4QuS6/OD1eAKG+S5G8QQtrU5RT32JULdZQtM1L3WTi34Wsu48Yndzi8xsObRAB9RPt/KhA9wlpEF6w==
-
-typescript@2.6.1, "typescript@>= 0.8.2", typescript@^2.4.2:
+typescript@2.6.1, typescript@^2.4.2:
   version "2.6.1"
   resolved "https://registry.yarnpkg.com/typescript/-/typescript-2.6.1.tgz#ef39cdea27abac0b500242d6726ab90e0c846631"
   integrity sha1-7znN6ierrAtQAkLWcmq5DgyEZjE=
+
+typescript@3.1.1, "typescript@>= 0.8.2":
+  version "3.1.1"
+  resolved "https://registry.yarnpkg.com/typescript/-/typescript-3.1.1.tgz#3362ba9dd1e482ebb2355b02dfe8bcd19a2c7c96"
+  integrity sha512-Veu0w4dTc/9wlWNf2jeRInNodKlcdLgemvPsrNpfu5Pq39sgfFjvIIgTsvUHCoLBnMhPoUA+tFxsXjU6VexVRQ==
 
 ua-parser-js@^0.7.9:
   version "0.7.17"
