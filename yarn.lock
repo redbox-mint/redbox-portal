@@ -426,11 +426,6 @@ argparse@^1.0.2, argparse@^1.0.7:
   dependencies:
     sprintf-js "~1.0.2"
 
-argv@0.0.2:
-  version "0.0.2"
-  resolved "https://registry.yarnpkg.com/argv/-/argv-0.0.2.tgz#ecbd16f8949b157183711b1bda334f37840185ab"
-  integrity sha1-7L0W+JSbFXGDcRsb2jNPN4QBhas=
-
 arr-diff@^2.0.0:
   version "2.0.0"
   resolved "https://registry.yarnpkg.com/arr-diff/-/arr-diff-2.0.0.tgz#8f3b827f955a8bd669697e4a4256ac3ceae356cf"
@@ -1631,15 +1626,6 @@ code-point-at@^1.0.0:
   version "1.1.0"
   resolved "https://registry.yarnpkg.com/code-point-at/-/code-point-at-1.1.0.tgz#0d070b4d043a5bea33a2f1a40e2edb3d9a4ccf77"
   integrity sha1-DQcLTQQ6W+ozovGkDi7bPZpMz3c=
-
-codecov@^2.2.0:
-  version "2.3.1"
-  resolved "https://registry.yarnpkg.com/codecov/-/codecov-2.3.1.tgz#7dda945cd58a1f6081025b5b03ee01a2ef20f86e"
-  integrity sha1-fdqUXNWKH2CBAltbA+4Bou8g+G4=
-  dependencies:
-    argv "0.0.2"
-    request "2.77.0"
-    urlgrey "0.4.4"
 
 coffee-script@^1.12.5:
   version "1.12.7"
@@ -3749,11 +3735,10 @@ i18n-2@0.6.3:
     sprintf "^0.1.5"
 
 i18next-sync-fs-backend@^1.0.0:
-  version "1.0.0"
-  resolved "https://registry.yarnpkg.com/i18next-sync-fs-backend/-/i18next-sync-fs-backend-1.0.0.tgz#846760337d9e90d1139d8410caefc4e5a2034d09"
-  integrity sha512-fymETW6cOnpqf2tm14/CgpPn881SJYACD98lwvsflHKFPLEKm6S0e6atGCdQ37beizsiZJuGF02Bjx7yS/DAzg==
+  version "1.1.0"
+  resolved "https://registry.yarnpkg.com/i18next-sync-fs-backend/-/i18next-sync-fs-backend-1.1.0.tgz#abacb1f6624bc9d3cffc5e7d3a0871df3cd47afa"
+  integrity sha512-Lj2QE06GB77hNtkG60vJ5mRQWDKTIaCnVkQYfp9j9NHbvICpKlidtrR6fewVSWHQLxxfjFzNniI7vVB7b5LpUw==
   dependencies:
-    codecov "^2.2.0"
     js-yaml "3.5.4"
     json5 "0.5.0"
 
@@ -6215,32 +6200,6 @@ request@2.76.0:
     tough-cookie "~2.3.0"
     tunnel-agent "~0.4.1"
 
-request@2.77.0:
-  version "2.77.0"
-  resolved "https://registry.yarnpkg.com/request/-/request-2.77.0.tgz#2b00d82030ededcc97089ffa5d8810a9c2aa314b"
-  integrity sha1-KwDYIDDt7cyXCJ/6XYgQqcKqMUs=
-  dependencies:
-    aws-sign2 "~0.6.0"
-    aws4 "^1.2.1"
-    caseless "~0.11.0"
-    combined-stream "~1.0.5"
-    extend "~3.0.0"
-    forever-agent "~0.6.1"
-    form-data "~2.1.1"
-    har-validator "~2.0.6"
-    hawk "~3.1.3"
-    http-signature "~1.1.0"
-    is-typedarray "~1.0.0"
-    isstream "~0.1.2"
-    json-stringify-safe "~5.0.1"
-    mime-types "~2.1.7"
-    node-uuid "~1.4.7"
-    oauth-sign "~0.8.1"
-    qs "~6.3.0"
-    stringstream "~0.0.4"
-    tough-cookie "~2.3.0"
-    tunnel-agent "~0.4.1"
-
 request@2.81.0:
   version "2.81.0"
   resolved "https://registry.yarnpkg.com/request/-/request-2.81.0.tgz#c6928946a0e06c5f8d6f8a9333469ffda46298a0"
@@ -7690,11 +7649,6 @@ url-pattern@^1.0.3:
   version "1.0.3"
   resolved "https://registry.yarnpkg.com/url-pattern/-/url-pattern-1.0.3.tgz#0409292471b24f23c50d65a47931793d2b5acfc1"
   integrity sha1-BAkpJHGyTyPFDWWkeTF5PStaz8E=
-
-urlgrey@0.4.4:
-  version "0.4.4"
-  resolved "https://registry.yarnpkg.com/urlgrey/-/urlgrey-0.4.4.tgz#892fe95960805e85519f1cd4389f2cb4cbb7652f"
-  integrity sha1-iS/pWWCAXoVRnxzUOJ8stMu3ZS8=
 
 util-deprecate@~1.0.1:
   version "1.0.2"
