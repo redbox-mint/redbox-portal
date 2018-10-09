@@ -5236,9 +5236,9 @@ ngx-bootstrap@^2.0.0-beta.8:
   integrity sha512-e+3euXDb4nhzxn9kBO4RPWwRaI2ef7Lg+us8Yo2DBfD/Kuk/vl7ksWjoolMFLKEGpcTcKhMT/4BH5dUx+S4AtA==
 
 node-cache@^4.1.1:
-  version "4.1.1"
-  resolved "https://registry.yarnpkg.com/node-cache/-/node-cache-4.1.1.tgz#08524645ee4039dedc3dcc1dd7c6b979e0619e44"
-  integrity sha1-CFJGRe5AOd7cPcwd18a5eeBhnkQ=
+  version "4.2.0"
+  resolved "https://registry.yarnpkg.com/node-cache/-/node-cache-4.2.0.tgz#48ac796a874e762582692004a376d26dfa875811"
+  integrity sha512-obRu6/f7S024ysheAjoYFEEBqqDWv4LOMNJEuO8vMeEw2AT4z+NCzO4hlc2lhI4vATzbCQv6kke9FVdx0RbCOw==
   dependencies:
     clone "2.x"
     lodash "4.x"
