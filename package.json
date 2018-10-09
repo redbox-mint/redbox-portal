@@ -48,7 +48,7 @@
     "passport-jwt": "github:itayadler/passport-jwt",
     "passport-local": "^1.0.0",
     "puppeteer": "^1.4.0",
-    "rc": "1.2.5",
+    "rc": "1.2.8",
     "redbox2ckan": "github:redbox-mint-contrib/redbox2ckan#dev_build",
     "request-promise": "^4.2.0",
     "rxjs": "5.4.1",
