@@ -13,14 +13,14 @@ do
         docker run -it --rm -v $PWD:$PORTAL_DIR $PORTAL_IMAGE /bin/bash -c "cd $PORTAL_DIR; npm install -g yarn; yarn add sails-hook-autoreload && yarn global add typings && yarn install"
     fi
     if [ $var = "jit" ]; then
-      linkNodeLib "lodash" "lodash-lib"
+      #linkNodeLib "lodash" "lodash-lib"
       # Build targets are different for assets/angular, clearing all .js files from .ts files
       cleanUpAllJs
       export ENV=development
       docker run -it --rm -v $PWD:$PORTAL_DIR $PORTAL_IMAGE /bin/bash -c "cd $PORTAL_DIR; npm install -g @angular/cli@1.7.1; npm install -g yarn; yarn install --only=dev; node_modules/.bin/tsc --project tsconfig.json; cd angular; yarn; make build-frontend"
     fi
     if [ $var = "jit-skip-frontend" ]; then
-      linkNodeLib "lodash" "lodash-lib"
+      #linkNodeLib "lodash" "lodash-lib"
       export ENV=development
       docker run -it --rm -v $PWD:$PORTAL_DIR $PORTAL_IMAGE /bin/bash -c "cd $PORTAL_DIR; npm install -g @angular/cli@1.7.1; npm install -g yarn; yarn install --only=dev; node_modules/.bin/tsc --project tsconfig.json;"
     fi
@@ -31,8 +31,8 @@ do
     fi
     if [ $var == "aotCompile" ]; then
       cleanUpAllJs
-      linkNodeLib "lodash-es" "lodash-lib"
-      echo "declare module 'lodash-lib';" > "node_modules/lodash-es/index.d.ts"
+      #linkNodeLib "lodash-es" "lodash-lib"
+      #echo "declare module 'lodash-lib';" > "node_modules/lodash-es/index.d.ts"
       compileAoT
       exit 0
     fi

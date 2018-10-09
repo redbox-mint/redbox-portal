@@ -58,7 +58,6 @@ export class ConfigService {
   initConfig() {
     this.http.get(`/csrfToken`).mergeMap((csrfRes:any) => {
       this.csrfToken = csrfRes.json()['_csrf'];
-      console.log(`Using csrfToken: ${this.csrfToken}`);
       return this.http.get(`/dynamic/apiClientConfig?v=${new Date().getTime()}`);
     })
     .subscribe((res:any) => {
