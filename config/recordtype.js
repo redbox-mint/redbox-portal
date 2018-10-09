@@ -21,6 +21,7 @@ module.exports.recordtype = {
           }
         }],
         post: [{
+
           function: 'sails.services.pdfservice.createPDF',
           options: {
             waitForSelector: 'div#loading.hidden',
@@ -431,46 +432,51 @@ module.exports.recordtype = {
           {
             function: 'sails.services.publicationservice.exportDataset',
             options: {
-              triggerCondition: "<%= record.workflow.stage == 'reviewing' %>",
-              site: 'staging',
-              // THis isn't automatic so exportDataset will have to look for it
-              onPublishSuccess: [
-          // `Email "data publication is staged" notification to FNCI, DM, Supervisor with link to landing page on Staging`
-                { 
+              triggerCondition: "<%= record.workflow.stage=='reviewing' %>",
+              site: 'staging'
+            }
+          },
+          { 
+            function: 'sails.services.emailservice.sendRecordNotification',
+            options: {
+              triggerCondition: "<%= record.notification != null && record.notification.state == 'draft' && record.workflow.stage == 'reviewing' %>",
+              to: "<%= record.metadata.contributor_ci.email %>,<%= record.metadata.contributor_data_manager.email %>,<%= record.metadata.contributor_supervisor.email %>",
+              subject: "A publication has been staged for review.",
+              template: "publicationStaged",
+              onNotifySuccess: [
+          // `Email "data publication is ready for review" notification to Librarian data-librarian@uts.edu.au with a link to the data publication record`
+                {
                   function: 'sails.services.emailservice.sendRecordNotification',
+                    options: {
+                      forceRun: true,
+                      to: "librarian@redboxresearchdata.com.au",
+                      subject: "Data publication ready for review",
+                      template: "publicationReview"
+                    }
+                },
+                {
+                  function: 'sails.services.recordsservice.updateNotificationLog',
                   options: {
-                    triggerCondition: "<%= record.notification != null && record.notification.state == 'draft' && record.workflow.stage == 'reviewing' %>",
-                    to: "<%= record.metadata.contributor_ci.email %>,<%= record.metadata.contributor_data_manager.email %>,<%= record.metadata.contributor_supervisor.email %>",
-                    subject: "A publication has been staged for publishing.",
-                    template: "publicationStaged",
-                    onNotifySuccess: [
-                // `Email "data publication is ready for review" notification to Librarian data-librarian@uts.edu.au with a link to the data publication record`
-                      {
-                        function: 'sails.services.emailservice.sendRecordNotification',
-                        options: {
-                          forceRun: true,
-                          to: "librarian@redboxresearchdata.com.au",
-                          subject: "Data publication ready for review",
-                          template: "publicationReview"
-                        }
-                      },
-                      {
-                        function: 'sails.services.recordsservice.updateNotificationLog',
-                        options: {
-                          name: "Set Notification to Emailed-Reviewing",
-                          forceRun: true,
-                          flagName: 'notification.state',
-                          flagVal: 'emailed-reviewing',
-                          logName: 'notification.log.reviewing', // record's path to the log
-                          saveRecord: true // when true, do a metadata update
-                        }
-                      }
-                    ]
+                    name: "Set Notification to Emailed-Reviewing",
+                    forceRun: true,
+                    flagName: 'notification.state',
+                    flagVal: 'emailed-reviewing',
+                    logName: 'notification.log.reviewing', // record's path to the log
+                    saveRecord: true // when true, do a metadata update
                   }
-                }              
+                }
               ]
             }
           },
+
+          {
+            function: 'sails.services.publicationservice.exportDataset',
+            options: {
+              triggerCondition: "<%= record.workflow.stage=='published' %>",
+              site: 'public'
+            }
+          },
+
 
           // Triggers "Published" Email Notification to FNCI, DM, Collaborators, CC: librarian with RDA link
           {

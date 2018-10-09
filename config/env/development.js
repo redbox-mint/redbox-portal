@@ -28,7 +28,12 @@ module.exports = {
     level: 'verbose'
   },
   appUrl:'http://localhost:1500',
-  // added for TUS server, only set if there's a reverse proxy infront, otherwise, TUS needs this so it can return the correct host name and port
+  record:{
+    baseUrl: {
+      redbox: "http://redbox:9000/redbox",
+      mint: "https://dev-redbox.research.uts.edu.au/mint"
+    }
+  },  // added for TUS server, only set if there's a reverse proxy infront, otherwise, TUS needs this so it can return the correct host name and port
   //appPort: 1500,
   db: {
     waitRetries: 5,
@@ -61,6 +66,22 @@ module.exports = {
         method: 'get',
         url: '/api/v1/search'
       }
+    }
+  },
+  workspaces: {
+    portal:{
+      authorization: 'Bearer 48fdrhfiut894y'
+    },
+    provisionerUser: 'admin',
+    parentRecord: 'rdmp',
+    gitlab: {
+      parentRecord: 'rdmp',
+      formName: 'gitlab-1.0-draft',
+      workflowStage: 'draft',
+      appName: 'gitlab',
+      appId: 'git-test',
+      recordType: 'gitlab',
+      host: 'https://git-test.research.uts.edu.au'
     }
   }
 };
