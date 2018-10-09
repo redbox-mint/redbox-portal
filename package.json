@@ -84,7 +84,7 @@
   "license": "GPL2",
   "devDependencies": {
     "@compodoc/compodoc": "^1.0.4",
-    "@types/jquery": "^2.0.44",
+    "@types/jquery": "^3.3.13",
     "@types/leaflet": "^1.2.6",
     "@types/leaflet-draw": "^0.4.11",
     "@types/lodash-es": "^4.14.5",

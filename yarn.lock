@@ -219,10 +219,12 @@
   resolved "https://registry.yarnpkg.com/@types/geojson/-/geojson-7946.0.2.tgz#0bd0a01ef04e813c2b7580318da9e37c2eadea9c"
   integrity sha512-JuRe9eeID7XvL7viIcFqIAAXDLfyRcImIWE/XjBIhrUZjxX5z4fLcF3QXS9zYnvIn8mmtW/7OxDV3XC8QMb7OA==
 
-"@types/jquery@^2.0.44":
-  version "2.0.48"
-  resolved "https://registry.yarnpkg.com/@types/jquery/-/jquery-2.0.48.tgz#3e90d8cde2d29015e5583017f7830cb3975b2eef"
-  integrity sha512-nNLzUrVjaRV/Ds1eHZLYTd7IZxs38cwwLSaqMJj8OTXY8xNUbxSK69bi9cMLvQ7dm/IBeQ1wHwQ0S1uYa0rd2w==
+"@types/jquery@^3.3.13":
+  version "3.3.13"
+  resolved "https://registry.yarnpkg.com/@types/jquery/-/jquery-3.3.13.tgz#7c06223fd38d121fe43180667e957a3fa6aefe5d"
+  integrity sha512-jXHKq6iTh+HWOsOIwKwcRUqMojZhe4ngggyIlRG+rZIqxUpHv1vQbe5b5hm4eTw2CoX02AZrryJGcSV6ux9EKw==
+  dependencies:
+    "@types/sizzle" "*"
 
 "@types/leaflet-draw@^0.4.11":
   version "0.4.11"
@@ -267,6 +269,11 @@
   dependencies:
     "@types/events" "*"
     "@types/node" "*"
+
+"@types/sizzle@*":
+  version "2.3.2"
+  resolved "https://registry.yarnpkg.com/@types/sizzle/-/sizzle-2.3.2.tgz#a811b8c18e2babab7d542b3365887ae2e4d9de47"
+  integrity sha512-7EJYyKTL7tFR8+gDbB6Wwz/arpGa0Mywk1TJbNzKzHtzbwVmY4HR9WqS5VV7dsBUKQmPNr192jHr/VpBluj/hg==
 
 abbrev@1:
   version "1.1.1"
