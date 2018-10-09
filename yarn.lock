@@ -7291,12 +7291,10 @@ symbol-observable@^1.0.1:
   resolved "https://registry.yarnpkg.com/symbol-observable/-/symbol-observable-1.0.4.tgz#29bf615d4aa7121bdd898b22d4b3f9bc4e2aa03d"
   integrity sha1-Kb9hXUqnEhvdiYsi1LP5vE4qoD0=
 
-systemjs@0.19.40:
-  version "0.19.40"
-  resolved "https://registry.yarnpkg.com/systemjs/-/systemjs-0.19.40.tgz#158f64a9f4ef541a7fda6b40e527ee46b6c54cd0"
-  integrity sha1-FY9kqfTvVBp/2mtA5SfuRrbFTNA=
-  dependencies:
-    when "^3.7.5"
+systemjs@2.0.2:
+  version "2.0.2"
+  resolved "https://registry.yarnpkg.com/systemjs/-/systemjs-2.0.2.tgz#4cfc7d404be6952d0d630506f569aa3aaec12d27"
+  integrity sha512-uNsbj+2RMKwrg/zxdqjBpb8JtksBrucQcLo6h/ZG0SCmLgLG1QVX0Al6b8YPz+lC+AsPs/hARf9DCXBdPXu31g==
 
 tar-pack@^3.4.0:
   version "3.4.1"
@@ -7882,11 +7880,6 @@ whelk@^6.0.0:
     machine "^15.0.0-5"
     rttc "^10.0.0-0"
     yargs "3.4.5"
-
-when@^3.7.5:
-  version "3.7.8"
-  resolved "https://registry.yarnpkg.com/when/-/when-3.7.8.tgz#c7130b6a7ea04693e842cdc9e7a1f2aa39a39f82"
-  integrity sha1-xxMLan6gRpPoQs3J56Hyqjmjn4I=
 
 which@^1.1.1, which@^1.2.9:
   version "1.3.0"
