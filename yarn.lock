@@ -5215,10 +5215,10 @@ negotiator@0.6.1:
   resolved "https://registry.yarnpkg.com/negotiator/-/negotiator-0.6.1.tgz#2b327184e8992101177b28563fb5e7102acd0ca9"
   integrity sha1-KzJxhOiZIQEXeyhWP7XnECrNDKk=
 
-ng2-completer@1.4.0:
-  version "1.4.0"
-  resolved "https://registry.yarnpkg.com/ng2-completer/-/ng2-completer-1.4.0.tgz#43caec0dff44c7ad998327d411307b5d54546527"
-  integrity sha1-Q8rsDf9Ex62ZgyfUETB7XVRUZSc=
+ng2-completer@2.0.8:
+  version "2.0.8"
+  resolved "https://registry.yarnpkg.com/ng2-completer/-/ng2-completer-2.0.8.tgz#36101eb5a796f966897e7894fc437effd88ebdfb"
+  integrity sha512-WzxJ4u3vAHsfBUaFCloEBoirPZrnDabtWEKyDok7dtjhS1ZvcbwQ4asdXuDO0hZ0T1QC66U/PwLhKfkG501hVg==
 
 ng2-datetime@^1.3.2:
   version "1.4.0"
