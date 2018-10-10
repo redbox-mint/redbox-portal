@@ -535,8 +535,14 @@ export class AnchorOrButtonComponent extends SimpleComponent {
 @Component({
   selector: 'tab-nav-button',
   template: `
+    <span *ngIf="field.endDisplayMode == 'disabled'">
     <button type='button'[ngClass]='field.cssClasses' [disabled]="!field.getTabId(-1)" (click)="stepToTab(-1)" >{{field.prevLabel}}</button>
     <button type='button'[ngClass]='field.cssClasses' [disabled]="!field.getTabId(1)" (click)="stepToTab(1)" >{{field.nextLabel}}</button>
+    </span>
+    <span *ngIf="field.endDisplayMode == 'hidden'">
+    <button type='button'[ngClass]='field.cssClasses' [style.display]="!field.getTabId(-1)?'none':'inherit'" (click)="stepToTab(-1)" >{{field.prevLabel}}</button>
+    <button type='button'[ngClass]='field.cssClasses' [style.display]="!field.getTabId(1)?'none':'inherit'" (click)="stepToTab(1)" >{{field.nextLabel}}</button>
+    </span>
   `,
 })
 export class TabNavButtonComponent extends SimpleComponent {
@@ -587,7 +593,7 @@ export class TabNavButtonComponent extends SimpleComponent {
   }
 }
 
-@Component({
+@Component({       
   selector: 'link-value',
   template: `
   <li *ngIf="isVisible()" class="key-value-pair padding-bottom-10">

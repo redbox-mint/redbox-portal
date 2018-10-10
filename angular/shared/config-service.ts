@@ -35,6 +35,7 @@ import * as _ from "lodash";
 export class ConfigService {
   protected config: any;
   protected subjects: any;
+  public csrfToken: any;
 
   constructor (@Inject(Http) protected http: any) {
     this.subjects = {};
@@ -55,8 +56,13 @@ export class ConfigService {
   }
 
   initConfig() {
-    this.http.get(`/dynamic/apiClientConfig?v=${new Date().getTime()}`).subscribe((res:any) => {
+    this.http.get(`/csrfToken`).mergeMap((csrfRes:any) => {
+      this.csrfToken = csrfRes.json()['_csrf'];
+      return this.http.get(`/dynamic/apiClientConfig?v=${new Date().getTime()}`);
+    })
+    .subscribe((res:any) => {
       this.config = this.extractData(res);
+      this.config['csrfToken'] = this.csrfToken;
       console.log(`ConfigService, initialized. `);
       this.emitConfig();
     });

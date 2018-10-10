@@ -118,9 +118,12 @@
                     <button type="button" class="btn btn-primary" (click)="genKey(currentUser.id)">{{ 'manage-users-api-generate' | translate }}</button>
                   </td>
                   <td *ngIf="currentUser.token">
-                      {{ currentUser.token }}<br />
-                      <button type="button" class="btn btn-primary" (click)="revokeKey(currentUser.id)">{{ 'manage-users-api-revoke' | translate }}</button>
-                    </td>
+                    <ng-container *ngIf="showToken">
+                      <p>{{ 'manage-users-token-message' | translate }}</p>
+                      <p><strong>{{ currentUser.token }}</strong></p>
+                    </ng-container>
+                    <button type="button" class="btn btn-primary" (click)="revokeKey(currentUser.id)">{{ 'manage-users-api-revoke' | translate }}</button>
+                  </td>
                 </tr>
                 <tr>
                     <td class="col-md-2">{{ 'manage-roles-role' | translate }}</td>

@@ -647,5 +647,6 @@
   "dataRecord-title": "Data Record",
   "dataPublication-title": "Data Publication",
   "@dataPublication-publish": "Submit for Publication",
-  "@dataPublication-citation-generated-label": "Citation"
+  "@dataPublication-citation-generated-label": "Citation",
+  "manage-users-token-message": "Note: the API key below will only be visible once."
 }

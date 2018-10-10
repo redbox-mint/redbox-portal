@@ -130,7 +130,7 @@ export module Controllers {
     public revokeUserKey(req, res) {
       var userid = req.body.userid;
       if (userid) {
-        var uuid = null;
+        var uuid = '';
         UsersService.setUserKey(userid, uuid).subscribe(user => {
           this.ajaxOk(req, res, "UUID revoked successfully")
         }, error => {

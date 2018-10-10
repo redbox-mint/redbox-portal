@@ -22,6 +22,7 @@ declare var module;
 declare var sails;
 declare var BrandingService, UsersService, ConfigService;
 import * as uuidv4 from 'uuid/v4';
+
 import controller = require('../core/CoreController.js');
 
 export module Controllers {

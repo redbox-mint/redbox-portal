@@ -21,6 +21,7 @@ import { Observable } from 'rxjs/Rx';
 import services = require('../core/CoreService.js');
 import { Sails, Model } from "sails";
 import * as request from "request-promise";
+import * as crypto  from 'crypto';
 
 declare var sails: Sails;
 declare var User, Role, BrandingConfig: Model;
@@ -182,11 +183,22 @@ export module Services {
       var BearerStrategy = require('passport-http-bearer').Strategy;
       sails.config.passport.use('bearer', new BearerStrategy(
         function(token, done) {
-          User.findOne({ token: token }).populate('roles').exec(function(err, user) {
-            if (err) { return done(err); }
-            if (!user) { return done(null, false); }
-            return done(null, user, { scope: 'all' });
-          });
+          if (!_.isEmpty(token) && !_.isUndefined(token)) {
+            const tokenHash = crypto.createHash('sha256').update(token).digest('base64');
+            User.findOne({ token: tokenHash }).populate('roles').exec(function(err, user) {
+              if (err) {
+                 return done(err);
+              }
+              if (!user) {
+
+                return done(null, false);
+              }
+              return done(null, user, { scope: 'all' });
+            });
+          } else {
+            // empty token, deny
+            return done(null, false);
+          }
         }
       ));
     }
@@ -302,9 +314,10 @@ export module Services {
     }
 
     public setUserKey = (userid, uuid) => {
+      const uuidHash = _.isEmpty(uuid) ? uuid : crypto.createHash('sha256').update(uuid).digest('base64');
       return this.getUserWithId(userid).flatMap(user => {
         if (user) {
-          const q = User.update({id:userid}, {token: uuid});
+          const q = User.update({id:userid}, {token: uuidHash});
           return this.getObservable(q, 'exec', 'simplecb');
         } else {
           return Observable.throw(new Error('No such user with id:' + userid));

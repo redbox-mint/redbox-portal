@@ -69,6 +69,7 @@ export class ManageUsersComponent extends LoadableComponent {
   updateUserForm: FormGroup;
   newUserForm: FormGroup;
   submitted: boolean;
+  showToken: boolean;
 
   constructor (@Inject(UserSimpleService) protected usersService: UserSimpleService, @Inject(RolesService) protected rolesService: RolesService, @Inject(FormBuilder) fb: FormBuilder, @Inject(DOCUMENT) protected document:any, translationService:TranslationService, private _fb: FormBuilder) {
     super();
@@ -168,6 +169,7 @@ export class ManageUsersComponent extends LoadableComponent {
   }
 
   editUser(username: string) {
+    this.showToken = false;
     this.setUpdateMessage();
     this.currentUser = _.find(this.allUsers, (user:any)=>{return user.username == username});
     this.setupForms();
@@ -192,6 +194,7 @@ export class ManageUsersComponent extends LoadableComponent {
     this.setUpdateMessage("Generating...", "primary");
     this.usersService.genKey(userid).then((saveRes:SaveResult) => {
       if (saveRes.status) {
+        this.showToken = true;
         this.currentUser.token = saveRes.message;
         this.refreshUsers();
         this.setUpdateMessage("Token generated.", "primary");
