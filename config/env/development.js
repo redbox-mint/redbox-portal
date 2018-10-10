@@ -67,21 +67,5 @@ module.exports = {
         url: '/api/v1/search'
       }
     }
-  },
-  workspaces: {
-    portal:{
-      authorization: 'Bearer 48fdrhfiut894y'
-    },
-    provisionerUser: 'admin',
-    parentRecord: 'rdmp',
-    gitlab: {
-      parentRecord: 'rdmp',
-      formName: 'gitlab-1.0-draft',
-      workflowStage: 'draft',
-      appName: 'gitlab',
-      appId: 'git-test',
-      recordType: 'gitlab',
-      host: 'https://git-test.research.uts.edu.au'
-    }
   }
 };
