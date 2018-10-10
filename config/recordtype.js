@@ -21,6 +21,7 @@ module.exports.recordtype = {
           }
         }],
         post: [{
+
           function: 'sails.services.pdfservice.createPDF',
           options: {
             waitForSelector: 'div#loading.hidden',
@@ -428,24 +429,30 @@ module.exports.recordtype = {
           }
         ],
         post: [
-          // `Email "data publication is staged" notification to FNCI, DM, Supervisor with link to landing page on Staging`
           {
+            function: 'sails.services.publicationservice.exportDataset',
+            options: {
+              triggerCondition: "<%= record.workflow.stage=='reviewing' %>",
+              site: 'staging'
+            }
+          },
+          { 
             function: 'sails.services.emailservice.sendRecordNotification',
             options: {
               triggerCondition: "<%= record.notification != null && record.notification.state == 'draft' && record.workflow.stage == 'reviewing' %>",
               to: "<%= record.metadata.contributor_ci.email %>,<%= record.metadata.contributor_data_manager.email %>,<%= record.metadata.contributor_supervisor.email %>",
-              subject: "A publication has been staged for publishing.",
+              subject: "A publication has been staged for review.",
               template: "publicationStaged",
               onNotifySuccess: [
-                // `Email "data publication is ready for review" notification to Librarian data-librarian@uts.edu.au with a link to the data publication record`
+          // `Email "data publication is ready for review" notification to Librarian data-librarian@uts.edu.au with a link to the data publication record`
                 {
                   function: 'sails.services.emailservice.sendRecordNotification',
-                  options: {
-                    forceRun: true,
-                    to: "librarian@redboxresearchdata.com.au",
-                    subject: "Data publication ready for review",
-                    template: "publicationReview"
-                  }
+                    options: {
+                      forceRun: true,
+                      to: "librarian@redboxresearchdata.com.au",
+                      subject: "Data publication ready for review",
+                      template: "publicationReview"
+                    }
                 },
                 {
                   function: 'sails.services.recordsservice.updateNotificationLog',
@@ -461,6 +468,16 @@ module.exports.recordtype = {
               ]
             }
           },
+
+          {
+            function: 'sails.services.publicationservice.exportDataset',
+            options: {
+              triggerCondition: "<%= record.workflow.stage=='published' %>",
+              site: 'public'
+            }
+          },
+
+
           // Triggers "Published" Email Notification to FNCI, DM, Collaborators, CC: librarian with RDA link
           {
             function: 'sails.services.emailservice.sendRecordNotification',
