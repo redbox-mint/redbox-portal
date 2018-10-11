@@ -31,7 +31,7 @@ module.exports = {
   record:{
     baseUrl: {
       redbox: "http://redbox:9000/redbox",
-      mint: "https://dev-redbox.research.uts.edu.au/mint"
+      mint: "http://203.101.226.160/mint"
     }
   },  // added for TUS server, only set if there's a reverse proxy infront, otherwise, TUS needs this so it can return the correct host name and port
   //appPort: 1500,
@@ -57,7 +57,7 @@ module.exports = {
     }
   },
   redbox: {
-    apiKey: '18f344b4-81a9-43b9-8916-4bbf339e8765'
+    apiKey: 'c8e844fc-8550-497f-b970-7900ec8741ca'
   },
   mint: {
     apiKey: '3a86f185-8305-478a-a3dc-9e8481d49712',
