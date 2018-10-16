@@ -268,6 +268,6 @@ module.exports.routes = {
     csrf: false
   },
 
-  'get /:branding/:portal/workspace/types/:name' : 'WorkspaceTypesController.getOne',
-  'get /:branding/:portal/workspace/types' : 'WorkspaceTypesController.get'
+  'get /:branding/:portal/workspaces/types/:name' : 'WorkspaceTypesController.getOne',
+  'get /:branding/:portal/workspaces/types' : 'WorkspaceTypesController.get'
 };
