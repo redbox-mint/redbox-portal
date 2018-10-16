@@ -146,7 +146,11 @@ module.exports.routes = {
   'get /dynamic/:asset': 'DynamicAssetController.get',
   'get /:branding/:portal/dynamic/:asset': 'DynamicAssetController.get',
   'post /user/login_local': 'UserController.localLogin',
-  'post /user/login_aaf': 'UserController.aafLogin',
+  'post /user/login_aaf': {
+    controller: 'UserController',
+    action: 'aafLogin',
+    csrf: false
+  },
   'get /user/info': 'UserController.info',
   'get /:branding/:portal/user/info': 'UserController.info',
   'get /:branding/:portal/user/login': 'UserController.login',
