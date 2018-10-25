@@ -33,9 +33,8 @@ export class DashboardComponent extends LoadableComponent {
   records: any = {};
   saveMsgType = "info";
   initSubs: any;
-  initTracker: any = { draftLoaded: false, activeLoaded: false };
   sortMap: any = {};
-
+  initTracker: any = {target: 0, loaded: 0};
 
   constructor(@Inject(DashboardService) protected dashboardService: DashboardService, protected recordsService: RecordsService, @Inject(DOCUMENT) protected document: any, elementRef: ElementRef, translationService: TranslationService) {
     super();
@@ -45,15 +44,19 @@ export class DashboardComponent extends LoadableComponent {
     this.branding = elementRef.nativeElement.getAttribute('branding');
     this.portal = elementRef.nativeElement.getAttribute('portal');
     this.recordType = elementRef.nativeElement.getAttribute('recordType');
-    this.initSubs = dashboardService.waitForInit((initStat: boolean) => {
-      this.initSubs.unsubscribe();
+  }
 
-      translationService.isReady(tService => {
-        recordsService.getType(this.recordType).then(type => {
+  ngOnInit() {
+    this.translationService.isReady(tService => {
+      this.waitForInit([
+        this.dashboardService,
+        this.recordsService
+        ], () => {
+        this.recordsService.getType(this.recordType).then(type => {
           this.typeLabel = this.getTranslated(`${this.recordType}-name-plural`, "Records");
           this.recordTitle = this.getTranslated(`${this.recordType}-title`, "Title");
         });
-        recordsService.getWorkflowSteps(this.recordType).then(steps => {
+        this.recordsService.getWorkflowSteps(this.recordType).then(steps => {
           steps = _.orderBy(steps, ['config.displayIndex'], ['asc'])
           this.workflowSteps = steps;
           _.each(steps, step => {
@@ -63,16 +66,15 @@ export class DashboardComponent extends LoadableComponent {
             this.sortMap[step.name]['metadata.title'] = { sort: null };
             this.sortMap[step.name]['metadata.contributor_ci.text_full_name'] = { sort: null };
             this.sortMap[step.name]['metadata.contributor_data_manager.text_full_name'] = { sort: null };
-
-            dashboardService.getRecords(this.recordType, step.name, 1, null, 'date_object_modified:-1').then((stagedRecords: PlanTable) => {
+            this.initTracker.target++;
+            this.dashboardService.getRecords(this.recordType, step.name, 1, null, 'date_object_modified:-1').then((stagedRecords: PlanTable) => {
+              this.initTracker.loaded++;
               this.setDashboardTitle(stagedRecords);
               this.records[step.name] = stagedRecords;
-              this.initTracker.draftLoaded = true;
               this.checkIfHasLoaded();
             });
           });
         });
-        this.initTracker.activeLoaded = true;
       });
     });
   }
@@ -84,7 +86,7 @@ export class DashboardComponent extends LoadableComponent {
   }
 
   public hasLoaded() {
-    return this.translatorReady;
+    return this.translatorReady && (this.initTracker.loaded >= this.initTracker.target);
   }
 
   public pageChanged(event: any, step: string): void {

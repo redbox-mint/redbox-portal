@@ -59,8 +59,6 @@ export class ManageUsersComponent extends LoadableComponent {
   newUserMsg = "";
   newUserMsgType ="info";
 
-  initSubs: any;
-
   @ViewChild('userDetailsModal') userDetailsModal:ModalDirective;
   @ViewChild('userNewModal') userNewModal:ModalDirective;
 
@@ -74,14 +72,14 @@ export class ManageUsersComponent extends LoadableComponent {
   constructor (@Inject(UserSimpleService) protected usersService: UserSimpleService, @Inject(RolesService) protected rolesService: RolesService, @Inject(FormBuilder) fb: FormBuilder, @Inject(DOCUMENT) protected document:any, translationService:TranslationService, private _fb: FormBuilder) {
     super();
     this.initTranslator(translationService);
-    this.initSubs = usersService.waitForInit((initStatUsers:any) => {
-      rolesService.waitForInit((initStatRole:any) => {
-        this.initSubs.unsubscribe();
-        translationService.isReady(tService => {
-          rolesService.getBrandRoles().then((roles:any) => {
-            this.allRoles = roles;
-            this.refreshUsers();
-          });
+    translationService.isReady(tService => {
+      this.waitForInit([
+        usersService,
+        rolesService
+      ], () => {
+        rolesService.getBrandRoles().then((roles:any) => {
+          this.allRoles = roles;
+          this.refreshUsers();
         });
       });
     });
