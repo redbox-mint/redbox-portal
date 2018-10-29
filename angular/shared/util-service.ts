@@ -144,9 +144,12 @@ export class UtilityService {
    * @return {array}
    */
    public splitArrayStringsToArray(data:any, config:any) {
-     let regex = config.regex;
-     let flags = config.flags;
+     let regex = config.regex || ',';
+     let flags = config.flags || 'g';
      const reg = new RegExp(regex, flags);
+     let regexTrail = config.regexTrail || '(^,)|(,$)';
+     let flagsTrail = config.flagsTrail || 'g';
+     const regTrail = new RegExp(regexTrail, flagsTrail);
      let field = config.field;
      let value = data;
      if(field) {
@@ -154,7 +157,8 @@ export class UtilityService {
      }
      const values = [];
      _.each(value, (v) => {
-       values.push(v.split(reg));
+       if(v){v = v.replace(regTrail, '');}
+       values.push(v.split(reg).map(item => item.trim()));
      });
      return _.concat([], ...values);
    }
