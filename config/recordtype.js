@@ -25,7 +25,9 @@ module.exports.recordtype = {
           function: 'sails.services.pdfservice.createPDF',
           options: {
             waitForSelector: 'div#loading.hidden',
-            pdfPrefix: 'rdmp-pdf'
+            pdfPrefix: 'rdmp-pdf',
+            // Need to set an API token for generation to occur
+            // token: 'abcd-efgh-abcd-abcd-abcd'
           }
         }]
       },
@@ -436,7 +438,7 @@ module.exports.recordtype = {
               site: 'staging'
             }
           },
-          { 
+          {
             function: 'sails.services.emailservice.sendRecordNotification',
             options: {
               triggerCondition: "<%= record.notification != null && record.notification.state == 'draft' && record.workflow.stage == 'reviewing' %>",
