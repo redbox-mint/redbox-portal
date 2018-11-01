@@ -22,8 +22,8 @@
     "angular2-i18next": "^1.1.2",
     "async": "2.1.4",
     "axios": "^0.18.0",
-    "calcyte": "^1.0.1",
     "bcrypt": "1.0.3",
+    "calcyte": "^1.0.2",
     "chokidar": "~1.6.1",
     "core-js": "^2.4.1",
     "datacrate": "^1.0.0",
@@ -75,7 +75,7 @@
     "debug": "node debug app.js",
     "start": "node app.js",
     "test": "node ./node_modules/mocha/bin/mocha test/bootstrap.test.js test/unit/**/*.test.js",
-    "doc-ng2": "npm -g install @compodoc/compodoc; npm -g install ejs-cli; compodoc -p tsconfig-ng2.json -d support/docs/generated/ng2 -n \"ReDBox Portal - NG2 Apps\" --theme postmark --includes support/docs; ejs-cli views/default/default/apidocsapib.ejs -O '{\"portal\":\"rdmp\",\"branding\":\"default\"}' > apidocs.apib; docker run -it --rm -v $PWD:/doc bukalapak/snowboard html -o rest-api.html apidocs.apib; mv -f rest-api.html support/docs/generated/ng2/additional-documentation"
+    "doc-ng2": "npm -g install @compodoc/compodoc; npm -g install ejs-cli; compodoc -p tsconfig-ng2.json -d support/docs/generated/ng2 -n \"ReDBox Portal - NG2 Apps\" --theme postmark --includes support/docs; ejs-cli views/default/default/apidocsapib.ejs -O '{\"portal\":\"rdmp\",\"branding\":\"default\"}' > apidocs.apib; docker run -it --rm -v $PWD:/doc quay.io/bukalapak/snowboard html -o rest-api.html apidocs.apib; mv -f rest-api.html support/docs/generated/ng2/additional-documentation"
   },
   "main": "app.js",
   "repository": {
