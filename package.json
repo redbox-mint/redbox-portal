@@ -63,7 +63,7 @@
     "skipper-gridfs": "https://github.com/marcelomedina10/skipper-gridfs.git",
     "systemjs": "0.19.40",
     "ts-node": "^5.0.1",
-    "ts-smart-logger": "0.0.4",
+    "ts-smart-logger": "0.1.0",
     "tus-node-server": "^0.2.11",
     "typescript": "2.5.3",
     "typescript-require": "~0.2.9-1",
