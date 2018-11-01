@@ -28,7 +28,7 @@ import { RolesService } from './shared/roles-service';
 import { Role, User, LoginResult, SaveResult } from './shared/user-models';
 import { LoadableComponent } from './shared/loadable.component';
 import { TranslationService } from './shared/translation-service';
-import { UserForm, matchingValuesValidator, optionalEmailValidator } from './forms';
+import { UserForm, matchingValuesValidator, optionalEmailValidator, passwordStrengthValidator } from './forms';
 
 declare var pageData :any;
 /**
@@ -102,16 +102,19 @@ export class ManageUsersComponent extends LoadableComponent {
         checked: new FormControl(false),
       });
     }));
-
+    const pwGroup = this._fb.group(
+      {
+        password: [''],
+        confirmPassword: ['']
+      }
+    );
+    pwGroup.setValidators([matchingValuesValidator('password', 'confirmPassword'), passwordStrengthValidator('confirmPassword')])
     this.updateUserForm = this._fb.group({
       userid: this.currentUser.id,
       username: this.currentUser.username,
       name: [this.currentUser.name, Validators.required],
       email: [this.currentUser.email, optionalEmailValidator],
-      passwords: this._fb.group({
-        password: [''],
-        confirmPassword: ['']
-      }, {validator: matchingValuesValidator('password', 'confirmPassword')}),
+      passwords: pwGroup,
       allRoles: updateRolesControlArray,
       roles: [this.mapRoles(updateRolesControlArray.value), Validators.required]
     });
@@ -120,10 +123,7 @@ export class ManageUsersComponent extends LoadableComponent {
       username: ['', Validators.required],
       name: ['', Validators.required],
       email: ['', optionalEmailValidator],
-      passwords: this._fb.group({
-        password: ['', Validators.required],
-        confirmPassword: ['', Validators.required]
-      }, {validator: matchingValuesValidator('password', 'confirmPassword')}),
+      passwords: pwGroup,
       allRoles: newRolesControlArray,
       roles: [this.mapRoles(newRolesControlArray.value), Validators.required]
     });
