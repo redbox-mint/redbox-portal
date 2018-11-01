@@ -1,7 +1,7 @@
 version: '3.1'
-networks: 
-    main: 
-services: 
+networks:
+    main:
+services:
     redboxportal:
         image: 'qcifengineering/redbox-portal:latest'
         ports:
@@ -13,7 +13,8 @@ services:
             - NODE_ENV=docker
             - PORT=80
             - sails_redbox__apiKey=xxxx-xxxx-xxxx
-            - 'sails_record__baseUrl_redbox=http://redbox:9000/redbox'
+            - sails_record__baseUrl_redbox=http://redbox:9000/redbox
+            - sails_appUrl=http://localhost
         networks:
             main:
                 aliases: [rbportal]
