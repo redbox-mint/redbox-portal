@@ -7,10 +7,10 @@
 *  Function that will attempt to find the best fit partial based on the branding and portal.
 *  Note: that paths are not relative here like they are with standard EJS partials
 **/
-superPartial = function(value, branding,portal) {
+superPartial = function(value, branding,portal,fromTemplate=false) {
     var partialLocation = value;
     <!-- Resolve the actual location of the partial -->
-    partialLocation = ViewUtils.resolvePartialPath(value,branding,portal,templateDirectoryLocation);
+    partialLocation = ViewUtils.resolvePartialPath(value,branding,portal,templateDirectoryLocation,fromTemplate);
 
     return partial(partialLocation);
 }
