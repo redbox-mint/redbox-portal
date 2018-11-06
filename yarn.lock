@@ -7196,7 +7196,24 @@ sails-disk@^1.0.0-0:
     machinepack-fs "^8.0.2"
     nedb "1.8.0"
 
-sails-generate@^1.15.8, sails-generate@^1.9.0:
+sails-generate@^1.15.19:
+  version "1.15.28"
+  resolved "https://registry.yarnpkg.com/sails-generate/-/sails-generate-1.15.28.tgz#ada8239c33dbb680cf99b5cbb7c0c0fa7343f202"
+  integrity sha512-H+kaa22AIKxr2jB0ncgxhupZETCKfgrHNuHUB2QTtbDCuMn9yVGxhN7O3sgO7GzbRW3XkAJpuFaG0fBvActc8Q==
+  dependencies:
+    async "2.0.1"
+    chalk "1.1.3"
+    cross-spawn "4.0.2"
+    flaverr "^1.0.0"
+    fs-extra "0.30.0"
+    lodash "3.10.1"
+    machinepack-process "^2.0.2"
+    parasails "^0.7.1"
+    read "1.0.7"
+    reportback "^2.0.1"
+    sails.io.js-dist "^1.0.0"
+
+sails-generate@^1.9.0:
   version "1.15.17"
   resolved "https://registry.yarnpkg.com/sails-generate/-/sails-generate-1.15.17.tgz#7d9bd7ec55836f45ee177475d779dbe33aa749c6"
   integrity sha512-/p46qSuyk6mW01UX0o2pAzN8cpl6qzg4xu+F71XRQNyg1mkuk/XkFwE9jwYB7Td2KlJnwexHItd/itZ4LxA5fA==
@@ -7304,9 +7321,9 @@ sails.io.js-dist@^1.0.0:
   integrity sha512-fBMdntawlqd5N/1xL9Vu6l+J5zvy86jLUf0nFDal5McUeZzUy7PpNqq+Vx/F9KgItAyFJ7RoO3YltO9dD0Q5OQ==
 
 sails@^1.0.0:
-  version "1.0.0"
-  resolved "https://registry.yarnpkg.com/sails/-/sails-1.0.0.tgz#3cf26123b6ca25e75df6f27fd403e0e7840ace1c"
-  integrity sha512-0dJQuNeT5w50nHWl4iIjrGxN+Z7Ndc0rxkfLjGJugRSEJHC4bsQzdrRaaV5bZMFNOQxI4YsTUb93tKQIxY2nUw==
+  version "1.0.2"
+  resolved "https://registry.yarnpkg.com/sails/-/sails-1.0.2.tgz#c18be0fe0b2b305847cedc4d12ec9778c044d1fb"
+  integrity sha512-tcMERTduNcO1WAWgkQxp5hZEBLBxdNgS3Kf5LEe1PzgEORKLYJrj+KXdjadcYuyuzydBsWmlv76oF2Y97P4RoQ==
   dependencies:
     "@sailshq/lodash" "^3.10.2"
     async "2.5.0"
@@ -7342,7 +7359,7 @@ sails@^1.0.0:
     rc "1.2.2"
     router "1.3.2"
     rttc "^10.0.0-0"
-    sails-generate "^1.15.8"
+    sails-generate "^1.15.19"
     sails-stringfile "0.3.2"
     semver "4.3.6"
     serve-favicon "2.4.5"
