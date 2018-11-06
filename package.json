@@ -13,7 +13,7 @@
     "axios": "^0.18.0",
     "bcrypt": "3.0.2",
     "calcyte": "^1.0.2",
-    "chokidar": "~1.6.1",
+    "chokidar": "~2.0.4",
     "core-js": "^2.4.1",
     "datacrate": "^1.0.0",
     "dotenv": "^5.0.1",
