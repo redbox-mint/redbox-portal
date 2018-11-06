@@ -320,9 +320,9 @@ acorn@^5.5.3:
   integrity sha512-T/zvzYRfbVojPWahDsE5evJdHb3oJoQfFbsrKM7w5Zcs++Tr257tia3BmMP8XYVjp1S9RZXQMh7gao96BlqZOw==
 
 acorn@^6.0.1:
-  version "6.0.2"
-  resolved "https://registry.yarnpkg.com/acorn/-/acorn-6.0.2.tgz#6a459041c320ab17592c6317abbfdf4bbaa98ca4"
-  integrity sha512-GXmKIvbrN3TV7aVqAzVFaMW8F8wzVX7voEBRO3bDA64+EX37YSayggRJP5Xig6HYHBkWKpFg9W5gg6orklubhg==
+  version "6.0.3"
+  resolved "https://registry.yarnpkg.com/acorn/-/acorn-6.0.3.tgz#52adffeb02757f06420085a0ed0f7c0baf55fdf4"
+  integrity sha512-xEnlTS2J0PKuub0pd2Y4W58iEo1sfRZ3h23E8AKmlnV8Nc6E/syRdVeo0DMuLSrgRJZHnFeDou2llXfB+wb1/A==
 
 adler-32@~1.2.0:
   version "1.2.0"
@@ -2019,10 +2019,15 @@ core-js@^1.0.0:
   resolved "https://registry.yarnpkg.com/core-js/-/core-js-1.2.7.tgz#652294c14651db28fa93bd2d5ff2983a4f08c636"
   integrity sha1-ZSKUwUZR2yj6k70tX/KYOk8IxjY=
 
-core-js@^2.4.0, core-js@^2.4.1, core-js@^2.5.0:
-  version "2.5.7"
-  resolved "https://registry.yarnpkg.com/core-js/-/core-js-2.5.7.tgz#f972608ff0cead68b841a16a932d0b183791814e"
-  integrity sha512-RszJCAxg/PP6uzXVXL6BsxSXx/B05oJAQ2vkJRjyjrEcNVycaqOmNb5OTxZPE3xa5gwZduqza6L9JOCenh/Ecw==
+core-js@^2.4.0, core-js@^2.5.0:
+  version "2.5.4"
+  resolved "https://registry.yarnpkg.com/core-js/-/core-js-2.5.4.tgz#f2c8bf181f2a80b92f360121429ce63a2f0aeae0"
+  integrity sha1-8si/GB8qgLkvNgEhQpzmOi8K6uA=
+
+core-js@^2.4.1:
+  version "2.5.1"
+  resolved "https://registry.yarnpkg.com/core-js/-/core-js-2.5.1.tgz#ae6874dc66937789b80754ff5428df66819ca50b"
+  integrity sha1-rmh03GaTd4m4B1T/VCjfZoGcpQs=
 
 core-util-is@1.0.2, core-util-is@~1.0.0:
   version "1.0.2"
@@ -2505,12 +2510,12 @@ ejs-cli@^2.0.1:
     mkdirp "^0.5.1"
     optimist "~0.5.2"
 
-ejs@2.5.7, ejs@2.x:
+ejs@2.5.7:
   version "2.5.7"
   resolved "https://registry.yarnpkg.com/ejs/-/ejs-2.5.7.tgz#cc872c168880ae3c7189762fd5ffc00896c9518a"
   integrity sha1-zIcsFoiArjxxiXYv1f/ACJbJUYo=
 
-ejs@^2.5.7:
+ejs@2.6.1, ejs@2.x, ejs@^2.5.7:
   version "2.6.1"
   resolved "https://registry.yarnpkg.com/ejs/-/ejs-2.6.1.tgz#498ec0d495655abc6f23cd61868d926464071aa0"
   integrity sha512-0xy4A/twfrRCnkhfk8ErDi5DqdAsAqeGxht4xkCUrsvhhbQNs7E+4jV0CN7+NKIY0aHE72+XvqtBIXzD31ZbXQ==
@@ -6523,9 +6528,9 @@ rc@1.2.5:
     strip-json-comments "~2.0.1"
 
 rdf-canonize@^0.2.1:
-  version "0.2.4"
-  resolved "https://registry.yarnpkg.com/rdf-canonize/-/rdf-canonize-0.2.4.tgz#1b46eb01500b6800348ac5fe0953c1be226b1446"
-  integrity sha512-xwAEHJt8FTe4hP9CjFgwQPFdszu4iwEintk31+9eh0rljC28vm9EhoaIlC1rQx5LaCB5oHom4+yoei4+DTdRjQ==
+  version "0.2.5"
+  resolved "https://registry.yarnpkg.com/rdf-canonize/-/rdf-canonize-0.2.5.tgz#dc761d42a2e9e6bf6eec7e0e352fd5b10ff4e75a"
+  integrity sha512-ZSOcoziIkics9lZvFRoqRHUWoITLbXeKqXNxTuvchTf9c74/yOzzZCKxS+aTCGQp81fQZhnKUM/NsgyiBS0Mig==
   dependencies:
     bindings "^1.3.0"
     nan "^2.10.0"
