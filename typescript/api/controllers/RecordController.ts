@@ -24,6 +24,7 @@ import { Observable } from 'rxjs/Rx';
 import moment from 'moment-es6';
 import * as tus from 'tus-node-server';
 import * as fs from 'fs';
+declare var _;
 
 declare var FormsService, RecordsService, WorkflowStepsService, BrandingService, RecordTypesService, TranslationService, User, EmailService, RolesService;
 /**
@@ -387,7 +388,7 @@ export module Controllers {
     public create(req, res) {
       const brand = BrandingService.getBrand(req.session.branding);
       const metadata = req.body;
-      let record = { metaMetadata: {} };
+      let record:any = { metaMetadata: {} };
       var recType = req.param('recordType');
       const targetStep = req.param('targetStep');
       record.authorization = { view: [req.user.username], edit: [req.user.username] };

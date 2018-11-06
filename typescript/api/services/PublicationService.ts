@@ -26,12 +26,14 @@ import * as ejs from 'ejs';
 import * as fs from 'graceful-fs';
 import path = require('path');
 
+
 import { Index, jsonld } from 'calcyte';
 const datacrate = require('datacrate').catalog;
 
 declare var sails: Sails;
 declare var RecordsService;
 declare var BrandingService;
+declare var _;
 
 // NOTE: the publication isn't being triggered if you go straight to review
 // from a new data pub
@@ -96,9 +98,9 @@ export module Services {
 					sails.log.error(e.stack);
 					return Observable.of(null);
 				}
-				
+
 				sails.log.info("Going to write attachments");
-				
+
 				// build a list of observables, each of which writes out an
 				// attachment
 
@@ -109,10 +111,11 @@ export module Services {
 							const filename = path.join(dir, a['name']);
 							sails.log.info("about to write " + filename);
 							return Observable.fromPromise(this.writeData(ds.body, filename))
-								.catch(error => {
+								.catch(err => {
 									sails.log.error("Error writing attachment " + a['fileId']);
-									sails.log.error(e.name);
-									sails.log.error(e.message);
+									sails.log.error(err.name);
+									sails.log.error(err.message);
+                  return new Observable();
 								});
 						});
 				});
@@ -149,12 +152,12 @@ export module Services {
 		}
 
 
-		// This is the first attempt, but it doesn't work - the files it 
+		// This is the first attempt, but it doesn't work - the files it
 		// writes out are always empty. I think it's because the API call
 		// to get the attachment isn't requesting a stream, so it's coming
 		// back as a buffer.
 
-		private writeDatastream(stream: Readable, fn: string): Promise<boolean> {
+		private writeDatastream(stream: any, fn: string): Promise<boolean> {
 			return new Promise<boolean>( (resolve, reject) => {
   			var wstream = fs.createWriteStream(fn);
   			sails.log.info("start writeDatastream " + fn);
@@ -163,7 +166,7 @@ export module Services {
 				wstream.on('finish', () => {
 					sails.log.info("finished writeDatastream " + fn);
 					resolve(true);
-				}); 
+				});
 				wstream.on('error', (e) => {
 					sails.log.error("File write error");
 					reject

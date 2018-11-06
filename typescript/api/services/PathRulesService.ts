@@ -26,6 +26,7 @@ declare var sails: Sails;
 declare var PathRule: Model;
 declare var RolesService, BrandingService;
 declare var _this;
+declare var _;
 
 export module Services {
 

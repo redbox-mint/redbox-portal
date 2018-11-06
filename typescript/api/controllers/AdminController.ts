@@ -20,6 +20,7 @@
 //<reference path='./../../typings/loader.d.ts'/>
 declare var module;
 declare var sails;
+declare var _;
 import { Observable } from 'rxjs/Rx';
 import * as uuidv4 from 'uuid/v4';
 declare var BrandingService, RolesService, UsersService;
@@ -71,7 +72,7 @@ export module Controllers {
     }
 
     public getUsers(req, res) {
-      var pageData = {};
+      var pageData:any = {};
       var users = UsersService.getUsers().flatMap(users => {
         _.map(users, (user) => {
           if (_.isEmpty(_.find(sails.config.auth.hiddenUsers, (hideUser) => { return hideUser == user.name }))) {
@@ -91,7 +92,7 @@ export module Controllers {
 
     public getBrandRoles(req, res) {
       // basic roles page: view all users and their roles
-      var pageData = {};
+      var pageData:any = {};
       var brand = BrandingService.getBrand(req.session.branding);
       var roles = RolesService.getRolesWithBrand(brand).flatMap(roles => {
         _.map(roles, (role) => {

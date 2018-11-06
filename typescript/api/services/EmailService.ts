@@ -26,6 +26,7 @@ import * as ejs from 'ejs';
 import * as fs from 'graceful-fs';
 
 declare var sails: Sails;
+declare var _;
 
 export module Services {
     /**
@@ -55,7 +56,7 @@ export module Services {
             msgFormat: string = sails.config.emailnotification.defaults.format): Observable<any> {
             if (!sails.config.emailnotification.settings.enabled) {
                 sails.log.verbose("Received email notification request, but is disabled. Ignoring.");
-                return {'code': '200', 'msg': 'Email services disabled.'};
+                return Observable.of({'code': '200', 'msg': 'Email services disabled.'});
             }
             sails.log.verbose('Received email notification request. Processing.');
 

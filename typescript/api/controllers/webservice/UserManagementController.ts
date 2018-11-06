@@ -26,6 +26,7 @@ declare var RolesService;
 declare var  DashboardService;
 declare var  UsersService;
 declare var  User;
+declare var _;
 /**
  * Package that contains all Controllers.
  */

@@ -25,6 +25,7 @@ declare var sails: Sails;
 declare var WorkflowStep: Model;
 declare var RecordType: Model;
 declare var _this;
+declare var _;
 declare var JSON;
 
 export module Services {

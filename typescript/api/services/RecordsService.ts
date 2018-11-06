@@ -325,7 +325,8 @@ export module Services {
       sails.log.verbose(`Searching using: ${url}`);
       const options = this.getOptions(url);
       return Observable.fromPromise(request[sails.config.record.api.search.method](options))
-        .flatMap(response => {
+        .flatMap(resp => {
+          let response:any = resp;
           const customResp = [];
           _.forEach(response.response.docs, solrdoc => {
             const customDoc = {};
@@ -358,7 +359,8 @@ export module Services {
       sails.log.verbose(`Searching fuzzy using: ${url}`);
       const options = this.getOptions(url);
       return Observable.fromPromise(request[sails.config.record.api.search.method](options))
-        .flatMap(response => {
+        .flatMap(resp => {
+          let response:any = resp;
           const customResp = { records: [] };
           _.forEach(response.response.docs, solrdoc => {
             const customDoc = {};
@@ -416,7 +418,8 @@ export module Services {
       const options = this.getOptions(url);
       return Observable.fromPromise(request[sails.config.record.api.search.method](options))
         .flatMap(response => {
-          return Observable.of(response.response.docs);
+          let resp:any = response;
+          return Observable.of(resp.response.docs);
         });
     }
 
@@ -584,7 +587,8 @@ export module Services {
           const updateOptions = this.getOptions(sails.config.record.baseUrl.redbox + sails.config.record.api.updateMeta.url, oid);
           updateOptions.body = record;
           return Observable.fromPromise(request[sails.config.record.api.updateMeta.method](updateOptions))
-            .flatMap(response => {
+            .flatMap(resp => {
+              let response:any = resp;
               if (response && response.code != "200") {
                 sails.log.error(`Error updating notification log: ${oid}`);
                 sails.log.error(JSON.stringify(response));

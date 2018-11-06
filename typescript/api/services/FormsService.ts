@@ -26,6 +26,7 @@ declare var Form: Model;
 declare var RecordType: Model;
 declare var WorkflowStep: Model;
 declare var _this;
+declare var _;
 
 export module Services {
   /**

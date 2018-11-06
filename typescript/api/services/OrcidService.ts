@@ -25,6 +25,7 @@ import * as request from "request-promise";
 declare var sails: Sails;
 declare var Report: Model;
 declare var _this;
+declare var _;
 
 
 export module Services {
@@ -77,7 +78,7 @@ export module Services {
       // Process extended attributes
       var otherNames = profile["orcid-bio"]["personal-details"]["other-names"] == null ? null : {};
       if (otherNames != null) {
-        
+
         var otherNamesArray = profile["orcid-bio"]["personal-details"]["other-names"]["other-name"];
 
         otherNames = this.getExtendedAttributeObject('orcid-other-names', otherNamesArray);

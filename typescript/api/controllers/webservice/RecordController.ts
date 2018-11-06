@@ -28,6 +28,7 @@ declare var FormsService;
 declare var RecordTypesService;
 declare var WorkflowStepsService;
 declare var RecordsService;
+declare var _;
 import { Observable } from 'rxjs/Rx';
 
 declare var User;

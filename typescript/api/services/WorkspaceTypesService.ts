@@ -24,6 +24,7 @@ import {Sails, Model} from "sails";
 declare var sails: Sails;
 declare var WorkspaceType: Model;
 declare var _this;
+declare var _;
 
 export module Services {
   /**
@@ -43,6 +44,7 @@ export module Services {
 
     public bootstrap = (defBrand) => {
       return super.getObservable(WorkspaceType.destroy({branding: defBrand.id})).flatMap(whatever => {
+
         sails.log.debug('WorkspaceTypes::Bootstrap');
         sails.log.debug(sails.config.workspacetype);
          let workspaceTypes = [];
@@ -57,7 +59,7 @@ export module Services {
           return Observable.zip(...wTypes);
         } else {
           sails.log.verbose("Default or no workspaceTypes definition(s).");
-          return Observable.of('');
+          return Observable.of([]);
         }
       });
     }

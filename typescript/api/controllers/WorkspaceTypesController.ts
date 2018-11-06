@@ -21,12 +21,13 @@ declare var module;
 declare var sails;
 import {Observable} from 'rxjs/Rx';
 import skipperGridFs = require('skipper-gridfs');
+declare var _;
 
 declare var BrandingService, WorkspaceTypesService;
 /**
  * Package that contains all Controllers.
  */
-import controller = require('../core/CoreController.js'); 
+import controller = require('../core/CoreController.js');
 
 export module Controllers {
 	/**

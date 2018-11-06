@@ -28,6 +28,7 @@ import moment from 'moment-es6';
 declare var sails: Sails;
 declare var RecordType: Model;
 declare var _this;
+declare var _;
 declare var User;
 declare var RecordsService;
 declare var UsersService;
@@ -52,14 +53,11 @@ export module Services {
 
     private async generatePDF(oid: string, record: any, options: any) {
       const page = await sails.pdfService.browser.newPage();
-      const token = options['token']? options['token'] : undefined;
+      const userName = options['user']? options['user'] : "admin";
+      const user = await UsersService.getUserWithUsername(userName).toPromise();
 
-      if(token == undefined) {
-        sails.log.warning("API token for PDF generation is not set. Skipping generation");
-        return;
-      }
       page.setExtraHTTPHeaders({
-        Authorization: 'Bearer '+ token
+        Authorization: 'Bearer '+ user['token']
       });
       //TODO: get branding name from record
       let currentURL = `${sails.config.appUrl}/default/rdmp/record/view/${oid}`;

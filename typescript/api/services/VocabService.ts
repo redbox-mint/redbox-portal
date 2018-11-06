@@ -26,6 +26,7 @@ import * as request from "request-promise";
 declare var CacheService, RecordsService, AsynchsService;
 declare var sails: Sails;
 declare var _this;
+declare var _;
 declare var Institution: Model;
 
 export module Services {
@@ -132,7 +133,8 @@ export module Services {
       console.log(`Getting concepts....${url}`);
       const options = {url:url, json: true};
       return Observable.fromPromise(request.get(options))
-      .flatMap((response) => {
+      .flatMap((resp) => {
+        let response:any = resp;
         rawItems = rawItems.concat(response.result.items);
         if (response.result && response.result.next) {
           return this.getConcepts(response.result.next, rawItems);
@@ -163,7 +165,8 @@ export module Services {
           const methodName = sails.config.vocab.collection[collectionId].saveMethod;
           const options = {url: url, json:true};
           return Observable.fromPromise(request.get(options))
-          .flatMap(response => {
+          .flatMap(resp => {
+            let response:any = resp;
             sails.log.verbose(`Got response retrieving data for collection: ${collectionId}, saving...`);
             sails.log.verbose(`Number of items: ${response.length}`);
             const itemsToSave = _.chunk(response, bufferCount);
