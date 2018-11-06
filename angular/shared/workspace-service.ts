@@ -41,13 +41,13 @@ export class WorkspaceTypeService extends BaseService {
   }
 
   getWorkspaceTypes() : Promise<any[]> {
-    return this.http.get(`${this.brandingAndPortalUrl}/workspace/types`, this.options)
+    return this.http.get(`${this.brandingAndPortalUrl}/workspaces/types`, this.options)
     .toPromise()
     .then((res:any) => this.extractData(res));
   }
 
   getWorkspaceType(name: string) : Promise<any[]> {
-    return this.http.get(`${this.brandingAndPortalUrl}/workspace/types/` + name, this.options)
+    return this.http.get(`${this.brandingAndPortalUrl}/workspaces/types/` + name, this.options)
     .toPromise()
     .then((res:any) => this.extractData(res));
   }

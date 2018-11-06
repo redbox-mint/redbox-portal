@@ -146,7 +146,11 @@ module.exports.routes = {
   'get /dynamic/:asset': 'DynamicAssetController.get',
   'get /:branding/:portal/dynamic/:asset': 'DynamicAssetController.get',
   'post /user/login_local': 'UserController.localLogin',
-  'post /user/login_aaf': 'UserController.aafLogin',
+  'post /user/login_aaf': {
+    controller: 'UserController',
+    action: 'aafLogin',
+    csrf: false
+  },
   'get /user/info': 'UserController.info',
   'get /:branding/:portal/user/info': 'UserController.info',
   'get /:branding/:portal/user/login': 'UserController.login',
@@ -184,7 +188,11 @@ module.exports.routes = {
   'get /:branding/:portal/vocab/:vocabId': 'VocabController.get',
   'get /:branding/:portal/ands/vocab/resourceDetails': 'VocabController.rvaGetResourceDetails',
   'get /:branding/:portal/mint/:mintSourceType': 'VocabController.getMint',
-  'post /:branding/:portal/external/vocab/:provider': 'VocabController.searchExternalService',
+  'post /:branding/:portal/external/vocab/:provider': {
+    controller: 'VocabController',
+    action: 'searchExternalService',
+    csrf: false
+  },
   'get /:branding/:portal/collection/:collectionId': 'VocabController.getCollection',
   'post /:branding/:portal/collection/:collectionId': 'VocabController.loadCollection',
   'get /:branding/:portal/export': 'ExportController.index',
@@ -219,13 +227,37 @@ module.exports.routes = {
   *                                                                          *
   ***************************************************************************/
 
-  'post /:branding/:portal/api/records/metadata/:recordType': 'webservice/RecordController.create',
-  'put /:branding/:portal/api/records/metadata/:oid': 'webservice/RecordController.updateMeta',
+  'post /:branding/:portal/api/records/metadata/:recordType': {
+      controller: 'webservice/RecordController',
+      action: 'create',
+      csrf: false
+   },
+  'put /:branding/:portal/api/records/metadata/:oid': {
+      controller: 'webservice/RecordController',
+      action: 'updateMeta',
+      csrf: false
+  },
   'get /:branding/:portal/api/records/metadata/:oid': 'webservice/RecordController.getMeta',
-  'post /:branding/:portal/api/records/permissions/edit/:oid': 'webservice/RecordController.addUserEdit',
-  'delete /:branding/:portal/api/records/permissions/edit/:oid': 'webservice/RecordController.removeUserEdit',
-  'post /:branding/:portal/api/records/permissions/view/:oid': 'webservice/RecordController.addUserView',
-  'delete /:branding/:portal/api/records/permissions/view/:oid': 'webservice/RecordController.removeUserView',
+  'post /:branding/:portal/api/records/permissions/edit/:oid': {
+    controller: 'webservice/RecordController',
+    action: 'addUserEdit',
+    csrf: false
+  },
+  'delete /:branding/:portal/api/records/permissions/edit/:oid': {
+    controller: 'webservice/RecordController',
+    action: 'removeUserEdit',
+    csrf: false
+  },
+  'post /:branding/:portal/api/records/permissions/view/:oid': {
+    controller: 'webservice/RecordController',
+    action: 'addUserView',
+    csrf: false
+  },
+  'delete /:branding/:portal/api/records/permissions/view/:oid': {
+    controller: 'webservice/RecordController',
+    action: 'removeUserView',
+    csrf: false
+  },
   'get /:branding/:portal/api/records/permissions/:oid': 'webservice/RecordController.getPermissions',
   'get /:branding/:portal/api/records/datastreams/:oid': 'webservice/RecordController.getDataStream',
 
@@ -234,8 +266,12 @@ module.exports.routes = {
   'get /:branding/:portal/api/users': 'webservice/UserManagementController.listUsers',
   'get /:branding/:portal/api/users/find': 'webservice/UserManagementController.findUser',
 
-  'post /:branding/:portal/api/sendNotification': 'EmailController.sendNotification',
+  'post /:branding/:portal/api/sendNotification': {
+    controller: 'EmailController',
+    action: 'sendNotification',
+    csrf: false
+  },
 
-  'get /:branding/:portal/workspace/types/:name' : 'WorkspaceTypesController.getOne',
-  'get /:branding/:portal/workspace/types' : 'WorkspaceTypesController.get'
+  'get /:branding/:portal/workspaces/types/:name' : 'WorkspaceTypesController.getOne',
+  'get /:branding/:portal/workspaces/types' : 'WorkspaceTypesController.get'
 };

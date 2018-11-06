@@ -36,7 +36,7 @@
       </table>
 
     <pagination *ngIf="records[workflowStep.config.workflow.stage].totalItems > 0" [directionLinks]="false" [boundaryLinks]="true" [totalItems]="records[workflowStep.config.workflow.stage].totalItems"
-              [(ngModel)]="records[workflowStep.config.workflow.stage].currentPage" (pageChanged)="pageChanged($event,workflowStep.config.workflow.stage)" class="pagination-sm"></pagination>
+              [(ngModel)]="records[workflowStep.config.workflow.stage].currentPage" (pageChanged)="pageChanged($event,workflowStep.config.workflow.stage)" class="pagination-sm" [maxSize]="10"></pagination>
     </div>
 
 

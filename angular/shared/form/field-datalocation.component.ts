@@ -221,6 +221,7 @@ export class DataLocationComponent extends SimpleComponent {
       this.field.fieldMap[this.field.name].instance.uppy.getPlugin('Tus').opts.endpoint = `${this.field.recordsService.getBrandingAndPortalUrl}/record/${oid}/attach`;
       return;
     }
+    const appConfig = this.field.recordsService.getConfig();
     const uppyConfig = {
       debug: true,
       autoProceed: false,
@@ -233,9 +234,12 @@ export class DataLocationComponent extends SimpleComponent {
     const uppyDashboardNote = this.field.uppyDashboardNote;
     console.debug(`Using Uppy config:`);
     console.debug(JSON.stringify(uppyConfig));
-    const appConfig = this.field.recordsService.getConfig();
+
     const tusConfig = {
-      endpoint: `${this.field.recordsService.getBrandingAndPortalUrl}/record/${oid}/attach`
+      endpoint: `${this.field.recordsService.getBrandingAndPortalUrl}/record/${oid}/attach`,
+      headers: {
+        'X-CSRF-Token': appConfig.csrfToken
+      }
     };
     console.debug(`Using TUS config:::`);
     console.debug(JSON.stringify(tusConfig));

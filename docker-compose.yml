@@ -11,6 +11,7 @@ services:
     volumes:
        - ".:/opt/redbox-portal"
        - "/mnt/data/attachments:/attachments"
+       - "/mnt/data/publication:/publication"
        - "/opt/hooks:/opt/hooks"
     expose:
        - "1500"
@@ -26,6 +27,18 @@ services:
        aliases:
          - rbportal
     entrypoint: /bin/bash -c "cd /opt/redbox-portal && node app.js"
+
+  nginx:
+    image: nginx
+    ports:
+      - "8080:8080"
+    restart: always
+    volumes:
+      - "/mnt/data/publication:/usr/share/nginx/html"
+      - "/mnt/nginx.conf:/etc/nginx/conf.d"
+    expose:
+      - "8080"
+
 
   redbox:
     image: qcifengineering/redbox:2.x
@@ -44,6 +57,7 @@ services:
           - redbox
     ports:
        - "9000:9000"
+
   mongodb:
     image: mvertes/alpine-mongo:latest
     volumes:

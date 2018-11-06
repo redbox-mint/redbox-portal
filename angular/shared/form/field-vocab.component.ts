@@ -133,7 +133,7 @@ export class VocabField extends FieldBase<any> {
     if (this.formModel) {
       this.formModel.setValue(null, { emitEvent: true });
     }
-    if (updateTitle && this.component.ngCompleter) {
+    if (updateTitle && this.component && this.component.ngCompleter) {
       this.component.ngCompleter.ctrInput.nativeElement.value = null;
     }
     return this.value;

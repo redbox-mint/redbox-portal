@@ -1,0 +1,39 @@
+version: '3.1'
+networks:
+    main:
+services:
+    redboxportal:
+        image: 'qcifengineering/redbox-portal:latest'
+        ports:
+            - '80:80'
+        restart: always
+        expose:
+            - '80'
+        environment:
+            - NODE_ENV=docker
+            - PORT=80
+            - sails_redbox__apiKey=xxxx-xxxx-xxxx
+            - sails_record__baseUrl_redbox=http://redbox:9000/redbox
+            - sails_appUrl=http://localhost
+        networks:
+            main:
+                aliases: [rbportal]
+        entrypoint: '/bin/bash -c "cd /opt/redbox-portal && node app.js"'
+    redbox:
+        image: 'qcifengineering/redbox:2.x'
+        expose:
+            - '9000'
+        environment:
+            - RB_API_KEY=xxxx-xxxx-xxxx
+        networks:
+            main:
+                aliases: [redbox]
+        ports:
+            - '9000:9000'
+    mongodb:
+        image: 'mvertes/alpine-mongo:latest'
+        networks:
+            main:
+                aliases: [mongodb]
+        ports:
+            - '27017:27017'

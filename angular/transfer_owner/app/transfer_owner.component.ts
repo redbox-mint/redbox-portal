@@ -46,7 +46,6 @@ declare var jQuery: any;
 })
 export class TransferOwnerComponent extends LoadableComponent {
   plans: PlanTable;
-  initSubs: any;
   searchFilterName: any;
   searchFilterRoles: any;
   filteredPlans: Plan[];
@@ -75,9 +74,13 @@ export class TransferOwnerComponent extends LoadableComponent {
     this.fieldsForUpdate = [];
     this.plans = new PlanTable();
 
-    this.initSubs = dashboardService.waitForInit((initStat: boolean) => {
-      this.initSubs.unsubscribe();
-      this.translationService.isReady(tService => {
+    this.translationService.isReady(tService => {
+      this.waitForInit([
+        dashboardService,
+        recordService,
+        userService
+      ], () => {
+
         if (!this.transferConfig) {
           this.loadTransferConfig().then(config => {
             this.transferConfig = config;
@@ -92,12 +95,12 @@ export class TransferOwnerComponent extends LoadableComponent {
               this.initUserlookup();
             }
             this.loadPlans();
-            userService.waitForInit((initStat: boolean) => { userService.getInfo().then(
+            userService.getInfo().then(
               user =>
               this.user = user);
-            });
           });
         }
+
       });
     });
   }

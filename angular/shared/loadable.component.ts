@@ -85,4 +85,22 @@ export class LoadableComponent  {
       return defValue;
     }
   }
+
+  waitForInit(serviceArr: any[], handler:any) {
+    const subs = _.map(serviceArr, (service)=> { return service.getInitSubject() });
+    const subTracker = {loaded: {}, subs: {}};
+    const subTrackerFn = (serviceIdx:any) => {
+      return (serviceInst:any) => {
+        subTracker.loaded[`${serviceIdx}`] = serviceInst;
+        if (_.keys(subTracker.loaded).length >= subs.length) {
+          subTracker.subs[`${serviceIdx}`].unsubscribe();
+          handler();
+        }
+      };
+    };
+    _.forOwn(serviceArr, (service:any, serviceIdx:any) => {
+      subTracker.subs[`${serviceIdx}`] = service.getInitSubject().subscribe(subTrackerFn(serviceIdx));
+      service.emitInit();
+    });
+  }
 }

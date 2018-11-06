@@ -593,10 +593,10 @@ export class TabNavButtonComponent extends SimpleComponent {
   }
 }
 
-@Component({
+@Component({       
   selector: 'link-value',
   template: `
-  <li *ngIf="!field.editMode && isVisible()" class="key-value-pair padding-bottom-10">
+  <li *ngIf="isVisible()" class="key-value-pair padding-bottom-10">
     <span class="key" *ngIf="field.label">{{field.label}}</span>
     <span class="value"><a href='{{field.value}}' target="field.target">{{field.value}}</a></span>
   </li>
