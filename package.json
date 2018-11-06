@@ -50,7 +50,7 @@
     "sails-hook-sockets": "^1.5.2",
     "sails-mongo": "^1.0.0",
     "skipper-gridfs": "https://github.com/marcelomedina10/skipper-gridfs.git",
-    "systemjs": "0.19.40",
+    "systemjs": "2.0.2",
     "ts-node": "^5.0.1",
     "ts-smart-logger": "0.0.4",
     "tus-node-server": "^0.2.11",
