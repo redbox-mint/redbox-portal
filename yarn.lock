@@ -5132,7 +5132,7 @@ machine@^10.3.1:
     rttc "^7.2.1"
     switchback "^2.0.0"
 
-machine@^13.0.0-11, machine@^13.0.0-17:
+machine@^13.0.0-11:
   version "13.0.0-24"
   resolved "https://registry.yarnpkg.com/machine/-/machine-13.0.0-24.tgz#50b0fa4a71db571fcddda5b1c5e2605a83144087"
   integrity sha512-M4jMQbHlAgPklsGdCxP6udDgeOEABlYxwSV0oybcgt4bZ5hz0CLIIpJUtBNtpDNe29K9u6qFHQrGAAIkEiNa7w==
@@ -5143,6 +5143,17 @@ machine@^13.0.0-11, machine@^13.0.0-17:
     include-all "^1.0.5"
     rttc "^9.8.1"
     switchback "^2.0.1"
+
+machine@^15.0.0:
+  version "15.2.2"
+  resolved "https://registry.yarnpkg.com/machine/-/machine-15.2.2.tgz#58e0cc119ffad32b2e70087bb6c23bfb8686452d"
+  integrity sha512-gXA/U4bjMyQd2QPw8i+AxzXEDkQBImQVE2P7mmTmXPcfszT+NJc5Me0I1Tn6Fj8zsO5EsmsFxD8Xdia751ik/w==
+  dependencies:
+    "@sailshq/lodash" "^3.10.2"
+    anchor "^1.2.0"
+    flaverr "^1.7.0"
+    parley "^3.8.0"
+    rttc "^10.0.0-3"
 
 machine@^15.0.0-19, machine@^15.0.0-21, machine@^15.0.0-5:
   version "15.0.0-24"
@@ -6044,6 +6055,15 @@ parley@^3.1.0, parley@^3.3.2, parley@^3.3.4:
   version "3.4.2"
   resolved "https://registry.yarnpkg.com/parley/-/parley-3.4.2.tgz#fcec89f336b311898fa713e811d91bb98f3c18da"
   integrity sha512-I7g4YZ+hQFXvKhmQLjZB4L4cMQ6af/nO36+T8TabtVNkNQ6e5K7pL0ivbGfHkHuTLBHxpaDvYmZWHy9Ob28J0A==
+  dependencies:
+    "@sailshq/lodash" "^3.10.2"
+    bluebird "3.2.1"
+    flaverr "^1.5.1"
+
+parley@^3.8.0:
+  version "3.8.0"
+  resolved "https://registry.yarnpkg.com/parley/-/parley-3.8.0.tgz#432842d7497ad0a496d34e45d74c5376e7c147e3"
+  integrity sha512-WhNhNMPoxTydFg7U/MCAraE4JJLVSYeCJ3Wg5xHb1Z3EKC5N+SXldq6NYAtrgBSLpo4jHKQI2SWOhWEHJ82CGw==
   dependencies:
     "@sailshq/lodash" "^3.10.2"
     bluebird "3.2.1"
@@ -7296,14 +7316,14 @@ sails-hook-sockets@^1.5.2:
     uid2 "0.0.3"
 
 sails-mongo@^1.0.0:
-  version "1.0.0"
-  resolved "https://registry.yarnpkg.com/sails-mongo/-/sails-mongo-1.0.0.tgz#e72d44daad68697a5ded12a7cc9141b981a66654"
-  integrity sha512-wp25gqYVWVtVANm+EClAWIOPvjbbYYdDIALWAl92LvIosRqwx78vQfabjd0SkLP7hlftawvsKu8+/3f/QgtLCA==
+  version "1.0.1"
+  resolved "https://registry.yarnpkg.com/sails-mongo/-/sails-mongo-1.0.1.tgz#ce005749b629439654e2b027dea4d30e0c69abc6"
+  integrity sha512-VFssxPhi0p7PcD3teJmqmwSoaN/8jMf2y6uUefz0dca2CJ/3js2OR8nzxtdmSpm2s0Uq0kytuG38A1+CZbXRkw==
   dependencies:
     "@sailshq/lodash" "^3.10.2"
     async "2.0.1"
     flaverr "1.1.1"
-    machine "^13.0.0-17"
+    machine "^15.0.0"
     mongodb "2.2.25"
     qs "6.4.0"
 
