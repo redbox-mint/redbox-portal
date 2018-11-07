@@ -41,8 +41,7 @@ module.exports = {
           partialLocation = "default/default/" + value;
         }
       }
-      sails.log.error("****** splitUrl")
-      sails.log.error(splitUrl)
+
       if (partialLocation != value) {
         if (!fromTemplate) {
           var numberOfLevels = splitUrl.length - 2;

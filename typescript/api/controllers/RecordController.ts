@@ -225,7 +225,7 @@ export module Controllers {
                            if(transferConfig){
                             record = this.updateResponsibility(transferConfig, role, record, updateData);
                             sails.log.verbose(`Triggering pre-save for: ${oid}`);
-                            let observable = this.triggerPreSaveTriggers(oid, record, recordTypeObj);
+                            let observable = this.triggerPreSaveTriggers(oid, record, recordTypeObj, 'onUpdate', user);
                             observable.then(record => {
                                     sails.log.verbose(`Updating record ${oid}`);
                                     sails.log.verbose(JSON.stringify(record));
@@ -388,6 +388,7 @@ export module Controllers {
     public create(req, res) {
       const brand = BrandingService.getBrand(req.session.branding);
       const metadata = req.body;
+      const user = req.user;
       let record:any = { metaMetadata: {} };
       var recType = req.param('recordType');
       const targetStep = req.param('targetStep');
@@ -406,7 +407,7 @@ export module Controllers {
         }
         wfStepObs.subscribe(wfStep => {
             this.updateWorkflowStep(record, wfStep);
-            let obs = this.triggerPreSaveTriggers(null, record, recordType, "onCreate");
+            let obs = this.triggerPreSaveTriggers(null, record, recordType, "onCreate",user);
             obs.then(record => {
               return this.createRecord(record, wfStep, brand, packageType, recordType, req, res);
             });
@@ -417,10 +418,12 @@ export module Controllers {
     }
 
     private createRecord(record, wfStep, brand, packageType, recordType, req, res) {
+      const user = req.user;
+
       RecordsService.create(brand, record, packageType).subscribe(response => {
         if (response && response.code == "200") {
           response.success = true;
-          this.triggerPostSaveTriggers(response['oid'], record, recordType, 'onCreate');
+          this.triggerPostSaveTriggers(response['oid'], record, recordType, 'onCreate',user);
           this.ajaxOk(req, res, null, response);
         } else {
           this.ajaxFail(req, res, null, response);
@@ -430,7 +433,7 @@ export module Controllers {
       });
     }
 
-    private triggerPostSaveTriggers(oid: string, record: any, recordType: any, mode: string = 'onUpdate') {
+    private triggerPostSaveTriggers(oid: string, record: any, recordType: any, mode: string = 'onUpdate', user:object = undefined) {
       sails.log.debug("Triggering post save triggers ");
       sails.log.debug(`hooks.${mode}.post`);
       sails.log.debug(recordType);
@@ -525,7 +528,7 @@ export module Controllers {
           origRecord = _.cloneDeep(currentRec);
           currentRec.metadata = metadata;
 
-          let observable = this.triggerPreSaveTriggers(oid, currentRec, recType);
+          let observable = this.triggerPreSaveTriggers(oid, currentRec, recType, 'onUpdate', user);
 
           return observable.then(record => {
             return record
@@ -562,7 +565,7 @@ export module Controllers {
               })
               .subscribe(response => {
                 if (response && response.code == "200") {
-                  this.triggerPostSaveTriggers(response['oid'], currentRec, recType);
+                  this.triggerPostSaveTriggers(response['oid'], currentRec, recType, 'onUpdate', user);
                   return this.updateDataStream(oid, origRecord, metadata, response, req, res);
                 } else {
                   this.ajaxFail(req, res, null, response);
@@ -579,7 +582,7 @@ export module Controllers {
 
 
 
-    private async triggerPreSaveTriggers(oid: string, record: any, recordType: object, mode: string = 'onUpdate') {
+    private async triggerPreSaveTriggers(oid: string, record: any, recordType: object, mode: string = 'onUpdate', user: object = undefined) {
       sails.log.verbose("Triggering pre save triggers for record type: ");
       sails.log.verbose(`hooks.${mode}.pre`);
       sails.log.verbose(JSON.stringify(recordType));
@@ -598,7 +601,7 @@ export module Controllers {
 
 
               sails.log.verbose(`Triggering pre save triggers: ${preSaveUpdateHookFunctionString}`);
-              record = await preSaveUpdateHookFunction(oid, record, options).toPromise();
+              record = await preSaveUpdateHookFunction(oid, record, options, user).toPromise();
 
 
           }

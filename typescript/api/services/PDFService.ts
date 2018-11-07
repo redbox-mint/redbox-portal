@@ -93,8 +93,8 @@ export module Services {
 
     }
 
-    public createPDF(oid, record, options) {
-      sails.log.error("Creating PDF");
+    public createPDF(oid, record, options, user) {
+      sails.log.debug("Creating PDF");
 
       if (!sails.pdfService || !sails.pdfService.browser) {
         sails.pdfService = {};
