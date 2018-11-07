@@ -1,0 +1,25 @@
+<div *ngIf="!isLoading">
+  <div class="row">
+    <ag-grid-angular
+      #agGrid
+      style="width: 100%; height: 500px;"
+      id="myGrid"
+      [rowData]="rowData"
+      class="ag-theme-balham"
+      [enableColResize]="true"
+      [columnDefs]="columnDefs"
+      [rowModelType]="rowModelType"
+      [rowSelection]="rowSelection"
+      [maxBlocksInCache]="maxBlocksInCache"
+      [cacheBlockSize]="cacheBlockSize"
+      [suppressRowClickSelection]="true"
+      [getRowNodeId]="getRowNodeId"
+      [datasource]="datasource"
+      [enableServerSideSorting]="true"
+      [enableServerSideFilter]="true"
+      (gridReady)="onGridReady($event)"
+      [enableSorting]="true"
+      [enableFilter]="true"
+    ></ag-grid-angular>
+  </div>
+</div>

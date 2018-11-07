@@ -133,6 +133,13 @@ module.exports.routes = {
       'view': 'getAdvice'
     }
   },
+  '/:branding/:portal/manage_test': {
+     controller: 'RenderViewController',
+     action: 'render',
+     locals:{
+       'view': 'manage_test'
+     }
+  },
   /***************************************************************************
   *                                                                          *
   * Custom routes here...                                                    *
