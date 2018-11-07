@@ -192,6 +192,7 @@ module.exports.routes = {
   'post /:branding/:portal/record/responsibility/update': 'RecordController.updateResponsibilities',
   'get /:branding/:portal/dashboard/:recordType': 'DashboardController.render',
   'get /:branding/:portal/listRecords': 'DashboardController.getRecordList',
+  'post /:branding/:portal/listRecords': 'DashboardController.getRecordList',
   'get /:branding/:portal/vocab/:vocabId': 'VocabController.get',
   'get /:branding/:portal/ands/vocab/resourceDetails': 'VocabController.rvaGetResourceDetails',
   'get /:branding/:portal/mint/:mintSourceType': 'VocabController.getMint',

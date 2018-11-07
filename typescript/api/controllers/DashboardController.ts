@@ -85,7 +85,8 @@ export module Controllers {
       const rows = req.param('rows');
       const packageType = req.param('packageType');
       const sort = req.param('sort');
-      this.getRecords(workflowState, recordType, start,rows,user,roles,brand,editAccessOnly, packageType,sort).flatMap(results => {
+      const filter = req.param('filter');
+      this.getRecords(workflowState, recordType, start,rows,user,roles,brand,editAccessOnly, packageType,sort, filter).flatMap(results => {
           return results;
         }).subscribe(response => {
           if (response && response.code == "200") {
@@ -114,7 +115,7 @@ export module Controllers {
       return metadata;
     }
 
-    protected getRecords(workflowState, recordType, start,rows,user, roles, brand, editAccessOnly=undefined, packageType = undefined, sort=undefined) {
+    protected getRecords(workflowState, recordType, start,rows,user, roles, brand, editAccessOnly=undefined, packageType = undefined, sort=undefined, filter=undefined) {
       const username = user.username;
       if (!_.isUndefined(recordType) && !_.isEmpty(recordType)) {
         recordType = recordType.split(',');
@@ -122,13 +123,13 @@ export module Controllers {
       if (!_.isUndefined(packageType) && !_.isEmpty(packageType)) {
         packageType = packageType.split(',');
       }
-      var response = DashboardService.getRecords(workflowState,recordType, start,rows,username,roles,brand,editAccessOnly, packageType, sort);
+      var response = DashboardService.getRecords(workflowState,recordType, start,rows,username,roles,brand,editAccessOnly, packageType, sort, filter);
 
       return response.map(results => {
 
         var totalItems = results["response"]["numFound"];
         var startIndex = results["response"]["start"];
-        var noItems = 10;
+        var noItems = rows;
         var pageNumber = (startIndex / noItems) + 1;
 
         var response = {};

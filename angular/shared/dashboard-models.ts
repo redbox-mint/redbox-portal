@@ -12,4 +12,5 @@ export class Plan {
   dateModified: string
 
   dashboardTitle: string;
+  metadata:any;
 }

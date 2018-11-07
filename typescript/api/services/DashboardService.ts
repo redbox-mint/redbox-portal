@@ -41,12 +41,14 @@ export module Services {
     ];
 
 
-    public getRecords(workflowState, recordType = undefined, start, rows = 10, username, roles, brand, editAccessOnly = undefined, packageType = undefined, sort=undefined) {
+    public getRecords(workflowState, recordType=undefined, start, rows=10, username, roles, brand, editAccessOnly=undefined, packageType=undefined, sort=undefined, filter=undefined) {
 
       var url = sails.config.record.baseUrl.redbox + sails.config.record.api.query.url + "?collection=metadataDocuments";
       url = this.addPaginationParams(url, start, rows);
-      if(sort) {
-        url = url+`&sort=${sort}`
+      if(sort && _.isString(sort)) {
+        url = url + `&sort=${sort}`
+      } else if(sort && _.isArray(sort)){
+        url = url + sort.map(i => `&sort=${i['colId']}:${i['sort'] == 'desc' ? '-1' : '1'}`).join('')
       }
 
       let roleNames = this.getRoleNames(roles, brand);
@@ -75,16 +77,21 @@ export module Services {
         andArray.push(types);
       }
 
+      if (!_.isUndefined(filter) && !_.isEmpty(filter)) {
+        let mongodbFilter = this.convertCustomFilterToMongoDb(filter);
+        andArray.push(mongodbFilter);
+      }
+
       let query = {
         "metaMetadata.brandId": brand.id,
         "$and":andArray,
       };
 
-      if (workflowState != undefined) {
+      if (!_.isUndefined(workflowState) && !_.isEmpty(workflowState)) {
         query["workflow.stage"] = workflowState;
       }
 
-      sails.log.verbose(JSON.stringify(query));
+      sails.log.verbose(`DashboardService: getrecords, url: ${url}, query: ${JSON.stringify(query)}`);
       var options = this.getOptions(url);
       options['body'] = query;
 
@@ -148,6 +155,76 @@ export module Services {
 
     protected getOptions(url) {
       return { url: url, json: true, headers: { 'Authorization': `Bearer ${sails.config.redbox.apiKey}`, 'Content-Type': 'application/json; charset=utf-8' } };
+    }
+
+    protected convertCustomFilterToMongoDb(filter:any){
+      // for example, convert this:
+      // {
+      //   "AND": [
+      //     { "AND": [ { "workflowStage": {  "startsWith": "asd" } } ] },
+      //     { "OR": [ { "packageType": {  "notContains": "qwe" } }, { "packageType": { "startsWith": "uyt" } } },
+      //     { "AND": [ { "title": {  "endsWith": "mnb" } } ] }
+      //   ]
+      // }
+
+      // to this:
+      // {
+      //     $and : [
+      //         { $and : [ { workflowStage : { $regex: /^asd*/i } } ] },
+      //         { $or : [ { packageType : { $not: /*qwe*/i } }, { packageType : { $regex: /^uyt*/i } } ] }
+      //         { $and : [ { title : { $regex: /*mnb$/i } } ] },
+      //     ]
+      // }
+
+      // {
+      //     $and : [
+      //         { $and : [ { "workflow.stage" : { $regex: '^dr.*', $options: 'i' } } ] },
+      //         { $or : [ { "metaMetadata.type" : { $not: /.*we.*/ } }, { "metaMetadata.type" : { $regex: '^dra.*' } } ] },
+      //         { $and : [ { "metadata.title" : { $regex: '.*a$', $options: 'i' } } ] }
+      //     ]
+      // }
+
+      let filter_type_map = {
+        'equals': (value) => { return { '$eq': value } },
+        'notEqual': (value) => { return { '$ne': value } },
+        'contains': (value) => { return { '$regex': `.*${value}.*`, '$options': 'i' } },
+        'notContains': (value) => { return { '$not': `/.*${value}.*/i` } },
+        'startsWith':(value) => { return { '$regex': `^${value}.*`, '$options': 'i' } },
+        'endsWith': (value) => { return { '$regex': `.*${value}$`, '$options': 'i' } },
+        'lessThanOrEqual': (value) => { return { '$lte': value } },
+        'greaterThan': (value) => { return { '$gt': value } },
+        'greaterThanOrEqual':(value) => { return { '$gte': value } },
+        'inRange':(value1, value2) => { return [{ '$gte': value1 }, { '$lte': value2 } ] },
+      };
+
+      if(_.isObject(filter) && !_.isArray(filter)) {
+        let result = {};
+        for (let key in filter) {
+          if (filter.hasOwnProperty(key)) {
+            if(key == 'AND'){
+              result['$and'] = this.convertCustomFilterToMongoDb(filter[key]);
+            } else if(key == 'OR'){
+              result['$or'] = this.convertCustomFilterToMongoDb(filter[key]);
+            } else {
+              let check = filter_type_map[key];
+              // TODO: cater for 'inRange'
+              if (check){
+                result = check(filter[key]);
+              } else{
+                // TODO: unknown filter element, ignored for now
+              }
+            }
+          }
+        }
+        return result;
+
+      } else if (_.isArray(filter)){
+        let result = [];
+        for(let item of filter){
+          result.push(this.convertCustomFilterToMongoDb(item))
+        }
+        return result;
+      }
     }
 
   }
