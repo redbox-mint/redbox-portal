@@ -51,6 +51,9 @@ module.exports.http = {
         }
 
         var resourceLocation = splitUrl.slice(3, splitUrl.length).join("/");
+        if(resourceLocation.lastIndexOf('?') != -1) {
+          resourceLocation = resourceLocation.substring(0, resourceLocation.lastIndexOf('?'));
+        }
         var pathExists = require("path-exists");
         var resolvedPath = null;
         var locationToTest = sails.config.appPath + "/.tmp/public/" + branding + "/" + portal + "/" + resourceLocation;
