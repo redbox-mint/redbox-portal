@@ -80,6 +80,9 @@ export module Controllers {
             if (_.isEmpty(pageData.users)) {
               pageData.users = [];
             }
+            delete user.token;
+            //TODO: Look for config around what other secrets should be hidden from being returned to the client
+            delete user.password;
             pageData.users.push(user);
           }
         });

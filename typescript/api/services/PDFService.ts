@@ -53,11 +53,14 @@ export module Services {
 
     private async generatePDF(oid: string, record: any, options: any) {
       const page = await sails.pdfService.browser.newPage();
-      const userName = options['user']? options['user'] : "admin";
-      const user = await UsersService.getUserWithUsername(userName).toPromise();
+      const token = options['token']? options['token'] : undefined;
 
+      if(token == undefined) {
+        sails.log.warning("API token for PDF generation is not set. Skipping generation");
+        return;
+      }
       page.setExtraHTTPHeaders({
-        Authorization: 'Bearer '+ user['token']
+        Authorization: 'Bearer '+ token
       });
       //TODO: get branding name from record
       let currentURL = `${sails.config.appUrl}/default/rdmp/record/view/${oid}`;
@@ -94,7 +97,7 @@ export module Services {
     }
 
     public createPDF(oid, record, options, user) {
-      sails.log.debug("Creating PDF");
+      sails.log.error("Creating PDF");
 
       if (!sails.pdfService || !sails.pdfService.browser) {
         sails.pdfService = {};
