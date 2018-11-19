@@ -150,7 +150,7 @@
     uglify-es "3.2.1"
     uri-path "1.0.0"
 
-"@sailshq/lodash@^3.10.2":
+"@sailshq/lodash@^3.10.2", "@sailshq/lodash@^3.10.3":
   version "3.10.3"
   resolved "https://registry.yarnpkg.com/@sailshq/lodash/-/lodash-3.10.3.tgz#61b6fa3a5db3fe802409b0ba152bcc99e7d27a58"
   integrity sha512-XTF5BtsTSiSpTnfqrCGS5Q8FvSHWCywA0oRxFAZo8E1a8k1MMFUvk3VlRk3q/SusEYwy7gvVdyt9vvNlTa2VuA==
@@ -1991,7 +1991,7 @@ colors@0.6.x, colors@~0.6.1:
   resolved "https://registry.yarnpkg.com/colors/-/colors-0.6.2.tgz#2423fe6678ac0c5dae8852e5d0e5be08c997abcc"
   integrity sha1-JCP+ZnisDF2uiFLl0OW+CMmXq8w=
 
-colors@1.1.2, colors@~1.1.2:
+colors@~1.1.2:
   version "1.1.2"
   resolved "https://registry.yarnpkg.com/colors/-/colors-1.1.2.tgz#168a4701756b6a7f51a12ce0c97bfa28c084ed63"
   integrity sha1-FopHAXVran9RoSzgyXv6KMCE7WM=
@@ -2621,11 +2621,6 @@ domutils@^1.5.1:
   dependencies:
     dom-serializer "0"
     domelementtype "1"
-
-dot-access@1.0.0:
-  version "1.0.0"
-  resolved "https://registry.yarnpkg.com/dot-access/-/dot-access-1.0.0.tgz#a362e5a25906b55bab48a42d101538726061fa68"
-  integrity sha1-o2LlolkGtVurSKQtEBU4cmBh+mg=
 
 dot-prop@^4.1.0:
   version "4.2.0"
@@ -5331,10 +5326,10 @@ lunr@2.3.5:
   resolved "https://registry.yarnpkg.com/lunr/-/lunr-2.3.5.tgz#7b510bad57e948dfb99a71fdff00c1bf9171bdda"
   integrity sha512-EtnfmHsHJTr3u24sito9JctSxej5Ds0SgUD2Lm+qRHyLgM7BGesFlW14eNh1mil0fV5Muh8gf3dBBXzADlUlzQ==
 
-machine-as-action@^10.0.0-0:
-  version "10.2.0"
-  resolved "https://registry.yarnpkg.com/machine-as-action/-/machine-as-action-10.2.0.tgz#e23606ff3800de4bedefd468c816c006f8da588a"
-  integrity sha512-u5iLOobMqPQ33F4j2PdKhTiBuikwh6YaFFuKvVg41nM9pJmKgg7dfgbMvvvBF1HG8+QkRWcrZyNqTawcxmgjDw==
+machine-as-action@^10.3.0-0:
+  version "10.3.0-0"
+  resolved "https://registry.yarnpkg.com/machine-as-action/-/machine-as-action-10.3.0-0.tgz#babca899c60dbd1a9e543709b02af7eac921c94e"
+  integrity sha512-KshkqMTcbTtKZ2kl9No7Jz1JfxSWENFgD9AV5Jo+bwVYBgngkjxcf3h762GBbC2JCv7gaa3c8PYh9gNthW9gzw==
   dependencies:
     "@sailshq/lodash" "^3.10.2"
     flaverr "^1.5.1"
@@ -5366,7 +5361,7 @@ machine@^13.0.0-11:
     rttc "^9.8.1"
     switchback "^2.0.1"
 
-machine@^15.0.0, machine@^15.0.0-21, machine@^15.2.2:
+machine@^15.0.0, machine@^15.2.2:
   version "15.2.2"
   resolved "https://registry.yarnpkg.com/machine/-/machine-15.2.2.tgz#58e0cc119ffad32b2e70087bb6c23bfb8686452d"
   integrity sha512-gXA/U4bjMyQd2QPw8i+AxzXEDkQBImQVE2P7mmTmXPcfszT+NJc5Me0I1Tn6Fj8zsO5EsmsFxD8Xdia751ik/w==
@@ -5630,17 +5625,17 @@ merge-descriptors@1.0.1:
   resolved "https://registry.yarnpkg.com/merge-descriptors/-/merge-descriptors-1.0.1.tgz#b00aaa556dd8b44568150ec9d1b953f3f90cbb61"
   integrity sha1-sAqqVW3YtEVoFQ7J0blT8/kMu2E=
 
+merge-dictionaries@1.0.0:
+  version "1.0.0"
+  resolved "https://registry.yarnpkg.com/merge-dictionaries/-/merge-dictionaries-1.0.0.tgz#7896ee1ab1a1550d3287a0311b7db7804b691931"
+  integrity sha1-eJbuGrGhVQ0yh6AxG323gEtpGTE=
+  dependencies:
+    "@sailshq/lodash" "^3.10.2"
+
 merge-dictionaries@^0.0.3:
   version "0.0.3"
   resolved "https://registry.yarnpkg.com/merge-dictionaries/-/merge-dictionaries-0.0.3.tgz#c4de4d58dbb25e4c2823aa30cb8e1539069eb757"
   integrity sha1-xN5NWNuyXkwoI6owy44VOQaet1c=
-  dependencies:
-    "@sailshq/lodash" "^3.10.2"
-
-merge-dictionaries@^1.0.0:
-  version "1.0.0"
-  resolved "https://registry.yarnpkg.com/merge-dictionaries/-/merge-dictionaries-1.0.0.tgz#7896ee1ab1a1550d3287a0311b7db7804b691931"
-  integrity sha1-eJbuGrGhVQ0yh6AxG323gEtpGTE=
   dependencies:
     "@sailshq/lodash" "^3.10.2"
 
@@ -7531,7 +7526,24 @@ sails-disk@^1.0.0-0:
     machinepack-fs "^8.0.2"
     nedb "1.8.0"
 
-sails-generate@^1.15.19, sails-generate@^1.9.0:
+sails-generate@^1.16.0-0:
+  version "1.16.0"
+  resolved "https://registry.yarnpkg.com/sails-generate/-/sails-generate-1.16.0.tgz#7a01da6ce8696ddd35554c2144d958473d949ed5"
+  integrity sha512-mnzN9RlCRrtyEagMX7ywBKRhyy0plaU8FSkHch1Jhkk5cjv9GhoctQOzy55muqv7/MmXRuL/CfPXSyjFvwwkjg==
+  dependencies:
+    async "2.0.1"
+    chalk "1.1.3"
+    cross-spawn "4.0.2"
+    flaverr "^1.0.0"
+    fs-extra "0.30.0"
+    lodash "3.10.1"
+    machinepack-process "^2.0.2"
+    parasails "^0.7.1"
+    read "1.0.7"
+    reportback "^2.0.1"
+    sails.io.js-dist "^1.0.0"
+
+sails-generate@^1.9.0:
   version "1.15.28"
   resolved "https://registry.yarnpkg.com/sails-generate/-/sails-generate-1.15.28.tgz#ada8239c33dbb680cf99b5cbb7c0c0fa7343f202"
   integrity sha512-H+kaa22AIKxr2jB0ncgxhupZETCKfgrHNuHUB2QTtbDCuMn9yVGxhN7O3sgO7GzbRW3XkAJpuFaG0fBvActc8Q==
@@ -7639,9 +7651,9 @@ sails.io.js-dist@^1.0.0:
   integrity sha512-fBMdntawlqd5N/1xL9Vu6l+J5zvy86jLUf0nFDal5McUeZzUy7PpNqq+Vx/F9KgItAyFJ7RoO3YltO9dD0Q5OQ==
 
 sails@^1.0.2:
-  version "1.0.2"
-  resolved "https://registry.yarnpkg.com/sails/-/sails-1.0.2.tgz#c18be0fe0b2b305847cedc4d12ec9778c044d1fb"
-  integrity sha512-tcMERTduNcO1WAWgkQxp5hZEBLBxdNgS3Kf5LEe1PzgEORKLYJrj+KXdjadcYuyuzydBsWmlv76oF2Y97P4RoQ==
+  version "1.1.0"
+  resolved "https://registry.yarnpkg.com/sails/-/sails-1.1.0.tgz#0bac028a17e386724b5a078d71812de591632168"
+  integrity sha512-YnkgmgOCYmcKqHsoZUPtIKDXj83DFAd8CwxCsThDXej0fH/t7yFBITiNOnj1JjnA5k7G9aIjWwbh6NYn/dM8Ng==
   dependencies:
     "@sailshq/lodash" "^3.10.2"
     async "2.5.0"
@@ -7662,12 +7674,12 @@ sails@^1.0.2:
     glob "7.1.2"
     i18n-2 "0.6.3"
     include-all "^4.0.0"
-    machine "^15.0.0-21"
-    machine-as-action "^10.0.0-0"
+    machine "^15.2.2"
+    machine-as-action "^10.3.0-0"
     machinepack-process "^2.0.2"
     machinepack-redis "^1.1.1"
     merge-defaults "0.2.1"
-    merge-dictionaries "^1.0.0"
+    merge-dictionaries "1.0.0"
     minimist "0.0.10"
     parley "^3.3.4"
     parseurl "1.3.2"
@@ -7677,16 +7689,16 @@ sails@^1.0.2:
     rc "1.2.2"
     router "1.3.2"
     rttc "^10.0.0-0"
-    sails-generate "^1.15.19"
+    sails-generate "^1.16.0-0"
     sails-stringfile "0.3.2"
     semver "4.3.6"
     serve-favicon "2.4.5"
     serve-static "1.13.1"
-    skipper "~0.8.0"
+    skipper "^0.9.0-0"
     sort-route-addresses "^0.0.1"
     uid-safe "2.1.5"
     vary "1.1.2"
-    whelk "^6.0.0"
+    whelk "^6.0.1"
 
 saslprep@^1.0.0:
   version "1.0.2"
@@ -7896,10 +7908,10 @@ signal-exit@^3.0.0, signal-exit@^3.0.2:
   resolved "https://registry.yarnpkg.com/signal-exit/-/signal-exit-3.0.2.tgz#b5fdc08f1287ea1178628e415e25132b73646c6d"
   integrity sha1-tf3AjxKH6hF4Yo5BXiUTK3NkbG0=
 
-skipper-disk@0.5.11:
-  version "0.5.11"
-  resolved "https://registry.yarnpkg.com/skipper-disk/-/skipper-disk-0.5.11.tgz#3733f6b35c0cd572ebab1c1971e170fa922fc999"
-  integrity sha512-uyTPr5im+dZPycIpyA+YgogpQgUXHn4a8vMc6xf4STKFypIzQ2/lwjIu9GLR5mTboeDebgQQWQFSFmZuaxtuvA==
+skipper-disk@~0.5.6:
+  version "0.5.12"
+  resolved "https://registry.yarnpkg.com/skipper-disk/-/skipper-disk-0.5.12.tgz#a57f59547bc00cc9c8a394ba33e9c0a7b2e15b96"
+  integrity sha512-yyLOWT1WKY2h9NaUuG77XyhMti6vltRqp3ofN2ZTYoG3/V/SRLH1CjtZQ2Az6oqgMrfN8SZ83k3ptaOvB31YmQ==
   dependencies:
     "@sailshq/lodash" "^3.10.2"
     debug "3.1.0"
@@ -7915,20 +7927,18 @@ skipper-disk@0.5.11:
     mongodb "^3.0.3"
     mongodb-uri "~0.9.7"
 
-skipper@~0.8.0:
-  version "0.8.7"
-  resolved "https://registry.yarnpkg.com/skipper/-/skipper-0.8.7.tgz#a5b17f0bc12b5f1420b38fc4614915581a6c0f2b"
-  integrity sha512-Ny3CZB/ziYNaBPIkTtno+kPpnWOzrlIuqVw6aMoutlOd7seyiEJuBWFsV6j9Ugna5yajKvJGf6k/YFFvD9luZA==
+skipper@^0.9.0-0:
+  version "0.9.0-2"
+  resolved "https://registry.yarnpkg.com/skipper/-/skipper-0.9.0-2.tgz#efcd3cc85141a0addc131ea35a3224036096e053"
+  integrity sha512-XjRHjieDfBuiUTmx+6iotAStY9BcCAbWvyZt8FWUf+rpYGqYVtbbRAp/C8HrLBq/jRwVJ6JL5RAGOSXsvyLLMg==
   dependencies:
+    "@sailshq/lodash" "^3.10.3"
     async "2.0.1"
     body-parser "1.18.2"
-    colors "1.1.2"
     debug "3.1.0"
-    dot-access "1.0.0"
-    lodash "3.10.1"
     multiparty "4.1.3"
     semver "4.3.6"
-    skipper-disk "0.5.11"
+    skipper-disk "~0.5.6"
     string_decoder "0.10.31"
     uuid "3.0.1"
 
@@ -9039,7 +9049,7 @@ whatwg-url@^7.0.0:
     tr46 "^1.0.1"
     webidl-conversions "^4.0.2"
 
-whelk@^6.0.0:
+whelk@^6.0.1:
   version "6.0.1"
   resolved "https://registry.yarnpkg.com/whelk/-/whelk-6.0.1.tgz#96955aa2d26672a78346c894568148b557dce998"
   integrity sha512-C6jGmpclsvSYm3rNhCkrdIdGhL9Oh6A9jnSmTN4lfEbH+ENQvjP9qZ5UV9WWolfoumpIzTBVupk1qiVeLL7yYQ==
