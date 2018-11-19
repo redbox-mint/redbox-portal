@@ -1,6 +1,7 @@
 sudo: required
 services:
 - docker
+- mongodb
 language: node_js
 node_js:
 - '8'
@@ -22,7 +23,7 @@ addons:
     packages:
       - g++-4.9
 install:
-- chmod +x buildTypescript.sh; ./buildTypescript.sh; npm run doc-ng2
+- chmod +x buildTypescript.sh; ./buildTypescript.sh; npm run test; npm run doc-ng2
 deploy:
   provider: pages
   skip_cleanup: true

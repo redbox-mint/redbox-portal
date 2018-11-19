@@ -1,0 +1,54 @@
+version: '3.1'
+networks:
+  main:
+services:
+  redboxportal:
+    build: .
+    image: qcifengineering/redbox-portal:latest
+    ports:
+       - "1500:1500"
+    restart: always
+    volumes:
+       - "../../:/opt/redbox-portal"
+    expose:
+       - "1500"
+    environment:
+      - NODE_ENV=docker
+      - PORT=1500
+    networks:
+     main:
+       aliases:
+         - rbportal
+    entrypoint: /bin/bash -c "cd /opt/redbox-portal && npm test"
+  mongodb:
+    image: mvertes/alpine-mongo:latest
+    networks:
+      main:
+        aliases:
+          - mongodb
+    ports:
+       - "27017:27017"
+
+
+# version: '2'
+# services:
+#   mongodb:
+#     image: mvertes/alpine-mongo:latest
+#     ports:
+#        - "27017:27017"
+#   rbportal:
+#     image: qcifengineering/redbox-portal:latest
+#     ports:
+#        - "1500:1500"
+#     volumes:
+#        - "../../:/opt/redbox-portal"
+#     expose:
+#        - "1500"
+#     environment:
+#       - NODE_ENV=development
+#       - PORT=1500
+#       - sails_ng2__force_bundle=true
+#     links:
+#       - mongodb:mongodb
+#       # - redbox:redbox
+#     entrypoint: /bin/bash -c "cd /opt/redbox-portal && npm test"

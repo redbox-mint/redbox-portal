@@ -10,7 +10,6 @@ before(function (done) {
 
   // Increase the Mocha timeout so that Sails has enough time to lift.
   this.timeout(120000);
-
   sails.lift({
        log: {
          level: 'verbose'
@@ -19,13 +18,8 @@ before(function (done) {
          grunt: false
        },
        models: {
-         connection: 'unitTestConnection',
+         datastore: 'mongodb',
          migrate: 'drop'
-       },
-       connections: {
-         unitTestConnection: {
-           adapter: 'sails-disk'
-         }
        }
     }, function (err, server) {
        if (err) return done(err);

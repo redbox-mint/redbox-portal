@@ -13,7 +13,6 @@ const schedule = require('node-schedule');
 
 module.exports.bootstrap = function(cb) {
     // sails.config.peopleSearch.orcid = sails.services.orcidservice.searchOrcid;
-
     sails.config.startupMinute = Math.floor(Date.now() / 60000);
     sails.services.cacheservice.bootstrap();
     sails.services.translationservice.bootstrap();
