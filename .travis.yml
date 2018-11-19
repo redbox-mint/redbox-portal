@@ -23,7 +23,7 @@ addons:
     packages:
       - g++-4.9
 install:
-- chmod +x buildTypescript.sh; ./buildTypescript.sh; npm run test; npm run doc-ng2
+- yarn; chmod +x buildTypescript.sh; ./buildTypescript.sh; npm run test; npm run doc-ng2
 deploy:
   provider: pages
   skip_cleanup: true
