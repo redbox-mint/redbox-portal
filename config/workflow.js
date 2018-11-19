@@ -83,7 +83,8 @@ module.exports.workflow = {
         },
         authorization: {
           viewRoles: ['Admin', 'Librarians'],
-          editRoles: ['Admin']
+          editRoles: ['Admin'],
+
         },
         form: 'dataPublication-1.0-reviewing',
         displayIndex: 4
@@ -97,7 +98,8 @@ module.exports.workflow = {
         },
         authorization: {
           viewRoles: ['Admin', 'Librarians'],
-          editRoles: ['Admin', 'Librarians']
+          editRoles: ['Admin', 'Librarians'],
+          transitionRoles: ['Admin']
         },
         form: 'dataPublication-1.0-publishing',
         displayIndex: 5

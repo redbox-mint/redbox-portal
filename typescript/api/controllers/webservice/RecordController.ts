@@ -97,7 +97,7 @@ export module Controllers {
           record["authorization"]["editPending"] = _.union(record["authorization"]["editPending"], pendingUsers);
         }
 
-        var obs = RecordsService.updateMeta(brand, oid, record);
+        var obs = RecordsService.updateMeta(brand, oid, record,req.user);
         obs.subscribe(result => {
           if (result["code"] == 200) {
             RecordsService.getMeta(result["oid"]).subscribe(record => {
@@ -128,7 +128,7 @@ export module Controllers {
           record["authorization"]["viewPending"] = _.union(record["authorization"]["viewPending"], pendingUsers);
         }
 
-        var obs = RecordsService.updateMeta(brand, oid, record);
+        var obs = RecordsService.updateMeta(brand, oid, record, req.user);
         obs.subscribe(result => {
           if (result["code"] == 200) {
             RecordsService.getMeta(result["oid"]).subscribe(record => {
@@ -158,7 +158,7 @@ export module Controllers {
           record["authorization"]["editPending"] = _.difference(record["authorization"]["editPending"], pendingUsers);
         }
 
-        var obs = RecordsService.updateMeta(brand, oid, record);
+        var obs = RecordsService.updateMeta(brand, oid, record,req.user);
         obs.subscribe(result => {
           if (result["code"] == 200) {
             RecordsService.getMeta(result["oid"]).subscribe(record => {
@@ -188,7 +188,7 @@ export module Controllers {
           record["authorization"]["viewPending"] = _.difference(record["authorization"]["viewPending"], pendingUsers);
         }
 
-        var obs = RecordsService.updateMeta(brand, oid, record);
+        var obs = RecordsService.updateMeta(brand, oid, record, req.user);
         obs.subscribe(result => {
           if (result["code"] == 200) {
             RecordsService.getMeta(result["oid"]).subscribe(record => {
@@ -217,7 +217,7 @@ export module Controllers {
 
       RecordsService.getMeta(oid).subscribe(record => {
         record["metadata"] = req.body;
-        var obs = RecordsService.updateMeta(brand, oid, record);
+        var obs = RecordsService.updateMeta(brand, oid, record, req.user);
         obs.subscribe(result => {
           return res.json(result);
         });
@@ -295,7 +295,7 @@ export module Controllers {
 
               });
 
-              var obs = RecordsService.create(brand, request, recordTypeModel.packageType);
+              var obs = RecordsService.create(brand, request, recordTypeModel);
               obs.subscribe(result => {
                 if (result["code"] == "200") {
                   result["code"] = 201;
