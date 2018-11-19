@@ -88,7 +88,7 @@
     "ejs-cli": "^2.0.1",
     "grunt-contrib-cssmin": "^3.0.0",
     "grunt-contrib-uglify": "^4.0.0",
-    "grunt-sass": "2.1.0",
+    "grunt-sass": "3.0.2",
     "grunt-shell": "^2.1.0",
     "istanbul": "^0.4.5",
     "mocha": "^5.2.0",
