@@ -323,7 +323,7 @@ export module Controllers {
       if (_.isEmpty(oid)) {
         obs = FormsService.getForm(brand.id, name, editMode, true).flatMap(form => {
           let mergedForm = this.mergeFields(req, res, form.fields, name, {}).then(fields => {
-            form.fields= fields;
+            form.fields = fields;
             return form;
           });
           return mergedForm;
@@ -345,12 +345,12 @@ export module Controllers {
                   if (_.isEmpty(form)) {
                     return Observable.throw(new Error(`Error, getting form ${formName} for OID: ${oid}`));
                   }
-                  let mergedForm = this.mergeFields(req, res, form.fields,currentRec.metaMetadata.type, currentRec.metadata).then(fields => {
-                    form.fields= fields;
+                  let mergedForm = this.mergeFields(req, res, form.fields, currentRec.metaMetadata.type, currentRec.metadata).then(fields => {
+                    form.fields = fields;
 
                     return form;
-                });
-                return mergedForm;
+                  });
+                  return mergedForm;
                 });
               });
           } else {
@@ -364,9 +364,9 @@ export module Controllers {
                   if (_.isEmpty(form)) {
                     return Observable.throw(new Error(`Error, getting form ${formName} for OID: ${oid}`));
                   }
-                  return this.mergeFields(req, res, form.fields,currentRec.metaMetadata.type, currentRec.metadata).then(response => {
-                  return Observable.of(form);
-                });
+                  return this.mergeFields(req, res, form.fields, currentRec.metaMetadata.type, currentRec.metadata).then(response => {
+                    return Observable.of(form);
+                  });
                 });
               });
           }
@@ -500,19 +500,23 @@ export module Controllers {
             return Observable.of(currentRec);
           }
           let hasPermissionToTransition = true;
-          if (nextStep.config.authorization.transitionRoles != undefined) {
-            if (nextStep.config.authorization.transitionRoles.length > 0) {
-              let validRoles = _.filter(nextStep.config.authorization.transitionRoles, role => {
-                let val = _.find(user.roles, userRole => {
-                  return role == userRole;
-                });
-                if (val != undefined) {
-                  return true;
+          if (nextStep != undefined) {
+            if (nextStep.config != undefined) {
+              if (nextStep.config.authorization.transitionRoles != undefined) {
+                if (nextStep.config.authorization.transitionRoles.length > 0) {
+                  let validRoles = _.filter(nextStep.config.authorization.transitionRoles, role => {
+                    let val = _.find(user.roles, userRole => {
+                      return role == userRole;
+                    });
+                    if (val != undefined) {
+                      return true;
+                    }
+                    return false;
+                  });
+                  if (validRoles.length == 0) {
+                    hasPermissionToTransition = false;
+                  }
                 }
-                return false;
-              });
-              if (validRoles.length == 0) {
-                hasPermissionToTransition = false;
               }
             }
           }
@@ -714,12 +718,12 @@ export module Controllers {
 
       let recordType = await RecordTypesService.get(BrandingService.getBrand(req.session.branding), type).toPromise();
       let workflowSteps = await WorkflowStepsService.getAllForRecordType(recordType).toPromise();
-      this.mergeFieldsSync(req,res,fields,metadata, workflowSteps);
-       return fields;
-      }
+      this.mergeFieldsSync(req, res, fields, metadata, workflowSteps);
+      return fields;
+    }
 
-      protected  mergeFieldsSync(req,res,fields,metadata, workflowSteps) {
-        const fieldsToDelete = [];
+    protected mergeFieldsSync(req, res, fields, metadata, workflowSteps) {
+      const fieldsToDelete = [];
       _.forEach(fields, field => {
         if (_.has(metadata, field.definition.name)) {
           field.definition.value = metadata[field.definition.name];
@@ -737,14 +741,14 @@ export module Controllers {
           }
         }
 
-        if(field.class == "SaveButton") {
-          if(field.definition.targetStep) {
+        if (field.class == "SaveButton") {
+          if (field.definition.targetStep) {
             let workflowStep = _.filter(workflowSteps, workflowStep => {
               return workflowStep.name == field.definition.targetStep;
             });
-            if(workflowStep.length > 0) {
+            if (workflowStep.length > 0) {
               workflowStep = workflowStep[0];
-              if(workflowStep.config.authorization.transitionRoles) {
+              if (workflowStep.config.authorization.transitionRoles) {
                 let hasAccess = false;
                 _.each(workflowStep.config.authorization.transitionRoles, (r) => {
                   hasAccess = RolesService.getRoleWithName(req.user.roles, r);
@@ -765,7 +769,7 @@ export module Controllers {
           });
         } else
           if (field.definition.fields) {
-            this.mergeFieldsSync(req,res,field.definition.fields,metadata, workflowSteps);
+            this.mergeFieldsSync(req, res, field.definition.fields, metadata, workflowSteps);
           }
       });
       _.remove(fields, (f) => { return _.includes(fieldsToDelete, f); });
