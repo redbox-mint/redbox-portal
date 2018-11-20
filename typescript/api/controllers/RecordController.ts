@@ -364,8 +364,10 @@ export module Controllers {
                   if (_.isEmpty(form)) {
                     return Observable.throw(new Error(`Error, getting form ${formName} for OID: ${oid}`));
                   }
-                  return this.mergeFields(req, res, form.fields, currentRec.metaMetadata.type, currentRec.metadata).then(response => {
-                    return Observable.of(form);
+                  return this.mergeFields(req, res, form.fields, currentRec.metaMetadata.type, currentRec.metadata).then(fields => {
+                    form.fields = fields;
+
+                    return form;
                   });
                 });
               });
