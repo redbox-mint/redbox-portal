@@ -3,7 +3,6 @@ networks:
   main:
 services:
   redboxportal:
-    build: .
     image: qcifengineering/redbox-portal:latest
     ports:
        - "1500:1500"
