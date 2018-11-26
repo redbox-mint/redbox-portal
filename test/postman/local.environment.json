@@ -22,7 +22,7 @@
 		},
 		{
 			"key": "host",
-			"value": "http://localhost:1337",
+			"value": "http://localhost:1500",
 			"description": "",
 			"enabled": true
 		}

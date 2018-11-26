@@ -24,7 +24,7 @@ addons:
       - g++-4.9
 install:
 - chmod +x buildTypescript.sh && ./buildTypescript.sh
-- npm run test
+- docker-compose -f support/integration-testing/docker-compose.yml up --abort-on-container-exit
 - npm run doc-ng2
 deploy:
   provider:     pages

@@ -108,9 +108,18 @@ module.exports.bootstrap = function(cb) {
      }
 
       sails.log.verbose("Bootstrap complete!");
-      // It's very important to trigger this callback method when you are finished
-      // with the bootstrap!  (otherwise your server will never lift, since it's waiting on the bootstrap)
-      cb();
+
+      sails.services.recordsservice.checkRedboxRunning().then(response => {
+        if(response == true) {
+        // It's very important to trigger this callback method when you are finished
+        // with the bootstrap!  (otherwise your server will never lift, since it's waiting on the bootstrap)
+          cb();
+        } else {
+          throw new Error('ReDBox Storage failed to start');
+        }
+      });
+
+
     },
     error => {
       sails.log.verbose("Bootstrap failed!!!");

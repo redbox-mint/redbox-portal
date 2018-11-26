@@ -62,8 +62,37 @@ export module Services {
       'updateNotificationLog',
       'updateWorkflowStep',
       'triggerPreSaveTriggers',
-      'triggerPostSaveTriggers'
+      'triggerPostSaveTriggers',
+      'checkRedboxRunning'
     ];
+
+    public async checkRedboxRunning(): Promise<any> {
+      let retries  =  1000;
+      for(let i =0; i< retries; i++) {
+        try {
+        let response:any = await this.info();
+        if(response['applicationVersion']) {
+          return true;
+        }
+      } catch(err) {
+        sails.log.info("ReDBox Storage hasn't started yet. Retrying...")
+      }
+        await this.sleep(1000);
+      }
+      return false;
+    }
+
+    private sleep(ms) {
+      return new Promise(resolve=>{
+        setTimeout(resolve,ms)
+    });
+    }
+
+    private info(): Promise<any> {
+
+      const options = this.getOptions(sails.config.record.baseUrl.redbox + sails.config.record.api.info.url);
+      return request[sails.config.record.api.info.method](options)
+    }
 
     public create(brand, record, recordType = null, user = null, triggerPreSaveTriggers = true, triggerPostSaveTriggers = true): Observable<any> {
       let packageType = recordType.packageType;
