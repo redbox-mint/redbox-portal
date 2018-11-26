@@ -112,7 +112,9 @@ export module Controllers {
       }
 
       public info(req, res) {
-        return res.json ({ user:req.user });
+        let user = req.user;
+        delete user.token;
+        return res.json ({ user: user });
       }
 
       public update(req, res) {
