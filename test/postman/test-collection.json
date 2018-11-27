@@ -360,6 +360,101 @@
 			"name": "AJAX calls",
 			"item": [
 				{
+					"name": "Login via Internal authentication",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "4f8e8675-14b8-4f9d-ae6e-52e0b7d5ae0f",
+								"exec": [
+									"postman.setGlobalVariable(\"cookie\",postman.getResponseHeader(\"set-cookie\") );",
+									"",
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Check that user returned is admin\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.user.username).to.eql(\"admin\");",
+									"});",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Pragma",
+								"value": "no-cache"
+							},
+							{
+								"key": "Origin",
+								"value": "{{host}}"
+							},
+							{
+								"key": "Accept-Encoding",
+								"value": "gzip, deflate, br"
+							},
+							{
+								"key": "X-CSRF-Token",
+								"value": ""
+							},
+							{
+								"key": "Accept-Language",
+								"value": "en-US,en;q=0.9,en-AU;q=0.8,it;q=0.7"
+							},
+							{
+								"key": "User-Agent",
+								"value": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.102 Safari/537.36"
+							},
+							{
+								"key": "X-Source",
+								"value": "jsclient"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json;charset=UTF-8"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json, text/plain, */*"
+							},
+							{
+								"key": "Cache-Control",
+								"value": "no-cache"
+							},
+							{
+								"key": "Referer",
+								"value": "{{host}}/default/rdmp/user/login"
+							},
+							{
+								"key": "Connection",
+								"value": "keep-alive"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"username\": \"admin\",\n    \"password\": \"rbadmin\",\n    \"branding\": \"default\",\n    \"portal\": \"rdmp\"\n}"
+						},
+						"url": {
+							"raw": "http://localhost:1500/user/login_local",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "1500",
+							"path": [
+								"user",
+								"login_local"
+							]
+						}
+					},
+					"response": []
+				},
+				{
 					"name": "Dashboard List RDMP Records",
 					"event": [
 						{
@@ -391,11 +486,6 @@
 						"method": "GET",
 						"header": [
 							{
-								"key": "Authorization",
-								"value": "Bearer {{token}}",
-								"type": "text"
-							},
-							{
 								"key": "Content-Type",
 								"value": "application/json",
 								"type": "text"
@@ -411,16 +501,9 @@
 								"type": "text"
 							},
 							{
-								"key": "Referer",
-								"value": "{{host}}/default/rdmp/dashboard/rdmp",
-								"type": "text",
-								"disabled": true
-							},
-							{
-								"key": "User-Agent",
-								"value": "User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.102 Safari/537.36",
-								"type": "text",
-								"disabled": true
+								"key": "Cookie",
+								"value": "{{cookie}}",
+								"type": "text"
 							}
 						],
 						"body": {
@@ -497,11 +580,6 @@
 						"method": "GET",
 						"header": [
 							{
-								"key": "Authorization",
-								"value": "Bearer {{token}}",
-								"type": "text"
-							},
-							{
 								"key": "Content-Type",
 								"value": "application/json",
 								"type": "text"
@@ -517,16 +595,9 @@
 								"type": "text"
 							},
 							{
-								"key": "Referer",
-								"value": "{{host}}/default/rdmp/dashboard/rdmp",
-								"type": "text",
-								"disabled": true
-							},
-							{
-								"key": "User-Agent",
-								"value": "User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.102 Safari/537.36",
-								"type": "text",
-								"disabled": true
+								"key": "Cookie",
+								"value": "{{cookie}}",
+								"type": "text"
 							}
 						],
 						"body": {
@@ -590,11 +661,6 @@
 						"method": "GET",
 						"header": [
 							{
-								"key": "Authorization",
-								"type": "text",
-								"value": "Bearer {{token}}"
-							},
-							{
 								"key": "Content-Type",
 								"type": "text",
 								"value": "application/json"
@@ -610,16 +676,9 @@
 								"value": "application/json, text/plain, */*"
 							},
 							{
-								"key": "Referer",
-								"type": "text",
-								"value": "{{host}}/default/rdmp/dashboard/rdmp",
-								"disabled": true
-							},
-							{
-								"key": "User-Agent",
-								"type": "text",
-								"value": "User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.102 Safari/537.36",
-								"disabled": true
+								"key": "Cookie",
+								"value": "{{cookie}}",
+								"type": "text"
 							}
 						],
 						"body": {
@@ -651,6 +710,21 @@
 				},
 				{
 					"name": "Update RDMP Metadata using AJAX form call",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "9df83ccd-b492-4ecc-a60e-d7af261e0450",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
 					"request": {
 						"method": "PUT",
 						"header": [
@@ -660,7 +734,7 @@
 							},
 							{
 								"key": "Origin",
-								"value": "http://localhost:1337"
+								"value": "http://localhost:1500"
 							},
 							{
 								"key": "Accept-Encoding",
@@ -692,15 +766,15 @@
 							},
 							{
 								"key": "Referer",
-								"value": "http://localhost:1337/default/rdmp/record/edit/{{dmpOid}}"
+								"value": "http://localhost:1500/default/rdmp/record/edit/{{dmpOid}}"
 							},
 							{
 								"key": "Connection",
 								"value": "keep-alive"
 							},
 							{
-								"key": "Authorization",
-								"value": "Bearer {{token}}",
+								"key": "Cookie",
+								"value": "{{cookie}}",
 								"type": "text"
 							}
 						],
@@ -718,6 +792,1683 @@
 								"rdmp",
 								"recordmeta",
 								"{{dmpOid}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get RDMP transfer responsibility configuration",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "00abc0c7-746a-4bb0-8ce4-d323666395cb",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Contains valid config with fields and canEdit object\", function () {",
+									"    var jsonData = pm.response.json();",
+									"   ",
+									"        pm.expect(jsonData).to.have.property('fields');",
+									"        pm.expect(jsonData).to.have.property('canEdit');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Pragma",
+								"value": "no-cache"
+							},
+							{
+								"key": "Accept-Encoding",
+								"value": "gzip, deflate, br"
+							},
+							{
+								"key": "X-CSRF-Token",
+								"value": ""
+							},
+							{
+								"key": "Accept-Language",
+								"value": "en-US,en;q=0.9,en-AU;q=0.8,it;q=0.7"
+							},
+							{
+								"key": "User-Agent",
+								"value": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.102 Safari/537.36"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json;charset=utf-8"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json, text/plain, */*"
+							},
+							{
+								"key": "Connection",
+								"value": "keep-alive"
+							},
+							{
+								"key": "Referer",
+								"value": "{{host}}/default/rdmp/record/transfer/rdmp"
+							},
+							{
+								"key": "Cookie",
+								"value": "{{cookie}}"
+							},
+							{
+								"key": "X-Source",
+								"value": "jsclient"
+							},
+							{
+								"key": "Cache-Control",
+								"value": "no-cache"
+							}
+						],
+						"body": {},
+						"url": {
+							"raw": "{{host}}/default/rdmp/transferconfig/rdmp",
+							"host": [
+								"{{host}}"
+							],
+							"path": [
+								"default",
+								"rdmp",
+								"transferconfig",
+								"rdmp"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Transfer responsibility of plan",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "3e849f1c-25e2-4b59-97e4-819800e0a56d",
+								"exec": [
+									"// \"contributor_ci\": {",
+									"                    // \"text_full_name\": \"Alberto Zweinstein\",",
+									"                    ",
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"CI has been updated\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData[0].record.metadata.contributor_ci.text_full_name).to.eq(\"Alberto Zweinstein\");",
+									"});",
+									"",
+									"pm.test(\"CI has been added to editPending array\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData[0].record.authorization.editPending).to.contain(\"alberto.zweinstein@example.edu.au\");",
+									"    ",
+									"});",
+									"",
+									"pm.test(\"CI has been added to viewPending array\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData[0].record.authorization.viewPending).to.contain(\"alberto.zweinstein@example.edu.au\");",
+									"});",
+									"",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Pragma",
+								"value": "no-cache"
+							},
+							{
+								"key": "Origin",
+								"value": "{{host}}"
+							},
+							{
+								"key": "Accept-Encoding",
+								"value": "gzip, deflate, br"
+							},
+							{
+								"key": "X-CSRF-Token",
+								"value": ""
+							},
+							{
+								"key": "Accept-Language",
+								"value": "en-US,en;q=0.9,en-AU;q=0.8,it;q=0.7"
+							},
+							{
+								"key": "User-Agent",
+								"value": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.102 Safari/537.36"
+							},
+							{
+								"key": "X-Source",
+								"value": "jsclient"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json;charset=UTF-8"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json, text/plain, */*"
+							},
+							{
+								"key": "Cache-Control",
+								"value": "no-cache"
+							},
+							{
+								"key": "Referer",
+								"value": "{{host}}/default/rdmp/record/transfer/rdmp"
+							},
+							{
+								"key": "Cookie",
+								"value": "{{cookie}}"
+							},
+							{
+								"key": "Connection",
+								"value": "keep-alive"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"records\": [\n    {\n      \"oid\": \"{{dmpOid}}\",\n      \"title\": \"Andrew's Postman test\",\n      \"metadata\": {\n        \"metaMetadata\": {\n          \"brandId\": \"5be10e78a142ee00068d6555\",\n          \"type\": \"rdmp\",\n          \"createdBy\": \"admin\",\n          \"form\": \"default-1.0-draft\"\n        },\n        \"metadata\": {\n          \"title\": \"Andrew's Postman test\",\n          \"dc:identifier\": \"http://purl.org/au-research/grants/nhmrc/566728\",\n          \"description\": \"Movement of molecules within cells by a process known as membrane transport is critical for normal cell function and also exploited by bacteria to promote infection. The pathway that connects the import pathway to the export pathway is essential for the function of a large number of proteins, however this connecting pathway is poorly characterised. This study will define the machinery of this trafficking pathway, which will provide the ability to modulate biological processes and cytotoxicity.\",\n          \"finalKeywords\": [\n            \"270199\",\n            \"Golgi apparatus\",\n            \"endocytosis\",\n            \"membrane transport\",\n            \"protein trafficking\",\n            \"secretion\",\n            \"HIV-AIDS\",\n            \"bacterial pathogen\",\n            \"hormone secretion\",\n            \"immune development\",\n            \"lysosomal storage disorder\"\n          ],\n          \"contributor_ci\": {\n            \"text_full_name\": \"Prof Paul Gleeson\",\n            \"email\": \"notAReal@email.edu.au\",\n            \"orcid\": \"http://orcid.org/0000-0000-0000-000\"\n          },\n          \"contributor_data_manager\": {\n            \"text_full_name\": \"Prof Paul Gleeson\",\n            \"email\": \"notAReal@email.edu.au\",\n            \"orcid\": \"http://orcid.org/0000-0000-0000-000\"\n          },\n          \"contributors\": [\n            {\n              \"text_full_name\": \"Prof Paul Gleeson\",\n              \"email\": \"notAReal@email.edu.au\",\n              \"orcid\": \"http://orcid.org/0000-0000-0000-000\"\n            }\n          ],\n          \"vivo:Dataset_redbox:DataCollectionMethodology\": \"The data collection methodology\",\n          \"vivo:Dataset_dc_format\": \"xls\",\n          \"vivo:Dataset_dc:location_rdf:PlainLiteral\": \"eResearch Store network drive\",\n          \"vivo:Dataset_dc:source_dc:location_rdf:PlainLiteral\": \"shared university network drive (e.g. G, H, etc)\",\n          \"vivo:Dataset_dc:extent\": \"100GB - 2TB\",\n          \"redbox:retentionPeriod_dc:date\": \"1year\",\n          \"dc:rightsHolder_dc:name\": \"myUni\",\n          \"dc:accessRights\": \"permission from the data manager\",\n          \"authorization\": []\n        },\n        \"workflow\": {\n          \"stage\": \"draft\",\n          \"stageLabel\": \"Draft\"\n        },\n        \"authorization\": {\n          \"viewRoles\": [\n            \"Admin\",\n            \"Librarians\"\n          ],\n          \"editRoles\": [\n            \"Admin\",\n            \"Librarians\"\n          ],\n          \"view\": [],\n          \"edit\": [],\n          \"viewPending\": [\n            \"notAReal@email.edu.au\"\n          ],\n          \"editPending\": [\n            \"notAReal@email.edu.au\"\n          ]\n        },\n        \"redboxOid\": \"2c7c2dc046cc5834b0334445e7245b47\",\n        \"packageType\": [\n          \"rdmp\"\n        ],\n        \"date_object_created\": [\n          \"2018-11-27T01:09:00.143Z\"\n        ],\n        \"date_object_modified\": [\n          \"2018-11-27T01:09:00.654Z\"\n        ]\n      },\n      \"dateCreated\": \"November 27, 2018 11:39 AM\",\n      \"dateModified\": \"November 27, 2018 11:39 AM\",\n      \"hasEditAccess\": true,\n      \"dashboardTitle\": \"Andrew's Postman test\",\n      \"selected\": true\n    }\n  ],\n  \"role\": \"chiefInvestigator\",\n  \"updateData\": {\n    \"text_full_name\": \"Alberto Zweinstein\",\n    \"storage_id\": \"23c3f253fa53809e2d986e69e2537de8\",\n    \"email\": \"alberto.zweinstein@example.edu.au\",\n    \"full_name_honorific\": \"Dr Alberto Zweinstein\",\n    \"given_name\": \"Alberto\",\n    \"family_name\": \"Zweinstein\",\n    \"honorific\": \"Dr\",\n    \"full_name_family_name_first\": \"Zweinstein, Alberto\"\n  }\n}"
+						},
+						"url": {
+							"raw": "http://localhost:1500/default/rdmp/record/responsibility/update",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "1500",
+							"path": [
+								"default",
+								"rdmp",
+								"record",
+								"responsibility",
+								"update"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create new researcher user",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "67c01270-fcd8-4452-a387-5d09be5fef6e",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Check response status\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.status).to.eql(true);",
+									"});",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Pragma",
+								"value": "no-cache"
+							},
+							{
+								"key": "Origin",
+								"value": "{{host}}"
+							},
+							{
+								"key": "Accept-Encoding",
+								"value": "gzip, deflate, br"
+							},
+							{
+								"key": "X-CSRF-Token",
+								"value": ""
+							},
+							{
+								"key": "Accept-Language",
+								"value": "en-US,en;q=0.9,en-AU;q=0.8,it;q=0.7"
+							},
+							{
+								"key": "User-Agent",
+								"value": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.102 Safari/537.36"
+							},
+							{
+								"key": "X-Source",
+								"value": "jsclient"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json;charset=UTF-8"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json, text/plain, */*"
+							},
+							{
+								"key": "Cache-Control",
+								"value": "no-cache"
+							},
+							{
+								"key": "Referer",
+								"value": "{{host}}/default/rdmp/admin/users"
+							},
+							{
+								"key": "Cookie",
+								"value": "{{cookie}}"
+							},
+							{
+								"key": "Connection",
+								"value": "keep-alive"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"username\": \"researcheruser\",\n    \"details\": {\n        \"name\": \"A dummy researcher\",\n        \"email\": \"researcher@example.edu.au\",\n        \"password\": \"`Qw1234567\",\n        \"roles\": [\n            \"Researcher\",\n            \"Guest\"\n        ]\n    }\n}"
+						},
+						"url": {
+							"raw": "{{host}}/default/rdmp/admin/users/newUser",
+							"host": [
+								"{{host}}"
+							],
+							"path": [
+								"default",
+								"rdmp",
+								"admin",
+								"users",
+								"newUser"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Try to create same researcher user",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "67c01270-fcd8-4452-a387-5d09be5fef6e",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Check response status\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.status).to.eql(false);",
+									"});",
+									"",
+									"pm.test(\"Check response message\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.message).to.eql(\"Username already exists\");",
+									"});",
+									"",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Pragma",
+								"value": "no-cache"
+							},
+							{
+								"key": "Origin",
+								"value": "{{host}}"
+							},
+							{
+								"key": "Accept-Encoding",
+								"value": "gzip, deflate, br"
+							},
+							{
+								"key": "X-CSRF-Token",
+								"value": ""
+							},
+							{
+								"key": "Accept-Language",
+								"value": "en-US,en;q=0.9,en-AU;q=0.8,it;q=0.7"
+							},
+							{
+								"key": "User-Agent",
+								"value": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.102 Safari/537.36"
+							},
+							{
+								"key": "X-Source",
+								"value": "jsclient"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json;charset=UTF-8"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json, text/plain, */*"
+							},
+							{
+								"key": "Cache-Control",
+								"value": "no-cache"
+							},
+							{
+								"key": "Referer",
+								"value": "{{host}}/default/rdmp/admin/users"
+							},
+							{
+								"key": "Cookie",
+								"value": "{{cookie}}"
+							},
+							{
+								"key": "Connection",
+								"value": "keep-alive"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"username\": \"researcheruser\",\n    \"details\": {\n        \"name\": \"A dummy researcher\",\n        \"email\": \"researcher@example.edu.au\",\n        \"password\": \"`Qw1234567\",\n        \"roles\": [\n            \"Researcher\",\n            \"Guest\"\n        ]\n    }\n}"
+						},
+						"url": {
+							"raw": "{{host}}/default/rdmp/admin/users/newUser",
+							"host": [
+								"{{host}}"
+							],
+							"path": [
+								"default",
+								"rdmp",
+								"admin",
+								"users",
+								"newUser"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get list of users and find new researcher user",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "caa3d60c-bef5-4a0f-adc7-e86167d96930",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Check response is an array\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.be.an.instanceof(Array);",
+									"});",
+									"",
+									"pm.test(\"Check researcheruser is in the array\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    var found = false;",
+									"    for(var i=0; i< jsonData.length; i++) {",
+									"        if(jsonData[i].username == \"researcheruser\") {",
+									"            found = true;",
+									"            postman.setEnvironmentVariable(\"researcherUserId\", jsonData[i].id);",
+									"            break;",
+									"        }",
+									"    }",
+									"    pm.expect(found).to.eq(true);",
+									"    ",
+									"});",
+									"",
+									"",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Pragma",
+								"value": "no-cache"
+							},
+							{
+								"key": "Accept-Encoding",
+								"value": "gzip, deflate, br"
+							},
+							{
+								"key": "X-CSRF-Token",
+								"value": ""
+							},
+							{
+								"key": "Accept-Language",
+								"value": "en-US,en;q=0.9,en-AU;q=0.8,it;q=0.7"
+							},
+							{
+								"key": "User-Agent",
+								"value": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.102 Safari/537.36"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json;charset=utf-8"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json, text/plain, */*"
+							},
+							{
+								"key": "Connection",
+								"value": "keep-alive"
+							},
+							{
+								"key": "Referer",
+								"value": "http://localhost:1500/default/rdmp/admin/users"
+							},
+							{
+								"key": "Cookie",
+								"value": "{{cookie}}"
+							},
+							{
+								"key": "X-Source",
+								"value": "jsclient"
+							},
+							{
+								"key": "Cache-Control",
+								"value": "no-cache"
+							}
+						],
+						"body": {},
+						"url": {
+							"raw": "{{host}}/default/rdmp/admin/users/get",
+							"host": [
+								"{{host}}"
+							],
+							"path": [
+								"default",
+								"rdmp",
+								"admin",
+								"users",
+								"get"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Generate API key for new researcher user",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "d1331b30-6885-45d4-9e5c-4108bce28d8c",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Check response status\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.status).to.eql(true);",
+									"});",
+									"",
+									"pm.test(\"Check for API Key\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('message');",
+									"});",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Pragma",
+								"value": "no-cache"
+							},
+							{
+								"key": "Origin",
+								"value": "{{host}}"
+							},
+							{
+								"key": "Accept-Encoding",
+								"value": "gzip, deflate, br"
+							},
+							{
+								"key": "X-CSRF-Token",
+								"value": ""
+							},
+							{
+								"key": "Accept-Language",
+								"value": "en-US,en;q=0.9,en-AU;q=0.8,it;q=0.7"
+							},
+							{
+								"key": "User-Agent",
+								"value": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.102 Safari/537.36"
+							},
+							{
+								"key": "X-Source",
+								"value": "jsclient"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json;charset=UTF-8"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json, text/plain, */*"
+							},
+							{
+								"key": "Cache-Control",
+								"value": "no-cache"
+							},
+							{
+								"key": "Referer",
+								"value": "{{host}}/default/rdmp/admin/users"
+							},
+							{
+								"key": "Cookie",
+								"value": "{{cookie}}"
+							},
+							{
+								"key": "Connection",
+								"value": "keep-alive"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{ \"userid\": \"{{researcherUserId}}\"}"
+						},
+						"url": {
+							"raw": "{{host}}/default/rdmp/admin/users/genKey",
+							"host": [
+								"{{host}}"
+							],
+							"path": [
+								"default",
+								"rdmp",
+								"admin",
+								"users",
+								"genKey"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update researcher user's password",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "a5d63795-54d5-4b16-9269-400b4391b08a",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Check response status\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.status).to.eql(true);",
+									"});",
+									"",
+									"pm.test(\"Check response message\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.message).to.eql(\"User updated successfully\");",
+									"});",
+									"",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Pragma",
+								"value": "no-cache"
+							},
+							{
+								"key": "Origin",
+								"value": "{{host}}"
+							},
+							{
+								"key": "Accept-Encoding",
+								"value": "gzip, deflate, br"
+							},
+							{
+								"key": "X-CSRF-Token",
+								"value": ""
+							},
+							{
+								"key": "Accept-Language",
+								"value": "en-US,en;q=0.9,en-AU;q=0.8,it;q=0.7"
+							},
+							{
+								"key": "User-Agent",
+								"value": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.102 Safari/537.36"
+							},
+							{
+								"key": "X-Source",
+								"value": "jsclient"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json;charset=UTF-8"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json, text/plain, */*"
+							},
+							{
+								"key": "Cache-Control",
+								"value": "no-cache"
+							},
+							{
+								"key": "Referer",
+								"value": "{{host}}/default/rdmp/admin/users"
+							},
+							{
+								"key": "Cookie",
+								"value": "{{cookie}}"
+							},
+							{
+								"key": "Connection",
+								"value": "keep-alive"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"userid\": \"{{researcherUserId}}\",\n    \"details\": {\n        \"name\": \"A dummy researcher\",\n        \"email\": \"researcher@example.edu.au\",\n        \"password\": \"`Qw7654321\",\n        \"roles\": [\n            \"Researcher\",\n            \"Guest\"\n        ]\n    }\n}"
+						},
+						"url": {
+							"raw": "{{host}}/default/rdmp/admin/users/update",
+							"host": [
+								"{{host}}"
+							],
+							"path": [
+								"default",
+								"rdmp",
+								"admin",
+								"users",
+								"update"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Add librarian role to researcher user from the user management page",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "1b6d14d6-2511-4fdd-a096-1d9469438d17",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Check response status\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.status).to.eql(true);",
+									"});",
+									"",
+									"pm.test(\"Check response message\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.message).to.eql(\"User updated successfully\");",
+									"});",
+									"",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Pragma",
+								"value": "no-cache"
+							},
+							{
+								"key": "Origin",
+								"value": "{{host}}"
+							},
+							{
+								"key": "Accept-Encoding",
+								"value": "gzip, deflate, br"
+							},
+							{
+								"key": "X-CSRF-Token",
+								"value": ""
+							},
+							{
+								"key": "Accept-Language",
+								"value": "en-US,en;q=0.9,en-AU;q=0.8,it;q=0.7"
+							},
+							{
+								"key": "User-Agent",
+								"value": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.102 Safari/537.36"
+							},
+							{
+								"key": "X-Source",
+								"value": "jsclient"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json;charset=UTF-8"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json, text/plain, */*"
+							},
+							{
+								"key": "Cache-Control",
+								"value": "no-cache"
+							},
+							{
+								"key": "Referer",
+								"value": "{{host}}/default/rdmp/admin/users"
+							},
+							{
+								"key": "Cookie",
+								"value": "{{cookie}}"
+							},
+							{
+								"key": "Connection",
+								"value": "keep-alive"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"userid\": \"{{researcherUserId}}\",\n    \"details\": {\n        \"name\": \"A dummy researcher\",\n        \"email\": \"researcher@example.edu.au\",\n        \"password\": \"\",\n        \"roles\": [\n            \"Librarians\",\n            \"Researcher\",\n            \"Guest\"\n        ]\n    }\n}"
+						},
+						"url": {
+							"raw": "{{host}}/default/rdmp/admin/users/update",
+							"host": [
+								"{{host}}"
+							],
+							"path": [
+								"default",
+								"rdmp",
+								"admin",
+								"users",
+								"update"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get list of users and roles",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "1a97e3b3-6143-479a-aa8d-3479085b5955",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"",
+									"pm.test(\"Check that researcher user has guest, researcher and librarian roles\", function(){",
+									"    var researchUserRoles = [];",
+									"    var jsonData = pm.response.json();",
+									"    for(var i=0; i< jsonData.length; i++) {",
+									"        var role = jsonData[i];",
+									"        for(var j=0; j< role.users.length; j++) {",
+									"            if(role.users[j].id == pm.environment.get(\"researcherUserId\")) {",
+									"                researchUserRoles.push(role.name);",
+									"            }",
+									"        }",
+									"    }",
+									"    ",
+									"    pm.expect(researchUserRoles).to.contain(\"Researcher\");",
+									"    pm.expect(researchUserRoles).to.contain(\"Guest\");",
+									"    pm.expect(researchUserRoles).to.contain(\"Librarians\");",
+									"    pm.expect(researchUserRoles).to.not.contain(\"Admin\");",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Pragma",
+								"value": "no-cache"
+							},
+							{
+								"key": "Accept-Encoding",
+								"value": "gzip, deflate, br"
+							},
+							{
+								"key": "X-CSRF-Token",
+								"value": ""
+							},
+							{
+								"key": "Accept-Language",
+								"value": "en-US,en;q=0.9,en-AU;q=0.8,it;q=0.7"
+							},
+							{
+								"key": "User-Agent",
+								"value": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.102 Safari/537.36"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json;charset=utf-8"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json, text/plain, */*"
+							},
+							{
+								"key": "Connection",
+								"value": "keep-alive"
+							},
+							{
+								"key": "Referer",
+								"value": "{{host}}/default/rdmp/admin/roles"
+							},
+							{
+								"key": "Cookie",
+								"value": "{{cookie}}"
+							},
+							{
+								"key": "X-Source",
+								"value": "jsclient"
+							},
+							{
+								"key": "Cache-Control",
+								"value": "no-cache"
+							}
+						],
+						"body": {},
+						"url": {
+							"raw": "{{host}}/default/rdmp/admin/roles/get",
+							"host": [
+								"{{host}}"
+							],
+							"path": [
+								"default",
+								"rdmp",
+								"admin",
+								"roles",
+								"get"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Remove Librarian role from Researcher User",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Pragma",
+								"value": "no-cache"
+							},
+							{
+								"key": "Origin",
+								"value": "{{host}}"
+							},
+							{
+								"key": "Accept-Encoding",
+								"value": "gzip, deflate, br"
+							},
+							{
+								"key": "X-CSRF-Token",
+								"value": ""
+							},
+							{
+								"key": "Accept-Language",
+								"value": "en-US,en;q=0.9,en-AU;q=0.8,it;q=0.7"
+							},
+							{
+								"key": "User-Agent",
+								"value": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.102 Safari/537.36"
+							},
+							{
+								"key": "X-Source",
+								"value": "jsclient"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json;charset=UTF-8"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json, text/plain, */*"
+							},
+							{
+								"key": "Cache-Control",
+								"value": "no-cache"
+							},
+							{
+								"key": "Referer",
+								"value": "{{host}}/default/rdmp/admin/roles"
+							},
+							{
+								"key": "Cookie",
+								"value": "{{cookie}}"
+							},
+							{
+								"key": "Connection",
+								"value": "keep-alive"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"userid\": \"{{researcherUserId}}\",\n    \"roles\": [\n        \"Researcher\",\n        \"Guest\"\n    ]\n}"
+						},
+						"url": {
+							"raw": "{{host}}/default/rdmp/admin/roles/user",
+							"host": [
+								"{{host}}"
+							],
+							"path": [
+								"default",
+								"rdmp",
+								"admin",
+								"roles",
+								"user"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get list of users and roles - Check researcher user no longer has librarian role",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "1a97e3b3-6143-479a-aa8d-3479085b5955",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"",
+									"pm.test(\"Check that researcher user has guest and researcher roles\", function(){",
+									"    var researchUserRoles = [];",
+									"    var jsonData = pm.response.json();",
+									"    for(var i=0; i< jsonData.length; i++) {",
+									"        var role = jsonData[i];",
+									"        for(var j=0; j< role.users.length; j++) {",
+									"            if(role.users[j].id == pm.environment.get(\"researcherUserId\")) {",
+									"                researchUserRoles.push(role.name);",
+									"            }",
+									"        }",
+									"    }",
+									"    ",
+									"    pm.expect(researchUserRoles).to.contain(\"Researcher\");",
+									"    pm.expect(researchUserRoles).to.contain(\"Guest\");",
+									"    pm.expect(researchUserRoles).to.not.contain(\"Librarians\");",
+									"    pm.expect(researchUserRoles).to.not.contain(\"Admin\");",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Pragma",
+								"value": "no-cache"
+							},
+							{
+								"key": "Accept-Encoding",
+								"value": "gzip, deflate, br"
+							},
+							{
+								"key": "X-CSRF-Token",
+								"value": ""
+							},
+							{
+								"key": "Accept-Language",
+								"value": "en-US,en;q=0.9,en-AU;q=0.8,it;q=0.7"
+							},
+							{
+								"key": "User-Agent",
+								"value": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.102 Safari/537.36"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json;charset=utf-8"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json, text/plain, */*"
+							},
+							{
+								"key": "Connection",
+								"value": "keep-alive"
+							},
+							{
+								"key": "Referer",
+								"value": "{{host}}/default/rdmp/admin/roles"
+							},
+							{
+								"key": "Cookie",
+								"value": "{{cookie}}"
+							},
+							{
+								"key": "X-Source",
+								"value": "jsclient"
+							},
+							{
+								"key": "Cache-Control",
+								"value": "no-cache"
+							}
+						],
+						"body": {},
+						"url": {
+							"raw": "{{host}}/default/rdmp/admin/roles/get",
+							"host": [
+								"{{host}}"
+							],
+							"path": [
+								"default",
+								"rdmp",
+								"admin",
+								"roles",
+								"get"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Export RDMP Data",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "00abc0c7-746a-4bb0-8ce4-d323666395cb",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"const parse = require('csv-parse/lib/sync'),",
+									"    parsedCSV = parse(responseBody, {relax_column_count: true});",
+									"    ",
+									"pm.test(\"Correct CSV response\", function () {",
+									"    // Check that we have at least 2 two (header + row)",
+									"    pm.expect(parsedCSV).to.have.length.above(1);",
+									"    ",
+									"});",
+									"",
+									"pm.test(\"CSV contains Test record\", function () {",
+									"    var found = false;",
+									"    const head = parsedCSV.shift(),",
+									"        title = head.indexOf('storage_id');",
+									"   parsedCSV.forEach(function(row) {",
+									"       if(row[title] == pm.environment.get('dmpOid')) {",
+									"           found = true;",
+									"       }",
+									"   });",
+									"   ",
+									"   pm.expect(found).to.eq(true);",
+									"  ",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Pragma",
+								"value": "no-cache"
+							},
+							{
+								"key": "Accept-Encoding",
+								"value": "gzip, deflate, br"
+							},
+							{
+								"key": "X-CSRF-Token",
+								"value": ""
+							},
+							{
+								"key": "Accept-Language",
+								"value": "en-US,en;q=0.9,en-AU;q=0.8,it;q=0.7"
+							},
+							{
+								"key": "User-Agent",
+								"value": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.102 Safari/537.36"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json;charset=utf-8"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json, text/plain, */*"
+							},
+							{
+								"key": "Connection",
+								"value": "keep-alive"
+							},
+							{
+								"key": "Referer",
+								"value": "{{host}}/default/rdmp/export"
+							},
+							{
+								"key": "Cookie",
+								"value": "{{cookie}}"
+							},
+							{
+								"key": "X-Source",
+								"value": "jsclient"
+							},
+							{
+								"key": "Cache-Control",
+								"value": "no-cache"
+							}
+						],
+						"body": {},
+						"url": {
+							"raw": "{{host}}/default/rdmp/export/record/download/csv?before=&after=&recType=rdmp",
+							"host": [
+								"{{host}}"
+							],
+							"path": [
+								"default",
+								"rdmp",
+								"export",
+								"record",
+								"download",
+								"csv"
+							],
+							"query": [
+								{
+									"key": "before",
+									"value": ""
+								},
+								{
+									"key": "after",
+									"value": ""
+								},
+								{
+									"key": "recType",
+									"value": "rdmp"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Logout Admin User",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "6360a8d5-f8da-4540-b20b-8f6d3c1a02de",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Connection",
+								"value": "keep-alive"
+							},
+							{
+								"key": "Pragma",
+								"value": "no-cache"
+							},
+							{
+								"key": "Cache-Control",
+								"value": "no-cache"
+							},
+							{
+								"key": "Upgrade-Insecure-Requests",
+								"value": "1"
+							},
+							{
+								"key": "User-Agent",
+								"value": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.102 Safari/537.36"
+							},
+							{
+								"key": "Accept",
+								"value": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8"
+							},
+							{
+								"key": "Referer",
+								"value": "{{host}}/default/rdmp/researcher/home"
+							},
+							{
+								"key": "Accept-Encoding",
+								"value": "gzip, deflate, br"
+							},
+							{
+								"key": "Accept-Language",
+								"value": "en-US,en;q=0.9,en-AU;q=0.8,it;q=0.7"
+							},
+							{
+								"key": "Cookie",
+								"value": "{{cookie}}"
+							}
+						],
+						"body": {},
+						"url": {
+							"raw": "{{host}}/default/rdmp/user/logout",
+							"host": [
+								"{{host}}"
+							],
+							"path": [
+								"default",
+								"rdmp",
+								"user",
+								"logout"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get view form config for RDMP - Unauthorised",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "72f352bc-687f-46bd-9714-385416301e69",
+								"exec": [
+									"pm.test(\"Status code is 403\", function () {",
+									"    pm.response.to.have.status(403);",
+									"});",
+									"",
+									"pm.test(\"Message is access denied\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    ",
+									"    pm.expect(jsonData.message).to.eql(\"Access Denied\");",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							},
+							{
+								"key": "X-Source",
+								"value": "jsclient",
+								"type": "text"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json, text/plain, */*",
+								"type": "text"
+							},
+							{
+								"key": "Cookie",
+								"value": "{{cookie}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "{{host}}/default/rdmp/record/form/auto/{{dmpOid}}?edit=false",
+							"host": [
+								"{{host}}"
+							],
+							"path": [
+								"default",
+								"rdmp",
+								"record",
+								"form",
+								"auto",
+								"{{dmpOid}}"
+							],
+							"query": [
+								{
+									"key": "edit",
+									"value": "false"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Login via Internal authentication using researcheruser with invalid password",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "4f8e8675-14b8-4f9d-ae6e-52e0b7d5ae0f",
+								"exec": [
+									"postman.setGlobalVariable(\"cookie\",postman.getResponseHeader(\"set-cookie\") );",
+									"",
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Message is incorrect username/password\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.message).to.eql(\"Incorrect username/password\");",
+									"});",
+									"",
+									"pm.test(\"User is false\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.user).to.eql(false);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Pragma",
+								"value": "no-cache"
+							},
+							{
+								"key": "Origin",
+								"value": "{{host}}"
+							},
+							{
+								"key": "Accept-Encoding",
+								"value": "gzip, deflate, br"
+							},
+							{
+								"key": "X-CSRF-Token",
+								"value": ""
+							},
+							{
+								"key": "Accept-Language",
+								"value": "en-US,en;q=0.9,en-AU;q=0.8,it;q=0.7"
+							},
+							{
+								"key": "User-Agent",
+								"value": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.102 Safari/537.36"
+							},
+							{
+								"key": "X-Source",
+								"value": "jsclient"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json;charset=UTF-8"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json, text/plain, */*"
+							},
+							{
+								"key": "Cache-Control",
+								"value": "no-cache"
+							},
+							{
+								"key": "Referer",
+								"value": "{{host}}/default/rdmp/user/login"
+							},
+							{
+								"key": "Connection",
+								"value": "keep-alive"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"username\": \"researcheruser\",\n    \"password\": \"notthepassword\",\n    \"branding\": \"default\",\n    \"portal\": \"rdmp\"\n}"
+						},
+						"url": {
+							"raw": "http://localhost:1500/user/login_local",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "1500",
+							"path": [
+								"user",
+								"login_local"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Login via Internal authentication using researcher data",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "4f8e8675-14b8-4f9d-ae6e-52e0b7d5ae0f",
+								"exec": [
+									"postman.setGlobalVariable(\"cookie\",postman.getResponseHeader(\"set-cookie\") );",
+									"",
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Check that user returned is researcheruser\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.user.username).to.eql(\"researcheruser\");",
+									"});",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Pragma",
+								"value": "no-cache"
+							},
+							{
+								"key": "Origin",
+								"value": "{{host}}"
+							},
+							{
+								"key": "Accept-Encoding",
+								"value": "gzip, deflate, br"
+							},
+							{
+								"key": "X-CSRF-Token",
+								"value": ""
+							},
+							{
+								"key": "Accept-Language",
+								"value": "en-US,en;q=0.9,en-AU;q=0.8,it;q=0.7"
+							},
+							{
+								"key": "User-Agent",
+								"value": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.102 Safari/537.36"
+							},
+							{
+								"key": "X-Source",
+								"value": "jsclient"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json;charset=UTF-8"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json, text/plain, */*"
+							},
+							{
+								"key": "Cache-Control",
+								"value": "no-cache"
+							},
+							{
+								"key": "Referer",
+								"value": "{{host}}/default/rdmp/user/login"
+							},
+							{
+								"key": "Connection",
+								"value": "keep-alive"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"username\": \"researcheruser\",\n    \"password\": \"`Qw7654321\",\n    \"branding\": \"default\",\n    \"portal\": \"rdmp\"\n}"
+						},
+						"url": {
+							"raw": "http://localhost:1500/user/login_local",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "1500",
+							"path": [
+								"user",
+								"login_local"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Logout Researcher User",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "6360a8d5-f8da-4540-b20b-8f6d3c1a02de",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Connection",
+								"value": "keep-alive"
+							},
+							{
+								"key": "Pragma",
+								"value": "no-cache"
+							},
+							{
+								"key": "Cache-Control",
+								"value": "no-cache"
+							},
+							{
+								"key": "Upgrade-Insecure-Requests",
+								"value": "1"
+							},
+							{
+								"key": "User-Agent",
+								"value": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.102 Safari/537.36"
+							},
+							{
+								"key": "Accept",
+								"value": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8"
+							},
+							{
+								"key": "Referer",
+								"value": "{{host}}/default/rdmp/researcher/home"
+							},
+							{
+								"key": "Accept-Encoding",
+								"value": "gzip, deflate, br"
+							},
+							{
+								"key": "Accept-Language",
+								"value": "en-US,en;q=0.9,en-AU;q=0.8,it;q=0.7"
+							},
+							{
+								"key": "Cookie",
+								"value": "{{cookie}}"
+							}
+						],
+						"body": {},
+						"url": {
+							"raw": "{{host}}/default/rdmp/user/logout",
+							"host": [
+								"{{host}}"
+							],
+							"path": [
+								"default",
+								"rdmp",
+								"user",
+								"logout"
 							]
 						}
 					},

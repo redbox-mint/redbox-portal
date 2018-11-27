@@ -13,7 +13,7 @@
 		},
 		{
 			"key": "dmpOid",
-			"value": "",
+			"value": "b1ed19e5f85e53259bc61af37b2ed472",
 			"description": {
 				"content": "",
 				"type": "text/plain"
@@ -23,11 +23,28 @@
 		{
 			"key": "host",
 			"value": "http://localhost:1500",
-			"description": "",
+			"description": {
+				"content": "",
+				"type": "text/plain"
+			},
+			"enabled": true
+		},
+		{
+			"key": "cookie",
+			"value": "",
+			"description": {
+				"content": "",
+				"type": "text/plain"
+			},
+			"enabled": true
+		},
+		{
+			"key": "researcherUserId",
+			"value": "5bfcb06c5b84e2000697decd",
 			"enabled": true
 		}
 	],
 	"_postman_variable_scope": "environment",
-	"_postman_exported_at": "2018-11-26T09:37:22.527Z",
+	"_postman_exported_at": "2018-11-27T02:53:53.011Z",
 	"_postman_exported_using": "Postman/6.5.2"
 }
