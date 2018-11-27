@@ -2440,9 +2440,9 @@ data-urls@^1.0.0:
     whatwg-url "^7.0.0"
 
 datacrate@^1.0.0:
-  version "1.0.2"
-  resolved "https://registry.yarnpkg.com/datacrate/-/datacrate-1.0.2.tgz#bd8de594054b39e5de2400bcd9df28677b22cae9"
-  integrity sha512-N9xlug+M6zqYLvqL3QIyb4M5f9Hf1ZywAUNzcpxWyyss8nwj1tNcuFN9OM2Ri/YBoRTNmN2P6s0X32XmlkuLIg==
+  version "1.0.3"
+  resolved "https://registry.yarnpkg.com/datacrate/-/datacrate-1.0.3.tgz#bb1e02eb14fd6dc2265b211aa7f00f8b0609673f"
+  integrity sha512-pq2vu5qW08WE7LT4BJhmwWYw88p9ObLlOVQ79JO0aTysF763t4C0zH+X3QfOz4BvNnZZDlMLJtUTUb2ArSTP4A==
   dependencies:
     fs-extra "^7.0.0"
     jsonld "^1.1.0"
