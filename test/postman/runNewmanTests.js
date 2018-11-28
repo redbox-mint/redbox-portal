@@ -4,7 +4,7 @@ var newman = require('newman');
 sails.lift({
   port: 1500,
   log: {
-    level: 'verbose'
+    level: 'info'
   },
   hooks: {
     grunt: false

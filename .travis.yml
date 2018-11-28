@@ -23,7 +23,7 @@ addons:
       - g++-4.9
 install:
 - chmod +x buildTypescript.sh && ./buildTypescript.sh
-- docker-compose -f support/integration-testing/docker-compose.yml up --abort-on-container-exit
+- printf "TRAVIS_JOB_ID=$TRAVIS_JOB_ID\nTRAVIS_BRANCH=$TRAVIS_BRANCH" > support/integration-testing/travis.env && docker-compose -f support/integration-testing/docker-compose.travis.yml up --abort-on-container-exit
 - npm run doc-ng2
 deploy:
   provider:     pages
