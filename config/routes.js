@@ -181,7 +181,8 @@ module.exports.routes = {
   'post /:branding/:portal/recordmeta/:recordType': 'RecordController.create',
   'put /:branding/:portal/recordmeta/:oid': 'RecordController.update',
   'post /:branding/:portal/record/workflow/step/:targetStep/:oid': 'RecordController.stepTo',
-  'post /:branding/:portal/record/editors/modify': 'RecordController.modifyEditors',
+  //TODO: Reinstate it when we add formal permission editing screens
+  // 'post /:branding/:portal/record/editors/modify': 'RecordController.modifyEditors',
   'post /:branding/:portal/record/responsibility/update': 'RecordController.updateResponsibilities',
   'get /:branding/:portal/dashboard/:recordType': 'DashboardController.render',
   'get /:branding/:portal/listRecords': 'DashboardController.getRecordList',

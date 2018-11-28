@@ -48,7 +48,7 @@ export module Controllers {
       'create',
       'update',
       'stepTo',
-      'modifyEditors',
+      // 'modifyEditors',
       'search',
       'getType',
       'getWorkflowSteps',
@@ -437,7 +437,6 @@ export module Controllers {
 
     public delete(req, res) {
       const brand = BrandingService.getBrand(req.session.branding);
-      const metadata = req.body;
       const oid = req.param('oid');
       const user = req.user;
       let currentRec = null;
@@ -808,64 +807,69 @@ export module Controllers {
       }
     }
 
-    public modifyEditors(req, res) {
-      const records = req.body.records;
-      var toUsername = req.body.username;
-      var toEmail = req.body.email;
-      //TODO: Add email to username lookup
-      const fromUsername = req.user.username;
-      const brand = BrandingService.getBrand(req.session.branding);
-      const user = req.user;
-
-      let recordCtr = 0;
-      if (records.length > 0) {
-        _.forEach(records, rec => {
-          const oid = rec.oid;
-          this.getRecord(oid).subscribe(record => {
-            const authorization = _.cloneDeep(record.authorization);
-            // current user will lose edit access but will keep read-only access
-            _.remove(authorization.edit, (username) => {
-              return username == fromUsername;
-            });
-            if (_.isUndefined(_.find(authorization.view, (username) => { return username == fromUsername }))) {
-              authorization.view.push(fromUsername);
-            }
-            if (!_.isEmpty(toUsername)) {
-              if (_.isUndefined(_.find(authorization.edit, (username) => { return username == toUsername }))) {
-                authorization.edit.push(toUsername);
-              }
-            } else {
-              if (_.isUndefined(_.find(authorization.editPending, (email) => { return toEmail == email }))) {
-                if (_.isUndefined(authorization.editPending)) {
-                  authorization.editPending = [];
-                }
-                authorization.editPending.push(toEmail);
-              }
-            }
-
-            this.saveAuthorization(brand, oid, record, authorization, user).subscribe(response => {
-              if (response && response.code == "200") {
-                recordCtr++;
-                if (recordCtr == records.length) {
-                  response.success = true;
-                  this.ajaxOk(req, res, null, response);
-                }
-              } else {
-                sails.log.error(`Failed to update authorization:`);
-                sails.log.error(response);
-                this.ajaxFail(req, res, TranslationService.t('auth-update-error'));
-              }
-            }, error => {
-              sails.log.error("Error updating auth:");
-              sails.log.error(error);
-              this.ajaxFail(req, res, error.message);
-            });
-          });
-        });
-      } else {
-        this.ajaxFail(req, res, 'No records specified');
-      }
-    }
+    /**
+    *  Not currently used as transfer responsibility is configured.
+    *  Commenting out so we can reinstate it when more formal "edit permission"
+    *    screens are implemented.
+    */
+    // public modifyEditors(req, res) {
+    //   const records = req.body.records;
+    //   var toUsername = req.body.username;
+    //   var toEmail = req.body.email;
+    //   //TODO: Add email to username lookup
+    //   const fromUsername = req.user.username;
+    //   const brand = BrandingService.getBrand(req.session.branding);
+    //   const user = req.user;
+    //
+    //   let recordCtr = 0;
+    //   if (records.length > 0) {
+    //     _.forEach(records, rec => {
+    //       const oid = rec.oid;
+    //       this.getRecord(oid).subscribe(record => {
+    //         const authorization = _.cloneDeep(record.authorization);
+    //         // current user will lose edit access but will keep read-only access
+    //         _.remove(authorization.edit, (username) => {
+    //           return username == fromUsername;
+    //         });
+    //         if (_.isUndefined(_.find(authorization.view, (username) => { return username == fromUsername }))) {
+    //           authorization.view.push(fromUsername);
+    //         }
+    //         if (!_.isEmpty(toUsername)) {
+    //           if (_.isUndefined(_.find(authorization.edit, (username) => { return username == toUsername }))) {
+    //             authorization.edit.push(toUsername);
+    //           }
+    //         } else {
+    //           if (_.isUndefined(_.find(authorization.editPending, (email) => { return toEmail == email }))) {
+    //             if (_.isUndefined(authorization.editPending)) {
+    //               authorization.editPending = [];
+    //             }
+    //             authorization.editPending.push(toEmail);
+    //           }
+    //         }
+    //
+    //         this.saveAuthorization(brand, oid, record, authorization, user).subscribe(response => {
+    //           if (response && response.code == "200") {
+    //             recordCtr++;
+    //             if (recordCtr == records.length) {
+    //               response.success = true;
+    //               this.ajaxOk(req, res, null, response);
+    //             }
+    //           } else {
+    //             sails.log.error(`Failed to update authorization:`);
+    //             sails.log.error(response);
+    //             this.ajaxFail(req, res, TranslationService.t('auth-update-error'));
+    //           }
+    //         }, error => {
+    //           sails.log.error("Error updating auth:");
+    //           sails.log.error(error);
+    //           this.ajaxFail(req, res, error.message);
+    //         });
+    //       });
+    //     });
+    //   } else {
+    //     this.ajaxFail(req, res, 'No records specified');
+    //   }
+    // }
 
     public search(req, res) {
       const brand = BrandingService.getBrand(req.session.branding);

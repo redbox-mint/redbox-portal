@@ -42,9 +42,45 @@
 			"key": "researcherUserId",
 			"value": "5bfcb06c5b84e2000697decd",
 			"enabled": true
+		},
+		{
+			"key": "attachmentLocation",
+			"value": "//localhost:1500/default/rdmp/record/b869b4fae83a1f01082465d165d868a8/attach/c7f4c08193e1d507790639db2b763b8c",
+			"description": {
+				"content": "",
+				"type": "text/plain"
+			},
+			"enabled": true
+		},
+		{
+			"key": "dataRecordOid",
+			"value": "cad53d96803956abea6165996cb05a81",
+			"description": {
+				"content": "",
+				"type": "text/plain"
+			},
+			"enabled": true
+		},
+		{
+			"key": "attachmentId",
+			"value": "",
+			"description": {
+				"content": "",
+				"type": "text/plain"
+			},
+			"enabled": true
+		},
+		{
+			"key": "dataPublicationOid",
+			"value": "8a382c026b4c2531e843730667142935",
+			"description": {
+				"content": "",
+				"type": "text/plain"
+			},
+			"enabled": true
 		}
 	],
 	"_postman_variable_scope": "environment",
-	"_postman_exported_at": "2018-11-27T02:53:53.011Z",
+	"_postman_exported_at": "2018-11-28T00:53:00.525Z",
 	"_postman_exported_using": "Postman/6.5.2"
 }
