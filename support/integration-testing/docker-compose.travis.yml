@@ -10,8 +10,6 @@ services:
        - "../../:/opt/redbox-portal"
     expose:
        - "1500"
-    env_file:
-     - ./travis.env
     environment:
       - NODE_ENV=docker
       - PORT=1500
@@ -22,7 +20,7 @@ services:
      main:
        aliases:
          - rbportal
-    entrypoint: /bin/bash -c "cd /opt/redbox-portal && npm i nyc -g && npm i coveralls -g && nyc run api-test | coveralls && npm run test"
+    entrypoint: /bin/bash -c "cd /opt/redbox-portal && npm i nyc -g && nyc run api-test && npm run test"
   mongodb:
     image: mvertes/alpine-mongo:latest
     networks:

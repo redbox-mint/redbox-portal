@@ -23,7 +23,8 @@ addons:
       - g++-4.9
 install:
 - chmod +x buildTypescript.sh && ./buildTypescript.sh
-- source support/integration-testing/buildTravisEnvironmentVariables.sh > support/integration-testing/travis.env && docker-compose -f support/integration-testing/docker-compose.travis.yml up --abort-on-container-exit
+- docker-compose -f support/integration-testing/docker-compose.travis.yml up --abort-on-container-exit
+- npm i nyc -g && npm i coveralls -g && nyc report --reporter=text-lcov | coveralls
 - npm run doc-ng2
 deploy:
   provider:     pages
