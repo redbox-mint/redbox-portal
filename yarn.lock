@@ -2440,10 +2440,11 @@ data-urls@^1.0.0:
     whatwg-url "^7.0.0"
 
 datacrate@^1.0.0:
-  version "1.0.3"
-  resolved "https://registry.yarnpkg.com/datacrate/-/datacrate-1.0.3.tgz#bb1e02eb14fd6dc2265b211aa7f00f8b0609673f"
-  integrity sha512-pq2vu5qW08WE7LT4BJhmwWYw88p9ObLlOVQ79JO0aTysF763t4C0zH+X3QfOz4BvNnZZDlMLJtUTUb2ArSTP4A==
+  version "1.0.4"
+  resolved "https://registry.yarnpkg.com/datacrate/-/datacrate-1.0.4.tgz#239faebc5c5ec240195386598718561871e1cd5e"
+  integrity sha512-KTTorlRVnYttWcBMmSTYidogAqPCgpc2iaNR5hegq8/QH5cHfFtY56Tx9g2LkC12iILTJEkmhRoSzpz8ypNNEA==
   dependencies:
+    calcyte "^1.0.2"
     fs-extra "^7.0.0"
     jsonld "^1.1.0"
     lodash "^4.17.11"
