@@ -23,9 +23,14 @@ addons:
       - g++-4.9
 install:
 - chmod +x buildTypescript.sh && ./buildTypescript.sh
-- docker-compose -f support/integration-testing/docker-compose.travis.yml up --abort-on-container-exit
-- npm i nyc -g && npm i coveralls -g && nyc report --reporter=text-lcov | coveralls
-- npm run doc-ng2
+jobs:
+  include:
+    - stage: Run Integration Tests
+      script: docker-compose -f support/integration-testing/docker-compose.travis.yml up --abort-on-container-exit; [ -f failedTests ] && exit 1
+    - stage: Publish code coverage
+      script: "npm i nyc -g && npm i coveralls -g;  nyc report --reporter=text-lcov | coveralls"
+    - stage: Generate documentaion
+      script: "npm run doc-ng2"
 deploy:
   provider:     pages
   skip_cleanup: true
