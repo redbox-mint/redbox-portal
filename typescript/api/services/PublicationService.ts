@@ -176,7 +176,10 @@ export module Services {
 
 		private updateUrl(oid: string, record: Object, baseUrl: string): Observable<any> {
 			const branding = sails.config.auth.defaultBrand; // fix me
-			record['metadata']['citation_url'] = baseUrl + '/' + oid;
+			// Note: the trailing slash on the URL is here to stop nginx auto-redirecting
+			// it, which on localhost:8080 breaks the link in some browsers - see 
+			// https://serverfault.com/questions/759762/how-to-stop-nginx-301-auto-redirect-when-trailing-slash-is-not-in-uri/812461#812461
+			record['metadata']['citation_url'] = baseUrl + '/' + oid + '/';
 			return RecordsService.updateMeta(branding, oid, record);
 		}
 
@@ -201,26 +204,27 @@ export module Services {
 					try {
 						const jsonld_h = new jsonld();
 						const catalog_json = path.join(dir, sails.config.datapubs.datacrate.catalog_json);
-						sails.log.info(`Writing CATALOG.json`);
-						jsonld_h.init(catalog);
-						jsonld_h.trim_context();
-						fs.writeFileSync(catalog_json, JSON.stringify(jsonld_h.json_ld, null, 2));
+						sails.log.info(`Building CATALOG.json with jsonld_h`);
+						sails.log.silly(`catalog = ${JSON.stringify(catalog)}`);
+						sails.log.info(`Writing CATALOG.json to ${catalog_json}`);
+						fs.writeFileSync(catalog_json, JSON.stringify(catalog, null, 2));
 						const index = new Index();
 						index.init(catalog, dir, false);
 						sails.log.info(`Writing CATALOG.html`);
 						index.make_index_html("text_citation", "zip_path"); //writeFileSync
 						return Observable.of({});
-					} catch (e) {
-						sails.log.error("Error while creating DataCrate");
-						sails.log.error(e.name);
-						sails.log.error(e.message);
-						sails.log.error(e.stack);
+					} catch (error) {
+						sails.log.error("Error (inside) while creating DataCrate");
+						sails.log.error(error.name);
+						sails.log.error(error.message);
+						sails.log.error(error.stack);
 						return Observable.of(null);
 					}
 				}).catch(error => {
-					sails.log.error("Error while creating DataCrate");
+					sails.log.error("Error (outside) while creating DataCrate");
 					sails.log.error(error.name);
 					sails.log.error(error.message);
+					sails.log.error(error.stack);
 					return Observable.of({});
 				});
 		}
