@@ -6,9 +6,9 @@
   "dependencies": {
     "@sailshq/upgrade": "^1.0.9",
     "@types/puppeteer": "^1.3.2",
-    "@uppy/core": "^0.28.0",
-    "@uppy/dashboard": "^0.28.0",
-    "@uppy/tus": "^0.28.0",
+    "@uppy/core": "^0.29.0",
+    "@uppy/dashboard": "^0.29.0",
+    "@uppy/tus": "^0.29.0",
     "async": "2.6.1",
     "axios": "^0.18.0",
     "bcrypt": "3.0.2",
