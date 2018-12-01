@@ -23,21 +23,19 @@ addons:
       - g++-4.9
 jobs:
   include:
-    - stage: Build Typescript
-      script: chmod +x buildTypescript.sh && ./buildTypescript.sh
-    - stage: Run Integration Tests
-      script: docker-compose -f support/integration-testing/docker-compose.travis.yml up --abort-on-container-exit; [ -f failedTests ] && exit 1
-    - stage: Publish code coverage
-      script: "npm i nyc -g && npm i coveralls -g;  nyc report --reporter=text-lcov | coveralls"
-    - stage: Generate documentaion
-      script: "npm run doc-ng2"
-deploy:
-  provider:     pages
-  skip_cleanup: true
-  github_token: $GH_TOKEN
-  local_dir:    support/docs/generated/ng2
-  on:
-    branch:     master
-script:         true
-after_success:
-- 'if [ "$TRAVIS_PULL_REQUEST" = "false" ]; then bash dockerhub_deploy.sh; chmod +x deploySnapshotToBranch.sh; ./deploySnapshotToBranch.sh; fi'
+    - stage: Build and deploy
+      before_install: npm i nyc -g && npm i coveralls -g
+      install: chmod +x buildTypescript.sh && ./buildTypescript.sh
+      before_script: docker-compose -f support/integration-testing/docker-compose.travis.yml up --abort-on-container-exit; [ -f failedTests ] && exit 1
+      script: nyc report --reporter=text-lcov | coveralls
+      after_success:
+      - "npm run doc-ng2"
+      - 'if [ "$TRAVIS_PULL_REQUEST" = "false" ]; then bash dockerhub_deploy.sh; chmod +x deploySnapshotToBranch.sh; ./deploySnapshotToBranch.sh; fi'
+      deploy:
+        provider:     pages
+        skip_cleanup: true
+        github_token: $GH_TOKEN
+        local_dir:    support/docs/generated/ng2
+        on:
+          branch:     master
+          script:     true
