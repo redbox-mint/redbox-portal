@@ -26,7 +26,7 @@ jobs:
     - stage: Build and deploy
       before_install: npm i nyc -g && npm i coveralls -g
       install: chmod +x buildTypescript.sh && ./buildTypescript.sh
-      before_script: docker-compose -f support/integration-testing/docker-compose.travis.yml up --abort-on-container-exit; [ -f failedTests ] && exit 1
+      before_script: cd support/integration-testing; chmod +x triggerIntegrationTests.sh; ./triggerIntegrationTests.sh
       script: nyc report --reporter=text-lcov | coveralls
       after_success:
       - "npm run doc-ng2"
