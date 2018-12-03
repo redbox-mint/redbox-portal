@@ -20,16 +20,17 @@ module.exports.recordtype = {
             ]
           }
         }],
-        post: [{
-
-          function: 'sails.services.pdfservice.createPDF',
-          options: {
-            waitForSelector: 'div#loading.hidden',
-            pdfPrefix: 'rdmp-pdf',
-            // Need to set an API token for generation to occur
-            // token: 'abcd-efgh-abcd-abcd-abcd'
-          }
-        }]
+        // Requires the PDF Gen hook to be installed https://www.npmjs.com/package/@researchdatabox/sails-hook-redbox-pdfgen
+        // post: [{
+        //
+        //   function: 'sails.services.pdfservice.createPDF',
+        //   options: {
+        //     waitForSelector: 'div#loading.hidden',
+        //     pdfPrefix: 'rdmp-pdf',
+        //     // Need to set an API token for generation to occur
+        //     // token: 'abcd-efgh-abcd-abcd-abcd'
+        //   }
+        // }]
       },
       onUpdate: {
         pre: [{
@@ -49,13 +50,14 @@ module.exports.recordtype = {
             ]
           }
         }],
-        post: [{
-          function: 'sails.services.pdfservice.createPDF',
-          options: {
-            waitForSelector: 'div#loading.hidden',
-            pdfPrefix: 'rdmp-pdf'
-          }
-        }]
+        // Requires the PDF Gen hook to be installed https://www.npmjs.com/package/@researchdatabox/sails-hook-redbox-pdfgen
+        // post: [{
+        //   function: 'sails.services.pdfservice.createPDF',
+        //   options: {
+        //     waitForSelector: 'div#loading.hidden',
+        //     pdfPrefix: 'rdmp-pdf'
+        //   }
+        // }]
       }
     },
     relatedTo: [{
