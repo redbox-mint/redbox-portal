@@ -7,7 +7,6 @@ services:
     image: qcifengineering/redbox-portal:latest
     ports:
        - "1500:1500"
-    restart: always
     volumes:
        - ".:/opt/redbox-portal"
        - "/mnt/data/attachments:/attachments"
@@ -21,7 +20,6 @@ services:
       - sails_redbox__apiKey=c8e844fc-8550-497f-b970-7900ec8741ca
       - sails_record__baseUrl_redbox=http://redbox:9000/redbox
       - sails_record__baseUrl_mint=http://203.101.226.160/mint
-      # - sails_datastores__url=mongodb://mongodb:27017/redbox-portal
     networks:
      main:
        aliases:
@@ -46,8 +44,6 @@ services:
        - "9000"
     environment:
       - RB_API_KEY=c8e844fc-8550-497f-b970-7900ec8741ca
-      - PORTAL_API_TOKEN=c81bd0a3-56fb-448e-bfa5-a5b7abb3668e
-      - PORTAL_BASE_URL=http://redboxportal:1500/default/rdmp
     volumes:
         - "/mnt/data/redbox:/opt/redbox/data"
         - "/var/log/redbox:/opt/redbox/home/logs"

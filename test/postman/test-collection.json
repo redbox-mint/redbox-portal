@@ -1,0 +1,3571 @@
+{
+	"info": {
+		"_postman_id": "ea76cab5-157b-420c-8ebd-7ca813ea56e0",
+		"name": "Redbox Portal API - With tests",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "REST API",
+			"item": [
+				{
+					"name": "Create RDMP",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "6cf454ae-e6f0-45cf-8cc8-854649df6b0c",
+								"exec": [
+									"",
+									"pm.test(\"Status code is 201\", function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"",
+									"pm.test(\"Test oid exists\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('oid');",
+									"    postman.setEnvironmentVariable(\"dmpOid\", jsonData.oid);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"title\": \"Andrew's Postman test\",\n    \"dc:identifier\": \"http://purl.org/au-research/grants/nhmrc/566728\",\n    \"description\": \"Movement of molecules within cells by a process known as membrane transport is critical for normal cell function and also exploited by bacteria to promote infection. The pathway that connects the import pathway to the export pathway is essential for the function of a large number of proteins, however this connecting pathway is poorly characterised. This study will define the machinery of this trafficking pathway, which will provide the ability to modulate biological processes and cytotoxicity.\",\n    \"finalKeywords\": [\n        \"270199\",\n        \"Golgi apparatus\",\n        \"endocytosis\",\n        \"membrane transport\",\n        \"protein trafficking\",\n        \"secretion\",\n        \"HIV-AIDS\",\n        \"bacterial pathogen\",\n        \"hormone secretion\",\n        \"immune development\",\n        \"lysosomal storage disorder\"\n    ],\n    \"contributor_ci\": {\n        \"text_full_name\": \"Prof Paul Gleeson\",\n        \"email\": \"notAReal@email.edu.au\",\n        \"orcid\": \"http://orcid.org/0000-0000-0000-000\"\n    },\n    \"contributor_data_manager\": {\n        \"text_full_name\": \"Prof Paul Gleeson\",\n        \"email\": \"notAReal@email.edu.au\",\n        \"orcid\": \"http://orcid.org/0000-0000-0000-000\"\n    },\n    \"contributors\": [\n        {\n            \"text_full_name\": \"Prof Paul Gleeson\",\n            \"email\": \"notAReal@email.edu.au\",\n            \"orcid\": \"http://orcid.org/0000-0000-0000-000\"\n        }\n    ],\n    \"vivo:Dataset_redbox:DataCollectionMethodology\": \"The data collection methodology\",\n    \"vivo:Dataset_dc_format\": \"xls\",\n    \"vivo:Dataset_dc:location_rdf:PlainLiteral\": \"eResearch Store network drive\",\n    \"vivo:Dataset_dc:source_dc:location_rdf:PlainLiteral\": \"shared university network drive (e.g. G, H, etc)\",\n    \"vivo:Dataset_dc:extent\": \"100GB - 2TB\",\n    \"redbox:retentionPeriod_dc:date\": \"1year\",\n    \"dc:rightsHolder_dc:name\": \"myUni\",\n    \"dc:accessRights\": \"permission from the data manager\",\n    \"authorization\": []\n}"
+						},
+						"url": {
+							"raw": "{{host}}/default/rdmp/api/records/metadata/rdmp",
+							"host": [
+								"{{host}}"
+							],
+							"path": [
+								"default",
+								"rdmp",
+								"api",
+								"records",
+								"metadata",
+								"rdmp"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get RDMP's Metadata",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "a40880e6-2c93-4fa3-b931-5ecb68c4c944",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Title is correct\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.title).to.eql(\"Andrew's Postman test\");",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text"
+							},
+							{
+								"key": "",
+								"value": "",
+								"type": "text",
+								"disabled": true
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "{{host}}/default/rdmp/api/records/metadata/{{dmpOid}}",
+							"host": [
+								"{{host}}"
+							],
+							"path": [
+								"default",
+								"rdmp",
+								"api",
+								"records",
+								"metadata",
+								"{{dmpOid}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update RDMP Metadata",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "cd7a0438-9af9-4277-8325-a3bbf8109292",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Test oid is equal to the requested oid value\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('oid');",
+									"    pm.expect(jsonData.oid).to.eql(postman.getEnvironmentVariable(\"dmpOid\")); ",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"title\": \"Andrew's Postman test - Updated\",\n    \"dc:identifier\": \"http://purl.org/au-research/grants/nhmrc/566728\",\n    \"description\": \"Movement of molecules within cells by a process known as membrane transport is critical for normal cell function and also exploited by bacteria to promote infection. The pathway that connects the import pathway to the export pathway is essential for the function of a large number of proteins, however this connecting pathway is poorly characterised. This study will define the machinery of this trafficking pathway, which will provide the ability to modulate biological processes and cytotoxicity.\",\n    \"finalKeywords\": [\n        \"270199\",\n        \"Golgi apparatus\",\n        \"endocytosis\",\n        \"membrane transport\",\n        \"protein trafficking\",\n        \"secretion\",\n        \"HIV-AIDS\",\n        \"bacterial pathogen\",\n        \"hormone secretion\",\n        \"immune development\",\n        \"lysosomal storage disorder\"\n    ],\n    \"contributor_ci\": {\n        \"text_full_name\": \"Prof Paul Gleeson\",\n        \"email\": \"notAReal@email.edu.au\",\n        \"orcid\": \"http://orcid.org/0000-0000-0000-000\"\n    },\n    \"contributor_data_manager\": {\n        \"text_full_name\": \"Prof Paul Gleeson\",\n        \"email\": \"notAReal@email.edu.au\",\n        \"orcid\": \"http://orcid.org/0000-0000-0000-000\"\n    },\n    \"contributors\": [\n        {\n            \"text_full_name\": \"Prof Paul Gleeson\",\n            \"email\": \"notAReal@email.edu.au\",\n            \"orcid\": \"http://orcid.org/0000-0000-0000-000\"\n        }\n    ],\n    \"vivo:Dataset_redbox:DataCollectionMethodology\": \"The data collection methodology\",\n    \"vivo:Dataset_dc_format\": \"xls\",\n    \"vivo:Dataset_dc:location_rdf:PlainLiteral\": \"eResearch Store network drive\",\n    \"vivo:Dataset_dc:source_dc:location_rdf:PlainLiteral\": \"shared university network drive (e.g. G, H, etc)\",\n    \"vivo:Dataset_dc:extent\": \"100GB - 2TB\",\n    \"redbox:retentionPeriod_dc:date\": \"1year\",\n    \"dc:rightsHolder_dc:name\": \"myUni\",\n    \"dc:accessRights\": \"permission from the data manager\",\n    \"authorization\": []\n}"
+						},
+						"url": {
+							"raw": "{{host}}/default/rdmp/api/records/metadata/{{dmpOid}}",
+							"host": [
+								"{{host}}"
+							],
+							"path": [
+								"default",
+								"rdmp",
+								"api",
+								"records",
+								"metadata",
+								"{{dmpOid}}"
+							]
+						},
+						"description": "http://localhost:1500/default/rdmp/api/records/rdmp/create"
+					},
+					"response": []
+				},
+				{
+					"name": "Get RDMP's Metadata - Updated Test",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "a40880e6-2c93-4fa3-b931-5ecb68c4c944",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Title is correct\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.title).to.eql(\"Andrew's Postman test - Updated\");",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"type": "text",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "",
+								"type": "text",
+								"value": "",
+								"disabled": true
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "{{host}}/default/rdmp/api/records/metadata/{{dmpOid}}",
+							"host": [
+								"{{host}}"
+							],
+							"path": [
+								"default",
+								"rdmp",
+								"api",
+								"records",
+								"metadata",
+								"{{dmpOid}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Give user edit permissions to RDMP",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "b047fdd6-0438-4b0c-8cbd-23840ff55360",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Edit permissions applied\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    //TODO: This is because of the save trigger",
+									"    pm.expect(jsonData.edit).to.eql([]);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n\t\"users\": [\"user\"]\n}"
+						},
+						"url": {
+							"raw": "{{host}}/default/rdmp/api/records/permissions/edit/{{dmpOid}}",
+							"host": [
+								"{{host}}"
+							],
+							"path": [
+								"default",
+								"rdmp",
+								"api",
+								"records",
+								"permissions",
+								"edit",
+								"{{dmpOid}}"
+							]
+						},
+						"description": "http://localhost:1500/default/rdmp/api/records/rdmp/create"
+					},
+					"response": []
+				},
+				{
+					"name": "List Users",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "63db769f-0404-45b5-933c-8629e3d44bd7",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Number of users returned in results array equals numFound or 10\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    ",
+									"    var numFound = jsonData.summary.numFound;",
+									"    ",
+									"    if(numFound < 10) {",
+									"        pm.expect(jsonData.records.length).to.eql(numFound);",
+									"    } else {",
+									"        pm.expect(jsonData.records.length).to.eql(10);",
+									"    }",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "{{host}}/default/rdmp/api/users",
+							"host": [
+								"{{host}}"
+							],
+							"path": [
+								"default",
+								"rdmp",
+								"api",
+								"users"
+							]
+						},
+						"description": "http://localhost:1500/default/rdmp/api/records/rdmp/create"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "AJAX calls",
+			"item": [
+				{
+					"name": "Login via Internal authentication",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "4f8e8675-14b8-4f9d-ae6e-52e0b7d5ae0f",
+								"exec": [
+									"postman.setGlobalVariable(\"cookie\",postman.getResponseHeader(\"set-cookie\") );",
+									"",
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Check that user returned is admin\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.user.username).to.eql(\"admin\");",
+									"});",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Pragma",
+								"value": "no-cache"
+							},
+							{
+								"key": "Origin",
+								"value": "{{host}}"
+							},
+							{
+								"key": "Accept-Encoding",
+								"value": "gzip, deflate, br"
+							},
+							{
+								"key": "X-CSRF-Token",
+								"value": ""
+							},
+							{
+								"key": "Accept-Language",
+								"value": "en-US,en;q=0.9,en-AU;q=0.8,it;q=0.7"
+							},
+							{
+								"key": "User-Agent",
+								"value": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.102 Safari/537.36"
+							},
+							{
+								"key": "X-Source",
+								"value": "jsclient"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json;charset=UTF-8"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json, text/plain, */*"
+							},
+							{
+								"key": "Cache-Control",
+								"value": "no-cache"
+							},
+							{
+								"key": "Referer",
+								"value": "{{host}}/default/rdmp/user/login"
+							},
+							{
+								"key": "Connection",
+								"value": "keep-alive"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"username\": \"admin\",\n    \"password\": \"rbadmin\",\n    \"branding\": \"default\",\n    \"portal\": \"rdmp\"\n}"
+						},
+						"url": {
+							"raw": "http://localhost:1500/user/login_local",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "1500",
+							"path": [
+								"user",
+								"login_local"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Dashboard List RDMP Records",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "72f352bc-687f-46bd-9714-385416301e69",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Number of items returned in results array equals totalItems or 10\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    ",
+									"    var numFound = jsonData.totalItems;",
+									"    ",
+									"    if(numFound < 10) {",
+									"        pm.expect(jsonData.items.length).to.eql(numFound);",
+									"    } else {",
+									"        pm.expect(jsonData.items.length).to.eql(10);",
+									"    }",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							},
+							{
+								"key": "X-Source",
+								"value": "jsclient",
+								"type": "text"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json, text/plain, */*",
+								"type": "text"
+							},
+							{
+								"key": "Cookie",
+								"value": "{{cookie}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "{{host}}/default/rdmp/listRecords?recordType=rdmp&state=draft&sort=date_object_modified:-1&start=0&rows=10",
+							"host": [
+								"{{host}}"
+							],
+							"path": [
+								"default",
+								"rdmp",
+								"listRecords"
+							],
+							"query": [
+								{
+									"key": "recordType",
+									"value": "rdmp"
+								},
+								{
+									"key": "state",
+									"value": "draft"
+								},
+								{
+									"key": "sort",
+									"value": "date_object_modified:-1"
+								},
+								{
+									"key": "start",
+									"value": "0"
+								},
+								{
+									"key": "rows",
+									"value": "10"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get view form config for RDMP",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "72f352bc-687f-46bd-9714-385416301e69",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"RDMP form name is default-1.0-draft\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    ",
+									"    var numFound = jsonData.totalItems;",
+									"    pm.expect(jsonData.name).to.eql(\"default-1.0-draft\");",
+									"});",
+									"",
+									"pm.test(\"Fields array has values\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    ",
+									"    var numFound = jsonData.totalItems;",
+									"    pm.expect(jsonData.fields).to.be.an('array').that.is.not.empty",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							},
+							{
+								"key": "X-Source",
+								"value": "jsclient",
+								"type": "text"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json, text/plain, */*",
+								"type": "text"
+							},
+							{
+								"key": "Cookie",
+								"value": "{{cookie}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "{{host}}/default/rdmp/record/form/auto/{{dmpOid}}?edit=false",
+							"host": [
+								"{{host}}"
+							],
+							"path": [
+								"default",
+								"rdmp",
+								"record",
+								"form",
+								"auto",
+								"{{dmpOid}}"
+							],
+							"query": [
+								{
+									"key": "edit",
+									"value": "false"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get edit form config for RDMP",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "72f352bc-687f-46bd-9714-385416301e69",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"RDMP form name is default-1.0-draft\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    ",
+									"    var numFound = jsonData.totalItems;",
+									"    pm.expect(jsonData.name).to.eql(\"default-1.0-draft\");",
+									"});",
+									"",
+									"pm.test(\"Fields array has values\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    ",
+									"    var numFound = jsonData.totalItems;",
+									"    pm.expect(jsonData.fields).to.be.an('array').that.is.not.empty",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							},
+							{
+								"key": "X-Source",
+								"type": "text",
+								"value": "jsclient"
+							},
+							{
+								"key": "Accept",
+								"type": "text",
+								"value": "application/json, text/plain, */*"
+							},
+							{
+								"key": "Cookie",
+								"value": "{{cookie}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "{{host}}/default/rdmp/record/form/auto/{{dmpOid}}?edit=true",
+							"host": [
+								"{{host}}"
+							],
+							"path": [
+								"default",
+								"rdmp",
+								"record",
+								"form",
+								"auto",
+								"{{dmpOid}}"
+							],
+							"query": [
+								{
+									"key": "edit",
+									"value": "true"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update RDMP Metadata using AJAX form call",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "9df83ccd-b492-4ecc-a60e-d7af261e0450",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Pragma",
+								"value": "no-cache"
+							},
+							{
+								"key": "Origin",
+								"value": "http://localhost:1500"
+							},
+							{
+								"key": "Accept-Encoding",
+								"value": "gzip, deflate, br"
+							},
+							{
+								"key": "Accept-Language",
+								"value": "en-US,en;q=0.9,en-AU;q=0.8,it;q=0.7"
+							},
+							{
+								"key": "User-Agent",
+								"value": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.102 Safari/537.36"
+							},
+							{
+								"key": "X-Source",
+								"value": "jsclient"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json;charset=UTF-8"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json, text/plain, */*"
+							},
+							{
+								"key": "Cache-Control",
+								"value": "no-cache"
+							},
+							{
+								"key": "Referer",
+								"value": "http://localhost:1500/default/rdmp/record/edit/{{dmpOid}}"
+							},
+							{
+								"key": "Connection",
+								"value": "keep-alive"
+							},
+							{
+								"key": "Cookie",
+								"value": "{{cookie}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"title\": \"Andrew's Postman test - Updated from form AJAX call\",\n    \"dc:identifier\": \"http://purl.org/au-research/grants/nhmrc/566728\",\n    \"description\": \"Movement of molecules within cells by a process known as membrane transport is critical for normal cell function and also exploited by bacteria to promote infection. The pathway that connects the import pathway to the export pathway is essential for the function of a large number of proteins, however this connecting pathway is poorly characterised. This study will define the machinery of this trafficking pathway, which will provide the ability to modulate biological processes and cytotoxicity.\",\n    \"finalKeywords\": [\n        \"270199\",\n        \"Golgi apparatus\",\n        \"endocytosis\",\n        \"membrane transport\",\n        \"protein trafficking\",\n        \"secretion\",\n        \"HIV-AIDS\",\n        \"bacterial pathogen\",\n        \"hormone secretion\",\n        \"immune development\",\n        \"lysosomal storage disorder\"\n    ],\n    \"contributor_ci\": {\n        \"text_full_name\": \"Prof Paul Gleeson\",\n        \"email\": \"notAReal@email.edu.au\",\n        \"orcid\": \"http://orcid.org/0000-0000-0000-000\"\n    },\n    \"contributor_data_manager\": {\n        \"text_full_name\": \"Prof Paul Gleeson\",\n        \"email\": \"notAReal@email.edu.au\",\n        \"orcid\": \"http://orcid.org/0000-0000-0000-000\"\n    },\n    \"contributors\": [\n        {\n            \"text_full_name\": \"Prof Paul Gleeson\",\n            \"email\": \"notAReal@email.edu.au\",\n            \"orcid\": \"http://orcid.org/0000-0000-0000-000\"\n        }\n    ],\n    \"vivo:Dataset_redbox:DataCollectionMethodology\": \"The data collection methodology\",\n    \"vivo:Dataset_dc_format\": \"xls\",\n    \"vivo:Dataset_dc:location_rdf:PlainLiteral\": \"eResearch Store network drive\",\n    \"vivo:Dataset_dc:source_dc:location_rdf:PlainLiteral\": \"shared university network drive (e.g. G, H, etc)\",\n    \"vivo:Dataset_dc:extent\": \"100GB - 2TB\",\n    \"redbox:retentionPeriod_dc:date\": \"1year\",\n    \"dc:rightsHolder_dc:name\": \"myUni\",\n    \"dc:accessRights\": \"permission from the data manager\",\n    \"authorization\": []\n}"
+						},
+						"url": {
+							"raw": "{{host}}/default/rdmp/recordmeta/{{dmpOid}}",
+							"host": [
+								"{{host}}"
+							],
+							"path": [
+								"default",
+								"rdmp",
+								"recordmeta",
+								"{{dmpOid}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get RDMP transfer responsibility configuration",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "00abc0c7-746a-4bb0-8ce4-d323666395cb",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Contains valid config with fields and canEdit object\", function () {",
+									"    var jsonData = pm.response.json();",
+									"   ",
+									"        pm.expect(jsonData).to.have.property('fields');",
+									"        pm.expect(jsonData).to.have.property('canEdit');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Pragma",
+								"value": "no-cache"
+							},
+							{
+								"key": "Accept-Encoding",
+								"value": "gzip, deflate, br"
+							},
+							{
+								"key": "X-CSRF-Token",
+								"value": ""
+							},
+							{
+								"key": "Accept-Language",
+								"value": "en-US,en;q=0.9,en-AU;q=0.8,it;q=0.7"
+							},
+							{
+								"key": "User-Agent",
+								"value": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.102 Safari/537.36"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json;charset=utf-8"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json, text/plain, */*"
+							},
+							{
+								"key": "Connection",
+								"value": "keep-alive"
+							},
+							{
+								"key": "Referer",
+								"value": "{{host}}/default/rdmp/record/transfer/rdmp"
+							},
+							{
+								"key": "Cookie",
+								"value": "{{cookie}}"
+							},
+							{
+								"key": "X-Source",
+								"value": "jsclient"
+							},
+							{
+								"key": "Cache-Control",
+								"value": "no-cache"
+							}
+						],
+						"body": {},
+						"url": {
+							"raw": "{{host}}/default/rdmp/transferconfig/rdmp",
+							"host": [
+								"{{host}}"
+							],
+							"path": [
+								"default",
+								"rdmp",
+								"transferconfig",
+								"rdmp"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Transfer responsibility of plan",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "3e849f1c-25e2-4b59-97e4-819800e0a56d",
+								"exec": [
+									"// \"contributor_ci\": {",
+									"                    // \"text_full_name\": \"Alberto Zweinstein\",",
+									"                    ",
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"CI has been updated\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData[0].record.metadata.contributor_ci.text_full_name).to.eq(\"Alberto Zweinstein\");",
+									"});",
+									"",
+									"pm.test(\"CI has been added to editPending array\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData[0].record.authorization.editPending).to.contain(\"alberto.zweinstein@example.edu.au\");",
+									"    ",
+									"});",
+									"",
+									"pm.test(\"CI has been added to viewPending array\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData[0].record.authorization.viewPending).to.contain(\"alberto.zweinstein@example.edu.au\");",
+									"});",
+									"",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Pragma",
+								"value": "no-cache"
+							},
+							{
+								"key": "Origin",
+								"value": "{{host}}"
+							},
+							{
+								"key": "Accept-Encoding",
+								"value": "gzip, deflate, br"
+							},
+							{
+								"key": "X-CSRF-Token",
+								"value": ""
+							},
+							{
+								"key": "Accept-Language",
+								"value": "en-US,en;q=0.9,en-AU;q=0.8,it;q=0.7"
+							},
+							{
+								"key": "User-Agent",
+								"value": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.102 Safari/537.36"
+							},
+							{
+								"key": "X-Source",
+								"value": "jsclient"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json;charset=UTF-8"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json, text/plain, */*"
+							},
+							{
+								"key": "Cache-Control",
+								"value": "no-cache"
+							},
+							{
+								"key": "Referer",
+								"value": "{{host}}/default/rdmp/record/transfer/rdmp"
+							},
+							{
+								"key": "Cookie",
+								"value": "{{cookie}}"
+							},
+							{
+								"key": "Connection",
+								"value": "keep-alive"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"records\": [\n    {\n      \"oid\": \"{{dmpOid}}\",\n      \"title\": \"Andrew's Postman test\",\n      \"metadata\": {\n        \"metaMetadata\": {\n          \"brandId\": \"5be10e78a142ee00068d6555\",\n          \"type\": \"rdmp\",\n          \"createdBy\": \"admin\",\n          \"form\": \"default-1.0-draft\"\n        },\n        \"metadata\": {\n          \"title\": \"Andrew's Postman test\",\n          \"dc:identifier\": \"http://purl.org/au-research/grants/nhmrc/566728\",\n          \"description\": \"Movement of molecules within cells by a process known as membrane transport is critical for normal cell function and also exploited by bacteria to promote infection. The pathway that connects the import pathway to the export pathway is essential for the function of a large number of proteins, however this connecting pathway is poorly characterised. This study will define the machinery of this trafficking pathway, which will provide the ability to modulate biological processes and cytotoxicity.\",\n          \"finalKeywords\": [\n            \"270199\",\n            \"Golgi apparatus\",\n            \"endocytosis\",\n            \"membrane transport\",\n            \"protein trafficking\",\n            \"secretion\",\n            \"HIV-AIDS\",\n            \"bacterial pathogen\",\n            \"hormone secretion\",\n            \"immune development\",\n            \"lysosomal storage disorder\"\n          ],\n          \"contributor_ci\": {\n            \"text_full_name\": \"Prof Paul Gleeson\",\n            \"email\": \"notAReal@email.edu.au\",\n            \"orcid\": \"http://orcid.org/0000-0000-0000-000\"\n          },\n          \"contributor_data_manager\": {\n            \"text_full_name\": \"Prof Paul Gleeson\",\n            \"email\": \"notAReal@email.edu.au\",\n            \"orcid\": \"http://orcid.org/0000-0000-0000-000\"\n          },\n          \"contributors\": [\n            {\n              \"text_full_name\": \"Prof Paul Gleeson\",\n              \"email\": \"notAReal@email.edu.au\",\n              \"orcid\": \"http://orcid.org/0000-0000-0000-000\"\n            }\n          ],\n          \"vivo:Dataset_redbox:DataCollectionMethodology\": \"The data collection methodology\",\n          \"vivo:Dataset_dc_format\": \"xls\",\n          \"vivo:Dataset_dc:location_rdf:PlainLiteral\": \"eResearch Store network drive\",\n          \"vivo:Dataset_dc:source_dc:location_rdf:PlainLiteral\": \"shared university network drive (e.g. G, H, etc)\",\n          \"vivo:Dataset_dc:extent\": \"100GB - 2TB\",\n          \"redbox:retentionPeriod_dc:date\": \"1year\",\n          \"dc:rightsHolder_dc:name\": \"myUni\",\n          \"dc:accessRights\": \"permission from the data manager\",\n          \"authorization\": []\n        },\n        \"workflow\": {\n          \"stage\": \"draft\",\n          \"stageLabel\": \"Draft\"\n        },\n        \"authorization\": {\n          \"viewRoles\": [\n            \"Admin\",\n            \"Librarians\"\n          ],\n          \"editRoles\": [\n            \"Admin\",\n            \"Librarians\"\n          ],\n          \"view\": [],\n          \"edit\": [],\n          \"viewPending\": [\n            \"notAReal@email.edu.au\"\n          ],\n          \"editPending\": [\n            \"notAReal@email.edu.au\"\n          ]\n        },\n        \"redboxOid\": \"2c7c2dc046cc5834b0334445e7245b47\",\n        \"packageType\": [\n          \"rdmp\"\n        ],\n        \"date_object_created\": [\n          \"2018-11-27T01:09:00.143Z\"\n        ],\n        \"date_object_modified\": [\n          \"2018-11-27T01:09:00.654Z\"\n        ]\n      },\n      \"dateCreated\": \"November 27, 2018 11:39 AM\",\n      \"dateModified\": \"November 27, 2018 11:39 AM\",\n      \"hasEditAccess\": true,\n      \"dashboardTitle\": \"Andrew's Postman test\",\n      \"selected\": true\n    }\n  ],\n  \"role\": \"chiefInvestigator\",\n  \"updateData\": {\n    \"text_full_name\": \"Alberto Zweinstein\",\n    \"storage_id\": \"23c3f253fa53809e2d986e69e2537de8\",\n    \"email\": \"alberto.zweinstein@example.edu.au\",\n    \"full_name_honorific\": \"Dr Alberto Zweinstein\",\n    \"given_name\": \"Alberto\",\n    \"family_name\": \"Zweinstein\",\n    \"honorific\": \"Dr\",\n    \"full_name_family_name_first\": \"Zweinstein, Alberto\"\n  }\n}"
+						},
+						"url": {
+							"raw": "http://localhost:1500/default/rdmp/record/responsibility/update",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "1500",
+							"path": [
+								"default",
+								"rdmp",
+								"record",
+								"responsibility",
+								"update"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create new researcher user",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "67c01270-fcd8-4452-a387-5d09be5fef6e",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Check response status\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.status).to.eql(true);",
+									"});",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Pragma",
+								"value": "no-cache"
+							},
+							{
+								"key": "Origin",
+								"value": "{{host}}"
+							},
+							{
+								"key": "Accept-Encoding",
+								"value": "gzip, deflate, br"
+							},
+							{
+								"key": "X-CSRF-Token",
+								"value": ""
+							},
+							{
+								"key": "Accept-Language",
+								"value": "en-US,en;q=0.9,en-AU;q=0.8,it;q=0.7"
+							},
+							{
+								"key": "User-Agent",
+								"value": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.102 Safari/537.36"
+							},
+							{
+								"key": "X-Source",
+								"value": "jsclient"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json;charset=UTF-8"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json, text/plain, */*"
+							},
+							{
+								"key": "Cache-Control",
+								"value": "no-cache"
+							},
+							{
+								"key": "Referer",
+								"value": "{{host}}/default/rdmp/admin/users"
+							},
+							{
+								"key": "Cookie",
+								"value": "{{cookie}}"
+							},
+							{
+								"key": "Connection",
+								"value": "keep-alive"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"username\": \"researcheruser\",\n    \"details\": {\n        \"name\": \"A dummy researcher\",\n        \"email\": \"researcher@example.edu.au\",\n        \"password\": \"`Qw1234567\",\n        \"roles\": [\n            \"Researcher\",\n            \"Guest\"\n        ]\n    }\n}"
+						},
+						"url": {
+							"raw": "{{host}}/default/rdmp/admin/users/newUser",
+							"host": [
+								"{{host}}"
+							],
+							"path": [
+								"default",
+								"rdmp",
+								"admin",
+								"users",
+								"newUser"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Try to create same researcher user",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "67c01270-fcd8-4452-a387-5d09be5fef6e",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Check response status\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.status).to.eql(false);",
+									"});",
+									"",
+									"pm.test(\"Check response message\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.message).to.eql(\"Username already exists\");",
+									"});",
+									"",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Pragma",
+								"value": "no-cache"
+							},
+							{
+								"key": "Origin",
+								"value": "{{host}}"
+							},
+							{
+								"key": "Accept-Encoding",
+								"value": "gzip, deflate, br"
+							},
+							{
+								"key": "X-CSRF-Token",
+								"value": ""
+							},
+							{
+								"key": "Accept-Language",
+								"value": "en-US,en;q=0.9,en-AU;q=0.8,it;q=0.7"
+							},
+							{
+								"key": "User-Agent",
+								"value": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.102 Safari/537.36"
+							},
+							{
+								"key": "X-Source",
+								"value": "jsclient"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json;charset=UTF-8"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json, text/plain, */*"
+							},
+							{
+								"key": "Cache-Control",
+								"value": "no-cache"
+							},
+							{
+								"key": "Referer",
+								"value": "{{host}}/default/rdmp/admin/users"
+							},
+							{
+								"key": "Cookie",
+								"value": "{{cookie}}"
+							},
+							{
+								"key": "Connection",
+								"value": "keep-alive"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"username\": \"researcheruser\",\n    \"details\": {\n        \"name\": \"A dummy researcher\",\n        \"email\": \"researcher@example.edu.au\",\n        \"password\": \"`Qw1234567\",\n        \"roles\": [\n            \"Researcher\",\n            \"Guest\"\n        ]\n    }\n}"
+						},
+						"url": {
+							"raw": "{{host}}/default/rdmp/admin/users/newUser",
+							"host": [
+								"{{host}}"
+							],
+							"path": [
+								"default",
+								"rdmp",
+								"admin",
+								"users",
+								"newUser"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get list of users and find new researcher user",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "caa3d60c-bef5-4a0f-adc7-e86167d96930",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Check response is an array\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.be.an.instanceof(Array);",
+									"});",
+									"",
+									"pm.test(\"Check researcheruser is in the array\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    var found = false;",
+									"    for(var i=0; i< jsonData.length; i++) {",
+									"        if(jsonData[i].username == \"researcheruser\") {",
+									"            found = true;",
+									"            postman.setEnvironmentVariable(\"researcherUserId\", jsonData[i].id);",
+									"            break;",
+									"        }",
+									"    }",
+									"    pm.expect(found).to.eq(true);",
+									"    ",
+									"});",
+									"",
+									"",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Pragma",
+								"value": "no-cache"
+							},
+							{
+								"key": "Accept-Encoding",
+								"value": "gzip, deflate, br"
+							},
+							{
+								"key": "X-CSRF-Token",
+								"value": ""
+							},
+							{
+								"key": "Accept-Language",
+								"value": "en-US,en;q=0.9,en-AU;q=0.8,it;q=0.7"
+							},
+							{
+								"key": "User-Agent",
+								"value": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.102 Safari/537.36"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json;charset=utf-8"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json, text/plain, */*"
+							},
+							{
+								"key": "Connection",
+								"value": "keep-alive"
+							},
+							{
+								"key": "Referer",
+								"value": "http://localhost:1500/default/rdmp/admin/users"
+							},
+							{
+								"key": "Cookie",
+								"value": "{{cookie}}"
+							},
+							{
+								"key": "X-Source",
+								"value": "jsclient"
+							},
+							{
+								"key": "Cache-Control",
+								"value": "no-cache"
+							}
+						],
+						"body": {},
+						"url": {
+							"raw": "{{host}}/default/rdmp/admin/users/get",
+							"host": [
+								"{{host}}"
+							],
+							"path": [
+								"default",
+								"rdmp",
+								"admin",
+								"users",
+								"get"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Generate API key for new researcher user",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "d1331b30-6885-45d4-9e5c-4108bce28d8c",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Check response status\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.status).to.eql(true);",
+									"});",
+									"",
+									"pm.test(\"Check for API Key\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('message');",
+									"});",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Pragma",
+								"value": "no-cache"
+							},
+							{
+								"key": "Origin",
+								"value": "{{host}}"
+							},
+							{
+								"key": "Accept-Encoding",
+								"value": "gzip, deflate, br"
+							},
+							{
+								"key": "X-CSRF-Token",
+								"value": ""
+							},
+							{
+								"key": "Accept-Language",
+								"value": "en-US,en;q=0.9,en-AU;q=0.8,it;q=0.7"
+							},
+							{
+								"key": "User-Agent",
+								"value": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.102 Safari/537.36"
+							},
+							{
+								"key": "X-Source",
+								"value": "jsclient"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json;charset=UTF-8"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json, text/plain, */*"
+							},
+							{
+								"key": "Cache-Control",
+								"value": "no-cache"
+							},
+							{
+								"key": "Referer",
+								"value": "{{host}}/default/rdmp/admin/users"
+							},
+							{
+								"key": "Cookie",
+								"value": "{{cookie}}"
+							},
+							{
+								"key": "Connection",
+								"value": "keep-alive"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{ \"userid\": \"{{researcherUserId}}\"}"
+						},
+						"url": {
+							"raw": "{{host}}/default/rdmp/admin/users/genKey",
+							"host": [
+								"{{host}}"
+							],
+							"path": [
+								"default",
+								"rdmp",
+								"admin",
+								"users",
+								"genKey"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update researcher user's password",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "a5d63795-54d5-4b16-9269-400b4391b08a",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Check response status\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.status).to.eql(true);",
+									"});",
+									"",
+									"pm.test(\"Check response message\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.message).to.eql(\"User updated successfully\");",
+									"});",
+									"",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Pragma",
+								"value": "no-cache"
+							},
+							{
+								"key": "Origin",
+								"value": "{{host}}"
+							},
+							{
+								"key": "Accept-Encoding",
+								"value": "gzip, deflate, br"
+							},
+							{
+								"key": "X-CSRF-Token",
+								"value": ""
+							},
+							{
+								"key": "Accept-Language",
+								"value": "en-US,en;q=0.9,en-AU;q=0.8,it;q=0.7"
+							},
+							{
+								"key": "User-Agent",
+								"value": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.102 Safari/537.36"
+							},
+							{
+								"key": "X-Source",
+								"value": "jsclient"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json;charset=UTF-8"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json, text/plain, */*"
+							},
+							{
+								"key": "Cache-Control",
+								"value": "no-cache"
+							},
+							{
+								"key": "Referer",
+								"value": "{{host}}/default/rdmp/admin/users"
+							},
+							{
+								"key": "Cookie",
+								"value": "{{cookie}}"
+							},
+							{
+								"key": "Connection",
+								"value": "keep-alive"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"userid\": \"{{researcherUserId}}\",\n    \"details\": {\n        \"name\": \"A dummy researcher\",\n        \"email\": \"researcher@example.edu.au\",\n        \"password\": \"`Qw7654321\",\n        \"roles\": [\n            \"Researcher\",\n            \"Guest\"\n        ]\n    }\n}"
+						},
+						"url": {
+							"raw": "{{host}}/default/rdmp/admin/users/update",
+							"host": [
+								"{{host}}"
+							],
+							"path": [
+								"default",
+								"rdmp",
+								"admin",
+								"users",
+								"update"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Add librarian role to researcher user from the user management page",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "1b6d14d6-2511-4fdd-a096-1d9469438d17",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Check response status\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.status).to.eql(true);",
+									"});",
+									"",
+									"pm.test(\"Check response message\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.message).to.eql(\"User updated successfully\");",
+									"});",
+									"",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Pragma",
+								"value": "no-cache"
+							},
+							{
+								"key": "Origin",
+								"value": "{{host}}"
+							},
+							{
+								"key": "Accept-Encoding",
+								"value": "gzip, deflate, br"
+							},
+							{
+								"key": "X-CSRF-Token",
+								"value": ""
+							},
+							{
+								"key": "Accept-Language",
+								"value": "en-US,en;q=0.9,en-AU;q=0.8,it;q=0.7"
+							},
+							{
+								"key": "User-Agent",
+								"value": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.102 Safari/537.36"
+							},
+							{
+								"key": "X-Source",
+								"value": "jsclient"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json;charset=UTF-8"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json, text/plain, */*"
+							},
+							{
+								"key": "Cache-Control",
+								"value": "no-cache"
+							},
+							{
+								"key": "Referer",
+								"value": "{{host}}/default/rdmp/admin/users"
+							},
+							{
+								"key": "Cookie",
+								"value": "{{cookie}}"
+							},
+							{
+								"key": "Connection",
+								"value": "keep-alive"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"userid\": \"{{researcherUserId}}\",\n    \"details\": {\n        \"name\": \"A dummy researcher\",\n        \"email\": \"researcher@example.edu.au\",\n        \"password\": \"\",\n        \"roles\": [\n            \"Librarians\",\n            \"Researcher\",\n            \"Guest\"\n        ]\n    }\n}"
+						},
+						"url": {
+							"raw": "{{host}}/default/rdmp/admin/users/update",
+							"host": [
+								"{{host}}"
+							],
+							"path": [
+								"default",
+								"rdmp",
+								"admin",
+								"users",
+								"update"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get list of users and roles",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "1a97e3b3-6143-479a-aa8d-3479085b5955",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"",
+									"pm.test(\"Check that researcher user has guest, researcher and librarian roles\", function(){",
+									"    var researchUserRoles = [];",
+									"    var jsonData = pm.response.json();",
+									"    for(var i=0; i< jsonData.length; i++) {",
+									"        var role = jsonData[i];",
+									"        for(var j=0; j< role.users.length; j++) {",
+									"            if(role.users[j].id == pm.environment.get(\"researcherUserId\")) {",
+									"                researchUserRoles.push(role.name);",
+									"            }",
+									"        }",
+									"    }",
+									"    ",
+									"    pm.expect(researchUserRoles).to.contain(\"Researcher\");",
+									"    pm.expect(researchUserRoles).to.contain(\"Guest\");",
+									"    pm.expect(researchUserRoles).to.contain(\"Librarians\");",
+									"    pm.expect(researchUserRoles).to.not.contain(\"Admin\");",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Pragma",
+								"value": "no-cache"
+							},
+							{
+								"key": "Accept-Encoding",
+								"value": "gzip, deflate, br"
+							},
+							{
+								"key": "X-CSRF-Token",
+								"value": ""
+							},
+							{
+								"key": "Accept-Language",
+								"value": "en-US,en;q=0.9,en-AU;q=0.8,it;q=0.7"
+							},
+							{
+								"key": "User-Agent",
+								"value": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.102 Safari/537.36"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json;charset=utf-8"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json, text/plain, */*"
+							},
+							{
+								"key": "Connection",
+								"value": "keep-alive"
+							},
+							{
+								"key": "Referer",
+								"value": "{{host}}/default/rdmp/admin/roles"
+							},
+							{
+								"key": "Cookie",
+								"value": "{{cookie}}"
+							},
+							{
+								"key": "X-Source",
+								"value": "jsclient"
+							},
+							{
+								"key": "Cache-Control",
+								"value": "no-cache"
+							}
+						],
+						"body": {},
+						"url": {
+							"raw": "{{host}}/default/rdmp/admin/roles/get",
+							"host": [
+								"{{host}}"
+							],
+							"path": [
+								"default",
+								"rdmp",
+								"admin",
+								"roles",
+								"get"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Remove Librarian role from Researcher User",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Pragma",
+								"value": "no-cache"
+							},
+							{
+								"key": "Origin",
+								"value": "{{host}}"
+							},
+							{
+								"key": "Accept-Encoding",
+								"value": "gzip, deflate, br"
+							},
+							{
+								"key": "X-CSRF-Token",
+								"value": ""
+							},
+							{
+								"key": "Accept-Language",
+								"value": "en-US,en;q=0.9,en-AU;q=0.8,it;q=0.7"
+							},
+							{
+								"key": "User-Agent",
+								"value": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.102 Safari/537.36"
+							},
+							{
+								"key": "X-Source",
+								"value": "jsclient"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json;charset=UTF-8"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json, text/plain, */*"
+							},
+							{
+								"key": "Cache-Control",
+								"value": "no-cache"
+							},
+							{
+								"key": "Referer",
+								"value": "{{host}}/default/rdmp/admin/roles"
+							},
+							{
+								"key": "Cookie",
+								"value": "{{cookie}}"
+							},
+							{
+								"key": "Connection",
+								"value": "keep-alive"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"userid\": \"{{researcherUserId}}\",\n    \"roles\": [\n        \"Researcher\",\n        \"Guest\"\n    ]\n}"
+						},
+						"url": {
+							"raw": "{{host}}/default/rdmp/admin/roles/user",
+							"host": [
+								"{{host}}"
+							],
+							"path": [
+								"default",
+								"rdmp",
+								"admin",
+								"roles",
+								"user"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get list of users and roles - Check researcher user no longer has librarian role",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "1a97e3b3-6143-479a-aa8d-3479085b5955",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"",
+									"pm.test(\"Check that researcher user has guest and researcher roles\", function(){",
+									"    var researchUserRoles = [];",
+									"    var jsonData = pm.response.json();",
+									"    for(var i=0; i< jsonData.length; i++) {",
+									"        var role = jsonData[i];",
+									"        for(var j=0; j< role.users.length; j++) {",
+									"            if(role.users[j].id == pm.environment.get(\"researcherUserId\")) {",
+									"                researchUserRoles.push(role.name);",
+									"            }",
+									"        }",
+									"    }",
+									"    ",
+									"    pm.expect(researchUserRoles).to.contain(\"Researcher\");",
+									"    pm.expect(researchUserRoles).to.contain(\"Guest\");",
+									"    pm.expect(researchUserRoles).to.not.contain(\"Librarians\");",
+									"    pm.expect(researchUserRoles).to.not.contain(\"Admin\");",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Pragma",
+								"value": "no-cache"
+							},
+							{
+								"key": "Accept-Encoding",
+								"value": "gzip, deflate, br"
+							},
+							{
+								"key": "X-CSRF-Token",
+								"value": ""
+							},
+							{
+								"key": "Accept-Language",
+								"value": "en-US,en;q=0.9,en-AU;q=0.8,it;q=0.7"
+							},
+							{
+								"key": "User-Agent",
+								"value": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.102 Safari/537.36"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json;charset=utf-8"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json, text/plain, */*"
+							},
+							{
+								"key": "Connection",
+								"value": "keep-alive"
+							},
+							{
+								"key": "Referer",
+								"value": "{{host}}/default/rdmp/admin/roles"
+							},
+							{
+								"key": "Cookie",
+								"value": "{{cookie}}"
+							},
+							{
+								"key": "X-Source",
+								"value": "jsclient"
+							},
+							{
+								"key": "Cache-Control",
+								"value": "no-cache"
+							}
+						],
+						"body": {},
+						"url": {
+							"raw": "{{host}}/default/rdmp/admin/roles/get",
+							"host": [
+								"{{host}}"
+							],
+							"path": [
+								"default",
+								"rdmp",
+								"admin",
+								"roles",
+								"get"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Export RDMP Data",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "00abc0c7-746a-4bb0-8ce4-d323666395cb",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"const parse = require('csv-parse/lib/sync'),",
+									"    parsedCSV = parse(responseBody, {relax_column_count: true});",
+									"    ",
+									"pm.test(\"Correct CSV response\", function () {",
+									"    // Check that we have at least 2 two (header + row)",
+									"    pm.expect(parsedCSV).to.have.length.above(1);",
+									"    ",
+									"});",
+									"",
+									"pm.test(\"CSV contains Test record\", function () {",
+									"    var found = false;",
+									"    const head = parsedCSV.shift(),",
+									"        title = head.indexOf('storage_id');",
+									"   parsedCSV.forEach(function(row) {",
+									"       if(row[title] == pm.environment.get('dmpOid')) {",
+									"           found = true;",
+									"       }",
+									"   });",
+									"   ",
+									"   pm.expect(found).to.eq(true);",
+									"  ",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Pragma",
+								"value": "no-cache"
+							},
+							{
+								"key": "Accept-Encoding",
+								"value": "gzip, deflate, br"
+							},
+							{
+								"key": "X-CSRF-Token",
+								"value": ""
+							},
+							{
+								"key": "Accept-Language",
+								"value": "en-US,en;q=0.9,en-AU;q=0.8,it;q=0.7"
+							},
+							{
+								"key": "User-Agent",
+								"value": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.102 Safari/537.36"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json;charset=utf-8"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json, text/plain, */*"
+							},
+							{
+								"key": "Connection",
+								"value": "keep-alive"
+							},
+							{
+								"key": "Referer",
+								"value": "{{host}}/default/rdmp/export"
+							},
+							{
+								"key": "Cookie",
+								"value": "{{cookie}}"
+							},
+							{
+								"key": "X-Source",
+								"value": "jsclient"
+							},
+							{
+								"key": "Cache-Control",
+								"value": "no-cache"
+							}
+						],
+						"body": {},
+						"url": {
+							"raw": "{{host}}/default/rdmp/export/record/download/csv?before=&after=&recType=rdmp",
+							"host": [
+								"{{host}}"
+							],
+							"path": [
+								"default",
+								"rdmp",
+								"export",
+								"record",
+								"download",
+								"csv"
+							],
+							"query": [
+								{
+									"key": "before",
+									"value": ""
+								},
+								{
+									"key": "after",
+									"value": ""
+								},
+								{
+									"key": "recType",
+									"value": "rdmp"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create data record via form",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "2f0f3ff4-f317-4235-862a-c39419ec82a2",
+								"exec": [
+									"",
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Test oid exists\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('oid');",
+									"    postman.setEnvironmentVariable(\"dataRecordOid\", jsonData.oid);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Pragma",
+								"value": "no-cache"
+							},
+							{
+								"key": "Origin",
+								"value": "{{host}}"
+							},
+							{
+								"key": "Accept-Encoding",
+								"value": "gzip, deflate, br"
+							},
+							{
+								"key": "Accept-Language",
+								"value": "en-US,en;q=0.9,en-AU;q=0.8,it;q=0.7"
+							},
+							{
+								"key": "User-Agent",
+								"value": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.102 Safari/537.36"
+							},
+							{
+								"key": "X-Source",
+								"value": "jsclient"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json;charset=UTF-8"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json, text/plain, */*"
+							},
+							{
+								"key": "Cache-Control",
+								"value": "no-cache"
+							},
+							{
+								"key": "Referer",
+								"value": "{{host}}{/default/rdmp/record/dataRecord/edit"
+							},
+							{
+								"key": "Cookie",
+								"value": "{{cookie}}"
+							},
+							{
+								"key": "Connection",
+								"value": "keep-alive"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"parameterRetriever\": \"\",\n    \"rdmpGetter\": \"\",\n    \"\": {},\n    \"rdmp\": {\n        \"oid\": \"{{dmpOid}}\",\n        \"title\": \"Andrew's Postman test - Updated from form AJAX call\"\n    },\n    \"aim_project_name\": \"Andrew's Postman test - Updated from form AJAX call\",\n    \"foaf:fundedBy_foaf:Agent\": [\n        \"\"\n    ],\n    \"dc:coverage_vivo:DateTimeInterval_vivo:end\": \"\",\n    \"foaf:fundedBy_vivo:Grant\": [\n        \"\"\n    ],\n    \"dc:subject_anzsrc:for\": [\n        {\n            \"name\": \"01 - MATHEMATICAL SCIENCES\",\n            \"label\": \"MATHEMATICAL SCIENCES\",\n            \"notation\": \"01\"\n        }\n    ],\n    \"dc:subject_anzsrc:seo\": [],\n    \"title\": \"A Data record\",\n    \"description\": \"Data record\",\n    \"datatype\": \"collection\",\n    \"finalKeywords\": [\n        \"270199\",\n        \"Golgi apparatus\",\n        \"endocytosis\",\n        \"membrane transport\",\n        \"protein trafficking\",\n        \"secretion\",\n        \"HIV-AIDS\",\n        \"bacterial pathogen\",\n        \"hormone secretion\",\n        \"immune development\",\n        \"lysosomal storage disorder\"\n    ],\n    \"contributor_ci\": {\n        \"text_full_name\": \"Alberto Zweinstein\",\n        \"full_name_honorific\": \"Dr Alberto Zweinstein\",\n        \"email\": \"alberto.zweinstein@example.edu.au\",\n        \"given_name\": \"Alberto\",\n        \"family_name\": \"Zweinstein\",\n        \"honorific\": \"Dr\",\n        \"full_name_family_name_first\": \"Zweinstein, Alberto\",\n        \"username\": \"\",\n        \"role\": \"Chief Investigator\",\n        \"orcid\": null\n    },\n    \"contributor_data_manager\": {\n        \"text_full_name\": \"Prof Paul Gleeson\",\n        \"email\": \"notAReal@email.edu.au\",\n        \"username\": \"\",\n        \"role\": \"Data manager\",\n        \"orcid\": \"http://orcid.org/0000-0000-0000-000\"\n    },\n    \"contributors\": [\n        {\n            \"text_full_name\": \"Prof Paul Gleeson\",\n            \"email\": \"notAReal@email.edu.au\",\n            \"username\": \"\",\n            \"role\": \"Contributors\",\n            \"orcid\": \"http://orcid.org/0000-0000-0000-000\"\n        }\n    ],\n    \"contributor_supervisor\": {\n        \"text_full_name\": null,\n        \"full_name_honorific\": \"\",\n        \"email\": null,\n        \"given_name\": \"\",\n        \"family_name\": \"\",\n        \"honorific\": \"\",\n        \"full_name_family_name_first\": \"\",\n        \"username\": \"\",\n        \"role\": \"Supervisor\",\n        \"orcid\": null\n    },\n    \"dataowner_name\": \"Alberto Zweinstein\",\n    \"dataowner_email\": \"alberto.zweinstein@example.edu.au\",\n    \"redbox:retentionPeriod_dc:date\": \"1year\",\n    \"redbox:retentionPeriod_dc:date_skos:note\": \"\",\n    \"disposalDate\": \"\",\n    \"related_publications\": [\n        {\n            \"related_url\": \"\",\n            \"related_title\": \"\",\n            \"related_notes\": \"\"\n        }\n    ],\n    \"dataLocations\": [],\n    \"software_equipment\": \"\"\n}"
+						},
+						"url": {
+							"raw": "{{host}}/default/rdmp/recordmeta/dataRecord",
+							"host": [
+								"{{host}}"
+							],
+							"path": [
+								"default",
+								"rdmp",
+								"recordmeta",
+								"dataRecord"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "First Phase of attachment upload",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "4d5492a2-a268-4629-9189-5ef33c6043b0",
+								"exec": [
+									"",
+									"pm.test(\"Status code is 201\", function () {",
+									"    pm.response.to.have.status(201);",
+									"    var location = postman.getResponseHeader(\"Location\");",
+									"    postman.setEnvironmentVariable(\"attachmentLocation\", location );",
+									"    postman.setEnvironmentVariable(\"attachmentId\", location.split(\"/\")[8] );",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Upload-Length",
+								"value": "194397"
+							},
+							{
+								"key": "Origin",
+								"value": "{{host}}"
+							},
+							{
+								"key": "Accept-Encoding",
+								"value": "gzip, deflate, br"
+							},
+							{
+								"key": "X-CSRF-Token",
+								"value": ""
+							},
+							{
+								"key": "Accept-Language",
+								"value": "en-US,en;q=0.9,en-AU;q=0.8,it;q=0.7"
+							},
+							{
+								"key": "Tus-Resumable",
+								"value": "1.0.0"
+							},
+							{
+								"key": "Cookie",
+								"value": "{{cookie}}"
+							},
+							{
+								"key": "Connection",
+								"value": "keep-alive"
+							},
+							{
+								"key": "Content-Length",
+								"value": "0"
+							},
+							{
+								"key": "Upload-Metadata",
+								"value": "name U2NyZWVuIFNob3QgMjAxOC0xMS0yNiBhdCAyLjM0LjI2IHBtLnBuZw==,type aW1hZ2UvcG5n"
+							},
+							{
+								"key": "Pragma",
+								"value": "no-cache"
+							},
+							{
+								"key": "User-Agent",
+								"value": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.102 Safari/537.36"
+							},
+							{
+								"key": "Accept",
+								"value": "*/*"
+							},
+							{
+								"key": "Cache-Control",
+								"value": "no-cache"
+							},
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"value": "application/x-www-form-urlencoded",
+								"type": "text"
+							}
+						],
+						"body": {},
+						"url": {
+							"raw": "{{host}}/default/rdmp/record/{{dataRecordOid}}/attach",
+							"host": [
+								"{{host}}"
+							],
+							"path": [
+								"default",
+								"rdmp",
+								"record",
+								"{{dataRecordOid}}",
+								"attach"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Second Phase of attachment upload",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "9dd8a485-a53a-40a5-8c7f-2aa809774cd1",
+								"exec": [
+									"pm.test(\"Status code is 204\", function () {",
+									"    pm.response.to.have.status(204);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Origin",
+								"value": "{{host}}"
+							},
+							{
+								"key": "Accept-Encoding",
+								"value": "gzip, deflate, br"
+							},
+							{
+								"key": "X-CSRF-Token",
+								"value": ""
+							},
+							{
+								"key": "Accept-Language",
+								"value": "en-US,en;q=0.9,en-AU;q=0.8,it;q=0.7"
+							},
+							{
+								"key": "Tus-Resumable",
+								"value": "1.0.0"
+							},
+							{
+								"key": "Cookie",
+								"value": "{{cookie}}"
+							},
+							{
+								"key": "Connection",
+								"value": "keep-alive"
+							},
+							{
+								"key": "Pragma",
+								"value": "no-cache"
+							},
+							{
+								"key": "User-Agent",
+								"value": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.102 Safari/537.36"
+							},
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"value": "application/offset+octet-stream",
+								"type": "text"
+							},
+							{
+								"key": "Accept",
+								"value": "*/*"
+							},
+							{
+								"key": "Cache-Control",
+								"value": "no-cache"
+							},
+							{
+								"key": "Referer",
+								"value": "{{host}}/default/rdmp/record/edit/b869b4fae83a1f01082465d165d868a8"
+							},
+							{
+								"key": "Upload-Offset",
+								"value": "0"
+							}
+						],
+						"body": {
+							"mode": "file",
+							"file": {
+								"src": "test/postman/attachment.png"
+							}
+						},
+						"url": {
+							"raw": "http:{{attachmentLocation}}",
+							"host": [
+								"http"
+							],
+							"port": "{{attachmentLocation}}"
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Save attachment on Data Record",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "b58f5333-ba3b-47a8-8ce0-3bb9efe871b9",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Pragma",
+								"value": "no-cache"
+							},
+							{
+								"key": "Origin",
+								"value": "{{host}}"
+							},
+							{
+								"key": "Accept-Encoding",
+								"value": "gzip, deflate, br"
+							},
+							{
+								"key": "X-CSRF-Token",
+								"value": ""
+							},
+							{
+								"key": "Accept-Language",
+								"value": "en-US,en;q=0.9,en-AU;q=0.8,it;q=0.7"
+							},
+							{
+								"key": "User-Agent",
+								"value": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.102 Safari/537.36"
+							},
+							{
+								"key": "X-Source",
+								"value": "jsclient"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json;charset=UTF-8"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json, text/plain, */*"
+							},
+							{
+								"key": "Cache-Control",
+								"value": "no-cache"
+							},
+							{
+								"key": "Referer",
+								"value": "{{host}}/default/rdmp/record/edit/{{dataRecordOid}}"
+							},
+							{
+								"key": "Cookie",
+								"value": "{{cookie}}"
+							},
+							{
+								"key": "Connection",
+								"value": "keep-alive"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"parameterRetriever\": \"\",\n    \"rdmpGetter\": \"\",\n    \"\": {},\n    \"rdmp\": {\n        \"oid\": \"{{dmpOid}}\",\n        \"title\": \"Andrew's Postman test - Updated from form AJAX call\"\n    },\n    \"aim_project_name\": \"Andrew's Postman test - Updated from form AJAX call\",\n    \"foaf:fundedBy_foaf:Agent\": [\n        \"\"\n    ],\n    \"dc:coverage_vivo:DateTimeInterval_vivo:end\": \"\",\n    \"foaf:fundedBy_vivo:Grant\": [\n        \"\"\n    ],\n    \"dc:subject_anzsrc:for\": [\n        {\n            \"name\": \"01 - MATHEMATICAL SCIENCES\",\n            \"label\": \"MATHEMATICAL SCIENCES\",\n            \"notation\": \"01\"\n        }\n    ],\n    \"dc:subject_anzsrc:seo\": [],\n    \"title\": \"A Data record\",\n    \"description\": \"Data record\",\n    \"datatype\": \"collection\",\n    \"finalKeywords\": [\n        \"270199\",\n        \"Golgi apparatus\",\n        \"endocytosis\",\n        \"membrane transport\",\n        \"protein trafficking\",\n        \"secretion\",\n        \"HIV-AIDS\",\n        \"bacterial pathogen\",\n        \"hormone secretion\",\n        \"immune development\",\n        \"lysosomal storage disorder\"\n    ],\n    \"contributor_ci\": {\n        \"text_full_name\": \"Alberto Zweinstein\",\n        \"full_name_honorific\": \"Dr Alberto Zweinstein\",\n        \"email\": \"alberto.zweinstein@example.edu.au\",\n        \"given_name\": \"Alberto\",\n        \"family_name\": \"Zweinstein\",\n        \"honorific\": \"Dr\",\n        \"full_name_family_name_first\": \"Zweinstein, Alberto\",\n        \"username\": \"\",\n        \"role\": \"Chief Investigator\",\n        \"orcid\": null\n    },\n    \"contributor_data_manager\": {\n        \"text_full_name\": \"Prof Paul Gleeson\",\n        \"full_name_honorific\": \"\",\n        \"email\": \"notAReal@email.edu.au\",\n        \"given_name\": \"\",\n        \"family_name\": \"\",\n        \"honorific\": \"\",\n        \"full_name_family_name_first\": \"\",\n        \"username\": \"\",\n        \"role\": \"Data manager\",\n        \"orcid\": \"http://orcid.org/0000-0000-0000-000\"\n    },\n    \"contributors\": [\n        {\n            \"text_full_name\": \"Prof Paul Gleeson\",\n            \"full_name_honorific\": \"\",\n            \"email\": \"notAReal@email.edu.au\",\n            \"given_name\": \"\",\n            \"family_name\": \"\",\n            \"honorific\": \"\",\n            \"full_name_family_name_first\": \"\",\n            \"username\": \"\",\n            \"role\": \"Contributors\",\n            \"orcid\": \"http://orcid.org/0000-0000-0000-000\"\n        }\n    ],\n    \"contributor_supervisor\": {\n        \"text_full_name\": \"\",\n        \"full_name_honorific\": \"\",\n        \"email\": \"\",\n        \"given_name\": \"\",\n        \"family_name\": \"\",\n        \"honorific\": \"\",\n        \"full_name_family_name_first\": \"\",\n        \"username\": \"\",\n        \"role\": \"Supervisor\",\n        \"orcid\": null\n    },\n    \"dataowner_name\": \"Alberto Zweinstein\",\n    \"dataowner_email\": \"alberto.zweinstein@example.edu.au\",\n    \"redbox:retentionPeriod_dc:date\": \"1year\",\n    \"redbox:retentionPeriod_dc:date_skos:note\": \"\",\n    \"disposalDate\": \"\",\n    \"related_publications\": [\n        {\n            \"related_url\": \"\",\n            \"related_title\": \"\",\n            \"related_notes\": \"\"\n        }\n    ],\n    \"dataLocations\": [\n        {\n            \"type\": \"attachment\",\n            \"location\": \"{{dataRecordOid}}/attach/{{attachmentId}}\",\n            \"mimeType\": \"image/png\",\n            \"name\": \"Screen Shot 2018-11-26 at 3.39.48 pm.png\",\n            \"fileId\": \"{{attachmentId}}\",\n            \"uploadUrl\": \"http:{{attachmentLocation}}\"\n        }\n    ],\n    \"software_equipment\": \"\"\n}"
+						},
+						"url": {
+							"raw": "{{host}}/default/rdmp/recordmeta/{{dataRecordOid}}",
+							"host": [
+								"{{host}}"
+							],
+							"path": [
+								"default",
+								"rdmp",
+								"recordmeta",
+								"{{dataRecordOid}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Download attachment",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "f9e26ce5-f418-4902-9fce-e3cceca697cc",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Cookie",
+								"value": "{{cookie}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "{{host}}/default/rdmp/record/{{dataRecordOid}}/attach/{{attachmentId}}",
+							"host": [
+								"{{host}}"
+							],
+							"path": [
+								"default",
+								"rdmp",
+								"record",
+								"{{dataRecordOid}}",
+								"attach",
+								"{{attachmentId}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get all Record Types Info",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "387e6396-c6ff-44cb-9d87-eba940d2e05f",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Reponse is an array with more than one result\", function () {",
+									"    ",
+									"});",
+									"",
+									"",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Pragma",
+								"value": "no-cache"
+							},
+							{
+								"key": "Accept-Encoding",
+								"value": "gzip, deflate, br"
+							},
+							{
+								"key": "X-CSRF-Token",
+								"value": ""
+							},
+							{
+								"key": "Accept-Language",
+								"value": "en-US,en;q=0.9,en-AU;q=0.8,it;q=0.7"
+							},
+							{
+								"key": "User-Agent",
+								"value": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.102 Safari/537.36"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json;charset=utf-8"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json, text/plain, */*"
+							},
+							{
+								"key": "Connection",
+								"value": "keep-alive"
+							},
+							{
+								"key": "Referer",
+								"value": "{{host}}/default/rdmp/record/search?q=Record"
+							},
+							{
+								"key": "Cookie",
+								"value": "{{cookie}}"
+							},
+							{
+								"key": "X-Source",
+								"value": "jsclient"
+							},
+							{
+								"key": "Cache-Control",
+								"value": "no-cache"
+							}
+						],
+						"body": {},
+						"url": {
+							"raw": "{{host}}/default/rdmp/record/type/",
+							"host": [
+								"{{host}}"
+							],
+							"path": [
+								"default",
+								"rdmp",
+								"record",
+								"type",
+								""
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get DataRecord Type info",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "387e6396-c6ff-44cb-9d87-eba940d2e05f",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response is correct package type\", function () {",
+									"     var jsonData = pm.response.json();",
+									"     pm.expect(jsonData.packageType).to.eql(\"dataRecord\");",
+									"});",
+									"",
+									"",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Pragma",
+								"value": "no-cache"
+							},
+							{
+								"key": "Accept-Encoding",
+								"value": "gzip, deflate, br"
+							},
+							{
+								"key": "X-CSRF-Token",
+								"value": ""
+							},
+							{
+								"key": "Accept-Language",
+								"value": "en-US,en;q=0.9,en-AU;q=0.8,it;q=0.7"
+							},
+							{
+								"key": "User-Agent",
+								"value": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.102 Safari/537.36"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json;charset=utf-8"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json, text/plain, */*"
+							},
+							{
+								"key": "Connection",
+								"value": "keep-alive"
+							},
+							{
+								"key": "Referer",
+								"value": "{{host}}/default/rdmp/record/search?q=Record"
+							},
+							{
+								"key": "Cookie",
+								"value": "{{cookie}}"
+							},
+							{
+								"key": "X-Source",
+								"value": "jsclient"
+							},
+							{
+								"key": "Cache-Control",
+								"value": "no-cache"
+							}
+						],
+						"body": {},
+						"url": {
+							"raw": "{{host}}/default/rdmp/record/type/dataRecord",
+							"host": [
+								"{{host}}"
+							],
+							"path": [
+								"default",
+								"rdmp",
+								"record",
+								"type",
+								"dataRecord"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get DataPublication Workflow Steps",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "387e6396-c6ff-44cb-9d87-eba940d2e05f",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"",
+									"pm.test(\"Response contains 7 steps\", function () {",
+									"     var jsonData = pm.response.json();",
+									"     pm.expect(jsonData.length).to.eql(7);",
+									"});",
+									"",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Pragma",
+								"value": "no-cache"
+							},
+							{
+								"key": "Accept-Encoding",
+								"value": "gzip, deflate, br"
+							},
+							{
+								"key": "X-CSRF-Token",
+								"value": ""
+							},
+							{
+								"key": "Accept-Language",
+								"value": "en-US,en;q=0.9,en-AU;q=0.8,it;q=0.7"
+							},
+							{
+								"key": "User-Agent",
+								"value": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.102 Safari/537.36"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json;charset=utf-8"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json, text/plain, */*"
+							},
+							{
+								"key": "Connection",
+								"value": "keep-alive"
+							},
+							{
+								"key": "Referer",
+								"value": "{{host}}/default/rdmp/record/search?q=Record"
+							},
+							{
+								"key": "Cookie",
+								"value": "{{cookie}}"
+							},
+							{
+								"key": "X-Source",
+								"value": "jsclient"
+							},
+							{
+								"key": "Cache-Control",
+								"value": "no-cache"
+							}
+						],
+						"body": {},
+						"url": {
+							"raw": "{{host}}/default/rdmp/record/wfSteps/dataPublication",
+							"host": [
+								"{{host}}"
+							],
+							"path": [
+								"default",
+								"rdmp",
+								"record",
+								"wfSteps",
+								"dataPublication"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Search Index",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "1a35de5f-c1ec-4141-8830-cf6461a03d47",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Has record array\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property(\"records\");",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Pragma",
+								"value": "no-cache"
+							},
+							{
+								"key": "Accept-Encoding",
+								"value": "gzip, deflate, br"
+							},
+							{
+								"key": "X-CSRF-Token",
+								"value": ""
+							},
+							{
+								"key": "Accept-Language",
+								"value": "en-US,en;q=0.9,en-AU;q=0.8,it;q=0.7"
+							},
+							{
+								"key": "User-Agent",
+								"value": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.102 Safari/537.36"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json;charset=utf-8"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json, text/plain, */*"
+							},
+							{
+								"key": "Connection",
+								"value": "keep-alive"
+							},
+							{
+								"key": "Referer",
+								"value": "{{host}}/default/rdmp/record/search?q=Record"
+							},
+							{
+								"key": "Cookie",
+								"value": "{{cookie}}"
+							},
+							{
+								"key": "X-Source",
+								"value": "jsclient"
+							},
+							{
+								"key": "Cache-Control",
+								"value": "no-cache"
+							}
+						],
+						"body": {},
+						"url": {
+							"raw": "{{host}}/default/rdmp/record/search/rdmp/?searchStr=Andrew&facetNames=grant_number_name,finalKeywords,workflow_stageLabel",
+							"host": [
+								"{{host}}"
+							],
+							"path": [
+								"default",
+								"rdmp",
+								"record",
+								"search",
+								"rdmp",
+								""
+							],
+							"query": [
+								{
+									"key": "searchStr",
+									"value": "Andrew"
+								},
+								{
+									"key": "facetNames",
+									"value": "grant_number_name,finalKeywords,workflow_stageLabel"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create data publication",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "e1d55d77-af8f-4936-986d-944eebee26dc",
+								"exec": [
+									"",
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Test oid exists\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('oid');",
+									"    postman.setEnvironmentVariable(\"dataPublicationOid\", jsonData.oid);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Pragma",
+								"value": "no-cache"
+							},
+							{
+								"key": "Origin",
+								"value": "{{host}}"
+							},
+							{
+								"key": "Accept-Encoding",
+								"value": "gzip, deflate, br"
+							},
+							{
+								"key": "X-CSRF-Token",
+								"value": ""
+							},
+							{
+								"key": "Accept-Language",
+								"value": "en-US,en;q=0.9,en-AU;q=0.8,it;q=0.7"
+							},
+							{
+								"key": "User-Agent",
+								"value": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.102 Safari/537.36"
+							},
+							{
+								"key": "X-Source",
+								"value": "jsclient"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json;charset=UTF-8"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json, text/plain, */*"
+							},
+							{
+								"key": "Cache-Control",
+								"value": "no-cache"
+							},
+							{
+								"key": "Referer",
+								"value": "{{host}}/default/rdmp/record/dataPublication/edit"
+							},
+							{
+								"key": "Cookie",
+								"value": "{{cookie}}"
+							},
+							{
+								"key": "Connection",
+								"value": "keep-alive"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"parameterRetriever\": \"\",\n    \"dataRecordGetter\": \"\",\n    \"\": {},\n    \"dataRecord\": {\n        \"oid\": \"{{dataRecordOid}}\",\n        \"title\": \"A Data record\"\n    },\n    \"title\": \"A Data record\",\n    \"description\": \"Data record\",\n    \"dc:subject_anzsrc:toa_rdf:resource\": \"collection\",\n    \"finalKeywords\": [\n        \"270199\",\n        \"Golgi apparatus\",\n        \"endocytosis\",\n        \"membrane transport\",\n        \"protein trafficking\",\n        \"secretion\",\n        \"HIV-AIDS\",\n        \"bacterial pathogen\",\n        \"hormone secretion\",\n        \"immune development\",\n        \"lysosomal storage disorder\"\n    ],\n    \"foaf:fundedBy_foaf:Agent\": [\n        {}\n    ],\n    \"foaf:fundedBy_vivo:Grant\": [\n        {}\n    ],\n    \"dc:subject_anzsrc:for\": [\n        {\n            \"name\": \"01 - MATHEMATICAL SCIENCES\",\n            \"label\": \"MATHEMATICAL SCIENCES\",\n            \"notation\": \"01\"\n        }\n    ],\n    \"dc:subject_anzsrc:seo\": [],\n    \"startDate\": \"\",\n    \"endDate\": \"\",\n    \"timePeriod\": \"\",\n    \"geolocations\": [\n        \"\"\n    ],\n    \"geospatial\": {},\n    \"accessRightsToggle\": \"\",\n    \"dataLocations\": [\n        {\n            \"type\": \"attachment\",\n            \"location\": \"b869b4fae83a1f01082465d165d868a8/attach/d3de61376e5bc93c814607ee604ebac5\",\n            \"mimeType\": \"image/png\",\n            \"name\": \"Screen Shot 2018-11-26 at 3.39.48 pm.png\",\n            \"fileId\": \"d3de61376e5bc93c814607ee604ebac5\",\n            \"uploadUrl\": \"http://localhost:1500/default/rdmp/record/b869b4fae83a1f01082465d165d868a8/attach/d3de61376e5bc93c814607ee604ebac5\",\n            \"selected\": true\n        }\n    ],\n    \"dataLicensingAccess_manager\": \"Prof Paul Gleeson\",\n    \"dc:accessRights\": \"Open\",\n    \"accessRights_url\": \"\",\n    \"related_publications\": [\n        {\n            \"related_title\": \"\",\n            \"related_url\": \"\",\n            \"related_notes\": \"\"\n        }\n    ],\n    \"related_websites\": [\n        {\n            \"related_title\": \"\",\n            \"related_url\": \"\",\n            \"related_notes\": \"\"\n        }\n    ],\n    \"related_metadata\": [\n        {\n            \"related_title\": \"\",\n            \"related_url\": \"\",\n            \"related_notes\": \"\"\n        }\n    ],\n    \"related_data\": [\n        {\n            \"related_title\": \"\",\n            \"related_url\": \"\",\n            \"related_notes\": \"\"\n        }\n    ],\n    \"related_services\": [\n        {\n            \"related_title\": \"\",\n            \"related_url\": \"\",\n            \"related_notes\": \"\"\n        }\n    ],\n    \"license_identifier\": \"\",\n    \"license_notes\": \"\",\n    \"license_other_url\": \"\",\n    \"license_statement\": \"Copyright ReDBox Research Data 2018\",\n    \"license_statement_url\": \"\",\n    \"citation_doi\": \"\",\n    \"requestIdentifier\": [],\n    \"citation_title\": \"A Data Record\",\n    \"creators\": [\n        {\n            \"text_full_name\": \"Alberto Zweinstein\",\n            \"email\": \"alberto.zweinstein@example.edu.au\",\n            \"role\": \"Chief Investigator\",\n            \"username\": \"\",\n            \"orcid\": \"\",\n            \"family_name\": \"Zweinstein\",\n            \"given_name\": \"Alberto\"\n        },\n        {\n            \"text_full_name\": \"Prof Paul Gleeson\",\n            \"email\": \"notAReal@email.edu.au\",\n            \"role\": \"Data manager\",\n            \"username\": \"\",\n            \"orcid\": \"http://orcid.org/0000-0000-0000-000\",\n            \"family_name\": \"Paul Gleeson\",\n            \"given_name\": \"Prof\"\n        },\n        {\n            \"text_full_name\": \"Prof Paul Gleeson\",\n            \"email\": \"notAReal@email.edu.au\",\n            \"role\": \"Contributors\",\n            \"username\": \"\",\n            \"orcid\": \"http://orcid.org/0000-0000-0000-000\",\n            \"family_name\": \"Paul Gleeson\",\n            \"given_name\": \"Prof\"\n        },\n        {\n            \"text_full_name\": null,\n            \"email\": null,\n            \"role\": \"Supervisor\",\n            \"username\": \"\",\n            \"orcid\": \"\",\n            \"family_name\": \"\",\n            \"given_name\": \"\"\n        }\n    ],\n    \"citation_publisher\": \"ReDBox Research Data\",\n    \"citation_url\": \"\",\n    \"citation_publication_date\": \"\",\n    \"citation_generated\": \"Zweinstein, Alberto; Paul Gleeson, Prof; Paul Gleeson, Prof (Invalid date): A Data Record. ReDBox Research Data. {ID_WILL_BE_HERE}\",\n    \"dataowner_name\": \"Alberto Zweinstein\",\n    \"dataowner_email\": \"alberto.zweinstein@example.edu.au\",\n    \"contributor_ci\": {\n        \"text_full_name\": \"Alberto Zweinstein\",\n        \"full_name_honorific\": \"Dr Alberto Zweinstein\",\n        \"email\": \"alberto.zweinstein@example.edu.au\",\n        \"given_name\": \"Alberto\",\n        \"family_name\": \"Zweinstein\",\n        \"honorific\": \"Dr\",\n        \"full_name_family_name_first\": \"Zweinstein, Alberto\",\n        \"username\": \"\",\n        \"role\": \"Chief Investigator\"\n    },\n    \"contributor_data_manager\": {\n        \"text_full_name\": \"Prof Paul Gleeson\",\n        \"full_name_honorific\": \"\",\n        \"email\": \"notAReal@email.edu.au\",\n        \"given_name\": \"Prof\",\n        \"family_name\": \"Paul Gleeson\",\n        \"honorific\": \"\",\n        \"full_name_family_name_first\": \"Paul Gleeson, Prof\",\n        \"username\": \"\",\n        \"role\": \"Data manager\",\n        \"orcid\": \"http://orcid.org/0000-0000-0000-000\"\n    },\n    \"contributor_supervisor\": {\n        \"text_full_name\": \"\",\n        \"full_name_honorific\": \"\",\n        \"email\": \"\",\n        \"given_name\": \"\",\n        \"family_name\": \"\",\n        \"honorific\": \"\",\n        \"full_name_family_name_first\": \"\",\n        \"username\": \"\",\n        \"role\": \"Supervisor\"\n    },\n    \"embargoByDate\": \"\",\n    \"embargoUntil\": null,\n    \"embargoNote\": \"\",\n    \"reviewerNote\": \"\",\n    \"ckanLocation\": \"\"\n}"
+						},
+						"url": {
+							"raw": "{{host}}/default/rdmp/recordmeta/dataPublication",
+							"host": [
+								"{{host}}"
+							],
+							"path": [
+								"default",
+								"rdmp",
+								"recordmeta",
+								"dataPublication"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Migrate data publication to reviewing",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "ee887fa6-7b9a-4ea2-94e6-d20a5d4b985d",
+								"exec": [
+									"",
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Test oid exists\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('oid');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Pragma",
+								"value": "no-cache"
+							},
+							{
+								"key": "Origin",
+								"value": "{{host}}"
+							},
+							{
+								"key": "Accept-Encoding",
+								"value": "gzip, deflate, br"
+							},
+							{
+								"key": "Accept-Language",
+								"value": "en-US,en;q=0.9,en-AU;q=0.8,it;q=0.7"
+							},
+							{
+								"key": "User-Agent",
+								"value": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.102 Safari/537.36"
+							},
+							{
+								"key": "X-Source",
+								"value": "jsclient"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json;charset=UTF-8"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json, text/plain, */*"
+							},
+							{
+								"key": "Cache-Control",
+								"value": "no-cache"
+							},
+							{
+								"key": "Referer",
+								"value": "{{host}}/default/rdmp/record/edit/49a33460c794498a56fa29ed08567cc4"
+							},
+							{
+								"key": "Cookie",
+								"value": "{{cookie}}"
+							},
+							{
+								"key": "Connection",
+								"value": "keep-alive"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"parameterRetriever\": \"\",\n    \"dataRecordGetter\": \"\",\n    \"\": {},\n    \"dataRecord\": {\n        \"oid\": \"{{dataRecordOid}}\",\n        \"title\": \"A Data record\"\n    },\n    \"title\": \"A Data record\",\n    \"description\": \"Data record\",\n    \"dc:subject_anzsrc:toa_rdf:resource\": \"collection\",\n    \"finalKeywords\": [\n        \"270199\",\n        \"Golgi apparatus\",\n        \"endocytosis\",\n        \"membrane transport\",\n        \"protein trafficking\",\n        \"secretion\",\n        \"HIV-AIDS\",\n        \"bacterial pathogen\",\n        \"hormone secretion\",\n        \"immune development\",\n        \"lysosomal storage disorder\"\n    ],\n    \"foaf:fundedBy_foaf:Agent\": [\n        {}\n    ],\n    \"foaf:fundedBy_vivo:Grant\": [\n        {}\n    ],\n    \"dc:subject_anzsrc:for\": [\n        {\n            \"name\": \"01 - MATHEMATICAL SCIENCES\",\n            \"label\": \"MATHEMATICAL SCIENCES\",\n            \"notation\": \"01\"\n        }\n    ],\n    \"dc:subject_anzsrc:seo\": [],\n    \"startDate\": \"\",\n    \"endDate\": \"\",\n    \"timePeriod\": \"\",\n    \"geolocations\": [\n        \"\"\n    ],\n    \"geospatial\": {},\n    \"accessRightsToggle\": \"\",\n    \"dataLocations\": [\n        {\n            \"type\": \"attachment\",\n            \"location\": \"b869b4fae83a1f01082465d165d868a8/attach/d3de61376e5bc93c814607ee604ebac5\",\n            \"mimeType\": \"image/png\",\n            \"name\": \"Screen Shot 2018-11-26 at 3.39.48 pm.png\",\n            \"fileId\": \"d3de61376e5bc93c814607ee604ebac5\",\n            \"uploadUrl\": \"http://localhost:1500/default/rdmp/record/b869b4fae83a1f01082465d165d868a8/attach/d3de61376e5bc93c814607ee604ebac5\",\n            \"selected\": true\n        }\n    ],\n    \"dataLicensingAccess_manager\": \"Prof Paul Gleeson\",\n    \"dc:accessRights\": \"Open\",\n    \"accessRights_url\": \"\",\n    \"related_publications\": [\n        {\n            \"related_title\": \"\",\n            \"related_url\": \"\",\n            \"related_notes\": \"\"\n        }\n    ],\n    \"related_websites\": [\n        {\n            \"related_title\": \"\",\n            \"related_url\": \"\",\n            \"related_notes\": \"\"\n        }\n    ],\n    \"related_metadata\": [\n        {\n            \"related_title\": \"\",\n            \"related_url\": \"\",\n            \"related_notes\": \"\"\n        }\n    ],\n    \"related_data\": [\n        {\n            \"related_title\": \"\",\n            \"related_url\": \"\",\n            \"related_notes\": \"\"\n        }\n    ],\n    \"related_services\": [\n        {\n            \"related_title\": \"\",\n            \"related_url\": \"\",\n            \"related_notes\": \"\"\n        }\n    ],\n    \"license_identifier\": \"\",\n    \"license_notes\": \"\",\n    \"license_other_url\": \"\",\n    \"license_statement\": \"Copyright ReDBox Research Data 2018\",\n    \"license_statement_url\": \"\",\n    \"citation_doi\": \"\",\n    \"requestIdentifier\": [],\n    \"citation_title\": \"A Data Record\",\n    \"creators\": [\n        {\n            \"text_full_name\": \"Alberto Zweinstein\",\n            \"email\": \"alberto.zweinstein@example.edu.au\",\n            \"role\": \"Chief Investigator\",\n            \"username\": \"\",\n            \"orcid\": \"\",\n            \"family_name\": \"Zweinstein\",\n            \"given_name\": \"Alberto\"\n        },\n        {\n            \"text_full_name\": \"Prof Paul Gleeson\",\n            \"email\": \"notAReal@email.edu.au\",\n            \"role\": \"Data manager\",\n            \"username\": \"\",\n            \"orcid\": \"http://orcid.org/0000-0000-0000-000\",\n            \"family_name\": \"Paul Gleeson\",\n            \"given_name\": \"Prof\"\n        },\n        {\n            \"text_full_name\": \"Prof Paul Gleeson\",\n            \"email\": \"notAReal@email.edu.au\",\n            \"role\": \"Contributors\",\n            \"username\": \"\",\n            \"orcid\": \"http://orcid.org/0000-0000-0000-000\",\n            \"family_name\": \"Paul Gleeson\",\n            \"given_name\": \"Prof\"\n        },\n        {\n            \"text_full_name\": null,\n            \"email\": null,\n            \"role\": \"Supervisor\",\n            \"username\": \"\",\n            \"orcid\": \"\",\n            \"family_name\": \"\",\n            \"given_name\": \"\"\n        }\n    ],\n    \"citation_publisher\": \"ReDBox Research Data\",\n    \"citation_url\": \"\",\n    \"citation_publication_date\": \"\",\n    \"citation_generated\": \"Zweinstein, Alberto; Paul Gleeson, Prof; Paul Gleeson, Prof (Invalid date): A Data Record. ReDBox Research Data. {ID_WILL_BE_HERE}\",\n    \"dataowner_name\": \"Alberto Zweinstein\",\n    \"dataowner_email\": \"alberto.zweinstein@example.edu.au\",\n    \"contributor_ci\": {\n        \"text_full_name\": \"Alberto Zweinstein\",\n        \"full_name_honorific\": \"Dr Alberto Zweinstein\",\n        \"email\": \"alberto.zweinstein@example.edu.au\",\n        \"given_name\": \"Alberto\",\n        \"family_name\": \"Zweinstein\",\n        \"honorific\": \"Dr\",\n        \"full_name_family_name_first\": \"Zweinstein, Alberto\",\n        \"username\": \"\",\n        \"role\": \"Chief Investigator\"\n    },\n    \"contributor_data_manager\": {\n        \"text_full_name\": \"Prof Paul Gleeson\",\n        \"full_name_honorific\": \"\",\n        \"email\": \"notAReal@email.edu.au\",\n        \"given_name\": \"Prof\",\n        \"family_name\": \"Paul Gleeson\",\n        \"honorific\": \"\",\n        \"full_name_family_name_first\": \"Paul Gleeson, Prof\",\n        \"username\": \"\",\n        \"role\": \"Data manager\",\n        \"orcid\": \"http://orcid.org/0000-0000-0000-000\"\n    },\n    \"contributor_supervisor\": {\n        \"text_full_name\": \"\",\n        \"full_name_honorific\": \"\",\n        \"email\": \"\",\n        \"given_name\": \"\",\n        \"family_name\": \"\",\n        \"honorific\": \"\",\n        \"full_name_family_name_first\": \"\",\n        \"username\": \"\",\n        \"role\": \"Supervisor\"\n    },\n    \"embargoByDate\": \"\",\n    \"embargoUntil\": null,\n    \"embargoNote\": \"\",\n    \"reviewerNote\": \"\",\n    \"ckanLocation\": \"\"\n}"
+						},
+						"url": {
+							"raw": "http://localhost:1500/default/rdmp/recordmeta/{{dataPublicationOid}}?targetStep=reviewing",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "1500",
+							"path": [
+								"default",
+								"rdmp",
+								"recordmeta",
+								"{{dataPublicationOid}}"
+							],
+							"query": [
+								{
+									"key": "targetStep",
+									"value": "reviewing"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete the created data record",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Pragma",
+								"value": "no-cache"
+							},
+							{
+								"key": "Origin",
+								"value": "{{host}}"
+							},
+							{
+								"key": "Accept-Encoding",
+								"value": "gzip, deflate, br"
+							},
+							{
+								"key": "Accept-Language",
+								"value": "en-US,en;q=0.9,en-AU;q=0.8,it;q=0.7"
+							},
+							{
+								"key": "User-Agent",
+								"value": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.102 Safari/537.36"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json;charset=utf-8"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json, text/plain, */*"
+							},
+							{
+								"key": "Connection",
+								"value": "keep-alive"
+							},
+							{
+								"key": "Referer",
+								"value": "http://localhost:1500/default/rdmp/record/edit/ee3a12b7a95dd42619ebe16ecd2461f9"
+							},
+							{
+								"key": "Cookie",
+								"value": "{{cookie}}"
+							},
+							{
+								"key": "X-Source",
+								"value": "jsclient"
+							},
+							{
+								"key": "Cache-Control",
+								"value": "no-cache"
+							}
+						],
+						"body": {},
+						"url": {
+							"raw": "{{host}}/default/rdmp/record/delete/{{dataRecordOid}}",
+							"host": [
+								"{{host}}"
+							],
+							"path": [
+								"default",
+								"rdmp",
+								"record",
+								"delete",
+								"{{dataRecordOid}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Logout Admin User",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "6360a8d5-f8da-4540-b20b-8f6d3c1a02de",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Connection",
+								"value": "keep-alive"
+							},
+							{
+								"key": "Pragma",
+								"value": "no-cache"
+							},
+							{
+								"key": "Cache-Control",
+								"value": "no-cache"
+							},
+							{
+								"key": "Upgrade-Insecure-Requests",
+								"value": "1"
+							},
+							{
+								"key": "User-Agent",
+								"value": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.102 Safari/537.36"
+							},
+							{
+								"key": "Accept",
+								"value": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8"
+							},
+							{
+								"key": "Referer",
+								"value": "{{host}}/default/rdmp/researcher/home"
+							},
+							{
+								"key": "Accept-Encoding",
+								"value": "gzip, deflate, br"
+							},
+							{
+								"key": "Accept-Language",
+								"value": "en-US,en;q=0.9,en-AU;q=0.8,it;q=0.7"
+							},
+							{
+								"key": "Cookie",
+								"value": "{{cookie}}"
+							}
+						],
+						"body": {},
+						"url": {
+							"raw": "{{host}}/default/rdmp/user/logout",
+							"host": [
+								"{{host}}"
+							],
+							"path": [
+								"default",
+								"rdmp",
+								"user",
+								"logout"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get view form config for RDMP - Unauthorised",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "72f352bc-687f-46bd-9714-385416301e69",
+								"exec": [
+									"pm.test(\"Status code is 403\", function () {",
+									"    pm.response.to.have.status(403);",
+									"});",
+									"",
+									"pm.test(\"Message is access denied\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    ",
+									"    pm.expect(jsonData.message).to.eql(\"Access Denied\");",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							},
+							{
+								"key": "X-Source",
+								"value": "jsclient",
+								"type": "text"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json, text/plain, */*",
+								"type": "text"
+							},
+							{
+								"key": "Cookie",
+								"value": "{{cookie}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "{{host}}/default/rdmp/record/form/auto/{{dmpOid}}?edit=false",
+							"host": [
+								"{{host}}"
+							],
+							"path": [
+								"default",
+								"rdmp",
+								"record",
+								"form",
+								"auto",
+								"{{dmpOid}}"
+							],
+							"query": [
+								{
+									"key": "edit",
+									"value": "false"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Login via Internal authentication using researcheruser with invalid password",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "4f8e8675-14b8-4f9d-ae6e-52e0b7d5ae0f",
+								"exec": [
+									"postman.setGlobalVariable(\"cookie\",postman.getResponseHeader(\"set-cookie\") );",
+									"",
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Message is incorrect username/password\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.message).to.eql(\"Incorrect username/password\");",
+									"});",
+									"",
+									"pm.test(\"User is false\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.user).to.eql(false);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Pragma",
+								"value": "no-cache"
+							},
+							{
+								"key": "Origin",
+								"value": "{{host}}"
+							},
+							{
+								"key": "Accept-Encoding",
+								"value": "gzip, deflate, br"
+							},
+							{
+								"key": "X-CSRF-Token",
+								"value": ""
+							},
+							{
+								"key": "Accept-Language",
+								"value": "en-US,en;q=0.9,en-AU;q=0.8,it;q=0.7"
+							},
+							{
+								"key": "User-Agent",
+								"value": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.102 Safari/537.36"
+							},
+							{
+								"key": "X-Source",
+								"value": "jsclient"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json;charset=UTF-8"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json, text/plain, */*"
+							},
+							{
+								"key": "Cache-Control",
+								"value": "no-cache"
+							},
+							{
+								"key": "Referer",
+								"value": "{{host}}/default/rdmp/user/login"
+							},
+							{
+								"key": "Connection",
+								"value": "keep-alive"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"username\": \"researcheruser\",\n    \"password\": \"notthepassword\",\n    \"branding\": \"default\",\n    \"portal\": \"rdmp\"\n}"
+						},
+						"url": {
+							"raw": "http://localhost:1500/user/login_local",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "1500",
+							"path": [
+								"user",
+								"login_local"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Login via Internal authentication using researcher data",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "4f8e8675-14b8-4f9d-ae6e-52e0b7d5ae0f",
+								"exec": [
+									"postman.setGlobalVariable(\"cookie\",postman.getResponseHeader(\"set-cookie\") );",
+									"",
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Check that user returned is researcheruser\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.user.username).to.eql(\"researcheruser\");",
+									"});",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Pragma",
+								"value": "no-cache"
+							},
+							{
+								"key": "Origin",
+								"value": "{{host}}"
+							},
+							{
+								"key": "Accept-Encoding",
+								"value": "gzip, deflate, br"
+							},
+							{
+								"key": "X-CSRF-Token",
+								"value": ""
+							},
+							{
+								"key": "Accept-Language",
+								"value": "en-US,en;q=0.9,en-AU;q=0.8,it;q=0.7"
+							},
+							{
+								"key": "User-Agent",
+								"value": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.102 Safari/537.36"
+							},
+							{
+								"key": "X-Source",
+								"value": "jsclient"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json;charset=UTF-8"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json, text/plain, */*"
+							},
+							{
+								"key": "Cache-Control",
+								"value": "no-cache"
+							},
+							{
+								"key": "Referer",
+								"value": "{{host}}/default/rdmp/user/login"
+							},
+							{
+								"key": "Connection",
+								"value": "keep-alive"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"username\": \"researcheruser\",\n    \"password\": \"`Qw7654321\",\n    \"branding\": \"default\",\n    \"portal\": \"rdmp\"\n}"
+						},
+						"url": {
+							"raw": "http://localhost:1500/user/login_local",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "1500",
+							"path": [
+								"user",
+								"login_local"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Logout Researcher User",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "6360a8d5-f8da-4540-b20b-8f6d3c1a02de",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Connection",
+								"value": "keep-alive"
+							},
+							{
+								"key": "Pragma",
+								"value": "no-cache"
+							},
+							{
+								"key": "Cache-Control",
+								"value": "no-cache"
+							},
+							{
+								"key": "Upgrade-Insecure-Requests",
+								"value": "1"
+							},
+							{
+								"key": "User-Agent",
+								"value": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.102 Safari/537.36"
+							},
+							{
+								"key": "Accept",
+								"value": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8"
+							},
+							{
+								"key": "Referer",
+								"value": "{{host}}/default/rdmp/researcher/home"
+							},
+							{
+								"key": "Accept-Encoding",
+								"value": "gzip, deflate, br"
+							},
+							{
+								"key": "Accept-Language",
+								"value": "en-US,en;q=0.9,en-AU;q=0.8,it;q=0.7"
+							},
+							{
+								"key": "Cookie",
+								"value": "{{cookie}}"
+							}
+						],
+						"body": {},
+						"url": {
+							"raw": "{{host}}/default/rdmp/user/logout",
+							"host": [
+								"{{host}}"
+							],
+							"path": [
+								"default",
+								"rdmp",
+								"user",
+								"logout"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	]
+}

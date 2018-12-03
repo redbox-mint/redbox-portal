@@ -1,6 +1,7 @@
 var sails = require('sails');
 var _ = require('lodash');
 
+
 global.chai = require('chai');
 global.should = chai.should();
 global.expect = chai.expect;
@@ -10,7 +11,6 @@ before(function (done) {
 
   // Increase the Mocha timeout so that Sails has enough time to lift.
   this.timeout(120000);
-
   sails.lift({
        log: {
          level: 'verbose'
@@ -19,19 +19,27 @@ before(function (done) {
          grunt: false
        },
        models: {
-         connection: 'unitTestConnection',
+         datastore: 'mongodb',
          migrate: 'drop'
        },
-       connections: {
-         unitTestConnection: {
-           adapter: 'sails-disk'
+       security: {
+         csrf: false
+       },
+       auth: {
+         default: {
+           local: {
+             default: {
+               token: 'jA8mF8CBpwHGkJqlgg6dT3hEDoZTQIif5t1V9ElIcN8='
+             }
+           }
          }
        }
     }, function (err, server) {
        if (err) return done(err);
-       // here you can load fixtures, etc.
        done(err, sails);
   });
+
+
 });
 
 after(function (done) {

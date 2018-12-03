@@ -20,6 +20,7 @@
 //<reference path='./../../typings/loader.d.ts'/>
 declare var module;
 declare var sails;
+declare var _;
 declare var BrandingService, UsersService, ConfigService;
 import * as uuidv4 from 'uuid/v4';
 
@@ -111,7 +112,9 @@ export module Controllers {
       }
 
       public info(req, res) {
-        return res.json ({ user:req.user });
+        let user = req.user;
+        delete user.token;
+        return res.json ({ user: user });
       }
 
       public update(req, res) {

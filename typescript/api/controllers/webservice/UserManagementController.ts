@@ -26,6 +26,7 @@ declare var RolesService;
 declare var  DashboardService;
 declare var  UsersService;
 declare var  User;
+declare var _;
 /**
  * Package that contains all Controllers.
  */
@@ -72,6 +73,7 @@ export module Controllers {
       if(pageSize == null) {
         pageSize = 10;
       }
+      let skip = (page-1)*pageSize;
       User.count().exec(function (err,count) {
         var response = {};
         response["summary"] = {};
@@ -81,7 +83,10 @@ export module Controllers {
           response["records"] = [];
           return res.json(response);
     } else {
-      User.find().paginate({page: 1, limit: 10}).exec(function (err, users) {
+      User.find({ where: {}, limit: pageSize, skip: skip} ).exec(function (err, users) {
+        _.each(users, user=> {
+          delete user["token"];
+        });
         response["records"] = users;
         return res.json(response);
       });

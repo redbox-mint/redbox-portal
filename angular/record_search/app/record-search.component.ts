@@ -73,6 +73,9 @@ export class RecordSearchComponent extends LoadableComponent {
 
   ngOnInit() {
     this.translationService.isReady((tService:any)=> {
+      this.waitForInit([
+        this.recordsService
+        ], () => {
       this.recordsService.getAllTypes().then((typeConfs: any) => {
         _.each(typeConfs, typeConf => {
           this.recTypeNames.push(typeConf.name);
@@ -101,6 +104,7 @@ export class RecordSearchComponent extends LoadableComponent {
         }, ()=> {
         });
       });
+    });
     });
   }
 

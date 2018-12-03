@@ -27,6 +27,7 @@ declare var sails: Sails;
 declare var User, Role, BrandingConfig: Model;
 declare var BrandingService, RolesService, ConfigService, RecordsService;
 declare const Buffer;
+declare var _;
 
 export module Services {
   /**
@@ -228,7 +229,8 @@ export module Services {
             return super.getObservable(q, 'exec', 'simplecb')
               .flatMap(dUser => {
                 return Observable.from(defRoles)
-                  .map(role => {
+                  .map(roleObserved => {
+                    let role:any = roleObserved;
                     // START Sails 1.0 upgrade
                     // role.users.add(defUser.id)
                     q = Role.addToCollection(role.id, 'users').members([defUser.id]);

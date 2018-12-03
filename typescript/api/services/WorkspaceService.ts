@@ -6,6 +6,7 @@ import * as request from "request-promise";
 declare var RecordsService, BrandingService;
 declare var sails: Sails;
 declare var _this;
+declare var _;
 declare var Institution, User: Model, WorkspaceApp: Model, Form: Model;
 
 export module Services {

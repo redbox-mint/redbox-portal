@@ -1,5 +1,6 @@
 import { Observable } from 'rxjs/Rx';
-declare var sails: Sails;
+declare var sails;
+declare var _;
 
 export module Services.Core {
   export class Service {

@@ -8,6 +8,7 @@ module.exports.record = {
     search: {method: 'get', url: "/api/v1/search"},
     query: {method: 'post', url: "/api/v2/query"},
     getMeta: {method: 'get', url: "/api/v1/recordmetadata/$oid"},
+    info: {method: 'get', url: "/api/v1/info"},
     updateMeta: {method: 'post', url: "/api/v1/recordmetadata/$oid"},
     harvest: {method: 'post', url:"/api/v1.1/harvest/$packageType"},
     getDatastream: {method: 'get', url:"/api/v1/datastream/$oid", readTimeout: 120000},

@@ -35,7 +35,7 @@ import * as _ from "lodash";
   moduleId: module.id,
   selector: 'export-form',
   templateUrl: './export-form.html',
-  providers: [Location, {provide: LocationStrategy, useClass: PathLocationStrategy}]
+  providers: [Location, { provide: LocationStrategy, useClass: PathLocationStrategy }]
 })
 
 export class ExportFormComponent extends LoadableComponent {
@@ -52,24 +52,28 @@ export class ExportFormComponent extends LoadableComponent {
   constructor(
     elm: ElementRef,
     @Inject(Location) protected LocationService: Location,
-    translationService:TranslationService,
+    translationService: TranslationService,
     protected recordsService: RecordsService
   ) {
     super();
     this.timePickerOpts = false;
     this.hasClearButton = false;
-    this.datePickerOpts = {placeholder: 'dd/mm/yyyy', format: 'dd/mm/yyyy', icon: 'fa fa-calendar'};
+    this.datePickerOpts = { placeholder: 'dd/mm/yyyy', format: 'dd/mm/yyyy', icon: 'fa fa-calendar' };
     this.initTranslator(translationService);
-    translationService.isReady(tService => {
-      this.recordsService.getAllTypes().then((typeConfs: any) => {
-        this.recTypeNames = [];
-        _.each(typeConfs, typeConf => {
-          this.recTypeNames.push(typeConf.name);
+    this.waitForInit([
+      this.recordsService
+    ], () => {
+      translationService.isReady(tService => {
+        this.recordsService.getAllTypes().then((typeConfs: any) => {
+          this.recTypeNames = [];
+          _.each(typeConfs, typeConf => {
+            this.recTypeNames.push(typeConf.name);
+          });
+          this.record_type = this.recTypeNames[0];
+          this.checkIfHasLoaded();
         });
-        this.record_type = this.recTypeNames[0];
-        this.checkIfHasLoaded();
-      });
 
+      });
     });
   }
 

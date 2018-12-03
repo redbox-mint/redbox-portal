@@ -24,6 +24,7 @@ import { Observable } from 'rxjs/Rx';
 import moment from 'moment-es6';
 import * as tus from 'tus-node-server';
 import * as fs from 'fs';
+declare var _;
 
 declare var FormsService, RecordsService, WorkflowStepsService, BrandingService, RecordTypesService, TranslationService, User, EmailService, RolesService;
 /**
@@ -47,7 +48,7 @@ export module Controllers {
       'create',
       'update',
       'stepTo',
-      'modifyEditors',
+      // 'modifyEditors',
       'search',
       'getType',
       'getWorkflowSteps',
@@ -193,111 +194,108 @@ export module Controllers {
               let recType = rec.metadata.metaMetadata.type;
               let relatedRecords = RecordsService.getRelatedRecords(rec.oid, brand);
 
-              relatedRecords.then(relatedRecords =>{
+              relatedRecords.then(relatedRecords => {
 
-                  let relationships = relatedRecords['processedRelationships'];
+                let relationships = relatedRecords['processedRelationships'];
 
-                  let relatedObjects = relatedRecords['relatedObjects'];
+                let relatedObjects = relatedRecords['relatedObjects'];
 
-                  //If there are no relationships, the record isn't related to any others so manually inject the info needed to have this record processed
-                  if(relationships.indexOf(recType) == -1) {
-                    relationships.push(recType);
-                    relatedObjects[recType] = [ {redboxOid: rec.oid} ];
-                  }
-                  let relationshipCount = 0;
-                  _.each(relationships, relationship => {
-                     let relationshipObjects = relatedObjects[relationship];
-                      relationshipCount++;
-                      let relationshipObjectCount = 0;
-                     _.each(relationshipObjects, relationshipObject => {
+                //If there are no relationships, the record isn't related to any others so manually inject the info needed to have this record processed
+                if (relationships.indexOf(recType) == -1) {
+                  relationships.push(recType);
+                  relatedObjects[recType] = [{ redboxOid: rec.oid }];
+                }
+                let relationshipCount = 0;
+                _.each(relationships, relationship => {
+                  let relationshipObjects = relatedObjects[relationship];
+                  relationshipCount++;
+                  let relationshipObjectCount = 0;
+                  _.each(relationshipObjects, relationshipObject => {
 
-                       const oid = relationshipObject.redboxOid;
-                       let record = null;
-                         this.getRecord(oid)
-                         .flatMap((rec)=> {
-                           record = rec;
-                           return RecordTypesService.get(brand, record.metaMetadata.type);
-                         })
-                         .subscribe(recordTypeObj => {
-                           let recordType = record.metaMetadata.type;
-                           const transferConfig  = recordTypeObj['transferResponsibility'];
-                           if(transferConfig){
-                            record = this.updateResponsibility(transferConfig, role, record, updateData);
-                            sails.log.verbose(`Triggering pre-save for: ${oid}`);
-                            let observable = this.triggerPreSaveTriggers(oid, record, recordTypeObj);
-                            observable.then(record => {
-                                    sails.log.verbose(`Updating record ${oid}`);
-                                    sails.log.verbose(JSON.stringify(record));
-                                    RecordsService.updateMeta(brand, oid, record).subscribe(response => {
-                                      relationshipObjectCount++;
-                                      if (response && response.code == "200") {
-                                        if(oid == rec.oid) {
-                                          recordCtr++;
-                                        }
-                                        var to = toEmail;
-                                        var subject = "Ownership transfered";
-                                        var data = {};
-                                        data['record'] = record;
-                                        data['name'] = toName;
-                                        data['oid'] = oid;
-                                        EmailService.sendTemplate(to, subject, "transferOwnerTo", data);
+                    const oid = relationshipObject.redboxOid;
+                    let record = null;
+                    this.getRecord(oid)
+                      .flatMap((rec) => {
+                        record = rec;
+                        return RecordTypesService.get(brand, record.metaMetadata.type);
+                      })
+                      .subscribe(recordTypeObj => {
+
+                        const transferConfig = recordTypeObj['transferResponsibility'];
+                        if (transferConfig) {
+                          record = this.updateResponsibility(transferConfig, role, record, updateData);
+
+                          sails.log.verbose(`Updating record ${oid}`);
+                          sails.log.verbose(JSON.stringify(record));
+                          RecordsService.updateMeta(brand, oid, record).subscribe(response => {
+                            relationshipObjectCount++;
+                            if (response && response.code == "200") {
+                              if (oid == rec.oid) {
+                                recordCtr++;
+                              }
+                              var to = toEmail;
+                              var subject = "Ownership transfered";
+                              var data = {};
+                              data['record'] = record;
+                              data['name'] = toName;
+                              data['oid'] = oid;
+                              EmailService.sendTemplate(to, subject, "transferOwnerTo", data);
 
 
 
-                                        if (relationshipCount == relationships.length && relationshipObjectCount == relationshipObjects.length) {
-                                          completeRecordSet.push({success:true, record: record});
-                                          if (completeRecordSet.length == records.length) {
-                                            if (hasError) {
-                                              return this.ajaxFail(req, res, null, completeRecordSet);
-                                            } else {
-                                              return this.ajaxOk(req, res, null, completeRecordSet);
-                                            }
-                                          } else {
-                                            sails.log.verbose(`Completed record set:`);
-                                            sails.log.verbose(`${completeRecordSet.length} == ${records.length}`);
-                                          }
-                                        } else {
-                                          sails.log.verbose(`Record counter:`);
-                                          sails.log.verbose(`${recordCtr} == ${records.length} && ${relationshipCount} == ${relationships.length} && ${relationshipObjectCount} == ${relationshipObjects.length}`);
-                                        }
-                                      } else {
-                                        sails.log.error(`Failed to update authorization:`);
-                                        sails.log.error(response);
-                                        hasError = true;
-                                        completeRecordSet.push({success:false, error:response, record: record});
-                                        if (completeRecordSet.length == records.length) {
-                                          if (hasError) {
-                                            return this.ajaxFail(req, res, null, completeRecordSet);
-                                          } else {
-                                            return this.ajaxOk(req, res, null, completeRecordSet);
-                                          }
-                                        }
-                                      }
-                                    }, error => {
-                                      sails.log.error("Error updating auth:");
-                                      sails.log.error(error);
-                                      hasError = true;
-                                      completeRecordSet.push({success:false, error: error.message, record: record});
-                                      if (completeRecordSet.length == records.length) {
-                                        if (hasError) {
-                                          return this.ajaxFail(req, res, null, completeRecordSet);
-                                        } else {
-                                          return this.ajaxOk(req, res, null, completeRecordSet);
-                                        }
-                                      }
-                                    });
-                                  });
-
+                              if (relationshipCount == relationships.length && relationshipObjectCount == relationshipObjects.length) {
+                                completeRecordSet.push({ success: true, record: record });
+                                if (completeRecordSet.length == records.length) {
+                                  if (hasError) {
+                                    return this.ajaxFail(req, res, null, completeRecordSet);
+                                  } else {
+                                    return this.ajaxOk(req, res, null, completeRecordSet);
+                                  }
+                                } else {
+                                  sails.log.verbose(`Completed record set:`);
+                                  sails.log.verbose(`${completeRecordSet.length} == ${records.length}`);
                                 }
-                         });
-                     });
+                              } else {
+                                sails.log.verbose(`Record counter:`);
+                                sails.log.verbose(`${recordCtr} == ${records.length} && ${relationshipCount} == ${relationships.length} && ${relationshipObjectCount} == ${relationshipObjects.length}`);
+                              }
+                            } else {
+                              sails.log.error(`Failed to update authorization:`);
+                              sails.log.error(response);
+                              hasError = true;
+                              completeRecordSet.push({ success: false, error: response, record: record });
+                              if (completeRecordSet.length == records.length) {
+                                if (hasError) {
+                                  return this.ajaxFail(req, res, null, completeRecordSet);
+                                } else {
+                                  return this.ajaxOk(req, res, null, completeRecordSet);
+                                }
+                              }
+                            }
+                          }, error => {
+                            sails.log.error("Error updating auth:");
+                            sails.log.error(error);
+                            hasError = true;
+                            completeRecordSet.push({ success: false, error: error.message, record: record });
+                            if (completeRecordSet.length == records.length) {
+                              if (hasError) {
+                                return this.ajaxFail(req, res, null, completeRecordSet);
+                              } else {
+                                return this.ajaxOk(req, res, null, completeRecordSet);
+                              }
+                            }
+                          });
 
-                  })
-                });
+                        }
+                      });
+                  });
+
+                })
+              });
             } else {
               const errorMsg = `Attempted to transfer responsibilities, but user: '${user.username}' has no access to record: ${rec.oid}`;
               sails.log.error(errorMsg);
-              completeRecordSet.push({success:false, error:errorMsg, record: rec});
+              completeRecordSet.push({ success: false, error: errorMsg, record: rec });
               // send response in case failures occur in the last entry of the array
               if (completeRecordSet.length == records.length) {
                 if (hasError) {
@@ -324,8 +322,11 @@ export module Controllers {
       let obs = null;
       if (_.isEmpty(oid)) {
         obs = FormsService.getForm(brand.id, name, editMode, true).flatMap(form => {
-          this.mergeFields(req, res, form.fields, {});
-          return Observable.of(form);
+          let mergedForm = this.mergeFields(req, res, form.fields, name, {}).then(fields => {
+            form.fields = fields;
+            return form;
+          });
+          return mergedForm;
         });
       } else {
         // defaults to retrive the form of the current workflow state...
@@ -344,8 +345,12 @@ export module Controllers {
                   if (_.isEmpty(form)) {
                     return Observable.throw(new Error(`Error, getting form ${formName} for OID: ${oid}`));
                   }
-                  this.mergeFields(req, res, form.fields, currentRec.metadata);
-                  return Observable.of(form);
+                  let mergedForm = this.mergeFields(req, res, form.fields, currentRec.metaMetadata.type, currentRec.metadata).then(fields => {
+                    form.fields = fields;
+
+                    return form;
+                  });
+                  return mergedForm;
                 });
               });
           } else {
@@ -359,8 +364,11 @@ export module Controllers {
                   if (_.isEmpty(form)) {
                     return Observable.throw(new Error(`Error, getting form ${formName} for OID: ${oid}`));
                   }
-                  this.mergeFields(req, res, form.fields, currentRec.metadata);
-                  return Observable.of(form);
+                  return this.mergeFields(req, res, form.fields, currentRec.metaMetadata.type, currentRec.metadata).then(fields => {
+                    form.fields = fields;
+
+                    return form;
+                  });
                 });
               });
           }
@@ -387,7 +395,7 @@ export module Controllers {
     public create(req, res) {
       const brand = BrandingService.getBrand(req.session.branding);
       const metadata = req.body;
-      let record = { metaMetadata: {} };
+      let record: any = { metaMetadata: {} };
       var recType = req.param('recordType');
       const targetStep = req.param('targetStep');
       record.authorization = { view: [req.user.username], edit: [req.user.username] };
@@ -398,28 +406,25 @@ export module Controllers {
       record.metadata = metadata;
 
       RecordTypesService.get(brand, recType).subscribe(recordType => {
-        let packageType = recordType.packageType;
         let wfStepObs = WorkflowStepsService.getFirst(recordType);
         if (targetStep) {
           wfStepObs = WorkflowStepsService.get(recType, targetStep);
         }
         wfStepObs.subscribe(wfStep => {
-            this.updateWorkflowStep(record, wfStep);
-            let obs = this.triggerPreSaveTriggers(null, record, recordType, "onCreate");
-            obs.then(record => {
-              return this.createRecord(record, wfStep, brand, packageType, recordType, req, res);
-            });
-          }, error => {
-            this.ajaxFail(req, res, `Failed to save record: ${error}`);
-          });
+          RecordsService.updateWorkflowStep(record, wfStep);
+          return this.createRecord(record, brand, recordType, req, res);
+        }, error => {
+          this.ajaxFail(req, res, `Failed to save record: ${error}`);
+        });
       });
     }
 
-    private createRecord(record, wfStep, brand, packageType, recordType, req, res) {
-      RecordsService.create(brand, record, packageType).subscribe(response => {
+    private createRecord(record, brand, recordType, req, res) {
+      const user = req.user;
+
+      RecordsService.create(brand, record, recordType, user).subscribe(response => {
         if (response && response.code == "200") {
           response.success = true;
-          this.triggerPostSaveTriggers(response['oid'], record, recordType, 'onCreate');
           this.ajaxOk(req, res, null, response);
         } else {
           this.ajaxFail(req, res, null, response);
@@ -429,34 +434,9 @@ export module Controllers {
       });
     }
 
-    private triggerPostSaveTriggers(oid: string, record: any, recordType: any, mode: string = 'onUpdate') {
-      sails.log.debug("Triggering post save triggers ");
-      sails.log.debug(`hooks.${mode}.post`);
-      sails.log.debug(recordType);
-      let postSaveCreateHooks = _.get(recordType, `hooks.${mode}.post`, null);
-      if (_.isArray(postSaveCreateHooks)) {
-        _.each(postSaveCreateHooks, postSaveCreateHook => {
-          sails.log.debug(postSaveCreateHook);
-          let postSaveCreateHookFunctionString = _.get(postSaveCreateHook, "function", null);
-          if (postSaveCreateHookFunctionString != null) {
-            let postSaveCreateHookFunction = eval(postSaveCreateHookFunctionString);
-            let options = _.get(postSaveCreateHook, "options", {});
-            if (_.isFunction(postSaveCreateHookFunction)) {
-              postSaveCreateHookFunction(oid, record, options).subscribe(result => {
-                sails.log.debug(`post-save trigger ${postSaveCreateHookFunctionString} completed for ${oid}`)
-              });
-            } else {
-              sails.log.error(`Post save function: '${postSaveCreateHookFunctionString}' did not resolve to a valid function, what I got:`);
-              sails.log.error(postSaveCreateHookFunction);
-            }
-          }
-        });
-      }
-    }
 
     public delete(req, res) {
       const brand = BrandingService.getBrand(req.session.branding);
-      const metadata = req.body;
       const oid = req.param('oid');
       const user = req.user;
       let currentRec = null;
@@ -465,32 +445,32 @@ export module Controllers {
         currentRec = cr;
         return this.hasEditAccess(brand, user, currentRec);
       })
-      .flatMap(hasEditAccess => {
-        if (hasEditAccess) {
-          return RecordsService.delete(oid);
-        }
-        message = TranslationService.t('edit-error-no-permissions');
-        return Observable.throw(new Error(TranslationService.t('edit-error-no-permissions')));
-      })
-      .subscribe(response => {
-        if (response && response.code == "200") {
-          const resp = {success:true, oid: oid};
-          sails.log.verbose(`Successfully deleted: ${oid}`);
-          this.ajaxOk(req, res, null, resp);
-        } else {
-          this.ajaxFail(req, res, TranslationService.t('failed-delete'), {success: false, oid: oid, message: response.message});
-        }
-      }, error => {
-        sails.log.error("Error deleting:");
-        sails.log.error(error);
-        if (message == null) {
-          message = error.message;
-        } else
-        if (error.error && error.error.code == 500) {
-          message = TranslationService.t('missing-record');
-        }
-        this.ajaxFail(req, res, message);
-      });
+        .flatMap(hasEditAccess => {
+          if (hasEditAccess) {
+            return RecordsService.delete(oid);
+          }
+          message = TranslationService.t('edit-error-no-permissions');
+          return Observable.throw(new Error(TranslationService.t('edit-error-no-permissions')));
+        })
+        .subscribe(response => {
+          if (response && response.code == "200") {
+            const resp = { success: true, oid: oid };
+            sails.log.verbose(`Successfully deleted: ${oid}`);
+            this.ajaxOk(req, res, null, resp);
+          } else {
+            this.ajaxFail(req, res, TranslationService.t('failed-delete'), { success: false, oid: oid, message: response.message });
+          }
+        }, error => {
+          sails.log.error("Error deleting:");
+          sails.log.error(error);
+          if (message == null) {
+            message = error.message;
+          } else
+            if (error.error && error.error.code == 500) {
+              message = TranslationService.t('missing-record');
+            }
+          this.ajaxFail(req, res, message);
+        });
     }
 
     public update(req, res) {
@@ -520,15 +500,34 @@ export module Controllers {
           if (metadata.delete) {
             return Observable.of(currentRec);
           }
-          this.updateWorkflowStep(currentRec, nextStep);
+          let hasPermissionToTransition = true;
+          if (nextStep != undefined) {
+            if (nextStep.config != undefined) {
+              if (nextStep.config.authorization.transitionRoles != undefined) {
+                if (nextStep.config.authorization.transitionRoles.length > 0) {
+                  let validRoles = _.filter(nextStep.config.authorization.transitionRoles, role => {
+                    let val = _.find(user.roles, userRole => {
+                      return role == userRole;
+                    });
+                    if (val != undefined) {
+                      return true;
+                    }
+                    return false;
+                  });
+                  if (validRoles.length == 0) {
+                    hasPermissionToTransition = false;
+                  }
+                }
+              }
+            }
+          }
+          if (hasPermissionToTransition) {
+            RecordsService.updateWorkflowStep(currentRec, nextStep);
+          }
           origRecord = _.cloneDeep(currentRec);
           currentRec.metadata = metadata;
 
-          let observable = this.triggerPreSaveTriggers(oid, currentRec, recType);
-
-          return observable.then(record => {
-            return record
-          });
+          return Observable.of(currentRec);
 
         }).subscribe(record => {
           if (metadata.delete) {
@@ -557,11 +556,10 @@ export module Controllers {
             return FormsService.getFormByName(currentRec.metaMetadata.form, true)
               .flatMap(form => {
                 currentRec.metaMetadata.attachmentFields = form.attachmentFields;
-                return this.updateMetadata(brand, oid, currentRec, user.username);
+                return this.updateMetadata(brand, oid, currentRec, user);
               })
               .subscribe(response => {
                 if (response && response.code == "200") {
-                  this.triggerPostSaveTriggers(response['oid'], currentRec, recType);
                   return this.updateDataStream(oid, origRecord, metadata, response, req, res);
                 } else {
                   this.ajaxFail(req, res, null, response);
@@ -578,33 +576,7 @@ export module Controllers {
 
 
 
-    private async triggerPreSaveTriggers(oid: string, record: any, recordType: object, mode: string = 'onUpdate') {
-      sails.log.verbose("Triggering pre save triggers for record type: ");
-      sails.log.verbose(`hooks.${mode}.pre`);
-      sails.log.verbose(JSON.stringify(recordType));
 
-      let preSaveUpdateHooks = _.get(recordType, `hooks.${mode}.pre`, null);
-      sails.log.debug(preSaveUpdateHooks);
-
-      if (_.isArray(preSaveUpdateHooks)) {
-
-        for(var i=0; i <preSaveUpdateHooks.length; i++) {
-        let preSaveUpdateHook = preSaveUpdateHooks[i];
-          let preSaveUpdateHookFunctionString = _.get(preSaveUpdateHook, "function", null);
-          if (preSaveUpdateHookFunctionString != null) {
-            let preSaveUpdateHookFunction = eval(preSaveUpdateHookFunctionString);
-            let options = _.get(preSaveUpdateHook, "options", {});
-
-
-              sails.log.verbose(`Triggering pre save triggers: ${preSaveUpdateHookFunctionString}`);
-              record = await preSaveUpdateHookFunction(oid, record, options).toPromise();
-
-
-          }
-        }
-      }
-      return record;
-    }
     /**
      * Handles data stream updates, atm, this call is terminal.
      */
@@ -654,32 +626,22 @@ export module Controllers {
 
     protected saveMetadata(brand, oid, currentRec, metadata, user): Observable<any> {
       currentRec.metadata = metadata;
-      return this.updateMetadata(brand, oid, currentRec, user.username);
+      return this.updateMetadata(brand, oid, currentRec, user);
     }
 
     protected saveAuthorization(brand, oid, currentRec, authorization, user): Observable<any> {
       return this.hasEditAccess(brand, user, currentRec)
         .flatMap(hasEditAccess => {
-          currentRec.authorization = authorization;
-          return this.updateAuthorization(brand, oid, currentRec, user.username);
+          if (hasEditAccess) {
+            currentRec.authorization = authorization;
+            return this.updateAuthorization(brand, oid, currentRec, user);
+          } else {
+            return { code: 403, message: "Not authorized to edit" };
+          }
         });
     }
 
-    protected updateWorkflowStep(currentRec, nextStep) {
-      if (!_.isEmpty(nextStep)) {
-        currentRec.previousWorkflow = currentRec.workflow;
-        currentRec.workflow = nextStep.config.workflow;
-        // TODO: validate data with form fields
-        currentRec.metaMetadata.form = nextStep.config.form;
-        // Check for JSON-LD config
-        if (sails.config.jsonld.addJsonLdContext) {
-          currentRec.metadata['@context'] = sails.config.jsonld.contexts[currentRec.metaMetadata.form];
-        }
-        // update authorizations based on workflow...
-        currentRec.authorization.viewRoles = nextStep.config.authorization.viewRoles;
-        currentRec.authorization.editRoles = nextStep.config.authorization.editRoles;
-      }
-    }
+
 
     protected getRecord(oid) {
       return RecordsService.getMeta(oid).flatMap(currentRec => {
@@ -690,22 +652,22 @@ export module Controllers {
       });
     }
 
-    protected updateMetadata(brand, oid, currentRec, username) {
+    protected updateMetadata(brand, oid, currentRec, user) {
       if (currentRec.metaMetadata.brandId != brand.id) {
         return Observable.throw(new Error(`Failed to update meta, brand's don't match: ${currentRec.metaMetadata.brandId} != ${brand.id}, with oid: ${oid}`));
       }
-      currentRec.metaMetadata.lastSavedBy = username;
+      currentRec.metaMetadata.lastSavedBy = user.username;
       currentRec.metaMetadata.lastSaveDate = moment().format();
       sails.log.verbose(`Calling record service...`);
       sails.log.verbose(currentRec);
-      return RecordsService.updateMeta(brand, oid, currentRec);
+      return RecordsService.updateMeta(brand, oid, currentRec, user);
     }
 
-    protected updateAuthorization(brand, oid, currentRec, username) {
+    protected updateAuthorization(brand, oid, currentRec, user) {
       if (currentRec.metaMetadata.brandId != brand.id) {
         return Observable.throw(new Error(`Failed to update meta, brand's don't match: ${currentRec.metaMetadata.brandId} != ${brand.id}, with oid: ${oid}`));
       }
-      return RecordsService.updateMeta(brand, oid, currentRec);
+      return RecordsService.updateMeta(brand, oid, currentRec, user);
     }
 
     public stepTo(req, res) {
@@ -731,26 +693,37 @@ export module Controllers {
                 sails.log.verbose(currentRec);
                 sails.log.verbose("Next step:");
                 sails.log.verbose(nextStep);
-                this.updateWorkflowStep(currentRec, nextStep);
-                return this.updateMetadata(brand, oid, currentRec, req.user.username);
+                RecordsService.updateWorkflowStep(currentRec, nextStep);
+                return this.updateMetadata(brand, oid, currentRec, req.user);
               });
           })
       })
         .subscribe(response => {
-          if (response && response.code == "200") {
-            response.success = true;
-            this.ajaxOk(req, res, null, response);
-          } else {
-            this.ajaxFail(req, res, null, response);
-          }
-        }, error => {
-          sails.log.error("Error updating meta:");
-          sails.log.error(error);
-          this.ajaxFail(req, res, error.message);
+          return response.subscribe(response => {
+            sails.log.error(response);
+            if (response && response.code == "200") {
+              response.success = true;
+              this.ajaxOk(req, res, null, response);
+            } else {
+              this.ajaxFail(req, res, null, response);
+            }
+          }, error => {
+            sails.log.error("Error updating meta:");
+            sails.log.error(error);
+            this.ajaxFail(req, res, error.message);
+          });
         });
     }
 
-    protected mergeFields(req, res, fields, metadata) {
+    protected async mergeFields(req, res, fields, type, metadata) {
+
+      let recordType = await RecordTypesService.get(BrandingService.getBrand(req.session.branding), type).toPromise();
+      let workflowSteps = await WorkflowStepsService.getAllForRecordType(recordType).toPromise();
+      this.mergeFieldsSync(req, res, fields, metadata, workflowSteps);
+      return fields;
+    }
+
+    protected mergeFieldsSync(req, res, fields, metadata, workflowSteps) {
       const fieldsToDelete = [];
       _.forEach(fields, field => {
         if (_.has(metadata, field.definition.name)) {
@@ -768,13 +741,36 @@ export module Controllers {
             fieldsToDelete.push(field);
           }
         }
+
+        if (field.class == "SaveButton") {
+          if (field.definition.targetStep) {
+            let workflowStep = _.filter(workflowSteps, workflowStep => {
+              return workflowStep.name == field.definition.targetStep;
+            });
+            if (workflowStep.length > 0) {
+              workflowStep = workflowStep[0];
+              if (workflowStep.config.authorization.transitionRoles) {
+                let hasAccess = false;
+                _.each(workflowStep.config.authorization.transitionRoles, (r) => {
+                  hasAccess = RolesService.getRoleWithName(req.user.roles, r);
+                  if (hasAccess) return false;
+                });
+                if (!hasAccess) {
+                  fieldsToDelete.push(field);
+                }
+              }
+            } else {
+              sails.log.warn("Form configuration contains a target step that doesn't exist for record");
+            }
+          }
+        }
         if (field.definition.fields && _.isObject(val) && !_.isString(val) && !_.isUndefined(val) && !_.isNull(val) && !_.isEmpty(val)) {
           _.each(field.definition.fields, fld => {
             fld.definition.value = _.get(metadata, `${field.definition.name}.${fld.definition.name}`);
           });
         } else
           if (field.definition.fields) {
-            this.mergeFields(req, res, field.definition.fields, metadata);
+            this.mergeFieldsSync(req, res, field.definition.fields, metadata, workflowSteps);
           }
       });
       _.remove(fields, (f) => { return _.includes(fieldsToDelete, f); });
@@ -811,64 +807,69 @@ export module Controllers {
       }
     }
 
-    public modifyEditors(req, res) {
-      const records = req.body.records;
-      var toUsername = req.body.username;
-      var toEmail = req.body.email;
-      //TODO: Add email to username lookup
-      const fromUsername = req.user.username;
-      const brand = BrandingService.getBrand(req.session.branding);
-      const user = req.user;
-
-      let recordCtr = 0;
-      if (records.length > 0) {
-        _.forEach(records, rec => {
-          const oid = rec.oid;
-          this.getRecord(oid).subscribe(record => {
-            const authorization = _.cloneDeep(record.authorization);
-            // current user will lose edit access but will keep read-only access
-            _.remove(authorization.edit, (username) => {
-              return username == fromUsername;
-            });
-            if (_.isUndefined(_.find(authorization.view, (username) => { return username == fromUsername }))) {
-              authorization.view.push(fromUsername);
-            }
-            if (!_.isEmpty(toUsername)) {
-              if (_.isUndefined(_.find(authorization.edit, (username) => { return username == toUsername }))) {
-                authorization.edit.push(toUsername);
-              }
-            } else {
-              if (_.isUndefined(_.find(authorization.editPending, (email) => { return toEmail == email }))) {
-                if (_.isUndefined(authorization.editPending)) {
-                  authorization.editPending = [];
-                }
-                authorization.editPending.push(toEmail);
-              }
-            }
-
-            this.saveAuthorization(brand, oid, record, authorization, user).subscribe(response => {
-              if (response && response.code == "200") {
-                recordCtr++;
-                if (recordCtr == records.length) {
-                  response.success = true;
-                  this.ajaxOk(req, res, null, response);
-                }
-              } else {
-                sails.log.error(`Failed to update authorization:`);
-                sails.log.error(response);
-                this.ajaxFail(req, res, TranslationService.t('auth-update-error'));
-              }
-            }, error => {
-              sails.log.error("Error updating auth:");
-              sails.log.error(error);
-              this.ajaxFail(req, res, error.message);
-            });
-          });
-        });
-      } else {
-        this.ajaxFail(req, res, 'No records specified');
-      }
-    }
+    /**
+    *  Not currently used as transfer responsibility is configured.
+    *  Commenting out so we can reinstate it when more formal "edit permission"
+    *    screens are implemented.
+    */
+    // public modifyEditors(req, res) {
+    //   const records = req.body.records;
+    //   var toUsername = req.body.username;
+    //   var toEmail = req.body.email;
+    //   //TODO: Add email to username lookup
+    //   const fromUsername = req.user.username;
+    //   const brand = BrandingService.getBrand(req.session.branding);
+    //   const user = req.user;
+    //
+    //   let recordCtr = 0;
+    //   if (records.length > 0) {
+    //     _.forEach(records, rec => {
+    //       const oid = rec.oid;
+    //       this.getRecord(oid).subscribe(record => {
+    //         const authorization = _.cloneDeep(record.authorization);
+    //         // current user will lose edit access but will keep read-only access
+    //         _.remove(authorization.edit, (username) => {
+    //           return username == fromUsername;
+    //         });
+    //         if (_.isUndefined(_.find(authorization.view, (username) => { return username == fromUsername }))) {
+    //           authorization.view.push(fromUsername);
+    //         }
+    //         if (!_.isEmpty(toUsername)) {
+    //           if (_.isUndefined(_.find(authorization.edit, (username) => { return username == toUsername }))) {
+    //             authorization.edit.push(toUsername);
+    //           }
+    //         } else {
+    //           if (_.isUndefined(_.find(authorization.editPending, (email) => { return toEmail == email }))) {
+    //             if (_.isUndefined(authorization.editPending)) {
+    //               authorization.editPending = [];
+    //             }
+    //             authorization.editPending.push(toEmail);
+    //           }
+    //         }
+    //
+    //         this.saveAuthorization(brand, oid, record, authorization, user).subscribe(response => {
+    //           if (response && response.code == "200") {
+    //             recordCtr++;
+    //             if (recordCtr == records.length) {
+    //               response.success = true;
+    //               this.ajaxOk(req, res, null, response);
+    //             }
+    //           } else {
+    //             sails.log.error(`Failed to update authorization:`);
+    //             sails.log.error(response);
+    //             this.ajaxFail(req, res, TranslationService.t('auth-update-error'));
+    //           }
+    //         }, error => {
+    //           sails.log.error("Error updating auth:");
+    //           sails.log.error(error);
+    //           this.ajaxFail(req, res, error.message);
+    //         });
+    //       });
+    //     });
+    //   } else {
+    //     this.ajaxFail(req, res, 'No records specified');
+    //   }
+    // }
 
     public search(req, res) {
       const brand = BrandingService.getBrand(req.session.branding);

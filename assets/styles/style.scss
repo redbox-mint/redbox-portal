@@ -1,0 +1,12 @@
+$branding-primary: #b1101a;
+$branding-secondary: #500005;
+
+@import "../../node_modules/bootstrap-sass/assets/stylesheets/bootstrap";
+@import "../../node_modules/bootstrap-sass/assets/stylesheets/bootstrap/_glyphicons";
+@import "../../node_modules/font-awesome-sass/assets/stylesheets/_font-awesome";
+
+@import "theme";
+
+
+@import "responsive";
+@import "../../angular/node_modules/uppy/dist/uppy";

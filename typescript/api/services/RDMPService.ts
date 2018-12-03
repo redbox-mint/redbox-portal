@@ -25,6 +25,7 @@ declare var sails: Sails;
 declare var RecordType: Model;
 declare var _this;
 declare var User;
+declare var _;
 
 export module Services {
   /**

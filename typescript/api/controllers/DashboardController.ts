@@ -20,6 +20,7 @@
 //<reference path='./../../typings/loader.d.ts'/>
 declare var module;
 declare var sails;
+declare var _;
 import { Observable } from 'rxjs/Rx';
 declare var BrandingService, RolesService, DashboardService, RecordsService;
 

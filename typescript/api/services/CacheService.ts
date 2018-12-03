@@ -23,6 +23,7 @@ import {Sails, Model} from "sails";
 import * as NodeCache from "node-cache";
 import moment from 'moment-es6';
 declare var sails: Sails;
+declare var _;
 declare var CacheEntry: Model;
 
 export module Services {

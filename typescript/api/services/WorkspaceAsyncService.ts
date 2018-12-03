@@ -8,7 +8,8 @@ const moment = require('moment');
 declare var RecordsService, BrandingService;
 declare var sails: Sails;
 declare var _this;
-declare var WorkspaceAsync: Model;
+declare var _;
+declare var WorkspaceAsync;
 
 export module Services {
   /**
@@ -16,7 +17,7 @@ export module Services {
    *
    * @author <a target='_' href='https://github.com/moisbo'>moisbo</a>
    */
-  export class WorkspaceAsync extends services.Services.Core.Service {
+  export class WorkspaceAsyncService extends services.Services.Core.Service {
 
     protected _exportedMethods: any = [
       'start',
@@ -83,4 +84,4 @@ export module Services {
   }
 
 }
-module.exports = new Services.WorkspaceAsync().exports();
+module.exports = new Services.WorkspaceAsyncService().exports();

@@ -25,6 +25,7 @@ import * as request from "request-promise";
 declare var sails: Sails;
 declare var Report: Model;
 declare var _this;
+declare var _;
 
 export module Services {
   /**

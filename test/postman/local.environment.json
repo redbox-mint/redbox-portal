@@ -1,0 +1,86 @@
+{
+	"id": "941e40a0-d689-4cb1-8e70-98bfc17a0d94",
+	"name": "Localhost",
+	"values": [
+		{
+			"key": "token",
+			"value": "d077835a-696b-4728-85cf-3ffd57152b1e",
+			"description": {
+				"content": "",
+				"type": "text/plain"
+			},
+			"enabled": true
+		},
+		{
+			"key": "dmpOid",
+			"value": "b1ed19e5f85e53259bc61af37b2ed472",
+			"description": {
+				"content": "",
+				"type": "text/plain"
+			},
+			"enabled": true
+		},
+		{
+			"key": "host",
+			"value": "http://localhost:1500",
+			"description": {
+				"content": "",
+				"type": "text/plain"
+			},
+			"enabled": true
+		},
+		{
+			"key": "cookie",
+			"value": "",
+			"description": {
+				"content": "",
+				"type": "text/plain"
+			},
+			"enabled": true
+		},
+		{
+			"key": "researcherUserId",
+			"value": "5bfcb06c5b84e2000697decd",
+			"enabled": true
+		},
+		{
+			"key": "attachmentLocation",
+			"value": "//localhost:1500/default/rdmp/record/b869b4fae83a1f01082465d165d868a8/attach/c7f4c08193e1d507790639db2b763b8c",
+			"description": {
+				"content": "",
+				"type": "text/plain"
+			},
+			"enabled": true
+		},
+		{
+			"key": "dataRecordOid",
+			"value": "cad53d96803956abea6165996cb05a81",
+			"description": {
+				"content": "",
+				"type": "text/plain"
+			},
+			"enabled": true
+		},
+		{
+			"key": "attachmentId",
+			"value": "",
+			"description": {
+				"content": "",
+				"type": "text/plain"
+			},
+			"enabled": true
+		},
+		{
+			"key": "dataPublicationOid",
+			"value": "8a382c026b4c2531e843730667142935",
+			"description": {
+				"content": "",
+				"type": "text/plain"
+			},
+			"enabled": true
+		}
+	],
+	"_postman_variable_scope": "environment",
+	"_postman_exported_at": "2018-11-28T00:53:00.525Z",
+	"_postman_exported_using": "Postman/6.5.2"
+}

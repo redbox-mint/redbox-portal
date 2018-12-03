@@ -21,6 +21,7 @@ import { Observable } from 'rxjs/Rx';
 import services = require('../core/CoreService.js');
 import {Sails, Model} from "sails";
 declare var sails: Sails;
+declare var _;
 declare var CacheEntry: Model;
 
 export module Services {

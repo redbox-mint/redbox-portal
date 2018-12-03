@@ -1,5 +1,7 @@
 import { Role } from './shared/user-models';
 import { FormGroup, FormControl } from '@angular/forms';
+import * as owasp from 'owasp-password-strength-test';
+import * as _ from 'lodash';
 
 export interface UserForm {
     userid: string
@@ -30,4 +32,14 @@ export function optionalEmailValidator(control: FormControl): {[key: string]: an
     if (control.value && !emailRegexp.test(control.value)) {
         return { invalidEmail: true };
     }
+}
+
+export function passwordStrengthValidator(control1: string) {
+  return (group: FormGroup): {[key: string]: any} => {
+    let password = group.controls[control1].value;
+    if (!_.isEmpty(password)) {
+      const result = owasp.test(password);
+      return result.errors.length == 0 ? undefined : { passwordStrength: true, passwordStrengthDetails: result };
+    }
+  }
 }

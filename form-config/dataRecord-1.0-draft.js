@@ -182,6 +182,21 @@ module.exports = {
                   }
                 },
                 {
+                  class: 'HiddenValue',
+                  compClass: 'HiddenValueComponent',
+                  definition: {
+                    name: "dc:coverage_vivo:DateTimeInterval_vivo:end",
+                    subscribe: {
+                      'rdmpGetter': {
+                        onValueUpdate: [{
+                          action: 'utilityService.getPropertyFromObject',
+                          field: 'dc:coverage_vivo:DateTimeInterval_vivo:end'
+                        }]
+                      }
+                    }
+                  }
+                },
+                {
                   class: 'RepeatableVocab',
                   compClass: 'RepeatableVocabComponent',
                   definition: {

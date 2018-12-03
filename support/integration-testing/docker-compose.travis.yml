@@ -1,0 +1,43 @@
+version: '3.1'
+networks:
+  main:
+services:
+  redboxportal:
+    image: qcifengineering/redbox-portal:latest
+    ports:
+       - "1500:1500"
+    volumes:
+       - "../../:/opt/redbox-portal"
+    expose:
+       - "1500"
+    environment:
+      - NODE_ENV=docker
+      - PORT=1500
+      - sails_redbox__apiKey=AFakeAPIKey
+      - sails_record__baseUrl_redbox=http://redbox:9000/redbox
+      - sails_record__baseUrl_mint=http://203.101.226.160/mint
+    networks:
+     main:
+       aliases:
+         - rbportal
+    entrypoint: /bin/bash -c "mkdir -p /attachments/staging; cd /opt/redbox-portal/support/integration-testing; chmod +x *.sh; ./travisRunIntegrationTest.sh"
+  mongodb:
+    image: mvertes/alpine-mongo:latest
+    networks:
+      main:
+        aliases:
+          - mongodb
+    ports:
+       - "27017:27017"
+  redbox:
+    image: qcifengineering/redbox:2.x
+    expose:
+       - "9000"
+    environment:
+      - RB_API_KEY=c8e844fc-8550-497f-b970-7900ec8741ca
+    networks:
+      main:
+        aliases:
+          - redbox
+    ports:
+       - "9000:9000"
