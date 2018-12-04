@@ -100,5 +100,24 @@
     "rollup-plugin-uglify": "^6.0.0",
     "supertest": "^3.0.0",
     "uglify-es": "^3.3.10"
+  },
+  "nyc": {
+    "check-coverage": true,
+    "all": true,
+    "extension": [
+      ".js",
+      ".jsx",
+      ".ts",
+      ".tsx"
+    ],
+    "include": [
+      "api/**/!(*.test.*).[tj]s?(x)",
+      "config/**/!(*.test.*).[tj]s?(x)"
+    ],
+    "reporter": [
+      "lcov",
+      "text",
+      "text-summary"
+    ]
   }
 }
