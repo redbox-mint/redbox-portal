@@ -94,16 +94,16 @@
     "mocha": "^5.2.0",
     "newman": "^4.2.2",
     "node-sass": "4.10.0",
-    "rollup": "^0.67.0",
-    "rollup-plugin-commonjs": "^9.1.8",
-    "rollup-plugin-node-resolve": "^3.0.0",
-    "rollup-plugin-uglify": "^6.0.0",
     "supertest": "^3.0.0",
     "uglify-es": "^3.3.10"
   },
   "nyc": {
     "check-coverage": true,
     "all": true,
+    "lines": 45,
+    "statements": 45,
+    "functions": 45,
+    "branches": 45,
     "extension": [
       ".js",
       ".jsx",
