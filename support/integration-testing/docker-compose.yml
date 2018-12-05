@@ -20,7 +20,7 @@ services:
      main:
        aliases:
          - rbportal
-    entrypoint: /bin/bash -c "cd /opt/redbox-portal && npm run api-test && npm run test"
+    entrypoint: /bin/bash -c "npm i nyc -g;mkdir -p /attachments/staging/; cd /opt/redbox-portal && nyc npm run api-test && npm run test"
   mongodb:
     image: mvertes/alpine-mongo:latest
     networks:

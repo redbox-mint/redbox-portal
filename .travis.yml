@@ -34,11 +34,18 @@ jobs:
     - npm run doc-ng2
     - if [ "$TRAVIS_PULL_REQUEST" = "false" ]; then bash dockerhub_deploy.sh; chmod
       +x deploySnapshotToBranch.sh; ./deploySnapshotToBranch.sh; fi
+    before_deploy: npm pack
     deploy:
-      provider: pages
-      skip_cleanup: true
-      github_token: "$GH_TOKEN"
-      local_dir: support/docs/generated/ng2
-      on:
-        branch: master
-        script: true
+      - provider: pages
+        skip_cleanup: true
+        github_token: "$GH_TOKEN"
+        local_dir: support/docs/generated/ng2
+        on:
+         branch: master
+         script: true
+      - provider: releases
+        skip_cleanup: true
+        api_key: "$GH_TOKEN"
+        file: *.tgz
+        on:
+         tags: true

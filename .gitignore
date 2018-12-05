@@ -148,6 +148,10 @@ AsynchsService.js
 api/services/*.js
 
 ### acceptance-testing
+coverage/*
+coverage.lcov
+.nyc_output/*
+failedTests
 support/acceptance-testing/reports/
 support/acceptance-testing/build/
 support/acceptance-testing/*.iml

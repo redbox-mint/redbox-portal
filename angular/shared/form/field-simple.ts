@@ -42,9 +42,12 @@ export class NotInFormField extends FieldBase<any> {
 
 export class SelectionField extends FieldBase<any>  {
   selectOptions: any[] = [];
+  storeValueAndLabel:boolean = false;
 
   constructor(options: any, injector: any) {
     super(options, injector);
+
+
     // this.options = options['options'] || [];
     this.selectOptions = _.map(options['options'] || [], (option)=> {
       option['label'] = this.getTranslated(option['label'], option['label']);
@@ -52,7 +55,19 @@ export class SelectionField extends FieldBase<any>  {
       return option;
     });
 
+    if (options['storeValueAndLabel']) {
+      this.storeValueAndLabel = true;
+      if(options['value'] == undefined) {
+        let emptyOptions = _.find(this.selectOptions, selectOption => {
+          return selectOption.value == "";
+        });
+          if(emptyOptions != null) {
+            this.value = emptyOptions;
+          }
+      }
+    }
   }
+
 
   createFormModel() {
     if (this.controlType == 'checkbox') {

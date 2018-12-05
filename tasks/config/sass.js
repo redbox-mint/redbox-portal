@@ -13,9 +13,14 @@
  *   https://github.com/gruntjs/grunt-contrib-less
  *
  */
+ const sass = require('node-sass');
+ 
 module.exports = function(grunt) {
 
   grunt.config.set('sass', {
+    options: {
+      implementation: sass,
+    },
     dev: {
       files: [{
         expand: true,
