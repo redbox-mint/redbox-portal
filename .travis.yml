@@ -25,10 +25,10 @@ addons:
 jobs:
   include:
   - stage:            Build and deploy
-    before_install:   npm i nyc -g && npm i codecov -g
+    before_install:   npm i nyc -g && npm i codecov -g && npm i typescript -g
     install:          chmod +x buildTypescript.sh && ./buildTypescript.sh
-    before_script:    node_modules/typescript/bin/tsc -p tsconfig-codecov.json; cd support/integration-testing; chmod +x triggerIntegrationTests.sh;
-      ./triggerIntegrationTests.sh; node_modules/typescript/bin/tsc;
+    before_script:    tsc -p tsconfig-codecov.json; cd support/integration-testing; chmod +x triggerIntegrationTests.sh;
+      ./triggerIntegrationTests.sh; tsc;
     script:           nyc report --reporter=text-lcov > coverage.lcov;codecov -t $CODECOV_TOKEN; rm coverage.lcov
     after_success:
     - npm run doc-ng2
