@@ -37,7 +37,7 @@ class LayoutModule extends Module {
     }
 
     defaultPanel {
-      $(".single-product-area")
+      $(".maincontent-body")
     }
 
     mainMenu {
