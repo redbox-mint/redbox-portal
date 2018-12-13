@@ -162,9 +162,9 @@
   integrity sha512-MHmwBtCb7OCv1DSivz2UNJXPGU/1btAWRKlqJ2saEhVJkpkvqHMMaOpKg0v4sAbDWSQekHGvPVMM8nQ+Jen03Q==
 
 "@types/jquery@^3.3.2":
-  version "3.3.23"
-  resolved "https://registry.yarnpkg.com/@types/jquery/-/jquery-3.3.23.tgz#e681aa2428e819edace9b30c91d987ef302c4e96"
-  integrity sha512-pHsP+vJn89UOhKFGCgdX3aPzv3QEoBmj1Rl76TAV5N5OS5G0Jf1S7mxzP7/5ZDmCiYAY6KpAT/b8XP09iem4cw==
+  version "3.3.24"
+  resolved "https://registry.yarnpkg.com/@types/jquery/-/jquery-3.3.24.tgz#3af73accd9da56a1fd59c706ca2145bd73a91c65"
+  integrity sha512-o0FYWKB6tr5rMMtuljVCmehN1RvmBimr7spy/JncdS3a5Z3KyCgoEH1D3vJVkYPE5F0/dYH+8u2uLus2Gydrfg==
   dependencies:
     "@types/sizzle" "*"
 
