@@ -89,7 +89,7 @@
     "grunt-contrib-cssmin": "^3.0.0",
     "grunt-contrib-uglify": "^4.0.0",
     "grunt-sass": "3.0.2",
-    "grunt-shell": "^2.1.0",
+    "grunt-shell": "^3.0.0",
     "istanbul": "^0.4.5",
     "mocha": "^5.2.0",
     "newman": "^4.2.2",
