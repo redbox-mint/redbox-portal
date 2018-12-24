@@ -10,7 +10,7 @@
     "@uppy/tus": "^0.29.0",
     "async": "2.6.1",
     "axios": "^0.18.0",
-    "bcrypt": "3.0.2",
+    "bcrypt": "3.0.3",
     "bootstrap-sass": "^3.3.7",
     "calcyte": "^1.0.2",
     "chokidar": "~2.0.4",
