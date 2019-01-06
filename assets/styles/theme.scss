@@ -34,12 +34,11 @@ h6 {
 body { font-family: 'Titillium Web', sans-serif; }
 
 
-
 .header-area {
-    background: none repeat scroll 0 0 #f4f4f4;
+    background: none repeat scroll 0 0 $header-branding-background-color;
 }
 .header-area a {
-    color: #888;
+    color: $header-branding-link-color;
 }
 .user-menu ul {
     list-style: outside none none;
@@ -79,7 +78,7 @@ body { font-family: 'Titillium Web', sans-serif; }
 }
 
 .mainmenu-area {
-background: none repeat scroll 0 0 $branding-secondary;
+background: none repeat scroll 0 0 $mainmenu-branding-background-color;
 font-family: "Roboto Condensed",sans-serif;
 text-transform: uppercase;
 width: 100%;
@@ -93,12 +92,10 @@ z-index: 999;
     margin: 40px 0;font-weight: 400;
 }
 .logo h1 a {
-    color: #999;
+    color: $logo-link-color-branding;
 }
 .logo h1 a:hover {text-decoration: none;opacity: .7}
-.logo h1 a span {
-    color: #428bca;
-}
+
 
 .mainmenu-area ul.navbar-nav li a {
     font-size: 16px;
@@ -108,416 +105,40 @@ z-index: 999;
 }
 
  .mainmenu-area ul.navbar-nav li.active a {
-   background-color: #222;
-   color:white;
+   background-color: $main-menu-active-item-background-color;
+   color:$main-menu-active-item-color;
 }
 
 .mainmenu-area ul.dropdown-menu li a {
-    color: darkgray;
-    background-color: #222222;
+    color: $mainmenu-inactive-item-color;
+    background-color: $mainmenu-inactive-item-background-color;
 }
 
 .mainmenu-area ul.navbar-nav li:hover a, .mainmenu-area ul.navbar-nav li.active a {}
-.mainmenu-area .nav > li > a:focus {color: #000}
+.mainmenu-area .nav > li > a:focus {color: $mainmenu-selected-item-color}
 
-.slider-area {clear: both}
-.slider-area, .promo-area, .brands-area, .maincontent-area, .footer-top-area, .product-widget-area, .product-breadcroumb-area, .single-product-area {position: relative;overflow: hidden}
-.zigzag-bottom {}
-.slide-text-wrapper {
-  height: 700px;
-}
-.slide-text-wrapper {
-  display: table;width: 100%;
-}
-
-.slide-text {display: table-cell;vertical-align: middle}
-
-.zigzag-bottom {
-background: none repeat scroll 0 0 #428bca;
-bottom: -80px;
-height: 165px;
-left: -5%;
-position: absolute;
-transform: rotate(3deg);
-width: 108%;
-z-index: 9;
-}
-
-.slide-bg {
-  height: 100%;
-  left: 0;
-  position: absolute;
-  top: 0;
-  width: 100%;background-position: center;background-size: cover
-}
-.slide-bg:after {
-  background: none repeat scroll 0 0 #000;
-  content: "";
-  height: 100%;
-  left: 0;
-  opacity: 0.6;
-  position: absolute;
-  top: 0;
-  width: 100%;
-}
-.slide-one {background-image: url(img/slide-1.jpg)}
-.slide-two {background-image: url(img/slide-2.jpg)}
-.slide-three {background-image: url(img/slide-3.jpg)}
-.slide-text {color: #fff;font-size: 18px;font-weight: 200}
-.slide-text h2 {
-  font-size: 45px;font-weight: 200
-}
-
-.slide-content {position: relative;z-index: 9;padding: 30px}
-.slide-content:before {
-  background: none repeat scroll 0 0 #000;
-  content: "";
-  height: 100%;
-  left: 0;
-  opacity: 0.6;
-  position: absolute;
-  top: 0;
-  width: 100%;
-  z-index: -1;
-}
-
-
-.readmore {
-    background: none repeat scroll 0 0 #428bca;
-    color: #fff;
-    border: 1px solid #428bca;
-    display: inline-block;
-    font-size: 20px;
-    margin-top: 15px;
-    padding: 10px 20px;
-    text-transform: uppercase;
-}
-
-
-.readmore:hover {background: #222;text-decoration: none;color: #fff;border: 1px solid #fff}
-
-
-.promo-area {
-  background: none repeat scroll 0 0 #428bca;
-  color: #fff;
-  padding: 77px 0 200px;
-}
-
-.brands-area {
-  background: none repeat scroll 0 0 #428bca;
-  color: #fff;
-  padding: 0px 0 200px;
-}
-
-.promo-area .zigzag-bottom, .brands-area .zigzag-bottom{background: #fff}
-.single-promo {
-    border: 1px solid #17a78b;
-    font-size: 25px;
-    font-weight: 200;
-    padding: 20px 10px;
-    text-align: center;
-}
-.single-promo i {
-  font-size: 50px;
-}
-
-.single-promo:hover {color: #fff;background: #222;border-color: #222}
-
-.section-title {
-  font-family: "Raleway",sans-serif;
-  font-size: 50px;
-  font-weight: 100;
-  margin-bottom: 50px;
-  text-align: center;
-}
-
-
-.product-f-image {
-    position: relative;
-}
-.product-hover {
-    height: 100%;
-    left: 0;
-    position: absolute;
-    top: 0;
-    width: 100%;overflow: hidden;border: 1px solid #ddd;
-}
-.product-hover:after {
-  background: none repeat scroll 0 0 #000;
-  content: "";
-  height: 100%;
-  left: -100%;
-  opacity: 0.6;
-  position: absolute;
-  top: 0;
-  width: 100%;transition: .4s;
-}
-.product-hover a {
-    background: none repeat scroll 0 0 #428bca;
-    border-radius: 5px;
-    color: #fff;
-    display: block;
-    font-size: 16px;
-    left: 10%;
-    margin: 0;
-    padding: 10px;
-    position: absolute;
-    text-align: center;
-    text-transform: uppercase;
-    border: 1px solid #428bca;
-    width: 80%;z-index: 99;transition: .4s;
-}
-.product-hover a:hover {
-  background: #000;
-  text-decoration: none;border-color: #444;
-}
-.product-carousel-price ins {
-  color: #428bca;
-  font-weight: 700;
-  margin-right: 5px;
-  text-decoration: none;
-}
-.product-hover a i.fa {
-    margin-right: 5px;
-}
-
-
-.single-product h2 {
-    font-size: 18px;
-    line-height: 25px;
-    margin-bottom: 10px;
-    margin-top: 15px;
-}
-
-
-.single-product h2 a {
-    color: #222;
-}
-.single-product p {
-    color: #428bca;
-    font-weight: 700;
-}
-
-.single-product {
-  overflow: hidden;
-}
-.single-product:hover {}
-.single-product:hover .product-hover a.add-to-cart-link {top: 32%;}
-.single-product:hover .product-hover a.view-details-link {bottom: 32%;}
-.single-product:hover .product-hover:after{left: 0}
-
-
-.product-carousel {
-  padding-top: 40px;
-}
-.latest-product .owl-nav {
-  position: absolute;
-  right: 0;
-  top: 0;
-}
-
-.latest-product .owl-nav div, .related-products-wrapper .owl-nav div {
-  border: 1px solid #428bca;
-  color: #428bca;
-  display: inline-block;
-  margin-left: 15px;
-  padding: 1px 10px;
-}
-.latest-product .owl-nav div:hover, .brand-wrapper .owl-nav div:hover, .related-products-wrapper .owl-nav div:hover {color: #222;border-color: #222}
-.brand-list {padding-top: 40px;}
-.brand-list .owl-nav {
-  position: absolute;
-  right: 0;
-  top: 0;
-}
-.brand-wrapper .owl-nav div {
-  border: 1px solid #fff;
-  color: #fff;
-  display: inline-block;
-  margin-left: 15px;
-  padding: 1px 10px;
-}
 
 .maincontent-area {padding-bottom: 170px}
 
-.product-wid-title {
-  font-family: raleway;
-  font-size: 30px;
-  font-weight: 100;
-  margin-bottom: 40px;
+.footer-bottom-area {background: $footer-bottom-area-branding-background-color;
+  color: $footer-bottom-area-branding-color;
 }
 
-
-.single-wid-product {
-    margin-bottom: 31px;
-    overflow: hidden;
-}
-.product-thumb {
-    float: left;
-    height: 90px;
-    margin-right: 15px;
-    width: 100px;
-}
-.single-wid-product h2 {
-    font-size: 18px;
-    margin-bottom: 12px;
-}
-.product-wid-rating {
-    color: #ffc808;
-    margin-bottom: 10px;
-}
-.product-wid-price ins {
-    color: #428bca;
-    font-weight: 700;
-    margin-right: 10px;
-    text-decoration: none;
-}
-.single-wid-product h2 a {
-    color: #222;
-}
-.single-wid-product h2 a:hover, .single-product h2 a:hover {
-    color: #428bca;
-}
-.wid-view-more {
-    background: none repeat scroll 0 0 #428bca;
-    color: #fff;
-    padding: 3px 15px;
-    position: absolute;
-    right: 10px;
-    top: 3px;
-}
-.wid-view-more:hover {color: #fff;background-color: #222;text-decoration: none}
-.single-product-widget {
-    position: relative;
-}
-.product-widget-area {
-  padding-bottom: 150px;
-  padding-top: 30px;
-}
-.product-widget-area .zigzag-bottom{background: #333}
-.footer-top-area .zigzag-bottom{background: #000}
-.footer-top-area {background: none repeat scroll 0 0 #F33E48;
-color: #999;
-padding: 35px 0 180px;}
-
-
-.footer-bottom-area {background: #000;color: #fff}
-.footer-about-us span {
-  color: #428bca;
-}
 .footer-wid-title {
   font-family: raleway;
   font-size: 30px;
   font-weight: 100;color: #fff
 }
 
-.footer-about-us h2 {
-  font-weight: 200;
-}
-.footer-menu ul {
-    list-style: outside none none;
-    margin: 0;
-    padding: 0;
-}
-.footer-menu ul li {
-    border-bottom: 1px dashed #555;
-    padding: 5px 0;
-}
-.footer-menu a {
-    display: block;
-    padding: 5px 0;color: #999
-}
 
-
-.footer-social a {
-  background: none repeat scroll 0 0 #428bca;
-  color: #fff;
-  display: inline-block;
-  font-size: 20px;
-  height: 40px;
-  margin-bottom: 10px;
-  margin-right: 10px;
-  padding-top: 5px;
-  text-align: center;
-  width: 40px;border: 1px solid #428bca;
-}
-
-.footer-social a:hover {background-color: #222;border-color: #666}
-
-.footer-social {margin-top: 20px}
-
-
-.newsletter-form input[type="email"] {
-    background: none repeat scroll 0 0 #fff;
-    border: medium none;
-    margin-bottom: 10px;
-    padding: 10px;
-    width: 100%;
-}
-.newsletter-form input[type="submit"] {
-    background: none repeat scroll 0 0 #428bca;
-    border: medium none;
-    color: #fff;
-    display: inline-block;
-    font-size: 18px;
-    padding: 7px 20px;
-    text-transform: uppercase;border: 1px solid #428bca;
-}
-.newsletter-form input[type="submit"]:hover {background: #222;border-color: #666}
-.newsletter-form {
-    margin-top: 25px;
-}
 a {color: #428bca}
 
 .footer-bottom-area {
-  background: none repeat scroll 0 0 #000;
+  background: none repeat scroll 0 0 $footer-bottom-area-branding-background-color;
   color: #fff;
   padding-bottom: 40px;
 }
 
-
-.slide-bulletz {
-    bottom: 30px;
-    left: 0;
-    position: absolute;
-    text-align: center;
-    width: 100%;
-    z-index: 99;
-}
-ol.slide-indicators {
-left: inherit;
-list-style: outside none none;
-margin: 0;
-padding: 0;
-position: relative;
-width: 100%;
-}
-ol.slide-indicators li {
-background: none repeat scroll 0 0 #222;
-border: medium none;
-border-radius: 0;
-cursor: pointer;
-display: inline-block;
-height: 10px;
-margin: 0 0 0 5px;
-width: 10px;
-}
-ol.slide-indicators li.active {
-background: none repeat scroll 0 0 #fff;
-height: 10px;
-margin: 0 0 0 5px;
-width: 10px;
-}
-
-
-.carousel.carousel-fade .item { transition: opacity 1s ease-in-out }
-.carousel.carousel-fade .active.left,
-.carousel.carousel-fade .active.right {
-    left: 0;
-    z-index: 2;
-    opacity: 0;
-    filter: alpha(opacity=0);
-}
 
 .footer-card-icon {
   font-size: 30px;
@@ -528,41 +149,29 @@ width: 10px;
   margin: 10px 0 0;
 }
 
-.product-big-title-area {background: repeat scroll 0 0 #F33E4A}
 
-.product-bit-title h2 {
+.maincontent-bit-title h2 {
   font-family: raleway;
   font-size: 50px;
   font-weight: 200;
   margin: 0;
-  padding: 10px 0;color: #fff;
+  padding: 10px 0;
+  color: $maincontent-heading-text-branding-color;
 }
 
-.single-product-area .zigzag-bottom {background-color: #333333}
-
-.single-product-area {
+.maincontent-body {
   padding: 80px 0 130px;
 }
 
 .site-branding-area {
-  background-color: $branding-primary;
+  background-color: $site-branding-area-background;
 }
 
 .site-branding-area h1 {
-  color: #FFF;
+  color: $site-branding-area-heading-color;
 }
 
 
-
-.sidebar-title {
-    color: #3dc6ab;
-    font-size: 25px;
-    margin-bottom: 30px;
-    text-transform: uppercase;
-}
-.single-sidebar {
-    margin-bottom: 50px;
-}
 input[type="text"], input[type="password"], input[type="email"], textarea {
     border: 1px solid #ddd;
     padding: 10px;
@@ -579,54 +188,12 @@ input[type="submit"]:hover, button[type=submit]:hover {background-color: #222}
     margin-bottom: 10px;
     width: 100%;
 }
-.thubmnail-recent {
-    margin-bottom: 30px;
-    overflow: hidden;
-}
-.recent-thumb {
-    float: left;
-    height: auto;
-    margin-right: 15px;
-    width: 63px;
-}
-.thubmnail-recent > h2 {
-    font-size: 20px;
-    margin-bottom: 10px;
-}
-.thubmnail-recent > h2 a {
-    color: #222;
-}
-.product-sidebar-price > ins {
-    color: #428bca;
-    font-weight: 700;
-    margin-right: 10px;
-    text-decoration: none;
-}
-.single-sidebar > ul {
-    list-style: outside none none;
-    margin: 0;
-    padding: 0;
-}
-.single-sidebar li {
-    border-bottom: 1px solid #f1f1f1;
-    padding: 10px 0;
-}
-.single-sidebar a {
-    display: block;
-}
 
 .tab-content h2 {
     font-size: 20px;
 }
 .tab-content {
     margin-bottom: 30px;
-}
-.submit-review label {
-    display: block;
-}
-.submit-review input[type="text"], .submit-review input[type="email"], .submit-review textarea {
-    margin-bottom: 20px;
-    width: 100%;
 }
 
 .col2-set {
@@ -745,8 +312,8 @@ div.logo img {
 }
 
 .panel-default > .panel-heading {
-  background-color: $branding-primary;
-  color: #FFF;
+  background-color: $panel-branding-background-color;
+  color:  $panel-branding-color;
 }
 
 .padding-remove {

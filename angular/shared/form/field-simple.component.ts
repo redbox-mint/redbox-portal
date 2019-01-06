@@ -159,6 +159,8 @@ export class SelectionComponent extends SimpleComponent {
       return '';
     }
   }
+
+
 }
 
 @Component({
@@ -170,20 +172,41 @@ export class SelectionComponent extends SimpleComponent {
       <button type="button" class="btn btn-default" *ngIf="field.help" (click)="toggleHelp()" [attr.aria-label]="'help' | translate "><span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span></button>
      </label><br/>
      <span id="{{ 'helpBlock_' + field.name }}" class="help-block" *ngIf="this.helpShow" [innerHtml]="field.help"></span>
-     <select [formControl]="getFormControl()"  [id]="field.name" [ngClass]="field.cssClasses">
-        <option *ngFor="let opt of field.selectOptions" [value]="opt.value">{{opt.label}}</option>
+     <select [compareWith]="compare" [formControl]="getFormControl()"  [id]="field.name" [ngClass]="field.cssClasses">
+        <ng-template [ngIf]="!field.storeValueAndLabel">
+          <option *ngFor="let opt of field.selectOptions" [value]="opt.value">{{opt.label}}</option>
+        </ng-template>
+        <ng-template [ngIf]="field.storeValueAndLabel">
+          <option *ngFor="let opt of field.selectOptions" [ngValue]="opt">{{opt.label}}</option>
+        </ng-template>
      </select>
      <div class="text-danger" *ngIf="getFormControl().hasError('required') && getFormControl().touched && !field.validationMessages?.required">{{field.label}} is required</div>
      <div class="text-danger" *ngIf="getFormControl().hasError('required') && getFormControl().touched && field.validationMessages?.required">{{field.validationMessages.required}}</div>
   </div>
   <div *ngIf="!field.editMode" class="key-value-pair">
     <span class="key" *ngIf="field.label">{{field.label}}</span>
+    <ng-template [ngIf]="!field.storeValueAndLabel">
     <span class="value">{{getLabel(field.value)}}</span>
+    </ng-template>
+    <ng-template [ngIf]="field.storeValueAndLabel && field.value.value != ''">
+    <span class="value">{{getLabel(field.value.value)}}</span>
+    </ng-template>
   </div>
   `,
 })
 export class DropdownFieldComponent extends SelectionComponent {
   static clName = 'DropdownFieldComponent';
+  compare = this.compareFn.bind(this);
+
+  compareFn(a,b) {
+    if(this.field.storeValueAndLabel) {
+      if(b == null || b == "") {
+        return a.value == b;
+      }
+      return a.value == b.value;
+    }
+    return a == b;
+  }
 }
 
 @Component({
@@ -593,7 +616,7 @@ export class TabNavButtonComponent extends SimpleComponent {
   }
 }
 
-@Component({       
+@Component({
   selector: 'link-value',
   template: `
   <li *ngIf="isVisible()" class="key-value-pair padding-bottom-10">

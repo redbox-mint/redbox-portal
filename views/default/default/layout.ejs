@@ -16,7 +16,7 @@
   <link href='//fonts.googleapis.com/css?family=Roboto+Condensed:400,700,300' rel='stylesheet' type='text/css'>
   <link href='//fonts.googleapis.com/css?family=Raleway:400,100' rel='stylesheet' type='text/css'>
 
-  
+
 
   <!-- Custom CSS -->
   <link rel="stylesheet" href="<%= BrandingService.getBrandAndPortalPath(req) %>/styles/style.min.css">
@@ -71,20 +71,9 @@
   <!-- End mainmenu area -->
 
 <% if (typeof title!== 'undefined') { %>
-  <div class="product-big-title-area">
-    <div class="container">
-      <div class="row">
-        <div class="col-md-12">
-          <div class="product-bit-title text-center">
-            <h2>Researcher Dashboard</h2>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
 <% } %>
 
-  <div class="single-product-area">
+  <div class="maincontent-body">
     <%- body %>
   </div>
 

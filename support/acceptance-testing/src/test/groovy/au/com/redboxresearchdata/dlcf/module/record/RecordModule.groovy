@@ -47,7 +47,7 @@ abstract class RecordModule extends Module {
     }
 
     navTabFooter {
-      js.exec PageHelper.scrollIntoView(".single-product-area form div.form-row div")
+      js.exec PageHelper.scrollIntoView(".maincontent-body form div.form-row div")
       form.$("div.form-row div")
         .has("button.btn-primary", type: "button", text: "Save")
         .has("button.btn-warning", type: "button", text: "Cancel")
