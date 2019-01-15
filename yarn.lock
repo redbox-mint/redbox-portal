@@ -204,10 +204,10 @@
   resolved "https://registry.yarnpkg.com/@types/sizzle/-/sizzle-2.3.2.tgz#a811b8c18e2babab7d542b3365887ae2e4d9de47"
   integrity sha512-7EJYyKTL7tFR8+gDbB6Wwz/arpGa0Mywk1TJbNzKzHtzbwVmY4HR9WqS5VV7dsBUKQmPNr192jHr/VpBluj/hg==
 
-"@uppy/companion-client@0.27.2":
-  version "0.27.2"
-  resolved "https://registry.yarnpkg.com/@uppy/companion-client/-/companion-client-0.27.2.tgz#526572b5129d7786c06368e8def5bc46c5980048"
-  integrity sha512-AJ/9meDnu67cExtmb/73DuhOzNcK8S/AkKhwyC1ffvc4IZYPoMCllcydXFdVWbKR76V8Jc4XnVPiprWIqrPEPQ==
+"@uppy/companion-client@0.27.3":
+  version "0.27.3"
+  resolved "https://registry.yarnpkg.com/@uppy/companion-client/-/companion-client-0.27.3.tgz#aa3c83e933cde3be96485bf8ea21f58626b88f71"
+  integrity sha512-yB3TwF8RU5kIOuBz1s0gUIj0as0b8dFLoFqqavQVpyx/K+awhrde0YkSvHMDAobqOhSQ67tZF2H5aBoc9+nuow==
   dependencies:
     namespace-emitter "^2.0.1"
 
@@ -284,18 +284,25 @@
     "@uppy/utils" "0.29.0"
 
 "@uppy/tus@^0.29.0":
-  version "0.29.0"
-  resolved "https://registry.yarnpkg.com/@uppy/tus/-/tus-0.29.0.tgz#543df7f938fab83dc691bb659196a5f5fccbbcfe"
-  integrity sha512-4i4InljPQBDbE+0oSvKA0YUauJGX0BJPyo9lq2JUFQmw+aOceiOnpw3QcpZb6tg2I+rx6iifgnCenaN/Fjre/A==
+  version "0.29.1"
+  resolved "https://registry.yarnpkg.com/@uppy/tus/-/tus-0.29.1.tgz#c1387cc3bb926328ba04967f93e98eb0f6482549"
+  integrity sha512-m6Tc1cP/07bABhjfNixJSipBAkr2ldugi+h5xSvfnCCQ8rsxZ0NxufTvuQ/2Q0s4DWPUTulvW+TbTcTrsi9u9w==
   dependencies:
-    "@uppy/companion-client" "0.27.2"
-    "@uppy/utils" "0.29.0"
+    "@uppy/companion-client" "0.27.3"
+    "@uppy/utils" "0.29.1"
     tus-js-client "^1.5.1"
 
 "@uppy/utils@0.29.0":
   version "0.29.0"
   resolved "https://registry.yarnpkg.com/@uppy/utils/-/utils-0.29.0.tgz#e2e3b1eabca65acfdb0bcc644aaf425e86a354cd"
   integrity sha512-t16HxahlBhqlPZ8ZMxb5Sn4b5jgVujG1x5cUvfkq40xgwDbr5tHZ4NJokAOaQQUIuCDWPBdPXEeTLIbZalX5DQ==
+  dependencies:
+    lodash.throttle "^4.1.1"
+
+"@uppy/utils@0.29.1":
+  version "0.29.1"
+  resolved "https://registry.yarnpkg.com/@uppy/utils/-/utils-0.29.1.tgz#5167cd6451363d51683e686af6cbfc697cc6c823"
+  integrity sha512-pYINvzaEKnMcW6BJ3JiBP0v1wOFMo1FMt1JtafjWJtZ5n8UUhrBRmZsEoh5gPvymwhOQ+87Mlk2erV7L8QLyIg==
   dependencies:
     lodash.throttle "^4.1.1"
 
