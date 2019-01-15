@@ -226,15 +226,15 @@
     prettier-bytes "^1.0.4"
 
 "@uppy/dashboard@^0.29.0":
-  version "0.29.0"
-  resolved "https://registry.yarnpkg.com/@uppy/dashboard/-/dashboard-0.29.0.tgz#d9d4eeb4d236aa7ef0739dcc657ee99c3b675ba2"
-  integrity sha512-CBhXw9qVLUZ+OrjYofnIjvT4moTkIaHNjIjdlK/zbuCWbCl49HhE6pS/VU9uAuzv3d+OJ3yrwI0SJA9LjAe4Ag==
+  version "0.29.1"
+  resolved "https://registry.yarnpkg.com/@uppy/dashboard/-/dashboard-0.29.1.tgz#14e2e4804e3a48d0565b2e63eabd157633981cd2"
+  integrity sha512-0HVj/fVevOed/Oi2RLIRlgSU2ifiE4ArwnUVS27tATTiSW1XKzvWu0wh2i4kIv4T4EHZfMn+N8pmleXty89azQ==
   dependencies:
-    "@uppy/informer" "0.29.0"
-    "@uppy/provider-views" "0.29.0"
-    "@uppy/status-bar" "0.29.0"
-    "@uppy/thumbnail-generator" "0.29.0"
-    "@uppy/utils" "0.29.0"
+    "@uppy/informer" "0.29.1"
+    "@uppy/provider-views" "0.29.1"
+    "@uppy/status-bar" "0.29.1"
+    "@uppy/thumbnail-generator" "0.29.1"
+    "@uppy/utils" "0.29.1"
     classnames "^2.2.6"
     drag-drop "2.13.3"
     lodash.throttle "^4.1.1"
@@ -243,29 +243,29 @@
     prettier-bytes "^1.0.4"
     resize-observer-polyfill "^1.5.0"
 
-"@uppy/informer@0.29.0":
-  version "0.29.0"
-  resolved "https://registry.yarnpkg.com/@uppy/informer/-/informer-0.29.0.tgz#8ee327eaff37304b85bcbb8c932d0cefcf69e03e"
-  integrity sha512-6Q+eLxx4jGQ63N69UGdbzH9vE1ruNovb+Z3UID4FDA3FLyVXDRLM7nx3SwmFU9tT5Mb+ZEb9/lOE9HT+QZ7/rA==
+"@uppy/informer@0.29.1":
+  version "0.29.1"
+  resolved "https://registry.yarnpkg.com/@uppy/informer/-/informer-0.29.1.tgz#98fcbd0d1ebcdd3d323952195a04a8960deffcd5"
+  integrity sha512-8TWCf7jurIIkF1kF14W0S2iXpw9ZhzX3LENYDGrXxN33x2wlOz+j1YQIVM+tIloF9Om0ljlZgllR0vhwheUQ0Q==
   dependencies:
-    "@uppy/utils" "0.29.0"
+    "@uppy/utils" "0.29.1"
     preact "^8.2.9"
 
-"@uppy/provider-views@0.29.0":
-  version "0.29.0"
-  resolved "https://registry.yarnpkg.com/@uppy/provider-views/-/provider-views-0.29.0.tgz#d0f641f4dcd3c6264d5e0b0561433cdc5b98d0fd"
-  integrity sha512-szEhuoyuOjv79jc/EvpG6LIkwxaWOF5vYfY3ZwG+WGCIO7G+Y86/Ol/Fk4nt+w2XecxQZzmhA1xs58g8HUFVcQ==
+"@uppy/provider-views@0.29.1":
+  version "0.29.1"
+  resolved "https://registry.yarnpkg.com/@uppy/provider-views/-/provider-views-0.29.1.tgz#70412655192c63d4f7561094305c5a4bd5c85ca8"
+  integrity sha512-ya161BrI+UYl96kW4u+9Rv3m5VJcms5jf8GDGIOwr81Nx9tjNH87QeTVPockN+H5PHvvdOC9rsS9SbOdqEhHZQ==
   dependencies:
-    "@uppy/utils" "0.29.0"
+    "@uppy/utils" "0.29.1"
     classnames "^2.2.6"
     preact "^8.2.9"
 
-"@uppy/status-bar@0.29.0":
-  version "0.29.0"
-  resolved "https://registry.yarnpkg.com/@uppy/status-bar/-/status-bar-0.29.0.tgz#b8e646bfae6ab3629c91f02607edc41778406493"
-  integrity sha512-pFTwAASmE8dsJJg6HUPLpftIYtIuNRl5Z1shqRTPn75OfCYI9S6IWfzX3b7nUO9UnemxZ2DL9HSL03FIr7DkEg==
+"@uppy/status-bar@0.29.1":
+  version "0.29.1"
+  resolved "https://registry.yarnpkg.com/@uppy/status-bar/-/status-bar-0.29.1.tgz#0da499daaafbebe3343a41b4772efb63ca8d67b2"
+  integrity sha512-MSdeEiPgApii4kUerfPbG4j/jqdKXkREoNaw0APmfQgzlR6V6tyiZW9f0l9GFAG8JH14K9IEV83Z98O5BOTH3g==
   dependencies:
-    "@uppy/utils" "0.29.0"
+    "@uppy/utils" "0.29.1"
     classnames "^2.2.6"
     lodash.throttle "^4.1.1"
     preact "^8.2.9"
@@ -276,12 +276,12 @@
   resolved "https://registry.yarnpkg.com/@uppy/store-default/-/store-default-0.27.0.tgz#3afeb640352d142fe1b15d6e73b1034626ab4ced"
   integrity sha512-zy0DYXYcO/JyQ4Xg6KKDFnzZY3YC/YOjlfYT21BsHdLfriGBndouWV36N12vIqbNSluxdTQIDNue5mZy5BjtTQ==
 
-"@uppy/thumbnail-generator@0.29.0":
-  version "0.29.0"
-  resolved "https://registry.yarnpkg.com/@uppy/thumbnail-generator/-/thumbnail-generator-0.29.0.tgz#6d93f1850f77a2d6b9d0ca1ea221938f7f5c8153"
-  integrity sha512-zhr1bpgcP75w2wcEOVZf3vb+QOExZ0tj1/+gZR5gDpQLTNfT32VV4/HWO73Ae/7h0Q17/Hu48lFuFMIfcRl7Jw==
+"@uppy/thumbnail-generator@0.29.1":
+  version "0.29.1"
+  resolved "https://registry.yarnpkg.com/@uppy/thumbnail-generator/-/thumbnail-generator-0.29.1.tgz#0539e89ae8b02baa06c80d438919607aae44e2c9"
+  integrity sha512-hysD8luN8NOI2OnlO18XJzNM2e+Adi846OAuUedn7XarjennOcCJCsdZi91UlzVvlO9u8/W6qYNXD3UHUvTRuQ==
   dependencies:
-    "@uppy/utils" "0.29.0"
+    "@uppy/utils" "0.29.1"
 
 "@uppy/tus@^0.29.0":
   version "0.29.0"
@@ -296,6 +296,13 @@
   version "0.29.0"
   resolved "https://registry.yarnpkg.com/@uppy/utils/-/utils-0.29.0.tgz#e2e3b1eabca65acfdb0bcc644aaf425e86a354cd"
   integrity sha512-t16HxahlBhqlPZ8ZMxb5Sn4b5jgVujG1x5cUvfkq40xgwDbr5tHZ4NJokAOaQQUIuCDWPBdPXEeTLIbZalX5DQ==
+  dependencies:
+    lodash.throttle "^4.1.1"
+
+"@uppy/utils@0.29.1":
+  version "0.29.1"
+  resolved "https://registry.yarnpkg.com/@uppy/utils/-/utils-0.29.1.tgz#5167cd6451363d51683e686af6cbfc697cc6c823"
+  integrity sha512-pYINvzaEKnMcW6BJ3JiBP0v1wOFMo1FMt1JtafjWJtZ5n8UUhrBRmZsEoh5gPvymwhOQ+87Mlk2erV7L8QLyIg==
   dependencies:
     lodash.throttle "^4.1.1"
 
