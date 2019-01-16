@@ -8624,10 +8624,10 @@ symbol@~0.3.1:
   resolved "https://registry.yarnpkg.com/symbol/-/symbol-0.3.1.tgz#b6f9a900d496a57f02408f22198c109dda063041"
   integrity sha1-tvmpANSWpX8CQI8iGYwQndoGMEE=
 
-systemjs@2.1.1:
-  version "2.1.1"
-  resolved "https://registry.yarnpkg.com/systemjs/-/systemjs-2.1.1.tgz#453a123aa3bb2dcb581d0e99fabd2f29eadbe10d"
-  integrity sha512-T8bqkkIl56bLGrMzQh3+Ug2Oxg7NSyj+JFHv5Gi8V81mQr5XQKHEDooqvixbchYM9ZoeZedJFCMiPyN+nIEj4Q==
+systemjs@3.0.0:
+  version "3.0.0"
+  resolved "https://registry.yarnpkg.com/systemjs/-/systemjs-3.0.0.tgz#7e15ec942db9abacd484b53f30de11b018333560"
+  integrity sha512-EkC2dGhRkGJy0Ug5eZWIveIFTyPNXjW1J7PIBpPtzHuw6nDRJEFQr/rAOdfclD6PN/2YIAeexpP4LrgLZhmNrw==
 
 tar@^2.0.0:
   version "2.2.1"
