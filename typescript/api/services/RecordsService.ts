@@ -133,6 +133,10 @@ export module Services {
     }
 
     public updateMeta(brand, oid, record, user = null, triggerPreSaveTriggers = true, triggerPostSaveTriggers = true): Observable<any> {
+      if(brand == null ) {
+            return Observable.from(this.updateMetaInternal(brand, oid, record, null, user, false));
+
+      } else {
       return  RecordTypesService.get(brand, record.metaMetadata.type).flatMap(async(recordType) => {
 
         let response = await this.updateMetaInternal(brand, oid, record, recordType, user, triggerPreSaveTriggers)
@@ -147,6 +151,7 @@ export module Services {
               }
               return response;
           });
+        }
     }
 
 
