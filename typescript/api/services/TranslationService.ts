@@ -20,8 +20,9 @@
 import { Observable } from 'rxjs/Rx';
 import services = require('../core/CoreService.js');
 import { Sails, Model } from "sails";
-import * as i18next from 'i18next';
-import * as Backend from 'i18next-sync-fs-backend';
+import * as i18next from "i18next"
+// import  Backend from 'i18next-sync-fs-backend';
+import  * as Backend from 'i18next-node-fs-backend';
 declare var sails: Sails;
 
 export module Services {
@@ -40,9 +41,12 @@ export module Services {
     ];
     /** Warning this is synch... */
     public bootstrap() {
-      i18next
-        .use(Backend)
-        .init({
+      sails.log.error("#####################");
+      sails.log.error(Backend);
+      sails.log.error("#####################");
+
+      //@ts-ignore
+      i18next.use(Backend).init({
           preload: ['en'],
           debug: true,
           lng: 'en',
@@ -51,11 +55,15 @@ export module Services {
           backend: {
             loadPath: `${sails.config.appPath}/assets/locales/{{lng}}/{{ns}}.json`
           }
-        });
+        }).then(i18next => {
+          sails.log.error("**************************");
+          sails.log.error("i18next initialised");
+          sails.log.error("**************************");
+          });
     }
 
     public t(key, context = null) {
-
+      //@ts-ignore
       return i18next.t(key);
 
     }
