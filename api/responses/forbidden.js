@@ -55,17 +55,19 @@ module.exports = function forbidden (data, options) {
       viewData = undefined;
     }
   }
-
+  //TODO: Make this branding aware
+  let brandingViewPath = sails.config.appPath + "/views/default/default";
   // If a view was provided in options, serve it.
   // Otherwise try to guess an appropriate view, or if that doesn't
   // work, just send JSON.
   if (options.view) {
-    return res.view(options.view, { data: viewData, title: 'Forbidden' });
+
+    return res.view(options.view, { data: viewData, title: 'Forbidden', templateDirectoryLocation:  brandingViewPath});
   }
 
   // If no second argument provided, try to serve the default view,
   // but fall back to sending JSON(P) if any errors occur.
-  else return res.view('403', { data: viewData, title: 'Forbidden' }, function (err, html) {
+  else return res.view('403', { data: viewData, title: 'Forbidden',  templateDirectoryLocation:  brandingViewPath }, function (err, html) {
 
     // If a view error occured, fall back to JSON(P).
     if (err) {
@@ -86,4 +88,3 @@ module.exports = function forbidden (data, options) {
   });
 
 };
-
