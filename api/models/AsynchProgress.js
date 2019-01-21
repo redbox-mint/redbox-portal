@@ -29,10 +29,10 @@ module.exports = {
       required: true
     },
     currentIdx: {
-      type: 'integer'
+      type: 'number'
     },
     targetIdx: {
-      type: 'integer'
+      type: 'number'
     },
     status: {
       type: 'string'

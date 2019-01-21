@@ -17,7 +17,7 @@ module.exports = {
     },
     // When entry was added, in seconds since epoch
     ts_added: {
-      type: 'integer',
+      type: 'number',
       required: true
     }
   }
