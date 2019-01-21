@@ -413,7 +413,7 @@ module.exports.recordtype = {
           {
             function: 'sails.services.triggerservice.transitionWorkflow',
             options: {
-              "triggerCondition": "<%= workflow.stage == 'publishing'%>",
+              "triggerCondition": "<%= _.isEqual(workflow.stage, 'publishing') %>",
               "targetWorkflowStageName": "published",
               "targetWorkflowStageLabel": "Published",
               "targetForm": "dataPublication-1.0-published"

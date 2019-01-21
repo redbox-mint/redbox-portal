@@ -507,7 +507,7 @@ export module Controllers {
                 if (nextStep.config.authorization.transitionRoles.length > 0) {
                   let validRoles = _.filter(nextStep.config.authorization.transitionRoles, role => {
                     let val = _.find(user.roles, userRole => {
-                      return role == userRole;
+                      return role == userRole || role == userRole.name;
                     });
                     if (val != undefined) {
                       return true;
