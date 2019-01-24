@@ -32,7 +32,7 @@
     <div class="row" *ngIf="createMode">
       <rb-RelatedObjectSelector [field]="selectorField"></rb-RelatedObjectSelector>
       <button (click)="cancelCreate()" class="btn btn-primary">{{ backButtonLabel }}</button>
-      <a href="{{ selectedRdmpUrl }}" [attr.disabled]="hasSelectedRdmp() ? null : ''" class="btn btn-primary">{{ nextButtonLabel }}</a>
+      <a *ngIf="selectedRdmpUrl" href="{{ selectedRdmpUrl }}" [attr.disabled]="hasSelectedRdmp() ? null : ''" class="btn btn-primary">{{ nextButtonLabel }}</a>
     </div>
   <div class="row" *ngIf="!createMode">
     <button type='button' (click)="createWorkspace()" class="btn btn-primary"> {{ createWorkspaceLabel }} </button>

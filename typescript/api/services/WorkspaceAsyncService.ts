@@ -1,11 +1,10 @@
 import { Observable } from 'rxjs/Rx';
 import services = require('../core/CoreService.js');
 import { Sails, Model } from "sails";
-import * as request from "request-promise";
+
 const util = require('util');
 const moment = require('moment');
 
-declare var RecordsService, BrandingService;
 declare var sails: Sails;
 declare var _this;
 declare var _;
@@ -23,7 +22,8 @@ export module Services {
       'start',
       'update',
       'pending',
-      'loop'
+      'loop',
+      'status'
     ];
 
     /*
@@ -38,11 +38,11 @@ export module Services {
       }
     ).subscribe(response=>{console.log('started')})
     */
-    public start({name, recordType, username, service: service, method, args}) {
+    public start({name, recordType, username, service, method, args}) {
       return super.getObservable(
         WorkspaceAsync.create(
           {name: name, started_by: username, recordType: recordType,
-            method: method, args: args, status: 'started'}
+            service: service, method: method, args: args, status: 'started'}
         )
       );
     }
@@ -68,9 +68,7 @@ export module Services {
       this.pending().subscribe(pending => {
         _.forEach(pending, wa => {
           const args = wa.args || null;
-          //No type safe here, sorry
-          //Relies on destructuring to load all arguments
-          sails.services[wa.service][wa.method]({args}).subscribe(message => {
+          sails.services[wa.service][wa.method](args).subscribe(message => {
             this.update(wa.id, {status: 'finished', message: message}).subscribe();
           }, error => {
             this.update(wa.id, {status: 'error', message: error}).subscribe();
@@ -79,6 +77,12 @@ export module Services {
       }, error => {
         sails.log.error(error);
       });
+    }
+
+    status(status, recordType) {
+      return super.getObservable(
+        WorkspaceAsync.find({status: status, recordType: recordType})
+      )
     }
 
   }
