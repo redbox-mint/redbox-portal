@@ -45,7 +45,7 @@
     "redbox2ckan": "github:redbox-mint-contrib/redbox2ckan#dev_build",
     "redux": "4.0.1",
     "request-promise": "^4.2.0",
-    "rxjs": "6.3.3",
+    "rxjs": "6.4.0",
     "rxjs-compat": "6.3.3",
     "sails": "^1.0.2",
     "sails-hook-autoreload": "^1.1.0",
