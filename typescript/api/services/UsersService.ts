@@ -413,19 +413,21 @@ export module Services {
       var url = `${sails.config.record.baseUrl.redbox}${sails.config.record.api.search.url}?q=authorization_editPending:${pendingValue}%20OR%20authorization_viewPending:${pendingValue}&sort=date_object_modified desc&version=2.2&wt=json&rows=10000`;
       var options = { url: url, json: true, headers: { 'Authorization': `Bearer ${sails.config.redbox.apiKey}`, 'Content-Type': 'application/json; charset=utf-8' } };
       var response = Observable.fromPromise(request[sails.config.record.api.search.method](options)).catch(error => Observable.of(`Error: ${error}`));
-
+      var oid = null;
       response.subscribe(results => {
-
         if (results["response"] != null) {
           var docs = results["response"]["docs"];
           for (var i = 0; i < docs.length; i++) {
             var doc = docs[i];
             var item = {};
-            var oid = doc["storage_id"];
-
+            oid = doc["storage_id"];
             RecordsService.provideUserAccessAndRemovePendingAccess(oid, userid, pendingValue);
           }
         }
+      }, (error:any) => {
+        // swallow !!!!
+        sails.log.warn(`Failed to assign access to OID: ${oid}`);
+        sails.log.warn(error);
       });
 
     }
