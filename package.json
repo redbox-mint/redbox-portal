@@ -6,7 +6,7 @@
   "dependencies": {
     "@sailshq/upgrade": "^1.0.9",
     "@uppy/core": "^0.29.0",
-    "@uppy/dashboard": "^0.29.0",
+    "@uppy/dashboard": "^0.30.2",
     "@uppy/tus": "^0.29.0",
     "async": "2.6.1",
     "axios": "^0.18.0",
