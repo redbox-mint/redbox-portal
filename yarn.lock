@@ -1905,11 +1905,6 @@ chownr@^1.1.1:
   resolved "https://registry.yarnpkg.com/chownr/-/chownr-1.1.1.tgz#54726b8b8fff4df053c42187e801fb4412df1494"
   integrity sha512-j38EvO5+LHX84jlo6h4UzmOwi0UgW61WRyPtJz4qaadK5eY3BTS5TY/S1Stc3Uk2lIM6TPevAlULiEJwie860g==
 
-circular-json@0.5.5:
-  version "0.5.5"
-  resolved "https://registry.yarnpkg.com/circular-json/-/circular-json-0.5.5.tgz#64182ef359042d37cd8e767fc9de878b1e9447d3"
-  integrity sha512-13YaR6kiz0kBNmIVM87Io8Hp7bWOo4r61vkEANy8iH9R9bc6avud/1FT0SBpqR1RpIQADOh/Q+yHZDA1iL6ysA==
-
 class-utils@^0.3.5:
   version "0.3.6"
   resolved "https://registry.yarnpkg.com/class-utils/-/class-utils-0.3.6.tgz#f93369ae8b9a7ce02fd41faad0ca83033190c463"
@@ -3481,6 +3476,11 @@ flat@^4.1.0:
   integrity sha512-Px/TiLIznH7gEDlPXcUD4KnBusa6kR6ayRUVcnEAbreRIuhkqow/mun59BuRXwoYk7ZQOLW1ZM05ilIvK38hFw==
   dependencies:
     is-buffer "~2.0.3"
+
+flatted@2.0.0:
+  version "2.0.0"
+  resolved "https://registry.yarnpkg.com/flatted/-/flatted-2.0.0.tgz#55122b6536ea496b4b44893ee2608141d10d9916"
+  integrity sha512-R+H8IZclI8AAkSBRQJLVOsxwAoHd6WC40b4QTNWIjzAa6BXOBfQcM587MXDTVPeYaopFNWHUFLx7eNmHDSxMWg==
 
 flatten@^1.0.2:
   version "1.0.2"
@@ -5831,12 +5831,7 @@ map-visit@^1.0.0:
   dependencies:
     object-visit "^1.0.0"
 
-marked@0.6.0:
-  version "0.6.0"
-  resolved "https://registry.yarnpkg.com/marked/-/marked-0.6.0.tgz#a18d01cfdcf8d15c3c455b71c8329e5e0f01faa1"
-  integrity sha512-HduzIW2xApSXKXJSpCipSxKyvMbwRRa/TwMbepmlZziKdH8548WSoDP4SxzulEKjlo8BE39l+2fwJZuRKOln6g==
-
-marked@^0.6.1:
+marked@0.6.1, marked@^0.6.1:
   version "0.6.1"
   resolved "https://registry.yarnpkg.com/marked/-/marked-0.6.1.tgz#a63addde477bca9613028de4b2bc3629e53a0562"
   integrity sha512-+H0L3ibcWhAZE02SKMqmvYsErLo4EAVJxu5h3bHBBDvvjeWXtl92rGUSBYHL2++5Y+RSNgl8dYOAXcYe7lp1fA==
@@ -6324,9 +6319,9 @@ negotiator@0.6.1:
   integrity sha1-KzJxhOiZIQEXeyhWP7XnECrNDKk=
 
 newman@^4.2.2:
-  version "4.4.0"
-  resolved "https://registry.yarnpkg.com/newman/-/newman-4.4.0.tgz#f2711550c25a05743cf8e13bcebdc476c6d8be32"
-  integrity sha512-IdTiWJByea2h6xStkxjJlROVCQ5nINRHB3htS4FQ0Pq2zMNmj9jI3EjDopSssR9dj3nd9vTLEQi6BWRWNUnmvA==
+  version "4.4.1"
+  resolved "https://registry.yarnpkg.com/newman/-/newman-4.4.1.tgz#c2620a6fe5cd27039ef03e52e4d900a9c3ab14c0"
+  integrity sha512-HMYCBlFNlST/XnpVg8ri6hZ9PaDiqsgIpzUyy26Ra1WpNQorrezN8qD0FM35yeCv5R//QrsUiJMH8Wy6AkE3nw==
   dependencies:
     async "2.6.1"
     chardet "0.7.0"
@@ -6339,15 +6334,15 @@ newman@^4.2.2:
     filesize "4.1.2"
     lodash "4.17.11"
     mkdirp "0.5.1"
-    postman-collection "3.4.4"
+    postman-collection "3.4.6"
     postman-collection-transformer "3.0.0"
-    postman-request "2.88.1-postman.6"
-    postman-runtime "7.9.1"
+    postman-request "2.88.1-postman.8"
+    postman-runtime "7.11.0"
     pretty-ms "4.0.0"
     semver "5.6.0"
     serialised-error "1.1.3"
     word-wrap "1.2.3"
-    xmlbuilder "11.0.0"
+    xmlbuilder "11.0.1"
 
 ng2-completer@2.0.8:
   version "2.0.8"
@@ -7068,7 +7063,7 @@ pend@~1.2.0:
   resolved "https://registry.yarnpkg.com/pend/-/pend-1.2.0.tgz#7a57eb550a6783f9115331fcf4663d5c8e007a50"
   integrity sha1-elfrVQpng/kRUzH89GY9XI4AelA=
 
-performance-now@^2.1.0:
+performance-now@2.1.0, performance-now@^2.1.0:
   version "2.1.0"
   resolved "https://registry.yarnpkg.com/performance-now/-/performance-now-2.1.0.tgz#6309f4e0e5fa913ec1c69307ae364b4b377c9e7b"
   integrity sha1-Ywn04OX6kT7BxpMHrjZLSzd8nns=
@@ -7146,10 +7141,10 @@ postman-collection-transformer@3.0.0:
     semver "5.6.0"
     strip-json-comments "2.0.1"
 
-postman-collection@3.4.4:
-  version "3.4.4"
-  resolved "https://registry.yarnpkg.com/postman-collection/-/postman-collection-3.4.4.tgz#77f4437e5181a839d38aafaa75d5aa75384dbe61"
-  integrity sha512-9nf4Wx7qEfcqIgYvl8rURPLuOoAvoDrEdG/wiQznCHMmp82Nl/wSQi29K7UpNTwq3a4P2orXuhg1Wsbjx/td2w==
+postman-collection@3.4.6:
+  version "3.4.6"
+  resolved "https://registry.yarnpkg.com/postman-collection/-/postman-collection-3.4.6.tgz#660a8b63f09f16ef1e7e8e152b154357b86eaecc"
+  integrity sha512-8MWLE84JolniNR4mmBiZlkTgqICtlEt7wppsK1xzUfdNQWNvId0dZuwqLF6e6pyXNhCtDYl0CqjdY7l82X7+gg==
   dependencies:
     escape-html "1.0.3"
     file-type "3.9.0"
@@ -7157,7 +7152,7 @@ postman-collection@3.4.4:
     iconv-lite "0.4.24"
     liquid-json "0.3.1"
     lodash "4.17.11"
-    marked "0.6.0"
+    marked "0.6.1"
     mime-format "2.0.0"
     mime-types "2.1.22"
     postman-url-encoder "1.0.1"
@@ -7165,10 +7160,10 @@ postman-collection@3.4.4:
     semver "5.6.0"
     uuid "3.3.2"
 
-postman-request@2.88.1-postman.6:
-  version "2.88.1-postman.6"
-  resolved "https://registry.yarnpkg.com/postman-request/-/postman-request-2.88.1-postman.6.tgz#0cb87fda97b6758de27725d2dfb5f136a76f0225"
-  integrity sha512-vM9QU/IdSk7UpOpNoUirDYS4CxQLijKaxb6b1eFJ9Ih1hAaek1Fuhl7Pw1jTQc4iF+/J13VC+SPLrlxtBL7ojg==
+postman-request@2.88.1-postman.8:
+  version "2.88.1-postman.8"
+  resolved "https://registry.yarnpkg.com/postman-request/-/postman-request-2.88.1-postman.8.tgz#0ee58c13e3f4652c4e23a964f9b190a0cdb101db"
+  integrity sha512-lXxc4R6+g4oiLPA937Thl5MGdFBV7FSBN4WnUhKNq2UWEt+YJrOEYv0UOP6pH7kPF5cg8IXG1lHls7IWf8if4A==
   dependencies:
     aws-sign2 "~0.7.0"
     aws4 "^1.8.0"
@@ -7193,10 +7188,10 @@ postman-request@2.88.1-postman.6:
     tunnel-agent "^0.6.0"
     uuid "^3.3.2"
 
-postman-runtime@7.9.1:
-  version "7.9.1"
-  resolved "https://registry.yarnpkg.com/postman-runtime/-/postman-runtime-7.9.1.tgz#a244197a63898541038e81a7ce91243649c4c00c"
-  integrity sha512-rNEtZ5wXnuK8atj4Fx9Y/ZtOVnuvUgq9m3q1p2GUaakaSa1sfvZElT+/Dkew5jldAmoweRmd+Fn6li6d8QUSSw==
+postman-runtime@7.11.0:
+  version "7.11.0"
+  resolved "https://registry.yarnpkg.com/postman-runtime/-/postman-runtime-7.11.0.tgz#0473a9a5829e76c240e1409bbbdb52eab5922393"
+  integrity sha512-IgBo6CZneFIhpOXNMDllOd8sQwm0wNHM3mjYynFPdLUx29UVP+4P92QdWDpUwsxDa55hKBg8sZhqGU7JeH9teg==
   dependencies:
     async "2.6.1"
     aws4 "1.8.0"
@@ -7208,22 +7203,23 @@ postman-runtime@7.9.1:
     inherits "2.0.3"
     lodash "4.17.11"
     node-oauth1 "1.2.2"
-    postman-collection "3.4.4"
-    postman-request "2.88.1-postman.6"
-    postman-sandbox "3.2.4"
+    performance-now "2.1.0"
+    postman-collection "3.4.6"
+    postman-request "2.88.1-postman.8"
+    postman-sandbox "3.2.6"
     resolve-from "4.0.0"
     serialised-error "1.1.3"
     uuid "3.3.2"
 
-postman-sandbox@3.2.4:
-  version "3.2.4"
-  resolved "https://registry.yarnpkg.com/postman-sandbox/-/postman-sandbox-3.2.4.tgz#04c25ec0dc48d31911bd8a9bfe29a6668772a2d7"
-  integrity sha512-+xIufVjIiIANSJDTjECcWCDotMeGMOzl9bRjofpektZGgzhKSx//Bi+MW3StKRVOLXAJR4ru7BA2+lfBXSsIgA==
+postman-sandbox@3.2.6:
+  version "3.2.6"
+  resolved "https://registry.yarnpkg.com/postman-sandbox/-/postman-sandbox-3.2.6.tgz#1cca30882a63016ea3c9b2037044a757c53cdc5f"
+  integrity sha512-mf7x9yuFJf4XYDtZ5T5jPRFH116wvs5k9WRyiMSmA8fYpqX+LZPZaP4M8DVTkJ6T4DbgErRzc+VMfVtJ4wSjkg==
   dependencies:
     inherits "2.0.3"
     lodash "4.17.11"
     uuid "3.3.2"
-    uvm "1.7.4"
+    uvm "1.7.5"
 
 postman-url-encoder@1.0.1:
   version "1.0.1"
@@ -9547,12 +9543,12 @@ uuid@3.3.2, uuid@^3.0.0, uuid@^3.3.2:
   resolved "https://registry.yarnpkg.com/uuid/-/uuid-3.3.2.tgz#1b4af4955eb3077c501c23872fc6513811587131"
   integrity sha512-yXJmeNaw3DnnKAOKJE51sL/ZaYfWJRl1pK9dr19YFCu0ObS231AB1/LbqTKRAQ5kw8A90rA6fr4riOUpTZvQZA==
 
-uvm@1.7.4:
-  version "1.7.4"
-  resolved "https://registry.yarnpkg.com/uvm/-/uvm-1.7.4.tgz#0ad86067aa7c96575428b3c08eef674d9323fb60"
-  integrity sha512-kELQDSqBfIwLxKG16aTdX3NxfmWsQkQkywrsxq6/Jqts35qLP+33fwwB2Dv4ELIaNZCCC3pctLeyIaq7kfo40A==
+uvm@1.7.5:
+  version "1.7.5"
+  resolved "https://registry.yarnpkg.com/uvm/-/uvm-1.7.5.tgz#36759889eb08393f3ddad422c59d771399220ca2"
+  integrity sha512-QteSdkvRFbrSozInbNwRy5c8RUlxyyZU32EFCVHBDDPprCJ/gAAbWwTTAvyqC8+7uhxGihocAtcn28YBrpObZg==
   dependencies:
-    circular-json "0.5.5"
+    flatted "2.0.0"
     inherits "2.0.3"
     lodash "4.17.11"
     uuid "3.3.2"
@@ -9867,10 +9863,10 @@ xml2js@0.4.19, xml2js@^0.4.19:
     sax ">=0.6.0"
     xmlbuilder "~9.0.1"
 
-xmlbuilder@11.0.0:
-  version "11.0.0"
-  resolved "https://registry.yarnpkg.com/xmlbuilder/-/xmlbuilder-11.0.0.tgz#741ef682e2ab9a7e84e692bf905e6d57c2c9395f"
-  integrity sha512-LzeAc96zUlknAk0F+xOXC8hO1D4ISG1ivov9UBjFkPcbSk6jVGhm9J8pTQp1ksZp9YbOws8pae8tVs+hwQl12w==
+xmlbuilder@11.0.1:
+  version "11.0.1"
+  resolved "https://registry.yarnpkg.com/xmlbuilder/-/xmlbuilder-11.0.1.tgz#be9bae1c8a046e76b31127726347d0ad7002beb3"
+  integrity sha512-fDlsI/kFEx7gLvbecc0/ohLG50fugQp8ryHzMTuW9vSa1GJ0XYWKnhsUx7oie3G98+r56aTQIUB4kht42R3JvA==
 
 xmlbuilder@^9.0.4, xmlbuilder@~9.0.1:
   version "9.0.7"
