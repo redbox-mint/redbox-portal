@@ -94,7 +94,7 @@
     "mocha": "^6.0.0",
     "newman": "^4.2.2",
     "node-sass": "4.11.0",
-    "supertest": "^3.0.0",
+    "supertest": "^4.0.2",
     "uglify-es": "^3.3.10"
   },
   "nyc": {
