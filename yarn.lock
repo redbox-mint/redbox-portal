@@ -9046,10 +9046,10 @@ symbol@~0.3.1:
   resolved "https://registry.yarnpkg.com/symbol/-/symbol-0.3.1.tgz#b6f9a900d496a57f02408f22198c109dda063041"
   integrity sha1-tvmpANSWpX8CQI8iGYwQndoGMEE=
 
-systemjs@3.0.0:
-  version "3.0.0"
-  resolved "https://registry.yarnpkg.com/systemjs/-/systemjs-3.0.0.tgz#7e15ec942db9abacd484b53f30de11b018333560"
-  integrity sha512-EkC2dGhRkGJy0Ug5eZWIveIFTyPNXjW1J7PIBpPtzHuw6nDRJEFQr/rAOdfclD6PN/2YIAeexpP4LrgLZhmNrw==
+systemjs@3.1.1:
+  version "3.1.1"
+  resolved "https://registry.yarnpkg.com/systemjs/-/systemjs-3.1.1.tgz#54dd6e3f7c9e89b7c353b32828d499e7110b0e63"
+  integrity sha512-Sfbn/RwJjEb88kQDbLlsj7vxuYwt1eFOd3rXD3olxATmrNSwBAuwwt/3H/2kj6hGHiw0kqywqeYw0bXfUe+KNg==
 
 tar@^2.0.0:
   version "2.2.1"
