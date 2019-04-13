@@ -503,7 +503,7 @@ arg@^4.1.0:
   resolved "https://registry.yarnpkg.com/arg/-/arg-4.1.0.tgz#583c518199419e0037abb74062c37f8519e575f0"
   integrity sha512-ZWc51jO3qegGkVh8Hwpv636EkbesNV5ZNQPCtRa+0qytRYPEs9IYT9qITY9buezqUH5uqyzlWLcufrzU2rffdg==
 
-argparse@^1.0.2, argparse@^1.0.7:
+argparse@^1.0.10, argparse@^1.0.2, argparse@^1.0.7:
   version "1.0.10"
   resolved "https://registry.yarnpkg.com/argparse/-/argparse-1.0.10.tgz#bcd6791ea5ae09725e17e5ad988134cd40b3d911"
   integrity sha512-o5Roy6tNG4SL/FOkCAN6RzjiakZS25RLYFrcMttJqbdd8BWrnA+fGz57iN5Pb06pvBGvl5gQ0B48dJlslXvoTg==
@@ -2473,14 +2473,17 @@ data-urls@^1.0.0:
     whatwg-url "^7.0.0"
 
 datacrate@^1.0.4:
-  version "1.0.4"
-  resolved "https://registry.yarnpkg.com/datacrate/-/datacrate-1.0.4.tgz#239faebc5c5ec240195386598718561871e1cd5e"
-  integrity sha512-KTTorlRVnYttWcBMmSTYidogAqPCgpc2iaNR5hegq8/QH5cHfFtY56Tx9g2LkC12iILTJEkmhRoSzpz8ypNNEA==
+  version "1.0.5"
+  resolved "https://registry.yarnpkg.com/datacrate/-/datacrate-1.0.5.tgz#53de6756082c839566093efb005e73b24c797447"
+  integrity sha512-1ga5ORe0M/kBjAGvZi7CHt0amu6mVyDeDVjAUJo+mLSvi48bzrjxN6NqwHpZYE3dNxNY1E2iSyzIkdTWnngaTQ==
   dependencies:
+    argparse "^1.0.10"
     calcyte "^1.0.2"
     fs-extra "^7.0.0"
     jsonld "^1.1.0"
     lodash "^4.17.11"
+    random-word "^2.0.0"
+    uuid "^3.3.2"
 
 dateformat@~1.0.12:
   version "1.0.12"
@@ -7434,6 +7437,14 @@ random-bytes@~1.0.0:
   resolved "https://registry.yarnpkg.com/random-bytes/-/random-bytes-1.0.0.tgz#4f68a1dc0ae58bd3fb95848c30324db75d64360b"
   integrity sha1-T2ih3Arli9P7lYSMMDJNt11kNgs=
 
+random-word@^2.0.0:
+  version "2.0.0"
+  resolved "https://registry.yarnpkg.com/random-word/-/random-word-2.0.0.tgz#25ed18d5ba5a99409eaceb59dabe65b76d2ff6e9"
+  integrity sha1-Je0Y1bpamUCerOtZ2r5lt20v9uk=
+  dependencies:
+    unique-random-array "^1.0.0"
+    word-list "^2.0.0"
+
 randomatic@^3.0.0:
   version "3.1.1"
   resolved "https://registry.yarnpkg.com/randomatic/-/randomatic-3.1.1.tgz#b776efc59375984e36c537b2f51a1f0aff0da1ed"
@@ -9432,6 +9443,18 @@ union-value@^1.0.0:
     is-extendable "^0.1.1"
     set-value "^0.4.3"
 
+unique-random-array@^1.0.0:
+  version "1.0.1"
+  resolved "https://registry.yarnpkg.com/unique-random-array/-/unique-random-array-1.0.1.tgz#f29bda2a62be8860a703c4739c8f4fdb4d722cc7"
+  integrity sha512-z9J/SV8CUIhIRROcHe9YUoAT6XthUJt0oUyLGgobiXJprDP9O9dsErNevvSaAv5BkhwFEVPn6nIEOKeNE6Ck1Q==
+  dependencies:
+    unique-random "^1.0.0"
+
+unique-random@^1.0.0:
+  version "1.0.0"
+  resolved "https://registry.yarnpkg.com/unique-random/-/unique-random-1.0.0.tgz#ce3e224c8242cd33a0e77b0d7180d77e6b62d0c4"
+  integrity sha1-zj4iTIJCzTOg53sNcYDXfmti0MQ=
+
 unique-string@^1.0.0:
   version "1.0.0"
   resolved "https://registry.yarnpkg.com/unique-string/-/unique-string-1.0.0.tgz#9e1057cca851abb93398f8b33ae187b99caec11a"
@@ -9782,6 +9805,11 @@ winston@0.8.x:
     isstream "0.1.x"
     pkginfo "0.3.x"
     stack-trace "0.0.x"
+
+word-list@^2.0.0:
+  version "2.0.0"
+  resolved "https://registry.yarnpkg.com/word-list/-/word-list-2.0.0.tgz#54ddfa4aae1faa71772cfb6e9208c4d8f999363e"
+  integrity sha1-VN36Sq4fqnF3LPtukgjE2PmZNj4=
 
 word-wrap@1.2.3:
   version "1.2.3"
