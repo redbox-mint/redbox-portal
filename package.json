@@ -5,9 +5,9 @@
   "keywords": [],
   "dependencies": {
     "@sailshq/upgrade": "^1.0.9",
-    "@uppy/core": "^0.29.0",
-    "@uppy/dashboard": "^0.29.0",
-    "@uppy/tus": "^0.29.0",
+    "@uppy/core": "^0.30.4",
+    "@uppy/dashboard": "^0.30.4",
+    "@uppy/tus": "^0.30.4",
     "async": "2.6.2",
     "axios": "^0.18.0",
     "bcrypt": "3.0.6",
