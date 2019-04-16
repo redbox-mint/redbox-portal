@@ -48,6 +48,7 @@ export class VocabField extends FieldBase<any> {
   public titleFieldName: string;
   public titleFieldArr: string[];
   public titleFieldDelim: any;
+  public titleCompleterDescription: string;
   public searchFields: string;
   public fieldNames: any[];
   public sourceType: string;
@@ -73,6 +74,7 @@ export class VocabField extends FieldBase<any> {
     this.titleFieldArr = options['titleFieldArr'] || [];
     this.searchFields = options['searchFields'] || '';
     this.titleFieldDelim = options['titleFieldDelim'] || ' - ';
+    this.titleCompleterDescription = options['titleCompleterDescription'] || '';
     this.fieldNames = options['fieldNames'] || [];
     this.sourceType = options['sourceType'] || 'vocab';
     this.placeHolder = options['placeHolder'] || 'Select a valid value';
@@ -173,6 +175,7 @@ export class VocabField extends FieldBase<any> {
         this.titleFieldName,
         this.titleFieldArr,
         this.titleFieldDelim,
+        this.titleCompleterDescription,
         this.searchFields);
     } else if (this.sourceType == "external") {
       const url = this.lookupService.getExternalServiceUrl(this.provider);
@@ -339,6 +342,7 @@ class MintLookupDataService extends Subject<CompleterItem[]> implements Complete
     private compositeTitleName: string,
     private titleFieldArr: string[],
     private titleFieldDelim: any[],
+    private titleCompleterDescription: string,
     searchFieldStr: any) {
     super();
     this.searchFields = searchFieldStr.split(',');
@@ -388,8 +392,21 @@ class MintLookupDataService extends Subject<CompleterItem[]> implements Complete
     // build the title,
     let completerItem = {};
     completerItem[this.compositeTitleName] = this.getTitle(data);
+    completerItem['description'] = this.getCompleterDescription(data);
     completerItem['originalObject'] = item;
     return completerItem as CompleterItem;
+  }
+
+  getCompleterDescription(data: any): string {
+    let description = '';
+    const fieldDesc = this.titleCompleterDescription;
+    if(data) {
+      if (_.isString(fieldDesc)) {
+        const ele = data[fieldDesc];
+        description = _.toString(_.head(ele)) || '';
+      }
+    }
+    return description;
   }
 
   getTitle(data: any): string {

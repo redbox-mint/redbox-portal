@@ -484,3 +484,11 @@ tree-internal > ul.rootless > li > tree-internal > ul {
     word-break: break-all;
     white-space: normal;
 }
+
+.completer-dropdown {
+  /*This worked because shadow dom did not!*/
+  width: auto !important;
+  overflow-y: scroll;
+  overflow-x: auto;
+  max-height: 400px;
+}
