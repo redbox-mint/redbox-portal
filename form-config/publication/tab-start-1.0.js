@@ -105,7 +105,7 @@ module.exports = [
           class: 'SelectionField',
           compClass: 'DropdownFieldComponent',
           definition: {
-            name: 'dc:subject_anzsrc:toa_rdf:resource',
+            name: 'datatype',
             label: '@dataPublication-datatype',
             help: '@dataPublication-datatype-help',
             required: true,
