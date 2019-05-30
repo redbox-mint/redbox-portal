@@ -9,7 +9,7 @@
     "@uppy/dashboard": "^0.29.0",
     "@uppy/tus": "^0.29.0",
     "async": "2.6.2",
-    "axios": "^0.18.0",
+    "axios": "^0.19.0",
     "bcrypt": "3.0.6",
     "bootstrap-sass": "^3.3.7",
     "calcyte": "^1.0.2",
