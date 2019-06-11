@@ -545,6 +545,10 @@ export module Services {
         metadata['authorization']['view'] = viewArray;
 
         this.updateMeta(null, oid, metadata);
+      }, (error:any) => {
+        // swallow !!!!
+        sails.log.warn(`Failed to provide access to OID: ${oid}`);
+        sails.log.warn(error);
       });
 
     }
