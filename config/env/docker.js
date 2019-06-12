@@ -70,9 +70,18 @@ module.exports = {
     }
   },
   datastores:{
-  mongodb: {
-    adapter: require('sails-mongo'),
-    url: 'mongodb://mongodb:27017/redbox-portal'
+    mongodb: {
+      adapter: require('sails-mongo'),
+      url: 'mongodb://mongodb:27017/redbox-portal'
+    }
+  },
+  // enable MongoDB sessions
+  session: {
+     adapter: 'mongo',
+     url: 'mongodb://mongodb:27017/redbox-portal',
+     // 8 hours
+     cookie: {
+       maxAge: 8 * 60 * 60 * 1000
+     }
   }
-}
-  };
+};
