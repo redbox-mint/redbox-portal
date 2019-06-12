@@ -7917,9 +7917,9 @@ symbol@~0.3.1:
   version "0.3.1"
   resolved "https://registry.yarnpkg.com/symbol/-/symbol-0.3.1.tgz#b6f9a900d496a57f02408f22198c109dda063041"
 
-systemjs@3.1.3:
-  version "3.1.3"
-  resolved "https://registry.yarnpkg.com/systemjs/-/systemjs-3.1.3.tgz#e7867bcc3ef7e6c07bb24b7b46cb5708f426d0d6"
+systemjs@3.1.6:
+  version "3.1.6"
+  resolved "https://registry.yarnpkg.com/systemjs/-/systemjs-3.1.6.tgz#0a13f45d2c3f7509824be46033a61115eda1903d"
 
 tar@^2.0.0:
   version "2.2.2"
