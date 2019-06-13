@@ -80,7 +80,8 @@ export module Controllers {
             if (_.isEmpty(pageData.users)) {
               pageData.users = [];
             }
-            delete user.token;
+            // need to set a dummy token string, to indicate if this user has a token set, but actual token won't be returned
+            user.token = _.isEmpty(user.token) ? null : "user-has-token-but-is-suppressed";
             //TODO: Look for config around what other secrets should be hidden from being returned to the client
             delete user.password;
             pageData.users.push(user);
