@@ -134,24 +134,25 @@ export module Services {
 
     public updateMeta(brand, oid, record, user = null, triggerPreSaveTriggers = true, triggerPostSaveTriggers = true): Observable<any> {
       if(brand == null ) {
-            return Observable.from(this.updateMetaInternal(brand, oid, record, null, user, false));
+        return Observable.from(this.updateMetaInternal(brand, oid, record, null, user, false));
 
       } else {
-      return  RecordTypesService.get(brand, record.metaMetadata.type).flatMap(async(recordType) => {
-
-        let response = await this.updateMetaInternal(brand, oid, record, recordType, user, triggerPreSaveTriggers)
+      	return  RecordTypesService.get(brand, record.metaMetadata.type).flatMap(async(recordType) => {
+					let response = await this.updateMetaInternal(brand, oid, record, recordType, user, triggerPreSaveTriggers)
           if (triggerPostSaveTriggers) {
-                let resp: any = response;
-                if (response && resp.code == "200") {
-                  resp.success = true;
-                  RecordTypesService.get(brand, record.metaMetadata.type).subscribe(recordType => {
-                    this.triggerPostSaveTriggers(oid, record, recordType, 'onUpdate', user);
-                  });
-                }
-              }
-              return response;
-          });
-        }
+            let resp: any = response;
+            if (response && resp.code == "200") {
+              resp.success = true;
+              RecordTypesService.get(brand, record.metaMetadata.type).subscribe(recordType => {
+                this.triggerPostSaveTriggers(oid, record, recordType, 'onUpdate', user);
+              });
+            }
+          } else {
+          	response.success = true;
+          }
+          return response;
+        });
+      }
     }
 
 
