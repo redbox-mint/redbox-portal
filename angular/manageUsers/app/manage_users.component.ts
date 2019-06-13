@@ -102,19 +102,26 @@ export class ManageUsersComponent extends LoadableComponent {
         checked: new FormControl(false),
       });
     }));
-    const pwGroup = this._fb.group(
+    const pwGroup_new = this._fb.group(
       {
         password: [''],
         confirmPassword: ['']
       }
     );
-    pwGroup.setValidators([matchingValuesValidator('password', 'confirmPassword'), passwordStrengthValidator('confirmPassword')])
+    const pwGroup_update = this._fb.group(
+      {
+        password: [''],
+        confirmPassword: ['']
+      }
+    );
+    pwGroup_new.setValidators([matchingValuesValidator('password', 'confirmPassword'), passwordStrengthValidator('confirmPassword')])
+    pwGroup_update.setValidators([matchingValuesValidator('password', 'confirmPassword'), passwordStrengthValidator('confirmPassword')])
     this.updateUserForm = this._fb.group({
       userid: this.currentUser.id,
       username: this.currentUser.username,
       name: [this.currentUser.name, Validators.required],
       email: [this.currentUser.email, optionalEmailValidator],
-      passwords: pwGroup,
+      passwords: pwGroup_update,
       allRoles: updateRolesControlArray,
       roles: [this.mapRoles(updateRolesControlArray.value), Validators.required]
     });
@@ -123,7 +130,7 @@ export class ManageUsersComponent extends LoadableComponent {
       username: ['', Validators.required],
       name: ['', Validators.required],
       email: ['', optionalEmailValidator],
-      passwords: pwGroup,
+      passwords: pwGroup_new,
       allRoles: newRolesControlArray,
       roles: [this.mapRoles(newRolesControlArray.value), Validators.required]
     });
