@@ -51,7 +51,7 @@ export class FieldBase<T> {
   validationMessages: any;
   editMode: boolean;
   readOnly: boolean;
-  help: string;
+  help: any;
   translationService: TranslationService;
   defaultValue: any;
   marginTop: string;
@@ -68,6 +68,8 @@ export class FieldBase<T> {
   visibilityCriteria: any;
   validators: any;
   requiredIfHasValue: any[];
+  selectFor: string;
+  defaultSelect: string;
 
   @Output() public onValueUpdate: EventEmitter<any> = new EventEmitter<any>();
   @Output() public onValueLoaded: EventEmitter<any> = new EventEmitter<any>();
@@ -96,13 +98,24 @@ export class FieldBase<T> {
     groupName?: string,
     editMode? : boolean,
     readOnly?: boolean,
-    help?: string,
-    defaultValue?: any
+    help?: any,
+    defaultValue?: any,
+    selectFor?: string,
+    defaultSelect?: string,
   } = {}) {
     this.value = this.getTranslated(options.value, undefined);
     this.name = options.name || '';
     this.id = options.id || '';
     this.label = this.getTranslated(options.label, '');
+    if(options.selectFor && options.defaultSelect) {
+      if(_.isArray(options.help)) {
+        const newHelp = _.defaultTo(
+          _.find(options.help, f => f.key === options.selectFor),
+          _.find(options.help, f => f.key === options.defaultSelect)
+        );
+        options.help = newHelp.value;
+      }
+    }
     this.help = this.getTranslated(options.help, undefined);
     this.required = !!options.required;
     this.controlType = options.controlType || '';
