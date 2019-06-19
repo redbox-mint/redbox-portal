@@ -15,40 +15,49 @@ module.exports.bootstrap = function(cb) {
     // sails.config.peopleSearch.orcid = sails.services.orcidservice.searchOrcid;
     sails.config.startupMinute = Math.floor(Date.now() / 60000);
     sails.services.cacheservice.bootstrap();
+    sails.log.verbose("Cache service, bootstrapped.");
     sails.services.translationservice.bootstrap();
+    sails.log.verbose("Translation service, bootstrapped.");
     if (sails.config.environment == "production" || sails.config.ng2.force_bundle) {
       sails.config.ng2.use_bundled = true;
       console.log("Using NG2 Bundled files.......");
     }
     // actual bootstrap...
-    sails.log.debug(`Starting boostrap process with boostrapAlways set to: ${sails.config.appmode.bootstrapAlways}`);
+    sails.log.debug("Starting boostrap process with boostrapAlways set to: " +sails.config.appmode.bootstrapAlways);
     sails.services.brandingservice.bootstrap()
     .flatMap(defaultBrand => {
-      sails.log.verbose("Bootstrapping roles...");
+      sails.log.verbose("Branding service, bootstrapped.");
       return sails.services.rolesservice.bootstrap(defaultBrand);
     })
     .flatMap(defaultBrand => {
+      sails.log.verbose("Roles service, bootstrapped.");
       // sails doesn't support 'populating' of nested associations
       // intentionally queried again because of nested 'users' population, couldn't be bothered with looping thru the results
       return sails.services.reportsservice.bootstrap(sails.services.brandingservice.getDefault());
     })
     .flatMap(defaultBrand => {
+      sails.log.verbose("Reports service, bootstrapped.");
       // sails doesn't support 'populating' of nested associations
       // intentionally queried again because of nested 'users' population, couldn't be bothered with looping thru the results
       return sails.services.rolesservice.getRolesWithBrand(sails.services.brandingservice.getDefault());
     })
     .flatMap(defRoles => {
+      sails.log.verbose("Roles service, bootstrapped.");
       return sails.services.usersservice.bootstrap(defRoles);
     })
     .flatMap(defUserAndDefRoles => {
+      sails.log.verbose("Pathrules service, bootstrapped.");
       return sails.services.pathrulesservice.bootstrap(defUserAndDefRoles.defUser, defUserAndDefRoles.defRoles);
     })
     .flatMap(whatever => {
+      sails.log.verbose("Record types service, bootstrapped.");
       return sails.services.recordtypesservice.bootstrap(sails.services.brandingservice.getDefault());
     }).flatMap(recordTypes => {
+      sails.log.verbose("Workflowsteps service, bootstrapped.");
       return sails.services.workflowstepsservice.bootstrap(recordTypes);
     })
     .flatMap(workflowSteps => {
+      sails.log.verbose("Workflowsteps service, bootstrapped.");
       if (_.isArray(workflowSteps)) {
         const obs = [];
         _.each(workflowSteps, workflowStep => {
@@ -60,9 +69,11 @@ module.exports.bootstrap = function(cb) {
       }
     })
     .flatMap(whatever => {
+      sails.log.verbose("Forms service, bootstrapped.");
       return sails.services.vocabservice.bootstrap();
     })
     .flatMap(x => {
+      sails.log.verbose("Vocab service, bootstrapped.");
       // Schedule cronjobs
       if(sails.config.crontab.enabled) {
         sails.config.crontab.crons().forEach(item => {
@@ -77,11 +88,12 @@ module.exports.bootstrap = function(cb) {
     })
     .last()
     .flatMap(whatever => {
+      sails.log.verbose("Cron service, bootstrapped.");
       // After last, because it was being triggered twice
       return sails.services.workspacetypesservice.bootstrap(sails.services.brandingservice.getDefault());
     })
     .subscribe(retval => {
-
+      sails.log.verbose("WorkspaceTypes service, bootstrapped.");
      sails.log.ship = function() {
      sails.log.info(".----------------. .----------------. .----------------. ");
      sails.log.info("| .--------------. | .--------------. | .--------------. |");
@@ -107,10 +119,11 @@ module.exports.bootstrap = function(cb) {
      sails.log.info("'----------------' '----------------' '----------------' ");
      }
 
-      sails.log.verbose("Bootstrap complete!");
+      sails.log.verbose("Waiting for ReDBox Storage to start...");
 
       sails.services.recordsservice.checkRedboxRunning().then(response => {
         if(response == true) {
+          sails.log.verbose("Bootstrap complete!");
         // It's very important to trigger this callback method when you are finished
         // with the bootstrap!  (otherwise your server will never lift, since it's waiting on the bootstrap)
           cb();
