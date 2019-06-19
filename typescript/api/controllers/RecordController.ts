@@ -955,6 +955,7 @@ export module Controllers {
       const brand = BrandingService.getBrand(req.session.branding);
       const oid = req.param('oid');
       const attachId = req.param('attachId');
+      sails.log.verbose(`Have attach Id: ${attachId}`);
       this.initTusServer();
       const method = _.toLower(req.method);
       if (method == 'post') {
@@ -965,7 +966,8 @@ export module Controllers {
       return this.getRecord(oid).flatMap(currentRec => {
         return this.hasEditAccess(brand, req.user, currentRec).flatMap(hasEditAccess => {
           if (!hasEditAccess) {
-            return Observable.throw(new Error(TranslationService.t('edit-error-no-permissions')));
+            sails.log.error("Error: edit error no permissions in do attachment.");
+            return Observable.throwError(new Error(TranslationService.t('edit-error-no-permissions')));
           }
           if (method == 'get') {
             // check if this attachId exists in the record
@@ -982,7 +984,8 @@ export module Controllers {
               }
             });
             if (!found) {
-              return Observable.throw(new Error(TranslationService.t('attachment-not-found')))
+              sails.log.verbose("Error: Attachment not found in do attachment.");
+              return Observable.throwError(new Error(TranslationService.t('attachment-not-found')))
             }
             res.set('Content-Type', found.mimeType);
             res.set('Content-Disposition', `attachment; filename="${found.name}"`);
@@ -1024,6 +1027,7 @@ export module Controllers {
     }
 
     public getAttachments(req, res) {
+      sails.log.verbose('getting attachments....');
       const oid = req.param('oid');
       return RecordsService.listDatastreams(oid).subscribe(datastreams => {
         let attachments = [];

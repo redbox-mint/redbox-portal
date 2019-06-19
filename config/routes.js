@@ -238,7 +238,13 @@ module.exports.routes = {
       action: 'updateMeta',
       csrf: false
   },
+  'put /:branding/:portal/api/records/objectmetadata/:oid': {
+    controller: 'webservice/RecordController',
+    action: 'updateObjectMeta',
+    csrf: false
+  },
   'get /:branding/:portal/api/records/metadata/:oid': 'webservice/RecordController.getMeta',
+  'get /:branding/:portal/api/records/objectmetadata/:oid': 'webservice/RecordController.getObjectMeta',
   'post /:branding/:portal/api/records/permissions/edit/:oid': {
     controller: 'webservice/RecordController',
     action: 'addUserEdit',
@@ -252,6 +258,11 @@ module.exports.routes = {
   'post /:branding/:portal/api/records/permissions/view/:oid': {
     controller: 'webservice/RecordController',
     action: 'addUserView',
+    csrf: false
+  },
+  'post /:branding/:portal/api/records/datastreams/:oid': {
+    controller: 'webservice/RecordController',
+    action: 'addDataStreams',
     csrf: false
   },
   'delete /:branding/:portal/api/records/permissions/view/:oid': {

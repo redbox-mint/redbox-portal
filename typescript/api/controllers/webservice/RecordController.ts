@@ -29,13 +29,15 @@ declare var RecordTypesService;
 declare var WorkflowStepsService;
 declare var RecordsService;
 declare var _;
-import { Observable } from 'rxjs/Rx';
-
 declare var User;
 /**
  * Package that contains all Controllers.
  */
+import {Observable} from 'rxjs/Rx';
+import * as path from "path";
 import controller = require('../../core/CoreController.js');
+
+const UUIDGenerator = require('uuid/v4');
 export module Controllers {
   /**
    * Responsible for all things related to the Dashboard
@@ -50,13 +52,16 @@ export module Controllers {
     protected _exportedMethods: any = [
       'create',
       'updateMeta',
+      'updateObjectMeta',
       'getMeta',
+      'getObjectMeta',
       'addUserEdit',
       'removeUserEdit',
       'addUserView',
       'removeUserView',
       'getPermissions',
-      'getDataStream'
+      'getDataStream',
+      'addDataStreams'
     ];
 
     /**
@@ -211,12 +216,37 @@ export module Controllers {
       });
     }
 
+    public getObjectMeta(req, res) {
+      const brand = BrandingService.getBrand(req.session.branding);
+      sails.log.debug('brand is...');
+      sails.log.debug(brand);
+      var oid = req.param('oid');
+
+      RecordsService.getMeta(oid).subscribe(record => {
+        return res.json(record["metaMetadata"]);
+      });
+    }
+
     public updateMeta(req, res) {
       const brand = BrandingService.getBrand(req.session.branding);
       var oid = req.param('oid');
 
       RecordsService.getMeta(oid).subscribe(record => {
         record["metadata"] = req.body;
+        var obs = RecordsService.updateMeta(brand, oid, record, req.user);
+        obs.subscribe(result => {
+          return res.json(result);
+        });
+
+      });
+    }
+
+    public updateObjectMeta(req, res) {
+      const brand = BrandingService.getBrand(req.session.branding);
+      var oid = req.param('oid');
+
+      RecordsService.getMeta(oid).subscribe(record => {
+        record["metaMetadata"] = req.body;
         var obs = RecordsService.updateMeta(brand, oid, record, req.user);
         obs.subscribe(result => {
           return res.json(result);
@@ -331,12 +361,87 @@ export module Controllers {
             });
       }).subscribe(whatever => {
         // ignore...
+          sails.log.verbose(`Done with updating streams and returning response...`);
       }, error => {
-        return res.status(500).json({message: error.error.toString('UTF-8')});
+          return this.customErrorMessageHandlingOnUpstreamResult(error, res);
+        }
+      );
+    }
+
+    public addDataStreams(req, res) {
+      const brand = BrandingService.getBrand(req.session.branding);
+      var oid = req.param('oid');
+      const self = this;
+      req.file('attachmentFields').upload({
+        dirname: `${sails.config.record.attachments.stageDir}`,
+        saveAs: function (__newFileStream, next) {
+          sails.log.verbose('Generating files....');
+          try {
+            // const nextPath = path.join(UUIDGenerator(), path.basename(__newFileStream.filename));
+            const nextPath = UUIDGenerator();
+            return next(undefined, nextPath);
+          } catch (error) {
+            sails.log.error(error);
+            return next(new Error('Could not determine an appropriate filename for uploaded filestream(s).'));
+          }
+        }
+      }, function (error, UploadedFileMetadata) {
+        if (error) {
+          const errorMessage = `There was a problem adding datastream(s) to: ${sails.config.record.attachments.stageDir}.`;
+          sails.log.error(errorMessage, error);
+          return res.status(500).json({message: errorMessage});
+        }
+        sails.log.verbose(UploadedFileMetadata);
+        sails.log.verbose('Succesfully uploaded all file metadata. Sending locations downstream....');
+        const fileIds = _.map(UploadedFileMetadata, function (nextDescriptor) {
+          return path.relative(sails.config.record.attachments.stageDir, nextDescriptor.fd);
+        });
+        sails.log.verbose('files to send upstream are:');
+        sails.log.verbose(_.toString(fileIds));
+        const defaultErrorMessage = 'Error sending datastreams upstream.';
+        try {
+          const reqs = RecordsService.addDatastreams(oid, fileIds);
+          return Observable.fromPromise(reqs)
+            .subscribe(result => {
+              sails.log.verbose(`Done with updating streams and returning response...`);
+              if (_.get(result, 'value.error') || result instanceof Error) {
+                const message = _.get(result, 'value.message') || _.get(result, 'value.error');
+                return res.status(500).json({message: message.toString('UTF-8')});
+              } else {
+                sails.log.verbose("Presuming success...");
+                _.merge(result, {fileIds: fileIds});
+                return res.json({message: result});
+              }
+            }, error => {
+              return self.customErrorMessageHandlingOnUpstreamResult(error, res);
+            });
+        } catch (error) {
+          sails.log.error(defaultErrorMessage, error);
+          return res.status(500).json({message: defaultErrorMessage});
+        }
       });
     }
 
-
+    protected customErrorMessageHandlingOnUpstreamResult(error, res) {
+      const defaultErrorMessage = 'There was a problem with the upstream request.';
+      let errorMessage;
+      if (error.error) {
+        errorMessage = _.isBuffer(error.error) ? error.error.toString('UTF-8') : error.error
+        try {
+          errorMessage = JSON.parse(errorMessage)
+        } catch (error) {
+          sails.log.verbose("Error message is not a json object. Keeping it as is.");
+        }
+        sails.log.error(defaultErrorMessage, errorMessage);
+      } else {
+        errorMessage = defaultErrorMessage;
+        sails.log.error(defaultErrorMessage);
+      }
+      sails.log.verbose(error);
+      res.set('Content-Type', 'application/json');
+      _.unset(res, 'Content-Disposition');
+      return res.status(error.statusCode || 500).json({message: errorMessage});
+    }
 
 
     /**

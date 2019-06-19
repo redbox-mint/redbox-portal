@@ -52,6 +52,7 @@ export module Services {
       'provideUserAccessAndRemovePendingAccess',
       'searchFuzzy',
       'addDatastream',
+      'addDatastreams',
       'removeDatastream',
       'updateDatastream',
       'getDatastream',
