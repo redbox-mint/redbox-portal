@@ -265,6 +265,13 @@ export class VocabField extends FieldBase<any> {
     }
   }
 
+  relationshipLookup(searchTerm, lowerTerm, searchFields) {
+    const url = this.lookupService.getMintRootUrl(this.vocabId);
+    console.log(`Using: ${url}`);
+    const mlu = new MintRelationshipLookup(url, this.lookupService.http, searchFields);
+    return mlu.search(searchTerm, lowerTerm);
+  }
+
 }
 
 class ExternalLookupDataService extends Subject<CompleterItem[]> implements CompleterData {
@@ -595,5 +602,33 @@ export class VocabFieldComponent extends SimpleComponent {
     } else {
       return this.disableEditAfterSelect && this.field.disableEditAfterSelect;
     }
+  }
+}
+
+export class MintRelationshipLookup {
+
+  searchFieldStr: string;
+  http: Http;
+
+  constructor(private url: string, http: Http, searchFieldStr: string) {
+      this.http = http;
+      this.searchFieldStr = searchFieldStr;
+  }
+
+  search(term, lower) {
+    term = _.trim(luceneEscapeQuery.escape(term));
+    let searchString = '';
+    if (!_.isEmpty(term)) {
+      if(lower) term = _.toLower(term);
+      if(_.isEmpty(this.searchFieldStr)) {
+        searchString = term;
+      } else {
+        _.forEach(this.searchFieldStr.split(','), (searchFld) => {
+          searchString = `${searchString}${_.isEmpty(searchString) ? '' : ' OR '}${searchFld}:${term}`
+        });
+      }
+    }
+    const searchUrl = `${this.url}${searchString}`;
+    return this.http.get(`${searchUrl}`);
   }
 }
