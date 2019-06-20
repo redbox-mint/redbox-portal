@@ -371,7 +371,7 @@ export module Services {
         sails.log.verbose(`Username: ${uname} == ${username}`);
         return uname == username;
       });
-      sails.log.verbose(`isInUserEdit: ${isInUserEdit}`);
+      // sails.log.verbose(`isInUserEdit: ${isInUserEdit}`);
       if (!_.isUndefined(isInUserEdit)) {
         return true;
       }
