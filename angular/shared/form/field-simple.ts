@@ -49,6 +49,13 @@ export class SelectionField extends FieldBase<any>  {
 
 
     // this.options = options['options'] || [];
+    if(options.selectFor && options.defaultSelect) {
+      const newOptions = _.defaultTo(
+        _.find(options['options'], f => f.key === options.selectFor),
+        _.find(options['options'], f => f.key === options.defaultSelect)
+      );
+      options['options'] = newOptions.value;
+    }
     this.selectOptions = _.map(options['options'] || [], (option)=> {
       option['label'] = this.getTranslated(option['label'], option['label']);
       option['value'] = this.getTranslated(option['value'], option['value']);
@@ -415,7 +422,15 @@ export class Toggle extends FieldBase<boolean> {
   constructor(options: any, injector: any) {
     super(options, injector);
     this.type = options['type'] || 'checkbox';
-    this.value = options['value'] || false;
+    this.value = this.setToggle();
+  }
+
+  setToggle() {
+    if(this.options.valueCheck && this.options['checkedWhen'] && this.editMode) {
+      return this.options.valueCheck === this.options['checkedWhen'];
+    } else {
+      return this.options['value'] || false;
+    }
   }
 }
 

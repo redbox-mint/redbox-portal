@@ -24,6 +24,7 @@ import { FormGroup, FormControl, Validators } from '@angular/forms';
 import * as _ from "lodash";
 import { RbValidator } from './validators';
 import { VocabField } from './field-vocab.component';
+import { Observable} from 'rxjs/Rx';
 /**
  * Contributor Model
  *
@@ -62,7 +63,9 @@ export class ContributorField extends FieldBase<any> {
   givenNameHdr: string;
   // Frankenstein end
   component: any;
-
+  findRelationship: any;
+  findRelationshipFor: string;
+  relationshipFor: string;
 
   constructor(options: any, injector: any) {
     super(options, injector);
@@ -122,6 +125,9 @@ export class ContributorField extends FieldBase<any> {
       this.validators['family_name'] = [Validators.required];
       this.validators['given_name'] = [Validators.required];
     }
+    this.findRelationshipFor = options['findRelationshipFor'] || '';
+    this.findRelationship = options['findRelationship'] || null;
+    this.relationshipFor = options['relationshipFor'] || '';
   }
 
   setLookupServices(completerService:any, lookupService:any) {
@@ -226,9 +232,88 @@ export class ContributorField extends FieldBase<any> {
         this.vocabField.initialValue.title = this.vocabField.getTitle(value);
         this.vocabField.initLookupData();
       }
+      // If there is a findRelationship Object in configuration init the value,
+      // and not already inited, lookup and complete with a corresponding
+      // relationship in Mint
+      if(this.findRelationship && _.isEmpty(this.vocabField.initialValue.title)) {
+        if(this.findRelationshipFor && this.relationshipFor){
+          this.initWithRelationship();
+        }
+      }
     } else {
       this.setEmptyValue();
     }
+  }
+
+  initWithRelationship() {
+    const related = this.findRelationship['relateWith'];
+    const relatedWith = this.options[related];
+    const role = this.findRelationship['role'] || '';
+    const relationship = this.findRelationship['relationship'] || ''
+    const searchField = this.findRelationship['searchField'] || '';
+    const searchFieldLower = this.findRelationship['searchFieldLower'];
+    const searchRelation = this.findRelationship['searchRelation'] || '';
+    const searchRelationLower = this.findRelationship['searchRelationLower'];
+    const titleCompleter = this.findRelationship['title'] || '';
+    const emailCompleter = this.findRelationship['email'] || '';
+    const fullNameHonorificCompleter = this.findRelationship['fullNameHonorific'] || '';
+    const honorificCompleter = this.findRelationship['honorific'] || '';
+    const givenNameCompleter = this.findRelationship['givenName'] || '';
+    const familyNameCompleter = this.findRelationship['familyName'] || '';
+
+    this.vocabField.relationshipLookup(relatedWith, searchFieldLower, searchField)
+    .flatMap(res => {
+      let rel = null;
+      if(res && res['status'] === 200){
+        const data = res.json();
+        if(!_.isEmpty(data) && !data['error']) {
+          const obj = _.first(data);
+          if(_.isArray(obj[relationship])) {
+            rel = _.first(obj[relationship]);
+          }
+        }
+      }
+      if(rel) {
+        return this.vocabField.relationshipLookup(rel, searchRelationLower, searchRelation);
+      } else {
+        return Observable.of(null);
+      }
+    })
+    .subscribe(res => {
+      if(res && res['status'] === 200) {
+        const data = res.json();
+        if (!_.isEmpty(data) && !data['error']) {
+          const obj = _.first(data);
+          if (obj) {
+            const emailCompleterValue = this.getFirstOrDefault(obj[emailCompleter], '');
+            const titleCompleterValue = this.getFirstOrDefault(obj[titleCompleter], '');
+            const fullNameHonorificValue = this.getFirstOrDefault(obj[fullNameHonorificCompleter], '');
+            const honorificValue = this.getFirstOrDefault(obj[honorificCompleter], '');
+            const givenNameValue = this.getFirstOrDefault(obj[givenNameCompleter], '');
+            const familyNameValue = this.getFirstOrDefault(obj[familyNameCompleter], '');
+
+            this.vocabField.initialValue = {
+              text_full_name: titleCompleterValue,
+              text_full_name_honorific: fullNameHonorificValue,
+              email: emailCompleterValue,
+              givenName: givenNameValue,
+              familyName: familyNameValue,
+              honorific: honorificValue,
+              full_name_family_name_first: `${familyNameValue}, ${givenNameValue}`,
+              role: role
+            };
+            this.vocabField.initialValue.title = titleCompleterValue;
+          }
+        }
+      }
+    }, error => {
+      console.error('initWithRelationship error');
+      console.error(error.message);
+    });
+  }
+
+  getFirstOrDefault(obj, defaultValue){
+    return _.defaultTo(_.isArray(obj) ? _.first(obj) : obj, defaultValue);
   }
 
   setEmptyValue(emitEvent:boolean = true) {
