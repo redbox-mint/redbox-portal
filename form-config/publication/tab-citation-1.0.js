@@ -107,6 +107,9 @@ module.exports = [
                   onValueUpdate: {
                     modelEventSource: 'valueChanges'
                   }
+                },
+                activeValidators: {
+                  email: ['required', 'email']
                 }
               }
             }],

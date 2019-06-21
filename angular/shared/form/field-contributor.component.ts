@@ -66,6 +66,7 @@ export class ContributorField extends FieldBase<any> {
   findRelationship: any;
   findRelationshipFor: string;
   relationshipFor: string;
+  activeValidators: any;
 
   constructor(options: any, injector: any) {
     super(options, injector);
@@ -85,6 +86,9 @@ export class ContributorField extends FieldBase<any> {
 
     this.roles = options['roles'] || [];
     this.value = options['value'] || this.setEmptyValue();
+
+    this.activeValidators = options['activeValidators'];
+
     this.fieldNames = options['fieldNames'] || [];
     const textFullNameFieldName = _.find(this.fieldNames, fieldNameObject => {
       return fieldNameObject['text_full_name'] != undefined;
@@ -124,6 +128,21 @@ export class ContributorField extends FieldBase<any> {
       this.groupFieldNames.push('given_name');
       this.validators['family_name'] = [Validators.required];
       this.validators['given_name'] = [Validators.required];
+    }
+    // Resolves: #605
+    // now that we've set the default validators... we read the config to override
+    if (!_.isEmpty(this.activeValidators)) {
+      _.forOwn(this.activeValidators, (vConfig, fName) => {
+        // expects to be an array of Validator method names
+        if (_.isArray(vConfig)) {
+          this.validators[fName] = _.map(vConfig, (vConfigEntry) => {
+            return _.get(Validators, vConfigEntry);
+          });
+        } else if (vConfig == null) {
+          // remove the default...
+          _.unset(this.validators, fName);
+        }
+      });
     }
     this.findRelationshipFor = options['findRelationshipFor'] || '';
     this.findRelationship = options['findRelationship'] || null;
@@ -168,9 +187,36 @@ export class ContributorField extends FieldBase<any> {
     if (this.required) {
       this.enableValidators();
     } else {
-      // TODO: cherry pick validators, like email, etc.
+      // if splitting names, attach handler to individual input form control
+      if (this.splitNames) {
+        const reqFields = ['family_name', 'given_name'];
+        const handler = this.getToggleConditionalValidationHandler(reqFields, true);
+        _.each(reqFields, (reqField:any) => {
+          this.formModel.controls[reqField].valueChanges.subscribe(handler);
+        });
+        // install the validators if needed
+        const hasValue = !_.isEmpty(this.value.family_name) || !_.isEmpty(this.value.given_name);
+        this.toggleConditionalValidation(hasValue);
+      } else {
+        // install the validators if needed
+        this.toggleConditionalValidation(!_.isEmpty(this.value.text_full_name));
+      }
     }
     return this.formModel;
+  }
+
+  getToggleConditionalValidationHandler(requiredFields:any[], useFormControl:boolean) {
+    return ((value:any) => {
+      let hasValue = true;
+      if (useFormControl) {
+        _.each(requiredFields, (reqField:any) => {
+          hasValue = hasValue || !_.isEmpty(this.formModel.controls[reqField].value);
+        });
+      } else {
+        hasValue = !_.isEmpty(value);
+      }
+      this.toggleConditionalValidation(hasValue);
+    });
   }
 
   setValue(value:any, emitEvent:boolean=true, updateTitle:boolean=false) {
@@ -190,6 +236,32 @@ export class ContributorField extends FieldBase<any> {
     if (updateTitle && !this.freeText) {
       this.component.ngCompleter.ctrInput.nativeElement.value = this.vocabField.getTitle(value);
     }
+    // install the validators if needed
+    if (this.splitNames) {
+      const hasValue = !_.isEmpty(value.family_name) || !_.isEmpty(value.given_name);
+      this.toggleConditionalValidation(hasValue);
+    } else {
+      this.toggleConditionalValidation(!_.isEmpty(value.text_full_name));
+    }
+
+  }
+
+  toggleConditionalValidation(hasValue) {
+    // Resolves #605: Add config flag for each field to enable conditional validation
+    // Only one condition for now: names must be set
+    if (hasValue) {
+      _.forOwn(this.activeValidators, (vConfig, fName) => {
+        if (!_.isUndefined(this.validators[fName])) {
+          this.formModel.controls[fName].setValidators(this.validators[fName]);
+        }
+      });
+    } else {
+      _.forOwn(this.activeValidators, (vConfig, fName) => {
+        if (!_.isUndefined(this.validators[fName])) {
+          this.formModel.controls[fName].clearValidators();
+        }
+      });
+    }
   }
 
   toggleValidator(c:any) {
@@ -208,7 +280,10 @@ export class ContributorField extends FieldBase<any> {
     }
     this.enabledValidators = true;
     _.forEach(this.groupFieldNames, (f:any) => {
-      this.formModel.controls[f].setValidators(this.validators[f]);
+      // Resolves #605: check if there is a validator, because we can disable/remove validators now
+      if (!_.isUndefined(this.validators[f])) {
+        this.formModel.controls[f].setValidators(this.validators[f]);
+      }
     });
   }
 
@@ -411,6 +486,7 @@ export class ContributorComponent extends SimpleComponent {
           console.log(`Forced lookup, clearing data..`)
           this.field.setEmptyValue(true);
           this.lastSelected = null;
+          this.field.toggleConditionalValidation(false);
         }
       });
     }
@@ -490,6 +566,7 @@ export class ContributorComponent extends SimpleComponent {
       if (this.lastSelected && this.emptied) {
         const that = this;
         setTimeout(() => {
+          const value = that.lastSelected.title;
           that.ngCompleter.ctrInput.nativeElement.value = that.lastSelected.title;
         }, 40);
       } else {
@@ -497,12 +574,19 @@ export class ContributorComponent extends SimpleComponent {
           console.log(`Forced lookup, clearing data..`)
           this.field.setEmptyValue(true);
           this.lastSelected = null;
+          this.field.toggleConditionalValidation(false);
         }
       }
     } else {
       const val = this.field.vocabField.getValue({text_full_name: this.ngCompleter.ctrInput.nativeElement.value });
       this.field.setValue(val, true, false);
     }
+
+  }
+
+  public onKeyUp(event) {
+    const val = this.ngCompleter.ctrInput.nativeElement.value
+    this.field.toggleConditionalValidation(!_.isEmpty(val));
   }
 
   public onBlur() {
