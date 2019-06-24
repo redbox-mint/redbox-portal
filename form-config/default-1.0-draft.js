@@ -532,7 +532,10 @@ module.exports = {
                         nameColHdr: '@dmpt-people-tab-name-hdr',
                         emailColHdr: '@dmpt-people-tab-email-hdr',
                         orcidColHdr: '@dmpt-people-tab-orcid-hdr',
-                        showRole: false
+                        showRole: false,
+                        activeValidators: {
+                          email: ['required', 'email']
+                        }
                       }
                     }]
                   }

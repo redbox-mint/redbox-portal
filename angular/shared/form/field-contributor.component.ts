@@ -24,6 +24,7 @@ import { FormGroup, FormControl, Validators } from '@angular/forms';
 import * as _ from "lodash";
 import { RbValidator } from './validators';
 import { VocabField } from './field-vocab.component';
+import { Observable} from 'rxjs/Rx';
 /**
  * Contributor Model
  *
@@ -62,7 +63,10 @@ export class ContributorField extends FieldBase<any> {
   givenNameHdr: string;
   // Frankenstein end
   component: any;
-
+  findRelationship: any;
+  findRelationshipFor: string;
+  relationshipFor: string;
+  activeValidators: any;
 
   constructor(options: any, injector: any) {
     super(options, injector);
@@ -82,6 +86,9 @@ export class ContributorField extends FieldBase<any> {
 
     this.roles = options['roles'] || [];
     this.value = options['value'] || this.setEmptyValue();
+
+    this.activeValidators = options['activeValidators'];
+
     this.fieldNames = options['fieldNames'] || [];
     const textFullNameFieldName = _.find(this.fieldNames, fieldNameObject => {
       return fieldNameObject['text_full_name'] != undefined;
@@ -122,6 +129,24 @@ export class ContributorField extends FieldBase<any> {
       this.validators['family_name'] = [Validators.required];
       this.validators['given_name'] = [Validators.required];
     }
+    // Resolves: #605
+    // now that we've set the default validators... we read the config to override
+    if (!_.isEmpty(this.activeValidators)) {
+      _.forOwn(this.activeValidators, (vConfig, fName) => {
+        // expects to be an array of Validator method names
+        if (_.isArray(vConfig)) {
+          this.validators[fName] = _.map(vConfig, (vConfigEntry) => {
+            return _.get(Validators, vConfigEntry);
+          });
+        } else if (vConfig == null) {
+          // remove the default...
+          _.unset(this.validators, fName);
+        }
+      });
+    }
+    this.findRelationshipFor = options['findRelationshipFor'] || '';
+    this.findRelationship = options['findRelationship'] || null;
+    this.relationshipFor = options['relationshipFor'] || '';
   }
 
   setLookupServices(completerService:any, lookupService:any) {
@@ -162,9 +187,36 @@ export class ContributorField extends FieldBase<any> {
     if (this.required) {
       this.enableValidators();
     } else {
-      // TODO: cherry pick validators, like email, etc.
+      // if splitting names, attach handler to individual input form control
+      if (this.splitNames) {
+        const reqFields = ['family_name', 'given_name'];
+        const handler = this.getToggleConditionalValidationHandler(reqFields, true);
+        _.each(reqFields, (reqField:any) => {
+          this.formModel.controls[reqField].valueChanges.subscribe(handler);
+        });
+        // install the validators if needed
+        const hasValue = !_.isEmpty(this.value.family_name) || !_.isEmpty(this.value.given_name);
+        this.toggleConditionalValidation(hasValue);
+      } else {
+        // install the validators if needed
+        this.toggleConditionalValidation(!_.isEmpty(this.value.text_full_name));
+      }
     }
     return this.formModel;
+  }
+
+  getToggleConditionalValidationHandler(requiredFields:any[], useFormControl:boolean) {
+    return ((value:any) => {
+      let hasValue = true;
+      if (useFormControl) {
+        _.each(requiredFields, (reqField:any) => {
+          hasValue = hasValue || !_.isEmpty(this.formModel.controls[reqField].value);
+        });
+      } else {
+        hasValue = !_.isEmpty(value);
+      }
+      this.toggleConditionalValidation(hasValue);
+    });
   }
 
   setValue(value:any, emitEvent:boolean=true, updateTitle:boolean=false) {
@@ -184,6 +236,32 @@ export class ContributorField extends FieldBase<any> {
     if (updateTitle && !this.freeText) {
       this.component.ngCompleter.ctrInput.nativeElement.value = this.vocabField.getTitle(value);
     }
+    // install the validators if needed
+    if (this.splitNames) {
+      const hasValue = !_.isEmpty(value.family_name) || !_.isEmpty(value.given_name);
+      this.toggleConditionalValidation(hasValue);
+    } else {
+      this.toggleConditionalValidation(!_.isEmpty(value.text_full_name));
+    }
+
+  }
+
+  toggleConditionalValidation(hasValue) {
+    // Resolves #605: Add config flag for each field to enable conditional validation
+    // Only one condition for now: names must be set
+    if (hasValue) {
+      _.forOwn(this.activeValidators, (vConfig, fName) => {
+        if (!_.isUndefined(this.validators[fName])) {
+          this.formModel.controls[fName].setValidators(this.validators[fName]);
+        }
+      });
+    } else {
+      _.forOwn(this.activeValidators, (vConfig, fName) => {
+        if (!_.isUndefined(this.validators[fName])) {
+          this.formModel.controls[fName].clearValidators();
+        }
+      });
+    }
   }
 
   toggleValidator(c:any) {
@@ -202,7 +280,10 @@ export class ContributorField extends FieldBase<any> {
     }
     this.enabledValidators = true;
     _.forEach(this.groupFieldNames, (f:any) => {
-      this.formModel.controls[f].setValidators(this.validators[f]);
+      // Resolves #605: check if there is a validator, because we can disable/remove validators now
+      if (!_.isUndefined(this.validators[f])) {
+        this.formModel.controls[f].setValidators(this.validators[f]);
+      }
     });
   }
 
@@ -226,9 +307,88 @@ export class ContributorField extends FieldBase<any> {
         this.vocabField.initialValue.title = this.vocabField.getTitle(value);
         this.vocabField.initLookupData();
       }
+      // If there is a findRelationship Object in configuration init the value,
+      // and not already inited, lookup and complete with a corresponding
+      // relationship in Mint
+      if(this.findRelationship && _.isEmpty(this.vocabField.initialValue.title)) {
+        if(this.findRelationshipFor && this.relationshipFor){
+          this.initWithRelationship();
+        }
+      }
     } else {
       this.setEmptyValue();
     }
+  }
+
+  initWithRelationship() {
+    const related = this.findRelationship['relateWith'];
+    const relatedWith = this.options[related];
+    const role = this.findRelationship['role'] || '';
+    const relationship = this.findRelationship['relationship'] || ''
+    const searchField = this.findRelationship['searchField'] || '';
+    const searchFieldLower = this.findRelationship['searchFieldLower'];
+    const searchRelation = this.findRelationship['searchRelation'] || '';
+    const searchRelationLower = this.findRelationship['searchRelationLower'];
+    const titleCompleter = this.findRelationship['title'] || '';
+    const emailCompleter = this.findRelationship['email'] || '';
+    const fullNameHonorificCompleter = this.findRelationship['fullNameHonorific'] || '';
+    const honorificCompleter = this.findRelationship['honorific'] || '';
+    const givenNameCompleter = this.findRelationship['givenName'] || '';
+    const familyNameCompleter = this.findRelationship['familyName'] || '';
+
+    this.vocabField.relationshipLookup(relatedWith, searchFieldLower, searchField)
+    .flatMap(res => {
+      let rel = null;
+      if(res && res['status'] === 200){
+        const data = res.json();
+        if(!_.isEmpty(data) && !data['error']) {
+          const obj = _.first(data);
+          if(_.isArray(obj[relationship])) {
+            rel = _.first(obj[relationship]);
+          }
+        }
+      }
+      if(rel) {
+        return this.vocabField.relationshipLookup(rel, searchRelationLower, searchRelation);
+      } else {
+        return Observable.of(null);
+      }
+    })
+    .subscribe(res => {
+      if(res && res['status'] === 200) {
+        const data = res.json();
+        if (!_.isEmpty(data) && !data['error']) {
+          const obj = _.first(data);
+          if (obj) {
+            const emailCompleterValue = this.getFirstOrDefault(obj[emailCompleter], '');
+            const titleCompleterValue = this.getFirstOrDefault(obj[titleCompleter], '');
+            const fullNameHonorificValue = this.getFirstOrDefault(obj[fullNameHonorificCompleter], '');
+            const honorificValue = this.getFirstOrDefault(obj[honorificCompleter], '');
+            const givenNameValue = this.getFirstOrDefault(obj[givenNameCompleter], '');
+            const familyNameValue = this.getFirstOrDefault(obj[familyNameCompleter], '');
+
+            this.vocabField.initialValue = {
+              text_full_name: titleCompleterValue,
+              text_full_name_honorific: fullNameHonorificValue,
+              email: emailCompleterValue,
+              givenName: givenNameValue,
+              familyName: familyNameValue,
+              honorific: honorificValue,
+              full_name_family_name_first: `${familyNameValue}, ${givenNameValue}`,
+              role: role
+            };
+            this.vocabField.initialValue.title = titleCompleterValue;
+          }
+        }
+      }
+    }, error => {
+      console.error('initWithRelationship error');
+      console.error(error.message);
+    });
+  }
+
+  getFirstOrDefault(obj, defaultValue){
+    return _.defaultTo(_.isArray(obj) ? _.first(obj) : obj, defaultValue);
   }
 
   setEmptyValue(emitEvent:boolean = true) {
@@ -326,6 +486,7 @@ export class ContributorComponent extends SimpleComponent {
           console.log(`Forced lookup, clearing data..`)
           this.field.setEmptyValue(true);
           this.lastSelected = null;
+          this.field.toggleConditionalValidation(false);
         }
       });
     }
@@ -405,6 +566,7 @@ export class ContributorComponent extends SimpleComponent {
       if (this.lastSelected && this.emptied) {
         const that = this;
         setTimeout(() => {
+          const value = that.lastSelected.title;
           that.ngCompleter.ctrInput.nativeElement.value = that.lastSelected.title;
         }, 40);
       } else {
@@ -412,12 +574,19 @@ export class ContributorComponent extends SimpleComponent {
           console.log(`Forced lookup, clearing data..`)
           this.field.setEmptyValue(true);
           this.lastSelected = null;
+          this.field.toggleConditionalValidation(false);
         }
       }
     } else {
       const val = this.field.vocabField.getValue({text_full_name: this.ngCompleter.ctrInput.nativeElement.value });
       this.field.setValue(val, true, false);
     }
+
+  }
+
+  public onKeyUp(event) {
+    const val = this.ngCompleter.ctrInput.nativeElement.value
+    this.field.toggleConditionalValidation(!_.isEmpty(val));
   }
 
   public onBlur() {
