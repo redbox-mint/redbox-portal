@@ -374,6 +374,7 @@ export module Controllers {
       const self = this;
       req.file('attachmentFields').upload({
         dirname: `${sails.config.record.attachments.stageDir}`,
+        maxBytes: 104857600,
         saveAs: function (__newFileStream, next) {
           sails.log.verbose('Generating files....');
           try {
