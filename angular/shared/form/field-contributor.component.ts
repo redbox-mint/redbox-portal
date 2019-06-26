@@ -311,8 +311,11 @@ export class ContributorField extends FieldBase<any> {
       // and not already inited, lookup and complete with a corresponding
       // relationship in Mint
       if(this.findRelationship && _.isEmpty(this.vocabField.initialValue.title)) {
-        if(this.findRelationshipFor && this.relationshipFor){
-          this.initWithRelationship();
+        if(this.findRelationshipFor && this.relationshipFor) {
+          const doInit = _.find(this.findRelationshipFor, r => r === this.relationshipFor);
+          if(doInit) {
+            this.initWithRelationship();
+          }
         }
       }
     } else {
