@@ -42,6 +42,7 @@
     "passport-http-bearer": "^1.0.1",
     "passport-jwt": "github:itayadler/passport-jwt",
     "passport-local": "^1.0.0",
+    "passport-openidconnect": "0.0.2",
     "rc": "1.2.8",
     "redbox2ckan": "github:redbox-mint-contrib/redbox2ckan#dev_build",
     "redux": "4.0.1",

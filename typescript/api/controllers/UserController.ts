@@ -41,6 +41,7 @@ export module Controllers {
           'login',
           'logout',
           'info',
+          'openidConnectLogin',
           'aafLogin',
           'localLogin',
           'redirLogin',
@@ -211,6 +212,34 @@ export module Controllers {
           });
         })(req, res);
       }
+
+
+      public openidConnectLogin(req, res) {
+        sails.config.passport.authenticate('oidc', function(err, user, info) {
+          sails.log.verbose("At openIdConnectAuth Controller, verify...");
+          sails.log.verbose("Error:");
+          sails.log.verbose(err);
+          sails.log.verbose("Info:");
+          sails.log.verbose(info);
+          sails.log.verbose("User:");
+          sails.log.verbose(user);
+
+
+
+          if ((err) || (!user)) {
+              return res.send({
+                  message: info.message,
+                  user: user
+              });
+          }
+          req.logIn(user, function(err) {
+            if (err) res.send(err);
+            sails.log.debug("OpenId Connect Login OK, redirecting...");
+            return sails.getActions()['user/redirpostlogin'](req, res);
+          });
+        })(req, res);
+      }
+
 
       public aafLogin(req, res) {
         sails.config.passport.authenticate('aaf-jwt', function(err, user, info) {
