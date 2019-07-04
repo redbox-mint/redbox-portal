@@ -182,62 +182,63 @@ export module Services {
 
     protected openIdConnectAuth = () => {
       const defAuthConfig = ConfigService.getBrand(BrandingService.getDefault().name, 'auth');
-      const oidcOpts = defAuthConfig.oidc.opts;
-      let OidcStrategy = require('passport-openidconnect').Strategy;
-      sails.config.passport.use('oidc', new OidcStrategy(oidcOpts.oidcStrategyOptions, (req, issuer, sub, profile, accessToken, refreshToken, done) => {
-        var brand = BrandingService.getBrand(req.session.branding);
-        const authConfig = ConfigService.getBrand(brand.name, 'auth');
-        var claimsMappings = authConfig.oidc.claimMappings;
-        const userName = _.get(profile,claimsMappings['username']);
-        var openIdConnectDefRoles = _.map(RolesService.getNestedRoles(RolesService.getDefAuthenticatedRole(brand).name, brand.roles), 'id');
+      if (defAuthConfig.active.instanceOf('oidc') != -1) {
+        const oidcOpts = defAuthConfig.oidc.opts;
+        let OidcStrategy = require('passport-openidconnect').Strategy;
+        sails.config.passport.use('oidc', new OidcStrategy(oidcOpts.oidcStrategyOptions, (req, issuer, sub, profile, accessToken, refreshToken, done) => {
+          var brand = BrandingService.getBrand(req.session.branding);
+          const authConfig = ConfigService.getBrand(brand.name, 'auth');
+          var claimsMappings = authConfig.oidc.claimMappings;
+          const userName = _.get(profile, claimsMappings['username']);
+          var openIdConnectDefRoles = _.map(RolesService.getNestedRoles(RolesService.getDefAuthenticatedRole(brand).name, brand.roles), 'id');
 
-        User.findOne({ username: userName }, function(err, user) {
-          sails.log.verbose("At OIDC Strategy verify, payload:");
-          sails.log.verbose(profile);
-          sails.log.verbose("User:");
-          sails.log.verbose(user);
-          sails.log.verbose("Error:");
-          sails.log.verbose(err);
-          if (err) {
-            return done(err, false);
-          }
-          if (user) {
-            user.lastLogin = new Date();
-            User.update(user).exec(function(err, user) {
-            });
-            return done(null, user);
-          } else {
-            sails.log.verbose("At AAF Strategy verify, creating new user...");
-            // first time login, create with default role
-            var userToCreate = {
-              username: userName,
-              name: _.get(profile,claimsMappings['name']),
-              email: _.get(profile,claimsMappings['email']),
-              displayname: _.get(profile,claimsMappings['displayName']),
-              cn: _.get(profile,claimsMappings['cn']),
-              givenname: _.get(profile,claimsMappings['givenname']),
-              surname: _.get(profile,claimsMappings['surname']),
-              type: 'oidc',
-              roles: openIdConnectDefRoles,
-              lastLogin: new Date()
-            };
-            sails.log.verbose(userToCreate);
-            User.create(userToCreate).exec(function(err, newUser) {
-              if (err) {
-                sails.log.error("Error creating new user:");
-                sails.log.error(err);
-                return done(err, false);
-              }
+          User.findOne({ username: userName }, function(err, user) {
+            sails.log.verbose("At OIDC Strategy verify, payload:");
+            sails.log.verbose(profile);
+            sails.log.verbose("User:");
+            sails.log.verbose(user);
+            sails.log.verbose("Error:");
+            sails.log.verbose(err);
+            if (err) {
+              return done(err, false);
+            }
+            if (user) {
+              user.lastLogin = new Date();
+              User.update(user).exec(function(err, user) {
+              });
+              return done(null, user);
+            } else {
+              sails.log.verbose("At AAF Strategy verify, creating new user...");
+              // first time login, create with default role
+              var userToCreate = {
+                username: userName,
+                name: _.get(profile, claimsMappings['name']),
+                email: _.get(profile, claimsMappings['email']),
+                displayname: _.get(profile, claimsMappings['displayName']),
+                cn: _.get(profile, claimsMappings['cn']),
+                givenname: _.get(profile, claimsMappings['givenname']),
+                surname: _.get(profile, claimsMappings['surname']),
+                type: 'oidc',
+                roles: openIdConnectDefRoles,
+                lastLogin: new Date()
+              };
+              sails.log.verbose(userToCreate);
+              User.create(userToCreate).exec(function(err, newUser) {
+                if (err) {
+                  sails.log.error("Error creating new user:");
+                  sails.log.error(err);
+                  return done(err, false);
+                }
 
-              sails.log.verbose("Done, returning new user:");
-              sails.log.verbose(newUser);
-              return done(null, newUser);
-            });
-          }
-        });
+                sails.log.verbose("Done, returning new user:");
+                sails.log.verbose(newUser);
+                return done(null, newUser);
+              });
+            }
+          });
 
-  }));
-
+        }));
+      }
     }
 
 
