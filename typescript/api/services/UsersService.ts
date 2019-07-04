@@ -182,7 +182,8 @@ export module Services {
 
     protected openIdConnectAuth = () => {
       const defAuthConfig = ConfigService.getBrand(BrandingService.getDefault().name, 'auth');
-      if (defAuthConfig.active.indexOf('oidc') != -1) {
+      sails.log.error(defAuthConfig.active);
+      if (defAuthConfig.active != undefined && defAuthConfig.active.indexOf('oidc') != -1) {
         const oidcOpts = defAuthConfig.oidc.opts;
         let OidcStrategy = require('passport-openidconnect').Strategy;
         sails.config.passport.use('oidc', new OidcStrategy(oidcOpts.oidcStrategyOptions, (req, issuer, sub, profile, accessToken, refreshToken, done) => {
