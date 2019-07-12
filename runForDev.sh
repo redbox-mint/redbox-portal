@@ -7,6 +7,7 @@ source dev_build/buildFns.sh
 sudo chown -R vagrant:vagrant *
 watch="false"
 # Not really needed but I'm putting this in a for loop in case we want to add more arguments later
+WATCH_COUNT=0
 for var in "$@"
 do
     if [ $var = "install" ]; then
@@ -39,17 +40,19 @@ do
     if [[ $var == watch=* ]]; then
       ng2App=$(cut -d "=" -f 2 <<< "$var")
       watch="true"
-
+        docker-compose up -d  || exit
+        sleep 15
+        RBPORTAL_PS=$(docker ps -f name=redbox-portal_redboxportal_1 -q)
+        echo "redbox container is \"${RBPORTAL_PS}\""
+        echo "ng2App is \"${ng2App}\""
+        docker exec --detach $RBPORTAL_PS /bin/bash -c "cd /opt/redbox-portal/angular; npm install -g @angular/cli@1.7.1; yarn; ng build --app=${ng2App} --watch --verbose > ${ng2App}-build.log" || exit
+        let WATCH_COUNT++
     fi
 done
 
 if [ $watch == "true" ]; then
-    echo "Running watch"
-    nohup docker-compose up &
-    sleep 15
-    RBPORTAL_PS=$(docker ps -f name=redbox-portal_redboxportal_1 -q)
-    docker exec -it $RBPORTAL_PS /bin/bash -c "cd /opt/redbox-portal/angular; npm install -g @angular/cli; yarn; ng build --app=${ng2App} --watch"
+    echo "${WATCH_COUNT} watches are running."
 else
-    echo "No watch"
-    docker-compose up
+    echo "${WATCH_COUNT} watches. No watches should be running."
+    docker-compose up -d
 fi
