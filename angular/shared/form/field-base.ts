@@ -17,13 +17,14 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { Output, EventEmitter, Injector } from '@angular/core';
-import { FormControl, FormGroup, Validators } from '@angular/forms';
-import { TranslationService } from '../translation-service';
-import { UtilityService } from '../util-service';
-import { Observable } from 'rxjs/Observable';
+import {EventEmitter, Injector, Output} from '@angular/core';
+import {FormControl, FormGroup, Validators} from '@angular/forms';
+import {TranslationService} from '../translation-service';
+import {UtilityService} from '../util-service';
+import {Observable} from 'rxjs/Observable';
 
 import * as _ from "lodash";
+
 /**
  * Base class for dynamic form models...
  *
@@ -82,7 +83,7 @@ export class FieldBase<T> {
     this.validators = null;
   }
 
-  getFromInjector(token:any) {
+  getFromInjector(token: any) {
     return this.injector.get(token);
   }
 
@@ -96,7 +97,7 @@ export class FieldBase<T> {
     controlType?: string,
     cssClasses?: any,
     groupName?: string,
-    editMode? : boolean,
+    editMode?: boolean,
     readOnly?: boolean,
     help?: any,
     defaultValue?: any,
@@ -107,8 +108,8 @@ export class FieldBase<T> {
     this.name = options.name || '';
     this.id = options.id || '';
     this.label = this.getTranslated(options.label, '');
-    if(options.selectFor && options.defaultSelect) {
-      if(_.isArray(options.help)) {
+    if (options.selectFor && options.defaultSelect) {
+      if (_.isArray(options.help)) {
         const newHelp = _.defaultTo(
           _.find(options.help, f => f.key === options.selectFor),
           _.find(options.help, f => f.key === options.defaultSelect)
@@ -165,7 +166,7 @@ export class FieldBase<T> {
     return false;
   }
 
-  public createFormModel(valueElem:any = null): any {
+  public createFormModel(valueElem: any = null): any {
     if (valueElem) {
       this.value = valueElem;
     }
@@ -187,7 +188,7 @@ export class FieldBase<T> {
    * @param  {any} fieldMap
    * @return {any}
    */
-  public getGroup(group: any, fieldMap: any) : any {
+  public getGroup(group: any, fieldMap: any): any {
     this.fieldMap = fieldMap;
     let retval = null;
     _.set(fieldMap, `${this.getFullFieldName()}.field`, this);
@@ -219,7 +220,7 @@ export class FieldBase<T> {
   }
 
   valueNotNull(data) {
-    return !_.isNull(data) && (_.isArray(data) ? (!_.isNull(data[0])): true );
+    return !_.isNull(data) && (_.isArray(data) ? (!_.isNull(data[0])) : true);
   }
 
   public setupEventHandlers() {
@@ -241,16 +242,16 @@ export class FieldBase<T> {
               this[eventSource] = new EventEmitter<any>();
             }
           }
-          eventSource.subscribe((value:any) => {
+          eventSource.subscribe((value: any) => {
             if (this.valueNotNull(value)) {
               let emitData = value;
               if (!_.isEmpty(eventConfig.fields)) {
                 if (_.isArray(value)) {
                   emitData = [];
-                  _.each(value, (v:any) => {
+                  _.each(value, (v: any) => {
                     if (!_.isEmpty(v)) {
                       const item = {};
-                      _.each(eventConfig.fields, (f:any)=> {
+                      _.each(eventConfig.fields, (f: any) => {
                         _.forOwn(f, (src, tgt) => {
                           item[tgt] = _.get(v, src);
                         });
@@ -261,7 +262,7 @@ export class FieldBase<T> {
                 } else {
                   emitData = {};
                   if (!_.isEmpty(value)) {
-                    _.each(eventConfig.fields, (f:any)=> {
+                    _.each(eventConfig.fields, (f: any) => {
                       _.forOwn(f, (src, tgt) => {
                         emitData[tgt] = _.get(value, src);
                       });
@@ -284,20 +285,20 @@ export class FieldBase<T> {
       _.forOwn(subscribeConfig, (subConfig, srcName) => {
         _.forOwn(subConfig, (eventConfArr, eventName) => {
           const eventEmitter = this.getEventEmitter(eventName, srcName);
-          eventEmitter.subscribe((value:any) => {
+          eventEmitter.subscribe((value: any) => {
             let curValue = value;
             if (_.isArray(value)) {
               curValue = [];
               _.each(value, (v: any) => {
                 let entryVal = v;
                 _.each(eventConfArr, (eventConf: any) => {
-                  const fn:any = _.get(this, eventConf.action);
+                  const fn: any = _.get(this, eventConf.action);
                   if (fn) {
                     let boundFunction = fn;
-                    if(eventConf.action.indexOf(".") == -1) {
+                    if (eventConf.action.indexOf(".") == -1) {
                       boundFunction = fn.bind(this);
                     } else {
-                      var objectName = eventConf.action.substring(0,eventConf.action.indexOf("."));
+                      var objectName = eventConf.action.substring(0, eventConf.action.indexOf("."));
                       boundFunction = fn.bind(this[objectName]);
                     }
                     entryVal = boundFunction(entryVal, eventConf);
@@ -310,13 +311,13 @@ export class FieldBase<T> {
             } else {
               _.each(eventConfArr, (eventConf: any) => {
 
-                const fn:any = _.get(this, eventConf.action);
+                const fn: any = _.get(this, eventConf.action);
                 if (fn) {
                   let boundFunction = fn;
-                  if(eventConf.action.indexOf(".") == -1) {
+                  if (eventConf.action.indexOf(".") == -1) {
                     boundFunction = fn.bind(this);
                   } else {
-                    var objectName = eventConf.action.substring(0,eventConf.action.indexOf("."));
+                    var objectName = eventConf.action.substring(0, eventConf.action.indexOf("."));
                     boundFunction = fn.bind(this[objectName]);
                   }
                   curValue = boundFunction(curValue, eventConf);
@@ -350,7 +351,7 @@ export class FieldBase<T> {
   public reactEvent(eventName: string, eventData: any, origData: any) {
     this.value = eventData;
     if (this.formModel) {
-      this.formModel.setValue(eventData, { onlySelf: true, emitEvent: false });
+      this.formModel.setValue(eventData, {onlySelf: true, emitEvent: false});
     }
     _.each(this.componentReactors, (compReact) => {
       compReact.reactEvent(eventName, eventData, origData, this);
@@ -363,7 +364,7 @@ export class FieldBase<T> {
     }
   }
 
-  public getFullFieldName(name=null) {
+  public getFullFieldName(name = null) {
     const fldName = `${name ? name : this.name}`;
     // console.log(`Using fldName: ${fldName}`);
     // console.log(this.fieldMap);
@@ -374,9 +375,9 @@ export class FieldBase<T> {
     return _.get(fieldMap ? fieldMap : this.fieldMap, `${this.getFullFieldName(name)}.control`);
   }
 
-  public setValue(value:any, emitEvent:boolean=true) {
+  public setValue(value: any, emitEvent: boolean = true) {
     this.value = value;
-    this.formModel.setValue(value, { onlySelf: true, emitEvent: emitEvent });
+    this.formModel.setValue(value, {onlySelf: true, emitEvent: emitEvent});
   }
 
   public toggleVisibility() {
@@ -384,14 +385,14 @@ export class FieldBase<T> {
   }
 
   public setVisibility(data) {
-    if (_.isObject(this.visibilityCriteria) && this.visibilityCriteria.type == 'function') {
-      const fn:any = _.get(this, this.visibilityCriteria.action);
+    if (_.isObject(this.visibilityCriteria) && _.get(this.visibilityCriteria, 'type') == 'function') {
+      const fn: any = _.get(this, _.get(this.visibilityCriteria, 'action'));
       if (fn) {
         let boundFunction = fn;
-        if(this.visibilityCriteria.action.indexOf(".") == -1) {
+        if (_.get(this.visibilityCriteria, 'action', '').indexOf(".") == -1) {
           boundFunction = fn.bind(this);
         } else {
-          var objectName = this.visibilityCriteria.action.substring(0,this.visibilityCriteria.action.indexOf("."));
+          var objectName = _.get(this.visibilityCriteria, 'action', '').substring(0, _.get(this.visibilityCriteria, 'action', '').indexOf("."));
           boundFunction = fn.bind(this[objectName]);
         }
         this.visible = boundFunction(data);
