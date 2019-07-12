@@ -205,6 +205,32 @@ module.exports.auth = {
         passReqToCallback: true
       },
       templatePath: 'aaf.ejs'
+    },
+      oidc: {
+      defaultRole: 'Researcher',
+      postLoginRedir: 'researcher/home',
+      claimMappings: {
+          username: 'id',
+          name: 'displayName',
+          email: '_json.email',
+          givenname: '_json.given_name',
+          surname: '_json.family_name',
+          cn: 'displayName'
+      },
+      opts: {
+        oidcStrategyOptions: {
+          issuer: '',
+          authorizationURL: '',
+          tokenURL: '',
+          userInfoURL: '',
+          clientID: '',
+          clientSecret: '',
+          callbackURL: 'http://localhost:1500/user/login_oidc',
+          scope: 'openid profile email',
+          passReqToCallback: true
+        }
+      },
+      templatePath: 'openidconnect.ejs'
     }
   }
 };

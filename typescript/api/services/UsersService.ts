@@ -21,7 +21,7 @@ import { Observable } from 'rxjs/Rx';
 import services = require('../core/CoreService.js');
 import { Sails, Model } from "sails";
 import * as request from "request-promise";
-import * as crypto  from 'crypto';
+import * as crypto from 'crypto';
 
 declare var sails: Sails;
 declare var User, Role, BrandingConfig: Model;
@@ -180,6 +180,70 @@ export module Services {
       }));
     }
 
+    protected openIdConnectAuth = () => {
+      const defAuthConfig = ConfigService.getBrand(BrandingService.getDefault().name, 'auth');
+      sails.log.error(defAuthConfig.active);
+      if (defAuthConfig.active != undefined && defAuthConfig.active.indexOf('oidc') != -1) {
+        const oidcOpts = defAuthConfig.oidc.opts;
+        let OidcStrategy = require('passport-openidconnect').Strategy;
+        sails.config.passport.use('oidc', new OidcStrategy(oidcOpts.oidcStrategyOptions, (req, issuer, sub, profile, accessToken, refreshToken, done) => {
+          var brand = BrandingService.getBrand(req.session.branding);
+          const authConfig = ConfigService.getBrand(brand.name, 'auth');
+          var claimsMappings = authConfig.oidc.claimMappings;
+          const userName = _.get(profile, claimsMappings['username']);
+          var openIdConnectDefRoles = _.map(RolesService.getNestedRoles(RolesService.getDefAuthenticatedRole(brand).name, brand.roles), 'id');
+
+          User.findOne({ username: userName }, function(err, user) {
+            sails.log.verbose("At OIDC Strategy verify, payload:");
+            sails.log.verbose(profile);
+            sails.log.verbose("User:");
+            sails.log.verbose(user);
+            sails.log.verbose("Error:");
+            sails.log.verbose(err);
+            if (err) {
+              return done(err, false);
+            }
+            if (user) {
+              user.lastLogin = new Date();
+              User.update(user).exec(function(err, user) {
+              });
+              return done(null, user);
+            } else {
+              sails.log.verbose("At AAF Strategy verify, creating new user...");
+              // first time login, create with default role
+              var userToCreate = {
+                username: userName,
+                name: _.get(profile, claimsMappings['name']),
+                email: _.get(profile, claimsMappings['email']),
+                displayname: _.get(profile, claimsMappings['displayName']),
+                cn: _.get(profile, claimsMappings['cn']),
+                givenname: _.get(profile, claimsMappings['givenname']),
+                surname: _.get(profile, claimsMappings['surname']),
+                type: 'oidc',
+                roles: openIdConnectDefRoles,
+                lastLogin: new Date()
+              };
+              sails.log.verbose(userToCreate);
+              User.create(userToCreate).exec(function(err, newUser) {
+                if (err) {
+                  sails.log.error("Error creating new user:");
+                  sails.log.error(err);
+                  return done(err, false);
+                }
+
+                sails.log.verbose("Done, returning new user:");
+                sails.log.verbose(newUser);
+                return done(null, newUser);
+              });
+            }
+          });
+
+        }));
+      }
+    }
+
+
+
     protected bearerTokenAuthInit = () => {
       var BearerStrategy = require('passport-http-bearer').Strategy;
       sails.config.passport.use('bearer', new BearerStrategy(
@@ -188,7 +252,7 @@ export module Services {
             const tokenHash = crypto.createHash('sha256').update(token).digest('base64');
             User.findOne({ token: tokenHash }).populate('roles').exec(function(err, user) {
               if (err) {
-                 return done(err);
+                return done(err);
               }
               if (!user) {
 
@@ -214,7 +278,7 @@ export module Services {
         defaultUser[usernameField] = authConfig.local.default.adminUser;
         defaultUser[passwordField] = authConfig.local.default.adminPw;
         defaultUser["email"] = authConfig.local.default.email;
-        if(authConfig.local.default.token) {
+        if (authConfig.local.default.token) {
           defaultUser["token"] = authConfig.local.default.token;
         }
         sails.log.verbose("Default user missing, creating...");
@@ -230,7 +294,7 @@ export module Services {
               .flatMap(dUser => {
                 return Observable.from(defRoles)
                   .map(roleObserved => {
-                    let role:any = roleObserved;
+                    let role: any = roleObserved;
                     // START Sails 1.0 upgrade
                     // role.users.add(defUser.id)
                     q = Role.addToCollection(role.id, 'users').members([defUser.id]);
@@ -264,8 +328,8 @@ export module Services {
             if (_.size(emailCheck) > 0) {
               return Observable.throw(new Error('Email already exists, it must be unique.'));
             } else {
-              var newUser = { type: 'local', name: name};
-              if (!_.isEmpty(email)){
+              var newUser = { type: 'local', name: name };
+              if (!_.isEmpty(email)) {
                 newUser["email"] = email;
               }
               newUser[usernameField] = username;
@@ -295,6 +359,7 @@ export module Services {
         .flatMap(defAdminRole => {
           this.localAuthInit();
           this.aafAuthInit();
+          this.openIdConnectAuth();
           this.bearerTokenAuthInit();
           return this.initDefAdmin(defRoles, defAdminRole);
         });
@@ -311,15 +376,15 @@ export module Services {
     /**
      * @return Collection of all users (local and AAF)
      */
-    public getUsers = () :Observable<any> => {
-      return super.getObservable(User.find({ }).populate('roles'));
+    public getUsers = (): Observable<any> => {
+      return super.getObservable(User.find({}).populate('roles'));
     }
 
     public setUserKey = (userid, uuid) => {
       const uuidHash = _.isEmpty(uuid) ? uuid : crypto.createHash('sha256').update(uuid).digest('base64');
       return this.getUserWithId(userid).flatMap(user => {
         if (user) {
-          const q = User.update({id:userid}, {token: uuidHash});
+          const q = User.update({ id: userid }, { token: uuidHash });
           return this.getObservable(q, 'exec', 'simplecb');
         } else {
           return Observable.throw(new Error('No such user with id:' + userid));
@@ -332,7 +397,7 @@ export module Services {
       var passwordField = authConfig.local.passwordField;
       return this.getUserWithId(userid).flatMap(user => {
         if (user) {
-          const update = {name: name};
+          const update = { name: name };
 
           if (!_.isEmpty(email)) {
             update["email"] = email;
@@ -343,7 +408,7 @@ export module Services {
             var salt = salt = bcrypt.genSaltSync(10);
             update[passwordField] = bcrypt.hashSync(password, salt);
           }
-          const q = User.update({id: userid}, update);
+          const q = User.update({ id: userid }, update);
           return this.getObservable(q, 'exec', 'simplecb');
         } else {
           return Observable.throw(new Error('No such user with id:' + userid));
@@ -424,7 +489,7 @@ export module Services {
             RecordsService.provideUserAccessAndRemovePendingAccess(oid, userid, pendingValue);
           }
         }
-      }, (error:any) => {
+      }, (error: any) => {
         // swallow !!!!
         sails.log.warn(`Failed to assign access to OID: ${oid}`);
         sails.log.warn(error);

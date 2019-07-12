@@ -151,6 +151,11 @@ module.exports.routes = {
     action: 'aafLogin',
     csrf: false
   },
+  'get /user/login_oidc': {
+    controller: 'UserController',
+    action: 'openIdConnectLogin',
+    csrf: false
+  },
   'get /user/info': 'UserController.info',
   'get /:branding/:portal/user/info': 'UserController.info',
   'get /:branding/:portal/user/login': 'UserController.login',

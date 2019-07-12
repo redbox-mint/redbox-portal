@@ -4737,8 +4737,9 @@ locate-path@^3.0.0:
     path-exists "^3.0.0"
 
 lodash-es@^4.17.5:
-  version "4.17.11"
-  resolved "https://registry.yarnpkg.com/lodash-es/-/lodash-es-4.17.11.tgz#145ab4a7ac5c5e52a3531fb4f310255a152b4be0"
+  version "4.17.14"
+  resolved "https://registry.yarnpkg.com/lodash-es/-/lodash-es-4.17.14.tgz#12a95a963cc5955683cee3b74e85458954f37ecc"
+  integrity sha512-7zchRrGa8UZXjD/4ivUWP1867jDkhzTG2c/uj739utSd7O/pFFdxspCemIFKEEjErbcqRzn8nKnGsi7mvTgRPA==
 
 lodash.assign@^4.2.0:
   version "4.2.0"
@@ -4789,8 +4790,9 @@ lodash.isundefined@3.0.1:
   resolved "https://registry.yarnpkg.com/lodash.isundefined/-/lodash.isundefined-3.0.1.tgz#23ef3d9535565203a66cefd5b830f848911afb48"
 
 lodash.mergewith@^4.6.0, lodash.mergewith@^4.6.1:
-  version "4.6.1"
-  resolved "https://registry.yarnpkg.com/lodash.mergewith/-/lodash.mergewith-4.6.1.tgz#639057e726c3afbdb3e7d42741caa8d6e4335927"
+  version "4.6.2"
+  resolved "https://registry.yarnpkg.com/lodash.mergewith/-/lodash.mergewith-4.6.2.tgz#617121f89ac55f59047c7aec1ccd6654c6590f55"
+  integrity sha512-GK3g5RPZWTRSeLSpgP8Xhra+pnjBC56q9FZYe1d5RN3TJ35dbkGy3YqBSMbyCrlbi+CM9Z3Jk5yTL7RCsqboyQ==
 
 lodash.once@^4.0.0:
   version "4.1.1"
@@ -5743,6 +5745,11 @@ oauth-sign@~0.9.0:
   version "0.9.0"
   resolved "https://registry.yarnpkg.com/oauth-sign/-/oauth-sign-0.9.0.tgz#47a7b016baa68b5fa0ecf3dee08a85c679ac6455"
 
+oauth@0.9.x:
+  version "0.9.15"
+  resolved "https://registry.yarnpkg.com/oauth/-/oauth-0.9.15.tgz#bd1fefaf686c96b75475aed5196412ff60cfb9c1"
+  integrity sha1-vR/vr2hslrdUda7VGWQS/2DPucE=
+
 object-assign@^4, object-assign@^4.0.1, object-assign@^4.1.0, object-assign@^4.1.1, object-assign@latest, object-assign@~4.1.1:
   version "4.1.1"
   resolved "https://registry.yarnpkg.com/object-assign/-/object-assign-4.1.1.tgz#2109adc7965887cfc05cbbd442cac8bfbb360863"
@@ -5770,6 +5777,7 @@ object-hash@0.5.0:
 object-hash@^1.1.2:
   version "1.3.1"
   resolved "https://registry.yarnpkg.com/object-hash/-/object-hash-1.3.1.tgz#fde452098a951cb145f039bb7d455449ddc126df"
+  integrity sha512-OSuu/pU4ENM9kmREg0BdNrUDIl1heYa4mBZacJc+vVWz4GtAwu7jO8s4AIt2aGRUTqxykpWzI3Oqnsm13tTMDA==
 
 object-inspect@~1.4.0:
   version "1.4.1"
@@ -6058,6 +6066,16 @@ passport-local@^1.0.0:
   resolved "https://registry.yarnpkg.com/passport-local/-/passport-local-1.0.0.tgz#1fe63268c92e75606626437e3b906662c15ba6ee"
   dependencies:
     passport-strategy "1.x.x"
+
+passport-openidconnect@0.0.2:
+  version "0.0.2"
+  resolved "https://registry.yarnpkg.com/passport-openidconnect/-/passport-openidconnect-0.0.2.tgz#e488f8bdb386c9a9fd39c91d5ab8c880156e8153"
+  integrity sha1-5Ij4vbOGyan9OckdWrjIgBVugVM=
+  dependencies:
+    oauth "0.9.x"
+    passport-strategy "1.x.x"
+    request "^2.75.0"
+    webfinger "0.4.x"
 
 passport-strategy@1.x.x, passport-strategy@^1.0.0:
   version "1.0.0"
@@ -6801,7 +6819,7 @@ request-promise@^4.2.0:
     stealthy-require "^1.1.1"
     tough-cookie "^2.3.3"
 
-request@^2.51.0, request@^2.61.0, request@^2.79.0, request@^2.81.0, request@^2.83.0, request@^2.85.0, request@^2.87.0, request@^2.88.0:
+request@^2.51.0, request@^2.61.0, request@^2.75.0, request@^2.79.0, request@^2.81.0, request@^2.83.0, request@^2.85.0, request@^2.87.0, request@^2.88.0:
   version "2.88.0"
   resolved "https://registry.yarnpkg.com/request/-/request-2.88.0.tgz#9c2fca4f7d35b592efe57c7f0a55e81052124fef"
   dependencies:
@@ -7057,6 +7075,7 @@ sails-generate@^1.16.0-0, sails-generate@^1.9.0:
 sails-hook-autoreload@^1.1.0:
   version "1.1.0"
   resolved "https://registry.yarnpkg.com/sails-hook-autoreload/-/sails-hook-autoreload-1.1.0.tgz#666cab7e0490b7575c970fc830b53f59f3529664"
+  integrity sha512-sv80M4nd8SsWaUZ1bbRaqtKYcHc0E6CrC/b/kwIT1mW2He1hdJpxifkPpZTka8L7L29OVJG+ZenwWbNI2nvI2g==
   dependencies:
     "@sailshq/lodash" "^3.10.2"
     chokidar "^1.0.0"
@@ -7224,7 +7243,7 @@ sax@1.2.1:
   version "1.2.1"
   resolved "https://registry.yarnpkg.com/sax/-/sax-1.2.1.tgz#7b8e656190b228e81a66aea748480d828cd2d37a"
 
-sax@>=0.6.0, sax@^1.2.4:
+sax@>=0.1.1, sax@>=0.6.0, sax@^1.2.4:
   version "1.2.4"
   resolved "https://registry.yarnpkg.com/sax/-/sax-1.2.4.tgz#2816234e2378bddc4e5354fab5caa895df7100d9"
 
@@ -7709,6 +7728,11 @@ stdout-stream@^1.4.0:
 stealthy-require@^1.1.0, stealthy-require@^1.1.1:
   version "1.1.1"
   resolved "https://registry.yarnpkg.com/stealthy-require/-/stealthy-require-1.1.1.tgz#35b09875b4ff49f26a777e509b3090a3226bf24b"
+
+step@0.0.x:
+  version "0.0.6"
+  resolved "https://registry.yarnpkg.com/step/-/step-0.0.6.tgz#143e7849a5d7d3f4a088fe29af94915216eeede2"
+  integrity sha1-FD54SaXX0/SgiP4pr5SRUhbu7eI=
 
 stream-combiner@~0.0.4:
   version "0.0.4"
@@ -8453,6 +8477,14 @@ waterline@^0.13.5-0:
     waterline-schema "^1.0.0-20"
     waterline-utils "^1.3.7"
 
+webfinger@0.4.x:
+  version "0.4.2"
+  resolved "https://registry.yarnpkg.com/webfinger/-/webfinger-0.4.2.tgz#3477a6d97799461896039fcffc650b73468ee76d"
+  integrity sha1-NHem2XeZRhiWA5/P/GULc0aO520=
+  dependencies:
+    step "0.0.x"
+    xml2js "0.1.x"
+
 webidl-conversions@^4.0.2:
   version "4.0.2"
   resolved "https://registry.yarnpkg.com/webidl-conversions/-/webidl-conversions-4.0.2.tgz#a855980b1f0b6b359ba1d5d9fb39ae941faa63ad"
@@ -8630,6 +8662,13 @@ xlsx@^0.11.17:
 xml-name-validator@^3.0.0:
   version "3.0.0"
   resolved "https://registry.yarnpkg.com/xml-name-validator/-/xml-name-validator-3.0.0.tgz#6ae73e06de4d8c6e47f9fb181f78d648ad457c6a"
+
+xml2js@0.1.x:
+  version "0.1.14"
+  resolved "https://registry.yarnpkg.com/xml2js/-/xml2js-0.1.14.tgz#5274e67f5a64c5f92974cd85139e0332adc6b90c"
+  integrity sha1-UnTmf1pkxfkpdM2FE54DMq3GuQw=
+  dependencies:
+    sax ">=0.1.1"
 
 xml2js@0.4.19, xml2js@^0.4.19:
   version "0.4.19"
