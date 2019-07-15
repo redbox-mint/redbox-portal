@@ -171,8 +171,9 @@
     "@types/leaflet" "*"
 
 "@types/leaflet@*", "@types/leaflet@^1.2.6":
-  version "1.2.14"
-  resolved "https://registry.yarnpkg.com/@types/leaflet/-/leaflet-1.2.14.tgz#912bcacdc2cfa62787573a27ca617ffb67f89614"
+  version "1.4.6"
+  resolved "https://registry.yarnpkg.com/@types/leaflet/-/leaflet-1.4.6.tgz#63db96aa3f6ef1bc7e355c7e513a73cd7588ec0a"
+  integrity sha512-mCCym3P1kzr63CneInbXFUtWyT9XsWfueKVyHNRnLsQAqfS46TCXfecFHgDLWA8B8yCrMPcUyIB5urn4w6Q40Q==
   dependencies:
     "@types/geojson" "*"
 
