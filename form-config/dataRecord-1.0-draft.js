@@ -389,6 +389,15 @@ module.exports = {
                       }
                     }
                   }
+                },
+                {
+                  class: 'TextField',
+                  definition: {
+                    name: 'dc_extent',
+                    label: '@dataRecord-dc_extent',
+                    help: '@dataRecord-dc_extent-help',
+                    type: 'text'
+                  }
                 }
               ]
             }
@@ -834,7 +843,7 @@ module.exports = {
                           cssClasses: "form-inline",
                           fields: [
                             {
-                              class: 'TextField',
+                              class: 'LinkValueComponent',
                               definition: {
                                 name: 'related_url',
                                 label: '@dmpt-related-publication-url',

@@ -148,6 +148,10 @@ module.exports = [
               {
                 value: "@dataPublication-dc:accessRights-restricted-val",
                 label: "@dataPublication-dc:accessRights-restricted"
+              },
+              {
+                value: "@dataPublication-dc:accessRights-conditional-val",
+                label: "@dataPublication-dc:accessRights-conditional"
               }
             ],
             subscribe: {
@@ -156,12 +160,16 @@ module.exports = [
                   action: 'utilityService.getPropertyFromObjectMapping',
                   mapping: [
                     {
-                      key: 'true',
+                      key: 'Restricted',
                       value: 'Restricted'
                     },
                     {
-                      key: 'false',
+                      key: 'Open',
                       value: 'Open'
+                    },
+                    {
+                      key: 'Conditional',
+                      value: 'Conditional'
                     }
                   ]
                 }]
@@ -170,7 +178,7 @@ module.exports = [
           }
         },
         {
-          class: 'TextField',
+          class: 'LinkValueComponent',
           definition: {
             name: 'accessRights_url',
             label: '@dataPublication-accessRights_url',

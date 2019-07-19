@@ -56,6 +56,11 @@ module.exports = {
       }
     }
   },
+  services: {
+    email: {
+      disabled: true
+    }
+  },
   redbox: {
     apiKey: 'c8e844fc-8550-497f-b970-7900ec8741ca'
   },

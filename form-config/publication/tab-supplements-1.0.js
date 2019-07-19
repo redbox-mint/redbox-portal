@@ -44,7 +44,7 @@ module.exports = [
                       }
                     },
                     {
-                      class: 'TextField',
+                      class: 'LinkValueComponent',
                       definition: {
                         name: 'related_url',
                         label: '@dataPublication-related-publication-url',
@@ -108,7 +108,7 @@ module.exports = [
                     }
                   },
                   {
-                    class: 'TextField',
+                    class: 'LinkValueComponent',
                     definition: {
                       name: 'related_url',
                       label: '@dataPublication-related-website-url',
@@ -163,7 +163,7 @@ module.exports = [
                     }
                   },
                   {
-                    class: 'TextField',
+                    class: 'LinkValueComponent',
                     definition: {
                       name: 'related_url',
                       label: '@dataPublication-related-metadata-url',
@@ -219,7 +219,7 @@ module.exports = [
                     }
                   },
                   {
-                    class: 'TextField',
+                    class: 'LinkValueComponent',
                     editOnly: true,
                     definition: {
                       name: 'related_url',
@@ -276,7 +276,7 @@ module.exports = [
                     }
                   },
                   {
-                    class: 'TextField',
+                    class: 'LinkValueComponent',
                     editOnly: true,
                     definition: {
                       name: 'related_url',

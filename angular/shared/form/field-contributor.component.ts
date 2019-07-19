@@ -17,12 +17,11 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { Input, Component, OnInit, ViewChild, ElementRef} from '@angular/core';
+import {Component, Input, ViewChild} from '@angular/core';
 import { SimpleComponent } from './field-simple.component';
 import { FieldBase } from './field-base';
-import { FormGroup, FormControl, Validators } from '@angular/forms';
+import {FormControl, FormGroup, Validators} from '@angular/forms';
 import * as _ from "lodash";
-import { RbValidator } from './validators';
 import { VocabField } from './field-vocab.component';
 import { Observable} from 'rxjs/Rx';
 /**
@@ -111,7 +110,9 @@ export class ContributorField extends FieldBase<any> {
       // override free text as it doesn't make sense
       this.freeText = false;
     }
-    this.role = options['role'] ? this.getTranslated(options['role'], options['role']) : null;
+    // do not show contributor role if required details are blank
+    const showFieldRoleValue = _.get(this.value, 'text_full_name') || _.get(this.value, 'email');
+    this.role = showFieldRoleValue && options['role'] ? this.getTranslated(options['role'], options['role']) : null;
     this.username = options['username'] || '';
     this.previousEmail = this.value ? this.value.email : '';
 

@@ -101,7 +101,7 @@ module.exports = [
           }
         },
         {
-          class: 'TextField',
+          class: 'LinkValueComponent',
           definition: {
             name: 'license_other_url',
             label: '@dataPublication-dc:license.rdf:Alt.dc:identifier',
@@ -123,7 +123,7 @@ module.exports = [
           }
         },
         {
-          class: 'TextField',
+          class: 'LinkValueComponent',
           definition: {
             name: 'license_statement_url',
             label: '@dataPublication-dc:accessRights.dc:RightsStatement.dc:identifier',

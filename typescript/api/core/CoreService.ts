@@ -75,6 +75,12 @@ export module Services.Core {
      * @return
      */
     protected metTriggerCondition(oid, record, options) {
+      const isDisabled = _.get(sails.config, 'services.email.disabled', false);
+      sails.log.verbose('is isDisabled');
+      sails.log.verbose(isDisabled);
+      if (isDisabled) {
+        return "false"
+      }
       const triggerCondition = _.get(options, "triggerCondition", "");
       const forceRun = _.get(options, "forceRun", false);
       const variables = {
