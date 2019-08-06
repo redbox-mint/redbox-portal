@@ -20,6 +20,7 @@
 //<reference path='./../../typings/loader.d.ts'/>
 declare var module;
 declare var sails;
+declare var _;
 import { Observable } from 'rxjs/Rx';
 declare var VocabService;
 /**
@@ -100,6 +101,10 @@ export module Controllers {
         // only return the response...
         this.ajaxOk(req, res, null, mintResponse.response.docs, true);
       }, error => {
+        sails.log.verbose("Error getting mint data:");
+        sails.log.verbose(error);
+        _.unset(error, 'options');
+        _.unset(error, 'response');
         this.ajaxFail(req, res, null, error, true);
       });
     }
