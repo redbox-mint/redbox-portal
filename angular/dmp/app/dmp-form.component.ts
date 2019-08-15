@@ -125,7 +125,7 @@ export class DmpFormComponent extends LoadableComponent {
     onValueChange: {}
   };
 
-  private relatedRecordId: any = null;
+  relatedRecordId: any = null;
   /**
    * Expects a number of DI'ed elements.
    */

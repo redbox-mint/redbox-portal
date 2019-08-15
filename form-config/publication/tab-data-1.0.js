@@ -40,6 +40,37 @@ module.exports = [
           }
         },
         {
+          class: 'PublishDataLocationRefresh',
+          compClass: 'PublishDataLocationRefreshComponent',
+          definition: {
+            name: "dataPubLocationRefresher",
+            required: false,
+            label: "@refresh-attachments-text",
+            visibilityCriteria: false, // hidden when access rights is unchecked
+            disabledExpression: '<%= _.isEmpty(relatedRecordId) %>',
+            subscribe: {
+              'form': {
+                onFormLoaded: [
+                  { action: 'getRelatedRecordId' }
+                ]
+              },
+              'dataRecordGetter': {
+                onValueUpdate: [
+                  { action: 'getRelatedRecordId'}
+                ]
+              },
+              'accessRightsToggle': {
+                onValueUpdate: [
+                  { action: 'setVisibility' }
+                ],
+                onValueLoaded: [
+                  { action: 'setVisibility' }
+                ]
+              }
+            }
+          }
+        },
+        {
           class: 'PublishDataLocationSelector',
           compClass: 'PublishDataLocationSelectorComponent',
           definition: {
@@ -48,6 +79,12 @@ module.exports = [
             disabledExpression: '<%= _.isEmpty(relatedRecordId) %>',
             subscribe: {
               'dataRecordGetter': {
+                onValueUpdate: [{
+                  action: 'utilityService.getPropertyFromObject',
+                  field: 'dataLocations'
+                }]
+              },
+              'dataPubLocationRefresher': {
                 onValueUpdate: [{
                   action: 'utilityService.getPropertyFromObject',
                   field: 'dataLocations'

@@ -35,6 +35,7 @@ import { WorkspaceSelectorComponent, WorkspaceSelectorFieldComponent } from './f
 import { ANDSVocabField, ANDSVocabComponent } from './form/field-andsvocab.component'
 import { PDFListField, PDFListComponent } from './form/field-pdflist.component';
 import { AsynchField, AsynchComponent } from './form/field-asynch.component';
+import { PublishDataLocationRefreshField, PublishDataLocationRefreshComponent } from './form/field-publish-data-location-refresh.component';
 
 export const fieldClasses=  {
   'TextField': { 'meta': TextField, 'comp': TextFieldComponent },
@@ -71,5 +72,6 @@ export const fieldClasses=  {
   'PDFList': { 'meta': PDFListField, 'comp': PDFListComponent},
   'AsynchField': {'meta': AsynchField, 'comp': AsynchComponent },
   'Toggle': {'meta': Toggle, 'comp': ToggleComponent},
-  'HtmlRaw': {'meta': HtmlRaw, 'comp': HtmlRawComponent}
+  'HtmlRaw': {'meta': HtmlRaw, 'comp': HtmlRawComponent},
+  'PublishDataLocationRefresh': {'meta': PublishDataLocationRefreshField, 'comp': PublishDataLocationRefreshComponent }
 };
