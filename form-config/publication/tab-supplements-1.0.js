@@ -44,9 +44,21 @@ module.exports = [
                       }
                     },
                     {
+                      class: 'TextField',
+                      definition: {
+                        name: 'related_url',
+                        editOnly: true,
+                        label: '@dataPublication-related-publication-url',
+                        type: 'text',
+                        groupName: 'related_publication',
+                        groupClasses: 'width-30',
+                        cssClasses : "width-80 form-control"
+                      }
+                    },{
                       class: 'LinkValueComponent',
                       definition: {
                         name: 'related_url',
+                        viewOnly: true,
                         label: '@dataPublication-related-publication-url',
                         type: 'text',
                         groupName: 'related_publication',
@@ -101,6 +113,18 @@ module.exports = [
                     definition: {
                       name: 'related_title',
                       label: '@dataPublication-related-website-title',
+                      type: 'text',
+                      groupName: 'related_website',
+                      groupClasses: 'width-30',
+                      cssClasses: "width-80 form-control"
+                    }
+                  },
+                  {
+                    class: 'TextField',
+                    definition: {
+                      name: 'related_url',
+                      editOnly: true,
+                      label: '@dataPublication-related-website-url',
                       type: 'text',
                       groupName: 'related_website',
                       groupClasses: 'width-30',
@@ -163,11 +187,24 @@ module.exports = [
                     }
                   },
                   {
+                    class: 'TextField',
+                    definition: {
+                      name: 'related_url',
+                      editOnly: true,
+                      label: '@dataPublication-related-metadata-url',
+                      type: 'text',
+                      groupName: 'related_metadata_group',
+                      groupClasses: 'width-30',
+                      cssClasses: "width-80 form-control"
+                    }
+                  },
+                  {
                     class: 'LinkValueComponent',
                     definition: {
                       name: 'related_url',
                       label: '@dataPublication-related-metadata-url',
                       type: 'text',
+                      viewOnly: true,
                       groupName: 'related_metadata_group',
                       groupClasses: 'width-30',
                       cssClasses: "width-80 form-control"
@@ -220,6 +257,18 @@ module.exports = [
                   },
                   {
                     class: 'LinkValueComponent',
+                    viewOnly: true,
+                    definition: {
+                      name: 'related_url',
+                      label: '@dataPublication-related-data-url',
+                      type: 'text',
+                      groupName: 'related_datum',
+                      groupClasses: 'width-30',
+                      cssClasses: "width-80 form-control"
+                    }
+                  },
+                  {
+                    class: 'TextField',
                     editOnly: true,
                     definition: {
                       name: 'related_url',
@@ -265,7 +314,6 @@ module.exports = [
                 fields: [
                   {
                     class: 'TextField',
-                    editOnly: true,
                     definition: {
                       name: 'related_title',
                       label: '@dataPublication-related-service-title',
@@ -276,8 +324,20 @@ module.exports = [
                     }
                   },
                   {
-                    class: 'LinkValueComponent',
+                    class: 'TextField',
                     editOnly: true,
+                    definition: {
+                      name: 'related_url',
+                      label: '@dataPublication-related-service-url',
+                      type: 'text',
+                      groupName: 'related_service',
+                      groupClasses: 'width-30',
+                      cssClasses: "width-80 form-control"
+                    }
+                  },
+                  {
+                    class: 'LinkValueComponent',
+                    viewOnly: true,
                     definition: {
                       name: 'related_url',
                       label: '@dataPublication-related-service-url',
