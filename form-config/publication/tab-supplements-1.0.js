@@ -45,9 +45,9 @@ module.exports = [
                     },
                     {
                       class: 'TextField',
+                      editOnly: true,
                       definition: {
                         name: 'related_url',
-                        editOnly: true,
                         label: '@dataPublication-related-publication-url',
                         type: 'text',
                         groupName: 'related_publication',
@@ -56,9 +56,9 @@ module.exports = [
                       }
                     },{
                       class: 'LinkValueComponent',
+                      viewOnly: true,
                       definition: {
                         name: 'related_url',
-                        viewOnly: true,
                         label: '@dataPublication-related-publication-url',
                         type: 'text',
                         groupName: 'related_publication',
@@ -121,9 +121,9 @@ module.exports = [
                   },
                   {
                     class: 'TextField',
+                    editOnly: true,
                     definition: {
                       name: 'related_url',
-                      editOnly: true,
                       label: '@dataPublication-related-website-url',
                       type: 'text',
                       groupName: 'related_website',
@@ -133,6 +133,7 @@ module.exports = [
                   },
                   {
                     class: 'LinkValueComponent',
+                    viewOnly: true,
                     definition: {
                       name: 'related_url',
                       label: '@dataPublication-related-website-url',
@@ -188,9 +189,9 @@ module.exports = [
                   },
                   {
                     class: 'TextField',
+                    editOnly: true,
                     definition: {
                       name: 'related_url',
-                      editOnly: true,
                       label: '@dataPublication-related-metadata-url',
                       type: 'text',
                       groupName: 'related_metadata_group',
@@ -200,11 +201,11 @@ module.exports = [
                   },
                   {
                     class: 'LinkValueComponent',
+                    viewOnly: true,
                     definition: {
                       name: 'related_url',
                       label: '@dataPublication-related-metadata-url',
                       type: 'text',
-                      viewOnly: true,
                       groupName: 'related_metadata_group',
                       groupClasses: 'width-30',
                       cssClasses: "width-80 form-control"

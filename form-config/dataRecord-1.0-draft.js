@@ -844,6 +844,19 @@ module.exports = {
                           fields: [
                             {
                               class: 'LinkValueComponent',
+                              viewOnly: true,
+                              definition: {
+                                name: 'related_url',
+                                label: '@dmpt-related-publication-url',
+                                type: 'text',
+                                groupName: 'related_publication',
+                                groupClasses: 'width-30',
+                                cssClasses : "width-80 form-control"
+                              }
+                            },
+                            {
+                              class: 'TextField',
+                              editOnly: true,
                               definition: {
                                 name: 'related_url',
                                 label: '@dmpt-related-publication-url',
