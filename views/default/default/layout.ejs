@@ -86,6 +86,32 @@
   <!--SCRIPTS-->
   <script src="/js/dependencies/sails.io.js"></script>
   <!--SCRIPTS END-->
+  <script>
+  $(document).ready(function() {
+    $('li.active').removeClass('active');
+    var findFn = function(path) {
+      return $('a[href="' + path + '"]');
+    };
+    var curHref = findFn(location.pathname);
+    if (curHref.length === 0) {
+      // try to match the path ...
+      var paths = location.pathname.split('/');
+      for (var i=paths.length - 1; i >= 0; i--) {
+        curHref = findFn(paths.splice(0, i).join('/'));
+        if (curHref.length !== 0) {
+          curHref.closest('li').addClass('site-branding-area');
+          break;
+        }
+      }
+    } else {
+      if (curHref.closest('.dropdown').length === 0) {
+        curHref.closest('li').addClass('site-branding-area');
+      } else {
+        curHref.closest('li').addClass('active').closest('.dropdown').addClass('site-branding-area');
+      }
+    }
+  });
+  </script>
 </body>
 <% if (res.statusCode <= 400 && sails.config.ng2.use_bundled) { %>
   <!-- NG2 bundled scripts section, expects a 'ng2_apps' local containing the list of apps to load for this view -->

@@ -1,7 +1,7 @@
 module.exports.record = {
   baseUrl: {
     redbox: "http://localhost:9000/redbox",
-    mint: "https://dev-redbox.research.uts.edu.au/mint"
+    mint: "https://demo.redboxresearchdata.com.au/mint"
   },
   api: {
     create: {method: 'post', url: "/api/v1/object/$packageType"},

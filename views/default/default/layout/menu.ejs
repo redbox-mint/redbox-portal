@@ -13,7 +13,7 @@
         <ul class="nav navbar-nav">
           <% if (req.isAuthenticated()) {
             %>
-            <li class="active"><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/researcher/home"><%= TranslationService.t('menu-home')%></a></li>
+            <li><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/researcher/home"><%= TranslationService.t('menu-home')%></a></li>
 
             <li class="dropdown">
               <a class="dropdown-toggle" data-toggle="dropdown" href="#"><%= TranslationService.t('menu-plan-nav')%><span class="caret"></span></a>
@@ -47,11 +47,11 @@
               </li>
             <%
               if ( hasRole(req,'Admin') || hasRole(req,'Librarians')) {%>
-            <li class="dropdown">
+            <li>
               <a href="<%= BrandingService.getBrandAndPortalPath(req) %>/admin"><%= TranslationService.t('menu-admin')%></a>
             </li>
           <% } %>
-          <li class="dropdown">
+          <li>
             <form class="nav-search-bar form-inline" method="get" action="<%= BrandingService.getBrandAndPortalPath(req) %>/record/search" name="form">
               <div class="input-group">
                 <input name="q" type="text" class="form-control" placeholder="<%= TranslationService.t('record-search-basic-search-placeholder') %>" aria-label="<%= TranslationService.t('record-search-basic-search-placeholder') %>">

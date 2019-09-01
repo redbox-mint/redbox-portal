@@ -31,7 +31,7 @@ module.exports = {
   record:{
     baseUrl: {
       redbox: "http://redbox:9000/redbox",
-      mint: "http://203.101.226.160/mint"
+      mint: "https://demo.redboxresearchdata.com.au/mint"
     }
   },  // added for TUS server, only set if there's a reverse proxy infront, otherwise, TUS needs this so it can return the correct host name and port
   //appPort: 1500,
