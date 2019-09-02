@@ -202,6 +202,7 @@ module.exports.routes = {
   'get /:branding/:portal/collection/:collectionId': 'VocabController.getCollection',
   'post /:branding/:portal/collection/:collectionId': 'VocabController.loadCollection',
   'get /:branding/:portal/export': 'ExportController.index',
+  'get /:branding/:portal/admin/export': 'ExportController.index',
   'get /:branding/:portal/export/record/download/:format': 'ExportController.downloadRecs',
   'post /:branding/:portal/asynch': 'AsynchController.start',
   'delete /:branding/:portal/asynch': 'AsynchController.stop',
