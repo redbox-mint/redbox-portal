@@ -7962,9 +7962,10 @@ symbol@~0.3.1:
   version "0.3.1"
   resolved "https://registry.yarnpkg.com/symbol/-/symbol-0.3.1.tgz#b6f9a900d496a57f02408f22198c109dda063041"
 
-systemjs@4.0.0:
-  version "4.0.0"
-  resolved "https://registry.yarnpkg.com/systemjs/-/systemjs-4.0.0.tgz#8b2310ccf774242b492e35b8037b6e6ce580c24a"
+systemjs@6.0.0:
+  version "6.0.0"
+  resolved "https://registry.yarnpkg.com/systemjs/-/systemjs-6.0.0.tgz#167fdb7c15195ee2773e25c958cd9a0351ac85fe"
+  integrity sha512-Dc7TBShsS8baQKZBsh+bOZOHPS82V7IQWQ6IxR+HCWz4+jN2WSQjj+LIS2KbX0tdB2QAG/isSexgFFk40Z+UYg==
 
 tar@^2.0.0:
   version "2.2.2"
