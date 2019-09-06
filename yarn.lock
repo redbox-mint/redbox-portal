@@ -3924,7 +3924,14 @@ i18next-node-fs-backend@^2.1.1:
     js-yaml "3.13.0"
     json5 "2.0.0"
 
-i18next@15.0.9, i18next@^15.0.4:
+i18next@17.0.13:
+  version "17.0.13"
+  resolved "https://registry.yarnpkg.com/i18next/-/i18next-17.0.13.tgz#3c639e15de86e0523f8f286f6cf07db355ee0a4f"
+  integrity sha512-tCBpekVs95IsN3kdi/6HhnfzHDlpXerOmOsf2ZMWtct9YbMYKI54HVdQ6XxsHGXBxY+UgjbQJwqghKCd2sYQWw==
+  dependencies:
+    "@babel/runtime" "^7.3.1"
+
+i18next@^15.0.4:
   version "15.0.9"
   resolved "https://registry.yarnpkg.com/i18next/-/i18next-15.0.9.tgz#42536407a921bb5a8535a4c090a26f16827a1884"
   dependencies:
