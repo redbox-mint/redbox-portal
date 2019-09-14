@@ -63,6 +63,7 @@ export class MarkdownTextArea extends FieldBase<string> {
     if (_.isUndefined(this.value)) {
       this.value = "";
     }
+    this.cssClasses = _.isEmpty(this.cssClasses) ? 'form-control' : this.cssClasses;
   }
 
   formatValueForDisplay() {
@@ -239,9 +240,9 @@ export class TextAreaComponent extends EmbeddableComponent implements OnInit {
       <button type="button" class="btn btn-default" *ngIf="field.help" (click)="toggleHelp()" [attr.aria-label]="'help' | translate "><span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span></button>
     </label><br/>
     <span id="{{ 'helpBlock_' + field.name }}" class="help-block" *ngIf="this.helpShow" [innerHtml]="field.help"></span>
-    <textarea [formControl]="getFormControl()"  [attr.rows]="field.rows" [attr.cols]="field.cols" [id]="field.name" class="form-control" [(ngModel)]="field.value"></textarea>
+    <textarea [formControl]="getFormControl()"  [attr.rows]="field.rows" [attr.cols]="field.cols" [id]="field.name" [ngClass]="field.cssClasses" [(ngModel)]="field.value"></textarea>
     <div *ngIf="field.value" style='font-weight:bold'>Preview</div>
-    <markdown [data]="field.value"></markdown>
+    <markdown *ngIf="field.value" [data]="field.value"></markdown>
     <div class="text-danger" *ngIf="getFormControl().hasError('required') && getFormControl().touched && !field.validationMessages?.required">{{field.label}} is required</div>
     <div class="text-danger" *ngIf="getFormControl().hasError('required') && getFormControl().touched && field.validationMessages?.required">{{field.validationMessages.required}}</div>
   </div>

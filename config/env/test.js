@@ -52,6 +52,11 @@ module.exports = {
   redbox: {
     apiKey: '18f344b4-81a9-43b9-8916-4bbf339e8765'
   },
+  services: {
+    email: {
+      disabled: true
+    }
+  },
   datastores:{
     mongodb: {
       adapter: require('sails-mongo'),

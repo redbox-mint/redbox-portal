@@ -147,7 +147,7 @@ export class SelectionComponent extends SimpleComponent {
   field: SelectionField;
 
   getLabel(val: any): string {
-    if (_.isUndefined(val)) {
+    if (_.isEmpty(val)) {
       return '';
     }
     const opt = _.find(this.field.selectOptions, (opt)=> {
