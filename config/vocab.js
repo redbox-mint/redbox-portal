@@ -11,7 +11,7 @@ module.exports.vocab = {
   providers: {
     geonames: {
       method: 'get',
-      url: "http://203.101.226.35/geonames/search?func=search&q=${query}&format=json",
+      url: "http://mint:9001/geonames/search?func=search&q=${query}&format=json",
       options: {
 
       }
