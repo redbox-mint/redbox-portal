@@ -162,9 +162,15 @@ export module Controllers {
         // });
       }
       if (respConfig.fieldNames) {
-        _.forOwn(respConfig.fieldNames, (val, key) => {
-          _.set(record, `metadata.${val}`, _.get(updateData, key));
-        });
+        if (respConfig.updateFirstArrayMember) {
+          _.forOwn(respConfig.fieldNames, (val, key) => {
+            _.set(record, `metadata.${val}`, _.get(updateData, key));
+          });
+        } else {
+          _.forOwn(respConfig.fieldNames, (val, key) => {
+            _.set(record, `metadata.${val}`, _.get(updateData, key));
+          });
+        }
       }
       if (respConfig.updateAlso) {
         _.each(respConfig.updateAlso, (relatedRole) => {
