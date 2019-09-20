@@ -127,8 +127,7 @@ module.exports = [
             name: 'dataLicensingAccess_manager',
             label: '@dataPublication-dataLicensingAccess_manager',
             type: 'text',
-            readOnly: true,
-            visibilityCriteria: true, // visible when access rights is checked
+            visibilityCriteria: false, // visible when access rights is checked
             subscribe: {
               'dataRecordGetter': {
                 onValueUpdate: [{
@@ -138,10 +137,17 @@ module.exports = [
               },
               'accessRightsToggle': {
                 onValueUpdate: [
-                  { action: 'setVisibility' }
+                  { action: 'setVisibility' },
+                  { action: 'utilityService.getPropertyFromObject',
+                    field: 'contributor_data_manager.text_full_name'
+                  }
+
                 ],
                 onValueLoaded: [
-                  { action: 'setVisibility' }
+                  { action: 'setVisibility' },
+                  { action: 'utilityService.getPropertyFromObject',
+                    field: 'contributor_data_manager.text_full_name'
+                  }
                 ]
               }
             }
