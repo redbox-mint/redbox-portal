@@ -90,16 +90,6 @@ module.exports = [
             help: '@dataPublication-reviewerNote-help',
             disabledExpression: '<%= _.isEmpty(relatedRecordId) %>'
           }
-        },
-        {
-          class: 'ActionButton',
-          definition: {
-            label: "Publish Record to CKAN",
-            name: "ckanLocation",
-            cssClasses: "btn btn-primary",
-            targetAction: "publishToCKAN",
-            disabledExpression: '<%= _.isEmpty(relatedRecordId) %>'
-          }
         }
       ]
     }
