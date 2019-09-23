@@ -14,7 +14,12 @@
          <div class="panel-body">
            <div><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/record/rdmp/edit"><%= TranslationService.t('create-rdmp')%></a></div>
            <div><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/dashboard/rdmp"><%= TranslationService.t('edit-dashboard-rdmp')%></a></div>
-           <div><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/getAdvice"><%= TranslationService.t('get-advice') %></a></div>
+             <% if (TranslationService.t('get-advice-link')) {
+             %>
+                 <div><a href="<%= TranslationService.t('get-advice-link') %>"><%= TranslationService.t('get-advice') %></a></div>
+             <%  } else { %>
+                 <div><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/getAdvice"><%= TranslationService.t('get-advice') %></a></div>
+             <% } %>
          </div>
       </div>
     </div>
@@ -26,7 +31,12 @@
         </div>
         <div class="panel-body">
           <div><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/workspaces/list"><%= TranslationService.t('workspaces-dashboard')%></a></div>
-          <div><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/availableServicesList"><%= TranslationService.t('workspace-services-list') %></a></div>
+            <% if (TranslationService.t('workspace-services-list-link')) {
+            %>
+                <div><a href="<%= TranslationService.t('workspace-services-list-link') %>"><%= TranslationService.t('workspace-services-list') %></a></div>
+            <%  } else { %>
+                <div><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/availableServicesList"><%= TranslationService.t('workspace-services-list') %></a></div>
+            <% } %>
         </div>
       </div>
     </div>
