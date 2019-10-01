@@ -79,7 +79,7 @@ module.exports.routes = {
     controller: 'BrandingController',
     action: 'renderCss'
   },
-  '/:branding/:portal/images/logo.png': {
+  '/:branding/:portal/images/logo': {
     controller: 'BrandingController',
     action: 'renderImage'
   },
@@ -104,13 +104,6 @@ module.exports.routes = {
     controller: 'UserController',
     action: 'profile',
     skipAssets: true
-  },
-  '/:branding/:portal/admin': {
-    controller: 'RenderViewController',
-    action: 'render',
-    locals:{
-      'view': 'admin/home'
-    }
   },
   '/:branding/:portal/availableServicesList': {
     controller: 'RenderViewController',

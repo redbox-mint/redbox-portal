@@ -100,9 +100,10 @@ export module Controllers {
 			return WorkspaceTypesService.getOne(brand, type).subscribe(response => {
 				this.blobAdapter.read(response.logo, function (error, file) {
 					if (error) {
-						res.sendFile(sails.config.appPath + "assets/images/logo.png");
+						sails.log.warn("There was an error rending image for workspace controller. Sending back image from default image location...");
+						res.sendFile(sails.config.appPath + `assets/images/${sails.config.static_assets.logoName}`);
 					} else {
-						res.contentType('image/png');
+						res.contentType(`image/${sails.config.static_assets.imageType}`);
 						res.send(new Buffer(file));
 					}
 				});
