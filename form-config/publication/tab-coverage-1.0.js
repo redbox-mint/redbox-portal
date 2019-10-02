@@ -20,6 +20,7 @@ module.exports = [
           compClass: 'TextBlockComponent',
           definition: {
             value: '@dataPublication-temporalcoverage-heading',
+            help: '@dataPublication-temporalcoverage-heading-help',
             type: 'h4'
           }
         },
@@ -97,6 +98,22 @@ module.exports = [
           }
         },
         {
+          class: "Spacer",
+          definition: {
+            width: '0px',
+            height: '80px'
+          }
+        },
+        {
+          class: 'Container',
+          compClass: 'TextBlockComponent',
+          definition: {
+            value: '@dataPublication-spatialcoverage-heading',
+            help: '@dataPublication-spatialcoverage-heading-help',
+            type: 'h4'
+          }
+        },
+        {
           class: 'RepeatableContainer',
           compClass: 'RepeatableVocabComponent',
           definition: {
@@ -127,6 +144,7 @@ module.exports = [
             name: 'geospatial',
             label: '@dataPublication-geospatial',
             help: '@dataPublication-geospatial-help',
+            coordinatesHelp: '@dataPublication-geospatial-coordinates-help',
             tabId: 'coverage',
             mainTabId: 'mainTab',
             disabledExpression: '<%= _.isEmpty(relatedRecordId) %>'

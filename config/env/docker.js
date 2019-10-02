@@ -74,5 +74,10 @@ module.exports = {
       adapter: require('sails-mongo'),
       url: 'mongodb://mongodb:27017/redbox-portal'
     }
+  },
+  services: {
+    email: {
+      disabled: true
+    }
   }
 };

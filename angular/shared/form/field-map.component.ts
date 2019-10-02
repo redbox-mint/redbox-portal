@@ -57,6 +57,7 @@ export class MapField extends FieldBase<any> {
     subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
     detectRetina: true
   });
+  coordinatesHelp?: any;
 
 
   /*
@@ -132,6 +133,7 @@ export class MapField extends FieldBase<any> {
 
     this.layerGeoJSON = options.value;
     this.mainTabId = options['mainTabId'] || null;
+    this.coordinatesHelp =  this.getTranslated(options.coordinatesHelp, undefined);
   }
 
   onMapReady(map: Map) {
@@ -361,9 +363,15 @@ if (typeof aotMode == 'undefined') {
 export class MapComponent extends SimpleComponent {
   field: MapField;
 
+  coordinatesHelpShow: boolean;
+
   ngAfterViewInit() {
     if (!this.field.editMode) {
       this.field.initMap(this.field.map, this.field);
     }
+  }
+
+  public toggleCoordinatesHelp() {
+    this.coordinatesHelpShow = !this.coordinatesHelpShow;
   }
 }

@@ -2,11 +2,12 @@ import controller = require('../core/CoreController.js');
 import skipperGridFs = require('skipper-gridfs');
 import {Model} from "sails";
 import {Sails} from "sails";
-import { Observable } from 'rxjs/Rx';
+import {Observable} from 'rxjs/Rx';
 import 'rxjs/add/operator/toPromise';
 import * as request from "request-promise";
 import * as ejs from 'ejs';
 import * as fs from 'graceful-fs';
+import path = require('path');
 
 
 declare var sails: Sails;
@@ -60,7 +61,7 @@ export module Controllers {
     public renderCss(req, res) {
       BrandingConfig.findOne({
         "name": req.param('branding')
-      }).exec(function(err, theme) {
+      }).exec(function (err, theme) {
         res.set('Content-Type', 'text/css');
         if (theme != null) {
           return res.send(theme['css']);
@@ -115,12 +116,17 @@ export module Controllers {
      * @param res
      */
     public renderImage(req, res) {
-      var fd = req.param("branding") + "/logo.png"; // Branding parameter comes from routes.js
-      this.blobAdapter.read(fd, function(error, file) {
+      sails.log.verbose(`current config for image is:`);
+      sails.log.verbose(JSON.stringify(sails.config.static_assets));
+      var fd = path.join(req.param("branding"), req.param("portal"), 'images', sails.config.static_assets.logoName); // Branding parameter comes from routes.js
+      sails.log.info(`Trying to read file descriptor: ${fd}`);
+      this.blobAdapter.read(fd, function (error, file) {
         if (error) {
-          res.sendFile(sails.config.appPath + "/assets/images/logo.png");
+          sails.log.warn(`There was an error reading ${fd}. Sending back /assets/images/${sails.config.static_assets.logoName}`);
+          res.contentType(`image/${sails.config.static_assets.imageType}`);
+          res.sendFile(sails.config.appPath + `/assets/images/${sails.config.static_assets.logoName}`);
         } else {
-          res.contentType('image/png');
+          res.contentType(`image/${sails.config.static_assets.imageType}`);
           res.send(new Buffer(file));
         }
       });
