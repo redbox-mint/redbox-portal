@@ -44,23 +44,30 @@ export module Services {
 
     public bootstrap = (defBrand) => {
       return super.getObservable(WorkspaceType.destroy({branding: defBrand.id})).flatMap(whatever => {
-
+        const obsArr = [];
         sails.log.debug('WorkspaceTypes::Bootstrap');
         sails.log.debug(sails.config.workspacetype);
-         let workspaceTypes = [];
+        let workspaceTypes = [];
         if (!_.isEmpty(sails.config.workspacetype)) {
-          var wTypes = [];
           sails.log.verbose("Bootstrapping workspace type definitions... ");
           _.forOwn(sails.config.workspacetype, (config, workspaceType) => {
             workspaceTypes.push(workspaceType);
             var obs = this.create(defBrand, config);
-            wTypes.push(obs);
+            obsArr.push(obs);
           });
-          return Observable.zip(...wTypes);
-        } else {
-          sails.log.verbose("Default or no workspaceTypes definition(s).");
-          return Observable.of([]);
         }
+        // check if we have services to bootstrap...
+        if (!_.isEmpty(sails.config.workspacetype_services) && _.isArray(sails.config.workspacetype_services)) {
+          _.each(sails.config.workspacetype_services, (wservice: string) => {
+            obsArr.push(sails.services[wservice]['bootstrap']());
+          });
+        }
+        if (_.isEmpty(obsArr)) {
+          sails.log.verbose("Default or no workspaceTypes definition(s).");
+        } else {
+          return Observable.zip(...obsArr);
+        }
+        return Observable.of(obsArr);
       });
     }
 
