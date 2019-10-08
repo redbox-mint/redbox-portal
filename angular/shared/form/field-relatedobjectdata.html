@@ -17,7 +17,7 @@
               <ng-template #relative><a href="/{{ branding }}/{{ portal }}/{{ column.link.pattern}}">{{ column.link.pattern | stringTemplate:item }}</a></ng-template>
               <ng-template #absolute>
                 <div *ngIf="item[column.property]['label']; else ordinaryLinkBlock">
-                  <a *ngIf="item[column.property]['link']; else disableLinkBlock" target="_blank" rel="noopener noreferrer" href="item[column.property]['link']">
+                  <a *ngIf="item[column.property]['link']; else disableLinkBlock" target="_blank" rel="noopener noreferrer" [href]="sanitizeUrl(item[column.property]['link'])">
                     {{ item[column.property]['label'] }}
                   </a>
                   <ng-template #disableLinkBlock>
