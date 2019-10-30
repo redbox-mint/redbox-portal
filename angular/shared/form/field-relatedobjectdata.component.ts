@@ -25,6 +25,7 @@ import { RecordsService } from './records.service';
 import { Observable } from 'rxjs/Observable';
 import 'rxjs/add/observable/zip';
 import { fromPromise } from 'rxjs/observable/fromPromise';
+import {DomSanitizer} from '@angular/platform-browser';
 
 
 
@@ -133,4 +134,11 @@ if (typeof aotMode == 'undefined') {
 export class RelatedObjectDataComponent extends SimpleComponent {
   field: RelatedObjectDataField;
 
+  constructor(private sanitizer: DomSanitizer) {
+    super();
+  }
+
+  sanitizeUrl(url:string){
+    return this.sanitizer.bypassSecurityTrustUrl(url);
+  }
 }
