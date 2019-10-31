@@ -215,7 +215,7 @@ export class RepeatableContainer extends Container {
       }
     }
     return data;
-  } 
+  }
 }
 
 export class EmbeddableComponent extends SimpleComponent {
@@ -291,7 +291,7 @@ export class RepeatableVocab extends RepeatableContainer {
       </div>
     </div>
     <div *ngFor="let fieldElem of field.fields; let i = index;" class="row">
-      <span class="col-xs-12">
+      <span class="col-xs-12 no-horizontal-padding">
         <rb-vocab [name]="field.name" [field]="fieldElem" [form]="form" [fieldMap]="fieldMap" [isEmbedded]="true" [removeBtnText]="field.removeButtonText" [removeBtnClass]="field.removeButtonClass" [canRemove]="field.fields.length > 1" (onRemoveBtnClick)="removeElem($event[0], $event[1])" [index]="i"></rb-vocab>
       </span>
     </div>
