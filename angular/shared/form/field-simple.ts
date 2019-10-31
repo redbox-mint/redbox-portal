@@ -222,6 +222,7 @@ export class DateTime extends FieldBase<any> {
 
   constructor(options: any, injector: any) {
     super(options, injector);
+    this.updatePlaceholderAsFormat(options['datePickerOpts']);
     this.datePickerOpts = options['datePickerOpts'] || false;
     this.timePickerOpts = options['timePickerOpts'] || false;
     this.hasClearButton = options['hasClearButton'] || false;
@@ -230,6 +231,12 @@ export class DateTime extends FieldBase<any> {
     this.controlType = 'datetime';
     this.value = this.value ? this.parseToDate(this.value) : this.value;
     this.adjustStartRange = !_.isUndefined(options['adjustStartRange']) ? options['adjustStartRange'] : false;
+  }
+
+  updatePlaceholderAsFormat(options: any, fieldName = 'placeholderAsFormat') {
+    if (_.get(options, fieldName, false) && _.get(options, 'format')) {
+      _.set(options, 'placeholder', _.get(options, 'format'));
+    }
   }
 
   formatValue(value: any) {
