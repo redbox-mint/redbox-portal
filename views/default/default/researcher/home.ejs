@@ -16,7 +16,7 @@
            <div><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/dashboard/rdmp"><%= TranslationService.t('edit-dashboard-rdmp')%></a></div>
              <% if (TranslationService.t('get-advice-link')) {
              %>
-                 <div><a href="<%= TranslationService.t('get-advice-link') %>"><%= TranslationService.t('get-advice') %></a></div>
+                 <div><a rel="noopener noreferrer" target="_blank" href="<%= TranslationService.t('get-advice-link') %>"><%= TranslationService.t('get-advice') %></a></div>
              <%  } else { %>
                  <div><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/getAdvice"><%= TranslationService.t('get-advice') %></a></div>
              <% } %>
