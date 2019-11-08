@@ -2282,10 +2282,6 @@ deep-extend@~0.2.5:
   version "0.2.11"
   resolved "https://registry.yarnpkg.com/deep-extend/-/deep-extend-0.2.11.tgz#7a16ba69729132340506170494bc83f7076fe08f"
 
-deep-extend@~0.4.0:
-  version "0.4.2"
-  resolved "https://registry.yarnpkg.com/deep-extend/-/deep-extend-0.4.2.tgz#48b699c27e334bf89f10892be432f6e4c7d34a7f"
-
 deep-is@~0.1.3:
   version "0.1.3"
   resolved "https://registry.yarnpkg.com/deep-is/-/deep-is-0.1.3.tgz#b369d6fb5dbc13eecf524f91b070feedc357cf34"
@@ -3112,9 +3108,10 @@ flaverr@1.1.1:
   dependencies:
     "@sailshq/lodash" "^3.10.2"
 
-flaverr@^1.0.0, flaverr@^1.1.1, flaverr@^1.5.1, flaverr@^1.7.0, flaverr@^1.8.0, flaverr@^1.8.1, flaverr@^1.8.3, flaverr@^1.9.0:
-  version "1.9.2"
-  resolved "https://registry.yarnpkg.com/flaverr/-/flaverr-1.9.2.tgz#a5259c86cd47a4dee5edde06d731c0e77ecc8b94"
+flaverr@^1.0.0, flaverr@^1.1.1, flaverr@^1.10.0, flaverr@^1.5.1, flaverr@^1.7.0, flaverr@^1.8.0, flaverr@^1.8.1, flaverr@^1.8.3, flaverr@^1.9.2:
+  version "1.10.0"
+  resolved "https://registry.yarnpkg.com/flaverr/-/flaverr-1.10.0.tgz#99240b430d0d52a3720efd0e70bef31a04357f9f"
+  integrity sha512-POaguCzNjWKEKsBkks4YGgNv1LVUqTX4MTudca5ArQAxtBrPswQLAW8la4Hbo0EZy9tpU3a9WwsKdAACqZnE/Q==
   dependencies:
     "@sailshq/lodash" "^3.10.2"
 
@@ -3965,11 +3962,13 @@ httpreq@>=0.4.22:
   version "0.4.24"
   resolved "https://registry.yarnpkg.com/httpreq/-/httpreq-0.4.24.tgz#4335ffd82cd969668a39465c929ac61d6393627f"
 
-i18n-2@0.6.3:
-  version "0.6.3"
-  resolved "https://registry.yarnpkg.com/i18n-2/-/i18n-2-0.6.3.tgz#57ac6185e3ea47cffe993cd7a5c14b40df364b39"
+i18n-2@0.7.3:
+  version "0.7.3"
+  resolved "https://registry.yarnpkg.com/i18n-2/-/i18n-2-0.7.3.tgz#c0dfd7793c7ae2c0d6ea00552dc6ee8651154d25"
+  integrity sha512-NiC0dd+VAVGq/hWsK19XCTwfx7Xr0KPtldQ11/9DHY8Ic4++bbgRhjCvRD1C/K09V7UZpwgVhQuzPPom9XVrOQ==
   dependencies:
-    sprintf "^0.1.5"
+    debug "^3.1.0"
+    sprintf-js "^1.1.1"
 
 i18next-node-fs-backend@^2.1.1:
   version "2.1.2"
@@ -4994,7 +4993,7 @@ machine@^13.0.0-11:
     rttc "^9.8.1"
     switchback "^2.0.1"
 
-machine@^15.0.0, machine@^15.2.2:
+machine@^15.0.0, machine@^15.0.0-23, machine@^15.2.2:
   version "15.2.2"
   resolved "https://registry.yarnpkg.com/machine/-/machine-15.2.2.tgz#58e0cc119ffad32b2e70087bb6c23bfb8686452d"
   dependencies:
@@ -5061,6 +5060,15 @@ machinepack-process@^2.0.2:
     machinepack-json "~2.0.0"
     open "0.0.5"
 
+machinepack-process@^4.0.1:
+  version "4.0.1"
+  resolved "https://registry.yarnpkg.com/machinepack-process/-/machinepack-process-4.0.1.tgz#c0e36ed4770854c9e87bb6349517dcd26a1ada6f"
+  integrity sha512-/5dqpWVhNjRC78v4cOKMH2I74u3hbM4pVha0SEh427eddWLSDt41txECZh+HLPPD3h/r35UU0cKszIFxqZYJlA==
+  dependencies:
+    "@sailshq/lodash" "^3.10.2"
+    machine "^15.0.0-23"
+    opn "5.3.0"
+
 machinepack-prompts@0.5.0:
   version "0.5.0"
   resolved "https://registry.yarnpkg.com/machinepack-prompts/-/machinepack-prompts-0.5.0.tgz#051de094c05275bc82673811f1c0ae59732d2531"
@@ -5078,6 +5086,17 @@ machinepack-redis@^1.1.1:
     flaverr "^1.1.1"
     machine "^13.0.0-11"
     redis "2.6.3"
+
+machinepack-redis@^2.0.2:
+  version "2.0.5"
+  resolved "https://registry.yarnpkg.com/machinepack-redis/-/machinepack-redis-2.0.5.tgz#91756475103adf6dee1ffbbc861b23def64258a3"
+  integrity sha512-K+5j93jaeFKKhtGc0VDVaW/42luxbVnN/XueLfXdJhFam+dMm+06iNzVC0xexZwx+MRfnpWiMOT2TncC+Vi07g==
+  dependencies:
+    "@sailshq/lodash" "^3.10.2"
+    async "2.0.1"
+    flaverr "^1.9.2"
+    machine "^15.2.2"
+    redis "2.8.0"
 
 machinepack-strings@~5.0.0:
   version "5.0.0"
@@ -5216,11 +5235,12 @@ meow@^3.1.0, meow@^3.3.0, meow@^3.7.0:
     redent "^1.0.0"
     trim-newlines "^1.0.0"
 
-merge-defaults@0.2.1:
-  version "0.2.1"
-  resolved "https://registry.yarnpkg.com/merge-defaults/-/merge-defaults-0.2.1.tgz#dd42248eb96bb6a51521724321c72ff9583dde80"
+merge-defaults@0.2.2:
+  version "0.2.2"
+  resolved "https://registry.yarnpkg.com/merge-defaults/-/merge-defaults-0.2.2.tgz#68b9da04fef804674a0d63df1c469378c343d506"
+  integrity sha512-rKkxPFgGDZfmen0IN8BKRsGEbFU3PdO0RhR1GjOk+BLJF7+LAIhs5bUG3s26FkbB5bfIn9il25KkntRGdqHQ3A==
   dependencies:
-    lodash "~2.4.1"
+    "@sailshq/lodash" "^3.10.2"
 
 merge-descriptors@1.0.1:
   version "1.0.1"
@@ -5948,6 +5968,13 @@ opn@4.0.2:
     object-assign "^4.0.1"
     pinkie-promise "^2.0.0"
 
+opn@5.3.0:
+  version "5.3.0"
+  resolved "https://registry.yarnpkg.com/opn/-/opn-5.3.0.tgz#64871565c863875f052cfdf53d3e3cb5adb53b1c"
+  integrity sha512-bYJHo/LOmoTd+pfiYhfZDnf9zekVJrY+cnS2a5F2x+w5ppvTqObojTP7WiFG+kVZs9Inw+qQ/lw7TroWwhdd2g==
+  dependencies:
+    is-wsl "^1.1.0"
+
 opn@latest:
   version "5.4.0"
   resolved "https://registry.yarnpkg.com/opn/-/opn-5.4.0.tgz#cb545e7aab78562beb11aa3bfabc7042e1761035"
@@ -6628,15 +6655,6 @@ rc@1.0.1:
     minimist "~0.0.7"
     strip-json-comments "0.1.x"
 
-rc@1.2.2:
-  version "1.2.2"
-  resolved "https://registry.yarnpkg.com/rc/-/rc-1.2.2.tgz#d8ce9cb57e8d64d9c7badd9876c7c34cbe3c7077"
-  dependencies:
-    deep-extend "~0.4.0"
-    ini "~1.3.0"
-    minimist "^1.2.0"
-    strip-json-comments "~2.0.1"
-
 rc@1.2.8, rc@^1.2.7:
   version "1.2.8"
   resolved "https://registry.yarnpkg.com/rc/-/rc-1.2.8.tgz#cd924bf5200a075b83c188cd6b9e211b7fc0d3ed"
@@ -6775,7 +6793,7 @@ redis-commands@^1.2.0:
   version "1.4.0"
   resolved "https://registry.yarnpkg.com/redis-commands/-/redis-commands-1.4.0.tgz#52f9cf99153efcce56a8f86af986bd04e988602f"
 
-redis-parser@^2.0.0:
+redis-parser@^2.0.0, redis-parser@^2.6.0:
   version "2.6.0"
   resolved "https://registry.yarnpkg.com/redis-parser/-/redis-parser-2.6.0.tgz#52ed09dacac108f1a631c07e9b69941e7a19504b"
 
@@ -6786,6 +6804,15 @@ redis@2.6.3:
     double-ended-queue "^2.1.0-0"
     redis-commands "^1.2.0"
     redis-parser "^2.0.0"
+
+redis@2.8.0:
+  version "2.8.0"
+  resolved "https://registry.yarnpkg.com/redis/-/redis-2.8.0.tgz#202288e3f58c49f6079d97af7a10e1303ae14b02"
+  integrity sha512-M1OkonEQwtRmZv4tEWF2VgpG0JWJ8Fv1PhlgT5+B+uNq2cA3Rt1Yt/ryoR+vQNOQcIEgdCdfH0jr3bDpihAw1A==
+  dependencies:
+    double-ended-queue "^2.1.0-0"
+    redis-commands "^1.2.0"
+    redis-parser "^2.6.0"
 
 redux@4.0.1:
   version "4.0.1"
@@ -7231,20 +7258,22 @@ sails-mongo@^1.0.0:
     mongodb "2.2.25"
     qs "6.4.0"
 
-sails-stringfile@0.3.2:
-  version "0.3.2"
-  resolved "https://registry.yarnpkg.com/sails-stringfile/-/sails-stringfile-0.3.2.tgz#da4e3666a8f9cfd3e1f346bfb8116a303e1c30bd"
+sails-stringfile@^0.3.3:
+  version "0.3.3"
+  resolved "https://registry.yarnpkg.com/sails-stringfile/-/sails-stringfile-0.3.3.tgz#6264107745493f4c062e5e53b43c52b52f1b343c"
+  integrity sha512-m61lSEURCpKf2T7Df9lkG2eWBPGFKrhJZi8OF3TMQe7HGWyUpYdwKhV6rFsky1gY6g4ecvTZTAqwHXOE1AtaCA==
   dependencies:
+    "@sailshq/lodash" "^3.10.2"
     colors "*"
-    lodash "~2.4.1"
 
 sails.io.js-dist@^1.0.0:
   version "1.2.1"
   resolved "https://registry.yarnpkg.com/sails.io.js-dist/-/sails.io.js-dist-1.2.1.tgz#37b6cee741c45c9b7fa812108fb061e5334c248f"
 
 sails@^1.0.2:
-  version "1.1.0"
-  resolved "https://registry.yarnpkg.com/sails/-/sails-1.1.0.tgz#0bac028a17e386724b5a078d71812de591632168"
+  version "1.2.3"
+  resolved "https://registry.yarnpkg.com/sails/-/sails-1.2.3.tgz#222718c112e078f806c2f886aeeb082d1f6e0511"
+  integrity sha512-S40uoH/DzGDmm40OJL/TNLONTPxQcuzBEuceuflNXlGLl07POc8z15Bt8cnsfh7Cr6zbXBTQhIYl3ioZNJEisA==
   dependencies:
     "@sailshq/lodash" "^3.10.2"
     async "2.5.0"
@@ -7261,15 +7290,15 @@ sails@^1.0.2:
     ejs "2.5.7"
     express "4.16.2"
     express-session "1.15.6"
-    flaverr "^1.9.0"
+    flaverr "^1.10.0"
     glob "7.1.2"
-    i18n-2 "0.6.3"
+    i18n-2 "0.7.3"
     include-all "^4.0.0"
     machine "^15.2.2"
     machine-as-action "^10.3.0-0"
-    machinepack-process "^2.0.2"
-    machinepack-redis "^1.1.1"
-    merge-defaults "0.2.1"
+    machinepack-process "^4.0.1"
+    machinepack-redis "^2.0.2"
+    merge-defaults "0.2.2"
     merge-dictionaries "1.0.0"
     minimist "0.0.10"
     parley "^3.3.4"
@@ -7277,16 +7306,16 @@ sails@^1.0.2:
     path-to-regexp "1.5.3"
     pluralize "1.2.1"
     prompt "0.2.14"
-    rc "1.2.2"
+    rc "1.2.8"
     router "1.3.2"
     rttc "^10.0.0-0"
     sails-generate "^1.16.0-0"
-    sails-stringfile "0.3.2"
+    sails-stringfile "^0.3.3"
     semver "4.3.6"
     serve-favicon "2.4.5"
     serve-static "1.13.1"
     skipper "^0.9.0-0"
-    sort-route-addresses "^0.0.1"
+    sort-route-addresses "^0.0.3"
     uid-safe "2.1.5"
     vary "1.1.2"
     whelk "^6.0.1"
@@ -7340,9 +7369,9 @@ scss-tokenizer@^0.2.3:
     js-base64 "^2.1.8"
     source-map "^0.4.2"
 
-"semver@2 || 3 || 4 || 5", semver@5.6.0, semver@^5.1.0, semver@^5.3.0, semver@^5.4.1, semver@^5.5.0, semver@^5.6.0:
-  version "5.6.0"
-  resolved "https://registry.yarnpkg.com/semver/-/semver-5.6.0.tgz#7e74256fbaa49c75aa7c7a205cc22799cac80004"
+"semver@2 || 3 || 4 || 5", semver@^5.1.0, semver@^5.3.0, semver@^5.4.1, semver@^5.5.0, semver@^5.6.0, semver@^5.7.0:
+  version "5.7.0"
+  resolved "https://registry.yarnpkg.com/semver/-/semver-5.7.0.tgz#790a7cf6fea5459bac96110b29b60412dc8ff96b"
 
 semver@4.3.6:
   version "4.3.6"
@@ -7352,9 +7381,9 @@ semver@5.4.1:
   version "5.4.1"
   resolved "https://registry.yarnpkg.com/semver/-/semver-5.4.1.tgz#e059c09d8571f0540823733433505d3a2f00b18e"
 
-semver@^5.7.0:
-  version "5.7.0"
-  resolved "https://registry.yarnpkg.com/semver/-/semver-5.7.0.tgz#790a7cf6fea5459bac96110b29b60412dc8ff96b"
+semver@5.6.0:
+  version "5.6.0"
+  resolved "https://registry.yarnpkg.com/semver/-/semver-5.6.0.tgz#7e74256fbaa49c75aa7c7a205cc22799cac80004"
 
 semver@~5.3.0:
   version "5.3.0"
@@ -7608,11 +7637,12 @@ socket.io@2.0.3:
     socket.io-client "~2.0.2"
     socket.io-parser "~3.1.1"
 
-sort-route-addresses@^0.0.1:
-  version "0.0.1"
-  resolved "https://registry.yarnpkg.com/sort-route-addresses/-/sort-route-addresses-0.0.1.tgz#23a87d283113b12ee1fedb4cf43af212bb56dabb"
+sort-route-addresses@^0.0.3:
+  version "0.0.3"
+  resolved "https://registry.yarnpkg.com/sort-route-addresses/-/sort-route-addresses-0.0.3.tgz#6e821f5bb8e7e195f5713f82b8b24674d004ea97"
+  integrity sha512-FK9GJty+MN4X5ml665lcgJe5y0zjF2wgnNVWS1yVnPFuCODCtMJx8B1rFN5NRwDaCbDGjc45OKkusqrx2GFL4g==
   dependencies:
-    lodash "^3.10.1"
+    "@sailshq/lodash" "^3.10.2"
 
 sorted-array-functions@^1.0.0:
   version "1.2.0"
@@ -7718,13 +7748,14 @@ split@0.3:
   dependencies:
     through "2"
 
+sprintf-js@^1.1.1:
+  version "1.1.2"
+  resolved "https://registry.yarnpkg.com/sprintf-js/-/sprintf-js-1.1.2.tgz#da1765262bf8c0f571749f2ad6c26300207ae673"
+  integrity sha512-VE0SOVEHCk7Qc8ulkWw3ntAzXuqf7S2lvwQaDLRnUeIEaKNQJzV6BwmLKhOqT61aGhfUMrXeaBk+oDGCzvhcug==
+
 sprintf-js@~1.0.2:
   version "1.0.3"
   resolved "https://registry.yarnpkg.com/sprintf-js/-/sprintf-js-1.0.3.tgz#04e6926f662895354f3dd015203633b857297e2c"
-
-sprintf@^0.1.5:
-  version "0.1.5"
-  resolved "https://registry.yarnpkg.com/sprintf/-/sprintf-0.1.5.tgz#8f83e39a9317c1a502cb7db8050e51c679f6edcf"
 
 srcset@^1.0.0:
   version "1.0.0"
