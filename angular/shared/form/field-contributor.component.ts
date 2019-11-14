@@ -39,6 +39,7 @@ export class ContributorField extends FieldBase<any> {
   emailColHdr: string;
   roleColHdr: string;
   orcidColHdr: string;
+  titleColHdr: string;
   showHeader: boolean;
   showRole: boolean;
   roles: string[];
@@ -60,6 +61,7 @@ export class ContributorField extends FieldBase<any> {
   splitNames: boolean;
   familyNameHdr: string;
   givenNameHdr: string;
+  showTitle: boolean;
   // Frankenstein end
   component: any;
   findRelationship: any;
@@ -78,7 +80,8 @@ export class ContributorField extends FieldBase<any> {
     this.emailColHdr = options['emailColHdr'] ? this.getTranslated(options['emailColHdr'], options['emailColHdr']) : 'Email Address';
     this.roleColHdr = options['roleColHdr'] ? this.getTranslated(options['roleColHdr'], options['roleColHdr']) : 'Project Role';
     this.orcidColHdr = options['orcidColHdr'] ? this.getTranslated(options['orcidColHdr'], options['orcidColHdr']) : 'ORCID';
-
+    this.titleColHdr = options['titleColHdr'] ? this.getTranslated(options['titleColHdr'], options['titleColHdr']) : 'Title';
+    this.showTitle = options['showTitle'] || false;
     this.showHeader = options['showHeader'] || true;
     this.showRole = options['showRole'] || true;
     this.baseMarginTop = options['baseMarginTop'] || '';
@@ -170,6 +173,7 @@ export class ContributorField extends FieldBase<any> {
       this.formModel.addControl('username', new FormControl(this.value.username));
       this.formModel.addControl('role', new FormControl(this.value.role));
       this.formModel.addControl('orcid', new FormControl(this.value.orcid));
+      this.formModel.addControl('honorific', new FormControl(this.value.honorific));
       if (this.value) {
         this.setValue(this.value);
       }
@@ -178,7 +182,8 @@ export class ContributorField extends FieldBase<any> {
                                    email: new FormControl(this.value.email || null),
                                    role: new FormControl(this.value.role || null),
                                    username: new FormControl(this.value.username || ''),
-                                   orcid: new FormControl(this.value.orcid || '')
+                                   orcid: new FormControl(this.value.orcid || ''),
+                                   honorofic: new FormControl(this.value.honorofic || '')
                                  });
       if (this.splitNames) {
         this.formModel.addControl('family_name', new FormControl(this.value.family_name));
