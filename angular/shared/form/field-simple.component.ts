@@ -228,8 +228,8 @@ export class DropdownFieldComponent extends SelectionComponent {
           <br/>
         </span>
      </fieldset>
-     <div class="text-danger" *ngIf="getFormControl().hasError('required') && getFormControl().touched && !field.validationMessages?.required">{{field.label}} is required</div>
-     <div class="text-danger" *ngIf="getFormControl().hasError('required') && getFormControl().touched && field.validationMessages?.required">{{field.validationMessages.required}}</div>
+     <div class="text-danger" *ngIf="hasRequiredError() && !field.validationMessages?.required">{{field.label}} is required</div>
+     <div class="text-danger" *ngIf="hasRequiredError() && field.validationMessages?.required">{{field.validationMessages.required}}</div>
   </div>
   <div *ngIf="!field.editMode" class="key-value-pair">
     <ng-container *ngIf="isRadio()">
@@ -253,7 +253,7 @@ export class SelectionFieldComponent extends SelectionComponent {
   static clName = 'SelectionFieldComponent';
 
   isValArray() {
-    return _.isArray(this.field.value);
+    return _.isArray(this.field.value) || this.field.controlType == 'checkbox';
   }
 
   isRadio() {

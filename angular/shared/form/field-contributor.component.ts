@@ -183,7 +183,7 @@ export class ContributorField extends FieldBase<any> {
                                    role: new FormControl(this.value.role || null),
                                    username: new FormControl(this.value.username || ''),
                                    orcid: new FormControl(this.value.orcid || ''),
-                                   honorofic: new FormControl(this.value.honorofic || '')
+                                   honorific: new FormControl(this.value.honorific || '')
                                  });
       if (this.splitNames) {
         this.formModel.addControl('family_name', new FormControl(this.value.family_name));

@@ -90,7 +90,11 @@ export class SelectionField extends FieldBase<any>  {
       });
       // const fg = new FormArray(fgDef);
       // return fg;
-      return new FormArray(fgDef);
+      if (this.required) {
+        this.validators = Validators.required;
+      }
+      this.formModel = new FormArray(fgDef, this.validators);
+      return this.formModel;
     } else {
       // const model = super.createFormModel();
       // console.log(`Created form model:`);
