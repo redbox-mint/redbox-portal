@@ -188,7 +188,7 @@ export class RepeatableTextfieldComponent extends RepeatableComponent {
 @Component({
   selector: 'text-area',
   template: `
-  <div *ngIf="field.editMode" [formGroup]='form' [ngClass]="getGroupClass()">
+  <div *ngIf="field.editMode && field.visible" [formGroup]='form' [ngClass]="getGroupClass()">
     <label [attr.for]="field.name">
       {{field.label}} {{ getRequiredLabelStr()}}
       <button type="button" class="btn btn-default" *ngIf="field.help" (click)="toggleHelp()" [attr.aria-label]="'help' | translate "><span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span></button>
@@ -211,7 +211,7 @@ export class RepeatableTextfieldComponent extends RepeatableComponent {
       <div class="text-danger" *ngIf="getFormControl().hasError('required') && getFormControl().touched && field.validationMessages?.required">{{field.validationMessages.required}}</div>
     </div>
   </div>
-  <li *ngIf="!field.editMode" class="key-value-pair">
+  <li *ngIf="!field.editMode && field.visible" class="key-value-pair">
     <span class="key" *ngIf="field.label">{{field.label}}</span>
     <span *ngFor="let line of field.lines">
       {{line}}

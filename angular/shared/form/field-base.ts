@@ -385,6 +385,7 @@ export class FieldBase<T> {
   }
 
   public setVisibility(data) {
+    let newVisible = this.visible;
     if (_.isObject(this.visibilityCriteria) && _.get(this.visibilityCriteria, 'type') == 'function') {
       const fn: any = _.get(this, _.get(this.visibilityCriteria, 'action'));
       if (fn) {
@@ -395,11 +396,36 @@ export class FieldBase<T> {
           var objectName = _.get(this.visibilityCriteria, 'action', '').substring(0, _.get(this.visibilityCriteria, 'action', '').indexOf("."));
           boundFunction = fn.bind(this[objectName]);
         }
-        this.visible = boundFunction(data);
+        if (_.get(this.visibilityCriteria, 'passCriteria') == true) {
+          newVisible = boundFunction(data, this.visibilityCriteria) == "true";
+        } else {
+          newVisible = boundFunction(data) == "true";
+        }
       }
     } else {
-      this.visible = _.isEqual(data, this.visibilityCriteria);
+      newVisible = _.isEqual(data, this.visibilityCriteria);
     }
+    const that = this;
+    setTimeout(() => {
+      if (!newVisible) {
+        if (that.visible) {
+          // remove validators
+          if (that.formModel) {
+            that.formModel.clearValidators();
+            that.formModel.updateValueAndValidity();
+          }
+        }
+      } else {
+        if (!that.visible) {
+          // restore validators
+          if (that.formModel) {
+            that.formModel.setValidators(that.validators);
+            that.formModel.updateValueAndValidity();
+          }
+        }
+      }
+      that.visible = newVisible;
+    });
   }
 
   public replaceValWithConfig(val) {

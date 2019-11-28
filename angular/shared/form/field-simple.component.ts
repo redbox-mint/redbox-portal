@@ -166,7 +166,7 @@ export class SelectionComponent extends SimpleComponent {
 @Component({
   selector: 'dropdownfield',
   template: `
-  <div [formGroup]='form' *ngIf="field.editMode" [ngClass]="getGroupClass()">
+  <div [formGroup]='form' *ngIf="field.editMode && field.visible" [ngClass]="getGroupClass()">
      <label [attr.for]="field.name">
       {{field.label}} {{ getRequiredLabelStr()}}
       <button type="button" class="btn btn-default" *ngIf="field.help" (click)="toggleHelp()" [attr.aria-label]="'help' | translate "><span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span></button>
@@ -183,7 +183,7 @@ export class SelectionComponent extends SimpleComponent {
      <div class="text-danger" *ngIf="getFormControl().hasError('required') && getFormControl().touched && !field.validationMessages?.required">{{field.label}} is required</div>
      <div class="text-danger" *ngIf="getFormControl().hasError('required') && getFormControl().touched && field.validationMessages?.required">{{field.validationMessages.required}}</div>
   </div>
-  <div *ngIf="!field.editMode" class="key-value-pair">
+  <div *ngIf="!field.editMode && field.visible" class="key-value-pair">
     <span class="key" *ngIf="field.label">{{field.label}}</span>
     <ng-template [ngIf]="!field.storeValueAndLabel">
     <span class="value">{{getLabel(field.value)}}</span>
