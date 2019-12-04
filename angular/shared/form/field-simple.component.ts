@@ -231,7 +231,7 @@ export class DropdownFieldComponent extends SelectionComponent {
      <div class="text-danger" *ngIf="hasRequiredError() && !field.validationMessages?.required">{{field.label}} is required</div>
      <div class="text-danger" *ngIf="hasRequiredError() && field.validationMessages?.required">{{field.validationMessages.required}}</div>
   </div>
-  <div *ngIf="!field.editMode" class="key-value-pair">
+  <div *ngIf="!field.editMode && field.visible" class="key-value-pair">
     <ng-container *ngIf="isRadio()">
       <span *ngIf="field.label" class="key">{{field.label}}</span>
       <span class="value">{{getLabel(field.value)}}</span>
