@@ -314,7 +314,7 @@ Container components
   </div>
   <div *ngIf="!field.editMode" [ngClass]="field.accContainerClass">
     <div class="panel-group">
-      <a href="#" (click)="expandCollapseAll(); false">Expand/Collapse all</a>
+      <a href="#" class="main-expand-collapse" (click)="expandCollapseAll(); false">Expand/Collapse all</a>
       <div *ngFor="let tab of field.fields" [ngClass]="field.accClass">
         <div class="panel-heading">
           <span class="panel-title tab-header-font">

@@ -121,7 +121,7 @@ export class PDFListComponent extends SimpleComponent implements OnInit {
         this.field.pdfAttachments.sort(function compare(a, b) {
           let before = moment(a['dateUpdated']).isBefore(moment(b['dateUpdated']));
           //We want descending order so let's reverse it
-          return before ? -1 : 1;
+          return before ? 1 : -1;
         });
 
       });
