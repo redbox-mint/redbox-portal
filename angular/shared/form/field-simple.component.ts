@@ -397,7 +397,7 @@ export class ButtonBarContainerComponent extends SimpleComponent {
 @Component({
   selector: 'htmlraw',
   template: `
-  <span *ngIf="field.visible" [innerHtml]="field.value"></span>
+  <span *ngIf="field.visible" [innerHtml]="field.value" [ngClass]="field.cssClasses"></span>
   `,
 })
 export class HtmlRawComponent extends SimpleComponent {
