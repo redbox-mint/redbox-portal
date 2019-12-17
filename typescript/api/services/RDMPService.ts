@@ -22,10 +22,11 @@ import services = require('../core/CoreService.js');
 import { Sails, Model } from "sails";
 
 declare var sails: Sails;
-declare var RecordType: Model;
+declare var RecordType, Counter: Model;
 declare var _this;
 declare var User;
 declare var _;
+declare var TranslationService;
 
 export module Services {
   /**
@@ -37,8 +38,66 @@ export module Services {
   export class RDMPS extends services.Services.Core.Service {
 
     protected _exportedMethods: any = [
-      'assignPermissions'
+      'assignPermissions',
+      'processRecordCounters'
     ];
+
+    /**
+     * This is a trigger service method to bump all configured increment counters.
+     *
+     *
+     * @author <a target='_' href='https://github.com/shilob'>Shilo Banihit</a>
+     * @param  oid
+     * @param  record
+     * @param  options
+     *  expects:
+     *  {
+     *    "counters": [
+     *       {
+     *        "field_name": "<name of the field to increment in the record>"
+     *        "strategy": "<strategy of the increment>",
+     *                      possible values:
+     *                      - "field": increase the previous value by one
+     *                      - "global": increase the previous value of the global counter document identified by the record's brandingId and field_name
+     *         "prefix": "<the language key entry to prefix the value>"
+     *       }
+     *    ]
+     *  }
+     * @param  user
+     * @return
+     */
+    public processRecordCounters(oid, record, options, user) {
+      const brandId = record.metaMetadata.brandId;
+      const obs = [];
+      // get the counters
+      _.each(options.counters, (counter:any) => {
+        if (counter.strategy == "global") {
+          obs.push(this.getObservable(Counter.findOrCreate({name: counter.field_name, branding: brandId}, {name: counter.field_name, branding: brandId, value: 0})));
+        } else if (counter.strategy == "field") {
+          const newVal = _.isUndefined(record.metadata[counter.field_name]) || _.isEmpty(record.metadata[counter.field_name]) ? 0 : record.metadata[counter.field_name]++;
+          const recVal = `${TranslationService.t(counter.prefix)}${newVal}`;
+          _.set(record.metadata, counter.field_name, recVal);
+        }
+      });
+      if (_.isEmpty(obs)) {
+        return Observable.of(record);
+      } else {
+        return Observable.zip(...obs)
+        .flatMap(counterVals => {
+          const updateObs = [];
+          _.each(counterVals, (counterVal, idx) => {
+            let newVal = counterVal[0].value + 1;
+            let recVal = `${TranslationService.t(options.counters[idx].prefix)}${newVal}`;
+            _.set(record.metadata, counterVal[0].name, recVal);
+            updateObs.push(this.getObservable(Counter.updateOne({id: counterVal[0].id}, {value: newVal})));
+          });
+          return Observable.zip(...updateObs);
+        })
+        .flatMap(updateVals => {
+          return Observable.of(record);
+        });
+      }
+    }
 
     protected addEmailToList(contributor, emailProperty, emailList) {
       let editContributorEmailAddress = _.get(contributor, emailProperty, null);
