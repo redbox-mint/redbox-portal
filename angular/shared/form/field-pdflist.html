@@ -6,7 +6,7 @@
 
 
 <div class="btn-group">
-  <a type="button" [attr.href]="getDownloadUrl(field.latestPdf)+'&fileName=rdmp.pdf'" target="_blank" class="btn btn-danger"><i class="fa fa-file-pdf-o">&nbsp;</i> Download a PDF of this plan</a>
+  <a type="button" [attr.href]="getDownloadUrl(field.latestPdf, true)" target="_blank" class="btn btn-danger"><i class="fa fa-file-pdf-o">&nbsp;</i> Download a PDF of this plan</a>
   <button type="button" class="btn btn-danger dropdown-toggle" data-toggle="dropdown">
     <span class="caret"></span>
     <span class="sr-only">Toggle Dropdown</span>
@@ -25,13 +25,14 @@
         <table class="table">
           <thead>
               <tr>
-                  <th>Date created</th><th>Download</th>
+                  <th *ngIf="field.showVersionColumn">Version</th><th>Date created</th><th>Download</th>
               </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let item of field.pdfAttachments">
+            <tr *ngFor="let item of field.pdfAttachments; index as i;">
+              <td *ngIf="field.showVersionColumn"><span [innerHtml]="field.getVersionLabel(attachment, i)"></span></td>
               <td>{{ item.dateUpdated }}</td>
-              <td><a [attr.href]="getDownloadUrl(item)" target="_blank"><i class="fa fa-file-pdf-o"></i> Download</a></td>
+              <td><a [attr.href]="getDownloadUrl(item, field.useVersionLabelForFileName, i)" target="_blank"><i class="fa fa-file-pdf-o"></i> Download</a></td>
             </tr>
           </tbody>
         </table>

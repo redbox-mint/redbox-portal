@@ -74,7 +74,11 @@ export module Services {
         if (counter.strategy == "global") {
           obs.push(this.getObservable(Counter.findOrCreate({name: counter.field_name, branding: brandId}, {name: counter.field_name, branding: brandId, value: 0})));
         } else if (counter.strategy == "field") {
-          const newVal = _.isUndefined(record.metadata[counter.field_name]) || _.isEmpty(record.metadata[counter.field_name]) ? 0 : record.metadata[counter.field_name]++;
+          let srcVal = record.metadata[counter.field_name];
+          if (!_.isEmpty(counter.source_field)) {
+            srcVal = record.metadata[counter.source_field];
+          }
+          const newVal = _.isUndefined(srcVal]) || _.isEmpty(srcVal) ? 1 : _.toNumber(srcVal)+1;
           const recVal = `${TranslationService.t(counter.prefix)}${newVal}`;
           _.set(record.metadata, counter.field_name, recVal);
         }

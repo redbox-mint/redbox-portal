@@ -48,6 +48,11 @@ export class PDFListField extends FieldBase<any> {
   latestPdf: object;
   startsWith:string;
   showHistoryTable:boolean = false;
+  showVersionColumn:boolean = false;
+  versionColumnValueField:string = "";
+  versionColumnLabelKey: string = "";
+  useVersionLabelForFileName:boolean = false;
+
 
   constructor(options: any, injector: any) {
     super(options, injector);
@@ -59,9 +64,17 @@ export class PDFListField extends FieldBase<any> {
     var relatedObjects = this.relatedObjects;
     this.recordsService = this.getFromInjector(RecordsService);
     this.pdfAttachments = [];
+    this.showVersionColumn = _.isUndefined(options['showVersionColumn']) ? this.showVersionColumn : options['showVersionColumn'];
+    this.useVersionLabelForFileName = _.isUndefined(options['useVersionLabelForFileName']) ? this.showVersionColumn : options['useVersionLabelForFileName'];
+    this.versionColumnValueField = options['versionColumnValueField'] || this.versionColumnValueField;
+    this.versionColumnLabelKey = options['versionColumnLabelKey'] || this.versionColumnLabelKey;
   }
 
-
+  getVersionLabel(attachment, index) {
+    // version will be simply numeric, descending...
+    const version = _.toNumber(this.fieldMap[this.versionColumnValueField].field.value) - index;
+    return `${this.getTranslated(this.versionColumnLabelKey, "")}${version}`;
+  }
 
   createFormModel(valueElem: any = undefined): any {
     if (valueElem) {
@@ -129,8 +142,17 @@ export class PDFListComponent extends SimpleComponent implements OnInit {
     }
   }
 
-  public getDownloadUrl(attachment) {
+  public getDownloadUrl(attachment, hasFileName:boolean=false, index:number=0) {
     const oid = this.fieldMap._rootComp.oid;
-    return  `${this.field.recordsService.getBrandingAndPortalUrl}/record/${oid}/datastream?datastreamId=${attachment.label}`
+    const url = `${this.field.recordsService.getBrandingAndPortalUrl}/record/${oid}/datastream?datastreamId=${attachment.label}`
+    if (hasFileName) {
+      if (this.field.useVersionLabelForFileName) {
+        return `${url}&fileName=rdmp-${this.field.getVersionLabel(attachment, index)}.pdf`;
+      } else {
+        return `${url}&fileName=rdmp.pdf`;
+      }
+    } else {
+      return url;
+    }
   }
 }
