@@ -78,7 +78,7 @@ export module Services {
           if (!_.isEmpty(counter.source_field)) {
             srcVal = record.metadata[counter.source_field];
           }
-          const newVal = _.isUndefined(srcVal]) || _.isEmpty(srcVal) ? 1 : _.toNumber(srcVal)+1;
+          const newVal = _.isUndefined(srcVal) || _.isEmpty(srcVal) ? 1 : _.toNumber(srcVal)+1;
           const recVal = `${TranslationService.t(counter.prefix)}${newVal}`;
           _.set(record.metadata, counter.field_name, recVal);
         }
