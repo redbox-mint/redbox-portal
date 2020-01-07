@@ -737,11 +737,13 @@ export module Controllers {
       const metadata = currentRec.metadata;
       const metaMetadata = currentRec.metaMetadata;
       _.forEach(fields, (field:any) => {
-        if (_.has(metaMetadata, field.definition.name)) {
-          field.definition.value = metaMetadata[field.definition.name];
-        }
-        if (_.has(metadata, field.definition.name)) {
-          field.definition.value = metadata[field.definition.name];
+        if (!_.isEmpty(field.definition.name) && !_.isUndefined(field.definition.name)) {
+          if (_.has(metaMetadata, field.definition.name)) {
+            field.definition.value = metaMetadata[field.definition.name];
+          } else
+          if (_.has(metadata, field.definition.name)) {
+            field.definition.value = metadata[field.definition.name];
+          }
         }
         this.replaceCustomFields(req, res, field, metadata);
         const val = field.definition.value;

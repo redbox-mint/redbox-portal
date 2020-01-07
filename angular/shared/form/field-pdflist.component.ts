@@ -71,8 +71,13 @@ export class PDFListField extends FieldBase<any> {
   }
 
   getVersionLabel(attachment, index) {
-    // version will be simply numeric, descending...
-    const version = _.toNumber(this.fieldMap[this.versionColumnValueField].field.value) - index;
+    const versionValue = this.fieldMap[this.versionColumnValueField].field.value;
+    let version = null;
+    if (_.isArray(versionValue)) {
+      version = versionValue[versionValue.length - (index+1)];
+    } else {
+      version = _.toNumber(versionValue) - index;
+    }
     return `${this.getTranslated(this.versionColumnLabelKey, "")}${version}`;
   }
 

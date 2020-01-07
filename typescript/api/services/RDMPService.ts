@@ -81,14 +81,7 @@ export module Services {
             srcVal = record.metadata[counter.source_field];
           }
           let newVal = _.isUndefined(srcVal) || _.isEmpty(srcVal) ? 1 : _.toNumber(srcVal)+1;
-          if (!_.isEmpty(counter.template)) {
-            const imports = _.extend({moment: moment, numeral: numeral, newVal: newVal}, counter);
-            const templateData = {imports: imports};
-            const template = _.template(counter.template, templateData);
-            newVal = template();
-          }
-          const recVal = `${TranslationService.t(counter.prefix)}${newVal}`;
-          _.set(record.metadata, counter.field_name, recVal);
+          this.incrementCounter(record, counter, newVal);
         }
       });
       if (_.isEmpty(obs)) {
@@ -98,15 +91,9 @@ export module Services {
         .flatMap(counterVals => {
           const updateObs = [];
           _.each(counterVals, (counterVal, idx) => {
+            let counter = options.counters[idx];
             let newVal = counterVal[0].value + 1;
-            if (!_.isEmpty(options.counters[idx].template)) {
-              const imports = _.extend({moment: moment, numeral: numeral, newVal: newVal}, options.counters[idx]);
-              const templateData = {imports: imports};
-              const template = _.template(options.counters[idx].template, templateData);
-              newVal = template();
-            }
-            let recVal = `${TranslationService.t(options.counters[idx].prefix)}${newVal}`;
-            _.set(record.metadata, counterVal[0].name, recVal);
+            this.incrementCounter(record, counter, newVal);
             updateObs.push(this.getObservable(Counter.updateOne({id: counterVal[0].id}, {value: newVal})));
           });
           return Observable.zip(...updateObs);
@@ -114,6 +101,22 @@ export module Services {
         .flatMap(updateVals => {
           return Observable.of(record);
         });
+      }
+    }
+
+    private incrementCounter(record:any, counter:any, newVal:any) {
+      if (!_.isEmpty(counter.template)) {
+        const imports = _.extend({moment: moment, numeral: numeral, newVal: newVal}, counter);
+        const templateData = {imports: imports};
+        const template = _.template(counter.template, templateData);
+        newVal = template();
+      }
+      const recVal = `${TranslationService.t(counter.prefix)}${newVal}`;
+      _.set(record.metadata, counter.field_name, recVal);
+      if (!_.isEmpty(counter.add_value_to_array)) {
+        const arrayVal = _.get(record, counter.add_value_to_array, []);
+        arrayVal.push(recVal);
+        _.set(record, counter.add_value_to_array, arrayVal);
       }
     }
 

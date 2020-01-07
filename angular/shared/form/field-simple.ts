@@ -463,6 +463,8 @@ export class HtmlRaw extends NotInFormField {
 
   public getGroup(group: any, fieldMap: any) : any {
     super.getGroup(group, fieldMap);
-    this.value = this.replaceValWithConfig(this.value);
+    if (_.isString(this.value)) {
+      this.value = this.replaceValWithConfig(this.value);
+    }
   }
 }
