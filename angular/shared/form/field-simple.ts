@@ -448,6 +448,18 @@ export class Toggle extends FieldBase<boolean> {
 }
 
 export class HtmlRaw extends NotInFormField {
+  template: string;
+
+  constructor(options: any, injector: any) {
+    super(options, injector);
+    this.template = options['template'];
+    if (!_.isEmpty(this.template)) {
+      const imports = _.extend({moment: moment}, this);
+      const templateData = {imports: imports};
+      const template = _.template(this.template, templateData);
+      this.value = template();
+    }
+  }
 
   public getGroup(group: any, fieldMap: any) : any {
     super.getGroup(group, fieldMap);

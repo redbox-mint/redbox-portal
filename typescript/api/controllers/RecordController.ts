@@ -352,7 +352,7 @@ export module Controllers {
                   if (_.isEmpty(form)) {
                     return Observable.throw(new Error(`Error, getting form ${formName} for OID: ${oid}`));
                   }
-                  let mergedForm = this.mergeFields(req, res, form.fields, currentRec.metaMetadata.type, currentRec.metadata).then(fields => {
+                  let mergedForm = this.mergeFields(req, res, form.fields, currentRec.metaMetadata.type, currentRec).then(fields => {
                     form.fields = fields;
 
                     return form;
@@ -371,7 +371,7 @@ export module Controllers {
                   if (_.isEmpty(form)) {
                     return Observable.throw(new Error(`Error, getting form ${formName} for OID: ${oid}`));
                   }
-                  return this.mergeFields(req, res, form.fields, currentRec.metaMetadata.type, currentRec.metadata).then(fields => {
+                  return this.mergeFields(req, res, form.fields, currentRec.metaMetadata.type, currentRec).then(fields => {
                     form.fields = fields;
 
                     return form;
@@ -408,6 +408,8 @@ export module Controllers {
       record.authorization = { view: [req.user.username], edit: [req.user.username] };
       record.metaMetadata.brandId = brand.id;
       record.metaMetadata.createdBy = req.user.username;
+      record.metaMetadata.createdOn = moment().format();
+      record.metaMetadata.lastSaveDate = record.metaMetadata.createdOn;
       //TODO: This is currently hardcoded
       record.metaMetadata.type = recType;
       record.metadata = metadata;
@@ -722,17 +724,22 @@ export module Controllers {
         });
     }
 
-    protected async mergeFields(req, res, fields, type, metadata) {
+    protected async mergeFields(req, res, fields, type, currentRec) {
 
       let recordType = await RecordTypesService.get(BrandingService.getBrand(req.session.branding), type).toPromise();
       let workflowSteps = await WorkflowStepsService.getAllForRecordType(recordType).toPromise();
-      this.mergeFieldsSync(req, res, fields, metadata, workflowSteps);
+      this.mergeFieldsSync(req, res, fields, currentRec, workflowSteps);
       return fields;
     }
 
-    protected mergeFieldsSync(req, res, fields, metadata, workflowSteps) {
+    protected mergeFieldsSync(req, res, fields, currentRec, workflowSteps) {
       const fieldsToDelete = [];
-      _.forEach(fields, field => {
+      const metadata = currentRec.metadata;
+      const metaMetadata = currentRec.metaMetadata;
+      _.forEach(fields, (field:any) => {
+        if (_.has(metaMetadata, field.definition.name)) {
+          field.definition.value = metaMetadata[field.definition.name];
+        }
         if (_.has(metadata, field.definition.name)) {
           field.definition.value = metadata[field.definition.name];
         }
@@ -777,7 +784,7 @@ export module Controllers {
           });
         } else
           if (field.definition.fields) {
-            this.mergeFieldsSync(req, res, field.definition.fields, metadata, workflowSteps);
+            this.mergeFieldsSync(req, res, field.definition.fields, currentRec, workflowSteps);
           }
       });
       _.remove(fields, (f) => { return _.includes(fieldsToDelete, f); });

@@ -20,6 +20,7 @@
 import {Injectable} from '@angular/core';
 import * as _ from "lodash";
 import moment from 'moment-es6';
+import * as numeral from 'numeral';
 /**
  * Utility service...
  *
@@ -200,7 +201,7 @@ export class UtilityService {
   }
 
   public runTemplate(data: any, config: any) {
-    const imports = _.extend({data: data, config: config, moment: moment}, this);
+    const imports = _.extend({data: data, config: config, moment: moment, numeral:numeral}, this);
     const templateData = {imports: imports};
     const template = _.template(config.template, templateData);
     return template();

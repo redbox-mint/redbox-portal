@@ -20,6 +20,8 @@
 import { Observable } from 'rxjs/Rx';
 import services = require('../core/CoreService.js');
 import { Sails, Model } from "sails";
+import moment from 'moment-es6';
+import * as numeral from 'numeral';
 
 declare var sails: Sails;
 declare var RecordType, Counter: Model;
@@ -78,7 +80,13 @@ export module Services {
           if (!_.isEmpty(counter.source_field)) {
             srcVal = record.metadata[counter.source_field];
           }
-          const newVal = _.isUndefined(srcVal) || _.isEmpty(srcVal) ? 1 : _.toNumber(srcVal)+1;
+          let newVal = _.isUndefined(srcVal) || _.isEmpty(srcVal) ? 1 : _.toNumber(srcVal)+1;
+          if (!_.isEmpty(counter.template)) {
+            const imports = _.extend({moment: moment, numeral: numeral, newVal: newVal}, counter);
+            const templateData = {imports: imports};
+            const template = _.template(counter.template, templateData);
+            newVal = template();
+          }
           const recVal = `${TranslationService.t(counter.prefix)}${newVal}`;
           _.set(record.metadata, counter.field_name, recVal);
         }
@@ -91,6 +99,12 @@ export module Services {
           const updateObs = [];
           _.each(counterVals, (counterVal, idx) => {
             let newVal = counterVal[0].value + 1;
+            if (!_.isEmpty(options.counters[idx].template)) {
+              const imports = _.extend({moment: moment, numeral: numeral, newVal: newVal}, options.counters[idx]);
+              const templateData = {imports: imports};
+              const template = _.template(options.counters[idx].template, templateData);
+              newVal = template();
+            }
             let recVal = `${TranslationService.t(options.counters[idx].prefix)}${newVal}`;
             _.set(record.metadata, counterVal[0].name, recVal);
             updateObs.push(this.getObservable(Counter.updateOne({id: counterVal[0].id}, {value: newVal})));

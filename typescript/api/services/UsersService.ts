@@ -279,7 +279,7 @@ export module Services {
         defaultUser[passwordField] = authConfig.local.default.adminPw;
         defaultUser["email"] = authConfig.local.default.email;
         if (authConfig.local.default.token) {
-          defaultUser["token"] = authConfig.local.default.token;
+          defaultUser["token"] = crypto.createHash('sha256').update(authConfig.local.default.token).digest('base64');
         }
         sails.log.verbose("Default user missing, creating...");
         return super.getObservable(User.create(defaultUser))
