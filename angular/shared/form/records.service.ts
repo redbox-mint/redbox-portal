@@ -46,11 +46,11 @@ export class RecordsService extends BaseService {
     super(http, configService);
   }
 
-  getForm(oid: string = null, recordType: string = null, editable: boolean = true) {
+  getForm(oid: string = null, recordType: string = null, editable: boolean = true, formName: string = null) {
     if (_.isEmpty(oid)) {
       oid = null;
     }
-    return this.getFormFieldsMeta(recordType, editable, oid).then((form:any) => {
+    return this.getFormFieldsMeta(recordType, editable, oid, formName).then((form:any) => {
       return this.fcmetaService.getLookupData(form.fieldsMeta).flatMap((fields:any) => {
         form.fieldsMata = fields;
         return Observable.of(form);
@@ -73,18 +73,18 @@ export class RecordsService extends BaseService {
 
   }
 
-  getFormFields(recordType:string, oid: string=null, editable:boolean) {
+  getFormFields(recordType:string, oid: string=null, editable:boolean, formName: string = null) {
     const ts = new Date().getTime();
     console.log("Oid is: " + oid);
-    const url = oid ? `${this.brandingAndPortalUrl}/record/form/auto/${oid}?edit=${editable}&ts=${ts}` : `${this.brandingAndPortalUrl}/record/form/${recordType}?edit=${editable}&ts=${ts}`;
+    const url = oid ? `${this.brandingAndPortalUrl}/record/form/auto/${oid}?edit=${editable}&ts=${ts}&formName=${formName}` : `${this.brandingAndPortalUrl}/record/form/${recordType}?edit=${editable}&ts=${ts}`;
     console.log("URL is: " + url);
     return this.http.get(url, this.options)
       .toPromise()
       .then((res:any) => this.extractData(res));
   }
 
-  getFormFieldsMeta(recordType:string, editable:boolean, oid:string=null) {
-    return this.getFormFields(recordType, oid, editable).then((form:any) => {
+  getFormFieldsMeta(recordType:string, editable:boolean, oid:string=null, formName: string = null) {
+    return this.getFormFields(recordType, oid, editable, formName).then((form:any) => {
       if (form && form.fields) {
         if(!editable){
           // Add an empty element to the end of the form so a screenshot tool can detect the rendered form reliably

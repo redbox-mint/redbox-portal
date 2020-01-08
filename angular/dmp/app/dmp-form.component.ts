@@ -109,6 +109,11 @@ export class DmpFormComponent extends LoadableComponent {
    */
   failedValidationLinks: any[];
 
+  /**
+    The form name to use, by default you don't need to specify this.
+   */
+  formName: string;
+
   finishedRendering:boolean;
 
   @Output() recordCreated: EventEmitter<any> = new EventEmitter<any>();
@@ -148,8 +153,10 @@ export class DmpFormComponent extends LoadableComponent {
         this.oid = elm.nativeElement.getAttribute('oid');
         this.editMode = elm.nativeElement.getAttribute('editMode') == "true";
         this.recordType = elm.nativeElement.getAttribute('recordType');
+        this.needsSave = _.isUndefined(elm.nativeElement.getAttribute('needsSave')) ? false : elm.nativeElement.getAttribute('needsSave') == "true";
+        this.formName = elm.nativeElement.getAttribute('formName') || "";
         console.log(`Loading form with OID: ${this.oid}, on edit mode:${this.editMode}, Record Type: ${this.recordType}`);
-        this.RecordsService.getForm(this.oid, this.recordType, this.editMode).then((obs:any) => {
+        this.RecordsService.getForm(this.oid, this.recordType, this.editMode, this.formName).then((obs:any) => {
           obs.subscribe((form:any) => {
             this.formDef = form;
             if (this.editMode) {
@@ -157,7 +164,6 @@ export class DmpFormComponent extends LoadableComponent {
             } else {
               this.cssClasses = this.formDef.viewCssClasses;
             }
-            this.needsSave = false;
             if (_.isEmpty(this.recordType)) {
               this.recordType = this.formDef.type;
             }

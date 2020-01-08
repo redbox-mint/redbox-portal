@@ -325,7 +325,7 @@ export module Controllers {
       const name = req.param('name');
       const oid = req.param('oid');
       const editMode = req.query.edit == "true";
-
+      const formParam = req.param('formName');
       let obs = null;
       if (_.isEmpty(oid)) {
         obs = FormsService.getForm(brand.id, name, editMode, true).flatMap(form => {
@@ -341,13 +341,14 @@ export module Controllers {
           if (_.isEmpty(currentRec)) {
             return Observable.throw(new Error(`Error, empty metadata for OID: ${oid}`));
           }
+          // allow client to set the form name to use
+          const formName = _.isUndefined(formParam) || _.isEmpty(formParam) ? currentRec.metaMetadata.form : formParam;
           if (editMode) {
             return this.hasEditAccess(brand, req.user, currentRec)
               .flatMap(hasEditAccess => {
                 if (!hasEditAccess) {
                   return Observable.throw(new Error(TranslationService.t('edit-error-no-permissions')));
                 }
-                const formName = currentRec.metaMetadata.form;
                 return FormsService.getFormByName(formName, editMode).flatMap(form => {
                   if (_.isEmpty(form)) {
                     return Observable.throw(new Error(`Error, getting form ${formName} for OID: ${oid}`));
@@ -366,7 +367,6 @@ export module Controllers {
                 if (!hasViewAccess) {
                   return Observable.throw(new Error(TranslationService.t('view-error-no-permissions')));
                 }
-                const formName = currentRec.metaMetadata.form;
                 return FormsService.getFormByName(formName, editMode).flatMap(form => {
                   if (_.isEmpty(form)) {
                     return Observable.throw(new Error(`Error, getting form ${formName} for OID: ${oid}`));
