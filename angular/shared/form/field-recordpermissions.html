@@ -1,0 +1,94 @@
+
+<div *ngIf="field.editMode" class='padding-bottom-10'>
+  
+  <div class="row">
+    <h4>Users with edit access</h4>
+    <table class="table">
+      <thead>
+          <tr>
+             <th>Username</th><th>Name</th><th>Email</th>
+          </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let permission of field.permissions.edit">
+          <td>{{permission.username}}</td><td>{{permission.name}}</td><td>{{permission.email}}</td>
+        </tr>
+        
+      </tbody>
+    </table>
+
+    <h4>Users with view access</h4>
+    <table class="table">
+      <thead>
+          <tr>
+             <th>Username</th><th>Name</th><th>Email</th>
+          </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let permission of field.permissions.view">
+          <td>{{permission.username}}</td><td>{{permission.name}}</td><td>{{permission.email}}</td>
+        </tr>
+        
+      </tbody>
+    </table>
+
+    <h4>Users with pending edit access</h4>
+    <table class="table">
+      <thead>
+          <tr>
+             <th>Email</th>
+          </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let permission of field.permissions.editPending">
+          <td>{{permission}}</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h4>Users with pending view access</h4>
+    <table class="table">
+      <thead>
+          <tr>
+             <th>Email</th>
+          </tr>
+      </thead>
+
+        <tbody>
+          <tr *ngFor="let permission of field.permissions.viewPending">
+            <td>{{permission}}</td>
+          </tr>
+        </tbody>
+        
+    </table>
+
+    <h4>System roles with edit access</h4>
+    <table class="table">
+      <thead>
+          <tr>
+             <th>Role name</th>
+          </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let permission of field.permissions.editRoles">
+          <td>{{permission}}</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h4>System roles with view access</h4>
+    <table class="table">
+      <thead>
+          <tr>
+             <th>Role name</th>
+          </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let permission of field.permissions.viewRoles">
+          <td>{{permission}}</td>
+        </tr>
+        
+      </tbody>
+    </table>
+  </div>
+</div>

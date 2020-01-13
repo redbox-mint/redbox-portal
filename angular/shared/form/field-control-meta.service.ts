@@ -33,7 +33,13 @@ export class FieldControlMetaService extends BaseService {
         // if(typeof this.classes[f.class] != 'undefined'){
         //   console.log(f.class + ' is null');
         // }
-      const inst = new this.classes[f.class].meta(f.definition, this.app['_injector']);
+        //Todo: break this up and return a more meaningful error when the field name doesn't exist  
+      let fieldClass = this.classes[f.class];
+      if(fieldClass === undefined) {
+        console.error("Field class with name: " + f.class + " not found field class list. Check spelling and whether it is declared in the following list.")
+        console.error(this.classes);
+      }
+      const inst = new fieldClass.meta(f.definition, this.app['_injector']);
       inst.utilityService = this.getInjectedService('utilityService');
       inst.appConfig = this.getInjectedService('configService').config;
       // set the component class

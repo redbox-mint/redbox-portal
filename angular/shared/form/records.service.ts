@@ -198,6 +198,12 @@ export class RecordsService extends BaseService {
       .then((res: any) => this.extractData(res));
   }
 
+  getPermissions(oid:string=null) {
+    return this.http.get(`${this.brandingAndPortalUrl}/record/${oid}/permissions`, this.options)
+      .toPromise()
+      .then((res: any) => this.extractData(res));
+  }
+
 
   executeAction(action:string, params:any) {
     return this.http.post(`${this.brandingAndPortalUrl}/action/${action}`, params, this.options)

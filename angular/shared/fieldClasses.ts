@@ -25,8 +25,10 @@ import { ContributorField, ContributorComponent } from './form/field-contributor
 import { WorkflowStepButton, WorkflowStepButtonComponent } from './form/workflow-button.component';
 import { ActionButton, ActionButtonComponent } from './form/action-button.component';
 import { RelatedObjectDataField, RelatedObjectDataComponent } from './form/field-relatedobjectdata.component';
-import { RelatedObjectSelectorComponent, RelatedObjectSelectorField } from './form/field-relatedobjectselector.component';
+import { RecordPermissionsComponent, RecordPermissionsField } from './form/field-recordpermissions.component';
 import { DataLocationComponent, DataLocationField } from './form/field-datalocation.component';
+import { RelatedObjectSelectorComponent, RelatedObjectSelectorField } from './form/field-relatedobjectselector.component';
+
 import { PublishDataLocationSelectorComponent, PublishDataLocationSelectorField } from './form/field-publishdatalocationselector.component'
 import { MapField, MapComponent } from './form/field-map.component';
 import { GenericGroupComponent, RepeatableGroupComponent } from './form/field-group.component';
@@ -59,6 +61,7 @@ export const fieldClasses=  {
   'LinkValueComponent': {'meta': LinkValue, 'comp': LinkValueComponent },
   'SelectionField': {'meta': SelectionField, 'comp': [ SelectionFieldComponent, DropdownFieldComponent ]},
   'RelatedObjectDataField': {'meta': RelatedObjectDataField, 'comp': RelatedObjectDataComponent, 'lookupService': 'vocabFieldLookupService'},
+  'RecordPermissionsField': {'meta': RecordPermissionsField, 'comp': RecordPermissionsComponent, 'lookupService': 'vocabFieldLookupService'},
   'MapField': {'meta': MapField, 'comp': MapComponent, 'lookupService': 'vocabFieldLookupService'},
   'ParameterRetriever':{ 'meta': ParameterRetrieverField, 'comp': ParameterRetrieverComponent},
   'RecordMetadataRetriever':{ 'meta': RecordMetadataRetrieverField, 'comp': RecordMetadataRetrieverComponent},

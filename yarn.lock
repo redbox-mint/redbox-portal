@@ -7129,6 +7129,7 @@ sails-generate@^1.16.0-0, sails-generate@^1.9.0:
 sails-hook-autoreload@^1.1.0:
   version "1.1.0"
   resolved "https://registry.yarnpkg.com/sails-hook-autoreload/-/sails-hook-autoreload-1.1.0.tgz#666cab7e0490b7575c970fc830b53f59f3529664"
+  integrity sha512-sv80M4nd8SsWaUZ1bbRaqtKYcHc0E6CrC/b/kwIT1mW2He1hdJpxifkPpZTka8L7L29OVJG+ZenwWbNI2nvI2g==
   dependencies:
     "@sailshq/lodash" "^3.10.2"
     chokidar "^1.0.0"

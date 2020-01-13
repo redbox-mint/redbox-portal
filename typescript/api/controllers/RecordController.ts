@@ -27,7 +27,7 @@ import * as fs from 'fs';
 import * as url from 'url';
 declare var _;
 
-declare var FormsService, RecordsService, WorkflowStepsService, BrandingService, RecordTypesService, TranslationService, User, EmailService, RolesService;
+declare var FormsService, RecordsService, WorkflowStepsService, BrandingService, RecordTypesService, TranslationService, User, UsersService, EmailService, RolesService;
 /**
  * Package that contains all Controllers.
  */
@@ -58,6 +58,8 @@ export module Controllers {
       'updateResponsibilities',
       'doAttachment',
       'getAttachments',
+      'getPermissions',
+      'getPermissionsInternal',
       'getDataStream',
       'getAllTypes',
       'delete'
@@ -1048,6 +1050,46 @@ export module Controllers {
         });
       });
     }
+
+    public async getPermissionsInternal(req, res) {
+      sails.log.verbose('getting attachments....');
+      const oid = req.param('oid');
+      let record = await this.getRecord(oid).toPromise();
+
+      let response = {};
+      let authorization = record['authorization'];
+
+      let editUsers = authorization['edit']
+      let editUserResponse = [];
+      for(let i = 0; i< editUsers.length; i++){
+        let editUsername = editUsers[i];
+        let user = await UsersService.getUserWithUsername(editUsername).toPromise();
+        editUserResponse.push({ username: editUsername, name: user.name, email: user.email });
+      }
+
+      let viewUsers = authorization['view']
+      let viewUserResponse = [];
+      for(let i = 0; i< viewUsers.length; i++){
+        let viewUsername = viewUsers[i];
+        let user = await UsersService.getUserWithUsername(viewUsername).toPromise();
+        viewUserResponse.push({ username: viewUsername, name: user.name, email: user.email });
+      }
+
+      let editPendingUsers = authorization['editPending'];
+      let viewPendingUsers = authorization['viewPending'];
+
+      let editRoles = authorization['editRoles'];
+      let viewRoles = authorization['viewRoles'];
+
+      return { edit: editUserResponse, view: viewUserResponse, editRoles: editRoles, viewRoles: viewRoles, editPending: editPendingUsers, viewPending: viewPendingUsers };
+    }
+
+    public getPermissions(req, res) {
+      return this.getPermissionsInternal(req,res).then(response =>{
+        return this.ajaxOk(req, res, null, response);
+      });
+    }
+
 
     public getAttachments(req, res) {
       sails.log.verbose('getting attachments....');
