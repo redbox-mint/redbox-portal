@@ -13,7 +13,7 @@
     "bcrypt": "3.0.6",
     "bootstrap-sass": "^3.3.7",
     "calcyte": "^1.0.2",
-    "chokidar": "~3.1.1",
+    "chokidar": "~3.3.1",
     "connect-mongo": "2.0.3",
     "core-js": "^3.0.1",
     "datacrate": "^1.0.4",
