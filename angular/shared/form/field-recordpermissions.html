@@ -2,11 +2,11 @@
 <div *ngIf="field.editMode" class='padding-bottom-10'>
   
   <div class="row">
-    <h4>Users with edit access</h4>
+    <h4 [innerHtml]="'form-record-permissions-usereditheading' | translate"></h4>
     <table class="table">
       <thead>
           <tr>
-             <th>Username</th><th>Name</th><th>Email</th>
+             <th [innerHtml]="'form-record-permissions-usernametableheading' | translate"></th><th [innerHtml]="'form-record-permissions-nametableheading' | translate"></th><th [innerHtml]="'form-record-permissions-emailtableheading' | translate"></th>
           </tr>
       </thead>
       <tbody>
@@ -17,11 +17,11 @@
       </tbody>
     </table>
 
-    <h4>Users with view access</h4>
+    <h4 [innerHtml]="'form-record-permissions-userviewheading' | translate"></h4>
     <table class="table">
       <thead>
           <tr>
-             <th>Username</th><th>Name</th><th>Email</th>
+            <th [innerHtml]="'form-record-permissions-usernametableheading' | translate"></th><th [innerHtml]="'form-record-permissions-nametableheading' | translate"></th><th [innerHtml]="'form-record-permissions-emailtableheading' | translate"></th>
           </tr>
       </thead>
       <tbody>
@@ -32,11 +32,11 @@
       </tbody>
     </table>
 
-    <h4>Users with pending edit access</h4>
+    <h4 [innerHtml]="'form-record-permissions-userpendingeditheading' | translate"></h4>
     <table class="table">
       <thead>
           <tr>
-             <th>Email</th>
+             <th [innerHtml]="'form-record-permissions-emailtableheading' | translate"></th>
           </tr>
       </thead>
       <tbody>
@@ -46,11 +46,11 @@
       </tbody>
     </table>
 
-    <h4>Users with pending view access</h4>
+    <h4 [innerHtml]="'form-record-permissions-userpendingviewheading' | translate"></h4>
     <table class="table">
       <thead>
           <tr>
-             <th>Email</th>
+             <th [innerHtml]="'form-record-permissions-emailtableheading' | translate"></th>
           </tr>
       </thead>
 
@@ -62,11 +62,11 @@
         
     </table>
 
-    <h4>System roles with edit access</h4>
+    <h4 [innerHtml]="'form-record-permissions-roleeditheading' | translate"></h4>
     <table class="table">
       <thead>
           <tr>
-             <th>Role name</th>
+             <th [innerHtml]="'form-record-permissions-rolenametableheading' | translate"></th>
           </tr>
       </thead>
       <tbody>
@@ -76,11 +76,11 @@
       </tbody>
     </table>
 
-    <h4>System roles with view access</h4>
+    <h4 [innerHtml]="'form-record-permissions-roleviewheading' | translate"></h4>
     <table class="table">
       <thead>
           <tr>
-             <th>Role name</th>
+             <th [innerHtml]="'form-record-permissions-rolenametableheading' | translate"></th>
           </tr>
       </thead>
       <tbody>

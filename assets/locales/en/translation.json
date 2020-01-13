@@ -654,5 +654,16 @@
   "@dataPublication-publish": "Submit for Publication",
   "@dataPublication-citation-generated-label": "Citation",
   "manage-users-token-message": "Note: the API key below will only be visible once.",
-  "@refresh-attachments-text": "Refresh data from related Data Record"
+  "@refresh-attachments-text": "Refresh data from related Data Record",
+  "form-record-permissions-usereditheading": "Users with edit access",
+  "form-record-permissions-userviewheading": "Users with view access",
+  "form-record-permissions-userpendingeditheading": "Users with pending edit access",
+  "form-record-permissions-userpendingviewheading": "Users with pending view access",
+  "form-record-permissions-roleeditheading": "System roles with edit access",
+  "form-record-permissions-roleviewheading": "System roles with view access",
+  "form-record-permissions-usernametableheading": "Username",
+  "form-record-permissions-nametableheading": "Name",
+  "form-record-permissions-emailtableheading": "Email",
+  "form-record-permissions-rolenametableheading": "Role name"
+
 }
