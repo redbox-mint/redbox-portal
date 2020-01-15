@@ -508,7 +508,7 @@ export class ContributorComponent extends SimpleComponent {
       hasError = hasError || (this.field.formModel.controls[fldName].hasError('email'));
     }
     const additionalClass = this.field.splitNames ? ' padding-remove' : '';
-    return `col-xs-${wideMode ? '3' : '2'} form-group${additionalClass}${hasError ? ' has-error' : ''}`;
+    return `col-xs-${wideMode ? '3' : '2'} form-group${additionalClass}${hasError ? ' has-error' : ''} ${_.isEmpty(this.field.cssClasses) || _.isEmpty(this.field.cssClasses[fldName]) ? '' : this.field.cssClasses[fldName]}`;
   }
 
   onSelect(selected: any, emitEvent:boolean=true, updateTitle:boolean=false) {
