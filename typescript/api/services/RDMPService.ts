@@ -173,6 +173,7 @@ export module Services {
       const emailProperty = _.get(options, "emailProperty", "email");
       const editContributorProperties = _.get(options, "editContributorProperties", []);
       const viewContributorProperties = _.get(options, "viewContributorProperties", []);
+      const recordCreatorPermissions = _.get(options,"recordCreatorPermissions");
       let authorization = _.get(record, "authorization", {});
       let editContributorObs = [];
       let viewContributorObs = [];
@@ -183,6 +184,7 @@ export module Services {
       editContributorEmails = this.populateContribList(editContributorProperties, record, emailProperty, editContributorEmails);
       // get the new viewer list...
       viewContributorEmails = this.populateContribList(viewContributorProperties, record, emailProperty, viewContributorEmails);
+
 
       if (_.isEmpty(editContributorEmails)) {
         sails.log.error(`No editors for record: ${oid}`);
@@ -201,6 +203,9 @@ export module Services {
       .flatMap(editContributorUsers => {
         let newEditList = [];
         this.filterPending(editContributorUsers, editContributorEmails, newEditList);
+        if(recordCreatorPermissions == "edit" || recordCreatorPermissions == "view&edit") {
+            newEditList.push(record.metaMetadata.createdBy);
+        }
         record.authorization.edit = newEditList;
         record.authorization.editPending = editContributorEmails;
         return Observable.zip(...viewContributorObs);
@@ -208,6 +213,9 @@ export module Services {
       .flatMap(viewContributorUsers => {
         let newviewList = [];
         this.filterPending(viewContributorUsers, editContributorEmails, newviewList);
+        if(recordCreatorPermissions == "view" || recordCreatorPermissions == "view&edit") {
+            newviewList.push(record.metaMetadata.createdBy);
+        }
         record.authorization.view = newviewList;
         record.authorization.viewPending = viewContributorEmails;
         return Observable.of(record);
