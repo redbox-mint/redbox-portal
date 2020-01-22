@@ -22,6 +22,7 @@ declare var module;
 declare var sails;
 declare var _;
 import { Observable } from 'rxjs/Rx';
+import * as flat from 'flat';
 declare var VocabService;
 /**
  * Package that contains all Controllers.
@@ -97,9 +98,23 @@ export module Controllers {
     public getMint(req, res) {
       const mintSourceType = req.param('mintSourceType');
       const searchString = req.query.search;
+      const unflatten = req.param('unflatten');
+      const flattened_prefix = "flattened_";
       VocabService.findInMint(mintSourceType, searchString).subscribe(mintResponse => {
+        let response_docs = mintResponse.response.docs;
+        if (unflatten == "true") {
+          _.forEach(response_docs, (doc: any) => {
+            _.forOwn(doc, (val: any, key: any) => {
+              if (_.startsWith(key, flattened_prefix)) {
+                const targetKey = key.substring(flattened_prefix.length);
+                const objVal = JSON.parse(val);
+                doc[targetKey] = flat.unflatten(objVal)[key];
+              }
+            });
+          });
+        }
         // only return the response...
-        this.ajaxOk(req, res, null, mintResponse.response.docs, true);
+        this.ajaxOk(req, res, null, response_docs, true);
       }, error => {
         sails.log.verbose("Error getting mint data:");
         sails.log.verbose(error);

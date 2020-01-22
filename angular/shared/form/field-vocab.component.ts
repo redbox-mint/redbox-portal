@@ -61,6 +61,7 @@ export class VocabField extends FieldBase<any> {
   public storeLabelOnly: boolean;
   public provider: string;
   public resultArrayProperty: string;
+  public unflattenFlag: boolean;
 
   @Output() onItemSelect: EventEmitter<any> = new EventEmitter<any>();
 
@@ -84,6 +85,7 @@ export class VocabField extends FieldBase<any> {
     this.storeLabelOnly = options['storeLabelOnly'] ? options['storeLabelOnly'] : false;
     this.provider = options['provider'] ? options['provider'] : '';
     this.resultArrayProperty = options['resultArrayProperty'] ? options['resultArrayProperty'] : '';
+    this.unflattenFlag = _.isUndefined(options['unflattenFlag']) ? false : options['unflattenFlag'];
   }
 
   createFormModel(valueElem: any = undefined, createFormGroup: boolean = false) {
@@ -176,7 +178,8 @@ export class VocabField extends FieldBase<any> {
         this.titleFieldArr,
         this.titleFieldDelim,
         this.titleCompleterDescription,
-        this.searchFields);
+        this.searchFields,
+        this.unflattenFlag);
     } else if (this.sourceType == "external") {
       const url = this.lookupService.getExternalServiceUrl(this.provider);
       this.dataService = new ExternalLookupDataService(
@@ -350,7 +353,8 @@ class MintLookupDataService extends Subject<CompleterItem[]> implements Complete
     private titleFieldArr: string[],
     private titleFieldDelim: any[],
     private titleCompleterDescription: string,
-    searchFieldStr: any) {
+    searchFieldStr: any,
+    private unflattenFlag: boolean) {
     super();
     this.searchFields = searchFieldStr.split(',');
   }
@@ -364,7 +368,7 @@ class MintLookupDataService extends Subject<CompleterItem[]> implements Complete
         searchString = `${searchString}${_.isEmpty(searchString) ? '' : ' OR '}${searchFld}:${term}*`
       });
     }
-    const searchUrl = `${this.url}${searchString}`;
+    const searchUrl = `${this.url}${searchString}&unflatten=${this.unflattenFlag}`;
     this.http.get(`${searchUrl}`).map((res: any, index: number) => {
       // Convert the result to CompleterItem[]
       let data = res.json();
@@ -411,6 +415,11 @@ class MintLookupDataService extends Subject<CompleterItem[]> implements Complete
       if (_.isString(fieldDesc)) {
         const ele = data[fieldDesc];
         description = _.toString(_.head(ele)) || '';
+      } else if (_.isArray(fieldDesc)){
+        // enable descriptions to be built as an array
+        _.forEach(fieldDesc, (fDesc: any) => {
+          description = `${description}${_.isEmpty(description) ? '' : this.titleFieldDelim}${data[fDesc]}`
+        });
       }
     }
     return description;
