@@ -355,7 +355,12 @@ export module Controllers {
             res.set('Content-Type', 'application/octet-stream');
             res.set('Content-Disposition', `attachment; filename="${fileName}"`);
             sails.log.info(`Returning datastream observable of ${oid}: ${fileName}, datastreamId: ${datastreamId}`);
-            return RecordsService.getDatastream(oid, datastreamId).flatMap((response) => {
+            let datastreamServiceName = sails.config.record.datastreamService;
+            if(datastreamServiceName == undefined) {
+              datastreamServiceName = "recordservice";
+            }
+            let datastreamService = sails.services[datastreamServiceName];
+            return datastreamService.getDatastream(oid, datastreamId).flatMap((response) => {
               res.end(Buffer.from(response.body), 'binary');
               return Observable.of(oid);
             });
@@ -401,7 +406,13 @@ export module Controllers {
         sails.log.verbose(_.toString(fileIds));
         const defaultErrorMessage = 'Error sending datastreams upstream.';
         try {
-          const reqs = RecordsService.addDatastreams(oid, fileIds);
+          let datastreamServiceName = sails.config.record.datastreamService;
+          if(datastreamServiceName == undefined) {
+            datastreamServiceName = "recordservice";
+          }
+          let datastreamService = sails.services[datastreamServiceName];
+
+          const reqs = datastreamService.addDatastreams(oid, fileIds);
           return Observable.fromPromise(reqs)
             .subscribe(result => {
               sails.log.verbose(`Done with updating streams and returning response...`);

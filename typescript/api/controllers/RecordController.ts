@@ -593,7 +593,12 @@ export module Controllers {
      */
     protected updateDataStream(oid, origRecord, metadata, response, req, res) {
       const fileIdsAdded = [];
-      RecordsService.updateDatastream(oid, origRecord, metadata, sails.config.record.attachments.stageDir, fileIdsAdded)
+      let datastreamServiceName = sails.config.record.datastreamService;
+            if(datastreamServiceName == undefined) {
+              datastreamServiceName = "recordsservice";
+            }
+            let datastreamService = sails.services[datastreamServiceName];
+            return datastreamService.updateDatastream(oid, origRecord, metadata, sails.config.record.attachments.stageDir, fileIdsAdded)
         .concatMap(reqs => {
           if (reqs) {
             sails.log.verbose(`Updating data streams...`);
@@ -1015,7 +1020,12 @@ export module Controllers {
             res.set('Content-Type', found.mimeType);
             res.set('Content-Disposition', `attachment; filename="${found.name}"`);
             sails.log.verbose(`Returning datastream observable of ${oid}: ${found.name}, attachId: ${attachId}`);
-            return RecordsService.getDatastream(oid, attachId).flatMap((response) => {
+            let datastreamServiceName = sails.config.record.datastreamService;
+            if(datastreamServiceName == undefined) {
+              datastreamServiceName = "recordsservice";
+            }
+            let datastreamService = sails.services[datastreamServiceName];
+            return datastreamService.getDatastream(oid, attachId).flatMap((response) => {
               res.end(Buffer.from(response.body), 'binary');
               return Observable.of(oid);
             });
@@ -1094,7 +1104,12 @@ export module Controllers {
     public getAttachments(req, res) {
       sails.log.verbose('getting attachments....');
       const oid = req.param('oid');
-      return RecordsService.listDatastreams(oid).subscribe(datastreams => {
+      let datastreamServiceName = sails.config.record.datastreamService;
+            if(datastreamServiceName == undefined) {
+              datastreamServiceName = "recordsservice";
+            }
+            let datastreamService = sails.services[datastreamServiceName];
+            return datastreamService.listDatastreams(oid).subscribe(datastreams => {
         let attachments = [];
 
         _.each(datastreams['datastreams'], datastream => {
@@ -1122,7 +1137,12 @@ export module Controllers {
             res.set('Content-Type', 'application/octet-stream');
             res.set('Content-Disposition', `attachment; filename="${fileName}"`);
             sails.log.verbose(`Returning datastream observable of ${oid}: ${fileName}, datastreamId: ${datastreamId}`);
-            return RecordsService.getDatastream(oid, datastreamId).flatMap((response) => {
+            let datastreamServiceName = sails.config.record.datastreamService;
+            if(datastreamServiceName == undefined) {
+              datastreamServiceName = "recordsservice";
+            }
+            let datastreamService = sails.services[datastreamServiceName];
+            return datastreamService.getDatastream(oid, datastreamId).flatMap((response) => {
               res.end(Buffer.from(response.body), 'binary');
               return Observable.of(oid);
             });
