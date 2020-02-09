@@ -151,7 +151,7 @@ export module Services {
             var userToCreate = {
               username: userName,
               name: jwt_payload[aafAttributes].cn,
-              email: jwt_payload[aafAttributes].mail,
+              email: jwt_payload[aafAttributes].mail.toLowerCase(),
               displayname: jwt_payload[aafAttributes].displayname,
               cn: jwt_payload[aafAttributes].cn,
               edupersonscopedaffiliation: jwt_payload[aafAttributes].edupersonscopedaffiliation,
@@ -214,7 +214,7 @@ export module Services {
               var userToCreate = {
                 username: userName,
                 name: _.get(profile, claimsMappings['name']),
-                email: _.get(profile, claimsMappings['email']),
+                email: _.get(profile, claimsMappings['email'].toLowerCase()),
                 displayname: _.get(profile, claimsMappings['displayName']),
                 cn: _.get(profile, claimsMappings['cn']),
                 givenname: _.get(profile, claimsMappings['givenname']),
