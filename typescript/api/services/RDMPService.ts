@@ -193,7 +193,7 @@ export module Services {
         sails.log.error(`No viewers for record: ${oid}`);
       }
       _.each(editContributorEmails, editorEmail => {
-        editContributorObs.push(this.getObservable(User.findOne({email: editorEmail.toLowerCase()l})));
+        editContributorObs.push(this.getObservable(User.findOne({email: editorEmail.toLowerCase()})));
       });
       _.each(viewContributorEmails, viewerEmail => {
         viewContributorObs.push(this.getObservable(User.findOne({email: viewerEmail.toLowerCase()})));
