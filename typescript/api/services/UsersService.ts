@@ -214,7 +214,7 @@ export module Services {
               var userToCreate = {
                 username: userName,
                 name: _.get(profile, claimsMappings['name']),
-                email: _.get(profile, claimsMappings['email'].toLowerCase()),
+                email: _.get(profile, claimsMappings['email']).toLowerCase(),
                 displayname: _.get(profile, claimsMappings['displayName']),
                 cn: _.get(profile, claimsMappings['cn']),
                 givenname: _.get(profile, claimsMappings['givenname']),
