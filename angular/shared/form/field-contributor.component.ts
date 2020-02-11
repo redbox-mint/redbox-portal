@@ -81,9 +81,9 @@ export class ContributorField extends FieldBase<any> {
     this.roleColHdr = options['roleColHdr'] ? this.getTranslated(options['roleColHdr'], options['roleColHdr']) : 'Project Role';
     this.orcidColHdr = options['orcidColHdr'] ? this.getTranslated(options['orcidColHdr'], options['orcidColHdr']) : 'ORCID';
     this.titleColHdr = options['titleColHdr'] ? this.getTranslated(options['titleColHdr'], options['titleColHdr']) : 'Title';
-    this.showTitle = options['showTitle'] || false;
-    this.showHeader = options['showHeader'] || true;
-    this.showRole = options['showRole'] || true;
+    this.showTitle = options['showTitle'] == undefined ? true : options['showTitle'];
+    this.showHeader = options['showHeader'] == undefined ? true : options['showHeader'];
+    this.showRole = options['showRole'] == undefined ? true : options['showRole'];
     this.baseMarginTop = options['baseMarginTop'] || '';
 
     this.roles = options['roles'] || [];
