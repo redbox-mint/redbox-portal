@@ -409,15 +409,15 @@ export class HtmlRawComponent extends SimpleComponent {
   selector: 'text-block',
   template: `
   <div *ngIf="field.visible" [ngSwitch]="field.type">
-    <span *ngSwitchCase="'h1'" [ngClass]="field.cssClasses">{{field.value}}</span>
-    <span *ngSwitchCase="'h2'" [ngClass]="field.cssClasses">{{field.value}}</span>
-    <span *ngSwitchCase="'h3'" [ngClass]="field.cssClasses">{{field.value}}</span>
-    <span *ngSwitchCase="'h4'" [ngClass]="field.cssClasses">{{field.value}}</span>
-    <span *ngSwitchCase="'h5'" [ngClass]="field.cssClasses">{{field.value}}</span>
-    <span *ngSwitchCase="'h6'" [ngClass]="field.cssClasses">{{field.value}}</span>
+    <span *ngSwitchCase="'h1'" [ngClass]="field.cssClasses">{{field.value == null? '' : field.value}}</span>
+    <span *ngSwitchCase="'h2'" [ngClass]="field.cssClasses">{{field.value == null? '' : field.value}}</span>
+    <span *ngSwitchCase="'h3'" [ngClass]="field.cssClasses">{{field.value == null? '' : field.value}}</span>
+    <span *ngSwitchCase="'h4'" [ngClass]="field.cssClasses">{{field.value == null? '' : field.value}}</span>
+    <span *ngSwitchCase="'h5'" [ngClass]="field.cssClasses">{{field.value == null? '' : field.value}}</span>
+    <span *ngSwitchCase="'h6'" [ngClass]="field.cssClasses">{{field.value == null? '' : field.value}}</span>
     <hr *ngSwitchCase="'hr'" [ngClass]="field.cssClasses">
-    <span *ngSwitchCase="'span'" [ngClass]="field.cssClasses">{{field.value}}</span>
-    <p *ngSwitchDefault [ngClass]="field.cssClasses" [innerHtml]="field.value"></p>
+    <span *ngSwitchCase="'span'" [ngClass]="field.cssClasses">{{field.value == null? '' : field.value}}</span>
+    <p *ngSwitchDefault [ngClass]="field.cssClasses" [innerHtml]="field.value == null? '' : field.value"></p>
     <button type="button" class="btn btn-default" *ngIf="field.editMode && field.help" (click)="toggleHelp()" [attr.aria-label]="'help' | translate "><span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span></button>
   </div>
   <div class="row" *ngIf="field.editMode && this.helpShow">
