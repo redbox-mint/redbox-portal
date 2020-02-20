@@ -28,7 +28,7 @@ export class ActionButton extends FieldBase<string>  {
   selector: 'action-button',
   template: `
   <div *ngIf="field.editMode">
-    <div *ngIf="field.value">Record published to CKAN at <a target="_blank" [attr.href]="field.value">{{ field.value }}</a></div>
+    <div *ngIf="field.value">Record published at <a target="_blank" [attr.href]="field.value">{{ field.value }}</a></div>
     <div *ngIf="!field.value"><button *ngIf="!field.submitting" type="{{field.type}}" [ngClass]="field.cssClasses" (click)="executeAction($event)" [disabled]="isDisabled()">{{field.label}}</button><span *ngIf="field.submitting">Submitting to CKAN</span>
     </div>
     <div [formGroup]='form'>
@@ -36,7 +36,7 @@ export class ActionButton extends FieldBase<string>  {
     </div>
   </div>
   <div *ngIf="!field.editMode">
-    <div *ngIf="field.value">Record published to CKAN at <a target="_blank" [attr.href]="field.value">{{ field.value }}</a></div>
+    <div *ngIf="field.value">Record published at <a target="_blank" [attr.href]="field.value">{{ field.value }}</a></div>
     <div *ngIf="!field.value">Record not yet published</div>
   </div>
   `,

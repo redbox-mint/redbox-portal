@@ -19,6 +19,7 @@
 
 import { Observable } from 'rxjs/Rx';
 import services = require('../core/CoreService.js');
+import DatastreamService from '../core/DatastreamService.js';
 import { Sails, Model } from "sails";
 import * as request from "request-promise";
 import * as luceneEscapeQuery from "lucene-escape-query";
@@ -38,7 +39,7 @@ export module Services {
    * Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a>
    *
    */
-  export class Records extends services.Services.Core.Service {
+  export class Records extends services.Services.Core.Service implements DatastreamService {
 
     protected _exportedMethods: any = [
       'create',

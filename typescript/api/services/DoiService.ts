@@ -128,9 +128,25 @@ export module Services {
 
 
 
-    let statusUrl =apiEndpoints.create({baseUrl:options.baseUrl,apiKey:options.apiKey,url: options.url});
+    let createUrl =apiEndpoints.create({baseUrl:options.baseUrl,apiKey:options.apiKey,url: options.url});
+    if(options.sharedSecretKey) {
+      let buff = new Buffer(options.sharedSecretKey);
+      let encodedKey = buff.toString('base64');
+      request.post({url:createUrl,body: xml, headers: { 'Authorization': `Basic ${encodedKey}` }}).then(resp => {
+        let doi = resp.response.doi;
+        record.metadata.doi = doi;
+        const brand = BrandingService.getBrand('default');
+        RecordsService.updateMeta(brand,oid, record).subscribe(response => { sails.log.debug(response)});
+      });
+    } else {
+      request.post({url:createUrl,body: xml}).then(resp => {
+        let doi = resp.response.doi;
+        record.metadata.doi = doi;
+        const brand = BrandingService.getBrand('default');
+        RecordsService.updateMeta(brand,oid, record).subscribe(response => { sails.log.debug(response)});
+      });
+    }
 
-    request.get({url:statusUrl,body: xml}).then(resp => {sails.log.debug(resp)});
 
 				return Observable.of(null);
     	} else {

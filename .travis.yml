@@ -34,7 +34,7 @@ jobs:
     - npm run doc-ng2
     - if [ "$TRAVIS_PULL_REQUEST" = "false" ]; then bash dockerhub_deploy.sh; chmod
       +x deploySnapshotToBranch.sh; ./deploySnapshotToBranch.sh; fi
-    before_deploy:    npm pack
+    #before_deploy:    npm pack
     after_deploy:     rm *.tgz
     deploy:
       - provider:     pages

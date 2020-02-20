@@ -78,6 +78,11 @@ module.exports.auth = {
       can_update:true
     },
     {
+      path: '/:branding/:portal/admin/export',
+      role: 'Librarians',
+      can_update:true
+    },
+    {
       path: '/:branding/:portal/admin(/*)',
       role: 'Admin',
       can_update:true
