@@ -31,13 +31,6 @@ module.exports.http = {
      ***************************************************************************/
     passportInit: require('passport').initialize(),
     passportSession: require('passport').session(),
-    openIdConnectAuth: function(req,res,next) {
-      // TODO: There's probably a better way to do the login url than in the middle ware but it works
-      if(req.url == "/user/begin_oidc") {
-          sails.config.passport.authenticate('oidc')(req,res,next)
-      }
-      next();
-    },
     brandingAndPortalAwareStaticRouter: function(req, res, next) {
       // Checks the branding and portal parameters if the resource isn't overidden for the required portal and branding,
       // it routes the request to the default location
@@ -105,7 +98,6 @@ module.exports.http = {
       'poweredBy',
       'router',
       'translate',
-      "openIdConnectAuth",
       'brandingAndPortalAwareStaticRouter',
       'www',
       'favicon',

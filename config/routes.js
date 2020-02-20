@@ -149,6 +149,11 @@ module.exports.routes = {
     action: 'openIdConnectLogin',
     csrf: false
   },
+  'get /user/begin_oidc': {
+    controller: 'UserController',
+    action: 'beginOidc',
+    csrf: false
+  },
   'get /user/info': 'UserController.info',
   'get /:branding/:portal/user/info': 'UserController.info',
   'get /:branding/:portal/user/login': 'UserController.login',

@@ -52,7 +52,8 @@ export module Controllers {
           'profile',
           'generateUserKey',
           'revokeUserKey',
-          'find'
+          'find',
+          'beginOidc'
       ];
 
       /**
@@ -238,6 +239,11 @@ export module Controllers {
             return sails.getActions()['user/redirpostlogin'](req, res);
           });
         })(req, res);
+      }
+
+      public beginOidc(req, res) {
+        sails.log.verbose(`At OIDC begin flow, redirecting...`);
+        sails.config.passport.authenticate('oidc')(req,res);
       }
 
 
