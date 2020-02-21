@@ -92,7 +92,7 @@ export module Services {
     }
 
 
-    let title = _.get(record, mappings.creators);
+    let title = _.get(record, mappings.title);
       if(title == null || title.trim() == "") {
           return;
       } else {
@@ -126,9 +126,9 @@ export module Services {
 
         let xml = xmlElements.wrapper({xml: xmlString});
 
+        let url = _.get(record, mappings.url);
 
-
-    let createUrl =apiEndpoints.create({baseUrl:options.baseUrl,apiKey:options.apiKey,url: options.url});
+    let createUrl =apiEndpoints.create({baseUrl:options.baseUrl, apiKey:options.apiKey, url: url});
     if(options.sharedSecretKey) {
       let buff = new Buffer(options.sharedSecretKey);
       let encodedKey = buff.toString('base64');
