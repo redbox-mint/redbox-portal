@@ -25,9 +25,6 @@ import * as request from "request-promise";
 import path = require('path');
 
 
-import { Index, jsonld } from 'calcyte';
-const datacrate = require('datacrate').catalog;
-
 declare var sails: Sails;
 declare var RecordsService;
 declare var BrandingService;
@@ -53,6 +50,7 @@ export module Services {
 
 
   	public publishDoi(oid, record, options): Observable<any> {
+
    		if( this.metTriggerCondition(oid, record, options) === "true") {
 
         let apiEndpoints = {
@@ -82,11 +80,11 @@ export module Services {
 
     let creators = _.get(record, mappings.creators)
     if(creators === null || creators.length == 0) {
-      return;
+      // return;
     } else {
       let creatorString = "";
       _.each(creators, creator => {
-        creatorString += xmlElements.creator({creatorName: creator});
+        creatorString += xmlElements.creator({creatorName: creator.text_full_name});
       });
       xmlString += xmlElements.creatorWrapper({creators: creatorString})
     }
@@ -94,21 +92,21 @@ export module Services {
 
     let title = _.get(record, mappings.title);
       if(title == null || title.trim() == "") {
-          return;
+          // return;
       } else {
           xmlString += xmlElements.title({title:title})
       }
-
+    //
       let publisher =_.get(record, mappings.publisher);
         if(publisher == null || publisher.trim() == "") {
-            return;
+            // return;
         } else {
             xmlString += xmlElements.publisher({publisher:publisher})
         }
 
         let pubYear = _.get(record, mappings.publicationYear);
           if(pubYear == null || pubYear.trim() == "") {
-              return;
+              // return;
           } else {
               xmlString += xmlElements.pubYear({pubYear:pubYear})
           }
@@ -116,7 +114,7 @@ export module Services {
         let resourceType = _.get(record, mappings.resourceType);
         let resourceTypeText = _.get(record, mappings.resourceTypeText);
         if(resourceType == null || resourceType.trim() == "") {
-            return;
+            // return;
         } else {
           if(resourceTypeText == null || resourceTypeText == "null") {
             resourceTypeText = ""
@@ -129,19 +127,26 @@ export module Services {
         let url = _.get(record, mappings.url);
 
     let createUrl =apiEndpoints.create({baseUrl:options.baseUrl, apiKey:options.apiKey, url: url});
+
     if(options.sharedSecretKey) {
+
       let buff = new Buffer(options.sharedSecretKey);
       let encodedKey = buff.toString('base64');
       request.post({url:createUrl,body: xml, headers: { 'Authorization': `Basic ${encodedKey}` }}).then(resp => {
+
         let doi = resp.response.doi;
-        record.metadata.doi = doi;
+        record.metadata.citation_doi = doi;
+        sails.log.debug(`DOI generated ${doi}`)
         const brand = BrandingService.getBrand('default');
         RecordsService.updateMeta(brand,oid, record).subscribe(response => { sails.log.debug(response)});
       });
     } else {
+
       request.post({url:createUrl,body: xml}).then(resp => {
+
         let doi = resp.response.doi;
-        record.metadata.doi = doi;
+        record.metadata.citation_doi = doi;
+        sails.log.debug(`DOI generated ${doi}`)
         const brand = BrandingService.getBrand('default');
         RecordsService.updateMeta(brand,oid, record).subscribe(response => { sails.log.debug(response)});
       });
