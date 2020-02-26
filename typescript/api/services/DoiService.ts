@@ -52,7 +52,7 @@ export module Services {
   	public publishDoi(oid, record, options): Observable<any> {
 
    		if( this.metTriggerCondition(oid, record, options) === "true") {
-
+        if(record.metadata.citation_doi == null) {
         let apiEndpoints = {
             create: _.template('<%= baseUrl%>mint.json/?app_id=<%= apiKey%>&url=<%= url%>'),
             // update: _.template('<%= baseUrl%>update.json/?app_id=<%= apiKey%>&doi=<%= doi%>'),
@@ -111,7 +111,7 @@ export module Services {
               xmlString += xmlElements.pubYear({pubYear:pubYear})
           }
 
-        let resourceType = _.get(record, mappings.resourceType);
+        let resourceType = "Dataset";
         let resourceTypeText = _.get(record, mappings.resourceTypeText);
         if(resourceType == null || resourceType.trim() == "") {
             // return;
@@ -132,26 +132,34 @@ export module Services {
 
       let buff = new Buffer(options.sharedSecretKey);
       let encodedKey = buff.toString('base64');
-      request.post({url:createUrl,body: xml, headers: { 'Authorization': `Basic ${encodedKey}` }}).then(resp => {
+      let postRequest = request.post({url:createUrl,body: xml, headers: { 'Authorization': `Basic ${encodedKey}` }})
+      postRequest.then(resp => {
 
-        let doi = resp.response.doi;
+        let doi = JSON.parse(resp).response.doi;
         record.metadata.citation_doi = doi;
-        sails.log.debug(`DOI generated ${doi}`)
+        sails.log.error(`DOI generated ${doi}`)
         const brand = BrandingService.getBrand('default');
         RecordsService.updateMeta(brand,oid, record).subscribe(response => { sails.log.debug(response)});
-      });
+      }).catch(function (err) {
+        sails.log.error("DOI generation failed")
+        sails.log.error(err);
+    });
     } else {
 
-      request.post({url:createUrl,body: xml}).then(resp => {
+      request.post({url:createUrl,body: xmlString}).then(resp => {
 
-        let doi = resp.response.doi;
+        let doi = JSON.parse(resp).response.doi;
         record.metadata.citation_doi = doi;
         sails.log.debug(`DOI generated ${doi}`)
         const brand = BrandingService.getBrand('default');
-        RecordsService.updateMeta(brand,oid, record).subscribe(response => { sails.log.debug(response)});
-      });
-    }
 
+        RecordsService.updateMeta(brand,oid, record).subscribe(response => { sails.log.debug(response)});
+      }).catch(function (err) {
+        sails.log.error("DOI generation failed")
+        sails.log.error(err);
+    });
+    }
+}
 
 				return Observable.of(null);
     	} else {
