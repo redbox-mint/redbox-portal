@@ -10,7 +10,7 @@
     </span><br/>
     <span id="{{ 'helpBlock_' + field.name }}" class="help-block" *ngIf="this.helpShow" [innerHtml]="field.help"></span>
     <div *ngIf="field.value.oid">
-       {{ field.value.title }} <button class="btn btn-info" (click)="field.resetSelector()">{{ 'change-text' | translate }}</button>
+       {{ field.value.title }} <button type="button" class="btn btn-info" (click)="field.resetSelector()">{{ 'change-text' | translate }}</button>
     </div>
     <div *ngIf="!field.value.oid">
       <div class="input-group">
