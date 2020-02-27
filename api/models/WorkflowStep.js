@@ -25,6 +25,10 @@ module.exports = {
     },
     recordType: {
       model: 'recordType'
+    },
+    hidden: {
+      type: 'boolean',
+      defaultsTo: false
     }
   }
 }

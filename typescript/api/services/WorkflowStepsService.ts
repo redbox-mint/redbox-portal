@@ -81,7 +81,7 @@ export module Services {
             _.forOwn(wfSteps, (workflowStepsObject, recordTypeName) => {
               _.forEach(workflowStepsObject, workflowStep => {
                 const workflowConf = sails.config.workflow[recordTypeName][workflowStep["workflow"]];
-                var obs = this.create(workflowStep["recordType"], workflowStep["workflow"], workflowConf.config, workflowConf.starting == true);
+                var obs = this.create(workflowStep["recordType"], workflowStep["workflow"], workflowConf.config, workflowConf.starting == true, workflowConf['hidden']);
                 workflowSteps.push(obs);
               });
             });
@@ -92,12 +92,13 @@ export module Services {
 
 
 
-    public create(recordType, name, workflowConf, starting) {
+    public create(recordType, name, workflowConf, starting, hidden:boolean = false) {
       return super.getObservable(WorkflowStep.create({
         name: name,
         config: workflowConf,
         recordType: recordType.id,
-        starting: starting
+        starting: starting,
+        hidden: hidden
       }));
     }
 
@@ -106,7 +107,7 @@ export module Services {
     }
 
     public getAllForRecordType(recordType) {
-      return super.getObservable(WorkflowStep.find({recordType: recordType.id }));
+      return super.getObservable(WorkflowStep.find({recordType: recordType.id, hidden: { '!=': true } }));
     }
 
     public getFirst(recordType) {
