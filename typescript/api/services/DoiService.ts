@@ -124,7 +124,7 @@ export module Services {
 
         let xml = xmlElements.wrapper({xml: xmlString});
 
-        let url = _.get(record, mappings.url);
+        let url = this.runTemplate(mappings.url,record);
 
     let createUrl =apiEndpoints.create({baseUrl:options.baseUrl, apiKey:options.apiKey, url: url});
 
@@ -167,6 +167,13 @@ export module Services {
     		return Observable.of(null);
    		}
   	}
+
+    protected runTemplate(template:string, variables) {
+      if (template && template.indexOf('<%') != -1) {
+        return _.template(template, variables)();
+      }
+      return _.get(template,variables);
+    }
 
 
 

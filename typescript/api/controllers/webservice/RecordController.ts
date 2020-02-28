@@ -286,6 +286,7 @@ export module Controllers {
             var metaMetadata = {};
             metaMetadata["brandId"] = brand.id;
             metaMetadata["type"] = recordTypeModel.name;
+            metaMetadata["packageName"] = recordTypeModel.packageName;
             metaMetadata["createdBy"] = "admin";
             request["metaMetadata"] = metaMetadata;
             //if no metadata field, no authorization
