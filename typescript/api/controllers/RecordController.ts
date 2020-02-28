@@ -417,6 +417,9 @@ export module Controllers {
       record.metadata = metadata;
 
       RecordTypesService.get(brand, recType).subscribe(recordType => {
+        if(recordType.packageName) {
+          record.metaMetadata.packageName = recordType.packageName;
+        }
         let wfStepObs = WorkflowStepsService.getFirst(recordType);
         if (targetStep) {
           wfStepObs = WorkflowStepsService.get(recType, targetStep);
