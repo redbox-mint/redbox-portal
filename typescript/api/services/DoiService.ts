@@ -50,9 +50,7 @@ export module Services {
 
 
   	public publishDoi(oid, record, options): Observable<any> {
-
    		if( this.metTriggerCondition(oid, record, options) === "true") {
-        if(record.metadata.citation_doi == null) {
         let apiEndpoints = {
             create: _.template('<%= baseUrl%>mint.json/?app_id=<%= apiKey%>&url=<%= url%>'),
             // update: _.template('<%= baseUrl%>update.json/?app_id=<%= apiKey%>&doi=<%= doi%>'),
@@ -126,20 +124,29 @@ export module Services {
 
         let url = this.runTemplate(mappings.url,record);
 
-    let createUrl =apiEndpoints.create({baseUrl:options.baseUrl, apiKey:options.apiKey, url: url});
 
+    let createUrl =apiEndpoints.create({baseUrl:options.baseUrl, apiKey:options.apiKey, url: url});
+    let acceptedResponseCodes = ['MT001','MT002','MT003','MT004']
     if(options.sharedSecretKey) {
 
       let buff = new Buffer(options.sharedSecretKey);
       let encodedKey = buff.toString('base64');
       let postRequest = request.post({url:createUrl,body: xml, headers: { 'Authorization': `Basic ${encodedKey}` }})
-      postRequest.then(resp => {
 
-        let doi = JSON.parse(resp).response.doi;
-        record.metadata.citation_doi = doi;
-        sails.log.error(`DOI generated ${doi}`)
-        const brand = BrandingService.getBrand('default');
-        RecordsService.updateMeta(brand,oid, record).subscribe(response => { sails.log.debug(response)});
+      postRequest.then(resp => {
+        let respJson = JSON.parse(resp);
+
+        if(acceptedResponseCodes.indexOf(respJson.response.responsecode) != -1) {
+          let doi = respJson.response.doi;
+
+          record.metadata.citation_doi = doi;
+          sails.log.info(`DOI generated ${doi}`)
+          const brand = BrandingService.getBrand('default');
+          RecordsService.updateMeta(brand,oid, record).subscribe(response => { sails.log.debug(response)});
+        } else {
+          sails.log.error('DOI request failed')
+          sails.log.error(resp)
+        }
       }).catch(function (err) {
         sails.log.error("DOI generation failed")
         sails.log.error(err);
@@ -147,30 +154,34 @@ export module Services {
     } else {
 
       request.post({url:createUrl,body: xmlString}).then(resp => {
+        let respJson = JSON.parse(resp);
+        if(acceptedResponseCodes.indexOf(respJson.response.responsecode) != -1) {
+          let doi = respJson.response.doi;
+          record.metadata.citation_doi = doi;
+          sails.log.debug(`DOI generated ${doi}`)
+          const brand = BrandingService.getBrand('default');
 
-        let doi = JSON.parse(resp).response.doi;
-        record.metadata.citation_doi = doi;
-        sails.log.debug(`DOI generated ${doi}`)
-        const brand = BrandingService.getBrand('default');
-
-        RecordsService.updateMeta(brand,oid, record).subscribe(response => { sails.log.debug(response)});
+          RecordsService.updateMeta(brand,oid, record).subscribe(response => { sails.log.debug(response)});
+        } else {
+          sails.log.error('DOI request failed')
+          sails.log.error(resp)
+        }
       }).catch(function (err) {
         sails.log.error("DOI generation failed")
         sails.log.error(err);
     });
     }
+} else {
+  sails.log.info("trigger condition failed")
 }
 
 				return Observable.of(null);
-    	} else {
-     		sails.log.info(`Not sending notification log for: ${oid}, condition not met: ${_.get(options, "triggerCondition", "")}`)
-    		return Observable.of(null);
-   		}
+
   	}
 
     protected runTemplate(template:string, variables) {
       if (template && template.indexOf('<%') != -1) {
-        return _.template(template, variables)();
+        return _.template(template)(variables);
       }
       return _.get(template,variables);
     }
