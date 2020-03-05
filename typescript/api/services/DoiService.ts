@@ -78,11 +78,13 @@ export module Services {
 
     let creators = _.get(record, mappings.creators)
     if(creators === null || creators.length == 0) {
-      // return;
+
     } else {
       let creatorString = "";
       _.each(creators, creator => {
-        creatorString += xmlElements.creator({creatorName: creator.text_full_name});
+        if(creator.text_full_name != null && creator.text_full_name.trim() != '') {
+          creatorString += xmlElements.creator({creatorName: creator.text_full_name});
+        }
       });
       xmlString += xmlElements.creatorWrapper({creators: creatorString})
     }
@@ -97,14 +99,15 @@ export module Services {
     //
       let publisher =_.get(record, mappings.publisher);
         if(publisher == null || publisher.trim() == "") {
-            // return;
+
         } else {
             xmlString += xmlElements.publisher({publisher:publisher})
         }
 
         let pubYear = _.get(record, mappings.publicationYear);
           if(pubYear == null || pubYear.trim() == "") {
-              // return;
+              sails.log.debug("No publication year. Can't mint the DOI")
+              return Observable.of(null);
           } else {
               xmlString += xmlElements.pubYear({pubYear:pubYear})
           }
@@ -112,7 +115,7 @@ export module Services {
         let resourceType = "Dataset";
         let resourceTypeText = _.get(record, mappings.resourceTypeText);
         if(resourceType == null || resourceType.trim() == "") {
-            // return;
+
         } else {
           if(resourceTypeText == null || resourceTypeText == "null") {
             resourceTypeText = ""
@@ -124,6 +127,7 @@ export module Services {
 
         let url = this.runTemplate(mappings.url,record);
 
+        sails.log.error("DOI url is: " + url);
 
     let createUrl =apiEndpoints.create({baseUrl:options.baseUrl, apiKey:options.apiKey, url: url});
     let acceptedResponseCodes = ['MT001','MT002','MT003','MT004']
@@ -142,6 +146,7 @@ export module Services {
           record.metadata.citation_doi = doi;
           sails.log.info(`DOI generated ${doi}`)
           const brand = BrandingService.getBrand('default');
+
           RecordsService.updateMeta(brand,oid, record).subscribe(response => { sails.log.debug(response)});
         } else {
           sails.log.error('DOI request failed')
