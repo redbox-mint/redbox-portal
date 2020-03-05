@@ -170,13 +170,18 @@ export class Container extends FieldBase<any> {
 
   public setValue(value:any, emitEvent:boolean=true) {
     this.value = value;
-    _.forOwn(value, (val, key) => {
-      const fld = _.find(this.fields, (fldItem) => {
-        return fldItem.name == key;
-      });
-      fld.setValue(val, emitEvent);
-    });
-    // this.formModel.setValue(value, { onlySelf: true, emitEvent: emitEvent });
+    let key;
+    for(key in value) {
+      if(value.hasOwnProperty(key)) {
+        let val = value[key]
+        let fld = _.find(this.fields, (fldItem) => {
+          return fldItem.name == key;
+        });
+        // TODO: Not sure why this is required to get the parent form model updated
+        fld.formModel.setValue(val, {onlySelf: false, emitEvent: false});
+        fld.setValue(val, emitEvent);
+      }
+    }
   }
 
 }
