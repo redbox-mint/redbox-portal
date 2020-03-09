@@ -306,7 +306,7 @@ export class SaveButton extends NotInFormField {
     this.cancelButtonMessage = options['cancelButtonMessage'] ? this.getTranslated(options['cancelButtonMessage'], null ) : null;
     this.confirmButtonMessage = options['confirmButtonMessage'] ? this.getTranslated(options['confirmButtonMessage'], null) : null;
     this.isDelete = options['isDelete'];
-    this.isSubmissionButton = options['isSubmissionButton'] || true; // defaults to it is, unless specifically set, for backwards compat
+    this.isSubmissionButton = options['isSubmissionButton'] || false; // defaults to it is, unless specifically set, for backwards compat
   }
 }
 
