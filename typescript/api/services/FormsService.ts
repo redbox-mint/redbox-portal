@@ -41,7 +41,8 @@ export module Services {
       'bootstrap',
       'getForm',
       'flattenFields',
-      'getFormByName'
+      'getFormByName',
+      'filterFieldsHasEditAccess'
     ];
 
     public bootstrap = (workflowStep): Observable<any> => {
@@ -177,6 +178,17 @@ export module Services {
         field.definition.editMode = editMode;
         if (!_.isEmpty(field.definition.fields)) {
           this.setFormEditMode(field.definition.fields, editMode);
+        }
+      });
+    }
+
+    public filterFieldsHasEditAccess(fields, hasEditAccess) {
+      _.remove(fields, field => {
+        return field.needsEditAccess && hasEditAccess != true;
+      });
+      _.forEach(fields, field => {
+        if (!_.isEmpty(field.definition.fields)) {
+          this.filterFieldsHasEditAccess(field.definition.fields, hasEditAccess);
         }
       });
     }
