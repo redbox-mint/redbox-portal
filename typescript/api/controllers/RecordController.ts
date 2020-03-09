@@ -369,10 +369,14 @@ export module Controllers {
                 if (!hasViewAccess) {
                   return Observable.throw(new Error(TranslationService.t('view-error-no-permissions')));
                 }
+                return this.hasEditAccess(brand, req.user, currentRec)
+              })
+              .flatMap(hasEditAccess => {
                 return FormsService.getFormByName(formName, editMode).flatMap(form => {
                   if (_.isEmpty(form)) {
                     return Observable.throw(new Error(`Error, getting form ${formName} for OID: ${oid}`));
                   }
+                  FormsService.filterFieldsHasEditAccess(form.fields, hasEditAccess);
                   return this.mergeFields(req, res, form.fields, currentRec.metaMetadata.type, currentRec).then(fields => {
                     form.fields = fields;
 
