@@ -52,7 +52,9 @@ export class PDFListField extends FieldBase<any> {
   versionColumnValueField:string = "";
   versionColumnLabelKey: string = "";
   useVersionLabelForFileName:boolean = false;
-
+  downloadBtnLabel: string = "";
+  downloadPreviousBtnLabel: string = "";
+  downloadPrefix: string = "";
 
   constructor(options: any, injector: any) {
     super(options, injector);
@@ -68,6 +70,9 @@ export class PDFListField extends FieldBase<any> {
     this.useVersionLabelForFileName = _.isUndefined(options['useVersionLabelForFileName']) ? this.showVersionColumn : options['useVersionLabelForFileName'];
     this.versionColumnValueField = options['versionColumnValueField'] || this.versionColumnValueField;
     this.versionColumnLabelKey = options['versionColumnLabelKey'] || this.versionColumnLabelKey;
+    this.downloadBtnLabel = _.isEmpty(options['downloadBtnLabel']) ? "Download a PDF of this plan" : this.getTranslated(options['downloadBtnLabel'], "Download a PDF of this plan");
+    this.downloadPreviousBtnLabel = _.isEmpty(options['downloadPreviousBtnLabel']) ? "Download a previous version" : this.getTranslated(options['downloadPreviousBtnLabel'], "Download a previous version");
+    this.downloadPrefix = _.isEmpty(options['downloadPrefix']) ? "rdmp" : this.getTranslated(options["downloadPrefix"], "rdmp");
   }
 
   getVersionLabel(attachment, index) {
@@ -152,9 +157,9 @@ export class PDFListComponent extends SimpleComponent implements OnInit {
     const url = `${this.field.recordsService.getBrandingAndPortalUrl}/record/${oid}/datastream?datastreamId=${attachment.label}`
     if (hasFileName) {
       if (this.field.useVersionLabelForFileName) {
-        return `${url}&fileName=rdmp-${this.field.getVersionLabel(attachment, index)}.pdf`;
+        return `${url}&fileName=${this.field.downloadPrefix}-${this.field.getVersionLabel(attachment, index)}.pdf`;
       } else {
-        return `${url}&fileName=rdmp.pdf`;
+        return `${url}&fileName=${this.field.downloadPrefix}.pdf`;
       }
     } else {
       return url;
