@@ -358,7 +358,7 @@ export module Controllers {
             sails.log.info(`Returning datastream observable of ${oid}: ${fileName}, datastreamId: ${datastreamId}`);
             let datastreamServiceName = sails.config.record.datastreamService;
             if(datastreamServiceName == undefined) {
-              datastreamServiceName = "recordservice";
+              datastreamServiceName = "recordsservice";
             }
             let datastreamService = sails.services[datastreamServiceName];
             return datastreamService.getDatastream(oid, datastreamId).flatMap((response) => {
@@ -409,7 +409,7 @@ export module Controllers {
         try {
           let datastreamServiceName = sails.config.record.datastreamService;
           if(datastreamServiceName == undefined) {
-            datastreamServiceName = "recordservice";
+            datastreamServiceName = "recordsservice";
           }
           let datastreamService = sails.services[datastreamServiceName];
 
