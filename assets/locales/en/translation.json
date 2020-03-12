@@ -665,10 +665,10 @@
   "form-record-permissions-nametableheading": "Name",
   "form-record-permissions-emailtableheading": "Email",
   "form-record-permissions-rolenametableheading": "Role name",
-  "pdf-column-version": "Version",
-  "pdf-column-date-created": "Date created",
-  "pdf-column-download": "Download",
-  "pdf-close": "Close",
-  "pdf-download": "Download a PDF of this plan",
-  "pdf-download-previous": "Download a previous version"
+  "@pdf-column-version": "Version",
+  "@pdf-column-date-created": "Date created",
+  "@pdf-column-download": "Download",
+  "@pdf-close": "Close",
+  "@pdf-download": "Download a PDF of this plan",
+  "@pdf-download-previous": "Download a previous version"
 }
