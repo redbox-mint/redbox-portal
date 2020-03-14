@@ -111,6 +111,9 @@ export module Controllers {
           } else {
             return res.json(result);
           }
+        }, error=> {
+          sails.log.error(error);
+          return this.ajaxFail(req, res, null, null);
         });
       });
     }
@@ -236,7 +239,7 @@ export module Controllers {
         var obs = RecordsService.updateMeta(brand, oid, record, req.user);
         obs.subscribe(result => {
           return res.json(result);
-        });
+        }, error=> {sails.log.error("Update metadata failed", error);   return this.ajaxFail(req, res, "Update Metadata failed", null,true);});
 
       });
     }
@@ -334,7 +337,7 @@ export module Controllers {
                 }
 
                 return res.status(201).json(result);
-              });
+              }, error=> {sails.log.error("Create Record failed", error);   return this.ajaxFail(req, res, "Create failed", null,true);});
 
             });
 
