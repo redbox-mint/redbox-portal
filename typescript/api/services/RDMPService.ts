@@ -72,15 +72,15 @@ export module Services {
       const brandId = record.metaMetadata.brandId;
       const obs = [];
       // get the counters
-      _.each(options.counters, (counter:any) => {
+      _.each(options.counters, (counter: any) => {
         if (counter.strategy == "global") {
-          obs.push(this.getObservable(Counter.findOrCreate({name: counter.field_name, branding: brandId}, {name: counter.field_name, branding: brandId, value: 0})));
+          obs.push(this.getObservable(Counter.findOrCreate({ name: counter.field_name, branding: brandId }, { name: counter.field_name, branding: brandId, value: 0 })));
         } else if (counter.strategy == "field") {
           let srcVal = record.metadata[counter.field_name];
           if (!_.isEmpty(counter.source_field)) {
             srcVal = record.metadata[counter.source_field];
           }
-          let newVal = _.isUndefined(srcVal) || _.isEmpty(srcVal) ? 1 : _.toNumber(srcVal)+1;
+          let newVal = _.isUndefined(srcVal) || _.isEmpty(srcVal) ? 1 : _.toNumber(srcVal) + 1;
           this.incrementCounter(record, counter, newVal);
         }
       });
@@ -88,26 +88,26 @@ export module Services {
         return Observable.of(record);
       } else {
         return Observable.zip(...obs)
-        .flatMap(counterVals => {
-          const updateObs = [];
-          _.each(counterVals, (counterVal, idx) => {
-            let counter = options.counters[idx];
-            let newVal = counterVal[0].value + 1;
-            this.incrementCounter(record, counter, newVal);
-            updateObs.push(this.getObservable(Counter.updateOne({id: counterVal[0].id}, {value: newVal})));
+          .flatMap(counterVals => {
+            const updateObs = [];
+            _.each(counterVals, (counterVal, idx) => {
+              let counter = options.counters[idx];
+              let newVal = counterVal[0].value + 1;
+              this.incrementCounter(record, counter, newVal);
+              updateObs.push(this.getObservable(Counter.updateOne({ id: counterVal[0].id }, { value: newVal })));
+            });
+            return Observable.zip(...updateObs);
+          })
+          .flatMap(updateVals => {
+            return Observable.of(record);
           });
-          return Observable.zip(...updateObs);
-        })
-        .flatMap(updateVals => {
-          return Observable.of(record);
-        });
       }
     }
 
-    private incrementCounter(record:any, counter:any, newVal:any) {
+    private incrementCounter(record: any, counter: any, newVal: any) {
       if (!_.isEmpty(counter.template)) {
-        const imports = _.extend({moment: moment, numeral: numeral, newVal: newVal}, counter);
-        const templateData = {imports: imports};
+        const imports = _.extend({ moment: moment, numeral: numeral, newVal: newVal }, counter);
+        const templateData = { imports: imports };
         const template = _.template(counter.template, templateData);
         newVal = template();
       }
@@ -173,7 +173,7 @@ export module Services {
       const emailProperty = _.get(options, "emailProperty", "email");
       const editContributorProperties = _.get(options, "editContributorProperties", []);
       const viewContributorProperties = _.get(options, "viewContributorProperties", []);
-      const recordCreatorPermissions = _.get(options,"recordCreatorPermissions");
+      const recordCreatorPermissions = _.get(options, "recordCreatorPermissions");
       let authorization = _.get(record, "authorization", {});
       let editContributorObs = [];
       let viewContributorObs = [];
@@ -193,35 +193,42 @@ export module Services {
         sails.log.error(`No viewers for record: ${oid}`);
       }
       _.each(editContributorEmails, editorEmail => {
-        editContributorObs.push(this.getObservable(User.findOne({email: editorEmail.toLowerCase()})));
+        editContributorObs.push(this.getObservable(User.findOne({ email: editorEmail.toLowerCase() })));
       });
       _.each(viewContributorEmails, viewerEmail => {
-        viewContributorObs.push(this.getObservable(User.findOne({email: viewerEmail.toLowerCase()})));
+        viewContributorObs.push(this.getObservable(User.findOne({ email: viewerEmail.toLowerCase() })));
       });
-
-      return Observable.zip(...editContributorObs)
-      .flatMap(editContributorUsers => {
-        let newEditList = [];
-        this.filterPending(editContributorUsers, editContributorEmails, newEditList);
-        if(recordCreatorPermissions == "edit" || recordCreatorPermissions == "view&edit") {
-            newEditList.push(record.metaMetadata.createdBy);
-        }
-        record.authorization.edit = newEditList;
-        record.authorization.editPending = editContributorEmails;
-        return Observable.zip(...viewContributorObs);
-      })
-      .flatMap(viewContributorUsers => {
-        let newviewList = [];
-        this.filterPending(viewContributorUsers, editContributorEmails, newviewList);
-        if(recordCreatorPermissions == "view" || recordCreatorPermissions == "view&edit") {
-            newviewList.push(record.metaMetadata.createdBy);
-        }
-        record.authorization.view = newviewList;
-        record.authorization.viewPending = viewContributorEmails;
+      let zippedViewContributorUsers = null
+      if (editContributorObs.length == 0) {
+        zippedViewContributorUsers = Observable.zip(...viewContributorObs);
+      } else {
+        zippedViewContributorUsers = Observable.zip(...editContributorObs)
+          .flatMap(editContributorUsers => {
+            let newEditList = [];
+            this.filterPending(editContributorUsers, editContributorEmails, newEditList);
+            if (recordCreatorPermissions == "edit" || recordCreatorPermissions == "view&edit") {
+              newEditList.push(record.metaMetadata.createdBy);
+            }
+            record.authorization.edit = newEditList;
+            record.authorization.editPending = editContributorEmails;
+            return Observable.zip(...viewContributorObs);
+          })
+      }
+      if (zippedViewContributorUsers.length == 0) {
         return Observable.of(record);
-      });
+      } else {
+        return zippedViewContributorUsers.flatMap(viewContributorUsers => {
+          let newviewList = [];
+          this.filterPending(viewContributorUsers, viewContributorEmails, newviewList);
+          if (recordCreatorPermissions == "view" || recordCreatorPermissions == "view&edit") {
+            newviewList.push(record.metaMetadata.createdBy);
+          }
+          record.authorization.view = newviewList;
+          record.authorization.viewPending = viewContributorEmails;
+          return Observable.of(record);
+        });
+      }
     }
-
   }
 }
 module.exports = new Services.RDMPS().exports();
