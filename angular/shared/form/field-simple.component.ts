@@ -233,11 +233,11 @@ export class DropdownFieldComponent extends SelectionComponent {
   </div>
   <div *ngIf="!field.editMode && field.visible" class="key-value-pair">
     <ng-container *ngIf="isRadio()">
-      <span *ngIf="field.label" class="key">{{field.label}}</span>
+      <span *ngIf="field.label" [innerHtml]="field.label" class="key"></span> GH
       <span class="value">{{getLabel(field.value)}}</span>
     </ng-container>
     <ng-container *ngIf="!isRadio()">
-      <span *ngIf="field.label" class="key">{{field.label}}</span>
+      <span *ngIf="field.label" [innerHtml]="field.label" class="key"></span>
       <span class="value" *ngIf="!isValArray()">{{getLabel(field.value)}}</span>
       <ng-container *ngIf="isValArray()">
         <div class="value" *ngFor="let val of field.value">

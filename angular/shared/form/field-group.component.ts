@@ -105,7 +105,7 @@ Generic component for grouping components together. The resulting JSON will have
       <div [formGroup]='form' [ngClass]="field.cssClasses">
         <dmp-field *ngFor="let field of field.fields" [field]="field" [form]="form" [fieldMap]="fieldMap"></dmp-field>
       </div>
-    </ng-container>
+    </ng-container> 
   </ng-container>
   <ng-container *ngIf="!field.editMode">
     <div [formGroup]='form' [ngClass]="field.cssClasses">
