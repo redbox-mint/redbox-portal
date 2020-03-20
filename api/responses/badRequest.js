@@ -41,7 +41,7 @@ module.exports = function badRequest(data, options) {
   // If the user-agent wants JSON, always respond with JSON
   // If views are disabled, revert to json
   if (req.wantsJSON || sails.config.hooks.views === false) {
-    return res.jsonx(data);
+    return res.json(data);
   }
 
   // If second argument is a string, we take that to mean it refers to a view.
@@ -69,7 +69,7 @@ module.exports = function badRequest(data, options) {
   // If no second argument provided, try to serve the implied view,
   // but fall back to sending JSON(P) if no view can be inferred.
   else return res.guessView({ data: viewData, title: 'Bad Request' }, function couldNotGuessView () {
-    return res.jsonx(data);
+    return res.json(data);
   });
 
 };
