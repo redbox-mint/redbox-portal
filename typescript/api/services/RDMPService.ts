@@ -41,7 +41,9 @@ export module Services {
 
     protected _exportedMethods: any = [
       'assignPermissions',
-      'processRecordCounters'
+      'processRecordCounters',
+      'stripUserBasedPermissions',
+      'restoreUserBasedPermissions'
     ];
 
     /**
@@ -228,6 +230,63 @@ export module Services {
           return Observable.of(record);
         });
       }
+    }
+
+    public stripUserBasedPermissions(oid, record, options, user) {
+      if (this.metTriggerCondition(oid, record, options) === "true") {
+        let mode = options.permissionTypes;
+        if (mode == null) {
+          mode = "edit"
+        }
+        if (record.authorization.stored == undefined) {
+          record.authorization.stored = {}
+        ]
+        if (mode == "edit" || mode == "view&edit") {
+
+            record.authorization.stored.edit = record.authorization.edit.slice()
+
+            if (record.authorization.editPending != undefined) {
+              record.authorization.stored.editPending = record.authorization.editPending.slice()
+            }
+          }
+          record.authorization.edit = [];
+          if (record.authorization.editPending != undefined) {
+            record.authorization.editPending = [];
+          }
+        }
+
+        if (mode == "view" || mode == "view&edit") {
+          if (record.authorization.stored == undefined) {
+            record.authorization.stored = {}
+          }
+            if (record.authorization.view != undefined) {
+              record.authorization.stored.view = record.authorization.view.slice()
+            }
+
+            if (record.authorization.viewPending != undefined) {
+              record.authorization.stored.viewPending = record.authorization.viewPending.slice()
+            }
+          }
+          record.authorization.view = [];
+          if (record.authorization.viewPending != undefined) {
+            record.authorization.viewPending = [];
+          }
+        }
+      }
+      return Observable.of(record);
+    }
+
+    public restoreUserBasedPermissions(oid, record, options, user) {
+      if (this.metTriggerCondition(oid, record, options) === "true") {
+        if (record.authorization.stored != undefined) {
+          record.authorization.edit = _.map(record.authorization.stored.edit, _.clone);
+          if (record.authorization.stored.editPending != undefined) {
+            record.authorization.editPending = _.map(record.stored.authorization.editPending, _.clone);
+          }
+          delete record.authorization.stored
+        }
+      }
+      return Observable.of(record);
     }
   }
 }
