@@ -240,15 +240,15 @@ export module Services {
         }
         if (record.authorization.stored == undefined) {
           record.authorization.stored = {}
-        ]
+        }
         if (mode == "edit" || mode == "view&edit") {
 
-            record.authorization.stored.edit = record.authorization.edit.slice()
+          record.authorization.stored.edit = record.authorization.edit.slice()
 
-            if (record.authorization.editPending != undefined) {
-              record.authorization.stored.editPending = record.authorization.editPending.slice()
-            }
+          if (record.authorization.editPending != undefined) {
+            record.authorization.stored.editPending = record.authorization.editPending.slice()
           }
+
           record.authorization.edit = [];
           if (record.authorization.editPending != undefined) {
             record.authorization.editPending = [];
@@ -256,17 +256,15 @@ export module Services {
         }
 
         if (mode == "view" || mode == "view&edit") {
-          if (record.authorization.stored == undefined) {
-            record.authorization.stored = {}
-          }
-            if (record.authorization.view != undefined) {
-              record.authorization.stored.view = record.authorization.view.slice()
-            }
 
-            if (record.authorization.viewPending != undefined) {
-              record.authorization.stored.viewPending = record.authorization.viewPending.slice()
-            }
+          if (record.authorization.view != undefined) {
+            record.authorization.stored.view = record.authorization.view.slice()
           }
+
+          if (record.authorization.viewPending != undefined) {
+            record.authorization.stored.viewPending = record.authorization.viewPending.slice()
+          }
+
           record.authorization.view = [];
           if (record.authorization.viewPending != undefined) {
             record.authorization.viewPending = [];
