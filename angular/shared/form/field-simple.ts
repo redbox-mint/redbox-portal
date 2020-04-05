@@ -312,9 +312,18 @@ export class SaveButton extends NotInFormField {
 
 export class CancelButton extends FieldBase<string> {
   label: string;
+  confirmationMessage: string;
+  confirmationTitle: string;
+  cancelButtonMessage: string;
+  confirmButtonMessage: string;
+
   constructor(options: any, injector: any) {
     super(options, injector);
     this.label =  this.getTranslated(options['label'], 'Cancel');
+    this.confirmationMessage = options['confirmationMessage'] ? this.getTranslated(options['confirmationMessage'], null) : null;
+    this.confirmationTitle = options['confirmationTitle'] ? this.getTranslated(options['confirmationTitle'], null) : null;
+    this.cancelButtonMessage = options['cancelButtonMessage'] ? this.getTranslated(options['cancelButtonMessage'], null ) : null;
+    this.confirmButtonMessage = options['confirmButtonMessage'] ? this.getTranslated(options['confirmButtonMessage'], null) : null;
   }
 }
 

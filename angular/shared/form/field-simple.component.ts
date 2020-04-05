@@ -527,12 +527,46 @@ export class SaveButtonComponent extends SimpleComponent {
 @Component({
   selector: 'cancel-button',
   template: `
-    <button type="button" class="btn btn-warning" [disabled]="fieldMap._rootComp.isSaving()" (click)="fieldMap._rootComp.onCancel()">{{field.label}}</button>
+    <button type="button" class="btn btn-warning" [disabled]="fieldMap._rootComp.isSaving()" (click)="cancel()">{{field.label}}</button>
+    <div *ngIf="field.confirmationMessage" class="modal fade" id="{{ field.name }}_confirmation" tabindex="-1" role="dialog" >
+      <div class="modal-dialog" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+            <h4 class="modal-title" id="{{ field.name }}_confirmation_label" [innerHtml]="field.confirmationTitle"></h4>
+          </div>
+          <div class="modal-body" [innerHtml]="field.confirmationMessage"></div>
+          <div class="modal-footer">
+            <button (click)="hideConfirmDlg()" type="button" class="btn btn-default" data-dismiss="modal" [innerHtml]="field.cancelButtonMessage"></button>
+            <button (click)="doAction()" type="button" class="btn btn-primary" [innerHtml]="field.confirmButtonMessage"></button>
+          </div>
+        </div>
+      </div>
+    </div>
   `,
 })
 export class CancelButtonComponent extends SimpleComponent {
   public field: CancelButton;
 
+  showConfirmDlg() {
+    jQuery(`#${this.field.name}_confirmation`).modal('show');
+  }
+
+  hideConfirmDlg() {
+    jQuery(`#${this.field.name}_confirmation`).modal('hide');
+  }
+
+  public cancel() {
+    if(this.field.confirmationMessage != null && this.fieldMap._rootComp.needsSave) {
+      this.showConfirmDlg();
+    }else {
+      this.doAction();
+    }
+  }
+
+  public doAction() {
+    this.fieldMap._rootComp.onCancel();
+  }
 }
 
 
