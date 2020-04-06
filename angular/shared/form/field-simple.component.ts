@@ -224,7 +224,7 @@ export class DropdownFieldComponent extends SelectionComponent {
           <!-- radio type hard-coded otherwise accessor directive will not work! -->
           <input *ngIf="isRadio()" type="radio" name="{{field.name}}" [id]="field.name + '_' + opt.value" [formControl]="getFormControl()" [value]="opt.value" [attr.disabled]="field.readOnly ? '' : null ">
           <input *ngIf="!isRadio()" type="{{field.controlType}}" name="{{field.name}}" [id]="field.name + '_' + opt.value" [value]="opt.value" (change)="onChange(opt, $event)" [attr.selected]="getControlFromOption(opt)" [attr.checked]="getControlFromOption(opt)" [attr.disabled]="field.readOnly ? '' : null ">
-          <label for="{{field.name + '_' + opt.value}}" class="radio-label">{{ opt.label }}</label>
+          <label for="{{field.name + '_' + opt.value}}" class="radio-label"  [innerHtml]="opt.label"></label>
           <br/>
         </span>
      </fieldset>
@@ -233,7 +233,7 @@ export class DropdownFieldComponent extends SelectionComponent {
   </div>
   <div *ngIf="!field.editMode && field.visible" class="key-value-pair">
     <ng-container *ngIf="isRadio()">
-      <span *ngIf="field.label" [innerHtml]="field.label" class="key"></span> GH
+      <span *ngIf="field.label" [innerHtml]="field.label" class="key"></span>
       <span class="value">{{getLabel(field.value)}}</span>
     </ng-container>
     <ng-container *ngIf="!isRadio()">
