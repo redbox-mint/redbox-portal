@@ -43,11 +43,12 @@ export class NotInFormField extends FieldBase<any> {
 export class SelectionField extends FieldBase<any>  {
   selectOptions: any[] = [];
   storeValueAndLabel:boolean = false;
+  valueIsLink: boolean;
 
   constructor(options: any, injector: any) {
     super(options, injector);
 
-
+    this.valueIsLink = options.valueIsLink? options.valueIsLink: false;
     // this.options = options['options'] || [];
     if(options.selectFor && options.defaultSelect) {
       const newOptions = _.defaultTo(

@@ -186,7 +186,8 @@ export class SelectionComponent extends SimpleComponent {
   <div *ngIf="!field.editMode && field.visible" class="key-value-pair">
     <span class="key" *ngIf="field.label">{{field.label}}</span>
     <ng-template [ngIf]="!field.storeValueAndLabel">
-    <span class="value">{{getLabel(field.value)}}</span>
+    <span *ngIf="!field.valueIsLink" target="_blank" class="value">{{getLabel(field.value)}}</span>
+    <a *ngIf="field.valueIsLink" href="{{field.value}}" class="value">{{getLabel(field.value)}}</a>
     </ng-template>
     <ng-template [ngIf]="field.storeValueAndLabel && field.value.value != ''">
     <span class="value">{{getLabel(field.value.value)}}</span>
@@ -234,14 +235,13 @@ export class DropdownFieldComponent extends SelectionComponent {
   <div *ngIf="!field.editMode && field.visible" class="key-value-pair">
     <ng-container *ngIf="isRadio()">
       <span *ngIf="field.label" [innerHtml]="field.label" class="key"></span>
-      <span class="value">{{getLabel(field.value)}}</span>
+      <span class="value" [innerHtml]="getLabel(field.value)"></span>
     </ng-container>
     <ng-container *ngIf="!isRadio()">
       <span *ngIf="field.label" [innerHtml]="field.label" class="key"></span>
-      <span class="value" *ngIf="!isValArray()">{{getLabel(field.value)}}</span>
+      <span class="value" *ngIf="!isValArray()" [innerHtml]="getLabel(field.value)"></span>
       <ng-container *ngIf="isValArray()">
-        <div class="value" *ngFor="let val of field.value">
-          {{getLabel(val)}}
+        <div class="value" *ngFor="let val of field.value" [innerHtml]="getLabel(field.value)">
         </div>
       </ng-container>
     </ng-container>
