@@ -25,6 +25,7 @@ import { RecordsService } from './records.service';
 import moment from 'moment-es6';
 
 
+declare var jQuery: any;
 
 /**
  * Contributor Model
@@ -129,19 +130,19 @@ export class PDFListComponent extends SimpleComponent implements OnInit {
       let matchingExpression = new RegExp(`${this.field.startsWith}-[0-9a-fA-F]{32}-[0-9]+\.pdf`);
       var that = this;
       allAttachmentsPromise.then(allAttachments => {
-        this.field.latestPdf = null;
+        that.field.latestPdf = null;
         _.forEach(allAttachments, (attachment:any) => {
           if(matchingExpression.test(attachment.label)) {
 
             attachment.dateUpdated = moment(attachment.dateUpdated).format('LLL');
-            this.field.pdfAttachments.push(attachment);
-            if(this.field.latestPdf == null || moment(this.field.latestPdf['dateUpdated']).isBefore(moment(attachment.dateUpdated))) {
-              this.field.latestPdf = attachment;
+            that.field.pdfAttachments.push(attachment);
+            if(that.field.latestPdf == null || moment(that.field.latestPdf['dateUpdated']).isBefore(moment(attachment.dateUpdated))) {
+              that.field.latestPdf = attachment;
             }
           }
         });
 
-        this.field.pdfAttachments.sort(function compare(a, b) {
+        that.field.pdfAttachments.sort(function compare(a, b) {
           let before = moment(a['dateUpdated']).isBefore(moment(b['dateUpdated']));
           //We want descending order so let's reverse it
           return before ? 1 : -1;
@@ -164,5 +165,11 @@ export class PDFListComponent extends SimpleComponent implements OnInit {
     } else {
       return url;
     }
+  }
+
+  // as of writing, there seems to be issues with selecting the dialog by ID, switching to selecting by style
+  public showDialog() {
+      const diagSel = `.${this.field.downloadPrefix}PdfDialog`;
+      jQuery(diagSel).modal('show');
   }
 }
