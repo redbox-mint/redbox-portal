@@ -71,7 +71,8 @@
     "start": "node app.js",
     "test": "node ./node_modules/mocha/bin/mocha test/bootstrap.test.js test/unit/**/*.test.js",
     "api-test": "node test/postman/runNewmanTests.js",
-    "doc-ng2": "npm -g install @compodoc/compodoc; npm -g install ejs-cli; compodoc -p angular/tsconfig.json -d support/docs/generated/ng2 -n \"ReDBox Portal - NG2 Apps\" --theme postmark --includes support/docs; ejs-cli views/default/default/apidocsapib.ejs -O '{\"portal\":\"rdmp\",\"branding\":\"default\"}' > apidocs.apib; docker run -it --rm -v $PWD:/doc quay.io/bukalapak/snowboard html -o rest-api.html apidocs.apib; mv -f rest-api.html support/docs/generated/ng2/additional-documentation"
+    "doc-ng2": "npm -g install @compodoc/compodoc; npm -g install ejs-cli; compodoc -p angular/tsconfig.json -d support/docs/generated/ng2 -n \"ReDBox Portal - NG2 Apps\" --theme postmark --includes support/docs; ejs-cli views/default/default/apidocsapib.ejs -O '{\"portal\":\"rdmp\",\"branding\":\"default\"}' > apidocs.apib; docker run -it --rm -v $PWD:/doc quay.io/bukalapak/snowboard html -o rest-api.html apidocs.apib; mv -f rest-api.html support/docs/generated/ng2/additional-documentation",
+    "compile": "./node_modules/.bin/tsc --project tsconfig.json"
   },
   "main": "app.js",
   "repository": {
