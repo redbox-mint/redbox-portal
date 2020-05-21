@@ -249,6 +249,7 @@ module.exports.routes = {
     csrf: false
   },
   'get /:branding/:portal/api/records/metadata/:oid': 'webservice/RecordController.getMeta',
+  'get /:branding/:portal/api/records/list': 'webservice/RecordController.listRecords',  
   'get /:branding/:portal/api/records/objectmetadata/:oid': 'webservice/RecordController.getObjectMeta',
   'post /:branding/:portal/api/records/permissions/edit/:oid': {
     controller: 'webservice/RecordController',

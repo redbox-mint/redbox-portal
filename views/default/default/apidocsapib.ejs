@@ -8,6 +8,42 @@ The ReDBox Portal API provides authorized access to manage functions.
 
 ## Record Collection
 
+### List records in the system [GET /<%= branding %>/<%= portal %>/api/records/list]
++ Parameters
+    + packageType (string) ... The type of package
+    + recordType (string) ... The type of record
+    + sort (object) ... Sort by object Example: date_object_modified:-1
+    + start (number) ... The number to start the records
+    + rows (number) ... The number of records per request
+
++ Request Get Records (application/json)
+  + Headers
+    Authorization: Bearer abcabcab-abca-abca-abca-abcabcabcabc
+  + Body
+  {
+    "totalItems": 3,
+    "currentPage": 1,
+    "noItems": 3,
+    "items": [
+      {
+        "oid": "946a62900e045873b0318f44e775d7da",
+        "title": "test3",
+        "metadata": {
+          ...
+        },
+        "dateCreated": "2020-05-20T06:22:56.113Z",
+        "dateModified": "2020-05-20T06:22:56.121Z",
+        "hasEditAccess": true
+      },
+      {
+        ...
+      },
+      {
+        ...
+      }
+    ]
+  }
+
 ### Create Record [POST /<%= branding %>/<%= portal %>/api/records/metadata/{recordType}]
 + Parameters
   + recordType (string) ... The type of record to create
