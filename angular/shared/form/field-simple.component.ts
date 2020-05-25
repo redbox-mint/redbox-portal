@@ -241,7 +241,7 @@ export class DropdownFieldComponent extends SelectionComponent {
       <span *ngIf="field.label" [innerHtml]="field.label" class="key"></span>
       <span class="value" *ngIf="!isValArray()" [innerHtml]="getLabel(field.value)"></span>
       <ng-container *ngIf="isValArray()">
-        <div class="value" *ngFor="let val of field.value" [innerHtml]="getLabel(field.value)">
+        <div class="value" *ngFor="let val of field.value" [innerHtml]="getLabel(val)">
         </div>
       </ng-container>
     </ng-container>
