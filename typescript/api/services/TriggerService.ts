@@ -39,9 +39,19 @@ export module Services {
   export class Trigger extends services.Services.Core.Service {
 
     protected _exportedMethods: any = [
-      'transitionWorkflow'
+      'transitionWorkflow',
+      'runHooksSync'
     ];
 
+    /**
+     * Used in changing the workflow stages automatically based on configuration.
+     *
+     * @author <a target='_' href='https://github.com/shilob'>Shilo Banihit</a>
+     * @param  oid
+     * @param  record
+     * @param  options
+     * @return
+     */
     public transitionWorkflow(oid, record, options) {
       const triggerCondition = _.get(options, "triggerCondition", "");
 
@@ -60,6 +70,51 @@ export module Services {
         _.set(record, "metaMetadata.form", _.get(options, "targetForm", record.metaMetadata.form));
       }
 
+      return Observable.of(record);
+    }
+
+    /**
+     *
+     * By default, hooks are launched asynch, this method allows for synch running of hooks while not blocking the save request thread.
+     * Will work as pre and post hooks.
+     *
+     *
+     * @author <a target='_' href='https://github.com/shilob'>Shilo Banihit</a>
+     * @param  oid
+     * @param  record
+     * @param  options
+     * map of:
+     *   "hooks" - array, same structure as that of hook option's "pre" and "post" fields
+     * @return
+     */
+    public runHooksSync(oid, record, options, user) {
+      sails.log.debug(`runHooksSync, starting...`);
+      sails.log.debug(JSON.stringify(options));
+      const hookFnArray = _.get(options, 'hooks');
+      const obs = [];
+      _.each(hookFnArray, (hookFnDef) => {
+        const hookFnStr = _.get(hookFnDef, "function", null);
+        if (!_.isEmpty(hookFnStr) && _.isString(hookFnStr)) {
+          const hookFn = eval(hookFnStr);
+          const hookOpt = _.get(hookFnDef, "options");
+          if (_.isFunction(hookFn)) {
+            obs.push(hookFn(oid, record, hookOpt, user));
+          } else {
+            sails.log.error(`runHooksSync, this is not a valid function: ${hookFnStr}`);
+            sails.log.error(hookFnDef);
+          }
+        } else {
+          sails.log.error(`runHooksSync, expected a string function name, got: ${hookFnStr}`);
+          sails.log.error(hookFnDef);
+        }
+      });
+      if (!_.isEmpty(obs)) {
+        sails.log.debug(`runHooksSync, running:`);
+        sails.log.debug(JSON.stringify(obs));
+        return Observable.concat(obs).toArray();
+      } else {
+        sails.log.debug(`runHooksSync, no observables to run`);
+      }
       return Observable.of(record);
     }
 
