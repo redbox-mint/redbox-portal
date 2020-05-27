@@ -20,7 +20,6 @@
 import { Observable } from 'rxjs/Rx';
 import services = require('../core/CoreService.js');
 import { Sails, Model } from "sails";
-import { RedboxToCkan } from "redbox2ckan"
 
 declare var sails: Sails;
 declare var RecordType: Model;

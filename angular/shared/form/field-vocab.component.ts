@@ -385,7 +385,7 @@ class MintLookupDataService extends Subject<CompleterItem[]> implements Complete
     if (!data) {
       return null;
     }
-    const item = {};
+    const item:any = {};
     _.forEach(this.fields, (fieldName) => {
       if (_.isString(fieldName)) {
         item[fieldName] = data[fieldName];

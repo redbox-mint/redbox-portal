@@ -3,11 +3,10 @@ export buildTarget="PROD"
 set -e
 source dev_build/buildFns.sh
 cleanUpAllJs
-npm install -g yarn
-yarn cache clean
-yarn install
+npm cache clean
+npm install
 cd angular
-yarn install
+npm install
 cd -
 compileAoT
 convertApiSpec
