@@ -3,7 +3,7 @@ export buildTarget="PROD"
 set -e
 source dev_build/buildFns.sh
 cleanUpAllJs
-npm cache clean
+
 npm install
 cd angular
 npm install
