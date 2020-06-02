@@ -227,11 +227,14 @@ export module Controllers {
 
 
 
-          if ((err) || (!user)) {
-              return res.send({
-                  message: info.message,
-                  user: user
-              });
+          if (!_.isEmpty(err) || _.isUndefined(user)) {
+            sails.log.error(`OpenId Connect Login failed!`)
+            // means the provider has authenticated the user, but has been rejected, redirect to catch-all
+              return res.redirect(`${BrandingService.getBrandAndPortalPath(req)}/home?errorTextCode=error-auth&errorTextRaw=${err}`);
+              // return res.send({
+              //     message: info.message,
+              //     user: user
+              // });
           }
           req.logIn(user, function(err) {
             if (err) res.send(err);

@@ -672,3 +672,5 @@
   "@pdf-download": "Download a PDF of this plan",
   "@pdf-download-previous": "Download a previous version"
 }
+  "error-header": "Application Error",
+  "error-auth": "Apologies, we've encountered an issue with your user credentials. Please contact the application administrator.",

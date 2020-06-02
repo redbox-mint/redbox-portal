@@ -5,13 +5,30 @@
 <div class="default-page">
   <div class="header">
     <h1 id="main-title" class="container"><%= TranslationService.t('welcome-title') %></h1>
-    <div class="container"><%= TranslationService.t('welcome-homepage-text') %></div>
+    <!-- Placeholder for error messages, etc. -->
+    <% if (req.query.errorTextCode) { %>
+
+      <div class="main container clearfix">
+        <h2 class="text-danger text-center">
+          <%= TranslationService.t('error-header') %>
+        </h2>
+        <h3 class="text-danger">
+          <%= TranslationService.t(req.query.errorTextCode) %>
+        </h3>
+        <% if (req.query.errorTextRaw) { %>
+          <p class="text-muted">
+            <%= req.query.errorTextRaw %>
+          </p>
+        <% } %>
+      </div>
+    <% } else {%>
+      <div class="container"><%= TranslationService.t('welcome-homepage-text') %></div>
+      <div class="main container clearfix">
+        <br/>
+        <a href="<%= BrandingService.getBrandAndPortalPath(req) %>/researcher/home"><%= TranslationService.t('welcome-dashboard-link-text') %></a>
+      </div>
+    <% } %>
     <br/>
   </div>
-
-  <div class="main container clearfix">
-    <a href="<%= BrandingService.getBrandAndPortalPath(req) %>/researcher/home"><%= TranslationService.t('welcome-dashboard-link-text') %></a>
-  </div>
-
 
 </div>
