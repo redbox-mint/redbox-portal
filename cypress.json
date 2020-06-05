@@ -1,0 +1,23 @@
+{
+  "chromeWebSecurity": false,
+  "baseUrl": "http://localhost:1500",
+  "env": {
+    "username": "admin",
+    "password": "rbadmin",
+    "rdmp": {
+      "title": "my project title",
+      "id": "id-1",
+      "description": "description",
+      "keywords": "keyword",
+      "ci_name": "Moises Sacal Bonequi{downarrow}{enter}",
+      "ci_email": "Moises.Sacal@uts.edu.au",
+      "DataCollectionMethodology": "collection methodology",
+      "Dataset_dc_format": "xls",
+      "extent": "less than 100GB",
+      "location_rdf": "personal equipment (e.g. external drive, own laptop, etc)",
+      "source_dc": "personal equipment (e.g. external drive, own laptop, etc)",
+      "retentionPeriod_dc": "5years",
+      "rightsHolder_dc": "student"
+    }
+  }
+}

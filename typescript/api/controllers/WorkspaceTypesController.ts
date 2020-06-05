@@ -48,7 +48,8 @@ export module Controllers {
 			'get',
 			'getOne',
 			'uploadLogo',
-			'renderImage'
+			'renderImage',
+			'getAvailableWorkspaces'
 		];
 
 		public bootstrap() {
@@ -108,6 +109,11 @@ export module Controllers {
 					}
 				});
 			});
+		}
+
+		getAvailableWorkspaces(req, res) {
+			const workspaces = sails.config.workspaces.available;
+			this.ajaxOk(req, res, null, { status: true, workspaces: workspaces });
 		}
 	}
 }

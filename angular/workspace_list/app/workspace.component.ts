@@ -1,4 +1,4 @@
-import { Component, Injectable, Inject, ElementRef, ApplicationRef} from '@angular/core';
+import { Component, Injectable, Inject, ElementRef, ApplicationRef } from '@angular/core';
 import { DOCUMENT } from '@angular/platform-browser';
 import { FormArray, FormGroup, FormControl, Validators, FormBuilder } from '@angular/forms';
 import { UserSimpleService } from './shared/user.service-simple';
@@ -7,10 +7,11 @@ import { PlanTable, Plan } from './shared/dashboard-models';
 import * as _ from "lodash";
 import { LoadableComponent } from './shared/loadable.component';
 import { OnInit } from '@angular/core';
-import { PaginationModule, TooltipModule} from 'ngx-bootstrap';
+import { PaginationModule, TooltipModule } from 'ngx-bootstrap';
 import { TranslationService } from './shared/translation-service';
 import { RecordsService } from './shared/form/records.service';
 import { RelatedObjectSelectorField } from './shared/form/field-relatedobjectselector.component';
+import { WorkspaceTypeService } from './shared/workspace-service';
 
 declare var pageData: any;
 declare var jQuery: any;
@@ -26,14 +27,15 @@ export class WorkspaceListComponent extends LoadableComponent implements OnInit 
   portal: string;
   packageType: string;
   recordColLabel: string;
-  typeColLabel:string;
+  typeColLabel: string;
   linkColLlabel: string;
   rdmpColLabel: string;
   descriptionColLabel: string;
   createWorkspaceLabel: string;
+  searchLabel: string;
 
-  workflowSteps:any = [];
-  records:any;
+  workflowSteps: any = [];
+  records: any;
   saveMsgType = "info";
   initSubs: any;
   createMode: boolean;
@@ -42,8 +44,13 @@ export class WorkspaceListComponent extends LoadableComponent implements OnInit 
   nextButtonLabel: string;
   backButtonLabel: string;
 
-  constructor( @Inject(DashboardService) protected dashboardService: DashboardService,  protected recordsService: RecordsService, @Inject(DOCUMENT) protected document: any, protected elementRef: ElementRef, public translationService:TranslationService,
-protected app: ApplicationRef ) {
+  services: any = [];
+  rdmpUrl: string = '';
+  requestButtonLabel: string = 'Next';
+  selectedOID: string;
+
+  constructor(@Inject(WorkspaceTypeService) protected workspaceTypeService: WorkspaceTypeService, @Inject(DashboardService) protected dashboardService: DashboardService, protected recordsService: RecordsService, @Inject(DOCUMENT) protected document: any, protected elementRef: ElementRef, public translationService: TranslationService,
+    protected app: ApplicationRef) {
     super();
     this.setLoading(true);
     this.initTranslator(this.translationService);
@@ -53,7 +60,7 @@ protected app: ApplicationRef ) {
     this.branding = this.elementRef.nativeElement.getAttribute('branding');
     this.portal = this.elementRef.nativeElement.getAttribute('portal');
     this.packageType = this.elementRef.nativeElement.getAttribute('packageType');
-    this.initSubs = this.dashboardService.waitForInit((initStat:boolean) => {
+    this.initSubs = this.dashboardService.waitForInit((initStat: boolean) => {
       this.initSubs.unsubscribe();
       this.translationService.isReady(tService => {
         this.typeColLabel = this.getTranslated(`workspaces-type-column`, "Type");
@@ -61,22 +68,32 @@ protected app: ApplicationRef ) {
         this.recordColLabel = this.getTranslated(`workspaces-title-column`, "Name");
         this.linkColLlabel = this.getTranslated(`workspaces-link-column`, "Location");
         this.rdmpColLabel = this.getTranslated(`workspaces-rdmp-column`, "Plan");
-        this.createWorkspaceLabel = this.getTranslated('create-workspace', "Create Workspace");
+        this.searchLabel = this.getTranslated('create-workspace-selector-search', 'Search for your Data Management Plan');
+        this.createWorkspaceLabel = this.getTranslated('create-workspace', "Find a plan to create a research workspace");
         this.nextButtonLabel = this.getTranslated('create-workspace-next', "Next");
         this.backButtonLabel = this.getTranslated('create-workspace-back', "Back");
-        this.dashboardService.getRecords(null,null,1,this.packageType).then((stagedRecords: PlanTable) => {
+        this.dashboardService.getRecords(null, null, 1, this.packageType).then((stagedRecords: PlanTable) => {
           this.setDashboardTitle(stagedRecords);
           this.records = stagedRecords;
           this.checkIfHasLoaded();
+          this.workspaceTypeService.getAvailableWorkspaces().then(response => {
+            if(response['status']) {
+              this.services = _.concat(this.services, response['workspaces']);
+            } else {
+              throw new Error('cannot get workspaces');
+            }
+          }).catch(error => {
+            console.log(error);
+          });
         });
-
       });
+      this.rdmpUrl = `${this.dashboardService.getBrandingAndPortalUrl}/record/rdmp/edit`;
     });
   }
 
   protected setDashboardTitle(planTable: PlanTable) {
     _.forEach(planTable.items, (plan: Plan) => {
-      plan.dashboardTitle = (_.isUndefined(plan.title) || _.isEmpty(plan.title) || _.isEmpty(plan.title[0])) ? this.translationService.t('plan-with-no-title'): plan.title;
+      plan.dashboardTitle = (_.isUndefined(plan.title) || _.isEmpty(plan.title) || _.isEmpty(plan.title[0])) ? this.translationService.t('plan-with-no-title') : plan.title;
     });
   }
 
@@ -84,8 +101,8 @@ protected app: ApplicationRef ) {
     return this.translatorReady && !_.isEmpty(this.records);
   }
 
-  public pageChanged(event:any):void {
-    this.dashboardService.getRecords(null,null,event.page,this.packageType).then((stagedRecords: PlanTable) => {
+  public pageChanged(event: any): void {
+    this.dashboardService.getRecords(null, null, event.page, this.packageType).then((stagedRecords: PlanTable) => {
       this.setDashboardTitle(stagedRecords);
       this.records = stagedRecords;
     });
@@ -96,11 +113,11 @@ protected app: ApplicationRef ) {
     if (!_.isEmpty(key) && !_.isUndefined(key)) {
       if (_.isFunction(key.startsWith)) {
         let translatedValue = this.translationService.t(key);
-        if(translatedValue == key) {
-        return defValue;
-      } else {
-        return translatedValue;
-      }
+        if (translatedValue == key) {
+          return defValue;
+        } else {
+          return translatedValue;
+        }
       } else {
         return key;
       }
@@ -114,7 +131,7 @@ protected app: ApplicationRef ) {
     if (!this.selectorField) {
       this.selectorField = new RelatedObjectSelectorField(
         {
-          label: this.getTranslated('create-workspace-selector-header', 'RDMP related to this workspace'),
+          label: this.getTranslated('create-workspace-selector-header', 'Data Management Plan'),
           name: 'rdmp',
           recordType: 'rdmp',
           editMode: true
@@ -124,11 +141,24 @@ protected app: ApplicationRef ) {
       this.selectorField.createFormModel();
 
       this.selectorField.relatedObjectSelected.subscribe((oid) => {
+        this.selectedOID = oid;
         this.selectedRdmpUrl = `${this.dashboardService.getBrandingAndPortalUrl}/record/edit/${oid}?focusTabId=workspaces`;
       });
       this.selectorField.resetSelectorEvent.subscribe(() => {
         this.selectedRdmpUrl = null;
       });
+    }
+  }
+
+  goToWorkspace(app) {
+    if (app && app.id) {
+      let type = '';
+      if (app.type) {
+        type = `&appType=${app.type}`;
+      }
+      return `${this.dashboardService.getBrandingAndPortalUrl}/record/${app.id}/edit?rdmp=${this.selectedOID}${type}`;
+    } else {
+      return `${this.dashboardService.getBrandingAndPortalUrl}/record/edit/${this.selectedOID}?focusTabId=workspaces`;
     }
   }
 

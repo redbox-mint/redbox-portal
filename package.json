@@ -53,6 +53,7 @@
     "sails-hook-autoreload": "^1.1.0",
     "sails-hook-grunt": "^3.1.0",
     "sails-hook-orm": "^2.0.0",
+    "sails-hook-redbox-gitlab": "https://github.com/moisbo/sails-hook-redbox-gitlab.git",
     "sails-hook-sockets": "^1.5.2",
     "sails-mongo": "^1.0.0",
     "skipper-gridfs": "https://github.com/marcelomedina10/skipper-gridfs.git",
@@ -71,7 +72,9 @@
     "test": "node ./node_modules/mocha/bin/mocha test/bootstrap.test.js test/unit/**/*.test.js",
     "api-test": "node test/postman/runNewmanTests.js",
     "doc-ng2": "npm -g install @compodoc/compodoc; npm -g install ejs-cli; compodoc -p angular/tsconfig.json -d support/docs/generated/ng2 -n \"ReDBox Portal - NG2 Apps\" --theme postmark --includes support/docs; ejs-cli views/default/default/apidocsapib.ejs -O '{\"portal\":\"rdmp\",\"branding\":\"default\"}' > apidocs.apib; docker run -it --rm -v $PWD:/doc quay.io/bukalapak/snowboard html -o rest-api.html apidocs.apib; mv -f rest-api.html support/docs/generated/ng2/additional-documentation",
-    "compile": "./node_modules/.bin/tsc --project tsconfig.json"
+    "compile": "./node_modules/.bin/tsc --project tsconfig.json",
+    "cypress:open": "./node_modules/.bin/cypress open ",
+    "cypress:run": "./node_modules/.bin/cypress run "
   },
   "main": "app.js",
   "repository": {
@@ -88,6 +91,7 @@
     "@types/lodash-es": "^4.14.5",
     "bower": "^1.8.0",
     "chai": "^4.1.0",
+    "cypress": "^4.7.0",
     "ejs-cli": "^2.0.1",
     "grunt": "^1.1.0",
     "grunt-contrib-cssmin": "^3.0.0",

@@ -34,6 +34,7 @@ import { MapField, MapComponent } from './form/field-map.component';
 import { GenericGroupComponent, RepeatableGroupComponent } from './form/field-group.component';
 import { WorkspaceSelectorField } from './form/workspace-field.component';
 import { WorkspaceSelectorComponent, WorkspaceSelectorFieldComponent } from './form/workspace-selector.component';
+import { WorkspaceSelectComponent, WorkspaceSelectFieldComponent } from './form/workspace-select.component';
 import { ANDSVocabField, ANDSVocabComponent } from './form/field-andsvocab.component'
 import { PDFListField, PDFListComponent } from './form/field-pdflist.component';
 import { AsynchField, AsynchComponent } from './form/field-asynch.component';
@@ -67,7 +68,7 @@ export const fieldClasses=  {
   'RecordMetadataRetriever':{ 'meta': RecordMetadataRetrieverField, 'comp': RecordMetadataRetrieverComponent},
   'RelatedObjectSelector':{ 'meta': RelatedObjectSelectorField, 'comp': RelatedObjectSelectorComponent},
   'DataLocation':{ 'meta': DataLocationField, 'comp': DataLocationComponent},
-  'WorkspaceSelectorField' : { 'meta': WorkspaceSelectorField, 'comp': [WorkspaceSelectorComponent, WorkspaceSelectorFieldComponent] },
+  'WorkspaceSelectorField' : { 'meta': WorkspaceSelectorField, 'comp': [WorkspaceSelectorComponent, WorkspaceSelectorFieldComponent, WorkspaceSelectComponent, WorkspaceSelectFieldComponent] },
   'PublishDataLocationSelector':{ 'meta': PublishDataLocationSelectorField, 'comp': PublishDataLocationSelectorComponent},
   'TabNavButton': {'meta': TabNavButton, 'comp': TabNavButtonComponent},
   'Spacer': {'meta': Spacer, 'comp': SpacerComponent},

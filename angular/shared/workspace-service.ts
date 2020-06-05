@@ -51,4 +51,11 @@ export class WorkspaceTypeService extends BaseService {
     .toPromise()
     .then((res:any) => this.extractData(res));
   }
+  
+  getAvailableWorkspaces() : Promise<any[]> {
+  console.log('getting workspaces list');
+  return this.http.get(`${this.brandingAndPortalUrl}/workspaces/available`, this.options)
+  .toPromise()
+  .then((res:any) => this.extractData(res));
+}
 }

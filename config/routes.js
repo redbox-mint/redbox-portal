@@ -249,7 +249,7 @@ module.exports.routes = {
     csrf: false
   },
   'get /:branding/:portal/api/records/metadata/:oid': 'webservice/RecordController.getMeta',
-  'get /:branding/:portal/api/records/list': 'webservice/RecordController.listRecords',  
+  'get /:branding/:portal/api/records/list': 'webservice/RecordController.listRecords',
   'get /:branding/:portal/api/records/objectmetadata/:oid': 'webservice/RecordController.getObjectMeta',
   'post /:branding/:portal/api/records/permissions/edit/:oid': {
     controller: 'webservice/RecordController',
@@ -291,5 +291,6 @@ module.exports.routes = {
   },
 
   'get /:branding/:portal/workspaces/types/:name' : 'WorkspaceTypesController.getOne',
-  'get /:branding/:portal/workspaces/types' : 'WorkspaceTypesController.get'
+  'get /:branding/:portal/workspaces/types' : 'WorkspaceTypesController.get',
+  'get /:branding/:portal/workspaces/available' : 'WorkspaceTypesController.getAvailableWorkspaces',
 };

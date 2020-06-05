@@ -3,6 +3,7 @@ import { BrowserModule } from '@angular/platform-browser';
 import { ReactiveFormsModule, FormsModule} from "@angular/forms";
 import { HttpModule } from '@angular/http';
 import { WorkspaceListComponent }  from './workspace.component';
+import { WorkspaceTypeService } from './shared/workspace-service';
 import { PaginationModule,TooltipModule } from 'ngx-bootstrap';
 import { SharedModule } from './shared/shared.module';
 import * as $ from 'jquery';
@@ -21,7 +22,7 @@ import * as $ from 'jquery';
 @NgModule({
   imports:      [ BrowserModule, HttpModule, ReactiveFormsModule, FormsModule, PaginationModule.forRoot(), TooltipModule.forRoot(), SharedModule ],
   declarations: [ WorkspaceListComponent ],
-  providers:    [],
+  providers:    [ WorkspaceTypeService ],
   bootstrap:    [ WorkspaceListComponent ],
   entryComponents: [ ]
 })

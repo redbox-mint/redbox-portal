@@ -95,16 +95,17 @@ export module Controllers {
       const oid = req.param('oid') ? req.param('oid') : '';
       const recordType = req.param('recordType') ? req.param('recordType') : '';
       const rdmp = req.query.rdmp ? req.query.rdmp : '';
+      const appType = req.query.appType ? req.query.appType : '';
       let appSelector = 'dmp-form';
       let appName = 'dmp';
-      sails.log.debug('RECORD::APP: ' + appName)
+      sails.log.debug(`RECORD::APP: ${appName} ${appType}`);
       if (recordType != '') {
         FormsService.getForm(brand.id, recordType, true, true).subscribe(form => {
           if (form['customAngularApp'] != null) {
             appSelector = form['customAngularApp']['appSelector'];
             appName = form['customAngularApp']['appName'];
           }
-          return this.sendView(req, res, 'record/edit', { oid: oid, rdmp: rdmp, recordType: recordType, appSelector: appSelector, appName: appName });
+          return this.sendView(req, res, 'record/edit', { oid: oid, rdmp: rdmp, recordType: recordType, appSelector: appSelector, appName: appName, appType: appType });
         });
       } else {
         RecordsService.getMeta(oid).flatMap(record => {
@@ -116,9 +117,9 @@ export module Controllers {
             appSelector = form['customAngularApp']['appSelector'];
             appName = form['customAngularApp']['appName'];
           }
-          return this.sendView(req, res, 'record/edit', { oid: oid, rdmp: rdmp, recordType: recordType, appSelector: appSelector, appName: appName });
+          return this.sendView(req, res, 'record/edit', { oid: oid, rdmp: rdmp, recordType: recordType, appSelector: appSelector, appName: appName, appType: appType });
         }, error => {
-          return this.sendView(req, res, 'record/edit', { oid: oid, rdmp: rdmp, recordType: recordType, appSelector: appSelector, appName: appName });
+          return this.sendView(req, res, 'record/edit', { oid: oid, rdmp: rdmp, recordType: recordType, appSelector: appSelector, appName: appName, appType: appType });
         });
 
       }

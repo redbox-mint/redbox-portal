@@ -132,6 +132,7 @@ export class WorkspaceSelectorField extends FieldBase<any>  {
   rdmp: string;
   workspaceTypeService: WorkspaceTypeService;
   workspaceApp: any;
+  services: any = [];
   appLink: string;
 
   constructor(options: any, injector: any) {
@@ -148,14 +149,23 @@ export class WorkspaceSelectorField extends FieldBase<any>  {
     });
     this.appLink = this.workspaceTypeService.getBrand() + '/record/';
     this.workspaceTypeService.getWorkspaceTypes().then(response => {
-      if(response['status']) {
+      if (response['status']) {
         //append results from database into workspaceApps
         this.workspaceApps = _.concat(this.workspaceApps, response['workspaceTypes']);
       } else {
         throw new Error('cannot get workspaces');
       }
     }).catch(error => {
-      console.log(error);
+      console.error(error);
+    });
+    this.workspaceTypeService.getAvailableWorkspaces().then(response => {
+      if (response['status']) {
+        this.services = _.concat(this.services, response['workspaces']);
+      } else {
+        throw new Error('cannot get workspaces');
+      }
+    }).catch(error => {
+      console.error(error);
     });
   }
 

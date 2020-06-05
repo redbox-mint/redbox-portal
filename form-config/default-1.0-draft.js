@@ -1260,9 +1260,9 @@ module.exports = {
                 },
                 {
                   class: 'WorkspaceSelectorField',
-                  compClass: 'WorkspaceSelectorFieldComponent',
+                  compClass: 'WorkspaceSelectFieldComponent',
                   definition: {
-                    name: 'WorkspaceSelector',
+                    name: 'WorkspaceSelect',
                     label: '@dmpt-workspace-select-type',
                     help: '@dmpt-workspace-select-help',
                     open: '@dmpt-workspace-open',

@@ -79,5 +79,21 @@ module.exports = {
     email: {
       disabled: true
     }
+  },
+  workspaces: {
+    portal:{
+      authorization: 'Bearer 5bc4c9f5-b538-462a-a700-353116bf8e51'
+    },
+    provisionerUser: 'admin',
+    parentRecord: 'rdmp',
+    gitlab: {
+      parentRecord: 'rdmp',
+      formName: 'gitlab-1.0-draft',
+      workflowStage: 'draft',
+      appName: 'gitlab',
+      appId: 'gitlab',
+      recordType: 'gitlab',
+      host: 'https://gitlab.com',
+    }
   }
 };
