@@ -53,7 +53,7 @@
     "sails-hook-autoreload": "^1.1.0",
     "sails-hook-grunt": "^3.1.0",
     "sails-hook-orm": "^2.0.0",
-    "sails-hook-redbox-gitlab": "https://github.com/moisbo/sails-hook-redbox-gitlab.git",
+    "sails-hook-redbox-gitlab": "https://github.com/moisbo/sails-hook-redbox-gitlab.git#v1.0.0",
     "sails-hook-sockets": "^1.5.2",
     "sails-mongo": "^1.0.0",
     "skipper-gridfs": "https://github.com/marcelomedina10/skipper-gridfs.git",
