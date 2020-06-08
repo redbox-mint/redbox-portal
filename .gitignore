@@ -166,7 +166,6 @@ TranslationService.js
 *.tmp*
 EmailService.js
 RecordController.js
-package-lock.json
 redbox-portal/assets/angular
 www
 api/controllers/**/*.js
