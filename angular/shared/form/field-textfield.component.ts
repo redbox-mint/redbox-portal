@@ -32,12 +32,15 @@ declare var jQuery: any;
  */
 export class TextField extends FieldBase<string> {
   type: string;
+  maxLength: number;
 
   constructor(options: any, injector: any) {
     super(options, injector);
     this.type = options['type'] || '';
     this.controlType = 'textbox';
     this.cssClasses = _.isEmpty(this.cssClasses) ? 'form-control' : this.cssClasses;
+    // default value from: https://www.w3schools.com/tags/att_input_maxlength.asp
+    this.maxLength = _.isUndefined(options['maxLength']) ? 524288 : options['maxLength'] ;
   }
 
   postInit(value:any) {
@@ -100,10 +103,10 @@ export class TextArea extends FieldBase<string> {
         <button type="button" class="btn btn-default" *ngIf="field.help" (click)="toggleHelp()" [attr.aria-label]="'help' | translate "><span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span></button>
       </label>
         <span id="{{ 'helpBlock_' + field.name }}" class="help-block" *ngIf="this.helpShow" [innerHtml]="field.help"></span>
-      <input [formGroup]='form' [formControl]="getFormControl()"  [id]="field.name" [type]="field.type" [readonly]="field.readOnly" [ngClass]="field.cssClasses" [attr.aria-label]="''" >
+      <input [formGroup]='form' [formControl]="getFormControl()"  [id]="field.name" [type]="field.type" [readonly]="field.readOnly" [ngClass]="field.cssClasses" [attr.aria-label]="''" [attr.maxlength]="field.maxLength" >
     </div>
     <div *ngIf="isEmbedded" class="input-group padding-bottom-15">
-      <input [formControl]="getFormControl(name, index)"  [id]="field.name" [type]="field.type" [readonly]="field.readOnly" [ngClass]="field.cssClasses" [attr.aria-labelledby]="name">
+      <input [formControl]="getFormControl(name, index)"  [id]="field.name" [type]="field.type" [readonly]="field.readOnly" [ngClass]="field.cssClasses" [attr.aria-labelledby]="name" [attr.maxlength]="field.maxLength">
       <span class="input-group-btn">
         <button type='button' *ngIf="removeBtnText" [disabled]="!canRemove" (click)="onRemove($event)" [ngClass]="removeBtnClass" >{{removeBtnText}}</button>
         <button [disabled]="!canRemove" type='button' [ngClass]="removeBtnClass" (click)="onRemove($event)" [attr.aria-label]="'remove-button-label' | translate"></button>

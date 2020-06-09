@@ -43,7 +43,8 @@ export module Services {
       'assignPermissions',
       'processRecordCounters',
       'stripUserBasedPermissions',
-      'restoreUserBasedPermissions'
+      'restoreUserBasedPermissions',
+      'runTemplates'
     ];
 
     /**
@@ -284,6 +285,16 @@ export module Services {
           delete record.authorization.stored
         }
       }
+      return Observable.of(record);
+    }
+
+    public runTemplates(oid, record, options, user) {
+      _.each(options.templates, (templateConfig) => {
+        const imports = _.extend({oid: oid, record: record, user: user, options: options, moment: moment, numeral:numeral}, this);
+        const templateData = {imports: imports};
+        const data = _.template(templateConfig.template, templateData)();
+        _.set(record, templateConfig.field, data);
+      });
       return Observable.of(record);
     }
   }
