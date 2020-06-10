@@ -4,7 +4,6 @@
   "description": "ReDBox Portal 2.x",
   "keywords": [],
   "dependencies": {
-    "@angular/cli": "^1.7.4",
     "@sailshq/upgrade": "^1.0.9",
     "@uppy/core": "^0.29.0",
     "@uppy/dashboard": "^0.29.0",
