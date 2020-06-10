@@ -76,6 +76,8 @@ export class FieldBase<T> {
   @Output() public onValueLoaded: EventEmitter<any> = new EventEmitter<any>();
 
 
+  subscriptionData:any = {};
+
   constructor(options = {}, injector) {
     this.injector = injector;
     this.translationService = this.getFromInjector(TranslationService);
@@ -287,11 +289,21 @@ export class FieldBase<T> {
           const eventEmitter = this.getEventEmitter(eventName, srcName);
           eventEmitter.subscribe((value: any) => {
             let curValue = value;
-            if (_.isArray(value)) {
+            let dataAsArray = false;
+            _.each(eventConfArr, (eventConf: any) => {
+              if (eventConf.dataAsArray) {
+                // process the data as an array, setting one action will set all for this source component
+                dataAsArray = true;
+                return false;
+              }
+            });
+            if (_.isArray(value) && !dataAsArray) {
               curValue = [];
               _.each(value, (v: any) => {
                 let entryVal = v;
                 _.each(eventConfArr, (eventConf: any) => {
+                  // adding source of the event
+                  eventConf.srcName = srcName;
                   const fn: any = _.get(this, eventConf.action);
                   if (fn) {
                     let boundFunction = fn;
@@ -310,7 +322,8 @@ export class FieldBase<T> {
               });
             } else {
               _.each(eventConfArr, (eventConf: any) => {
-
+                // adding source of the event
+                eventConf.srcName = srcName;
                 const fn: any = _.get(this, eventConf.action);
                 if (fn) {
                   let boundFunction = fn;
@@ -384,24 +397,45 @@ export class FieldBase<T> {
     this.visible = !this.visible;
   }
 
-  public setVisibility(data) {
+  private execVisibilityFn(data, visibilityCriteria) {
     let newVisible = this.visible;
-    if (_.isObject(this.visibilityCriteria) && _.get(this.visibilityCriteria, 'type') == 'function') {
-      const fn: any = _.get(this, _.get(this.visibilityCriteria, 'action'));
-      if (fn) {
-        let boundFunction = fn;
-        if (_.get(this.visibilityCriteria, 'action', '').indexOf(".") == -1) {
-          boundFunction = fn.bind(this);
-        } else {
-          var objectName = _.get(this.visibilityCriteria, 'action', '').substring(0, _.get(this.visibilityCriteria, 'action', '').indexOf("."));
-          boundFunction = fn.bind(this[objectName]);
-        }
-        if (_.get(this.visibilityCriteria, 'passCriteria') == true) {
-          newVisible = boundFunction(data, this.visibilityCriteria) == "true";
-        } else {
-          newVisible = boundFunction(data) == "true";
-        }
+    const fn: any = _.get(this, _.get(visibilityCriteria, 'action'));
+    if (fn) {
+      let boundFunction = fn;
+      if (_.get(visibilityCriteria, 'action', '').indexOf(".") == -1) {
+        boundFunction = fn.bind(this);
+      } else {
+        var objectName = _.get(visibilityCriteria, 'action', '').substring(0, _.get(visibilityCriteria, 'action', '').indexOf("."));
+        boundFunction = fn.bind(this[objectName]);
       }
+      if (_.get(visibilityCriteria, 'passCriteria') == true) {
+        newVisible = boundFunction(data, visibilityCriteria) == "true";
+      } else {
+        newVisible = boundFunction(data) == "true";
+      }
+    }
+    return newVisible;
+  }
+
+  public setVisibility(data, eventConf:any = {}) {
+    let newVisible = this.visible;
+    if (_.isArray(this.visibilityCriteria)) {
+      // save the value of this data in a map, so we can run complex conditional logic that depends on one or more fields
+      if (!_.isEmpty(eventConf) && !_.isEmpty(eventConf.srcName)) {
+        this.subscriptionData[eventConf.srcName] = data;
+      }
+      // only run the function set if we have all the data...
+      if (_.size(this.subscriptionData) == _.size(this.visibilityCriteria)) {
+        newVisible = true;
+        _.each(this.visibilityCriteria, (visibilityCriteria) => {
+          const dataEntry = this.subscriptionData[visibilityCriteria.fieldName];
+          newVisible = newVisible && this.execVisibilityFn(dataEntry, visibilityCriteria);
+        });
+
+      }
+    } else
+    if (_.isObject(this.visibilityCriteria) && _.get(this.visibilityCriteria, 'type') == 'function') {
+      newVisible = this.execVisibilityFn(data, this.visibilityCriteria);
     } else {
       newVisible = _.isEqual(data, this.visibilityCriteria);
     }
