@@ -1076,7 +1076,38 @@ module.exports = {
                         label: "@dmpt-dc:accessRights-none"
                       }
                     ],
-                    required: true
+                    required: true,
+                    publish: {
+                      onValueUpdate: {
+                        modelEventSource: 'valueChanges'
+                      }
+                    }
+                  }
+                },
+                {
+                  class: 'TextField',
+                  definition: {
+                    visible: false,
+                    visibilityCriteria: {
+                      type: 'function',
+                      action: 'updateVisibility',
+                      debug: 'dmpt_dc_access_rights_not_available:updateVisibility',
+                      field: 'dc:accessRights',
+                      fieldValue: 'no access due to sensitivities'
+                    },
+                    name: 'dmpt_dc_access_rights_not_available',
+                    label: '@dmpt-dc:accessRights:not_available',
+                    type: 'text',
+                    subscribe: {
+                      'dc:accessRights': {
+                        onValueUpdate: [{
+                          debug: 'dmpt_dc_access_rights_not_available:subscribedVisibility',
+                          action: 'subscribedVisibility',
+                          field: 'dc:accessRights',
+                          fieldValue: 'no access due to sensitivities'
+                        }]
+                      }
+                    }
                   }
                 },
                 {

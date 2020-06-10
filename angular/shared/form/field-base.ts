@@ -405,27 +405,38 @@ export class FieldBase<T> {
     } else {
       newVisible = _.isEqual(data, this.visibilityCriteria);
     }
-    const that = this;
-    setTimeout(() => {
-      if (!newVisible) {
-        if (that.visible) {
-          // remove validators
-          if (that.formModel) {
-            that.formModel.clearValidators();
-            that.formModel.updateValueAndValidity();
+    // Encapsulated for reuse
+    this.updateVisible(newVisible);
+  }
+
+  updateVisible(newVisible) {
+      const that = this;
+      setTimeout(() => {
+        if (!newVisible) {
+          if (that.visible) {
+            // remove validators
+            if (that.formModel) {
+              that.formModel.clearValidators();
+              that.formModel.updateValueAndValidity();
+            }
+          }
+        } else {
+          if (!that.visible) {
+            // restore validators
+            if (that.formModel) {
+              that.formModel.setValidators(that.validators);
+              that.formModel.updateValueAndValidity();
+            }
           }
         }
-      } else {
-        if (!that.visible) {
-          // restore validators
-          if (that.formModel) {
-            that.formModel.setValidators(that.validators);
-            that.formModel.updateValueAndValidity();
-          }
-        }
-      }
-      that.visible = newVisible;
-    });
+        that.visible = newVisible;
+      });
+    }
+
+  public checkIfVisible() {
+    if (_.isObject(this.visibilityCriteria) && _.get(this.visibilityCriteria, 'type') == 'function') {
+      this.setVisibility(this.visibilityCriteria);
+    }
   }
 
   public replaceValWithConfig(val) {
@@ -497,4 +508,38 @@ export class FieldBase<T> {
   asyncLoadData() {
     return Observable.of(null);
   }
+
+  updateVisibility(config) {
+    const fieldName = config['field'];
+    const fieldValue = config['fieldValue'];
+    let field;
+    if(this.fieldMap && this.fieldMap[fieldName]) {
+      field = this.fieldMap[fieldName]['field'];
+      if(field && field['value'] === fieldValue) {
+        if(config['debug']){console.log(`updateVisibility to true: ${config['debug']}`);}
+        return 'true'; // using 'true' because newVisible = boundFunction(data) == "true"; in visibilityCriteria
+      } else {
+        return 'false'
+      }
+    } else {
+      return 'false';
+    }
+  }
+
+  subscribedVisibility(value, config) {
+    const fieldName = config['field'];
+    const fieldValue = config['fieldValue'];
+    let field;
+    if(config['debug']){console.log(`subscribedVisibility: ${config['debug']}`);}
+    if(this.fieldMap && this.fieldMap[fieldName]) {
+      let newVisible = false;
+      if(fieldValue == value) {
+        newVisible = true
+      } else {
+        this.setValue('');
+      }
+      this.updateVisible(newVisible);
+    }
+  }
+
 }

@@ -283,6 +283,7 @@
   "@dmpt-dc:accessRights-open": "open, free access under license",
   "@dmpt-dc:accessRights-none": "no access due to sensitivities (as indicated on next tab)",
   "@dmpt-dc:accessRights-none-val": "no access due to sensitivities",
+  "@dmpt-dc:accessRights:not_available": "Briefly state why the data cannot be available:",
   "@dmpt-dataLicensingAccess_manager": "The data manager is recorded as:",
   "@dmpt-dataRetention_data_owner": "The data owner is:",
   "@dmpt-licensing-licensing": "Licensing",
