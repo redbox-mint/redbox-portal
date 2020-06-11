@@ -11,19 +11,19 @@ WATCH_COUNT=0
 for var in "$@"
 do
     if [ $var = "install" ]; then
-        docker run -it --rm -v $PWD:$PORTAL_DIR $PORTAL_IMAGE /bin/bash -c "cd $PORTAL_DIR; npm install -g yarn; yarn add sails-hook-autoreload && yarn global add typings && yarn install"
+        docker run -it --rm -v $PWD:$PORTAL_DIR $PORTAL_IMAGE /bin/bash -c "cd $PORTAL_DIR; npm -g i typings && npm install"
     fi
     if [ $var = "jit" ]; then
       #linkNodeLib "lodash" "lodash-lib"
       # Build targets are different for assets/angular, clearing all .js files from .ts files
       cleanUpAllJs
       export ENV=development
-      docker run -it --rm -v $PWD:$PORTAL_DIR $PORTAL_IMAGE /bin/bash -c "cd $PORTAL_DIR; npm install -g @angular/cli@1.7.1; npm install -g yarn; yarn install --only=dev; node_modules/.bin/tsc --project tsconfig.json; cd angular; yarn; make build-frontend"
+      docker run -it --rm -v $PWD:$PORTAL_DIR $PORTAL_IMAGE /bin/bash -c "cd $PORTAL_DIR; npm install -g @angular/cli@1.7.1;  npm i --save-dev; node_modules/.bin/tsc --project tsconfig.json; cd angular; npm i; make build-frontend"
     fi
     if [ $var = "jit-skip-frontend" ]; then
       #linkNodeLib "lodash" "lodash-lib"
       export ENV=development
-      docker run -it --rm -v $PWD:$PORTAL_DIR $PORTAL_IMAGE /bin/bash -c "cd $PORTAL_DIR; npm install -g @angular/cli@1.7.1; npm install -g yarn; yarn install --only=dev; node_modules/.bin/tsc --project tsconfig.json;"
+      docker run -it --rm -v $PWD:$PORTAL_DIR $PORTAL_IMAGE /bin/bash -c "cd $PORTAL_DIR; npm install -g @angular/cli@1.7.1;  npm i --save-dev; node_modules/.bin/tsc --project tsconfig.json;"
     fi
     if [ $var == "aot" ]; then
       docker run -it --rm -v $PWD:$PORTAL_DIR $PORTAL_IMAGE /bin/bash -c "cd $PORTAL_DIR; export buildTarget=\"${buildTarget}\"; ./runForDev.sh aotCompile"
@@ -45,7 +45,7 @@ do
         RBPORTAL_PS=$(docker ps -f name=redbox-portal_redboxportal_1 -q)
         echo "redbox container is \"${RBPORTAL_PS}\""
         echo "ng2App is \"${ng2App}\""
-        docker exec --detach $RBPORTAL_PS /bin/bash -c "cd /opt/redbox-portal/angular; npm install -g @angular/cli@1.7.1; yarn; ng build --app=${ng2App} --watch --verbose > ${ng2App}-build.log" || exit
+        docker exec --detach $RBPORTAL_PS /bin/bash -c "cd /opt/redbox-portal/angular; npm install -g @angular/cli@1.7.1; npm i; ng build --app=${ng2App} --watch --verbose > ${ng2App}-build.log" || exit
         let WATCH_COUNT++
     fi
 done
