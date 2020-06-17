@@ -236,7 +236,7 @@ export module Controllers.Core {
       res.view(resolvedView, mergedLocal);
     }
 
-    public respond(req, res, ajaxCb, normalCb, forceAjax) {
+    public respond(req, res, ajaxCb, normalCb, forceAjax=false) {
       if (this.isAjax(req) || forceAjax == true) {
         return ajaxCb(req, res);
       } else {
@@ -260,6 +260,29 @@ export module Controllers.Core {
         data = {status:false, message:msg};
       }
       this.ajaxRespond(req, res, data, forceAjax);
+    }
+
+    protected apiFail(req, res, statusCode = 500, msg='', errorDetails='') {
+
+      let  data = {status:false, message:msg, details: errorDetails};
+
+      this.apiRespond(req, res, data, statusCode);
+    }
+
+    protected apiRespond(req, res, jsonObj=null, statusCode=200) {
+      var ajaxMsg = "Got ajax request, don't know what do...";
+      this.respond(req, res,
+        (req, res)=> {
+        sails.log.verbose(ajaxMsg);
+        res.notFound(ajaxMsg);
+        },
+        (req, res) => {
+        res.set('Cache-control', 'no-cache');
+        res.set('Pragma', 'no-cache');
+        res.set('Expires', 0);
+        res.status(statusCode)
+        return res.json(jsonObj);
+      });
     }
 
     protected ajaxRespond(req, res, jsonObj=null, forceAjax) {

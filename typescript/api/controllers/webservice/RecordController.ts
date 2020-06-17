@@ -114,7 +114,7 @@ export module Controllers {
           }
         }, error=> {
           sails.log.error(error);
-          return this.ajaxFail(req, res, null, null);
+          return this.apiFail(req, res, 500, 'Failed adding an editor, check server logs.');
         });
       });
     }
@@ -216,7 +216,14 @@ export module Controllers {
       var oid = req.param('oid');
 
       RecordsService.getMeta(oid).subscribe(record => {
+        if (_.isEmpty(record)) {
+          return Observable.throw(new Error(`Failed to get meta, cannot find existing record with oid: ${oid}`));
+        }
         return res.json(record["metadata"]);
+      },
+      error=> {
+        sails.log.error("Get metadata failed, failed to retrieve existing record.", error);
+        return this.apiFail(req, res, 500, "Get Metadata failed, failed to retrieve existing record. ");
       });
     }
 
@@ -234,14 +241,28 @@ export module Controllers {
     public updateMeta(req, res) {
       const brand = BrandingService.getBrand(req.session.branding);
       var oid = req.param('oid');
+      const shouldMerge = req.param('merge', false);
 
       RecordsService.getMeta(oid).subscribe(record => {
-        record["metadata"] = req.body;
+        if (_.isEmpty(record)) {
+          return Observable.throw(new Error(`Failed to update meta, cannot find existing record with oid: ${oid}`));
+        }
+        if (shouldMerge) {
+          record["metadata"] = _.merge(record.metadata, req.body);
+        } else {
+          record["metadata"] = req.body;
+        }
         var obs = RecordsService.updateMeta(brand, oid, record, req.user);
         obs.subscribe(result => {
           return res.json(result);
-        }, error=> {sails.log.error("Update metadata failed", error);   return this.ajaxFail(req, res, "Update Metadata failed", null,true);});
-
+        }, error=> {
+          sails.log.error("Update metadata failed", error);
+          return this.apiFail(req, res, 500, "Update Metadata failed");
+        });
+      },
+      error=> {
+        sails.log.error("Update metadata failed, failed to retrieve existing record.", error);
+        return this.apiFail(req, res, 500, "Update Metadata failed, failed to retrieve existing record. ");
       });
     }
 
@@ -338,12 +359,14 @@ export module Controllers {
                 }
 
                 return res.status(201).json(result);
-              }, error=> {sails.log.error("Create Record failed", error);   return this.ajaxFail(req, res, "Create failed", null,true);});
-
+              }, error=> {
+                sails.log.error("Create Record failed", error);
+                return this.apiFail(req, res, 500, "Create failed");
+              });
             });
 
           } else {
-            return res.status(400).json({message: "Record Type provided is not valid"});
+            return this.apiFail(req, res, 400, "Record Type provided is not valid");
           }
         }
         );
