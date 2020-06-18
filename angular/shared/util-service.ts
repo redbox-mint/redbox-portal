@@ -204,6 +204,12 @@ export class UtilityService {
     const imports = _.extend({data: data, config: config, moment: moment, numeral:numeral}, this);
     const templateData = {imports: imports};
     const template = _.template(config.template, templateData);
-    return template();
+    const templateRes = template();
+    // added ability to parse the string template result into JSON
+    // requirement: template must return a valid JSON string object
+    if (config.json == true && !_.isEmpty(templateRes)) {
+      return JSON.parse(templateRes);
+    }
+    return templateRes;
   }
 }

@@ -62,6 +62,7 @@ export class VocabField extends FieldBase<any> {
   public provider: string;
   public resultArrayProperty: string;
   public unflattenFlag: boolean;
+  public dontEmitEventOnLoad: boolean;
 
   @Output() onItemSelect: EventEmitter<any> = new EventEmitter<any>();
 
@@ -86,6 +87,7 @@ export class VocabField extends FieldBase<any> {
     this.provider = options['provider'] ? options['provider'] : '';
     this.resultArrayProperty = options['resultArrayProperty'] ? options['resultArrayProperty'] : '';
     this.unflattenFlag = _.isUndefined(options['unflattenFlag']) ? false : options['unflattenFlag'];
+    this.dontEmitEventOnLoad = _.isUndefined(options['dontEmitEventOnLoad']) ? false : options['dontEmitEventOnLoad'];
   }
 
   createFormModel(valueElem: any = undefined, createFormGroup: boolean = false) {
@@ -568,6 +570,9 @@ export class VocabFieldComponent extends SimpleComponent {
       if (this.loaded) {
         this.field.onItemSelect.emit(selected['originalObject']);
       } else {
+        if (this.field.dontEmitEventOnLoad) {
+          emitEvent = false;
+        }
         // set the flag after initial call
         this.loaded = true;
       }
