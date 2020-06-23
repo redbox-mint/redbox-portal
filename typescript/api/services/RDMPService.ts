@@ -205,7 +205,7 @@ export module Services {
       _.each(viewContributorEmails, viewerEmail => {
         viewContributorObs.push(this.getObservable(User.findOne({ email: viewerEmail.toLowerCase() })));
       });
-      let zippedViewContributorUsers = [];
+      let zippedViewContributorUsers = null;
       if (editContributorObs.length == 0) {
         zippedViewContributorUsers = Observable.zip(...viewContributorObs);
       } else {
