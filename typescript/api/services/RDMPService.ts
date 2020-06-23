@@ -172,7 +172,7 @@ export module Services {
       sails.log.verbose(`Assign Permissions executing on oid: ${oid}, using options:`);
       sails.log.verbose(JSON.stringify(options));
       sails.log.verbose(`With record: `);
-      sails.log.verbose(record);
+      sails.log.verbose(JSON.stringify(record));
       const emailProperty = _.get(options, "emailProperty", "email");
       const editContributorProperties = _.get(options, "editContributorProperties", []);
       const viewContributorProperties = _.get(options, "viewContributorProperties", []);
@@ -195,13 +195,17 @@ export module Services {
       if (_.isEmpty(viewContributorEmails)) {
         sails.log.error(`No viewers for record: ${oid}`);
       }
+      // when both are empty, simpy return the record
+      if (_.isEmpty(editContributorEmails) && _.isEmpty(viewContributorEmails)) {
+        return Observable.of(record);
+      }
       _.each(editContributorEmails, editorEmail => {
         editContributorObs.push(this.getObservable(User.findOne({ email: editorEmail.toLowerCase() })));
       });
       _.each(viewContributorEmails, viewerEmail => {
         viewContributorObs.push(this.getObservable(User.findOne({ email: viewerEmail.toLowerCase() })));
       });
-      let zippedViewContributorUsers = null
+      let zippedViewContributorUsers = [];
       if (editContributorObs.length == 0) {
         zippedViewContributorUsers = Observable.zip(...viewContributorObs);
       } else {
@@ -289,12 +293,26 @@ export module Services {
     }
 
     public runTemplates(oid, record, options, user) {
-      _.each(options.templates, (templateConfig) => {
-        const imports = _.extend({oid: oid, record: record, user: user, options: options, moment: moment, numeral:numeral}, this);
-        const templateData = {imports: imports};
-        const data = _.template(templateConfig.template, templateData)();
-        _.set(record, templateConfig.field, data);
-      });
+      sails.log.verbose(`runTemplates config:`);
+      sails.log.verbose(JSON.stringify(options.templates));
+      sails.log.verbose(`runTemplates oid: ${oid} with user: ${JSON.stringify(user)}`);
+      sails.log.verbose(JSON.stringify(record));
+
+      let tmplConfig = null;
+      try {
+        _.each(options.templates, (templateConfig) => {
+          tmplConfig = templateConfig;
+          const imports = _.extend({oid: oid, record: record, user: user, options: options, moment: moment, numeral:numeral}, this);
+          const templateData = {imports: imports};
+          const data = _.template(templateConfig.template, templateData)();
+          _.set(record, templateConfig.field, data);
+        });
+      } catch (e) {
+        const errLog = `Failed to run one of the string templates: ${JSON.stringify(tmplConfig)}`
+        sails.log.error(errLog);
+        sails.log.error(e);
+        return Observable.throw(new Error(errLog));
+      }
       return Observable.of(record);
     }
   }
