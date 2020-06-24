@@ -224,7 +224,7 @@ export class DropdownFieldComponent extends SelectionComponent {
         <span *ngFor="let opt of field.selectOptions">
           <!-- radio type hard-coded otherwise accessor directive will not work! -->
           <input *ngIf="isRadio()" type="radio" name="{{field.name}}" [id]="field.name + '_' + opt.value" [formControl]="getFormControl()" [value]="opt.value" [attr.disabled]="field.readOnly ? '' : null ">
-          <input *ngIf="!isRadio()" type="{{field.controlType}}" name="{{field.name}}" [id]="field.name + '_' + opt.value" [value]="opt.value" (change)="onChange(opt, $event)" [attr.selected]="getControlFromOption(opt)" [attr.checked]="getControlFromOption(opt)" [attr.disabled]="field.readOnly ? '' : null ">
+          <input *ngIf="!isRadio()" type="{{field.controlType}}" name="{{field.name}}" [id]="field.name + '_' + opt.value" [value]="opt.value" (change)="onChange(opt, $event)" [attr.selected]="getCheckedFromOption(opt)" [checked]="getCheckedFromOption(opt)" [attr.disabled]="field.readOnly ? '' : null ">
           <label for="{{field.name + '_' + opt.value}}" class="radio-label"  [innerHtml]="opt.label"></label>
           <br/>
         </span>
@@ -261,10 +261,17 @@ export class SelectionFieldComponent extends SelectionComponent {
   }
 
   getControlFromOption(opt: any) {
-    const control = _.find(this.getFormControl()['controls'], (ctrl) => {
+    const fc = this.getFormControl();
+    let control = _.find(fc['controls'], (ctrl) => {
       return opt.value == ctrl.value;
     });
     return control;
+  }
+
+  getCheckedFromOption(opt: any) {
+    let control = this.getControlFromOption(opt);
+    const checked = !_.isUndefined(control);
+    return checked;
   }
 
   onChange(opt:any, event:any) {

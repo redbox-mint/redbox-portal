@@ -81,7 +81,7 @@ export class SelectionField extends FieldBase<any>  {
     if (this.controlType == 'checkbox') {
       const fgDef = [];
 
-      _.map(this.selectOptions, (opt)=>{
+      _.each(this.selectOptions, (opt)=>{
         const hasValue = _.find(this.value, (val) => {
           return val == opt.value;
         });
@@ -122,6 +122,42 @@ export class SelectionField extends FieldBase<any>  {
       this.setValue(value);
     }
     return this.value;
+  }
+
+  public reactEvent(eventName: string, eventData: any, origData: any) {
+    if (this.controlType == "checkbox") {
+      this.setValue(eventData, false);
+      _.each(this.componentReactors, (compReact) => {
+        compReact.reactEvent(eventName, eventData, origData, this);
+      });
+    } else {
+      super.reactEvent(eventName, eventData, origData);
+    }
+  }
+
+  public setValue(value: any, emitEvent: boolean = true) {
+    if (this.controlType == "checkbox") {
+      if (!_.isArray(value) || value.length > this.selectOptions.length) {
+        console.error(`The value is not an array or the array exceeds the available options.`);
+        return;
+      }
+      this.value = value;
+      _.each(this.value, (val, idx) => {
+        if (_.toNumber(idx) > this.formModel.length - 1) {
+          this.formModel.push(new FormControl(val));
+        } else {
+          this.formModel.controls[_.toNumber(idx)].setValue(val);
+        }
+      });
+      if (this.value.length < this.formModel.length) {
+        const diff = this.formModel.length - this.value.length;
+        for (let i=0; i < diff; i++) {
+          this.formModel.removeAt(this.formModel.length-1);
+        }
+      }
+    } else {
+      super.setValue(value, emitEvent);
+    }
   }
 }
 
