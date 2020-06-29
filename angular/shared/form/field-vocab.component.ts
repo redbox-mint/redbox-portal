@@ -91,8 +91,8 @@ export class VocabField extends FieldBase<any> {
     this.resultArrayProperty = options['resultArrayProperty'] ? options['resultArrayProperty'] : '';
     this.unflattenFlag = _.isUndefined(options['unflattenFlag']) ? false : options['unflattenFlag'];
     this.dontEmitEventOnLoad = _.isUndefined(options['dontEmitEventOnLoad']) ? false : options['dontEmitEventOnLoad'];
-    this.groupClasses = options['groupClasses']
-    this.cssClasses = options['cssClasses']
+    this.groupClasses = _.isUndefined(options['groupClasses']) ? '' : options['groupClasses'];
+    this.cssClasses = _.isUndefined(options['cssClasses']) ? '' : options['cssClasses'];
   }
 
   createFormModel(valueElem: any = undefined, createFormGroup: boolean = false) {
@@ -511,14 +511,14 @@ export class VocabFieldLookupService extends BaseService {
       <button type="button" class="btn btn-default" *ngIf="field.help" (click)="toggleHelp()" [attr.aria-label]="'help' | translate "><span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span></button>
     </label>
     <span id="{{ 'helpBlock_' + field.name }}" class="help-block" *ngIf="this.helpShow" [innerHtml]="field.help">{{field.help}}</span>
-    <ng2-completer #ngCompleter  (keyup)="onKeyup($event)" [inputId]="field.name" [(ngModel)]="field.searchStr" [ngModelOptions]="{standalone: true}" [disableInput]="disableInput" [placeholder]="field.placeHolder" [clearUnselected]="getClearUnselected()" (selected)="onSelect($event)" [datasource]="field.dataService" [minSearchLength]="0" [inputClass]="'form-control' + field.cssClasses" [initialValue]="field.initialValue"></ng2-completer>
+    <ng2-completer #ngCompleter  (keyup)="onKeyup($event)" [inputId]="field.name" [(ngModel)]="field.searchStr" [ngModelOptions]="{standalone: true}" [disableInput]="disableInput" [placeholder]="field.placeHolder" [clearUnselected]="getClearUnselected()" (selected)="onSelect($event)" [datasource]="field.dataService" [minSearchLength]="0" [inputClass]="'form-control ' + field.cssClasses" [initialValue]="field.initialValue"></ng2-completer>
     <div class="text-danger" *ngIf="hasRequiredError()">{{field.validationMessages.required}}</div>
   </div>
   <div *ngIf="field.editMode && isEmbedded" [formGroup]='form' [ngClass]="getGroupClass()">
     <div class="row">
       <span id="{{ 'helpBlock_' + field.name }}" class="help-block" *ngIf="this.helpShow" [innerHtml]="field.help">{{field.help}}</span>
       <div class="col-xs-11 padding-remove">
-        <ng2-completer #ngCompleter  (keyup)="onKeyup($event)" [inputId]="name" [(ngModel)]="field.searchStr" [ngModelOptions]="{standalone: true}" [disableInput]="disableInput" [placeholder]="field.placeHolder" [clearUnselected]="getClearUnselected()" (selected)="onSelect($event)" [datasource]="field.dataService" [minSearchLength]="0" [inputClass]="'form-control'" [initialValue]="field.initialValue"></ng2-completer>
+        <ng2-completer #ngCompleter  (keyup)="onKeyup($event)" [inputId]="name" [(ngModel)]="field.searchStr" [ngModelOptions]="{standalone: true}" [disableInput]="disableInput" [placeholder]="field.placeHolder" [clearUnselected]="getClearUnselected()" (selected)="onSelect($event)" [datasource]="field.dataService" [minSearchLength]="0" [inputClass]="'form-control '" [initialValue]="field.initialValue"></ng2-completer>
       </div>
       <div class="col-xs-1 padding-remove">
         <button type='button' *ngIf="removeBtnText" [disabled]="!canRemove" (click)="onRemove($event)" [ngClass]="removeBtnClass" >{{removeBtnText}}</button>
@@ -557,14 +557,14 @@ export class VocabFieldComponent extends SimpleComponent {
     if (_.isEmpty(this.field.value) || _.isNull(this.field.value) || _.isUndefined(this.field.value)) {
       this.loaded = true;
     }
-    
+
   }
 
   public getGroupClass(fldName: string = null): string {
     if(this.isEmbedded) {
       return `col-xs-12 form-group ${this.hasRequiredError() ? 'has-error' : ''}`;
     } else {
-      if(this.field.groupClasses != null) {
+      if(!_.isEmpty(this.field.groupClasses)) {
         return this.field.groupClasses
       }
       return '' ;
