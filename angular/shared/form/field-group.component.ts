@@ -80,37 +80,39 @@ Generic component for grouping components together. The resulting JSON will have
 @Component({
   selector: 'generic-group-field',
   template: `
-  <ng-container *ngIf="field.editMode">
-    <div *ngIf="field.label">
-      <label>
-        {{field.label}} {{getRequiredLabelStr()}}
-        <button type="button" class="btn btn-default" *ngIf="field.help" (click)="toggleHelp()" [attr.aria-label]="'help' | translate "><span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span></button>
-      </label>
-      <span id="{{ 'helpBlock_' + field.name }}" class="help-block" *ngIf="this.helpShow" [innerHtml]="field.help">{{field.help}}</span>
-    </div>
-    <ng-container *ngIf="isEmbedded">
-      <div [formGroup]='form' [ngClass]="field.cssClasses">
-        <div class='row'>
-          <div class="col-xs-11">
-            <dmp-field *ngFor="let childField of field.fields" [name]="name" [index]="index" [field]="childField" [form]="form" [fieldMap]="fieldMap"></dmp-field>
-          </div>
-          <div class="col-xs-1">
-            <button type='button' *ngIf="removeBtnText" [disabled]="!canRemove" (click)="onRemove($event)" [ngClass]="removeBtnClass" >{{removeBtnText}}</button>
-            <button [disabled]="!canRemove" type='button' [ngClass]="removeBtnClass" (click)="onRemove($event)" [attr.aria-label]="'remove-button-label' | translate"></button>
+  <ng-container *ngIf="field.visible">
+    <ng-container *ngIf="field.editMode">
+      <div *ngIf="field.label">
+        <label>
+          {{field.label}} {{getRequiredLabelStr()}}
+          <button type="button" class="btn btn-default" *ngIf="field.help" (click)="toggleHelp()" [attr.aria-label]="'help' | translate "><span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span></button>
+        </label>
+        <span id="{{ 'helpBlock_' + field.name }}" class="help-block" *ngIf="this.helpShow" [innerHtml]="field.help">{{field.help}}</span>
+      </div>
+      <ng-container *ngIf="isEmbedded">
+        <div [formGroup]='form' [ngClass]="field.cssClasses">
+          <div class='row'>
+            <div class="col-xs-11">
+              <dmp-field *ngFor="let childField of field.fields" [name]="name" [index]="index" [field]="childField" [form]="form" [fieldMap]="fieldMap"></dmp-field>
+            </div>
+            <div class="col-xs-1">
+              <button type='button' *ngIf="removeBtnText" [disabled]="!canRemove" (click)="onRemove($event)" [ngClass]="removeBtnClass" >{{removeBtnText}}</button>
+              <button [disabled]="!canRemove" type='button' [ngClass]="removeBtnClass" (click)="onRemove($event)" [attr.aria-label]="'remove-button-label' | translate"></button>
+            </div>
           </div>
         </div>
+      </ng-container>
+      <ng-container *ngIf="!isEmbedded">
+        <div [formGroup]='form' [ngClass]="field.cssClasses">
+          <dmp-field *ngFor="let field of field.fields" [field]="field" [form]="form" [fieldMap]="fieldMap"></dmp-field>
+        </div>
+      </ng-container>
+    </ng-container>
+    <ng-container *ngIf="!field.editMode">
+      <div [formGroup]='form' [ngClass]="field.cssClasses">
+        <dmp-field *ngFor="let fieldElem of field.fields" [field]="fieldElem" [form]="form" [fieldMap]="fieldMap"></dmp-field>
       </div>
     </ng-container>
-    <ng-container *ngIf="!isEmbedded">
-      <div [formGroup]='form' [ngClass]="field.cssClasses">
-        <dmp-field *ngFor="let field of field.fields" [field]="field" [form]="form" [fieldMap]="fieldMap"></dmp-field>
-      </div>
-    </ng-container> 
-  </ng-container>
-  <ng-container *ngIf="!field.editMode">
-    <div [formGroup]='form' [ngClass]="field.cssClasses">
-      <dmp-field *ngFor="let fieldElem of field.fields" [field]="fieldElem" [form]="form" [fieldMap]="fieldMap"></dmp-field>
-    </div>
   </ng-container>
   `,
 })

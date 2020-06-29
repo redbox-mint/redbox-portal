@@ -312,9 +312,11 @@ Container components
       Likely because of the extra DOM node (component selector) that it doesn't know what to do.
       TODO: remove inlining, or perhaps consider a 3rd-party NG2 tab component
       -->
-          <div *ngFor="let tab of field.fields" [ngClass]="{'tab-pane': true, 'fade': true, 'active': tab.active==true, 'in': tab.active==true}" id="{{tab.id}}">
+        <ng-container *ngFor="let tab of field.fields" >
+          <div *ngIf="tab.visible" [ngClass]="{'tab-pane': true, 'fade': true, 'active': tab.active==true, 'in': tab.active==true}" id="{{tab.id}}">
             <dmp-field *ngFor="let field of tab.fields" [field]="field" [form]="form" class="form-row" [fieldMap]="fieldMap" [parentId]="tab.id"></dmp-field>
           </div>
+        </ng-container>
         </div>
       </div>
     </div>
@@ -323,20 +325,22 @@ Container components
     <div class="panel-group">
       <a href="#" class="main-expand-collapse" (click)="expandCollapseAll(); false">Expand/Collapse all</a>
       <div *ngFor="let tab of field.fields" [ngClass]="field.accClass">
-        <div class="panel-heading">
-          <span class="panel-title tab-header-font">
-            <a data-toggle="collapse" href="#{{tab.id}}">
-              {{ tab.expandedChar }} {{ tab.label }}
-            </a>
-          </span>
-        </div>
-        <div id="{{tab.id}}" class="panel-collapse collapse">
-          <div class="panel-body">
-            <ul class="key-value-list">
-              <dmp-field *ngFor="let field of tab.fields" [field]="field" [form]="form" class="form-row" [fieldMap]="fieldMap"></dmp-field>
-            </ul>
+        <ng-container *ngIf="tab.visible">
+          <div class="panel-heading">
+            <span class="panel-title tab-header-font">
+              <a data-toggle="collapse" href="#{{tab.id}}">
+                {{ tab.expandedChar }} {{ tab.label }}
+              </a>
+            </span>
           </div>
-        </div>
+          <div id="{{tab.id}}" class="panel-collapse collapse">
+            <div class="panel-body">
+              <ul class="key-value-list">
+                <dmp-field *ngFor="let field of tab.fields" [field]="field" [form]="form" class="form-row" [fieldMap]="fieldMap"></dmp-field>
+              </ul>
+            </div>
+          </div>
+        </ng-container>
       </div>
     </div>
   </div>
