@@ -28,6 +28,7 @@ import { RelatedObjectDataField, RelatedObjectDataComponent } from './form/field
 import { RecordPermissionsComponent, RecordPermissionsField } from './form/field-recordpermissions.component';
 import { DataLocationComponent, DataLocationField } from './form/field-datalocation.component';
 import { RelatedObjectSelectorComponent, RelatedObjectSelectorField } from './form/field-relatedobjectselector.component';
+import { RelatedFileUploadComponent, RelatedFileUploadField } from './form/field-relatedfileupload.component';
 
 import { PublishDataLocationSelectorComponent, PublishDataLocationSelectorField } from './form/field-publishdatalocationselector.component'
 import { MapField, MapComponent } from './form/field-map.component';
@@ -66,6 +67,7 @@ export const fieldClasses=  {
   'ParameterRetriever':{ 'meta': ParameterRetrieverField, 'comp': ParameterRetrieverComponent},
   'RecordMetadataRetriever':{ 'meta': RecordMetadataRetrieverField, 'comp': RecordMetadataRetrieverComponent},
   'RelatedObjectSelector':{ 'meta': RelatedObjectSelectorField, 'comp': RelatedObjectSelectorComponent},
+  'RelatedFileUpload':{ 'meta': RelatedFileUploadField, 'comp': RelatedFileUploadComponent},
   'DataLocation':{ 'meta': DataLocationField, 'comp': DataLocationComponent},
   'WorkspaceSelectorField' : { 'meta': WorkspaceSelectorField, 'comp': [WorkspaceSelectorComponent, WorkspaceSelectorFieldComponent] },
   'PublishDataLocationSelector':{ 'meta': PublishDataLocationSelectorField, 'comp': PublishDataLocationSelectorComponent},
