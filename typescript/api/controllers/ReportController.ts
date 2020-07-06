@@ -114,7 +114,7 @@ export module Controllers {
     public downloadCSV(req, res) {
       const brand = BrandingService.getBrand(req.session.branding);
 
-      var response = ReportsService.getCSVResult(brand, req.param('name'));
+      var response = ReportsService.getCSVResult(brand, req.param('name'), req);
       response.subscribe(results => {
         res.setHeader('Content-disposition', 'attachment; filename='+req.param('name')+'.csv');
         res.set('Content-Type', 'text/csv');

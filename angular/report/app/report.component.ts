@@ -35,6 +35,8 @@ export class ReportComponent extends LoadableComponent {
   filterParams: object;
   @ViewChildren('dateTime1') public dateTime1: any;
   @ViewChildren('dateTime2') public dateTime2: any;
+  fromDate: string = "";
+  toDate: string = "";
 
 
   constructor( @Inject(ReportService) protected reportService: ReportService, @Inject(DOCUMENT) protected document: any, elementRef: ElementRef, translationService: TranslationService) {
@@ -98,9 +100,15 @@ export class ReportComponent extends LoadableComponent {
 
       if (fromDate != null) {
         params["fromDate"] = fromDate.utc().format();
+        this.fromDate = params["fromDate"];
+      } else {
+        this.fromDate = '';
       }
       if (toDate != null) {
         params["toDate"] = toDate.utc().format();
+        this.toDate = params["toDate"];
+      } else {
+        this.toDate = '';
       }
     }
     return params;

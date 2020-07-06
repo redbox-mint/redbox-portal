@@ -36,7 +36,7 @@
       <div class="form-horizontal">
             <div class="form-group">
               <span class="col-xs-2 control-label">{{ 'report-filter-date-to' | translate }}</span>
-              <span class="col-xs-10"> 
+              <span class="col-xs-10">
                 <datetime #dateTime2 [timepicker]="false"  [datepicker]="{format: 'd/m/yyyy'}" [(ngModel)]="filterParams.toDate"></datetime>
               </span>
             </div>
@@ -64,7 +64,7 @@
     <div class="col-xs-8">
     </div>
     <div class="col-xs-2">
-      <a class="btn btn-large btn-info" href="/{{ branding }}/{{ portal }}/admin/downloadReportCSV?name={{ name }}">
+      <a class="btn btn-large btn-info" href="/{{ branding }}/{{ portal }}/admin/downloadReportCSV?name={{ name }}{{ fromDate != '' ? '&fromDate=' + fromDate : '' }}{{ toDate != '' ? '&toDate=' + toDate : '' }}">
         <span class="glyphicon glyphicon-download"></span>
         {{ 'report-csv-download' | translate }}
       </a>
