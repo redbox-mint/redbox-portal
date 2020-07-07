@@ -82,6 +82,7 @@ export class DataLocationField extends FieldBase<any> {
   locationHeader: string;
   notesHeader: string;
   uppyDashboardNote: string;
+  allowUploadWithoutSave: boolean;
 
   constructor(options: any, injector: any) {
     super(options, injector);
@@ -104,6 +105,7 @@ export class DataLocationField extends FieldBase<any> {
 
     this.value = options['value'] || this.setEmptyValue();
     this.recordsService = this.getFromInjector(RecordsService);
+    this.allowUploadWithoutSave = _.isUndefined(options['allowUploadWithoutSave']) ? false : options['allowUploadWithoutSave'];
   }
 
   setValue(value: any, emitEvent: boolean = true) {
@@ -215,6 +217,9 @@ export class DataLocationComponent extends SimpleComponent {
 
 
   public initUppy(oid: string) {
+    if (_.isEmpty(oid) && this.field.allowUploadWithoutSave) {
+      oid = "pending-oid";
+    }
     this.field.fieldMap[this.field.name].instance.oid = oid;
     if (this.uppy) {
       console.log(`Uppy already created... setting oid to: ${oid}`);
@@ -236,6 +241,8 @@ export class DataLocationComponent extends SimpleComponent {
     console.debug(JSON.stringify(uppyConfig));
 
     const tusConfig = {
+      // added to prevent issues when re-uploading a file that has already been deleted from staging
+      removeFingerprintOnSuccess: true,
       endpoint: `${this.field.recordsService.getBrandingAndPortalUrl}/record/${oid}/attach`,
       headers: {
         'X-CSRF-Token': appConfig.csrfToken
@@ -287,7 +294,7 @@ export class DataLocationComponent extends SimpleComponent {
   }
 
   public isAttachmentsDisabled() {
-    if (_.isEmpty(this.oid)) {
+    if (_.isEmpty(this.oid) && !this.field.allowUploadWithoutSave) {
       this.field.attachmentText="Save your record to attach files";
       return true;
     } else {

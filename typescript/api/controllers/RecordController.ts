@@ -439,11 +439,59 @@ export module Controllers {
 
     private createRecord(record, brand, recordType, req, res) {
       const user = req.user;
-
-      RecordsService.create(brand, record, recordType, user).subscribe(response => {
+      let formDef = null;
+      let oid = null;
+      const fieldsToCheck = ['location', 'uploadUrl'];
+      FormsService.getFormByName(record.metaMetadata.form, true)
+      .flatMap(form => {
+        formDef = form;
+        record.metaMetadata.attachmentFields = form.attachmentFields;
+        return RecordsService.create(brand, record, recordType, user);
+      })
+      .flatMap(response => {
         if (response && response.code == "200") {
           response.success = true;
-          this.ajaxOk(req, res, null, response);
+          oid = response.oid;
+          if (!_.isEmpty(record.metaMetadata.attachmentFields)) {
+            // check if we have any pending-oid elements
+            _.each(record.metaMetadata.attachmentFields, (attFieldName) => {
+              _.each(_.get(record.metadata, attFieldName), (attFieldEntry, attFieldIdx) => {
+                if (!_.isEmpty(attFieldEntry)) {
+                  _.each(fieldsToCheck, (fldName) => {
+                    const fldVal = _.get(attFieldEntry, fldName);
+                    if (!_.isEmpty(fldVal)) {
+                      _.set(record.metadata, `${attFieldName}[${attFieldIdx}].${fldName}`, _.replace(fldVal, 'pending-oid', oid));
+                    }
+                  });
+                }
+              });
+            });
+            // update the metadata ...
+            return RecordsService.updateMeta(brand, oid, record, user, false, false);
+          } else {
+            // no need for update... return the creation response
+            return Observable.of(response);
+          }
+        } else {
+          sails.log.error(JSON.stringify(response));
+          return Observable.throw(`Failed to create record!`)
+        }
+      })
+      .subscribe(response => {
+        // handle datastream update
+        if (response && response.code == "200") {
+          if (!_.isEmpty(record.metaMetadata.attachmentFields)) {
+            // we emtpy the data locations in cloned record so we can reuse the same `this.updateDataStream` method call
+            const emptyDatastreamRecord = _.cloneDeep(record);
+            _.each(record.metaMetadata.attachmentFields, (attFieldName:any) => {
+              _.set(emptyDatastreamRecord.metadata, attFieldName, []);
+            });
+            // update the datastreams in RB, this is a terminal call
+            return this.updateDataStream(oid, emptyDatastreamRecord, record.metadata, response, req, res);
+          } else {
+            // terminate the request
+            this.ajaxOk(req, res, null, response);
+          }
         } else {
           this.ajaxFail(req, res, null, response);
         }
@@ -604,6 +652,7 @@ export module Controllers {
             if(datastreamServiceName == undefined) {
               datastreamServiceName = "recordsservice";
             }
+            sails.log.verbose(`Updating datastream, using service: ${datastreamServiceName}`);
             let datastreamService = sails.services[datastreamServiceName];
             return datastreamService.updateDatastream(oid, origRecord, metadata, sails.config.record.attachments.stageDir, fileIdsAdded)
         .concatMap(reqs => {
@@ -1000,6 +1049,10 @@ export module Controllers {
       } else {
         req.baseUrl = '';
       }
+      if (oid == "pending-oid") {
+        this.tusServer.handle(req, res);
+        return;
+      }
       return this.getRecord(oid).flatMap(currentRec => {
         return this.hasEditAccess(brand, req.user, currentRec).flatMap(hasEditAccess => {
           if (!hasEditAccess) {
@@ -1031,6 +1084,7 @@ export module Controllers {
             if(datastreamServiceName == undefined) {
               datastreamServiceName = "recordsservice";
             }
+            sails.log.verbose(`Accessing datastream, using service: ${datastreamServiceName}`);
             let datastreamService = sails.services[datastreamServiceName];
             return datastreamService.getDatastream(oid, attachId).flatMap((response) => {
               res.end(Buffer.from(response.body), 'binary');
