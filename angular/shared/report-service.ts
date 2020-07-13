@@ -2,7 +2,7 @@ import { Injectable, Inject} from '@angular/core';
 import { Http } from '@angular/http';
 import 'rxjs/add/operator/map';
 import 'rxjs/add/operator/toPromise';
-import moment from 'moment-es6';
+import * as moment from 'moment';
 import { BaseService } from '../shared/base-service'
 import { Report, ReportResults } from './report-models'
 import { ConfigService } from './config-service';

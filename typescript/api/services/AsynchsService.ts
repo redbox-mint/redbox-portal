@@ -24,7 +24,7 @@ import {Sails, Model} from "sails";
 declare var sails: Sails;
 declare var _;
 declare var AsynchProgress: Model;
-import moment from 'moment-es6';
+import moment = require('moment');
 
 export module Services {
   /**

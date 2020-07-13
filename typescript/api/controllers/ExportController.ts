@@ -22,7 +22,6 @@ declare var module;
 declare var sails;
 declare var _;
 import { Observable } from 'rxjs/Rx';
-import moment from 'moment-es6';
 declare var RecordsService, DashboardService, BrandingService, TranslationService;
 /**
  * Package that contains all Controllers.

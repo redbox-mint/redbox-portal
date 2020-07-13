@@ -22,7 +22,7 @@ import { FieldBase } from './field-base';
 import { FormGroup, FormControl, Validators } from '@angular/forms';
 import * as _ from "lodash";
 import { RecordsService } from './records.service';
-import moment from 'moment-es6';
+import * as moment from 'moment';
 
 
 declare var jQuery: any;

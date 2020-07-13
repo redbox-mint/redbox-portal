@@ -20,7 +20,7 @@
 import { Observable } from 'rxjs/Rx';
 import services = require('../core/CoreService.js');
 import { Sails, Model } from "sails";
-import moment from 'moment-es6';
+import moment = require('moment');
 import * as numeral from 'numeral';
 
 declare var sails: Sails;

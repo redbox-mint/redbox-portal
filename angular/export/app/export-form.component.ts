@@ -20,7 +20,7 @@
 import { Component, Inject, Input, ElementRef } from '@angular/core';
 import { Location, LocationStrategy, PathLocationStrategy } from '@angular/common';
 import { LoadableComponent } from './shared/loadable.component';
-import moment from 'moment-es6';
+import * as moment from 'moment';
 import { TranslationService } from './shared/translation-service';
 import { RecordsService } from './shared/form/records.service';
 import * as _ from "lodash";

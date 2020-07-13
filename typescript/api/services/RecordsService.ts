@@ -24,7 +24,7 @@ import { Sails, Model } from "sails";
 import * as request from "request-promise";
 import * as luceneEscapeQuery from "lucene-escape-query";
 import * as fs from 'fs';
-import moment from 'moment-es6';
+import moment = require('moment');
 const util = require('util');
 
 declare var FormsService, RolesService, UsersService, WorkflowStepsService, RecordTypesService;

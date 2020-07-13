@@ -22,7 +22,7 @@ import { FormGroup } from '@angular/forms';
 import { FieldBase } from './field-base';
 import { SimpleComponent } from './field-simple.component';
 import * as _ from "lodash";
-import moment from 'moment-es6';
+import * as moment from 'moment';
 declare var jQuery: any;
 declare var $: any;
 /**

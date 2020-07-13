@@ -27,7 +27,7 @@ import { Observable } from 'rxjs/Observable';
 import { Subject } from 'rxjs/Subject';
 import 'rxjs/add/operator/bufferTime';
 import 'rxjs/add/operator/filter';
-import moment from 'moment-es6';
+import * as moment from 'moment';
 
 declare var jQuery: any;
 declare var io: any;

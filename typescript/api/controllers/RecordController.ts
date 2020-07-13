@@ -21,7 +21,7 @@
 declare var module;
 declare var sails;
 import { Observable } from 'rxjs/Rx';
-import moment from 'moment-es6';
+import moment = require('moment');
 import * as tus from 'tus-node-server';
 import * as fs from 'fs';
 import * as url from 'url';

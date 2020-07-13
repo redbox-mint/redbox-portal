@@ -22,7 +22,6 @@ declare var module;
 declare var sails;
 declare var _;
 import { Observable } from 'rxjs/Rx';
-import moment from 'moment-es6';
 
 declare function require(name:string);
 declare var AsynchsService, VocabService, BrandingService;

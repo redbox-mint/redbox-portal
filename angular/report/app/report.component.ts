@@ -9,7 +9,7 @@ import { LoadableComponent } from './shared/loadable.component';
 import { OnInit } from '@angular/core';
 import { PaginationModule, TooltipModule } from 'ngx-bootstrap';
 import { TranslationService } from './shared/translation-service';
-import moment from 'moment-es6';
+import * as moment from 'moment';
 
 
 declare var pageData: any;

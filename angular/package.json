@@ -25,6 +25,7 @@
     "@angular/router": "^4.0.0",
     "@asymmetrik/ngx-leaflet": "^2.5.3",
     "@asymmetrik/ngx-leaflet-draw": "^2.6.1",
+    "@types/moment": "^2.13.0",
     "angular-tree-component": "^7.2.0",
     "angular2-markdown": "^1.6.0",
     "classlist.js": "^1.1.20150312",
@@ -35,7 +36,7 @@
     "lodash": "4.17.13",
     "lucene-escape-query": "^1.0.1",
     "mobx-angular": "2.1.1",
-    "moment-es6": "^1.0.0",
+    "moment": "^2.27.0",
     "ng2-completer": "^1.6.3",
     "ng2-datetime": "^1.4.0",
     "ngx-bootstrap": "^2.0.3",
@@ -68,6 +69,7 @@
     "protractor": "~5.1.2",
     "ts-node": "~3.0.4",
     "tslint": "~5.3.2",
-    "typescript": "^2.8.4"
+    "typescript": "^2.8.4",
+    "webpack-bundle-analyzer": "^3.8.0"
   }
 }

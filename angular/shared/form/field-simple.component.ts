@@ -23,7 +23,6 @@ import { SelectionField, HtmlRaw, Container, DateTime, AnchorOrButton, SaveButto
 import { RecordMetadataRetrieverField } from './record-meta.component';
 import { FormGroup, FormControl, FormArray } from '@angular/forms';
 import * as _ from "lodash";
-import moment from 'moment-es6';
 declare var jQuery: any;
 declare var window: any;
 /**
