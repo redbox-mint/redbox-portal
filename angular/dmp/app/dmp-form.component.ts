@@ -438,7 +438,15 @@ export class DmpFormComponent extends LoadableComponent {
     let label = null;
     _.forOwn(this.form.controls, (ctrl, ctrlName) => {
       if (ctrl.invalid) {
-        label = this.fieldMap[ctrlName].field ? this.fieldMap[ctrlName].field.label : this.fieldMap[ctrlName].instance.field.label;
+        if (!_.isUndefined(this.fieldMap[ctrlName].field)) {
+          if (_.isEmpty(this.fieldMap[ctrlName].field.label) && _.isArray(this.fieldMap[ctrlName].field.fields)) {
+            label = this.fieldMap[ctrlName].field.fields[0].label;
+          } else {
+            label = this.fieldMap[ctrlName].field.label;
+          }
+        } else {
+          label = this.fieldMap[ctrlName].instance.field.label;
+        }
         label = this.failedValidationLinks.length > 0 ? `, ${label}` : label;
         this.failedValidationLinks.push({
           label: label,

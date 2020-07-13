@@ -407,7 +407,9 @@ export class RepeatableContributorComponent extends RepeatableComponent implemen
   addElem(event: any) {
     const newElem:any = this.field.addElem();
     newElem.marginTop = '0px';
-    newElem.vocabField.initialValue = null;
+    if (!_.isUndefined(newElem.vocabField)) {
+      newElem.vocabField.initialValue = null;
+    }
     newElem.setupEventHandlers();
     newElem.showHeader = false;
     newElem.componentReactors.push(this);
