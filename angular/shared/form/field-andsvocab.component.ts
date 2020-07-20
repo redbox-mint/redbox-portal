@@ -122,7 +122,7 @@ export class ANDSVocabComponent extends SimpleComponent {
     if (this.field.editMode) {
       jQuery(this.elementRef.nativeElement)['vocab_widget']({
         repository: this.field.vocabId,
-        endpoint: 'https://vocabs.ands.org.au/apps/vocab_widget/proxy/',
+        endpoint: 'https://vocabs.ardc.edu.au/apps/vocab_widget/proxy/',
         fields:["label", "notation", "about"],
         cache: false
       });
