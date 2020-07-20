@@ -62,6 +62,7 @@ export class ContributorField extends FieldBase<any> {
   familyNameHdr: string;
   givenNameHdr: string;
   showTitle: boolean;
+  forceLookup_clearOnTabThrough: boolean;
   // Frankenstein end
   component: any;
   findRelationship: any;
@@ -85,6 +86,7 @@ export class ContributorField extends FieldBase<any> {
     this.showHeader = options['showHeader'] == undefined ? true : options['showHeader'];
     this.showRole = options['showRole'] == undefined ? true : options['showRole'];
     this.baseMarginTop = options['baseMarginTop'] || '';
+    this.forceLookup_clearOnTabThrough = _.isUndefined(options['forceLookup_clearOnTabThrough']) ? true : options['forceLookup_clearOnTabThrough'];
 
     this.roles = options['roles'] || [];
     this.value = options['value'] || this.setEmptyValue();
@@ -489,6 +491,10 @@ export class ContributorComponent extends SimpleComponent {
       const that = this;
       this.ngCompleter.ctrInput.nativeElement.setAttribute('aria-label', 'Name');
       this.ngCompleter.registerOnChange((v) => {
+        if (_.isEmpty(v) && !that.field.forceLookup_clearOnTabThrough) {
+          // if this option is set, we ignore the tab through
+          return;
+        }
         that.emptied = _.isEmpty(v);
         if (that.emptied && that.blurred) {
           that.blurred = false;
@@ -510,6 +516,7 @@ export class ContributorComponent extends SimpleComponent {
     const additionalClass = this.field.splitNames ? ' padding-remove' : '';
     return `col-xs-${wideMode ? '3' : '2'} form-group${additionalClass}${hasError ? ' has-error' : ''} ${_.isEmpty(this.field.cssClasses) || _.isEmpty(this.field.cssClasses[fldName]) ? '' : this.field.cssClasses[fldName]}`;
   }
+
 
   onSelect(selected: any, emitEvent:boolean=true, updateTitle:boolean=false) {
     if (selected) {
@@ -568,6 +575,13 @@ export class ContributorComponent extends SimpleComponent {
     console.log(`Contributor component reacting:`);
     console.log(eventData);
     this.onSelect(eventData, false, true);
+  }
+
+  public shouldClearUnselected(): boolean {
+    if (!this.field.forceLookup_clearOnTabThrough && this.field.forceLookupOnly) {
+      return false;
+    }
+    return this.field.forceLookupOnly;
   }
 
   public onKeydown(event) {
