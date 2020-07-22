@@ -1165,21 +1165,7 @@ export module Controllers {
     public getAttachments(req, res) {
       sails.log.verbose('getting attachments....');
       const oid = req.param('oid');
-      let datastreamServiceName = sails.config.record.datastreamService;
-            if(datastreamServiceName == undefined) {
-              datastreamServiceName = "recordsservice";
-            }
-            let datastreamService = sails.services[datastreamServiceName];
-            return datastreamService.listDatastreams(oid).subscribe(datastreams => {
-        let attachments = [];
-
-        _.each(datastreams['datastreams'], datastream => {
-          let attachment = {};
-          attachment['dateUpdated'] = moment(datastream['lastModified']['$date']).format();
-          attachment['label'] = datastream['label'];
-          attachment['contentType'] = datastream['contentType'];
-          attachments.push(attachment);
-        });
+      RecordsService.getAttachments(oid).subscribe((attachments:any[]) => {
         return this.ajaxOk(req, res, null, attachments);
       });
     }

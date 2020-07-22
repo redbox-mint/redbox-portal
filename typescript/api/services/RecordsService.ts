@@ -65,8 +65,40 @@ export module Services {
       'updateWorkflowStep',
       'triggerPreSaveTriggers',
       'triggerPostSaveTriggers',
-      'checkRedboxRunning'
+      'checkRedboxRunning',
+      'getAttachments'
     ];
+
+    // Gets attachments for this record, will use the `sails.config.record.datastreamService` if set, otherwise will use this service
+    //
+    // Params:
+    // oid - record idea
+    // labelFilterStr - set if you want to be selective in your attachments, will just run a simple `.indexOf`
+    public getAttachments(oid: string, labelFilterStr: string = undefined) {
+      let datastreamServiceName = sails.config.record.datastreamService;
+      if(datastreamServiceName == undefined) {
+        datastreamServiceName = "recordsservice";
+      }
+      let datastreamService = sails.services[datastreamServiceName];
+      return datastreamService.listDatastreams(oid)
+      .flatMap(datastreams => {
+        let attachments = [];
+        _.each(datastreams['datastreams'], datastream => {
+          let attachment = {};
+          attachment['dateUpdated'] = moment(datastream['lastModified']['$date']).format();
+          attachment['label'] = datastream['label'];
+          attachment['contentType'] = datastream['contentType'];
+          if (_.isUndefined(labelFilterStr) && _.isEmpty(labelFilterStr)) {
+            attachments.push(attachment);
+          } else {
+            if (datastream['label'] && datastream['label'].indexOf(labelFilterStr) != -1) {
+              attachments.push(attachment);
+            }
+          }
+        });
+        return Observable.of(attachments);
+      });
+    }
 
     public async checkRedboxRunning(): Promise<any> {
       let retries  =  1000;

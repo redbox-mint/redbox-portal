@@ -90,14 +90,15 @@ export module Services {
       sails.log.debug(`runHooksSync, starting...`);
       sails.log.debug(JSON.stringify(options));
       const hookFnArray = _.get(options, 'hooks');
-      const obs = [];
+      const hookFnDefArray = [];
       _.each(hookFnArray, (hookFnDef) => {
         const hookFnStr = _.get(hookFnDef, "function", null);
         if (!_.isEmpty(hookFnStr) && _.isString(hookFnStr)) {
           const hookFn = eval(hookFnStr);
           const hookOpt = _.get(hookFnDef, "options");
           if (_.isFunction(hookFn)) {
-            obs.push(hookFn(oid, record, hookOpt, user));
+            sails.log.debug(`runHooksSync, adding: ${hookFnStr}`);
+            hookFnDefArray.push({hookFn:hookFn, hookOpt:hookOpt});
           } else {
             sails.log.error(`runHooksSync, this is not a valid function: ${hookFnStr}`);
             sails.log.error(hookFnDef);
@@ -107,15 +108,20 @@ export module Services {
           sails.log.error(hookFnDef);
         }
       });
-      if (!_.isEmpty(obs)) {
-        sails.log.debug(`runHooksSync, running:`);
-        sails.log.debug(JSON.stringify(obs));
-        return Observable.concat(obs).toArray();
+      if (!_.isEmpty(hookFnDefArray)) {
+        sails.log.debug(`runHooksSync, running..`);
+        return Observable.from(hookFnDefArray)
+        .concatMap(hookDef => {
+          return hookDef.hookFn(oid, record, hookDef.hookOpt, user);
+        })
+        .last();
       } else {
         sails.log.debug(`runHooksSync, no observables to run`);
+        return Observable.of(record);
       }
-      return Observable.of(record);
     }
+
+
 
   }
 }
