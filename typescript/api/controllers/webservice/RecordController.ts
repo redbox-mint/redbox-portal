@@ -312,7 +312,8 @@ export module Controllers {
             metaMetadata["brandId"] = brand.id;
             metaMetadata["type"] = recordTypeModel.name;
             metaMetadata["packageName"] = recordTypeModel.packageName;
-            metaMetadata["createdBy"] = "admin";
+            // Resolves #723 - removed hardcoded value
+            metaMetadata["createdBy"] = req.user.username;
             request["metaMetadata"] = metaMetadata;
             //if no metadata field, no authorization
             if (metadata == null) {
