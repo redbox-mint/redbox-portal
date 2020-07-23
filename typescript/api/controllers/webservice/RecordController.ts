@@ -248,7 +248,12 @@ export module Controllers {
           return Observable.throw(new Error(`Failed to update meta, cannot find existing record with oid: ${oid}`));
         }
         if (shouldMerge) {
-          record["metadata"] = _.merge(record.metadata, req.body);
+          // behavior modified from replacing arrays to appending to arrays:
+          record["metadata"] = _.mergeWith(record.metadata, req.body, (objValue, srcValue) => {
+            if (_.isArray(objValue)) {
+              return objValue.concat(srcValue);
+            }
+          });
         } else {
           record["metadata"] = req.body;
         }
@@ -312,7 +317,7 @@ export module Controllers {
             metaMetadata["brandId"] = brand.id;
             metaMetadata["type"] = recordTypeModel.name;
             metaMetadata["packageName"] = recordTypeModel.packageName;
-            // Resolves #723 - removed hardcoded value
+            // Resolves #723: removed hardcoded value
             metaMetadata["createdBy"] = req.user.username;
             request["metaMetadata"] = metaMetadata;
             //if no metadata field, no authorization
