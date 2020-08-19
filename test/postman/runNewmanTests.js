@@ -20,7 +20,7 @@ sails.lift({
     default: {
       local: {
         default: {
-          token: 'jA8mF8CBpwHGkJqlgg6dT3hEDoZTQIif5t1V9ElIcN8='
+          token: 'd077835a-696b-4728-85cf-3ffd57152b1e'
         }
       }
     }

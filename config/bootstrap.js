@@ -12,6 +12,9 @@ var Observable = require('rxjs/Observable').Observable;
 const schedule = require('node-schedule');
 
 module.exports.bootstrap = function(cb) {
+    if (sails.config.security.csrf === "false") {
+      sails.config.security.csrf = false;
+    }
     // sails.config.peopleSearch.orcid = sails.services.orcidservice.searchOrcid;
     sails.config.startupMinute = Math.floor(Date.now() / 60000);
     sails.services.cacheservice.bootstrap();

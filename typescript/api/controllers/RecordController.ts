@@ -314,6 +314,10 @@ export module Controllers {
                 }
               }
             }
+          }, e => {
+            sails.log.error(`Failed to update responsiblities:`);
+            sails.log.error(JSON.stringify(e));
+            return this.ajaxFail(req, res, 'Failed to update responsibilities, see server log.');
           });
         });
       } else {

@@ -78,6 +78,15 @@
 				"type": "text/plain"
 			},
 			"enabled": true
+		},
+		{
+			"key": "researcherPassword",
+			"value": "Qw1234567!",
+			"description": {
+				"content": "",
+				"type": "text/plain"
+			},
+			"enabled": true
 		}
 	],
 	"_postman_variable_scope": "environment",
