@@ -28,48 +28,84 @@ export class WorkspaceSelectorComponent extends SimpleComponent {
   selector: 'workspace-selector',
   template: `
   <div [formGroup]='form' *ngIf="field.editMode" [ngClass]="getGroupClass()">
-  <label [attr.for]="field.name">
-    {{field.label}} {{ getRequiredLabelStr()}}
-    <button type="button" class="btn btn-default" *ngIf="field.help" (click)="toggleHelp()" [attr.aria-label]="'help' | translate "><span
-      class="glyphicon glyphicon-question-sign" aria-hidden="true"></span></button>
-  </label>
-  <br/>
-  <span id="{{ 'helpBlock_' + field.name }}" class="help-block" *ngIf="this.helpShow" [innerHtml]="field.help"></span>
-  <select [id]="field.name" [ngClass]="field.cssClasses"
-          (change)="field.loadWorkspaceDetails($event.target.value)">
-    <option *ngFor="let opt of field.workspaceApps; let i = index"
-     [ngValue]="opt" [selected]="i == 0"
-     [value]="opt.name">{{opt.label}}
-    </option>
-  </select>
-  <br/><br/><br/>
-  <div class="row">
-    <div *ngIf="field.workspaceApp" class="panel panel-default">
-      <div class="panel-heading">
-        <h4 class="panel-title">{{ field.workspaceApp.name | uppercase }}</h4>
-      </div>
-      <div class="panel-body">
-        <div class="row">
-          <div class="col-md-8 col-sm-8 col-xs-8 col-lg-8">
-            <h5>{{ field.workspaceApp.subtitle }}</h5>
-            <span *ngIf="field.rdmp">
-              <p>{{ field.workspaceApp.description }}</p>
-              <button (click)="saveAndOpenWorkspace()"  class="btn btn-primary">{{ field.open }}</button>
-            </span>
-            <span *ngIf="!field.rdmp">
-              <p class="text-danger">
-                <strong>{{ field.saveFirst }}</strong>
-              </p>
-            </span>
+    <label [attr.for]="field.name">
+      {{field.label}} {{ getRequiredLabelStr()}}
+      <button type="button" class="btn btn-default" *ngIf="field.help" (click)="toggleHelp()" [attr.aria-label]="'help' | translate "><span
+        class="glyphicon glyphicon-question-sign" aria-hidden="true"></span></button>
+    </label>
+    <br/>
+    <span id="{{ 'helpBlock_' + field.name }}" class="help-block" *ngIf="this.helpShow" [innerHtml]="field.help"></span>
+    <!-- The SELECT field if not displaying as a list -->
+    <ng-container *ngIf="field.displayAsList == false">
+      <select [id]="field.name" [ngClass]="field.cssClasses"
+              (change)="field.loadWorkspaceDetails($event.target.value)">
+        <option *ngFor="let opt of field.workspaceApps; let i = index"
+         [ngValue]="opt" [selected]="i == 0"
+         [value]="opt.name">{{opt.label}}
+        </option>
+      </select>
+      <!-- divider -->
+      <br/><br/><br/>
+    </ng-container>
+    <!-- When displaying as list the currently selected workspace type -->
+    <ng-container *ngIf="field.displayAsList == false">
+      <div class="row">
+        <div *ngIf="field.workspaceApp" class="panel panel-default">
+          <div class="panel-heading">
+            <h4 class="panel-title">{{ field.workspaceApp.label | uppercase }}</h4>
           </div>
-          <div class="col-md-4 col-sm-4 col-xs-4 col-lg-4">
-            <img src="{{ field.workspaceApp.logo }}" alt="{{field.workspaceApp.name}}">
+          <div class="panel-body">
+            <div class="row">
+              <div class="col-md-8 col-sm-8 col-xs-8 col-lg-8">
+                <h5>{{ field.workspaceApp.subtitle }}</h5>
+                <span *ngIf="field.rdmp">
+                  <p>{{ field.workspaceApp.description }}</p>
+                  <button (click)="saveAndOpenWorkspace()"  class="btn btn-primary">{{ field.open }}</button>
+                </span>
+                <span *ngIf="!field.rdmp">
+                  <p class="text-danger">
+                    <strong>{{ field.saveFirst }}</strong>
+                  </p>
+                </span>
+              </div>
+              <div class="col-md-4 col-sm-4 col-xs-4 col-lg-4">
+                <img src="{{ field.workspaceApp.logo }}" alt="{{field.workspaceApp.name}}">
+              </div>
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </ng-container>
+    <!-- When displaying as list -->
+    <ng-container *ngIf="field.displayAsList == true">
+      <div class="row" *ngFor="let workspaceType of field.workspaceApps">
+        <div class="panel panel-default">
+          <div class="panel-heading">
+            <h4 class="panel-title">{{ workspaceType.label | uppercase }}</h4>
+          </div>
+          <div class="panel-body">
+            <div class="row">
+              <div class="col-md-8 col-sm-8 col-xs-8 col-lg-8">
+                <h5>{{ workspaceType.subtitle }}</h5>
+                <span *ngIf="field.rdmp">
+                  <p>{{ workspaceType.description }}</p>
+                  <button (click)="saveAndOpenWorkspace(workspaceType)"  class="btn btn-primary">{{ field.open }}</button>
+                </span>
+                <span *ngIf="!field.rdmp">
+                  <p class="text-danger">
+                    <strong>{{ field.saveFirst }}</strong>
+                  </p>
+                </span>
+              </div>
+              <div class="col-md-4 col-sm-4 col-xs-4 col-lg-4">
+                <img src="{{ workspaceType.logo }}" alt="{{workspaceType.name}}">
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </ng-container>
   </div>
-</div>
   `,
 })
 export class WorkspaceSelectorFieldComponent extends WorkspaceSelectorComponent {
@@ -81,9 +117,12 @@ export class WorkspaceSelectorFieldComponent extends WorkspaceSelectorComponent 
     this.field.registerEvents();
   }
 
-  saveAndOpenWorkspace(){
+  saveAndOpenWorkspace(workspaceType: any = undefined){
+    if (_.isUndefined(workspaceType)) {
+      workspaceType = this.field.workspaceApp;
+    }
     this.fieldMap._rootComp.onSubmit().subscribe(response => {
-      window.location.href = `${this.field.appLink}${this.field.workspaceApp.name}/edit?rdmp=${this.field.rdmp}`;
+      window.location.href = `${this.field.appLink}${workspaceType.name}/edit?rdmp=${this.field.rdmp}`;
     });
   }
 

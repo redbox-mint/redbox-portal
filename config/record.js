@@ -50,6 +50,13 @@ module.exports.record = {
       source: 'request',
       type: 'user',
       field: 'username'
+    },
+    '@referrer_rdmp': {
+      source: 'request',
+      type: 'header',
+      field: 'referrer',
+      parseUrl: true,
+      searchParams: 'rdmp'
     }
   },
   export: {
