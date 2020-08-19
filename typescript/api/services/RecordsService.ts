@@ -130,7 +130,7 @@ export module Services {
       return request[sails.config.record.api.info.method](options)
     }
 
-    public async create(brand, record, recordType = null, user = null, triggerPreSaveTriggers = true, triggerPostSaveTriggers = true): Observable<any> {
+    public async create(brand, record, recordType = null, user = null, triggerPreSaveTriggers = true, triggerPostSaveTriggers = true) {
       let packageType = recordType.packageType;
       // let obs = this.createInternal(brand, record, packageType, recordType, user, triggerPreSaveTriggers);
       let response = await this.createInternal(brand, record, packageType, recordType, user, triggerPreSaveTriggers);
@@ -146,7 +146,7 @@ export module Services {
       return response;
     }
 
-    private async createInternal(brand, record, packageType, recordType = null, user = null, triggerPreSaveTriggers = true): Observable<any> {
+    private async createInternal(brand, record, packageType, recordType = null, user = null, triggerPreSaveTriggers = true) {
       // TODO: validate metadata with the form...
       const options = this.getOptions(sails.config.record.baseUrl.redbox + sails.config.record.api.create.url, null, packageType);
       let response = null;
