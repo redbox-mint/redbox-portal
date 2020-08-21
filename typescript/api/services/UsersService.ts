@@ -65,7 +65,12 @@ export module Services {
       //
       sails.config.passport = require('passport')
       var LocalStrategy = require('passport-local').Strategy;
-      var bcrypt = require('bcrypt');
+      var bcrypt;
+      try {
+      bcrypt = require('bcrypt');
+    }catch(err) {
+      bcrypt = require('bcryptjs');
+    }
       sails.config.passport.serializeUser(function(user, done) {
         done(null, user.id);
       });
@@ -404,7 +409,12 @@ export module Services {
           }
 
           if (!_.isEmpty(password)) {
-            var bcrypt = require('bcrypt');
+            var bcrypt;
+            try {
+              bcrypt = require('bcrypt');
+            }catch(err) {
+              bcrypt = require('bcryptjs');
+            }
             var salt = salt = bcrypt.genSaltSync(10);
             update[passwordField] = bcrypt.hashSync(password, salt);
           }
