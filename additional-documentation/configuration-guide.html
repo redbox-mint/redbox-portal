@@ -1,0 +1,121 @@
+<!doctype html>
+<html class="no-js" lang="">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="x-ua-compatible" content="ie=edge">
+        <title>ReDBox Portal - NG2 Apps</title>
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+
+        <link rel="icon" type="image/x-icon" href="../images/favicon.ico">
+	      <link rel="stylesheet" href="../styles/style.css">
+        <link rel="stylesheet" href="../styles/postmark.css">
+    </head>
+    <body>
+
+        <div class="navbar navbar-default navbar-fixed-top visible-xs">
+            <a href="../" class="navbar-brand">ReDBox Portal - NG2 Apps</a>
+            <button type="button" class="btn btn-default btn-menu ion-ios-menu" id="btn-menu"></button>
+        </div>
+
+        <div class="xs-menu menu" id="mobile-menu">
+                <div id="book-search-input" role="search"><input type="text" placeholder="Type to search"></div>            <compodoc-menu></compodoc-menu>
+        </div>
+
+        <div class="container-fluid main">
+           <div class="row main">
+               <div class="hidden-xs menu">
+                   <compodoc-menu mode="normal"></compodoc-menu>
+               </div>
+               <!-- START CONTENT -->
+               <div class="content additional-page">
+                   <div class="content-data">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                   
+
+
+
+
+<h1 id="configuration-and-customisation-guide">Configuration and Customisation Guide</h1>
+<h2 id="managing-your-customisations">Managing your customisations</h2>
+<p>Much like in ReDBox 1.8+, it is recommended that you keep your configuration changes in it&#39;s own repository and overlay them as part of the deployment process.</p>
+<p>See the <a href="">sample customisation repository</a> for an example.</p>
+<h2 id="managing-portal-configuration">Managing portal configuration</h2>
+<p>The ReDBox Portal is built on the <a href="https://sailsjs.com/">SailsJS framework</a> and therefore takes advantage of the highly extensible configration framework provided.
+Please see the <a href="https://sailsjs.com/documentation/reference/configuration">SailsJS documentation</a> for more information on it&#39;s structure and configuration options.</p>
+<p>There are several configuration items that are specific to the ReDBox Portal:</p>
+<ol>
+<li><a href="./configuration-guide/configuring-integration-with-redbox-and-mint.html">record.js</a> manages configuration around record management and the portal&#39;s interaction with the ReDBox and Mint services</li>
+<li><a href="./configuration-guide/configuring-authentication.html">auth.js</a> manages configuration around authorisation and authentication.</li>
+<li><a href="./configuration-guide/configuring-email-notifications.html">emailnotification.js</a> manages configuration of email notifications</li>
+<li><a href="./configuration-guide/configuring-web-forms.html">form.js</a> manages form configuration</li>
+</ol>
+<h2 id="environment-variables">Environment variables</h2>
+<p>It is possible to use environment variables to modify configuration, this is particularly useful when running the portal in a containerised environment such as docker. Please see <a href="https://sailsjs.com/documentation/concepts/configuration#?setting-sailsconfig-values-directly-using-environment-variables">Sails configuration document for more information</a></p>
+<h3 id="environment-specific-files">Environment specific files</h3>
+<p>You may override standard configuration item for a particular environment (e.g development, test and production) by creating or modifying the a environment specif config file in the location <code>config/env/&lt;environment-name&gt;.js</code>. You can specify the environment by setting the <code>NODE_ENV</code> environment variable.</p>
+<p>Please see the <a href="https://sailsjs.com/documentation/concepts/configuration#?environmentspecific-files-config-env">Sails configuration documentation</a> for more information.</p>
+
+                   </div><div class="search-results">
+    <div class="has-results">
+        <h1 class="search-results-title"><span class='search-results-count'></span> result-matching "<span class='search-query'></span>"</h1>
+        <ul class="search-results-list"></ul>
+    </div>
+    <div class="no-results">
+        <h1 class="search-results-title">No results matching "<span class='search-query'></span>"</h1>
+    </div>
+</div>
+</div>
+               <!-- END CONTENT -->
+           </div>
+       </div>
+
+       <script>
+            var COMPODOC_CURRENT_PAGE_DEPTH = 1;
+            var COMPODOC_CURRENT_PAGE_CONTEXT = 'additional-page';
+            var COMPODOC_CURRENT_PAGE_URL = 'configuration-guide.html';
+            var MAX_SEARCH_RESULTS = 15;
+       </script>
+
+       <script src="../js/libs/custom-elements.min.js"></script>
+       <script src="../js/libs/lit-html.js"></script>
+       <!-- Required to polyfill modern browsers as code is ES5 for IE... -->
+       <script src="../js/libs/custom-elements-es5-adapter.js" charset="utf-8" defer></script>
+       <script src="../js/menu-wc.js" defer></script>
+
+       <script src="../js/libs/bootstrap-native.js"></script>
+
+       <script src="../js/libs/es6-shim.min.js"></script>
+       <script src="../js/libs/EventDispatcher.js"></script>
+       <script src="../js/libs/promise.min.js"></script>
+       <script src="../js/libs/zepto.min.js"></script>
+
+       <script src="../js/compodoc.js"></script>
+
+       <script src="../js/tabs.js"></script>
+       <script src="../js/menu.js"></script>
+       <script src="../js/libs/clipboard.min.js"></script>
+       <script src="../js/libs/prism.js"></script>
+       <script src="../js/sourceCode.js"></script>
+          <script src="../js/search/search.js"></script>
+          <script src="../js/search/lunr.min.js"></script>
+          <script src="../js/search/search-lunr.js"></script>
+          <script src="../js/search/search_index.js"></script>
+       <script src="../js/lazy-load-graphs.js"></script>
+
+
+    </body>
+</html>

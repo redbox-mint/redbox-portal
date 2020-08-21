@@ -1,0 +1,2882 @@
+<!doctype html>
+<html class="no-js" lang="">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="x-ua-compatible" content="ie=edge">
+        <title>ReDBox Portal - NG2 Apps</title>
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+
+        <link rel="icon" type="image/x-icon" href="../images/favicon.ico">
+	      <link rel="stylesheet" href="../styles/style.css">
+        <link rel="stylesheet" href="../styles/postmark.css">
+    </head>
+    <body>
+
+        <div class="navbar navbar-default navbar-fixed-top visible-xs">
+            <a href="../" class="navbar-brand">ReDBox Portal - NG2 Apps</a>
+            <button type="button" class="btn btn-default btn-menu ion-ios-menu" id="btn-menu"></button>
+        </div>
+
+        <div class="xs-menu menu" id="mobile-menu">
+                <div id="book-search-input" role="search"><input type="text" placeholder="Type to search"></div>            <compodoc-menu></compodoc-menu>
+        </div>
+
+        <div class="container-fluid main">
+           <div class="row main">
+               <div class="hidden-xs menu">
+                   <compodoc-menu mode="normal"></compodoc-menu>
+               </div>
+               <!-- START CONTENT -->
+               <div class="content component">
+                   <div class="content-data">
+
+
+
+
+<ol class="breadcrumb">
+  <li>Components</li>
+  <li>ContributorComponent</li>
+</ol>
+
+<ul class="nav nav-tabs" role="tablist">
+        <li class="active">
+            <a href="#info" role="tab" id="info-tab" data-toggle="tab" data-link="info">Info</a>
+        </li>
+        <li >
+            <a href="#source" role="tab" id="source-tab" data-toggle="tab" data-link="source">Source</a>
+        </li>
+        <li >
+            <a href="#templateData" role="tab" id="templateData-tab" data-toggle="tab" data-link="template">Template</a>
+        </li>
+        <li >
+            <a href="#tree" role="tab" id="tree-tab" data-toggle="tab" data-link="dom-tree">DOM Tree</a>
+        </li>
+</ul>
+
+<div class="tab-content">
+    <div class="tab-pane fade active in" id="c-info"><p class="comment">
+    <h3>File</h3>
+</p>
+<p class="comment">
+    <code>angular/shared/form/field-contributor.component.ts</code>
+</p>
+
+
+    <p class="comment">
+        <h3>Extends</h3>
+    </p>
+    <p class="comment">
+                <code><a href="../classes/SimpleComponent.html" target="_self" >SimpleComponent</a></code>
+    </p>
+
+
+
+<section>
+    <h3>Metadata</h3>
+    <table class="table table-sm table-hover">
+        <tbody>
+
+
+
+
+
+
+
+
+
+
+
+            <tr>
+                <td class="col-md-3">selector</td>
+                <td class="col-md-9"><code>rb-contributor</code></td>
+            </tr>
+
+
+
+
+            <tr>
+                <td class="col-md-3">templateUrl</td>
+                <td class="col-md-9"><code>./field-contributor.component.html</code></td>
+            </tr>
+
+
+
+
+
+
+
+
+        </tbody>
+    </table>
+</section>
+
+    <section>
+    <h3 id="index">Index</h3>
+    <table class="table table-sm table-bordered index-table">
+        <tbody>
+                <tr>
+                    <td class="col-md-4">
+                        <h6><b>Properties</b></h6>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <ul class="index-list">
+                            <li>
+                                <a href="#blurred">blurred</a>
+                            </li>
+                            <li>
+                                <a href="#emptied">emptied</a>
+                            </li>
+                            <li>
+                                <a href="#field">field</a>
+                            </li>
+                            <li>
+                                <a href="#lastSelected">lastSelected</a>
+                            </li>
+                            <li>
+                                    <span class="modifier">Public</span>
+                                <a href="#ngCompleter">ngCompleter</a>
+                            </li>
+                            <li>
+                                <a href="#helpShow">helpShow</a>
+                            </li>
+                            <li>
+                                    <span class="modifier">Public</span>
+                                <a href="#injector">injector</a>
+                            </li>
+                            <li>
+                                <a href="#loaded">loaded</a>
+                            </li>
+                            <li>
+                                <a href="#parentId">parentId</a>
+                            </li>
+                        </ul>
+                    </td>
+                </tr>
+
+                <tr>
+                    <td class="col-md-4">
+                        <h6><b>Methods</b></h6>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <ul class="index-list">
+                            <li>
+                                    <span class="modifier">Public</span>
+                                <a href="#getGroupClass">getGroupClass</a>
+                            </li>
+                            <li>
+                                    <span class="modifier">Public</span>
+                                <a href="#ngAfterViewInit">ngAfterViewInit</a>
+                            </li>
+                            <li>
+                                    <span class="modifier">Public</span>
+                                <a href="#ngOnInit">ngOnInit</a>
+                            </li>
+                            <li>
+                                    <span class="modifier">Public</span>
+                                <a href="#onBlur">onBlur</a>
+                            </li>
+                            <li>
+                                    <span class="modifier">Public</span>
+                                <a href="#onKeydown">onKeydown</a>
+                            </li>
+                            <li>
+                                    <span class="modifier">Public</span>
+                                <a href="#onKeyUp">onKeyUp</a>
+                            </li>
+                            <li>
+                                    <span class="modifier">Public</span>
+                                <a href="#onOpen">onOpen</a>
+                            </li>
+                            <li>
+                                <a href="#onSelect">onSelect</a>
+                            </li>
+                            <li>
+                                    <span class="modifier">Public</span>
+                                <a href="#reactEvent">reactEvent</a>
+                            </li>
+                            <li>
+                                    <span class="modifier">Public</span>
+                                <a href="#shouldClearUnselected">shouldClearUnselected</a>
+                            </li>
+                            <li>
+                                    <span class="modifier">Public</span>
+                                <a href="#getFormControl">getFormControl</a>
+                            </li>
+                            <li>
+                                <a href="#getFromInjector">getFromInjector</a>
+                            </li>
+                            <li>
+                                    <span class="modifier">Public</span>
+                                <a href="#getGroupClass">getGroupClass</a>
+                            </li>
+                            <li>
+                                <a href="#getRequiredLabelStr">getRequiredLabelStr</a>
+                            </li>
+                            <li>
+                                    <span class="modifier">Public</span>
+                                <a href="#hasRequiredError">hasRequiredError</a>
+                            </li>
+                            <li>
+                                    <span class="modifier">Public</span>
+                                <a href="#toggleHelp">toggleHelp</a>
+                            </li>
+                        </ul>
+                    </td>
+                </tr>
+
+                <tr>
+                    <td class="col-md-4">
+                        <h6><b>Inputs</b></h6>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <ul class="index-list">
+                            <li>
+                                <a href="#isEmbedded">isEmbedded</a>
+                            </li>
+                            <li>
+                                <a href="#field">field</a>
+                            </li>
+                            <li>
+                                <a href="#fieldMap">fieldMap</a>
+                            </li>
+                            <li>
+                                <a href="#form">form</a>
+                            </li>
+                            <li>
+                                <a href="#index">index</a>
+                            </li>
+                            <li>
+                                <a href="#isEmbedded">isEmbedded</a>
+                            </li>
+                            <li>
+                                <a href="#name">name</a>
+                            </li>
+                        </ul>
+                    </td>
+                </tr>
+
+
+
+
+        </tbody>
+    </table>
+</section>
+
+
+    <section>
+    <h3 id="inputs">Inputs</h3>
+        <table class="table table-sm table-bordered">
+            <tbody>
+                <tr>
+                    <td class="col-md-4">
+                        <a name="isEmbedded"></a>
+                        <b>isEmbedded</b>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Type : </i>        <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/boolean" target="_blank" >boolean</a></code>
+
+                    </td>
+                </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Default value : </i><code>false</code>
+                    </td>
+                </tr>
+                        <tr>
+                            <td class="col-md-2" colspan="2">
+                                    <div class="io-line">Defined in <a href="" data-line="478" class="link-to-prism">angular/shared/form/field-contributor.component.ts:478</a></div>
+                            </td>
+                        </tr>
+            </tbody>
+        </table>
+        <table class="table table-sm table-bordered">
+            <tbody>
+                <tr>
+                    <td class="col-md-4">
+                        <a name="field"></a>
+                        <b>field</b>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Type : </i>        <code><a href="../classes/FieldBase.html" target="_self" >FieldBase&lt;any&gt;</a></code>
+
+                    </td>
+                </tr>
+                            <tr>
+                                <td class="col-md-4" colspan="2">
+                                    <div class="io-line">Inherited from         <code><a href="../classes/SimpleComponent.html" target="_self" >SimpleComponent</a></code>
+</div>
+                                </td>
+                            </tr>
+                        <tr>
+                            <td class="col-md-2" colspan="2">
+                                    <div class="io-line">Defined in         <code><a href="../classes/SimpleComponent.html#source" target="_self" >SimpleComponent:37</a></code>
+</div>
+                            </td>
+                        </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <div class="io-description"><p>Field model</p>
+</div>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+        <table class="table table-sm table-bordered">
+            <tbody>
+                <tr>
+                    <td class="col-md-4">
+                        <a name="fieldMap"></a>
+                        <b>fieldMap</b>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Type : </i>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+
+                    </td>
+                </tr>
+                            <tr>
+                                <td class="col-md-4" colspan="2">
+                                    <div class="io-line">Inherited from         <code><a href="../classes/SimpleComponent.html" target="_self" >SimpleComponent</a></code>
+</div>
+                                </td>
+                            </tr>
+                        <tr>
+                            <td class="col-md-2" colspan="2">
+                                    <div class="io-line">Defined in         <code><a href="../classes/SimpleComponent.html#source" target="_self" >SimpleComponent:45</a></code>
+</div>
+                            </td>
+                        </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <div class="io-description"><p>The field mapping</p>
+</div>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+        <table class="table table-sm table-bordered">
+            <tbody>
+                <tr>
+                    <td class="col-md-4">
+                        <a name="form"></a>
+                        <b>form</b>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Type : </i>        <code><a href="https://angular.io/api/forms/FormGroup" target="_blank" >FormGroup</a></code>
+
+                    </td>
+                </tr>
+                            <tr>
+                                <td class="col-md-4" colspan="2">
+                                    <div class="io-line">Inherited from         <code><a href="../classes/SimpleComponent.html" target="_self" >SimpleComponent</a></code>
+</div>
+                                </td>
+                            </tr>
+                        <tr>
+                            <td class="col-md-2" colspan="2">
+                                    <div class="io-line">Defined in         <code><a href="../classes/SimpleComponent.html#source" target="_self" >SimpleComponent:41</a></code>
+</div>
+                            </td>
+                        </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <div class="io-description"><p>The form group</p>
+</div>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+        <table class="table table-sm table-bordered">
+            <tbody>
+                <tr>
+                    <td class="col-md-4">
+                        <a name="index"></a>
+                        <b>index</b>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Type : </i>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+
+                    </td>
+                </tr>
+                            <tr>
+                                <td class="col-md-4" colspan="2">
+                                    <div class="io-line">Inherited from         <code><a href="../classes/SimpleComponent.html" target="_self" >SimpleComponent</a></code>
+</div>
+                                </td>
+                            </tr>
+                        <tr>
+                            <td class="col-md-2" colspan="2">
+                                    <div class="io-line">Defined in         <code><a href="../classes/SimpleComponent.html#source" target="_self" >SimpleComponent:49</a></code>
+</div>
+                            </td>
+                        </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <div class="io-description"><p>The index of this field</p>
+</div>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+        <table class="table table-sm table-bordered">
+            <tbody>
+                <tr>
+                    <td class="col-md-4">
+                        <a name="isEmbedded"></a>
+                        <b>isEmbedded</b>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Type : </i>        <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/boolean" target="_blank" >boolean</a></code>
+
+                    </td>
+                </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Default value : </i><code>false</code>
+                    </td>
+                </tr>
+                            <tr>
+                                <td class="col-md-4" colspan="2">
+                                    <div class="io-line">Inherited from         <code><a href="../classes/SimpleComponent.html" target="_self" >SimpleComponent</a></code>
+</div>
+                                </td>
+                            </tr>
+                        <tr>
+                            <td class="col-md-2" colspan="2">
+                                    <div class="io-line">Defined in         <code><a href="../classes/SimpleComponent.html#source" target="_self" >SimpleComponent:55</a></code>
+</div>
+                            </td>
+                        </tr>
+            </tbody>
+        </table>
+        <table class="table table-sm table-bordered">
+            <tbody>
+                <tr>
+                    <td class="col-md-4">
+                        <a name="name"></a>
+                        <b>name</b>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Type : </i>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+
+                    </td>
+                </tr>
+                            <tr>
+                                <td class="col-md-4" colspan="2">
+                                    <div class="io-line">Inherited from         <code><a href="../classes/SimpleComponent.html" target="_self" >SimpleComponent</a></code>
+</div>
+                                </td>
+                            </tr>
+                        <tr>
+                            <td class="col-md-2" colspan="2">
+                                    <div class="io-line">Defined in         <code><a href="../classes/SimpleComponent.html#source" target="_self" >SimpleComponent:53</a></code>
+</div>
+                            </td>
+                        </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <div class="io-description"><p>The name of this field</p>
+</div>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+</section>
+
+
+
+    <section>
+    
+    <h3 id="methods">
+        Methods
+    </h3>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="getGroupClass"></a>
+                    <span class="name">
+                        <b>
+                            <span class="modifier">Public</span>
+                            getGroupClass
+                        </b>
+                        <a href="#getGroupClass"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                    <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>getGroupClass(fldName: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>, wideMode: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/boolean" target="_blank">boolean</a>)</code>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-line">Defined in <a href="" data-line="510"
+                            class="link-to-prism">angular/shared/form/field-contributor.component.ts:510</a></div>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+
+                    <div class="io-description">
+                        <b>Parameters :</b>
+                        <table class="params">
+                            <thead>
+                                <tr>
+                                    <td>Name</td>
+                                    <td>Type</td>
+                                    <td>Optional</td>
+                                    <td>Default value</td>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>fldName</td>
+                                    <td>
+                                                <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+                                    <td>
+                                    </td>
+
+                                </tr>
+                                <tr>
+                                    <td>wideMode</td>
+                                    <td>
+                                                <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/boolean" target="_blank" >boolean</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+                                    <td>
+                                        <code>false</code>
+                                    </td>
+
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div>
+                    </div>
+                    <div class="io-description">
+                        <b>Returns : </b>        <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank" >string</a></code>
+
+                    </div>
+                    <div class="io-description">
+                        
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="ngAfterViewInit"></a>
+                    <span class="name">
+                        <b>
+                            <span class="modifier">Public</span>
+                            ngAfterViewInit
+                        </b>
+                        <a href="#ngAfterViewInit"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                    <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>ngAfterViewInit()</code>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-line">Defined in <a href="" data-line="489"
+                            class="link-to-prism">angular/shared/form/field-contributor.component.ts:489</a></div>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+
+                    <div class="io-description">
+                        <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >void</a></code>
+
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="ngOnInit"></a>
+                    <span class="name">
+                        <b>
+                            <span class="modifier">Public</span>
+                            ngOnInit
+                        </b>
+                        <a href="#ngOnInit"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                    <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>ngOnInit()</code>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-line">Defined in <a href="" data-line="484"
+                            class="link-to-prism">angular/shared/form/field-contributor.component.ts:484</a></div>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+
+                    <div class="io-description">
+                        <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >void</a></code>
+
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="onBlur"></a>
+                    <span class="name">
+                        <b>
+                            <span class="modifier">Public</span>
+                            onBlur
+                        </b>
+                        <a href="#onBlur"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                    <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>onBlur()</code>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-line">Defined in <a href="" data-line="615"
+                            class="link-to-prism">angular/shared/form/field-contributor.component.ts:615</a></div>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+
+                    <div class="io-description">
+                        <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >void</a></code>
+
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="onKeydown"></a>
+                    <span class="name">
+                        <b>
+                            <span class="modifier">Public</span>
+                            onKeydown
+                        </b>
+                        <a href="#onKeydown"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                    <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>onKeydown(event)</code>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-line">Defined in <a href="" data-line="587"
+                            class="link-to-prism">angular/shared/form/field-contributor.component.ts:587</a></div>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+
+                    <div class="io-description">
+                        <b>Parameters :</b>
+                        <table class="params">
+                            <thead>
+                                <tr>
+                                    <td>Name</td>
+                                    <td>Optional</td>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>event</td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div>
+                    </div>
+                    <div class="io-description">
+                        <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >void</a></code>
+
+                    </div>
+                    <div class="io-description">
+                        
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="onKeyUp"></a>
+                    <span class="name">
+                        <b>
+                            <span class="modifier">Public</span>
+                            onKeyUp
+                        </b>
+                        <a href="#onKeyUp"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                    <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>onKeyUp(event)</code>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-line">Defined in <a href="" data-line="610"
+                            class="link-to-prism">angular/shared/form/field-contributor.component.ts:610</a></div>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+
+                    <div class="io-description">
+                        <b>Parameters :</b>
+                        <table class="params">
+                            <thead>
+                                <tr>
+                                    <td>Name</td>
+                                    <td>Optional</td>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>event</td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div>
+                    </div>
+                    <div class="io-description">
+                        <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >void</a></code>
+
+                    </div>
+                    <div class="io-description">
+                        
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="onOpen"></a>
+                    <span class="name">
+                        <b>
+                            <span class="modifier">Public</span>
+                            onOpen
+                        </b>
+                        <a href="#onOpen"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                    <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>onOpen(isOpen: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/boolean" target="_blank">boolean</a>)</code>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-line">Defined in <a href="" data-line="621"
+                            class="link-to-prism">angular/shared/form/field-contributor.component.ts:621</a></div>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+
+                    <div class="io-description">
+                        <b>Parameters :</b>
+                        <table class="params">
+                            <thead>
+                                <tr>
+                                    <td>Name</td>
+                                    <td>Type</td>
+                                    <td>Optional</td>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>isOpen</td>
+                                    <td>
+                                                <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/boolean" target="_blank" >boolean</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div>
+                    </div>
+                    <div class="io-description">
+                        <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >void</a></code>
+
+                    </div>
+                    <div class="io-description">
+                        
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="onSelect"></a>
+                    <span class="name">
+                        <b>
+                            onSelect
+                        </b>
+                        <a href="#onSelect"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+<code>onSelect(selected: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>, emitEvent: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/boolean" target="_blank">boolean</a>, updateTitle: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/boolean" target="_blank">boolean</a>)</code>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-line">Defined in <a href="" data-line="521"
+                            class="link-to-prism">angular/shared/form/field-contributor.component.ts:521</a></div>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+
+                    <div class="io-description">
+                        <b>Parameters :</b>
+                        <table class="params">
+                            <thead>
+                                <tr>
+                                    <td>Name</td>
+                                    <td>Type</td>
+                                    <td>Optional</td>
+                                    <td>Default value</td>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>selected</td>
+                                    <td>
+                                                <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+                                    <td>
+                                    </td>
+
+                                </tr>
+                                <tr>
+                                    <td>emitEvent</td>
+                                    <td>
+                                                <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/boolean" target="_blank" >boolean</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+                                    <td>
+                                        <code>true</code>
+                                    </td>
+
+                                </tr>
+                                <tr>
+                                    <td>updateTitle</td>
+                                    <td>
+                                                <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/boolean" target="_blank" >boolean</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+                                    <td>
+                                        <code>false</code>
+                                    </td>
+
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div>
+                    </div>
+                    <div class="io-description">
+                        <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >void</a></code>
+
+                    </div>
+                    <div class="io-description">
+                        
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="reactEvent"></a>
+                    <span class="name">
+                        <b>
+                            <span class="modifier">Public</span>
+                            reactEvent
+                        </b>
+                        <a href="#reactEvent"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                    <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>reactEvent(eventName: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank">string</a>, eventData: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>, origData: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>, elem: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>)</code>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-line">Defined in <a href="" data-line="574"
+                            class="link-to-prism">angular/shared/form/field-contributor.component.ts:574</a></div>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+
+                    <div class="io-description">
+                        <b>Parameters :</b>
+                        <table class="params">
+                            <thead>
+                                <tr>
+                                    <td>Name</td>
+                                    <td>Type</td>
+                                    <td>Optional</td>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>eventName</td>
+                                    <td>
+                                                <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank" >string</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+
+                                </tr>
+                                <tr>
+                                    <td>eventData</td>
+                                    <td>
+                                                <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+
+                                </tr>
+                                <tr>
+                                    <td>origData</td>
+                                    <td>
+                                                <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+
+                                </tr>
+                                <tr>
+                                    <td>elem</td>
+                                    <td>
+                                                <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div>
+                    </div>
+                    <div class="io-description">
+                        <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >void</a></code>
+
+                    </div>
+                    <div class="io-description">
+                        
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="shouldClearUnselected"></a>
+                    <span class="name">
+                        <b>
+                            <span class="modifier">Public</span>
+                            shouldClearUnselected
+                        </b>
+                        <a href="#shouldClearUnselected"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                    <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>shouldClearUnselected()</code>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-line">Defined in <a href="" data-line="580"
+                            class="link-to-prism">angular/shared/form/field-contributor.component.ts:580</a></div>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+
+                    <div class="io-description">
+                        <b>Returns : </b>        <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/boolean" target="_blank" >boolean</a></code>
+
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="getFormControl"></a>
+                    <span class="name">
+                        <b>
+                            <span class="modifier">Public</span>
+                            getFormControl
+                        </b>
+                        <a href="#getFormControl"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                    <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>getFormControl(name: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank">string</a>, ctrlIndex: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/number" target="_blank">number</a>)</code>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-line">Inherited from         <code><a href="../classes/SimpleComponent.html" target="_self" >SimpleComponent</a></code>
+</div>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                        <div class="io-line">Defined in         <code><a href="../classes/SimpleComponent.html#source" target="_self" >SimpleComponent:80</a></code>
+</div>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-description"><p>Return the NG2 FormControl or subclass thereof</p>
+</div>
+
+                    <div class="io-description">
+                        <b>Parameters :</b>
+                        <table class="params">
+                            <thead>
+                                <tr>
+                                    <td>Name</td>
+                                    <td>Type</td>
+                                    <td>Optional</td>
+                                    <td>Default value</td>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>name</td>
+                                    <td>
+                                                <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank" >string</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+                                    <td>
+                                        <code>null</code>
+                                    </td>
+
+                                </tr>
+                                <tr>
+                                    <td>ctrlIndex</td>
+                                    <td>
+                                                <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/number" target="_blank" >number</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+                                    <td>
+                                        <code>null</code>
+                                    </td>
+
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div>
+                    </div>
+                    <div class="io-description">
+                        <b>Returns : </b>        <code><a href="https://angular.io/api/forms/FormControl" target="_blank" >FormControl</a></code>
+
+                    </div>
+                    <div class="io-description">
+                        
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="getFromInjector"></a>
+                    <span class="name">
+                        <b>
+                            getFromInjector
+                        </b>
+                        <a href="#getFromInjector"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+<code>getFromInjector(token: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>)</code>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-line">Inherited from         <code><a href="../classes/SimpleComponent.html" target="_self" >SimpleComponent</a></code>
+</div>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                        <div class="io-line">Defined in         <code><a href="../classes/SimpleComponent.html#source" target="_self" >SimpleComponent:140</a></code>
+</div>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-description"><p>Returns the NG2 root injector</p>
+</div>
+
+                    <div class="io-description">
+                        <b>Parameters :</b>
+                        <table class="params">
+                            <thead>
+                                <tr>
+                                    <td>Name</td>
+                                    <td>Type</td>
+                                    <td>Optional</td>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>token</td>
+                                    <td>
+                                                <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div>
+                    </div>
+                    <div class="io-description">
+                        <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+
+                    </div>
+                    <div class="io-description">
+                        
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="getGroupClass"></a>
+                    <span class="name">
+                        <b>
+                            <span class="modifier">Public</span>
+                            getGroupClass
+                        </b>
+                        <a href="#getGroupClass"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                    <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>getGroupClass(fldName: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank">string</a>)</code>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-line">Inherited from         <code><a href="../classes/SimpleComponent.html" target="_self" >SimpleComponent</a></code>
+</div>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                        <div class="io-line">Defined in         <code><a href="../classes/SimpleComponent.html#source" target="_self" >SimpleComponent:110</a></code>
+</div>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-description"><p>Returns the CSS class</p>
+</div>
+
+                    <div class="io-description">
+                        <b>Parameters :</b>
+                        <table class="params">
+                            <thead>
+                                <tr>
+                                    <td>Name</td>
+                                    <td>Type</td>
+                                    <td>Optional</td>
+                                    <td>Default value</td>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>fldName</td>
+                                    <td>
+                                                <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank" >string</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+                                    <td>
+                                        <code>null</code>
+                                    </td>
+
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div>
+                    </div>
+                    <div class="io-description">
+                        <b>Returns : </b>        <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank" >string</a></code>
+
+                    </div>
+                    <div class="io-description">
+                        
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="getRequiredLabelStr"></a>
+                    <span class="name">
+                        <b>
+                            getRequiredLabelStr
+                        </b>
+                        <a href="#getRequiredLabelStr"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+<code>getRequiredLabelStr()</code>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-line">Inherited from         <code><a href="../classes/SimpleComponent.html" target="_self" >SimpleComponent</a></code>
+</div>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                        <div class="io-line">Defined in         <code><a href="../classes/SimpleComponent.html#source" target="_self" >SimpleComponent:132</a></code>
+</div>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-description"><p>Returns label</p>
+</div>
+
+                    <div>
+                    </div>
+                    <div class="io-description">
+                        <b>Returns : </b>        <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank" >string</a></code>
+
+                    </div>
+                    <div class="io-description">
+                        
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="hasRequiredError"></a>
+                    <span class="name">
+                        <b>
+                            <span class="modifier">Public</span>
+                            hasRequiredError
+                        </b>
+                        <a href="#hasRequiredError"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                    <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>hasRequiredError()</code>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-line">Inherited from         <code><a href="../classes/SimpleComponent.html" target="_self" >SimpleComponent</a></code>
+</div>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                        <div class="io-line">Defined in         <code><a href="../classes/SimpleComponent.html#source" target="_self" >SimpleComponent:118</a></code>
+</div>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-description"><p>If this field has a &#39;required&#39; error.
+Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a></p>
+</div>
+
+                    <div>
+                    </div>
+                    <div class="io-description">
+                        <b>Returns : </b>        <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/boolean" target="_blank" >boolean</a></code>
+
+                    </div>
+                    <div class="io-description">
+                        
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="toggleHelp"></a>
+                    <span class="name">
+                        <b>
+                            <span class="modifier">Public</span>
+                            toggleHelp
+                        </b>
+                        <a href="#toggleHelp"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                    <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>toggleHelp()</code>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-line">Inherited from         <code><a href="../classes/SimpleComponent.html" target="_self" >SimpleComponent</a></code>
+</div>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                        <div class="io-line">Defined in         <code><a href="../classes/SimpleComponent.html#source" target="_self" >SimpleComponent:125</a></code>
+</div>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-description"><p>Convenience method to toggle help mode.</p>
+</div>
+
+                    <div>
+                    </div>
+                    <div class="io-description">
+                        <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >void</a></code>
+
+                    </div>
+                    <div class="io-description">
+                        
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+</section>
+    <section>
+    
+        <h3 id="inputs">
+            Properties
+        </h3>
+        <table class="table table-sm table-bordered">
+            <tbody>
+                <tr>
+                    <td class="col-md-4">
+                        <a name="blurred"></a>
+                        <span class="name">
+                            <b>
+                            blurred</b>
+                            <a href="#blurred"><span class="icon ion-ios-link"></span></a>
+                        </span>
+                    </td>
+                </tr>
+                    <tr>
+                        <td class="col-md-4">
+                            <i>Type : </i>        <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/boolean" target="_blank" >boolean</a></code>
+
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="col-md-4">
+                            <i>Default value : </i><code>false</code>
+                        </td>
+                    </tr>
+                        <tr>
+                            <td class="col-md-4">
+                                    <div class="io-line">Defined in <a href="" data-line="482" class="link-to-prism">angular/shared/form/field-contributor.component.ts:482</a></div>
+                            </td>
+                        </tr>
+
+
+            </tbody>
+        </table>
+        <table class="table table-sm table-bordered">
+            <tbody>
+                <tr>
+                    <td class="col-md-4">
+                        <a name="emptied"></a>
+                        <span class="name">
+                            <b>
+                            emptied</b>
+                            <a href="#emptied"><span class="icon ion-ios-link"></span></a>
+                        </span>
+                    </td>
+                </tr>
+                    <tr>
+                        <td class="col-md-4">
+                            <i>Type : </i>        <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/boolean" target="_blank" >boolean</a></code>
+
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="col-md-4">
+                            <i>Default value : </i><code>false</code>
+                        </td>
+                    </tr>
+                        <tr>
+                            <td class="col-md-4">
+                                    <div class="io-line">Defined in <a href="" data-line="481" class="link-to-prism">angular/shared/form/field-contributor.component.ts:481</a></div>
+                            </td>
+                        </tr>
+
+
+            </tbody>
+        </table>
+        <table class="table table-sm table-bordered">
+            <tbody>
+                <tr>
+                    <td class="col-md-4">
+                        <a name="field"></a>
+                        <span class="name">
+                            <b>
+                            field</b>
+                            <a href="#field"><span class="icon ion-ios-link"></span></a>
+                        </span>
+                    </td>
+                </tr>
+                    <tr>
+                        <td class="col-md-4">
+                            <i>Type : </i>        <code><a href="../classes/ContributorField.html" target="_self" >ContributorField</a></code>
+
+                        </td>
+                    </tr>
+                        <tr>
+                            <td class="col-md-4">
+                                    <div class="io-line">Defined in <a href="" data-line="477" class="link-to-prism">angular/shared/form/field-contributor.component.ts:477</a></div>
+                            </td>
+                        </tr>
+
+
+            </tbody>
+        </table>
+        <table class="table table-sm table-bordered">
+            <tbody>
+                <tr>
+                    <td class="col-md-4">
+                        <a name="lastSelected"></a>
+                        <span class="name">
+                            <b>
+                            lastSelected</b>
+                            <a href="#lastSelected"><span class="icon ion-ios-link"></span></a>
+                        </span>
+                    </td>
+                </tr>
+                    <tr>
+                        <td class="col-md-4">
+                            <i>Type : </i>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+
+                        </td>
+                    </tr>
+                        <tr>
+                            <td class="col-md-4">
+                                    <div class="io-line">Defined in <a href="" data-line="480" class="link-to-prism">angular/shared/form/field-contributor.component.ts:480</a></div>
+                            </td>
+                        </tr>
+
+
+            </tbody>
+        </table>
+        <table class="table table-sm table-bordered">
+            <tbody>
+                <tr>
+                    <td class="col-md-4">
+                        <a name="ngCompleter"></a>
+                        <span class="name">
+                            <b>
+                                <span class="modifier">Public</span>
+                            ngCompleter</b>
+                            <a href="#ngCompleter"><span class="icon ion-ios-link"></span></a>
+                        </span>
+                    </td>
+                </tr>
+                    <tr>
+                        <td class="col-md-4">
+                            <i>Type : </i>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="col-md-4">
+                            <b>Decorators : </b>
+                            <br />
+                            <code>
+                                @ViewChild(&#x27;ngCompleter&#x27;)<br />
+                            </code>
+                        </td>
+                    </tr>
+                        <tr>
+                            <td class="col-md-4">
+                                    <div class="io-line">Defined in <a href="" data-line="479" class="link-to-prism">angular/shared/form/field-contributor.component.ts:479</a></div>
+                            </td>
+                        </tr>
+
+
+            </tbody>
+        </table>
+        <table class="table table-sm table-bordered">
+            <tbody>
+                <tr>
+                    <td class="col-md-4">
+                        <a name="helpShow"></a>
+                        <span class="name">
+                            <b>
+                            helpShow</b>
+                            <a href="#helpShow"><span class="icon ion-ios-link"></span></a>
+                        </span>
+                    </td>
+                </tr>
+                    <tr>
+                        <td class="col-md-4">
+                            <i>Type : </i>        <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/boolean" target="_blank" >boolean</a></code>
+
+                        </td>
+                    </tr>
+                            <tr>
+                                <td class="col-md-4">
+                                    <div class="io-line">Inherited from         <code><a href="../classes/SimpleComponent.html" target="_self" >SimpleComponent</a></code>
+</div>
+                                </td>
+                            </tr>
+                        <tr>
+                            <td class="col-md-4">
+                                    <div class="io-line">Defined in         <code><a href="../classes/SimpleComponent.html#source" target="_self" >SimpleComponent:63</a></code>
+</div>
+                            </td>
+                        </tr>
+
+                <tr>
+                    <td class="col-md-4">
+                        <div class="io-description"><p>Toggles help display</p>
+</div>
+                    </td>
+                </tr>
+
+            </tbody>
+        </table>
+        <table class="table table-sm table-bordered">
+            <tbody>
+                <tr>
+                    <td class="col-md-4">
+                        <a name="injector"></a>
+                        <span class="name">
+                            <b>
+                                <span class="modifier">Public</span>
+                            injector</b>
+                            <a href="#injector"><span class="icon ion-ios-link"></span></a>
+                        </span>
+                    </td>
+                </tr>
+                    <tr>
+                        <td class="col-md-4">
+                            <i>Type : </i>        <code><a href="https://angular.io/api/core/Injector" target="_blank" >Injector</a></code>
+
+                        </td>
+                    </tr>
+                            <tr>
+                                <td class="col-md-4">
+                                    <div class="io-line">Inherited from         <code><a href="../classes/SimpleComponent.html" target="_self" >SimpleComponent</a></code>
+</div>
+                                </td>
+                            </tr>
+                        <tr>
+                            <td class="col-md-4">
+                                    <div class="io-line">Defined in         <code><a href="../classes/SimpleComponent.html#source" target="_self" >SimpleComponent:59</a></code>
+</div>
+                            </td>
+                        </tr>
+
+                <tr>
+                    <td class="col-md-4">
+                        <div class="io-description"><p>The NG2 root injector</p>
+</div>
+                    </td>
+                </tr>
+
+            </tbody>
+        </table>
+        <table class="table table-sm table-bordered">
+            <tbody>
+                <tr>
+                    <td class="col-md-4">
+                        <a name="loaded"></a>
+                        <span class="name">
+                            <b>
+                            loaded</b>
+                            <a href="#loaded"><span class="icon ion-ios-link"></span></a>
+                        </span>
+                    </td>
+                </tr>
+                    <tr>
+                        <td class="col-md-4">
+                            <i>Type : </i>        <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/boolean" target="_blank" >boolean</a></code>
+
+                        </td>
+                    </tr>
+                            <tr>
+                                <td class="col-md-4">
+                                    <div class="io-line">Inherited from         <code><a href="../classes/SimpleComponent.html" target="_self" >SimpleComponent</a></code>
+</div>
+                                </td>
+                            </tr>
+                        <tr>
+                            <td class="col-md-4">
+                                    <div class="io-line">Defined in         <code><a href="../classes/SimpleComponent.html#source" target="_self" >SimpleComponent:73</a></code>
+</div>
+                            </td>
+                        </tr>
+
+                <tr>
+                    <td class="col-md-4">
+                        <div class="io-description"><p>Loaded flag</p>
+</div>
+                    </td>
+                </tr>
+
+            </tbody>
+        </table>
+        <table class="table table-sm table-bordered">
+            <tbody>
+                <tr>
+                    <td class="col-md-4">
+                        <a name="parentId"></a>
+                        <span class="name">
+                            <b>
+                            parentId</b>
+                            <a href="#parentId"><span class="icon ion-ios-link"></span></a>
+                        </span>
+                    </td>
+                </tr>
+                    <tr>
+                        <td class="col-md-4">
+                            <i>Type : </i>        <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank" >string</a></code>
+
+                        </td>
+                    </tr>
+                            <tr>
+                                <td class="col-md-4">
+                                    <div class="io-line">Inherited from         <code><a href="../classes/SimpleComponent.html" target="_self" >SimpleComponent</a></code>
+</div>
+                                </td>
+                            </tr>
+                        <tr>
+                            <td class="col-md-4">
+                                    <div class="io-line">Defined in         <code><a href="../classes/SimpleComponent.html#source" target="_self" >SimpleComponent:68</a></code>
+</div>
+                            </td>
+                        </tr>
+
+                <tr>
+                    <td class="col-md-4">
+                        <div class="io-description"><p>Optional parentId of this component</p>
+</div>
+                    </td>
+                </tr>
+
+            </tbody>
+        </table>
+</section>
+
+</div>
+
+
+    <div class="tab-pane fade  tab-source-code" id="c-source">
+        <pre class="line-numbers compodoc-sourcecode"><code class="language-typescript">import {Component, Input, ViewChild} from &#x27;@angular/core&#x27;;
+import { SimpleComponent } from &#x27;./field-simple.component&#x27;;
+import { FieldBase } from &#x27;./field-base&#x27;;
+import {FormControl, FormGroup, Validators} from &#x27;@angular/forms&#x27;;
+import * as _ from &quot;lodash&quot;;
+import { VocabField } from &#x27;./field-vocab.component&#x27;;
+import { Observable} from &#x27;rxjs/Rx&#x27;;
+/**
+ * Contributor Model
+ *
+ *
+ * Author: &lt;a href&#x3D;&#x27;https://github.com/shilob&#x27; target&#x3D;&#x27;_blank&#x27;&gt;Shilo Banihit&lt;/a&gt;
+ *
+ */
+const KEY_TAB &#x3D; 9;
+const KEY_EN &#x3D; 13;
+
+export class ContributorField extends FieldBase&lt;any&gt; {
+  nameColHdr: string;
+  emailColHdr: string;
+  roleColHdr: string;
+  orcidColHdr: string;
+  titleColHdr: string;
+  showHeader: boolean;
+  showRole: boolean;
+  roles: string[];
+
+  fieldNames: any;
+  fullNameResponseField: string &#x3D; &quot;text_full_name&quot;;
+  groupFieldNames: string[];
+  enabledValidators: boolean;
+  marginTop: string;
+  baseMarginTop: string;
+  role: string;
+  // Frankenstein begin
+  vocabField: VocabField;
+  previousEmail: string;
+  username: string;
+  hasInit: boolean;
+  freeText: boolean;
+  forceLookupOnly: boolean;
+  splitNames: boolean;
+  familyNameHdr: string;
+  givenNameHdr: string;
+  showTitle: boolean;
+  forceLookup_clearOnTabThrough: boolean;
+  // Frankenstein end
+  component: any;
+  findRelationship: any;
+  findRelationshipFor: string;
+  relationshipFor: string;
+  activeValidators: any;
+
+  constructor(options: any, injector: any) {
+    super(options, injector);
+    this.clName &#x3D; &#x27;ContributorField&#x27;;
+    this.controlType &#x3D; &#x27;textbox&#x27;;
+    this.splitNames &#x3D; options[&#x27;splitNames&#x27;] || false;
+    this.familyNameHdr &#x3D; options[&#x27;familyNameHdr&#x27;] ? this.getTranslated(options[&#x27;familyNameHdr&#x27;], options[&#x27;familyNameHdr&#x27;]) : &#x27;Family&#x27;;
+    this.givenNameHdr &#x3D; options[&#x27;givenNameHdr&#x27;] ? this.getTranslated(options[&#x27;givenNameHdr&#x27;], options[&#x27;givenNameHdr&#x27;]) : &#x27;Given&#x27;;
+    this.nameColHdr &#x3D; options[&#x27;nameColHdr&#x27;] ? this.getTranslated(options[&#x27;nameColHdr&#x27;], options[&#x27;nameColHdr&#x27;]) : &#x27;Researcher Name&#x27;;
+    this.emailColHdr &#x3D; options[&#x27;emailColHdr&#x27;] ? this.getTranslated(options[&#x27;emailColHdr&#x27;], options[&#x27;emailColHdr&#x27;]) : &#x27;Email Address&#x27;;
+    this.roleColHdr &#x3D; options[&#x27;roleColHdr&#x27;] ? this.getTranslated(options[&#x27;roleColHdr&#x27;], options[&#x27;roleColHdr&#x27;]) : &#x27;Project Role&#x27;;
+    this.orcidColHdr &#x3D; options[&#x27;orcidColHdr&#x27;] ? this.getTranslated(options[&#x27;orcidColHdr&#x27;], options[&#x27;orcidColHdr&#x27;]) : &#x27;ORCID&#x27;;
+    this.titleColHdr &#x3D; options[&#x27;titleColHdr&#x27;] ? this.getTranslated(options[&#x27;titleColHdr&#x27;], options[&#x27;titleColHdr&#x27;]) : &#x27;Title&#x27;;
+    this.showTitle &#x3D; options[&#x27;showTitle&#x27;] &#x3D;&#x3D; undefined ? true : options[&#x27;showTitle&#x27;];
+    this.showHeader &#x3D; options[&#x27;showHeader&#x27;] &#x3D;&#x3D; undefined ? true : options[&#x27;showHeader&#x27;];
+    this.showRole &#x3D; options[&#x27;showRole&#x27;] &#x3D;&#x3D; undefined ? true : options[&#x27;showRole&#x27;];
+    this.baseMarginTop &#x3D; options[&#x27;baseMarginTop&#x27;] || &#x27;&#x27;;
+    this.forceLookup_clearOnTabThrough &#x3D; _.isUndefined(options[&#x27;forceLookup_clearOnTabThrough&#x27;]) ? true : options[&#x27;forceLookup_clearOnTabThrough&#x27;];
+
+    this.roles &#x3D; options[&#x27;roles&#x27;] || [];
+    this.value &#x3D; options[&#x27;value&#x27;] || this.setEmptyValue();
+
+    this.activeValidators &#x3D; options[&#x27;activeValidators&#x27;];
+
+    this.fieldNames &#x3D; options[&#x27;fieldNames&#x27;] || [];
+    const textFullNameFieldName &#x3D; _.find(this.fieldNames, fieldNameObject &#x3D;&gt; {
+      return fieldNameObject[&#x27;text_full_name&#x27;] !&#x3D; undefined;
+    });
+    if(textFullNameFieldName !&#x3D; null) {
+    this.fullNameResponseField &#x3D; textFullNameFieldName[&#x27;text_full_name&#x27;];
+    }
+    this.validationMessages &#x3D; options[&#x27;validationMessages&#x27;] || {required: {
+        email: this.getTranslated(options[&#x27;validation_required_email&#x27;], &#x27;Email required&#x27;),
+        text_full_name: this.getTranslated(options[&#x27;validation_required_name&#x27;], &#x27;Name is required&#x27;),
+        role: this.getTranslated(options[&#x27;validation_required_role&#x27;],&#x27;Select a role&#x27;),
+        family_name: this.getTranslated(options[&#x27;validation_required_family_name&#x27;], &#x27;Family name is required&#x27;),
+        given_name: this.getTranslated(options[&#x27;validation_required_given_name&#x27;], &#x27;Given name is required&#x27;),
+      },
+      invalid: { email: this.getTranslated(options[&#x27;validation_invalid_email&#x27;], &#x27;Email format is incorrect&#x27;)}};
+    this.groupFieldNames &#x3D; [&#x27;text_full_name&#x27;, &#x27;email&#x27;];
+    this.freeText &#x3D; options[&#x27;freeText&#x27;] || false;
+    this.forceLookupOnly &#x3D; options[&#x27;forceLookupOnly&#x27;] || false;
+    if (this.forceLookupOnly) {
+      // override free text as it doesn&#x27;t make sense
+      this.freeText &#x3D; false;
+    }
+    // do not show contributor role if required details are blank
+    const showFieldRoleValue &#x3D; _.get(this.value, &#x27;text_full_name&#x27;) || _.get(this.value, &#x27;email&#x27;);
+    this.role &#x3D; showFieldRoleValue &amp;&amp; options[&#x27;role&#x27;] ? this.getTranslated(options[&#x27;role&#x27;], options[&#x27;role&#x27;]) : null;
+    this.username &#x3D; options[&#x27;username&#x27;] || &#x27;&#x27;;
+    this.previousEmail &#x3D; this.value ? this.value.email : &#x27;&#x27;;
+
+    this.validators &#x3D; {
+      text_full_name: [Validators.required],
+      email: [Validators.required, Validators.email]
+    };
+    if (!this.freeText) {
+      this.vocabField &#x3D; new VocabField(this.options, this.injector);
+      this.hasLookup &#x3D; true;
+    }
+    if (this.splitNames) {
+      this.groupFieldNames.push(&#x27;family_name&#x27;);
+      this.groupFieldNames.push(&#x27;given_name&#x27;);
+      this.validators[&#x27;family_name&#x27;] &#x3D; [Validators.required];
+      this.validators[&#x27;given_name&#x27;] &#x3D; [Validators.required];
+    }
+    // Resolves: #605
+    // now that we&#x27;ve set the default validators... we read the config to override
+    if (!_.isEmpty(this.activeValidators)) {
+      _.forOwn(this.activeValidators, (vConfig, fName) &#x3D;&gt; {
+        // expects to be an array of Validator method names
+        if (_.isArray(vConfig)) {
+          this.validators[fName] &#x3D; _.map(vConfig, (vConfigEntry) &#x3D;&gt; {
+            return _.get(Validators, vConfigEntry);
+          });
+        } else if (vConfig &#x3D;&#x3D; null) {
+          // remove the default...
+          _.unset(this.validators, fName);
+        }
+      });
+    }
+    this.findRelationshipFor &#x3D; options[&#x27;findRelationshipFor&#x27;] || &#x27;&#x27;;
+    this.findRelationship &#x3D; options[&#x27;findRelationship&#x27;] || null;
+    this.relationshipFor &#x3D; options[&#x27;relationshipFor&#x27;] || &#x27;&#x27;;
+  }
+
+  setLookupServices(completerService:any, lookupService:any) {
+    if (!this.freeText) {
+      this.vocabField.setLookupServices(completerService, lookupService);
+    }
+  }
+
+  createFormModel(valueElem: any &#x3D; undefined): any {
+    if (valueElem) {
+      this.value &#x3D; valueElem;
+    }
+    if (_.isEmpty(this.value.role)) {
+      this.value.role &#x3D; this.role;
+    }
+
+    if (!this.freeText) {
+      // this.vocabField.setEmptyValue();
+      this.formModel &#x3D; this.vocabField.createFormModel(this.value, true);
+      this.formModel.addControl(&#x27;username&#x27;, new FormControl(this.value.username));
+      this.formModel.addControl(&#x27;role&#x27;, new FormControl(this.value.role));
+      this.formModel.addControl(&#x27;orcid&#x27;, new FormControl(this.value.orcid));
+      this.formModel.addControl(&#x27;honorific&#x27;, new FormControl(this.value.honorific));
+      if (this.value) {
+        this.setValue(this.value);
+      }
+    } else {
+      this.formModel &#x3D; new FormGroup({text_full_name: new FormControl(this.value.text_full_name || null),
+                                   email: new FormControl(this.value.email || null),
+                                   role: new FormControl(this.value.role || null),
+                                   username: new FormControl(this.value.username || &#x27;&#x27;),
+                                   orcid: new FormControl(this.value.orcid || &#x27;&#x27;),
+                                   honorific: new FormControl(this.value.honorific || &#x27;&#x27;)
+                                 });
+      if (this.splitNames) {
+        this.formModel.addControl(&#x27;family_name&#x27;, new FormControl(this.value.family_name));
+        this.formModel.addControl(&#x27;given_name&#x27;, new FormControl(this.value.given_name));
+      }
+    }
+    if (this.required) {
+      this.enableValidators();
+    } else {
+      // if splitting names, attach handler to individual input form control
+      if (this.splitNames) {
+        const reqFields &#x3D; [&#x27;family_name&#x27;, &#x27;given_name&#x27;];
+        const handler &#x3D; this.getToggleConditionalValidationHandler(reqFields, true);
+        _.each(reqFields, (reqField:any) &#x3D;&gt; {
+          this.formModel.controls[reqField].valueChanges.subscribe(handler);
+        });
+        // install the validators if needed
+        const hasValue &#x3D; !_.isEmpty(this.value.family_name) || !_.isEmpty(this.value.given_name);
+        this.toggleConditionalValidation(hasValue);
+      } else {
+        // install the validators if needed
+        this.toggleConditionalValidation(!_.isEmpty(this.value.text_full_name));
+      }
+    }
+    return this.formModel;
+  }
+
+  getToggleConditionalValidationHandler(requiredFields:any[], useFormControl:boolean) {
+    return ((value:any) &#x3D;&gt; {
+      let hasValue &#x3D; true;
+      if (useFormControl) {
+        _.each(requiredFields, (reqField:any) &#x3D;&gt; {
+          hasValue &#x3D; hasValue || !_.isEmpty(this.formModel.controls[reqField].value);
+        });
+      } else {
+        hasValue &#x3D; !_.isEmpty(value);
+      }
+      this.toggleConditionalValidation(hasValue);
+    });
+  }
+
+  setValue(value:any, emitEvent:boolean&#x3D;true, updateTitle:boolean&#x3D;false) {
+    this.setMissingFields(value);
+    if (!this.hasInit) {
+      this.hasInit &#x3D; true;
+      value.username &#x3D; _.isUndefined(value.username) ? &#x27;&#x27; : value.username;
+    } else {
+      if ( _.isUndefined(value.username) ||  (value.email &amp;&amp; value.email !&#x3D; this.previousEmail )) {
+        value.username &#x3D; &#x27;&#x27;;
+        this.previousEmail &#x3D; value.email;
+      }
+    }
+    this.formModel.patchValue(value, {emitEvent: emitEvent});
+    this.formModel.markAsTouched();
+    this.formModel.markAsDirty();
+    if (updateTitle &amp;&amp; !this.freeText) {
+      this.component.ngCompleter.ctrInput.nativeElement.value &#x3D; this.vocabField.getTitle(value);
+    }
+    // install the validators if needed
+    if (this.splitNames) {
+      const hasValue &#x3D; !_.isEmpty(value.family_name) || !_.isEmpty(value.given_name);
+      this.toggleConditionalValidation(hasValue);
+    } else {
+      this.toggleConditionalValidation(!_.isEmpty(value.text_full_name));
+    }
+
+  }
+
+  toggleConditionalValidation(hasValue) {
+    // Resolves #605: Add config flag for each field to enable conditional validation
+    // Only one condition for now: names must be set
+    if (hasValue) {
+      _.forOwn(this.activeValidators, (vConfig, fName) &#x3D;&gt; {
+        if (!_.isUndefined(this.validators[fName])) {
+          this.formModel.controls[fName].setValidators(this.validators[fName]);
+        }
+      });
+    } else {
+      _.forOwn(this.activeValidators, (vConfig, fName) &#x3D;&gt; {
+        if (!_.isUndefined(this.validators[fName])) {
+          this.formModel.controls[fName].clearValidators();
+        }
+      });
+    }
+  }
+
+  toggleValidator(c:any) {
+    return (value:any) &#x3D;&gt; {
+      if (value || _.find(this.formModel.controls, (c:any) &#x3D;&gt; { return c.value })) {
+        this.enableValidators();
+      } else {
+        this.disableValidators();
+      }
+    };
+  }
+
+  enableValidators() {
+    if (this.enabledValidators) {
+      return;
+    }
+    this.enabledValidators &#x3D; true;
+    _.forEach(this.groupFieldNames, (f:any) &#x3D;&gt; {
+      // Resolves #605: check if there is a validator, because we can disable/remove validators now
+      if (!_.isUndefined(this.validators[f])) {
+        this.formModel.controls[f].setValidators(this.validators[f]);
+      }
+    });
+  }
+
+  disableValidators() {
+    if (!this.enabledValidators) {
+      return;
+    }
+    this.enabledValidators &#x3D; false;
+    _.forEach(this.formModel.controls, (c:any) &#x3D;&gt; {
+      c.setValidators(null);
+      c.setErrors(null);
+    });
+  }
+
+  postInit(value:any) {
+    if (value) {
+      this.value &#x3D; value;
+      if (!this.freeText) {
+        this.vocabField.value &#x3D; value;
+        this.vocabField.initialValue &#x3D; _.cloneDeep(value);
+        this.vocabField.initialValue.title &#x3D; this.vocabField.getTitle(value);
+        this.vocabField.initLookupData();
+      }
+      // If there is a findRelationship Object in configuration init the value,
+      // and not already inited, lookup and complete with a corresponding
+      // relationship in Mint
+      if(this.findRelationship &amp;&amp; _.isEmpty(this.vocabField.initialValue.title)) {
+        if(this.findRelationshipFor &amp;&amp; this.relationshipFor) {
+          const doInit &#x3D; _.find(this.findRelationshipFor, r &#x3D;&gt; r &#x3D;&#x3D;&#x3D; this.relationshipFor);
+          if(doInit) {
+            this.initWithRelationship();
+          }
+        }
+      }
+    } else {
+      this.setEmptyValue();
+    }
+  }
+
+  initWithRelationship() {
+    const related &#x3D; this.findRelationship[&#x27;relateWith&#x27;];
+    const relatedWith &#x3D; this.options[related];
+    const role &#x3D; this.findRelationship[&#x27;role&#x27;] || &#x27;&#x27;;
+    const relationship &#x3D; this.findRelationship[&#x27;relationship&#x27;] || &#x27;&#x27;
+    const searchField &#x3D; this.findRelationship[&#x27;searchField&#x27;] || &#x27;&#x27;;
+    const searchFieldLower &#x3D; this.findRelationship[&#x27;searchFieldLower&#x27;];
+    const searchRelation &#x3D; this.findRelationship[&#x27;searchRelation&#x27;] || &#x27;&#x27;;
+    const searchRelationLower &#x3D; this.findRelationship[&#x27;searchRelationLower&#x27;];
+    const titleCompleter &#x3D; this.findRelationship[&#x27;title&#x27;] || &#x27;&#x27;;
+    const emailCompleter &#x3D; this.findRelationship[&#x27;email&#x27;] || &#x27;&#x27;;
+    const fullNameHonorificCompleter &#x3D; this.findRelationship[&#x27;fullNameHonorific&#x27;] || &#x27;&#x27;;
+    const honorificCompleter &#x3D; this.findRelationship[&#x27;honorific&#x27;] || &#x27;&#x27;;
+    const givenNameCompleter &#x3D; this.findRelationship[&#x27;givenName&#x27;] || &#x27;&#x27;;
+    const familyNameCompleter &#x3D; this.findRelationship[&#x27;familyName&#x27;] || &#x27;&#x27;;
+
+    this.vocabField.relationshipLookup(relatedWith, searchFieldLower, searchField)
+    .flatMap(res &#x3D;&gt; {
+      let rel &#x3D; null;
+      if(res &amp;&amp; res[&#x27;status&#x27;] &#x3D;&#x3D;&#x3D; 200){
+        const data &#x3D; res.json();
+        if(!_.isEmpty(data) &amp;&amp; !data[&#x27;error&#x27;]) {
+          const obj &#x3D; _.first(data);
+          if(_.isArray(obj[relationship])) {
+            rel &#x3D; _.first(obj[relationship]);
+          }
+        }
+      }
+      if(rel) {
+        return this.vocabField.relationshipLookup(rel, searchRelationLower, searchRelation);
+      } else {
+        return Observable.of(null);
+      }
+    })
+    .subscribe(res &#x3D;&gt; {
+      if(res &amp;&amp; res[&#x27;status&#x27;] &#x3D;&#x3D;&#x3D; 200) {
+        const data &#x3D; res.json();
+        if (!_.isEmpty(data) &amp;&amp; !data[&#x27;error&#x27;]) {
+          const obj &#x3D; _.first(data);
+          if (obj) {
+            const emailCompleterValue &#x3D; this.getFirstOrDefault(obj[emailCompleter], &#x27;&#x27;);
+            const titleCompleterValue &#x3D; this.getFirstOrDefault(obj[titleCompleter], &#x27;&#x27;);
+            const fullNameHonorificValue &#x3D; this.getFirstOrDefault(obj[fullNameHonorificCompleter], &#x27;&#x27;);
+            const honorificValue &#x3D; this.getFirstOrDefault(obj[honorificCompleter], &#x27;&#x27;);
+            const givenNameValue &#x3D; this.getFirstOrDefault(obj[givenNameCompleter], &#x27;&#x27;);
+            const familyNameValue &#x3D; this.getFirstOrDefault(obj[familyNameCompleter], &#x27;&#x27;);
+
+            this.vocabField.initialValue &#x3D; {
+              text_full_name: titleCompleterValue,
+              text_full_name_honorific: fullNameHonorificValue,
+              email: emailCompleterValue,
+              givenName: givenNameValue,
+              familyName: familyNameValue,
+              honorific: honorificValue,
+              full_name_family_name_first: &#x60;${familyNameValue}, ${givenNameValue}&#x60;,
+              role: role
+            };
+            this.vocabField.initialValue.title &#x3D; titleCompleterValue;
+          }
+        }
+      }
+    }, error &#x3D;&gt; {
+      console.error(&#x27;initWithRelationship error&#x27;);
+      console.error(error.message);
+    });
+  }
+
+  getFirstOrDefault(obj, defaultValue){
+    return _.defaultTo(_.isArray(obj) ? _.first(obj) : obj, defaultValue);
+  }
+
+  setEmptyValue(emitEvent:boolean &#x3D; true) {
+    this.value &#x3D; {text_full_name: null, email: null, role: null, username: &#x27;&#x27;};
+    if (this.formModel) {
+      _.forOwn(this.formModel.controls, (c, cName)&#x3D;&gt; {
+        c.setValue(null, {emitEvent: emitEvent});
+      });
+    }
+    return this.value;
+  }
+
+  get isValid() {
+    let validity &#x3D; false;
+    _.forEach(this.groupFieldNames, (f:any) &#x3D;&gt; {
+      validity &#x3D; validity &amp;&amp; this.formModel.controls[f].valid;
+    });
+    return validity;
+  }
+
+  public triggerValidation(): void {
+    _.forEach(this.groupFieldNames, (f:any) &#x3D;&gt; {
+      this.formModel.controls[f].updateValueAndValidity({ onlySelf: true, emitEvent: false });
+      this.formModel.controls[f].markAsTouched();
+    });
+  }
+
+  public getValidationError(): any {
+    let errObj &#x3D; null;
+    if (this.formModel) {
+      _.forEach(this.groupFieldNames, (f:any) &#x3D;&gt; {
+        if (!_.isEmpty(this.formModel.controls[f].errors)) {
+          errObj &#x3D; this.formModel.controls[f].errors;
+        }
+      });
+    }
+    return errObj;
+  }
+
+  /**
+   * This method was created to try to guess the family and given names from a value that&#x27;s got these 2 merged.
+   *
+   * @author &lt;a target&#x3D;&#x27;_&#x27; href&#x3D;&#x27;https://github.com/shilob&#x27;&gt;Shilo Banihit&lt;/a&gt;
+   * @param  value
+   * @return
+   */
+  public setMissingFields(value: any) {
+    if (this.splitNames &amp;&amp; (value &amp;&amp; value.text_full_name &amp;&amp; (_.isEmpty(value.family_name) || _.isUndefined(value.family_name)))) {
+      // guess work begins...
+      const names &#x3D; value.text_full_name.split(&#x27; &#x27;);
+      value[&#x27;given_name&#x27;] &#x3D; names[0];
+      names.splice(0, 1);
+      value[&#x27;family_name&#x27;] &#x3D; names.join(&#x27; &#x27;);
+      value[&#x27;full_name_family_name_first&#x27;] &#x3D; &#x60;${value[&#x27;family_name&#x27;]}, ${value[&#x27;given_name&#x27;]}&#x60;;
+    }
+    return value;
+  }
+
+  public reactEvent(eventName: string, eventData: any, origData: any) {
+    if (_.isEmpty(this.componentReactors)) {
+      this.setValue(eventData, false, true);
+    } else {
+      _.each(this.componentReactors, (compReact) &#x3D;&gt; {
+        compReact.reactEvent(eventName, eventData, origData, this);
+      });
+    }
+  }
+}
+
+@Component({
+  selector: &#x27;rb-contributor&#x27;,
+  templateUrl: &#x27;./field-contributor.component.html&#x27;,
+})
+export class ContributorComponent extends SimpleComponent {
+  field: ContributorField;
+  @Input() isEmbedded: boolean &#x3D; false;
+  @ViewChild(&#x27;ngCompleter&#x27;) public ngCompleter: any;
+  lastSelected: any;
+  emptied: boolean &#x3D; false;
+  blurred: boolean &#x3D; false;
+
+  public ngOnInit() {
+    this.field.componentReactors.push(this);
+    this.field.component &#x3D; this;
+  }
+
+  public ngAfterViewInit() {
+    if (this.field.editMode &amp;&amp; this.ngCompleter) {
+      const that &#x3D; this;
+      this.ngCompleter.ctrInput.nativeElement.setAttribute(&#x27;aria-label&#x27;, &#x27;Name&#x27;);
+      this.ngCompleter.registerOnChange((v) &#x3D;&gt; {
+        if (_.isEmpty(v) &amp;&amp; !that.field.forceLookup_clearOnTabThrough) {
+          // if this option is set, we ignore the tab through
+          return;
+        }
+        that.emptied &#x3D; _.isEmpty(v);
+        if (that.emptied &amp;&amp; that.blurred) {
+          that.blurred &#x3D; false;
+          console.log(&#x60;Forced lookup, clearing data..&#x60;)
+          this.field.setEmptyValue(true);
+          this.lastSelected &#x3D; null;
+          this.field.toggleConditionalValidation(false);
+        }
+      });
+    }
+  }
+
+  public getGroupClass(fldName:any, wideMode:boolean &#x3D; false): string {
+    let hasError &#x3D; false;
+    hasError &#x3D; hasError || (this.field.formModel.controls[fldName].hasError(&#x27;required&#x27;));
+    if (!hasError &amp;&amp; fldName &#x3D;&#x3D; &#x27;email&#x27;) {
+      hasError &#x3D; hasError || (this.field.formModel.controls[fldName].hasError(&#x27;email&#x27;));
+    }
+    const additionalClass &#x3D; this.field.splitNames ? &#x27; padding-remove&#x27; : &#x27;&#x27;;
+    return &#x60;col-xs-${wideMode ? &#x27;3&#x27; : &#x27;2&#x27;} form-group${additionalClass}${hasError ? &#x27; has-error&#x27; : &#x27;&#x27;} ${_.isEmpty(this.field.cssClasses) || _.isEmpty(this.field.cssClasses[fldName]) ? &#x27;&#x27; : this.field.cssClasses[fldName]}&#x60;;
+  }
+
+
+  onSelect(selected: any, emitEvent:boolean&#x3D;true, updateTitle:boolean&#x3D;false) {
+    if (selected) {
+      if ( (_.isEmpty(selected.title) || _.isUndefined(selected.title)) &amp;&amp; (_.isEmpty(selected.text_full_name) || _.isUndefined(selected.text_full_name))) {
+        console.log(&#x60;Same or empty selection, returning...&#x60;);
+        this.lastSelected &#x3D; null;
+        return;
+      } else {
+        if (selected.title &amp;&amp; selected.title &#x3D;&#x3D; this.field.formModel.value.text_full_name) {
+          console.log(&#x60;Same or empty selection, returning...&#x60;);
+          return;
+        }
+      }
+      this.lastSelected &#x3D; selected;
+      let val:any;
+      if (!this.field.freeText) {
+        if (_.isEmpty(selected.text_full_name)) {
+          if (this.field.vocabField.restrictToSelection || selected.originalObject) {
+            val &#x3D; this.field.vocabField.getValue(selected);
+          } else {
+            val &#x3D; {text_full_name: selected.title};
+          }
+        } else if(selected[this.field.fullNameResponseField]) {
+          val &#x3D; this.field.vocabField.getValue(selected);
+        } else {
+          val &#x3D; {text_full_name: selected.title};
+        }
+        if (!_.isEmpty(selected.orcid) &amp;&amp; !_.isUndefined(selected.orcid)) {
+          val[&#x27;orcid&#x27;] &#x3D; selected.orcid;
+        }
+        if (!_.isEmpty(selected.username) &amp;&amp; !_.isUndefined(selected.username)) {
+          val[&#x27;username&#x27;] &#x3D; selected.username;
+        }
+
+        val.role &#x3D; this.field.role;
+        // console.log(&#x60;With selected:&#x60;);
+        // console.log(JSON.stringify(selected));
+        // console.log(&#x60;Using val:&#x60;);
+        // console.log(JSON.stringify(val));
+        this.field.setValue(val, emitEvent, updateTitle);
+      } else {
+        val &#x3D; this.field.setMissingFields(selected);
+        this.field.setValue(val, emitEvent, updateTitle);
+      }
+    } else {
+      console.log(&#x60;No selected user.&#x60;)
+      if (this.field.forceLookupOnly) {
+        console.log(&#x60;Forced lookup, clearing data..&#x60;)
+        this.field.setEmptyValue(emitEvent);
+        this.lastSelected &#x3D; null;
+      }
+    }
+  }
+
+  public reactEvent(eventName: string, eventData: any, origData: any, elem:any) {
+    console.log(&#x60;Contributor component reacting:&#x60;);
+    console.log(eventData);
+    this.onSelect(eventData, false, true);
+  }
+
+  public shouldClearUnselected(): boolean {
+    if (!this.field.forceLookup_clearOnTabThrough &amp;&amp; this.field.forceLookupOnly) {
+      return false;
+    }
+    return this.field.forceLookupOnly;
+  }
+
+  public onKeydown(event) {
+    if (event &amp;&amp; (event.keyCode &#x3D;&#x3D;&#x3D; KEY_EN || event.keyCode &#x3D;&#x3D;&#x3D; KEY_TAB )) {
+      if (this.lastSelected &amp;&amp; this.emptied) {
+        const that &#x3D; this;
+        setTimeout(() &#x3D;&gt; {
+          const value &#x3D; that.lastSelected.title;
+          that.ngCompleter.ctrInput.nativeElement.value &#x3D; that.lastSelected.title;
+        }, 40);
+      } else {
+        if (this.emptied &amp;&amp; this.field.forceLookupOnly) {
+          console.log(&#x60;Forced lookup, clearing data..&#x60;)
+          this.field.setEmptyValue(true);
+          this.lastSelected &#x3D; null;
+          this.field.toggleConditionalValidation(false);
+        }
+      }
+    } else {
+      const val &#x3D; this.field.vocabField.getValue({text_full_name: this.ngCompleter.ctrInput.nativeElement.value });
+      this.field.setValue(val, true, false);
+    }
+
+  }
+
+  public onKeyUp(event) {
+    const val &#x3D; this.ngCompleter.ctrInput.nativeElement.value
+    this.field.toggleConditionalValidation(!_.isEmpty(val));
+  }
+
+  public onBlur() {
+    if (this.field.forceLookupOnly) {
+      this.blurred &#x3D; true;
+    }
+  }
+
+  public onOpen(isOpen:boolean) {
+    if (isOpen) {
+      this.field.toggleConditionalValidation(false);
+    }
+  }
+
+}
+</code></pre>
+    </div>
+
+    <div class="tab-pane fade " id="c-templateData">
+        <pre class="line-numbers"><code class="language-html">&lt;div *ngIf&#x3D;&quot;field.editMode&quot; class&#x3D;&#x27;padding-bottom-10&#x27;&gt;
+  &lt;div class&#x3D;&quot;row&quot; *ngIf&#x3D;&quot;field.label &amp;&amp; field.showHeader&quot;&gt;
+    &lt;div class&#x3D;&quot;col-xs-12&quot;&gt;
+      &lt;span class&#x3D;&quot;label-font&quot;&gt;
+        {{field.label}} {{getRequiredLabelStr()}}
+        &lt;button type&#x3D;&quot;button&quot; class&#x3D;&quot;btn btn-default&quot; *ngIf&#x3D;&quot;field.help&quot; (click)&#x3D;&quot;toggleHelp()&quot; [attr.aria-label]&#x3D;&quot;&#x27;help&#x27; | translate &quot;&gt;&lt;span class&#x3D;&quot;glyphicon glyphicon-question-sign&quot; aria-hidden&#x3D;&quot;true&quot;&gt;&lt;/span&gt;&lt;/button&gt;
+      &lt;/span&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+  &lt;div class&#x3D;&quot;row&quot; *ngIf&#x3D;&quot;field.showHeader&quot;&gt;
+    &lt;span id&#x3D;&quot;{{ &#x27;helpBlock_&#x27; + field.name }}&quot; class&#x3D;&quot;col-xs-12 help-block&quot; *ngIf&#x3D;&quot;this.helpShow&quot; [innerHtml]&#x3D;&quot;field.help&quot;&gt;&lt;/span&gt;
+  &lt;/div&gt;
+  &lt;div class&#x3D;&quot;row&quot;&gt;
+    &lt;ng-container *ngIf&#x3D;&quot;field.freeText&quot; [formGroup]&#x3D;&#x27;field.formModel&#x27;&gt;
+      &lt;!-- Free Text version --&gt;
+      &lt;!--
+      &lt;ng-container &gt;
+        &lt;div [ngClass]&#x3D;&quot;getGroupClass(&#x27;name&#x27;)&quot;&gt;
+          &lt;input formControlName&#x3D;&quot;name&quot; type&#x3D;&quot;text&quot; class&#x3D;&quot;form-control&quot;/&gt;
+          &lt;div class&#x3D;&quot;text-danger&quot; *ngIf&#x3D;&quot;field.formModel.controls[&#x27;name&#x27;].touched &amp;&amp; field.formModel.controls[&#x27;name&#x27;].hasError(&#x27;required&#x27;)&quot;&gt;{{field.validationMessages.required.name}}&lt;/div&gt;
+        &lt;/div&gt;
+        &lt;div [ngClass]&#x3D;&quot;getGroupClass(&#x27;email&#x27;)&quot;&gt;
+          &lt;input formControlName&#x3D;&quot;email&quot; type&#x3D;&quot;text&quot; class&#x3D;&quot;form-control&quot; /&gt;
+          &lt;div class&#x3D;&quot;text-danger&quot; *ngIf&#x3D;&quot;field.formModel.controls[&#x27;email&#x27;].touched &amp;&amp; field.formModel.controls[&#x27;email&#x27;].hasError(&#x27;email&#x27;)&quot;&gt;{{field.validationMessages.invalid.email}}&lt;/div&gt;
+          &lt;div class&#x3D;&quot;text-danger&quot; *ngIf&#x3D;&quot;field.formModel.controls[&#x27;email&#x27;].touched &amp;&amp; field.formModel.controls[&#x27;email&#x27;].hasError(&#x27;required&#x27;)&quot;&gt;{{field.validationMessages.required.email}}&lt;/div&gt;
+        &lt;/div&gt;
+        &lt;div &gt;
+          &lt;input formControlName&#x3D;&quot;orcid&quot; type&#x3D;&quot;text&quot; class&#x3D;&quot;form-control&quot;/&gt;
+        &lt;/div&gt;
+      &lt;/ng-container&gt;  --&gt;
+
+      &lt;div *ngIf&#x3D;&quot;!isEmbedded&quot;&gt;
+        &lt;div class&#x3D;&quot;row&quot;&gt;
+          &lt;span class&#x3D;&#x27;col-xs-10&#x27; &gt;
+            &lt;!-- Free text not embedded version --&gt;
+            &lt;!-- Name not split --&gt;
+            &lt;ng-container *ngIf&#x3D;&quot;!field.splitNames&quot;&gt;
+              &lt;!-- If we show the title --&gt;
+              &lt;ng-container *ngIf&#x3D;&quot;field.showTitle&quot;&gt;
+                &lt;div class&#x3D;&#x27;col-xs-1&#x27;&gt;
+                  &lt;input formControlName&#x3D;&quot;honorific&quot; type&#x3D;&quot;text&quot; class&#x3D;&quot;form-control&quot; [attr.aria-label]&#x3D;&quot;field.titleColHdr&quot; [attr.placeholder]&#x3D;&quot;field.titleColHdr&quot;/&gt;
+                &lt;/div&gt;
+              &lt;/ng-container&gt;
+              &lt;!-- Name  --&gt;
+              &lt;div class&#x3D;&#x27;col-xs-1&#x27;&gt;
+                &lt;span class&#x3D;&#x27;text-right&#x27;&gt;{{ field.nameColHdr }}&lt;/span&gt;
+              &lt;/div&gt;
+              &lt;div [ngClass]&#x3D;&quot;getGroupClass(&#x27;text_full_name&#x27;, true)&quot; &gt;
+                &lt;input formControlName&#x3D;&quot;text_full_name&quot; type&#x3D;&quot;text&quot; class&#x3D;&quot;form-control&quot; [attr.aria-label]&#x3D;&quot;field.nameColHdr&quot;/&gt;
+                &lt;div class&#x3D;&quot;text-danger&quot; *ngIf&#x3D;&quot;field.formModel.controls[&#x27;text_full_name&#x27;].touched &amp;&amp; field.formModel.controls[&#x27;text_full_name&#x27;].hasError(&#x27;required&#x27;)&quot;&gt;{{field.validationMessages.required.text_full_name}}&lt;/div&gt;
+              &lt;/div&gt;
+            &lt;/ng-container&gt;
+            &lt;!-- Name split to family name, give name --&gt;
+            &lt;ng-container *ngIf&#x3D;&quot;field.splitNames&quot;&gt;
+              &lt;div class&#x3D;&#x27;col-xs-1&#x27; &gt;
+                &lt;span class&#x3D;&#x27;text-right&#x27;&gt;{{ field.familyNameHdr }}&lt;/span&gt;
+              &lt;/div&gt;
+              &lt;div [ngClass]&#x3D;&quot;getGroupClass(&#x27;family_name&#x27;)&quot; &gt;
+                &lt;input formControlName&#x3D;&quot;family_name&quot; type&#x3D;&quot;text&quot; class&#x3D;&quot;form-control&quot;/&gt;
+                &lt;div class&#x3D;&quot;text-danger&quot; *ngIf&#x3D;&quot;field.formModel.controls[&#x27;family_name&#x27;].touched &amp;&amp; field.formModel.controls[&#x27;family_name&#x27;].hasError(&#x27;required&#x27;)&quot; [attr.aria-label]&#x3D;&quot;field.familyNameHdr&quot;&gt;{{field.validationMessages.required.family_name}}&lt;/div&gt;
+              &lt;/div&gt;
+              &lt;div class&#x3D;&#x27;col-xs-1&#x27; &gt;
+                &lt;span class&#x3D;&#x27;text-right&#x27;&gt;{{ field.givenNameHdr }}&lt;/span&gt;
+              &lt;/div&gt;
+              &lt;div [ngClass]&#x3D;&quot;getGroupClass(&#x27;given_name&#x27;)&quot; &gt;
+                &lt;input formControlName&#x3D;&quot;given_name&quot; type&#x3D;&quot;text&quot; class&#x3D;&quot;form-control&quot;/&gt;
+                &lt;div class&#x3D;&quot;text-danger&quot; *ngIf&#x3D;&quot;field.formModel.controls[&#x27;given_name&#x27;].touched &amp;&amp; field.formModel.controls[&#x27;given_name&#x27;].hasError(&#x27;required&#x27;)&quot; [attr.aria-label]&#x3D;&quot;field.givenNameHdr&quot;&gt;{{field.validationMessages.required.given_name}}&lt;/div&gt;
+              &lt;/div&gt;
+            &lt;/ng-container&gt;
+            &lt;!-- Email field --&gt;
+            &lt;div class&#x3D;&#x27;col-xs-1&#x27;&gt;
+              &lt;span class&#x3D;&#x27;text-right&#x27;&gt;{{ field.emailColHdr }}&lt;/span&gt;
+            &lt;/div&gt;
+            &lt;div [ngClass]&#x3D;&quot;getGroupClass(&#x27;email&#x27;, !field.splitNames)&quot;&gt;
+              &lt;input formControlName&#x3D;&quot;email&quot; type&#x3D;&quot;text&quot; class&#x3D;&quot;form-control&quot; [attr.aria-label]&#x3D;&quot;field.emailColHdr&quot;/&gt;
+              &lt;div class&#x3D;&quot;text-danger&quot; *ngIf&#x3D;&quot;field.formModel.controls[&#x27;email&#x27;].touched &amp;&amp; field.formModel.controls[&#x27;email&#x27;].hasError(&#x27;email&#x27;)&quot;&gt;{{field.validationMessages.invalid.email}}&lt;/div&gt;
+              &lt;div class&#x3D;&quot;text-danger&quot; *ngIf&#x3D;&quot;field.formModel.controls[&#x27;email&#x27;].touched &amp;&amp; field.formModel.controls[&#x27;email&#x27;].hasError(&#x27;required&#x27;)&quot;&gt;{{field.validationMessages.required.email}}&lt;/div&gt;
+            &lt;/div&gt;
+            &lt;div class&#x3D;&#x27;col-xs-1&#x27;&gt;
+              &lt;span class&#x3D;&#x27;text-right&#x27;&gt;{{ field.orcidColHdr }}&lt;/span&gt;
+            &lt;/div&gt;
+            &lt;div [ngClass]&#x3D;&quot;getGroupClass(&#x27;orcid&#x27;, !field.splitNames &amp;&amp; !field.showTitle)&quot;&gt;
+              &lt;input formControlName&#x3D;&quot;orcid&quot; type&#x3D;&quot;text&quot; class&#x3D;&quot;form-control&quot; [attr.aria-label]&#x3D;&quot;field.orcidColHdr&quot;/&gt;
+            &lt;/div&gt;
+          &lt;/span&gt;
+        &lt;/div&gt;
+      &lt;/div&gt;
+      &lt;!-- Embedded free text version --&gt;
+      &lt;ng-container *ngIf&#x3D;&quot;isEmbedded&quot;&gt;
+        &lt;div class&#x3D;&quot;row&quot;&gt;
+          &lt;span class&#x3D;&#x27;col-xs-12&#x27; &gt;
+            &lt;ng-container *ngIf&#x3D;&quot;field.showTitle&quot;&gt;
+              &lt;div class&#x3D;&#x27;col-xs-1&#x27;&gt;
+                &lt;input formControlName&#x3D;&quot;honorific&quot; type&#x3D;&quot;text&quot; class&#x3D;&quot;form-control&quot; [attr.aria-label]&#x3D;&quot;field.titleColHdr&quot; [attr.placeholder]&#x3D;&quot;field.titleColHdr&quot;/&gt;
+              &lt;/div&gt;
+            &lt;/ng-container&gt;
+            &lt;!-- Names unsplit --&gt;
+            &lt;div class&#x3D;&#x27;col-xs-1&#x27; *ngIf&#x3D;&quot;!field.splitNames&quot;&gt;
+              &lt;span class&#x3D;&#x27;text-right&#x27;&gt;{{ field.nameColHdr }}&lt;/span&gt;
+            &lt;/div&gt;
+            &lt;div [ngClass]&#x3D;&quot;getGroupClass(&#x27;text_full_name&#x27;, true)&quot; *ngIf&#x3D;&quot;!field.splitNames&quot;&gt;
+              &lt;input formControlName&#x3D;&quot;text_full_name&quot; type&#x3D;&quot;text&quot; class&#x3D;&quot;form-control&quot; [attr.aria-label]&#x3D;&quot;field.nameColHdr&quot;/&gt;
+              &lt;div class&#x3D;&quot;text-danger&quot; *ngIf&#x3D;&quot;field.formModel.controls[&#x27;text_full_name&#x27;].touched &amp;&amp; field.formModel.controls[&#x27;text_full_name&#x27;].hasError(&#x27;required&#x27;)&quot;&gt;{{field.validationMessages.required.text_full_name}}&lt;/div&gt;
+            &lt;/div&gt;
+            &lt;!-- Names are split --&gt;
+            &lt;div class&#x3D;&#x27;col-xs-1&#x27; *ngIf&#x3D;&quot;field.splitNames&quot;&gt;
+              &lt;span class&#x3D;&#x27;text-right&#x27;&gt;{{ field.familyNameHdr }}&lt;/span&gt;
+            &lt;/div&gt;
+            &lt;div [ngClass]&#x3D;&quot;getGroupClass(&#x27;family_name&#x27;)&quot; *ngIf&#x3D;&quot;field.splitNames&quot;&gt;
+              &lt;input formControlName&#x3D;&quot;family_name&quot; type&#x3D;&quot;text&quot; class&#x3D;&quot;form-control&quot; [attr.aria-label]&#x3D;&quot;field.familyNameHdr&quot;/&gt;
+              &lt;div class&#x3D;&quot;text-danger&quot; *ngIf&#x3D;&quot;field.formModel.controls[&#x27;family_name&#x27;].touched &amp;&amp; field.formModel.controls[&#x27;family_name&#x27;].hasError(&#x27;required&#x27;)&quot;&gt;{{field.validationMessages.required.family_name}}&lt;/div&gt;
+            &lt;/div&gt;
+            &lt;div class&#x3D;&#x27;col-xs-1&#x27; *ngIf&#x3D;&quot;field.splitNames&quot;&gt;
+              &lt;span class&#x3D;&#x27;text-right&#x27;&gt;{{ field.givenNameHdr }}&lt;/span&gt;
+            &lt;/div&gt;
+            &lt;div [ngClass]&#x3D;&quot;getGroupClass(&#x27;given_name&#x27;)&quot; *ngIf&#x3D;&quot;field.splitNames&quot;&gt;
+              &lt;input formControlName&#x3D;&quot;given_name&quot; type&#x3D;&quot;text&quot; class&#x3D;&quot;form-control&quot; [attr.aria-label]&#x3D;&quot;field.givenNameHdr&quot;/&gt;
+              &lt;div class&#x3D;&quot;text-danger&quot; *ngIf&#x3D;&quot;field.formModel.controls[&#x27;given_name&#x27;].touched &amp;&amp; field.formModel.controls[&#x27;given_name&#x27;].hasError(&#x27;required&#x27;)&quot;&gt;{{field.validationMessages.required.given_name}}&lt;/div&gt;
+            &lt;/div&gt;
+            &lt;div class&#x3D;&#x27;col-xs-1&#x27;&gt;
+              &lt;span class&#x3D;&#x27;text-right&#x27;&gt;{{ field.emailColHdr }}&lt;/span&gt;
+            &lt;/div&gt;
+            &lt;div [ngClass]&#x3D;&quot;getGroupClass(&#x27;email&#x27;, !field.splitNames)&quot;&gt;
+              &lt;input formControlName&#x3D;&quot;email&quot; type&#x3D;&quot;text&quot; class&#x3D;&quot;form-control&quot; [attr.aria-label]&#x3D;&quot;field.emailColHdr&quot;/&gt;
+              &lt;div class&#x3D;&quot;text-danger&quot; *ngIf&#x3D;&quot;field.formModel.controls[&#x27;email&#x27;].touched &amp;&amp; field.formModel.controls[&#x27;email&#x27;].hasError(&#x27;email&#x27;)&quot;&gt;{{field.validationMessages.invalid.email}}&lt;/div&gt;
+              &lt;div class&#x3D;&quot;text-danger&quot; *ngIf&#x3D;&quot;field.formModel.controls[&#x27;email&#x27;].touched &amp;&amp; field.formModel.controls[&#x27;email&#x27;].hasError(&#x27;required&#x27;)&quot;&gt;{{field.validationMessages.required.email}}&lt;/div&gt;
+            &lt;/div&gt;
+            &lt;div class&#x3D;&#x27;col-xs-1&#x27;&gt;
+              &lt;span class&#x3D;&#x27;text-right&#x27;&gt;{{ field.orcidColHdr }}&lt;/span&gt;
+            &lt;/div&gt;
+            &lt;div [ngClass]&#x3D;&quot;getGroupClass(&#x27;orcid&#x27;, !field.splitNames &amp;&amp; !field.showTitle)&quot;&gt;
+              &lt;input formControlName&#x3D;&quot;orcid&quot; type&#x3D;&quot;text&quot; class&#x3D;&quot;form-control&quot; [attr.aria-label]&#x3D;&quot;field.orcidColHdr&quot;/&gt;
+            &lt;/div&gt;
+          &lt;/span&gt;
+        &lt;/div&gt;
+      &lt;/ng-container&gt;
+
+    &lt;/ng-container&gt;
+    &lt;!-- Lookup version --&gt;
+    &lt;ng-container *ngIf&#x3D;&quot;!field.freeText&quot; [formGroup]&#x3D;&quot;field.formModel&quot;&gt;
+      &lt;!-- Not embedded version --&gt;
+      &lt;div *ngIf&#x3D;&quot;!isEmbedded&quot;&gt;
+        &lt;div class&#x3D;&quot;row&quot;&gt;
+          &lt;span class&#x3D;&#x27;col-xs-10&#x27; &gt;
+            &lt;!-- Lookup Not Embedded version --&gt;
+            &lt;!-- If we show the title --&gt;
+            &lt;ng-container *ngIf&#x3D;&quot;field.showTitle&quot;&gt;
+              &lt;div class&#x3D;&quot;col-xs-1&quot; &gt;
+                &lt;input formControlName&#x3D;&quot;honorific&quot; type&#x3D;&quot;text&quot; class&#x3D;&quot;form-control&quot; [attr.aria-label]&#x3D;&quot;field.titleColHdr&quot; [attr.placeholder]&#x3D;&quot;field.titleColHdr&quot;/&gt;
+              &lt;/div&gt;
+            &lt;/ng-container&gt;
+            &lt;div class&#x3D;&#x27;col-xs-1&#x27;&gt;
+              &lt;span class&#x3D;&#x27;text-right&#x27;&gt;{{ field.nameColHdr }}&lt;/span&gt;
+            &lt;/div&gt;
+            &lt;div [ngClass]&#x3D;&quot;getGroupClass(&#x27;text_full_name&#x27;, true)&quot;&gt;
+              &lt;ng2-completer #ngCompleter (opened)&#x3D;&quot;onOpen($event)&quot; (blur)&#x3D;&quot;onBlur()&quot; (keyup)&#x3D;&quot;onKeyUp($event)&quot; (keydown)&#x3D;&quot;onKeydown($event)&quot; [overrideSuggested]&#x3D;&quot;!field.forceLookupOnly&quot; [inputClass]&#x3D;&quot;&#x27;form-control&#x27;&quot; [placeholder]&#x3D;&quot;field.vocabField.placeHolder&quot; [clearUnselected]&#x3D;&quot;shouldClearUnselected()&quot; (selected)&#x3D;&quot;onSelect($event)&quot; [datasource]&#x3D;&quot;field.vocabField.dataService&quot; [minSearchLength]&#x3D;&quot;0&quot; [initialValue]&#x3D;&quot;field.vocabField.initialValue&quot;&gt;&lt;/ng2-completer&gt;
+              &lt;div class&#x3D;&quot;text-danger&quot; *ngIf&#x3D;&quot;field.formModel.controls[&#x27;text_full_name&#x27;].hasError(&#x27;required&#x27;)&quot;&gt;{{field.validationMessages.required.text_full_name}}&lt;/div&gt;
+            &lt;/div&gt;
+            &lt;div class&#x3D;&#x27;col-xs-1&#x27;&gt;
+              &lt;span class&#x3D;&#x27;text-right&#x27;&gt;{{ field.emailColHdr }}&lt;/span&gt;
+            &lt;/div&gt;
+            &lt;div [ngClass]&#x3D;&quot;getGroupClass(&#x27;email&#x27;, true)&quot;&gt;
+              &lt;input formControlName&#x3D;&quot;email&quot; type&#x3D;&quot;text&quot; class&#x3D;&quot;form-control&quot; [readOnly]&#x3D;&quot;field.forceLookupOnly&quot; [attr.aria-label]&#x3D;&quot;field.emailColHdr&quot;/&gt;
+              &lt;div class&#x3D;&quot;text-danger&quot; *ngIf&#x3D;&quot;field.formModel.controls[&#x27;email&#x27;].touched &amp;&amp; field.formModel.controls[&#x27;email&#x27;].hasError(&#x27;email&#x27;)&quot;&gt;{{field.validationMessages.invalid.email}}&lt;/div&gt;
+              &lt;div class&#x3D;&quot;text-danger&quot; *ngIf&#x3D;&quot;field.formModel.controls[&#x27;email&#x27;].touched &amp;&amp; field.formModel.controls[&#x27;email&#x27;].hasError(&#x27;required&#x27;)&quot;&gt;{{field.validationMessages.required.email}}&lt;/div&gt;
+            &lt;/div&gt;
+            &lt;div class&#x3D;&#x27;col-xs-1&#x27;&gt;
+              &lt;span class&#x3D;&#x27;text-right&#x27;&gt;{{ field.orcidColHdr }}&lt;/span&gt;
+            &lt;/div&gt;
+            &lt;div [ngClass]&#x3D;&quot;getGroupClass(&#x27;orcid&#x27;, !field.showTitle)&quot;&gt;
+              &lt;input formControlName&#x3D;&quot;orcid&quot; type&#x3D;&quot;text&quot; class&#x3D;&quot;form-control&quot; [attr.aria-label]&#x3D;&quot;field.orcidColHdr&quot;/&gt;
+            &lt;/div&gt;
+          &lt;/span&gt;
+        &lt;/div&gt;
+      &lt;/div&gt;
+      &lt;ng-container *ngIf&#x3D;&quot;isEmbedded&quot;&gt;
+        &lt;div class&#x3D;&quot;row&quot;&gt;
+          &lt;span class&#x3D;&#x27;col-xs-12&#x27; &gt;
+            &lt;!-- Lookup Embedded version --&gt;
+            &lt;!-- If we show the title --&gt;
+            &lt;ng-container *ngIf&#x3D;&quot;field.showTitle&quot;&gt;
+              &lt;div class&#x3D;&quot;col-xs-1&quot; &gt;
+                &lt;input formControlName&#x3D;&quot;honorific&quot; type&#x3D;&quot;text&quot; class&#x3D;&quot;form-control&quot; [attr.aria-label]&#x3D;&quot;field.titleColHdr&quot; [attr.placeholder]&#x3D;&quot;field.titleColHdr&quot;/&gt;
+              &lt;/div&gt;
+            &lt;/ng-container&gt;
+            &lt;div class&#x3D;&#x27;col-xs-1&#x27;&gt;
+              &lt;span class&#x3D;&#x27;text-right&#x27;&gt;{{ field.nameColHdr }}&lt;/span&gt;
+            &lt;/div&gt;
+            &lt;div [ngClass]&#x3D;&quot;getGroupClass(&#x27;text_full_name&#x27;, true)&quot;&gt;
+              &lt;ng2-completer #ngCompleter (opened)&#x3D;&quot;onOpen($event)&quot; (blur)&#x3D;&quot;onBlur()&quot; (keyup)&#x3D;&quot;onKeyUp($event)&quot; (keydown)&#x3D;&quot;onKeydown($event)&quot; [overrideSuggested]&#x3D;&quot;!field.forceLookupOnly&quot; [inputClass]&#x3D;&quot;&#x27;form-control&#x27;&quot; [placeholder]&#x3D;&quot;field.vocabField.placeHolder&quot; [clearUnselected]&#x3D;&quot;shouldClearUnselected()&quot; (selected)&#x3D;&quot;onSelect($event)&quot; [datasource]&#x3D;&quot;field.vocabField.dataService&quot; [minSearchLength]&#x3D;&quot;0&quot; [initialValue]&#x3D;&quot;field.vocabField.initialValue&quot;&gt;&lt;/ng2-completer&gt;
+              &lt;div class&#x3D;&quot;text-danger&quot; *ngIf&#x3D;&quot;field.formModel.controls[&#x27;text_full_name&#x27;].hasError(&#x27;required&#x27;)&quot;&gt;{{field.validationMessages.required.text_full_name}}&lt;/div&gt;
+            &lt;/div&gt;
+            &lt;div class&#x3D;&#x27;col-xs-1&#x27;&gt;
+              &lt;span class&#x3D;&#x27;text-right&#x27;&gt;{{ field.emailColHdr }}&lt;/span&gt;
+            &lt;/div&gt;
+            &lt;div [ngClass]&#x3D;&quot;getGroupClass(&#x27;email&#x27;, true)&quot;&gt;
+              &lt;input formControlName&#x3D;&quot;email&quot; type&#x3D;&quot;text&quot; class&#x3D;&quot;form-control&quot; [readOnly]&#x3D;&quot;field.forceLookupOnly&quot; [attr.aria-label]&#x3D;&quot;field.emailColHdr&quot;/&gt;
+              &lt;div class&#x3D;&quot;text-danger&quot; *ngIf&#x3D;&quot;field.formModel.controls[&#x27;email&#x27;].touched &amp;&amp; field.formModel.controls[&#x27;email&#x27;].hasError(&#x27;email&#x27;)&quot;&gt;{{field.validationMessages.invalid.email}}&lt;/div&gt;
+              &lt;div class&#x3D;&quot;text-danger&quot; *ngIf&#x3D;&quot;field.formModel.controls[&#x27;email&#x27;].touched &amp;&amp; field.formModel.controls[&#x27;email&#x27;].hasError(&#x27;required&#x27;)&quot;&gt;{{field.validationMessages.required.email}}&lt;/div&gt;
+            &lt;/div&gt;
+            &lt;div class&#x3D;&#x27;col-xs-1&#x27;&gt;
+              &lt;span class&#x3D;&#x27;text-right&#x27;&gt;{{ field.orcidColHdr }}&lt;/span&gt;
+            &lt;/div&gt;
+            &lt;div [ngClass]&#x3D;&quot;getGroupClass(&#x27;orcid&#x27;, !field.showTitle)&quot;&gt;
+              &lt;input formControlName&#x3D;&quot;orcid&quot; type&#x3D;&quot;text&quot; class&#x3D;&quot;form-control&quot; [attr.aria-label]&#x3D;&quot;field.orcidColHdr&quot; /&gt;
+            &lt;/div&gt;
+          &lt;/span&gt;
+        &lt;/div&gt;
+      &lt;/ng-container&gt;
+    &lt;/ng-container&gt;
+  &lt;/div&gt;
+&lt;/div&gt;
+&lt;div class&#x3D;&quot;view-contributor&quot; *ngIf&#x3D;&quot;!field.editMode&quot;&gt;
+  &lt;div class&#x3D;&quot;row&quot;&gt;
+    &lt;div class&#x3D;&quot;col-xs-12 key-value-pair&quot; *ngIf&#x3D;&quot;field.label&quot;&gt;
+      &lt;span class&#x3D;&quot;key&quot;&gt;
+      {{ field.label }}
+      &lt;/span&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+  &lt;div class&#x3D;&quot;row view-contributor&quot; *ngIf&#x3D;&quot;field.showHeader&quot;&gt;
+    &lt;div *ngIf&#x3D;&quot;field.showTitle&quot; class&#x3D;&quot;col-xs-1 label-font&quot;&gt;{{field.titleColHdr}}&lt;/div&gt;
+    &lt;div class&#x3D;&quot;col-xs-3 label-font&quot;&gt;{{field.nameColHdr}}&lt;/div&gt;
+    &lt;div [attr.class]&#x3D;&quot;field.showRole? &#x27;col-xs-3&#x27;:&#x27;col-xs-4&#x27;&quot;&gt;&lt;span class&#x3D;&#x27;label-font&#x27;&gt;{{field.emailColHdr}}&lt;/span&gt;&lt;/div&gt;
+    &lt;div [attr.class]&#x3D;&quot;field.showRole? &#x27;col-xs-3&#x27;:&#x27;hidden&#x27;&quot;&gt;&lt;span class&#x3D;&#x27;label-font&#x27;&gt;{{field.roleColHdr}}&lt;/span&gt;&lt;/div&gt;
+    &lt;div [attr.class]&#x3D;&quot;field.showRole? (field.showTitle ? &#x27;col-xs-2&#x27; : &#x27;col-xs-3&#x27;) :&#x27;col-xs-4&#x27;&quot;&gt;&lt;span class&#x3D;&#x27;label-font&#x27;&gt;{{field.orcidColHdr}}&lt;/span&gt;&lt;/div&gt;
+  &lt;/div&gt;
+  &lt;div class&#x3D;&quot;row view-contributor&quot;&gt;
+    &lt;div *ngIf&#x3D;&quot;field.showTitle&quot; class&#x3D;&quot;col-xs-1&quot;&gt;{{field.value.honorific}}&lt;/div&gt;
+    &lt;div class&#x3D;&quot;col-xs-3&quot;&gt;{{field.value.text_full_name}}&lt;/div&gt;
+    &lt;div [attr.class]&#x3D;&quot;field.showRole? &#x27;col-xs-3&#x27;:&#x27;col-xs-4&#x27;&quot;&gt;{{field.value.email}}&lt;/div&gt;
+    &lt;div [attr.class]&#x3D;&quot;field.showRole? &#x27;col-xs-3&#x27;:&#x27;hidden&#x27;&quot;&gt;{{field.value.role}}&lt;/div&gt;
+    &lt;div [attr.class]&#x3D;&quot;field.showRole? (field.showTitle ? &#x27;col-xs-2&#x27; : &#x27;col-xs-3&#x27;) :&#x27;col-xs-4&#x27;&quot;&gt;{{field.value.orcid}}&lt;/div&gt;
+  &lt;/div&gt;
+&lt;/div&gt;
+</code></pre>
+    </div>
+
+
+    <div class="tab-pane fade " id="c-tree">
+        <div id="tree-container"></div>
+        <div class="tree-legend">
+            <div class="title">
+                <b>Legend</b>
+            </div>
+            <div>
+                <div class="color htmlelement"></div><span>Html element</span>
+            </div>
+            <div>
+                <div class="color component"></div><span>Component</span>
+            </div>
+            <div>
+                <div class="color directive"></div><span>Html element with directive</span>
+            </div>
+        </div>
+    </div>
+
+    
+</div>
+
+<script src="../js/libs/vis.min.js"></script>
+<script src="../js/libs/htmlparser.js"></script>
+<script src="../js/libs/deep-iterator.js"></script>
+<script>
+        var COMPONENT_TEMPLATE = '<div><div *ngIf="field.editMode" class=\'padding-bottom-10\'>  <div class="row" *ngIf="field.label && field.showHeader">    <div class="col-xs-12">      <span class="label-font">        {{field.label}} {{getRequiredLabelStr()}}        <button type="button" class="btn btn-default" *ngIf="field.help" (click)="toggleHelp()" [attr.aria-label]="\'help\' | translate "><span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span></button>      </span>    </div>  </div>  <div class="row" *ngIf="field.showHeader">    <span id="{{ \'helpBlock_\' + field.name }}" class="col-xs-12 help-block" *ngIf="this.helpShow" [innerHtml]="field.help"></span>  </div>  <div class="row">    <ng-container *ngIf="field.freeText" [formGroup]=\'field.formModel\'>      <!-- Free Text version -->      <!--      <ng-container >        <div [ngClass]="getGroupClass(\'name\')">          <input formControlName="name" type="text" class="form-control"/>          <div class="text-danger" *ngIf="field.formModel.controls[\'name\'].touched && field.formModel.controls[\'name\'].hasError(\'required\')">{{field.validationMessages.required.name}}</div>        </div>        <div [ngClass]="getGroupClass(\'email\')">          <input formControlName="email" type="text" class="form-control" />          <div class="text-danger" *ngIf="field.formModel.controls[\'email\'].touched && field.formModel.controls[\'email\'].hasError(\'email\')">{{field.validationMessages.invalid.email}}</div>          <div class="text-danger" *ngIf="field.formModel.controls[\'email\'].touched && field.formModel.controls[\'email\'].hasError(\'required\')">{{field.validationMessages.required.email}}</div>        </div>        <div >          <input formControlName="orcid" type="text" class="form-control"/>        </div>      </ng-container>  -->      <div *ngIf="!isEmbedded">        <div class="row">          <span class=\'col-xs-10\' >            <!-- Free text not embedded version -->            <!-- Name not split -->            <ng-container *ngIf="!field.splitNames">              <!-- If we show the title -->              <ng-container *ngIf="field.showTitle">                <div class=\'col-xs-1\'>                  <input formControlName="honorific" type="text" class="form-control" [attr.aria-label]="field.titleColHdr" [attr.placeholder]="field.titleColHdr"/>                </div>              </ng-container>              <!-- Name  -->              <div class=\'col-xs-1\'>                <span class=\'text-right\'>{{ field.nameColHdr }}</span>              </div>              <div [ngClass]="getGroupClass(\'text_full_name\', true)" >                <input formControlName="text_full_name" type="text" class="form-control" [attr.aria-label]="field.nameColHdr"/>                <div class="text-danger" *ngIf="field.formModel.controls[\'text_full_name\'].touched && field.formModel.controls[\'text_full_name\'].hasError(\'required\')">{{field.validationMessages.required.text_full_name}}</div>              </div>            </ng-container>            <!-- Name split to family name, give name -->            <ng-container *ngIf="field.splitNames">              <div class=\'col-xs-1\' >                <span class=\'text-right\'>{{ field.familyNameHdr }}</span>              </div>              <div [ngClass]="getGroupClass(\'family_name\')" >                <input formControlName="family_name" type="text" class="form-control"/>                <div class="text-danger" *ngIf="field.formModel.controls[\'family_name\'].touched && field.formModel.controls[\'family_name\'].hasError(\'required\')" [attr.aria-label]="field.familyNameHdr">{{field.validationMessages.required.family_name}}</div>              </div>              <div class=\'col-xs-1\' >                <span class=\'text-right\'>{{ field.givenNameHdr }}</span>              </div>              <div [ngClass]="getGroupClass(\'given_name\')" >                <input formControlName="given_name" type="text" class="form-control"/>                <div class="text-danger" *ngIf="field.formModel.controls[\'given_name\'].touched && field.formModel.controls[\'given_name\'].hasError(\'required\')" [attr.aria-label]="field.givenNameHdr">{{field.validationMessages.required.given_name}}</div>              </div>            </ng-container>            <!-- Email field -->            <div class=\'col-xs-1\'>              <span class=\'text-right\'>{{ field.emailColHdr }}</span>            </div>            <div [ngClass]="getGroupClass(\'email\', !field.splitNames)">              <input formControlName="email" type="text" class="form-control" [attr.aria-label]="field.emailColHdr"/>              <div class="text-danger" *ngIf="field.formModel.controls[\'email\'].touched && field.formModel.controls[\'email\'].hasError(\'email\')">{{field.validationMessages.invalid.email}}</div>              <div class="text-danger" *ngIf="field.formModel.controls[\'email\'].touched && field.formModel.controls[\'email\'].hasError(\'required\')">{{field.validationMessages.required.email}}</div>            </div>            <div class=\'col-xs-1\'>              <span class=\'text-right\'>{{ field.orcidColHdr }}</span>            </div>            <div [ngClass]="getGroupClass(\'orcid\', !field.splitNames && !field.showTitle)">              <input formControlName="orcid" type="text" class="form-control" [attr.aria-label]="field.orcidColHdr"/>            </div>          </span>        </div>      </div>      <!-- Embedded free text version -->      <ng-container *ngIf="isEmbedded">        <div class="row">          <span class=\'col-xs-12\' >            <ng-container *ngIf="field.showTitle">              <div class=\'col-xs-1\'>                <input formControlName="honorific" type="text" class="form-control" [attr.aria-label]="field.titleColHdr" [attr.placeholder]="field.titleColHdr"/>              </div>            </ng-container>            <!-- Names unsplit -->            <div class=\'col-xs-1\' *ngIf="!field.splitNames">              <span class=\'text-right\'>{{ field.nameColHdr }}</span>            </div>            <div [ngClass]="getGroupClass(\'text_full_name\', true)" *ngIf="!field.splitNames">              <input formControlName="text_full_name" type="text" class="form-control" [attr.aria-label]="field.nameColHdr"/>              <div class="text-danger" *ngIf="field.formModel.controls[\'text_full_name\'].touched && field.formModel.controls[\'text_full_name\'].hasError(\'required\')">{{field.validationMessages.required.text_full_name}}</div>            </div>            <!-- Names are split -->            <div class=\'col-xs-1\' *ngIf="field.splitNames">              <span class=\'text-right\'>{{ field.familyNameHdr }}</span>            </div>            <div [ngClass]="getGroupClass(\'family_name\')" *ngIf="field.splitNames">              <input formControlName="family_name" type="text" class="form-control" [attr.aria-label]="field.familyNameHdr"/>              <div class="text-danger" *ngIf="field.formModel.controls[\'family_name\'].touched && field.formModel.controls[\'family_name\'].hasError(\'required\')">{{field.validationMessages.required.family_name}}</div>            </div>            <div class=\'col-xs-1\' *ngIf="field.splitNames">              <span class=\'text-right\'>{{ field.givenNameHdr }}</span>            </div>            <div [ngClass]="getGroupClass(\'given_name\')" *ngIf="field.splitNames">              <input formControlName="given_name" type="text" class="form-control" [attr.aria-label]="field.givenNameHdr"/>              <div class="text-danger" *ngIf="field.formModel.controls[\'given_name\'].touched && field.formModel.controls[\'given_name\'].hasError(\'required\')">{{field.validationMessages.required.given_name}}</div>            </div>            <div class=\'col-xs-1\'>              <span class=\'text-right\'>{{ field.emailColHdr }}</span>            </div>            <div [ngClass]="getGroupClass(\'email\', !field.splitNames)">              <input formControlName="email" type="text" class="form-control" [attr.aria-label]="field.emailColHdr"/>              <div class="text-danger" *ngIf="field.formModel.controls[\'email\'].touched && field.formModel.controls[\'email\'].hasError(\'email\')">{{field.validationMessages.invalid.email}}</div>              <div class="text-danger" *ngIf="field.formModel.controls[\'email\'].touched && field.formModel.controls[\'email\'].hasError(\'required\')">{{field.validationMessages.required.email}}</div>            </div>            <div class=\'col-xs-1\'>              <span class=\'text-right\'>{{ field.orcidColHdr }}</span>            </div>            <div [ngClass]="getGroupClass(\'orcid\', !field.splitNames && !field.showTitle)">              <input formControlName="orcid" type="text" class="form-control" [attr.aria-label]="field.orcidColHdr"/>            </div>          </span>        </div>      </ng-container>    </ng-container>    <!-- Lookup version -->    <ng-container *ngIf="!field.freeText" [formGroup]="field.formModel">      <!-- Not embedded version -->      <div *ngIf="!isEmbedded">        <div class="row">          <span class=\'col-xs-10\' >            <!-- Lookup Not Embedded version -->            <!-- If we show the title -->            <ng-container *ngIf="field.showTitle">              <div class="col-xs-1" >                <input formControlName="honorific" type="text" class="form-control" [attr.aria-label]="field.titleColHdr" [attr.placeholder]="field.titleColHdr"/>              </div>            </ng-container>            <div class=\'col-xs-1\'>              <span class=\'text-right\'>{{ field.nameColHdr }}</span>            </div>            <div [ngClass]="getGroupClass(\'text_full_name\', true)">              <ng2-completer #ngCompleter (opened)="onOpen($event)" (blur)="onBlur()" (keyup)="onKeyUp($event)" (keydown)="onKeydown($event)" [overrideSuggested]="!field.forceLookupOnly" [inputClass]="\'form-control\'" [placeholder]="field.vocabField.placeHolder" [clearUnselected]="shouldClearUnselected()" (selected)="onSelect($event)" [datasource]="field.vocabField.dataService" [minSearchLength]="0" [initialValue]="field.vocabField.initialValue"></ng2-completer>              <div class="text-danger" *ngIf="field.formModel.controls[\'text_full_name\'].hasError(\'required\')">{{field.validationMessages.required.text_full_name}}</div>            </div>            <div class=\'col-xs-1\'>              <span class=\'text-right\'>{{ field.emailColHdr }}</span>            </div>            <div [ngClass]="getGroupClass(\'email\', true)">              <input formControlName="email" type="text" class="form-control" [readOnly]="field.forceLookupOnly" [attr.aria-label]="field.emailColHdr"/>              <div class="text-danger" *ngIf="field.formModel.controls[\'email\'].touched && field.formModel.controls[\'email\'].hasError(\'email\')">{{field.validationMessages.invalid.email}}</div>              <div class="text-danger" *ngIf="field.formModel.controls[\'email\'].touched && field.formModel.controls[\'email\'].hasError(\'required\')">{{field.validationMessages.required.email}}</div>            </div>            <div class=\'col-xs-1\'>              <span class=\'text-right\'>{{ field.orcidColHdr }}</span>            </div>            <div [ngClass]="getGroupClass(\'orcid\', !field.showTitle)">              <input formControlName="orcid" type="text" class="form-control" [attr.aria-label]="field.orcidColHdr"/>            </div>          </span>        </div>      </div>      <ng-container *ngIf="isEmbedded">        <div class="row">          <span class=\'col-xs-12\' >            <!-- Lookup Embedded version -->            <!-- If we show the title -->            <ng-container *ngIf="field.showTitle">              <div class="col-xs-1" >                <input formControlName="honorific" type="text" class="form-control" [attr.aria-label]="field.titleColHdr" [attr.placeholder]="field.titleColHdr"/>              </div>            </ng-container>            <div class=\'col-xs-1\'>              <span class=\'text-right\'>{{ field.nameColHdr }}</span>            </div>            <div [ngClass]="getGroupClass(\'text_full_name\', true)">              <ng2-completer #ngCompleter (opened)="onOpen($event)" (blur)="onBlur()" (keyup)="onKeyUp($event)" (keydown)="onKeydown($event)" [overrideSuggested]="!field.forceLookupOnly" [inputClass]="\'form-control\'" [placeholder]="field.vocabField.placeHolder" [clearUnselected]="shouldClearUnselected()" (selected)="onSelect($event)" [datasource]="field.vocabField.dataService" [minSearchLength]="0" [initialValue]="field.vocabField.initialValue"></ng2-completer>              <div class="text-danger" *ngIf="field.formModel.controls[\'text_full_name\'].hasError(\'required\')">{{field.validationMessages.required.text_full_name}}</div>            </div>            <div class=\'col-xs-1\'>              <span class=\'text-right\'>{{ field.emailColHdr }}</span>            </div>            <div [ngClass]="getGroupClass(\'email\', true)">              <input formControlName="email" type="text" class="form-control" [readOnly]="field.forceLookupOnly" [attr.aria-label]="field.emailColHdr"/>              <div class="text-danger" *ngIf="field.formModel.controls[\'email\'].touched && field.formModel.controls[\'email\'].hasError(\'email\')">{{field.validationMessages.invalid.email}}</div>              <div class="text-danger" *ngIf="field.formModel.controls[\'email\'].touched && field.formModel.controls[\'email\'].hasError(\'required\')">{{field.validationMessages.required.email}}</div>            </div>            <div class=\'col-xs-1\'>              <span class=\'text-right\'>{{ field.orcidColHdr }}</span>            </div>            <div [ngClass]="getGroupClass(\'orcid\', !field.showTitle)">              <input formControlName="orcid" type="text" class="form-control" [attr.aria-label]="field.orcidColHdr" />            </div>          </span>        </div>      </ng-container>    </ng-container>  </div></div><div class="view-contributor" *ngIf="!field.editMode">  <div class="row">    <div class="col-xs-12 key-value-pair" *ngIf="field.label">      <span class="key">      {{ field.label }}      </span>    </div>  </div>  <div class="row view-contributor" *ngIf="field.showHeader">    <div *ngIf="field.showTitle" class="col-xs-1 label-font">{{field.titleColHdr}}</div>    <div class="col-xs-3 label-font">{{field.nameColHdr}}</div>    <div [attr.class]="field.showRole? \'col-xs-3\':\'col-xs-4\'"><span class=\'label-font\'>{{field.emailColHdr}}</span></div>    <div [attr.class]="field.showRole? \'col-xs-3\':\'hidden\'"><span class=\'label-font\'>{{field.roleColHdr}}</span></div>    <div [attr.class]="field.showRole? (field.showTitle ? \'col-xs-2\' : \'col-xs-3\') :\'col-xs-4\'"><span class=\'label-font\'>{{field.orcidColHdr}}</span></div>  </div>  <div class="row view-contributor">    <div *ngIf="field.showTitle" class="col-xs-1">{{field.value.honorific}}</div>    <div class="col-xs-3">{{field.value.text_full_name}}</div>    <div [attr.class]="field.showRole? \'col-xs-3\':\'col-xs-4\'">{{field.value.email}}</div>    <div [attr.class]="field.showRole? \'col-xs-3\':\'hidden\'">{{field.value.role}}</div>    <div [attr.class]="field.showRole? (field.showTitle ? \'col-xs-2\' : \'col-xs-3\') :\'col-xs-4\'">{{field.value.orcid}}</div>  </div></div></div>'
+    var COMPONENTS = [{'name': 'ActionButtonComponent', 'selector': 'action-button'},{'name': 'AnchorOrButtonComponent', 'selector': 'anchor-button'},{'name': 'ANDSVocabComponent', 'selector': 'ands-vocab-selector'},{'name': 'AsynchComponent', 'selector': 'asynch-component'},{'name': 'ButtonBarContainerComponent', 'selector': 'buttonbarcontainer'},{'name': 'CancelButtonComponent', 'selector': 'cancel-button'},{'name': 'ContributorComponent', 'selector': 'rb-contributor'},{'name': 'DashboardComponent', 'selector': 'dashboard'},{'name': 'DataLocationComponent', 'selector': 'data-location-selector'},{'name': 'DateTimeComponent', 'selector': 'date-time'},{'name': 'DmpFieldComponent', 'selector': 'dmp-field'},{'name': 'DmpFormComponent', 'selector': 'dmp-form'},{'name': 'DropdownFieldComponent', 'selector': 'dropdownfield'},{'name': 'ExportFormComponent', 'selector': 'export-form'},{'name': 'GenericGroupComponent', 'selector': 'generic-group-field'},{'name': 'HiddenValueComponent', 'selector': 'hidden-field'},{'name': 'HtmlRawComponent', 'selector': 'htmlraw'},{'name': 'LinkValueComponent', 'selector': 'link-value'},{'name': 'LocalAuthComponent', 'selector': 'local-auth'},{'name': 'ManageRolesComponent', 'selector': 'manage-roles'},{'name': 'ManageUsersComponent', 'selector': 'manage-users'},{'name': 'MapComponent', 'selector': 'rb-mapdata'},{'name': 'MarkdownTextAreaComponent', 'selector': 'markdown-text-area'},{'name': 'ParameterRetrieverComponent', 'selector': 'parameter-retriever'},{'name': 'PDFListComponent', 'selector': 'rb-pdf-list'},{'name': 'PublishDataLocationRefreshComponent', 'selector': 'publish-data-location-refresh'},{'name': 'PublishDataLocationSelectorComponent', 'selector': 'publish-data-location-selector'},{'name': 'RecordMetadataRetrieverComponent', 'selector': 'record-metadata-retriever'},{'name': 'RecordPermissionsComponent', 'selector': 'rb-recordpermissions'},{'name': 'RecordSearchComponent', 'selector': 'record-search'},{'name': 'RecordSearchRefinerComponent', 'selector': 'record-search-refiner'},{'name': 'RelatedObjectDataComponent', 'selector': 'rb-relatedobjectdata'},{'name': 'RelatedObjectSelectorComponent', 'selector': 'rb-RelatedObjectSelector'},{'name': 'RepeatableContributorComponent', 'selector': 'repeatable-contributor'},{'name': 'RepeatableGroupComponent', 'selector': 'repeatable-group'},{'name': 'RepeatableTextfieldComponent', 'selector': 'repeatable-textfield'},{'name': 'RepeatableVocabComponent', 'selector': 'repeatable-vocab'},{'name': 'ReportComponent', 'selector': 'report'},{'name': 'SaveButtonComponent', 'selector': 'save-button'},{'name': 'SelectionFieldComponent', 'selector': 'selectionfield'},{'name': 'SortComponent', 'selector': 'sort'},{'name': 'SpacerComponent', 'selector': 'spacer'},{'name': 'TabNavButtonComponent', 'selector': 'tab-nav-button'},{'name': 'TabOrAccordionContainerComponent', 'selector': 'tabcontainer'},{'name': 'TextAreaComponent', 'selector': 'text-area'},{'name': 'TextBlockComponent', 'selector': 'text-block'},{'name': 'TextFieldComponent', 'selector': 'textfield'},{'name': 'ToggleComponent', 'selector': 'toggle'},{'name': 'TransferOwnerComponent', 'selector': 'transfer-owner'},{'name': 'TreeNodeCheckboxComponent', 'selector': 'rb-tree-node-checkbox'},{'name': 'UserProfileComponent', 'selector': 'user-profile'},{'name': 'VocabFieldComponent', 'selector': 'rb-vocab'},{'name': 'WorkflowStepButtonComponent', 'selector': 'workflowstep-button'},{'name': 'WorkspaceFieldComponent', 'selector': 'ws-field'},{'name': 'WorkspaceListComponent', 'selector': 'workspace-list'},{'name': 'WorkspaceSelectorComponent', 'selector': 'workspace-selector-parent'},{'name': 'WorkspaceSelectorFieldComponent', 'selector': 'workspace-selector'}];
+    var DIRECTIVES = [];
+    var ACTUAL_COMPONENT = {'name': 'ContributorComponent'};
+</script>
+<script src="../js/tree.js"></script>
+
+
+
+
+
+
+
+
+
+
+                   
+
+
+
+
+                   </div><div class="search-results">
+    <div class="has-results">
+        <h1 class="search-results-title"><span class='search-results-count'></span> result-matching "<span class='search-query'></span>"</h1>
+        <ul class="search-results-list"></ul>
+    </div>
+    <div class="no-results">
+        <h1 class="search-results-title">No results matching "<span class='search-query'></span>"</h1>
+    </div>
+</div>
+</div>
+               <!-- END CONTENT -->
+           </div>
+       </div>
+
+       <script>
+            var COMPODOC_CURRENT_PAGE_DEPTH = 1;
+            var COMPODOC_CURRENT_PAGE_CONTEXT = 'component';
+            var COMPODOC_CURRENT_PAGE_URL = 'ContributorComponent.html';
+            var MAX_SEARCH_RESULTS = 15;
+       </script>
+
+       <script src="../js/libs/custom-elements.min.js"></script>
+       <script src="../js/libs/lit-html.js"></script>
+       <!-- Required to polyfill modern browsers as code is ES5 for IE... -->
+       <script src="../js/libs/custom-elements-es5-adapter.js" charset="utf-8" defer></script>
+       <script src="../js/menu-wc.js" defer></script>
+
+       <script src="../js/libs/bootstrap-native.js"></script>
+
+       <script src="../js/libs/es6-shim.min.js"></script>
+       <script src="../js/libs/EventDispatcher.js"></script>
+       <script src="../js/libs/promise.min.js"></script>
+       <script src="../js/libs/zepto.min.js"></script>
+
+       <script src="../js/compodoc.js"></script>
+
+       <script src="../js/tabs.js"></script>
+       <script src="../js/menu.js"></script>
+       <script src="../js/libs/clipboard.min.js"></script>
+       <script src="../js/libs/prism.js"></script>
+       <script src="../js/sourceCode.js"></script>
+          <script src="../js/search/search.js"></script>
+          <script src="../js/search/lunr.min.js"></script>
+          <script src="../js/search/search-lunr.js"></script>
+          <script src="../js/search/search_index.js"></script>
+       <script src="../js/lazy-load-graphs.js"></script>
+
+
+    </body>
+</html>

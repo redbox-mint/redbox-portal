@@ -1,0 +1,261 @@
+<!doctype html>
+<html class="no-js" lang="">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="x-ua-compatible" content="ie=edge">
+        <title>ReDBox Portal - NG2 Apps</title>
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+
+        <link rel="icon" type="image/x-icon" href="../../images/favicon.ico">
+	      <link rel="stylesheet" href="../../styles/style.css">
+        <link rel="stylesheet" href="../../styles/postmark.css">
+    </head>
+    <body>
+
+        <div class="navbar navbar-default navbar-fixed-top visible-xs">
+            <a href="../../" class="navbar-brand">ReDBox Portal - NG2 Apps</a>
+            <button type="button" class="btn btn-default btn-menu ion-ios-menu" id="btn-menu"></button>
+        </div>
+
+        <div class="xs-menu menu" id="mobile-menu">
+                <div id="book-search-input" role="search"><input type="text" placeholder="Type to search"></div>            <compodoc-menu></compodoc-menu>
+        </div>
+
+        <div class="container-fluid main">
+           <div class="row main">
+               <div class="hidden-xs menu">
+                   <compodoc-menu mode="normal"></compodoc-menu>
+               </div>
+               <!-- START CONTENT -->
+               <div class="content additional-page">
+                   <div class="content-data">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                   
+
+
+
+
+<h1 id="configuring-email-notifications">Configuring email notifications</h1>
+<h2 id="introduction">Introduction</h2>
+<p>The ReDBox portal has a flexible email notification system that can be customised to your needs.</p>
+<h2 id="configuring-email-settings">Configuring Email Settings</h2>
+<p>The <code>config/emailnotification.js</code> file provides configuration properties relating to the sending of emails.</p>
+<div><pre class="line-numbers"><code class="language-none">api
+|
+|- send
+|
+settings
+|
+|- enabled
+|
+|- from
+|
+|- templateDir
+|
+defaults
+|
+|- from
+|
+|- subject
+|
+|- format
+|
+templates
+|
+|- &lt;template name&gt;
+    |
+    |- subject
+    |
+    |- template
+|</code></pre></div><p>Where &lt;&gt; are property labels that are variables.</p>
+<table class="table table-bordered compodoc-table">
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+<th>Required</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>api/send</td>
+<td>The url and HTTP method of the API endpoint to send emails (via ReDBox)</td>
+<td>Yes</td>
+<td>N/A</td>
+</tr>
+<tr>
+<td>settings</td>
+<td>Section used to capture email notification settins</td>
+<td>Yes</td>
+<td>N/A</td>
+</tr>
+<tr>
+<td>settings/enabled</td>
+<td>Whether email notifications are enabled</td>
+<td>Yes</td>
+<td>true</td>
+</tr>
+<tr>
+<td>settings/from</td>
+<td>The from address to use when sending emails</td>
+<td>Yes</td>
+<td><a href="mailto:noreply@redboxresearchdata.com.au">noreply@redboxresearchdata.com.au</a></td>
+</tr>
+<tr>
+<td>settings/templateDir</td>
+<td>The template directory that contains the email template files</td>
+<td>Yes</td>
+<td>views/emailTemplates/</td>
+</tr>
+<tr>
+<td>defaults</td>
+<td>Section used to capture default properties for emails (when not otherwise set)</td>
+<td>Yes</td>
+<td>N/A</td>
+</tr>
+<tr>
+<td>defaults/from</td>
+<td>The default from address</td>
+<td>Yes</td>
+<td><a href="mailto:redbox@redboxresearchdata.com.au">redbox@redboxresearchdata.com.au</a></td>
+</tr>
+<tr>
+<td>defaults/subject</td>
+<td>The default from email subject</td>
+<td>Yes</td>
+<td>A notification from ReDBox</td>
+</tr>
+<tr>
+<td>defaults/format</td>
+<td>The email format, can either be in HTML or plain text</td>
+<td>Yes</td>
+<td>html</td>
+</tr>
+</tbody>
+</table>
+<h4 id="example">Example</h4>
+<div><pre class="line-numbers"><code class="language-none">api: {
+  send: {method: &#39;post&#39;, url: &quot;/api/v1/messaging/emailnotification&quot;}
+},
+settings: {
+  enabled: true,
+  from: &quot;noreply&#64;redbox&quot;,
+  templateDir: &quot;views/emailTemplates/&quot;
+},
+defaults: {
+  from: &quot;redbox&#64;dev&quot;,
+  subject: &quot;ReDBox Notification&quot;,
+  format: &quot;html&quot;
+},</code></pre></div><h2 id="customising-email-templates">Customising Email Templates</h2>
+<p>The both the subjects and the contents of email notifications can be customised via configuration and templates.</p>
+<h3 id="configuring-email-subjects-and-templates">Configuring email subjects and templates</h3>
+<p>The templates section of the <code>config/emailnotification.js</code> file contains configuration to customise the subject and template for an email notification</p>
+<div><pre class="line-numbers"><code class="language-none">&lt;email-code&gt;
+|
+|- subject
+|
+|- template
+|</code></pre></div><table class="table table-bordered compodoc-table">
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+<th>Required</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>&lt; email-code &gt;</td>
+<td>The email code used by the application to find the configuration to trigger an email</td>
+<td>Yes</td>
+<td>transferOwnerTo</td>
+</tr>
+<tr>
+<td>&lt; email-code &gt;/subject</td>
+<td>The email&#39;s subject</td>
+<td>Yes</td>
+<td>Ownership of DMP record/s has been transferred to you</td>
+</tr>
+<tr>
+<td>&lt; email-code &gt;/template</td>
+<td>The template file (located in the directory specified in the settings/templateDir property) to use to render the contents</td>
+<td>Yes</td>
+<td>transferOwnerTo</td>
+</tr>
+</tbody>
+</table>
+<h4 id="example-1">Example</h4>
+<div><pre class="line-numbers"><code class="language-none">templates: {
+  transferOwnerTo: {subject: &#39;Ownership of DMP record/s has been transferred to you&#39;, template: &#39;transferOwnerTo&#39;}
+}</code></pre></div><h3 id="email-templates">Email Templates</h3>
+<p>Email templates are located in the directory defined in the <code>settings/templateDir</code> property of the <code>config/emailnotification.js</code> files. They are written in the <a href="http://www.embeddedjs.com/">EJS templating language</a> which allows for rich and complex formatting.</p>
+<h4 id="example-2">Example</h4>
+<div><pre class="line-numbers"><code class="language-none">&lt;h1&gt;Hello!&lt;/h1&gt;
+&lt;p&gt;This is a test email from ReDBox Portal&lt;/p&gt;
+&lt;p&gt;Data: &lt;%= data %&gt;&lt;/p&gt;</code></pre></div>
+                   </div><div class="search-results">
+    <div class="has-results">
+        <h1 class="search-results-title"><span class='search-results-count'></span> result-matching "<span class='search-query'></span>"</h1>
+        <ul class="search-results-list"></ul>
+    </div>
+    <div class="no-results">
+        <h1 class="search-results-title">No results matching "<span class='search-query'></span>"</h1>
+    </div>
+</div>
+</div>
+               <!-- END CONTENT -->
+           </div>
+       </div>
+
+       <script>
+            var COMPODOC_CURRENT_PAGE_DEPTH = 2;
+            var COMPODOC_CURRENT_PAGE_CONTEXT = 'additional-page';
+            var COMPODOC_CURRENT_PAGE_URL = 'configuring-email-notifications.html';
+            var MAX_SEARCH_RESULTS = 15;
+       </script>
+
+       <script src="../../js/libs/custom-elements.min.js"></script>
+       <script src="../../js/libs/lit-html.js"></script>
+       <!-- Required to polyfill modern browsers as code is ES5 for IE... -->
+       <script src="../../js/libs/custom-elements-es5-adapter.js" charset="utf-8" defer></script>
+       <script src="../../js/menu-wc.js" defer></script>
+
+       <script src="../../js/libs/bootstrap-native.js"></script>
+
+       <script src="../../js/libs/es6-shim.min.js"></script>
+       <script src="../../js/libs/EventDispatcher.js"></script>
+       <script src="../../js/libs/promise.min.js"></script>
+       <script src="../../js/libs/zepto.min.js"></script>
+
+       <script src="../../js/compodoc.js"></script>
+
+       <script src="../../js/tabs.js"></script>
+       <script src="../../js/menu.js"></script>
+       <script src="../../js/libs/clipboard.min.js"></script>
+       <script src="../../js/libs/prism.js"></script>
+       <script src="../../js/sourceCode.js"></script>
+          <script src="../../js/search/search.js"></script>
+          <script src="../../js/search/lunr.min.js"></script>
+          <script src="../../js/search/search-lunr.js"></script>
+          <script src="../../js/search/search_index.js"></script>
+       <script src="../../js/lazy-load-graphs.js"></script>
+
+
+    </body>
+</html>

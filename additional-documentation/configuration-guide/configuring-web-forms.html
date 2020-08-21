@@ -1,0 +1,432 @@
+<!doctype html>
+<html class="no-js" lang="">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="x-ua-compatible" content="ie=edge">
+        <title>ReDBox Portal - NG2 Apps</title>
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+
+        <link rel="icon" type="image/x-icon" href="../../images/favicon.ico">
+	      <link rel="stylesheet" href="../../styles/style.css">
+        <link rel="stylesheet" href="../../styles/postmark.css">
+    </head>
+    <body>
+
+        <div class="navbar navbar-default navbar-fixed-top visible-xs">
+            <a href="../../" class="navbar-brand">ReDBox Portal - NG2 Apps</a>
+            <button type="button" class="btn btn-default btn-menu ion-ios-menu" id="btn-menu"></button>
+        </div>
+
+        <div class="xs-menu menu" id="mobile-menu">
+                <div id="book-search-input" role="search"><input type="text" placeholder="Type to search"></div>            <compodoc-menu></compodoc-menu>
+        </div>
+
+        <div class="container-fluid main">
+           <div class="row main">
+               <div class="hidden-xs menu">
+                   <compodoc-menu mode="normal"></compodoc-menu>
+               </div>
+               <!-- START CONTENT -->
+               <div class="content additional-page">
+                   <div class="content-data">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                   
+
+
+
+
+<h1 id="configuring-web-forms">Configuring web forms</h1>
+<h2 id="introduction">Introduction</h2>
+<p>ReDBox has a flexible and configurable framework that allows you to capture as metadata for a variety different purposes such as data management plans, provisioned workspaces and data collections. Metadata is stored in the <a href="https://json-ld.org/">JSON-LD</a> format and has a very loose schema to support this flexibility.</p>
+<p>For each type of metadata record stored, it is also possible to configure a workflow that the record may pass through to map to the business processes within your organisation.</p>
+<p>There is also a configurable form system that allows you to design a form to meet your needs without having the need to understand code. It is possible to attach different form structures to each workflow stage to suit the requirements for the user of the form.</p>
+<h2 id="record-type-configuration">Record Type Configuration</h2>
+<p>Record Types are configured in the <code>config/recordtype.js</code> file.</p>
+<p>The record type configuration defines the record type (e.g. a research data managment plan record) and what fields in the record should be displayed on the search interface for the purposes of filtering and faceting.</p>
+<p>Record&#39;s are configured via the config/workflow.js file and specifies the workflow stages a record can transition through and the roles that are permitted to view and edit a record for each workflow stage.</p>
+<div><pre class="line-numbers"><code class="language-none">&lt;record-type&gt;
+|
+|- search-filters []
+    |- name
+    |- title
+    |- type
+    |- typeLabel</code></pre></div><p>Where &lt;&gt; are property labels that are variables.</p>
+<table class="table table-bordered compodoc-table">
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+<th>Required</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>&lt; record-type &gt;</td>
+<td>The label of record type</td>
+<td>Yes</td>
+<td>rdmp</td>
+</tr>
+<tr>
+<td>name</td>
+<td>The name of the Solr index field to facet on. For facet type fields, this is usually the name you&#39;ve configured in your form configuration. To allow for inexact matching for filter search boxes, append <code>text_</code> to the beginning of the name</td>
+<td>Yes</td>
+<td>text_title</td>
+</tr>
+<tr>
+<td>title</td>
+<td>The heading label to display in the facets section. Can read text from the language file</td>
+<td>Yes</td>
+<td>search-refine-description</td>
+</tr>
+<tr>
+<td>type</td>
+<td>The type of facet. Fixed for search box filters, facet for facet counts</td>
+<td>Yes</td>
+<td>facet</td>
+</tr>
+<tr>
+<td>typeLabel</td>
+<td>The label to show above the search box filter. Can read text from the language file. Set to null for facet count fields</td>
+<td>Yes</td>
+<td>search-refine-contains</td>
+</tr>
+</tbody>
+</table>
+<h4 id="example">Example</h4>
+<div><pre class="line-numbers"><code class="language-none">&quot;rdmp&quot;: {
+  searchFilters: [
+    {
+      name: &quot;text_title&quot;,
+      title: &quot;search-refine-title&quot;,
+      type: &quot;exact&quot;,
+      typeLabel: &quot;search-refine-contains&quot;
+    },
+    {
+      name: &quot;text_description&quot;,
+      title: &quot;search-refine-description&quot;,
+      type: &quot;exact&quot;,
+      typeLabel: &quot;Can read text from the language file&quot;
+    },
+    {
+      name: &quot;grant_number_name&quot;,
+      title: &quot;search-refine-grant_number_name&quot;,
+      type: &quot;facet&quot;,
+      typeLabel: null,
+      alwaysActive: true
+    },
+    {
+      name: &quot;finalKeywords&quot;,
+      title: &quot;search-refine-keywords&quot;,
+      type: &quot;facet&quot;,
+      typeLabel: null,
+      alwaysActive: true
+    },
+    {
+      name: &quot;workflow_stageLabel&quot;,
+      title: &quot;search-refine-workflow_stageLabel&quot;,
+      type: &quot;facet&quot;,
+      typeLabel: null,
+      alwaysActive: true
+    }
+  ]
+}</code></pre></div><h2 id="workflow-configuration">Workflow Configuration</h2>
+<p>The structure of the configuration is as follows</p>
+<div><pre class="line-numbers"><code class="language-none">&lt;record-type&gt;
+|
+|- &lt;workflow-stage&gt;
+    |
+    |- config
+        |
+        |- workflow
+            |
+            |- stage
+            |- stageLabel
+            |- next
+        |- authorization
+            |
+            |- viewRoles
+            |- editRoles
+        |- form
+    |- starting</code></pre></div><p>Where &lt;&gt; are property labels that are variables.</p>
+<table class="table table-bordered compodoc-table">
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+<th>Required</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>&lt; record-type &gt;</td>
+<td>The label of record type</td>
+<td>Yes</td>
+<td>rdmp</td>
+</tr>
+<tr>
+<td>&lt; workflow-stage &gt;</td>
+<td>The label of the workflow stage for the record type</td>
+<td>Yes</td>
+<td>draft</td>
+</tr>
+<tr>
+<td>stage</td>
+<td>The code value for the stage. This value is stored in the metadata record within ReDBox. Best practice would be to match it with &lt; workflow-stage &gt; but it can be different if necessary.</td>
+<td>Yes</td>
+<td>draft</td>
+</tr>
+<tr>
+<td>stageLabel</td>
+<td>The label for the stage that is presented to users on the interface.</td>
+<td>Yes</td>
+<td>Draft</td>
+</tr>
+<tr>
+<td>next</td>
+<td>The stage to transition to.</td>
+<td>No</td>
+<td>review</td>
+</tr>
+<tr>
+<td>viewRoles</td>
+<td>An array of roles that are allowed to view this record type at this stage</td>
+<td>Yes</td>
+<td>[&#39;Admin&#39;]</td>
+</tr>
+<tr>
+<td>editRoles</td>
+<td>An array of roles that are allowed to edit this record type at this stage</td>
+<td>Yes</td>
+<td>[&#39;Admin&#39;]</td>
+</tr>
+<tr>
+<td>form</td>
+<td>The form code. This should match an entry in the form.js configuration file</td>
+<td>Yes</td>
+<td>rdmp-1.0-draft</td>
+</tr>
+<tr>
+<td>starting</td>
+<td>Is this the stage that new records should commence in?</td>
+<td>No</td>
+<td>true</td>
+</tr>
+</tbody>
+</table>
+<h4 id="example-1">Example</h4>
+<div><pre class="line-numbers"><code class="language-none">&quot;rdmp&quot;: {
+    &quot;draft&quot;: {
+      config: {
+        workflow: {
+          stage: &#39;draft&#39;,
+          stageLabel: &#39;Draft&#39;,
+          next: &#39;review&#39;,
+        },
+        authorization: {
+          viewRoles: [&#39;Admin&#39;],
+          editRoles: [&#39;Admin&#39;]
+        },
+        form: &#39;rdmp-1.0-draft&#39;
+      },
+      starting: true
+    },</code></pre></div><h2 id="formview-configuration">Form/view configuration</h2>
+<p>The form and view layout is configured via config/form.js file.</p>
+<p>The structure of the configuration file is as follows</p>
+<div><pre class="line-numbers"><code class="language-none">defaultForm
+|
+|- forms
+    |
+    |- &lt;form-name&gt;
+        |
+        |- name
+        |- type
+        |- skipValidationOnSave
+        |- editCssClasses
+        |- viewCssClasses
+        |- messages
+            |
+            |- &lt;message-code&gt;
+        |
+        |- fields []
+            |
+            |- class
+            |- compClass
+            |- viewOnly
+            |- definition
+                |
+                |- &lt;component specific properties&gt;
+</code></pre></div><h3 id="form-wide-configuration">Form-wide configuration</h3>
+<p>The settings in this section control the behaviour of the entire form.</p>
+<table class="table table-bordered compodoc-table">
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+<th>Required</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>&lt; form-name &gt;</td>
+<td>The label name of the form, should match a &quot;form&quot; value in workflow.js for it to be used</td>
+<td>Yes</td>
+<td>rdmp-1.0-draft</td>
+</tr>
+<tr>
+<td>name</td>
+<td>The label name of the form. This should match the &lt; form-name &gt; value. form</td>
+<td>Yes</td>
+<td>rdmp-1.0-draft</td>
+</tr>
+<tr>
+<td>skipValidationOnSave</td>
+<td>When set to true, validation will only trigger when the record is submitted to change it&#39;s workflow state. This property is particularly useful in early stages of a workflow where you want the user to be able to save and come back to the record later without having to fill in all mandatory fields.</td>
+<td>No (defaults to false)</td>
+<td>true</td>
+</tr>
+<tr>
+<td>editCssClasses</td>
+<td>The css classes to apply to each element for styling. These are used in edit mode</td>
+<td>Yes</td>
+<td>row col-md-12</td>
+</tr>
+<tr>
+<td>viewCssClasses</td>
+<td>The css classes to apply to each element for styling. These are used in view mode</td>
+<td>Yes</td>
+<td>row col-md-12</td>
+</tr>
+<tr>
+<td>&lt; message-code &gt;</td>
+<td>A set of key value pairs containing messages to show to the user</td>
+<td>Yes</td>
+<td>&quot;saveSuccess&quot;: &quot;Saved successfully.&quot;</td>
+</tr>
+</tbody>
+</table>
+<h3 id="field-configuration">Field configuration</h3>
+<p>The fields section lays out the components to appear in the form.</p>
+<table class="table table-bordered compodoc-table">
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+<th>Required</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>class</td>
+<td></td>
+<td>Yes</td>
+<td></td>
+</tr>
+<tr>
+<td>compClass</td>
+<td>The Component class name. See the <a href="https://redbox-mint.github.io/redbox-portal/components/ContributorComponent.html">Component documentation</a> for a list of available components and how to configure them</td>
+<td>Yes</td>
+<td>TextBlockComponent</td>
+</tr>
+<tr>
+<td>viewOnly</td>
+<td>When set to true, this component will only appear in the view (details) rendition of the form</td>
+<td>No (defaults to false)</td>
+<td>true</td>
+</tr>
+<tr>
+<td>editOnly</td>
+<td>When set to true, this component will only appear in the edit (details) rendition of the form</td>
+<td>No (defaults to false)</td>
+<td>true</td>
+</tr>
+<tr>
+<td>definition</td>
+<td>Configuration that is specific for the component being added. How to configure a component is described in the <a href="https://redbox-mint.github.io/redbox-portal/components/ContributorComponent.html">Component documentation</a></td>
+<td>Yes</td>
+<td>value: &#39;@dmpt-data-collection-heading&#39;</td>
+</tr>
+</tbody>
+</table>
+<h3 id="example-2">Example</h3>
+<div><pre class="line-numbers"><code class="language-none">fields: [
+  {
+    class: &#39;Container&#39;,
+    compClass: &#39;TextBlockComponent&#39;,
+    viewOnly: true,
+    definition: {
+      name: &#39;title&#39;,
+      type: &#39;h1&#39;
+    }
+  },</code></pre></div><h2 id="language-configuration">Language Configuration</h2>
+<p>Messages in the system can be configured using Language files. This allows for internationalisation of the portal as well as editing in a translation management system such as <a href="https://locize.com">Locize</a>.</p>
+<p>The application uses <a href="https://www.i18next.com/">i18next</a> to render the messages and the language files are kept in the assests/locales/<language> directories.</p>
+<p>Please see the <a href="https://www.i18next.com/essentials.html">i18next documentation</a> for more information on how the language file is structured and it&#39;s features.</p>
+
+                   </div><div class="search-results">
+    <div class="has-results">
+        <h1 class="search-results-title"><span class='search-results-count'></span> result-matching "<span class='search-query'></span>"</h1>
+        <ul class="search-results-list"></ul>
+    </div>
+    <div class="no-results">
+        <h1 class="search-results-title">No results matching "<span class='search-query'></span>"</h1>
+    </div>
+</div>
+</div>
+               <!-- END CONTENT -->
+           </div>
+       </div>
+
+       <script>
+            var COMPODOC_CURRENT_PAGE_DEPTH = 2;
+            var COMPODOC_CURRENT_PAGE_CONTEXT = 'additional-page';
+            var COMPODOC_CURRENT_PAGE_URL = 'configuring-web-forms.html';
+            var MAX_SEARCH_RESULTS = 15;
+       </script>
+
+       <script src="../../js/libs/custom-elements.min.js"></script>
+       <script src="../../js/libs/lit-html.js"></script>
+       <!-- Required to polyfill modern browsers as code is ES5 for IE... -->
+       <script src="../../js/libs/custom-elements-es5-adapter.js" charset="utf-8" defer></script>
+       <script src="../../js/menu-wc.js" defer></script>
+
+       <script src="../../js/libs/bootstrap-native.js"></script>
+
+       <script src="../../js/libs/es6-shim.min.js"></script>
+       <script src="../../js/libs/EventDispatcher.js"></script>
+       <script src="../../js/libs/promise.min.js"></script>
+       <script src="../../js/libs/zepto.min.js"></script>
+
+       <script src="../../js/compodoc.js"></script>
+
+       <script src="../../js/tabs.js"></script>
+       <script src="../../js/menu.js"></script>
+       <script src="../../js/libs/clipboard.min.js"></script>
+       <script src="../../js/libs/prism.js"></script>
+       <script src="../../js/sourceCode.js"></script>
+          <script src="../../js/search/search.js"></script>
+          <script src="../../js/search/lunr.min.js"></script>
+          <script src="../../js/search/search-lunr.js"></script>
+          <script src="../../js/search/search_index.js"></script>
+       <script src="../../js/lazy-load-graphs.js"></script>
+
+
+    </body>
+</html>
