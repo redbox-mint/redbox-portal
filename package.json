@@ -17,7 +17,7 @@
     "connect-mongo": "2.0.3",
     "core-js": "^3.0.1",
     "datacrate": "^1.0.4",
-    "dotenv": "^7.0.0",
+    "dotenv": "^8.2.0",
     "ejs": "2.6.1",
     "font-awesome-sass": "4.7.0",
     "fs-extra": "^7.0.0",
