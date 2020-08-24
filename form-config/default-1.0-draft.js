@@ -13,6 +13,9 @@ module.exports = {
     "saveSuccess": ["@dmpt-form-save-success"],
     "saveError": ["@dmpt-form-save-error"]
   },
+  attachmentFields: [
+    "licences_agreements"
+  ],
   fields: [{
       class: 'Container',
       compClass: 'TextBlockComponent',
@@ -1182,6 +1185,23 @@ module.exports = {
                     help: '@dmpt-agls:protectiveMarking_skos:note-help',
                     rows: 5,
                     columns: 10
+                  }
+                },
+                {
+                  class: 'RelatedFileUpload',
+                  compClass: 'RelatedFileUploadComponent',
+                  definition: {
+                    name: "licences_agreements",
+                    maxFileSize: 1073741824, // <- Configure web server to match this
+                    maxNumberOfFiles: 50,
+                    notesEnabled: true,
+                    locationHeader: 'Files asociated with this plan',
+                    notesHeader: 'Notes',
+                    uppyDashboardNote: 'Maximum 50 files, up to 1 GB',
+                    attachmentText: 'Add attachment(s)',
+                    attachmentTextDisabled: 'Save your plan to attach files',
+                    help: 'Upload your licence or agreements here. You can only upload after you save your plan.',
+                    label: 'Licences or Agreements:'
                   }
                 },
                 // Hiddden reactive elements...
