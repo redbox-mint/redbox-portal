@@ -14,7 +14,7 @@
     "bootstrap-sass": "^3.3.7",
     "calcyte": "^1.0.2",
     "chokidar": "~3.1.1",
-    "connect-mongo": "2.0.3",
+    "connect-mongo": "3.2.0",
     "core-js": "^3.0.1",
     "datacrate": "^1.0.4",
     "dotenv": "^8.2.0",
