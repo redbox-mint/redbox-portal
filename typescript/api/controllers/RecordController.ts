@@ -314,6 +314,10 @@ export module Controllers {
                 }
               }
             }
+          }, e => {
+            sails.log.error(`Failed to update responsiblities:`);
+            sails.log.error(JSON.stringify(e));
+            return this.ajaxFail(req, res, 'Failed to update responsibilities, see server log.');
           });
         });
       } else {
@@ -443,10 +447,10 @@ export module Controllers {
       let oid = null;
       const fieldsToCheck = ['location', 'uploadUrl'];
       FormsService.getFormByName(record.metaMetadata.form, true)
-      .flatMap(form => {
+      .flatMap((form) => {
         formDef = form;
         record.metaMetadata.attachmentFields = form.attachmentFields;
-        return RecordsService.create(brand, record, recordType, user);
+        return Observable.fromPromise(RecordsService.create(brand, record, recordType, user));
       })
       .flatMap(response => {
         if (response && response.code == "200") {
@@ -473,8 +477,10 @@ export module Controllers {
             return Observable.of(response);
           }
         } else {
+          sails.log.error(`Failed to save record:`);
           sails.log.error(JSON.stringify(response));
-          return Observable.throw(`Failed to create record!`)
+          // return the rsponse instead of throwing an exception
+          return Observable.of(response);
         }
       })
       .subscribe(response => {

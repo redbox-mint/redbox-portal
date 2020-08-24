@@ -1,6 +1,6 @@
 {
 	"info": {
-		"_postman_id": "ea76cab5-157b-420c-8ebd-7ca813ea56e0",
+		"_postman_id": "61367569-7f2c-4ec8-ba06-ac7afb020329",
 		"name": "Redbox Portal API - With tests",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
@@ -14,7 +14,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "6cf454ae-e6f0-45cf-8cc8-854649df6b0c",
+								"id": "a7cccca2-40e3-4780-b69f-d8fb57d8b067",
 								"exec": [
 									"",
 									"pm.test(\"Status code is 201\", function () {",
@@ -25,7 +25,21 @@
 									"    var jsonData = pm.response.json();",
 									"    pm.expect(jsonData).to.have.property('oid');",
 									"    postman.setEnvironmentVariable(\"dmpOid\", jsonData.oid);",
+									"    var randomNumber = _.random(100);",
+									"    postman.setEnvironmentVariable(\"randomNumber\", randomNumber);",
+									"    postman.setEnvironmentVariable(\"researcherUsername\", \"researcheruser\" + randomNumber);",
+									"    postman.setEnvironmentVariable(\"researcherEmail\", \"researcheruser\" + randomNumber + \"@email.edu.au\");",
 									"});"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"id": "0057715c-837d-4308-9274-3752ee6986cd",
+								"exec": [
+									""
 								],
 								"type": "text/javascript"
 							}
@@ -73,7 +87,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "a40880e6-2c93-4fa3-b931-5ecb68c4c944",
+								"id": "04ecc9e4-69a6-480b-a2f0-3a269c8f3408",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
@@ -103,10 +117,6 @@
 								"disabled": true
 							}
 						],
-						"body": {
-							"mode": "raw",
-							"raw": ""
-						},
 						"url": {
 							"raw": "{{host}}/default/rdmp/api/records/metadata/{{dmpOid}}",
 							"host": [
@@ -125,12 +135,67 @@
 					"response": []
 				},
 				{
+					"name": "Get RDMP's ObjectMetadata",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "9cae682d-b648-49f2-b7dc-1689d87fcf2b",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Type and Form is correct\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.type).to.eql(\"rdmp\");",
+									"    pm.expect(jsonData.form).to.eql(\"default-1.0-draft\");",
+									"    postman.setEnvironmentVariable(\"brandId\", jsonData.brandId);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"type": "text",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "",
+								"type": "text",
+								"value": "",
+								"disabled": true
+							}
+						],
+						"url": {
+							"raw": "{{host}}/default/rdmp/api/records/objectmetadata/{{dmpOid}}",
+							"host": [
+								"{{host}}"
+							],
+							"path": [
+								"default",
+								"rdmp",
+								"api",
+								"records",
+								"objectmetadata",
+								"{{dmpOid}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
 					"name": "Update RDMP Metadata",
 					"event": [
 						{
 							"listen": "test",
 							"script": {
-								"id": "cd7a0438-9af9-4277-8325-a3bbf8109292",
+								"id": "d97d721b-3488-403f-81da-49a0684b7313",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
@@ -186,7 +251,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "a40880e6-2c93-4fa3-b931-5ecb68c4c944",
+								"id": "3368e251-9dd9-4782-a310-e7ac3fdedb31",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
@@ -216,10 +281,6 @@
 								"disabled": true
 							}
 						],
-						"body": {
-							"mode": "raw",
-							"raw": ""
-						},
 						"url": {
 							"raw": "{{host}}/default/rdmp/api/records/metadata/{{dmpOid}}",
 							"host": [
@@ -243,7 +304,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "b047fdd6-0438-4b0c-8cbd-23840ff55360",
+								"id": "29152b69-19fc-4735-b8d6-3acdbcfd383d",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
@@ -300,7 +361,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "63db769f-0404-45b5-933c-8629e3d44bd7",
+								"id": "7f8b6393-977e-49db-93f1-892a530a8315",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
@@ -334,10 +395,6 @@
 								"value": "Bearer {{token}}"
 							}
 						],
-						"body": {
-							"mode": "raw",
-							"raw": ""
-						},
 						"url": {
 							"raw": "{{host}}/default/rdmp/api/users",
 							"host": [
@@ -354,7 +411,8 @@
 					},
 					"response": []
 				}
-			]
+			],
+			"protocolProfileBehavior": {}
 		},
 		{
 			"name": "AJAX calls",
@@ -365,7 +423,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "4f8e8675-14b8-4f9d-ae6e-52e0b7d5ae0f",
+								"id": "b6be2f11-f046-4b6a-8bc3-93bab408fb36",
 								"exec": [
 									"postman.setGlobalVariable(\"cookie\",postman.getResponseHeader(\"set-cookie\") );",
 									"",
@@ -460,7 +518,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "72f352bc-687f-46bd-9714-385416301e69",
+								"id": "61193731-32b4-4097-ac1b-fe1711f82c0e",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
@@ -506,10 +564,6 @@
 								"type": "text"
 							}
 						],
-						"body": {
-							"mode": "raw",
-							"raw": ""
-						},
 						"url": {
 							"raw": "{{host}}/default/rdmp/listRecords?recordType=rdmp&state=draft&sort=date_object_modified:-1&start=0&rows=10",
 							"host": [
@@ -552,7 +606,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "72f352bc-687f-46bd-9714-385416301e69",
+								"id": "0cd3e72e-c513-446e-9790-dc2cc524dafc",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
@@ -600,10 +654,6 @@
 								"type": "text"
 							}
 						],
-						"body": {
-							"mode": "raw",
-							"raw": ""
-						},
 						"url": {
 							"raw": "{{host}}/default/rdmp/record/form/auto/{{dmpOid}}?edit=false",
 							"host": [
@@ -633,7 +683,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "72f352bc-687f-46bd-9714-385416301e69",
+								"id": "6bf87f5b-d8f9-4c02-b9a5-e3ac161d9622",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
@@ -681,10 +731,6 @@
 								"type": "text"
 							}
 						],
-						"body": {
-							"mode": "raw",
-							"raw": ""
-						},
 						"url": {
 							"raw": "{{host}}/default/rdmp/record/form/auto/{{dmpOid}}?edit=true",
 							"host": [
@@ -714,7 +760,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "9df83ccd-b492-4ecc-a60e-d7af261e0450",
+								"id": "4ab2e920-b51d-4048-b631-0ebbb7fee412",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
@@ -803,7 +849,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "00abc0c7-746a-4bb0-8ce4-d323666395cb",
+								"id": "2452e6c3-dd8c-40c3-8877-ead9d8a5d2ae",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
@@ -820,9 +866,6 @@
 							}
 						}
 					],
-					"protocolProfileBehavior": {
-						"disableBodyPruning": true
-					},
 					"request": {
 						"method": "GET",
 						"header": [
@@ -875,7 +918,6 @@
 								"value": "no-cache"
 							}
 						],
-						"body": {},
 						"url": {
 							"raw": "{{host}}/default/rdmp/transferconfig/rdmp",
 							"host": [
@@ -897,7 +939,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "3e849f1c-25e2-4b59-97e4-819800e0a56d",
+								"id": "64b01d73-5453-4416-af90-a253388a6be2",
 								"exec": [
 									"// \"contributor_ci\": {",
 									"                    // \"text_full_name\": \"Alberto Zweinstein\",",
@@ -986,7 +1028,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"records\": [\n    {\n      \"oid\": \"{{dmpOid}}\",\n      \"title\": \"Andrew's Postman test\",\n      \"metadata\": {\n        \"metaMetadata\": {\n          \"brandId\": \"5be10e78a142ee00068d6555\",\n          \"type\": \"rdmp\",\n          \"createdBy\": \"admin\",\n          \"form\": \"default-1.0-draft\"\n        },\n        \"metadata\": {\n          \"title\": \"Andrew's Postman test\",\n          \"dc:identifier\": \"http://purl.org/au-research/grants/nhmrc/566728\",\n          \"description\": \"Movement of molecules within cells by a process known as membrane transport is critical for normal cell function and also exploited by bacteria to promote infection. The pathway that connects the import pathway to the export pathway is essential for the function of a large number of proteins, however this connecting pathway is poorly characterised. This study will define the machinery of this trafficking pathway, which will provide the ability to modulate biological processes and cytotoxicity.\",\n          \"finalKeywords\": [\n            \"270199\",\n            \"Golgi apparatus\",\n            \"endocytosis\",\n            \"membrane transport\",\n            \"protein trafficking\",\n            \"secretion\",\n            \"HIV-AIDS\",\n            \"bacterial pathogen\",\n            \"hormone secretion\",\n            \"immune development\",\n            \"lysosomal storage disorder\"\n          ],\n          \"contributor_ci\": {\n            \"text_full_name\": \"Prof Paul Gleeson\",\n            \"email\": \"notAReal@email.edu.au\",\n            \"orcid\": \"http://orcid.org/0000-0000-0000-000\"\n          },\n          \"contributor_data_manager\": {\n            \"text_full_name\": \"Prof Paul Gleeson\",\n            \"email\": \"notAReal@email.edu.au\",\n            \"orcid\": \"http://orcid.org/0000-0000-0000-000\"\n          },\n          \"contributors\": [\n            {\n              \"text_full_name\": \"Prof Paul Gleeson\",\n              \"email\": \"notAReal@email.edu.au\",\n              \"orcid\": \"http://orcid.org/0000-0000-0000-000\"\n            }\n          ],\n          \"vivo:Dataset_redbox:DataCollectionMethodology\": \"The data collection methodology\",\n          \"vivo:Dataset_dc_format\": \"xls\",\n          \"vivo:Dataset_dc:location_rdf:PlainLiteral\": \"eResearch Store network drive\",\n          \"vivo:Dataset_dc:source_dc:location_rdf:PlainLiteral\": \"shared university network drive (e.g. G, H, etc)\",\n          \"vivo:Dataset_dc:extent\": \"100GB - 2TB\",\n          \"redbox:retentionPeriod_dc:date\": \"1year\",\n          \"dc:rightsHolder_dc:name\": \"myUni\",\n          \"dc:accessRights\": \"permission from the data manager\",\n          \"authorization\": []\n        },\n        \"workflow\": {\n          \"stage\": \"draft\",\n          \"stageLabel\": \"Draft\"\n        },\n        \"authorization\": {\n          \"viewRoles\": [\n            \"Admin\",\n            \"Librarians\"\n          ],\n          \"editRoles\": [\n            \"Admin\",\n            \"Librarians\"\n          ],\n          \"view\": [],\n          \"edit\": [],\n          \"viewPending\": [\n            \"notAReal@email.edu.au\"\n          ],\n          \"editPending\": [\n            \"notAReal@email.edu.au\"\n          ]\n        },\n        \"redboxOid\": \"2c7c2dc046cc5834b0334445e7245b47\",\n        \"packageType\": [\n          \"rdmp\"\n        ],\n        \"date_object_created\": [\n          \"2018-11-27T01:09:00.143Z\"\n        ],\n        \"date_object_modified\": [\n          \"2018-11-27T01:09:00.654Z\"\n        ]\n      },\n      \"dateCreated\": \"November 27, 2018 11:39 AM\",\n      \"dateModified\": \"November 27, 2018 11:39 AM\",\n      \"hasEditAccess\": true,\n      \"dashboardTitle\": \"Andrew's Postman test\",\n      \"selected\": true\n    }\n  ],\n  \"role\": \"chiefInvestigator\",\n  \"updateData\": {\n    \"text_full_name\": \"Alberto Zweinstein\",\n    \"storage_id\": \"23c3f253fa53809e2d986e69e2537de8\",\n    \"email\": \"alberto.zweinstein@example.edu.au\",\n    \"full_name_honorific\": \"Dr Alberto Zweinstein\",\n    \"given_name\": \"Alberto\",\n    \"family_name\": \"Zweinstein\",\n    \"honorific\": \"Dr\",\n    \"full_name_family_name_first\": \"Zweinstein, Alberto\"\n  }\n}"
+							"raw": "{\n  \"records\": [\n    {\n      \"oid\": \"{{dmpOid}}\",\n      \"title\": \"Andrew's Postman test\",\n      \"metadata\": {\n        \"metaMetadata\": {\n          \"brandId\": \"{{brandId}}\",\n          \"type\": \"rdmp\",\n          \"createdBy\": \"admin\",\n          \"form\": \"default-1.0-draft\"\n        },\n        \"metadata\": {\n          \"title\": \"Andrew's Postman test\",\n          \"dc:identifier\": \"http://purl.org/au-research/grants/nhmrc/566728\",\n          \"description\": \"Movement of molecules within cells by a process known as membrane transport is critical for normal cell function and also exploited by bacteria to promote infection. The pathway that connects the import pathway to the export pathway is essential for the function of a large number of proteins, however this connecting pathway is poorly characterised. This study will define the machinery of this trafficking pathway, which will provide the ability to modulate biological processes and cytotoxicity.\",\n          \"finalKeywords\": [\n            \"270199\",\n            \"Golgi apparatus\",\n            \"endocytosis\",\n            \"membrane transport\",\n            \"protein trafficking\",\n            \"secretion\",\n            \"HIV-AIDS\",\n            \"bacterial pathogen\",\n            \"hormone secretion\",\n            \"immune development\",\n            \"lysosomal storage disorder\"\n          ],\n          \"contributor_ci\": {\n            \"text_full_name\": \"Prof Paul Gleeson\",\n            \"email\": \"notAReal@email.edu.au\",\n            \"orcid\": \"http://orcid.org/0000-0000-0000-000\"\n          },\n          \"contributor_data_manager\": {\n            \"text_full_name\": \"Prof Paul Gleeson\",\n            \"email\": \"notAReal@email.edu.au\",\n            \"orcid\": \"http://orcid.org/0000-0000-0000-000\"\n          },\n          \"contributors\": [\n            {\n              \"text_full_name\": \"Prof Paul Gleeson\",\n              \"email\": \"notAReal@email.edu.au\",\n              \"orcid\": \"http://orcid.org/0000-0000-0000-000\"\n            }\n          ],\n          \"vivo:Dataset_redbox:DataCollectionMethodology\": \"The data collection methodology\",\n          \"vivo:Dataset_dc_format\": \"xls\",\n          \"vivo:Dataset_dc:location_rdf:PlainLiteral\": \"eResearch Store network drive\",\n          \"vivo:Dataset_dc:source_dc:location_rdf:PlainLiteral\": \"shared university network drive (e.g. G, H, etc)\",\n          \"vivo:Dataset_dc:extent\": \"100GB - 2TB\",\n          \"redbox:retentionPeriod_dc:date\": \"1year\",\n          \"dc:rightsHolder_dc:name\": \"myUni\",\n          \"dc:accessRights\": \"permission from the data manager\",\n          \"authorization\": []\n        },\n        \"workflow\": {\n          \"stage\": \"draft\",\n          \"stageLabel\": \"Draft\"\n        },\n        \"authorization\": {\n          \"viewRoles\": [\n            \"Admin\",\n            \"Librarians\"\n          ],\n          \"editRoles\": [\n            \"Admin\",\n            \"Librarians\"\n          ],\n          \"view\": [],\n          \"edit\": [],\n          \"viewPending\": [\n            \"notAReal@email.edu.au\"\n          ],\n          \"editPending\": [\n            \"notAReal@email.edu.au\"\n          ]\n        },\n        \"redboxOid\": \"2c7c2dc046cc5834b0334445e7245b47\",\n        \"packageType\": [\n          \"rdmp\"\n        ],\n        \"date_object_created\": [\n          \"2018-11-27T01:09:00.143Z\"\n        ],\n        \"date_object_modified\": [\n          \"2018-11-27T01:09:00.654Z\"\n        ]\n      },\n      \"dateCreated\": \"November 27, 2018 11:39 AM\",\n      \"dateModified\": \"November 27, 2018 11:39 AM\",\n      \"hasEditAccess\": true,\n      \"dashboardTitle\": \"Andrew's Postman test\",\n      \"selected\": true\n    }\n  ],\n  \"role\": \"chiefInvestigator\",\n  \"updateData\": {\n    \"text_full_name\": \"Alberto Zweinstein\",\n    \"storage_id\": \"23c3f253fa53809e2d986e69e2537de8\",\n    \"email\": \"alberto.zweinstein@example.edu.au\",\n    \"full_name_honorific\": \"Dr Alberto Zweinstein\",\n    \"given_name\": \"Alberto\",\n    \"family_name\": \"Zweinstein\",\n    \"honorific\": \"Dr\",\n    \"full_name_family_name_first\": \"Zweinstein, Alberto\"\n  }\n}"
 						},
 						"url": {
 							"raw": "http://localhost:1500/default/rdmp/record/responsibility/update",
@@ -1012,7 +1054,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "67c01270-fcd8-4452-a387-5d09be5fef6e",
+								"id": "b51b9514-e2de-43ca-bb21-842d265ba49c",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
@@ -1086,7 +1128,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"username\": \"researcheruser\",\n    \"details\": {\n        \"name\": \"A dummy researcher\",\n        \"email\": \"researcher@example.edu.au\",\n        \"password\": \"`Qw1234567\",\n        \"roles\": [\n            \"Researcher\",\n            \"Guest\"\n        ]\n    }\n}"
+							"raw": "{\n    \"username\": \"{{researcherUsername}}\",\n    \"details\": {\n        \"name\": \"A dummy researcher\",\n        \"email\": \"{{researcherEmail}}\",\n        \"password\": \"{{researcherPassword}}\",\n        \"roles\": [\n            \"Researcher\",\n            \"Guest\"\n        ]\n    }\n}"
 						},
 						"url": {
 							"raw": "{{host}}/default/rdmp/admin/users/newUser",
@@ -1110,7 +1152,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "67c01270-fcd8-4452-a387-5d09be5fef6e",
+								"id": "a8bd9335-4829-4458-94ed-63ccafefd728",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
@@ -1190,7 +1232,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"username\": \"researcheruser\",\n    \"details\": {\n        \"name\": \"A dummy researcher\",\n        \"email\": \"researcher@example.edu.au\",\n        \"password\": \"`Qw1234567\",\n        \"roles\": [\n            \"Researcher\",\n            \"Guest\"\n        ]\n    }\n}"
+							"raw": "{\n    \"username\": \"{{researcherUsername}}\",\n    \"details\": {\n        \"name\": \"A dummy researcher\",\n        \"email\": \"{{researcherEmail}}\",\n        \"password\": \"`Qw1234567\",\n        \"roles\": [\n            \"Researcher\",\n            \"Guest\"\n        ]\n    }\n}"
 						},
 						"url": {
 							"raw": "{{host}}/default/rdmp/admin/users/newUser",
@@ -1214,7 +1256,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "caa3d60c-bef5-4a0f-adc7-e86167d96930",
+								"id": "7f5fd0ef-a302-476f-af81-17891dfaddb1",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
@@ -1229,7 +1271,7 @@
 									"    var jsonData = pm.response.json();",
 									"    var found = false;",
 									"    for(var i=0; i< jsonData.length; i++) {",
-									"        if(jsonData[i].username == \"researcheruser\") {",
+									"        if(_.startsWith(jsonData[i].username, \"researcheruser\")) {",
 									"            found = true;",
 									"            postman.setEnvironmentVariable(\"researcherUserId\", jsonData[i].id);",
 									"            break;",
@@ -1246,9 +1288,6 @@
 							}
 						}
 					],
-					"protocolProfileBehavior": {
-						"disableBodyPruning": true
-					},
 					"request": {
 						"method": "GET",
 						"header": [
@@ -1301,7 +1340,6 @@
 								"value": "no-cache"
 							}
 						],
-						"body": {},
 						"url": {
 							"raw": "{{host}}/default/rdmp/admin/users/get",
 							"host": [
@@ -1324,7 +1362,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "d1331b30-6885-45d4-9e5c-4108bce28d8c",
+								"id": "a42e408f-c12b-4ba6-82e7-418626b9fdf1",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
@@ -1427,7 +1465,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "a5d63795-54d5-4b16-9269-400b4391b08a",
+								"id": "d4515295-eb0b-4e9b-969b-82991c5eaf18",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
@@ -1507,7 +1545,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"userid\": \"{{researcherUserId}}\",\n    \"details\": {\n        \"name\": \"A dummy researcher\",\n        \"email\": \"researcher@example.edu.au\",\n        \"password\": \"`Qw7654321\",\n        \"roles\": [\n            \"Researcher\",\n            \"Guest\"\n        ]\n    }\n}"
+							"raw": "{\n    \"userid\": \"{{researcherUserId}}\",\n    \"details\": {\n        \"name\": \"A dummy researcher\",\n        \"email\": \"{{researcherEmail}}\",\n        \"password\": \"`Qw7654321\",\n        \"roles\": [\n            \"Researcher\",\n            \"Guest\"\n        ]\n    }\n}"
 						},
 						"url": {
 							"raw": "{{host}}/default/rdmp/admin/users/update",
@@ -1531,7 +1569,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "1b6d14d6-2511-4fdd-a096-1d9469438d17",
+								"id": "c946448a-c620-43e8-b51e-6158140855d9",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
@@ -1611,7 +1649,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"userid\": \"{{researcherUserId}}\",\n    \"details\": {\n        \"name\": \"A dummy researcher\",\n        \"email\": \"researcher@example.edu.au\",\n        \"password\": \"\",\n        \"roles\": [\n            \"Librarians\",\n            \"Researcher\",\n            \"Guest\"\n        ]\n    }\n}"
+							"raw": "{\n    \"userid\": \"{{researcherUserId}}\",\n    \"details\": {\n        \"name\": \"A dummy researcher\",\n        \"email\": \"{{researcherEmail}}\",\n        \"password\": \"\",\n        \"roles\": [\n            \"Librarians\",\n            \"Researcher\",\n            \"Guest\"\n        ]\n    }\n}"
 						},
 						"url": {
 							"raw": "{{host}}/default/rdmp/admin/users/update",
@@ -1635,7 +1673,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "1a97e3b3-6143-479a-aa8d-3479085b5955",
+								"id": "c724b9e1-6a32-4b3b-8aeb-d6b8923d1edc",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
@@ -1664,9 +1702,6 @@
 							}
 						}
 					],
-					"protocolProfileBehavior": {
-						"disableBodyPruning": true
-					},
 					"request": {
 						"method": "GET",
 						"header": [
@@ -1719,7 +1754,6 @@
 								"value": "no-cache"
 							}
 						],
-						"body": {},
 						"url": {
 							"raw": "{{host}}/default/rdmp/admin/roles/get",
 							"host": [
@@ -1820,7 +1854,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "1a97e3b3-6143-479a-aa8d-3479085b5955",
+								"id": "495fdc88-6ee3-4aea-a2cd-dd60ad157673",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
@@ -1849,9 +1883,6 @@
 							}
 						}
 					],
-					"protocolProfileBehavior": {
-						"disableBodyPruning": true
-					},
 					"request": {
 						"method": "GET",
 						"header": [
@@ -1904,7 +1935,6 @@
 								"value": "no-cache"
 							}
 						],
-						"body": {},
 						"url": {
 							"raw": "{{host}}/default/rdmp/admin/roles/get",
 							"host": [
@@ -1927,7 +1957,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "00abc0c7-746a-4bb0-8ce4-d323666395cb",
+								"id": "07ff4a6f-5e00-4e95-938d-97ccb4ded98d",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
@@ -1960,9 +1990,6 @@
 							}
 						}
 					],
-					"protocolProfileBehavior": {
-						"disableBodyPruning": true
-					},
 					"request": {
 						"method": "GET",
 						"header": [
@@ -2015,7 +2042,6 @@
 								"value": "no-cache"
 							}
 						],
-						"body": {},
 						"url": {
 							"raw": "{{host}}/default/rdmp/export/record/download/csv?before=&after=&recType=rdmp",
 							"host": [
@@ -2053,7 +2079,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "2f0f3ff4-f317-4235-862a-c39419ec82a2",
+								"id": "153e2e7e-0814-4ea5-91d8-b17b6487d444",
 								"exec": [
 									"",
 									"pm.test(\"Status code is 200\", function () {",
@@ -2147,7 +2173,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "4d5492a2-a268-4629-9189-5ef33c6043b0",
+								"id": "45332e35-f23d-41c9-ae11-d81826782b4a",
 								"exec": [
 									"",
 									"pm.test(\"Status code is 201\", function () {",
@@ -2227,7 +2253,6 @@
 								"type": "text"
 							}
 						],
-						"body": {},
 						"url": {
 							"raw": "{{host}}/default/rdmp/record/{{dataRecordOid}}/attach",
 							"host": [
@@ -2250,7 +2275,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "9dd8a485-a53a-40a5-8c7f-2aa809774cd1",
+								"id": "2500f122-e353-4b7a-ba5d-1ab7b70b1d93",
 								"exec": [
 									"pm.test(\"Status code is 204\", function () {",
 									"    pm.response.to.have.status(204);",
@@ -2344,7 +2369,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "b58f5333-ba3b-47a8-8ce0-3bb9efe871b9",
+								"id": "4212586c-f877-41a9-9a35-aa01b9fb637c",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
@@ -2436,7 +2461,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "f9e26ce5-f418-4902-9fce-e3cceca697cc",
+								"id": "970864f5-3d96-4820-9d9b-fe196e0673c2",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
@@ -2456,23 +2481,12 @@
 								"type": "text"
 							}
 						],
-						"body": {
-							"mode": "raw",
-							"raw": ""
-						},
 						"url": {
-							"raw": "{{host}}/default/rdmp/record/{{dataRecordOid}}/attach/{{attachmentId}}",
+							"raw": "http:{{attachmentLocation}}",
 							"host": [
-								"{{host}}"
+								"http"
 							],
-							"path": [
-								"default",
-								"rdmp",
-								"record",
-								"{{dataRecordOid}}",
-								"attach",
-								"{{attachmentId}}"
-							]
+							"port": "{{attachmentLocation}}"
 						}
 					},
 					"response": []
@@ -2483,7 +2497,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "387e6396-c6ff-44cb-9d87-eba940d2e05f",
+								"id": "2f8567df-f5f2-40d4-8588-a04d8edcf812",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
@@ -2500,9 +2514,6 @@
 							}
 						}
 					],
-					"protocolProfileBehavior": {
-						"disableBodyPruning": true
-					},
 					"request": {
 						"method": "GET",
 						"header": [
@@ -2555,7 +2566,6 @@
 								"value": "no-cache"
 							}
 						],
-						"body": {},
 						"url": {
 							"raw": "{{host}}/default/rdmp/record/type/",
 							"host": [
@@ -2578,7 +2588,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "387e6396-c6ff-44cb-9d87-eba940d2e05f",
+								"id": "5083443b-cd83-4d47-a541-6df35ccb6b3a",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
@@ -2596,9 +2606,6 @@
 							}
 						}
 					],
-					"protocolProfileBehavior": {
-						"disableBodyPruning": true
-					},
 					"request": {
 						"method": "GET",
 						"header": [
@@ -2651,7 +2658,6 @@
 								"value": "no-cache"
 							}
 						],
-						"body": {},
 						"url": {
 							"raw": "{{host}}/default/rdmp/record/type/dataRecord",
 							"host": [
@@ -2674,7 +2680,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "387e6396-c6ff-44cb-9d87-eba940d2e05f",
+								"id": "3e335064-3323-4820-bd75-62ce3c2ddd99",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
@@ -2692,9 +2698,6 @@
 							}
 						}
 					],
-					"protocolProfileBehavior": {
-						"disableBodyPruning": true
-					},
 					"request": {
 						"method": "GET",
 						"header": [
@@ -2747,7 +2750,6 @@
 								"value": "no-cache"
 							}
 						],
-						"body": {},
 						"url": {
 							"raw": "{{host}}/default/rdmp/record/wfSteps/dataPublication",
 							"host": [
@@ -2770,7 +2772,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "1a35de5f-c1ec-4141-8830-cf6461a03d47",
+								"id": "6282414b-3183-496f-81ca-6f912cfd42fa",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
@@ -2785,9 +2787,6 @@
 							}
 						}
 					],
-					"protocolProfileBehavior": {
-						"disableBodyPruning": true
-					},
 					"request": {
 						"method": "GET",
 						"header": [
@@ -2840,7 +2839,6 @@
 								"value": "no-cache"
 							}
 						],
-						"body": {},
 						"url": {
 							"raw": "{{host}}/default/rdmp/record/search/rdmp/?searchStr=Andrew&facetNames=grant_number_name,finalKeywords,workflow_stageLabel",
 							"host": [
@@ -2874,7 +2872,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "e1d55d77-af8f-4936-986d-944eebee26dc",
+								"id": "33d9a5a2-9338-47c4-a39d-20a7f99f30b6",
 								"exec": [
 									"",
 									"pm.test(\"Status code is 200\", function () {",
@@ -2972,7 +2970,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "ee887fa6-7b9a-4ea2-94e6-d20a5d4b985d",
+								"id": "04d5df05-a7a7-4d68-aa6d-2f6652145b7b",
 								"exec": [
 									"",
 									"pm.test(\"Status code is 200\", function () {",
@@ -3121,7 +3119,6 @@
 								"value": "no-cache"
 							}
 						],
-						"body": {},
 						"url": {
 							"raw": "{{host}}/default/rdmp/record/delete/{{dataRecordOid}}",
 							"host": [
@@ -3144,7 +3141,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "6360a8d5-f8da-4540-b20b-8f6d3c1a02de",
+								"id": "59a974a3-0b39-4ada-b04a-5d263bf42bee",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
@@ -3155,9 +3152,6 @@
 							}
 						}
 					],
-					"protocolProfileBehavior": {
-						"disableBodyPruning": true
-					},
 					"request": {
 						"method": "GET",
 						"header": [
@@ -3202,7 +3196,6 @@
 								"value": "{{cookie}}"
 							}
 						],
-						"body": {},
 						"url": {
 							"raw": "{{host}}/default/rdmp/user/logout",
 							"host": [
@@ -3224,7 +3217,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "72f352bc-687f-46bd-9714-385416301e69",
+								"id": "efe97111-eeca-48d5-a3b6-93812751cef2",
 								"exec": [
 									"pm.test(\"Status code is 403\", function () {",
 									"    pm.response.to.have.status(403);",
@@ -3264,10 +3257,6 @@
 								"type": "text"
 							}
 						],
-						"body": {
-							"mode": "raw",
-							"raw": ""
-						},
 						"url": {
 							"raw": "{{host}}/default/rdmp/record/form/auto/{{dmpOid}}?edit=false",
 							"host": [
@@ -3297,7 +3286,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "4f8e8675-14b8-4f9d-ae6e-52e0b7d5ae0f",
+								"id": "f10a38c8-ec72-4807-986f-2a83972651f6",
 								"exec": [
 									"postman.setGlobalVariable(\"cookie\",postman.getResponseHeader(\"set-cookie\") );",
 									"",
@@ -3396,7 +3385,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "4f8e8675-14b8-4f9d-ae6e-52e0b7d5ae0f",
+								"id": "c659a30f-486a-4143-9bdb-746715a67309",
 								"exec": [
 									"postman.setGlobalVariable(\"cookie\",postman.getResponseHeader(\"set-cookie\") );",
 									"",
@@ -3406,7 +3395,8 @@
 									"",
 									"pm.test(\"Check that user returned is researcheruser\", function () {",
 									"    var jsonData = pm.response.json();",
-									"    pm.expect(jsonData.user.username).to.eql(\"researcheruser\");",
+									"    var researcherUsername = pm.environment.get(\"researcherUsername\");",
+									"    pm.expect(jsonData.user.username).to.eql(researcherUsername);",
 									"});",
 									""
 								],
@@ -3468,7 +3458,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"username\": \"researcheruser\",\n    \"password\": \"`Qw7654321\",\n    \"branding\": \"default\",\n    \"portal\": \"rdmp\"\n}"
+							"raw": "{\n    \"username\": \"{{researcherUsername}}\",\n    \"password\": \"{{researcherPassword}}\",\n    \"branding\": \"default\",\n    \"portal\": \"rdmp\"\n}"
 						},
 						"url": {
 							"raw": "http://localhost:1500/user/login_local",
@@ -3491,7 +3481,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "6360a8d5-f8da-4540-b20b-8f6d3c1a02de",
+								"id": "50f38480-59bf-4a5e-8fa5-7ff89657d526",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
@@ -3502,9 +3492,6 @@
 							}
 						}
 					],
-					"protocolProfileBehavior": {
-						"disableBodyPruning": true
-					},
 					"request": {
 						"method": "GET",
 						"header": [
@@ -3549,7 +3536,6 @@
 								"value": "{{cookie}}"
 							}
 						],
-						"body": {},
 						"url": {
 							"raw": "{{host}}/default/rdmp/user/logout",
 							"host": [
@@ -3565,7 +3551,9 @@
 					},
 					"response": []
 				}
-			]
+			],
+			"protocolProfileBehavior": {}
 		}
-	]
+	],
+	"protocolProfileBehavior": {}
 }

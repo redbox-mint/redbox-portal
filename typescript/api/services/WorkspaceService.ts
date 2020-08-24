@@ -28,7 +28,9 @@ export module Services {
       'updateWorkspaceInfo',
       'workspaceAppFromUserId',
       'removeAppFromUserId',
-      'mapToRecord'
+      'mapToRecord',
+      'addWorkspaceToRecord',
+      'getWorkspaces'
     ];
 
     constructor() {
@@ -66,6 +68,40 @@ export module Services {
         newObj[value.record] = _.get(obj, value.ele);
       });
       return newObj;
+    }
+
+    /**
+     * Adds a workspace to a record.
+     *
+     * @author <a target='_' href='https://github.com/shilob'>Shilo Banihit</a>
+     * @param  targetRecordOid - the OID of the record to update
+     * @param  workspaceOid - the OID of the workspace, this will override the 'id' field in workspaceData parameter
+     * @param  workspaceData - in addition to the workspace id, any optional data to add, defaults to empty map. Note that the user interface will not be relying on the data on this array to display the association.
+     * @param  targetRecord - the target record to update, leaving it empty will retrieve the record
+     * @return
+     */
+    public async addWorkspaceToRecord(targetRecordOid: string, workspaceOid: string, workspaceData:any = {}, targetRecord: any = undefined) {
+      workspaceData.id = workspaceOid;
+      return await RecordsService.appendToRecord(targetRecordOid, workspaceData, 'metadata.workspaces', 'array', targetRecord);
+    }
+
+    /**
+     * Retrieves workspaces from a record.
+     *
+     * @author <a target='_' href='https://github.com/shilob'>Shilo Banihit</a>
+     * @param  targetRecordOid
+     * @param  targetRecord
+     * @return list of workspaces
+     */
+    public async getWorkspaces(targetRecordOid: string, targetRecord:any = undefined) {
+      if (_.isUndefined(targetRecord)) {
+        targetRecord = await RecordsService.getMeta(targetRecordOid).toPromise();
+      }
+      const workspaces = [];
+      _.each(_.get(targetRecord, 'metadata.workspaces'), async (workspaceInfo:any) => {
+        workspaces.push(await RecordsService.getMeta(workspaceInfo.id).toPromise());
+      });
+      return workspaces;
     }
 
     createWorkspaceRecord(config: any, username: string, project: any, recordType: string, workflowStage: string) {

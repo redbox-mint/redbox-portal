@@ -357,7 +357,7 @@ export module Controllers {
 
               });
 
-              var obs = RecordsService.create(brand, request, recordTypeModel);
+              var obs = Observable.fromPromise(RecordsService.create(brand, request, recordTypeModel));
               obs.subscribe(result => {
                 if (result["code"] == "200") {
                   result["code"] = 201;

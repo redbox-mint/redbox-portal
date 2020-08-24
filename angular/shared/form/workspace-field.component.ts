@@ -133,6 +133,9 @@ export class WorkspaceSelectorField extends FieldBase<any>  {
   workspaceTypeService: WorkspaceTypeService;
   workspaceApp: any;
   appLink: string;
+  // will show up as list
+  displayAsList: boolean;
+
 
   constructor(options: any, injector: any) {
     super(options, injector);
@@ -140,17 +143,31 @@ export class WorkspaceSelectorField extends FieldBase<any>  {
     this.open = this.getTranslated(options['open'], options['open']);
     this.saveFirst = this.getTranslated(options['saveFirst'], options['saveFirst']);
     this.rdmp = undefined;
+    this.displayAsList = _.isUndefined(options['displayAsList']) ? false : options['displayAsList'];
     // this.options = options['options'] || [];
     this.workspaceApps = _.map(options['defaultSelection'] || [], (option) => {
-      option['label'] = this.getTranslated(option['label'], option['label']);
-      option['name'] = '';
+      _.forOwn(option, (val, key) => {
+        option[key] = this.getTranslated(val, val);
+      });
       return option;
     });
     this.appLink = this.workspaceTypeService.getBrand() + '/record/';
     this.workspaceTypeService.getWorkspaceTypes().then(response => {
       if(response['status']) {
-        //append results from database into workspaceApps
-        this.workspaceApps = _.concat(this.workspaceApps, response['workspaceTypes']);
+        //append / merge results from database into workspaceApps
+        _.each(response['workspaceTypes'], (wType) => {
+          _.forOwn(wType, (val, key) => {
+            // all keys will go through the translation file by default
+            wType[key] = this.getTranslated(val, val);
+          });
+          const existingWtype = _.find(this.workspaceApps, (w) => { return w['name'] == wType['name']} );
+          if (!_.isUndefined(existingWtype)) {
+            _.assign(existingWtype, wType);
+            this.workspaceApp = existingWtype;
+          } else {
+            this.workspaceApps.push(wType);
+          }
+        });
       } else {
         throw new Error('cannot get workspaces');
       }

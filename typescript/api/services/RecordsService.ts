@@ -65,8 +65,10 @@ export module Services {
       'updateWorkflowStep',
       'triggerPreSaveTriggers',
       'triggerPostSaveTriggers',
+      'triggerPostSaveSyncTriggers',
       'checkRedboxRunning',
-      'getAttachments'
+      'getAttachments',
+      'appendToRecord'
     ];
 
     // Gets attachments for this record, will use the `sails.config.record.datastreamService` if set, otherwise will use this service
@@ -128,37 +130,65 @@ export module Services {
       return request[sails.config.record.api.info.method](options)
     }
 
-    public create(brand, record, recordType = null, user = null, triggerPreSaveTriggers = true, triggerPostSaveTriggers = true): Observable<any> {
+    public async create(brand, record, recordType = null, user = null, triggerPreSaveTriggers = true, triggerPostSaveTriggers = true) {
       let packageType = recordType.packageType;
-      let obs = this.createInternal(brand, record, packageType, recordType, user, triggerPreSaveTriggers);
+      // let obs = this.createInternal(brand, record, packageType, recordType, user, triggerPreSaveTriggers);
+      let response = await this.createInternal(brand, record, packageType, recordType, user, triggerPreSaveTriggers);
       if (triggerPostSaveTriggers) {
-        return obs.map(response => {
-          if (response && response.code == "200") {
-            response.success = true;
-            this.triggerPostSaveTriggers(response['oid'], record, recordType, 'onCreate', user);
-          }
-          return response;
+        if (response && `${response.code}` == "200") {
+          response = await this.triggerPostSaveSyncTriggers(response['oid'], record, recordType, 'onCreate', user, response);
         }
-        );
-      } else {
-        return obs;
+        if (response && `${response.code}` == "200") {
+          response.success = true;
+          this.triggerPostSaveTriggers(response['oid'], record, recordType, 'onCreate', user);
+        }
       }
+      return response;
     }
 
-    private createInternal(brand, record, packageType, recordType = null, user = null, triggerPreSaveTriggers = true): Observable<any> {
+    private async createInternal(brand, record, packageType, recordType = null, user = null, triggerPreSaveTriggers = true) {
       // TODO: validate metadata with the form...
       const options = this.getOptions(sails.config.record.baseUrl.redbox + sails.config.record.api.create.url, null, packageType);
+      let response = null;
       if (triggerPreSaveTriggers) {
-        let obs = this.triggerPreSaveTriggers(null, record, recordType, "onCreate", user);
-        return Observable.fromPromise(obs.then(record => {
-          options.body = record;
-          return request[sails.config.record.api.create.method](options);
-        }));
-      } else {
-        options.body = record;
-        sails.log.verbose(util.inspect(options, { showHidden: false, depth: null }));
-        return Observable.fromPromise(request[sails.config.record.api.create.method](options));
+        record = await this.triggerPreSaveTriggers(null, record, recordType, "onCreate", user);
       }
+      options.body = record;
+      sails.log.verbose(util.inspect(options, { showHidden: false, depth: null }));
+      response = await request[sails.config.record.api.create.method](options);
+      sails.log.verbose(`Create internal response: `);
+      sails.log.verbose(JSON.stringify(response));
+      return response;
+    }
+
+    /**
+     * Sets/appends to a field in the targetRecord
+     *
+     * @param  targetRecordOid - the record to modify
+     * @param  data - the data to set
+     * @param  fieldName - the field name to use
+     * @param  fieldType - blank for any, 'array' to create an array
+     * @param  targetRecord - leave blank, otherwise will use this record for updates...
+     * @return - response of the update
+     */
+    public async appendToRecord(targetRecordOid: string, linkData: any, fieldName: string, fieldType: string = undefined, targetRecord: any = undefined) {
+      sails.log.verbose(`RecordsService::Appending to record:${targetRecordOid}`);
+      if (_.isEmpty(targetRecord)) {
+        sails.log.verbose(`RecordsService::Getting record metadata:${targetRecordOid}`);
+        targetRecord = await this.getMeta(targetRecordOid).toPromise();
+      }
+      const existingData = _.get(targetRecord, fieldName);
+      if (_.isUndefined(existingData)) {
+        if (fieldType == "array") {
+          linkData = [linkData];
+        }
+      } else if (_.isArray(existingData)) {
+        existingData.push(linkData);
+        linkData = existingData;
+      }
+      _.set(targetRecord, fieldName, linkData);
+      sails.log.verbose(`RecordsService::Updating record:${targetRecordOid}`);
+      return await this.updateMeta(null, targetRecordOid, targetRecord).toPromise();
     }
 
     public delete(oid): Observable<any> {
@@ -174,12 +204,12 @@ export module Services {
       	return  RecordTypesService.get(brand, record.metaMetadata.type).flatMap(async(recordType) => {
 					let response = await this.updateMetaInternal(brand, oid, record, recordType, user, triggerPreSaveTriggers)
           if (triggerPostSaveTriggers) {
-            let resp: any = response;
-            if (response && resp.code == "200") {
-              resp.success = true;
-              RecordTypesService.get(brand, record.metaMetadata.type).subscribe(recordType => {
-                this.triggerPostSaveTriggers(oid, record, recordType, 'onUpdate', user);
-              });
+            if (response && `${response.code}` == "200") {
+              response = this.triggerPostSaveSyncTriggers(oid, record, recordType, 'onUpdate', user, response);
+            }
+            if (response && `${response.code}` == "200") {
+              response.success = true;
+              this.triggerPostSaveTriggers(oid, record, recordType, 'onUpdate', user);
             }
           } else {
           	response.success = true;
@@ -827,6 +857,35 @@ export module Services {
         }
       }
       return record;
+    }
+
+    public async triggerPostSaveSyncTriggers(oid: string, record: any, recordType: any, mode: string = 'onUpdate', user: object = undefined, response:any = {}) {
+      sails.log.debug("Triggering post save sync triggers ");
+      sails.log.debug(`hooks.${mode}.postSync`);
+      sails.log.debug(recordType);
+      let postSaveSyncHooks = _.get(recordType, `hooks.${mode}.postSync`, null);
+      if (_.isArray(postSaveSyncHooks)) {
+        for (var i = 0; i < postSaveSyncHooks.length; i++) {
+          let postSaveSyncHook = postSaveSyncHooks[i];
+          sails.log.debug(postSaveSyncHooks);
+          let postSaveSyncHooksFunctionString = _.get(postSaveSyncHook, "function", null);
+          if (postSaveSyncHooksFunctionString != null) {
+            let postSaveSyncHookFunction = eval(postSaveSyncHooksFunctionString);
+            let options = _.get(postSaveSyncHook, "options", {});
+            if (_.isFunction(postSaveSyncHookFunction)) {
+              sails.log.debug(`Triggering post-save sync trigger: ${postSaveSyncHooksFunctionString}`)
+              response = await postSaveSyncHookFunction(oid, record, options, user, response);
+              sails.log.debug(`${postSaveSyncHooksFunctionString} response now is:`);
+              sails.log.verbose(JSON.stringify(response));
+              sails.log.debug(`post-save trigger ${postSaveSyncHooksFunctionString} completed for ${oid}`)
+            } else {
+              sails.log.error(`Post save function: '${postSaveSyncHooksFunctionString}' did not resolve to a valid function, what I got:`);
+              sails.log.error(postSaveSyncHookFunction);
+            }
+          }
+        }
+      }
+      return response;
     }
 
     public triggerPostSaveTriggers(oid: string, record: any, recordType: any, mode: string = 'onUpdate', user: object = undefined) {
