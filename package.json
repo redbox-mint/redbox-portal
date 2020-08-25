@@ -19,6 +19,7 @@
     "datacrate": "^1.0.4",
     "dotenv": "^8.2.0",
     "ejs": "2.6.1",
+    "flat": "^5.0.2",
     "font-awesome-sass": "4.7.0",
     "fs-extra": "^7.0.0",
     "grunt-ts": "^6.0.0-beta.19",
