@@ -38,6 +38,7 @@ jobs:
       - run: (chmod +x dockerhub_deploy.sh && ./dockerhub_deploy.sh)
       - run:
           command: |
+            echo $CIRCLE_BRANCH
             npm pack
             PACKAGE_VERSION=$(cat package.json \
             | grep version \
@@ -64,13 +65,13 @@ jobs:
             npm install -g --silent gh-pages@2.0.1
             git config user.email "ci-build@redboxresearchdata.com.au"
             git config user.name "ci-build"
-            gh-pages --dotfiles --message "Updating documents [ci skip]" --dist support/docs/generated/ng2
+            gh-pages --dotfiles --message "[ci skip] Updating documents" --dist support/docs/generated/ng2
 orbs:
   node: circleci/node@4.0.0
   docker: circleci/docker@1.4.0
 version: 2.1
 workflows:
-  build_test_and_deploy:
+  build_test_gendocs_and_deploy:
     jobs:
       - build
       - test:
@@ -80,5 +81,9 @@ workflows:
           requires:
             - test
       - generate-docs:
-          requires:
+          requires: 
             - test
+          filters:
+            branches:
+              only: 'master'
+        
