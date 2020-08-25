@@ -58,13 +58,15 @@ jobs:
       - run: export NVM_DIR=/opt/circleci/.nvm && source /opt/circleci/.nvm/nvm.sh && nvm use 12.16.0 && npm run doc-ng2
       - run: 
           command: |
+            if [ $CIRCLE_BRANCH == "master" ]
             export NVM_DIR=/opt/circleci/.nvm
             source /opt/circleci/.nvm/nvm.sh
             nvm use 12.16.0 
             npm install -g --silent gh-pages@2.0.1
             git config user.email "ci-build@redboxresearchdata.com.au"
             git config user.name "ci-build"
-            gh-pages --dotfiles --message "Updating documents [ci skip]" --dist support/docs/generated/ng2
+            gh-pages --dotfiles --message "[ci skip] Updating documents" --dist support/docs/generated/ng2
+            fi
 orbs:
   node: circleci/node@4.0.0
   docker: circleci/docker@1.4.0
