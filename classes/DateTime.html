@@ -250,6 +250,9 @@
                                 <a href="#reactEvent">reactEvent</a>
                             </li>
                             <li>
+                                <a href="#setValue">setValue</a>
+                            </li>
+                            <li>
                                 <a href="#updatePlaceholderAsFormat">updatePlaceholderAsFormat</a>
                             </li>
                             <li>
@@ -1983,8 +1986,8 @@
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="288"
-                            class="link-to-prism">angular/shared/form/field-simple.ts:288</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="294"
+                            class="link-to-prism">angular/shared/form/field-simple.ts:294</a></div>
                 </td>
             </tr>
 
@@ -2053,8 +2056,8 @@
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="298"
-                            class="link-to-prism">angular/shared/form/field-simple.ts:298</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="304"
+                            class="link-to-prism">angular/shared/form/field-simple.ts:304</a></div>
                 </td>
             </tr>
 
@@ -2092,8 +2095,8 @@
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="294"
-                            class="link-to-prism">angular/shared/form/field-simple.ts:294</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="300"
+                            class="link-to-prism">angular/shared/form/field-simple.ts:300</a></div>
                 </td>
             </tr>
 
@@ -2164,8 +2167,8 @@
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="303"
-                            class="link-to-prism">angular/shared/form/field-simple.ts:303</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="309"
+                            class="link-to-prism">angular/shared/form/field-simple.ts:309</a></div>
                 </td>
             </tr>
 
@@ -2210,6 +2213,76 @@
                                 </tr>
                                 <tr>
                                     <td>origData</td>
+                                    <td>
+                                                <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div>
+                    </div>
+                    <div class="io-description">
+                        <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >void</a></code>
+
+                    </div>
+                    <div class="io-description">
+                        
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="setValue"></a>
+                    <span class="name">
+                        <b>
+                            setValue
+                        </b>
+                        <a href="#setValue"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+<code>setValue(value: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>)</code>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-line">Defined in <a href="" data-line="288"
+                            class="link-to-prism">angular/shared/form/field-simple.ts:288</a></div>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+
+                    <div class="io-description">
+                        <b>Parameters :</b>
+                        <table class="params">
+                            <thead>
+                                <tr>
+                                    <td>Name</td>
+                                    <td>Type</td>
+                                    <td>Optional</td>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>value</td>
                                     <td>
                                                 <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
                                     </td>
@@ -4525,6 +4598,12 @@ export class DateTime extends FieldBase&lt;any&gt; {
     }
   }
 
+  setValue(value:any) {
+      this.value &#x3D; value;
+      this.formModel.patchValue(value, {emitEvent: true, emitModelToViewChange:true });
+      this.formModel.markAsTouched();
+    }
+
   formatValue(value: any) {
     // assume local date
     console.log(&#x60;Formatting value: ${value}&#x60;)
@@ -4550,6 +4629,9 @@ export class DateTime extends FieldBase&lt;any&gt; {
       const newOpts &#x3D; _.cloneDeep(this.datePickerOpts);
       newOpts.startDate &#x3D; eventData;
       this.datePickerOpts &#x3D; newOpts;
+    } else {
+      const value &#x3D; this.parseToDate(eventData);
+      this.setValue(value);
     }
   }
 }

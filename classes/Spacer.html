@@ -563,7 +563,7 @@
                 </tr>
                         <tr>
                             <td class="col-md-4">
-                                <div class="io-line">Defined in <a href="" data-line="474" class="link-to-prism">angular/shared/form/field-simple.ts:474</a></div>
+                                <div class="io-line">Defined in <a href="" data-line="483" class="link-to-prism">angular/shared/form/field-simple.ts:483</a></div>
                             </td>
                         </tr>
 
@@ -638,7 +638,7 @@
                     </tr>
                         <tr>
                             <td class="col-md-4">
-                                    <div class="io-line">Defined in <a href="" data-line="474" class="link-to-prism">angular/shared/form/field-simple.ts:474</a></div>
+                                    <div class="io-line">Defined in <a href="" data-line="483" class="link-to-prism">angular/shared/form/field-simple.ts:483</a></div>
                             </td>
                         </tr>
 
@@ -665,7 +665,7 @@
                     </tr>
                         <tr>
                             <td class="col-md-4">
-                                    <div class="io-line">Defined in <a href="" data-line="473" class="link-to-prism">angular/shared/form/field-simple.ts:473</a></div>
+                                    <div class="io-line">Defined in <a href="" data-line="482" class="link-to-prism">angular/shared/form/field-simple.ts:482</a></div>
                             </td>
                         </tr>
 
@@ -7816,6 +7816,12 @@ export class DateTime extends FieldBase&lt;any&gt; {
     }
   }
 
+  setValue(value:any) {
+      this.value &#x3D; value;
+      this.formModel.patchValue(value, {emitEvent: true, emitModelToViewChange:true });
+      this.formModel.markAsTouched();
+    }
+
   formatValue(value: any) {
     // assume local date
     console.log(&#x60;Formatting value: ${value}&#x60;)
@@ -7841,6 +7847,9 @@ export class DateTime extends FieldBase&lt;any&gt; {
       const newOpts &#x3D; _.cloneDeep(this.datePickerOpts);
       newOpts.startDate &#x3D; eventData;
       this.datePickerOpts &#x3D; newOpts;
+    } else {
+      const value &#x3D; this.parseToDate(eventData);
+      this.setValue(value);
     }
   }
 }

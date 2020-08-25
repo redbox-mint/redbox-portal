@@ -367,7 +367,7 @@
                 </tr>
                         <tr>
                             <td class="col-md-4">
-                                <div class="io-line">Defined in <a href="" data-line="373" class="link-to-prism">angular/shared/form/field-simple.ts:373</a></div>
+                                <div class="io-line">Defined in <a href="" data-line="382" class="link-to-prism">angular/shared/form/field-simple.ts:382</a></div>
                             </td>
                         </tr>
 
@@ -442,7 +442,7 @@
                     </tr>
                         <tr>
                             <td class="col-md-4">
-                                    <div class="io-line">Defined in <a href="" data-line="370" class="link-to-prism">angular/shared/form/field-simple.ts:370</a></div>
+                                    <div class="io-line">Defined in <a href="" data-line="379" class="link-to-prism">angular/shared/form/field-simple.ts:379</a></div>
                             </td>
                         </tr>
 
@@ -469,7 +469,7 @@
                     </tr>
                         <tr>
                             <td class="col-md-4">
-                                    <div class="io-line">Defined in <a href="" data-line="373" class="link-to-prism">angular/shared/form/field-simple.ts:373</a></div>
+                                    <div class="io-line">Defined in <a href="" data-line="382" class="link-to-prism">angular/shared/form/field-simple.ts:382</a></div>
                             </td>
                         </tr>
 
@@ -496,7 +496,7 @@
                     </tr>
                         <tr>
                             <td class="col-md-4">
-                                    <div class="io-line">Defined in <a href="" data-line="369" class="link-to-prism">angular/shared/form/field-simple.ts:369</a></div>
+                                    <div class="io-line">Defined in <a href="" data-line="378" class="link-to-prism">angular/shared/form/field-simple.ts:378</a></div>
                             </td>
                         </tr>
 
@@ -523,7 +523,7 @@
                     </tr>
                         <tr>
                             <td class="col-md-4">
-                                    <div class="io-line">Defined in <a href="" data-line="368" class="link-to-prism">angular/shared/form/field-simple.ts:368</a></div>
+                                    <div class="io-line">Defined in <a href="" data-line="377" class="link-to-prism">angular/shared/form/field-simple.ts:377</a></div>
                             </td>
                         </tr>
 
@@ -555,7 +555,7 @@
                     </tr>
                         <tr>
                             <td class="col-md-4">
-                                    <div class="io-line">Defined in <a href="" data-line="371" class="link-to-prism">angular/shared/form/field-simple.ts:371</a></div>
+                                    <div class="io-line">Defined in <a href="" data-line="380" class="link-to-prism">angular/shared/form/field-simple.ts:380</a></div>
                             </td>
                         </tr>
 
@@ -582,7 +582,7 @@
                     </tr>
                         <tr>
                             <td class="col-md-4">
-                                    <div class="io-line">Defined in <a href="" data-line="372" class="link-to-prism">angular/shared/form/field-simple.ts:372</a></div>
+                                    <div class="io-line">Defined in <a href="" data-line="381" class="link-to-prism">angular/shared/form/field-simple.ts:381</a></div>
                             </td>
                         </tr>
 
@@ -1990,8 +1990,8 @@
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="407"
-                            class="link-to-prism">angular/shared/form/field-simple.ts:407</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="416"
+                            class="link-to-prism">angular/shared/form/field-simple.ts:416</a></div>
                 </td>
             </tr>
 
@@ -2031,8 +2031,8 @@
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="411"
-                            class="link-to-prism">angular/shared/form/field-simple.ts:411</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="420"
+                            class="link-to-prism">angular/shared/form/field-simple.ts:420</a></div>
                 </td>
             </tr>
 
@@ -2103,8 +2103,8 @@
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="383"
-                            class="link-to-prism">angular/shared/form/field-simple.ts:383</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="392"
+                            class="link-to-prism">angular/shared/form/field-simple.ts:392</a></div>
                 </td>
             </tr>
 
@@ -2144,8 +2144,8 @@
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="395"
-                            class="link-to-prism">angular/shared/form/field-simple.ts:395</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="404"
+                            class="link-to-prism">angular/shared/form/field-simple.ts:404</a></div>
                 </td>
             </tr>
 
@@ -4393,6 +4393,12 @@ export class DateTime extends FieldBase&lt;any&gt; {
     }
   }
 
+  setValue(value:any) {
+      this.value &#x3D; value;
+      this.formModel.patchValue(value, {emitEvent: true, emitModelToViewChange:true });
+      this.formModel.markAsTouched();
+    }
+
   formatValue(value: any) {
     // assume local date
     console.log(&#x60;Formatting value: ${value}&#x60;)
@@ -4418,6 +4424,9 @@ export class DateTime extends FieldBase&lt;any&gt; {
       const newOpts &#x3D; _.cloneDeep(this.datePickerOpts);
       newOpts.startDate &#x3D; eventData;
       this.datePickerOpts &#x3D; newOpts;
+    } else {
+      const value &#x3D; this.parseToDate(eventData);
+      this.setValue(value);
     }
   }
 }

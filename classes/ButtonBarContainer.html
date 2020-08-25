@@ -7898,6 +7898,12 @@ export class DateTime extends FieldBase&lt;any&gt; {
     }
   }
 
+  setValue(value:any) {
+      this.value &#x3D; value;
+      this.formModel.patchValue(value, {emitEvent: true, emitModelToViewChange:true });
+      this.formModel.markAsTouched();
+    }
+
   formatValue(value: any) {
     // assume local date
     console.log(&#x60;Formatting value: ${value}&#x60;)
@@ -7923,6 +7929,9 @@ export class DateTime extends FieldBase&lt;any&gt; {
       const newOpts &#x3D; _.cloneDeep(this.datePickerOpts);
       newOpts.startDate &#x3D; eventData;
       this.datePickerOpts &#x3D; newOpts;
+    } else {
+      const value &#x3D; this.parseToDate(eventData);
+      this.setValue(value);
     }
   }
 }

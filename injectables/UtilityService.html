@@ -90,6 +90,10 @@
                             </li>
                             <li>
                                     <span class="modifier">Public</span>
+                                <a href="#convertToDateFormat">convertToDateFormat</a>
+                            </li>
+                            <li>
+                                    <span class="modifier">Public</span>
                                 <a href="#getFirstofArray">getFirstofArray</a>
                             </li>
                             <li>
@@ -216,6 +220,102 @@
                                     </td>
 
 
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div>
+                    </div>
+                    <div class="io-description">
+                        <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+
+                    </div>
+                    <div class="io-description">
+                        
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="convertToDateFormat"></a>
+                    <span class="name">
+                        <b>
+                            <span class="modifier">Public</span>
+                            convertToDateFormat
+                        </b>
+                        <a href="#convertToDateFormat"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                    <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>convertToDateFormat(data: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>, config: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>)</code>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-line">Defined in <a href="" data-line="207"
+                            class="link-to-prism">angular/shared/util-service.ts:207</a></div>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-description"><p>Format date with moment from origin to target</p>
+<p>Author: <a href='https://github.com/moisbo' target='_blank'>Moises Sacal Bonequi</a></p>
+</div>
+
+                    <div class="io-description">
+                        <b>Parameters :</b>
+                        <table class="params">
+                            <thead>
+                                <tr>
+                                    <td>Name</td>
+                                    <td>Type</td>
+                                    <td>Optional</td>
+                                    <td>Description</td>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>data</td>
+                                    <td>
+                                                <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+
+                                    <td>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>config</td>
+                                    <td>
+                                                <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+
+                                    <td>
+                                        <ul>
+<li>field, formatOrigin, formatTarget</li>
+</ul>
+
+                                    </td>
                                 </tr>
                             </tbody>
                         </table>
@@ -812,8 +912,8 @@
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="199"
-                            class="link-to-prism">angular/shared/util-service.ts:199</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="221"
+                            class="link-to-prism">angular/shared/util-service.ts:221</a></div>
                 </td>
             </tr>
 
@@ -931,8 +1031,8 @@
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="203"
-                            class="link-to-prism">angular/shared/util-service.ts:203</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="225"
+                            class="link-to-prism">angular/shared/util-service.ts:225</a></div>
                 </td>
             </tr>
 
@@ -1366,6 +1466,28 @@ export class UtilityService {
       value &#x3D; _.get(data, field);
     }
     return _.first(value);
+  }
+
+  /**
+   * Format date with moment from origin to target
+   *
+   * Author: &lt;a href&#x3D;&#x27;https://github.com/moisbo&#x27; target&#x3D;&#x27;_blank&#x27;&gt;Moises Sacal Bonequi&lt;/a&gt;
+   * @param {any} data
+   * @param  {any} config - field, formatOrigin, formatTarget
+   * @return {array}
+   */
+  public convertToDateFormat(data:any, config:any) {
+    let field &#x3D; config.field;
+    let formatOrigin &#x3D; config.formatOrigin || &#x27;DD-MMM-YY&#x27;;
+    let formatTarget &#x3D; config.formatTarget || &#x27;YYYY-MM-DD&#x27;;
+    let value &#x3D; data;
+
+    if(field) {
+      value &#x3D; _.get(data,field);
+    }
+    const converted &#x3D; moment(value, formatOrigin).format(formatTarget);
+    console.log(&#x60;convertToDateFormat ${converted}&#x60;);
+    return converted;
   }
 
   public joinArray(data: any, config: any, fieldName: string &#x3D; null, fieldSeparator: string &#x3D; null) {
