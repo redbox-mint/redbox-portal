@@ -80,8 +80,9 @@ workflows:
           requires:
             - test
       - generate-docs:
-        filters:
-          branches:
-            only: 'master'
-          requires:
+          requires: 
             - test
+          filters:
+            branches:
+              only: 'master'
+        
