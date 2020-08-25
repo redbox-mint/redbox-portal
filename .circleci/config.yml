@@ -6,7 +6,22 @@ jobs:
       - checkout
       - node/install:
           node-version: 12.16.0
-      - run: npm install
+      - run: npm install --production
+      - run: node_modules/.bin/tsc
+      - run: (cd angular && npm install)
+      - run: (chmod +x dev_build/buildNgApps.sh && dev_build/buildNgApps.sh)
+      - persist_to_workspace:
+          root: .
+          paths:
+            - .
+  build-bcryptjs:
+    docker:
+      - image: 'cimg/base:stable'
+    steps:
+      - checkout
+      - node/install:
+          node-version: 12.16.0
+      - run: npm uninstall bcrypt; npm install bcryptjs --save; npm install --production
       - run: node_modules/.bin/tsc
       - run: (cd angular && npm install)
       - run: (chmod +x dev_build/buildNgApps.sh && dev_build/buildNgApps.sh)
@@ -46,7 +61,16 @@ jobs:
             | awk -F: '{ print $2 }' \
             | sed 's/[", \t]//g')
             RBPORTAL_FILENAME=$(ls redbox-portal-*.tgz)
-            curl -v -u $MAVEN_USER:$MAVEN_PASSWORD --upload-file $RBPORTAL_FILENAME "https://nexus-prod.redboxresearchdata.com.au/nexus/repository/maven-snapshots/au/edu/qcif/redbox-portal/${PACKAGE_VERSION}-SNAPSHOT/redbox-portal-${PACKAGE_VERSION}-SNAPSHOT.tgz"
+            curl -v -u $MAVEN_USER:$MAVEN_PASSWORD --upload-file $RBPORTAL_FILENAME "https://nexus-prod.redboxresearchdata.com.au/nexus/repository/maven-snapshots/au/edu/qcif/redbox-portal/${PACKAGE_VERSION}-SNAPSHOT/redbox-portal-${PACKAGE_VERSION}-SNAPSHOT.tgz"  
+  deploy-bcryotjs:
+    docker:
+      - image: 'cimg/base:stable'
+    steps:
+      - setup_remote_docker
+      - attach_workspace:
+            at: /home/circleci/project
+      - docker/install-docker-compose
+      - run: (chmod +x dockerhub_deploy.sh && ./dockerhub_deploy.sh bcryptjs)  
   generate-docs:
     machine: true
     steps:
@@ -86,4 +110,13 @@ workflows:
           filters:
             branches:
               only: 'master'
+  build_bcryptjs_test_gendocs_and_deploy:
+    jobs:
+      - build-bcryptjs
+      - test:
+          requires:
+            - build-bcryptjs
+      - deploy-bcryotjs:
+          requires:
+            - test
         
