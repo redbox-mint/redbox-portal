@@ -45,7 +45,7 @@
     "passport-local": "^1.0.0",
     "passport-openidconnect": "0.0.2",
     "rc": "1.2.8",
-    "redux": "4.0.1",
+    "redux": "4.0.5",
     "request-promise": "^4.2.0",
     "rxjs": "6.5.3",
     "rxjs-compat": "6.6.2",
