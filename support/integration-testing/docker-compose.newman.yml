@@ -24,7 +24,7 @@ services:
      main:
        aliases:
          - rbportal
-    entrypoint: /bin/bash -c "cd /opt/redbox-portal && npm i nyc -g && nyc --exclude-after-remap=false --reporter=lcov npm run api-test "
+    entrypoint: /bin/bash -c "cd /opt/redbox-portal && npm i nyc -g && npm i newman && nyc --exclude-after-remap=false --reporter=lcov npm run api-test "
   mongodb:
     image: mvertes/alpine-mongo:latest
     networks:
