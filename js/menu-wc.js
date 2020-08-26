@@ -333,6 +333,10 @@ customElements.define('compodoc-menu', class extends HTMLElement {
                                                     data-type="entity-link" data-context="sub-entity" data-context-id="modules">DropdownFieldComponent</a>
                                             </li>
                                             <li class="link">
+                                                <a href="components/EventHandlerComponent.html"
+                                                    data-type="entity-link" data-context="sub-entity" data-context-id="modules">EventHandlerComponent</a>
+                                            </li>
+                                            <li class="link">
                                                 <a href="components/GenericGroupComponent.html"
                                                     data-type="entity-link" data-context="sub-entity" data-context-id="modules">GenericGroupComponent</a>
                                             </li>
@@ -651,6 +655,9 @@ customElements.define('compodoc-menu', class extends HTMLElement {
                             </li>
                             <li class="link">
                                 <a href="classes/EmbeddableComponent.html" data-type="entity-link">EmbeddableComponent</a>
+                            </li>
+                            <li class="link">
+                                <a href="classes/EventHandler.html" data-type="entity-link">EventHandler</a>
                             </li>
                             <li class="link">
                                 <a href="classes/ExternalLookupDataService.html" data-type="entity-link">ExternalLookupDataService</a>
