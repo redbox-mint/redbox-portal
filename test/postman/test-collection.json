@@ -1232,7 +1232,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"username\": \"{{researcherUsername}}\",\n    \"details\": {\n        \"name\": \"A dummy researcher\",\n        \"email\": \"{{researcherEmail}}\",\n        \"password\": \"`Qw1234567\",\n        \"roles\": [\n            \"Researcher\",\n            \"Guest\"\n        ]\n    }\n}"
+							"raw": "{\n    \"username\": \"{{researcherUsername}}\",\n    \"details\": {\n        \"name\": \"A dummy researcher\",\n        \"email\": \"{{researcherEmail}}\",\n        \"password\": \"`{[researcherPassword]}\",\n        \"roles\": [\n            \"Researcher\",\n            \"Guest\"\n        ]\n    }\n}"
 						},
 						"url": {
 							"raw": "{{host}}/default/rdmp/admin/users/newUser",
