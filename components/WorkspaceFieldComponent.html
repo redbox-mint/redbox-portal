@@ -813,6 +813,7 @@ export class WorkspaceSelectorField extends FieldBase&lt;any&gt;  {
   appLink: string;
   // will show up as list
   displayAsList: boolean;
+  shouldSaveForm: boolean;
 
 
   constructor(options: any, injector: any) {
@@ -822,6 +823,7 @@ export class WorkspaceSelectorField extends FieldBase&lt;any&gt;  {
     this.saveFirst &#x3D; this.getTranslated(options[&#x27;saveFirst&#x27;], options[&#x27;saveFirst&#x27;]);
     this.rdmp &#x3D; undefined;
     this.displayAsList &#x3D; _.isUndefined(options[&#x27;displayAsList&#x27;]) ? false : options[&#x27;displayAsList&#x27;];
+    this.shouldSaveForm &#x3D; _.isUndefined(options[&#x27;shouldSaveForm&#x27;]) ? true: options[&#x27;shouldSaveForm&#x27;];
     // this.options &#x3D; options[&#x27;options&#x27;] || [];
     this.workspaceApps &#x3D; _.map(options[&#x27;defaultSelection&#x27;] || [], (option) &#x3D;&gt; {
       _.forOwn(option, (val, key) &#x3D;&gt; {

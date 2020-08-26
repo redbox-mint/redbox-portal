@@ -1173,7 +1173,7 @@ export class WorkspaceSelectorComponent extends SimpleComponent {
       &lt;!-- divider --&gt;
       &lt;br/&gt;&lt;br/&gt;&lt;br/&gt;
     &lt;/ng-container&gt;
-    &lt;!-- When displaying as list the currently selected workspace type --&gt;
+    &lt;!-- The selected workspace type when choosing from the dropdown --&gt;
     &lt;ng-container *ngIf&#x3D;&quot;field.displayAsList &#x3D;&#x3D; false&quot;&gt;
       &lt;div class&#x3D;&quot;row&quot;&gt;
         &lt;div *ngIf&#x3D;&quot;field.workspaceApp&quot; class&#x3D;&quot;panel panel-default&quot;&gt;
@@ -1186,7 +1186,7 @@ export class WorkspaceSelectorComponent extends SimpleComponent {
                 &lt;h5&gt;{{ field.workspaceApp.subtitle }}&lt;/h5&gt;
                 &lt;span *ngIf&#x3D;&quot;field.rdmp&quot;&gt;
                   &lt;p&gt;{{ field.workspaceApp.description }}&lt;/p&gt;
-                  &lt;button (click)&#x3D;&quot;saveAndOpenWorkspace()&quot;  class&#x3D;&quot;btn btn-primary&quot;&gt;{{ field.open }}&lt;/button&gt;
+                  &lt;button type&#x3D;&#x27;button&#x27; (click)&#x3D;&quot;saveAndOpenWorkspace()&quot;  class&#x3D;&quot;btn btn-primary&quot;&gt;{{ field.open }}&lt;/button&gt;
                 &lt;/span&gt;
                 &lt;span *ngIf&#x3D;&quot;!field.rdmp&quot;&gt;
                   &lt;p class&#x3D;&quot;text-danger&quot;&gt;
@@ -1202,7 +1202,7 @@ export class WorkspaceSelectorComponent extends SimpleComponent {
         &lt;/div&gt;
       &lt;/div&gt;
     &lt;/ng-container&gt;
-    &lt;!-- When displaying as list --&gt;
+    &lt;!-- When displayed as a list --&gt;
     &lt;ng-container *ngIf&#x3D;&quot;field.displayAsList &#x3D;&#x3D; true&quot;&gt;
       &lt;div class&#x3D;&quot;row&quot; *ngFor&#x3D;&quot;let workspaceType of field.workspaceApps&quot;&gt;
         &lt;div class&#x3D;&quot;panel panel-default&quot;&gt;
@@ -1215,7 +1215,7 @@ export class WorkspaceSelectorComponent extends SimpleComponent {
                 &lt;h5&gt;{{ workspaceType.subtitle }}&lt;/h5&gt;
                 &lt;span *ngIf&#x3D;&quot;field.rdmp&quot;&gt;
                   &lt;p&gt;{{ workspaceType.description }}&lt;/p&gt;
-                  &lt;button (click)&#x3D;&quot;saveAndOpenWorkspace(workspaceType)&quot;  class&#x3D;&quot;btn btn-primary&quot;&gt;{{ field.open }}&lt;/button&gt;
+                  &lt;button type&#x3D;&#x27;button&#x27; (click)&#x3D;&quot;saveAndOpenWorkspace(workspaceType)&quot;  class&#x3D;&quot;btn btn-primary&quot;&gt;{{ field.open }}&lt;/button&gt;
                 &lt;/span&gt;
                 &lt;span *ngIf&#x3D;&quot;!field.rdmp&quot;&gt;
                   &lt;p class&#x3D;&quot;text-danger&quot;&gt;
@@ -1247,9 +1247,15 @@ export class WorkspaceSelectorFieldComponent extends WorkspaceSelectorComponent 
     if (_.isUndefined(workspaceType)) {
       workspaceType &#x3D; this.field.workspaceApp;
     }
-    this.fieldMap._rootComp.onSubmit().subscribe(response &#x3D;&gt; {
+    if (this.field.shouldSaveForm) {
+      this.fieldMap._rootComp.onSubmit().subscribe(response &#x3D;&gt; {
+        if (response &#x3D;&#x3D; true) {
+          window.location.href &#x3D; &#x60;${this.field.appLink}${workspaceType.name}/edit?rdmp&#x3D;${this.field.rdmp}&#x60;;
+        }
+      });
+    } else {
       window.location.href &#x3D; &#x60;${this.field.appLink}${workspaceType.name}/edit?rdmp&#x3D;${this.field.rdmp}&#x60;;
-    });
+    }
   }
 
 }
