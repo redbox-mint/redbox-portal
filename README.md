@@ -2,7 +2,7 @@
 <a href="http://www.redboxresearchdata.com.au"><img alt="ReDBox Logo" src="https://github.com/redbox-mint/redbox-portal/raw/master/assets/images/logo.png"/></a>
 </h1>
 
-[![Build Status](https://travis-ci.org/redbox-mint/redbox-portal.svg?branch=master)](https://travis-ci.org/redbox-mint/redbox-portal)
+[![Build Status](https://circleci.com/gh/redbox-mint/redbox-portal.svg?style=svg)](https://circleci.com/gh/redbox-mint/redbox-portal)
 [![codecov](https://codecov.io/gh/redbox-mint/redbox-portal/branch/master/graph/badge.svg)](https://codecov.io/gh/redbox-mint/redbox-portal)
 
 ReDBox is an open source Research Data Management platform that assists researchers and institutions to plan, create and publish their research data assets.
