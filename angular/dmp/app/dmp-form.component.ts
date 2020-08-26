@@ -237,6 +237,7 @@ export class DmpFormComponent extends LoadableComponent {
           this.recordCreated.emit({oid: this.oid});
           this.LocationService.go(`record/edit/${this.oid}`);
           this.setSuccess(this.getMessage(this.formDef.messages.saveSuccess));
+          this.form.markAsPristine();
           return Observable.of(true);
         } else {
           this.setError(`${this.getMessage(this.formDef.messages.saveError)} ${res.message}`);
@@ -254,6 +255,7 @@ export class DmpFormComponent extends LoadableComponent {
         if (res.success) {
           this.recordSaved.emit({oid: this.oid, success:true});
           this.setSuccess(this.getMessage(this.formDef.messages.saveSuccess));
+          this.form.markAsPristine();
           return Observable.of(true);
         } else {
           this.recordSaved.emit({oid: this.oid, success:false});
@@ -560,5 +562,15 @@ export class DmpFormComponent extends LoadableComponent {
   setRelatedRecordId(oid) {
     this.relatedRecordId = oid;
     this.triggerChangeDetection();
+  }
+
+  // note: warningMessage is ignored in Chrome, etc. verify browser support
+  handleBeforeUnload(event, warningMessage: string = '') {
+    if (!this.form.pristine) {
+      // Cancel the event as stated by the standard.
+      event.preventDefault();
+      // Chrome requires returnValue to be set.
+      event.returnValue = warningMessage;
+    }
   }
 }

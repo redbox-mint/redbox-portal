@@ -47,7 +47,7 @@ export class WorkspaceSelectorComponent extends SimpleComponent {
       <!-- divider -->
       <br/><br/><br/>
     </ng-container>
-    <!-- When displaying as list the currently selected workspace type -->
+    <!-- The selected workspace type when choosing from the dropdown -->
     <ng-container *ngIf="field.displayAsList == false">
       <div class="row">
         <div *ngIf="field.workspaceApp" class="panel panel-default">
@@ -60,7 +60,7 @@ export class WorkspaceSelectorComponent extends SimpleComponent {
                 <h5>{{ field.workspaceApp.subtitle }}</h5>
                 <span *ngIf="field.rdmp">
                   <p>{{ field.workspaceApp.description }}</p>
-                  <button (click)="saveAndOpenWorkspace()"  class="btn btn-primary">{{ field.open }}</button>
+                  <button type='button' (click)="saveAndOpenWorkspace()"  class="btn btn-primary">{{ field.open }}</button>
                 </span>
                 <span *ngIf="!field.rdmp">
                   <p class="text-danger">
@@ -76,7 +76,7 @@ export class WorkspaceSelectorComponent extends SimpleComponent {
         </div>
       </div>
     </ng-container>
-    <!-- When displaying as list -->
+    <!-- When displayed as a list -->
     <ng-container *ngIf="field.displayAsList == true">
       <div class="row" *ngFor="let workspaceType of field.workspaceApps">
         <div class="panel panel-default">
@@ -89,7 +89,7 @@ export class WorkspaceSelectorComponent extends SimpleComponent {
                 <h5>{{ workspaceType.subtitle }}</h5>
                 <span *ngIf="field.rdmp">
                   <p>{{ workspaceType.description }}</p>
-                  <button (click)="saveAndOpenWorkspace(workspaceType)"  class="btn btn-primary">{{ field.open }}</button>
+                  <button type='button' (click)="saveAndOpenWorkspace(workspaceType)"  class="btn btn-primary">{{ field.open }}</button>
                 </span>
                 <span *ngIf="!field.rdmp">
                   <p class="text-danger">
@@ -123,7 +123,9 @@ export class WorkspaceSelectorFieldComponent extends WorkspaceSelectorComponent 
     }
     if (this.field.shouldSaveForm) {
       this.fieldMap._rootComp.onSubmit().subscribe(response => {
-        window.location.href = `${this.field.appLink}${workspaceType.name}/edit?rdmp=${this.field.rdmp}`;
+        if (response == true) {
+          window.location.href = `${this.field.appLink}${workspaceType.name}/edit?rdmp=${this.field.rdmp}`;
+        }
       });
     } else {
       window.location.href = `${this.field.appLink}${workspaceType.name}/edit?rdmp=${this.field.rdmp}`;
