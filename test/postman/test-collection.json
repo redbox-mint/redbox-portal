@@ -1128,7 +1128,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"username\": \"{{researcherUsername}}\",\n    \"details\": {\n        \"name\": \"A dummy researcher\",\n        \"email\": \"{{researcherEmail}}\",\n        \"password\": \"{{researcherPassword}}\",\n        \"roles\": [\n            \"Researcher\",\n            \"Guest\"\n        ]\n    }\n}"
+							"raw": "{\n    \"username\": \"{{researcherUsername}}\",\n    \"details\": {\n        \"name\": \"A dummy researcher\",\n        \"email\": \"{{researcherEmail}}\",\n        \"password\": \"!7654321wQ\",\n        \"roles\": [\n            \"Researcher\",\n            \"Guest\"\n        ]\n    }\n}"
 						},
 						"url": {
 							"raw": "{{host}}/default/rdmp/admin/users/newUser",
@@ -1467,6 +1467,7 @@
 							"script": {
 								"id": "ea1b5cbb-8835-49bf-98e4-7e2b9e13911d",
 								"exec": [
+									"",
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
 									"});",
@@ -1545,7 +1546,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"userid\": \"{{researcherUserId}}\",\n    \"details\": {\n        \"name\": \"A dummy researcher\",\n        \"email\": \"{{researcherEmail}}\",\n        \"password\": \"{{reseacherPassword}}\",\n        \"roles\": [\n            \"Researcher\",\n            \"Guest\"\n        ]\n    }\n}"
+							"raw": "{\n    \"userid\": \"{{researcherUserId}}\",\n    \"details\": {\n        \"name\": \"A dummy researcher\",\n        \"email\": \"{{researcherEmail}}\",\n        \"password\": \"{{researcherPassword}}\",\n        \"roles\": [\n            \"Researcher\",\n            \"Guest\"\n        ]\n    }\n}"
 						},
 						"url": {
 							"raw": "{{host}}/default/rdmp/admin/users/update",
