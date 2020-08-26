@@ -121,9 +121,13 @@ export class WorkspaceSelectorFieldComponent extends WorkspaceSelectorComponent 
     if (_.isUndefined(workspaceType)) {
       workspaceType = this.field.workspaceApp;
     }
-    this.fieldMap._rootComp.onSubmit().subscribe(response => {
+    if (this.field.shouldSaveForm) {
+      this.fieldMap._rootComp.onSubmit().subscribe(response => {
+        window.location.href = `${this.field.appLink}${workspaceType.name}/edit?rdmp=${this.field.rdmp}`;
+      });
+    } else {
       window.location.href = `${this.field.appLink}${workspaceType.name}/edit?rdmp=${this.field.rdmp}`;
-    });
+    }
   }
 
 }
