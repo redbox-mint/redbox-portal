@@ -39,6 +39,7 @@ import { ANDSVocabField, ANDSVocabComponent } from './form/field-andsvocab.compo
 import { PDFListField, PDFListComponent } from './form/field-pdflist.component';
 import { AsynchField, AsynchComponent } from './form/field-asynch.component';
 import { PublishDataLocationRefreshField, PublishDataLocationRefreshComponent } from './form/field-publish-data-location-refresh.component';
+import { EventHandler, EventHandlerComponent } from './form/html-event.component';
 
 export const fieldClasses=  {
   'TextField': { 'meta': TextField, 'comp': TextFieldComponent },
@@ -78,5 +79,6 @@ export const fieldClasses=  {
   'AsynchField': {'meta': AsynchField, 'comp': AsynchComponent },
   'Toggle': {'meta': Toggle, 'comp': ToggleComponent},
   'HtmlRaw': {'meta': HtmlRaw, 'comp': HtmlRawComponent},
-  'PublishDataLocationRefresh': {'meta': PublishDataLocationRefreshField, 'comp': PublishDataLocationRefreshComponent }
+  'PublishDataLocationRefresh': {'meta': PublishDataLocationRefreshField, 'comp': PublishDataLocationRefreshComponent },
+  'EventHandler': {'meta': EventHandler, 'comp': EventHandlerComponent}
 };
