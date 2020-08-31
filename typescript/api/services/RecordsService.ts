@@ -103,6 +103,11 @@ export module Services {
     }
 
     public async checkRedboxRunning(): Promise<any> {
+      // check if a valid storage plugin is loaded....
+      if (!_.isEmpty(sails.config.storage)) {
+        sails.log.info("ReDBox storage plugin is active!");
+        return true;
+      }
       let retries  =  1000;
       for(let i =0; i< retries; i++) {
         try {
