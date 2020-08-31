@@ -323,9 +323,17 @@ export class DateTime extends FieldBase<any> {
   }
 }
 
-
-
-export class SaveButton extends NotInFormField {
+/**
+ *
+ * SaveButton now can contain values so other components can potentially subscribe to the value
+ *
+ *
+ * [constructor description]
+ * @author <a target='_' href='https://github.com/shilob'>Shilo Banihit</a>
+ * @param  options
+ * @param  injector
+ */
+export class SaveButton extends FieldBase<string> {
   label: string;
   redirectLocation: string;
   closeOnSave: boolean;
@@ -337,7 +345,11 @@ export class SaveButton extends NotInFormField {
   cancelButtonMessage: string;
   confirmButtonMessage: string;
   isDelete: boolean;
-  isSubmissionButton: boolean
+  isSubmissionButton: boolean;
+  // added flag to disable the Form validation
+  disableValidation: boolean;
+  // added value when clicked
+  clickedValue: string;
 
   constructor(options: any, injector: any) {
     super(options, injector);
@@ -353,6 +365,8 @@ export class SaveButton extends NotInFormField {
     this.confirmButtonMessage = options['confirmButtonMessage'] ? this.getTranslated(options['confirmButtonMessage'], null) : null;
     this.isDelete = options['isDelete'];
     this.isSubmissionButton = options['isSubmissionButton'] || false; // defaults to it is, unless specifically set, for backwards compat
+    this.disableValidation = _.isUndefined(options['disableValidation']) ? false : options['disableValidation'];
+    this.clickedValue = options['clickedValue'] || '';
   }
 }
 

@@ -463,26 +463,30 @@ export class TextBlockComponent extends SimpleComponent {
 *| label               | The text to display on the button                              | Yes      |         |
 *| closeOnSave         | Flag to leave the page on successful save                      | No       | false   |
 *| redirectLocation    | The location to redirect to if closeOnSave flag is set to true | No       |         |
+*| disableValidation   | Set if you want to manually disable the validation of the form | No       | false   |
+*| clickedValue        | Set if you want a save button to have a specific value         | No       | ''      |
 */
 @Component({
   selector: 'save-button',
   template: `
-    <button type="button" (click)="onClick($event)" class="btn" [ngClass]="field.cssClasses" [disabled]="(!fieldMap._rootComp.needsSave || fieldMap._rootComp.isSaving()) && !field.isSubmissionButton">{{field.label}}</button>
-    <div *ngIf="field.confirmationMessage" class="modal fade" id="{{ field.name }}_confirmation" tabindex="-1" role="dialog" >
-      <div class="modal-dialog" role="document">
-        <div class="modal-content">
-          <div class="modal-header">
-            <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-            <h4 class="modal-title" id="{{ field.name }}_confirmation_label" [innerHtml]="field.confirmationTitle"></h4>
-          </div>
-          <div class="modal-body" [innerHtml]="field.confirmationMessage"></div>
-          <div class="modal-footer">
-            <button (click)="hideConfirmDlg()" type="button" class="btn btn-default" data-dismiss="modal" [innerHtml]="field.cancelButtonMessage"></button>
-            <button (click)="doAction()" type="button" class="btn btn-primary" [innerHtml]="field.confirmButtonMessage"></button>
+    <ng-container *ngIf="field.visible">
+      <button type="button" (click)="onClick($event)" class="btn" [ngClass]="field.cssClasses" [disabled]="(!fieldMap._rootComp.needsSave || fieldMap._rootComp.isSaving()) && !field.isSubmissionButton">{{field.label}}</button>
+      <div *ngIf="field.confirmationMessage" class="modal fade" id="{{ field.name }}_confirmation" tabindex="-1" role="dialog" >
+        <div class="modal-dialog" role="document">
+          <div class="modal-content">
+            <div class="modal-header">
+              <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+              <h4 class="modal-title" id="{{ field.name }}_confirmation_label" [innerHtml]="field.confirmationTitle"></h4>
+            </div>
+            <div class="modal-body" [innerHtml]="field.confirmationMessage"></div>
+            <div class="modal-footer">
+              <button (click)="hideConfirmDlg()" type="button" class="btn btn-default" data-dismiss="modal" [innerHtml]="field.cancelButtonMessage"></button>
+              <button (click)="doAction()" type="button" class="btn btn-primary" [innerHtml]="field.confirmButtonMessage"></button>
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </ng-container>
   `,
 })
 export class SaveButtonComponent extends SimpleComponent {
@@ -509,9 +513,11 @@ export class SaveButtonComponent extends SimpleComponent {
     if (this.field.isDelete) {
       successObs = this.fieldMap._rootComp.delete();
     } else {
+      this.field.setValue(this.field.clickedValue);
+      // passing the field's disableValidation setting from the form definition
       successObs = this.field.targetStep ?
-      this.fieldMap._rootComp.onSubmit(this.field.targetStep, false, this.field.additionalData)
-      : this.fieldMap._rootComp.onSubmit(null, false, this.field.additionalData);
+      this.fieldMap._rootComp.onSubmit(this.field.targetStep, this.field.disableValidation, this.field.additionalData)
+      : this.fieldMap._rootComp.onSubmit(null, this.field.disableValidation, this.field.additionalData);
     }
     successObs.subscribe( status =>  {
       if (status) {

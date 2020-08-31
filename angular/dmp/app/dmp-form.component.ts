@@ -425,6 +425,10 @@ export class DmpFormComponent extends LoadableComponent {
     if (this.formDef.skipValidationOnSave  && (_.isUndefined(forceValidate) || _.isNull(forceValidate) || !forceValidate)) {
       return true;
     }
+    // added so we can pass have forms that have validation turned on, but can still add a save button that skips validation
+    if (this.formDef.skipValidationOnSave === false && forceValidate === true) {
+      return true;
+    }
     this.triggerValidation();
     if (!this.form.valid) {
       // STEST-22
