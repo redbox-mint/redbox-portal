@@ -24,7 +24,7 @@ services:
      main:
        aliases:
          - rbportal
-    entrypoint: /bin/bash -c "cd /opt/redbox-portal && node app.js"
+    entrypoint: /bin/bash -c "cd /opt/redbox-portal && npm run test"
   mongodb:
     image: mvertes/alpine-mongo:latest
     networks:

@@ -32,12 +32,16 @@ sails.lift({
     collection: require('./test-collection.json'),
     reporters: 'cli',
     environment: require('./local.environment.json'),
-  }, function(err) {
+  }, function(err, summary) {
+    const runError = err || summary.run.error || summary.run.failures.length;
     if (err) {
       console.log(err);
       process.exit(1);
     }
-   process.exit(0);
+    if(runError) {
+      process.exit(1);
+    }
+    process.exit(0);
   });
 
 

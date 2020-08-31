@@ -37,8 +37,8 @@ jobs:
            at: /home/circleci/project
       - run: export NVM_DIR=/opt/circleci/.nvm && source /opt/circleci/.nvm/nvm.sh && nvm install 12.16.0 && nvm use 12.16.0
       - run: export NVM_DIR=/opt/circleci/.nvm && source /opt/circleci/.nvm/nvm.sh && nvm use 12.16.0 && node_modules/.bin/tsc -p tsconfig-codecov.json
-      - run: (cd support/integration-testing && chmod +x triggerIntegrationTests.sh && ./triggerIntegrationTests.sh)
-      #- run: nyc report --reporter=text-lcov > coverage.lcov;codecov -t $CODECOV_TOKEN; rm coverage.lcov
+      - run: (cd support/integration-testing && docker-compose -f docker-compose.newman.yml up --abort-on-container-exit --exit-code-from redboxportal && docker-compose -f docker-compose.mocha.yml up --abort-on-container-exit --exit-code-from redboxportal)
+      - run: export NVM_DIR=/opt/circleci/.nvm && source /opt/circleci/.nvm/nvm.sh && nvm use 12.16.0 && npm i -g codecov && codecov -t $CODECOV_TOKEN
       - run: export NVM_DIR=/opt/circleci/.nvm && source /opt/circleci/.nvm/nvm.sh && nvm use 12.16.0 && node_modules/.bin/tsc
   deploy:
     docker:
@@ -104,6 +104,9 @@ workflows:
       - deploy:
           requires:
             - test
+          filters:
+            branches:
+              ignore: /^dependabot.*/
       - generate-docs:
           requires: 
             - test
@@ -119,4 +122,7 @@ workflows:
       - deploy-bcryotjs:
           requires:
             - test
+          filters:
+            branches:
+              ignore: /^dependabot.*/
         
