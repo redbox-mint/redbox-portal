@@ -843,6 +843,10 @@ export module Services {
 
         for (var i = 0; i < preSaveUpdateHooks.length; i++) {
           let preSaveUpdateHook = preSaveUpdateHooks[i];
+          if (this.shouldRunTrigger(preSaveUpdateHook, oid, record, recordType, mode, user) == false) {
+            sails.log.verbose(`Skipping: ${_.get(preSaveUpdateHook, 'function', null)}`);
+            continue;
+          }
           let preSaveUpdateHookFunctionString = _.get(preSaveUpdateHook, "function", null);
           if (preSaveUpdateHookFunctionString != null) {
             let preSaveUpdateHookFunction = eval(preSaveUpdateHookFunctionString);
@@ -868,6 +872,10 @@ export module Services {
         for (var i = 0; i < postSaveSyncHooks.length; i++) {
           let postSaveSyncHook = postSaveSyncHooks[i];
           sails.log.debug(postSaveSyncHooks);
+          if (this.shouldRunTrigger(postSaveSyncHook, oid, record, recordType, mode, user, response) == false) {
+            sails.log.verbose(`Skipping: ${_.get(postSaveSyncHook, 'function', null)}`);
+            continue;
+          }
           let postSaveSyncHooksFunctionString = _.get(postSaveSyncHook, "function", null);
           if (postSaveSyncHooksFunctionString != null) {
             let postSaveSyncHookFunction = eval(postSaveSyncHooksFunctionString);
@@ -896,6 +904,10 @@ export module Services {
       if (_.isArray(postSaveCreateHooks)) {
         _.each(postSaveCreateHooks, postSaveCreateHook => {
           sails.log.debug(postSaveCreateHook);
+          if (this.shouldRunTrigger(postSaveCreateHook, oid, record, recordType, mode, user) == false) {
+            sails.log.verbose(`Skipping: ${_.get(postSaveCreateHook, 'function', null)}`);
+            return;
+          }
           let postSaveCreateHookFunctionString = _.get(postSaveCreateHook, "function", null);
           if (postSaveCreateHookFunctionString != null) {
             let postSaveCreateHookFunction = eval(postSaveCreateHookFunctionString);
@@ -911,6 +923,19 @@ export module Services {
           }
         });
       }
+    }
+
+    protected shouldRunTrigger(triggerConfig:any, oid: string, record: any, recordType: any, mode:string, user: object = undefined, response:any = {}) {
+      if (_.isEmpty(triggerConfig.conditionTemplate)) {
+        sails.log.verbose(`Condition template config empty, always running: ${_.get(triggerConfig, 'function', null)}`);
+        return true;
+      }
+      const imports = _.extend({oid: oid, record: record, recordType: recordType, mode: mode, user:user, response:response, moment: moment, util:util }, {});
+      const templateData = {imports: imports};
+      const template = _.template(triggerConfig.conditionTemplate, templateData);
+      const templateRes = template();
+      sails.log.verbose(`Condition template: ${triggerConfig.conditionTemplate} == ${templateRes}`);
+      return templateRes == "true";
     }
 
   }
