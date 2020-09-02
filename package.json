@@ -96,7 +96,7 @@
     "grunt-shell": "^3.0.1",
     "istanbul": "^0.4.5",
     "mocha": "^8.1.2",
-    "newman": "^5.1.2",
+    "newman": "^5.2.0",
     "node-sass": "4.14.1",
     "supertest": "^4.0.2",
     "uglify-es": "^3.3.10"
