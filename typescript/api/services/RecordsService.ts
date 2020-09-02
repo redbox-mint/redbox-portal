@@ -17,20 +17,28 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { Observable } from 'rxjs/Rx';
+import {
+  Observable
+} from 'rxjs/Rx';
 import services = require('../core/CoreService.js');
 import DatastreamService from '../core/DatastreamService.js';
-import { Sails, Model } from "sails";
+import {
+  Sails,
+  Model
+} from "sails";
 import * as request from "request-promise";
 import * as luceneEscapeQuery from "lucene-escape-query";
 import * as fs from 'fs';
 import moment = require('moment');
 import RecordsService from '../core/RecordsService.js';
 import SearchService from '../core/SearchService.js';
-import { isObservable } from 'rxjs';
+import {
+  isObservable
+} from 'rxjs';
+import StorageService from '../core/StorageService.js';
 const util = require('util');
 
-declare var FormsService, RolesService, UsersService, WorkflowStepsService, RecordTypesService;
+declare var FormsService, RolesService, UsersService, WorkflowStepsService, RecordTypesService, RedboxJavaStorageService;
 declare var sails: Sails;
 declare var _;
 declare var _this;
@@ -42,7 +50,27 @@ export module Services {
    * Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a>
    *
    */
-  export class Records extends services.Services.Core.Service implements DatastreamService, RecordsService, SearchService {
+  export class Records extends services.Services.Core.Service implements DatastreamService, RecordsService, SearchService, StorageService {
+
+    storageService: StorageService = null;
+
+
+    constructor() {
+      super();
+      let that = this;
+      sails.on('ready', function () {
+        that.getStorageService();
+      });
+    }
+
+    getStorageService() {
+      if (_.isEmpty(sails.config.storage) || _.isEmpty(sails.config.storage.serviceName)) {
+        this.storageService = RedboxJavaStorageService;
+  
+      } else {
+        this.storageService = sails.services[sails.config.storage.serviceName];
+      }
+    }
 
     protected _exportedMethods: any = [
       'create',
@@ -50,7 +78,6 @@ export module Services {
       'getMeta',
       'hasEditAccess',
       'hasViewAccess',
-      // 'getOne',
       'search',
       'createBatch',
       'provideUserAccessAndRemovePendingAccess',
@@ -74,100 +101,128 @@ export module Services {
       'appendToRecord'
     ];
 
+
+
+    create(brand: any, record: any, recordType: any, user ? : any, triggerPreSaveTriggers ? : boolean, triggerPostSaveTriggers ? : boolean): Promise < any > {
+      return this.storageService.create(brand, record, recordType, user, triggerPreSaveTriggers, triggerPostSaveTriggers);
+    }
+    updateMeta(brand: any, oid: any, record: any, user ? : any, triggerPreSaveTriggers ? : boolean, triggerPostSaveTriggers ? : boolean): Promise < any > {
+      return this.storageService.updateMeta(brand, oid, record, user, triggerPreSaveTriggers, triggerPostSaveTriggers);
+    }
+    getMeta(oid: any): Promise < any > {
+      return this.storageService.getMeta(oid);
+    }
+    createBatch(type: any, data: any, harvestIdFldName: any): Promise < any > {
+      return this.storageService.createBatch(type, data, harvestIdFldName);
+    }
+    provideUserAccessAndRemovePendingAccess(oid: any, userid: any, pendingValue: any): void {
+      this.storageService.provideUserAccessAndRemovePendingAccess(oid, userid, pendingValue);
+    }
+    getRelatedRecords(oid: any, brand: any): Promise < any > {
+      return this.storageService.getRelatedRecords(oid, brand);
+    }
+    delete(oid: any): Promise < any > {
+      return this.storageService.delete(oid);
+    }
+    updateNotificationLog(oid: any, record: any, options: any): Promise < any > {
+      return this.storageService.updateNotificationLog(oid, record, options);
+    }
+
     // Gets attachments for this record, will use the `sails.config.record.datastreamService` if set, otherwise will use this service
     //
     // Params:
     // oid - record idea
     // labelFilterStr - set if you want to be selective in your attachments, will just run a simple `.indexOf`
-    public getAttachments(oid: string, labelFilterStr: string = undefined): Promise<any> {
+    public getAttachments(oid: string, labelFilterStr: string = undefined): Promise < any > {
       let datastreamServiceName = sails.config.record.datastreamService;
-      if(datastreamServiceName == undefined) {
+      if (datastreamServiceName == undefined) {
         datastreamServiceName = "recordsservice";
       }
       let datastreamService = sails.services[datastreamServiceName];
       return datastreamService.listDatastreams(oid)
-      .flatMap(datastreams => {
-        let attachments = [];
-        _.each(datastreams['datastreams'], datastream => {
-          let attachment = {};
-          attachment['dateUpdated'] = moment(datastream['lastModified']['$date']).format();
-          attachment['label'] = datastream['label'];
-          attachment['contentType'] = datastream['contentType'];
-          if (_.isUndefined(labelFilterStr) && _.isEmpty(labelFilterStr)) {
-            attachments.push(attachment);
-          } else {
-            if (datastream['label'] && datastream['label'].indexOf(labelFilterStr) != -1) {
+        .flatMap(datastreams => {
+          let attachments = [];
+          _.each(datastreams['datastreams'], datastream => {
+            let attachment = {};
+            attachment['dateUpdated'] = moment(datastream['lastModified']['$date']).format();
+            attachment['label'] = datastream['label'];
+            attachment['contentType'] = datastream['contentType'];
+            if (_.isUndefined(labelFilterStr) && _.isEmpty(labelFilterStr)) {
               attachments.push(attachment);
+            } else {
+              if (datastream['label'] && datastream['label'].indexOf(labelFilterStr) != -1) {
+                attachments.push(attachment);
+              }
             }
-          }
+          });
+          return Observable.of(attachments).toPromise();
         });
-        return Observable.of(attachments).toPromise();
-      });
     }
 
-    public async checkRedboxRunning(): Promise<any> {
+    /*
+     * TODO: Move/remove this block once direct mongo access is implemented
+     */
+    public async checkRedboxRunning(): Promise < any > {
       // check if a valid storage plugin is loaded....
       if (!_.isEmpty(sails.config.storage)) {
         sails.log.info("ReDBox storage plugin is active!");
         return true;
       }
-      let retries  =  1000;
-      for(let i =0; i< retries; i++) {
+      let retries = 1000;
+      for (let i = 0; i < retries; i++) {
         try {
-        let response:any = await this.info();
-        if(response['applicationVersion']) {
-          return true;
+          let response: any = await this.info();
+          if (response['applicationVersion']) {
+            return true;
+          }
+        } catch (err) {
+          sails.log.info("ReDBox Storage hasn't started yet. Retrying...")
         }
-      } catch(err) {
-        sails.log.info("ReDBox Storage hasn't started yet. Retrying...")
-      }
         await this.sleep(1000);
       }
       return false;
     }
 
     private sleep(ms) {
-      return new Promise(resolve=>{
-        setTimeout(resolve,ms)
-    });
+      return new Promise(resolve => {
+        setTimeout(resolve, ms)
+      });
     }
 
-    private info(): Promise<any> {
+    private info(): Promise < any > {
 
       const options = this.getOptions(sails.config.record.baseUrl.redbox + sails.config.record.api.info.url);
       return request[sails.config.record.api.info.method](options)
     }
 
-    public async create(brand, record, recordType = null, user = null, triggerPreSaveTriggers = true, triggerPostSaveTriggers = true) {
-      let packageType = recordType.packageType;
-      // let obs = this.createInternal(brand, record, packageType, recordType, user, triggerPreSaveTriggers);
-      let response = await this.createInternal(brand, record, packageType, recordType, user, triggerPreSaveTriggers);
-      if (triggerPostSaveTriggers) {
-        if (response && `${response.code}` == "200") {
-          response = await this.triggerPostSaveSyncTriggers(response['oid'], record, recordType, 'onCreate', user, response);
-        }
-        if (response && `${response.code}` == "200") {
-          response.success = true;
-          this.triggerPostSaveTriggers(response['oid'], record, recordType, 'onCreate', user);
-        }
+    protected getOptions(url, oid = null, packageType = null, isJson: boolean = true) {
+      if (!_.isEmpty(oid)) {
+        url = url.replace('$oid', oid);
       }
-      return response;
+      if (!_.isEmpty(packageType)) {
+        url = url.replace('$packageType', packageType);
+      }
+      const opts: any = {
+        url: url,
+        headers: {
+          'Authorization': `Bearer ${sails.config.redbox.apiKey}`
+        }
+      };
+      if (isJson == true) {
+        opts.json = true;
+        opts.headers['Content-Type'] = 'application/json; charset=utf-8';
+      } else {
+        opts.encoding = null;
+      }
+      return opts;
     }
 
-    private async createInternal(brand, record, packageType, recordType = null, user = null, triggerPreSaveTriggers = true) {
-      // TODO: validate metadata with the form...
-      const options = this.getOptions(sails.config.record.baseUrl.redbox + sails.config.record.api.create.url, null, packageType);
-      let response = null;
-      if (triggerPreSaveTriggers) {
-        record = await this.triggerPreSaveTriggers(null, record, recordType, "onCreate", user);
-      }
-      options.body = record;
-      sails.log.verbose(util.inspect(options, { showHidden: false, depth: null }));
-      response = await request[sails.config.record.api.create.method](options);
-      sails.log.verbose(`Create internal response: `);
-      sails.log.verbose(JSON.stringify(response));
-      return response;
-    }
+
+    /**
+     * End of block to move/remove
+     */
+
+
 
     /**
      * Sets/appends to a field in the targetRecord
@@ -199,54 +254,7 @@ export module Services {
       return await this.updateMeta(null, targetRecordOid, targetRecord);
     }
 
-    public delete(oid): Promise<any> {
-      const options = this.getOptions(sails.config.record.baseUrl.redbox + sails.config.record.api.delete.url, oid);
-      return request[sails.config.record.api.delete.method](options);
-    }
 
-    public updateMeta(brand, oid, record, user = null, triggerPreSaveTriggers = true, triggerPostSaveTriggers = true): Promise<any> {
-      if(brand == null ) {
-        return this.updateMetaInternal(brand, oid, record, null, user, false);
-
-      } else {
-      	return  RecordTypesService.get(brand, record.metaMetadata.type).flatMap(async(recordType) => {
-					let response = await this.updateMetaInternal(brand, oid, record, recordType, user, triggerPreSaveTriggers)
-          if (triggerPostSaveTriggers) {
-            if (response && `${response.code}` == "200") {
-              response = this.triggerPostSaveSyncTriggers(oid, record, recordType, 'onUpdate', user, response);
-            }
-            if (response && `${response.code}` == "200") {
-              response.success = true;
-              this.triggerPostSaveTriggers(oid, record, recordType, 'onUpdate', user);
-            }
-          } else {
-          	response.success = true;
-          }
-          return response;
-        });
-      }
-    }
-
-
-    private async updateMetaInternal(brand, oid, record, recordType, user = null, triggerPreSaveTriggers = true) {
-      // TODO: validate metadata with the form...
-      const options = this.getOptions(sails.config.record.baseUrl.redbox + sails.config.record.api.updateMeta.url, oid);
-
-      if (triggerPreSaveTriggers) {
-        record = await this.triggerPreSaveTriggers(oid, record, recordType, "onUpdate", user);
-          options.body = record;
-          return await request[sails.config.record.api.updateMeta.method](options);
-      } else {
-        options.body = record;
-        sails.log.verbose(util.inspect(options, { showHidden: false, depth: null }));
-        return await request[sails.config.record.api.updateMeta.method](options);
-      }
-    }
-
-    public getMeta(oid): Promise<any> {
-      const options = this.getOptions(sails.config.record.baseUrl.redbox + sails.config.record.api.getMeta.url, oid);
-      return request[sails.config.record.api.getMeta.method](options);
-    }
     /**
      * Compares existing record metadata with new metadata and either removes or deletes the datastream from the record
      */
@@ -372,22 +380,7 @@ export module Services {
       });
     }
 
-    protected getOptions(url, oid = null, packageType = null, isJson: boolean = true) {
-      if (!_.isEmpty(oid)) {
-        url = url.replace('$oid', oid);
-      }
-      if (!_.isEmpty(packageType)) {
-        url = url.replace('$packageType', packageType);
-      }
-      const opts: any = { url: url, headers: { 'Authorization': `Bearer ${sails.config.redbox.apiKey}` } };
-      if (isJson == true) {
-        opts.json = true;
-        opts.headers['Content-Type'] = 'application/json; charset=utf-8';
-      } else {
-        opts.encoding = null;
-      }
-      return opts;
-    }
+
 
     /**
      * Fine-grained access to the record, converted to sync.
@@ -469,18 +462,9 @@ export module Services {
       // });
     }
 
-    public createBatch(type, data, harvestIdFldName): Promise<any> {
-      const options = this.getOptions(sails.config.record.baseUrl.redbox + sails.config.record.api.harvest.url, null, type);
-      data = _.map(data, dataItem => {
-        return { harvest_id: _.get(dataItem, harvestIdFldName, ''), metadata: { metadata: dataItem, metaMetadata: { type: type } } };
-      });
-      options.body = { records: data };
-      sails.log.verbose(`Sending data:`);
-      sails.log.verbose(options.body);
-      return request[sails.config.record.api.harvest.method](options);
-    }
 
-    public search(type, searchField, searchStr, returnFields): Promise<any> {
+
+    public search(type, searchField, searchStr, returnFields): Promise < any > {
       const url = `${this.getSearchTypeUrl(type, searchField, searchStr)}&start=0&rows=${sails.config.record.export.maxRecords}`;
       sails.log.verbose(`Searching using: ${url}`);
       const options = this.getOptions(url);
@@ -499,7 +483,7 @@ export module Services {
         }).toPromise();
     }
 
-    public searchFuzzy(type, workflowState, searchQuery, exactSearches, facetSearches, brand, user, roles, returnFields): Promise<any> {
+    public searchFuzzy(type, workflowState, searchQuery, exactSearches, facetSearches, brand, user, roles, returnFields): Promise < any > {
       const username = user.username;
       // const url = `${this.getSearchTypeUrl(type, searchField, searchStr)}&start=0&rows=${sails.config.record.export.maxRecords}`;
       let searchParam = workflowState ? ` AND workflow_stage:${workflowState} ` : '';
@@ -521,7 +505,9 @@ export module Services {
       return Observable.fromPromise(request[sails.config.record.api.search.method](options))
         .flatMap(resp => {
           let response: any = resp;
-          const customResp = { records: [] };
+          const customResp = {
+            records: []
+          };
           _.forEach(response.response.docs, solrdoc => {
             const customDoc = {};
             _.forEach(returnFields, retField => {
@@ -546,7 +532,10 @@ export module Services {
                   count: facet_field[j++]
                 });
               }
-              customResp['facets'].push({ name: facet_name, values: facetValues });
+              customResp['facets'].push({
+                name: facet_name,
+                values: facetValues
+              });
             });
           }
           return Observable.of(customResp);
@@ -578,191 +567,20 @@ export module Services {
       return `${sails.config.record.baseUrl.redbox}${sails.config.record.api.search.url}?q=metaMetadata_type:${type}${searchParam}&version=2.2&wt=json&sort=date_object_modified desc`;
     }
 
-    public provideUserAccessAndRemovePendingAccess(oid, userid, pendingValue) {
-      var metadataResponse = this.getMeta(oid);
 
-      Observable.fromPromise(metadataResponse).subscribe(metadata => {
-        // remove pending edit access and add real edit access with userid
-        var pendingEditArray = metadata['authorization']['editPending'];
-        var editArray = metadata['authorization']['edit'];
-        for (var i = 0; i < pendingEditArray.length; i++) {
-          if (pendingEditArray[i] == pendingValue) {
-            pendingEditArray = pendingEditArray.filter(e => e !== pendingValue);
-            editArray = editArray.filter(e => e !== userid);
-            editArray.push(userid);
-          }
-        }
-        metadata['authorization']['editPending'] = pendingEditArray;
-        metadata['authorization']['edit'] = editArray;
-
-        var pendingViewArray = metadata['authorization']['viewPending'];
-        var viewArray = metadata['authorization']['view'];
-        for (var i = 0; i < pendingViewArray.length; i++) {
-          if (pendingViewArray[i] == pendingValue) {
-            pendingViewArray = pendingViewArray.filter(e => e !== pendingValue);
-            viewArray = viewArray.filter(e => e !== userid);
-            viewArray.push(userid);
-          }
-        }
-        metadata['authorization']['viewPending'] = pendingViewArray;
-        metadata['authorization']['view'] = viewArray;
-
-        this.updateMeta(null, oid, metadata);
-      }, (error:any) => {
-        // swallow !!!!
-        sails.log.warn(`Failed to provide access to OID: ${oid}`);
-        sails.log.warn(error);
-      });
-
-    }
 
     protected luceneEscape(str: string) {
       return luceneEscapeQuery.escape(str);
     }
 
-    private async getRelatedRecordsInternal(oid, recordTypeName, brand, mappingContext) {
-      sails.log.debug("Getting related Records for oid: " + oid);
-      let record = await this.getMeta(oid);
 
-      let recordType = await RecordTypesService.get(brand, recordTypeName).toPromise();
 
-      let relationships = [];
-      let processedRelationships = [];
-      processedRelationships.push(recordType.name);
-      let relatedTo = recordType['relatedTo'];
-      if (_.isArray(relatedTo)) {
-        _.each(relatedTo, relatedObject => {
-          relationships.push({
-            collection: relatedObject['recordType'],
-            foreignField: relatedObject['foreignField'],
-            localField: relatedObject['localField']
-          });
-        });
 
-        const options = this.getOptions(sails.config.record.baseUrl.redbox + sails.config.record.api.getRecordRelationships.url, oid);
-        options.body = {
-          oid: oid,
-          relationships: relationships
-        };
-        let relatedRecords = await request[sails.config.record.api.updateMeta.method](options);
-
-        for (let i = 0; i < relationships.length; i++) {
-          let relationship = relationships[i];
-          let collectionName = relationship['collection'];
-          let recordRelationships = relatedRecords[collectionName];
-
-          let newRelatedObjects = {};
-          newRelatedObjects[collectionName] = recordRelationships;
-          _.merge(mappingContext, { relatedObjects: newRelatedObjects });
-          if (_.indexOf(mappingContext['processedRelationships'], collectionName) < 0) {
-            mappingContext['processedRelationships'].push(collectionName);
-            for (let j = 0; j < recordRelationships.length; j++) {
-              let recordRelationship = recordRelationships[j];
-              mappingContext = await this.getRelatedRecordsInternal(recordRelationship.redboxOid, collectionName, brand, mappingContext);
-            }
-          }
-        }
-
-      }
-      return mappingContext;
-    }
-
-    public async getRelatedRecords(oid, brand) {
-      let record = await this.getMeta(oid);
-
-      let recordTypeName = record['metaMetadata']['type'];
-      let recordType = await RecordTypesService.get(brand, recordTypeName).toPromise();
-
-      let mappingContext = { 'processedRelationships': [], 'relatedObjects': {} };
-      let relationships = [];
-      let processedRelationships = [];
-      processedRelationships.push(recordType.name);
-      let relatedTo = recordType['relatedTo'];
-      if (_.isArray(relatedTo)) {
-        _.each(relatedTo, relatedObject => {
-          relationships.push({
-            collection: relatedObject['recordType'],
-            foreignField: relatedObject['foreignField'],
-            localField: relatedObject['localField']
-          });
-        });
-
-        const options = this.getOptions(sails.config.record.baseUrl.redbox + sails.config.record.api.getRecordRelationships.url, oid);
-        options.body = {
-          oid: oid,
-          relationships: relationships
-        };
-        let relatedRecords = await request[sails.config.record.api.updateMeta.method](options);
-
-        for (let i = 0; i < relationships.length; i++) {
-          let relationship = relationships[i];
-          let collectionName = relationship['collection'];
-          let recordRelationships = relatedRecords[collectionName];
-
-          let newRelatedObjects = {};
-          mappingContext['processedRelationships'].push(collectionName);
-          newRelatedObjects[collectionName] = recordRelationships;
-          _.merge(mappingContext, { relatedObjects: newRelatedObjects });
-          for (let j = 0; j < recordRelationships.length; j++) {
-            let recordRelationship = recordRelationships[j];
-            mappingContext = await this.getRelatedRecordsInternal(recordRelationship.redboxOid, collectionName, brand, mappingContext);
-          }
-        }
-
-        return mappingContext;
-      } else {
-        return {};
-      }
-    }
-
-    updateNotificationLog(oid, record, options): Promise<any> {
-      if (this.metTriggerCondition(oid, record, options) == "true") {
-        sails.log.verbose(`Updating notification log for oid: ${oid}`);
-        const logName = _.get(options, 'logName', null);
-        if (logName) {
-          let log = _.get(record, logName, null);
-          const entry = { date: moment().format('YYYY-MM-DDTHH:mm:ss') };
-          if (log) {
-            log.push(entry);
-          } else {
-            log = [entry];
-          }
-          _.set(record, logName, log);
-        }
-        const updateFlagName = _.get(options, 'flagName', null);
-        if (updateFlagName) {
-          _.set(record, updateFlagName, _.get(options, 'flagVal', null));
-        }
-        sails.log.verbose(`======== Notification log updates =========`);
-        sails.log.verbose(JSON.stringify(record));
-        sails.log.verbose(`======== End update =========`);
-        // ready to update
-        if (_.get(options, "saveRecord", false)) {
-          const updateOptions = this.getOptions(sails.config.record.baseUrl.redbox + sails.config.record.api.updateMeta.url, oid);
-          updateOptions.body = record;
-          return Observable.fromPromise(request[sails.config.record.api.updateMeta.method](updateOptions))
-            .flatMap(resp => {
-              let response: any = resp;
-              if (response && response.code != "200") {
-                sails.log.error(`Error updating notification log: ${oid}`);
-                sails.log.error(JSON.stringify(response));
-                return Observable.throw(new Error('Failed to update notification log'));
-              }
-              return Observable.of(record);
-            }).toPromise();
-        }
-      } else {
-        sails.log.verbose(`Notification log name: '${options.name}', for oid: ${oid}, not running, condition not met: ${options.triggerCondition}`);
-        sails.log.verbose(JSON.stringify(record));
-      }
-      // no updates or condition not met ... just return the record
-      return Observable.of(record).toPromise();
-    }
 
     /**
-    *  Pre-save trigger to clear and re-assign permissions based on security config
-    *
-    */
+     *  Pre-save trigger to clear and re-assign permissions based on security config
+     *
+     */
     public assignPermissions(oid, record, options, user) {
 
       // sails.log.verbose(`Assign Permissions executing on oid: ${oid}, using options:`);
@@ -857,7 +675,7 @@ export module Services {
       return record;
     }
 
-    public async triggerPostSaveSyncTriggers(oid: string, record: any, recordType: any, mode: string = 'onUpdate', user: object = undefined, response:any = {}) {
+    public async triggerPostSaveSyncTriggers(oid: string, record: any, recordType: any, mode: string = 'onUpdate', user: object = undefined, response: any = {}) {
       sails.log.debug("Triggering post save sync triggers ");
       sails.log.debug(`hooks.${mode}.postSync`);
       sails.log.debug(recordType);
@@ -887,7 +705,7 @@ export module Services {
       return response;
     }
 
-    
+
 
     public triggerPostSaveTriggers(oid: string, record: any, recordType: any, mode: string = 'onUpdate', user: object = undefined): void {
       sails.log.debug("Triggering post save triggers ");
@@ -916,13 +734,15 @@ export module Services {
 
     private resolveHookResponse(hookResponse) {
       let response = hookResponse;
-      if(isObservable(hookResponse)) {
-        response =  hookResponse.toPromise();
+      if (isObservable(hookResponse)) {
+        response = hookResponse.toPromise();
       } else {
         response = Promise.resolve(hookResponse);
       }
       return response;
     }
+
+    
 
   }
 }
