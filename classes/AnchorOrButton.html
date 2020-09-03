@@ -348,7 +348,7 @@
                 </tr>
                         <tr>
                             <td class="col-md-4">
-                                <div class="io-line">Defined in <a href="" data-line="436" class="link-to-prism">angular/shared/form/field-simple.ts:436</a></div>
+                                <div class="io-line">Defined in <a href="" data-line="450" class="link-to-prism">angular/shared/form/field-simple.ts:450</a></div>
                             </td>
                         </tr>
 
@@ -423,7 +423,7 @@
                     </tr>
                         <tr>
                             <td class="col-md-4">
-                                    <div class="io-line">Defined in <a href="" data-line="436" class="link-to-prism">angular/shared/form/field-simple.ts:436</a></div>
+                                    <div class="io-line">Defined in <a href="" data-line="450" class="link-to-prism">angular/shared/form/field-simple.ts:450</a></div>
                             </td>
                         </tr>
 
@@ -450,7 +450,7 @@
                     </tr>
                         <tr>
                             <td class="col-md-4">
-                                    <div class="io-line">Defined in <a href="" data-line="434" class="link-to-prism">angular/shared/form/field-simple.ts:434</a></div>
+                                    <div class="io-line">Defined in <a href="" data-line="448" class="link-to-prism">angular/shared/form/field-simple.ts:448</a></div>
                             </td>
                         </tr>
 
@@ -477,7 +477,7 @@
                     </tr>
                         <tr>
                             <td class="col-md-4">
-                                    <div class="io-line">Defined in <a href="" data-line="432" class="link-to-prism">angular/shared/form/field-simple.ts:432</a></div>
+                                    <div class="io-line">Defined in <a href="" data-line="446" class="link-to-prism">angular/shared/form/field-simple.ts:446</a></div>
                             </td>
                         </tr>
 
@@ -504,7 +504,7 @@
                     </tr>
                         <tr>
                             <td class="col-md-4">
-                                    <div class="io-line">Defined in <a href="" data-line="435" class="link-to-prism">angular/shared/form/field-simple.ts:435</a></div>
+                                    <div class="io-line">Defined in <a href="" data-line="449" class="link-to-prism">angular/shared/form/field-simple.ts:449</a></div>
                             </td>
                         </tr>
 
@@ -531,7 +531,7 @@
                     </tr>
                         <tr>
                             <td class="col-md-4">
-                                    <div class="io-line">Defined in <a href="" data-line="433" class="link-to-prism">angular/shared/form/field-simple.ts:433</a></div>
+                                    <div class="io-line">Defined in <a href="" data-line="447" class="link-to-prism">angular/shared/form/field-simple.ts:447</a></div>
                             </td>
                         </tr>
 
@@ -4154,9 +4154,17 @@ export class DateTime extends FieldBase&lt;any&gt; {
   }
 }
 
-
-
-export class SaveButton extends NotInFormField {
+/**
+ *
+ * SaveButton now can contain values so other components can potentially subscribe to the value
+ *
+ *
+ * [constructor description]
+ * @author &lt;a target&#x3D;&#x27;_&#x27; href&#x3D;&#x27;https://github.com/shilob&#x27;&gt;Shilo Banihit&lt;/a&gt;
+ * @param  options
+ * @param  injector
+ */
+export class SaveButton extends FieldBase&lt;string&gt; {
   label: string;
   redirectLocation: string;
   closeOnSave: boolean;
@@ -4168,7 +4176,11 @@ export class SaveButton extends NotInFormField {
   cancelButtonMessage: string;
   confirmButtonMessage: string;
   isDelete: boolean;
-  isSubmissionButton: boolean
+  isSubmissionButton: boolean;
+  // added flag to disable the Form validation
+  disableValidation: boolean;
+  // added value when clicked
+  clickedValue: string;
 
   constructor(options: any, injector: any) {
     super(options, injector);
@@ -4184,6 +4196,8 @@ export class SaveButton extends NotInFormField {
     this.confirmButtonMessage &#x3D; options[&#x27;confirmButtonMessage&#x27;] ? this.getTranslated(options[&#x27;confirmButtonMessage&#x27;], null) : null;
     this.isDelete &#x3D; options[&#x27;isDelete&#x27;];
     this.isSubmissionButton &#x3D; options[&#x27;isSubmissionButton&#x27;] || false; // defaults to it is, unless specifically set, for backwards compat
+    this.disableValidation &#x3D; _.isUndefined(options[&#x27;disableValidation&#x27;]) ? false : options[&#x27;disableValidation&#x27;];
+    this.clickedValue &#x3D; options[&#x27;clickedValue&#x27;] || &#x27;&#x27;;
   }
 }
 

@@ -106,6 +106,18 @@
 <td>No</td>
 <td></td>
 </tr>
+<tr>
+<td>disableValidation</td>
+<td>Set if you want to manually disable the validation of the form</td>
+<td>No</td>
+<td>false</td>
+</tr>
+<tr>
+<td>clickedValue</td>
+<td>Set if you want a save button to have a specific value</td>
+<td>No</td>
+<td>&#39;&#39;</td>
+</tr>
 </tbody>
 </table>
 
@@ -144,22 +156,24 @@
 
             <tr>
                 <td class="col-md-3">template</td>
-                <td class="col-md-9"><pre class="line-numbers"><code class="language-html">&lt;button type&#x3D;&quot;button&quot; (click)&#x3D;&quot;onClick($event)&quot; class&#x3D;&quot;btn&quot; [ngClass]&#x3D;&quot;field.cssClasses&quot; [disabled]&#x3D;&quot;(!fieldMap._rootComp.needsSave || fieldMap._rootComp.isSaving()) &amp;&amp; !field.isSubmissionButton&quot;&gt;{{field.label}}&lt;/button&gt;
-&lt;div *ngIf&#x3D;&quot;field.confirmationMessage&quot; class&#x3D;&quot;modal fade&quot; id&#x3D;&quot;{{ field.name }}_confirmation&quot; tabindex&#x3D;&quot;-1&quot; role&#x3D;&quot;dialog&quot; &gt;
-  &lt;div class&#x3D;&quot;modal-dialog&quot; role&#x3D;&quot;document&quot;&gt;
-    &lt;div class&#x3D;&quot;modal-content&quot;&gt;
-      &lt;div class&#x3D;&quot;modal-header&quot;&gt;
-        &lt;button type&#x3D;&quot;button&quot; class&#x3D;&quot;close&quot; data-dismiss&#x3D;&quot;modal&quot; aria-label&#x3D;&quot;Close&quot;&gt;&lt;span aria-hidden&#x3D;&quot;true&quot;&gt;&amp;times;&lt;/span&gt;&lt;/button&gt;
-        &lt;h4 class&#x3D;&quot;modal-title&quot; id&#x3D;&quot;{{ field.name }}_confirmation_label&quot; [innerHtml]&#x3D;&quot;field.confirmationTitle&quot;&gt;&lt;/h4&gt;
-      &lt;/div&gt;
-      &lt;div class&#x3D;&quot;modal-body&quot; [innerHtml]&#x3D;&quot;field.confirmationMessage&quot;&gt;&lt;/div&gt;
-      &lt;div class&#x3D;&quot;modal-footer&quot;&gt;
-        &lt;button (click)&#x3D;&quot;hideConfirmDlg()&quot; type&#x3D;&quot;button&quot; class&#x3D;&quot;btn btn-default&quot; data-dismiss&#x3D;&quot;modal&quot; [innerHtml]&#x3D;&quot;field.cancelButtonMessage&quot;&gt;&lt;/button&gt;
-        &lt;button (click)&#x3D;&quot;doAction()&quot; type&#x3D;&quot;button&quot; class&#x3D;&quot;btn btn-primary&quot; [innerHtml]&#x3D;&quot;field.confirmButtonMessage&quot;&gt;&lt;/button&gt;
+                <td class="col-md-9"><pre class="line-numbers"><code class="language-html">&lt;ng-container *ngIf&#x3D;&quot;field.visible&quot;&gt;
+  &lt;button type&#x3D;&quot;button&quot; (click)&#x3D;&quot;onClick($event)&quot; class&#x3D;&quot;btn&quot; [ngClass]&#x3D;&quot;field.cssClasses&quot; [disabled]&#x3D;&quot;(!fieldMap._rootComp.needsSave || fieldMap._rootComp.isSaving()) &amp;&amp; !field.isSubmissionButton&quot;&gt;{{field.label}}&lt;/button&gt;
+  &lt;div *ngIf&#x3D;&quot;field.confirmationMessage&quot; class&#x3D;&quot;modal fade&quot; id&#x3D;&quot;{{ field.name }}_confirmation&quot; tabindex&#x3D;&quot;-1&quot; role&#x3D;&quot;dialog&quot; &gt;
+    &lt;div class&#x3D;&quot;modal-dialog&quot; role&#x3D;&quot;document&quot;&gt;
+      &lt;div class&#x3D;&quot;modal-content&quot;&gt;
+        &lt;div class&#x3D;&quot;modal-header&quot;&gt;
+          &lt;button type&#x3D;&quot;button&quot; class&#x3D;&quot;close&quot; data-dismiss&#x3D;&quot;modal&quot; aria-label&#x3D;&quot;Close&quot;&gt;&lt;span aria-hidden&#x3D;&quot;true&quot;&gt;&amp;times;&lt;/span&gt;&lt;/button&gt;
+          &lt;h4 class&#x3D;&quot;modal-title&quot; id&#x3D;&quot;{{ field.name }}_confirmation_label&quot; [innerHtml]&#x3D;&quot;field.confirmationTitle&quot;&gt;&lt;/h4&gt;
+        &lt;/div&gt;
+        &lt;div class&#x3D;&quot;modal-body&quot; [innerHtml]&#x3D;&quot;field.confirmationMessage&quot;&gt;&lt;/div&gt;
+        &lt;div class&#x3D;&quot;modal-footer&quot;&gt;
+          &lt;button (click)&#x3D;&quot;hideConfirmDlg()&quot; type&#x3D;&quot;button&quot; class&#x3D;&quot;btn btn-default&quot; data-dismiss&#x3D;&quot;modal&quot; [innerHtml]&#x3D;&quot;field.cancelButtonMessage&quot;&gt;&lt;/button&gt;
+          &lt;button (click)&#x3D;&quot;doAction()&quot; type&#x3D;&quot;button&quot; class&#x3D;&quot;btn btn-primary&quot; [innerHtml]&#x3D;&quot;field.confirmButtonMessage&quot;&gt;&lt;/button&gt;
+        &lt;/div&gt;
       &lt;/div&gt;
     &lt;/div&gt;
   &lt;/div&gt;
-&lt;/div&gt;
+&lt;/ng-container&gt;
 </code></pre></td>
             </tr>
 
@@ -532,8 +546,8 @@
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="507"
-                            class="link-to-prism">angular/shared/form/field-simple.component.ts:507</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="511"
+                            class="link-to-prism">angular/shared/form/field-simple.component.ts:511</a></div>
                 </td>
             </tr>
 
@@ -571,8 +585,8 @@
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="503"
-                            class="link-to-prism">angular/shared/form/field-simple.component.ts:503</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="507"
+                            class="link-to-prism">angular/shared/form/field-simple.component.ts:507</a></div>
                 </td>
             </tr>
 
@@ -612,8 +626,8 @@
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="491"
-                            class="link-to-prism">angular/shared/form/field-simple.component.ts:491</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="495"
+                            class="link-to-prism">angular/shared/form/field-simple.component.ts:495</a></div>
                 </td>
             </tr>
 
@@ -682,8 +696,8 @@
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="499"
-                            class="link-to-prism">angular/shared/form/field-simple.component.ts:499</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="503"
+                            class="link-to-prism">angular/shared/form/field-simple.component.ts:503</a></div>
                 </td>
             </tr>
 
@@ -1148,7 +1162,7 @@ Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a></p
                     </tr>
                         <tr>
                             <td class="col-md-4">
-                                    <div class="io-line">Defined in <a href="" data-line="489" class="link-to-prism">angular/shared/form/field-simple.component.ts:489</a></div>
+                                    <div class="io-line">Defined in <a href="" data-line="493" class="link-to-prism">angular/shared/form/field-simple.component.ts:493</a></div>
                             </td>
                         </tr>
 
@@ -1768,26 +1782,30 @@ export class TextBlockComponent extends SimpleComponent {
 *| label               | The text to display on the button                              | Yes      |         |
 *| closeOnSave         | Flag to leave the page on successful save                      | No       | false   |
 *| redirectLocation    | The location to redirect to if closeOnSave flag is set to true | No       |         |
+*| disableValidation   | Set if you want to manually disable the validation of the form | No       | false   |
+*| clickedValue        | Set if you want a save button to have a specific value         | No       | &#x27;&#x27;      |
 */
 @Component({
   selector: &#x27;save-button&#x27;,
   template: &#x60;
-    &lt;button type&#x3D;&quot;button&quot; (click)&#x3D;&quot;onClick($event)&quot; class&#x3D;&quot;btn&quot; [ngClass]&#x3D;&quot;field.cssClasses&quot; [disabled]&#x3D;&quot;(!fieldMap._rootComp.needsSave || fieldMap._rootComp.isSaving()) &amp;&amp; !field.isSubmissionButton&quot;&gt;{{field.label}}&lt;/button&gt;
-    &lt;div *ngIf&#x3D;&quot;field.confirmationMessage&quot; class&#x3D;&quot;modal fade&quot; id&#x3D;&quot;{{ field.name }}_confirmation&quot; tabindex&#x3D;&quot;-1&quot; role&#x3D;&quot;dialog&quot; &gt;
-      &lt;div class&#x3D;&quot;modal-dialog&quot; role&#x3D;&quot;document&quot;&gt;
-        &lt;div class&#x3D;&quot;modal-content&quot;&gt;
-          &lt;div class&#x3D;&quot;modal-header&quot;&gt;
-            &lt;button type&#x3D;&quot;button&quot; class&#x3D;&quot;close&quot; data-dismiss&#x3D;&quot;modal&quot; aria-label&#x3D;&quot;Close&quot;&gt;&lt;span aria-hidden&#x3D;&quot;true&quot;&gt;&amp;times;&lt;/span&gt;&lt;/button&gt;
-            &lt;h4 class&#x3D;&quot;modal-title&quot; id&#x3D;&quot;{{ field.name }}_confirmation_label&quot; [innerHtml]&#x3D;&quot;field.confirmationTitle&quot;&gt;&lt;/h4&gt;
-          &lt;/div&gt;
-          &lt;div class&#x3D;&quot;modal-body&quot; [innerHtml]&#x3D;&quot;field.confirmationMessage&quot;&gt;&lt;/div&gt;
-          &lt;div class&#x3D;&quot;modal-footer&quot;&gt;
-            &lt;button (click)&#x3D;&quot;hideConfirmDlg()&quot; type&#x3D;&quot;button&quot; class&#x3D;&quot;btn btn-default&quot; data-dismiss&#x3D;&quot;modal&quot; [innerHtml]&#x3D;&quot;field.cancelButtonMessage&quot;&gt;&lt;/button&gt;
-            &lt;button (click)&#x3D;&quot;doAction()&quot; type&#x3D;&quot;button&quot; class&#x3D;&quot;btn btn-primary&quot; [innerHtml]&#x3D;&quot;field.confirmButtonMessage&quot;&gt;&lt;/button&gt;
+    &lt;ng-container *ngIf&#x3D;&quot;field.visible&quot;&gt;
+      &lt;button type&#x3D;&quot;button&quot; (click)&#x3D;&quot;onClick($event)&quot; class&#x3D;&quot;btn&quot; [ngClass]&#x3D;&quot;field.cssClasses&quot; [disabled]&#x3D;&quot;(!fieldMap._rootComp.needsSave || fieldMap._rootComp.isSaving()) &amp;&amp; !field.isSubmissionButton&quot;&gt;{{field.label}}&lt;/button&gt;
+      &lt;div *ngIf&#x3D;&quot;field.confirmationMessage&quot; class&#x3D;&quot;modal fade&quot; id&#x3D;&quot;{{ field.name }}_confirmation&quot; tabindex&#x3D;&quot;-1&quot; role&#x3D;&quot;dialog&quot; &gt;
+        &lt;div class&#x3D;&quot;modal-dialog&quot; role&#x3D;&quot;document&quot;&gt;
+          &lt;div class&#x3D;&quot;modal-content&quot;&gt;
+            &lt;div class&#x3D;&quot;modal-header&quot;&gt;
+              &lt;button type&#x3D;&quot;button&quot; class&#x3D;&quot;close&quot; data-dismiss&#x3D;&quot;modal&quot; aria-label&#x3D;&quot;Close&quot;&gt;&lt;span aria-hidden&#x3D;&quot;true&quot;&gt;&amp;times;&lt;/span&gt;&lt;/button&gt;
+              &lt;h4 class&#x3D;&quot;modal-title&quot; id&#x3D;&quot;{{ field.name }}_confirmation_label&quot; [innerHtml]&#x3D;&quot;field.confirmationTitle&quot;&gt;&lt;/h4&gt;
+            &lt;/div&gt;
+            &lt;div class&#x3D;&quot;modal-body&quot; [innerHtml]&#x3D;&quot;field.confirmationMessage&quot;&gt;&lt;/div&gt;
+            &lt;div class&#x3D;&quot;modal-footer&quot;&gt;
+              &lt;button (click)&#x3D;&quot;hideConfirmDlg()&quot; type&#x3D;&quot;button&quot; class&#x3D;&quot;btn btn-default&quot; data-dismiss&#x3D;&quot;modal&quot; [innerHtml]&#x3D;&quot;field.cancelButtonMessage&quot;&gt;&lt;/button&gt;
+              &lt;button (click)&#x3D;&quot;doAction()&quot; type&#x3D;&quot;button&quot; class&#x3D;&quot;btn btn-primary&quot; [innerHtml]&#x3D;&quot;field.confirmButtonMessage&quot;&gt;&lt;/button&gt;
+            &lt;/div&gt;
           &lt;/div&gt;
         &lt;/div&gt;
       &lt;/div&gt;
-    &lt;/div&gt;
+    &lt;/ng-container&gt;
   &#x60;,
 })
 export class SaveButtonComponent extends SimpleComponent {
@@ -1814,9 +1832,11 @@ export class SaveButtonComponent extends SimpleComponent {
     if (this.field.isDelete) {
       successObs &#x3D; this.fieldMap._rootComp.delete();
     } else {
+      this.field.setValue(this.field.clickedValue);
+      // passing the field&#x27;s disableValidation setting from the form definition
       successObs &#x3D; this.field.targetStep ?
-      this.fieldMap._rootComp.onSubmit(this.field.targetStep, false, this.field.additionalData)
-      : this.fieldMap._rootComp.onSubmit(null, false, this.field.additionalData);
+      this.fieldMap._rootComp.onSubmit(this.field.targetStep, this.field.disableValidation, this.field.additionalData)
+      : this.fieldMap._rootComp.onSubmit(null, this.field.disableValidation, this.field.additionalData);
     }
     successObs.subscribe( status &#x3D;&gt;  {
       if (status) {
@@ -2152,7 +2172,7 @@ export class ToggleComponent extends SimpleComponent {
 <script src="../js/libs/htmlparser.js"></script>
 <script src="../js/libs/deep-iterator.js"></script>
 <script>
-        var COMPONENT_TEMPLATE = '<div><button type="button" (click)="onClick($event)" class="btn" [ngClass]="field.cssClasses" [disabled]="(!fieldMap._rootComp.needsSave || fieldMap._rootComp.isSaving()) && !field.isSubmissionButton">{{field.label}}</button><div *ngIf="field.confirmationMessage" class="modal fade" id="{{ field.name }}_confirmation" tabindex="-1" role="dialog" >  <div class="modal-dialog" role="document">    <div class="modal-content">      <div class="modal-header">        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>        <h4 class="modal-title" id="{{ field.name }}_confirmation_label" [innerHtml]="field.confirmationTitle"></h4>      </div>      <div class="modal-body" [innerHtml]="field.confirmationMessage"></div>      <div class="modal-footer">        <button (click)="hideConfirmDlg()" type="button" class="btn btn-default" data-dismiss="modal" [innerHtml]="field.cancelButtonMessage"></button>        <button (click)="doAction()" type="button" class="btn btn-primary" [innerHtml]="field.confirmButtonMessage"></button>      </div>    </div>  </div></div></div>'
+        var COMPONENT_TEMPLATE = '<div><ng-container *ngIf="field.visible">  <button type="button" (click)="onClick($event)" class="btn" [ngClass]="field.cssClasses" [disabled]="(!fieldMap._rootComp.needsSave || fieldMap._rootComp.isSaving()) && !field.isSubmissionButton">{{field.label}}</button>  <div *ngIf="field.confirmationMessage" class="modal fade" id="{{ field.name }}_confirmation" tabindex="-1" role="dialog" >    <div class="modal-dialog" role="document">      <div class="modal-content">        <div class="modal-header">          <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>          <h4 class="modal-title" id="{{ field.name }}_confirmation_label" [innerHtml]="field.confirmationTitle"></h4>        </div>        <div class="modal-body" [innerHtml]="field.confirmationMessage"></div>        <div class="modal-footer">          <button (click)="hideConfirmDlg()" type="button" class="btn btn-default" data-dismiss="modal" [innerHtml]="field.cancelButtonMessage"></button>          <button (click)="doAction()" type="button" class="btn btn-primary" [innerHtml]="field.confirmButtonMessage"></button>        </div>      </div>    </div>  </div></ng-container></div>'
     var COMPONENTS = [{'name': 'ActionButtonComponent', 'selector': 'action-button'},{'name': 'AnchorOrButtonComponent', 'selector': 'anchor-button'},{'name': 'ANDSVocabComponent', 'selector': 'ands-vocab-selector'},{'name': 'AsynchComponent', 'selector': 'asynch-component'},{'name': 'ButtonBarContainerComponent', 'selector': 'buttonbarcontainer'},{'name': 'CancelButtonComponent', 'selector': 'cancel-button'},{'name': 'ContributorComponent', 'selector': 'rb-contributor'},{'name': 'DashboardComponent', 'selector': 'dashboard'},{'name': 'DataLocationComponent', 'selector': 'data-location-selector'},{'name': 'DateTimeComponent', 'selector': 'date-time'},{'name': 'DmpFieldComponent', 'selector': 'dmp-field'},{'name': 'DmpFormComponent', 'selector': 'dmp-form'},{'name': 'DropdownFieldComponent', 'selector': 'dropdownfield'},{'name': 'EventHandlerComponent', 'selector': 'event-handler'},{'name': 'ExportFormComponent', 'selector': 'export-form'},{'name': 'GenericGroupComponent', 'selector': 'generic-group-field'},{'name': 'HiddenValueComponent', 'selector': 'hidden-field'},{'name': 'HtmlRawComponent', 'selector': 'htmlraw'},{'name': 'LinkValueComponent', 'selector': 'link-value'},{'name': 'LocalAuthComponent', 'selector': 'local-auth'},{'name': 'ManageRolesComponent', 'selector': 'manage-roles'},{'name': 'ManageUsersComponent', 'selector': 'manage-users'},{'name': 'MapComponent', 'selector': 'rb-mapdata'},{'name': 'MarkdownTextAreaComponent', 'selector': 'markdown-text-area'},{'name': 'ParameterRetrieverComponent', 'selector': 'parameter-retriever'},{'name': 'PDFListComponent', 'selector': 'rb-pdf-list'},{'name': 'PublishDataLocationRefreshComponent', 'selector': 'publish-data-location-refresh'},{'name': 'PublishDataLocationSelectorComponent', 'selector': 'publish-data-location-selector'},{'name': 'RecordMetadataRetrieverComponent', 'selector': 'record-metadata-retriever'},{'name': 'RecordPermissionsComponent', 'selector': 'rb-recordpermissions'},{'name': 'RecordSearchComponent', 'selector': 'record-search'},{'name': 'RecordSearchRefinerComponent', 'selector': 'record-search-refiner'},{'name': 'RelatedFileUploadComponent', 'selector': 'related-fileupload-selector'},{'name': 'RelatedObjectDataComponent', 'selector': 'rb-relatedobjectdata'},{'name': 'RelatedObjectSelectorComponent', 'selector': 'rb-RelatedObjectSelector'},{'name': 'RepeatableContributorComponent', 'selector': 'repeatable-contributor'},{'name': 'RepeatableGroupComponent', 'selector': 'repeatable-group'},{'name': 'RepeatableTextfieldComponent', 'selector': 'repeatable-textfield'},{'name': 'RepeatableVocabComponent', 'selector': 'repeatable-vocab'},{'name': 'ReportComponent', 'selector': 'report'},{'name': 'SaveButtonComponent', 'selector': 'save-button'},{'name': 'SelectionFieldComponent', 'selector': 'selectionfield'},{'name': 'SortComponent', 'selector': 'sort'},{'name': 'SpacerComponent', 'selector': 'spacer'},{'name': 'TabNavButtonComponent', 'selector': 'tab-nav-button'},{'name': 'TabOrAccordionContainerComponent', 'selector': 'tabcontainer'},{'name': 'TextAreaComponent', 'selector': 'text-area'},{'name': 'TextBlockComponent', 'selector': 'text-block'},{'name': 'TextFieldComponent', 'selector': 'textfield'},{'name': 'ToggleComponent', 'selector': 'toggle'},{'name': 'TransferOwnerComponent', 'selector': 'transfer-owner'},{'name': 'TreeNodeCheckboxComponent', 'selector': 'rb-tree-node-checkbox'},{'name': 'UserProfileComponent', 'selector': 'user-profile'},{'name': 'VocabFieldComponent', 'selector': 'rb-vocab'},{'name': 'WorkflowStepButtonComponent', 'selector': 'workflowstep-button'},{'name': 'WorkspaceFieldComponent', 'selector': 'ws-field'},{'name': 'WorkspaceListComponent', 'selector': 'workspace-list'},{'name': 'WorkspaceSelectorComponent', 'selector': 'workspace-selector-parent'},{'name': 'WorkspaceSelectorFieldComponent', 'selector': 'workspace-selector'}];
     var DIRECTIVES = [];
     var ACTUAL_COMPONENT = {'name': 'SaveButtonComponent'};
