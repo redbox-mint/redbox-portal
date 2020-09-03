@@ -205,7 +205,7 @@ export module Services {
 					let response = await this.updateMetaInternal(brand, oid, record, recordType, user, triggerPreSaveTriggers)
           if (triggerPostSaveTriggers) {
             if (response && `${response.code}` == "200") {
-              response = this.triggerPostSaveSyncTriggers(oid, record, recordType, 'onUpdate', user, response);
+              response = await this.triggerPostSaveSyncTriggers(oid, record, recordType, 'onUpdate', user, response);
             }
             if (response && `${response.code}` == "200") {
               response.success = true;
@@ -866,7 +866,8 @@ export module Services {
     public async triggerPostSaveSyncTriggers(oid: string, record: any, recordType: any, mode: string = 'onUpdate', user: object = undefined, response:any = {}) {
       sails.log.debug("Triggering post save sync triggers ");
       sails.log.debug(`hooks.${mode}.postSync`);
-      sails.log.debug(recordType);
+      sails.log.debug(`triggerPostSaveSyncTriggers::Got initial response:`);
+      sails.log.debug(JSON.stringify(response));
       let postSaveSyncHooks = _.get(recordType, `hooks.${mode}.postSync`, null);
       if (_.isArray(postSaveSyncHooks)) {
         for (var i = 0; i < postSaveSyncHooks.length; i++) {
@@ -893,6 +894,8 @@ export module Services {
           }
         }
       }
+      sails.log.debug(`triggerPostSaveSyncTriggers::Returning response:`);
+      sails.log.debug(JSON.stringify(response));
       return response;
     }
 
