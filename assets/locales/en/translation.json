@@ -675,5 +675,7 @@
   "error-auth": "Apologies, we've encountered an issue with your user credentials. Please contact the application administrator.",
   "@ckan-record-published-prefix": "Record published at ",
   "@ckan-record-submitting-label": "Submitting to CKAN",
-  "@ckan-record-unsubmitted-label": "Record not yet published"
+  "@ckan-record-unsubmitted-label": "Record not yet published",
+  "@existing-locations-label": "Existing Workspaces",
+  "@existing-locations-description": "Existing Workspaces description placeholder"
 }

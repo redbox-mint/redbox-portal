@@ -508,5 +508,32 @@ module.exports.recordtype = {
         ]
       }
     }
+  },
+  // The "Existing locations" workspace record type definition.
+  "existing-locations": {
+    "packageType": "workspace",
+    "packageName": "existing-locations",
+    "searchFilters": [
+      {
+        name: "text_title",
+        title: "search-refine-title",
+        type: "exact",
+        typeLabel: "search-refine-contains"
+      },
+      {
+        name: "text_description",
+        title: "search-refine-description",
+        type: "exact",
+        typeLabel: "search-refine-contains"
+      }
+    ],
+    hooks: {
+      onCreate: {
+        pre: [
+        ],
+        postSync: [
+        ]
+      }
+    }
   }
 };

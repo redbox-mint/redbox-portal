@@ -134,5 +134,22 @@ module.exports.workflow = {
       }
     }
 
+  },
+  // The "Existing Locations" workflow...
+  "existing-locations": {
+    "existing-locations-draft": {
+      config: {
+        workflow: {
+          stage: 'draft',
+          stageLabel: 'Draft',
+        },
+        authorization: {
+          viewRoles: ['Admin', 'Librarians'],
+          editRoles: ['Admin', 'Librarians']
+        },
+        form: 'existing-locations-1.0-draft'
+      },
+      starting: true
+    }
   }
 };
