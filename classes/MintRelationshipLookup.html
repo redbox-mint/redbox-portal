@@ -124,7 +124,7 @@
                 </tr>
                         <tr>
                             <td class="col-md-4">
-                                <div class="io-line">Defined in <a href="" data-line="634" class="link-to-prism">angular/shared/form/field-vocab.component.ts:634</a></div>
+                                <div class="io-line">Defined in <a href="" data-line="636" class="link-to-prism">angular/shared/form/field-vocab.component.ts:636</a></div>
                             </td>
                         </tr>
 
@@ -211,7 +211,7 @@
                     </tr>
                         <tr>
                             <td class="col-md-4">
-                                    <div class="io-line">Defined in <a href="" data-line="634" class="link-to-prism">angular/shared/form/field-vocab.component.ts:634</a></div>
+                                    <div class="io-line">Defined in <a href="" data-line="636" class="link-to-prism">angular/shared/form/field-vocab.component.ts:636</a></div>
                             </td>
                         </tr>
 
@@ -238,7 +238,7 @@
                     </tr>
                         <tr>
                             <td class="col-md-4">
-                                    <div class="io-line">Defined in <a href="" data-line="633" class="link-to-prism">angular/shared/form/field-vocab.component.ts:633</a></div>
+                                    <div class="io-line">Defined in <a href="" data-line="635" class="link-to-prism">angular/shared/form/field-vocab.component.ts:635</a></div>
                             </td>
                         </tr>
 
@@ -274,8 +274,8 @@
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="641"
-                            class="link-to-prism">angular/shared/form/field-vocab.component.ts:641</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="643"
+                            class="link-to-prism">angular/shared/form/field-vocab.component.ts:643</a></div>
                 </td>
             </tr>
 
@@ -352,6 +352,7 @@ import { BaseService } from &#x27;../base-service&#x27;;
 import { CompleterService, CompleterData, CompleterItem } from &#x27;ng2-completer&#x27;;
 import { ConfigService } from &#x27;../config-service&#x27;;
 import * as luceneEscapeQuery from &quot;lucene-escape-query&quot;;
+import { TranslationService } from &#x27;../translation-service&#x27;;
 /**
  * Vocabulary Field
  *
@@ -389,7 +390,7 @@ export class VocabField extends FieldBase&lt;any&gt; {
 
   @Output() onItemSelect: EventEmitter&lt;any&gt; &#x3D; new EventEmitter&lt;any&gt;();
 
-  constructor(options: any, injector: any) {
+  constructor(options: any, injector: any  ) {
     super(options, injector);
     this.clName &#x3D; &#x27;VocabField&#x27;;
     this.hasLookup &#x3D; true;
@@ -403,6 +404,7 @@ export class VocabField extends FieldBase&lt;any&gt; {
     this.fieldNames &#x3D; options[&#x27;fieldNames&#x27;] || [];
     this.sourceType &#x3D; options[&#x27;sourceType&#x27;] || &#x27;vocab&#x27;;
     this.placeHolder &#x3D; options[&#x27;placeHolder&#x27;] || &#x27;Select a valid value&#x27;;
+    this.placeHolder &#x3D; this.translationService.t(this.placeHolder);
     this.disableEditAfterSelect &#x3D; options[&#x27;disableEditAfterSelect&#x27;] &#x3D;&#x3D; undefined ? true : options[&#x27;disableEditAfterSelect&#x27;];
     this.stringLabelToField &#x3D; options[&#x27;stringLabelToField&#x27;] ? options[&#x27;stringLabelToField&#x27;] : &#x27;dc_title&#x27;;
     this.restrictToSelection &#x3D; _.isUndefined(options[&#x27;restrictToSelection&#x27;]) ? false : options[&#x27;restrictToSelection&#x27;];
