@@ -19,8 +19,13 @@
           <tr *ngFor="let dataLocation of getDatalocations(); let i = index;">
             <td>{{ field.dataTypeLookup[dataLocation.type] }}</td>
             <td>
-              <ng-container *ngIf="dataLocation && dataLocation.type != 'attachment'">
+              <ng-container *ngIf="dataLocation && dataLocation.type != 'attachment' && dataLocation.type != 'url'">
               {{ dataLocation.location }}
+              </ng-container>
+              <ng-container *ngIf="dataLocation.type == 'url'">
+                <a *ngIf="!dataLocation.pending" [href]="dataLocation.location" target="_blank">
+                  {{ dataLocation.location }}
+                </a>
               </ng-container>
               <ng-container *ngIf="dataLocation.type == 'attachment'">
                 <ng-container *ngIf="dataLocation.pending">
