@@ -19,8 +19,13 @@
           <tr *ngFor="let dataLocation of getDatalocations(); let i = index;">
             <td>{{ field.dataTypeLookup[dataLocation.type] }}</td>
             <td>
-              <ng-container *ngIf="dataLocation && dataLocation.type != 'attachment'">
+              <ng-container *ngIf="dataLocation && dataLocation.type != 'attachment' && dataLocation.type != 'url'">
               {{ dataLocation.location }}
+              </ng-container>
+              <ng-container *ngIf="dataLocation.type == 'url'">
+                <a *ngIf="!dataLocation.pending" [href]="dataLocation.location" target="_blank">
+                  {{ dataLocation.location }}
+                </a>
               </ng-container>
               <ng-container *ngIf="dataLocation.type == 'attachment'">
                 <ng-container *ngIf="dataLocation.pending">
@@ -60,7 +65,7 @@
       <span id="{{ 'helpBlock_' + field.name }}" class="help-block" [innerHtml]="field.help"></span>
     </div>
     <ng-container *ngIf="field.editMode">
-      <div class="row" >
+      <div class="row">
         <div class="col-xs-3">
           <select [(ngModel)]="field.newLocation.type" [id]="field.newLocation.type" class="form-control" [attr.aria-label]="field.typeHeader">
              <option *ngFor="let opt of field.dataTypes" [value]="opt.value">{{opt.label}}</option>
@@ -99,7 +104,15 @@
           </div>
         </div>
       </div>
-      <div class="row"*ngIf="field.required && (field.label || (field.validationMessages && field.validationMessages.required))" [style.visibility]="getFormControl() && getFormControl().hasError('required') && getFormControl().touched ? 'inherit':'hidden'">
+      <div class="row justify-content-md-center">
+        <div class="col-xs-3">
+
+        </div>
+        <div class="col-xs-4">
+          <div class="text-warning">{{ '@dataLocations-enter-assistance-text' | translate }}</div>
+        </div>
+      </div>
+      <div class="row" *ngIf="field.required && (field.label || (field.validationMessages && field.validationMessages.required))" [style.visibility]="getFormControl() && getFormControl().hasError('required') && getFormControl().touched ? 'inherit':'hidden'">
         <div class="col-xs-12">
           <div class="text-danger" *ngIf="!field.validationMessages?.required">{{field.label}} is required</div>
           <div class="text-danger" *ngIf="field.validationMessages?.required">{{field.validationMessages.required}}</div>

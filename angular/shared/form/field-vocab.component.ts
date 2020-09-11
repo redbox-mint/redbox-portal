@@ -32,6 +32,7 @@ import { BaseService } from '../base-service';
 import { CompleterService, CompleterData, CompleterItem } from 'ng2-completer';
 import { ConfigService } from '../config-service';
 import * as luceneEscapeQuery from "lucene-escape-query";
+import { TranslationService } from '../translation-service';
 /**
  * Vocabulary Field
  *
@@ -69,7 +70,7 @@ export class VocabField extends FieldBase<any> {
 
   @Output() onItemSelect: EventEmitter<any> = new EventEmitter<any>();
 
-  constructor(options: any, injector: any) {
+  constructor(options: any, injector: any  ) {
     super(options, injector);
     this.clName = 'VocabField';
     this.hasLookup = true;
@@ -83,6 +84,7 @@ export class VocabField extends FieldBase<any> {
     this.fieldNames = options['fieldNames'] || [];
     this.sourceType = options['sourceType'] || 'vocab';
     this.placeHolder = options['placeHolder'] || 'Select a valid value';
+    this.placeHolder = this.translationService.t(this.placeHolder);
     this.disableEditAfterSelect = options['disableEditAfterSelect'] == undefined ? true : options['disableEditAfterSelect'];
     this.stringLabelToField = options['stringLabelToField'] ? options['stringLabelToField'] : 'dc_title';
     this.restrictToSelection = _.isUndefined(options['restrictToSelection']) ? false : options['restrictToSelection'];

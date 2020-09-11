@@ -633,6 +633,7 @@
   "@dataLocations-notes": "Notes",
   "@dataLocations-uploader-note": "Maximum 50 files, up to 1 GB",
   "@dataLocations-addText": "Enter",
+  "@dataLocations-enter-assistance-text": "Click the Enter button to add the data location",
   "logo-alt-text": "ReDBox Logo",
   "aaf-logo-alt-text": "AAF Logo",
   "openidconnect-logo-alt-text": "OpenId Connect Logo",
