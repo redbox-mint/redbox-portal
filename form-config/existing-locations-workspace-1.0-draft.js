@@ -151,63 +151,6 @@ module.exports = {
                     }
                 }]
             }
-        },
-        {
-            class: "ParameterRetriever",
-            compClass: 'ParameterRetrieverComponent',
-            editOnly: true,
-            definition: {
-                name: 'parameterRetriever',
-                parameterName:'rdmpOid'
-            }
-        },
-        {
-            class: 'RecordMetadataRetriever',
-            compClass: 'RecordMetadataRetrieverComponent',
-            definition: {
-                name: 'rdmpGetter',
-                subscribe: {
-                    'parameterRetriever': {
-                        onValueUpdate: [{
-                            action: 'publishMetadata'
-                        }]
-                    }
-                }
-            }
-        },
-        {
-            class: 'HiddenValue',
-            editOnly: true,
-            definition: {
-                name: 'referrer_rdmp',
-                subscribe: {
-                    'rdmpOid': {
-                        onValueUpdate: [
-                            {
-                                action: 'utilityService.getPropertyFromObject',
-                                field: 'oid'
-                            }
-                        ]
-                    }
-                }
-            }
-        },
-        {
-            class: 'HiddenValue',
-            editOnly: true,
-            definition: {
-                name: 'workspace-name',
-                subscribe: {
-                    'rdmpGetter': {
-                        onValueUpdate: [
-                            {
-                                action: 'utilityService.getPropertyFromObject',
-                                field: 'workspace-name'
-                            }
-                        ]
-                    }
-                }
-            }
         }
     ]
 };
