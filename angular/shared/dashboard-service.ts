@@ -4,7 +4,7 @@ import 'rxjs/add/operator/map';
 import 'rxjs/add/operator/toPromise';
 import * as moment from 'moment';
 import { BaseService } from '../shared/base-service'
-import { PlanTable, Plan } from './dashboard-models'
+import { PlanTable, Plan, RecordResponseTable } from './dashboard-models'
 import { ConfigService } from './config-service';
 import { TranslationService } from './translation-service';
 import * as _ from "lodash";
@@ -56,7 +56,7 @@ export class DashboardService extends BaseService {
       .then((res: any) => this.formatDates(this.extractData(res)) as PlanTable);
   }
 
-  getRecords(recordType:string,state:string,pageNumber:number,packageType:string=undefined, sort:string=undefined): Promise<PlanTable> {
+  getRecords(recordType:string,state:string,pageNumber:number,packageType:string=undefined, sort:string=undefined): Promise<RecordResponseTable> {
     var rows = 10;
     var start = (pageNumber-1) * rows;
     recordType = (!_.isEmpty(recordType) && !_.isUndefined(recordType)) ? `recordType=${recordType}` : '';
@@ -65,7 +65,7 @@ export class DashboardService extends BaseService {
     state = (!_.isEmpty(state) && !_.isUndefined(state)) ? `&state=${state}` : '';
     return this.http.get(`${this.brandingAndPortalUrl}/listRecords?${recordType}${packageType}${state}${sort}&start=${start}&rows=${rows}&ts=${moment().unix()}`, this.options)
       .toPromise()
-      .then((res: any) => this.formatDates(this.extractData(res)) as PlanTable);
+      .then((res: any) => this.formatDates(this.extractData(res)) as RecordResponseTable);
   }
 
   formatDates(response:object){

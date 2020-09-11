@@ -109,7 +109,7 @@
 
         </div>
         <div class="col-xs-4">
-          <div class="text-warning">{{ '@dataLocations-enter-assistance-text' | translate }}</div>
+          <div *ngIf="field.newLocation.location != null && field.newLocation.location.trim() != ''" class="text-warning">{{ '@dataLocations-enter-assistance-text' | translate }}</div>
         </div>
       </div>
       <div class="row" *ngIf="field.required && (field.label || (field.validationMessages && field.validationMessages.required))" [style.visibility]="getFormControl() && getFormControl().hasError('required') && getFormControl().touched ? 'inherit':'hidden'">
