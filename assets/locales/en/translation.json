@@ -677,5 +677,17 @@
   "@ckan-record-submitting-label": "Submitting to CKAN",
   "@ckan-record-unsubmitted-label": "Record not yet published",
   "@existing-locations-label": "Existing Workspaces",
-  "@existing-locations-description": "Existing Workspaces description placeholder"
+  "@existing-locations-description": "Existing Workspaces description placeholder",
+  "@workspace-header": "Existing Cloud Services and Storage Locations",
+  "@workspace-name": "Location Name",
+  "@workspace-type": "Location Type",
+  "@workspace-description": "Description of Data",
+  "@workspace-location-url": "Location URL(s)",
+  "@workspace-type_required": "Workspace type must be specified",
+  "@workspace-type-shared": "Shared Drive",
+  "@workspace-type-cloud": "Cloud Drive",
+  "@workspace-type-survey": "Survey",
+  "@workspace-type-repo": "Code Repository",
+  "@workspace-type-notebook": "Electronic Notebook",
+  "@workspace-type-other": "Other"
 }
