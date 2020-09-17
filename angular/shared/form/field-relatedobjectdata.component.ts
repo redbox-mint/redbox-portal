@@ -30,7 +30,7 @@ import {DomSanitizer} from '@angular/platform-browser';
 
 
 /**
- * Contributor Model
+ * Related Objects for a particular record.
  *
  *
  * @author <a target='_' href='https://github.com/shilob'>Shilo Banihit</a>
@@ -67,16 +67,22 @@ export class RelatedObjectDataField extends FieldBase<any> {
   asyncLoadData() {
     let getRecordMetaObs = [];
     var that = this;
+    const portalPath = this.recordsService.getBrandingAndPortalUrl;
     _.forEach(this.value, (item: any) => {
       getRecordMetaObs.push(fromPromise(this.recordsService.getRecordMeta(item.id)).flatMap(meta => {
+        const customFields = {oid: item.id, portalPath: portalPath};
+        // we add a property called 'oid' so the item can be 'linked' in the UI
         if (!meta) {
-          that.failedObjects.push(meta);
-        } else if (meta['status'] == "Access Denied") {
-          that.accessDeniedObjects.push(meta);
-        } else if (meta['title']) {
-          that.relatedObjects.push(meta);
+          that.failedObjects.push(customFields);
         } else {
-          that.failedObjects.push(meta);
+          _.merge(meta, customFields);
+          if (meta['status'] == "Access Denied") {
+            that.accessDeniedObjects.push(meta);
+          } else if (meta['title']) {
+            that.relatedObjects.push(meta);
+          } else {
+            that.failedObjects.push(meta);
+          }
         }
         return Observable.of(null);
       }));
@@ -110,6 +116,38 @@ export class RelatedObjectDataField extends FieldBase<any> {
   setEmptyValue() {
     this.value = [];
     return this.value;
+  }
+
+  getPropertyValue(item: any, columnConf: any) {
+    let val = '';
+    if (_.isArray(columnConf.property)) {
+      _.each(columnConf.property, (propName) => {
+        if (_.isString(item)) {
+          val = item;
+        } else {
+          val = _.get(item, propName);
+          if (!_.isEmpty(val)) {
+            return false;
+          }
+        }
+      });
+    } else {
+      val = _.get(item, columnConf.property);
+    }
+    return val;
+  }
+
+  getPropertyLabel(item: any, columnConf: any) {
+    const val = this.getPropertyValue(item, columnConf);
+    return this.getTranslated(val['label'], val['label']);
+  }
+
+  isMultiValue(item: any, columnConf: any) {
+    return _.isArray(this.getPropertyValue(item, columnConf));
+  }
+
+  getContext(item: any, columConf: any) {
+    return {item: item, column: columConf};
   }
 }
 
