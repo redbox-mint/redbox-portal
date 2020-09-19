@@ -726,6 +726,9 @@ customElements.define('compodoc-menu', class extends HTMLElement {
                                 <a href="classes/RecordPermissionsField.html" data-type="entity-link">RecordPermissionsField</a>
                             </li>
                             <li class="link">
+                                <a href="classes/RecordResponseTable.html" data-type="entity-link">RecordResponseTable</a>
+                            </li>
+                            <li class="link">
                                 <a href="classes/RecordSearchParams.html" data-type="entity-link">RecordSearchParams</a>
                             </li>
                             <li class="link">

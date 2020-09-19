@@ -721,7 +721,7 @@
                     <div>
                     </div>
                     <div class="io-description">
-                        <b>Returns : </b>    <code>Promise&lt;PlanTable&gt;</code>
+                        <b>Returns : </b>        <code><a href="../classes/RecordResponseTable.html" target="_self" >Promise&lt;RecordResponseTable&gt;</a></code>
 
                     </div>
                     <div class="io-description">
@@ -1697,7 +1697,7 @@ import &#x27;rxjs/add/operator/map&#x27;;
 import &#x27;rxjs/add/operator/toPromise&#x27;;
 import * as moment from &#x27;moment&#x27;;
 import { BaseService } from &#x27;../shared/base-service&#x27;
-import { PlanTable, Plan } from &#x27;./dashboard-models&#x27;
+import { PlanTable, Plan, RecordResponseTable } from &#x27;./dashboard-models&#x27;
 import { ConfigService } from &#x27;./config-service&#x27;;
 import { TranslationService } from &#x27;./translation-service&#x27;;
 import * as _ from &quot;lodash&quot;;
@@ -1749,7 +1749,7 @@ export class DashboardService extends BaseService {
       .then((res: any) &#x3D;&gt; this.formatDates(this.extractData(res)) as PlanTable);
   }
 
-  getRecords(recordType:string,state:string,pageNumber:number,packageType:string&#x3D;undefined, sort:string&#x3D;undefined): Promise&lt;PlanTable&gt; {
+  getRecords(recordType:string,state:string,pageNumber:number,packageType:string&#x3D;undefined, sort:string&#x3D;undefined): Promise&lt;RecordResponseTable&gt; {
     var rows &#x3D; 10;
     var start &#x3D; (pageNumber-1) * rows;
     recordType &#x3D; (!_.isEmpty(recordType) &amp;&amp; !_.isUndefined(recordType)) ? &#x60;recordType&#x3D;${recordType}&#x60; : &#x27;&#x27;;
@@ -1758,7 +1758,7 @@ export class DashboardService extends BaseService {
     state &#x3D; (!_.isEmpty(state) &amp;&amp; !_.isUndefined(state)) ? &#x60;&amp;state&#x3D;${state}&#x60; : &#x27;&#x27;;
     return this.http.get(&#x60;${this.brandingAndPortalUrl}/listRecords?${recordType}${packageType}${state}${sort}&amp;start&#x3D;${start}&amp;rows&#x3D;${rows}&amp;ts&#x3D;${moment().unix()}&#x60;, this.options)
       .toPromise()
-      .then((res: any) &#x3D;&gt; this.formatDates(this.extractData(res)) as PlanTable);
+      .then((res: any) &#x3D;&gt; this.formatDates(this.extractData(res)) as RecordResponseTable);
   }
 
   formatDates(response:object){
