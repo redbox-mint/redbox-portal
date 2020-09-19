@@ -10,43 +10,7 @@ module.exports.workflow = {
           viewRoles: ['Admin', 'Librarians'],
           editRoles: ['Admin', 'Librarians']
         },
-        form: 'default-1.0-draft',
-        dashboard: {
-          table: {
-            rowConfig: [{
-                title: 'Plan',
-                variable: 'metadata.title',
-                template: '<a href=\'/<%= branding %>/<%= portal %>/record/view/<%= oid %>\'><%= metadata.title %></a> \
-                <span class="dashboard-controls"> \
-                <% if(hasEditAccess) { %> \
-                    <a href=\'/<%= branding %>/<%= portal %>/record/edit/<%= oid %>\' aria-label=\'<%= translationService.t(\'edit-link-label\') %>\'><i class="fa fa-pencil" aria-hidden="true"></i></a> \
-                  <% } %> \
-                </span>',
-                initialSort: 'desc'
-              },
-              {
-                title: 'header-ci',
-                variable: 'metadata.contributor_ci.text_full_name',
-                template: '<%= metadata.contributor_ci.text_full_name %>'
-              },
-              {
-                title: 'header-data-manager',
-                variable: 'metadata.contributor_data_manager.text_full_name',
-                template: '<%= metadata.contributor_data_manager.text_full_name %>'
-              },
-              {
-                title: 'header-created',
-                variable: 'date_object_created',
-                template: '<%= dateCreated %>'
-              },
-              {
-                title: 'header-modified',
-                variable: 'date_object_modified',
-                template: '<%= dateModified %>'
-              }
-            ]
-          }
-        }
+        form: 'default-1.0-draft'
       },
       starting: true
     }
@@ -62,9 +26,9 @@ module.exports.workflow = {
           viewRoles: ['Admin', 'Librarians'],
           editRoles: ['Admin', 'Librarians']
         },
-        form: 'dataRecord-1.0-draft',
-        starting: true
-      }
+        form: 'dataRecord-1.0-draft'
+      },
+      starting: true
     }
   },
   "dataPublication": {

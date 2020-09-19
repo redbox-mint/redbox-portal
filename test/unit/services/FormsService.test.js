@@ -1,3 +1,5 @@
+const { expect } = require("chai");
+
 describe('The FormsService', function () {
   before(function (done) {
     done();
@@ -11,6 +13,18 @@ describe('The FormsService', function () {
 
     FormsService.getForm( brand.id,recordType, true).subscribe(function(form) {
       expect(form).to.have.property('name', formName);
+      done();
+    })
+  });
+
+  it('should get default-1.0-draft form', function (done) {
+    
+    var formName = 'dataPublication-1.0-embargoed';
+
+    FormsService.getFormByName( formName, true).subscribe(function(form) {
+      console.log(form)
+      // expect(form).to.have.property('name', formName);
+      expect(true).to.eq(true)
       done();
     })
   });
