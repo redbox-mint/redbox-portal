@@ -186,6 +186,11 @@ export class RecordsService extends BaseService {
     .then((res:any) => this.extractData(res));
   }
 
+  async getAllTypesOfPackageType(packageType: string) {
+    const allTypes = await this.getAllTypes();
+    return _.filter(allTypes, (recType:any) => { return recType.packageType == packageType });
+  }
+
   getWorkflowSteps(name: string) {
     return this.http.get(`${this.brandingAndPortalUrl}/record/wfSteps/${name}`, this.getOptionsClient())
     .toPromise()

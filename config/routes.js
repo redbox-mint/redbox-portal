@@ -113,11 +113,8 @@ module.exports.routes = {
     }
   },
   '/:branding/:portal/workspaces/list': {
-    controller: 'RenderViewController',
-    action: 'render',
-    locals:{
-      'view': 'listWorkspaces'
-    }
+    controller: 'DashboardController',
+    action: 'listWorkspaces'
   },
   '/:branding/:portal/getAdvice': {
     controller: 'RenderViewController',

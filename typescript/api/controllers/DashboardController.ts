@@ -22,7 +22,7 @@ declare var module;
 declare var sails;
 declare var _;
 import { Observable } from 'rxjs/Rx';
-declare var BrandingService, RolesService, DashboardService, RecordsService;
+declare var BrandingService, RolesService, DashboardService, RecordsService, TranslationService;
 
 /**
  * Package that contains all Controllers.
@@ -41,7 +41,8 @@ export module Controllers {
      */
     protected _exportedMethods: any = [
         'render',
-        'getRecordList'
+        'getRecordList',
+        'listWorkspaces'
     ];
 
     /**
@@ -54,9 +55,16 @@ export module Controllers {
 
     }
 
+    public listWorkspaces(req, res) {
+      const url = `${BrandingService.getFullPath(req)}/dashboard/workspace?packageType=workspace&titleLabel=workspaces`;
+      return res.redirect(url);
+    }
+
     public render(req, res) {
       const recordType = req.param('recordType') ? req.param('recordType') : '';
-      return this.sendView(req, res, 'dashboard', {recordType: recordType });
+      const packageType = req.param('packageType') ? req.param('packageType') : '';
+      const titleLabel = req.param('titleLabel') ? TranslationService.t(req.param('titleLabel')) : `${TranslationService.t('edit-dashboard')} ${TranslationService.t(recordType+'-title-label')}`;
+      return this.sendView(req, res, 'dashboard', {recordType: recordType, packageType: packageType, titleLabel: titleLabel });
     }
 
 

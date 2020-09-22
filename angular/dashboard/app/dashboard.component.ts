@@ -56,6 +56,7 @@ declare var jQuery: any;
 export class DashboardComponent extends LoadableComponent {
   branding: string;
   portal: string;
+  packageType: string;
   recordType: string;
   recordTitle: string;
   typeLabel: string;
@@ -107,7 +108,8 @@ export class DashboardComponent extends LoadableComponent {
       variable: 'date_object_modified',
       template: '<%= dateModified %>'
     }
-  ]
+  ];
+  viewAsPackageType: boolean = false;
 
   constructor(@Inject(DashboardService) protected dashboardService: DashboardService, protected recordsService: RecordsService, @Inject(DOCUMENT) protected document: any, elementRef: ElementRef, translationService: TranslationService) {
     super();
@@ -117,50 +119,102 @@ export class DashboardComponent extends LoadableComponent {
     this.branding = elementRef.nativeElement.getAttribute('branding');
     this.portal = elementRef.nativeElement.getAttribute('portal');
     this.recordType = elementRef.nativeElement.getAttribute('recordType');
+    this.packageType = elementRef.nativeElement.getAttribute('packageType');
   }
 
   ngOnInit() {
     this.translationService.isReady(tService => {
       this.waitForInit([
         this.dashboardService,
-        this.recordsService 
-      ], () => {
-        this.recordsService.getType(this.recordType).then(type => {
+        this.recordsService
+      ], async () => {
+        if (_.isEmpty(this.packageType)) {
           this.typeLabel = this.getTranslated(`${this.recordType}-name-plural`, "Records");
           this.recordTitle = this.getTranslated(`${this.recordType}-title`, "Title");
-        });
-        this.recordsService.getWorkflowSteps(this.recordType).then(steps => {
-          steps = _.orderBy(steps, ['config.displayIndex'], ['asc'])
-          this.workflowSteps = steps;
-          _.each(steps, step => {
-            let stepTableConfig = this.defaultTableConfig;
-            this.defaultTableConfig[0].title= `${this.recordType}-title`, "Title";
-            if(step.config.dashboard != null && step.config.dashboard.table != null && step.config.dashboard.table.rowConfig != null) {
-              stepTableConfig = step.config.dashboard.table.rowConfig;
-            }
-            this.tableConfig[step.name] = stepTableConfig;
-            this.sortMap[step.name] = {};
-            for (let rowConfig of stepTableConfig) {
-              this.sortMap[step.name][rowConfig.variable] = {
-                sort: rowConfig.initialSort
-              };
-
-            }
-            this.initTracker.target++;
-            this.dashboardService.getRecords(this.recordType, step.name, 1, null, 'date_object_modified:-1').then((stagedRecords: RecordResponseTable) => {
-              let planTable: PlanTable = this.evaluatePlanTableColumns(stagedRecords);
-              this.initTracker.loaded++;
-              this.setDashboardTitle(planTable);
-              this.records[step.name] = planTable;
-              this.checkIfHasLoaded();
-            });
-          });
-        });
+          await this.initRecordType(this.recordType);
+        } else {
+          this.viewAsPackageType = true;
+          this.typeLabel = this.getTranslated(`${this.packageType}-name-plural`, "Records");
+          this.recordTitle = this.getTranslated(`${this.packageType}-title`, "Title");
+          await this.initPackageType(this.packageType);
+        }
       });
     });
   }
 
-  evaluatePlanTableColumns(stagedRecords: RecordResponseTable): PlanTable {
+  async initPackageType(packageType: string) {
+    // we're retrieving all recordTypes for this packageType
+    const recordTypes = await this.recordsService.getAllTypesOfPackageType(packageType);
+    if (_.isEmpty(this.defaultTableConfig[0].title)) {
+      this.defaultTableConfig[0].title= `${this.packageType}-title`, "Title";
+    }
+    let mainWorkflowStep = null;
+    for (let recType of recordTypes) {
+      const recTypeSteps = await this.recordsService.getWorkflowSteps(recType.name);
+      mainWorkflowStep = _.find(recTypeSteps, (step) => { return step.config.displayIndex == 0 });
+      if (!_.isEmpty(mainWorkflowStep)) {
+        break;
+      }
+    }
+    if (_.isEmpty(mainWorkflowStep)) {
+      console.error(`Failed to load the main workflow step for package type: ${packageType}`);
+      return;
+    }
+
+    let stepTableConfig = this.defaultTableConfig;
+    if(mainWorkflowStep.config.dashboard != null && mainWorkflowStep.config.dashboard.table != null && mainWorkflowStep.config.dashboard.table.rowConfig != null) {
+      stepTableConfig = mainWorkflowStep.config.dashboard.table.rowConfig;
+    }
+
+    this.tableConfig[packageType] = stepTableConfig;
+    this.sortMap[packageType] = {};
+    for (let rowConfig of stepTableConfig) {
+      this.sortMap[packageType][rowConfig.variable] = {
+        sort: rowConfig.initialSort
+      };
+    }
+    this.initTracker.target++;
+    let stagedRecords: RecordResponseTable = await this.dashboardService.getRecords(null, null, 1, packageType, 'date_object_modified:-1');
+    let planTable: PlanTable = this.evaluatePlanTableColumns(packageType, stagedRecords);
+    this.initTracker.loaded++;
+    this.setDashboardTitle(planTable);
+    this.records[packageType] = planTable;
+    this.checkIfHasLoaded();
+  }
+
+  async initRecordType(recordType: string) {
+    let steps = await this.recordsService.getWorkflowSteps(recordType);
+    steps = _.orderBy(steps, ['config.displayIndex'], ['asc']);
+    // this.workflowSteps = steps;
+    // this.workflowSteps.push(steps);
+    for (let step of steps) {
+      step.recordTypeName = recordType;
+      this.workflowSteps.push(step);
+      let stepTableConfig = this.defaultTableConfig;
+      if (_.isEmpty(this.defaultTableConfig[0].title)) {
+        this.defaultTableConfig[0].title= `${recordType}-title`, "Title";
+      }
+      if(step.config.dashboard != null && step.config.dashboard.table != null && step.config.dashboard.table.rowConfig != null) {
+        stepTableConfig = step.config.dashboard.table.rowConfig;
+      }
+      this.tableConfig[step.name] = stepTableConfig;
+      this.sortMap[step.name] = {};
+      for (let rowConfig of stepTableConfig) {
+        this.sortMap[step.name][rowConfig.variable] = {
+          sort: rowConfig.initialSort
+        };
+      }
+      this.initTracker.target++;
+      let stagedRecords: RecordResponseTable = await this.dashboardService.getRecords(recordType, step.name, 1, null, 'date_object_modified:-1');
+      let planTable: PlanTable = this.evaluatePlanTableColumns(step.name, stagedRecords);
+      this.initTracker.loaded++;
+      this.setDashboardTitle(planTable);
+      this.records[step.name] = planTable;
+      this.checkIfHasLoaded();
+    }
+  }
+
+  evaluatePlanTableColumns(stepName, stagedRecords: RecordResponseTable): PlanTable {
     let planTable: PlanTable = stagedRecords;
     let recordRows = [];
     for (let stagedRecord of stagedRecords.items) {
@@ -182,7 +236,7 @@ export class DashboardComponent extends LoadableComponent {
         imports: imports
       };
       let record = {};
-      let stepTableCOnfig = this.defaultTableConfig;
+      let stepTableCOnfig = _.isEmpty(this.tableConfig[stepName]) ? this.defaultTableConfig : this.tableConfig[stepName];
 
       for (let rowConfig of stepTableCOnfig) {
         console.log(rowConfig);
@@ -211,11 +265,18 @@ export class DashboardComponent extends LoadableComponent {
   public pageChanged(event: any, step: string): void {
     let sortDetails = this.sortMap[step];
 
+    if (_.isEmpty(this.packageType)) {
+      this.dashboardService.getRecords(this.recordType, step, event.page, null, this.getSortString(sortDetails)).then((stagedRecords: PlanTable) => {
+        this.setDashboardTitle(stagedRecords);
+        this.records[step] = stagedRecords;
+      });
+    } else {
+      const stagedRecords = this.dashboardService.getRecords(null, null, event.page, this.packageType, this.getSortString(sortDetails)).then((stagedRecords: PlanTable) => {
+        this.setDashboardTitle(stagedRecords);
+        this.records[this.packageType] = stagedRecords;
+      });
+    }
 
-    this.dashboardService.getRecords(this.recordType, step, event.page, null, this.getSortString(sortDetails)).then((stagedRecords: PlanTable) => {
-      this.setDashboardTitle(stagedRecords);
-      this.records[step] = stagedRecords;
-    });
   }
 
   getSortString(sortDetails: any) {
@@ -255,18 +316,28 @@ export class DashboardComponent extends LoadableComponent {
     }
   }
 
-  sortChanged(data) {
+  async sortChanged(data) {
     let sortString = `'${data.variable}':`;
     if (data.sort == 'desc') {
       sortString = sortString + "-1";
     } else {
       sortString = sortString + "1";
     }
-    this.dashboardService.getRecords(this.recordType, data.step, 1, null, sortString).then((stagedRecords: PlanTable) => {
-      let planTable: PlanTable = this.evaluatePlanTableColumns(stagedRecords);
-      this.setDashboardTitle(stagedRecords);
-      this.records[data.step] = stagedRecords;
-    });
+    const recTypeName = data
+    if (_.isEmpty(this.packageType)) {
+      this.dashboardService.getRecords(this.recordType, data.step, 1, null, sortString).then((stagedRecords: PlanTable) => {
+        let planTable: PlanTable = this.evaluatePlanTableColumns(data.step, stagedRecords);
+        this.setDashboardTitle(stagedRecords);
+        this.records[data.step] = stagedRecords;
+      });
+    } else {
+      this.dashboardService.getRecords(null, null, 1, this.packageType, sortString).then((stagedRecords: PlanTable) => {
+        let planTable: PlanTable = this.evaluatePlanTableColumns(this.packageType, stagedRecords);
+        this.setDashboardTitle(stagedRecords);
+        this.records[this.packageType] = stagedRecords;
+      });
+    }
+
     this.updateSortMap(data);
   }
 
