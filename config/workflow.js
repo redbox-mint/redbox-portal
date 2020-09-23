@@ -140,7 +140,7 @@ module.exports.workflow = {
     "existing-locations-draft": {
       config: {
         workflow: {
-          stage: 'draft',
+          stage: 'existing-locations-draft',
           stageLabel: 'Draft',
         },
         authorization: {

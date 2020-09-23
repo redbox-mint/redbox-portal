@@ -532,6 +532,11 @@ module.exports.recordtype = {
         pre: [
         ],
         postSync: [
+          {
+            function: 'sails.services.rdmpservice.addWorkspaceToRecord',
+            options: {
+            }
+          }
         ]
       }
     }
