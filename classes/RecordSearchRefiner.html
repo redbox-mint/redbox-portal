@@ -139,7 +139,7 @@
                 </tr>
                         <tr>
                             <td class="col-md-4">
-                                <div class="io-line">Defined in <a href="" data-line="243" class="link-to-prism">angular/shared/form/records.service.ts:243</a></div>
+                                <div class="io-line">Defined in <a href="" data-line="248" class="link-to-prism">angular/shared/form/records.service.ts:248</a></div>
                             </td>
                         </tr>
 
@@ -202,7 +202,7 @@
                     </tr>
                         <tr>
                             <td class="col-md-4">
-                                    <div class="io-line">Defined in <a href="" data-line="243" class="link-to-prism">angular/shared/form/records.service.ts:243</a></div>
+                                    <div class="io-line">Defined in <a href="" data-line="248" class="link-to-prism">angular/shared/form/records.service.ts:248</a></div>
                             </td>
                         </tr>
 
@@ -229,7 +229,7 @@
                     </tr>
                         <tr>
                             <td class="col-md-4">
-                                    <div class="io-line">Defined in <a href="" data-line="241" class="link-to-prism">angular/shared/form/records.service.ts:241</a></div>
+                                    <div class="io-line">Defined in <a href="" data-line="246" class="link-to-prism">angular/shared/form/records.service.ts:246</a></div>
                             </td>
                         </tr>
 
@@ -256,7 +256,7 @@
                     </tr>
                         <tr>
                             <td class="col-md-4">
-                                    <div class="io-line">Defined in <a href="" data-line="237" class="link-to-prism">angular/shared/form/records.service.ts:237</a></div>
+                                    <div class="io-line">Defined in <a href="" data-line="242" class="link-to-prism">angular/shared/form/records.service.ts:242</a></div>
                             </td>
                         </tr>
 
@@ -283,7 +283,7 @@
                     </tr>
                         <tr>
                             <td class="col-md-4">
-                                    <div class="io-line">Defined in <a href="" data-line="238" class="link-to-prism">angular/shared/form/records.service.ts:238</a></div>
+                                    <div class="io-line">Defined in <a href="" data-line="243" class="link-to-prism">angular/shared/form/records.service.ts:243</a></div>
                             </td>
                         </tr>
 
@@ -310,7 +310,7 @@
                     </tr>
                         <tr>
                             <td class="col-md-4">
-                                    <div class="io-line">Defined in <a href="" data-line="239" class="link-to-prism">angular/shared/form/records.service.ts:239</a></div>
+                                    <div class="io-line">Defined in <a href="" data-line="244" class="link-to-prism">angular/shared/form/records.service.ts:244</a></div>
                             </td>
                         </tr>
 
@@ -337,7 +337,7 @@
                     </tr>
                         <tr>
                             <td class="col-md-4">
-                                    <div class="io-line">Defined in <a href="" data-line="242" class="link-to-prism">angular/shared/form/records.service.ts:242</a></div>
+                                    <div class="io-line">Defined in <a href="" data-line="247" class="link-to-prism">angular/shared/form/records.service.ts:247</a></div>
                             </td>
                         </tr>
 
@@ -364,7 +364,7 @@
                     </tr>
                         <tr>
                             <td class="col-md-4">
-                                    <div class="io-line">Defined in <a href="" data-line="240" class="link-to-prism">angular/shared/form/records.service.ts:240</a></div>
+                                    <div class="io-line">Defined in <a href="" data-line="245" class="link-to-prism">angular/shared/form/records.service.ts:245</a></div>
                             </td>
                         </tr>
 
@@ -400,8 +400,8 @@
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="254"
-                            class="link-to-prism">angular/shared/form/records.service.ts:254</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="259"
+                            class="link-to-prism">angular/shared/form/records.service.ts:259</a></div>
                 </td>
             </tr>
 
@@ -625,6 +625,11 @@ export class RecordsService extends BaseService {
     return this.http.get(&#x60;${this.brandingAndPortalUrl}/record/type/&#x60;, this.getOptionsClient())
     .toPromise()
     .then((res:any) &#x3D;&gt; this.extractData(res));
+  }
+
+  async getAllTypesOfPackageType(packageType: string) {
+    const allTypes &#x3D; await this.getAllTypes();
+    return _.filter(allTypes, (recType:any) &#x3D;&gt; { return recType.packageType &#x3D;&#x3D; packageType });
   }
 
   getWorkflowSteps(name: string) {

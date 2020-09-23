@@ -128,7 +128,7 @@
                     </tr>
                         <tr>
                             <td class="col-md-4">
-                                    <div class="io-line">Defined in <a href="" data-line="233" class="link-to-prism">angular/shared/form/records.service.ts:233</a></div>
+                                    <div class="io-line">Defined in <a href="" data-line="238" class="link-to-prism">angular/shared/form/records.service.ts:238</a></div>
                             </td>
                         </tr>
 
@@ -155,7 +155,7 @@
                     </tr>
                         <tr>
                             <td class="col-md-4">
-                                    <div class="io-line">Defined in <a href="" data-line="232" class="link-to-prism">angular/shared/form/records.service.ts:232</a></div>
+                                    <div class="io-line">Defined in <a href="" data-line="237" class="link-to-prism">angular/shared/form/records.service.ts:237</a></div>
                             </td>
                         </tr>
 
@@ -182,7 +182,7 @@
                     </tr>
                         <tr>
                             <td class="col-md-4">
-                                    <div class="io-line">Defined in <a href="" data-line="231" class="link-to-prism">angular/shared/form/records.service.ts:231</a></div>
+                                    <div class="io-line">Defined in <a href="" data-line="236" class="link-to-prism">angular/shared/form/records.service.ts:236</a></div>
                             </td>
                         </tr>
 
@@ -368,6 +368,11 @@ export class RecordsService extends BaseService {
     return this.http.get(&#x60;${this.brandingAndPortalUrl}/record/type/&#x60;, this.getOptionsClient())
     .toPromise()
     .then((res:any) &#x3D;&gt; this.extractData(res));
+  }
+
+  async getAllTypesOfPackageType(packageType: string) {
+    const allTypes &#x3D; await this.getAllTypes();
+    return _.filter(allTypes, (recType:any) &#x3D;&gt; { return recType.packageType &#x3D;&#x3D; packageType });
   }
 
   getWorkflowSteps(name: string) {
