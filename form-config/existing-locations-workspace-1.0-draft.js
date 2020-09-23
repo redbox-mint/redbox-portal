@@ -23,13 +23,25 @@ module.exports = {
             }
         },
         {
-            class: 'TextField',
-            definition: {
-                name: 'title',
-                label: '@workspace-name',
-                type: 'text',
-                required: true
-            }
+          class: "AnchorOrButton",
+          viewOnly: true,
+          definition: {
+            label: '@workspace-edit',
+            value: '/@branding/@portal/record/edit/@oid?rdmp=@metadata[rdmpOid]',
+            cssClasses: 'btn btn-large btn-info',
+            showPencil: true,
+            controlType: 'anchor'
+          },
+          variableSubstitutionFields: ['value']
+        },
+        {
+          class: 'TextField',
+          definition: {
+            name: 'title',
+            label: '@workspace-name',
+            type: 'text',
+            required: true
+          }
         },
         {
             class: 'SelectionField',

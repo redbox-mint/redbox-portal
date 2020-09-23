@@ -690,5 +690,6 @@
   "@workspace-type-survey": "Survey",
   "@workspace-type-repo": "Code Repository",
   "@workspace-type-notebook": "Electronic Notebook",
-  "@workspace-type-other": "Other"
+  "@workspace-type-other": "Other",
+  "@workspace-edit": "Edit"
 }

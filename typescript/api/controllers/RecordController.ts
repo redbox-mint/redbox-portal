@@ -886,6 +886,15 @@ export module Controllers {
                 }
               }
 
+              if (customConfig.source == "metadata") {
+                const startIdx = fieldTarget.indexOf(customKey);
+                const endIdx = fieldTarget.indexOf(']', startIdx);
+                let metadataField = fieldTarget.substring(startIdx + customKey.length + 1, endIdx);
+                customKey = `${customKey}[${metadataField}]`;
+                sails.log.verbose(`Replacing custom field: '${customKey}' with metadata field: ${metadataField}`);
+                replacement = _.get(metadata, metadataField);
+              }
+
               if (!_.isEmpty(replacement)) {
                 if (customConfig.parseUrl && customConfig.searchParams) {
                   const urlParsed = new url.URL(replacement);
