@@ -109,6 +109,7 @@ export class DashboardComponent extends LoadableComponent {
       template: '<%= dateModified %>'
     }
   ];
+  sortFields = ['date_object_modified', 'date_object_created', 'metadata.title', 'metadata.contributor_ci.text_full_name', 'metadata.contributor_data_manager.text_full_name'];
   viewAsPackageType: boolean = false;
 
   constructor(@Inject(DashboardService) protected dashboardService: DashboardService, protected recordsService: RecordsService, @Inject(DOCUMENT) protected document: any, elementRef: ElementRef, translationService: TranslationService) {
@@ -164,6 +165,7 @@ export class DashboardComponent extends LoadableComponent {
     let stepTableConfig = this.defaultTableConfig;
     if(mainWorkflowStep.config.dashboard != null && mainWorkflowStep.config.dashboard.table != null && mainWorkflowStep.config.dashboard.table.rowConfig != null) {
       stepTableConfig = mainWorkflowStep.config.dashboard.table.rowConfig;
+      this.sortFields = _.map(mainWorkflowStep.config.dashboard.table.rowConfig, (config) => { return config.variable });
     }
 
     this.tableConfig[packageType] = stepTableConfig;
@@ -196,6 +198,7 @@ export class DashboardComponent extends LoadableComponent {
       }
       if(step.config.dashboard != null && step.config.dashboard.table != null && step.config.dashboard.table.rowConfig != null) {
         stepTableConfig = step.config.dashboard.table.rowConfig;
+        this.sortFields = _.map(step.config.dashboard.table.rowConfig, (config) => { return config.variable });
       }
       this.tableConfig[step.name] = stepTableConfig;
       this.sortMap[step.name] = {};
@@ -226,6 +229,9 @@ export class DashboardComponent extends LoadableComponent {
       imports.oid = stagedRecord.oid
       imports.title = stagedRecord.title
       imports.metadata = stagedRecord.metadata['metadata'];
+      imports.metaMetadata = stagedRecord.metadata['metaMetadata'];
+      imports.packageType = stagedRecord.metadata['packageType'];
+      imports.workflow = stagedRecord.metadata['workflow'];
       imports.hasEditAccess = stagedRecord.hasEditAccess;
       imports.branding = this.branding;
       imports.portal = this.portal;
@@ -267,11 +273,13 @@ export class DashboardComponent extends LoadableComponent {
 
     if (_.isEmpty(this.packageType)) {
       this.dashboardService.getRecords(this.recordType, step, event.page, null, this.getSortString(sortDetails)).then((stagedRecords: PlanTable) => {
+        let planTable: PlanTable = this.evaluatePlanTableColumns(step, stagedRecords);
         this.setDashboardTitle(stagedRecords);
         this.records[step] = stagedRecords;
       });
     } else {
       const stagedRecords = this.dashboardService.getRecords(null, null, event.page, this.packageType, this.getSortString(sortDetails)).then((stagedRecords: PlanTable) => {
+        let planTable: PlanTable = this.evaluatePlanTableColumns(this.packageType, stagedRecords);
         this.setDashboardTitle(stagedRecords);
         this.records[this.packageType] = stagedRecords;
       });
@@ -281,11 +289,11 @@ export class DashboardComponent extends LoadableComponent {
 
   getSortString(sortDetails: any) {
 
-    let fields = ['date_object_modified', 'date_object_created', 'metadata.title', 'metadata.contributor_ci.text_full_name', 'metadata.contributor_data_manager.text_full_name'];
+    let fields = this.sortFields;
 
     for (let i = 0; i < fields.length; i++) {
       let sortField = fields[i];
-      let sortString = `${sortField}:`;
+      let sortString = `'${sortField}':`;
 
       if (sortDetails[sortField].sort != null) {
         if (sortDetails[sortField].sort == 'desc') {
