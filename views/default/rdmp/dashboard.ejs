@@ -5,7 +5,9 @@
 
 <div class="default-page">
   <div class="header">
-    <h1 id="main-title" class="container"><%= TranslationService.t('edit-dashboard') %> <%= TranslationService.t(recordType+'-title-label') %></h1>
+    <h1 id="main-title" class="container">
+      <%= titleLabel %>
+    </h1>
     <div class="container">
     </div>
     <br/>
@@ -20,7 +22,7 @@
     </div>
   </div>
   <div class="main container clearfix">
-    <dashboard branding="<%= typeof branding == 'undefined'? data.branding : branding %>" portal="<%= typeof portal == 'undefined'? data.portal : portal %>" recordType="<%= typeof recordType == 'undefined'? data.recordType : recordType %>"></dashboard>
+    <dashboard branding="<%= typeof branding == 'undefined'? data.branding : branding %>" portal="<%= typeof portal == 'undefined'? data.portal : portal %>" recordType="<%= typeof recordType == 'undefined'? data.recordType : recordType %>" packageType="<%= typeof packageType == 'undefined' ? data.recordType : packageType %>"></dashboard>
     <%
     var currentMinute = sails.config.startupMinute;
     %>

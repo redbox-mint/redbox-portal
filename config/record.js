@@ -58,6 +58,9 @@ module.exports.record = {
       field: 'referrer',
       parseUrl: true,
       searchParams: 'rdmp'
+    },
+    '@metadata': {
+      source: 'metadata'
     }
   },
   export: {
@@ -78,5 +81,5 @@ module.exports.record = {
   // datastreamService: 'datastreamservice'
   helpEmail: 'support@redboxresearchdata.com.au'
 
-  
+
 };

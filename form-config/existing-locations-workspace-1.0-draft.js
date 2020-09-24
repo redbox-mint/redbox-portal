@@ -3,7 +3,7 @@
  */
 module.exports = {
     name: "existing-locations-1.0-draft",
-    type: "workspace",
+    type: "existing-locations",
     skipValidationOnSave: false, // perform client-side validation
     editCssClasses: 'row col-md-12',
     viewCssClasses: 'row col-md-offset-1 col-md-10',
@@ -23,23 +23,34 @@ module.exports = {
             }
         },
         {
-            class: 'TextField',
-            definition: {
-                name: 'workspace-name',
-                label: '@workspace-name',
-                type: 'text'
-            }
+          class: "AnchorOrButton",
+          viewOnly: true,
+          definition: {
+            label: '@workspace-edit',
+            value: '/@branding/@portal/record/edit/@oid?rdmp=@metadata[rdmpOid]',
+            cssClasses: 'btn btn-large btn-info',
+            showPencil: true,
+            controlType: 'anchor'
+          },
+          variableSubstitutionFields: ['value']
+        },
+        {
+          class: 'TextField',
+          definition: {
+            name: 'title',
+            label: '@workspace-name',
+            type: 'text',
+            required: true
+          }
         },
         {
             class: 'SelectionField',
             compClass: 'DropdownFieldComponent',
             definition: {
-                name: 'workspacesLocationType',
+                name: 'storage_type',
                 label: '@workspace-type',
-                options: [{
-                    value: "",
-                    label: "@dmpt-select:Empty"
-                },
+                required: true,
+                options: [
                     {
                         label: "@workspace-type-shared",
                         value: "@workspace-type-shared"
@@ -81,7 +92,7 @@ module.exports = {
             class: 'TextArea',
             compClass: 'TextAreaComponent',
             definition: {
-                name: 'workspace-description',
+                name: 'description',
                 label: '@workspace-description',
                 type: 'text',
                 rows: 5,
@@ -93,7 +104,7 @@ module.exports = {
             compClass: 'RepeatableTextfieldComponent',
             definition: {
                 label: "@workspace-location-url",
-                name: "workspaceLocationUrls",
+                name: "storage_locations",
                 fields: [{
                     class: 'TextField',
                     definition: {
@@ -108,31 +119,24 @@ module.exports = {
             definition: {
                 fields: [
                     {
-                        class: "Spacer",
-                        definition: {
-                            width: '50px',
-                            height: 'inherit'
-                        }
-                    },
-                    {
                         class: 'SaveButton',
                         compClass: 'SaveButtonComponent',
                         definition: {
                             label: "Save & Close",
-                            targetStep: 'provisioning',
                             closeOnSave: true,
-                            redirectLocation: '/@branding/@portal/record/edit/@rdmpOid?focusTabId=workspaces'
+                            redirectLocation: '/@branding/@portal/record/edit/@referrer_rdmp?focusTabId=workspaces'
                         },
                         variableSubstitutionFields: ['redirectLocation']
                     },
                     {
-                        class: "CancelButton",
+                        class: "AnchorOrButton",
                         definition: {
-                            label: 'Cancel',
-                            targetStep: 'provisioning',
-                            redirectLocation: '/@branding/@portal/record/edit/@rdmpOid?focusTabId=workspaces'
+                          label: 'Cancel',
+                          value: '/@branding/@portal/record/edit/@referrer_rdmp?focusTabId=workspaces',
+                          cssClasses: 'btn btn-warning',
+                          controlType: 'anchor'
                         },
-                        variableSubstitutionFields: ['redirectLocation']
+                        variableSubstitutionFields: ['value']
                     }
                 ]
             }
@@ -151,6 +155,64 @@ module.exports = {
                     }
                 }]
             }
+        },
+        {
+          class: "ParameterRetriever",
+          compClass: 'ParameterRetrieverComponent',
+          editOnly: true,
+          definition: {
+            name: 'parameterRetriever',
+            parameterName:'rdmp'
+          }
+        },
+        {
+          class: 'RecordMetadataRetriever',
+          compClass: 'RecordMetadataRetrieverComponent',
+          editOnly: true,
+          definition: {
+            name: 'rdmpGetter',
+            subscribe: {
+              'parameterRetriever': {
+                onValueUpdate: [{
+                  action: 'publishMetadata'
+                }]
+              }
+            }
+          }
+        },
+        {
+          class: 'HiddenValue',
+          editOnly: true,
+          definition: {
+            name: 'rdmpOid',
+            subscribe: {
+              'rdmpGetter': {
+                onValueUpdate: [
+                  {
+                    action: 'utilityService.getPropertyFromObject',
+                    field: 'oid'
+                  }
+                ]
+              }
+            }
+          }
+        },
+        {
+          class: 'HiddenValue',
+          editOnly: true,
+          definition: {
+            name: 'rdmpTitle',
+            subscribe: {
+              'rdmpGetter': {
+                onValueUpdate: [
+                  {
+                    action: 'utilityService.getPropertyFromObject',
+                    field: 'title'
+                  }
+                ]
+              }
+            }
+          }
         }
     ]
 };

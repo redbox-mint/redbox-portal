@@ -28,7 +28,7 @@ declare var RecordType, Counter: Model;
 declare var _this;
 declare var User;
 declare var _;
-declare var TranslationService;
+declare var TranslationService, WorkspaceService;
 
 export module Services {
   /**
@@ -44,7 +44,8 @@ export module Services {
       'processRecordCounters',
       'stripUserBasedPermissions',
       'restoreUserBasedPermissions',
-      'runTemplates'
+      'runTemplates',
+      'addWorkspaceToRecord'
     ];
 
     /**
@@ -314,6 +315,13 @@ export module Services {
         return Observable.throw(new Error(errLog));
       }
       return Observable.of(record);
+    }
+
+    public async addWorkspaceToRecord(oid, workspaceData, options, user, response) {
+      const rdmpOid = workspaceData.metadata.rdmpOid;
+      sails.log.verbose(`Generic adding workspace ${oid} to record: ${rdmpOid}`);
+      response = await WorkspaceService.addWorkspaceToRecord(workspaceData.metadata.rdmpOid, oid);
+      return response;
     }
   }
 }
