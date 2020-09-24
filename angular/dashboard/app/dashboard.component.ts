@@ -90,12 +90,12 @@ export class DashboardComponent extends LoadableComponent {
     {
       title: 'header-ci',
       variable: 'metadata.contributor_ci.text_full_name',
-      template: '<%= metadata.contributor_ci.text_full_name %>'
+      template: '<%= metadata.contributor_ci != undefined ? metadata.contributor_ci.text_full_name : "" %>'
     },
     {
       title: 'header-data-manager',
       variable: 'metadata.contributor_data_manager.text_full_name',
-      template: '<%= metadata.contributor_data_manager.text_full_name %>'
+      template: '<%= metadata.contributor_data_manager != undefined ? metadata.contributor_data_manager.text_full_name : "" %>'
     },
     {
       title: 'header-created',
