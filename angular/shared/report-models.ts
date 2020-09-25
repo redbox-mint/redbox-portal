@@ -3,7 +3,7 @@ export class Report {
   title: string
   name: string
   solrQuery: string
-  filter: object
+  filter: object | object[]
   columns: object[]
 }
 

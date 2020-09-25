@@ -82,6 +82,16 @@ export class ReportComponent extends LoadableComponent {
   }
 
   public setReport(report) {
+    if(!_.isArray(report["filter"])) {
+      let filterArray:object[] = []
+      if(report["filter"] != null) {
+        report["filter"]["paramName"] = "dateRange"
+        filterArray.push(report["filter"])
+      }
+      report["filter"] = filterArray;
+    }
+    
+
     this.report = report;
   }
 
@@ -93,24 +103,45 @@ export class ReportComponent extends LoadableComponent {
 
   private getParams() {
     var params = {};
-    if (this.report["filter"]["type"] == 'date-range') {
+    let filters:object[] = this.report["filter"] as object[]
+    for(let filter of filters) {
+      if (filter["type"] == 'date-range') {
 
-      var fromDate = (this.filterParams["fromDate"] != null ? moment(this.filterParams["fromDate"]) : null);
-      var toDate = (this.filterParams["toDate"] != null ? moment(this.filterParams["toDate"]) : null);
-
-      if (fromDate != null) {
-        params["fromDate"] = fromDate.utc().format();
-        this.fromDate = params["fromDate"];
+        var fromDate = (this.filterParams[filter['paramName'] + "_fromDate"] != null ? moment(this.filterParams[filter['paramName'] + "_fromDate"]) : null);
+        var toDate = (this.filterParams[filter['paramName'] + "_toDate"] != null ? moment(this.filterParams[filter['paramName'] + "_toDate"]) : null);
+  
+        if (fromDate != null) {
+          params[filter['paramName'] + "_fromDate"] = fromDate.utc().format();
+          this.fromDate = params[filter['paramName'] + "_fromDate"];
+        } else {
+          this.fromDate = '';
+        }
+        if (toDate != null) {
+          params[filter['paramName'] + "_toDate"] = toDate.utc().format();
+          this.toDate = params[filter['paramName'] + "_toDate"];
+        } else {
+          this.toDate = '';
+        }
       } else {
-        this.fromDate = '';
+        let paramValue = this.filterParams[filter['paramName']];
+        if(!_.isEmpty(paramValue)) {
+         params[filter['paramName']] = paramValue
+        }
       }
-      if (toDate != null) {
-        params["toDate"] = toDate.utc().format();
-        this.toDate = params["toDate"];
-      } else {
-        this.toDate = '';
-      }
+  
     }
+
+    
     return params;
+  }
+
+  getDownloadCSVUrl() {
+    let url = `/${this.branding}/${this.portal}/admin/downloadReportCSV?name=${this.name}`
+    let params = this.getParams()
+    for(var key in params) {
+      url=url+'&'+key+"="+params[key];
+    }
+    return url;
+    // href="/{{ branding }}/{{ portal }}/admin/downloadReportCSV?name={{ name }}{{ fromDate != '' ? '&fromDate=' + fromDate : '' }}{{ toDate != '' ? '&toDate=' + toDate : '' }}"
   }
 }
