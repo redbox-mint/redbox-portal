@@ -1729,12 +1729,12 @@
     {
       title: &#x27;header-ci&#x27;,
       variable: &#x27;metadata.contributor_ci.text_full_name&#x27;,
-      template: &#x27;&lt;%&#x3D; metadata.contributor_ci.text_full_name %&gt;&#x27;
+      template: &#x27;&lt;%&#x3D; metadata.contributor_ci !&#x3D; undefined ? metadata.contributor_ci.text_full_name : &quot;&quot; %&gt;&#x27;
     },
     {
       title: &#x27;header-data-manager&#x27;,
       variable: &#x27;metadata.contributor_data_manager.text_full_name&#x27;,
-      template: &#x27;&lt;%&#x3D; metadata.contributor_data_manager.text_full_name %&gt;&#x27;
+      template: &#x27;&lt;%&#x3D; metadata.contributor_data_manager !&#x3D; undefined ? metadata.contributor_data_manager.text_full_name : &quot;&quot; %&gt;&#x27;
     },
     {
       title: &#x27;header-created&#x27;,
@@ -2446,12 +2446,12 @@ export class DashboardComponent extends LoadableComponent {
     {
       title: &#x27;header-ci&#x27;,
       variable: &#x27;metadata.contributor_ci.text_full_name&#x27;,
-      template: &#x27;&lt;%&#x3D; metadata.contributor_ci.text_full_name %&gt;&#x27;
+      template: &#x27;&lt;%&#x3D; metadata.contributor_ci !&#x3D; undefined ? metadata.contributor_ci.text_full_name : &quot;&quot; %&gt;&#x27;
     },
     {
       title: &#x27;header-data-manager&#x27;,
       variable: &#x27;metadata.contributor_data_manager.text_full_name&#x27;,
-      template: &#x27;&lt;%&#x3D; metadata.contributor_data_manager.text_full_name %&gt;&#x27;
+      template: &#x27;&lt;%&#x3D; metadata.contributor_data_manager !&#x3D; undefined ? metadata.contributor_data_manager.text_full_name : &quot;&quot; %&gt;&#x27;
     },
     {
       title: &#x27;header-created&#x27;,
