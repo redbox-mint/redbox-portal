@@ -200,6 +200,9 @@
                                 <a href="#filter">filter</a>
                             </li>
                             <li>
+                                <a href="#getDownloadCSVUrl">getDownloadCSVUrl</a>
+                            </li>
+                            <li>
                                     <span class="modifier">Private</span>
                                 <a href="#getParams">getParams</a>
                             </li>
@@ -377,8 +380,8 @@
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="88"
-                            class="link-to-prism">angular/report/app/report.component.ts:88</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="98"
+                            class="link-to-prism">angular/report/app/report.component.ts:98</a></div>
                 </td>
             </tr>
 
@@ -429,6 +432,45 @@
         <tbody>
             <tr>
                 <td class="col-md-4">
+                    <a name="getDownloadCSVUrl"></a>
+                    <span class="name">
+                        <b>
+                            getDownloadCSVUrl
+                        </b>
+                        <a href="#getDownloadCSVUrl"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+<code>getDownloadCSVUrl()</code>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-line">Defined in <a href="" data-line="138"
+                            class="link-to-prism">angular/report/app/report.component.ts:138</a></div>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+
+                    <div class="io-description">
+                        <b>Returns : </b>        <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank" >string</a></code>
+
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
                     <a name="getParams"></a>
                     <span class="name">
                         <b>
@@ -449,8 +491,8 @@
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="94"
-                            class="link-to-prism">angular/report/app/report.component.ts:94</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="104"
+                            class="link-to-prism">angular/report/app/report.component.ts:104</a></div>
                 </td>
             </tr>
 
@@ -1932,6 +1974,16 @@ export class ReportComponent extends LoadableComponent {
   }
 
   public setReport(report) {
+    if(!_.isArray(report[&quot;filter&quot;])) {
+      let filterArray:object[] &#x3D; []
+      if(report[&quot;filter&quot;] !&#x3D; null) {
+        report[&quot;filter&quot;][&quot;paramName&quot;] &#x3D; &quot;dateRange&quot;
+        filterArray.push(report[&quot;filter&quot;])
+      }
+      report[&quot;filter&quot;] &#x3D; filterArray;
+    }
+    
+
     this.report &#x3D; report;
   }
 
@@ -1943,33 +1995,53 @@ export class ReportComponent extends LoadableComponent {
 
   private getParams() {
     var params &#x3D; {};
-    if (this.report[&quot;filter&quot;][&quot;type&quot;] &#x3D;&#x3D; &#x27;date-range&#x27;) {
+    let filters:object[] &#x3D; this.report[&quot;filter&quot;] as object[]
+    for(let filter of filters) {
+      if (filter[&quot;type&quot;] &#x3D;&#x3D; &#x27;date-range&#x27;) {
 
-      var fromDate &#x3D; (this.filterParams[&quot;fromDate&quot;] !&#x3D; null ? moment(this.filterParams[&quot;fromDate&quot;]) : null);
-      var toDate &#x3D; (this.filterParams[&quot;toDate&quot;] !&#x3D; null ? moment(this.filterParams[&quot;toDate&quot;]) : null);
-
-      if (fromDate !&#x3D; null) {
-        params[&quot;fromDate&quot;] &#x3D; fromDate.utc().format();
-        this.fromDate &#x3D; params[&quot;fromDate&quot;];
+        var fromDate &#x3D; (this.filterParams[filter[&#x27;paramName&#x27;] + &quot;_fromDate&quot;] !&#x3D; null ? moment(this.filterParams[filter[&#x27;paramName&#x27;] + &quot;_fromDate&quot;]) : null);
+        var toDate &#x3D; (this.filterParams[filter[&#x27;paramName&#x27;] + &quot;_toDate&quot;] !&#x3D; null ? moment(this.filterParams[filter[&#x27;paramName&#x27;] + &quot;_toDate&quot;]) : null);
+  
+        if (fromDate !&#x3D; null) {
+          params[filter[&#x27;paramName&#x27;] + &quot;_fromDate&quot;] &#x3D; fromDate.utc().format();
+          this.fromDate &#x3D; params[filter[&#x27;paramName&#x27;] + &quot;_fromDate&quot;];
+        } else {
+          this.fromDate &#x3D; &#x27;&#x27;;
+        }
+        if (toDate !&#x3D; null) {
+          params[filter[&#x27;paramName&#x27;] + &quot;_toDate&quot;] &#x3D; toDate.utc().format();
+          this.toDate &#x3D; params[filter[&#x27;paramName&#x27;] + &quot;_toDate&quot;];
+        } else {
+          this.toDate &#x3D; &#x27;&#x27;;
+        }
       } else {
-        this.fromDate &#x3D; &#x27;&#x27;;
+        let paramValue &#x3D; this.filterParams[filter[&#x27;paramName&#x27;]];
+        if(!_.isEmpty(paramValue)) {
+         params[filter[&#x27;paramName&#x27;]] &#x3D; paramValue
+        }
       }
-      if (toDate !&#x3D; null) {
-        params[&quot;toDate&quot;] &#x3D; toDate.utc().format();
-        this.toDate &#x3D; params[&quot;toDate&quot;];
-      } else {
-        this.toDate &#x3D; &#x27;&#x27;;
-      }
+  
     }
+
+    
     return params;
+  }
+
+  getDownloadCSVUrl() {
+    let url &#x3D; &#x60;/${this.branding}/${this.portal}/admin/downloadReportCSV?name&#x3D;${this.name}&#x60;
+    let params &#x3D; this.getParams()
+    for(var key in params) {
+      url&#x3D;url+&#x27;&amp;&#x27;+key+&quot;&#x3D;&quot;+params[key];
+    }
+    return url;
+    // href&#x3D;&quot;/{{ branding }}/{{ portal }}/admin/downloadReportCSV?name&#x3D;{{ name }}{{ fromDate !&#x3D; &#x27;&#x27; ? &#x27;&amp;fromDate&#x3D;&#x27; + fromDate : &#x27;&#x27; }}{{ toDate !&#x3D; &#x27;&#x27; ? &#x27;&amp;toDate&#x3D;&#x27; + toDate : &#x27;&#x27; }}&quot;
   }
 }
 </code></pre>
     </div>
 
     <div class="tab-pane fade " id="c-templateData">
-        <pre class="line-numbers"><code class="language-html">
-&lt;div *ngIf&#x3D;&quot;!isLoading&quot;&gt;
+        <pre class="line-numbers"><code class="language-html">&lt;div *ngIf&#x3D;&quot;!isLoading&quot;&gt;
 
   &lt;div class&#x3D;&quot;row&quot;&gt;
 
@@ -1980,61 +2052,94 @@ export class ReportComponent extends LoadableComponent {
     &lt;/div&gt;
 
   &lt;/div&gt;
-  &lt;div class&#x3D;&quot;row&quot; *ngIf&#x3D;&quot;report.filter !&#x3D; null &amp;&amp; report.filter.type &#x3D;&#x3D; &#x27;date-range&#x27;&quot;&gt;
+
+  &lt;div class&#x3D;&quot;row&quot; *ngIf&#x3D;&quot;report.filter !&#x3D; null&quot;&gt;
     &lt;div class&#x3D;&quot;panel panel-default&quot;&gt;
-  &lt;div class&#x3D;&quot;panel-body&quot;&gt;
-    &lt;div class&#x3D;&quot;row&quot;&gt;
-      &lt;span class&#x3D;&quot;text-center h4-header&quot;&gt;
-        {{ report.filter.message }}
-      &lt;/span&gt;
-    &lt;/div&gt;
-    &lt;div class&#x3D;&quot;row&quot;&gt;
-    &lt;div class&#x3D;&quot;col-xs-2&quot;&gt;
+      &lt;div class&#x3D;&quot;panel-body&quot; style&#x3D;&quot;padding-left:30px&quot;&gt;
+        &lt;div class&#x3D;&quot;row&quot;&gt;
+          &lt;div class&#x3D;&quot;text-center h4-header&quot;&gt;
+            Filters
+          &lt;/div&gt;
+        &lt;/div&gt;
+        &lt;ng-template ngFor let-filter [ngForOf]&#x3D;&quot;report.filter&quot;&gt;
+          &lt;div class&#x3D;&quot;row&quot;&gt;
+            &lt;label&gt;{{filter.message}}&lt;/label&gt;
+          &lt;/div&gt;
+          
+          &lt;div *ngIf&#x3D;&quot;filter.type &#x3D;&#x3D; &#x27;text&#x27;&quot; class&#x3D;&quot;row&quot;&gt;
+            &lt;div class&#x3D;&quot;col-xs-2&quot;&gt;
 
-    &lt;/div&gt;
-    &lt;div class&#x3D;&quot;col-xs-3&quot;&gt;
-      &lt;div class&#x3D;&quot;form-horizontal&quot;&gt;
-            &lt;div class&#x3D;&quot;form-group&quot;&gt;
-              &lt;span class&#x3D;&quot;col-xs-3 control-label&quot;&gt;{{ &#x27;report-filter-date-from&#x27; | translate }}&lt;/span&gt;
-              &lt;span class&#x3D;&quot;col-xs-9&quot;&gt;
-                &lt;datetime #dateTime1 [timepicker]&#x3D;&quot;false&quot; [datepicker]&#x3D;&quot;{format: &#x27;d/m/yyyy&#x27;}&quot; [(ngModel)]&#x3D;&quot;filterParams.fromDate&quot;&gt;&lt;/datetime&gt;
-              &lt;/span&gt;
             &lt;/div&gt;
+
+            &lt;div class&#x3D;&quot;col-xs-6&quot;&gt;
+              &lt;input type&#x3D;&quot;text&quot; class&#x3D;&quot;form-control&quot; [(ngModel)]&#x3D;&quot;filterParams[ filter[&#x27;paramName&#x27;]]&quot;&gt;
+            &lt;/div&gt;
+          &lt;/div&gt;
+
+          &lt;div *ngIf&#x3D;&quot;filter.type &#x3D;&#x3D; &#x27;date-range&#x27;&quot; class&#x3D;&quot;row&quot;&gt;
+            &lt;div class&#x3D;&quot;col-xs-2&quot;&gt;
+
+            &lt;/div&gt;
+
+            &lt;div class&#x3D;&quot;col-xs-3&quot;&gt;
+              &lt;div class&#x3D;&quot;form-horizontal&quot;&gt;
+                &lt;div class&#x3D;&quot;form-group&quot;&gt;
+                  &lt;span class&#x3D;&quot;col-xs-3 control-label&quot;&gt;{{ &#x27;report-filter-date-from&#x27; | translate }}&lt;/span&gt;
+                  &lt;span class&#x3D;&quot;col-xs-9&quot;&gt;
+                    &lt;datetime #dateTime1 [timepicker]&#x3D;&quot;false&quot; [datepicker]&#x3D;&quot;{format: &#x27;d/m/yyyy&#x27;}&quot;
+                      [(ngModel)]&#x3D;&quot;filterParams[ filter[&#x27;paramName&#x27;] + &#x27;_fromDate&#x27;]&quot;&gt;&lt;/datetime&gt;
+                  &lt;/span&gt;
+                &lt;/div&gt;
+              &lt;/div&gt;
+            &lt;/div&gt;
+            &lt;div class&#x3D;&quot;col-xs-3&quot;&gt;
+              &lt;div class&#x3D;&quot;form-horizontal&quot;&gt;
+                &lt;div class&#x3D;&quot;form-group&quot;&gt;
+                  &lt;span class&#x3D;&quot;col-xs-2 control-label&quot;&gt;{{ &#x27;report-filter-date-to&#x27; | translate }}&lt;/span&gt;
+                  &lt;span class&#x3D;&quot;col-xs-10&quot;&gt;
+                    &lt;datetime #dateTime2 [timepicker]&#x3D;&quot;false&quot; [datepicker]&#x3D;&quot;{format: &#x27;d/m/yyyy&#x27;}&quot;
+                      [(ngModel)]&#x3D;&quot;filterParams[ filter[&#x27;paramName&#x27;] + &#x27;_toDate&#x27;]&quot;&gt;&lt;/datetime&gt;
+                  &lt;/span&gt;
+                &lt;/div&gt;
+              &lt;/div&gt;
+
+            &lt;/div&gt;
+            &lt;div class&#x3D;&quot;col-xs-2&quot;&gt;
+            &lt;/div&gt;
+            &lt;div class&#x3D;&quot;col-xs-2&quot;&gt;
+
+            &lt;/div&gt;
+          &lt;/div&gt;
+        &lt;/ng-template&gt;
+        &lt;div class&#x3D;&quot;row&quot;&gt;
+          &lt;div class&#x3D;&quot;col-xs-2&quot;&gt;
+
+          &lt;/div&gt;
+
+          &lt;div class&#x3D;&quot;col-xs-6&quot; style&#x3D;&quot;text-align:right; padding-top:15px;&quot;&gt;
+            &lt;a class&#x3D;&quot;btn btn-large btn-info&quot; (click)&#x3D;&quot;filter()&quot;&gt;
+              &lt;span class&#x3D;&quot;glyphicon glyphicon-search&quot;&gt;&lt;/span&gt;
+              {{ &#x27;report-filter-button&#x27; | translate }}
+            &lt;/a&gt;
+          &lt;/div&gt;
+          
+        &lt;/div&gt;
+
       &lt;/div&gt;
     &lt;/div&gt;
-    &lt;div class&#x3D;&quot;col-xs-3&quot;&gt;
-      &lt;div class&#x3D;&quot;form-horizontal&quot;&gt;
-            &lt;div class&#x3D;&quot;form-group&quot;&gt;
-              &lt;span class&#x3D;&quot;col-xs-2 control-label&quot;&gt;{{ &#x27;report-filter-date-to&#x27; | translate }}&lt;/span&gt;
-              &lt;span class&#x3D;&quot;col-xs-10&quot;&gt;
-                &lt;datetime #dateTime2 [timepicker]&#x3D;&quot;false&quot;  [datepicker]&#x3D;&quot;{format: &#x27;d/m/yyyy&#x27;}&quot; [(ngModel)]&#x3D;&quot;filterParams.toDate&quot;&gt;&lt;/datetime&gt;
-              &lt;/span&gt;
-            &lt;/div&gt;
-      &lt;/div&gt;
-
-    &lt;/div&gt;
-    &lt;div class&#x3D;&quot;col-xs-2&quot;&gt;
-      &lt;a class&#x3D;&quot;btn btn-large btn-info&quot; (click)&#x3D;&quot;filter()&quot;&gt;
-        &lt;span class&#x3D;&quot;glyphicon glyphicon-search&quot;&gt;&lt;/span&gt;
-        {{ &#x27;report-filter-button&#x27; | translate }}
-      &lt;/a&gt;
-    &lt;/div&gt;
-    &lt;div class&#x3D;&quot;col-xs-2&quot;&gt;
-
-    &lt;/div&gt;
-  &lt;/div&gt;
-  &lt;/div&gt;
-&lt;/div&gt;
   &lt;/div&gt;
   &lt;div class&#x3D;&quot;row&quot;&gt;
     &lt;div class&#x3D;&quot;col-xs-2&quot;&gt;
-      &lt;span *ngIf&#x3D;&quot;initTracker.resultsReturned &#x3D;&#x3D; false&quot;&gt;&lt;span class&#x3D;&quot;fa fa-spinner fa-spin fa-fw&quot;&gt;&lt;/span&gt;{{ &#x27;report-retrieving-results&#x27; | translate }}&lt;/span&gt;
-      &lt;span *ngIf&#x3D;&quot;initTracker.resultsReturned &#x3D;&#x3D; true&quot; [innerHTML]&#x3D;&#x27;&quot;report-results-returned&quot; | translate:{count: reportResults.totalItems}&#x27;&gt;&lt;/span&gt;
+      &lt;span *ngIf&#x3D;&quot;initTracker.resultsReturned &#x3D;&#x3D; false&quot;&gt;&lt;span
+          class&#x3D;&quot;fa fa-spinner fa-spin fa-fw&quot;&gt;&lt;/span&gt;{{ &#x27;report-retrieving-results&#x27; | translate }}&lt;/span&gt;
+      &lt;span *ngIf&#x3D;&quot;initTracker.resultsReturned &#x3D;&#x3D; true&quot;
+        [innerHTML]&#x3D;&#x27;&quot;report-results-returned&quot; | translate:{count: reportResults.totalItems}&#x27;&gt;&lt;/span&gt;
     &lt;/div&gt;
     &lt;div class&#x3D;&quot;col-xs-8&quot;&gt;
     &lt;/div&gt;
     &lt;div class&#x3D;&quot;col-xs-2&quot;&gt;
-      &lt;a class&#x3D;&quot;btn btn-large btn-info&quot; href&#x3D;&quot;/{{ branding }}/{{ portal }}/admin/downloadReportCSV?name&#x3D;{{ name }}{{ fromDate !&#x3D; &#x27;&#x27; ? &#x27;&amp;fromDate&#x3D;&#x27; + fromDate : &#x27;&#x27; }}{{ toDate !&#x3D; &#x27;&#x27; ? &#x27;&amp;toDate&#x3D;&#x27; + toDate : &#x27;&#x27; }}&quot;&gt;
+      &lt;a class&#x3D;&quot;btn btn-large btn-info&quot;
+      [attr.href]&#x3D;&#x27;getDownloadCSVUrl()&#x27;&gt;
         &lt;span class&#x3D;&quot;glyphicon glyphicon-download&quot;&gt;&lt;/span&gt;
         {{ &#x27;report-csv-download&#x27; | translate }}
       &lt;/a&gt;
@@ -2042,27 +2147,35 @@ export class ReportComponent extends LoadableComponent {
     &lt;/div&gt;
   &lt;/div&gt;
   &lt;div class&#x3D;&quot;row&quot;&gt;
-  &lt;table class&#x3D;&quot;table&quot;&gt;
-    &lt;thead&gt;
+    &lt;table class&#x3D;&quot;table&quot;&gt;
+      &lt;thead&gt;
         &lt;tr&gt;
-            &lt;ng-container *ngFor&#x3D;&quot;let header of report.columns&quot;&gt;&lt;th *ngIf&#x3D;&#x27;header.show !&#x3D; false&#x27;&gt;{{ header.label }}&lt;/th&gt;&lt;/ng-container&gt;
+          &lt;ng-container *ngFor&#x3D;&quot;let header of report.columns&quot;&gt;
+            &lt;th *ngIf&#x3D;&#x27;header.show !&#x3D; false&#x27;&gt;{{ header.label }}&lt;/th&gt;
+          &lt;/ng-container&gt;
         &lt;/tr&gt;
-    &lt;/thead&gt;
-    &lt;tbody&gt;
-        &lt;tr *ngFor&#x3D;&quot;let item of reportResults.items&quot;&gt;&lt;ng-container *ngFor&#x3D;&quot;let column of report.columns&quot;&gt;&lt;td  *ngIf&#x3D;&#x27;column.show !&#x3D; false&#x27;&gt;
-          &lt;span *ngIf&#x3D;&#x27;column.link !&#x3D; null; else multivalue&#x27;&gt;&lt;a href&#x3D;&quot;/{{ branding }}/{{ portal }}/{{ column.link.pattern | stringTemplate:item }}&quot;&gt;{{ item[column.property] }}&lt;/a&gt;&lt;/span&gt;
-          &lt;ng-template #multivalue&gt;&lt;span *ngIf&#x3D;&#x27;column.multivalue &#x3D;&#x3D; true; else noProcessing&#x27; [innerHTML]&#x3D;&#x27;item[column.property] | multivalue&#x27;&gt;&lt;/span&gt;&lt;/ng-template&gt;
-          &lt;ng-template #noProcessing&gt;&lt;span &gt;{{ item[column.property] }}&lt;/span&gt;&lt;/ng-template&gt;
-        &lt;/td&gt;&lt;/ng-container&gt;&lt;/tr&gt;
-    &lt;/tbody&gt;
-  &lt;/table&gt;
+      &lt;/thead&gt;
+      &lt;tbody&gt;
+        &lt;tr *ngFor&#x3D;&quot;let item of reportResults.items&quot;&gt;
+          &lt;ng-container *ngFor&#x3D;&quot;let column of report.columns&quot;&gt;
+            &lt;td *ngIf&#x3D;&#x27;column.show !&#x3D; false&#x27;&gt;
+              &lt;span *ngIf&#x3D;&#x27;column.link !&#x3D; null; else multivalue&#x27;&gt;&lt;a
+                  href&#x3D;&quot;/{{ branding }}/{{ portal }}/{{ column.link.pattern | stringTemplate:item }}&quot;&gt;{{ item[column.property] }}&lt;/a&gt;&lt;/span&gt;
+              &lt;ng-template #multivalue&gt;&lt;span *ngIf&#x3D;&#x27;column.multivalue &#x3D;&#x3D; true; else noProcessing&#x27;
+                  [innerHTML]&#x3D;&#x27;item[column.property] | multivalue&#x27;&gt;&lt;/span&gt;&lt;/ng-template&gt;
+              &lt;ng-template #noProcessing&gt;&lt;span&gt;{{ item[column.property] }}&lt;/span&gt;&lt;/ng-template&gt;
+            &lt;/td&gt;
+          &lt;/ng-container&gt;
+        &lt;/tr&gt;
+      &lt;/tbody&gt;
+    &lt;/table&gt;
   &lt;/div&gt;
   &lt;div class&#x3D;&quot;row&quot;&gt;
-    &lt;pagination *ngIf&#x3D;&quot;reportResults.totalItems &gt; 0&quot; [directionLinks]&#x3D;&quot;false&quot; [boundaryLinks]&#x3D;&quot;true&quot; [totalItems]&#x3D;&quot;reportResults.totalItems&quot;
-              [(ngModel)]&#x3D;&quot;reportResults.currentPage&quot; (pageChanged)&#x3D;&quot;reportResultsPageChanged($event)&quot; class&#x3D;&quot;pagination-sm&quot;&gt;&lt;/pagination&gt;
+    &lt;pagination *ngIf&#x3D;&quot;reportResults.totalItems &gt; 0&quot; [directionLinks]&#x3D;&quot;false&quot; [boundaryLinks]&#x3D;&quot;true&quot;
+      [totalItems]&#x3D;&quot;reportResults.totalItems&quot; [(ngModel)]&#x3D;&quot;reportResults.currentPage&quot;
+      (pageChanged)&#x3D;&quot;reportResultsPageChanged($event)&quot; class&#x3D;&quot;pagination-sm&quot;&gt;&lt;/pagination&gt;
   &lt;/div&gt;
-&lt;/div&gt;
-</code></pre>
+&lt;/div&gt;</code></pre>
     </div>
 
 
@@ -2091,7 +2204,7 @@ export class ReportComponent extends LoadableComponent {
 <script src="../js/libs/htmlparser.js"></script>
 <script src="../js/libs/deep-iterator.js"></script>
 <script>
-        var COMPONENT_TEMPLATE = '<div><div *ngIf="!isLoading">  <div class="row">    <div class="col-xs-12">      <h1 class="text-center" *ngIf="report.title">        {{ report.title }}      </h1>    </div>  </div>  <div class="row" *ngIf="report.filter != null && report.filter.type == \'date-range\'">    <div class="panel panel-default">  <div class="panel-body">    <div class="row">      <span class="text-center h4-header">        {{ report.filter.message }}      </span>    </div>    <div class="row">    <div class="col-xs-2">    </div>    <div class="col-xs-3">      <div class="form-horizontal">            <div class="form-group">              <span class="col-xs-3 control-label">{{ \'report-filter-date-from\' | translate }}</span>              <span class="col-xs-9">                <datetime #dateTime1 [timepicker]="false" [datepicker]="{format: \'d/m/yyyy\'}" [(ngModel)]="filterParams.fromDate"></datetime>              </span>            </div>      </div>    </div>    <div class="col-xs-3">      <div class="form-horizontal">            <div class="form-group">              <span class="col-xs-2 control-label">{{ \'report-filter-date-to\' | translate }}</span>              <span class="col-xs-10">                <datetime #dateTime2 [timepicker]="false"  [datepicker]="{format: \'d/m/yyyy\'}" [(ngModel)]="filterParams.toDate"></datetime>              </span>            </div>      </div>    </div>    <div class="col-xs-2">      <a class="btn btn-large btn-info" (click)="filter()">        <span class="glyphicon glyphicon-search"></span>        {{ \'report-filter-button\' | translate }}      </a>    </div>    <div class="col-xs-2">    </div>  </div>  </div></div>  </div>  <div class="row">    <div class="col-xs-2">      <span *ngIf="initTracker.resultsReturned == false"><span class="fa fa-spinner fa-spin fa-fw"></span>{{ \'report-retrieving-results\' | translate }}</span>      <span *ngIf="initTracker.resultsReturned == true" [innerHTML]=\'"report-results-returned" | translate:{count: reportResults.totalItems}\'></span>    </div>    <div class="col-xs-8">    </div>    <div class="col-xs-2">      <a class="btn btn-large btn-info" href="/{{ branding }}/{{ portal }}/admin/downloadReportCSV?name={{ name }}{{ fromDate != \'\' ? \'&fromDate=\' + fromDate : \'\' }}{{ toDate != \'\' ? \'&toDate=\' + toDate : \'\' }}">        <span class="glyphicon glyphicon-download"></span>        {{ \'report-csv-download\' | translate }}      </a>    </div>  </div>  <div class="row">  <table class="table">    <thead>        <tr>            <ng-container *ngFor="let header of report.columns"><th *ngIf=\'header.show != false\'>{{ header.label }}</th></ng-container>        </tr>    </thead>    <tbody>        <tr *ngFor="let item of reportResults.items"><ng-container *ngFor="let column of report.columns"><td  *ngIf=\'column.show != false\'>          <span *ngIf=\'column.link != null; else multivalue\'><a href="/{{ branding }}/{{ portal }}/{{ column.link.pattern | stringTemplate:item }}">{{ item[column.property] }}</a></span>          <ng-template #multivalue><span *ngIf=\'column.multivalue == true; else noProcessing\' [innerHTML]=\'item[column.property] | multivalue\'></span></ng-template>          <ng-template #noProcessing><span >{{ item[column.property] }}</span></ng-template>        </td></ng-container></tr>    </tbody>  </table>  </div>  <div class="row">    <pagination *ngIf="reportResults.totalItems > 0" [directionLinks]="false" [boundaryLinks]="true" [totalItems]="reportResults.totalItems"              [(ngModel)]="reportResults.currentPage" (pageChanged)="reportResultsPageChanged($event)" class="pagination-sm"></pagination>  </div></div></div>'
+        var COMPONENT_TEMPLATE = '<div><div *ngIf="!isLoading">  <div class="row">    <div class="col-xs-12">      <h1 class="text-center" *ngIf="report.title">        {{ report.title }}      </h1>    </div>  </div>  <div class="row" *ngIf="report.filter != null">    <div class="panel panel-default">      <div class="panel-body" style="padding-left:30px">        <div class="row">          <div class="text-center h4-header">            Filters          </div>        </div>        <ng-template ngFor let-filter [ngForOf]="report.filter">          <div class="row">            <label>{{filter.message}}</label>          </div>                    <div *ngIf="filter.type == \'text\'" class="row">            <div class="col-xs-2">            </div>            <div class="col-xs-6">              <input type="text" class="form-control" [(ngModel)]="filterParams[ filter[\'paramName\']]">            </div>          </div>          <div *ngIf="filter.type == \'date-range\'" class="row">            <div class="col-xs-2">            </div>            <div class="col-xs-3">              <div class="form-horizontal">                <div class="form-group">                  <span class="col-xs-3 control-label">{{ \'report-filter-date-from\' | translate }}</span>                  <span class="col-xs-9">                    <datetime #dateTime1 [timepicker]="false" [datepicker]="{format: \'d/m/yyyy\'}"                      [(ngModel)]="filterParams[ filter[\'paramName\'] + \'_fromDate\']"></datetime>                  </span>                </div>              </div>            </div>            <div class="col-xs-3">              <div class="form-horizontal">                <div class="form-group">                  <span class="col-xs-2 control-label">{{ \'report-filter-date-to\' | translate }}</span>                  <span class="col-xs-10">                    <datetime #dateTime2 [timepicker]="false" [datepicker]="{format: \'d/m/yyyy\'}"                      [(ngModel)]="filterParams[ filter[\'paramName\'] + \'_toDate\']"></datetime>                  </span>                </div>              </div>            </div>            <div class="col-xs-2">            </div>            <div class="col-xs-2">            </div>          </div>        </ng-template>        <div class="row">          <div class="col-xs-2">          </div>          <div class="col-xs-6" style="text-align:right; padding-top:15px;">            <a class="btn btn-large btn-info" (click)="filter()">              <span class="glyphicon glyphicon-search"></span>              {{ \'report-filter-button\' | translate }}            </a>          </div>                  </div>      </div>    </div>  </div>  <div class="row">    <div class="col-xs-2">      <span *ngIf="initTracker.resultsReturned == false"><span          class="fa fa-spinner fa-spin fa-fw"></span>{{ \'report-retrieving-results\' | translate }}</span>      <span *ngIf="initTracker.resultsReturned == true"        [innerHTML]=\'"report-results-returned" | translate:{count: reportResults.totalItems}\'></span>    </div>    <div class="col-xs-8">    </div>    <div class="col-xs-2">      <a class="btn btn-large btn-info"      [attr.href]=\'getDownloadCSVUrl()\'>        <span class="glyphicon glyphicon-download"></span>        {{ \'report-csv-download\' | translate }}      </a>    </div>  </div>  <div class="row">    <table class="table">      <thead>        <tr>          <ng-container *ngFor="let header of report.columns">            <th *ngIf=\'header.show != false\'>{{ header.label }}</th>          </ng-container>        </tr>      </thead>      <tbody>        <tr *ngFor="let item of reportResults.items">          <ng-container *ngFor="let column of report.columns">            <td *ngIf=\'column.show != false\'>              <span *ngIf=\'column.link != null; else multivalue\'><a                  href="/{{ branding }}/{{ portal }}/{{ column.link.pattern | stringTemplate:item }}">{{ item[column.property] }}</a></span>              <ng-template #multivalue><span *ngIf=\'column.multivalue == true; else noProcessing\'                  [innerHTML]=\'item[column.property] | multivalue\'></span></ng-template>              <ng-template #noProcessing><span>{{ item[column.property] }}</span></ng-template>            </td>          </ng-container>        </tr>      </tbody>    </table>  </div>  <div class="row">    <pagination *ngIf="reportResults.totalItems > 0" [directionLinks]="false" [boundaryLinks]="true"      [totalItems]="reportResults.totalItems" [(ngModel)]="reportResults.currentPage"      (pageChanged)="reportResultsPageChanged($event)" class="pagination-sm"></pagination>  </div></div></div>'
     var COMPONENTS = [{'name': 'ActionButtonComponent', 'selector': 'action-button'},{'name': 'AnchorOrButtonComponent', 'selector': 'anchor-button'},{'name': 'ANDSVocabComponent', 'selector': 'ands-vocab-selector'},{'name': 'AsynchComponent', 'selector': 'asynch-component'},{'name': 'ButtonBarContainerComponent', 'selector': 'buttonbarcontainer'},{'name': 'CancelButtonComponent', 'selector': 'cancel-button'},{'name': 'ContributorComponent', 'selector': 'rb-contributor'},{'name': 'DashboardComponent', 'selector': 'dashboard'},{'name': 'DataLocationComponent', 'selector': 'data-location-selector'},{'name': 'DateTimeComponent', 'selector': 'date-time'},{'name': 'DmpFieldComponent', 'selector': 'dmp-field'},{'name': 'DmpFormComponent', 'selector': 'dmp-form'},{'name': 'DropdownFieldComponent', 'selector': 'dropdownfield'},{'name': 'EventHandlerComponent', 'selector': 'event-handler'},{'name': 'ExportFormComponent', 'selector': 'export-form'},{'name': 'GenericGroupComponent', 'selector': 'generic-group-field'},{'name': 'HiddenValueComponent', 'selector': 'hidden-field'},{'name': 'HtmlRawComponent', 'selector': 'htmlraw'},{'name': 'LinkValueComponent', 'selector': 'link-value'},{'name': 'LocalAuthComponent', 'selector': 'local-auth'},{'name': 'ManageRolesComponent', 'selector': 'manage-roles'},{'name': 'ManageUsersComponent', 'selector': 'manage-users'},{'name': 'MapComponent', 'selector': 'rb-mapdata'},{'name': 'MarkdownTextAreaComponent', 'selector': 'markdown-text-area'},{'name': 'ParameterRetrieverComponent', 'selector': 'parameter-retriever'},{'name': 'PDFListComponent', 'selector': 'rb-pdf-list'},{'name': 'PublishDataLocationRefreshComponent', 'selector': 'publish-data-location-refresh'},{'name': 'PublishDataLocationSelectorComponent', 'selector': 'publish-data-location-selector'},{'name': 'RecordMetadataRetrieverComponent', 'selector': 'record-metadata-retriever'},{'name': 'RecordPermissionsComponent', 'selector': 'rb-recordpermissions'},{'name': 'RecordSearchComponent', 'selector': 'record-search'},{'name': 'RecordSearchRefinerComponent', 'selector': 'record-search-refiner'},{'name': 'RelatedFileUploadComponent', 'selector': 'related-fileupload-selector'},{'name': 'RelatedObjectDataComponent', 'selector': 'rb-relatedobjectdata'},{'name': 'RelatedObjectSelectorComponent', 'selector': 'rb-RelatedObjectSelector'},{'name': 'RepeatableContributorComponent', 'selector': 'repeatable-contributor'},{'name': 'RepeatableGroupComponent', 'selector': 'repeatable-group'},{'name': 'RepeatableTextfieldComponent', 'selector': 'repeatable-textfield'},{'name': 'RepeatableVocabComponent', 'selector': 'repeatable-vocab'},{'name': 'ReportComponent', 'selector': 'report'},{'name': 'SaveButtonComponent', 'selector': 'save-button'},{'name': 'SelectionFieldComponent', 'selector': 'selectionfield'},{'name': 'SortComponent', 'selector': 'sort'},{'name': 'SpacerComponent', 'selector': 'spacer'},{'name': 'TabNavButtonComponent', 'selector': 'tab-nav-button'},{'name': 'TabOrAccordionContainerComponent', 'selector': 'tabcontainer'},{'name': 'TextAreaComponent', 'selector': 'text-area'},{'name': 'TextBlockComponent', 'selector': 'text-block'},{'name': 'TextFieldComponent', 'selector': 'textfield'},{'name': 'ToggleComponent', 'selector': 'toggle'},{'name': 'TransferOwnerComponent', 'selector': 'transfer-owner'},{'name': 'TreeNodeCheckboxComponent', 'selector': 'rb-tree-node-checkbox'},{'name': 'UserProfileComponent', 'selector': 'user-profile'},{'name': 'VocabFieldComponent', 'selector': 'rb-vocab'},{'name': 'WorkflowStepButtonComponent', 'selector': 'workflowstep-button'},{'name': 'WorkspaceFieldComponent', 'selector': 'ws-field'},{'name': 'WorkspaceListComponent', 'selector': 'workspace-list'},{'name': 'WorkspaceSelectorComponent', 'selector': 'workspace-selector-parent'},{'name': 'WorkspaceSelectorFieldComponent', 'selector': 'workspace-selector'}];
     var DIRECTIVES = [];
     var ACTUAL_COMPONENT = {'name': 'ReportComponent'};
