@@ -17,9 +17,14 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { Observable } from 'rxjs/Rx';
+import {
+  Observable
+} from 'rxjs/Rx';
 import services = require('../core/CoreService.js');
-import { Sails, Model } from "sails";
+import {
+  Sails,
+  Model
+} from "sails";
 import * as request from "request-promise";
 
 declare var sails: Sails;
@@ -46,27 +51,29 @@ export module Services {
     ];
 
     public bootstrap = (defBrand) => {
-      return super.getObservable(Report.find({ branding: defBrand.id })).flatMap(reports => {
-        if (_.isEmpty(reports)) {
-          var rTypes = [];
-          sails.log.verbose("Bootstrapping report definitions... ");
-          _.forOwn(sails.config.reports, (config, report) => {
-            var obs = this.create(defBrand, report, config);
-            obs.subscribe(repProcessed => { })
-            rTypes.push(obs);
-          });
-          return Observable.from(rTypes);
+      return super.getObservable(Report.find({
+          branding: defBrand.id
+        })).flatMap(reports => {
+          if (_.isEmpty(reports)) {
+            var rTypes = [];
+            sails.log.verbose("Bootstrapping report definitions... ");
+            _.forOwn(sails.config.reports, (config, report) => {
+              var obs = this.create(defBrand, report, config);
+              obs.subscribe(repProcessed => {})
+              rTypes.push(obs);
+            });
+            return Observable.from(rTypes);
 
-        } else {
+          } else {
 
-          var rTypes = [];
-          _.each(reports, function(report) {
-            rTypes.push(Observable.of(report));
-          });
-          sails.log.verbose("Default reports definition(s) exist.");
-          return Observable.from(rTypes);
-        }
-      })
+            var rTypes = [];
+            _.each(reports, function (report) {
+              rTypes.push(Observable.of(report));
+            });
+            sails.log.verbose("Default reports definition(s) exist.");
+            return Observable.from(rTypes);
+          }
+        })
         .last();
     }
 
@@ -99,18 +106,31 @@ export module Services {
       url = url + `&fq=metaMetadata_brandId:${brand.id}&wt=${format}`;
 
       if (report.filter != null) {
-        if (report.filter.type == 'date-range') {
-          var fromDate = req.param("fromDate");
-          var toDate = req.param("toDate");
-          var searchProperty = report.filter.property;
-          var filterQuery = "&fq=" + searchProperty + ":[";
-          filterQuery = filterQuery + (fromDate == null ? "*" : fromDate);
-          filterQuery = filterQuery + " TO ";
-          filterQuery = filterQuery + (toDate == null ? "*" : toDate) + "]";
-
-          url = url + filterQuery;
+        var filterQuery = ""
+        for (let filter of report.filter) {
+          if (filter.type == 'date-range') {
+            let paramName = filter.paramName;
+            var fromDate = req.param(paramName + "_fromDate");
+            var toDate = req.param(paramName + "_toDate");
+            var searchProperty = filter.property;
+            filterQuery = filterQuery + "&fq=" + searchProperty + ":[";
+            filterQuery = filterQuery + (fromDate == null ? "*" : fromDate);
+            filterQuery = filterQuery + " TO ";
+            filterQuery = filterQuery + (toDate == null ? "*" : toDate) + "]";
+          }
+          if (filter.type == 'text') {
+            let paramName = filter.paramName;
+            let value = req.param(paramName)
+            if (!_.isEmpty(value)) {
+              let searchProperty = filter.property;
+              filterQuery = filterQuery + "&fq=" + searchProperty + ":"
+              filterQuery = filterQuery + value + "*"
+            }
+          }
         }
+        url = url + filterQuery;
       }
+
       return url;
     }
 
@@ -121,12 +141,25 @@ export module Services {
       }));
 
       return reportObs.flatMap(report => {
+        report = this.convertLegacyReport(report);
+
         var url = this.buildSolrUrl(brand, req, report, start, rows, 'json');
         var options = this.getOptions(url);
         return Observable.fromPromise(request[sails.config.record.api.search.method](options));
       });
     }
 
+    private convertLegacyReport(report) {
+      if (!_.isArray(report["filter"])) {
+        let filterArray: object[] = []
+        if (report["filter"] != null) {
+          report["filter"]["paramName"] = "dateRange"
+          filterArray.push(report["filter"])
+        }
+        report["filter"] = filterArray;
+      }
+      return report;
+    }
     public getCSVResult(brand, name = '', req, start = 0, rows = 1000000000) {
 
       var reportObs = super.getObservable(Report.findOne({
@@ -134,6 +167,8 @@ export module Services {
       }));
 
       return reportObs.flatMap(report => {
+        report = this.convertLegacyReport(report);
+        sails.log.error(report)
         // TODO: Ensure we get all results in a tidier way
         //       Stream the resultset rather than load it in-memory
         var url = this.buildSolrUrl(brand, req, report, start, rows, 'csv');
@@ -160,7 +195,14 @@ export module Services {
     }
 
     protected getOptions(url, contentType = 'application/json; charset=utf-8') {
-      return { url: url, json: true, headers: { 'Authorization': `Bearer ${sails.config.redbox.apiKey}`, 'Content-Type': contentType } };
+      return {
+        url: url,
+        json: true,
+        headers: {
+          'Authorization': `Bearer ${sails.config.redbox.apiKey}`,
+          'Content-Type': contentType
+        }
+      };
     }
 
 
