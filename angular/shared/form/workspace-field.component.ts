@@ -4,6 +4,8 @@ import { FormControl, FormGroup, FormArray } from '@angular/forms';
 import { SimpleComponent } from './field-simple.component';
 import * as _ from "lodash";
 import { WorkspaceTypeService } from '../workspace-service';
+import * as moment from 'moment';
+import * as numeral from 'numeral';
 
 declare var jQuery: any;
 declare var $: any;
@@ -136,6 +138,9 @@ export class WorkspaceSelectorField extends FieldBase<any>  {
   // will show up as list
   displayAsList: boolean;
   shouldSaveForm: boolean;
+  allowAdd: boolean;
+  // template to execute to enable editing of this
+  allowAddTemplate: string;
 
 
   constructor(options: any, injector: any) {
@@ -146,6 +151,7 @@ export class WorkspaceSelectorField extends FieldBase<any>  {
     this.rdmp = undefined;
     this.displayAsList = _.isUndefined(options['displayAsList']) ? false : options['displayAsList'];
     this.shouldSaveForm = _.isUndefined(options['shouldSaveForm']) ? true: options['shouldSaveForm'];
+    this.allowAddTemplate = options['allowAddTemplate'];
     // this.options = options['options'] || [];
     this.workspaceApps = _.map(options['defaultSelection'] || [], (option) => {
       _.forOwn(option, (val, key) => {
@@ -180,6 +186,7 @@ export class WorkspaceSelectorField extends FieldBase<any>  {
 
   init() {
     this.rdmp = this.fieldMap._rootComp.oid || undefined;
+    this.triggerAllowAdd();
   }
 
   registerEvents() {
@@ -189,8 +196,21 @@ export class WorkspaceSelectorField extends FieldBase<any>  {
 
   setOid(o) {
     this.rdmp = o.oid;
+    this.triggerAllowAdd();
   }
 
+  triggerAllowAdd(data:any = undefined) {
+    if (!_.isEmpty(this.allowAddTemplate)) {
+      const imports = _.extend({data: data, moment: moment, numeral:numeral}, this);
+      const templateData = {imports: imports};
+      const template = _.template(this.allowAddTemplate, templateData);
+      const templateRes = template();
+      // bake in the RDMP check
+      this.allowAdd = !_.isEmpty(this.rdmp) && templateRes == "true";
+    } else {
+      this.allowAdd = !_.isEmpty(this.rdmp);
+    }
+  }
 
   loadWorkspaceDetails(value: string) {
     //GET me the value from the database
