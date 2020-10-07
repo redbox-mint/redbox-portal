@@ -23,6 +23,8 @@ import { FormGroup, FormControl, Validators } from '@angular/forms';
 import * as _ from "lodash";
 import { RecordsService } from './records.service';
 import * as moment from 'moment';
+import * as numeral from 'numeral';
+
 
 
 declare var jQuery: any;
@@ -56,6 +58,7 @@ export class PDFListField extends FieldBase<any> {
   downloadBtnLabel: string = "";
   downloadPreviousBtnLabel: string = "";
   downloadPrefix: string = "";
+  fileNameTemplate: string = "";
 
   constructor(options: any, injector: any) {
     super(options, injector);
@@ -74,6 +77,7 @@ export class PDFListField extends FieldBase<any> {
     this.downloadBtnLabel = _.isEmpty(options['downloadBtnLabel']) ? "Download a PDF of this plan" : this.getTranslated(options['downloadBtnLabel'], "Download a PDF of this plan");
     this.downloadPreviousBtnLabel = _.isEmpty(options['downloadPreviousBtnLabel']) ? "Download a previous version" : this.getTranslated(options['downloadPreviousBtnLabel'], "Download a previous version");
     this.downloadPrefix = _.isEmpty(options['downloadPrefix']) ? "rdmp" : this.getTranslated(options["downloadPrefix"], "rdmp");
+    this.fileNameTemplate = options['fileNameTemplate'];
   }
 
   getVersionLabel(attachment, index) {
@@ -109,6 +113,26 @@ export class PDFListField extends FieldBase<any> {
   setEmptyValue() {
     this.value = [];
     return this.value;
+  }
+
+  getDownloadUrl(url: string, attachment, index) {
+    let fileName = `${this.downloadPrefix}.pdf`;
+    let versionLabel = '';
+    if (this.useVersionLabelForFileName) {
+      versionLabel = this.getVersionLabel(attachment, index);
+    }
+    if (_.isEmpty(this.fileNameTemplate)) {
+      if (!_.isEmpty(versionLabel)) {
+        fileName = `${this.downloadPrefix}-${versionLabel}.pdf`;
+      }
+    } else {
+      const imports = _.extend({versionLabel:versionLabel, moment: moment, numeral:numeral}, this);
+      const templateData = {imports: imports};
+      const template = _.template(this.fileNameTemplate, templateData);
+      fileName = template();
+    }
+
+    return `${url}&fileName=${fileName}`;
   }
 }
 
@@ -153,15 +177,11 @@ export class PDFListComponent extends SimpleComponent implements OnInit {
     }
   }
 
-  public getDownloadUrl(attachment, hasFileName:boolean=false, index:number=0) {
+  public getDownloadUrl(attachment, generateFileName:boolean=false, index:number=0) {
     const oid = this.fieldMap._rootComp.oid;
     const url = `${this.field.recordsService.getBrandingAndPortalUrl}/record/${oid}/datastream?datastreamId=${attachment.label}`
-    if (hasFileName) {
-      if (this.field.useVersionLabelForFileName) {
-        return `${url}&fileName=${this.field.downloadPrefix}-${this.field.getVersionLabel(attachment, index)}.pdf`;
-      } else {
-        return `${url}&fileName=${this.field.downloadPrefix}.pdf`;
-      }
+    if (generateFileName) {
+      return this.field.getDownloadUrl(url, attachment, index);
     } else {
       return url;
     }
@@ -169,7 +189,7 @@ export class PDFListComponent extends SimpleComponent implements OnInit {
 
   // as of writing, there seems to be issues with selecting the dialog by ID, switching to selecting by style
   public showDialog() {
-      const diagSel = `.${this.field.downloadPrefix}PdfDialog`;
+      const diagSel = `.${this.field.name}PdfDialog`;
       jQuery(diagSel).modal('show');
   }
 }
