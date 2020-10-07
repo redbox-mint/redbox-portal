@@ -471,15 +471,15 @@
             <tr>
                 <td class="col-md-4">
                     <span class="modifier-icon icon ion-ios-reset"></span>
-                    <code>getDownloadUrl(attachment, hasFileName: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/boolean" target="_blank">boolean</a>, index: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/number" target="_blank">number</a>)</code>
+                    <code>getDownloadUrl(attachment, generateFileName: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/boolean" target="_blank">boolean</a>, index: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/number" target="_blank">number</a>)</code>
                 </td>
             </tr>
 
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="156"
-                            class="link-to-prism">angular/shared/form/field-pdflist.component.ts:156</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="180"
+                            class="link-to-prism">angular/shared/form/field-pdflist.component.ts:180</a></div>
                 </td>
             </tr>
 
@@ -513,7 +513,7 @@
 
                                 </tr>
                                 <tr>
-                                    <td>hasFileName</td>
+                                    <td>generateFileName</td>
                                     <td>
                                                 <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/boolean" target="_blank" >boolean</a></code>
                                     </td>
@@ -582,8 +582,8 @@
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="126"
-                            class="link-to-prism">angular/shared/form/field-pdflist.component.ts:126</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="150"
+                            class="link-to-prism">angular/shared/form/field-pdflist.component.ts:150</a></div>
                 </td>
             </tr>
 
@@ -623,8 +623,8 @@
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="171"
-                            class="link-to-prism">angular/shared/form/field-pdflist.component.ts:171</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="191"
+                            class="link-to-prism">angular/shared/form/field-pdflist.component.ts:191</a></div>
                 </td>
             </tr>
 
@@ -1088,7 +1088,7 @@ Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a></p
                     </tr>
                         <tr>
                             <td class="col-md-4">
-                                    <div class="io-line">Defined in <a href="" data-line="124" class="link-to-prism">angular/shared/form/field-pdflist.component.ts:124</a></div>
+                                    <div class="io-line">Defined in <a href="" data-line="148" class="link-to-prism">angular/shared/form/field-pdflist.component.ts:148</a></div>
                             </td>
                         </tr>
 
@@ -1269,6 +1269,8 @@ import { FormGroup, FormControl, Validators } from &#x27;@angular/forms&#x27;;
 import * as _ from &quot;lodash&quot;;
 import { RecordsService } from &#x27;./records.service&#x27;;
 import * as moment from &#x27;moment&#x27;;
+import * as numeral from &#x27;numeral&#x27;;
+
 
 
 declare var jQuery: any;
@@ -1302,6 +1304,7 @@ export class PDFListField extends FieldBase&lt;any&gt; {
   downloadBtnLabel: string &#x3D; &quot;&quot;;
   downloadPreviousBtnLabel: string &#x3D; &quot;&quot;;
   downloadPrefix: string &#x3D; &quot;&quot;;
+  fileNameTemplate: string &#x3D; &quot;&quot;;
 
   constructor(options: any, injector: any) {
     super(options, injector);
@@ -1320,6 +1323,7 @@ export class PDFListField extends FieldBase&lt;any&gt; {
     this.downloadBtnLabel &#x3D; _.isEmpty(options[&#x27;downloadBtnLabel&#x27;]) ? &quot;Download a PDF of this plan&quot; : this.getTranslated(options[&#x27;downloadBtnLabel&#x27;], &quot;Download a PDF of this plan&quot;);
     this.downloadPreviousBtnLabel &#x3D; _.isEmpty(options[&#x27;downloadPreviousBtnLabel&#x27;]) ? &quot;Download a previous version&quot; : this.getTranslated(options[&#x27;downloadPreviousBtnLabel&#x27;], &quot;Download a previous version&quot;);
     this.downloadPrefix &#x3D; _.isEmpty(options[&#x27;downloadPrefix&#x27;]) ? &quot;rdmp&quot; : this.getTranslated(options[&quot;downloadPrefix&quot;], &quot;rdmp&quot;);
+    this.fileNameTemplate &#x3D; options[&#x27;fileNameTemplate&#x27;];
   }
 
   getVersionLabel(attachment, index) {
@@ -1355,6 +1359,26 @@ export class PDFListField extends FieldBase&lt;any&gt; {
   setEmptyValue() {
     this.value &#x3D; [];
     return this.value;
+  }
+
+  getDownloadUrl(url: string, attachment, index) {
+    let fileName &#x3D; &#x60;${this.downloadPrefix}.pdf&#x60;;
+    let versionLabel &#x3D; &#x27;&#x27;;
+    if (this.useVersionLabelForFileName) {
+      versionLabel &#x3D; this.getVersionLabel(attachment, index);
+    }
+    if (_.isEmpty(this.fileNameTemplate)) {
+      if (!_.isEmpty(versionLabel)) {
+        fileName &#x3D; &#x60;${this.downloadPrefix}-${versionLabel}.pdf&#x60;;
+      }
+    } else {
+      const imports &#x3D; _.extend({versionLabel:versionLabel, moment: moment, numeral:numeral}, this);
+      const templateData &#x3D; {imports: imports};
+      const template &#x3D; _.template(this.fileNameTemplate, templateData);
+      fileName &#x3D; template();
+    }
+
+    return &#x60;${url}&amp;fileName&#x3D;${fileName}&#x60;;
   }
 }
 
@@ -1399,15 +1423,11 @@ export class PDFListComponent extends SimpleComponent implements OnInit {
     }
   }
 
-  public getDownloadUrl(attachment, hasFileName:boolean&#x3D;false, index:number&#x3D;0) {
+  public getDownloadUrl(attachment, generateFileName:boolean&#x3D;false, index:number&#x3D;0) {
     const oid &#x3D; this.fieldMap._rootComp.oid;
     const url &#x3D; &#x60;${this.field.recordsService.getBrandingAndPortalUrl}/record/${oid}/datastream?datastreamId&#x3D;${attachment.label}&#x60;
-    if (hasFileName) {
-      if (this.field.useVersionLabelForFileName) {
-        return &#x60;${url}&amp;fileName&#x3D;${this.field.downloadPrefix}-${this.field.getVersionLabel(attachment, index)}.pdf&#x60;;
-      } else {
-        return &#x60;${url}&amp;fileName&#x3D;${this.field.downloadPrefix}.pdf&#x60;;
-      }
+    if (generateFileName) {
+      return this.field.getDownloadUrl(url, attachment, index);
     } else {
       return url;
     }
@@ -1415,7 +1435,7 @@ export class PDFListComponent extends SimpleComponent implements OnInit {
 
   // as of writing, there seems to be issues with selecting the dialog by ID, switching to selecting by style
   public showDialog() {
-      const diagSel &#x3D; &#x60;.${this.field.downloadPrefix}PdfDialog&#x60;;
+      const diagSel &#x3D; &#x60;.${this.field.name}PdfDialog&#x60;;
       jQuery(diagSel).modal(&#x27;show&#x27;);
   }
 }
@@ -1443,7 +1463,7 @@ export class PDFListComponent extends SimpleComponent implements OnInit {
 &lt;/span&gt;
 
 &lt;!-- Modal --&gt;
-&lt;div class&#x3D;&quot;modal fade {{field.downloadPrefix}}PdfDialog&quot; tabindex&#x3D;&quot;-1&quot; role&#x3D;&quot;dialog&quot; [attr.aria-label]&#x3D;&quot;&#x27;pdf-history-modal-label&#x27; | translate&quot; aria-hidden&#x3D;&quot;true&quot;&gt;
+&lt;div class&#x3D;&quot;modal fade {{field.name}}PdfDialog&quot; tabindex&#x3D;&quot;-1&quot; role&#x3D;&quot;dialog&quot; [attr.aria-label]&#x3D;&quot;&#x27;pdf-history-modal-label&#x27; | translate&quot; aria-hidden&#x3D;&quot;true&quot;&gt;
   &lt;div class&#x3D;&quot;modal-dialog&quot; role&#x3D;&quot;document&quot;&gt;
     &lt;div class&#x3D;&quot;modal-content&quot;&gt;
       &lt;div class&#x3D;&quot;modal-body&quot;&gt;
@@ -1498,7 +1518,7 @@ export class PDFListComponent extends SimpleComponent implements OnInit {
 <script src="../js/libs/htmlparser.js"></script>
 <script src="../js/libs/deep-iterator.js"></script>
 <script>
-        var COMPONENT_TEMPLATE = '<div><span class="print-hidden"><span *ngIf="field.pdfAttachments.length > 0">  <!-- <a [attr.href]="getDownloadUrl(field.latestPdf)+\'&fileName=rdmp.pdf\'" target="_blank" [ngClass]="field.cssClasses"><i class="fa fa-file-pdf-o">&nbsp;</i> Download a PDF of this plan</a>  <a *ngIf="field.pdfAttachments.length > 1" data-toggle="modal" data-target="#pdfHistoryModal" [ngClass]="field.cssClasses">Download a previous version</a> -->  <div class="btn-group">    <a type="button" [attr.href]="getDownloadUrl(field.latestPdf, true)" target="_blank" class="btn btn-danger"><i class="fa fa-file-pdf-o">&nbsp;</i>{{ field.downloadBtnLabel }}</a>    <button type="button" class="btn btn-danger dropdown-toggle" data-toggle="dropdown">      <span class="caret"></span>      <span class="sr-only" [innerHtml]="\'toggle-dropdown\' | translate"></span>    </button>    <ul class="dropdown-menu" role="menu">      <li><a (click)="showDialog()" >{{ field.downloadPreviousBtnLabel }}</a></li>    </ul>  </div></span><!-- Modal --><div class="modal fade {{field.downloadPrefix}}PdfDialog" tabindex="-1" role="dialog" [attr.aria-label]="\'pdf-history-modal-label\' | translate" aria-hidden="true">  <div class="modal-dialog" role="document">    <div class="modal-content">      <div class="modal-body">        <table class="table">          <thead>              <tr>                  <th *ngIf="field.showVersionColumn">{{ \'@pdf-column-version\' | translate }}</th><th>{{ \'@pdf-column-date-created\' | translate }}</th><th>{{ \'@pdf-column-download\' | translate }}</th>              </tr>          </thead>          <tbody>            <tr *ngFor="let item of field.pdfAttachments; index as i;">              <td *ngIf="field.showVersionColumn"><span [innerHtml]="field.getVersionLabel(attachment, i)"></span></td>              <td>{{ item.dateUpdated }}</td>              <td><a [attr.href]="getDownloadUrl(item, field.useVersionLabelForFileName, i)" target="_blank"><i class="fa fa-file-pdf-o"></i> {{ \'@pdf-column-download\' | translate }}</a></td>            </tr>          </tbody>        </table>      </div>      <div class="modal-footer">        <button type="button" class="btn btn-default" data-dismiss="modal">{{ \'@pdf-close\' | translate }}</button>      </div>    </div>  </div></div></span></div>'
+        var COMPONENT_TEMPLATE = '<div><span class="print-hidden"><span *ngIf="field.pdfAttachments.length > 0">  <!-- <a [attr.href]="getDownloadUrl(field.latestPdf)+\'&fileName=rdmp.pdf\'" target="_blank" [ngClass]="field.cssClasses"><i class="fa fa-file-pdf-o">&nbsp;</i> Download a PDF of this plan</a>  <a *ngIf="field.pdfAttachments.length > 1" data-toggle="modal" data-target="#pdfHistoryModal" [ngClass]="field.cssClasses">Download a previous version</a> -->  <div class="btn-group">    <a type="button" [attr.href]="getDownloadUrl(field.latestPdf, true)" target="_blank" class="btn btn-danger"><i class="fa fa-file-pdf-o">&nbsp;</i>{{ field.downloadBtnLabel }}</a>    <button type="button" class="btn btn-danger dropdown-toggle" data-toggle="dropdown">      <span class="caret"></span>      <span class="sr-only" [innerHtml]="\'toggle-dropdown\' | translate"></span>    </button>    <ul class="dropdown-menu" role="menu">      <li><a (click)="showDialog()" >{{ field.downloadPreviousBtnLabel }}</a></li>    </ul>  </div></span><!-- Modal --><div class="modal fade {{field.name}}PdfDialog" tabindex="-1" role="dialog" [attr.aria-label]="\'pdf-history-modal-label\' | translate" aria-hidden="true">  <div class="modal-dialog" role="document">    <div class="modal-content">      <div class="modal-body">        <table class="table">          <thead>              <tr>                  <th *ngIf="field.showVersionColumn">{{ \'@pdf-column-version\' | translate }}</th><th>{{ \'@pdf-column-date-created\' | translate }}</th><th>{{ \'@pdf-column-download\' | translate }}</th>              </tr>          </thead>          <tbody>            <tr *ngFor="let item of field.pdfAttachments; index as i;">              <td *ngIf="field.showVersionColumn"><span [innerHtml]="field.getVersionLabel(attachment, i)"></span></td>              <td>{{ item.dateUpdated }}</td>              <td><a [attr.href]="getDownloadUrl(item, field.useVersionLabelForFileName, i)" target="_blank"><i class="fa fa-file-pdf-o"></i> {{ \'@pdf-column-download\' | translate }}</a></td>            </tr>          </tbody>        </table>      </div>      <div class="modal-footer">        <button type="button" class="btn btn-default" data-dismiss="modal">{{ \'@pdf-close\' | translate }}</button>      </div>    </div>  </div></div></span></div>'
     var COMPONENTS = [{'name': 'ActionButtonComponent', 'selector': 'action-button'},{'name': 'AnchorOrButtonComponent', 'selector': 'anchor-button'},{'name': 'ANDSVocabComponent', 'selector': 'ands-vocab-selector'},{'name': 'AsynchComponent', 'selector': 'asynch-component'},{'name': 'ButtonBarContainerComponent', 'selector': 'buttonbarcontainer'},{'name': 'CancelButtonComponent', 'selector': 'cancel-button'},{'name': 'ContributorComponent', 'selector': 'rb-contributor'},{'name': 'DashboardComponent', 'selector': 'dashboard'},{'name': 'DataLocationComponent', 'selector': 'data-location-selector'},{'name': 'DateTimeComponent', 'selector': 'date-time'},{'name': 'DmpFieldComponent', 'selector': 'dmp-field'},{'name': 'DmpFormComponent', 'selector': 'dmp-form'},{'name': 'DropdownFieldComponent', 'selector': 'dropdownfield'},{'name': 'EventHandlerComponent', 'selector': 'event-handler'},{'name': 'ExportFormComponent', 'selector': 'export-form'},{'name': 'GenericGroupComponent', 'selector': 'generic-group-field'},{'name': 'HiddenValueComponent', 'selector': 'hidden-field'},{'name': 'HtmlRawComponent', 'selector': 'htmlraw'},{'name': 'LinkValueComponent', 'selector': 'link-value'},{'name': 'LocalAuthComponent', 'selector': 'local-auth'},{'name': 'ManageRolesComponent', 'selector': 'manage-roles'},{'name': 'ManageUsersComponent', 'selector': 'manage-users'},{'name': 'MapComponent', 'selector': 'rb-mapdata'},{'name': 'MarkdownTextAreaComponent', 'selector': 'markdown-text-area'},{'name': 'ParameterRetrieverComponent', 'selector': 'parameter-retriever'},{'name': 'PDFListComponent', 'selector': 'rb-pdf-list'},{'name': 'PublishDataLocationRefreshComponent', 'selector': 'publish-data-location-refresh'},{'name': 'PublishDataLocationSelectorComponent', 'selector': 'publish-data-location-selector'},{'name': 'RecordMetadataRetrieverComponent', 'selector': 'record-metadata-retriever'},{'name': 'RecordPermissionsComponent', 'selector': 'rb-recordpermissions'},{'name': 'RecordSearchComponent', 'selector': 'record-search'},{'name': 'RecordSearchRefinerComponent', 'selector': 'record-search-refiner'},{'name': 'RelatedFileUploadComponent', 'selector': 'related-fileupload-selector'},{'name': 'RelatedObjectDataComponent', 'selector': 'rb-relatedobjectdata'},{'name': 'RelatedObjectSelectorComponent', 'selector': 'rb-RelatedObjectSelector'},{'name': 'RepeatableContributorComponent', 'selector': 'repeatable-contributor'},{'name': 'RepeatableGroupComponent', 'selector': 'repeatable-group'},{'name': 'RepeatableTextfieldComponent', 'selector': 'repeatable-textfield'},{'name': 'RepeatableVocabComponent', 'selector': 'repeatable-vocab'},{'name': 'ReportComponent', 'selector': 'report'},{'name': 'SaveButtonComponent', 'selector': 'save-button'},{'name': 'SelectionFieldComponent', 'selector': 'selectionfield'},{'name': 'SortComponent', 'selector': 'sort'},{'name': 'SpacerComponent', 'selector': 'spacer'},{'name': 'TabNavButtonComponent', 'selector': 'tab-nav-button'},{'name': 'TabOrAccordionContainerComponent', 'selector': 'tabcontainer'},{'name': 'TextAreaComponent', 'selector': 'text-area'},{'name': 'TextBlockComponent', 'selector': 'text-block'},{'name': 'TextFieldComponent', 'selector': 'textfield'},{'name': 'ToggleComponent', 'selector': 'toggle'},{'name': 'TransferOwnerComponent', 'selector': 'transfer-owner'},{'name': 'TreeNodeCheckboxComponent', 'selector': 'rb-tree-node-checkbox'},{'name': 'UserProfileComponent', 'selector': 'user-profile'},{'name': 'VocabFieldComponent', 'selector': 'rb-vocab'},{'name': 'WorkflowStepButtonComponent', 'selector': 'workflowstep-button'},{'name': 'WorkspaceFieldComponent', 'selector': 'ws-field'},{'name': 'WorkspaceListComponent', 'selector': 'workspace-list'},{'name': 'WorkspaceSelectorComponent', 'selector': 'workspace-selector-parent'},{'name': 'WorkspaceSelectorFieldComponent', 'selector': 'workspace-selector'}];
     var DIRECTIVES = [];
     var ACTUAL_COMPONENT = {'name': 'PDFListComponent'};
