@@ -42,15 +42,15 @@ import DatastreamService from '../../core/DatastreamService.js';
 const UUIDGenerator = require('uuid/v4');
 export module Controllers {
   /**
-   * Responsible for all things related to the Dashboard
+   * RecordController API version
    *
    * @author <a target='_' href='https://github.com/andrewbrazzatti'>Andrew Brazzatti</a>
    */
   export class Record extends controller.Controllers.Core.Controller {
 
     RecordsService: RecordsService = sails.services.recordsservice;
-    SearchService: SearchService = sails.services.recordsservice;
-    DatastreamService: DatastreamService = sails.services.recordsservice;
+    SearchService: SearchService;
+    DatastreamService: DatastreamService;
     /**
      * Exported methods, accessible from internet.
      */
@@ -69,6 +69,18 @@ export module Controllers {
       'addDataStreams',
       'listRecords'
     ];
+
+    constructor() {
+      super();
+      let that = this;
+      sails.on('ready', function () {
+        let datastreamServiceName = sails.config.record.datastreamService;
+        sails.log.verbose(`RecordController Webservice ready, using datastream service: ${datastreamServiceName}`);
+        if (datastreamServiceName != undefined) {
+          that.DatastreamService = sails.services[datastreamServiceName];
+        }
+      });
+    }
 
     /**
      **************************************************************************************************
@@ -110,9 +122,12 @@ export module Controllers {
 
         var obs = Observable.fromPromise(this.RecordsService.updateMeta(brand, oid, record,req.user));
         obs.subscribe(result => {
-          if (result["code"] == 200) {
-            Observable.fromPromise(this.RecordsService.getMeta(result["oid"])).subscribe(record => {
+          if (result.isSuccessful()) {
+            Observable.fromPromise(this.RecordsService.getMeta(result.oid)).subscribe(record => {
               return res.json(record["authorization"]);
+            }, error=> {
+              sails.log.error(error);
+              return this.apiFail(req, res, 500, 'Failed adding an editor, check server logs.');
             });
           } else {
             return res.json(result);
@@ -144,7 +159,7 @@ export module Controllers {
 
         var obs = Observable.fromPromise(this.RecordsService.updateMeta(brand, oid, record, req.user));
         obs.subscribe(result => {
-          if (result["code"] == 200) {
+          if (result.isSuccessful()) {
             Observable.fromPromise(this.RecordsService.getMeta(result["oid"])).subscribe(record => {
               return res.json(record["authorization"]);
             });
@@ -174,7 +189,7 @@ export module Controllers {
 
         var obs = Observable.fromPromise(this.RecordsService.updateMeta(brand, oid, record,req.user));
         obs.subscribe(result => {
-          if (result["code"] == 200) {
+          if (result.isSuccessful()) {
             Observable.fromPromise(this.RecordsService.getMeta(result["oid"])).subscribe(record => {
               return res.json(record["authorization"]);
             });
@@ -204,7 +219,7 @@ export module Controllers {
 
         var obs = Observable.fromPromise(this.RecordsService.updateMeta(brand, oid, record, req.user));
         obs.subscribe(result => {
-          if (result["code"] == 200) {
+          if (result.isSuccessful()) {
             Observable.fromPromise(this.RecordsService.getMeta(result["oid"])).subscribe(record => {
               return res.json(record["authorization"]);
             });
@@ -313,8 +328,6 @@ export module Controllers {
         var recordTypeObservable = RecordTypesService.get(brand, recordType);
 
         recordTypeObservable.subscribe(recordTypeModel => {
-          sails.log.error("recordTypeModel")
-          sails.log.error(recordTypeModel)
           if (recordTypeModel) {
             var metadata = body["metadata"];
             var workflowStage = body["workflowStage"];
@@ -362,18 +375,16 @@ export module Controllers {
                 }
 
               });
-
-              sails.log.error("request is:")
-              sails.log.error(request)
               let createPromise = this.RecordsService.create(brand, request, recordTypeModel)
               var obs = Observable.fromPromise(createPromise);
-              obs.subscribe(result => {
-                if (result["code"] == "200") {
-                  result["code"] = 201;
-                  res.set('Location', sails.config.appUrl + BrandingService.getBrandAndPortalPath(req) + "/api/records/metadata/" + result["oid"]);
+              obs.subscribe(response => {
+                if (response.isSuccessful()) {
+                  res.set('Location', sails.config.appUrl + BrandingService.getBrandAndPortalPath(req) + "/api/records/metadata/" + response.oid);
+                  this.apiRespond(req, res, response, 201);
+                } else {
+                  sails.log.error("Create Record failed");
+                  return this.apiFail(req, res, 500, "Create failed");
                 }
-
-                return res.status(201).json(result);
               }, error=> {
                 sails.log.error("Create Record failed", error);
                 return this.apiFail(req, res, 500, "Create failed");
@@ -398,13 +409,12 @@ export module Controllers {
             res.set('Content-Type', 'application/octet-stream');
             res.set('Content-Disposition', `attachment; filename="${fileName}"`);
             sails.log.info(`Returning datastream observable of ${oid}: ${fileName}, datastreamId: ${datastreamId}`);
-            let datastreamServiceName = sails.config.record.datastreamService;
-            if(datastreamServiceName == undefined) {
-              datastreamServiceName = "recordsservice";
-            }
-            let datastreamService = sails.services[datastreamServiceName];
-            return datastreamService.getDatastream(oid, datastreamId).flatMap((response) => {
-              res.end(Buffer.from(response.body), 'binary');
+            return this.DatastreamService.getDatastream(oid, datastreamId).flatMap((response) => {
+              if (response.readstream) {
+                response.readstream.pipe(res);
+              } else {
+                res.end(Buffer.from(response.body), 'binary');
+              }
               return Observable.of(oid);
             });
       }).subscribe(whatever => {
@@ -449,23 +459,16 @@ export module Controllers {
         sails.log.verbose(_.toString(fileIds));
         const defaultErrorMessage = 'Error sending datastreams upstream.';
         try {
-          let datastreamServiceName = sails.config.record.datastreamService;
-          if(datastreamServiceName == undefined) {
-            datastreamServiceName = "recordsservice";
-          }
-          let datastreamService = sails.services[datastreamServiceName];
-
-          const reqs = datastreamService.addDatastreams(oid, fileIds);
+          const reqs = this.DatastreamService.addDatastreams(oid, fileIds);
           return Observable.fromPromise(reqs)
             .subscribe(result => {
               sails.log.verbose(`Done with updating streams and returning response...`);
-              if (_.get(result, 'value.error') || result instanceof Error) {
-                const message = _.get(result, 'value.message') || _.get(result, 'value.error');
-                return res.status(500).json({message: message.toString('UTF-8')});
-              } else {
+              if (result.isSuccessful()) {
                 sails.log.verbose("Presuming success...");
                 _.merge(result, {fileIds: fileIds});
                 return res.json({message: result});
+              } else {
+                return res.status(500).json({message: result.message});
               }
             }, error => {
               return self.customErrorMessageHandlingOnUpstreamResult(error, res);

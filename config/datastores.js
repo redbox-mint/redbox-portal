@@ -13,6 +13,9 @@ module.exports.datastores = {
   mongodb: {
     adapter: require('sails-mongo'),
     url: 'mongodb://localhost:27017/redbox-portal'
+  },
+  redboxStorage: {
+    adapter: require('sails-mongo'),
+    url: 'mongodb://mongodb:27017/redbox-storage'
   }
-
 };

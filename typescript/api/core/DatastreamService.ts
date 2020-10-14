@@ -1,6 +1,8 @@
+import DatastreamServiceResponse from './DatastreamServiceResponse';
+
 interface DatastreamService{
 
-  addDatastreams(oid: string, fileIds: any[]): any;
+  addDatastreams(oid: string, fileIds: any[]): DatastreamServiceResponse;
   updateDatastream(oid: string, record, newMetadata, fileRoot, fileIdsAdded): any;
   removeDatastream(oid, fileId): any;
   addDatastream(oid, fileId): any;

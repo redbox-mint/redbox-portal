@@ -327,11 +327,11 @@ export module Services {
 
       return this.getUserWithUsername(username).flatMap(user => {
         if (user) {
-          return Observable.throw(new Error('Username already exists'));
+          return Observable.throw(new Error(`Username already exists`));
         } else {
           return this.findUsersWithEmail(email, null, null).flatMap(emailCheck => {
             if (_.size(emailCheck) > 0) {
-              return Observable.throw(new Error('Email already exists, it must be unique.'));
+              return Observable.throw(new Error(`Email already exists, it must be unique`));
             } else {
               var newUser = { type: 'local', name: name };
               if (!_.isEmpty(email)) {

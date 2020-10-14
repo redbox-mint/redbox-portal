@@ -147,7 +147,7 @@ export module Services {
         _.each(modelFiles, (modelFile) => {
           const dest = `${appPath}/api/models/${basename(modelFile)}`;
           sails.log.verbose(`Copying ${modelFile} to ${dest}`)
-          fs.copySync(modelFile, `${appPath}/api/models/${dest}`)
+          fs.copySync(modelFile, dest);
         });
       }
       sails.log.verbose(`${hook_log_header}::Adding custom API elements...completed.`);

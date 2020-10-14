@@ -23,14 +23,16 @@ import {
 import services = require('../core/CoreService.js');
 import StorageService from '../core/StorageService.js';
 import RecordsService from '../core/RecordsService.js';
+import DatastreamService from '../core/DatastreamService.js';
 const util = require('util');
 import * as request from "request-promise";
 import { Observable } from "rxjs";
 import moment = require('moment');
 import { SequenceEqualOperator } from "rxjs/internal/operators/sequenceEqual";
+import * as fs from 'fs';
 
 
-declare var RecordsService, RecordTypesService;
+declare var RecordsService, RecordTypesService, FormsService;
 declare var sails: Sails;
 declare var _;
 
@@ -41,9 +43,9 @@ export module Services {
      * Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a>
      *
      */
-    export class RedboxJavaStorage extends services.Services.Core.Service implements StorageService {
+    export class RedboxJavaStorage extends services.Services.Core.Service implements StorageService, DatastreamService {
         recordsService: RecordsService = null;
-       
+
         constructor() {
             super();
             let that = this;
@@ -60,7 +62,16 @@ export module Services {
             'provideUserAccessAndRemovePendingAccess',
             'getRelatedRecords',
             'delete',
-            'updateNotificationLog'
+            'updateNotificationLog',
+            'getRecords',
+            'exportAllPlans',
+            'addDatastreams',
+            'updateDatastream',
+            'removeDatastream',
+            'addDatastream',
+            'addAndRemoveDatastreams',
+            'getDatastream',
+            'listDatastreams'
         ];
 
         public async create(brand, record, recordType = null, user = null, triggerPreSaveTriggers = true, triggerPostSaveTriggers = true) {
@@ -373,6 +384,228 @@ export module Services {
                 opts.encoding = null;
             }
             return opts;
+        }
+
+        public getRecords(workflowState, recordType = undefined, start, rows = 10, username, roles, brand, editAccessOnly = undefined, packageType = undefined, sort=undefined) {
+
+          var url = sails.config.record.baseUrl.redbox + sails.config.record.api.query.url + "?collection=metadataDocuments";
+          url = this.addPaginationParams(url, start, rows);
+          if(sort) {
+            url = url+`&sort=${sort}`
+          }
+
+          let roleNames = this.getRoleNames(roles, brand);
+          let andArray = [];
+          let permissions = {
+            "$or": [{ "authorization.view": username },
+            { "authorization.edit": username },
+            { "authorization.editRoles": { "$in": roleNames } },
+            { "authorization.viewRoles": { "$in": roleNames } }]
+          };
+          andArray.push(permissions);
+          if (!_.isUndefined(recordType) && !_.isEmpty(recordType)) {
+            let typeArray = [];
+            _.each(recordType, rType => {
+              typeArray.push({ "metaMetadata.type": rType });
+            });
+            let types = { "$or": typeArray };
+            andArray.push(types);
+          }
+          if (!_.isUndefined(packageType) && !_.isEmpty(packageType)) {
+            let typeArray = [];
+            _.each(packageType, rType => {
+              typeArray.push({ "packageType": rType });
+            });
+            let types = { "$or": typeArray };
+            andArray.push(types);
+          }
+
+          let query = {
+            "metaMetadata.brandId": brand.id,
+            "$and":andArray,
+          };
+
+          if (workflowState != undefined) {
+            query["workflow.stage"] = workflowState;
+          }
+
+          sails.log.verbose(JSON.stringify(query));
+          var options = this.getOptions(url);
+          options['body'] = query;
+
+          return request[sails.config.record.api.query.method](options);
+        }
+
+        protected addQueryParams(url, workflowState) {
+          url = url + "?q=metaMetadata_type:rdmp AND workflow_stage:" + workflowState + "&sort=date_object_modified desc&version=2.2"
+          return url;
+        }
+
+        protected addPaginationParams(url, start, rows) {
+          url = url + "&start=" + start + "&rows=" + rows + "&wt=json";
+          return url;
+        }
+
+        protected getRoleNames(roles, brand) {
+          var roleNames = [];
+
+          for (var i = 0; i < roles.length; i++) {
+            var role = roles[i]
+            if (role.branding == brand.id) {
+              roleNames.push(roles[i].name);
+            }
+          }
+
+          return roleNames;
+        }
+
+        protected addAuthFilter(url, username, roles, brand, editAccessOnly = undefined) {
+
+          var roleString = ""
+          var matched = false;
+          for (var i = 0; i < roles.length; i++) {
+            var role = roles[i]
+            if (role.branding == brand.id) {
+              if (matched) {
+                roleString += " OR ";
+                matched = false;
+              }
+              roleString += roles[i].name;
+              matched = true;
+            }
+          }
+          url = url + "&fq=authorization_edit:" + username + (editAccessOnly ? "" : (" OR authorization_view:" + username + " OR authorization_viewRoles:(" + roleString + ")")) + " OR authorization_editRoles:(" + roleString + ")";
+          return url;
+        }
+
+        exportAllPlans(username, roles, brand, format, modBefore, modAfter, recType) {
+          const dateQ = modBefore || modAfter ? ` AND date_object_modified:[${modAfter ? `${modAfter}T00:00:00Z` : '*'} TO ${modBefore ? `${modBefore}T23:59:59Z` : '*'}]` : '';
+          var url = sails.config.record.baseUrl.redbox;
+          url = `${url}${sails.config.record.api.search.url}?q=metaMetadata_type:${recType}${dateQ}&sort=date_object_modified desc&version=2.2&wt=${format}`;
+          url = `${url}&start=0&rows=${sails.config.record.export.maxRecords}`;
+          url = this.addAuthFilter(url, username, roles, brand)
+          url = url + "&fq=metaMetadata_brandId:" + brand.id
+          var options = this.getOptions(url);
+          sails.log.verbose("Query URL is: " + url);
+          return request[sails.config.record.api.search.method](options);
+        }
+
+        public addDatastream(oid, fileId) {
+          const apiConfig = sails.config.record.api.addDatastream;
+          const opts = this.getOptions(`${sails.config.record.baseUrl.redbox}${apiConfig.url}`, oid);
+          opts.url = `${opts.url}?skipReindex=true&datastreamId=${fileId}`;
+          const fpath = `${sails.config.record.attachments.stageDir}/${fileId}`;
+          opts['formData'] = {
+            content: fs.createReadStream(fpath)
+          };
+          return request[apiConfig.method](opts);
+        }
+
+        public getDatastream(oid, fileId) {
+          const apiConfig = sails.config.record.api.getDatastream;
+          const opts: any = this.getOptions(`${sails.config.record.baseUrl.redbox}${apiConfig.url}`, oid, null, false);
+          opts.url = `${opts.url}?datastreamId=${fileId}`;
+          opts.headers['Content-Type'] = 'application/octet-stream';
+          opts.headers['accept'] = 'application/octet-stream';
+          opts.resolveWithFullResponse = true;
+          opts.timeout = apiConfig.readTimeout;
+          sails.log.verbose(`Getting datastream using: `);
+          sails.log.verbose(JSON.stringify(opts));
+          return Observable.fromPromise(request[apiConfig.method](opts));
+        }
+
+        public addAndRemoveDatastreams(oid, addIds: any[], removeIds: any[]) {
+          const apiConfig = sails.config.record.api.addAndRemoveDatastreams;
+          const opts = this.getOptions(`${sails.config.record.baseUrl.redbox}${apiConfig.url}`, oid);
+          opts.url = `${opts.url}?skipReindex=false`;
+          if (!_.isEmpty(removeIds)) {
+            const removeDataStreamIds = removeIds.join(',');
+            opts.url = `${opts.url}&removePayloadIds=${removeDataStreamIds}`;
+          }
+          if (!_.isEmpty(addIds)) {
+            const formData = {};
+            _.each(addIds, fileId => {
+              const fpath = `${sails.config.record.attachments.stageDir}/${fileId}`;
+              formData[fileId] = fs.createReadStream(fpath);
+            });
+            opts['formData'] = formData;
+            opts.json = false;
+            opts.headers['Content-Type'] = 'application/octet-stream';
+          }
+          if (_.size(addIds) > 0 || _.size(removeIds) > 0) {
+            return request[apiConfig.method](opts);
+          }
+        }
+
+        public addDatastreams(oid, fileIds: any[]) {
+          const apiConfig = sails.config.record.api.addDatastreams;
+          const opts = this.getOptions(`${sails.config.record.baseUrl.redbox}${apiConfig.url}`, oid);
+          opts.url = `${opts.url}?skipReindex=false&datastreamIds=${fileIds.join(',')}`;
+          const formData = {};
+          _.each(fileIds, fileId => {
+            const fpath = `${sails.config.record.attachments.stageDir}/${fileId}`;
+            formData[fileId] = fs.createReadStream(fpath);
+          });
+          opts['formData'] = formData;
+
+          return request[apiConfig.method](opts);
+        }
+
+        /**
+         * Compares existing record metadata with new metadata and either removes or deletes the datastream from the record
+         */
+        public updateDatastream(oid, record, newMetadata, fileRoot, fileIdsAdded) {
+          // loop thru the attachment fields and determine if we need to add or remove
+          return FormsService.getFormByName(record.metaMetadata.form, true).flatMap(form => {
+            const reqs = [];
+            record.metaMetadata.attachmentFields = form.attachmentFields;
+            _.each(form.attachmentFields, (attField) => {
+              const oldAttachments = record.metadata[attField];
+              const newAttachments = newMetadata[attField];
+              const removeIds = [];
+              // process removals
+              if (!_.isUndefined(oldAttachments) && !_.isNull(oldAttachments) && !_.isNull(newAttachments)) {
+                const toRemove = _.differenceBy(oldAttachments, newAttachments, 'fileId');
+                _.each(toRemove, (removeAtt) => {
+                  if (removeAtt.type == 'attachment') {
+                    removeIds.push(removeAtt.fileId);
+                  }
+                });
+              }
+              // process additions
+              if (!_.isUndefined(newAttachments) && !_.isNull(newAttachments)) {
+                const toAdd = _.differenceBy(newAttachments, oldAttachments, 'fileId');
+                _.each(toAdd, (addAtt) => {
+                  if (addAtt.type == 'attachment') {
+                    fileIdsAdded.push(addAtt.fileId);
+                  }
+                });
+              }
+              const req = this.addAndRemoveDatastreams(oid, fileIdsAdded, removeIds);
+              if (req) {
+                reqs.push(req);
+              }
+            });
+            if (!_.isEmpty(reqs)) {
+              return Observable.of(reqs);
+            } else {
+              return Observable.of(null);
+            }
+          });
+        }
+
+        public removeDatastream(oid, fileId) {
+          const apiConfig = sails.config.record.api.removeDatastream;
+          const opts = this.getOptions(`${sails.config.record.baseUrl.redbox}${apiConfig.url}`, oid);
+          opts.url = `${opts.url}?skipReindex=true&datastreamId=${fileId}`;
+          return request[apiConfig.method](opts);
+        }
+
+        public listDatastreams(oid, fileId) {
+          const apiConfig = sails.config.record.api.listDatastreams;
+          const opts: any = this.getOptions(`${sails.config.record.baseUrl.redbox}${apiConfig.url}`, oid);
+
+          return Observable.fromPromise(request[apiConfig.method](opts));
         }
 
     }

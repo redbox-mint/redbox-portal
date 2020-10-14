@@ -73,7 +73,8 @@ export module Services {
             sails.log.verbose(body);
             var options = { url: url, json: true, body: body, headers: { 'Authorization': `Bearer ${sails.config.redbox.apiKey}`, 'Content-Type': 'application/json; charset=utf-8' } };
 
-            var response = Observable.fromPromise(request[sails.config.emailnotification.api.send.method](options)).catch(error => Observable.of(`Error: ${error}`));
+            // var response = Observable.fromPromise(request[sails.config.emailnotification.api.send.method](options)).catch(error => Observable.of(`Error: ${error}`));
+            let response = Observable.of({success: false});
 
             return response.map(result => {
                 if (result['code'] != '200') {

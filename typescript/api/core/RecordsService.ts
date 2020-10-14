@@ -11,7 +11,8 @@ interface RecordsService extends StorageService {
   updateWorkflowStep(currentRec, nextStep): void;
   getAttachments(oid: string, labelFilterStr?: string): Promise<any>;
 
-
+  getRecords(workflowState, recordType, start, rows, username, roles, brand, editAccessOnly, packageType, sort) : Promise<any>;
+  exportAllPlans(username, roles, brand, format, modBefore, modAfter, recType) : Promise<string>;
   // Probably to be retired or reimplemented in a different service
   checkRedboxRunning(): Promise<any>;
 

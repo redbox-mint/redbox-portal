@@ -52,7 +52,7 @@ export module Controllers {
       return this.sendView(req, res, 'export/index');
     }
 
-    public downloadRecs(req, res) {
+    public async downloadRecs(req, res) {
       const brand = BrandingService.getBrand(req.session.branding);
       const format = req.param('format');
       const recType = req.param('recType');
@@ -62,9 +62,8 @@ export module Controllers {
       if (format == 'csv') {
         res.set('Content-Type', 'text/csv');
         res.set('Content-Disposition', `attachment; filename="${filename}"`);
-        DashboardService.exportAllPlans(req.user.username, req.user.roles, brand, format, before, after, recType).subscribe(response => {
-          return res.send(200, response);
-        });
+        const response = await RecordsService.exportAllPlans(req.user.username, req.user.roles, brand, format, before, after, recType)
+        return res.send(200, response);
       } else {
         return res.send(500, 'Unsupported export format');
       }

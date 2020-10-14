@@ -51,11 +51,14 @@ export module Controllers {
 
     constructor() {
       super();
-      let datastreamServiceName = sails.config.record.datastreamService;
-      if (datastreamServiceName != undefined) {
-        this.datastreamService = sails.services[datastreamServiceName];
-      }
-
+      let that = this;
+      sails.on('ready', function () {
+        let datastreamServiceName = sails.config.record.datastreamService;
+        sails.log.verbose(`RecordController ready, using datastream service: ${datastreamServiceName}`);
+        if (datastreamServiceName != undefined) {
+          that.datastreamService = sails.services[datastreamServiceName];
+        }
+      });
     }
 
 
@@ -223,6 +226,7 @@ export module Controllers {
     }
 
     public updateResponsibilities(req, res) {
+      sails.log.verbose(`updateResponsibilities() -> Starting...`);
       const brand = BrandingService.getBrand(req.session.branding);
       const user = req.user;
       const records = req.body.records;
@@ -237,9 +241,10 @@ export module Controllers {
         _.forEach(records, rec => {
           // First: check if this user has edit access to this record, we don't want Gremlins sneaking in on us
           // Not trusting what was posted, retrieving from DB...
+          sails.log.verbose(`updateResponsibilities() -> Processing:${rec.oid}`);
           this.getRecord(rec.oid).subscribe(recObj => {
             if (this.recordsService.hasEditAccess(brand, user, user.roles, recObj)) {
-              let recType = rec.metadata.metaMetadata.type;
+              let recType = recObj.metaMetadata.type;
               let relatedRecords = this.recordsService.getRelatedRecords(rec.oid, brand);
 
               relatedRecords.then(relatedRecords => {
@@ -279,7 +284,7 @@ export module Controllers {
                           sails.log.verbose(JSON.stringify(record));
                           Observable.fromPromise(this.recordsService.updateMeta(brand, oid, record)).subscribe(response => {
                             relationshipObjectCount++;
-                            if (response && response.code == "200") {
+                            if (response && response.isSuccessful()) {
                               if (oid == rec.oid) {
                                 recordCtr++;
                               }
@@ -468,7 +473,6 @@ export module Controllers {
     }
 
     public create(req, res) {
-
       this.createInternal(req,res).then(result => {});
     }
 
@@ -493,7 +497,7 @@ export module Controllers {
       record.metadata = metadata;
 
       let recordType = await RecordTypesService.get(brand, recType).toPromise();
-      
+
         if (recordType.packageName) {
           record.metaMetadata.packageName = recordType.packageName;
         }
@@ -507,7 +511,7 @@ export module Controllers {
         }catch (error) {
           this.ajaxFail(req, res, `Failed to save record: ${error}`);
         }
-      
+
     }
 
     private async createRecord(record, brand, recordType, req, res) {
@@ -516,14 +520,13 @@ export module Controllers {
       let oid = null;
       const fieldsToCheck = ['location', 'uploadUrl'];
       let form = await FormsService.getFormByName(record.metaMetadata.form, true).toPromise();
-        
+
           formDef = form;
           record.metaMetadata.attachmentFields = form.attachmentFields;
           let response = await this.recordsService.create(brand, record, recordType, user);
-        
+
           let updateResponse = response;
-          if (response && response.code == "200") {
-            response.success = true;
+          if (response && response.isSuccessful()) {
             oid = response.oid;
             if (!_.isEmpty(record.metaMetadata.attachmentFields)) {
               // check if we have any pending-oid elements
@@ -553,7 +556,7 @@ export module Controllers {
           }
           try{
           // handle datastream update
-          if (updateResponse && updateResponse.code == "200") {
+          if (updateResponse && updateResponse.isSuccessful()) {
             if (!_.isEmpty(record.metaMetadata.attachmentFields)) {
               // we emtpy the data locations in cloned record so we can reuse the same `this.updateDataStream` method call
               const emptyDatastreamRecord = _.cloneDeep(record);
@@ -561,7 +564,7 @@ export module Controllers {
                 _.set(emptyDatastreamRecord.metadata, attFieldName, []);
               });
               // update the datastreams in RB, this is a terminal call
-              return this.updateDataStream(oid, emptyDatastreamRecord, record.metadata, response, req, res).toPromise();
+              return this.updateDataStream(oid, emptyDatastreamRecord, record.metadata, response, req, res);
             } else {
               // terminate the request
               this.ajaxOk(req, res, null, updateResponse);
@@ -593,7 +596,7 @@ export module Controllers {
           return Observable.throw(new Error(TranslationService.t('edit-error-no-permissions')));
         })
         .subscribe(response => {
-          if (response && response.code == "200") {
+          if (response && response.isSuccessful()) {
             const resp = {
               success: true,
               oid: oid
@@ -621,7 +624,7 @@ export module Controllers {
     }
 
     public update(req, res) {
-     
+
       const brand = BrandingService.getBrand(req.session.branding);
       const metadata = req.body;
       const oid = req.param('oid');
@@ -632,7 +635,7 @@ export module Controllers {
       const failedAttachments = [];
       let recType = null;
 
-      
+
       this.getRecord(oid).flatMap(cr => {
           currentRec = cr;
           return this.hasEditAccess(brand, user, currentRec);
@@ -683,7 +686,7 @@ export module Controllers {
         }).subscribe(record => {
           if (metadata.delete) {
             Observable.fromPromise(this.recordsService.delete(oid)).subscribe(response => {
-              if (response && response.code == "200") {
+              if (response && response.isSuccessful()) {
                 response.success = true;
                 sails.log.verbose(`Successfully deleted: ${oid}`);
                 this.ajaxOk(req, res, null, response);
@@ -710,7 +713,7 @@ export module Controllers {
                 return this.updateMetadata(brand, oid, currentRec, user);
               })
               .subscribe(response => {
-                if (response && response.code == "200") {
+                if (response && response.isSuccessful()) {
                   return this.updateDataStream(oid, origRecord, metadata, response, req, res);
                 } else {
                   this.ajaxFail(req, res, null, response);
@@ -733,13 +736,8 @@ export module Controllers {
      */
     protected updateDataStream(oid, origRecord, metadata, response, req, res) {
       const fileIdsAdded = [];
-      let datastreamServiceName = sails.config.record.datastreamService;
-      if (datastreamServiceName == undefined) {
-        datastreamServiceName = "recordsservice";
-      }
-      sails.log.verbose(`Updating datastream, using service: ${datastreamServiceName}`);
-      let datastreamService = sails.services[datastreamServiceName];
-      return datastreamService.updateDatastream(oid, origRecord, metadata, sails.config.record.attachments.stageDir, fileIdsAdded)
+
+      return this.datastreamService.updateDatastream(oid, origRecord, metadata, sails.config.record.attachments.stageDir, fileIdsAdded)
         .concatMap(reqs => {
           if (reqs) {
             sails.log.verbose(`Updating data streams...`);
@@ -819,8 +817,8 @@ export module Controllers {
       }
       currentRec.metaMetadata.lastSavedBy = user.username;
       currentRec.metaMetadata.lastSaveDate = moment().format();
-      sails.log.error(`Calling record service...`);
-      sails.log.error(currentRec);
+      sails.log.verbose(`Calling record service...`);
+      sails.log.verbose(currentRec);
       return Observable.fromPromise(this.recordsService.updateMeta(brand, oid, currentRec, user));
     }
 
@@ -863,7 +861,7 @@ export module Controllers {
           let responseValue:Observable<any> = response;
           return responseValue.subscribe(response => {
             sails.log.error(response);
-            if (response && response.code == "200") {
+            if (response && response.isSuccessful()) {
               response.success = true;
               this.ajaxOk(req, res, null, response);
             } else {
@@ -1151,6 +1149,7 @@ export module Controllers {
         this.tusServer.handle(req, res);
         return;
       }
+      const that = this;
       return this.getRecord(oid).flatMap(currentRec => {
           return this.hasEditAccess(brand, req.user, currentRec).flatMap(hasEditAccess => {
             if (!hasEditAccess) {
@@ -1178,14 +1177,12 @@ export module Controllers {
               res.set('Content-Type', found.mimeType);
               res.set('Content-Disposition', `attachment; filename="${found.name}"`);
               sails.log.verbose(`Returning datastream observable of ${oid}: ${found.name}, attachId: ${attachId}`);
-              let datastreamServiceName = sails.config.record.datastreamService;
-              if (datastreamServiceName == undefined) {
-                datastreamServiceName = "recordsservice";
-              }
-              sails.log.verbose(`Accessing datastream, using service: ${datastreamServiceName}`);
-              let datastreamService = sails.services[datastreamServiceName];
-              return datastreamService.getDatastream(oid, attachId).flatMap((response) => {
-                res.end(Buffer.from(response.body), 'binary');
+              return that.datastreamService.getDatastream(oid, attachId).flatMap((response) => {
+                if (response.readstream) {
+                  response.readstream.pipe(res);
+                } else {
+                  res.end(Buffer.from(response.body), 'binary');
+                }
                 return Observable.of(oid);
               });
             } else {
@@ -1299,7 +1296,11 @@ export module Controllers {
             sails.log.verbose(`Returning datastream observable of ${oid}: ${fileName}, datastreamId: ${datastreamId}`);
 
             return this.datastreamService.getDatastream(oid, datastreamId).flatMap((response) => {
-              res.end(Buffer.from(response.body), 'binary');
+              if (response.readstream) {
+                response.readstream.pipe(res);
+              } else {
+                res.end(Buffer.from(response.body), 'binary');
+              }
               return Observable.of(oid);
             });
           }

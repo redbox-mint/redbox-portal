@@ -3,7 +3,7 @@ module.exports.emailnotification = {
       send: {method: 'post', url: "/api/v1/messaging/emailnotification"}
     },
     settings: {
-      enabled: true,
+      enabled: false,
       from: "noreply@redbox",
       templateDir: "views/emailTemplates/"
     },
