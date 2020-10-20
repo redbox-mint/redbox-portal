@@ -36,6 +36,7 @@ import {
   isObservable
 } from 'rxjs';
 import StorageService from '../core/StorageService.js';
+import {Readable}  from 'stream';
 
 const util = require('util');
 
@@ -138,7 +139,7 @@ export module Services {
       return this.storageService.getRecords(workflowState, recordType, start, rows, username, roles, brand, editAccessOnly, packageType, sort);
     }
 
-    public exportAllPlans(username, roles, brand, format, modBefore, modAfter, recType) : Promise<string> {
+    public exportAllPlans(username, roles, brand, format, modBefore, modAfter, recType) : Readable {
       return this.storageService.exportAllPlans(username, roles, brand, format, modBefore, modAfter, recType);
     }
 

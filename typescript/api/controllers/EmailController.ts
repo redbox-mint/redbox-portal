@@ -57,30 +57,30 @@ export module Controllers {
        *
        * @param req
        * @param res
-       * 
+       *
        * USAGE (ng2):
             var data = {};
             data['data'] = 'test';
             this.emailService.sendNotification('user@example.com', 'template', data, subject?, from?)
             .then(function (res) {console.log(`Email result: ${JSON.stringify(res)}`)});
-       * 
-       * TODO 
+       *
+       * TODO
        *    • proper email address validation
        *    • support for multiple email addresses (trivial: make array)
        */
 
-        public sendNotification(req, res) {
+        public async sendNotification(req, res) {
             if (!req.body.to){
                 sails.log.error("No email recipient in email notification request!");
-                return; 
+                return;
             }
             if (!req.body.template){
                 sails.log.error("No template specified in email notification request!");
-                return; 
+                return;
             }
             var to = req.body.to;
             var template = req.body.template;
-            
+
             // use subject if provided, else use template default
             var subject;
             if (req.body.subject) { subject = req.body.subject; }
@@ -89,26 +89,18 @@ export module Controllers {
             var data = {};
             if (req.body.data) { data = req.body.data; }
 
-            var buildResponse = EmailService.buildFromTemplate(template, data);
-
-            buildResponse.subscribe(buildResult => {
-                if (buildResult['status'] != 200) {
-                    this.ajaxFail(req, res, buildResult['msg']);
+            var buildResult = await Observable.toPromise(EmailService.buildFromTemplate(template, data));
+            if (buildResult.success) {
+                this.ajaxFail(req, res, buildResult['msg']);
+            } else {
+                var sendResult = await EmailService.sendMessage(to, buildResult['body'], subject);
+                if (sendResult['code'] != 200) {
+                    this.ajaxFail(req, res, sendResult['msg']);
                 }
                 else {
-                    var sendResponse = EmailService.sendMessage(to, buildResult['body'], subject);
-
-                    sendResponse.subscribe(sendResult => {
-                        if (sendResult['code'] != 200) {
-                            this.ajaxFail(req, res, sendResult['msg']);
-                        }
-                        else {
-                            this.ajaxOk(req, res, sendResult['msg']);
-                        }
-                    });
+                    this.ajaxOk(req, res, sendResult['msg']);
                 }
-            });
-
+            }
        }
 
        /**
