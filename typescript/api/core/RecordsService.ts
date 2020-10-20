@@ -1,5 +1,4 @@
 import StorageService from "./StorageService";
-import {Readable}  from 'stream';
 
 interface RecordsService extends StorageService {
 
@@ -12,8 +11,6 @@ interface RecordsService extends StorageService {
   updateWorkflowStep(currentRec, nextStep): void;
   getAttachments(oid: string, labelFilterStr?: string): Promise<any>;
 
-  getRecords(workflowState, recordType, start, rows, username, roles, brand, editAccessOnly, packageType, sort) : Promise<any>;
-  exportAllPlans(username, roles, brand, format, modBefore, modAfter, recType) :Readable; 
   // Probably to be retired or reimplemented in a different service
   checkRedboxRunning(): Promise<any>;
 

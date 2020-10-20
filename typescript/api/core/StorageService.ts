@@ -1,3 +1,5 @@
+import {Readable}  from 'stream';
+
 interface StorageService{
 
   create(brand, record, recordType, user?, triggerPreSaveTriggers?: boolean, triggerPostSaveTriggers?: boolean):Promise<any>;
@@ -10,7 +12,7 @@ interface StorageService{
   updateNotificationLog(oid, record, options): Promise<any>;
 
   getRecords(workflowState, recordType, start, rows, username, roles, brand, editAccessOnly, packageType, sort): Promise<any>;
-  exportAllPlans(username, roles, brand, format, modBefore, modAfter, recType): Promise<any>;
+  exportAllPlans(username, roles, brand, format, modBefore, modAfter, recType): Readable;
 
 }
 export default StorageService

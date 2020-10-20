@@ -38,6 +38,7 @@ import controller = require('../../core/CoreController.js');
 import RecordsService from '../../core/RecordsService.js';
 import SearchService from '../../core/SearchService.js';
 import DatastreamService from '../../core/DatastreamService.js';
+import DatastreamServiceResponse from '../../core/DatastreamServiceResponse';
 
 const UUIDGenerator = require('uuid/v4');
 export module Controllers {
@@ -461,7 +462,7 @@ export module Controllers {
         try {
           const reqs = this.DatastreamService.addDatastreams(oid, fileIds);
           return Observable.fromPromise(reqs)
-            .subscribe(result => {
+            .subscribe((result:DatastreamServiceResponse) => {
               sails.log.verbose(`Done with updating streams and returning response...`);
               if (result.isSuccessful()) {
                 sails.log.verbose("Presuming success...");

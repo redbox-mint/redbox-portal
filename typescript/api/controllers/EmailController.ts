@@ -69,7 +69,7 @@ export module Controllers {
        *    • support for multiple email addresses (trivial: make array)
        */
 
-        public async sendNotification(req, res) {
+        public sendNotification(req, res) {
             if (!req.body.to){
                 sails.log.error("No email recipient in email notification request!");
                 return;
@@ -89,18 +89,26 @@ export module Controllers {
             var data = {};
             if (req.body.data) { data = req.body.data; }
 
-            var buildResult = await Observable.toPromise(EmailService.buildFromTemplate(template, data));
-            if (buildResult.success) {
-                this.ajaxFail(req, res, buildResult['msg']);
-            } else {
-                var sendResult = await EmailService.sendMessage(to, buildResult['body'], subject);
-                if (sendResult['code'] != 200) {
-                    this.ajaxFail(req, res, sendResult['msg']);
+            var buildResponse = EmailService.buildFromTemplate(template, data);
+
+            buildResponse.subscribe(buildResult => {
+                if (buildResult['status'] != 200) {
+                    this.ajaxFail(req, res, buildResult['msg']);
                 }
                 else {
-                    this.ajaxOk(req, res, sendResult['msg']);
+                    var sendResponse = EmailService.sendMessage(to, buildResult['body'], subject);
+
+                    sendResponse.subscribe(sendResult => {
+                        if (sendResult['code'] != 200) {
+                            this.ajaxFail(req, res, sendResult['msg']);
+                        }
+                        else {
+                            this.ajaxOk(req, res, sendResult['msg']);
+                        }
+                    });
                 }
-            }
+            });
+
        }
 
        /**

@@ -1,9 +1,10 @@
 {
   "name": "redbox-portal",
-  "version": "1.1.1",
+  "version": "2.0.0-alpha",
   "description": "ReDBox 2 Portal",
   "keywords": [],
   "dependencies": {
+    "@researchdatabox/sails-hook-redbox-storage-mongo": "0.0.2-alpha",
     "@sailshq/upgrade": "^1.0.9",
     "@uppy/core": "^1.13.1",
     "@uppy/dashboard": "^1.12.5",
@@ -51,7 +52,7 @@
     "rxjs-compat": "6.6.2",
     "sails": "^1.2.5",
     "sails-hook-autoreload": "^1.1.0",
-    "sails-hook-grunt": "^4.0.1",
+    "sails-hook-grunt": "3.1.1",
     "sails-hook-orm": "^3.0.1",
     "sails-hook-sockets": "^2.0.0",
     "sails-mongo": "^1.2.0",
