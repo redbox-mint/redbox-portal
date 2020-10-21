@@ -33,15 +33,3 @@ services:
           - mongodb
     ports:
        - "27017:27017"
-  redbox:
-    image: qcifengineering/redbox:2.x
-    expose:
-       - "9000"
-    environment:
-      - RB_API_KEY=c8e844fc-8550-497f-b970-7900ec8741ca
-    networks:
-      main:
-        aliases:
-          - redbox
-    ports:
-       - "9000:9000"

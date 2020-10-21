@@ -1,6 +1,6 @@
 {
 	"info": {
-		"_postman_id": "62b4f908-0978-4e8d-ba0b-5d06e9908eb8",
+		"_postman_id": "7b31db0b-a4cb-4a8b-b8a5-bd99cb7ca23d",
 		"name": "Redbox Portal API - With tests",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
@@ -14,7 +14,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "ca5095f8-0e14-42d9-915b-239780a9cff1",
+								"id": "c6679db8-156d-4591-ae8e-089f7c5ea8de",
 								"exec": [
 									"",
 									"pm.test(\"Status code is 201\", function () {",
@@ -37,7 +37,7 @@
 						{
 							"listen": "prerequest",
 							"script": {
-								"id": "dfe55471-c89f-4615-b738-64948ff1890c",
+								"id": "6639f6d9-92b8-46be-8c8d-c7bfbaba30cd",
 								"exec": [
 									""
 								],
@@ -87,7 +87,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "4bd728dc-3328-4005-81d7-c5341831ea37",
+								"id": "9d3088cb-a505-47e5-b2f9-02b126f83f29",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
@@ -140,7 +140,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "47977f8c-5914-41a8-90b4-7031ee68a435",
+								"id": "458bb2ca-c75e-4ee1-b48e-c7db4672f58e",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
@@ -195,7 +195,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "98c67002-0202-4d5e-92e9-468cca58687f",
+								"id": "67c12973-2c76-4d4e-9efa-fdea57611bd8",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
@@ -251,7 +251,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "c9ae57ec-f8ac-463e-a87f-22441d35db82",
+								"id": "d364ad2b-a452-4dd3-88e3-95496f0d1b2f",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
@@ -304,7 +304,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "2d1d1477-8861-44d1-ae56-a1bb8542bcf9",
+								"id": "d5215d9f-56e4-4b7f-8347-1ab9a4b48f88",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
@@ -361,7 +361,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "4587ff92-23d6-4701-a891-55287681f09a",
+								"id": "a8c30867-8985-4411-9743-5c2ac21d29ea",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
@@ -423,7 +423,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "5da12ebf-2ba3-4a30-8490-ffed3910ab35",
+								"id": "396e75bc-3b89-4567-a707-e7850aafa56c",
 								"exec": [
 									"postman.setGlobalVariable(\"cookie\",postman.getResponseHeader(\"set-cookie\") );",
 									"",
@@ -518,7 +518,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "8663b578-ff18-4545-9e43-0f6926b2bf52",
+								"id": "290f42ee-a8bc-40d4-bf23-7d1fd2b1c613",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
@@ -565,7 +565,7 @@
 							}
 						],
 						"url": {
-							"raw": "{{host}}/default/rdmp/listRecords?recordType=rdmp&state=draft&sort=date_object_modified:-1&start=0&rows=10",
+							"raw": "{{host}}/default/rdmp/listRecords?recordType=rdmp&state=draft&sort=\"lastSaveDate\":-1&start=0&rows=10",
 							"host": [
 								"{{host}}"
 							],
@@ -585,7 +585,7 @@
 								},
 								{
 									"key": "sort",
-									"value": "date_object_modified:-1"
+									"value": "\"lastSaveDate\":-1"
 								},
 								{
 									"key": "start",
@@ -606,7 +606,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "d0e457d1-e6b2-46c6-aac6-b6795963b9d7",
+								"id": "9d0cce74-a03f-4180-8838-f7d1e6988af1",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
@@ -683,7 +683,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "a80f2565-b2cd-4d9e-bf61-0c8554dab274",
+								"id": "5358479e-8fc9-4547-b72f-4ed6318ec4a6",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
@@ -760,7 +760,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "a0d8a57d-6dda-481d-a04a-5e94771c9ee0",
+								"id": "b32dc7cf-fe3b-4e4d-9561-6e8302da8e22",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
@@ -849,7 +849,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "c3452a4e-97f5-4f45-9839-05602b45e876",
+								"id": "2ce63735-1fdf-4448-9b86-dd9220cc0216",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
@@ -939,7 +939,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "0e343046-1cb1-4dc0-a9fa-ba9ff1070482",
+								"id": "b508583c-a365-4325-8ff0-a13f43977692",
 								"exec": [
 									"// \"contributor_ci\": {",
 									"                    // \"text_full_name\": \"Alberto Zweinstein\",",
@@ -1028,7 +1028,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"records\": [\n    {\n      \"oid\": \"{{dmpOid}}\",\n      \"title\": \"Andrew's Postman test\",\n      \"metadata\": {\n        \"metaMetadata\": {\n          \"brandId\": \"{{brandId}}\",\n          \"type\": \"rdmp\",\n          \"createdBy\": \"admin\",\n          \"form\": \"default-1.0-draft\"\n        },\n        \"metadata\": {\n          \"title\": \"Andrew's Postman test\",\n          \"dc:identifier\": \"http://purl.org/au-research/grants/nhmrc/566728\",\n          \"description\": \"Movement of molecules within cells by a process known as membrane transport is critical for normal cell function and also exploited by bacteria to promote infection. The pathway that connects the import pathway to the export pathway is essential for the function of a large number of proteins, however this connecting pathway is poorly characterised. This study will define the machinery of this trafficking pathway, which will provide the ability to modulate biological processes and cytotoxicity.\",\n          \"finalKeywords\": [\n            \"270199\",\n            \"Golgi apparatus\",\n            \"endocytosis\",\n            \"membrane transport\",\n            \"protein trafficking\",\n            \"secretion\",\n            \"HIV-AIDS\",\n            \"bacterial pathogen\",\n            \"hormone secretion\",\n            \"immune development\",\n            \"lysosomal storage disorder\"\n          ],\n          \"contributor_ci\": {\n            \"text_full_name\": \"Prof Paul Gleeson\",\n            \"email\": \"notAReal@email.edu.au\",\n            \"orcid\": \"http://orcid.org/0000-0000-0000-000\"\n          },\n          \"contributor_data_manager\": {\n            \"text_full_name\": \"Prof Paul Gleeson\",\n            \"email\": \"notAReal@email.edu.au\",\n            \"orcid\": \"http://orcid.org/0000-0000-0000-000\"\n          },\n          \"contributors\": [\n            {\n              \"text_full_name\": \"Prof Paul Gleeson\",\n              \"email\": \"notAReal@email.edu.au\",\n              \"orcid\": \"http://orcid.org/0000-0000-0000-000\"\n            }\n          ],\n          \"vivo:Dataset_redbox:DataCollectionMethodology\": \"The data collection methodology\",\n          \"vivo:Dataset_dc_format\": \"xls\",\n          \"vivo:Dataset_dc:location_rdf:PlainLiteral\": \"eResearch Store network drive\",\n          \"vivo:Dataset_dc:source_dc:location_rdf:PlainLiteral\": \"shared university network drive (e.g. G, H, etc)\",\n          \"vivo:Dataset_dc:extent\": \"100GB - 2TB\",\n          \"redbox:retentionPeriod_dc:date\": \"1year\",\n          \"dc:rightsHolder_dc:name\": \"myUni\",\n          \"dc:accessRights\": \"permission from the data manager\",\n          \"authorization\": []\n        },\n        \"workflow\": {\n          \"stage\": \"draft\",\n          \"stageLabel\": \"Draft\"\n        },\n        \"authorization\": {\n          \"viewRoles\": [\n            \"Admin\",\n            \"Librarians\"\n          ],\n          \"editRoles\": [\n            \"Admin\",\n            \"Librarians\"\n          ],\n          \"view\": [],\n          \"edit\": [],\n          \"viewPending\": [\n            \"notAReal@email.edu.au\"\n          ],\n          \"editPending\": [\n            \"notAReal@email.edu.au\"\n          ]\n        },\n        \"redboxOid\": \"2c7c2dc046cc5834b0334445e7245b47\",\n        \"packageType\": [\n          \"rdmp\"\n        ],\n        \"date_object_created\": [\n          \"2018-11-27T01:09:00.143Z\"\n        ],\n        \"date_object_modified\": [\n          \"2018-11-27T01:09:00.654Z\"\n        ]\n      },\n      \"dateCreated\": \"November 27, 2018 11:39 AM\",\n      \"dateModified\": \"November 27, 2018 11:39 AM\",\n      \"hasEditAccess\": true,\n      \"dashboardTitle\": \"Andrew's Postman test\",\n      \"selected\": true\n    }\n  ],\n  \"role\": \"chiefInvestigator\",\n  \"updateData\": {\n    \"text_full_name\": \"Alberto Zweinstein\",\n    \"storage_id\": \"23c3f253fa53809e2d986e69e2537de8\",\n    \"email\": \"alberto.zweinstein@example.edu.au\",\n    \"full_name_honorific\": \"Dr Alberto Zweinstein\",\n    \"given_name\": \"Alberto\",\n    \"family_name\": \"Zweinstein\",\n    \"honorific\": \"Dr\",\n    \"full_name_family_name_first\": \"Zweinstein, Alberto\"\n  }\n}"
+							"raw": "{\n  \"records\": [\n    {\n      \"oid\": \"{{dmpOid}}\"\n    }\n  ],\n  \"role\": \"chiefInvestigator\",\n  \"updateData\": {\n    \"text_full_name\": \"Alberto Zweinstein\",\n    \"storage_id\": \"23c3f253fa53809e2d986e69e2537de8\",\n    \"email\": \"alberto.zweinstein@example.edu.au\",\n    \"full_name_honorific\": \"Dr Alberto Zweinstein\",\n    \"given_name\": \"Alberto\",\n    \"family_name\": \"Zweinstein\",\n    \"honorific\": \"Dr\",\n    \"full_name_family_name_first\": \"Zweinstein, Alberto\"\n  }\n}"
 						},
 						"url": {
 							"raw": "http://localhost:1500/default/rdmp/record/responsibility/update",
@@ -1054,7 +1054,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "ada7d6f4-1304-45a1-acb9-f444747c45cf",
+								"id": "775bafd8-2df3-45d6-8fe3-ddff1cd51ace",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
@@ -1128,7 +1128,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"username\": \"{{researcherUsername}}\",\n    \"details\": {\n        \"name\": \"A dummy researcher\",\n        \"email\": \"{{researcherEmail}}\",\n        \"password\": \"!7654321wQ\",\n        \"roles\": [\n            \"Researcher\",\n            \"Guest\"\n        ]\n    }\n}"
+							"raw": "{\n    \"username\": \"{{researcherUsername}}\",\n    \"details\": {\n        \"name\": \"A dummy researcher\",\n        \"email\": \"{{researcherEmail}}\",\n        \"password\": \"{{researcherPassword}}\",\n        \"roles\": [\n            \"Researcher\",\n            \"Guest\"\n        ]\n    }\n}"
 						},
 						"url": {
 							"raw": "{{host}}/default/rdmp/admin/users/newUser",
@@ -1152,7 +1152,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "e1744b03-522c-46f4-a07d-a91f662d0db0",
+								"id": "2d5eeed7-9802-4b60-a6aa-18f28f4de4ab",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
@@ -1232,7 +1232,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"username\": \"{{researcherUsername}}\",\n    \"details\": {\n        \"name\": \"A dummy researcher\",\n        \"email\": \"{{researcherEmail}}\",\n        \"password\": \"`{[researcherPassword]}\",\n        \"roles\": [\n            \"Researcher\",\n            \"Guest\"\n        ]\n    }\n}"
+							"raw": "{\n    \"username\": \"{{researcherUsername}}\",\n    \"details\": {\n        \"name\": \"A dummy researcher\",\n        \"email\": \"{{researcherEmail}}\",\n        \"password\": \"`{{ researcherPassword }}\",\n        \"roles\": [\n            \"Researcher\",\n            \"Guest\"\n        ]\n    }\n}"
 						},
 						"url": {
 							"raw": "{{host}}/default/rdmp/admin/users/newUser",
@@ -1256,7 +1256,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "21724d77-4e9f-41ae-a20b-8f6f070a5c57",
+								"id": "0fbe7547-b626-4417-aabe-71585bfda7d2",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
@@ -1362,7 +1362,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "098acda1-ad95-40bb-85c0-dba00f7efce0",
+								"id": "0af211c4-31ed-4b1b-b3e7-066eab92155b",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
@@ -1465,7 +1465,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "ea1b5cbb-8835-49bf-98e4-7e2b9e13911d",
+								"id": "3327710b-6c78-4ac8-99a0-873ac4d482cf",
 								"exec": [
 									"",
 									"pm.test(\"Status code is 200\", function () {",
@@ -1570,7 +1570,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "ab56c882-2ade-4308-a7ae-96c043e86ece",
+								"id": "0f3e4e50-0ab6-4f13-867c-edd92245db45",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
@@ -1650,7 +1650,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"userid\": \"{{researcherUserId}}\",\n    \"details\": {\n        \"name\": \"A dummy researcher\",\n        \"email\": \"{{researcherEmail}}\",\n        \"password\": \"\",\n        \"roles\": [\n            \"Librarians\",\n            \"Researcher\",\n            \"Guest\"\n        ]\n    }\n}"
+							"raw": "{\n    \"userid\": \"{{researcherUserId}}\",\n    \"details\": {\n        \"name\": \"A dummy researcher\",\n        \"email\": \"{{researcherEmail}}\",\n        \"password\": \"{{researcherPassword}}\",\n        \"roles\": [\n            \"Librarians\",\n            \"Researcher\",\n            \"Guest\"\n        ]\n    }\n}"
 						},
 						"url": {
 							"raw": "{{host}}/default/rdmp/admin/users/update",
@@ -1674,7 +1674,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "41224895-8efa-4fa1-b756-71c4a5dfa380",
+								"id": "50716166-d5fd-4fb1-b437-ac1680c372bf",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
@@ -1855,7 +1855,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "0a41b1f6-6b69-45d9-9905-b5f14ae52752",
+								"id": "910e4abb-f7ac-433e-8439-abf2d406996a",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
@@ -1958,7 +1958,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "68e79fbf-0d3a-4a55-bf92-c4d975cded59",
+								"id": "60be7dda-ad7c-4088-a0af-c537cfa23fc0",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
@@ -1976,7 +1976,7 @@
 									"pm.test(\"CSV contains Test record\", function () {",
 									"    var found = false;",
 									"    const head = parsedCSV.shift(),",
-									"        title = head.indexOf('storage_id');",
+									"        title = head.indexOf('redboxOid');",
 									"   parsedCSV.forEach(function(row) {",
 									"       if(row[title] == pm.environment.get('dmpOid')) {",
 									"           found = true;",
@@ -2080,7 +2080,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "9a89e62c-7140-4056-a9a0-6f277294bc32",
+								"id": "ec11cf13-a76e-431c-8561-cc58736d0d8c",
 								"exec": [
 									"",
 									"pm.test(\"Status code is 200\", function () {",
@@ -2174,7 +2174,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "ba1a6cf1-e970-4041-85da-5d59a23a6a66",
+								"id": "569b8fdd-0dcd-49ff-b992-79d7f5f5970f",
 								"exec": [
 									"",
 									"pm.test(\"Status code is 201\", function () {",
@@ -2276,7 +2276,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "56e774a8-4e00-46f6-9b89-c60f4354dd38",
+								"id": "4db55ba8-1fea-4816-856d-4d9fc15f461a",
 								"exec": [
 									"pm.test(\"Status code is 204\", function () {",
 									"    pm.response.to.have.status(204);",
@@ -2370,7 +2370,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "79d2a0a8-f221-4f88-a911-b8f308ed840f",
+								"id": "a05e400d-7ba7-4189-9283-22df340db50b",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
@@ -2462,7 +2462,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "1a921de3-6836-4987-a155-d780f688aa3d",
+								"id": "5f2ebd69-89f7-4a52-b30f-00f06cad2d5d",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
@@ -2498,7 +2498,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "40e1ff1d-bc20-465c-98f3-6ac7f8e8b08b",
+								"id": "f3db7fa8-7fde-42eb-913c-dfe48f4c6539",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
@@ -2589,7 +2589,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "22f320bb-6b77-4628-906a-327dcb3c5ffa",
+								"id": "7973e70c-96d2-455b-ba3d-32b97056931a",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
@@ -2681,7 +2681,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "f9831932-0294-4f9a-9f4a-4e11909b4ee4",
+								"id": "2b75fb88-b3ab-4da1-8605-8c28758dffb9",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
@@ -2773,7 +2773,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "40211284-ad8b-4d7b-a40b-a9d8cefeebb7",
+								"id": "23fe1da6-69cc-4675-b30b-d8e437499f9b",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
@@ -2873,7 +2873,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "6afa5172-d59f-4fd3-8f13-efd244678b86",
+								"id": "c7986692-b565-4c4e-baed-80e951c4a347",
 								"exec": [
 									"",
 									"pm.test(\"Status code is 200\", function () {",
@@ -2971,7 +2971,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "c49daf1e-6dfd-4aac-9b99-0a24338413d9",
+								"id": "dd144dff-909f-4430-9bd5-ca5b3045d255",
 								"exec": [
 									"",
 									"pm.test(\"Status code is 200\", function () {",
@@ -3142,7 +3142,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "503ec593-335f-4e1e-82c3-6ab02ff81682",
+								"id": "8d577856-e300-485a-b1a2-56a8e1bcc70e",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
@@ -3218,7 +3218,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "12a1cf86-99af-4a39-8d8e-40cfe55da2f3",
+								"id": "e8422191-0aee-4124-9d54-f1757bfe7250",
 								"exec": [
 									"pm.test(\"Status code is 403\", function () {",
 									"    pm.response.to.have.status(403);",
@@ -3287,7 +3287,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "26bcddb0-2663-40fa-90b8-8f65dbbdcb2b",
+								"id": "11e34f30-4d2d-43d0-a1a5-e96e61083b50",
 								"exec": [
 									"postman.setGlobalVariable(\"cookie\",postman.getResponseHeader(\"set-cookie\") );",
 									"",
@@ -3363,7 +3363,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"username\": \"researcheruser\",\n    \"password\": \"notthepassword\",\n    \"branding\": \"default\",\n    \"portal\": \"rdmp\"\n}"
+							"raw": "{\n    \"username\": \"{{researcherUsername}}\",\n    \"password\": \"notthepassword\",\n    \"branding\": \"default\",\n    \"portal\": \"rdmp\"\n}"
 						},
 						"url": {
 							"raw": "http://localhost:1500/user/login_local",
@@ -3386,7 +3386,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "f5b84bb3-ccf8-44ae-891d-2c833c5f4420",
+								"id": "903c1dca-6598-4e69-972a-05051e1bd5ac",
 								"exec": [
 									"postman.setGlobalVariable(\"cookie\",postman.getResponseHeader(\"set-cookie\") );",
 									"",
@@ -3394,7 +3394,7 @@
 									"    pm.response.to.have.status(200);",
 									"});",
 									"",
-									"pm.test(\"Check that user returned is researcheruser\", function () {",
+									"pm.test(\"Check that we have logged in correctly.\", function () {",
 									"    var jsonData = pm.response.json();",
 									"    var researcherUsername = pm.environment.get(\"researcherUsername\");",
 									"    pm.expect(jsonData.user.username).to.eql(researcherUsername);",
@@ -3482,7 +3482,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "c7db8ee9-aea7-492e-89f1-c6e5b1f528d0",
+								"id": "60b3b76d-66c9-497e-86cd-2ac252e83bab",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
