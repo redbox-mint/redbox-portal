@@ -531,4 +531,21 @@ export class FieldBase<T> {
   asyncLoadData() {
     return Observable.of(null);
   }
+
+  /**
+   * Used for setting another property for fields
+   *
+   * @author <a target='_' href='https://github.com/shilob'>Shilo Banihit</a>
+   * @param  curValue
+   * @param  config
+   * @return
+   */
+  setAnotherProperty(curValue, config: any) {
+    let propValue = curValue;
+    if (!_.isEmpty(config.template)) {
+      propValue = this.utilityService.runTemplate({value: propValue, field: this}, config);
+    }
+    _.set(this, config.propertyPath, propValue);
+    return config.dontChangeValue ? this.value : curValue;
+  }
 }
