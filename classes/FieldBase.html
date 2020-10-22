@@ -274,6 +274,9 @@
                                 <a href="#replaceValWithConfig">replaceValWithConfig</a>
                             </li>
                             <li>
+                                <a href="#setAnotherProperty">setAnotherProperty</a>
+                            </li>
+                            <li>
                                     <span class="modifier">Public</span>
                                 <a href="#setFieldMapEntry">setFieldMapEntry</a>
                             </li>
@@ -2569,6 +2572,89 @@ fieldMap[name].field = the Field model (this)</p>
         <tbody>
             <tr>
                 <td class="col-md-4">
+                    <a name="setAnotherProperty"></a>
+                    <span class="name">
+                        <b>
+                            setAnotherProperty
+                        </b>
+                        <a href="#setAnotherProperty"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+<code>setAnotherProperty(curValue, config: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>)</code>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-line">Defined in <a href="" data-line="543"
+                            class="link-to-prism">angular/shared/form/field-base.ts:543</a></div>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-description"><p>Used for setting another property for fields</p>
+</div>
+
+                    <div class="io-description">
+                        <b>Parameters :</b>
+                        <table class="params">
+                            <thead>
+                                <tr>
+                                    <td>Name</td>
+                                    <td>Type</td>
+                                    <td>Optional</td>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>curValue</td>
+                                    <td>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+
+                                </tr>
+                                <tr>
+                                    <td>config</td>
+                                    <td>
+                                                <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div>
+                    </div>
+                    <div class="io-description">
+                        <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+
+                    </div>
+                    <div class="io-description">
+                        
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
                     <a name="setFieldMapEntry"></a>
                     <span class="name">
                         <b>
@@ -3883,6 +3969,23 @@ export class FieldBase&lt;T&gt; {
   //Default asyncLoadData function. No async load required so return empty Observable.
   asyncLoadData() {
     return Observable.of(null);
+  }
+
+  /**
+   * Used for setting another property for fields
+   *
+   * @author &lt;a target&#x3D;&#x27;_&#x27; href&#x3D;&#x27;https://github.com/shilob&#x27;&gt;Shilo Banihit&lt;/a&gt;
+   * @param  curValue
+   * @param  config
+   * @return
+   */
+  setAnotherProperty(curValue, config: any) {
+    let propValue &#x3D; curValue;
+    if (!_.isEmpty(config.template)) {
+      propValue &#x3D; this.utilityService.runTemplate({value: propValue, field: this}, config);
+    }
+    _.set(this, config.propertyPath, propValue);
+    return config.dontChangeValue ? this.value : curValue;
   }
 }
 </code></pre>

@@ -235,7 +235,7 @@
                 </tr>
                         <tr>
                             <td class="col-md-4">
-                                <div class="io-line">Defined in <a href="" data-line="173" class="link-to-prism">angular/shared/form/field-relatedobjectdata.component.ts:173</a></div>
+                                <div class="io-line">Defined in <a href="" data-line="174" class="link-to-prism">angular/shared/form/field-relatedobjectdata.component.ts:174</a></div>
                             </td>
                         </tr>
 
@@ -509,8 +509,8 @@
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="179"
-                            class="link-to-prism">angular/shared/form/field-relatedobjectdata.component.ts:179</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="180"
+                            class="link-to-prism">angular/shared/form/field-relatedobjectdata.component.ts:180</a></div>
                 </td>
             </tr>
 
@@ -1005,7 +1005,7 @@ Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a></p
                     </tr>
                         <tr>
                             <td class="col-md-4">
-                                    <div class="io-line">Defined in <a href="" data-line="173" class="link-to-prism">angular/shared/form/field-relatedobjectdata.component.ts:173</a></div>
+                                    <div class="io-line">Defined in <a href="" data-line="174" class="link-to-prism">angular/shared/form/field-relatedobjectdata.component.ts:174</a></div>
                             </td>
                         </tr>
 
@@ -1210,6 +1210,7 @@ export class RelatedObjectDataField extends FieldBase&lt;any&gt; {
   hasInit: boolean;
   recordsService: RecordsService;
   columns: object[];
+  ignoreEmptyTitle: boolean;
 
   constructor(options: any, injector: any) {
     super(options, injector);
@@ -1221,7 +1222,7 @@ export class RelatedObjectDataField extends FieldBase&lt;any&gt; {
     var relatedObjects &#x3D; this.relatedObjects;
     this.value &#x3D; options[&#x27;value&#x27;] || this.setEmptyValue();
     this.recordsService &#x3D; this.getFromInjector(RecordsService);
-
+    this.ignoreEmptyTitle &#x3D; _.isUndefined(options[&#x27;ignoreEmptyTitle&#x27;]) ? false : options[&#x27;ignoreEmptyTitle&#x27;];
   }
 
 /**
@@ -1241,7 +1242,7 @@ export class RelatedObjectDataField extends FieldBase&lt;any&gt; {
           _.merge(meta, customFields);
           if (meta[&#x27;status&#x27;] &#x3D;&#x3D; &quot;Access Denied&quot;) {
             that.accessDeniedObjects.push(meta);
-          } else if (meta[&#x27;title&#x27;]) {
+          } else if (meta[&#x27;title&#x27;] || that.ignoreEmptyTitle) {
             that.relatedObjects.push(meta);
           } else {
             that.failedObjects.push(meta);
