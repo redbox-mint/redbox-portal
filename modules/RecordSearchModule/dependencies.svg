@@ -26,61 +26,61 @@
 </g>
 <g id="clust2" class="cluster">
 <title>cluster_RecordSearchModule_declarations</title>
-<polygon fill="none" stroke="black" points="73,-143 73,-195 469,-195 469,-143 73,-143"/>
+<polygon fill="none" stroke="black" points="195,-143 195,-195 591,-195 591,-143 195,-143"/>
 </g>
-<g id="clust5" class="cluster">
-<title>cluster_RecordSearchModule_imports</title>
-<polygon fill="none" stroke="black" points="477,-143 477,-195 591,-195 591,-143 477,-143"/>
+<g id="clust7" class="cluster">
+<title>cluster_RecordSearchModule_bootstrap</title>
+<polygon fill="none" stroke="black" points="214,-273 214,-325 394,-325 394,-273 214,-273"/>
 </g>
 <g id="clust3" class="cluster">
 <title>cluster_RecordSearchModule_RecordSearchComponent_providers</title>
 <polygon fill="none" stroke="black" points="16,-78 16,-130 648,-130 648,-78 16,-78"/>
 </g>
-<g id="clust7" class="cluster">
-<title>cluster_RecordSearchModule_bootstrap</title>
-<polygon fill="none" stroke="black" points="291,-273 291,-325 471,-325 471,-273 291,-273"/>
+<g id="clust5" class="cluster">
+<title>cluster_RecordSearchModule_imports</title>
+<polygon fill="none" stroke="black" points="73,-143 73,-195 187,-195 187,-143 73,-143"/>
 </g>
 <!-- RecordSearchComponent -->
 <g id="node1" class="node">
 <title>RecordSearchComponent</title>
-<polygon fill="#ffffb3" stroke="black" points="460.85,-187 301.15,-187 301.15,-151 460.85,-151 460.85,-187"/>
-<text text-anchor="middle" x="381" y="-164.8" font-family="Times,serif" font-size="14.00">RecordSearchComponent</text>
+<polygon fill="#ffffb3" stroke="black" points="582.85,-187 423.15,-187 423.15,-151 582.85,-151 582.85,-187"/>
+<text text-anchor="middle" x="503" y="-164.8" font-family="Times,serif" font-size="14.00">RecordSearchComponent</text>
 </g>
 <!-- RecordSearchModule -->
 <g id="node3" class="node">
 <title>RecordSearchModule</title>
-<polygon fill="#8dd3c7" stroke="black" points="450.06,-252 447.06,-256 426.06,-256 423.06,-252 311.94,-252 311.94,-216 450.06,-216 450.06,-252"/>
-<text text-anchor="middle" x="381" y="-229.8" font-family="Times,serif" font-size="14.00">RecordSearchModule</text>
+<polygon fill="#8dd3c7" stroke="black" points="373.06,-252 370.06,-256 349.06,-256 346.06,-252 234.94,-252 234.94,-216 373.06,-216 373.06,-252"/>
+<text text-anchor="middle" x="304" y="-229.8" font-family="Times,serif" font-size="14.00">RecordSearchModule</text>
 </g>
 <!-- RecordSearchComponent&#45;&gt;RecordSearchModule -->
 <g id="edge1" class="edge">
 <title>RecordSearchComponent&#45;&gt;RecordSearchModule</title>
-<path fill="none" stroke="black" d="M381,-187.11C381,-187.11 381,-205.99 381,-205.99"/>
-<polygon fill="black" stroke="black" points="377.5,-205.99 381,-215.99 384.5,-205.99 377.5,-205.99"/>
+<path fill="none" stroke="black" d="M503,-187.11C503,-206.34 503,-234 503,-234 503,-234 383.04,-234 383.04,-234"/>
+<polygon fill="black" stroke="black" points="383.04,-230.5 373.04,-234 383.04,-237.5 383.04,-230.5"/>
 </g>
 <!-- RecordSearchRefinerComponent -->
 <g id="node2" class="node">
 <title>RecordSearchRefinerComponent</title>
-<polygon fill="#ffffb3" stroke="black" points="282.82,-187 81.18,-187 81.18,-151 282.82,-151 282.82,-187"/>
-<text text-anchor="middle" x="182" y="-164.8" font-family="Times,serif" font-size="14.00">RecordSearchRefinerComponent</text>
+<polygon fill="#ffffb3" stroke="black" points="404.82,-187 203.18,-187 203.18,-151 404.82,-151 404.82,-187"/>
+<text text-anchor="middle" x="304" y="-164.8" font-family="Times,serif" font-size="14.00">RecordSearchRefinerComponent</text>
 </g>
 <!-- RecordSearchRefinerComponent&#45;&gt;RecordSearchModule -->
 <g id="edge4" class="edge">
 <title>RecordSearchRefinerComponent&#45;&gt;RecordSearchModule</title>
-<path fill="none" stroke="black" d="M182,-187.11C182,-206.34 182,-234 182,-234 182,-234 301.96,-234 301.96,-234"/>
-<polygon fill="black" stroke="black" points="301.96,-237.5 311.96,-234 301.96,-230.5 301.96,-237.5"/>
+<path fill="none" stroke="black" d="M304,-187.11C304,-187.11 304,-205.99 304,-205.99"/>
+<polygon fill="black" stroke="black" points="300.5,-205.99 304,-215.99 307.5,-205.99 300.5,-205.99"/>
 </g>
 <!-- RecordSearchComponent  -->
 <g id="node7" class="node">
 <title>RecordSearchComponent </title>
-<polygon fill="#80b1d3" stroke="black" points="462.85,-317 299.15,-317 299.15,-281 462.85,-281 462.85,-317"/>
-<text text-anchor="middle" x="381" y="-294.8" font-family="Times,serif" font-size="14.00">RecordSearchComponent </text>
+<polygon fill="#80b1d3" stroke="black" points="385.85,-317 222.15,-317 222.15,-281 385.85,-281 385.85,-317"/>
+<text text-anchor="middle" x="304" y="-294.8" font-family="Times,serif" font-size="14.00">RecordSearchComponent </text>
 </g>
 <!-- RecordSearchModule&#45;&gt;RecordSearchComponent  -->
 <g id="edge6" class="edge">
 <title>RecordSearchModule&#45;&gt;RecordSearchComponent </title>
-<path fill="none" stroke="black" stroke-dasharray="1,5" d="M381,-252.11C381,-252.11 381,-270.99 381,-270.99"/>
-<polygon fill="black" stroke="black" points="377.5,-270.99 381,-280.99 384.5,-270.99 377.5,-270.99"/>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M304,-252.11C304,-252.11 304,-270.99 304,-270.99"/>
+<polygon fill="black" stroke="black" points="300.5,-270.99 304,-280.99 307.5,-270.99 300.5,-270.99"/>
 </g>
 <!-- Location -->
 <g id="node4" class="node">
@@ -91,8 +91,8 @@
 <!-- Location&#45;&gt;RecordSearchComponent -->
 <g id="edge2" class="edge">
 <title>Location&#45;&gt;RecordSearchComponent</title>
-<path fill="none" stroke="black" d="M566.42,-118.19C566.42,-127.13 566.42,-137 566.42,-137 566.42,-137 407.64,-137 407.64,-137 407.64,-137 407.64,-140.76 407.64,-140.76"/>
-<polygon fill="black" stroke="black" points="404.14,-140.76 407.64,-150.76 411.14,-140.76 404.14,-140.76"/>
+<path fill="none" stroke="black" d="M566.28,-118.1C566.28,-118.1 566.28,-140.72 566.28,-140.72"/>
+<polygon fill="black" stroke="black" points="562.78,-140.72 566.28,-150.72 569.78,-140.72 562.78,-140.72"/>
 </g>
 <!-- { provide: LocationStrategy, useClass: PathLocationStrategy } -->
 <g id="node5" class="node">
@@ -103,20 +103,20 @@
 <!-- { provide: LocationStrategy, useClass: PathLocationStrategy }&#45;&gt;RecordSearchComponent -->
 <g id="edge3" class="edge">
 <title>{ provide: LocationStrategy, useClass: PathLocationStrategy }&#45;&gt;RecordSearchComponent</title>
-<path fill="none" stroke="black" d="M354.36,-121.42C354.36,-121.42 354.36,-140.62 354.36,-140.62"/>
-<polygon fill="black" stroke="black" points="350.86,-140.62 354.36,-150.62 357.86,-140.62 350.86,-140.62"/>
+<path fill="none" stroke="black" d="M477.35,-115.32C477.35,-115.32 477.35,-140.94 477.35,-140.94"/>
+<polygon fill="black" stroke="black" points="473.85,-140.94 477.35,-150.94 480.85,-140.94 473.85,-140.94"/>
 </g>
 <!-- SharedModule -->
 <g id="node6" class="node">
 <title>SharedModule</title>
-<polygon fill="#8dd3c7" stroke="black" points="583.42,-187 580.42,-191 559.42,-191 556.42,-187 484.58,-187 484.58,-151 583.42,-151 583.42,-187"/>
-<text text-anchor="middle" x="534" y="-164.8" font-family="Times,serif" font-size="14.00">SharedModule</text>
+<polygon fill="#8dd3c7" stroke="black" points="179.42,-187 176.42,-191 155.42,-191 152.42,-187 80.58,-187 80.58,-151 179.42,-151 179.42,-187"/>
+<text text-anchor="middle" x="130" y="-164.8" font-family="Times,serif" font-size="14.00">SharedModule</text>
 </g>
 <!-- SharedModule&#45;&gt;RecordSearchModule -->
 <g id="edge5" class="edge">
 <title>SharedModule&#45;&gt;RecordSearchModule</title>
-<path fill="none" stroke="black" d="M534,-187.11C534,-206.34 534,-234 534,-234 534,-234 460.34,-234 460.34,-234"/>
-<polygon fill="black" stroke="black" points="460.34,-230.5 450.34,-234 460.34,-237.5 460.34,-230.5"/>
+<path fill="none" stroke="black" d="M130,-187.11C130,-206.34 130,-234 130,-234 130,-234 224.73,-234 224.73,-234"/>
+<polygon fill="black" stroke="black" points="224.73,-237.5 234.73,-234 224.73,-230.5 224.73,-237.5"/>
 </g>
 </g>
 </svg>

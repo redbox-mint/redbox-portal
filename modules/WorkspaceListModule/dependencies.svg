@@ -28,13 +28,13 @@
 <title>cluster_WorkspaceListModule_imports</title>
 <polygon fill="none" stroke="black" points="286,-78 286,-130 400,-130 400,-78 286,-78"/>
 </g>
-<g id="clust6" class="cluster">
-<title>cluster_WorkspaceListModule_bootstrap</title>
-<polygon fill="none" stroke="black" points="155,-208 155,-260 341,-260 341,-208 155,-208"/>
-</g>
 <g id="clust2" class="cluster">
 <title>cluster_WorkspaceListModule_declarations</title>
 <polygon fill="none" stroke="black" points="96,-78 96,-130 278,-130 278,-78 96,-78"/>
+</g>
+<g id="clust6" class="cluster">
+<title>cluster_WorkspaceListModule_bootstrap</title>
+<polygon fill="none" stroke="black" points="155,-208 155,-260 341,-260 341,-208 155,-208"/>
 </g>
 <!-- WorkspaceListComponent -->
 <g id="node1" class="node">
