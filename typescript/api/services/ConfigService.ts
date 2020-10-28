@@ -54,8 +54,16 @@ export module Services {
       const hook_root_dir = `${sails.config.appPath}/node_modules/${hookName}`;
       const hook_log_header = hookName;
       let origDontMerge = _.clone(dontMergeFields);
-      const concatArrsFn = function (objValue, srcValue, key) {
-        if (_.indexOf(dontMergeFields, key) != -1) {
+      const concatArrsFn = function (objValue, srcValue, key, object, source, stack) {
+        const dontMergeIndex = _.findIndex(dontMergeFields, (o) => { return _.isString(o) ? _.isEqual(o, key) : !_.isEmpty(o[key]) });
+        if (dontMergeIndex != -1) {
+          if (!_.isString(dontMergeFields[dontMergeIndex])) {
+            if (dontMergeFields[key] == "this_file") {
+              return srcValue;
+            } else {
+              return objValue;
+            }
+          }
           return srcValue;
         }
       }
