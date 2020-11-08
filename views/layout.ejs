@@ -22,9 +22,9 @@
 
   <!-- Custom CSS -->
 
-  <link rel="stylesheet" href="<%= sails.config.appUrl %>/styles/style.css">
-  <link rel="stylesheet" href="<%= sails.config.appUrl %>/styles/responsive.css">
-  <link rel="stylesheet" href="<%= sails.config.appUrl %>/<%= typeof theme == 'undefined' ? req.param('theme') : theme %>/<%= typeof portal == 'undefined' ? req.param('portal') : portal %>/styles/theme.css">
+  <link rel="stylesheet" href="<%= sails.config.http.rootContext %>/styles/style.css">
+  <link rel="stylesheet" href="<%= sails.config.http.rootContext %>/styles/responsive.css">
+  <link rel="stylesheet" href="<%= sails.config.http.rootContext %>/<%= typeof theme == 'undefined' ? req.param('theme') : theme %>/<%= typeof portal == 'undefined' ? req.param('portal') : portal %>/styles/theme.css">
 
 
   <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->

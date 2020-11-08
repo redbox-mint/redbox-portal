@@ -95,7 +95,8 @@ export module Services {
     public getBrandAndPortalPath(req) {
       const branding = this.getBrandFromReq(req);
       const portal = this.getPortalFromReq(req);
-      const path = `/${branding}/${portal}`;
+
+      const path = sails.config.http.rootContext+`/${branding}/${portal}`;
       return path;
     }
 

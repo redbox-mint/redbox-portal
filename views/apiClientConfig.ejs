@@ -1,5 +1,5 @@
 {
-  "baseUrl": "<%= sails.config.appUrl %>",
+  "baseUrl": "<%= sails.config.appUrl %><%= sails.config.http.rootContext %>",
   "branding": "<%= req.session.branding %>",
   "portal": "<%= req.session.portal %>",
   "defaultForm": "<%= sails.config.form.defaultForm %>",

@@ -23,55 +23,66 @@
 module.exports.routes = {
 
   /***************************************************************************
-  *                                                                          *
-  * Make the view located at `views/homepage.ejs` (or `views/homepage.jade`, *
-  * etc. depending on your default view engine) your home page.              *
-  *                                                                          *
-  * (Alternatively, remove this and add an `index.html` file in your         *
-  * `assets` directory)                                                      *
-  *                                                                          *
-  ***************************************************************************/
-  'GET /csrfToken': { action: 'security/grant-csrf-token' },
-  '/':  '/default/rdmp/home',
+   *                                                                          *
+   * Make the view located at `views/homepage.ejs` (or `views/homepage.jade`, *
+   * etc. depending on your default view engine) your home page.              *
+   *                                                                          *
+   * (Alternatively, remove this and add an `index.html` file in your         *
+   * `assets` directory)                                                      *
+   *                                                                          *
+   ***************************************************************************/
+  'GET /csrfToken': {
+    action: 'security/grant-csrf-token'
+  },
+  'GET /*/csrfToken': {
+    action: 'security/grant-csrf-token'
+  },
+  'GET /*/dynamic/apiClientConfig': {
+    view: 'apiClientConfig',
+    locals: {
+      layout: false
+    }
+  },
+  '/': '/default/rdmp/home',
   '/:branding/:portal/home': {
     controller: 'RenderViewController',
     action: 'render',
-    locals:{
+    locals: {
       'view': 'homepage'
     }
   },
   '/:branding/:portal/researcher/home': {
     controller: 'RenderViewController',
     action: 'render',
-    locals:{
+    locals: {
       'view': 'researcher/home'
     }
   },
   '/:branding/:portal/record/view/:oid': {
     controller: 'RenderViewController',
     action: 'render',
-    locals:{
+    locals: {
       'view': 'record/view'
     }
   },
   '/:branding/:portal/record/transfer/:type': {
     controller: 'RenderViewController',
     action: 'render',
-    locals:{
+    locals: {
       'view': 'record/transfer'
     }
   },
   '/:branding/:portal/record/search': {
     controller: 'RenderViewController',
     action: 'render',
-    locals:{
+    locals: {
       'view': 'record/search'
     }
   },
   '/:branding/:portal/record/view-orig/:oid': {
     controller: 'RenderViewController',
     action: 'render',
-    locals:{
+    locals: {
       'view': 'record/view-orig'
     }
   },
@@ -86,7 +97,7 @@ module.exports.routes = {
   '/:branding/:portal/admin': {
     controller: 'RenderViewController',
     action: 'render',
-    locals:{
+    locals: {
       'view': 'admin/home'
     }
   },
@@ -108,7 +119,7 @@ module.exports.routes = {
   '/:branding/:portal/availableServicesList': {
     controller: 'RenderViewController',
     action: 'render',
-    locals:{
+    locals: {
       'view': 'availableServicesList'
     }
   },
@@ -119,19 +130,19 @@ module.exports.routes = {
   '/:branding/:portal/getAdvice': {
     controller: 'RenderViewController',
     action: 'render',
-    locals:{
+    locals: {
       'view': 'getAdvice'
     }
   },
   /***************************************************************************
-  *                                                                          *
-  * Custom routes here...                                                    *
-  *                                                                          *
-  * If a request to a URL doesn't match any of the custom routes above, it   *
-  * is matched against Sails route blueprints. See `config/blueprints.js`    *
-  * for configuration options and examples.                                  *
-  *                                                                          *
-  ***************************************************************************/
+   *                                                                          *
+   * Custom routes here...                                                    *
+   *                                                                          *
+   * If a request to a URL doesn't match any of the custom routes above, it   *
+   * is matched against Sails route blueprints. See `config/blueprints.js`    *
+   * for configuration options and examples.                                  *
+   *                                                                          *
+   ***************************************************************************/
   // 'get /dynamic/': 'UserController.info',
   'get /dynamic/:asset': 'DynamicAssetController.get',
   'get /:branding/:portal/dynamic/:asset': 'DynamicAssetController.get',
@@ -221,24 +232,24 @@ module.exports.routes = {
   'get /:branding/:portal/transferconfig/:type': 'RecordController.getTransferResponsibilityConfig',
   'post /:branding/:portal/action/:action': 'ActionController.callService',
   /***************************************************************************
-  *                                                                          *
-  * REST API routes                                                          *
-  *                                                                          *
-  *                                                                          *
-  *                                                                          *
-  *                                                                          *
-  *                                                                          *
-  ***************************************************************************/
+   *                                                                          *
+   * REST API routes                                                          *
+   *                                                                          *
+   *                                                                          *
+   *                                                                          *
+   *                                                                          *
+   *                                                                          *
+   ***************************************************************************/
 
   'post /:branding/:portal/api/records/metadata/:recordType': {
-      controller: 'webservice/RecordController',
-      action: 'create',
-      csrf: false
-   },
+    controller: 'webservice/RecordController',
+    action: 'create',
+    csrf: false
+  },
   'put /:branding/:portal/api/records/metadata/:oid': {
-      controller: 'webservice/RecordController',
-      action: 'updateMeta',
-      csrf: false
+    controller: 'webservice/RecordController',
+    action: 'updateMeta',
+    csrf: false
   },
   'put /:branding/:portal/api/records/objectmetadata/:oid': {
     controller: 'webservice/RecordController',
@@ -246,7 +257,7 @@ module.exports.routes = {
     csrf: false
   },
   'get /:branding/:portal/api/records/metadata/:oid': 'webservice/RecordController.getMeta',
-  'get /:branding/:portal/api/records/list': 'webservice/RecordController.listRecords',  
+  'get /:branding/:portal/api/records/list': 'webservice/RecordController.listRecords',
   'get /:branding/:portal/api/records/objectmetadata/:oid': 'webservice/RecordController.getObjectMeta',
   'post /:branding/:portal/api/records/permissions/edit/:oid': {
     controller: 'webservice/RecordController',
@@ -287,6 +298,6 @@ module.exports.routes = {
     csrf: false
   },
 
-  'get /:branding/:portal/workspaces/types/:name' : 'WorkspaceTypesController.getOne',
-  'get /:branding/:portal/workspaces/types' : 'WorkspaceTypesController.get'
+  'get /:branding/:portal/workspaces/types/:name': 'WorkspaceTypesController.getOne',
+  'get /:branding/:portal/workspaces/types': 'WorkspaceTypesController.get'
 };

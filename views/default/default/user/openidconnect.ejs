@@ -5,7 +5,7 @@
           <span class="panel-title"><%= TranslationService.t('openidconnect-title') %></span>
         </div>
         <div class="panel-body">
-          <a href='/user/begin_oidc'><img src='/images/Openid_connect_logo.png' alt="<%= TranslationService.t('openidconnect-logo-alt-text') %>"/></a>
+          <a href='/user/begin_oidc'><img src='<%= sails.config.http.rootContext %>/images/Openid_connect_logo.png' alt="<%= TranslationService.t('openidconnect-logo-alt-text') %>"/></a>
         </div>
       </div>
     </div>

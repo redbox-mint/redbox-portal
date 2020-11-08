@@ -2,21 +2,35 @@ version: '3.1'
 networks:
   main:
 services:
+  nginx:
+    image: nginx
+    ports:
+      - "1500:1500"
+    restart: always
+    volumes:
+      - "/home/vagrant/source/redbox-portal/nginx-kitchen-sink.conf:/etc/nginx/conf.d/default.conf:ro"
+    expose:
+      - "1500"
+    networks:
+      main:
+         aliases:
+           - nginx
   redboxportal:
     build: .
     image: qcifengineering/redbox-portal:latest
     ports:
-       - "1500:1500"
+       - "1337:1337"
     volumes:
        - ".:/opt/redbox-portal"
        - "/mnt/data/attachments:/attachments"
        - "/mnt/data/publication:/publication"
        - "/opt/hooks:/opt/hooks"
+       - "./docker.js:/opt/redbox-portal/config/env/docker.js"
     expose:
-       - "1500"
+       - "1337"
     environment:
       - NODE_ENV=docker
-      - PORT=1500
+      - PORT=1337
       - sails_redbox__apiKey=c8e844fc-8550-497f-b970-7900ec8741ca
       - sails_record__baseUrl_redbox=http://redbox:9000/redbox
       - sails_record__baseUrl_mint=https://demo.redboxresearchdata.com.au/mint
@@ -25,17 +39,6 @@ services:
        aliases:
          - rbportal
     entrypoint: /bin/bash -c "cd /opt/redbox-portal && node app.js"
-
-  nginx:
-    image: nginx
-    ports:
-      - "8080:8080"
-    restart: always
-    volumes:
-      - "/mnt/data/publication:/usr/share/nginx/html"
-      - "/mnt/nginx.conf:/etc/nginx/conf.d"
-    expose:
-      - "8080"
 
 
   redbox:

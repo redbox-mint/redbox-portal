@@ -2,7 +2,7 @@
   <div class="col-xs-1">
   </div>
   <div class="col-xs-10">
-    <img class="center-block" src="/images/loading.svg" alt="<%= TranslationService.t('loading-alt-text') %>">
+    <img class="center-block" src="<%= sails.config.http.rootContext %>/images/loading.svg" alt="<%= TranslationService.t('loading-alt-text') %>">
   </div>
   <div class="col-xs-1">
   </div>
@@ -10,7 +10,7 @@
 <div class="row">
   <local-auth><!-- Add Angular2 selector --></local-auth>
 </div>
-<script type="text/javascript" src="/angular/localAuth/inline.bundle.js?<%= sails.config.startupMinute %>"></script>
-<script type="text/javascript" src="/angular/localAuth/polyfills.bundle.js?<%= sails.config.startupMinute %>"></script>
-<script type="text/javascript" src="/angular/localAuth/styles.bundle.js?<%= sails.config.startupMinute %>"></script><script type="text/javascript" src="/angular/localAuth/vendor.bundle.js"></script>
-<script type="text/javascript" src="/angular/localAuth/main.bundle.js?<%= sails.config.startupMinute %>"></script>
+<script type="text/javascript" src="<%= sails.config.http.rootContext %>/angular/localAuth/inline.bundle.js?<%= sails.config.startupMinute %>"></script>
+<script type="text/javascript" src="<%= sails.config.http.rootContext %>/angular/localAuth/polyfills.bundle.js?<%= sails.config.startupMinute %>"></script>
+<script type="text/javascript" src="<%= sails.config.http.rootContext %>/angular/localAuth/styles.bundle.js?<%= sails.config.startupMinute %>"></script><script type="text/javascript" src="<%= sails.config.http.rootContext %>/angular//localAuth/vendor.bundle.js"></script>
+<script type="text/javascript" src="<%= sails.config.http.rootContext %>/angular/localAuth/main.bundle.js?<%= sails.config.startupMinute %>"></script>

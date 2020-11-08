@@ -179,7 +179,7 @@ module.exports.auth = {
   loginPath: 'user/login',
   hiddenRoles: [],
   hiddenUsers: [],
-  postLogoutRedir: '/',
+  postLogoutRedir: '/default/rdmp/home',
   // Brand-Portal Specific configuration
   default: {
     defaultRole: 'Guest', // default when unauthenticated

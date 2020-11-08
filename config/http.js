@@ -11,6 +11,7 @@
 
 module.exports.http = {
 
+  rootContext: '',
   /****************************************************************************
    *                                                                           *
    * Express middleware to use for every Sails request. To add custom          *

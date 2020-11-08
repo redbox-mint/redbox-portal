@@ -35,11 +35,15 @@ export class TranslationService {
 
   constructor (protected translateI18Next: TranslateI18Next, protected configService: ConfigService) {
     this.subjects = {};
-    this.initTranslator();
+    this.subjects['init'] = new Subject();
+    this.configService.getConfig((config:any) => {
+      this.config = config;
+      this.initTranslator();
+    });
   }
 
   initTranslator() {
-    this.subjects['init'] = new Subject();
+    
     const ts = new Date().getTime();
     this.translateI18Next.init({
         debug: true,                                                        // optional
@@ -54,7 +58,7 @@ export class TranslationService {
         // backend: injectableBackendConfigFactory                             // optional - allows to change "loadPath" i18next parameter
         lng: 'en',
         fallbackLng: 'en',
-        backend: { loadPath: `/locales/{{lng}}/{{ns}}.json?ts=${ts}` }
+        backend: { loadPath: `${this.config.baseUrl}/locales/{{lng}}/{{ns}}.json?ts=${ts}` }
     }).then(() => {
       console.log(`Translator loaded...`);
       this.translatorReady = true;

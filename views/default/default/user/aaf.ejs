@@ -5,7 +5,7 @@
           <span class="panel-title"><%= TranslationService.t('aaf-title') %></span>
         </div>
         <div class="panel-body">
-          <a href='<%=sails.config.auth[branding].aaf.loginUrl%>'><img src='/images/aaf_service_223x54.png' alt="<%= TranslationService.t('aaf-logo-alt-text') %>"/></a>
+          <a href='<%=sails.config.auth[branding].aaf.loginUrl%>'><img src='<%= sails.config.http.rootContext %>/images/aaf_service_223x54.png' alt="<%= TranslationService.t('aaf-logo-alt-text') %>"/></a>
         </div>
       </div>
     </div>

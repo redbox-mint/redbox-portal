@@ -4,7 +4,7 @@
   <div class="col-xs-1">
   </div>
   <div class="col-xs-10">
-    <img class="center-block" src="/images/loading.svg" alt="<%= TranslationService.t('loading-alt-text') %>">
+    <img class="center-block" src="<%= sails.config.http.rootContext %>/images/loading.svg" alt="<%= TranslationService.t('loading-alt-text') %>">
   </div>
   <div class="col-xs-1">
   </div>
@@ -13,8 +13,8 @@
 <%
 var currentMinute = sails.config.startupMinute;
 %>
-<script type="text/javascript" src="/angular/dmp/inline.bundle.js?ts=<%= currentMinute %>"></script>
-<script type="text/javascript" src="/angular/dmp/polyfills.bundle.js?ts=<%= currentMinute %>"></script>
-<script type="text/javascript" src="/angular/dmp/styles.bundle.js?ts=<%= currentMinute %>"></script>
-<script type="text/javascript" src="/angular/dmp/vendor.bundle.js?ts=<%= currentMinute %>"></script>
-<script type="text/javascript" src="/angular/dmp/main.bundle.js?ts=<%= currentMinute %>"></script>
+<script type="text/javascript" src="<%= sails.config.http.rootContext %>/angular//dmp/inline.bundle.js?ts=<%= currentMinute %>"></script>
+<script type="text/javascript" src="<%= sails.config.http.rootContext %>/angular//dmp/polyfills.bundle.js?ts=<%= currentMinute %>"></script>
+<script type="text/javascript" src="<%= sails.config.http.rootContext %>/angular//dmp/styles.bundle.js?ts=<%= currentMinute %>"></script>
+<script type="text/javascript" src="<%= sails.config.http.rootContext %>/angular//dmp/vendor.bundle.js?ts=<%= currentMinute %>"></script>
+<script type="text/javascript" src="<%= sails.config.http.rootContext %>/angular//dmp/main.bundle.js?ts=<%= currentMinute %>"></script>
