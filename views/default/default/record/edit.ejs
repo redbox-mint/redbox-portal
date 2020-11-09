@@ -10,18 +10,18 @@
 <<%= appSelector %> oid="<%= oid %>" rdmp="<%= rdmp %>" editMode="true" recordType="<%= recordType %>" ></<%= appSelector %>>
 <!-- DateTime Picker Deps -->
 <script src="<%= sails.config.http.rootContext %>/node_modules/bootstrap-datepicker/dist/js/bootstrap-datepicker.min.js"></script>
-<link href='/node_modules/bootstrap-datepicker/dist/css/bootstrap-datepicker3.min.css' rel='stylesheet' type='text/css'>
+<link href="<%= sails.config.http.rootContext %>/node_modules/bootstrap-datepicker/dist/css/bootstrap-datepicker3.min.css" rel='stylesheet' type='text/css'>
 <script src="<%= sails.config.http.rootContext %>/node_modules/bootstrap-timepicker/js/bootstrap-timepicker.js"></script>
 <script src="https://vocabs.ardc.edu.au/apps/assets/vocab_widget/js/vocab_widget_v2.js"></script>
 <link rel="stylesheet" type="text/css" href="//vocabs.ardc.edu.au/apps/assets/vocab_widget/css/vocab_widget_v2.css" />
-<link href='/node_modules/bootstrap-timepicker/css/bootstrap-timepicker.min.css' rel='stylesheet' type='text/css'>
-<link rel="stylesheet" type="text/css" href="/node_modules/leaflet/dist/leaflet.css">
-<link rel="stylesheet" type="text/css" href="/node_modules/leaflet-draw/dist/leaflet.draw.css">
+<link href="<%= sails.config.http.rootContext %>/node_modules/bootstrap-timepicker/css/bootstrap-timepicker.min.css" rel='stylesheet' type='text/css'>
+<link rel="stylesheet" type="text/css" href="<%= sails.config.http.rootContext %>/node_modules/leaflet/dist/leaflet.css">
+<link rel="stylesheet" type="text/css" href="<%= sails.config.http.rootContext %>/node_modules/leaflet-draw/dist/leaflet.draw.css">
 <script src='//api.tiles.mapbox.com/mapbox.js/plugins/leaflet-omnivore/v0.3.1/leaflet-omnivore.min.js'></script>
 <%
 var currentMinute = sails.config.startupMinute;
 %>
-<link href='/angular/<%= appName %>/styles.bundle.css?<%= currentMinute %>' rel='stylesheet' type='text/css'>
+<link href='<%= sails.config.http.rootContext %>/angular/<%= appName %>/styles.bundle.css?<%= currentMinute %>' rel='stylesheet' type='text/css'>
 <script type="text/javascript" src="<%= sails.config.http.rootContext %>/angular//<%= appName %>/inline.bundle.js?ts=<%= currentMinute %>"></script>
 <script type="text/javascript" src="<%= sails.config.http.rootContext %>/angular//<%= appName %>/polyfills.bundle.js?ts=<%= currentMinute %>"></script>
 <script type="text/javascript" src="<%= sails.config.http.rootContext %>/angular//<%= appName %>/vendor.bundle.js?ts=<%= currentMinute %>"></script>
