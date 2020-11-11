@@ -22,6 +22,8 @@ import {
 } from 'rxjs/Rx';
 import services = require('../core/CoreService.js');
 import DatastreamService from '../core/DatastreamService.js';
+import IndexerService from '../core/Indexer';
+import {StorageServiceResponse} from '../core/StorageServiceResponse';
 import {
   Sails,
   Model
@@ -56,10 +58,11 @@ export module Services {
 
     storageService: StorageService = null;
     datastreamService: DatastreamService = null;
-
+    indexerService:IndexerService = null;
 
     constructor() {
       super();
+      this.logHeader = "RecordsService::";
       let that = this;
       sails.on('ready', function () {
         that.getStorageService();
@@ -110,12 +113,93 @@ export module Services {
 
 
 
-    create(brand: any, record: any, recordType: any, user ? : any, triggerPreSaveTriggers = true, triggerPostSaveTriggers = true): Promise < any > {
-      return this.storageService.create(brand, record, recordType, user, triggerPreSaveTriggers, triggerPostSaveTriggers);
+    async create(brand: any, record: any, recordType: any, user ? : any, triggerPreSaveTriggers = true, triggerPostSaveTriggers = true) {
+      let createResponse = new StorageServiceResponse();
+      const failedMessage = "Failed to created record, please check server logs.";
+      // trigger the pre-save
+      if (triggerPreSaveTriggers) {
+        try {
+          record = await this.triggerPreSaveTriggers(null, record, recordType, "onCreate", user);
+        } catch (err) {
+          sails.log.error(`${this.logHeader} Failed to run pre-save hooks when updating..`);
+          sails.log.error(JSON.stringify(err));
+          createResponse.message = failedMessage;
+          return createResponse;
+        }
+      }
+      // save the record ...
+      createResponse = await this.storageService.create(brand, record, recordType, user);
+      if (createResponse.isSuccessful()) {
+        if (triggerPostSaveTriggers) {
+          // post-save sync
+          try {
+            createResponse = await this.triggerPostSaveSyncTriggers(createResponse['oid'], record, recordType, 'onCreate', user, createResponse);
+          } catch (err) {
+            sails.log.error(`${this.logHeader} Exception while running post save sync hooks when creating: ${createResponse['oid']}`);
+            sails.log.error(JSON.stringify(err));
+            createResponse.success = false;
+            createResponse.message = failedMessage;
+            return createResponse;
+          }
+          // Fire Post-save hooks async ...
+          this.triggerPostSaveTriggers(createResponse['oid'], record, recordType, 'onCreate', user);
+          // TODO: fire-off audit message
+        }
+      } else {
+        sails.log.error(`${this.logHeader} Failed to create record, storage service response:`);
+        sails.log.error(JSON.stringify(createResponse));
+        createResponse.message = failedMessage;
+      }
+      return createResponse;
     }
-    updateMeta(brand: any, oid: any, record: any, user ? : any, triggerPreSaveTriggers = true, triggerPostSaveTriggers = true): Promise < any > {
-      return this.storageService.updateMeta(brand, oid, record, user, triggerPreSaveTriggers, triggerPostSaveTriggers);
+
+    async updateMeta(brand: any, oid: any, record: any, user ? : any, triggerPreSaveTriggers = true, triggerPostSaveTriggers = true) {
+      let updateResponse = new StorageServiceResponse();
+      updateResponse.oid = oid;
+      let recordType = null;
+      const failedMessage = "Failed to update record, please check server logs.";
+      // process pre-save
+      if (!_.isEmpty(brand) && triggerPreSaveTriggers === true) {
+        try {
+          recordType = await RecordTypesService.get(brand, record.metaMetadata.type).toPromise();
+          record = await this.triggerPreSaveTriggers(oid, record, recordType, "onUpdate", user);
+        } catch (err) {
+          sails.log.error(`${this.logHeader} Failed to run pre-save hooks when updating..`);
+          sails.log.error(JSON.stringify(err));
+          updateResponse.message = failedMessage;
+          return updateResponse;
+        }
+      }
+      // unsetting the ID just to be safe
+      _.unset(record, 'id');
+      _.unset(record, 'redboxOid');
+      // update
+      updateResponse = await this.storageService.updateMeta(brand, oid, record, user);
+      if (updateResponse.isSuccessful()) {
+        // post-save async
+        if (!_.isEmpty(recordType) && triggerPostSaveTriggers === true) {
+          // Trigger Post-save sync hooks ...
+          try {
+            updateResponse = await this.triggerPostSaveSyncTriggers(updateResponse['oid'], record, recordType, 'onCreate', user, updateResponse);
+          } catch (err) {
+            sails.log.error(`${this.logHeader} Exception while running post save sync hooks when updating:`);
+            sails.log.error(JSON.stringify(err));
+            updateResponse.success = false;
+            updateResponse.message = failedMessage;
+            return updateResponse;
+          }
+          // Fire Post-save hooks async ...
+          this.triggerPostSaveTriggers(updateResponse['oid'], record, recordType, 'onCreate', user);
+        }
+        // TODO: fire-off audit message
+      } else {
+        sails.log.error(`${this.logHeader} Failed to update record, storage service response:`);
+        sails.log.error(JSON.stringify(updateResponse));
+        updateResponse.message = failedMessage;
+      }
+      return updateResponse;
     }
+
     getMeta(oid: any): Promise < any > {
       return this.storageService.getMeta(oid);
     }

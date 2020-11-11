@@ -9,6 +9,7 @@
     "@uppy/core": "^1.13.1",
     "@uppy/dashboard": "^1.12.5",
     "@uppy/tus": "^1.7.5",
+    "agenda": "^3.1.0",
     "async": "3.2.0",
     "axios": "^0.20.0",
     "bcrypt": "5.0.0",

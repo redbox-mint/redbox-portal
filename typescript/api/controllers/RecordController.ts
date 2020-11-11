@@ -546,15 +546,13 @@ export module Controllers {
               let updateResponse = await this.recordsService.updateMeta(brand, oid, record, user, false, false);
             } else {
               // no need for update... return the creation response
-              let updateResponse = response;
             }
           } else {
             sails.log.error(`Failed to save record:`);
             sails.log.error(JSON.stringify(response));
             // return the rsponse instead of throwing an exception
-            let updateResponse = response;
           }
-          try{
+          try {
           // handle datastream update
           if (updateResponse && updateResponse.isSuccessful()) {
             if (!_.isEmpty(record.metaMetadata.attachmentFields)) {

@@ -18,6 +18,8 @@ export module Services.Core {
       // Sails controller custom config.
       '_config',
     ];
+
+    protected logHeader: string;
     /**
     * Returns an RxJS Observable wrapped nice and tidy for your subscribing pleasure
     */

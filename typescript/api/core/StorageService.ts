@@ -2,8 +2,8 @@ import {Readable}  from 'stream';
 
 interface StorageService{
 
-  create(brand, record, recordType, user?, triggerPreSaveTriggers?: boolean, triggerPostSaveTriggers?: boolean):Promise<any>;
-  updateMeta(brand, oid, record, user?, triggerPreSaveTriggers?: boolean, triggerPostSaveTriggers?: boolean): Promise<any>;
+  create(brand, record, recordType, user?):Promise<any>;
+  updateMeta(brand, oid, record, user?): Promise<any>;
   getMeta(oid): Promise<any>;
   createBatch(type, data, harvestIdFldName): Promise<any>;
   provideUserAccessAndRemovePendingAccess(oid, userid, pendingValue): void;
