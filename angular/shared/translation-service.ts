@@ -17,10 +17,19 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { Injectable, Inject} from '@angular/core';
-import { TranslateI18Next } from 'ngx-i18next';
-import { Subject } from 'rxjs/Subject';
-import { ConfigService } from './config-service';
+import {
+  Injectable,
+  Inject
+} from '@angular/core';
+import {
+  TranslateI18Next
+} from 'ngx-i18next';
+import {
+  Subject
+} from 'rxjs/Subject';
+import {
+  ConfigService
+} from './config-service';
 /**
  * Translation service...
  *
@@ -29,36 +38,40 @@ import { ConfigService } from './config-service';
  */
 @Injectable()
 export class TranslationService {
+
   protected subjects: any;
-  protected translatorReady: boolean;
+  protected translatorReady: boolean = false;
   protected config: any;
 
-  constructor (protected translateI18Next: TranslateI18Next, protected configService: ConfigService) {
+  constructor(protected translateI18Next: TranslateI18Next, protected configService: ConfigService) {
     this.subjects = {};
     this.subjects['init'] = new Subject();
-    this.configService.getConfig((config:any) => {
-      this.config = config;
+
       this.initTranslator();
-    });
+
+
   }
 
   initTranslator() {
-    
+
     const ts = new Date().getTime();
+
     this.translateI18Next.init({
-        debug: true,                                                        // optional
-        returnNull: false,
-        returnEmptyString: true,                                           // optional	- but.. it's important, please see http://i18next.com/docs/options/!
-        // mapping: {"specific_backend_message": "message_for_translate"},     // optional
-        // browserLanguageDetector: injectableCustomLanguageDetectorService,   // optional - the specific application language detector (allows you to return the language of the user.
-        //                                                                     //            If it is absent, the service uses default "angular2 locale detector" behaviour using LOCALE_ID.
-        // // supportedLanguages: ['en', 'pt'],                                //            Therefore you can pass the optional supportedLanguages parameter which indicates your supported languages.
-        //                                                                     //            For example, LOCALE_ID = 'en-AU' or 'en-US' or 'en', you can pass only ['en'] -> locales/en/translation.json
-        //                                                                     //                         LOCALE_ID = 'pt-BR' or 'pt', you can pass only ['pt'] -> locales/pt/translation.json
-        // backend: injectableBackendConfigFactory                             // optional - allows to change "loadPath" i18next parameter
-        lng: 'en',
-        fallbackLng: 'en',
-        backend: { loadPath: `${this.config.baseUrl}/locales/{{lng}}/{{ns}}.json?ts=${ts}` }
+      debug: true, // optional
+      returnNull: false,
+      returnEmptyString: true, // optional	- but.. it's important, please see http://i18next.com/docs/options/!
+      // mapping: {"specific_backend_message": "message_for_translate"},     // optional
+      // browserLanguageDetector: injectableCustomLanguageDetectorService,   // optional - the specific application language detector (allows you to return the language of the user.
+      //                                                                     //            If it is absent, the service uses default "angular2 locale detector" behaviour using LOCALE_ID.
+      // // supportedLanguages: ['en', 'pt'],                                //            Therefore you can pass the optional supportedLanguages parameter which indicates your supported languages.
+      //                                                                     //            For example, LOCALE_ID = 'en-AU' or 'en-US' or 'en', you can pass only ['en'] -> locales/en/translation.json
+      //                                                                     //                         LOCALE_ID = 'pt-BR' or 'pt', you can pass only ['pt'] -> locales/pt/translation.json
+      // backend: injectableBackendConfigFactory                             // optional - allows to change "loadPath" i18next parameter
+      lng: 'en',
+      fallbackLng: 'en',
+      backend: {
+        loadPath: `./locales/{{lng}}/{{ns}}en.json?ts=${ts}`
+      }
     }).then(() => {
       console.log(`Translator loaded...`);
       this.translatorReady = true;
@@ -73,6 +86,9 @@ export class TranslationService {
   }
 
   isReady(handler: any) {
+    if (this.subjects['init'] == undefined) {
+      this.subjects['init'] = new Subject();
+    }
     const subs = this.subjects['init'].subscribe(handler);
     this.translatorLoaded();
     return subs;

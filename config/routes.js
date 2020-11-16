@@ -43,6 +43,7 @@ module.exports.routes = {
       layout: false
     }
   },
+  'GET /*/locales/en/translationen.json': `/data/locales/en/translation.json`,
   '/': '/default/rdmp/home',
   '/:branding/:portal/home': {
     controller: 'RenderViewController',
