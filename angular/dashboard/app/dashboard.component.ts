@@ -72,17 +72,14 @@ export class DashboardComponent extends LoadableComponent {
     loaded: 0
   };
   tableConfig = {};
-  // <a href='/{{ branding }}/{{ portal }}/record/view/{{ plan.oid }}'>{{ plan.dashboardTitle }}</a>
-  //                 <span class="dashboard-controls">
-  //                   <a *ngIf="plan.hasEditAccess" href="/{{ branding }}/{{ portal }}/record/edit/{{ plan.oid }}" [attr.aria-label]="'edit-link-label' | translate"><i class="fa fa-pencil" aria-hidden="true"></i></a>
-  //                 </span>
+
   defaultTableConfig = [{
       title: 'Record Title',
       variable: 'metadata.title',
-      template: `<a href='/<%= branding %>/<%= portal %>/record/view/<%= oid %>'><%= metadata.title %></a>
+      template: `<a href='/data/<%= branding %>/<%= portal %>/record/view/<%= oid %>'><%= metadata.title %></a>
         <span class="dashboard-controls">
           <% if(hasEditAccess) { %>
-            <a href='/<%= branding %>/<%= portal %>/record/edit/<%= oid %>' aria-label='<%= translationService.t('edit-link-label') %>'><i class="fa fa-pencil" aria-hidden="true"></i></a>
+            <a href='/data/<%= branding %>/<%= portal %>/record/edit/<%= oid %>' aria-label='<%= translationService.t('edit-link-label') %>'><i class="fa fa-pencil" aria-hidden="true"></i></a>
           <% } %>
         </span>
       `,
