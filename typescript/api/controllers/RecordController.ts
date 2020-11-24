@@ -1060,7 +1060,7 @@ export module Controllers {
       this.initTusServer();
       const method = _.toLower(req.method);
       if (method == 'post') {
-        req.baseUrl = `${sails.config.appPort ? `:${sails.config.appPort}` : ''}/${req.session.branding}/${req.session.portal}/record/${oid}`
+        req.baseUrl = `${sails.config.appPort ? `:${sails.config.appPort}` : ''}${sails.config.http.rootContext}/${req.session.branding}/${req.session.portal}/record/${oid}`
       } else {
         req.baseUrl = '';
       }
