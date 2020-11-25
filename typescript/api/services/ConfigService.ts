@@ -127,7 +127,8 @@ export module Services {
         fs.ensureSymlinkSync(`${appPath}/api/core`, `${hook_root_dir}/api/core`);
       }
       sails.log.verbose(`${hook_log_header}::Adding custom API elements...`);
-      let apiDirs = ["services", "controllers"];
+      
+      let apiDirs = ["services"];
       _.each(apiDirs, (apiType) => {
         const files = this.walkDirSync(`${hook_root_dir}/api/${apiType}`, []);
         sails.log.verbose(`${hook_log_header}::Processing '${apiType}':`);
@@ -141,6 +142,23 @@ export module Services {
           });
         }
       });
+      
+      sails.on('lifted', function() {
+      let apiDirs = ["controllers"];
+      _.each(apiDirs, (apiType) => {
+        const files = this.walkDirSync(`${hook_root_dir}/api/${apiType}`, []);
+        sails.log.verbose(`${hook_log_header}::Processing '${apiType}':`);
+        sails.log.verbose(JSON.stringify(files));
+        if (!_.isEmpty(files)) {
+          _.each(files, (file) => {
+            const apiDef = require(file);
+            const apiElemName = _.toLower(basename(file, '.js'))
+            sails[apiType][apiElemName] = apiDef;
+          });
+        }
+      });
+    });
+
       // for models, we need to copy them over to `api/models`...
       const modelFiles = this.walkDirSync(`${hook_root_dir}/api/models`, []);
       if (!_.isEmpty(modelFiles)) {
@@ -153,6 +171,7 @@ export module Services {
       sails.log.verbose(`${hook_log_header}::Adding custom API elements...completed.`);
       sails.log.verbose(`${hookName}::Merge complete.`);
     }
+
 
     private walkDirSync(dir:string, filelist:any[] = []) {
       if (!fs.pathExistsSync(dir)) {
