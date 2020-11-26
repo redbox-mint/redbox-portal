@@ -22,7 +22,7 @@ declare var module;
 declare var sails;
 declare var _;
 import { Observable } from 'rxjs/Rx';
-declare var BrandingService, RolesService, DashboardService, RecordsService;
+declare var BrandingService, RolesService, RecordsService;
 
 /**
  * Package that contains all Controllers.
@@ -126,7 +126,7 @@ export module Controllers {
         return null;
       }
 
-      var totalItems = _.size(results.items);
+      var totalItems = results.totalItems;
       var startIndex = start;
       var noItems = rows;
       var pageNumber = (startIndex / noItems) + 1;
