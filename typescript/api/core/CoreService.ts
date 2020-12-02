@@ -103,5 +103,11 @@ export module Services.Core {
         return "false";
       }
     }
+
+    protected sleep(ms) {
+      return new Promise(resolve => {
+        setTimeout(resolve, ms)
+      });
+    }
   }
 }

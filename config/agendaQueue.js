@@ -14,4 +14,10 @@ module.exports.agendaQueue = {
   //     }
   //   }
   // ]
+  jobs: [
+    {
+      name: 'SolrSearchService-CreateOrUpdateIndex',
+      fnName: 'solrsearchservice.addOrUpdate'
+    }
+  ]
 };

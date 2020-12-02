@@ -1,7 +1,6 @@
 interface SearchService{
 
-
-  search(type, searchField, searchStr, returnFields): Promise<any>;
+  index(id:string, data:any):any;
   searchFuzzy(type, workflowState, searchQuery, exactSearches, facetSearches, brand, user, roles, returnFields): Promise<any>;
 
 }

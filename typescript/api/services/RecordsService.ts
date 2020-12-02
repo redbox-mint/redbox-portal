@@ -22,7 +22,6 @@ import {
 } from 'rxjs/Rx';
 import services = require('../core/CoreService.js');
 import DatastreamService from '../core/DatastreamService.js';
-import IndexerService from '../core/Indexer';
 import {StorageServiceResponse} from '../core/StorageServiceResponse';
 import {
   Sails,
@@ -54,11 +53,11 @@ export module Services {
    * Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a>
    *
    */
-  export class Records extends services.Services.Core.Service implements RecordsService, SearchService {
+  export class Records extends services.Services.Core.Service implements RecordsService {
 
     storageService: StorageService = null;
     datastreamService: DatastreamService = null;
-    indexerService:IndexerService = null;
+    searchService:SearchService = null;
 
     constructor() {
       super();
@@ -67,6 +66,7 @@ export module Services {
       sails.on('ready', function () {
         that.getStorageService();
         that.getDatastreamService();
+        that.searchService = sails.services[sails.config.search.serviceName];
       });
     }
 
@@ -143,8 +143,9 @@ export module Services {
           }
           // Fire Post-save hooks async ...
           this.triggerPostSaveTriggers(createResponse['oid'], record, recordType, 'onCreate', user);
-          // TODO: fire-off audit message
         }
+        this.searchService.index(createResponse['oid'], record);
+        // TODO: fire-off audit message
       } else {
         sails.log.error(`${this.logHeader} Failed to create record, storage service response:`);
         sails.log.error(JSON.stringify(createResponse));
@@ -191,6 +192,7 @@ export module Services {
           // Fire Post-save hooks async ...
           this.triggerPostSaveTriggers(updateResponse['oid'], record, recordType, 'onCreate', user);
         }
+        this.searchService.index(oid, record);
         // TODO: fire-off audit message
       } else {
         sails.log.error(`${this.logHeader} Failed to update record, storage service response:`);
@@ -273,12 +275,6 @@ export module Services {
         await this.sleep(1000);
       }
       return false;
-    }
-
-    private sleep(ms) {
-      return new Promise(resolve => {
-        setTimeout(resolve, ms)
-      });
     }
 
     private info(): Promise < any > {
@@ -427,27 +423,8 @@ export module Services {
     }
 
 
-
-    public search(type, searchField, searchStr, returnFields): Promise < any > {
-      const url = `${this.getSearchTypeUrl(type, searchField, searchStr)}&start=0&rows=${sails.config.record.export.maxRecords}`;
-      sails.log.verbose(`Searching using: ${url}`);
-      const options = this.getOptions(url);
-      return Observable.fromPromise(request[sails.config.record.api.search.method](options))
-        .flatMap(resp => {
-          let response: any = resp;
-          const customResp = [];
-          _.forEach(response.response.docs, solrdoc => {
-            const customDoc = {};
-            _.forEach(returnFields, retField => {
-              customDoc[retField] = solrdoc[retField][0];
-            });
-            customResp.push(customDoc);
-          });
-          return Observable.of(customResp);
-        }).toPromise();
-    }
-
     public searchFuzzy(type, workflowState, searchQuery, exactSearches, facetSearches, brand, user, roles, returnFields): Promise < any > {
+
       const username = user.username;
       // const url = `${this.getSearchTypeUrl(type, searchField, searchStr)}&start=0&rows=${sails.config.record.export.maxRecords}`;
       let searchParam = workflowState ? ` AND workflow_stage:${workflowState} ` : '';

@@ -10,7 +10,7 @@ interface RecordsService extends StorageService {
   appendToRecord(targetRecordOid: string, linkData: any, fieldName: string, fieldType: string, targetRecord: any): Promise<any>
   updateWorkflowStep(currentRec, nextStep): void;
   getAttachments(oid: string, labelFilterStr?: string): Promise<any>;
-
+  updateMeta(brand, oid, record, user?, triggerPreSaveTriggers?, triggerPostSaveTriggers?): Promise<any>;
   // Probably to be retired or reimplemented in a different service
   checkRedboxRunning(): Promise<any>;
 

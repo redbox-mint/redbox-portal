@@ -46,7 +46,7 @@ export module Controllers {
   export class Record extends controller.Controllers.Core.Controller {
 
     recordsService: RecordsService = RecordsService;
-    searchService: SearchService = RecordsService;
+    searchService: SearchService;
     datastreamService: DatastreamService = RecordsService;
 
     constructor() {
@@ -58,6 +58,7 @@ export module Controllers {
         if (datastreamServiceName != undefined) {
           that.datastreamService = sails.services[datastreamServiceName];
         }
+        that.searchService = sails.services[sails.config.search.serviceName];
       });
     }
 
@@ -1045,7 +1046,7 @@ export module Controllers {
     //   }
     // }
 
-    public search(req, res) {
+    public async search(req, res) {
       const brand = BrandingService.getBrand(req.session.branding);
       const type = req.param('type');
       const workflow = req.query.workflow;
@@ -1068,13 +1069,12 @@ export module Controllers {
         });
       });
 
-
-      Observable.fromPromise(this.searchService.searchFuzzy(type, workflow, searchString, exactSearches, facetSearches, brand, req.user, req.user.roles, sails.config.record.search.returnFields))
-        .subscribe(searchRes => {
-          this.ajaxOk(req, res, null, searchRes);
-        }, error => {
-          this.ajaxFail(req, res, error.message);
-        });
+      try {
+        const searchRes = await this.searchService.searchFuzzy(type, workflow, searchString, exactSearches, facetSearches, brand, req.user, req.user.roles, sails.config.record.search.returnFields);
+        this.ajaxOk(req, res, null, searchRes);
+      } catch (error) {
+        this.ajaxFail(req, res, error.message);
+      }
     }
     /** Returns the RecordType configuration */
     public getType(req, res) {
