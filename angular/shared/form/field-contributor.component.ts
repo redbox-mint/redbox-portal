@@ -33,6 +33,8 @@ import { Observable} from 'rxjs/Rx';
  */
 const KEY_TAB = 9;
 const KEY_EN = 13;
+const KEY_LEFT = 37;
+const KEY_RIGHT = 39;
 
 export class ContributorField extends FieldBase<any> {
   nameColHdr: string;
@@ -488,9 +490,11 @@ export class ContributorComponent extends SimpleComponent {
 
   public ngAfterViewInit() {
     if (this.field.editMode && this.ngCompleter) {
+      
       const that = this;
       this.ngCompleter.ctrInput.nativeElement.setAttribute('aria-label', 'Name');
       this.ngCompleter.registerOnChange((v) => {
+        console.log(v);
         if (_.isEmpty(v) && !that.field.forceLookup_clearOnTabThrough) {
           // if this option is set, we ignore the tab through
           return;
@@ -585,7 +589,7 @@ export class ContributorComponent extends SimpleComponent {
   }
 
   public onKeydown(event) {
-    if (event && (event.keyCode === KEY_EN || event.keyCode === KEY_TAB )) {
+    if (event && (event.keyCode === KEY_EN || event.keyCode === KEY_TAB || event.keyCode === KEY_LEFT || event.keyCode === KEY_RIGHT )) {
       if (this.lastSelected && this.emptied) {
         const that = this;
         setTimeout(() => {
