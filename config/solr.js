@@ -43,6 +43,20 @@ module.exports.solr = {
         indexed: true,
         stored: true,
         multiValued: true
+      },
+      {
+        name: "text_title",
+        type: "text_general",
+        indexed: true,
+        stored: true,
+        multiValued: true
+      },
+      {
+        name: "text_description",
+        type: "text_general",
+        indexed: true,
+        stored: true,
+        multiValued: true
       }
     ],
     'add-dynamic-field': [
@@ -57,6 +71,14 @@ module.exports.solr = {
       {
         source: "*",
         dest: "full_text"
+      },
+      {
+        source: 'title',
+        dest: 'text_title'
+      },
+      {
+        source: 'description',
+        dest: 'text_description'
       }
     ]
   },

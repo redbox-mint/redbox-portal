@@ -239,92 +239,67 @@ export module Controllers {
       if (records.length > 0) {
         let completeRecordSet = [];
         let hasError = false;
-        _.forEach(records, rec => {
+        _.forEach(records, (rec) => {
           // First: check if this user has edit access to this record, we don't want Gremlins sneaking in on us
           // Not trusting what was posted, retrieving from DB...
           sails.log.verbose(`updateResponsibilities() -> Processing:${rec.oid}`);
-          this.getRecord(rec.oid).subscribe(recObj => {
+          this.getRecord(rec.oid).subscribe(async (recObj) => {
             if (this.recordsService.hasEditAccess(brand, user, user.roles, recObj)) {
               let recType = recObj.metaMetadata.type;
-              let relatedRecords = this.recordsService.getRelatedRecords(rec.oid, brand);
+              let relatedRecords = await this.recordsService.getRelatedRecords(rec.oid, brand);
+              sails.log.verbose(`updateResponsibilities() -> Related records:`);
+              sails.log.verbose(JSON.stringify(relatedRecords));
+              let relationships = relatedRecords['processedRelationships'];
+              let relatedObjects = relatedRecords['relatedObjects'];
 
-              relatedRecords.then(relatedRecords => {
+              //If there are no relationships, the record isn't related to any others so manually inject the info needed to have this record processed
+              if (relationships.indexOf(recType) == -1) {
+                relationships.push(recType);
+                relatedObjects[recType] = [{
+                  redboxOid: rec.oid
+                }];
+              }
+              let relationshipCount = 0;
+              _.each(relationships, relationship => {
+                let relationshipObjects = relatedObjects[relationship];
+                relationshipCount++;
+                let relationshipObjectCount = 0;
+                _.each(relationshipObjects, relationshipObject => {
 
-                let relationships = relatedRecords['processedRelationships'];
+                  const oid = relationshipObject.redboxOid;
+                  let record = null;
+                  this.getRecord(oid)
+                    .flatMap((rec) => {
+                      record = rec;
+                      return RecordTypesService.get(brand, record.metaMetadata.type);
+                    })
+                    .subscribe(recordTypeObj => {
 
-                let relatedObjects = relatedRecords['relatedObjects'];
+                      const transferConfig = recordTypeObj['transferResponsibility'];
+                      if (transferConfig) {
+                        record = this.updateResponsibility(transferConfig, role, record, updateData);
 
-                //If there are no relationships, the record isn't related to any others so manually inject the info needed to have this record processed
-                if (relationships.indexOf(recType) == -1) {
-                  relationships.push(recType);
-                  relatedObjects[recType] = [{
-                    redboxOid: rec.oid
-                  }];
-                }
-                let relationshipCount = 0;
-                _.each(relationships, relationship => {
-                  let relationshipObjects = relatedObjects[relationship];
-                  relationshipCount++;
-                  let relationshipObjectCount = 0;
-                  _.each(relationshipObjects, relationshipObject => {
-
-                    const oid = relationshipObject.redboxOid;
-                    let record = null;
-                    this.getRecord(oid)
-                      .flatMap((rec) => {
-                        record = rec;
-                        return RecordTypesService.get(brand, record.metaMetadata.type);
-                      })
-                      .subscribe(recordTypeObj => {
-
-                        const transferConfig = recordTypeObj['transferResponsibility'];
-                        if (transferConfig) {
-                          record = this.updateResponsibility(transferConfig, role, record, updateData);
-
-                          sails.log.verbose(`Updating record ${oid}`);
-                          sails.log.verbose(JSON.stringify(record));
-                          Observable.fromPromise(this.recordsService.updateMeta(brand, oid, record)).subscribe(response => {
-                            relationshipObjectCount++;
-                            if (response && response.isSuccessful()) {
-                              if (oid == rec.oid) {
-                                recordCtr++;
-                              }
-                              var to = toEmail;
-                              var subject = "Ownership transfered";
-                              var data = {};
-                              data['record'] = record;
-                              data['name'] = toName;
-                              data['oid'] = oid;
-                              EmailService.sendTemplate(to, subject, "transferOwnerTo", data);
+                        sails.log.verbose(`Updating record ${oid}`);
+                        sails.log.verbose(JSON.stringify(record));
+                        Observable.fromPromise(this.recordsService.updateMeta(brand, oid, record)).subscribe(response => {
+                          relationshipObjectCount++;
+                          if (response && response.isSuccessful()) {
+                            if (oid == rec.oid) {
+                              recordCtr++;
+                            }
+                            var to = toEmail;
+                            var subject = "Ownership transfered";
+                            var data = {};
+                            data['record'] = record;
+                            data['name'] = toName;
+                            data['oid'] = oid;
+                            EmailService.sendTemplate(to, subject, "transferOwnerTo", data);
 
 
 
-                              if (relationshipCount == relationships.length && relationshipObjectCount == relationshipObjects.length) {
-                                completeRecordSet.push({
-                                  success: true,
-                                  record: record
-                                });
-                                if (completeRecordSet.length == records.length) {
-                                  if (hasError) {
-                                    return this.ajaxFail(req, res, null, completeRecordSet);
-                                  } else {
-                                    return this.ajaxOk(req, res, null, completeRecordSet);
-                                  }
-                                } else {
-                                  sails.log.verbose(`Completed record set:`);
-                                  sails.log.verbose(`${completeRecordSet.length} == ${records.length}`);
-                                }
-                              } else {
-                                sails.log.verbose(`Record counter:`);
-                                sails.log.verbose(`${recordCtr} == ${records.length} && ${relationshipCount} == ${relationships.length} && ${relationshipObjectCount} == ${relationshipObjects.length}`);
-                              }
-                            } else {
-                              sails.log.error(`Failed to update authorization:`);
-                              sails.log.error(response);
-                              hasError = true;
+                            if (relationshipCount == relationships.length && relationshipObjectCount == relationshipObjects.length) {
                               completeRecordSet.push({
-                                success: false,
-                                error: response,
+                                success: true,
                                 record: record
                               });
                               if (completeRecordSet.length == records.length) {
@@ -333,15 +308,21 @@ export module Controllers {
                                 } else {
                                   return this.ajaxOk(req, res, null, completeRecordSet);
                                 }
+                              } else {
+                                sails.log.verbose(`Completed record set:`);
+                                sails.log.verbose(`${completeRecordSet.length} == ${records.length}`);
                               }
+                            } else {
+                              sails.log.verbose(`Record counter:`);
+                              sails.log.verbose(`${recordCtr} == ${records.length} && ${relationshipCount} == ${relationships.length} && ${relationshipObjectCount} == ${relationshipObjects.length}`);
                             }
-                          }, error => {
-                            sails.log.error("Error updating auth:");
-                            sails.log.error(error);
+                          } else {
+                            sails.log.error(`Failed to update authorization:`);
+                            sails.log.error(response);
                             hasError = true;
                             completeRecordSet.push({
                               success: false,
-                              error: error.message,
+                              error: response,
                               record: record
                             });
                             if (completeRecordSet.length == records.length) {
@@ -351,14 +332,31 @@ export module Controllers {
                                 return this.ajaxOk(req, res, null, completeRecordSet);
                               }
                             }
+                          }
+                        }, error => {
+                          sails.log.error("Error updating auth:");
+                          sails.log.error(error);
+                          hasError = true;
+                          completeRecordSet.push({
+                            success: false,
+                            error: error.message,
+                            record: record
                           });
+                          if (completeRecordSet.length == records.length) {
+                            if (hasError) {
+                              return this.ajaxFail(req, res, null, completeRecordSet);
+                            } else {
+                              return this.ajaxOk(req, res, null, completeRecordSet);
+                            }
+                          }
+                        });
 
-                        }
-                      });
-                  });
+                      }
+                    });
+                });
 
-                })
               });
+
             } else {
               const errorMsg = `Attempted to transfer responsibilities, but user: '${user.username}' has no access to record: ${rec.oid}`;
               sails.log.error(errorMsg);

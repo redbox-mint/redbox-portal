@@ -97,13 +97,13 @@ module.exports.recordtype = {
       }
     },
     searchFilters: [{
-        name: "title",
+        name: "text_title",
         title: "search-refine-title",
         type: "exact",
         typeLabel: "search-refine-contains"
       },
       {
-        name: "description",
+        name: "text_description",
         title: "search-refine-description",
         type: "exact",
         typeLabel: "search-refine-contains"
