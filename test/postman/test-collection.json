@@ -2768,106 +2768,6 @@
 					"response": []
 				},
 				{
-					"name": "Search Index",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"id": "23fe1da6-69cc-4675-b30b-d8e437499f9b",
-								"exec": [
-									"pm.test(\"Status code is 200\", function () {",
-									"    pm.response.to.have.status(200);",
-									"});",
-									"",
-									"pm.test(\"Has record array\", function () {",
-									"    var jsonData = pm.response.json();",
-									"    pm.expect(jsonData).to.have.property(\"records\");",
-									"});"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Pragma",
-								"value": "no-cache"
-							},
-							{
-								"key": "Accept-Encoding",
-								"value": "gzip, deflate, br"
-							},
-							{
-								"key": "X-CSRF-Token",
-								"value": ""
-							},
-							{
-								"key": "Accept-Language",
-								"value": "en-US,en;q=0.9,en-AU;q=0.8,it;q=0.7"
-							},
-							{
-								"key": "User-Agent",
-								"value": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.102 Safari/537.36"
-							},
-							{
-								"key": "Content-Type",
-								"value": "application/json;charset=utf-8"
-							},
-							{
-								"key": "Accept",
-								"value": "application/json, text/plain, */*"
-							},
-							{
-								"key": "Connection",
-								"value": "keep-alive"
-							},
-							{
-								"key": "Referer",
-								"value": "{{host}}/default/rdmp/record/search?q=Record"
-							},
-							{
-								"key": "Cookie",
-								"value": "{{cookie}}"
-							},
-							{
-								"key": "X-Source",
-								"value": "jsclient"
-							},
-							{
-								"key": "Cache-Control",
-								"value": "no-cache"
-							}
-						],
-						"url": {
-							"raw": "{{host}}/default/rdmp/record/search/rdmp/?searchStr=Andrew&facetNames=grant_number_name,finalKeywords,workflow_stageLabel",
-							"host": [
-								"{{host}}"
-							],
-							"path": [
-								"default",
-								"rdmp",
-								"record",
-								"search",
-								"rdmp",
-								""
-							],
-							"query": [
-								{
-									"key": "searchStr",
-									"value": "Andrew"
-								},
-								{
-									"key": "facetNames",
-									"value": "grant_number_name,finalKeywords,workflow_stageLabel"
-								}
-							]
-						}
-					},
-					"response": []
-				},
-				{
 					"name": "Create data publication",
 					"event": [
 						{
@@ -2973,7 +2873,8 @@
 							"script": {
 								"id": "dd144dff-909f-4430-9bd5-ca5b3045d255",
 								"exec": [
-									"",
+									"console.log(\"Waiting for 10 seconds before testing search so SOLR can complete indexing....\");",
+									"setTimeout(function() {",
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
 									"});",
@@ -2981,7 +2882,9 @@
 									"pm.test(\"Test oid exists\", function () {",
 									"    var jsonData = pm.response.json();",
 									"    pm.expect(jsonData).to.have.property('oid');",
-									"});"
+									"});",
+									"}, 10000);",
+									""
 								],
 								"type": "text/javascript"
 							}
@@ -3060,6 +2963,106 @@
 								{
 									"key": "targetStep",
 									"value": "reviewing"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Search Index",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "23fe1da6-69cc-4675-b30b-d8e437499f9b",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Has record array\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property(\"records\");",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Pragma",
+								"value": "no-cache"
+							},
+							{
+								"key": "Accept-Encoding",
+								"value": "gzip, deflate, br"
+							},
+							{
+								"key": "X-CSRF-Token",
+								"value": ""
+							},
+							{
+								"key": "Accept-Language",
+								"value": "en-US,en;q=0.9,en-AU;q=0.8,it;q=0.7"
+							},
+							{
+								"key": "User-Agent",
+								"value": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.102 Safari/537.36"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json;charset=utf-8"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json, text/plain, */*"
+							},
+							{
+								"key": "Connection",
+								"value": "keep-alive"
+							},
+							{
+								"key": "Referer",
+								"value": "{{host}}/default/rdmp/record/search?q=Record"
+							},
+							{
+								"key": "Cookie",
+								"value": "{{cookie}}"
+							},
+							{
+								"key": "X-Source",
+								"value": "jsclient"
+							},
+							{
+								"key": "Cache-Control",
+								"value": "no-cache"
+							}
+						],
+						"url": {
+							"raw": "{{host}}/default/rdmp/record/search/rdmp/?searchStr=Andrew&facetNames=grant_number_name,finalKeywords,workflow_stageLabel",
+							"host": [
+								"{{host}}"
+							],
+							"path": [
+								"default",
+								"rdmp",
+								"record",
+								"search",
+								"rdmp",
+								""
+							],
+							"query": [
+								{
+									"key": "searchStr",
+									"value": "Andrew"
+								},
+								{
+									"key": "facetNames",
+									"value": "grant_number_name,finalKeywords,workflow_stageLabel"
 								}
 							]
 						}
