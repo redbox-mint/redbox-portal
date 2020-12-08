@@ -57,6 +57,48 @@ module.exports.solr = {
         indexed: true,
         stored: true,
         multiValued: true
+      },
+      {
+        name: "authorization_view",
+        type: "text_general",
+        indexed: true,
+        stored: true,
+        multiValued: true
+      },
+      {
+        name: "authorization_edit",
+        type: "text_general",
+        indexed: true,
+        stored: true,
+        multiValued: true
+      },
+      {
+        name: "metaMetadata_brandId",
+        type: "text_general",
+        indexed: true,
+        stored: true,
+        multiValued: false
+      },
+      {
+        name: "metaMetadata_type",
+        type: "text_general",
+        indexed: true,
+        stored: true,
+        multiValued: false
+      },
+      {
+        name: "workflow_stageLabel",
+        type: "text_general",
+        indexed: true,
+        stored: true,
+        multiValued: false
+      },
+      {
+        name: "workflow_step",
+        type: "text_general",
+        indexed: true,
+        stored: true,
+        multiValued: false
       }
     ],
     'add-dynamic-field': [

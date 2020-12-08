@@ -2873,8 +2873,6 @@
 							"script": {
 								"id": "dd144dff-909f-4430-9bd5-ca5b3045d255",
 								"exec": [
-									"console.log(\"Waiting for 10 seconds before testing search so SOLR can complete indexing....\");",
-									"setTimeout(function() {",
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
 									"});",
@@ -2883,7 +2881,7 @@
 									"    var jsonData = pm.response.json();",
 									"    pm.expect(jsonData).to.have.property('oid');",
 									"});",
-									"}, 10000);",
+									"",
 									""
 								],
 								"type": "text/javascript"
