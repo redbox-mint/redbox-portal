@@ -73,6 +73,20 @@ module.exports.solr = {
         multiValued: true
       },
       {
+        name: "authorization_viewRoles",
+        type: "text_general",
+        indexed: true,
+        stored: true,
+        multiValued: true
+      },
+      {
+        name: "authorization_editRoles",
+        type: "text_general",
+        indexed: true,
+        stored: true,
+        multiValued: true
+      },
+      {
         name: "metaMetadata_brandId",
         type: "text_general",
         indexed: true,
