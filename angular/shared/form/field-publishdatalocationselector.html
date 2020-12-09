@@ -19,8 +19,14 @@
           <td><input type="checkbox" [(ngModel)]="dataLocation.selected" [attr.disabled]="field.editMode ? null : ''"  [attr.aria-label]="'select-item' | translate"/></td>
           <td>{{ field.dataTypeLookup[dataLocation.type] }}</td>
           <td>
-            <ng-container *ngIf="dataLocation && dataLocation.type != 'attachment'">
+            <ng-container *ngIf="dataLocation && dataLocation.type != 'attachment' && dataLocation.type != 'url'">
             {{ dataLocation.location }}
+            </ng-container>
+            <ng-container *ngIf="dataLocation.type == 'url'">
+              
+              <a href="{{ dataLocation.location }}" target="_blank">
+                {{ dataLocation.location }}
+              </a>
             </ng-container>
             <ng-container *ngIf="dataLocation.type == 'attachment'">
               <ng-container *ngIf="dataLocation.pending">
