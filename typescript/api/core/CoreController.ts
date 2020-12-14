@@ -262,11 +262,8 @@ export module Controllers.Core {
       this.ajaxRespond(req, res, data, forceAjax);
     }
 
-    protected apiFail(req, res, statusCode = 500, msg='', errorDetails='') {
-
-      let  data = {status:false, message:msg, details: errorDetails};
-
-      this.apiRespond(req, res, data, statusCode);
+    protected apiFail(req, res, statusCode = 500, errorResponse:APIErrorResponse) {
+      this.apiRespond(req, res, errorResponse, statusCode);
     }
 
     protected apiRespond(req, res, jsonObj=null, statusCode=200) {

@@ -23,9 +23,9 @@ declare var sails;
 
 declare var BrandingService;
 declare var RolesService;
-declare var  DashboardService;
-declare var  UsersService;
-declare var  User;
+declare var DashboardService;
+declare var UsersService;
+declare var User;
 declare var _;
 /**
  * Package that contains all Controllers.
@@ -43,9 +43,10 @@ export module Controllers {
      * Exported methods, accessible from internet.
      */
     protected _exportedMethods: any = [
-        'render',
-        'listUsers',
-        'findUser'
+      'render',
+      'listUsers',
+      'getUser',
+      'createUser'
     ];
 
     /**
@@ -66,48 +67,79 @@ export module Controllers {
     public listUsers(req, res) {
       var page = req.param('page');
       var pageSize = req.param('pageSize');
-      if(page == null) {
+      var searchField = req.param('searchBy');
+      var query = req.param('query');
+      var queryObject = {};
+      if (searchField != null && query != null) {
+        queryObject[searchField] = query;
+      }
+      if (page == null) {
         page = 1;
       }
 
-      if(pageSize == null) {
+      if (pageSize == null) {
         pageSize = 10;
       }
-      let skip = (page-1)*pageSize;
-      User.count().exec(function (err,count) {
-        var response = {};
-        response["summary"] = {};
-        response["summary"]["numFound"] = count;
-        response["summary"]["page"] = page;
-        if(count == 0) {
+      let skip = (page - 1) * pageSize;
+      User.count({
+        where: queryObject
+      }).exec(function (err, count) {
+        let response: ListAPIResponse < any > = new ListAPIResponse < any > ();
+        response.summary.numFound = count;
+        response.summary.page = page;
+        if (count == 0) {
           response["records"] = [];
           return res.json(response);
-    } else {
-      User.find({ where: {}, limit: pageSize, skip: skip} ).exec(function (err, users) {
-        _.each(users, user=> {
-          delete user["token"];
-        });
-        response["records"] = users;
-        return res.json(response);
+        } else {
+          User.find({
+            where: queryObject,
+            limit: pageSize,
+            skip: skip
+          }).exec(function (err, users) {
+            _.each(users, user => {
+              delete user["token"];
+            });
+            response.records = users;
+            return this.apiRespond(req, res, response);
+          });
+        }
       });
     }
-    });
-    }
 
-    public findUser(req, res) {
+    public getUser(req, res) {
       var searchField = req.param('searchBy');
       var query = req.param('query');
       var queryObject = {};
       queryObject[searchField] = query;
       User.findOne(queryObject).exec(function (err, user) {
-        if(err != null) {
+        if (err != null) {
           return res.serverError(err);
         }
-        if(user != null) {
-          return res.json(user);
+        if (user != null) {
+          delete user["token"];
+          return this.apiRespond(req, res, user);
         }
-        return res.json({})
+
+        return this.apiFail(req,res,404, new APIErrorResponse("No user found with given criteria", `Searchby: ${searchField} and Query: ${query}`))
       });
+    }
+
+    public createUser(req, res) {
+      let userReq:User = req.body;
+      
+      UsersService.addLocalUser(userReq.username, userReq.name, userReq.email, userReq.password).subscribe(response => {
+        let userResponse: CreateUserAPIResponse = new CreateUserAPIResponse();
+        userResponse.username = response.username;
+        userResponse.name = response.name;
+        userResponse.email = response.email;
+        userResponse.type = response.type;
+        userResponse.lastLogin = response.lastLogin;
+        return this.apiRespond(req,res,userResponse,201)
+      }).error(error => {
+        sails.log.error(error);
+        return this.apiFail(req,res,500, new APIErrorResponse())
+      });
+
     }
 
 

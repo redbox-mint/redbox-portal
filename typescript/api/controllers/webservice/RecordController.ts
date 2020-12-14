@@ -128,14 +128,14 @@ export module Controllers {
               return res.json(record["authorization"]);
             }, error=> {
               sails.log.error(error);
-              return this.apiFail(req, res, 500, 'Failed adding an editor, check server logs.');
+              return this.apiFail(req, res, 500, new APIErrorResponse('Failed adding an editor, check server logs.'));
             });
           } else {
             return res.json(result);
           }
         }, error=> {
           sails.log.error(error);
-          return this.apiFail(req, res, 500, 'Failed adding an editor, check server logs.');
+          return this.apiFail(req, res, 500, new APIErrorResponse('Failed adding an editor, check server logs.'));
         });
       });
     }
@@ -244,7 +244,7 @@ export module Controllers {
       },
       error=> {
         sails.log.error("Get metadata failed, failed to retrieve existing record.", error);
-        return this.apiFail(req, res, 500, "Get Metadata failed, failed to retrieve existing record. ");
+        return this.apiFail(req, res, 500, new APIErrorResponse("Get Metadata failed, failed to retrieve existing record. "));
       });
     }
 
@@ -283,12 +283,12 @@ export module Controllers {
           return res.json(result);
         }, error=> {
           sails.log.error("Update metadata failed", error);
-          return this.apiFail(req, res, 500, "Update Metadata failed");
+          return this.apiFail(req, res, 500, new APIErrorResponse("Update Metadata failed"));
         });
       },
       error=> {
         sails.log.error("Update metadata failed, failed to retrieve existing record.", error);
-        return this.apiFail(req, res, 500, "Update Metadata failed, failed to retrieve existing record. ");
+        return this.apiFail(req, res, 500, new APIErrorResponse("Update Metadata failed, failed to retrieve existing record. "));
       });
     }
 
@@ -384,16 +384,16 @@ export module Controllers {
                   this.apiRespond(req, res, response, 201);
                 } else {
                   sails.log.error("Create Record failed");
-                  return this.apiFail(req, res, 500, "Create failed");
+                  return this.apiFail(req, res, 500, new APIErrorResponse("Create failed"));
                 }
               }, error=> {
                 sails.log.error("Create Record failed", error);
-                return this.apiFail(req, res, 500, "Create failed");
+                return this.apiFail(req, res, 500, new APIErrorResponse("Create failed"));
               });
             });
 
           } else {
-            return this.apiFail(req, res, 400, "Record Type provided is not valid");
+            return this.apiFail(req, res, 400, new APIErrorResponse("Record Type provided is not valid"));
           }
         }
         );
@@ -543,16 +543,16 @@ export module Controllers {
 
        return response.map(results => {
 
+        let apiReponse: ListAPIResponse<any> = new ListAPIResponse();
          var totalItems = results["response"]["numFound"];
          var startIndex = results["response"]["start"];
          var noItems = rows;
          var pageNumber = Math.floor((startIndex / noItems) + 1);
 
-         var response = {};
-         response["totalItems"] = totalItems;
-         if(startIndex < totalItems) {
-           response["currentPage"] = pageNumber;
-         }
+         apiReponse.summary.numFound = totalItems;
+         apiReponse.summary.start = startIndex;
+         apiReponse.summary.page = pageNumber;
+         
 
          var items = [];
          var docs = results["response"]["docs"];
@@ -568,9 +568,8 @@ export module Controllers {
            item["hasEditAccess"] = this.RecordsService.hasEditAccess(brand, user, roles, doc);
            items.push(item);
          }
-         response["noItems"] = items.length;
-         response["items"] = items;
-         return Observable.of(response);
+         apiReponse.records = items;
+         return Observable.of(apiReponse);
        });
      }
 
@@ -613,6 +612,7 @@ export module Controllers {
          // sails.log.debug(`getRecords: ${recordType} ${workflowState} ${start}`);
          // sails.log.debug(`${rows} ${packageType} ${sort}`);
          this.getRecords(workflowState, recordType, start, rows, user, roles, brand, editAccessOnly, packageType, sort).flatMap(results => {
+             
              return results;
            }).subscribe(response => {
              res.json(response);
