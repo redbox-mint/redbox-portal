@@ -39,6 +39,9 @@ import RecordsService from '../../core/RecordsService.js';
 import SearchService from '../../core/SearchService.js';
 import DatastreamService from '../../core/DatastreamService.js';
 import DatastreamServiceResponse from '../../core/DatastreamServiceResponse';
+import {ListAPIResponse } from '../../core/model/ListAPIResponse';
+import {APIErrorResponse } from '../../core/model/APIErrorResponse';
+
 
 const UUIDGenerator = require('uuid/v4');
 export module Controllers {

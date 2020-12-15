@@ -1,4 +1,4 @@
-class APIErrorResponse{
+export class APIErrorResponse{
 
     message:string;
     details:string;

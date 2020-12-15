@@ -31,6 +31,8 @@ declare var _;
  * Package that contains all Controllers.
  */
 import controller = require('../../core/CoreController.js');
+import {ListAPIResponse } from '../../core/model/ListAPIResponse';
+import {APIErrorResponse } from '../../core/model/APIErrorResponse';
 export module Controllers {
   /**
    * Responsible for all things related to the Dashboard
@@ -65,6 +67,7 @@ export module Controllers {
 
 
     public listUsers(req, res) {
+      let that = this;
       var page = req.param('page');
       var pageSize = req.param('pageSize');
       var searchField = req.param('searchBy');
@@ -81,12 +84,16 @@ export module Controllers {
         pageSize = 10;
       }
       let skip = (page - 1) * pageSize;
+      sails.log.error("List users 1")
+      
       User.count({
         where: queryObject
       }).exec(function (err, count) {
+        sails.log.error("List users 2")
         let response: ListAPIResponse < any > = new ListAPIResponse < any > ();
         response.summary.numFound = count;
         response.summary.page = page;
+        
         if (count == 0) {
           response["records"] = [];
           return res.json(response);
@@ -94,13 +101,16 @@ export module Controllers {
           User.find({
             where: queryObject,
             limit: pageSize,
-            skip: skip
+            skip: skip   
           }).exec(function (err, users) {
+            sails.log.error("List users 3")
             _.each(users, user => {
               delete user["token"];
             });
             response.records = users;
-            return this.apiRespond(req, res, response);
+            sails.log.error("List users 4")
+            
+            return that.apiRespond(req, res, response);
           });
         }
       });
