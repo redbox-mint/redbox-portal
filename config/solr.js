@@ -1,5 +1,6 @@
 module.exports.solr = {
   createOrUpdateJobName: 'SolrSearchService-CreateOrUpdateIndex',
+  deleteJobName: 'SolrSearchService-DeleteFromIndex',
   options: {
     host: 'solr',
     port: '8983',

@@ -214,8 +214,12 @@ export module Services {
     getRelatedRecords(oid: any, brand: any): Promise < any > {
       return this.storageService.getRelatedRecords(oid, brand);
     }
-    delete(oid: any): Promise < any > {
-      return this.storageService.delete(oid);
+    async delete(oid: any) {
+      const response = await this.storageService.delete(oid);
+      if (response.isSuccessful()) {
+        this.searchService.remove(oid);
+      }
+      return response;
     }
     updateNotificationLog(oid: any, record: any, options: any): Promise < any > {
       return this.storageService.updateNotificationLog(oid, record, options);
