@@ -103,12 +103,11 @@ export module Controllers {
             limit: pageSize,
             skip: skip   
           }).exec(function (err, users) {
-            sails.log.error("List users 3")
+
             _.each(users, user => {
               delete user["token"];
             });
             response.records = users;
-            sails.log.error("List users 4")
             
             return that.apiRespond(req, res, response);
           });
@@ -117,20 +116,22 @@ export module Controllers {
     }
 
     public getUser(req, res) {
+      let that = this;
       var searchField = req.param('searchBy');
       var query = req.param('query');
       var queryObject = {};
       queryObject[searchField] = query;
       User.findOne(queryObject).exec(function (err, user) {
         if (err != null) {
-          return res.serverError(err);
+          sails.log.error(err)
+          return that.apiFail(req,res,500)
         }
         if (user != null) {
           delete user["token"];
-          return this.apiRespond(req, res, user);
+          return that.apiRespond(req, res, user);
         }
 
-        return this.apiFail(req,res,404, new APIErrorResponse("No user found with given criteria", `Searchby: ${searchField} and Query: ${query}`))
+        return that.apiFail(req,res,404, new APIErrorResponse("No user found with given criteria", `Searchby: ${searchField} and Query: ${query}`))
       });
     }
 

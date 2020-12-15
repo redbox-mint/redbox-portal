@@ -263,7 +263,7 @@ export module Controllers.Core {
       this.ajaxRespond(req, res, data, forceAjax);
     }
 
-    protected apiFail(req, res, statusCode = 500, errorResponse:APIErrorResponse) {
+    protected apiFail(req, res, statusCode = 500, errorResponse:APIErrorResponse = new APIErrorResponse()) {
       // this.apiRespond(req, res, errorResponse, statusCode);
       res.set('Cache-control', 'no-cache');
         res.set('Pragma', 'no-cache');
