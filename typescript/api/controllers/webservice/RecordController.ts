@@ -71,7 +71,8 @@ export module Controllers {
       'getPermissions',
       'getDataStream',
       'addDataStreams',
-      'listRecords'
+      'listRecords',
+      'deleteRecord'
     ];
 
     constructor() {
@@ -555,7 +556,7 @@ export module Controllers {
          apiReponse.summary.numFound = totalItems;
          apiReponse.summary.start = startIndex;
          apiReponse.summary.page = pageNumber;
-         
+
 
          var items = [];
          var docs = results["response"]["docs"];
@@ -615,7 +616,7 @@ export module Controllers {
          // sails.log.debug(`getRecords: ${recordType} ${workflowState} ${start}`);
          // sails.log.debug(`${rows} ${packageType} ${sort}`);
          this.getRecords(workflowState, recordType, start, rows, user, roles, brand, editAccessOnly, packageType, sort).flatMap(results => {
-             
+
              return results;
            }).subscribe(response => {
              res.json(response);
@@ -625,6 +626,21 @@ export module Controllers {
              var err = error['error'];
              res.json(err);
            });
+       }
+     }
+
+     public async deleteRecord(req, res) {
+       const oid = req.param('oid');
+       if (_.isEmpty(oid)) {
+         return this.apiFail(req, res, 400, new APIErrorResponse("Missing ID of record."));
+       }
+       const response = await this.RecordsService.delete(oid);
+       if (response.isSuccessful()) {
+         this.apiRespond(req, res, response);
+       } else {
+         sails.log.verbose(`Delete attempt failed for OID: ${oid}`);
+         sails.log.verbose(JSON.stringify(response));
+         this.apiFail(req, res, 500, new APIErrorResponse(response.message, response.details));
        }
      }
   }

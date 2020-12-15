@@ -8,6 +8,7 @@ source dev_build/buildFns.sh
 watch="false"
 # Not really needed but I'm putting this in a for loop in case we want to add more arguments later
 WATCH_COUNT=0
+DAEMONIZE_FLAG="-d"
 for var in "$@"
 do
     if [ $var = "install" ]; then
@@ -48,11 +49,14 @@ do
         docker exec -u "node" --detach $RBPORTAL_PS /bin/bash -c "cd /opt/redbox-portal/angular; npm install -g @angular/cli@1.7.1; npm i; ng build --app=${ng2App} --watch --verbose > ${ng2App}-build.log" || exit
         let WATCH_COUNT++
     fi
+    if [ $var == "interactive" ]; then
+      DAEMONIZE_FLAG=""
+    fi
 done
 
 if [ $watch == "true" ]; then
     echo "${WATCH_COUNT} watches are running."
 else
     echo "${WATCH_COUNT} watches. No watches should be running."
-    docker-compose up -d
+    docker-compose up $DAEMONIZE_FLAG
 fi

@@ -17,7 +17,11 @@ module.exports.agendaQueue = {
   jobs: [
     {
       name: 'SolrSearchService-CreateOrUpdateIndex',
-      fnName: 'solrsearchservice.addOrUpdate'
+      fnName: 'solrsearchservice.solrAddOrUpdate'
+    },
+    {
+      name: 'SolrSearchService-DeleteFromIndex',
+      fnName: 'solrsearchservice.solrDelete'
     }
   ]
 };

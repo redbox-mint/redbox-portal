@@ -45,7 +45,8 @@ export module Services {
        'index',
        'remove',
        'searchFuzzy',
-       'addOrUpdate'
+       'solrAddOrUpdate',
+       'solrDelete'
       ];
 
       protected queueService: QueueService;
@@ -165,7 +166,10 @@ export module Services {
       }
 
       public remove(id: string) {
-
+        sails.log.verbose(`${this.logHeader} adding delete-index job: ${id} with data:`);
+        const data = {id: id};
+        sails.log.verbose(JSON.stringify(data));
+        this.queueService.now(sails.config.solr.deleteJobName, data);
       }
 
       public async searchFuzzy(type, workflowState, searchQuery, exactSearches, facetSearches, brand, user, roles, returnFields): Promise<any> {
@@ -224,7 +228,7 @@ export module Services {
         return customResp;
       }
 
-      public async addOrUpdate(job:any) {
+      public async solrAddOrUpdate(job:any) {
         try {
           let data = job.attrs.data;
           sails.log.verbose(`${this.logHeader} adding document: ${data.id} to index`);
@@ -243,7 +247,7 @@ export module Services {
             });
           });
         } catch (err) {
-          sails.log.error(`${this.logHeader} Failed to addOrUpdate, while pre-processing index: `);
+          sails.log.error(`${this.logHeader} Failed to solrAddOrUpdate, while pre-processing index: `);
           sails.log.error(JSON.stringify(err));
         }
       }
@@ -318,6 +322,27 @@ export module Services {
         }
         url = url + "&fq=authorization_edit:" + username + (editAccessOnly ? "" : (" OR authorization_view:" + username + " OR authorization_viewRoles:(" + roleString + ")")) + " OR authorization_editRoles:(" + roleString + ")";
         return url;
+      }
+
+      public solrDelete(job:any) {
+        try {
+          let data = job.attrs.data;
+          sails.log.verbose(`${this.logHeader} deleting document: ${data.id}`);
+          this.client.delete('id', data.id, (err, obj) => {
+            if (err) {
+              sails.log.error(`${this.logHeader} Failed to delete document: ${data.id}`);
+              sails.log.error(err);
+              return;
+            }
+            this.client.commit((commitErr, commitObj) => {
+              sails.log.verbose(`${this.logHeader} document deleted in SOLR: ${data.id}`);
+              sails.log.verbose(obj);
+            });
+          });
+        } catch (err) {
+          sails.log.error(`${this.logHeader} Failed to solrDelete:`);
+          sails.log.error(JSON.stringify(err));
+        }
       }
    }
 }

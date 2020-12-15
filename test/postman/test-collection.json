@@ -1,6 +1,6 @@
 {
 	"info": {
-		"_postman_id": "7b31db0b-a4cb-4a8b-b8a5-bd99cb7ca23d",
+		"_postman_id": "fcde6231-9f2d-49a1-b37c-22d01e39c5fc",
 		"name": "Redbox Portal API - With tests",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
@@ -14,7 +14,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "c6679db8-156d-4591-ae8e-089f7c5ea8de",
+								"id": "ac672330-4be2-47af-b448-32aa1e25d1e6",
 								"exec": [
 									"",
 									"pm.test(\"Status code is 201\", function () {",
@@ -37,7 +37,7 @@
 						{
 							"listen": "prerequest",
 							"script": {
-								"id": "6639f6d9-92b8-46be-8c8d-c7bfbaba30cd",
+								"id": "cbebf361-9a4a-4890-8534-2221a15261ce",
 								"exec": [
 									""
 								],
@@ -87,7 +87,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "9d3088cb-a505-47e5-b2f9-02b126f83f29",
+								"id": "1c2bf1b9-f651-4b8d-9bee-22f5534f7d32",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
@@ -140,7 +140,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "458bb2ca-c75e-4ee1-b48e-c7db4672f58e",
+								"id": "295f9f17-cb01-4993-9283-1ac9683d292a",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
@@ -195,7 +195,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "67c12973-2c76-4d4e-9efa-fdea57611bd8",
+								"id": "65a4b89d-1f76-4abb-afd7-a67e17d56088",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
@@ -251,7 +251,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "d364ad2b-a452-4dd3-88e3-95496f0d1b2f",
+								"id": "fa82de23-39a6-41c1-a109-450031b51068",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
@@ -304,7 +304,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "d5215d9f-56e4-4b7f-8347-1ab9a4b48f88",
+								"id": "8999d515-15c2-4890-921a-cc8a858d2805",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
@@ -361,7 +361,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "a8c30867-8985-4411-9743-5c2ac21d29ea",
+								"id": "8edad722-ba61-4263-a95e-bb0deb5ff72f",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
@@ -410,6 +410,128 @@
 						"description": "http://localhost:1500/default/rdmp/api/records/rdmp/create"
 					},
 					"response": []
+				},
+				{
+					"name": "Create RDMP For Deletion",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "ba9b6209-95a7-4e50-9663-1886463670ad",
+								"exec": [
+									"",
+									"pm.test(\"Status code is 201\", function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"",
+									"pm.test(\"Test oid exists\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('oid');",
+									"    postman.setEnvironmentVariable(\"dmpOidToDelete\", jsonData.oid);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"id": "b5071961-5b8f-4167-9282-b82e3dd4f434",
+								"exec": [
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"title\": \"Andrew's Postman test\",\n    \"dc:identifier\": \"http://purl.org/au-research/grants/nhmrc/566728\",\n    \"description\": \"Movement of molecules within cells by a process known as membrane transport is critical for normal cell function and also exploited by bacteria to promote infection. The pathway that connects the import pathway to the export pathway is essential for the function of a large number of proteins, however this connecting pathway is poorly characterised. This study will define the machinery of this trafficking pathway, which will provide the ability to modulate biological processes and cytotoxicity.\",\n    \"finalKeywords\": [\n        \"270199\",\n        \"Golgi apparatus\",\n        \"endocytosis\",\n        \"membrane transport\",\n        \"protein trafficking\",\n        \"secretion\",\n        \"HIV-AIDS\",\n        \"bacterial pathogen\",\n        \"hormone secretion\",\n        \"immune development\",\n        \"lysosomal storage disorder\"\n    ],\n    \"contributor_ci\": {\n        \"text_full_name\": \"Prof Paul Gleeson\",\n        \"email\": \"notAReal@email.edu.au\",\n        \"orcid\": \"http://orcid.org/0000-0000-0000-000\"\n    },\n    \"contributor_data_manager\": {\n        \"text_full_name\": \"Prof Paul Gleeson\",\n        \"email\": \"notAReal@email.edu.au\",\n        \"orcid\": \"http://orcid.org/0000-0000-0000-000\"\n    },\n    \"contributors\": [\n        {\n            \"text_full_name\": \"Prof Paul Gleeson\",\n            \"email\": \"notAReal@email.edu.au\",\n            \"orcid\": \"http://orcid.org/0000-0000-0000-000\"\n        }\n    ],\n    \"vivo:Dataset_redbox:DataCollectionMethodology\": \"The data collection methodology\",\n    \"vivo:Dataset_dc_format\": \"xls\",\n    \"vivo:Dataset_dc:location_rdf:PlainLiteral\": \"eResearch Store network drive\",\n    \"vivo:Dataset_dc:source_dc:location_rdf:PlainLiteral\": \"shared university network drive (e.g. G, H, etc)\",\n    \"vivo:Dataset_dc:extent\": \"100GB - 2TB\",\n    \"redbox:retentionPeriod_dc:date\": \"1year\",\n    \"dc:rightsHolder_dc:name\": \"myUni\",\n    \"dc:accessRights\": \"permission from the data manager\",\n    \"authorization\": []\n}"
+						},
+						"url": {
+							"raw": "{{host}}/default/rdmp/api/records/metadata/rdmp",
+							"host": [
+								"{{host}}"
+							],
+							"path": [
+								"default",
+								"rdmp",
+								"api",
+								"records",
+								"metadata",
+								"rdmp"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Record",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "7e537e3c-0931-475f-b4e9-a7c9c4baa605",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Success is set and is true\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('success');",
+									"    pm.expect(jsonData.success).to.eql(true);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{host}}/default/rdmp/api/records/metadata/{{dmpOidToDelete}}",
+							"host": [
+								"{{host}}"
+							],
+							"path": [
+								"default",
+								"rdmp",
+								"api",
+								"records",
+								"metadata",
+								"{{dmpOidToDelete}}"
+							]
+						},
+						"description": "Delete Record"
+					},
+					"response": []
 				}
 			],
 			"protocolProfileBehavior": {}
@@ -423,7 +545,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "396e75bc-3b89-4567-a707-e7850aafa56c",
+								"id": "cf13ac5d-55f0-4707-8492-c215905cf1bc",
 								"exec": [
 									"postman.setGlobalVariable(\"cookie\",postman.getResponseHeader(\"set-cookie\") );",
 									"",
@@ -518,7 +640,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "290f42ee-a8bc-40d4-bf23-7d1fd2b1c613",
+								"id": "4cdfb919-745f-47ef-9a63-5399feb6f6f7",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
@@ -606,7 +728,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "9d0cce74-a03f-4180-8838-f7d1e6988af1",
+								"id": "32759972-ad15-4610-954e-c3e1ad84929c",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
@@ -683,7 +805,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "5358479e-8fc9-4547-b72f-4ed6318ec4a6",
+								"id": "a122338e-1a80-4c4b-b27d-aeb17b3bdd59",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
@@ -760,7 +882,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "b32dc7cf-fe3b-4e4d-9561-6e8302da8e22",
+								"id": "64803a6f-6fe1-411c-8d62-950981f6d30f",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
@@ -849,7 +971,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "2ce63735-1fdf-4448-9b86-dd9220cc0216",
+								"id": "995625c5-8a15-4047-889a-d454040d6ca3",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
@@ -939,7 +1061,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "b508583c-a365-4325-8ff0-a13f43977692",
+								"id": "558847be-48f1-4bf1-a442-2aa7e8cc348e",
 								"exec": [
 									"// \"contributor_ci\": {",
 									"                    // \"text_full_name\": \"Alberto Zweinstein\",",
@@ -1054,7 +1176,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "775bafd8-2df3-45d6-8fe3-ddff1cd51ace",
+								"id": "7f31fea7-9ccf-425b-a719-705e10faa257",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
@@ -1152,7 +1274,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "2d5eeed7-9802-4b60-a6aa-18f28f4de4ab",
+								"id": "f5f27232-892c-47a9-9901-43c7a67d561b",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
@@ -1256,7 +1378,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "0fbe7547-b626-4417-aabe-71585bfda7d2",
+								"id": "12339795-d347-4bc1-855c-89dbdae3397c",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
@@ -1362,7 +1484,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "0af211c4-31ed-4b1b-b3e7-066eab92155b",
+								"id": "2624171c-4f3a-4603-b796-dd6b2e621e7d",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
@@ -1465,7 +1587,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "3327710b-6c78-4ac8-99a0-873ac4d482cf",
+								"id": "fb5606f4-c7cb-485c-8ddc-6ee4eb6f9472",
 								"exec": [
 									"",
 									"pm.test(\"Status code is 200\", function () {",
@@ -1570,7 +1692,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "0f3e4e50-0ab6-4f13-867c-edd92245db45",
+								"id": "a68a36d9-e62e-4cca-bb1d-a161764774dd",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
@@ -1674,7 +1796,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "50716166-d5fd-4fb1-b437-ac1680c372bf",
+								"id": "2f86b313-3aa1-4cfc-a21f-5287d09586ec",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
@@ -1855,7 +1977,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "910e4abb-f7ac-433e-8439-abf2d406996a",
+								"id": "9c1ff727-f22d-4bac-941e-3e01825299c3",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
@@ -1958,7 +2080,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "60be7dda-ad7c-4088-a0af-c537cfa23fc0",
+								"id": "624946d5-a920-47ca-80ab-69d6c8b1669f",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
@@ -2080,7 +2202,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "ec11cf13-a76e-431c-8561-cc58736d0d8c",
+								"id": "9a615f50-f60c-4377-b9d5-d500715af11e",
 								"exec": [
 									"",
 									"pm.test(\"Status code is 200\", function () {",
@@ -2174,7 +2296,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "569b8fdd-0dcd-49ff-b992-79d7f5f5970f",
+								"id": "a5384016-54f0-4056-b865-608fd16d34e3",
 								"exec": [
 									"",
 									"pm.test(\"Status code is 201\", function () {",
@@ -2276,7 +2398,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "4db55ba8-1fea-4816-856d-4d9fc15f461a",
+								"id": "e67d2394-cdc6-4ba3-af37-518d0e9d2698",
 								"exec": [
 									"pm.test(\"Status code is 204\", function () {",
 									"    pm.response.to.have.status(204);",
@@ -2370,7 +2492,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "a05e400d-7ba7-4189-9283-22df340db50b",
+								"id": "4c4a7b35-90ca-4794-926d-8f70cb7f0046",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
@@ -2462,7 +2584,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "5f2ebd69-89f7-4a52-b30f-00f06cad2d5d",
+								"id": "6184ab65-0c46-4a46-a625-d48da4d92dc8",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
@@ -2498,7 +2620,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "f3db7fa8-7fde-42eb-913c-dfe48f4c6539",
+								"id": "088e858b-7cc6-4955-af5e-812044c9ac09",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
@@ -2589,7 +2711,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "7973e70c-96d2-455b-ba3d-32b97056931a",
+								"id": "d9e544a3-6e47-4ee9-bc11-2aac61fb52f0",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
@@ -2681,7 +2803,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "2b75fb88-b3ab-4da1-8605-8c28758dffb9",
+								"id": "c3137c83-7b3e-437a-8dbc-2e592e863cf3",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
@@ -2773,7 +2895,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "c7986692-b565-4c4e-baed-80e951c4a347",
+								"id": "0b742f23-a6a2-43a9-b583-6816b2b57c5d",
 								"exec": [
 									"",
 									"pm.test(\"Status code is 200\", function () {",
@@ -2871,7 +2993,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "dd144dff-909f-4430-9bd5-ca5b3045d255",
+								"id": "9f4ff55b-bc2d-4744-96aa-240fb2660312",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
@@ -2973,7 +3095,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "23fe1da6-69cc-4675-b30b-d8e437499f9b",
+								"id": "3c21a109-e59c-455b-afcf-5548829a67e7",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
@@ -3143,7 +3265,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "8d577856-e300-485a-b1a2-56a8e1bcc70e",
+								"id": "ad20711b-8b79-4f38-89c4-b21ff770ecf4",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
@@ -3219,7 +3341,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "e8422191-0aee-4124-9d54-f1757bfe7250",
+								"id": "e86db382-a68a-4f72-a631-af8e3033ac07",
 								"exec": [
 									"pm.test(\"Status code is 403\", function () {",
 									"    pm.response.to.have.status(403);",
@@ -3288,7 +3410,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "11e34f30-4d2d-43d0-a1a5-e96e61083b50",
+								"id": "5283bb00-f364-4cf6-8bda-9dd171d2b6aa",
 								"exec": [
 									"postman.setGlobalVariable(\"cookie\",postman.getResponseHeader(\"set-cookie\") );",
 									"",
@@ -3387,7 +3509,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "903c1dca-6598-4e69-972a-05051e1bd5ac",
+								"id": "8187b0cd-55f6-4aeb-b1b2-d36d7aebf931",
 								"exec": [
 									"postman.setGlobalVariable(\"cookie\",postman.getResponseHeader(\"set-cookie\") );",
 									"",
@@ -3483,7 +3605,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "60b3b76d-66c9-497e-86cd-2ac252e83bab",
+								"id": "d3f2f8bb-5688-45e4-876d-8585d32195b1",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
