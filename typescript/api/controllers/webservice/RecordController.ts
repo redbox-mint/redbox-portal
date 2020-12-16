@@ -73,7 +73,8 @@ export module Controllers {
       'addDataStreams',
       'listRecords',
       'deleteRecord',
-      'transitionWorkflow'
+      'transitionWorkflow',
+      'listDatastreams'
     ];
 
     constructor() {
@@ -674,7 +675,24 @@ export module Controllers {
        }
      }
 
-     
+     public async listDatastreams(req, res) {
+       const oid = req.param('oid');
+       if (_.isEmpty(oid)) {
+         return this.apiFail(req, res, 400, new APIErrorResponse("Missing ID of record."));
+       }
+       try {
+         const attachments = await this.RecordsService.getAttachments(oid);
+         let response: ListAPIResponse < any > = new ListAPIResponse < any > ();
+         response.summary.numFound = _.size(attachments);
+         response.summary.page = 1;
+         response.records = attachments;
+         this.apiRespond(req, res, response);
+       } catch (err) {
+         sails.log.error(`Failed to list attachments: ${oid}`);
+         sails.log.error(JSON.stringify(err));
+         this.apiFail(req, res, 500, new APIErrorResponse(`Failed to list attachments, please check server logs.`));
+       }
+     }
   }
 }
 
