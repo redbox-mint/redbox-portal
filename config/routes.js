@@ -256,11 +256,6 @@ module.exports.routes = {
     action: 'deleteRecord',
     csrf: false
   },
-  'post /:branding/:portal/api/records/workflow/step/:targetStep/:oid': {
-    controller: 'webservice/RecordController',
-    action: 'transitionWorkflow',
-    csrf: false
-  },
   'post /:branding/:portal/api/records/permissions/edit/:oid': {
     controller: 'webservice/RecordController',
     action: 'addUserEdit',
@@ -288,8 +283,11 @@ module.exports.routes = {
   },
   'get /:branding/:portal/api/records/permissions/:oid': 'webservice/RecordController.getPermissions',
   'get /:branding/:portal/api/records/datastreams/:oid': 'webservice/RecordController.getDataStream',
-
-
+  'post /:branding/:portal/api/records/workflow/step/:targetStep/:oid': {
+    controller: 'webservice/RecordController',
+    action: 'transitionWorkflow',
+    csrf: false
+  },
 
   'get /:branding/:portal/api/users': 'webservice/UserManagementController.listUsers',
   'get /:branding/:portal/api/users/find': 'webservice/UserManagementController.getUser',
@@ -299,6 +297,16 @@ module.exports.routes = {
   'get /:branding/:portal/api/users/token/generate': 'webservice/UserManagementController.generateAPIToken',
   'get /:branding/:portal/api/users/token/revoke': 'webservice/UserManagementController.revokeAPIToken',
   'get /:branding/:portal/api/roles': 'webservice/UserManagementController.listSystemRoles',
+
+
+  'get /:branding/:portal/api/search': 'webservice/SearchController.search',
+  'get /:branding/:portal/api/search/index': 'webservice/SearchController.index',
+
+  'get /:branding/:portal/api/forms/get': 'webservice/FormManagementController.getForm',
+  'get /:branding/:portal/api/forms': 'webservice/FormManagementController.listForms',
+
+  'get /:branding/:portal/api/recordtypes/get': 'webservice/RecordTypeController.getRecordType',
+  'get /:branding/:portal/api/recordtypes': 'webservice/RecordTypeController.listRecordTypes',
 
   'post /:branding/:portal/api/sendNotification': {
     controller: 'EmailController',

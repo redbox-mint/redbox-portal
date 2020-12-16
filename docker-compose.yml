@@ -4,7 +4,7 @@ networks:
 services:
   redboxportal:
     build: .
-    image: qcifengineering/redbox-portal:latest
+    image: qcifengineering/redbox-portal:backend-refactor
     ports:
       - "1500:1500"
     user: node
@@ -29,18 +29,6 @@ services:
         aliases:
           - rbportal
     entrypoint: /bin/bash -c "cd /opt/redbox-portal && node app.js"
-
-  nginx:
-    image: nginx
-    ports:
-      - "8080:8080"
-    restart: always
-    volumes:
-      - "./dev/publication:/usr/share/nginx/html:delegated"
-      - "./dev/nginx.conf:/etc/nginx/conf.d:delegated"
-    expose:
-      - "8080"
-
   mongodb:
     image: mvertes/alpine-mongo:latest
     volumes:
@@ -53,7 +41,6 @@ services:
           - mongodb
     ports:
       - "27017:27017"
-
   solr:
     image: solr:8.6.3
     expose:
