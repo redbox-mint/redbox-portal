@@ -287,8 +287,14 @@ module.exports.routes = {
 
 
   'get /:branding/:portal/api/users': 'webservice/UserManagementController.listUsers',
-  'get /:branding/:portal/api/users/find': 'webservice/UserManagementController.findUser',
-
+  'get /:branding/:portal/api/users/find': 'webservice/UserManagementController.getUser',
+  'get /:branding/:portal/api/users/get': 'webservice/UserManagementController.getUser',
+  'post /:branding/:portal/api/users': 'webservice/UserManagementController.createUser',
+  'put /:branding/:portal/api/users': 'webservice/UserManagementController.updateUser',
+  'get /:branding/:portal/api/users/token/generate': 'webservice/UserManagementController.generateAPIToken',
+  'get /:branding/:portal/api/users/token/revoke': 'webservice/UserManagementController.revokeAPIToken',
+  'get /:branding/:portal/api/roles': 'webservice/UserManagementController.listSystemRoles',
+  
   'post /:branding/:portal/api/sendNotification': {
     controller: 'EmailController',
     action: 'sendNotification',

@@ -1,5 +1,5 @@
-class CreateUserAPIResponse {
-
+export class CreateUserAPIResponse {
+    id: string
     username: string
     name:string
     email: string
