@@ -256,6 +256,11 @@ module.exports.routes = {
     action: 'deleteRecord',
     csrf: false
   },
+  'post /:branding/:portal/api/records/workflow/step/:targetStep/:oid': {
+    controller: 'webservice/RecordController',
+    action: 'transitionWorkflow',
+    csrf: false
+  },
   'post /:branding/:portal/api/records/permissions/edit/:oid': {
     controller: 'webservice/RecordController',
     action: 'addUserEdit',
@@ -294,7 +299,7 @@ module.exports.routes = {
   'get /:branding/:portal/api/users/token/generate': 'webservice/UserManagementController.generateAPIToken',
   'get /:branding/:portal/api/users/token/revoke': 'webservice/UserManagementController.revokeAPIToken',
   'get /:branding/:portal/api/roles': 'webservice/UserManagementController.listSystemRoles',
-  
+
   'post /:branding/:portal/api/sendNotification': {
     controller: 'EmailController',
     action: 'sendNotification',

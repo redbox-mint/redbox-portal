@@ -72,7 +72,8 @@ export module Controllers {
       'getDataStream',
       'addDataStreams',
       'listRecords',
-      'deleteRecord'
+      'deleteRecord',
+      'transitionWorkflow'
     ];
 
     constructor() {
@@ -643,6 +644,37 @@ export module Controllers {
          this.apiFail(req, res, 500, new APIErrorResponse(response.message, response.details));
        }
      }
+
+     public async transitionWorkflow(req, res) {
+       const oid = req.param('oid');
+       const targetStepName = req.param('targetStep');
+       try {
+         if (_.isEmpty(oid)) {
+           return this.apiFail(req, res, 400, new APIErrorResponse("Missing ID of record."));
+         }
+         const brand = BrandingService.getBrand(req.session.branding);
+         const record = await this.RecordsService.getMeta(oid);
+         if (_.isEmpty(record)) {
+           this.apiFail(req, res, 500, new APIErrorResponse(`Missing OID: ${oid}`));
+           return;
+         }
+         if (!this.RecordsService.hasEditAccess(brand, req.user, req.user.roles, record)) {
+           this.apiFail(req, res, 500, new APIErrorResponse(`User has no edit permissions for :${oid}`));
+           return;
+         }
+         const recType = await RecordTypesService.get(brand, record.metaMetadata.type).toPromise();
+         const nextStep = await WorkflowStepsService.get(recType, targetStepName).toPromise();
+         this.RecordsService.updateWorkflowStep(record, nextStep);
+         const response = await this.RecordsService.updateMeta(brand, oid, record, req.user);
+         this.apiRespond(req, res, response);
+       } catch (err) {
+         sails.log.error(`Failed to transitionWorkflow: ${oid} to ${targetStepName}`);
+         sails.log.error(JSON.stringify(err));
+         this.apiFail(req, res, 500, new APIErrorResponse(`Failed to transition workflow, please check server logs.`));
+       }
+     }
+
+     
   }
 }
 
