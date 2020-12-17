@@ -496,7 +496,7 @@
 											"pm.test(\"Test oid exists\", function () {",
 											"    var jsonData = pm.response.json();",
 											"    pm.expect(jsonData).to.have.property('oid');",
-											"    postman.setEnvironmentVariable(\"tempDataRecordOid\", jsonData.oid);",
+											"    postman.setEnvironmentVariable(\"attDataRecordOid\", jsonData.oid);",
 											"});"
 										],
 										"type": "text/javascript"

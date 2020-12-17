@@ -438,7 +438,7 @@ export module Controllers {
       );
     }
 
-    public addDataStreams(req, res) {
+    public async addDataStreams(req, res) {
       const brand = BrandingService.getBrand(req.session.branding);
       var oid = req.param('oid');
       const self = this;
@@ -456,7 +456,7 @@ export module Controllers {
             return next(new Error('Could not determine an appropriate filename for uploaded filestream(s).'));
           }
         }
-      }, function (error, UploadedFileMetadata) {
+      }, async function (error, UploadedFileMetadata) {
         if (error) {
           const errorMessage = `There was a problem adding datastream(s) to: ${sails.config.record.attachments.stageDir}.`;
           sails.log.error(errorMessage, error);
@@ -471,20 +471,17 @@ export module Controllers {
         sails.log.verbose(_.toString(fileIds));
         const defaultErrorMessage = 'Error sending datastreams upstream.';
         try {
-          const reqs = self.DatastreamService.addDatastreams(oid, fileIds);
-          return Observable.fromPromise(reqs)
-            .subscribe((result:DatastreamServiceResponse) => {
-              sails.log.verbose(`Done with updating streams and returning response...`);
-              if (result.isSuccessful()) {
-                sails.log.verbose("Presuming success...");
-                _.merge(result, {fileIds: fileIds});
-                return res.json({message: result});
-              } else {
-                return res.status(500).json({message: result.message});
-              }
-            }, error => {
-              return self.customErrorMessageHandlingOnUpstreamResult(error, res);
-            });
+          const result:DatastreamServiceResponse = await self.DatastreamService.addDatastreams(oid, fileIds);
+    
+          sails.log.verbose(`Done with updating streams and returning response...`);
+          if (result.isSuccessful()) {
+            sails.log.verbose("Presuming success...");
+            _.merge(result, {fileIds: fileIds});
+            return res.json({message: result});
+          } else {
+            return res.status(500).json({message: result.message});
+          }
+
         } catch (error) {
           sails.log.error(defaultErrorMessage, error);
           return res.status(500).json({message: defaultErrorMessage});
