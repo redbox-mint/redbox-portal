@@ -1,6 +1,6 @@
 {
 	"info": {
-		"_postman_id": "2d4266d0-b611-4f9f-9640-5eb29a2fa21b",
+		"_postman_id": "c3caf4c0-dee2-4fbf-b517-51b44c5a7a61",
 		"name": "Redbox Portal API - With tests",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
@@ -17,7 +17,7 @@
 								{
 									"listen": "test",
 									"script": {
-										"id": "2b341313-fe5c-4004-8204-1062fd2895d3",
+										"id": "dbf0286f-202c-4784-a4df-4a143932638e",
 										"exec": [
 											"",
 											"pm.test(\"Status code is 201\", function () {",
@@ -40,7 +40,7 @@
 								{
 									"listen": "prerequest",
 									"script": {
-										"id": "a18caf4f-342c-4a0a-80b6-4035f843a540",
+										"id": "572eb15b-beb6-4c3e-a70f-39edc51b5c64",
 										"exec": [
 											""
 										],
@@ -90,7 +90,7 @@
 								{
 									"listen": "test",
 									"script": {
-										"id": "f2126c2e-d521-4c1c-832c-a3961084d9e1",
+										"id": "688f7a96-395a-4fbf-9e66-7f4741b1e17f",
 										"exec": [
 											"pm.test(\"Status code is 200\", function () {",
 											"    pm.response.to.have.status(200);",
@@ -143,7 +143,7 @@
 								{
 									"listen": "test",
 									"script": {
-										"id": "2df78f4e-d3e7-45ee-a0dc-6d74dc75aafd",
+										"id": "ca6182fe-b839-4ef7-8554-bd9449898031",
 										"exec": [
 											"pm.test(\"Status code is 200\", function () {",
 											"    pm.response.to.have.status(200);",
@@ -198,7 +198,7 @@
 								{
 									"listen": "test",
 									"script": {
-										"id": "4d35d2c5-e68e-4625-a61e-58a6b7ff682e",
+										"id": "d0ddcf35-406a-42c4-897e-588412fca4e2",
 										"exec": [
 											"pm.test(\"Status code is 200\", function () {",
 											"    pm.response.to.have.status(200);",
@@ -254,7 +254,7 @@
 								{
 									"listen": "test",
 									"script": {
-										"id": "73561a47-8aa2-48ca-9e43-f159436832d3",
+										"id": "03d3ed88-fdac-41f9-bc50-c184e28db2b8",
 										"exec": [
 											"pm.test(\"Status code is 200\", function () {",
 											"    pm.response.to.have.status(200);",
@@ -307,7 +307,7 @@
 								{
 									"listen": "test",
 									"script": {
-										"id": "bc8f9850-8003-4315-9da6-058c29b3cc4b",
+										"id": "263d4151-78ea-445c-a3b2-a1ad93cd19b3",
 										"exec": [
 											"pm.test(\"Status code is 200\", function () {",
 											"    pm.response.to.have.status(200);",
@@ -357,6 +357,475 @@
 								"description": "http://localhost:1500/default/rdmp/api/records/rdmp/create"
 							},
 							"response": []
+						},
+						{
+							"name": "Create RDMP For Deletion",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"id": "7814b400-6de9-4d5d-862d-159a25a41cb8",
+										"exec": [
+											"",
+											"pm.test(\"Status code is 201\", function () {",
+											"    pm.response.to.have.status(201);",
+											"});",
+											"",
+											"pm.test(\"Test oid exists\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData).to.have.property('oid');",
+											"    postman.setEnvironmentVariable(\"dmpOidToDelete\", jsonData.oid);",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								},
+								{
+									"listen": "prerequest",
+									"script": {
+										"id": "c63e7d7e-7a6a-4874-ba2d-2753fd9f0009",
+										"exec": [
+											""
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"name": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									},
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"title\": \"Andrew's Postman test\",\n    \"dc:identifier\": \"http://purl.org/au-research/grants/nhmrc/566728\",\n    \"description\": \"Movement of molecules within cells by a process known as membrane transport is critical for normal cell function and also exploited by bacteria to promote infection. The pathway that connects the import pathway to the export pathway is essential for the function of a large number of proteins, however this connecting pathway is poorly characterised. This study will define the machinery of this trafficking pathway, which will provide the ability to modulate biological processes and cytotoxicity.\",\n    \"finalKeywords\": [\n        \"270199\",\n        \"Golgi apparatus\",\n        \"endocytosis\",\n        \"membrane transport\",\n        \"protein trafficking\",\n        \"secretion\",\n        \"HIV-AIDS\",\n        \"bacterial pathogen\",\n        \"hormone secretion\",\n        \"immune development\",\n        \"lysosomal storage disorder\"\n    ],\n    \"contributor_ci\": {\n        \"text_full_name\": \"Prof Paul Gleeson\",\n        \"email\": \"notAReal@email.edu.au\",\n        \"orcid\": \"http://orcid.org/0000-0000-0000-000\"\n    },\n    \"contributor_data_manager\": {\n        \"text_full_name\": \"Prof Paul Gleeson\",\n        \"email\": \"notAReal@email.edu.au\",\n        \"orcid\": \"http://orcid.org/0000-0000-0000-000\"\n    },\n    \"contributors\": [\n        {\n            \"text_full_name\": \"Prof Paul Gleeson\",\n            \"email\": \"notAReal@email.edu.au\",\n            \"orcid\": \"http://orcid.org/0000-0000-0000-000\"\n        }\n    ],\n    \"vivo:Dataset_redbox:DataCollectionMethodology\": \"The data collection methodology\",\n    \"vivo:Dataset_dc_format\": \"xls\",\n    \"vivo:Dataset_dc:location_rdf:PlainLiteral\": \"eResearch Store network drive\",\n    \"vivo:Dataset_dc:source_dc:location_rdf:PlainLiteral\": \"shared university network drive (e.g. G, H, etc)\",\n    \"vivo:Dataset_dc:extent\": \"100GB - 2TB\",\n    \"redbox:retentionPeriod_dc:date\": \"1year\",\n    \"dc:rightsHolder_dc:name\": \"myUni\",\n    \"dc:accessRights\": \"permission from the data manager\",\n    \"authorization\": []\n}"
+								},
+								"url": {
+									"raw": "{{host}}/default/rdmp/api/records/metadata/rdmp",
+									"host": [
+										"{{host}}"
+									],
+									"path": [
+										"default",
+										"rdmp",
+										"api",
+										"records",
+										"metadata",
+										"rdmp"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Delete Record",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"id": "3ea6e9d9-0c89-4c8f-90e7-45732214b93c",
+										"exec": [
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test(\"Success is set and is true\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData).to.have.property('success');",
+											"    pm.expect(jsonData.success).to.eql(true);",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "DELETE",
+								"header": [],
+								"url": {
+									"raw": "{{host}}/default/rdmp/api/records/metadata/{{dmpOidToDelete}}",
+									"host": [
+										"{{host}}"
+									],
+									"path": [
+										"default",
+										"rdmp",
+										"api",
+										"records",
+										"metadata",
+										"{{dmpOidToDelete}}"
+									]
+								},
+								"description": "Delete Record"
+							},
+							"response": []
+						},
+						{
+							"name": "Create Datarecord for Attachments",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"id": "7dfed257-8dfe-4a04-a39d-76d250605638",
+										"exec": [
+											"",
+											"pm.test(\"Status code is 201\", function () {",
+											"    pm.response.to.have.status(201);",
+											"});",
+											"",
+											"pm.test(\"Test oid exists\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData).to.have.property('oid');",
+											"    postman.setEnvironmentVariable(\"tempDataRecordOid\", jsonData.oid);",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								},
+								{
+									"listen": "prerequest",
+									"script": {
+										"id": "e1964662-3864-424b-8756-886ec201a6b7",
+										"exec": [
+											""
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"name": "Content-Type",
+										"type": "text",
+										"value": "application/json"
+									},
+									{
+										"key": "Authorization",
+										"type": "text",
+										"value": "Bearer {{token}}"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"parameterRetriever\": \"\",\n    \"rdmpGetter\": \"\",\n    \"\": {},\n    \"rdmp\": {\n        \"oid\": \"{{dmpOid}}\",\n        \"title\": \"Andrew's Postman test - Updated from form AJAX call\"\n    },\n    \"aim_project_name\": \"Andrew's Postman test - Updated from form AJAX call\",\n    \"foaf:fundedBy_foaf:Agent\": [\n        \"\"\n    ],\n    \"dc:coverage_vivo:DateTimeInterval_vivo:end\": \"\",\n    \"foaf:fundedBy_vivo:Grant\": [\n        \"\"\n    ],\n    \"dc:subject_anzsrc:for\": [\n        {\n            \"name\": \"01 - MATHEMATICAL SCIENCES\",\n            \"label\": \"MATHEMATICAL SCIENCES\",\n            \"notation\": \"01\"\n        }\n    ],\n    \"dc:subject_anzsrc:seo\": [],\n    \"title\": \"A Data record\",\n    \"description\": \"Data record\",\n    \"datatype\": \"collection\",\n    \"finalKeywords\": [\n        \"270199\",\n        \"Golgi apparatus\",\n        \"endocytosis\",\n        \"membrane transport\",\n        \"protein trafficking\",\n        \"secretion\",\n        \"HIV-AIDS\",\n        \"bacterial pathogen\",\n        \"hormone secretion\",\n        \"immune development\",\n        \"lysosomal storage disorder\"\n    ],\n    \"contributor_ci\": {\n        \"text_full_name\": \"Alberto Zweinstein\",\n        \"full_name_honorific\": \"Dr Alberto Zweinstein\",\n        \"email\": \"alberto.zweinstein@example.edu.au\",\n        \"given_name\": \"Alberto\",\n        \"family_name\": \"Zweinstein\",\n        \"honorific\": \"Dr\",\n        \"full_name_family_name_first\": \"Zweinstein, Alberto\",\n        \"username\": \"\",\n        \"role\": \"Chief Investigator\",\n        \"orcid\": null\n    },\n    \"contributor_data_manager\": {\n        \"text_full_name\": \"Prof Paul Gleeson\",\n        \"email\": \"notAReal@email.edu.au\",\n        \"username\": \"\",\n        \"role\": \"Data manager\",\n        \"orcid\": \"http://orcid.org/0000-0000-0000-000\"\n    },\n    \"contributors\": [\n        {\n            \"text_full_name\": \"Prof Paul Gleeson\",\n            \"email\": \"notAReal@email.edu.au\",\n            \"username\": \"\",\n            \"role\": \"Contributors\",\n            \"orcid\": \"http://orcid.org/0000-0000-0000-000\"\n        }\n    ],\n    \"contributor_supervisor\": {\n        \"text_full_name\": null,\n        \"full_name_honorific\": \"\",\n        \"email\": null,\n        \"given_name\": \"\",\n        \"family_name\": \"\",\n        \"honorific\": \"\",\n        \"full_name_family_name_first\": \"\",\n        \"username\": \"\",\n        \"role\": \"Supervisor\",\n        \"orcid\": null\n    },\n    \"dataowner_name\": \"Alberto Zweinstein\",\n    \"dataowner_email\": \"alberto.zweinstein@example.edu.au\",\n    \"redbox:retentionPeriod_dc:date\": \"1year\",\n    \"redbox:retentionPeriod_dc:date_skos:note\": \"\",\n    \"disposalDate\": \"\",\n    \"related_publications\": [\n        {\n            \"related_url\": \"\",\n            \"related_title\": \"\",\n            \"related_notes\": \"\"\n        }\n    ],\n    \"dataLocations\": [],\n    \"software_equipment\": \"\"\n}"
+								},
+								"url": {
+									"raw": "{{host}}/default/rdmp/api/records/metadata/dataRecord",
+									"host": [
+										"{{host}}"
+									],
+									"path": [
+										"default",
+										"rdmp",
+										"api",
+										"records",
+										"metadata",
+										"dataRecord"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Add attachment to Datarecord",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"id": "62138e30-18c2-4b63-b30b-68c3f54b3e73",
+										"exec": [
+											"",
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											""
+										],
+										"type": "text/javascript"
+									}
+								},
+								{
+									"listen": "prerequest",
+									"script": {
+										"id": "c82b8075-1230-4938-97bf-f8af0d0dc614",
+										"exec": [
+											""
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"name": "Content-Type",
+										"type": "text",
+										"value": "application/json",
+										"disabled": true
+									},
+									{
+										"key": "Authorization",
+										"type": "text",
+										"value": "Bearer {{token}}"
+									}
+								],
+								"body": {
+									"mode": "formdata",
+									"formdata": [
+										{
+											"key": "attachmentFields",
+											"type": "file",
+											"src": "test/postman/attachment.png"
+										},
+										{
+											"key": "dataLocations",
+											"value": "",
+											"type": "text",
+											"disabled": true
+										}
+									]
+								},
+								"url": {
+									"raw": "{{host}}/default/rdmp/api/records/datastreams/{{attDataRecordOid}}",
+									"host": [
+										"{{host}}"
+									],
+									"path": [
+										"default",
+										"rdmp",
+										"api",
+										"records",
+										"datastreams",
+										"{{attDataRecordOid}}"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "List Attachments for Datarecord",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"id": "f1b9f11a-b3d9-4e89-9707-b4992ffefc2d",
+										"exec": [
+											"",
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test(\"Has attachments\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    // pm.expect()",
+											"    pm.expect(_.size(jsonData)).to.gt(0);",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								},
+								{
+									"listen": "prerequest",
+									"script": {
+										"id": "31248bd7-e856-438e-ae8f-dc39f4ab10a7",
+										"exec": [
+											""
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Content-Type",
+										"name": "Content-Type",
+										"type": "text",
+										"value": "application/json"
+									},
+									{
+										"key": "Authorization",
+										"type": "text",
+										"value": "Bearer {{token}}"
+									}
+								],
+								"url": {
+									"raw": "{{host}}/default/rdmp/api/records/datastreams/{{attDataRecordOid}}",
+									"host": [
+										"{{host}}"
+									],
+									"path": [
+										"default",
+										"rdmp",
+										"api",
+										"records",
+										"datastreams",
+										"{{attDataRecordOid}}"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Create Temporary Datapub",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"id": "3336e9ce-f002-4c90-b162-4462be25c34b",
+										"exec": [
+											"",
+											"pm.test(\"Status code is 201\", function () {",
+											"    pm.response.to.have.status(201);",
+											"});",
+											"",
+											"pm.test(\"Test oid exists\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData).to.have.property('oid');",
+											"    postman.setEnvironmentVariable(\"tempDataPubOid\", jsonData.oid);",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								},
+								{
+									"listen": "prerequest",
+									"script": {
+										"id": "51f38064-b191-4d79-9ddf-de79b92da9fa",
+										"exec": [
+											""
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"name": "Content-Type",
+										"type": "text",
+										"value": "application/json"
+									},
+									{
+										"key": "Authorization",
+										"type": "text",
+										"value": "Bearer {{token}}"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"parameterRetriever\": \"\",\n    \"dataRecordGetter\": \"\",\n    \"\": {},\n    \"title\": \"A Data record\",\n    \"description\": \"Data record\",\n    \"datatype\": \"collection\",\n    \"finalKeywords\": [\n        \"270199\",\n        \"Golgi apparatus\",\n        \"endocytosis\",\n        \"membrane transport\",\n        \"protein trafficking\",\n        \"secretion\",\n        \"HIV-AIDS\",\n        \"bacterial pathogen\",\n        \"hormone secretion\",\n        \"immune development\",\n        \"lysosomal storage disorder\"\n    ],\n    \"foaf:fundedBy_foaf:Agent\": [\n        {}\n    ],\n    \"foaf:fundedBy_vivo:Grant\": [\n        {}\n    ],\n    \"dc:subject_anzsrc:for\": [\n        {\n            \"name\": \"01 - MATHEMATICAL SCIENCES\",\n            \"label\": \"MATHEMATICAL SCIENCES\",\n            \"notation\": \"01\"\n        }\n    ],\n    \"dc:subject_anzsrc:seo\": [],\n    \"startDate\": \"\",\n    \"endDate\": \"\",\n    \"timePeriod\": \"\",\n    \"geolocations\": [\n        \"\"\n    ],\n    \"geospatial\": {},\n    \"accessRightsToggle\": \"\",\n    \"dataLocations\": [\n        {\n            \"type\": \"attachment\",\n            \"location\": \"b869b4fae83a1f01082465d165d868a8/attach/d3de61376e5bc93c814607ee604ebac5\",\n            \"mimeType\": \"image/png\",\n            \"name\": \"Screen Shot 2018-11-26 at 3.39.48 pm.png\",\n            \"fileId\": \"d3de61376e5bc93c814607ee604ebac5\",\n            \"uploadUrl\": \"http://localhost:1500/default/rdmp/record/b869b4fae83a1f01082465d165d868a8/attach/d3de61376e5bc93c814607ee604ebac5\",\n            \"selected\": true\n        }\n    ],\n    \"dataLicensingAccess_manager\": \"Prof Paul Gleeson\",\n    \"dc:accessRights\": \"Open\",\n    \"accessRights_url\": \"\",\n    \"related_publications\": [\n        {\n            \"related_title\": \"\",\n            \"related_url\": \"\",\n            \"related_notes\": \"\"\n        }\n    ],\n    \"related_websites\": [\n        {\n            \"related_title\": \"\",\n            \"related_url\": \"\",\n            \"related_notes\": \"\"\n        }\n    ],\n    \"related_metadata\": [\n        {\n            \"related_title\": \"\",\n            \"related_url\": \"\",\n            \"related_notes\": \"\"\n        }\n    ],\n    \"related_data\": [\n        {\n            \"related_title\": \"\",\n            \"related_url\": \"\",\n            \"related_notes\": \"\"\n        }\n    ],\n    \"related_services\": [\n        {\n            \"related_title\": \"\",\n            \"related_url\": \"\",\n            \"related_notes\": \"\"\n        }\n    ],\n    \"license_identifier\": \"\",\n    \"license_notes\": \"\",\n    \"license_other_url\": \"\",\n    \"license_statement\": \"Copyright ReDBox Research Data 2018\",\n    \"license_statement_url\": \"\",\n    \"citation_doi\": \"\",\n    \"requestIdentifier\": [],\n    \"citation_title\": \"A Data Record\",\n    \"creators\": [\n        {\n            \"text_full_name\": \"Alberto Zweinstein\",\n            \"email\": \"alberto.zweinstein@example.edu.au\",\n            \"role\": \"Chief Investigator\",\n            \"username\": \"\",\n            \"orcid\": \"\",\n            \"family_name\": \"Zweinstein\",\n            \"given_name\": \"Alberto\"\n        },\n        {\n            \"text_full_name\": \"Prof Paul Gleeson\",\n            \"email\": \"notAReal@email.edu.au\",\n            \"role\": \"Data manager\",\n            \"username\": \"\",\n            \"orcid\": \"http://orcid.org/0000-0000-0000-000\",\n            \"family_name\": \"Paul Gleeson\",\n            \"given_name\": \"Prof\"\n        },\n        {\n            \"text_full_name\": \"Prof Paul Gleeson\",\n            \"email\": \"notAReal@email.edu.au\",\n            \"role\": \"Contributors\",\n            \"username\": \"\",\n            \"orcid\": \"http://orcid.org/0000-0000-0000-000\",\n            \"family_name\": \"Paul Gleeson\",\n            \"given_name\": \"Prof\"\n        },\n        {\n            \"text_full_name\": null,\n            \"email\": null,\n            \"role\": \"Supervisor\",\n            \"username\": \"\",\n            \"orcid\": \"\",\n            \"family_name\": \"\",\n            \"given_name\": \"\"\n        }\n    ],\n    \"citation_publisher\": \"ReDBox Research Data\",\n    \"citation_url\": \"\",\n    \"citation_publication_date\": \"\",\n    \"citation_generated\": \"Zweinstein, Alberto; Paul Gleeson, Prof; Paul Gleeson, Prof (Invalid date): A Data Record. ReDBox Research Data. {ID_WILL_BE_HERE}\",\n    \"dataowner_name\": \"Alberto Zweinstein\",\n    \"dataowner_email\": \"alberto.zweinstein@example.edu.au\",\n    \"contributor_ci\": {\n        \"text_full_name\": \"Alberto Zweinstein\",\n        \"full_name_honorific\": \"Dr Alberto Zweinstein\",\n        \"email\": \"alberto.zweinstein@example.edu.au\",\n        \"given_name\": \"Alberto\",\n        \"family_name\": \"Zweinstein\",\n        \"honorific\": \"Dr\",\n        \"full_name_family_name_first\": \"Zweinstein, Alberto\",\n        \"username\": \"\",\n        \"role\": \"Chief Investigator\"\n    },\n    \"contributor_data_manager\": {\n        \"text_full_name\": \"Prof Paul Gleeson\",\n        \"full_name_honorific\": \"\",\n        \"email\": \"notAReal@email.edu.au\",\n        \"given_name\": \"Prof\",\n        \"family_name\": \"Paul Gleeson\",\n        \"honorific\": \"\",\n        \"full_name_family_name_first\": \"Paul Gleeson, Prof\",\n        \"username\": \"\",\n        \"role\": \"Data manager\",\n        \"orcid\": \"http://orcid.org/0000-0000-0000-000\"\n    },\n    \"contributor_supervisor\": {\n        \"text_full_name\": \"\",\n        \"full_name_honorific\": \"\",\n        \"email\": \"\",\n        \"given_name\": \"\",\n        \"family_name\": \"\",\n        \"honorific\": \"\",\n        \"full_name_family_name_first\": \"\",\n        \"username\": \"\",\n        \"role\": \"Supervisor\"\n    },\n    \"embargoByDate\": \"\",\n    \"embargoUntil\": null,\n    \"embargoNote\": \"\",\n    \"reviewerNote\": \"\",\n    \"ckanLocation\": \"\"\n}"
+								},
+								"url": {
+									"raw": "{{host}}/default/rdmp/api/records/metadata/dataPublication",
+									"host": [
+										"{{host}}"
+									],
+									"path": [
+										"default",
+										"rdmp",
+										"api",
+										"records",
+										"metadata",
+										"dataPublication"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Transition Workflow of Data publication",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"id": "10306164-5a3f-4a45-8750-29c8c275cedc",
+										"exec": [
+											"",
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test(\"Success is set and is equal to true\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData).to.have.property('success');",
+											"    pm.expect(jsonData.success).to.eql(true);",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								},
+								{
+									"listen": "prerequest",
+									"script": {
+										"id": "a48a7e9f-2c03-4f2f-ba09-e24e8eaf9ff2",
+										"exec": [
+											""
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"name": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									},
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{host}}/default/rdmp/api/records/workflow/step/queued/{{tempDataPubOid}}",
+									"host": [
+										"{{host}}"
+									],
+									"path": [
+										"default",
+										"rdmp",
+										"api",
+										"records",
+										"workflow",
+										"step",
+										"queued",
+										"{{tempDataPubOid}}"
+									]
+								}
+							},
+							"response": []
 						}
 					],
 					"protocolProfileBehavior": {},
@@ -371,7 +840,7 @@
 								{
 									"listen": "test",
 									"script": {
-										"id": "f8d39001-8f2e-446f-b0fa-8c7d911e7998",
+										"id": "8cac12bc-94ae-4531-aab0-efb3165eba0a",
 										"exec": [
 											"pm.test(\"Status code is 200\", function () {",
 											"    pm.response.to.have.status(200);",
@@ -427,7 +896,7 @@
 								{
 									"listen": "test",
 									"script": {
-										"id": "064e68b0-2944-40ac-8e01-e7846a15cb9f",
+										"id": "4e6aea4e-2f85-4924-8e6d-334107dab3c8",
 										"exec": [
 											"pm.test(\"Status code is 200\", function () {",
 											"    pm.response.to.have.status(200);",
@@ -502,7 +971,7 @@
 								{
 									"listen": "test",
 									"script": {
-										"id": "3df270ed-86c9-4560-86dc-40116f77579d",
+										"id": "eb7a4a43-534a-4dc2-97e9-f5f59bc279fa",
 										"exec": [
 											"pm.test(\"Status code is 404\", function () {",
 											"    pm.response.to.have.status(404);",
@@ -579,7 +1048,7 @@
 								{
 									"listen": "test",
 									"script": {
-										"id": "b2fdd6ba-f6ad-4477-b5bb-28f087fbf42e",
+										"id": "d38f0e9a-08c0-4ecd-b397-e0722660bf65",
 										"exec": [
 											"",
 											"pm.test(\"Status code is 201\", function () {",
@@ -603,7 +1072,7 @@
 								{
 									"listen": "prerequest",
 									"script": {
-										"id": "fe67cb7b-f708-4006-8430-cf0c47e4f380",
+										"id": "c73e192f-f078-49e5-a725-572b9a8098cf",
 										"exec": [
 											""
 										],
@@ -651,7 +1120,7 @@
 								{
 									"listen": "test",
 									"script": {
-										"id": "363f7eaa-de70-427a-b876-1a5b768e1e60",
+										"id": "b7ec1157-4296-4584-86d1-6c9fd934921f",
 										"exec": [
 											"",
 											"pm.test(\"Status code is 201\", function () {",
@@ -674,7 +1143,7 @@
 								{
 									"listen": "prerequest",
 									"script": {
-										"id": "bce6c018-de0f-448b-861e-1663ba00aa33",
+										"id": "75ca2288-b435-4dbb-9557-1cecaa07b157",
 										"exec": [
 											""
 										],
@@ -722,7 +1191,7 @@
 								{
 									"listen": "test",
 									"script": {
-										"id": "a9b9716a-e66c-4a4e-ba42-562d948cee13",
+										"id": "300c7a88-6750-4f98-8583-358036d92c18",
 										"exec": [
 											"",
 											"pm.test(\"Status code is 200\", function () {",
@@ -740,7 +1209,7 @@
 								{
 									"listen": "prerequest",
 									"script": {
-										"id": "bbde1fca-0911-4ed6-9e52-403e7f3a4da6",
+										"id": "a976d577-c667-47c8-b3e8-4d37ffd0ba9e",
 										"exec": [
 											""
 										],
@@ -799,7 +1268,7 @@
 								{
 									"listen": "test",
 									"script": {
-										"id": "0ebff1d3-0b1a-45f6-8828-9436759e5cec",
+										"id": "8f43338c-2cf5-4bb1-9b63-69650222a99c",
 										"exec": [
 											"",
 											"pm.test(\"Status code is 200\", function () {",
@@ -817,7 +1286,7 @@
 								{
 									"listen": "prerequest",
 									"script": {
-										"id": "743cd4e6-65c6-4169-ba36-ed4bb7dfea63",
+										"id": "16f7b42c-a5e2-46eb-bdcd-a7e4a0dff6d9",
 										"exec": [
 											""
 										],
@@ -883,7 +1352,7 @@
 								{
 									"listen": "test",
 									"script": {
-										"id": "e7461598-d637-4a8f-9d50-68170d1d43a8",
+										"id": "bde75493-95b0-4412-9776-e7899bbe2fa2",
 										"exec": [
 											"pm.test(\"Status code is 200\", function () {",
 											"    pm.response.to.have.status(200);",
@@ -935,7 +1404,7 @@
 								{
 									"listen": "test",
 									"script": {
-										"id": "fe1b7d3b-e881-40d5-a951-686fa6cd9f2c",
+										"id": "9a9ad395-6b99-4761-bb57-1eec14dd8a0d",
 										"exec": [
 											"pm.test(\"Status code is 200\", function () {",
 											"    pm.response.to.have.status(200);",
@@ -989,7 +1458,7 @@
 								{
 									"listen": "test",
 									"script": {
-										"id": "4f87404f-2410-4feb-a907-be31d30b49f7",
+										"id": "6bf505d5-789f-4346-aa25-2008aeb80178",
 										"exec": [
 											"pm.test(\"Status code is 200\", function () {",
 											"    pm.response.to.have.status(200);",
@@ -1035,7 +1504,7 @@
 								{
 									"listen": "test",
 									"script": {
-										"id": "3bd6043c-be66-4008-b182-0e44f5d1e1de",
+										"id": "7b07e2c8-151b-4e1a-9fbc-7402d5c77fc7",
 										"exec": [
 											"pm.test(\"Status code is 200\", function () {",
 											"    pm.response.to.have.status(200);",
@@ -1094,7 +1563,7 @@
 								{
 									"listen": "test",
 									"script": {
-										"id": "dd49e6fe-5bcd-4146-ae1e-26a809b2b732",
+										"id": "78a1fe27-7456-413a-8210-5c4141cfca73",
 										"exec": [
 											"pm.test(\"Status code is 200\", function () {",
 											"    pm.response.to.have.status(200);",
@@ -1140,7 +1609,7 @@
 								{
 									"listen": "test",
 									"script": {
-										"id": "3f2abea2-8c33-4288-ab8b-eb4ecd414427",
+										"id": "8753e11f-0c11-4c2f-965b-c9458986438f",
 										"exec": [
 											"pm.test(\"Status code is 200\", function () {",
 											"    pm.response.to.have.status(200);",
@@ -1202,7 +1671,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "0c3ae152-ebc0-4574-a02f-67d778b6df82",
+								"id": "234e56b7-ce5c-431e-ae34-683c271163bf",
 								"exec": [
 									"postman.setGlobalVariable(\"cookie\",postman.getResponseHeader(\"set-cookie\") );",
 									"",
@@ -1297,7 +1766,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "b2483e8b-42bb-4540-b619-95c967dd4136",
+								"id": "8e2f422f-352a-4800-8d7d-c37cbfbf22ba",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
@@ -1385,7 +1854,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "ec7df232-1dae-4296-8787-68abe3997213",
+								"id": "811d97f0-c62c-439e-82ad-8d8bb1e03871",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
@@ -1462,7 +1931,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "f415f694-a389-474f-81ad-4da82fa2ba04",
+								"id": "0943741c-6eae-4385-ba83-afb6eabd1c3c",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
@@ -1539,7 +2008,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "7df62628-3d08-4627-99bc-414a947e5c58",
+								"id": "d1b8eb26-1252-48b3-b420-e71bbd2a85d1",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
@@ -1628,7 +2097,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "96488c21-12a0-48c6-84fd-6a2c936ec10a",
+								"id": "b2991ac7-3f0d-49a0-bebe-252719b2d495",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
@@ -1718,7 +2187,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "c764f8c3-12c8-4368-8042-bb9e6b40d3a2",
+								"id": "43b24637-e1eb-4abd-bcc7-01a184fb730f",
 								"exec": [
 									"// \"contributor_ci\": {",
 									"                    // \"text_full_name\": \"Alberto Zweinstein\",",
@@ -1833,7 +2302,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "f8dc7448-8370-4de3-9159-85aa4565a865",
+								"id": "76a41503-d4a0-4060-9ed5-cad1d50a0463",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
@@ -1931,7 +2400,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "b40631e8-f48a-4a28-b587-4198e1d62629",
+								"id": "85f85f40-7fad-41d6-81dc-072ccd9b105a",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
@@ -2035,7 +2504,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "c7743152-17fb-4f77-bc43-7a5f0558d3a1",
+								"id": "088655de-6887-422d-b7b3-0f8543410c32",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
@@ -2141,7 +2610,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "bf45f6da-0676-456a-a369-a634c3b1709c",
+								"id": "134563f5-e205-4c42-be49-51ddae2289e4",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
@@ -2244,7 +2713,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "01e5495e-ddfa-4e01-affc-54d1e8b0668b",
+								"id": "d8c24406-095c-4937-b3d5-dad3e5edb340",
 								"exec": [
 									"",
 									"pm.test(\"Status code is 200\", function () {",
@@ -2349,7 +2818,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "390ae50d-f902-4316-ba98-485753524f06",
+								"id": "20deb96f-9528-4f9d-a661-fc920b3bb904",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
@@ -2453,7 +2922,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "647b2163-6716-4c11-b53c-399aaa395e00",
+								"id": "f04065c5-1cec-4b52-9029-e2e7359b87a4",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
@@ -2634,7 +3103,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "7de4bbc4-953b-4a68-a49d-025c7aa84f0f",
+								"id": "d77526f7-74f9-4e01-899e-e17fedb90673",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
@@ -2737,7 +3206,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "6e379fe7-087e-45af-979f-8fec13912df2",
+								"id": "eb0c65f7-e71b-4a03-bb74-1c29d043656b",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
@@ -2859,7 +3328,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "cf33c155-14df-41fb-9cca-58b27a8ff04c",
+								"id": "c05c9c34-da68-4652-9fd5-2183c7a0a9d6",
 								"exec": [
 									"",
 									"pm.test(\"Status code is 200\", function () {",
@@ -2953,7 +3422,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "84100fd8-6c8f-4f30-87b0-cc914f311ce2",
+								"id": "8c4666ba-818b-454e-8d35-4b5a4e460c1e",
 								"exec": [
 									"",
 									"pm.test(\"Status code is 201\", function () {",
@@ -3055,7 +3524,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "761f85ee-c1cf-471f-a214-daab1c0f7820",
+								"id": "1fdbdc1a-8ae5-491d-a5ae-9c80790eabaf",
 								"exec": [
 									"pm.test(\"Status code is 204\", function () {",
 									"    pm.response.to.have.status(204);",
@@ -3149,7 +3618,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "c042be6a-b7de-46f4-8894-97994fddd527",
+								"id": "ae7cc735-e702-45f9-8ee3-9fc5b5683f6a",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
@@ -3241,7 +3710,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "452aa8ad-d91d-4573-89a3-d95858407ffb",
+								"id": "71023be4-a4f2-42b6-99c7-221bc70bfad5",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
@@ -3277,7 +3746,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "830b1c97-77bd-44d5-872f-b18598556b18",
+								"id": "f8af23dd-ca8c-4129-b6a7-ab19cc4dea46",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
@@ -3368,7 +3837,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "6f10ad4e-6875-4b7d-9c2c-d75782515784",
+								"id": "d2e07c64-6e98-4810-baad-78829bc8fa18",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
@@ -3460,7 +3929,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "e70782a4-70e5-4438-ac41-d18b305b65e0",
+								"id": "0d886b12-34b9-4e28-9ba4-47fc91a8931c",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
@@ -3552,7 +4021,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "b934a0ec-b1af-40ed-841c-fd5464983f32",
+								"id": "503ddcea-6217-4b5b-9775-ad0f4f33169c",
 								"exec": [
 									"",
 									"pm.test(\"Status code is 200\", function () {",
@@ -3650,7 +4119,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "4cd7af67-2980-4cbc-b7f9-e7e3109faf72",
+								"id": "8e0f5d17-0f71-4103-93b4-0107eda2bc41",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
@@ -3752,7 +4221,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "bf40e856-df8b-4ed0-87b5-26c01d5c9b95",
+								"id": "08513965-3dca-4dfc-80c8-7ac7c8a22f86",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
@@ -3922,7 +4391,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "26ae7498-1797-4ef4-845a-373680eb44ed",
+								"id": "aaf19837-12b1-4d02-b70d-370c9ed6fcfa",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
@@ -3998,7 +4467,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "fe69d764-1fc9-4e63-9b07-7ddf9cdf66e1",
+								"id": "96e38f23-01f8-456d-b896-c1f79cf3957d",
 								"exec": [
 									"pm.test(\"Status code is 403\", function () {",
 									"    pm.response.to.have.status(403);",
@@ -4067,7 +4536,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "57034378-5e28-46a3-991f-5e8932835d0d",
+								"id": "d15a828b-8845-47a8-a4dd-adacac0e199b",
 								"exec": [
 									"postman.setGlobalVariable(\"cookie\",postman.getResponseHeader(\"set-cookie\") );",
 									"",
@@ -4166,7 +4635,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "280d2c8b-e4bd-4a4d-9fa7-0c020000132b",
+								"id": "190f03b1-7f39-469d-b03e-267b41ed23c5",
 								"exec": [
 									"postman.setGlobalVariable(\"cookie\",postman.getResponseHeader(\"set-cookie\") );",
 									"",
@@ -4262,7 +4731,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "837749d8-2b26-4652-a481-9699c3577608",
+								"id": "2655e549-8e30-4b24-8697-9ce36941bcd4",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",

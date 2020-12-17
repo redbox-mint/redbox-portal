@@ -276,19 +276,43 @@ module.exports.routes = {
     action: 'addDataStreams',
     csrf: false
   },
+  'get /:branding/:portal/api/records/datastreams/:oid': 'webservice/RecordController.getDataStream',
+  'put /:branding/:portal/api/records/datastreams/:oid': {
+    controller: 'webservice/RecordController',
+    action: 'listDatastreams',
+    csrf: false
+  },
   'delete /:branding/:portal/api/records/permissions/view/:oid': {
     controller: 'webservice/RecordController',
     action: 'removeUserView',
     csrf: false
   },
+  'post /:branding/:portal/api/records/permissions/editRole/:oid': {
+    controller: 'webservice/RecordController',
+    action: 'addRoleEdit',
+    csrf: false
+  },
+  'delete /:branding/:portal/api/records/permissions/editRole/:oid': {
+    controller: 'webservice/RecordController',
+    action: 'removeRoleEdit',
+    csrf: false
+  },
+  'post /:branding/:portal/api/records/permissions/viewRole/:oid': {
+    controller: 'webservice/RecordController',
+    action: 'addRoleView',
+    csrf: false
+  },
+  'delete /:branding/:portal/api/records/permissions/viewRole/:oid': {
+    controller: 'webservice/RecordController',
+    action: 'removeRoleView',
+    csrf: false
+  },
   'get /:branding/:portal/api/records/permissions/:oid': 'webservice/RecordController.getPermissions',
-  'get /:branding/:portal/api/records/datastreams/:oid': 'webservice/RecordController.getDataStream',
   'post /:branding/:portal/api/records/workflow/step/:targetStep/:oid': {
     controller: 'webservice/RecordController',
     action: 'transitionWorkflow',
     csrf: false
   },
-
   'get /:branding/:portal/api/users': 'webservice/UserManagementController.listUsers',
   'get /:branding/:portal/api/users/find': 'webservice/UserManagementController.getUser',
   'get /:branding/:portal/api/users/get': 'webservice/UserManagementController.getUser',

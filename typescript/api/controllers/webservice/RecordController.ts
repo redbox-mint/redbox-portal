@@ -39,6 +39,7 @@ import RecordsService from '../../core/RecordsService.js';
 import SearchService from '../../core/SearchService.js';
 import DatastreamService from '../../core/DatastreamService.js';
 import DatastreamServiceResponse from '../../core/DatastreamServiceResponse';
+import Datastream from '../../core/Datastream';
 import {ListAPIResponse } from '../../core/model/ListAPIResponse';
 import {APIErrorResponse } from '../../core/model/APIErrorResponse';
 
@@ -74,7 +75,11 @@ export module Controllers {
       'listRecords',
       'deleteRecord',
       'transitionWorkflow',
-      'listDatastreams'
+      'listDatastreams',
+      'addRoleEdit',
+      'removeRoleEdit',
+      'addRoleView',
+      'removeRoleView'
     ];
 
     constructor() {
@@ -460,13 +465,13 @@ export module Controllers {
         sails.log.verbose(UploadedFileMetadata);
         sails.log.verbose('Succesfully uploaded all file metadata. Sending locations downstream....');
         const fileIds = _.map(UploadedFileMetadata, function (nextDescriptor) {
-          return path.relative(sails.config.record.attachments.stageDir, nextDescriptor.fd);
+          return new Datastream({fileId: path.relative(sails.config.record.attachments.stageDir, nextDescriptor.fd), name: nextDescriptor.filename, mimeType: nextDescriptor.type, size: nextDescriptor.size });
         });
         sails.log.verbose('files to send upstream are:');
         sails.log.verbose(_.toString(fileIds));
         const defaultErrorMessage = 'Error sending datastreams upstream.';
         try {
-          const reqs = this.DatastreamService.addDatastreams(oid, fileIds);
+          const reqs = self.DatastreamService.addDatastreams(oid, fileIds);
           return Observable.fromPromise(reqs)
             .subscribe((result:DatastreamServiceResponse) => {
               sails.log.verbose(`Done with updating streams and returning response...`);
@@ -682,6 +687,7 @@ export module Controllers {
        }
        try {
          const attachments = await this.RecordsService.getAttachments(oid);
+         sails.log.verbose(JSON.stringify(attachments));
          let response: ListAPIResponse < any > = new ListAPIResponse < any > ();
          response.summary.numFound = _.size(attachments);
          response.summary.page = 1;
@@ -692,6 +698,114 @@ export module Controllers {
          sails.log.error(JSON.stringify(err));
          this.apiFail(req, res, 500, new APIErrorResponse(`Failed to list attachments, please check server logs.`));
        }
+     }
+
+     public addRoleEdit(req, res) {
+       const brand = BrandingService.getBrand(req.session.branding);
+
+
+       var oid = req.param('oid');
+       var body = req.body;
+       var roles = body["roles"];
+       Observable.fromPromise(this.RecordsService.getMeta(oid)).subscribe(record => {
+
+         if (roles != null && roles.length > 0) {
+           record["authorization"]["editRoles"] = _.union(record["authorization"]["editRoles"], roles);
+         }
+
+         var obs = Observable.fromPromise(this.RecordsService.updateMeta(brand, oid, record, req.user));
+         obs.subscribe(result => {
+           if (result.isSuccessful()) {
+             Observable.fromPromise(this.RecordsService.getMeta(result.oid)).subscribe(record => {
+               return res.json(record["authorization"]);
+             }, error=> {
+               sails.log.error(error);
+               return this.apiFail(req, res, 500, new APIErrorResponse('Failed adding an editor role, check server logs.'));
+             });
+           } else {
+             return res.json(result);
+           }
+         }, error=> {
+           sails.log.error(error);
+           return this.apiFail(req, res, 500, new APIErrorResponse('Failed adding an editor role, check server logs.'));
+         });
+       });
+     }
+
+     public addRoleView(req, res) {
+       const brand = BrandingService.getBrand(req.session.branding);
+
+
+       var oid = req.param('oid');
+       var body = req.body;
+       var roles = body["roles"];
+       Observable.fromPromise(this.RecordsService.getMeta(oid)).subscribe(record => {
+
+         if (roles != null && roles.length > 0) {
+           record["authorization"]["viewRoles"] = _.union(record["authorization"]["viewRoles"], roles);
+         }
+
+         var obs = Observable.fromPromise(this.RecordsService.updateMeta(brand, oid, record, req.user));
+         obs.subscribe(result => {
+           if (result.isSuccessful()) {
+             Observable.fromPromise(this.RecordsService.getMeta(result["oid"])).subscribe(record => {
+               return res.json(record["authorization"]);
+             });
+           } else {
+             return res.json(result);
+           }
+         });
+       });
+     }
+
+     public removeRoleEdit(req, res) {
+       const brand = BrandingService.getBrand(req.session.branding);
+       var oid = req.param('oid');
+
+       var body = req.body;
+       var roles = body["roles"];
+       Observable.fromPromise(this.RecordsService.getMeta(oid)).subscribe(record => {
+
+         if (roles != null && roles.length > 0) {
+           record["authorization"]["editRoles"] = _.difference(record["authorization"]["editRoles"], roles);
+         }
+
+         var obs = Observable.fromPromise(this.RecordsService.updateMeta(brand, oid, record,req.user));
+         obs.subscribe(result => {
+           if (result.isSuccessful()) {
+             Observable.fromPromise(this.RecordsService.getMeta(result["oid"])).subscribe(record => {
+               return res.json(record["authorization"]);
+             });
+           } else {
+             return res.json(result);
+           }
+         });
+       });
+     }
+
+     public removeRoleView(req, res) {
+       const brand = BrandingService.getBrand(req.session.branding);
+       var oid = req.param('oid');
+
+       var body = req.body;
+       var users = body["roles"];
+       Observable.fromPromise(this.RecordsService.getMeta(oid)).subscribe(record => {
+
+         if (users != null && users.length > 0) {
+           record["authorization"]["viewRoles"] = _.difference(record["authorization"]["viewRoles"], users);
+         }
+
+         var obs = Observable.fromPromise(this.RecordsService.updateMeta(brand, oid, record, req.user));
+         obs.subscribe(result => {
+           if (result.isSuccessful()) {
+             Observable.fromPromise(this.RecordsService.getMeta(result["oid"])).subscribe(record => {
+               return res.json(record["authorization"]);
+             });
+           } else {
+             return res.json(result);
+           }
+         });
+       });
      }
   }
 }

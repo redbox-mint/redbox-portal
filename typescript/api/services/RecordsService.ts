@@ -241,11 +241,12 @@ export module Services {
     public async getAttachments(oid: string, labelFilterStr: string = undefined): Promise < any > {
       let datastreams = await this.datastreamService.listDatastreams(oid, null);
       let attachments = [];
-      _.each(datastreams['datastreams'], datastream => {
+      _.each(datastreams, (datastream) => {
         let attachment = {};
-        attachment['dateUpdated'] = moment(datastream['lastModified']['$date']).format();
-        attachment['label'] = datastream['label'];
-        attachment['contentType'] = datastream['contentType'];
+        attachment['dateUpdated'] = moment(datastream['uploadDate']).format();
+        attachment['label'] = _.get(datastream.metadata, 'name');
+        attachment['contentType'] = _.get(datastream.metadata, 'mimeType');
+        attachment = _.merge(attachment, datastream.metadata);
         if (_.isUndefined(labelFilterStr) && _.isEmpty(labelFilterStr)) {
           attachments.push(attachment);
         } else {
