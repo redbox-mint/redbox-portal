@@ -63,8 +63,7 @@ export module Controllers {
       'updateUser',
       'generateAPIToken',
       'revokeAPIToken',
-      'listSystemRoles',
-      'deleteUser'
+      'listSystemRoles'
     ];
 
     /**
@@ -291,7 +290,11 @@ export module Controllers {
 
     public listSystemRoles(req, res) {
       let brand = BrandingService.getBrand(req.session.branding);
-      return this.apiRespond(req,res,brand.roles);
+      let response: ListAPIResponse < any > = new ListAPIResponse < any > ();
+      response.summary.numFound = brand.roles.length;
+      response.records =  brand.roles;
+      
+      return this.apiRespond(req,res,response);
     }
 
 

@@ -299,7 +299,7 @@ export module Controllers {
       },
       error=> {
         sails.log.error("Update metadata failed, failed to retrieve existing record.", error);
-        return this.apiFail(req, res, 500, new APIErrorResponse("Update Metadata failed, failed to retrieve existing record. "));
+        return this.apiFail(req, res, 400, new APIErrorResponse("Update Metadata failed, failed to retrieve existing record. "));
       });
     }
 
@@ -620,7 +620,6 @@ export module Controllers {
          // sails.log.debug(`getRecords: ${recordType} ${workflowState} ${start}`);
          // sails.log.debug(`${rows} ${packageType} ${sort}`);
          this.getRecords(workflowState, recordType, start, rows, user, roles, brand, editAccessOnly, packageType, sort).flatMap(results => {
-
              return results;
            }).subscribe(response => {
              res.json(response);
