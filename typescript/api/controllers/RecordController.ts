@@ -120,9 +120,10 @@ export module Controllers {
       const oid = req.param('oid') ? req.param('oid') : '';
       const recordType = req.param('recordType') ? req.param('recordType') : '';
       const rdmp = req.query.rdmp ? req.query.rdmp : '';
+      const appType = req.query.appType ? req.query.appType : '';
       let appSelector = 'dmp-form';
       let appName = 'dmp';
-      sails.log.debug('RECORD::APP: ' + appName)
+      sails.log.debug(`RECORD::APP: ${appName} ${appType}`);
       if (recordType != '') {
         FormsService.getForm(brand.id, recordType, true, true).subscribe(form => {
           if (form['customAngularApp'] != null) {
@@ -134,7 +135,8 @@ export module Controllers {
             rdmp: rdmp,
             recordType: recordType,
             appSelector: appSelector,
-            appName: appName
+            appName: appName,
+            appType: appType
           });
         });
       } else {
@@ -152,7 +154,8 @@ export module Controllers {
             rdmp: rdmp,
             recordType: recordType,
             appSelector: appSelector,
-            appName: appName
+            appName: appName,
+            appType: appType
           });
         }, error => {
           return this.sendView(req, res, 'record/edit', {
@@ -160,7 +163,8 @@ export module Controllers {
             rdmp: rdmp,
             recordType: recordType,
             appSelector: appSelector,
-            appName: appName
+            appName: appName,
+            appType: appType
           });
         });
 
