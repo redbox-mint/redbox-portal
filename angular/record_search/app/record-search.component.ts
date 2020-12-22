@@ -107,7 +107,7 @@ export class RecordSearchComponent extends LoadableComponent {
       ], () => {
         this.recordsService.getAllTypes().then((typeConfs: any) => {
           _.each(typeConfs, typeConf => {
-            if (typeConf.oackageType != 'workspace') {
+            if (typeConf.packageType != 'workspace') {
               this.recTypeNames.push(typeConf.name);
               const searchParam = new RecordSearchParams(typeConf.name);
               const searchFilterConfig = [];
