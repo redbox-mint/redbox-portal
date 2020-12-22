@@ -132,6 +132,8 @@ export module Services {
         var brand = BrandingService.getBrand(req.session.branding);
         const authConfig = ConfigService.getBrand(brand.name, 'auth');
         var aafAttributes = authConfig.aaf.attributesField;
+        let authorizedEmailDomains = _.get(authConfig.aaf,"authorizedEmailDomains",[]);
+        let authorizedEmailExceptions = _.get(authConfig.aaf,"authorizedEmailExceptions",[]);
         var aafDefRoles = _.map(RolesService.getNestedRoles(RolesService.getDefAuthenticatedRole(brand).name, brand.roles), 'id');
         var aafUsernameField = authConfig.aaf.usernameField;
         const userName = Buffer.from(jwt_payload[aafUsernameField]).toString('base64');
@@ -169,6 +171,20 @@ export module Services {
               lastLogin: new Date()
             };
             sails.log.verbose(userToCreate);
+            let emailParts = userToCreate.email.split('@');
+            if(emailParts.length != 2) {
+              sails.log.error(`Unexpected email format: ${userToCreate.email}`);
+                return done(`Unexpected email format: ${userToCreate.email}`, false);
+            }
+
+            let emailDomain = emailParts[1];
+            if(authorizedEmailDomains.indexOf(emailDomain) == -1) {
+              if(authorizedEmailExceptions.indexOf(userToCreate.email) == -1) {
+                sails.log.error(`User is not authorized to login: ${userToCreate.email}`);
+                return done(`User is not authorized to login: ${userToCreate.email}`, false);
+              }
+            }
+            
             User.create(userToCreate).exec(function(err, newUser) {
               if (err) {
                 sails.log.error("Error creating new user:");
