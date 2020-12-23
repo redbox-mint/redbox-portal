@@ -117,7 +117,7 @@
           <ng-container *ngFor="let column of report.columns">
             <td *ngIf='column.show != false'>
               <span *ngIf='column.link != null; else multivalue'><a
-                  href="/{{ branding }}/{{ portal }}/{{ column.link.pattern | stringTemplate:item }}">{{ item[column.property] }}</a></span>
+                  href="/data/{{ branding }}/{{ portal }}/{{ column.link.pattern | stringTemplate:item }}">{{ item[column.property] }}</a></span>
               <ng-template #multivalue><span *ngIf='column.multivalue == true; else noProcessing'
                   [innerHTML]='item[column.property] | multivalue'></span></ng-template>
               <ng-template #noProcessing><span>{{ item[column.property] }}</span></ng-template>
