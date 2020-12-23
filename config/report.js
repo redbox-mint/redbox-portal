@@ -46,7 +46,7 @@ module.exports.reports = {
         "message": "Filter by date created"
       },
       {
-        "paramName": "title",
+        "paramName": "text_title",
         "type": "text",
         "property": "title",
         "message": "Filter by title"
@@ -94,7 +94,7 @@ module.exports.reports = {
         "message": "Filter by date created"
       },
       {
-        "paramName": "title",
+        "paramName": "text_title",
         "type": "text",
         "property": "title",
         "message": "Filter by title"
@@ -142,7 +142,7 @@ module.exports.reports = {
         "message": "Filter by date created"
       },
       {
-        "paramName": "title",
+        "paramName": "text_title",
         "type": "text",
         "property": "title",
         "message": "Filter by title"
@@ -196,7 +196,7 @@ module.exports.reports = {
         "message": "Filter by date created"
       },
       {
-        "paramName": "title",
+        "paramName": "text_title",
         "type": "text",
         "property": "title",
         "message": "Filter by title"

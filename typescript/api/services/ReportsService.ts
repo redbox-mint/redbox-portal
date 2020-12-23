@@ -124,7 +124,7 @@ export module Services {
             if (!_.isEmpty(value)) {
               let searchProperty = filter.property;
               filterQuery = filterQuery + "&fq=" + searchProperty + ":"
-              filterQuery = filterQuery + value + "*"
+              filterQuery = `${filterQuery}"${value}*"`
             }
           }
         }
