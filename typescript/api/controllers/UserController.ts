@@ -260,10 +260,12 @@ export module Controllers {
           sails.log.verbose("User:");
           sails.log.verbose(user);
           if ((err) || (!user)) {
-              return res.send({
-                  message: info.message,
-                  user: user
-              });
+               // means the provider has authenticated the user, but has been rejected, redirect to catch-all
+               return res.redirect(`${BrandingService.getBrandAndPortalPath(req)}/home?errorTextCode=error-auth&errorTextRaw=${err}`);
+               // return res.send({
+               //     message: info.message,
+               //     user: user
+               // });
           }
           req.logIn(user, function(err) {
             if (err) res.send(err);
