@@ -303,9 +303,8 @@ export class DataLocationComponent extends SimpleComponent {
     }
   }
 
-  public getAbsUrl(location: string) {
-    //TODO: Fix context up correctly
-    return `/data/${this.field.recordsService.getBrandingAndPortalUrl}/record/${location}`
+  public getAbsUrl(location:string) {
+    return `${this.field.recordsService.getBrandingAndPortalUrl}/${location}`
   }
 
   public openModal() {
