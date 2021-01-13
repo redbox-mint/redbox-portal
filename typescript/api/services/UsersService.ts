@@ -147,7 +147,7 @@ export module Services {
       const aafOpts = defAuthConfig.aaf.opts;
       aafOpts.jwtFromRequest = ExtractJwt.fromBodyField('assertion');
       sails.config.passport.use('aaf-jwt', new JwtStrategy(aafOpts, function (req, jwt_payload, done) {
-        var brand = BrandingService.getBrand(req.session.branding);
+        var brand = BrandingService.getBrandFromReq(req);
         const authConfig = ConfigService.getBrand(brand.name, 'auth');
         var aafAttributes = authConfig.aaf.attributesField;
         let authorizedEmailDomains = _.get(authConfig.aaf, "authorizedEmailDomains", []);
@@ -229,7 +229,7 @@ export module Services {
         const oidcOpts = defAuthConfig.oidc.opts;
         let OidcStrategy = require('passport-openidconnect').Strategy;
         sails.config.passport.use('oidc', new OidcStrategy(oidcOpts.oidcStrategyOptions, (req, issuer, sub, profile, accessToken, refreshToken, done) => {
-          var brand = BrandingService.getBrand(req.session.branding);
+          var brand = BrandingService.getBrandFromReq(req);
           const authConfig = ConfigService.getBrand(brand.name, 'auth');
           var claimsMappings = authConfig.oidc.claimMappings;
           const userName = _.get(profile, claimsMappings['username']);
