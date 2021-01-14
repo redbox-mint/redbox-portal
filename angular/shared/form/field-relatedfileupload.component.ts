@@ -266,7 +266,7 @@ export class RelatedFileUploadComponent extends SimpleComponent {
   }
 
   public getAbsUrl(location: string) {
-    return `${this.field.recordsService.getBrandingAndPortalUrl}/record/${location}`
+    return `${this.field.recordsService.getBrandingAndPortalUrl}/${location}`
   }
 
   public openModal() {
