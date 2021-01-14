@@ -88,7 +88,7 @@ export module Controllers {
           let url = req.url;
           
           if(!_.isEmpty(sails.config.http.rootContext)) {
-            url = "/"+sails.config.http.rootContext+"/"+url;
+            url = sails.config.appUrl + sails.config.http.rootContext+url;
           }
             req.session.redirUrl = url;
         }
