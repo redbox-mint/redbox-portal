@@ -28,13 +28,13 @@
 <title>cluster_ExportModule_ExportFormComponent_providers</title>
 <polygon fill="none" stroke="black" points="138,-78 138,-195 770,-195 770,-78 138,-78"/>
 </g>
-<g id="clust6" class="cluster">
-<title>cluster_ExportModule_bootstrap</title>
-<polygon fill="none" stroke="black" points="165,-273 165,-325 335,-325 335,-273 165,-273"/>
-</g>
 <g id="clust4" class="cluster">
 <title>cluster_ExportModule_imports</title>
 <polygon fill="none" stroke="black" points="16,-143 16,-195 130,-195 130,-143 16,-143"/>
+</g>
+<g id="clust6" class="cluster">
+<title>cluster_ExportModule_bootstrap</title>
+<polygon fill="none" stroke="black" points="165,-273 165,-325 335,-325 335,-273 165,-273"/>
 </g>
 <!-- ExportFormComponent -->
 <g id="node1" class="node">
