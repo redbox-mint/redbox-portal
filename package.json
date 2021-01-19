@@ -96,7 +96,7 @@
     "chai": "^4.1.0",
     "ejs-cli": "^2.0.1",
     "istanbul": "^0.4.5",
-    "mocha": "^8.1.1",
+    "mocha": "^8.2.1",
     "newman": "^5.2.0",
     "supertest": "^4.0.2",
     "uglify-es": "^3.3.10"
