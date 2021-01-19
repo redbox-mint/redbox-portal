@@ -495,7 +495,7 @@ export module Services {
       const username = user.username;
       // const url = `${this.getSearchTypeUrl(type, searchField, searchStr)}&start=0&rows=${sails.config.record.export.maxRecords}`;
       let searchParam = workflowState ? ` AND workflow_stage:${workflowState} ` : '';
-      searchParam = `${searchParam} AND full_text:${searchQuery}`;
+      searchParam = `${searchParam} AND full_text:${this.luceneEscape(searchQuery)}`; 
       _.forEach(exactSearches, (exactSearch) => {
         searchParam = `${searchParam}&fq=${exactSearch.name}:${this.luceneEscape(exactSearch.value)}`
       });
