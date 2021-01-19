@@ -1219,7 +1219,7 @@ export class RecordSearchParams {
     _.forEach(queryStr.split(&#x27;&amp;&#x27;), (q)&#x3D;&gt; {
       const qObj &#x3D; q.split(&#x27;&#x3D;&#x27;);
       if (_.startsWith(qObj[0], &quot;q&quot;)) {
-        this.basicSearch &#x3D; qObj[1];
+        this.basicSearch &#x3D; _.replace(qObj[1], /\+/gi, &#x27; &#x27;);
       }
       if (_.startsWith(qObj[0], &quot;refiner|&quot;)) {
         const refinerName &#x3D; qObj[0].split(&#x27;|&#x27;)[1];
