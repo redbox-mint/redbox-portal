@@ -335,7 +335,7 @@ export class RecordSearchParams {
     _.forEach(queryStr.split('&'), (q)=> {
       const qObj = q.split('=');
       if (_.startsWith(qObj[0], "q")) {
-        this.basicSearch = qObj[1];
+        this.basicSearch = _.replace(qObj[1], /\+/gi, ' ');
       }
       if (_.startsWith(qObj[0], "refiner|")) {
         const refinerName = qObj[0].split('|')[1];
