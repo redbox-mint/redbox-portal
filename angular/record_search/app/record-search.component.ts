@@ -78,6 +78,11 @@ export class RecordSearchComponent extends LoadableComponent {
         ], () => {
       this.recordsService.getAllTypes().then((typeConfs: any) => {
         _.each(typeConfs, typeConf => {
+          
+          // check if we want this record type showing up in the search UI
+          if (typeConf.searchable == false) {
+            return;
+          }
           this.recTypeNames.push(typeConf.name);
           const searchParam = new RecordSearchParams(typeConf.name);
           const searchFilterConfig = [];

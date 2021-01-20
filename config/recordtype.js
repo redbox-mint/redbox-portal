@@ -511,6 +511,7 @@ module.exports.recordtype = {
   },
   // The "Existing locations" workspace record type definition.
   "existing-locations": {
+    "searchable": false,
     "packageType": "workspace",
     "packageName": "existing-locations",
     "searchFilters": [
