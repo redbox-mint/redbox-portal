@@ -975,8 +975,11 @@ export module Controllers {
     public search(req, res) {
       const brand = BrandingService.getBrand(req.session.branding);
       const type = req.param('type');
+      const rows = req.param('rows');
+      const page = req.param('page');
       const workflow = req.query.workflow;
       const searchString = req.query.searchStr;
+
       const exactSearchNames = _.isEmpty(req.query.exactNames) ? [] : req.query.exactNames.split(',');
       const exactSearches = [];
       const facetSearchNames = _.isEmpty(req.query.facetNames) ? [] : req.query.facetNames.split(',');
@@ -990,7 +993,7 @@ export module Controllers {
       });
 
 
-      RecordsService.searchFuzzy(type, workflow, searchString, exactSearches, facetSearches, brand, req.user, req.user.roles, sails.config.record.search.returnFields)
+      RecordsService.searchFuzzy(type, workflow, searchString, exactSearches, facetSearches, brand, req.user, req.user.roles, sails.config.record.search.returnFields, rows, page)
         .subscribe(searchRes => {
           this.ajaxOk(req, res, null, searchRes);
         }, error => {

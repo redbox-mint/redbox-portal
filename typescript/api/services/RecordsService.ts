@@ -491,7 +491,7 @@ export module Services {
         });
     }
 
-    public searchFuzzy(type, workflowState, searchQuery, exactSearches, facetSearches, brand, user, roles, returnFields) {
+    public searchFuzzy(type, workflowState, searchQuery, exactSearches, facetSearches, brand, user, roles, returnFields, rows = null, page = 1) {
       const username = user.username;
       // const url = `${this.getSearchTypeUrl(type, searchField, searchStr)}&start=0&rows=${sails.config.record.export.maxRecords}`;
       let searchParam = workflowState ? ` AND workflow_stage:${workflowState} ` : '';
@@ -506,14 +506,26 @@ export module Services {
         });
       }
 
-      let url = `${sails.config.record.baseUrl.redbox}${sails.config.record.api.search.url}?q=metaMetadata_brandId:${brand.id} AND metaMetadata_type:${type}${searchParam}&version=2.2&wt=json&sort=date_object_modified desc`;
+      // pagination 
+      let start = 0;
+      if( _.isEmpty(rows)) {
+        rows = 10;
+      }
+
+      if (page > 0) {
+        start = (page - 1) * rows;
+      }
+
+      let url = `${sails.config.record.baseUrl.redbox}${sails.config.record.api.search.url}?q=metaMetadata_brandId:${brand.id} AND metaMetadata_type:${type}${searchParam}&version=2.2&wt=json&sort=date_object_modified desc&rows=${rows}&start=${start}`;
       url = this.addAuthFilter(url, username, roles, brand, false)
-      sails.log.error(`Searching fuzzy using: ${url}`);
+      sails.log.verbose(`Searching fuzzy using: ${url}`);
       const options = this.getOptions(url);
       return Observable.fromPromise(request[sails.config.record.api.search.method](options))
         .flatMap(resp => {
           let response: any = resp;
-          const customResp = { records: [] };
+          let totalItems = response["response"]["numFound"];
+          var currentPage = _.toInteger(page);
+          const customResp = { records: [], totalItems: totalItems, currentPage: currentPage };
           _.forEach(response.response.docs, solrdoc => {
             const customDoc = {};
             _.forEach(returnFields, retField => {
