@@ -353,7 +353,7 @@ export class RecordsService extends BaseService {
       });
       refinedSearchStr &#x3D; &#x60;${exactSearchNames}${exactSearchValues}${facetSearchNames}${facetSearchValues}&#x60;;
     }
-    return this.http.get(&#x60;${this.brandingAndPortalUrl}/record/search/${params.recordType}/?searchStr&#x3D;${params.basicSearch}${refinedSearchStr}&#x60;, this.getOptionsClient())
+    return this.http.get(&#x60;${this.brandingAndPortalUrl}/record/search/${params.recordType}/?searchStr&#x3D;${params.basicSearch}&amp;rows&#x3D;${params.rows}&amp;page&#x3D;${params.currentPage}${refinedSearchStr}&#x60;, this.getOptionsClient())
     .toPromise()
     .then((res:any) &#x3D;&gt; this.extractData(res) as RecordActionResult);
   }
@@ -454,6 +454,8 @@ export class RecordSearchParams {
   basicSearch: string;
   activeRefiners: any[];
   refinerConfig: RecordSearchRefiner[];
+  rows &#x3D; 10;
+  currentPage &#x3D; 1;
 
   constructor(recType: string) {
     this.recordType &#x3D; recType;
@@ -463,6 +465,7 @@ export class RecordSearchParams {
 
   clear() {
     this.basicSearch &#x3D; null;
+    this.currentPage &#x3D; 1;
     _.remove(this.activeRefiners, refiner &#x3D;&gt; {
       refiner.value &#x3D; null;
       refiner.activeValue &#x3D; null;
@@ -495,7 +498,7 @@ export class RecordSearchParams {
         refinerValues &#x3D; &#x60;${refinerValues}&amp;refiner|${refiner.name}&#x3D;${_.isEmpty(refiner.value) ? &#x27;&#x27; : refiner.value}&#x60;;
       }
     });
-    return &#x60;${searchUrl}?q&#x3D;${this.basicSearch}&amp;type&#x3D;${this.recordType}${refinerValues}&#x60;;
+    return &#x60;${searchUrl}?q&#x3D;${this.basicSearch}&amp;type&#x3D;${this.recordType}${refinerValues}&amp;page&#x3D;${this.currentPage}&#x60;;
   }
 
   getRefinerConfigs() {
@@ -524,6 +527,9 @@ export class RecordSearchParams {
       if (_.startsWith(qObj[0], &quot;refiner|&quot;)) {
         const refinerName &#x3D; qObj[0].split(&#x27;|&#x27;)[1];
         refinerValues[refinerName] &#x3D; qObj[1];
+      }
+      if (_.startsWith(qObj[0], &quot;page&quot;)) {
+        this.currentPage &#x3D; _.toNumber(qObj[1]);
       }
     });
     _.forOwn(refinerValues, (value, name) &#x3D;&gt; {

@@ -211,13 +211,13 @@ customElements.define('compodoc-menu', class extends HTMLElement {
                                 <a href="modules/RecordSearchModule.html" data-type="entity-link">RecordSearchModule</a>
                                     <li class="chapter inner">
                                         <div class="simple menu-toggler" data-toggle="collapse" ${ isNormalMode ?
-                                            'data-target="#components-links-module-RecordSearchModule-17ec935be5fafff72c54a82f472441c4"' : 'data-target="#xs-components-links-module-RecordSearchModule-17ec935be5fafff72c54a82f472441c4"' }>
+                                            'data-target="#components-links-module-RecordSearchModule-952d48e045c222ffc9facc8ab9e9a901"' : 'data-target="#xs-components-links-module-RecordSearchModule-952d48e045c222ffc9facc8ab9e9a901"' }>
                                             <span class="icon ion-md-cog"></span>
                                             <span>Components</span>
                                             <span class="icon ion-ios-arrow-down"></span>
                                         </div>
-                                        <ul class="links collapse" ${ isNormalMode ? 'id="components-links-module-RecordSearchModule-17ec935be5fafff72c54a82f472441c4"' :
-                                            'id="xs-components-links-module-RecordSearchModule-17ec935be5fafff72c54a82f472441c4"' }>
+                                        <ul class="links collapse" ${ isNormalMode ? 'id="components-links-module-RecordSearchModule-952d48e045c222ffc9facc8ab9e9a901"' :
+                                            'id="xs-components-links-module-RecordSearchModule-952d48e045c222ffc9facc8ab9e9a901"' }>
                                             <li class="link">
                                                 <a href="components/RecordSearchComponent.html"
                                                     data-type="entity-link" data-context="sub-entity" data-context-id="modules">RecordSearchComponent</a>

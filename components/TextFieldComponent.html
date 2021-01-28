@@ -1395,7 +1395,8 @@ Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a></p
 import * as _ from &quot;lodash&quot;;
 import { FieldBase } from &#x27;./field-base&#x27;;
 import { EmbeddableComponent, RepeatableComponent } from &#x27;./field-repeatable.component&#x27;;
-
+import {Observable} from &#x27;rxjs/Observable&#x27;;
+import { debounceTime } from &#x27;rxjs/operators&#x27;;
 declare var jQuery: any;
 
 /**
@@ -1431,12 +1432,21 @@ export class MarkdownTextArea extends FieldBase&lt;string&gt; {
   cols: number;
 
   lines: string[];
+  enableLivePreview: boolean;
+  updateEventSource: any;
+  updateSub: any;
+  previewData: any;
+  previewLabel: string;
+  previewDelay: number;
 
   constructor(options: any, injector: any) {
     super(options, injector);
     this.rows &#x3D; options[&#x27;rows&#x27;] || 5;
     this.cols &#x3D; options[&#x27;cols&#x27;] || null;
     this.controlType &#x3D; &#x27;textarea&#x27;;
+    this.enableLivePreview &#x3D; _.isEmpty(options[&#x27;enableLivePreview&#x27;]) ? true : options[&#x27;enableLivePreview&#x27;];
+    this.previewLabel &#x3D; this.getTranslated(options[&#x27;previewLabel&#x27;], &#x27;Preview&#x27;);
+    this.previewDelay &#x3D; _.isEmpty(options[&#x27;previewDelay&#x27;]) ? 1000 : _.toInteger(options[&#x27;previewDelay&#x27;]);
     if (_.isUndefined(this.value)) {
       this.value &#x3D; &quot;&quot;;
     }
@@ -1446,6 +1456,34 @@ export class MarkdownTextArea extends FieldBase&lt;string&gt; {
   formatValueForDisplay() {
     this.lines &#x3D; this.value ? this.value.split(&quot;\n&quot;) : [];
   }
+
+  public createFormModel(valueElem: any &#x3D; null): any {
+    this.formModel &#x3D; super.createFormModel(valueElem);
+    this.setLivePreview(this.enableLivePreview);
+    return this.formModel;
+  }
+
+  setLivePreview(flag: boolean &#x3D; true) {
+    this.enableLivePreview &#x3D; flag;
+    if (this.enableLivePreview) {
+      this.previewData &#x3D; this.value;
+      if (this.formModel &amp;&amp; _.isEmpty(this.updateEventSource)) {
+        this.updateEventSource &#x3D; this.formModel[&#x27;valueChanges&#x27;];
+        // start listening 
+        this.updateSub &#x3D; this.updateEventSource.pipe(debounceTime(this.previewDelay)).subscribe((val: any) &#x3D;&gt; {
+          this.previewData &#x3D; this.value;
+        });
+      }
+    } else {
+      this.previewData &#x3D; null;
+      if (this.updateEventSource) {
+        this.updateSub.unsubscribe();
+        this.updateSub &#x3D; null;
+        this.updateEventSource &#x3D; null;
+      }
+    }
+  }
+
 }
 
 export class TextArea extends FieldBase&lt;string&gt; {
@@ -1618,8 +1656,10 @@ export class TextAreaComponent extends EmbeddableComponent implements OnInit {
     &lt;/label&gt;&lt;br/&gt;
     &lt;span id&#x3D;&quot;{{ &#x27;helpBlock_&#x27; + field.name }}&quot; class&#x3D;&quot;help-block&quot; *ngIf&#x3D;&quot;this.helpShow&quot; [innerHtml]&#x3D;&quot;field.help&quot;&gt;&lt;/span&gt;
     &lt;textarea [formControl]&#x3D;&quot;getFormControl()&quot;  [attr.rows]&#x3D;&quot;field.rows&quot; [attr.cols]&#x3D;&quot;field.cols&quot; [id]&#x3D;&quot;field.name&quot; [ngClass]&#x3D;&quot;field.cssClasses&quot; [(ngModel)]&#x3D;&quot;field.value&quot;&gt;&lt;/textarea&gt;
-    &lt;div *ngIf&#x3D;&quot;field.value&quot; style&#x3D;&#x27;font-weight:bold&#x27;&gt;Preview&lt;/div&gt;
-    &lt;markdown *ngIf&#x3D;&quot;field.value&quot; [data]&#x3D;&quot;field.value&quot;&gt;&lt;/markdown&gt;
+    &lt;ng-container *ngIf&#x3D;&quot;field.previewData&quot;&gt;
+      &lt;div style&#x3D;&#x27;font-weight:bold&#x27; [innerHtml]&#x3D;&quot;field.previewLabel&quot;&gt;&lt;/div&gt;
+      &lt;markdown [data]&#x3D;&quot;field.previewData&quot;&gt;&lt;/markdown&gt;
+    &lt;/ng-container&gt;
     &lt;div class&#x3D;&quot;text-danger&quot; *ngIf&#x3D;&quot;getFormControl().hasError(&#x27;required&#x27;) &amp;&amp; getFormControl().touched &amp;&amp; !field.validationMessages?.required&quot;&gt;{{field.label}} is required&lt;/div&gt;
     &lt;div class&#x3D;&quot;text-danger&quot; *ngIf&#x3D;&quot;getFormControl().hasError(&#x27;required&#x27;) &amp;&amp; getFormControl().touched &amp;&amp; field.validationMessages?.required&quot;&gt;{{field.validationMessages.required}}&lt;/div&gt;
   &lt;/div&gt;
@@ -1636,7 +1676,13 @@ export class MarkdownTextAreaComponent extends EmbeddableComponent implements On
   ngOnInit() {
     if (!this.field.editMode) {
       this.field.formatValueForDisplay();
+    } else {
+      this.field.componentReactors.push(this);
     }
+  }
+
+  public reactEvent(eventName: string, eventData: any, origData: any, elem:any) {
+    this.field.previewData &#x3D; this.field.value;
   }
 }
 </code></pre>
