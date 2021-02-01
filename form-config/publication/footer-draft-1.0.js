@@ -43,6 +43,7 @@ module.exports = [
           definition: {
             label: 'Withdraw',
             closeOnSave: true,
+            isSubmissionButton: true,
             redirectLocation: '/@branding/@portal/dashboard/dataPublication',
             targetStep: 'draft',
             disabledExpression: '<%= _.isEmpty(relatedRecordId) %>'
@@ -54,6 +55,7 @@ module.exports = [
           definition: {
             label: '@dataPublication-publish',
             closeOnSave: true,
+            isSubmissionButton: true,
             redirectLocation: '/@branding/@portal/dashboard/dataPublication',
             targetStep: 'queued',
             disabledExpression: '<%= _.isEmpty(relatedRecordId) %>'
