@@ -140,6 +140,7 @@ export class TransferOwnerComponent extends LoadableComponent {
       fieldNames: ['text_full_name', 'storage_id', {'email': 'Email[0]'}, {'full_name_honorific': 'text_full_name_honorific'}, {'given_name': 'text_given_name'}, {'family_name': 'text_family_name'}, {'honorific': 'Honorific[0]'}, {'full_name_family_name_first': 'dc_title'}, {'username': 'username'} ],
       searchFields: 'text_full_name',
       titleFieldArr: ['text_full_name'],
+      titleCompleterDescription: 'Email',
       vocabId: 'Parties AND repository_name:People',
       editMode: true,
       placeHolder: this.translationService.t('transfer-ownership-researcher-name'),
