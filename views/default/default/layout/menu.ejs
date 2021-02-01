@@ -20,10 +20,10 @@
               <ul class="dropdown-menu">
                 <li><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/record/rdmp/edit"><%= TranslationService.t('create-rdmp')%></a></li>
                 <li><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/dashboard/rdmp"><%= TranslationService.t('edit-dashboard-rdmp')%></a></li>
-                  <% if (TranslationService.t('get-advice-link')) {
+                  <% if (TranslationService.t('get-advice-link') != "get-advice-link") {
                   %>
                       <li><a target="_blank" rel="noopener noreferrer" href="<%= (TranslationService.t('get-advice-link'))%>"><%= TranslationService.t('get-advice') %></a></li>
-                  <%  } else { %>
+                  <%  } else if (sails.config.appmode.hidePlaceholderPages == false) { %>
                       <li><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/getAdvice"><%= TranslationService.t('get-advice') %></a></li>
                   <% } %>
               </ul>
@@ -32,10 +32,10 @@
               <a class="dropdown-toggle" data-toggle="dropdown" href="#"><%= TranslationService.t('menu-organisation-nav')%><span class="caret"></span></a>
               <ul class="dropdown-menu">
                 <li><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/workspaces/list"><%= TranslationService.t('workspaces-dashboard')%></a></li>
-                  <% if (TranslationService.t('workspace-services-list-link')) {
+                  <% if (TranslationService.t('workspace-services-list-link') != "workspace-services-list-link") {
                     %>
                       <li><a target="_blank" rel="noopener noreferrer" href="<%= (TranslationService.t('workspace-services-list-link'))%>"><%= TranslationService.t('workspace-services-list') %></a></li>
-                  <%  } else { %>
+                  <%  } else if (sails.config.appmode.hidePlaceholderPages == false) { %>
                       <li><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/availableServicesList"><%= TranslationService.t('workspace-services-list') %></a></li>
                   <% } %>
               </ul>
