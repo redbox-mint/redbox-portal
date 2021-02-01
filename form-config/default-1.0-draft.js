@@ -1253,7 +1253,11 @@ module.exports = {
                     name: 'workspaces',
                     columns: [{
                         "label": "Title",
-                        "property": "title"
+                        "property": "title",
+                        "link": {
+                          "type": "dynamic",
+                          "pattern": "${portalPath}/record/view/${oid}"
+                        }
                       },
                       {
                         "label": "Description",
@@ -1261,8 +1265,7 @@ module.exports = {
                       },
                       {
                         "label": "Location",
-                        "property": "location",
-                        "link": "absolute"
+                        "property": "storage_type"
                       }
                     ]
                   }

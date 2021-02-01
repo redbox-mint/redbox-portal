@@ -147,7 +147,30 @@ module.exports.workflow = {
           viewRoles: ['Admin', 'Librarians'],
           editRoles: ['Admin', 'Librarians']
         },
-        form: 'existing-locations-1.0-draft'
+        form: 'existing-locations-1.0-draft',
+        displayIndex: 0,
+        dashboard: {
+          table: {
+            rowConfig: [
+              {
+                title: '@workspace-name',
+                variable: 'metadata.title',
+                template: "<%= metadata.title %>",
+                initialSort: 'desc'
+              },
+              {
+                title: '@workspace-type',
+                variable: 'metadata.storage_type',
+                template: "<%= metadata.storage_type %>"
+              },
+              {
+                title: '@related-rdmp-title',
+                variable: 'metadata.rdmpOid',
+                template: "<a href='/<%= branding %>/<%= portal %>/record/view/<%= metadata.rdmpOid %>'><%= metadata.rdmpTitle %></a>"
+              }
+            ]
+          }
+        }
       },
       starting: true
     }
