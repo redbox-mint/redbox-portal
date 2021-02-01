@@ -182,7 +182,6 @@ module.exports = [
             help: '@dataPublication-dc:accessRights-help',
             defaultValue: '@dataPublication-dc:accessRights-open',
             controlType: 'radio',
-            readOnly:true,
             options: [
               {
                 value: "@dataPublication-dc:accessRights-open",
@@ -196,28 +195,7 @@ module.exports = [
                 value: "@dataPublication-dc:accessRights-conditional-val",
                 label: "@dataPublication-dc:accessRights-conditional"
               }
-            ],
-            subscribe: {
-              'accessRightsToggle': {
-                onValueUpdate: [{
-                  action: 'utilityService.getPropertyFromObjectMapping',
-                  mapping: [
-                    {
-                      key: 'Restricted',
-                      value: 'Restricted'
-                    },
-                    {
-                      key: 'Open',
-                      value: 'Open'
-                    },
-                    {
-                      key: 'Conditional',
-                      value: 'Conditional'
-                    }
-                  ]
-                }]
-              }
-            }
+            ]
           }
         },
         {

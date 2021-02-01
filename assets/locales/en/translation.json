@@ -694,5 +694,7 @@
   "@workspace-edit": "Edit",
   "@dataRecord-dc_extent": "Data record size",
   "@dataRecord-dc_extent-help": "Enter details e.g. 3 files: 34 MB",
-  "@related-rdmp-title": "RDMP Title"
+  "@related-rdmp-title": "RDMP Title",
+  "@dataPublication-dc:accessRights-conditional": "Conditional",
+  "@dataPublication-dc:accessRights-conditional-val": "Conditional"
 }
