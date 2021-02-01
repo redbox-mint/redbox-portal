@@ -55,7 +55,7 @@ module.exports = [
             closeOnSave: true,
             isSubmissionButton: true,
             redirectLocation: '/@branding/@portal/dashboard/dataPublication',
-            targetStep: 'publishing',
+            targetStep: 'published',
             disabledExpression: '<%= _.isEmpty(relatedRecordId) || ( fieldMap.embargoByDate.control.value == true && fieldMap.embargoUntil.control.value && moment(fieldMap.embargoUntil.control.value).isSameOrAfter(moment())  ) %>'
           },
           variableSubstitutionFields: ['redirectLocation']

@@ -41,18 +41,6 @@ module.exports = [
         {
           class: "SaveButton",
           definition: {
-            label: 'Withdraw',
-            closeOnSave: true,
-            isSubmissionButton: true,
-            redirectLocation: '/@branding/@portal/dashboard/dataPublication',
-            targetStep: 'draft',
-            disabledExpression: '<%= _.isEmpty(relatedRecordId) %>'
-          },
-          variableSubstitutionFields: ['redirectLocation']
-        },
-        {
-          class: "SaveButton",
-          definition: {
             label: '@dataPublication-publish',
             closeOnSave: true,
             isSubmissionButton: true,

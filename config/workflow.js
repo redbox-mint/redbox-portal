@@ -51,7 +51,7 @@ module.exports.workflow = {
       config: {
         workflow: {
           stage: 'queued',
-          stageLabel: 'Queued',
+          stageLabel: 'Queued For Review',
         },
         authorization: {
           viewRoles: ['Admin', 'Librarians'],
@@ -73,36 +73,6 @@ module.exports.workflow = {
         },
         form: 'dataPublication-1.0-embargoed',
         displayIndex: 3
-      }
-    },
-    "reviewing": {
-      config: {
-        workflow: {
-          stage: 'reviewing',
-          stageLabel: 'Reviewing',
-        },
-        authorization: {
-          viewRoles: ['Admin', 'Librarians'],
-          editRoles: ['Admin'],
-
-        },
-        form: 'dataPublication-1.0-reviewing',
-        displayIndex: 4
-      }
-    },
-    "publishing": {
-      config: {
-        workflow: {
-          stage: 'publishing',
-          stageLabel: 'Publishing',
-        },
-        authorization: {
-          viewRoles: ['Admin', 'Librarians'],
-          editRoles: ['Admin', 'Librarians'],
-          transitionRoles: ['Admin']
-        },
-        form: 'dataPublication-1.0-publishing',
-        displayIndex: 5
       }
     },
     "published": {

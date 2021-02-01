@@ -18,7 +18,8 @@ var licenseTab = require('../form-config/publication/tab-license-1.0.js');
 var citationTab = require('../form-config/publication/tab-citation-1.0.js');
 var submitTab = require('../form-config/publication/tab-submit-1.0.js');
 var reviewerTab = require('../form-config/publication/tab-reviewer-1.0.js');
-mainTab[0].definition.fields = _.concat(startTab, coverageTab, dataTab, supplementsTab, licenseTab, citationTab, submitTab, reviewerTab);
+var permissionsTab = require('../form-config/publication/tab-permissions-1.0.js');
+mainTab[0].definition.fields = _.concat(startTab, coverageTab, dataTab, supplementsTab, licenseTab, citationTab, submitTab, reviewerTab, permissionsTab);
 // now buid the main elements of the form....
 var fields = _.concat(mainViewOnly, mainTab, footer);
 module.exports = {
