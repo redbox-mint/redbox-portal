@@ -6473,8 +6473,13 @@ export class ContributorComponent extends SimpleComponent {
   }
 
   public onKeyUp(event) {
+    console.log(&quot;here&quot;)
     const val &#x3D; this.ngCompleter.ctrInput.nativeElement.value
     this.field.toggleConditionalValidation(!_.isEmpty(val));
+    if (event &amp;&amp; (event.keyCode !&#x3D;&#x3D; KEY_EN || event.keyCode !&#x3D;&#x3D; KEY_TAB )) {
+      const val &#x3D; this.field.vocabField.getValue({text_full_name: this.ngCompleter.ctrInput.nativeElement.value });
+      this.field.setValue(val, true, false);
+    }
   }
 
   public onBlur() {

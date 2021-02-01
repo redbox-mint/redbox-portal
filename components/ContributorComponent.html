@@ -706,8 +706,8 @@
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="615"
-                            class="link-to-prism">angular/shared/form/field-contributor.component.ts:615</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="620"
+                            class="link-to-prism">angular/shared/form/field-contributor.component.ts:620</a></div>
                 </td>
             </tr>
 
@@ -883,8 +883,8 @@
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="621"
-                            class="link-to-prism">angular/shared/form/field-contributor.component.ts:621</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="626"
+                            class="link-to-prism">angular/shared/form/field-contributor.component.ts:626</a></div>
                 </td>
             </tr>
 
@@ -2524,8 +2524,13 @@ export class ContributorComponent extends SimpleComponent {
   }
 
   public onKeyUp(event) {
+    console.log(&quot;here&quot;)
     const val &#x3D; this.ngCompleter.ctrInput.nativeElement.value
     this.field.toggleConditionalValidation(!_.isEmpty(val));
+    if (event &amp;&amp; (event.keyCode !&#x3D;&#x3D; KEY_EN || event.keyCode !&#x3D;&#x3D; KEY_TAB )) {
+      const val &#x3D; this.field.vocabField.getValue({text_full_name: this.ngCompleter.ctrInput.nativeElement.value });
+      this.field.setValue(val, true, false);
+    }
   }
 
   public onBlur() {
