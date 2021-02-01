@@ -397,7 +397,6 @@ module.exports = {
                     forceLookupOnly: true,
                     vocabId: 'Parties AND repository_name:People',
                     sourceType: 'mint',
-                    disabledExpression: '<%= !_.isEmpty(oid) %>',
                     fieldNames: [{
                         'text_full_name': 'text_full_name'
                       }, {
@@ -446,7 +445,6 @@ module.exports = {
                     freeText: false,
                     vocabId: 'Parties AND repository_name:People',
                     sourceType: 'mint',
-                    disabledExpression: '<%= !_.isEmpty(oid) %>',
                     fieldNames: [{
                         'text_full_name': 'text_full_name'
                       }, {
@@ -1291,6 +1289,34 @@ module.exports = {
                       name: '',
                       label: '@dmpt-select:Empty'
                     }]
+                  }
+                }
+              ]
+            }
+          },
+          // -------------------------------------------------------------------
+          // Permissions Tab
+          // -------------------------------------------------------------------
+          {
+            class: "Container",
+            roles: ['Admin', 'Librarians'],
+            definition: {
+              id: "permissions",
+              label: "@record-permissions-tab",
+              viewOnly: true,
+              fields: [{
+                  class: 'Container',
+                  compClass: 'TextBlockComponent',
+                  definition: {
+                    value: "@record-permissions-tab-heading",
+                    type: 'h3'
+                  }
+                },
+                {
+                  class: 'RecordPermissionsField',
+                  showHeader: true,
+                  definition: {
+                    name: 'permissions'
                   }
                 }
               ]
