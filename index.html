@@ -43,8 +43,26 @@ ReDBox is one of the most popular research data management tools in Australia. I
 <h2 id="development">Development</h2>
 <p>Requirements:</p>
 <ul>
-<li>Node 12.16.0
-Development requires Docker. Run <code>./runForDev.sh install jit</code> at least once.</li>
+<li><p>Node 12.16.0
+Development requires Docker. Run <code>./runForDev.sh install jit</code> at least once.</p>
+</li>
+<li><p>Docker</p>
+</li>
+</ul>
+<p>Run <code>./runForDev.sh install jit</code></p>
+<p>It will </p>
+<ul>
+<li>Pull qcifengineering/redbox-portal from docker hub (If a local copy does not exist)</li>
+<li>Compile backend</li>
+<li>Compile frontend</li>
+<li>Then start docker-compose</li>
+</ul>
+<p>Open <a href="http://localhost:1500">http://localhost:1500</a> to start browsing</p>
+<h3 id="build-local-docker-image">Build local docker image</h3>
+<p>Run <code>./dockerlocal_dev.sh</code></p>
+<p>It will</p>
+<ul>
+<li>Build a local docker image of qcifengineering/redbox-portal:latest</li>
 </ul>
 
 
