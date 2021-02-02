@@ -18,6 +18,8 @@ export module Services.Core {
       // Sails controller custom config.
       '_config',
     ];
+
+    protected logHeader: string;
     /**
     * Returns an RxJS Observable wrapped nice and tidy for your subscribing pleasure
     */
@@ -100,6 +102,12 @@ export module Services.Core {
         // if trigger condition is not set, fail fast!
         return "false";
       }
+    }
+
+    protected sleep(ms) {
+      return new Promise(resolve => {
+        setTimeout(resolve, ms)
+      });
     }
   }
 }

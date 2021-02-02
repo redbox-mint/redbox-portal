@@ -27,7 +27,6 @@ declare var UsersService;
 declare var FormsService;
 declare var RecordTypesService;
 declare var WorkflowStepsService;
-declare var RecordsService;
 declare var _;
 declare var User;
 /**
@@ -36,16 +35,27 @@ declare var User;
 import {Observable} from 'rxjs/Rx';
 import * as path from "path";
 import controller = require('../../core/CoreController.js');
+import RecordsService from '../../core/RecordsService.js';
+import SearchService from '../../core/SearchService.js';
+import DatastreamService from '../../core/DatastreamService.js';
+import DatastreamServiceResponse from '../../core/DatastreamServiceResponse';
+import Datastream from '../../core/Datastream';
+import {ListAPIResponse } from '../../core/model/ListAPIResponse';
+import {APIErrorResponse } from '../../core/model/APIErrorResponse';
+
 
 const UUIDGenerator = require('uuid/v4');
 export module Controllers {
   /**
-   * Responsible for all things related to the Dashboard
+   * RecordController API version
    *
    * @author <a target='_' href='https://github.com/andrewbrazzatti'>Andrew Brazzatti</a>
    */
   export class Record extends controller.Controllers.Core.Controller {
 
+    RecordsService: RecordsService = sails.services.recordsservice;
+    SearchService: SearchService;
+    DatastreamService: DatastreamService;
     /**
      * Exported methods, accessible from internet.
      */
@@ -62,8 +72,27 @@ export module Controllers {
       'getPermissions',
       'getDataStream',
       'addDataStreams',
-      'listRecords'
+      'listRecords',
+      'deleteRecord',
+      'transitionWorkflow',
+      'listDatastreams',
+      'addRoleEdit',
+      'removeRoleEdit',
+      'addRoleView',
+      'removeRoleView'
     ];
+
+    constructor() {
+      super();
+      let that = this;
+      sails.on('ready', function () {
+        let datastreamServiceName = sails.config.record.datastreamService;
+        sails.log.verbose(`RecordController Webservice ready, using datastream service: ${datastreamServiceName}`);
+        if (datastreamServiceName != undefined) {
+          that.DatastreamService = sails.services[datastreamServiceName];
+        }
+      });
+    }
 
     /**
      **************************************************************************************************
@@ -79,7 +108,7 @@ export module Controllers {
       const brand = BrandingService.getBrand(req.session.branding);
       var oid = req.param('oid');
 
-      RecordsService.getMeta(oid).subscribe(record => {
+     Observable.fromPromise(this.RecordsService.getMeta(oid)).subscribe(record => {
         return res.json(record["authorization"]);
       });
 
@@ -93,7 +122,7 @@ export module Controllers {
       var body = req.body;
       var users = body["users"];
       var pendingUsers = body["pendingUsers"];
-      RecordsService.getMeta(oid).subscribe(record => {
+      Observable.fromPromise(this.RecordsService.getMeta(oid)).subscribe(record => {
 
         if (users != null && users.length > 0) {
           record["authorization"]["edit"] = _.union(record["authorization"]["edit"], users);
@@ -103,18 +132,21 @@ export module Controllers {
           record["authorization"]["editPending"] = _.union(record["authorization"]["editPending"], pendingUsers);
         }
 
-        var obs = RecordsService.updateMeta(brand, oid, record,req.user);
+        var obs = Observable.fromPromise(this.RecordsService.updateMeta(brand, oid, record,req.user));
         obs.subscribe(result => {
-          if (result["code"] == 200) {
-            RecordsService.getMeta(result["oid"]).subscribe(record => {
+          if (result.isSuccessful()) {
+            Observable.fromPromise(this.RecordsService.getMeta(result.oid)).subscribe(record => {
               return res.json(record["authorization"]);
+            }, error=> {
+              sails.log.error(error);
+              return this.apiFail(req, res, 500, new APIErrorResponse('Failed adding an editor, check server logs.'));
             });
           } else {
             return res.json(result);
           }
         }, error=> {
           sails.log.error(error);
-          return this.apiFail(req, res, 500, 'Failed adding an editor, check server logs.');
+          return this.apiFail(req, res, 500, new APIErrorResponse('Failed adding an editor, check server logs.'));
         });
       });
     }
@@ -127,7 +159,7 @@ export module Controllers {
       var body = req.body;
       var users = body["users"];
       var pendingUsers = body["pendingUsers"];
-      RecordsService.getMeta(oid).subscribe(record => {
+      Observable.fromPromise(this.RecordsService.getMeta(oid)).subscribe(record => {
 
         if (users != null && users.length > 0) {
           record["authorization"]["view"] = _.union(record["authorization"]["view"], users);
@@ -137,10 +169,10 @@ export module Controllers {
           record["authorization"]["viewPending"] = _.union(record["authorization"]["viewPending"], pendingUsers);
         }
 
-        var obs = RecordsService.updateMeta(brand, oid, record, req.user);
+        var obs = Observable.fromPromise(this.RecordsService.updateMeta(brand, oid, record, req.user));
         obs.subscribe(result => {
-          if (result["code"] == 200) {
-            RecordsService.getMeta(result["oid"]).subscribe(record => {
+          if (result.isSuccessful()) {
+            Observable.fromPromise(this.RecordsService.getMeta(result["oid"])).subscribe(record => {
               return res.json(record["authorization"]);
             });
           } else {
@@ -157,7 +189,7 @@ export module Controllers {
       var body = req.body;
       var users = body["users"];
       var pendingUsers = body["pendingUsers"];
-      RecordsService.getMeta(oid).subscribe(record => {
+      Observable.fromPromise(this.RecordsService.getMeta(oid)).subscribe(record => {
 
         if (users != null && users.length > 0) {
           record["authorization"]["edit"] = _.difference(record["authorization"]["edit"], users);
@@ -167,10 +199,10 @@ export module Controllers {
           record["authorization"]["editPending"] = _.difference(record["authorization"]["editPending"], pendingUsers);
         }
 
-        var obs = RecordsService.updateMeta(brand, oid, record,req.user);
+        var obs = Observable.fromPromise(this.RecordsService.updateMeta(brand, oid, record,req.user));
         obs.subscribe(result => {
-          if (result["code"] == 200) {
-            RecordsService.getMeta(result["oid"]).subscribe(record => {
+          if (result.isSuccessful()) {
+            Observable.fromPromise(this.RecordsService.getMeta(result["oid"])).subscribe(record => {
               return res.json(record["authorization"]);
             });
           } else {
@@ -187,7 +219,7 @@ export module Controllers {
       var body = req.body;
       var users = body["users"];
       var pendingUsers = body["pendingUsers"];
-      RecordsService.getMeta(oid).subscribe(record => {
+      Observable.fromPromise(this.RecordsService.getMeta(oid)).subscribe(record => {
 
         if (users != null && users.length > 0) {
           record["authorization"]["view"] = _.difference(record["authorization"]["view"], users);
@@ -197,10 +229,10 @@ export module Controllers {
           record["authorization"]["viewPending"] = _.difference(record["authorization"]["viewPending"], pendingUsers);
         }
 
-        var obs = RecordsService.updateMeta(brand, oid, record, req.user);
+        var obs = Observable.fromPromise(this.RecordsService.updateMeta(brand, oid, record, req.user));
         obs.subscribe(result => {
-          if (result["code"] == 200) {
-            RecordsService.getMeta(result["oid"]).subscribe(record => {
+          if (result.isSuccessful()) {
+            Observable.fromPromise(this.RecordsService.getMeta(result["oid"])).subscribe(record => {
               return res.json(record["authorization"]);
             });
           } else {
@@ -215,7 +247,7 @@ export module Controllers {
       const brand = BrandingService.getBrand(req.session.branding);
       var oid = req.param('oid');
 
-      RecordsService.getMeta(oid).subscribe(record => {
+      Observable.fromPromise(this.RecordsService.getMeta(oid)).subscribe(record => {
         if (_.isEmpty(record)) {
           return Observable.throw(new Error(`Failed to get meta, cannot find existing record with oid: ${oid}`));
         }
@@ -223,7 +255,7 @@ export module Controllers {
       },
       error=> {
         sails.log.error("Get metadata failed, failed to retrieve existing record.", error);
-        return this.apiFail(req, res, 500, "Get Metadata failed, failed to retrieve existing record. ");
+        return this.apiFail(req, res, 500, new APIErrorResponse("Get Metadata failed, failed to retrieve existing record. "));
       });
     }
 
@@ -233,7 +265,7 @@ export module Controllers {
       sails.log.debug(brand);
       var oid = req.param('oid');
 
-      RecordsService.getMeta(oid).subscribe(record => {
+      Observable.fromPromise(this.RecordsService.getMeta(oid)).subscribe(record => {
         return res.json(record["metaMetadata"]);
       });
     }
@@ -243,7 +275,7 @@ export module Controllers {
       var oid = req.param('oid');
       const shouldMerge = req.param('merge', false);
 
-      RecordsService.getMeta(oid).subscribe(record => {
+      Observable.fromPromise(this.RecordsService.getMeta(oid)).subscribe(record => {
         if (_.isEmpty(record)) {
           return Observable.throw(new Error(`Failed to update meta, cannot find existing record with oid: ${oid}`));
         }
@@ -257,17 +289,17 @@ export module Controllers {
         } else {
           record["metadata"] = req.body;
         }
-        var obs = RecordsService.updateMeta(brand, oid, record, req.user);
+        var obs = Observable.fromPromise(this.RecordsService.updateMeta(brand, oid, record, req.user));
         obs.subscribe(result => {
           return res.json(result);
         }, error=> {
           sails.log.error("Update metadata failed", error);
-          return this.apiFail(req, res, 500, "Update Metadata failed");
+          return this.apiFail(req, res, 500, new APIErrorResponse("Update Metadata failed"));
         });
       },
       error=> {
         sails.log.error("Update metadata failed, failed to retrieve existing record.", error);
-        return this.apiFail(req, res, 500, "Update Metadata failed, failed to retrieve existing record. ");
+        return this.apiFail(req, res, 400, new APIErrorResponse("Update Metadata failed, failed to retrieve existing record. "));
       });
     }
 
@@ -275,9 +307,9 @@ export module Controllers {
       const brand = BrandingService.getBrand(req.session.branding);
       var oid = req.param('oid');
 
-      RecordsService.getMeta(oid).subscribe(record => {
+      Observable.fromPromise(this.RecordsService.getMeta(oid)).subscribe(record => {
         record["metaMetadata"] = req.body;
-        var obs = RecordsService.updateMeta(brand, oid, record, req.user);
+        var obs = Observable.fromPromise(this.RecordsService.updateMeta(brand, oid, record, req.user));
         obs.subscribe(result => {
           return res.json(result);
         });
@@ -308,7 +340,6 @@ export module Controllers {
         var recordTypeObservable = RecordTypesService.get(brand, recordType);
 
         recordTypeObservable.subscribe(recordTypeModel => {
-
           if (recordTypeModel) {
             var metadata = body["metadata"];
             var workflowStage = body["workflowStage"];
@@ -356,23 +387,24 @@ export module Controllers {
                 }
 
               });
-
-              var obs = Observable.fromPromise(RecordsService.create(brand, request, recordTypeModel));
-              obs.subscribe(result => {
-                if (result["code"] == "200") {
-                  result["code"] = 201;
-                  res.set('Location', sails.config.appUrl + BrandingService.getBrandAndPortalPath(req) + "/api/records/metadata/" + result["oid"]);
+              let createPromise = this.RecordsService.create(brand, request, recordTypeModel)
+              var obs = Observable.fromPromise(createPromise);
+              obs.subscribe(response => {
+                if (response.isSuccessful()) {
+                  res.set('Location', sails.config.appUrl + BrandingService.getBrandAndPortalPath(req) + "/api/records/metadata/" + response.oid);
+                  this.apiRespond(req, res, response, 201);
+                } else {
+                  sails.log.error("Create Record failed");
+                  return this.apiFail(req, res, 500, new APIErrorResponse("Create failed"));
                 }
-
-                return res.status(201).json(result);
               }, error=> {
                 sails.log.error("Create Record failed", error);
-                return this.apiFail(req, res, 500, "Create failed");
+                return this.apiFail(req, res, 500, new APIErrorResponse("Create failed"));
               });
             });
 
           } else {
-            return this.apiFail(req, res, 400, "Record Type provided is not valid");
+            return this.apiFail(req, res, 400, new APIErrorResponse("Record Type provided is not valid"));
           }
         }
         );
@@ -384,18 +416,17 @@ export module Controllers {
       const oid = req.param('oid');
       const datastreamId = req.param('datastreamId');
       sails.log.info(`getDataStream ${oid} ${datastreamId}`);
-      return RecordsService.getMeta(oid).flatMap(currentRec => {
+      return Observable.fromPromise(this.RecordsService.getMeta(oid)).flatMap(currentRec => {
             const fileName = req.param('fileName') ? req.param('fileName') : datastreamId;
             res.set('Content-Type', 'application/octet-stream');
             res.set('Content-Disposition', `attachment; filename="${fileName}"`);
             sails.log.info(`Returning datastream observable of ${oid}: ${fileName}, datastreamId: ${datastreamId}`);
-            let datastreamServiceName = sails.config.record.datastreamService;
-            if(datastreamServiceName == undefined) {
-              datastreamServiceName = "recordsservice";
-            }
-            let datastreamService = sails.services[datastreamServiceName];
-            return datastreamService.getDatastream(oid, datastreamId).flatMap((response) => {
-              res.end(Buffer.from(response.body), 'binary');
+            return this.DatastreamService.getDatastream(oid, datastreamId).flatMap((response) => {
+              if (response.readstream) {
+                response.readstream.pipe(res);
+              } else {
+                res.end(Buffer.from(response.body), 'binary');
+              }
               return Observable.of(oid);
             });
       }).subscribe(whatever => {
@@ -407,7 +438,7 @@ export module Controllers {
       );
     }
 
-    public addDataStreams(req, res) {
+    public async addDataStreams(req, res) {
       const brand = BrandingService.getBrand(req.session.branding);
       var oid = req.param('oid');
       const self = this;
@@ -425,7 +456,7 @@ export module Controllers {
             return next(new Error('Could not determine an appropriate filename for uploaded filestream(s).'));
           }
         }
-      }, function (error, UploadedFileMetadata) {
+      }, async function (error, UploadedFileMetadata) {
         if (error) {
           const errorMessage = `There was a problem adding datastream(s) to: ${sails.config.record.attachments.stageDir}.`;
           sails.log.error(errorMessage, error);
@@ -434,33 +465,23 @@ export module Controllers {
         sails.log.verbose(UploadedFileMetadata);
         sails.log.verbose('Succesfully uploaded all file metadata. Sending locations downstream....');
         const fileIds = _.map(UploadedFileMetadata, function (nextDescriptor) {
-          return path.relative(sails.config.record.attachments.stageDir, nextDescriptor.fd);
+          return new Datastream({fileId: path.relative(sails.config.record.attachments.stageDir, nextDescriptor.fd), name: nextDescriptor.filename, mimeType: nextDescriptor.type, size: nextDescriptor.size });
         });
         sails.log.verbose('files to send upstream are:');
         sails.log.verbose(_.toString(fileIds));
         const defaultErrorMessage = 'Error sending datastreams upstream.';
         try {
-          let datastreamServiceName = sails.config.record.datastreamService;
-          if(datastreamServiceName == undefined) {
-            datastreamServiceName = "recordsservice";
+          const result:DatastreamServiceResponse = await self.DatastreamService.addDatastreams(oid, fileIds);
+    
+          sails.log.verbose(`Done with updating streams and returning response...`);
+          if (result.isSuccessful()) {
+            sails.log.verbose("Presuming success...");
+            _.merge(result, {fileIds: fileIds});
+            return res.json({message: result});
+          } else {
+            return res.status(500).json({message: result.message});
           }
-          let datastreamService = sails.services[datastreamServiceName];
 
-          const reqs = datastreamService.addDatastreams(oid, fileIds);
-          return Observable.fromPromise(reqs)
-            .subscribe(result => {
-              sails.log.verbose(`Done with updating streams and returning response...`);
-              if (_.get(result, 'value.error') || result instanceof Error) {
-                const message = _.get(result, 'value.message') || _.get(result, 'value.error');
-                return res.status(500).json({message: message.toString('UTF-8')});
-              } else {
-                sails.log.verbose("Presuming success...");
-                _.merge(result, {fileIds: fileIds});
-                return res.json({message: result});
-              }
-            }, error => {
-              return self.customErrorMessageHandlingOnUpstreamResult(error, res);
-            });
         } catch (error) {
           sails.log.error(defaultErrorMessage, error);
           return res.status(500).json({message: defaultErrorMessage});
@@ -530,16 +551,16 @@ export module Controllers {
 
        return response.map(results => {
 
+        let apiReponse: ListAPIResponse<any> = new ListAPIResponse();
          var totalItems = results["response"]["numFound"];
          var startIndex = results["response"]["start"];
          var noItems = rows;
          var pageNumber = Math.floor((startIndex / noItems) + 1);
 
-         var response = {};
-         response["totalItems"] = totalItems;
-         if(startIndex < totalItems) {
-           response["currentPage"] = pageNumber;
-         }
+         apiReponse.summary.numFound = totalItems;
+         apiReponse.summary.start = startIndex;
+         apiReponse.summary.page = pageNumber;
+
 
          var items = [];
          var docs = results["response"]["docs"];
@@ -552,12 +573,11 @@ export module Controllers {
            item["metadata"]= this.getDocMetadata(doc);
            item["dateCreated"] =  doc["date_object_created"][0];
            item["dateModified"] = doc["date_object_modified"][0];
-           item["hasEditAccess"] = RecordsService.hasEditAccess(brand, user, roles, doc);
+           item["hasEditAccess"] = this.RecordsService.hasEditAccess(brand, user, roles, doc);
            items.push(item);
          }
-         response["noItems"] = items.length;
-         response["items"] = items;
-         return Observable.of(response);
+         apiReponse.records = items;
+         return Observable.of(apiReponse);
        });
      }
 
@@ -610,6 +630,178 @@ export module Controllers {
              res.json(err);
            });
        }
+     }
+
+     public async deleteRecord(req, res) {
+       const oid = req.param('oid');
+       if (_.isEmpty(oid)) {
+         return this.apiFail(req, res, 400, new APIErrorResponse("Missing ID of record."));
+       }
+       const response = await this.RecordsService.delete(oid);
+       if (response.isSuccessful()) {
+         this.apiRespond(req, res, response);
+       } else {
+         sails.log.verbose(`Delete attempt failed for OID: ${oid}`);
+         sails.log.verbose(JSON.stringify(response));
+         this.apiFail(req, res, 500, new APIErrorResponse(response.message, response.details));
+       }
+     }
+
+     public async transitionWorkflow(req, res) {
+       const oid = req.param('oid');
+       const targetStepName = req.param('targetStep');
+       try {
+         if (_.isEmpty(oid)) {
+           return this.apiFail(req, res, 400, new APIErrorResponse("Missing ID of record."));
+         }
+         const brand = BrandingService.getBrand(req.session.branding);
+         const record = await this.RecordsService.getMeta(oid);
+         if (_.isEmpty(record)) {
+           this.apiFail(req, res, 500, new APIErrorResponse(`Missing OID: ${oid}`));
+           return;
+         }
+         if (!this.RecordsService.hasEditAccess(brand, req.user, req.user.roles, record)) {
+           this.apiFail(req, res, 500, new APIErrorResponse(`User has no edit permissions for :${oid}`));
+           return;
+         }
+         const recType = await RecordTypesService.get(brand, record.metaMetadata.type).toPromise();
+         const nextStep = await WorkflowStepsService.get(recType, targetStepName).toPromise();
+         this.RecordsService.updateWorkflowStep(record, nextStep);
+         const response = await this.RecordsService.updateMeta(brand, oid, record, req.user);
+         this.apiRespond(req, res, response);
+       } catch (err) {
+         sails.log.error(`Failed to transitionWorkflow: ${oid} to ${targetStepName}`);
+         sails.log.error(JSON.stringify(err));
+         this.apiFail(req, res, 500, new APIErrorResponse(`Failed to transition workflow, please check server logs.`));
+       }
+     }
+
+     public async listDatastreams(req, res) {
+       const oid = req.param('oid');
+       if (_.isEmpty(oid)) {
+         return this.apiFail(req, res, 400, new APIErrorResponse("Missing ID of record."));
+       }
+       try {
+         const attachments = await this.RecordsService.getAttachments(oid);
+         sails.log.verbose(JSON.stringify(attachments));
+         let response: ListAPIResponse < any > = new ListAPIResponse < any > ();
+         response.summary.numFound = _.size(attachments);
+         response.summary.page = 1;
+         response.records = attachments;
+         this.apiRespond(req, res, response);
+       } catch (err) {
+         sails.log.error(`Failed to list attachments: ${oid}`);
+         sails.log.error(JSON.stringify(err));
+         this.apiFail(req, res, 500, new APIErrorResponse(`Failed to list attachments, please check server logs.`));
+       }
+     }
+
+     public addRoleEdit(req, res) {
+       const brand = BrandingService.getBrand(req.session.branding);
+
+
+       var oid = req.param('oid');
+       var body = req.body;
+       var roles = body["roles"];
+       Observable.fromPromise(this.RecordsService.getMeta(oid)).subscribe(record => {
+
+         if (roles != null && roles.length > 0) {
+           record["authorization"]["editRoles"] = _.union(record["authorization"]["editRoles"], roles);
+         }
+
+         var obs = Observable.fromPromise(this.RecordsService.updateMeta(brand, oid, record, req.user));
+         obs.subscribe(result => {
+           if (result.isSuccessful()) {
+             Observable.fromPromise(this.RecordsService.getMeta(result.oid)).subscribe(record => {
+               return res.json(record["authorization"]);
+             }, error=> {
+               sails.log.error(error);
+               return this.apiFail(req, res, 500, new APIErrorResponse('Failed adding an editor role, check server logs.'));
+             });
+           } else {
+             return res.json(result);
+           }
+         }, error=> {
+           sails.log.error(error);
+           return this.apiFail(req, res, 500, new APIErrorResponse('Failed adding an editor role, check server logs.'));
+         });
+       });
+     }
+
+     public addRoleView(req, res) {
+       const brand = BrandingService.getBrand(req.session.branding);
+
+
+       var oid = req.param('oid');
+       var body = req.body;
+       var roles = body["roles"];
+       Observable.fromPromise(this.RecordsService.getMeta(oid)).subscribe(record => {
+
+         if (roles != null && roles.length > 0) {
+           record["authorization"]["viewRoles"] = _.union(record["authorization"]["viewRoles"], roles);
+         }
+
+         var obs = Observable.fromPromise(this.RecordsService.updateMeta(brand, oid, record, req.user));
+         obs.subscribe(result => {
+           if (result.isSuccessful()) {
+             Observable.fromPromise(this.RecordsService.getMeta(result["oid"])).subscribe(record => {
+               return res.json(record["authorization"]);
+             });
+           } else {
+             return res.json(result);
+           }
+         });
+       });
+     }
+
+     public removeRoleEdit(req, res) {
+       const brand = BrandingService.getBrand(req.session.branding);
+       var oid = req.param('oid');
+
+       var body = req.body;
+       var roles = body["roles"];
+       Observable.fromPromise(this.RecordsService.getMeta(oid)).subscribe(record => {
+
+         if (roles != null && roles.length > 0) {
+           record["authorization"]["editRoles"] = _.difference(record["authorization"]["editRoles"], roles);
+         }
+
+         var obs = Observable.fromPromise(this.RecordsService.updateMeta(brand, oid, record,req.user));
+         obs.subscribe(result => {
+           if (result.isSuccessful()) {
+             Observable.fromPromise(this.RecordsService.getMeta(result["oid"])).subscribe(record => {
+               return res.json(record["authorization"]);
+             });
+           } else {
+             return res.json(result);
+           }
+         });
+       });
+     }
+
+     public removeRoleView(req, res) {
+       const brand = BrandingService.getBrand(req.session.branding);
+       var oid = req.param('oid');
+
+       var body = req.body;
+       var users = body["roles"];
+       Observable.fromPromise(this.RecordsService.getMeta(oid)).subscribe(record => {
+
+         if (users != null && users.length > 0) {
+           record["authorization"]["viewRoles"] = _.difference(record["authorization"]["viewRoles"], users);
+         }
+
+         var obs = Observable.fromPromise(this.RecordsService.updateMeta(brand, oid, record, req.user));
+         obs.subscribe(result => {
+           if (result.isSuccessful()) {
+             Observable.fromPromise(this.RecordsService.getMeta(result["oid"])).subscribe(record => {
+               return res.json(record["authorization"]);
+             });
+           } else {
+             return res.json(result);
+           }
+         });
+       });
      }
   }
 }

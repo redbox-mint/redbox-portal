@@ -33,15 +33,17 @@ services:
           - mongodb
     ports:
        - "27017:27017"
-  redbox:
-    image: qcifengineering/redbox:2.x
+  solr:
+    image: solr:8.6.3
     expose:
-       - "9000"
-    environment:
-      - RB_API_KEY=c8e844fc-8550-497f-b970-7900ec8741ca
+      - "8983"
+    ports:
+      - "8983:8983"
     networks:
       main:
-        aliases:
-          - redbox
-    ports:
-       - "9000:9000"
+       aliases:
+         - solr
+    entrypoint:
+      - docker-entrypoint.sh
+      - solr-precreate
+      - redbox

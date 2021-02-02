@@ -22,7 +22,7 @@ declare var module;
 declare var sails;
 declare var _;
 import { Observable } from 'rxjs/Rx';
-declare var BrandingService, RolesService, DashboardService, RecordsService, TranslationService;
+declare var BrandingService, RolesService, RecordsService;
 
 /**
  * Package that contains all Controllers.
@@ -68,7 +68,7 @@ export module Controllers {
     }
 
 
-    public getRecordList(req, res) {
+    public async getRecordList(req, res) {
 
       const brand = BrandingService.getBrand(req.session.branding);
 
@@ -93,20 +93,18 @@ export module Controllers {
       const rows = req.param('rows');
       const packageType = req.param('packageType');
       const sort = req.param('sort');
-      this.getRecords(workflowState, recordType, start,rows,user,roles,brand,editAccessOnly, packageType,sort).flatMap(results => {
-          return results;
-        }).subscribe(response => {
-          if (response && response.code == "200") {
-            response.success = true;
-            this.ajaxOk(req, res, null, response);
-          } else {
-            this.ajaxFail(req, res, null, response);
-          }
-        }, error => {
-          sails.log.error("Error updating meta:");
-          sails.log.error(error);
-          this.ajaxFail(req, res, error.message);
-        });
+      try {
+        const response = await this.getRecords(workflowState, recordType, start,rows,user,roles,brand,editAccessOnly, packageType,sort);
+        if (response) {
+          this.ajaxOk(req, res, null, response);
+        } else {
+          this.ajaxFail(req, res, null, response);
+        }
+      } catch (error) {
+        sails.log.error("Error updating meta:");
+        sails.log.error(error);
+        this.ajaxFail(req, res, error.message);
+      }
     }
 
     private getDocMetadata(doc) {
@@ -122,7 +120,7 @@ export module Controllers {
       return metadata;
     }
 
-    protected getRecords(workflowState, recordType, start,rows,user, roles, brand, editAccessOnly=undefined, packageType = undefined, sort=undefined) {
+    protected async getRecords(workflowState, recordType, start,rows,user, roles, brand, editAccessOnly=undefined, packageType = undefined, sort=undefined) {
       const username = user.username;
       if (!_.isUndefined(recordType) && !_.isEmpty(recordType)) {
         recordType = recordType.split(',');
@@ -130,38 +128,39 @@ export module Controllers {
       if (!_.isUndefined(packageType) && !_.isEmpty(packageType)) {
         packageType = packageType.split(',');
       }
-      var response = DashboardService.getRecords(workflowState,recordType, start,rows,username,roles,brand,editAccessOnly, packageType, sort);
+      var results = await RecordsService.getRecords(workflowState,recordType, start,rows,username,roles,brand,editAccessOnly, packageType, sort);
+      if (!results.isSuccessful()) {
+        sails.log.verbose(`Failed to retrieve records!`);
+        return null;
+      }
 
-      return response.map(results => {
+      var totalItems = results.totalItems;
+      var startIndex = start;
+      var noItems = rows;
+      var pageNumber = (startIndex / noItems) + 1;
 
-        var totalItems = results["response"]["numFound"];
-        var startIndex = results["response"]["start"];
-        var noItems = 10;
-        var pageNumber = (startIndex / noItems) + 1;
+      var response = {};
+      response["totalItems"] = totalItems;
+      response["currentPage"] = pageNumber;
+      response["noItems"] = noItems;
 
-        var response = {};
-        response["totalItems"] = totalItems;
-        response["currentPage"] = pageNumber;
-        response["noItems"] = noItems;
+      var items = [];
+      var docs = results.items;
 
-        var items = [];
-        var docs = results["response"]["docs"];
+      for (var i = 0; i < docs.length; i++) {
+        var doc = docs[i];
+        var item = {};
+        item["oid"] = doc["redboxOid"];
+        item["title"] = doc["metadata"]["title"];
+        item["metadata"]= this.getDocMetadata(doc);
+        item["dateCreated"] =  doc["dateCreated"];
+        item["dateModified"] = doc["lastSaveDate"];
+        item["hasEditAccess"] = RecordsService.hasEditAccess(brand, user, roles, doc);
+        items.push(item);
+      }
 
-        for (var i = 0; i < docs.length; i++) {
-          var doc = docs[i];
-          var item = {};
-          item["oid"] = doc["redboxOid"];
-          item["title"] = doc["metadata"]["title"];
-          item["metadata"]= this.getDocMetadata(doc);
-          item["dateCreated"] =  doc["date_object_created"][0];
-          item["dateModified"] = doc["date_object_modified"][0];
-          item["hasEditAccess"] = RecordsService.hasEditAccess(brand, user, roles, doc);
-          items.push(item);
-        }
-
-        response["items"] = items;
-        return Observable.of(response);
-      });
+      response["items"] = items;
+      return response;
     }
 
     /**

@@ -246,8 +246,13 @@ module.exports.routes = {
     csrf: false
   },
   'get /:branding/:portal/api/records/metadata/:oid': 'webservice/RecordController.getMeta',
-  'get /:branding/:portal/api/records/list': 'webservice/RecordController.listRecords',  
+  'get /:branding/:portal/api/records/list': 'webservice/RecordController.listRecords',
   'get /:branding/:portal/api/records/objectmetadata/:oid': 'webservice/RecordController.getObjectMeta',
+  'delete /:branding/:portal/api/records/metadata/:oid': {
+    controller: 'webservice/RecordController',
+    action: 'deleteRecord',
+    csrf: false
+  },
   'post /:branding/:portal/api/records/permissions/edit/:oid': {
     controller: 'webservice/RecordController',
     action: 'addUserEdit',
@@ -268,18 +273,61 @@ module.exports.routes = {
     action: 'addDataStreams',
     csrf: false
   },
+  'get /:branding/:portal/api/records/datastreams/:oid': 'webservice/RecordController.getDataStream',
+  'put /:branding/:portal/api/records/datastreams/:oid': {
+    controller: 'webservice/RecordController',
+    action: 'listDatastreams',
+    csrf: false
+  },
   'delete /:branding/:portal/api/records/permissions/view/:oid': {
     controller: 'webservice/RecordController',
     action: 'removeUserView',
     csrf: false
   },
+  'post /:branding/:portal/api/records/permissions/editRole/:oid': {
+    controller: 'webservice/RecordController',
+    action: 'addRoleEdit',
+    csrf: false
+  },
+  'delete /:branding/:portal/api/records/permissions/editRole/:oid': {
+    controller: 'webservice/RecordController',
+    action: 'removeRoleEdit',
+    csrf: false
+  },
+  'post /:branding/:portal/api/records/permissions/viewRole/:oid': {
+    controller: 'webservice/RecordController',
+    action: 'addRoleView',
+    csrf: false
+  },
+  'delete /:branding/:portal/api/records/permissions/viewRole/:oid': {
+    controller: 'webservice/RecordController',
+    action: 'removeRoleView',
+    csrf: false
+  },
   'get /:branding/:portal/api/records/permissions/:oid': 'webservice/RecordController.getPermissions',
-  'get /:branding/:portal/api/records/datastreams/:oid': 'webservice/RecordController.getDataStream',
-
-
-
+  'post /:branding/:portal/api/records/workflow/step/:targetStep/:oid': {
+    controller: 'webservice/RecordController',
+    action: 'transitionWorkflow',
+    csrf: false
+  },
   'get /:branding/:portal/api/users': 'webservice/UserManagementController.listUsers',
-  'get /:branding/:portal/api/users/find': 'webservice/UserManagementController.findUser',
+  'get /:branding/:portal/api/users/find': 'webservice/UserManagementController.getUser',
+  'get /:branding/:portal/api/users/get': 'webservice/UserManagementController.getUser',
+  'put /:branding/:portal/api/users': 'webservice/UserManagementController.createUser',
+  'post /:branding/:portal/api/users': 'webservice/UserManagementController.updateUser',
+  'get /:branding/:portal/api/users/token/generate': 'webservice/UserManagementController.generateAPIToken',
+  'get /:branding/:portal/api/users/token/revoke': 'webservice/UserManagementController.revokeAPIToken',
+  'get /:branding/:portal/api/roles': 'webservice/UserManagementController.listSystemRoles',
+
+
+  'get /:branding/:portal/api/search': 'webservice/SearchController.search',
+  'get /:branding/:portal/api/search/index': 'webservice/SearchController.index',
+
+  'get /:branding/:portal/api/forms/get': 'webservice/FormManagementController.getForm',
+  'get /:branding/:portal/api/forms': 'webservice/FormManagementController.listForms',
+
+  'get /:branding/:portal/api/recordtypes/get': 'webservice/RecordTypeController.getRecordType',
+  'get /:branding/:portal/api/recordtypes': 'webservice/RecordTypeController.listRecordTypes',
 
   'post /:branding/:portal/api/sendNotification': {
     controller: 'EmailController',

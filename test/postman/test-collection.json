@@ -1,6 +1,6 @@
 {
 	"info": {
-		"_postman_id": "33205a61-6802-437d-9b8b-07f91eb4f7ae",
+		"_postman_id": "97d73a1a-f310-409f-ba07-7e8b6c9d6c41",
 		"name": "Redbox Portal API - With tests",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
@@ -9,400 +9,1655 @@
 			"name": "REST API",
 			"item": [
 				{
-					"name": "Create RDMP",
-					"event": [
+					"name": "Record Management",
+					"item": [
 						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"",
-									"pm.test(\"Status code is 201\", function () {",
-									"    pm.response.to.have.status(201);",
-									"});",
-									"",
-									"pm.test(\"Test oid exists\", function () {",
-									"    var jsonData = pm.response.json();",
-									"    pm.expect(jsonData).to.have.property('oid');",
-									"    postman.setEnvironmentVariable(\"dmpOid\", jsonData.oid);",
-									"    var randomNumber = _.random(100);",
-									"    postman.setEnvironmentVariable(\"randomNumber\", randomNumber);",
-									"    postman.setEnvironmentVariable(\"researcherUsername\", \"researcheruser\" + randomNumber);",
-									"    postman.setEnvironmentVariable(\"researcherEmail\", \"researcheruser\" + randomNumber + \"@email.edu.au\");",
-									"});"
+							"name": "Create RDMP",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"id": "f9ec7c38-e9c8-4ba1-8cd5-af537df3259a",
+										"exec": [
+											"",
+											"pm.test(\"Status code is 201\", function () {",
+											"    pm.response.to.have.status(201);",
+											"});",
+											"",
+											"pm.test(\"Test oid exists\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData).to.have.property('oid');",
+											"    postman.setEnvironmentVariable(\"dmpOid\", jsonData.oid);",
+											"    var randomNumber = _.random(100);",
+											"    postman.setEnvironmentVariable(\"randomNumber\", randomNumber);",
+											"    postman.setEnvironmentVariable(\"researcherUsername\", \"researcheruser\" + randomNumber);",
+											"    postman.setEnvironmentVariable(\"researcherEmail\", \"researcheruser\" + randomNumber + \"@email.edu.au\");",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								},
+								{
+									"listen": "prerequest",
+									"script": {
+										"id": "dcb862db-71f8-46ab-a802-68f9b575c965",
+										"exec": [
+											""
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"name": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									},
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
 								],
-								"type": "text/javascript"
-							}
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"title\": \"Andrew's Postman test\",\n    \"dc:identifier\": \"http://purl.org/au-research/grants/nhmrc/566728\",\n    \"description\": \"Movement of molecules within cells by a process known as membrane transport is critical for normal cell function and also exploited by bacteria to promote infection. The pathway that connects the import pathway to the export pathway is essential for the function of a large number of proteins, however this connecting pathway is poorly characterised. This study will define the machinery of this trafficking pathway, which will provide the ability to modulate biological processes and cytotoxicity.\",\n    \"finalKeywords\": [\n        \"270199\",\n        \"Golgi apparatus\",\n        \"endocytosis\",\n        \"membrane transport\",\n        \"protein trafficking\",\n        \"secretion\",\n        \"HIV-AIDS\",\n        \"bacterial pathogen\",\n        \"hormone secretion\",\n        \"immune development\",\n        \"lysosomal storage disorder\"\n    ],\n    \"contributor_ci\": {\n        \"text_full_name\": \"Prof Paul Gleeson\",\n        \"email\": \"notAReal@email.edu.au\",\n        \"orcid\": \"http://orcid.org/0000-0000-0000-000\"\n    },\n    \"contributor_data_manager\": {\n        \"text_full_name\": \"Prof Paul Gleeson\",\n        \"email\": \"notAReal@email.edu.au\",\n        \"orcid\": \"http://orcid.org/0000-0000-0000-000\"\n    },\n    \"contributors\": [\n        {\n            \"text_full_name\": \"Prof Paul Gleeson\",\n            \"email\": \"notAReal@email.edu.au\",\n            \"orcid\": \"http://orcid.org/0000-0000-0000-000\"\n        }\n    ],\n    \"vivo:Dataset_redbox:DataCollectionMethodology\": \"The data collection methodology\",\n    \"vivo:Dataset_dc_format\": \"xls\",\n    \"vivo:Dataset_dc:location_rdf:PlainLiteral\": \"eResearch Store network drive\",\n    \"vivo:Dataset_dc:source_dc:location_rdf:PlainLiteral\": \"shared university network drive (e.g. G, H, etc)\",\n    \"vivo:Dataset_dc:extent\": \"100GB - 2TB\",\n    \"redbox:retentionPeriod_dc:date\": \"1year\",\n    \"dc:rightsHolder_dc:name\": \"myUni\",\n    \"dc:accessRights\": \"permission from the data manager\",\n    \"authorization\": []\n}"
+								},
+								"url": {
+									"raw": "{{host}}/default/rdmp/api/records/metadata/rdmp",
+									"host": [
+										"{{host}}"
+									],
+									"path": [
+										"default",
+										"rdmp",
+										"api",
+										"records",
+										"metadata",
+										"rdmp"
+									]
+								}
+							},
+							"response": []
 						},
 						{
-							"listen": "prerequest",
-							"script": {
-								"exec": [
-									""
+							"name": "Get RDMP's Metadata",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"id": "e8b733e6-d3c2-4cd1-84b5-35a7e1287bb3",
+										"exec": [
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test(\"Title is correct\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData.title).to.eql(\"Andrew's Postman test\");",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									},
+									{
+										"key": "",
+										"value": "",
+										"type": "text",
+										"disabled": true
+									}
 								],
-								"type": "text/javascript"
-							}
+								"url": {
+									"raw": "{{host}}/default/rdmp/api/records/metadata/{{dmpOid}}",
+									"host": [
+										"{{host}}"
+									],
+									"path": [
+										"default",
+										"rdmp",
+										"api",
+										"records",
+										"metadata",
+										"{{dmpOid}}"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Get RDMP's ObjectMetadata",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"id": "198ab2d3-e77d-45fc-8605-54a918834cc6",
+										"exec": [
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test(\"Type and Form is correct\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData.type).to.eql(\"rdmp\");",
+											"    pm.expect(jsonData.form).to.eql(\"default-1.0-draft\");",
+											"    postman.setEnvironmentVariable(\"brandId\", jsonData.brandId);",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"type": "text",
+										"value": "Bearer {{token}}"
+									},
+									{
+										"key": "",
+										"type": "text",
+										"value": "",
+										"disabled": true
+									}
+								],
+								"url": {
+									"raw": "{{host}}/default/rdmp/api/records/objectmetadata/{{dmpOid}}",
+									"host": [
+										"{{host}}"
+									],
+									"path": [
+										"default",
+										"rdmp",
+										"api",
+										"records",
+										"objectmetadata",
+										"{{dmpOid}}"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Update RDMP Metadata",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"id": "80582a54-66b5-44ec-bd2e-be2c177d85d6",
+										"exec": [
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test(\"Test oid is equal to the requested oid value\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData).to.have.property('oid');",
+											"    pm.expect(jsonData.oid).to.eql(postman.getEnvironmentVariable(\"dmpOid\")); ",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									},
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"title\": \"Andrew's Postman test - Updated\",\n    \"dc:identifier\": \"http://purl.org/au-research/grants/nhmrc/566728\",\n    \"description\": \"Movement of molecules within cells by a process known as membrane transport is critical for normal cell function and also exploited by bacteria to promote infection. The pathway that connects the import pathway to the export pathway is essential for the function of a large number of proteins, however this connecting pathway is poorly characterised. This study will define the machinery of this trafficking pathway, which will provide the ability to modulate biological processes and cytotoxicity.\",\n    \"finalKeywords\": [\n        \"270199\",\n        \"Golgi apparatus\",\n        \"endocytosis\",\n        \"membrane transport\",\n        \"protein trafficking\",\n        \"secretion\",\n        \"HIV-AIDS\",\n        \"bacterial pathogen\",\n        \"hormone secretion\",\n        \"immune development\",\n        \"lysosomal storage disorder\"\n    ],\n    \"contributor_ci\": {\n        \"text_full_name\": \"Prof Paul Gleeson\",\n        \"email\": \"notAReal@email.edu.au\",\n        \"orcid\": \"http://orcid.org/0000-0000-0000-000\"\n    },\n    \"contributor_data_manager\": {\n        \"text_full_name\": \"Prof Paul Gleeson\",\n        \"email\": \"notAReal@email.edu.au\",\n        \"orcid\": \"http://orcid.org/0000-0000-0000-000\"\n    },\n    \"contributors\": [\n        {\n            \"text_full_name\": \"Prof Paul Gleeson\",\n            \"email\": \"notAReal@email.edu.au\",\n            \"orcid\": \"http://orcid.org/0000-0000-0000-000\"\n        }\n    ],\n    \"vivo:Dataset_redbox:DataCollectionMethodology\": \"The data collection methodology\",\n    \"vivo:Dataset_dc_format\": \"xls\",\n    \"vivo:Dataset_dc:location_rdf:PlainLiteral\": \"eResearch Store network drive\",\n    \"vivo:Dataset_dc:source_dc:location_rdf:PlainLiteral\": \"shared university network drive (e.g. G, H, etc)\",\n    \"vivo:Dataset_dc:extent\": \"100GB - 2TB\",\n    \"redbox:retentionPeriod_dc:date\": \"1year\",\n    \"dc:rightsHolder_dc:name\": \"myUni\",\n    \"dc:accessRights\": \"permission from the data manager\",\n    \"authorization\": []\n}"
+								},
+								"url": {
+									"raw": "{{host}}/default/rdmp/api/records/metadata/{{dmpOid}}",
+									"host": [
+										"{{host}}"
+									],
+									"path": [
+										"default",
+										"rdmp",
+										"api",
+										"records",
+										"metadata",
+										"{{dmpOid}}"
+									]
+								},
+								"description": "http://localhost:1500/default/rdmp/api/records/rdmp/create"
+							},
+							"response": []
+						},
+						{
+							"name": "Get RDMP's Metadata - Updated Test",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"id": "a2624cea-64ab-4156-85ab-9045ce74f9fc",
+										"exec": [
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test(\"Title is correct\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData.title).to.eql(\"Andrew's Postman test - Updated\");",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"type": "text",
+										"value": "Bearer {{token}}"
+									},
+									{
+										"key": "",
+										"type": "text",
+										"value": "",
+										"disabled": true
+									}
+								],
+								"url": {
+									"raw": "{{host}}/default/rdmp/api/records/metadata/{{dmpOid}}",
+									"host": [
+										"{{host}}"
+									],
+									"path": [
+										"default",
+										"rdmp",
+										"api",
+										"records",
+										"metadata",
+										"{{dmpOid}}"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Give user edit permissions to RDMP",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"id": "fe0028e6-881b-4e7a-a7af-3a7ba06a7f4c",
+										"exec": [
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test(\"Edit permissions applied\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    //TODO: This is because of the save trigger",
+											"    pm.expect(jsonData.edit).to.eql([]);",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									},
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n\t\"users\": [\"user\"]\n}"
+								},
+								"url": {
+									"raw": "{{host}}/default/rdmp/api/records/permissions/edit/{{dmpOid}}",
+									"host": [
+										"{{host}}"
+									],
+									"path": [
+										"default",
+										"rdmp",
+										"api",
+										"records",
+										"permissions",
+										"edit",
+										"{{dmpOid}}"
+									]
+								},
+								"description": "http://localhost:1500/default/rdmp/api/records/rdmp/create"
+							},
+							"response": []
+						},
+						{
+							"name": "Create RDMP For Deletion",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"id": "76ffb7f5-555e-415d-a2cb-76a0531296cb",
+										"exec": [
+											"",
+											"pm.test(\"Status code is 201\", function () {",
+											"    pm.response.to.have.status(201);",
+											"});",
+											"",
+											"pm.test(\"Test oid exists\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData).to.have.property('oid');",
+											"    postman.setEnvironmentVariable(\"dmpOidToDelete\", jsonData.oid);",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								},
+								{
+									"listen": "prerequest",
+									"script": {
+										"id": "13782465-d7a9-425a-a9e7-6b4473c9b48d",
+										"exec": [
+											""
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"name": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									},
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"title\": \"Andrew's Postman test\",\n    \"dc:identifier\": \"http://purl.org/au-research/grants/nhmrc/566728\",\n    \"description\": \"Movement of molecules within cells by a process known as membrane transport is critical for normal cell function and also exploited by bacteria to promote infection. The pathway that connects the import pathway to the export pathway is essential for the function of a large number of proteins, however this connecting pathway is poorly characterised. This study will define the machinery of this trafficking pathway, which will provide the ability to modulate biological processes and cytotoxicity.\",\n    \"finalKeywords\": [\n        \"270199\",\n        \"Golgi apparatus\",\n        \"endocytosis\",\n        \"membrane transport\",\n        \"protein trafficking\",\n        \"secretion\",\n        \"HIV-AIDS\",\n        \"bacterial pathogen\",\n        \"hormone secretion\",\n        \"immune development\",\n        \"lysosomal storage disorder\"\n    ],\n    \"contributor_ci\": {\n        \"text_full_name\": \"Prof Paul Gleeson\",\n        \"email\": \"notAReal@email.edu.au\",\n        \"orcid\": \"http://orcid.org/0000-0000-0000-000\"\n    },\n    \"contributor_data_manager\": {\n        \"text_full_name\": \"Prof Paul Gleeson\",\n        \"email\": \"notAReal@email.edu.au\",\n        \"orcid\": \"http://orcid.org/0000-0000-0000-000\"\n    },\n    \"contributors\": [\n        {\n            \"text_full_name\": \"Prof Paul Gleeson\",\n            \"email\": \"notAReal@email.edu.au\",\n            \"orcid\": \"http://orcid.org/0000-0000-0000-000\"\n        }\n    ],\n    \"vivo:Dataset_redbox:DataCollectionMethodology\": \"The data collection methodology\",\n    \"vivo:Dataset_dc_format\": \"xls\",\n    \"vivo:Dataset_dc:location_rdf:PlainLiteral\": \"eResearch Store network drive\",\n    \"vivo:Dataset_dc:source_dc:location_rdf:PlainLiteral\": \"shared university network drive (e.g. G, H, etc)\",\n    \"vivo:Dataset_dc:extent\": \"100GB - 2TB\",\n    \"redbox:retentionPeriod_dc:date\": \"1year\",\n    \"dc:rightsHolder_dc:name\": \"myUni\",\n    \"dc:accessRights\": \"permission from the data manager\",\n    \"authorization\": []\n}"
+								},
+								"url": {
+									"raw": "{{host}}/default/rdmp/api/records/metadata/rdmp",
+									"host": [
+										"{{host}}"
+									],
+									"path": [
+										"default",
+										"rdmp",
+										"api",
+										"records",
+										"metadata",
+										"rdmp"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Delete Record",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"id": "075d0e37-e4c8-4f75-8f3d-5e2da81d4c4d",
+										"exec": [
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test(\"Success is set and is true\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData).to.have.property('success');",
+											"    pm.expect(jsonData.success).to.eql(true);",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "DELETE",
+								"header": [],
+								"url": {
+									"raw": "{{host}}/default/rdmp/api/records/metadata/{{dmpOidToDelete}}",
+									"host": [
+										"{{host}}"
+									],
+									"path": [
+										"default",
+										"rdmp",
+										"api",
+										"records",
+										"metadata",
+										"{{dmpOidToDelete}}"
+									]
+								},
+								"description": "Delete Record"
+							},
+							"response": []
+						},
+						{
+							"name": "Create Datarecord for Attachments",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"id": "dab56e5c-b9bb-4583-8807-d692a9ec3a3d",
+										"exec": [
+											"",
+											"pm.test(\"Status code is 201\", function () {",
+											"    pm.response.to.have.status(201);",
+											"});",
+											"",
+											"pm.test(\"Test oid exists\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData).to.have.property('oid');",
+											"    postman.setEnvironmentVariable(\"attDataRecordOid\", jsonData.oid);",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								},
+								{
+									"listen": "prerequest",
+									"script": {
+										"id": "fa94d28f-d780-4868-a1e7-ca701170dedb",
+										"exec": [
+											""
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"name": "Content-Type",
+										"type": "text",
+										"value": "application/json"
+									},
+									{
+										"key": "Authorization",
+										"type": "text",
+										"value": "Bearer {{token}}"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"parameterRetriever\": \"\",\n    \"rdmpGetter\": \"\",\n    \"\": {},\n    \"rdmp\": {\n        \"oid\": \"{{dmpOid}}\",\n        \"title\": \"Andrew's Postman test - Updated from form AJAX call\"\n    },\n    \"aim_project_name\": \"Andrew's Postman test - Updated from form AJAX call\",\n    \"foaf:fundedBy_foaf:Agent\": [\n        \"\"\n    ],\n    \"dc:coverage_vivo:DateTimeInterval_vivo:end\": \"\",\n    \"foaf:fundedBy_vivo:Grant\": [\n        \"\"\n    ],\n    \"dc:subject_anzsrc:for\": [\n        {\n            \"name\": \"01 - MATHEMATICAL SCIENCES\",\n            \"label\": \"MATHEMATICAL SCIENCES\",\n            \"notation\": \"01\"\n        }\n    ],\n    \"dc:subject_anzsrc:seo\": [],\n    \"title\": \"A Data record\",\n    \"description\": \"Data record\",\n    \"datatype\": \"collection\",\n    \"finalKeywords\": [\n        \"270199\",\n        \"Golgi apparatus\",\n        \"endocytosis\",\n        \"membrane transport\",\n        \"protein trafficking\",\n        \"secretion\",\n        \"HIV-AIDS\",\n        \"bacterial pathogen\",\n        \"hormone secretion\",\n        \"immune development\",\n        \"lysosomal storage disorder\"\n    ],\n    \"contributor_ci\": {\n        \"text_full_name\": \"Alberto Zweinstein\",\n        \"full_name_honorific\": \"Dr Alberto Zweinstein\",\n        \"email\": \"alberto.zweinstein@example.edu.au\",\n        \"given_name\": \"Alberto\",\n        \"family_name\": \"Zweinstein\",\n        \"honorific\": \"Dr\",\n        \"full_name_family_name_first\": \"Zweinstein, Alberto\",\n        \"username\": \"\",\n        \"role\": \"Chief Investigator\",\n        \"orcid\": null\n    },\n    \"contributor_data_manager\": {\n        \"text_full_name\": \"Prof Paul Gleeson\",\n        \"email\": \"notAReal@email.edu.au\",\n        \"username\": \"\",\n        \"role\": \"Data manager\",\n        \"orcid\": \"http://orcid.org/0000-0000-0000-000\"\n    },\n    \"contributors\": [\n        {\n            \"text_full_name\": \"Prof Paul Gleeson\",\n            \"email\": \"notAReal@email.edu.au\",\n            \"username\": \"\",\n            \"role\": \"Contributors\",\n            \"orcid\": \"http://orcid.org/0000-0000-0000-000\"\n        }\n    ],\n    \"contributor_supervisor\": {\n        \"text_full_name\": null,\n        \"full_name_honorific\": \"\",\n        \"email\": null,\n        \"given_name\": \"\",\n        \"family_name\": \"\",\n        \"honorific\": \"\",\n        \"full_name_family_name_first\": \"\",\n        \"username\": \"\",\n        \"role\": \"Supervisor\",\n        \"orcid\": null\n    },\n    \"dataowner_name\": \"Alberto Zweinstein\",\n    \"dataowner_email\": \"alberto.zweinstein@example.edu.au\",\n    \"redbox:retentionPeriod_dc:date\": \"1year\",\n    \"redbox:retentionPeriod_dc:date_skos:note\": \"\",\n    \"disposalDate\": \"\",\n    \"related_publications\": [\n        {\n            \"related_url\": \"\",\n            \"related_title\": \"\",\n            \"related_notes\": \"\"\n        }\n    ],\n    \"dataLocations\": [],\n    \"software_equipment\": \"\"\n}"
+								},
+								"url": {
+									"raw": "{{host}}/default/rdmp/api/records/metadata/dataRecord",
+									"host": [
+										"{{host}}"
+									],
+									"path": [
+										"default",
+										"rdmp",
+										"api",
+										"records",
+										"metadata",
+										"dataRecord"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Add attachment to Datarecord",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"id": "c0a6ae8e-b952-4e45-8056-bd5213c44d12",
+										"exec": [
+											"",
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											""
+										],
+										"type": "text/javascript"
+									}
+								},
+								{
+									"listen": "prerequest",
+									"script": {
+										"id": "22b37cca-4b4f-4925-b28d-dc1cadad4e06",
+										"exec": [
+											""
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"name": "Content-Type",
+										"type": "text",
+										"value": "application/json",
+										"disabled": true
+									},
+									{
+										"key": "Authorization",
+										"type": "text",
+										"value": "Bearer {{token}}"
+									}
+								],
+								"body": {
+									"mode": "formdata",
+									"formdata": [
+										{
+											"key": "attachmentFields",
+											"type": "file",
+											"src": "test/postman/attachment.png"
+										},
+										{
+											"key": "dataLocations",
+											"value": "",
+											"type": "text",
+											"disabled": true
+										}
+									]
+								},
+								"url": {
+									"raw": "{{host}}/default/rdmp/api/records/datastreams/{{attDataRecordOid}}",
+									"host": [
+										"{{host}}"
+									],
+									"path": [
+										"default",
+										"rdmp",
+										"api",
+										"records",
+										"datastreams",
+										"{{attDataRecordOid}}"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "List Attachments for Datarecord",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"id": "5940b6a4-cd63-4905-a27b-8b39e89a72e4",
+										"exec": [
+											"",
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test(\"Has attachments\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    // pm.expect()",
+											"    pm.expect(_.size(jsonData)).to.gt(0);",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								},
+								{
+									"listen": "prerequest",
+									"script": {
+										"id": "f0fb2e7d-7e91-4570-88dc-e6de7b69d70d",
+										"exec": [
+											""
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Content-Type",
+										"name": "Content-Type",
+										"type": "text",
+										"value": "application/json"
+									},
+									{
+										"key": "Authorization",
+										"type": "text",
+										"value": "Bearer {{token}}"
+									}
+								],
+								"url": {
+									"raw": "{{host}}/default/rdmp/api/records/datastreams/{{attDataRecordOid}}",
+									"host": [
+										"{{host}}"
+									],
+									"path": [
+										"default",
+										"rdmp",
+										"api",
+										"records",
+										"datastreams",
+										"{{attDataRecordOid}}"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Create Temporary Datapub",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"id": "934d0b1b-284d-4e63-a3d9-a7e5bc584564",
+										"exec": [
+											"",
+											"pm.test(\"Status code is 201\", function () {",
+											"    pm.response.to.have.status(201);",
+											"});",
+											"",
+											"pm.test(\"Test oid exists\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData).to.have.property('oid');",
+											"    postman.setEnvironmentVariable(\"tempDataPubOid\", jsonData.oid);",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								},
+								{
+									"listen": "prerequest",
+									"script": {
+										"id": "81977619-ea89-44ac-aa87-3df51d1d2cae",
+										"exec": [
+											""
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"name": "Content-Type",
+										"type": "text",
+										"value": "application/json"
+									},
+									{
+										"key": "Authorization",
+										"type": "text",
+										"value": "Bearer {{token}}"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"parameterRetriever\": \"\",\n    \"dataRecordGetter\": \"\",\n    \"\": {},\n    \"title\": \"A Data record\",\n    \"description\": \"Data record\",\n    \"datatype\": \"collection\",\n    \"finalKeywords\": [\n        \"270199\",\n        \"Golgi apparatus\",\n        \"endocytosis\",\n        \"membrane transport\",\n        \"protein trafficking\",\n        \"secretion\",\n        \"HIV-AIDS\",\n        \"bacterial pathogen\",\n        \"hormone secretion\",\n        \"immune development\",\n        \"lysosomal storage disorder\"\n    ],\n    \"foaf:fundedBy_foaf:Agent\": [\n        {}\n    ],\n    \"foaf:fundedBy_vivo:Grant\": [\n        {}\n    ],\n    \"dc:subject_anzsrc:for\": [\n        {\n            \"name\": \"01 - MATHEMATICAL SCIENCES\",\n            \"label\": \"MATHEMATICAL SCIENCES\",\n            \"notation\": \"01\"\n        }\n    ],\n    \"dc:subject_anzsrc:seo\": [],\n    \"startDate\": \"\",\n    \"endDate\": \"\",\n    \"timePeriod\": \"\",\n    \"geolocations\": [\n        \"\"\n    ],\n    \"geospatial\": {},\n    \"accessRightsToggle\": \"\",\n    \"dataLocations\": [\n        {\n            \"type\": \"attachment\",\n            \"location\": \"b869b4fae83a1f01082465d165d868a8/attach/d3de61376e5bc93c814607ee604ebac5\",\n            \"mimeType\": \"image/png\",\n            \"name\": \"Screen Shot 2018-11-26 at 3.39.48 pm.png\",\n            \"fileId\": \"d3de61376e5bc93c814607ee604ebac5\",\n            \"uploadUrl\": \"http://localhost:1500/default/rdmp/record/b869b4fae83a1f01082465d165d868a8/attach/d3de61376e5bc93c814607ee604ebac5\",\n            \"selected\": true\n        }\n    ],\n    \"dataLicensingAccess_manager\": \"Prof Paul Gleeson\",\n    \"dc:accessRights\": \"Open\",\n    \"accessRights_url\": \"\",\n    \"related_publications\": [\n        {\n            \"related_title\": \"\",\n            \"related_url\": \"\",\n            \"related_notes\": \"\"\n        }\n    ],\n    \"related_websites\": [\n        {\n            \"related_title\": \"\",\n            \"related_url\": \"\",\n            \"related_notes\": \"\"\n        }\n    ],\n    \"related_metadata\": [\n        {\n            \"related_title\": \"\",\n            \"related_url\": \"\",\n            \"related_notes\": \"\"\n        }\n    ],\n    \"related_data\": [\n        {\n            \"related_title\": \"\",\n            \"related_url\": \"\",\n            \"related_notes\": \"\"\n        }\n    ],\n    \"related_services\": [\n        {\n            \"related_title\": \"\",\n            \"related_url\": \"\",\n            \"related_notes\": \"\"\n        }\n    ],\n    \"license_identifier\": \"\",\n    \"license_notes\": \"\",\n    \"license_other_url\": \"\",\n    \"license_statement\": \"Copyright ReDBox Research Data 2018\",\n    \"license_statement_url\": \"\",\n    \"citation_doi\": \"\",\n    \"requestIdentifier\": [],\n    \"citation_title\": \"A Data Record\",\n    \"creators\": [\n        {\n            \"text_full_name\": \"Alberto Zweinstein\",\n            \"email\": \"alberto.zweinstein@example.edu.au\",\n            \"role\": \"Chief Investigator\",\n            \"username\": \"\",\n            \"orcid\": \"\",\n            \"family_name\": \"Zweinstein\",\n            \"given_name\": \"Alberto\"\n        },\n        {\n            \"text_full_name\": \"Prof Paul Gleeson\",\n            \"email\": \"notAReal@email.edu.au\",\n            \"role\": \"Data manager\",\n            \"username\": \"\",\n            \"orcid\": \"http://orcid.org/0000-0000-0000-000\",\n            \"family_name\": \"Paul Gleeson\",\n            \"given_name\": \"Prof\"\n        },\n        {\n            \"text_full_name\": \"Prof Paul Gleeson\",\n            \"email\": \"notAReal@email.edu.au\",\n            \"role\": \"Contributors\",\n            \"username\": \"\",\n            \"orcid\": \"http://orcid.org/0000-0000-0000-000\",\n            \"family_name\": \"Paul Gleeson\",\n            \"given_name\": \"Prof\"\n        },\n        {\n            \"text_full_name\": null,\n            \"email\": null,\n            \"role\": \"Supervisor\",\n            \"username\": \"\",\n            \"orcid\": \"\",\n            \"family_name\": \"\",\n            \"given_name\": \"\"\n        }\n    ],\n    \"citation_publisher\": \"ReDBox Research Data\",\n    \"citation_url\": \"\",\n    \"citation_publication_date\": \"\",\n    \"citation_generated\": \"Zweinstein, Alberto; Paul Gleeson, Prof; Paul Gleeson, Prof (Invalid date): A Data Record. ReDBox Research Data. {ID_WILL_BE_HERE}\",\n    \"dataowner_name\": \"Alberto Zweinstein\",\n    \"dataowner_email\": \"alberto.zweinstein@example.edu.au\",\n    \"contributor_ci\": {\n        \"text_full_name\": \"Alberto Zweinstein\",\n        \"full_name_honorific\": \"Dr Alberto Zweinstein\",\n        \"email\": \"alberto.zweinstein@example.edu.au\",\n        \"given_name\": \"Alberto\",\n        \"family_name\": \"Zweinstein\",\n        \"honorific\": \"Dr\",\n        \"full_name_family_name_first\": \"Zweinstein, Alberto\",\n        \"username\": \"\",\n        \"role\": \"Chief Investigator\"\n    },\n    \"contributor_data_manager\": {\n        \"text_full_name\": \"Prof Paul Gleeson\",\n        \"full_name_honorific\": \"\",\n        \"email\": \"notAReal@email.edu.au\",\n        \"given_name\": \"Prof\",\n        \"family_name\": \"Paul Gleeson\",\n        \"honorific\": \"\",\n        \"full_name_family_name_first\": \"Paul Gleeson, Prof\",\n        \"username\": \"\",\n        \"role\": \"Data manager\",\n        \"orcid\": \"http://orcid.org/0000-0000-0000-000\"\n    },\n    \"contributor_supervisor\": {\n        \"text_full_name\": \"\",\n        \"full_name_honorific\": \"\",\n        \"email\": \"\",\n        \"given_name\": \"\",\n        \"family_name\": \"\",\n        \"honorific\": \"\",\n        \"full_name_family_name_first\": \"\",\n        \"username\": \"\",\n        \"role\": \"Supervisor\"\n    },\n    \"embargoByDate\": \"\",\n    \"embargoUntil\": null,\n    \"embargoNote\": \"\",\n    \"reviewerNote\": \"\",\n    \"ckanLocation\": \"\"\n}"
+								},
+								"url": {
+									"raw": "{{host}}/default/rdmp/api/records/metadata/dataPublication",
+									"host": [
+										"{{host}}"
+									],
+									"path": [
+										"default",
+										"rdmp",
+										"api",
+										"records",
+										"metadata",
+										"dataPublication"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Transition Workflow of Data publication",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"id": "37659128-1673-4449-99df-b0df0e136546",
+										"exec": [
+											"",
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test(\"Success is set and is equal to true\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData).to.have.property('success');",
+											"    pm.expect(jsonData.success).to.eql(true);",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								},
+								{
+									"listen": "prerequest",
+									"script": {
+										"id": "8fd592fa-9985-44a0-873f-2180819934b4",
+										"exec": [
+											""
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"name": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									},
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{host}}/default/rdmp/api/records/workflow/step/queued/{{tempDataPubOid}}",
+									"host": [
+										"{{host}}"
+									],
+									"path": [
+										"default",
+										"rdmp",
+										"api",
+										"records",
+										"workflow",
+										"step",
+										"queued",
+										"{{tempDataPubOid}}"
+									]
+								}
+							},
+							"response": []
 						}
 					],
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"name": "Content-Type",
-								"value": "application/json",
-								"type": "text"
-							},
-							{
-								"key": "Authorization",
-								"value": "Bearer {{token}}",
-								"type": "text"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"title\": \"Andrew's Postman test\",\n    \"dc:identifier\": \"http://purl.org/au-research/grants/nhmrc/566728\",\n    \"description\": \"Movement of molecules within cells by a process known as membrane transport is critical for normal cell function and also exploited by bacteria to promote infection. The pathway that connects the import pathway to the export pathway is essential for the function of a large number of proteins, however this connecting pathway is poorly characterised. This study will define the machinery of this trafficking pathway, which will provide the ability to modulate biological processes and cytotoxicity.\",\n    \"finalKeywords\": [\n        \"270199\",\n        \"Golgi apparatus\",\n        \"endocytosis\",\n        \"membrane transport\",\n        \"protein trafficking\",\n        \"secretion\",\n        \"HIV-AIDS\",\n        \"bacterial pathogen\",\n        \"hormone secretion\",\n        \"immune development\",\n        \"lysosomal storage disorder\"\n    ],\n    \"contributor_ci\": {\n        \"text_full_name\": \"Prof Paul Gleeson\",\n        \"email\": \"notAReal@email.edu.au\",\n        \"orcid\": \"http://orcid.org/0000-0000-0000-000\"\n    },\n    \"contributor_data_manager\": {\n        \"text_full_name\": \"Prof Paul Gleeson\",\n        \"email\": \"notAReal@email.edu.au\",\n        \"orcid\": \"http://orcid.org/0000-0000-0000-000\"\n    },\n    \"contributors\": [\n        {\n            \"text_full_name\": \"Prof Paul Gleeson\",\n            \"email\": \"notAReal@email.edu.au\",\n            \"orcid\": \"http://orcid.org/0000-0000-0000-000\"\n        }\n    ],\n    \"vivo:Dataset_redbox:DataCollectionMethodology\": \"The data collection methodology\",\n    \"vivo:Dataset_dc_format\": \"xls\",\n    \"vivo:Dataset_dc:location_rdf:PlainLiteral\": \"eResearch Store network drive\",\n    \"vivo:Dataset_dc:source_dc:location_rdf:PlainLiteral\": \"shared university network drive (e.g. G, H, etc)\",\n    \"vivo:Dataset_dc:extent\": \"100GB - 2TB\",\n    \"redbox:retentionPeriod_dc:date\": \"1year\",\n    \"dc:rightsHolder_dc:name\": \"myUni\",\n    \"dc:accessRights\": \"permission from the data manager\",\n    \"authorization\": []\n}"
-						},
-						"url": {
-							"raw": "{{host}}/default/rdmp/api/records/metadata/rdmp",
-							"host": [
-								"{{host}}"
-							],
-							"path": [
-								"default",
-								"rdmp",
-								"api",
-								"records",
-								"metadata",
-								"rdmp"
-							]
-						}
-					},
-					"response": []
+					"protocolProfileBehavior": {},
+					"_postman_isSubFolder": true
 				},
 				{
-					"name": "Get RDMP's Metadata",
-					"event": [
+					"name": "User Management",
+					"item": [
 						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test(\"Status code is 200\", function () {",
-									"    pm.response.to.have.status(200);",
-									"});",
-									"",
-									"pm.test(\"Title is correct\", function () {",
-									"    var jsonData = pm.response.json();",
-									"    pm.expect(jsonData.title).to.eql(\"Andrew's Postman test\");",
-									"});"
+							"name": "List Users",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"id": "c3b793d0-72fa-438c-bcb0-26496f7a39c8",
+										"exec": [
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test(\"Number of users returned in results array equals numFound or 10\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    ",
+											"    var numFound = jsonData.summary.numFound;",
+											"    ",
+											"    if(numFound < 10) {",
+											"        pm.expect(jsonData.records.length).to.eql(numFound);",
+											"    } else {",
+											"        pm.expect(jsonData.records.length).to.eql(10);",
+											"    }",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									},
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}"
+									}
 								],
-								"type": "text/javascript"
-							}
+								"url": {
+									"raw": "{{host}}/default/rdmp/api/users",
+									"host": [
+										"{{host}}"
+									],
+									"path": [
+										"default",
+										"rdmp",
+										"api",
+										"users"
+									]
+								},
+								"description": "http://localhost:1500/default/rdmp/api/records/rdmp/create"
+							},
+							"response": []
+						},
+						{
+							"name": "Get Admin User Details",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"id": "85758358-7a47-48e8-8f7c-2fbc2427b043",
+										"exec": [
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test(\"Username is admin\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    ",
+											"    var username = jsonData.username;",
+											"    ",
+											"    pm.expect(username).to.eql('admin');",
+											"    ",
+											"        ",
+											"});",
+											"",
+											"pm.test(\"email address is admin@redboxresearchdata.com.au\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    ",
+											"    var email = jsonData.email;",
+											"    ",
+											"    pm.expect(email).to.eql('admin@redboxresearchdata.com.au');",
+											"    ",
+											"        ",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									},
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}"
+									}
+								],
+								"url": {
+									"raw": "{{host}}/default/rdmp/api/users/get?searchBy=email&query=admin@redboxresearchdata.com.au",
+									"host": [
+										"{{host}}"
+									],
+									"path": [
+										"default",
+										"rdmp",
+										"api",
+										"users",
+										"get"
+									],
+									"query": [
+										{
+											"key": "searchBy",
+											"value": "email"
+										},
+										{
+											"key": "query",
+											"value": "admin@redboxresearchdata.com.au"
+										}
+									]
+								},
+								"description": "http://localhost:1500/default/rdmp/api/records/rdmp/create"
+							},
+							"response": []
+						},
+						{
+							"name": "Attempt to retrieve user that does not exist",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"id": "7e4bf386-1692-45f6-aad6-2ea3a167287a",
+										"exec": [
+											"pm.test(\"Status code is 404\", function () {",
+											"    pm.response.to.have.status(404);",
+											"});",
+											"",
+											"pm.test(\"Error message is correct\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    ",
+											"    var message = jsonData.message;",
+											"    ",
+											"    pm.expect(message).to.eql('No user found with given criteria');",
+											"    ",
+											"        ",
+											"});",
+											"",
+											"pm.test(\"Details message is correct\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    ",
+											"    var details = jsonData.details;",
+											"    ",
+											"    pm.expect(details).to.eql('Searchby: email and Query: fake@redboxresearchdata.com.au');",
+											"    ",
+											"        ",
+											"});",
+											"",
+											""
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									},
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}"
+									}
+								],
+								"url": {
+									"raw": "{{host}}/default/rdmp/api/users/get?searchBy=email&query=fake@redboxresearchdata.com.au",
+									"host": [
+										"{{host}}"
+									],
+									"path": [
+										"default",
+										"rdmp",
+										"api",
+										"users",
+										"get"
+									],
+									"query": [
+										{
+											"key": "searchBy",
+											"value": "email"
+										},
+										{
+											"key": "query",
+											"value": "fake@redboxresearchdata.com.au"
+										}
+									]
+								},
+								"description": "http://localhost:1500/default/rdmp/api/records/rdmp/create"
+							},
+							"response": []
+						},
+						{
+							"name": "Create API Researcher User",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"id": "b88088b8-4c3a-4163-a83a-af89b40369cb",
+										"exec": [
+											"",
+											"pm.test(\"Status code is 201\", function () {",
+											"    pm.response.to.have.status(201);",
+											"});",
+											"",
+											"pm.test(\"Test response\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData).to.have.property('id');",
+											"    pm.expect(jsonData).to.have.property('username');",
+											"    pm.expect(jsonData).to.have.property('name');",
+											"    pm.expect(jsonData).to.have.property('email');",
+											"    pm.expect(jsonData).to.have.property('type');",
+											"    pm.expect(jsonData).to.have.property('lastLogin');",
+											"    postman.setEnvironmentVariable(\"apiUserId\", jsonData.id);",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								},
+								{
+									"listen": "prerequest",
+									"script": {
+										"id": "c188e622-055b-42eb-b644-f588d02af75b",
+										"exec": [
+											""
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Content-Type",
+										"name": "Content-Type",
+										"type": "text",
+										"value": "application/json"
+									},
+									{
+										"key": "Authorization",
+										"type": "text",
+										"value": "Bearer {{token}}"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"username\": \"apiresearcher34\",\n    \"name\": \"researcher created via API\",\n    \"email\": \"apiresearcher34@redboxresearchdata.com.au\",\n    \"password\": \"a12345672A!\",\n    \"roles\": [\"Admin\",\"Researcher\",\"Librarian\"]\n}"
+								},
+								"url": {
+									"raw": "{{host}}/default/rdmp/api/users",
+									"host": [
+										"{{host}}"
+									],
+									"path": [
+										"default",
+										"rdmp",
+										"api",
+										"users"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Update API Researcher User",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"id": "635f6916-fa50-475a-b003-6bb272207a9a",
+										"exec": [
+											"",
+											"pm.test(\"Status code is 201\", function () {",
+											"    pm.response.to.have.status(201);",
+											"});",
+											"",
+											"pm.test(\"Test response\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData).to.have.property('id');",
+											"    pm.expect(jsonData).to.have.property('username');",
+											"    pm.expect(jsonData).to.have.property('name');",
+											"    pm.expect(jsonData).to.have.property('email');",
+											"    pm.expect(jsonData).to.have.property('type');",
+											"    pm.expect(jsonData).to.have.property('lastLogin');",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								},
+								{
+									"listen": "prerequest",
+									"script": {
+										"id": "345a88fc-ae05-40a2-be8b-72edcf03625a",
+										"exec": [
+											""
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"name": "Content-Type",
+										"type": "text",
+										"value": "application/json"
+									},
+									{
+										"key": "Authorization",
+										"type": "text",
+										"value": "Bearer {{token}}"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"id\": \"{{apiUserId}}\",\n    \"name\": \"researcher created via API - modified\",\n    \"email\": \"apiresearcher@redboxresearchdata.com.au\",\n    \"password\": \"a12345672A!\"\n}"
+								},
+								"url": {
+									"raw": "{{host}}/default/rdmp/api/users",
+									"host": [
+										"{{host}}"
+									],
+									"path": [
+										"default",
+										"rdmp",
+										"api",
+										"users"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Generate API Researcher User API Token",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"id": "7ba75c5e-b4b9-4854-bd6d-947f0bf103f5",
+										"exec": [
+											"",
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test(\"Test response\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData).to.have.property('token');",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								},
+								{
+									"listen": "prerequest",
+									"script": {
+										"id": "2fb11f9c-f1d8-45a9-b4b6-d57981f63e7f",
+										"exec": [
+											""
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"protocolProfileBehavior": {
+								"disableBodyPruning": true
+							},
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Content-Type",
+										"name": "Content-Type",
+										"type": "text",
+										"value": "application/json"
+									},
+									{
+										"key": "Authorization",
+										"type": "text",
+										"value": "Bearer {{token}}"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": ""
+								},
+								"url": {
+									"raw": "{{host}}/default/rdmp/api/users/token/generate?id={{apiUserId}}",
+									"host": [
+										"{{host}}"
+									],
+									"path": [
+										"default",
+										"rdmp",
+										"api",
+										"users",
+										"token",
+										"generate"
+									],
+									"query": [
+										{
+											"key": "id",
+											"value": "{{apiUserId}}"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Revoke API Researcher User API Token",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"id": "d343af0d-10d9-4072-8ffb-509c06bfb381",
+										"exec": [
+											"",
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test(\"Test response\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData).to.have.property('id');",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								},
+								{
+									"listen": "prerequest",
+									"script": {
+										"id": "139e05c7-f758-4fe9-9852-5e42427912ee",
+										"exec": [
+											""
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"protocolProfileBehavior": {
+								"disableBodyPruning": true
+							},
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Content-Type",
+										"name": "Content-Type",
+										"type": "text",
+										"value": "application/json"
+									},
+									{
+										"key": "Authorization",
+										"type": "text",
+										"value": "Bearer {{token}}"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": ""
+								},
+								"url": {
+									"raw": "{{host}}/default/rdmp/api/users/token/revoke?id={{apiUserId}}",
+									"host": [
+										"{{host}}"
+									],
+									"path": [
+										"default",
+										"rdmp",
+										"api",
+										"users",
+										"token",
+										"revoke"
+									],
+									"query": [
+										{
+											"key": "id",
+											"value": "{{apiUserId}}"
+										}
+									]
+								}
+							},
+							"response": []
 						}
 					],
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{token}}",
-								"type": "text"
-							},
-							{
-								"key": "",
-								"value": "",
-								"type": "text",
-								"disabled": true
-							}
-						],
-						"url": {
-							"raw": "{{host}}/default/rdmp/api/records/metadata/{{dmpOid}}",
-							"host": [
-								"{{host}}"
-							],
-							"path": [
-								"default",
-								"rdmp",
-								"api",
-								"records",
-								"metadata",
-								"{{dmpOid}}"
-							]
-						}
-					},
-					"response": []
+					"protocolProfileBehavior": {},
+					"_postman_isSubFolder": true
 				},
 				{
-					"name": "Get RDMP's ObjectMetadata",
-					"event": [
+					"name": "Search",
+					"item": [
 						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test(\"Status code is 200\", function () {",
-									"    pm.response.to.have.status(200);",
-									"});",
-									"",
-									"pm.test(\"Type and Form is correct\", function () {",
-									"    var jsonData = pm.response.json();",
-									"    pm.expect(jsonData.type).to.eql(\"rdmp\");",
-									"    pm.expect(jsonData.form).to.eql(\"default-1.0-draft\");",
-									"    postman.setEnvironmentVariable(\"brandId\", jsonData.brandId);",
-									"});"
+							"name": "Search Index",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"id": "6e0752f2-df8b-4187-9599-4ef314ac37a6",
+										"exec": [
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test(\"Has record array\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData).to.have.property(\"records\");",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
 								],
-								"type": "text/javascript"
-							}
+								"url": {
+									"raw": "{{host}}/default/rdmp/api/search/?searchStr=Andrew",
+									"host": [
+										"{{host}}"
+									],
+									"path": [
+										"default",
+										"rdmp",
+										"api",
+										"search",
+										""
+									],
+									"query": [
+										{
+											"key": "searchStr",
+											"value": "Andrew"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Index Record",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"id": "d227d549-7911-4fa0-b471-96d9070bed1e",
+										"exec": [
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"type": "text",
+										"value": "Bearer {{token}}"
+									}
+								],
+								"url": {
+									"raw": "{{host}}/default/rdmp/api/search/index?oid={{dmpOid}}",
+									"host": [
+										"{{host}}"
+									],
+									"path": [
+										"default",
+										"rdmp",
+										"api",
+										"search",
+										"index"
+									],
+									"query": [
+										{
+											"key": "oid",
+											"value": "{{dmpOid}}"
+										}
+									]
+								}
+							},
+							"response": []
 						}
 					],
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"type": "text",
-								"value": "Bearer {{token}}"
-							},
-							{
-								"key": "",
-								"type": "text",
-								"value": "",
-								"disabled": true
-							}
-						],
-						"url": {
-							"raw": "{{host}}/default/rdmp/api/records/objectmetadata/{{dmpOid}}",
-							"host": [
-								"{{host}}"
-							],
-							"path": [
-								"default",
-								"rdmp",
-								"api",
-								"records",
-								"objectmetadata",
-								"{{dmpOid}}"
-							]
-						}
-					},
-					"response": []
+					"protocolProfileBehavior": {},
+					"_postman_isSubFolder": true
 				},
 				{
-					"name": "Update RDMP Metadata",
-					"event": [
+					"name": "Form Management",
+					"item": [
 						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test(\"Status code is 200\", function () {",
-									"    pm.response.to.have.status(200);",
-									"});",
-									"",
-									"pm.test(\"Test oid is equal to the requested oid value\", function () {",
-									"    var jsonData = pm.response.json();",
-									"    pm.expect(jsonData).to.have.property('oid');",
-									"    pm.expect(jsonData.oid).to.eql(postman.getEnvironmentVariable(\"dmpOid\")); ",
-									"});"
+							"name": "List Forms",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"id": "15cb0e1f-05eb-4068-97c9-e66dd1d4f6e6",
+										"exec": [
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test(\"Has forms in response\", function () {",
+											"    var jsonData = pm.response.json();",
+											"     pm.expect(jsonData).to.have.property(\"records\");",
+											"     pm.expect(jsonData.records.length).to.be.greaterThan(0)",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"type": "text",
+										"value": "Bearer {{token}}"
+									}
 								],
-								"type": "text/javascript"
-							}
+								"url": {
+									"raw": "{{host}}/default/rdmp/api/forms",
+									"host": [
+										"{{host}}"
+									],
+									"path": [
+										"default",
+										"rdmp",
+										"api",
+										"forms"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Get Form",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"id": "2f804880-aaf2-46a3-a9f9-d75eb2462a00",
+										"exec": [
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test(\"Has name property\", function () {",
+											"    var jsonData = pm.response.json();",
+											"     pm.expect(jsonData).to.have.property(\"name\");",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"type": "text",
+										"value": "Bearer {{token}}"
+									}
+								],
+								"url": {
+									"raw": "{{host}}/default/rdmp/api/forms/get?name=default-1.0-draft",
+									"host": [
+										"{{host}}"
+									],
+									"path": [
+										"default",
+										"rdmp",
+										"api",
+										"forms",
+										"get"
+									],
+									"query": [
+										{
+											"key": "name",
+											"value": "default-1.0-draft"
+										}
+									]
+								}
+							},
+							"response": []
 						}
 					],
-					"request": {
-						"method": "PUT",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							},
-							{
-								"key": "Authorization",
-								"value": "Bearer {{token}}"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"title\": \"Andrew's Postman test - Updated\",\n    \"dc:identifier\": \"http://purl.org/au-research/grants/nhmrc/566728\",\n    \"description\": \"Movement of molecules within cells by a process known as membrane transport is critical for normal cell function and also exploited by bacteria to promote infection. The pathway that connects the import pathway to the export pathway is essential for the function of a large number of proteins, however this connecting pathway is poorly characterised. This study will define the machinery of this trafficking pathway, which will provide the ability to modulate biological processes and cytotoxicity.\",\n    \"finalKeywords\": [\n        \"270199\",\n        \"Golgi apparatus\",\n        \"endocytosis\",\n        \"membrane transport\",\n        \"protein trafficking\",\n        \"secretion\",\n        \"HIV-AIDS\",\n        \"bacterial pathogen\",\n        \"hormone secretion\",\n        \"immune development\",\n        \"lysosomal storage disorder\"\n    ],\n    \"contributor_ci\": {\n        \"text_full_name\": \"Prof Paul Gleeson\",\n        \"email\": \"notAReal@email.edu.au\",\n        \"orcid\": \"http://orcid.org/0000-0000-0000-000\"\n    },\n    \"contributor_data_manager\": {\n        \"text_full_name\": \"Prof Paul Gleeson\",\n        \"email\": \"notAReal@email.edu.au\",\n        \"orcid\": \"http://orcid.org/0000-0000-0000-000\"\n    },\n    \"contributors\": [\n        {\n            \"text_full_name\": \"Prof Paul Gleeson\",\n            \"email\": \"notAReal@email.edu.au\",\n            \"orcid\": \"http://orcid.org/0000-0000-0000-000\"\n        }\n    ],\n    \"vivo:Dataset_redbox:DataCollectionMethodology\": \"The data collection methodology\",\n    \"vivo:Dataset_dc_format\": \"xls\",\n    \"vivo:Dataset_dc:location_rdf:PlainLiteral\": \"eResearch Store network drive\",\n    \"vivo:Dataset_dc:source_dc:location_rdf:PlainLiteral\": \"shared university network drive (e.g. G, H, etc)\",\n    \"vivo:Dataset_dc:extent\": \"100GB - 2TB\",\n    \"redbox:retentionPeriod_dc:date\": \"1year\",\n    \"dc:rightsHolder_dc:name\": \"myUni\",\n    \"dc:accessRights\": \"permission from the data manager\",\n    \"authorization\": []\n}"
-						},
-						"url": {
-							"raw": "{{host}}/default/rdmp/api/records/metadata/{{dmpOid}}",
-							"host": [
-								"{{host}}"
-							],
-							"path": [
-								"default",
-								"rdmp",
-								"api",
-								"records",
-								"metadata",
-								"{{dmpOid}}"
-							]
-						},
-						"description": "http://localhost:1500/default/rdmp/api/records/rdmp/create"
-					},
-					"response": []
+					"protocolProfileBehavior": {},
+					"_postman_isSubFolder": true
 				},
 				{
-					"name": "Get RDMP's Metadata - Updated Test",
-					"event": [
+					"name": "Record Type Management",
+					"item": [
 						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test(\"Status code is 200\", function () {",
-									"    pm.response.to.have.status(200);",
-									"});",
-									"",
-									"pm.test(\"Title is correct\", function () {",
-									"    var jsonData = pm.response.json();",
-									"    pm.expect(jsonData.title).to.eql(\"Andrew's Postman test - Updated\");",
-									"});"
+							"name": "List Record Types",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"id": "889de602-53bd-45f1-8ed5-031c99c62570",
+										"exec": [
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test(\"Has forms in response\", function () {",
+											"    var jsonData = pm.response.json();",
+											"     pm.expect(jsonData).to.have.property(\"records\");",
+											"     pm.expect(jsonData.records.length).to.be.greaterThan(0)",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"type": "text",
+										"value": "Bearer {{token}}"
+									}
 								],
-								"type": "text/javascript"
-							}
+								"url": {
+									"raw": "{{host}}/default/rdmp/api/forms",
+									"host": [
+										"{{host}}"
+									],
+									"path": [
+										"default",
+										"rdmp",
+										"api",
+										"forms"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Get Record Type",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"id": "6b58f3b0-c3a7-45a2-acb7-a0dffda9bfc2",
+										"exec": [
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test(\"Has name property\", function () {",
+											"    var jsonData = pm.response.json();",
+											"     pm.expect(jsonData).to.have.property(\"name\");",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"type": "text",
+										"value": "Bearer {{token}}"
+									}
+								],
+								"url": {
+									"raw": "{{host}}/default/rdmp/api/forms/get?name=default-1.0-draft",
+									"host": [
+										"{{host}}"
+									],
+									"path": [
+										"default",
+										"rdmp",
+										"api",
+										"forms",
+										"get"
+									],
+									"query": [
+										{
+											"key": "name",
+											"value": "default-1.0-draft"
+										}
+									]
+								}
+							},
+							"response": []
 						}
 					],
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"type": "text",
-								"value": "Bearer {{token}}"
-							},
-							{
-								"key": "",
-								"type": "text",
-								"value": "",
-								"disabled": true
-							}
-						],
-						"url": {
-							"raw": "{{host}}/default/rdmp/api/records/metadata/{{dmpOid}}",
-							"host": [
-								"{{host}}"
-							],
-							"path": [
-								"default",
-								"rdmp",
-								"api",
-								"records",
-								"metadata",
-								"{{dmpOid}}"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Give user edit permissions to RDMP",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test(\"Status code is 200\", function () {",
-									"    pm.response.to.have.status(200);",
-									"});",
-									"",
-									"pm.test(\"Edit permissions applied\", function () {",
-									"    var jsonData = pm.response.json();",
-									"    //TODO: This is because of the save trigger",
-									"    // pm.expect(jsonData.edit).to.eql(['admin']);",
-									"    pm.expect(true).to.eql(true);",
-									"});"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							},
-							{
-								"key": "Authorization",
-								"value": "Bearer {{token}}"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n\t\"users\": [\"user\"]\n}"
-						},
-						"url": {
-							"raw": "{{host}}/default/rdmp/api/records/permissions/edit/{{dmpOid}}",
-							"host": [
-								"{{host}}"
-							],
-							"path": [
-								"default",
-								"rdmp",
-								"api",
-								"records",
-								"permissions",
-								"edit",
-								"{{dmpOid}}"
-							]
-						},
-						"description": "http://localhost:1500/default/rdmp/api/records/rdmp/create"
-					},
-					"response": []
-				},
-				{
-					"name": "List Users",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test(\"Status code is 200\", function () {",
-									"    pm.response.to.have.status(200);",
-									"});",
-									"",
-									"pm.test(\"Number of users returned in results array equals numFound or 10\", function () {",
-									"    var jsonData = pm.response.json();",
-									"    ",
-									"    var numFound = jsonData.summary.numFound;",
-									"    ",
-									"    if(numFound < 10) {",
-									"        pm.expect(jsonData.records.length).to.eql(numFound);",
-									"    } else {",
-									"        pm.expect(jsonData.records.length).to.eql(10);",
-									"    }",
-									"});"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							},
-							{
-								"key": "Authorization",
-								"value": "Bearer {{token}}"
-							}
-						],
-						"url": {
-							"raw": "{{host}}/default/rdmp/api/users",
-							"host": [
-								"{{host}}"
-							],
-							"path": [
-								"default",
-								"rdmp",
-								"api",
-								"users"
-							]
-						},
-						"description": "http://localhost:1500/default/rdmp/api/records/rdmp/create"
-					},
-					"response": []
+					"protocolProfileBehavior": {},
+					"_postman_isSubFolder": true
 				}
 			]
 		},
@@ -415,6 +1670,7 @@
 						{
 							"listen": "test",
 							"script": {
+								"id": "dd221b1e-c29f-4573-ab4a-ebdc28204e33",
 								"exec": [
 									"postman.setGlobalVariable(\"cookie\",postman.getResponseHeader(\"set-cookie\") );",
 									"",
@@ -509,6 +1765,7 @@
 						{
 							"listen": "test",
 							"script": {
+								"id": "cd141c7c-a30b-4650-a2e1-eb8bbcbba857",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
@@ -555,7 +1812,7 @@
 							}
 						],
 						"url": {
-							"raw": "{{host}}/default/rdmp/listRecords?recordType=rdmp&state=draft&sort=date_object_modified:-1&start=0&rows=10",
+							"raw": "{{host}}/default/rdmp/listRecords?recordType=rdmp&state=draft&sort=\"lastSaveDate\":-1&start=0&rows=10",
 							"host": [
 								"{{host}}"
 							],
@@ -575,7 +1832,7 @@
 								},
 								{
 									"key": "sort",
-									"value": "date_object_modified:-1"
+									"value": "\"lastSaveDate\":-1"
 								},
 								{
 									"key": "start",
@@ -596,6 +1853,7 @@
 						{
 							"listen": "test",
 							"script": {
+								"id": "827b4a16-38ea-4864-8e6b-4d3de669ed2a",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
@@ -672,6 +1930,7 @@
 						{
 							"listen": "test",
 							"script": {
+								"id": "9d3e6245-d371-40d9-bf73-d4e0a948241f",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
@@ -748,6 +2007,7 @@
 						{
 							"listen": "test",
 							"script": {
+								"id": "772b034f-ba5b-47a6-aebc-c7dac05c1979",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
@@ -836,6 +2096,7 @@
 						{
 							"listen": "test",
 							"script": {
+								"id": "8d81de5f-1cba-4958-bbb3-952f372953dc",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
@@ -925,6 +2186,7 @@
 						{
 							"listen": "test",
 							"script": {
+								"id": "26c2ee27-2c85-415b-927c-feb96661e310",
 								"exec": [
 									"// \"contributor_ci\": {",
 									"                    // \"text_full_name\": \"Alberto Zweinstein\",",
@@ -1013,7 +2275,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"records\": [\n    {\n      \"oid\": \"{{dmpOid}}\",\n      \"title\": \"Andrew's Postman test\",\n      \"metadata\": {\n        \"metaMetadata\": {\n          \"brandId\": \"{{brandId}}\",\n          \"type\": \"rdmp\",\n          \"createdBy\": \"admin\",\n          \"form\": \"default-1.0-draft\"\n        },\n        \"metadata\": {\n          \"title\": \"Andrew's Postman test\",\n          \"dc:identifier\": \"http://purl.org/au-research/grants/nhmrc/566728\",\n          \"description\": \"Movement of molecules within cells by a process known as membrane transport is critical for normal cell function and also exploited by bacteria to promote infection. The pathway that connects the import pathway to the export pathway is essential for the function of a large number of proteins, however this connecting pathway is poorly characterised. This study will define the machinery of this trafficking pathway, which will provide the ability to modulate biological processes and cytotoxicity.\",\n          \"finalKeywords\": [\n            \"270199\",\n            \"Golgi apparatus\",\n            \"endocytosis\",\n            \"membrane transport\",\n            \"protein trafficking\",\n            \"secretion\",\n            \"HIV-AIDS\",\n            \"bacterial pathogen\",\n            \"hormone secretion\",\n            \"immune development\",\n            \"lysosomal storage disorder\"\n          ],\n          \"contributor_ci\": {\n            \"text_full_name\": \"Prof Paul Gleeson\",\n            \"email\": \"notAReal@email.edu.au\",\n            \"orcid\": \"http://orcid.org/0000-0000-0000-000\"\n          },\n          \"contributor_data_manager\": {\n            \"text_full_name\": \"Prof Paul Gleeson\",\n            \"email\": \"notAReal@email.edu.au\",\n            \"orcid\": \"http://orcid.org/0000-0000-0000-000\"\n          },\n          \"contributors\": [\n            {\n              \"text_full_name\": \"Prof Paul Gleeson\",\n              \"email\": \"notAReal@email.edu.au\",\n              \"orcid\": \"http://orcid.org/0000-0000-0000-000\"\n            }\n          ],\n          \"vivo:Dataset_redbox:DataCollectionMethodology\": \"The data collection methodology\",\n          \"vivo:Dataset_dc_format\": \"xls\",\n          \"vivo:Dataset_dc:location_rdf:PlainLiteral\": \"eResearch Store network drive\",\n          \"vivo:Dataset_dc:source_dc:location_rdf:PlainLiteral\": \"shared university network drive (e.g. G, H, etc)\",\n          \"vivo:Dataset_dc:extent\": \"100GB - 2TB\",\n          \"redbox:retentionPeriod_dc:date\": \"1year\",\n          \"dc:rightsHolder_dc:name\": \"myUni\",\n          \"dc:accessRights\": \"permission from the data manager\",\n          \"authorization\": []\n        },\n        \"workflow\": {\n          \"stage\": \"draft\",\n          \"stageLabel\": \"Draft\"\n        },\n        \"authorization\": {\n          \"viewRoles\": [\n            \"Admin\",\n            \"Librarians\"\n          ],\n          \"editRoles\": [\n            \"Admin\",\n            \"Librarians\"\n          ],\n          \"view\": [],\n          \"edit\": [],\n          \"viewPending\": [\n            \"notAReal@email.edu.au\"\n          ],\n          \"editPending\": [\n            \"notAReal@email.edu.au\"\n          ]\n        },\n        \"redboxOid\": \"2c7c2dc046cc5834b0334445e7245b47\",\n        \"packageType\": [\n          \"rdmp\"\n        ],\n        \"date_object_created\": [\n          \"2018-11-27T01:09:00.143Z\"\n        ],\n        \"date_object_modified\": [\n          \"2018-11-27T01:09:00.654Z\"\n        ]\n      },\n      \"dateCreated\": \"November 27, 2018 11:39 AM\",\n      \"dateModified\": \"November 27, 2018 11:39 AM\",\n      \"hasEditAccess\": true,\n      \"dashboardTitle\": \"Andrew's Postman test\",\n      \"selected\": true\n    }\n  ],\n  \"role\": \"chiefInvestigator\",\n  \"updateData\": {\n    \"text_full_name\": \"Alberto Zweinstein\",\n    \"storage_id\": \"23c3f253fa53809e2d986e69e2537de8\",\n    \"email\": \"alberto.zweinstein@example.edu.au\",\n    \"full_name_honorific\": \"Dr Alberto Zweinstein\",\n    \"given_name\": \"Alberto\",\n    \"family_name\": \"Zweinstein\",\n    \"honorific\": \"Dr\",\n    \"full_name_family_name_first\": \"Zweinstein, Alberto\"\n  }\n}"
+							"raw": "{\n  \"records\": [\n    {\n      \"oid\": \"{{dmpOid}}\"\n    }\n  ],\n  \"role\": \"chiefInvestigator\",\n  \"updateData\": {\n    \"text_full_name\": \"Alberto Zweinstein\",\n    \"storage_id\": \"23c3f253fa53809e2d986e69e2537de8\",\n    \"email\": \"alberto.zweinstein@example.edu.au\",\n    \"full_name_honorific\": \"Dr Alberto Zweinstein\",\n    \"given_name\": \"Alberto\",\n    \"family_name\": \"Zweinstein\",\n    \"honorific\": \"Dr\",\n    \"full_name_family_name_first\": \"Zweinstein, Alberto\"\n  }\n}"
 						},
 						"url": {
 							"raw": "http://localhost:1500/default/rdmp/record/responsibility/update",
@@ -1039,6 +2301,7 @@
 						{
 							"listen": "test",
 							"script": {
+								"id": "4e1ae5fd-dc11-4b2a-ad49-73e1dcd3ac09",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
@@ -1112,7 +2375,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"username\": \"{{researcherUsername}}\",\n    \"details\": {\n        \"name\": \"A dummy researcher\",\n        \"email\": \"{{researcherEmail}}\",\n        \"password\": \"!7654321wQ\",\n        \"roles\": [\n            \"Researcher\",\n            \"Guest\"\n        ]\n    }\n}"
+							"raw": "{\n    \"username\": \"{{researcherUsername}}\",\n    \"details\": {\n        \"name\": \"A dummy researcher\",\n        \"email\": \"{{researcherEmail}}\",\n        \"password\": \"{{researcherPassword}}\",\n        \"roles\": [\n            \"Researcher\",\n            \"Guest\"\n        ]\n    }\n}"
 						},
 						"url": {
 							"raw": "{{host}}/default/rdmp/admin/users/newUser",
@@ -1136,6 +2399,7 @@
 						{
 							"listen": "test",
 							"script": {
+								"id": "b40c8315-6ae1-4565-aca7-f7a567928df8",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
@@ -1215,7 +2479,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"username\": \"{{researcherUsername}}\",\n    \"details\": {\n        \"name\": \"A dummy researcher\",\n        \"email\": \"{{researcherEmail}}\",\n        \"password\": \"`{[researcherPassword]}\",\n        \"roles\": [\n            \"Researcher\",\n            \"Guest\"\n        ]\n    }\n}"
+							"raw": "{\n    \"username\": \"{{researcherUsername}}\",\n    \"details\": {\n        \"name\": \"A dummy researcher\",\n        \"email\": \"{{researcherEmail}}\",\n        \"password\": \"`{{ researcherPassword }}\",\n        \"roles\": [\n            \"Researcher\",\n            \"Guest\"\n        ]\n    }\n}"
 						},
 						"url": {
 							"raw": "{{host}}/default/rdmp/admin/users/newUser",
@@ -1239,6 +2503,7 @@
 						{
 							"listen": "test",
 							"script": {
+								"id": "3da4fbe9-90c0-4721-8c76-7c46d86e5e1d",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
@@ -1344,6 +2609,7 @@
 						{
 							"listen": "test",
 							"script": {
+								"id": "39b25935-37cb-4012-9653-9c0f7b51b437",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
@@ -1446,6 +2712,7 @@
 						{
 							"listen": "test",
 							"script": {
+								"id": "fb08924f-59fb-4be4-95ea-0f7827f6c6c9",
 								"exec": [
 									"",
 									"pm.test(\"Status code is 200\", function () {",
@@ -1550,6 +2817,7 @@
 						{
 							"listen": "test",
 							"script": {
+								"id": "7803bb2a-e13c-4aee-907c-b46972654d53",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
@@ -1629,7 +2897,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"userid\": \"{{researcherUserId}}\",\n    \"details\": {\n        \"name\": \"A dummy researcher\",\n        \"email\": \"{{researcherEmail}}\",\n        \"password\": \"\",\n        \"roles\": [\n            \"Librarians\",\n            \"Researcher\",\n            \"Guest\"\n        ]\n    }\n}"
+							"raw": "{\n    \"userid\": \"{{researcherUserId}}\",\n    \"details\": {\n        \"name\": \"A dummy researcher\",\n        \"email\": \"{{researcherEmail}}\",\n        \"password\": \"{{researcherPassword}}\",\n        \"roles\": [\n            \"Librarians\",\n            \"Researcher\",\n            \"Guest\"\n        ]\n    }\n}"
 						},
 						"url": {
 							"raw": "{{host}}/default/rdmp/admin/users/update",
@@ -1653,6 +2921,7 @@
 						{
 							"listen": "test",
 							"script": {
+								"id": "91d97af6-0682-4310-887b-53f537f97e6b",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
@@ -1833,6 +3102,7 @@
 						{
 							"listen": "test",
 							"script": {
+								"id": "163a2e38-a27d-4f88-aeb3-0cb333694c4f",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
@@ -1935,6 +3205,7 @@
 						{
 							"listen": "test",
 							"script": {
+								"id": "6306a7a6-3c3b-47da-ab7a-a0e888546680",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
@@ -1952,7 +3223,7 @@
 									"pm.test(\"CSV contains Test record\", function () {",
 									"    var found = false;",
 									"    const head = parsedCSV.shift(),",
-									"        title = head.indexOf('storage_id');",
+									"        title = head.indexOf('redboxOid');",
 									"   parsedCSV.forEach(function(row) {",
 									"       if(row[title] == pm.environment.get('dmpOid')) {",
 									"           found = true;",
@@ -2056,6 +3327,7 @@
 						{
 							"listen": "test",
 							"script": {
+								"id": "0a0ad59c-d8fd-44e9-a2d1-b94144080bed",
 								"exec": [
 									"",
 									"pm.test(\"Status code is 200\", function () {",
@@ -2149,6 +3421,7 @@
 						{
 							"listen": "test",
 							"script": {
+								"id": "3bd417fd-ba5f-4aa3-b7f7-fe00a57353b4",
 								"exec": [
 									"",
 									"pm.test(\"Status code is 201\", function () {",
@@ -2250,6 +3523,7 @@
 						{
 							"listen": "test",
 							"script": {
+								"id": "8cfb5446-28e1-4f72-9dd2-e4cdc521a33f",
 								"exec": [
 									"pm.test(\"Status code is 204\", function () {",
 									"    pm.response.to.have.status(204);",
@@ -2343,6 +3617,7 @@
 						{
 							"listen": "test",
 							"script": {
+								"id": "b4b5c541-0159-45ba-9ce9-96ddbd7b6978",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
@@ -2434,6 +3709,7 @@
 						{
 							"listen": "test",
 							"script": {
+								"id": "26419b15-b0ab-4d6b-a089-795499e398db",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
@@ -2469,6 +3745,7 @@
 						{
 							"listen": "test",
 							"script": {
+								"id": "5475b6ee-dc3c-4ff4-a43f-4afe80174591",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
@@ -2559,6 +3836,7 @@
 						{
 							"listen": "test",
 							"script": {
+								"id": "2eb5e2e4-4527-4972-b8a8-fe80c1f93d02",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
@@ -2650,6 +3928,7 @@
 						{
 							"listen": "test",
 							"script": {
+								"id": "6a2854cc-0726-4809-861a-99768337905b",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
@@ -2736,110 +4015,12 @@
 					"response": []
 				},
 				{
-					"name": "Search Index",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test(\"Status code is 200\", function () {",
-									"    pm.response.to.have.status(200);",
-									"});",
-									"",
-									"pm.test(\"Has record array\", function () {",
-									"    var jsonData = pm.response.json();",
-									"    pm.expect(jsonData).to.have.property(\"records\");",
-									"});"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Pragma",
-								"value": "no-cache"
-							},
-							{
-								"key": "Accept-Encoding",
-								"value": "gzip, deflate, br"
-							},
-							{
-								"key": "X-CSRF-Token",
-								"value": ""
-							},
-							{
-								"key": "Accept-Language",
-								"value": "en-US,en;q=0.9,en-AU;q=0.8,it;q=0.7"
-							},
-							{
-								"key": "User-Agent",
-								"value": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.102 Safari/537.36"
-							},
-							{
-								"key": "Content-Type",
-								"value": "application/json;charset=utf-8"
-							},
-							{
-								"key": "Accept",
-								"value": "application/json, text/plain, */*"
-							},
-							{
-								"key": "Connection",
-								"value": "keep-alive"
-							},
-							{
-								"key": "Referer",
-								"value": "{{host}}/default/rdmp/record/search?q=Record"
-							},
-							{
-								"key": "Cookie",
-								"value": "{{cookie}}"
-							},
-							{
-								"key": "X-Source",
-								"value": "jsclient"
-							},
-							{
-								"key": "Cache-Control",
-								"value": "no-cache"
-							}
-						],
-						"url": {
-							"raw": "{{host}}/default/rdmp/record/search/rdmp/?searchStr=Andrew&facetNames=grant_number_name,finalKeywords,workflow_stageLabel",
-							"host": [
-								"{{host}}"
-							],
-							"path": [
-								"default",
-								"rdmp",
-								"record",
-								"search",
-								"rdmp",
-								""
-							],
-							"query": [
-								{
-									"key": "searchStr",
-									"value": "Andrew"
-								},
-								{
-									"key": "facetNames",
-									"value": "grant_number_name,finalKeywords,workflow_stageLabel"
-								}
-							]
-						}
-					},
-					"response": []
-				},
-				{
 					"name": "Create data publication",
 					"event": [
 						{
 							"listen": "test",
 							"script": {
+								"id": "bdfc326b-4c43-4c87-8071-8d1330124fba",
 								"exec": [
 									"",
 									"pm.test(\"Status code is 200\", function () {",
@@ -2937,8 +4118,8 @@
 						{
 							"listen": "test",
 							"script": {
+								"id": "9c4524e7-3a78-4f34-aaa4-4508dd61db72",
 								"exec": [
-									"",
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
 									"});",
@@ -2946,7 +4127,9 @@
 									"pm.test(\"Test oid exists\", function () {",
 									"    var jsonData = pm.response.json();",
 									"    pm.expect(jsonData).to.have.property('oid');",
-									"});"
+									"});",
+									"",
+									""
 								],
 								"type": "text/javascript"
 							}
@@ -3032,6 +4215,106 @@
 					"response": []
 				},
 				{
+					"name": "Search Index",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "009345d0-1808-4004-888b-e9686cff73dd",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Has record array\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property(\"records\");",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Pragma",
+								"value": "no-cache"
+							},
+							{
+								"key": "Accept-Encoding",
+								"value": "gzip, deflate, br"
+							},
+							{
+								"key": "X-CSRF-Token",
+								"value": ""
+							},
+							{
+								"key": "Accept-Language",
+								"value": "en-US,en;q=0.9,en-AU;q=0.8,it;q=0.7"
+							},
+							{
+								"key": "User-Agent",
+								"value": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.102 Safari/537.36"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json;charset=utf-8"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json, text/plain, */*"
+							},
+							{
+								"key": "Connection",
+								"value": "keep-alive"
+							},
+							{
+								"key": "Referer",
+								"value": "{{host}}/default/rdmp/record/search?q=Record"
+							},
+							{
+								"key": "Cookie",
+								"value": "{{cookie}}"
+							},
+							{
+								"key": "X-Source",
+								"value": "jsclient"
+							},
+							{
+								"key": "Cache-Control",
+								"value": "no-cache"
+							}
+						],
+						"url": {
+							"raw": "{{host}}/default/rdmp/record/search/rdmp/?searchStr=Andrew&facetNames=grant_number_name,finalKeywords,workflow_stageLabel",
+							"host": [
+								"{{host}}"
+							],
+							"path": [
+								"default",
+								"rdmp",
+								"record",
+								"search",
+								"rdmp",
+								""
+							],
+							"query": [
+								{
+									"key": "searchStr",
+									"value": "Andrew"
+								},
+								{
+									"key": "facetNames",
+									"value": "grant_number_name,finalKeywords,workflow_stageLabel"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
 					"name": "Delete the created data record",
 					"request": {
 						"method": "DELETE",
@@ -3107,6 +4390,7 @@
 						{
 							"listen": "test",
 							"script": {
+								"id": "b4bd3a5b-db84-4e10-a76d-0ce72fd2cc08",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
@@ -3182,6 +4466,7 @@
 						{
 							"listen": "test",
 							"script": {
+								"id": "47459f8e-16a7-4f98-ba80-402c5c205023",
 								"exec": [
 									"pm.test(\"Status code is 403\", function () {",
 									"    pm.response.to.have.status(403);",
@@ -3250,6 +4535,7 @@
 						{
 							"listen": "test",
 							"script": {
+								"id": "539d2e29-32bb-49b2-9478-094edd532150",
 								"exec": [
 									"postman.setGlobalVariable(\"cookie\",postman.getResponseHeader(\"set-cookie\") );",
 									"",
@@ -3325,7 +4611,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"username\": \"researcheruser\",\n    \"password\": \"notthepassword\",\n    \"branding\": \"default\",\n    \"portal\": \"rdmp\"\n}"
+							"raw": "{\n    \"username\": \"{{researcherUsername}}\",\n    \"password\": \"notthepassword\",\n    \"branding\": \"default\",\n    \"portal\": \"rdmp\"\n}"
 						},
 						"url": {
 							"raw": "http://localhost:1500/user/login_local",
@@ -3348,6 +4634,7 @@
 						{
 							"listen": "test",
 							"script": {
+								"id": "8801cb9b-3fab-49b3-b3d1-faf94c8a5d71",
 								"exec": [
 									"postman.setGlobalVariable(\"cookie\",postman.getResponseHeader(\"set-cookie\") );",
 									"",
@@ -3355,7 +4642,7 @@
 									"    pm.response.to.have.status(200);",
 									"});",
 									"",
-									"pm.test(\"Check that user returned is researcheruser\", function () {",
+									"pm.test(\"Check that we have logged in correctly.\", function () {",
 									"    var jsonData = pm.response.json();",
 									"    var researcherUsername = pm.environment.get(\"researcherUsername\");",
 									"    pm.expect(jsonData.user.username).to.eql(researcherUsername);",
@@ -3443,6 +4730,7 @@
 						{
 							"listen": "test",
 							"script": {
+								"id": "2a2e39fa-c472-4f7b-84aa-91698625f9e3",
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
