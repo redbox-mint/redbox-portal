@@ -17,7 +17,8 @@ module.exports.recordtype = {
               "metadata.contributor_data_manager",
               "metadata.contributor_supervisor",
               "metadata.contributors"
-            ]
+            ],
+            "recordCreatorPermissions" : "view&edit"
           }
         }],
         // Requires the PDF Gen hook to be installed https://www.npmjs.com/package/@researchdatabox/sails-hook-redbox-pdfgen
@@ -47,7 +48,8 @@ module.exports.recordtype = {
               "metadata.contributor_data_manager",
               "metadata.contributor_supervisor",
               "metadata.contributors"
-            ]
+            ],
+            "recordCreatorPermissions" : "view&edit"
           }
         }],
         // Requires the PDF Gen hook to be installed https://www.npmjs.com/package/@researchdatabox/sails-hook-redbox-pdfgen
@@ -228,7 +230,8 @@ module.exports.recordtype = {
               "metadata.contributor_data_manager",
               "metadata.contributor_supervisor",
               "metadata.contributors"
-            ]
+            ],
+            "recordCreatorPermissions" : "view&edit"
           }
         }]
       },
@@ -247,7 +250,8 @@ module.exports.recordtype = {
               "metadata.contributor_data_manager",
               "metadata.contributor_supervisor",
               "metadata.contributors"
-            ]
+            ],
+            "recordCreatorPermissions" : "view&edit"
           }
         }]
       }

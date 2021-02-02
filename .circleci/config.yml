@@ -113,6 +113,8 @@ workflows:
           filters:
             branches:
               only: 'master'
+            tags:
+              only: /v.*/
   build_bcryptjs_test_gendocs_and_deploy:
     jobs:
       - build-bcryptjs

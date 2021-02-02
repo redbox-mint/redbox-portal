@@ -14,6 +14,5 @@ The [Queensland Cyber Infrastructure Foundation](http://www.qcif.edu.au) (QCIF) 
 ## Development
 Requirements:
 
-- Node 8.11.0
-
+- Node 12.16.0
 Development requires Docker. Run `./runForDev.sh install jit` at least once.
