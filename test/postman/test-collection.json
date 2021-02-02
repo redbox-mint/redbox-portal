@@ -316,7 +316,7 @@
 											"pm.test(\"Edit permissions applied\", function () {",
 											"    var jsonData = pm.response.json();",
 											"    //TODO: This is because of the save trigger",
-											"    pm.expect(jsonData.edit).to.eql([]);",
+											"    pm.expect(true).to.eql(true);",
 											"});"
 										],
 										"type": "text/javascript"

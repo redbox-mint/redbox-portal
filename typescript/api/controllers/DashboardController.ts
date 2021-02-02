@@ -22,7 +22,7 @@ declare var module;
 declare var sails;
 declare var _;
 import { Observable } from 'rxjs/Rx';
-declare var BrandingService, RolesService, RecordsService;
+declare var BrandingService, RolesService, RecordsService, TranslationService;
 
 /**
  * Package that contains all Controllers.

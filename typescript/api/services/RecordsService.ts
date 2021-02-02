@@ -433,7 +433,7 @@ export module Services {
       const username = user.username;
       // const url = `${this.getSearchTypeUrl(type, searchField, searchStr)}&start=0&rows=${sails.config.record.export.maxRecords}`;
       let searchParam = workflowState ? ` AND workflow_stage:${workflowState} ` : '';
-      searchParam = `${searchParam} AND full_text:${this.luceneEscape(searchQuery)}`; 
+      searchParam = `${searchParam} AND full_text:${searchQuery}`;
       _.forEach(exactSearches, (exactSearch) => {
         searchParam = `${searchParam}&fq=${exactSearch.name}:${this.luceneEscape(exactSearch.value)}`
       });
@@ -444,19 +444,9 @@ export module Services {
         });
       }
 
-      // pagination 
-      let start = 0;
-      if( _.isEmpty(rows)) {
-        rows = 10;
-      }
-
-      if (page > 0) {
-        start = (page - 1) * rows;
-      }
-
-      let url = `${sails.config.record.baseUrl.redbox}${sails.config.record.api.search.url}?q=metaMetadata_brandId:${brand.id} AND metaMetadata_type:${type}${searchParam}&version=2.2&wt=json&sort=date_object_modified desc&rows=${rows}&start=${start}`;
+      let url = `${sails.config.record.baseUrl.redbox}${sails.config.record.api.search.url}?q=metaMetadata_brandId:${brand.id} AND metaMetadata_type:${type}${searchParam}&version=2.2&wt=json&sort=date_object_modified desc`;
       url = this.addAuthFilter(url, username, roles, brand, false)
-      sails.log.verbose(`Searching fuzzy using: ${url}`);
+      sails.log.error(`Searching fuzzy using: ${url}`);
       const options = this.getOptions(url);
       return Observable.fromPromise(request[sails.config.record.api.search.method](options))
         .flatMap(resp => {
@@ -615,10 +605,6 @@ export module Services {
 
         for (var i = 0; i < preSaveUpdateHooks.length; i++) {
           let preSaveUpdateHook = preSaveUpdateHooks[i];
-          if (this.shouldRunTrigger(preSaveUpdateHook, oid, record, recordType, mode, user) == false) {
-            sails.log.verbose(`Skipping: ${_.get(preSaveUpdateHook, 'function', null)}`);
-            continue;
-          }
           let preSaveUpdateHookFunctionString = _.get(preSaveUpdateHook, "function", null);
           if (preSaveUpdateHookFunctionString != null) {
             let preSaveUpdateHookFunction = eval(preSaveUpdateHookFunctionString);
@@ -638,17 +624,12 @@ export module Services {
     public async triggerPostSaveSyncTriggers(oid: string, record: any, recordType: any, mode: string = 'onUpdate', user: object = undefined, response: any = {}) {
       sails.log.debug("Triggering post save sync triggers ");
       sails.log.debug(`hooks.${mode}.postSync`);
-      sails.log.debug(`triggerPostSaveSyncTriggers::Got initial response:`);
-      sails.log.debug(JSON.stringify(response));
+      sails.log.debug(recordType);
       let postSaveSyncHooks = _.get(recordType, `hooks.${mode}.postSync`, null);
       if (_.isArray(postSaveSyncHooks)) {
         for (var i = 0; i < postSaveSyncHooks.length; i++) {
           let postSaveSyncHook = postSaveSyncHooks[i];
           sails.log.debug(postSaveSyncHooks);
-          if (this.shouldRunTrigger(postSaveSyncHook, oid, record, recordType, mode, user, response) == false) {
-            sails.log.verbose(`Skipping: ${_.get(postSaveSyncHook, 'function', null)}`);
-            continue;
-          }
           let postSaveSyncHooksFunctionString = _.get(postSaveSyncHook, "function", null);
           if (postSaveSyncHooksFunctionString != null) {
             let postSaveSyncHookFunction = eval(postSaveSyncHooksFunctionString);
@@ -667,8 +648,6 @@ export module Services {
           }
         }
       }
-      sails.log.debug(`triggerPostSaveSyncTriggers::Returning response:`);
-      sails.log.debug(JSON.stringify(response));
       return response;
     }
 
@@ -682,10 +661,6 @@ export module Services {
       if (_.isArray(postSaveCreateHooks)) {
         _.each(postSaveCreateHooks, postSaveCreateHook => {
           sails.log.debug(postSaveCreateHook);
-          if (this.shouldRunTrigger(postSaveCreateHook, oid, record, recordType, mode, user) == false) {
-            sails.log.verbose(`Skipping: ${_.get(postSaveCreateHook, 'function', null)}`);
-            return;
-          }
           let postSaveCreateHookFunctionString = _.get(postSaveCreateHook, "function", null);
           if (postSaveCreateHookFunctionString != null) {
             let postSaveCreateHookFunction = eval(postSaveCreateHookFunctionString);

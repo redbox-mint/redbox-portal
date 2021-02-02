@@ -73,9 +73,9 @@ module.exports.session = {
   * Use the latest version with Node >= 4.0                                  *
   *                                                                          *
   ***************************************************************************/
-
-  adapter: 'mongo',
-  url: 'mongodb://mongodb:27017/sessions', // user, password and port optional
+  // TODO: Reinstate mongo as default
+  // adapter: 'mongo',
+  // url: 'mongodb://mongodb:27017/sessions', // user, password and port optional
 
   /***************************************************************************
   *                                                                          *
