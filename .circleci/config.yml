@@ -131,18 +131,24 @@ workflows:
           filters:
             tags:
               only: /^v.*/
+            branches:
+              ignore: /.*/
       - test:
           requires:
             - build
           filters:
             tags:
               only: /^v.*/
+            branches:
+              ignore: /.*/
       - deploy:
           requires:
             - test     
           filters:
             tags:
               only: /^v.*/
+            branches:
+              ignore: /.*/
   release_bcryptjs_test_gendocs_and_deploy:
     jobs:
       - build-bcryptjs:
@@ -155,9 +161,13 @@ workflows:
           filters:
             tags:
               only: /^v.*/
+            branches:
+              ignore: /.*/
       - deploy-bcryotjs:
           requires:
             - test
           filters:
             tags:
               only: /^v.*/
+            branches:
+              ignore: /.*/
