@@ -113,8 +113,6 @@ workflows:
           filters:
             branches:
               only: 'master'
-            tags:
-              only: /v.*/
   build_bcryptjs_test_gendocs_and_deploy:
     jobs:
       - build-bcryptjs
@@ -127,4 +125,39 @@ workflows:
           filters:
             branches:
               ignore: /^dependabot.*/
-        
+  release_build_test_gendocs_and_deploy:
+    jobs:
+      - build:
+          filters:
+            tags:
+              only: /^v.*/
+      - test:
+          requires:
+            - build
+          filters:
+            tags:
+              only: /^v.*/
+      - deploy:
+          requires:
+            - test     
+          filters:
+            tags:
+              only: /^v.*/
+  release_bcryptjs_test_gendocs_and_deploy:
+    jobs:
+      - build-bcryptjs:
+          filters:
+            tags:
+              only: /^v.*/
+      - test:
+          requires:
+            - build-bcryptjs
+          filters:
+            tags:
+              only: /^v.*/
+      - deploy-bcryotjs:
+          requires:
+            - test
+          filters:
+            tags:
+              only: /^v.*/
