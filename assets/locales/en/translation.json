@@ -698,5 +698,6 @@
   "@dataPublication-dc:accessRights-conditional": "Conditional",
   "@dataPublication-dc:accessRights-conditional-val": "Conditional",
   "@record-permissions-tab-heading": "Permissions",
-  "@record-permissions-tab": "Permissions"
+  "@record-permissions-tab": "Permissions",
+  "@dataPublication-retire": "Retire"
 }
