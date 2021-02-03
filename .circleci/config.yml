@@ -37,7 +37,7 @@ jobs:
            at: /home/circleci/project
       - run: export NVM_DIR=/opt/circleci/.nvm && source /opt/circleci/.nvm/nvm.sh && nvm install 12.16.0 && nvm use 12.16.0
       - run: export NVM_DIR=/opt/circleci/.nvm && source /opt/circleci/.nvm/nvm.sh && nvm use 12.16.0 && node_modules/.bin/tsc -p tsconfig-codecov.json
-      - run: (sudo mkdir -p support/integration-testing/.tmp/attachments/staging && chmod -R 777 . && cd support/integration-testing && docker-compose -f docker-compose.newman.yml up --abort-on-container-exit --exit-code-from redboxportal && docker-compose -f docker-compose.mocha.yml up --abort-on-container-exit --exit-code-from redboxportal)
+      - run: (chmod -R 777 . && sudo mkdir -p support/integration-testing/.tmp/attachments/staging && chmod -R 777 . && cd support/integration-testing && docker-compose -f docker-compose.newman.yml up --abort-on-container-exit --exit-code-from redboxportal && docker-compose -f docker-compose.mocha.yml up --abort-on-container-exit --exit-code-from redboxportal)
       - run: export NVM_DIR=/opt/circleci/.nvm && source /opt/circleci/.nvm/nvm.sh && nvm use 12.16.0 && npm i -g codecov && codecov -t $CODECOV_TOKEN
       - run: export NVM_DIR=/opt/circleci/.nvm && source /opt/circleci/.nvm/nvm.sh && nvm use 12.16.0 && node_modules/.bin/tsc
   deploy:
