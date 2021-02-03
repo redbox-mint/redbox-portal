@@ -4,15 +4,15 @@ networks:
 services:
   redboxportal:
     build: .
-    image: qcifengineering/redbox-portal:backend-refactor
+    image: qcifengineering/redbox-portal:latest
     ports:
       - "1500:1500"
     user: node
     volumes:
       - ".:/opt/redbox-portal:delegated"
-      - "./dev/attachments:/attachments:delegated"
-      - "./dev/publication:/publication:delegated"
-      - "./dev/hooks:/opt/hooks:delegated"
+      - "./.dev/attachments:/attachments:delegated"
+      - "./.dev/publication:/publication:delegated"
+      - "./.dev/hooks:/opt/hooks:delegated"
     expose:
       - "1500"
     environment:

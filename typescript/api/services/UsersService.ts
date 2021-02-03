@@ -19,6 +19,7 @@
 
 import { Observable } from 'rxjs/Rx';
 import services = require('../core/CoreService.js');
+import SearchService from '../core/SearchService.js';
 import { Sails, Model } from "sails";
 import * as request from "request-promise";
 import * as crypto from 'crypto';
@@ -54,6 +55,8 @@ export module Services {
       'findAndAssignAccessToRecords',
       'getUsers',
     ];
+
+    searchService: SearchService;
 
     protected localAuthInit = () => {
       // users the default brand's configuration on startup
@@ -354,6 +357,10 @@ export module Services {
         }
     */
     public bootstrap = (defRoles) => {
+      let that = this;
+      sails.on('ready', function () {
+        that.searchService = sails.services[sails.config.search.serviceName];
+      });
       const defAuthConfig = ConfigService.getBrand(BrandingService.getDefault().name, 'auth');
       sails.log.verbose("Bootstrapping users....");
 
@@ -485,11 +492,14 @@ export module Services {
     *
     **/
     public findAndAssignAccessToRecords(pendingValue, userid) {
-      var url = `${sails.config.record.baseUrl.redbox}${sails.config.record.api.search.url}?q=authorization_editPending:${pendingValue}%20OR%20authorization_viewPending:${pendingValue}&sort=date_object_modified desc&version=2.2&wt=json&rows=10000`;
-      var options = { url: url, json: true, headers: { 'Authorization': `Bearer ${sails.config.redbox.apiKey}`, 'Content-Type': 'application/json; charset=utf-8' } };
-      var response = Observable.fromPromise(request[sails.config.record.api.search.method](options)).catch(error => Observable.of(`Error: ${error}`));
       var oid = null;
-      response.subscribe(results => {
+      const query = `authorization_editPending:${pendingValue}%20OR%20authorization_viewPending:${pendingValue}&sort=date_object_modified desc&version=2.2&wt=json&rows=10000`;
+      this.searchService.searchAdvanced(query).then(results => {
+        if (_.isEmpty(results) || _.isEmpty(results['response'])) {
+          sails.log.verbose(`UsersService::findAndAssignAccessToRecords() -> No pending records: ${pendingValue}`);
+          return;
+        }
+        sails.log.verbose(JSON.stringify(results));
         if (results["response"] != null) {
           var docs = results["response"]["docs"];
           for (var i = 0; i < docs.length; i++) {
@@ -499,12 +509,11 @@ export module Services {
             RecordsService.provideUserAccessAndRemovePendingAccess(oid, userid, pendingValue);
           }
         }
-      }, (error: any) => {
+      }).catch((error: any) => {
         // swallow !!!!
         sails.log.warn(`Failed to assign access to OID: ${oid}`);
         sails.log.warn(error);
       });
-
     }
 
   }

@@ -46,7 +46,8 @@ export module Services {
        'remove',
        'searchFuzzy',
        'solrAddOrUpdate',
-       'solrDelete'
+       'solrDelete',
+       'searchAdvanced'
       ];
 
       protected queueService: QueueService;
@@ -170,6 +171,14 @@ export module Services {
         const data = {id: id};
         sails.log.verbose(JSON.stringify(data));
         this.queueService.now(sails.config.solr.deleteJobName, data);
+      }
+
+      public async searchAdvanced(query): Promise<any> {
+        const coreName = sails.config.solr.options.core;
+        let url = `${this.baseUrl}${coreName}/select?q=${query}`;
+        sails.log.verbose(`Searching advanced using: ${url}`);
+        const response = await got(url).json();
+        return response;
       }
 
       public async searchFuzzy(type, workflowState, searchQuery, exactSearches, facetSearches, brand, user, roles, returnFields): Promise<any> {
