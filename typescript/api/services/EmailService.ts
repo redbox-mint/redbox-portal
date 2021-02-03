@@ -94,9 +94,9 @@ export module Services {
       "to": msgTo,
       "subject": msgSubject,
       "from": msgFrom,
-      msgFormat: msgBody
+      
     };
- 
+    message[msgFormat] = msgBody;
     let response = {
       success: false
     };
