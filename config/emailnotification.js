@@ -3,9 +3,18 @@ module.exports.emailnotification = {
       send: {method: 'post', url: "/api/v1/messaging/emailnotification"}
     },
     settings: {
-      enabled: false,
+      enabled: true,
       from: "noreply@redbox",
-      templateDir: "views/emailTemplates/"
+      templateDir: "views/emailTemplates/",
+      //node mailer transport options.  See https://nodemailer.com/smtp/ for SMTP and other transport options
+      serverOptions: {
+        host: 'smtp.ethereal.email',
+        port: 587,
+        auth: {
+            user: 'xxxxxxx',
+            pass: 'xxxxxxx'
+        }
+      }
     },
     defaults: {
       from: "redbox@dev",
