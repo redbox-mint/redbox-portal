@@ -174,3 +174,4 @@ typescript/api/services/**/*.js
 assets/angular
 api/core/**/*.js
 dev
+.dev
