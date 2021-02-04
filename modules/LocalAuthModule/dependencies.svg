@@ -28,13 +28,13 @@
 <title>cluster_LocalAuthModule_declarations</title>
 <polygon fill="none" stroke="black" points="230,-78 230,-130 388,-130 388,-78 230,-78"/>
 </g>
-<g id="clust6" class="cluster">
-<title>cluster_LocalAuthModule_bootstrap</title>
-<polygon fill="none" stroke="black" points="168,-208 168,-260 328,-260 328,-208 168,-208"/>
-</g>
 <g id="clust4" class="cluster">
 <title>cluster_LocalAuthModule_imports</title>
 <polygon fill="none" stroke="black" points="108,-78 108,-130 222,-130 222,-78 108,-78"/>
+</g>
+<g id="clust6" class="cluster">
+<title>cluster_LocalAuthModule_bootstrap</title>
+<polygon fill="none" stroke="black" points="168,-208 168,-260 328,-260 328,-208 168,-208"/>
 </g>
 <!-- LocalAuthComponent -->
 <g id="node1" class="node">
