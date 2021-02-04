@@ -32,13 +32,13 @@
 <title>cluster_ReportModule_providers</title>
 <polygon fill="none" stroke="black" points="309,-78 309,-130 457,-130 457,-78 309,-78"/>
 </g>
-<g id="clust2" class="cluster">
-<title>cluster_ReportModule_declarations</title>
-<polygon fill="none" stroke="black" points="16,-78 16,-130 301,-130 301,-78 16,-78"/>
-</g>
 <g id="clust7" class="cluster">
 <title>cluster_ReportModule_bootstrap</title>
 <polygon fill="none" stroke="black" points="236,-208 236,-260 374,-260 374,-208 236,-208"/>
+</g>
+<g id="clust2" class="cluster">
+<title>cluster_ReportModule_declarations</title>
+<polygon fill="none" stroke="black" points="16,-78 16,-130 301,-130 301,-78 16,-78"/>
 </g>
 <!-- MultivalueFieldPipe -->
 <g id="node1" class="node">
