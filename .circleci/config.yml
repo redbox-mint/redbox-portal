@@ -62,7 +62,7 @@ jobs:
             | sed 's/[", \t]//g')
             RBPORTAL_FILENAME=$(ls redbox-portal-*.tgz)
             curl -v -u $MAVEN_USER:$MAVEN_PASSWORD --upload-file $RBPORTAL_FILENAME "https://nexus-prod.redboxresearchdata.com.au/nexus/repository/maven-snapshots/au/edu/qcif/redbox-portal/${PACKAGE_VERSION}-SNAPSHOT/redbox-portal-${PACKAGE_VERSION}-SNAPSHOT.tgz"  
-  deploy-bcryotjs:
+  deploy-bcryptjs:
     docker:
       - image: 'cimg/base:stable'
     steps:
@@ -165,7 +165,7 @@ workflows:
               only: /^v.*/
             branches:
               ignore: /.*/
-      - deploy-bcryotjs:
+      - deploy-bcryptjs:
           requires:
             - test
           filters:
