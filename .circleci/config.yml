@@ -119,7 +119,7 @@ workflows:
       - test:
           requires:
             - build-bcryptjs
-      - deploy-bcryotjs:
+      - deploy-bcryptjs:
           requires:
             - test
           filters:
