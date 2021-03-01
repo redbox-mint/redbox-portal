@@ -8,26 +8,1003 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
 
         <link rel="icon" type="image/x-icon" href="../images/favicon.ico">
-	      <link rel="stylesheet" href="../styles/style.css">
-        <link rel="stylesheet" href="../styles/postmark.css">
+	    <link rel="stylesheet" href="../styles/style.css">
+                 <link rel="stylesheet" href="../styles/postmark.css">
     </head>
     <body>
 
         <div class="navbar navbar-default navbar-fixed-top visible-xs">
             <a href="../" class="navbar-brand">ReDBox Portal - NG2 Apps</a>
-            <button type="button" class="btn btn-default btn-menu ion-ios-menu" id="btn-menu"></button>
+            <button type="button" class="btn btn-default btn-menu fa fa-bars" id="btn-menu"></button>
         </div>
 
         <div class="xs-menu menu" id="mobile-menu">
-                <div id="book-search-input" role="search"><input type="text" placeholder="Type to search"></div>            <compodoc-menu></compodoc-menu>
+            <div id="book-search-input" role="search">
+                <input type="text" placeholder="Type to search">
+            </div>
+            <nav>
+            
+                <ul class="list">
+            
+                    <li class="title">
+                        <a href="../index.html">ReDBox Portal - NG2 Apps</a>
+                    </li>
+            
+                    <li class="divider"></li>
+            
+            
+                    <li class="chapter">
+                        <a data-type="chapter-link" href="../index.html"><span class="fa fa-home"></span>Getting started</a>
+                        <ul class="links">
+                                <li class="link">
+                                    <a 
+                                        
+                                         href="../overview.html" 
+                                         href="../overview.html" 
+                                        >
+                                        <span class="fa fa-th"></span>Overview
+                                    </a>
+                                </li>
+                                <li class="link">
+                                  <a href="../index.html" ><span class="fa fa-file-text-o"></span>README</a>
+                                </li>
+                                <li class="link">
+                                        <a href="../license.html"
+                                    >
+                                        <span class="fa fa-file-text-o"></span>LICENSE
+                                    </a>
+                                </li>
+                        </ul>
+                    </li>
+            
+                    <li class="chapter">
+                        <div class="simple menu-toggler" data-toggle="collapse"
+                                data-target="#xs-additional-pages"
+                            >
+                            <span class="fa fa-book"></span>
+                            <span>Additional documentation</span>
+                            <span class="fa fa-angle-down"></span>
+                        </div>
+                        <ul class="links collapse "
+                                id="xs-additional-pages"
+                            >
+                                <li class="link ">
+                                    <a href="../additional-documentation/installation-guide.html" >Installation guide</a>
+                                </li>
+                                <li class="link ">
+                                    <a href="../additional-documentation/configuration-guide.html" >Configuration guide</a>
+                                </li>
+                                <li class="link for-chapter">
+                                    <a href="../additional-documentation/configuration-guide/configuring-web-forms.html" >Configuring web forms</a>
+                                </li>
+                                <li class="link for-chapter">
+                                    <a href="../additional-documentation/configuration-guide/configuring-email-notifications.html" >Configuring email notifications</a>
+                                </li>
+                                <li class="link for-chapter">
+                                    <a href="../additional-documentation/configuration-guide/configuring-integration-with-redbox-and-mint.html" >Configuring integration with RedBox and Mint</a>
+                                </li>
+                        </ul>
+                    </li>
+            
+                    <li class="chapter">
+                        <a data-type="chapter-link" href="../modules.html" >
+                            <div class="menu-toggler linked" data-toggle="collapse"
+                                    data-target="#xs-modules-links"
+                            >
+                                <span class="fa fa-archive"></span>
+                                <span class="link-name">Modules</span>
+                                <span class="fa fa-angle-down"></span>
+                            </div>
+                        </a>
+                        <ul class="links collapse "
+                                id="xs-modules-links"
+                            >
+                                <li class="link">
+                                    <a href="../modules/DashboardModule.html" >DashboardModule</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../modules/DmpModule.html" >DmpModule</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../modules/ExportModule.html" >ExportModule</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../modules/LocalAuthModule.html" >LocalAuthModule</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../modules/ManageRolesModule.html" >ManageRolesModule</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../modules/ManageUsersModule.html" >ManageUsersModule</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../modules/RecordSearchModule.html" >RecordSearchModule</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../modules/ReportModule.html" >ReportModule</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../modules/SharedModule.html" >SharedModule</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../modules/TransferOwnerModule.html" >TransferOwnerModule</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../modules/UserProfileModule.html" >UserProfileModule</a>
+                                </li>
+                        </ul>
+                    </li>
+            
+                    <li class="chapter">
+                        <div class="simple menu-toggler" data-toggle="collapse"
+                                data-target="#xs-components-links"
+                            >
+                            <span class="fa fa-cogs"></span>
+                            <span>Components</span>
+                            <span class="fa fa-angle-down"></span>
+                        </div>
+                        <ul class="links collapse "
+                                id="xs-components-links"
+                            >
+                                <li class="link">
+                                    <a href="../components/AnchorOrButtonComponent.html" >AnchorOrButtonComponent</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../components/ContributorComponent.html" >ContributorComponent</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../components/DashboardComponent.html" >DashboardComponent</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../components/DateTimeComponent.html" >DateTimeComponent</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../components/DmpFieldComponent.html" >DmpFieldComponent</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../components/DmpFormComponent.html" >DmpFormComponent</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../components/DropdownFieldComponent.html" >DropdownFieldComponent</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../components/ExportFormComponent.html" >ExportFormComponent</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../components/HiddenValueComponent.html" >HiddenValueComponent</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../components/HtmlRawComponent.html" >HtmlRawComponent</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../components/LinkValueComponent.html" >LinkValueComponent</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../components/LocalAuthComponent.html" >LocalAuthComponent</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../components/ManageRolesComponent.html" >ManageRolesComponent</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../components/ManageUsersComponent.html" >ManageUsersComponent</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../components/RecordSearchComponent.html" >RecordSearchComponent</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../components/RecordSearchRefinerComponent.html" >RecordSearchRefinerComponent</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../components/RelatedObjectDataComponent.html"  data-type="entity-link" class="active" >RelatedObjectDataComponent</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../components/RepeatableContributorComponent.html" >RepeatableContributorComponent</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../components/RepeatableTextfieldComponent.html" >RepeatableTextfieldComponent</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../components/RepeatableVocabComponent.html" >RepeatableVocabComponent</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../components/ReportComponent.html" >ReportComponent</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../components/SelectionFieldComponent.html" >SelectionFieldComponent</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../components/TabOrAccordionContainerComponent.html" >TabOrAccordionContainerComponent</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../components/TextAreaComponent.html" >TextAreaComponent</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../components/TextBlockComponent.html" >TextBlockComponent</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../components/TextFieldComponent.html" >TextFieldComponent</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../components/TransferOwnerComponent.html" >TransferOwnerComponent</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../components/UserProfileComponent.html" >UserProfileComponent</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../components/VocabFieldComponent.html" >VocabFieldComponent</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../components/WorkflowStepButtonComponent.html" >WorkflowStepButtonComponent</a>
+                                </li>
+                        </ul>
+                    </li>
+            
+            
+                    <li class="chapter">
+                        <div class="simple menu-toggler" data-toggle="collapse"
+                                data-target="#xs-classes-links"
+                            >
+                            <span class="fa fa-file-code-o"></span>
+                            <span>Classes</span>
+                            <span class="fa fa-angle-down"></span>
+                        </div>
+                        <ul class="links collapse "
+                                id="xs-classes-links"
+                            >
+                                <li class="link">
+                                    <a href="../classes/AnchorOrButton.html" >AnchorOrButton</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/AppModuleInjector.html" >AppModuleInjector</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/AppModuleInjector.html" >AppModuleInjector</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/AppModuleInjector.html" >AppModuleInjector</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/AppModuleInjector.html" >AppModuleInjector</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/BaseService.html" >BaseService</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/Container.html" >Container</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/ContributorField.html" >ContributorField</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/DateTime.html" >DateTime</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/DmpModuleInjector.html" >DmpModuleInjector</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/EmbeddableComponent.html" >EmbeddableComponent</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/ExportModuleInjector.html" >ExportModuleInjector</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/FieldBase.html" >FieldBase</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/HiddenValue.html" >HiddenValue</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/LinkValue.html" >LinkValue</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/LoadableComponent.html" >LoadableComponent</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/LoginResult.html" >LoginResult</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/MintLookupDataService.html" >MintLookupDataService</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/Plan.html" >Plan</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/PlanTable.html" >PlanTable</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/RbValidator.html" >RbValidator</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/RecordActionResult.html" >RecordActionResult</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/RecordSearchModuleInjector.html" >RecordSearchModuleInjector</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/RecordSearchParams.html" >RecordSearchParams</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/RecordSearchRefiner.html" >RecordSearchRefiner</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/RelatedObjectDataField.html" >RelatedObjectDataField</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/RepeatableComponent.html" >RepeatableComponent</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/RepeatableContainer.html" >RepeatableContainer</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/RepeatableContributor.html" >RepeatableContributor</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/Report.html" >Report</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/ReportResults.html" >ReportResults</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/Role.html" >Role</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/SaveResult.html" >SaveResult</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/SelectionComponent.html" >SelectionComponent</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/SelectionField.html" >SelectionField</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/SharedModuleInjector.html" >SharedModuleInjector</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/SimpleComponent.html" >SimpleComponent</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/TabOrAccordionContainer.html" >TabOrAccordionContainer</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/TextArea.html" >TextArea</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/TextField.html" >TextField</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/TransferOwnerModuleInjector.html" >TransferOwnerModuleInjector</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/User.html" >User</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/VocabField.html" >VocabField</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/WorkflowStepButton.html" >WorkflowStepButton</a>
+                                </li>
+                        </ul>
+                    </li>
+            
+                    <li class="chapter">
+                        <div class="simple menu-toggler" data-toggle="collapse"
+                                data-target="#xs-injectables-links"
+                            >
+                            <span class="fa fa-long-arrow-down"></span>
+                            <span>Injectables</span>
+                            <span class="fa fa-angle-down"></span>
+                        </div>
+                        <ul class="links collapse "
+                                id="xs-injectables-links"
+                            >
+                                <li class="link">
+                                    <a href="../injectables/ConfigService.html" >ConfigService</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../injectables/DashboardService.html" >DashboardService</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../injectables/EmailNotificationService.html" >EmailNotificationService</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../injectables/FieldControlService.html" >FieldControlService</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../injectables/RecordsService.html" >RecordsService</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../injectables/ReportService.html" >ReportService</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../injectables/RolesService.html" >RolesService</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../injectables/TranslationService.html" >TranslationService</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../injectables/UserSimpleService.html" >UserSimpleService</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../injectables/UtilityService.html" >UtilityService</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../injectables/VocabFieldLookupService.html" >VocabFieldLookupService</a>
+                                </li>
+                        </ul>
+                    </li>
+            
+            
+                    <li class="chapter">
+                        <div class="simple menu-toggler" data-toggle="collapse"
+                                data-target="#xs-interfaces-links"
+                            >
+                            <span class="fa fa-info"></span>
+                            <span>Interfaces</span>
+                            <span class="fa fa-angle-down"></span>
+                        </div>
+                        <ul class="links collapse "
+                                id="xs-interfaces-links"
+                            >
+                                <li class="link">
+                                    <a href="../interfaces/UserForm.html" >UserForm</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../interfaces/UserForm.html" >UserForm</a>
+                                </li>
+                        </ul>
+                    </li>
+            
+                    <li class="chapter">
+                        <div class="simple menu-toggler" data-toggle="collapse"
+                                data-target="#xs-pipes-links"
+                            >
+                            <span class="fa fa-plus"></span>
+                            <span>Pipes</span>
+                            <span class="fa fa-angle-down"></span>
+                        </div>
+                        <ul class="links collapse "
+                                id="xs-pipes-links"
+                            >
+                                <li class="link">
+                                    <a href="../pipes/MultivalueFieldPipe.html" >MultivalueFieldPipe</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../pipes/StringTemplatePipe.html" >StringTemplatePipe</a>
+                                </li>
+                        </ul>
+                    </li>
+            
+                    <li class="chapter">
+                        <div class="simple menu-toggler" data-toggle="collapse"
+                                data-target="#xs-miscellaneous-links"
+                            >
+                            <span class="fa fa-cubes"></span>
+                            <span>Miscellaneous</span>
+                            <span class="fa fa-angle-down"></span>
+                        </div>
+                        <ul class="links collapse "
+                                id="xs-miscellaneous-links"
+                            >
+                                <li class="link">
+                                  <a href="../miscellaneous/functions.html" data-type="entity-link" >Functions</a>
+                                </li>
+                                <li class="link">
+                                  <a href="../miscellaneous/variables.html" data-type="entity-link" >Variables</a>
+                                </li>
+                        </ul>
+                    </li>
+            
+            
+                    <li class="chapter">
+                        <a data-type="chapter-link" href="../coverage.html" ><span class="fa fa-tasks"></span>Documentation coverage</a>
+                    </li>
+            
+                    <li class="divider"></li>
+                    <li class="copyright">
+                            Documentation generated using <a href="https://compodoc.github.io/website/" target="_blank">
+                                        <img src="..//images/compodoc-vectorise-inverted.svg" class="img-responsive">
+                            </a>
+                    </li>
+            
+                </ul>
+            
+            </nav>
         </div>
 
         <div class="container-fluid main">
            <div class="row main">
                <div class="hidden-xs menu">
-                   <compodoc-menu mode="normal"></compodoc-menu>
+                   <nav>
+                   
+                       <ul class="list">
+                   
+                           <li class="title">
+                               <a href="../index.html">ReDBox Portal - NG2 Apps</a>
+                           </li>
+                   
+                           <li class="divider"></li>
+                   
+                               <div id="book-search-input" role="search">
+                                   <input type="text" placeholder="Type to search">
+                               </div>
+                   
+                           <li class="chapter">
+                               <a data-type="chapter-link" href="../index.html"><span class="fa fa-home"></span>Getting started</a>
+                               <ul class="links">
+                                       <li class="link">
+                                           <a 
+                                               
+                                                href="../overview.html" 
+                                                href="../overview.html" 
+                                               >
+                                               <span class="fa fa-th"></span>Overview
+                                           </a>
+                                       </li>
+                                       <li class="link">
+                                         <a href="../index.html" ><span class="fa fa-file-text-o"></span>README</a>
+                                       </li>
+                                       <li class="link">
+                                               <a href="../license.html"
+                                           >
+                                               <span class="fa fa-file-text-o"></span>LICENSE
+                                           </a>
+                                       </li>
+                               </ul>
+                           </li>
+                   
+                           <li class="chapter">
+                               <div class="simple menu-toggler" data-toggle="collapse"
+                                       data-target="#additional-pages"
+                   >
+                                   <span class="fa fa-book"></span>
+                                   <span>Additional documentation</span>
+                                   <span class="fa fa-angle-down"></span>
+                               </div>
+                               <ul class="links collapse "
+                                       id="additional-pages"
+                   >
+                                       <li class="link ">
+                                           <a href="../additional-documentation/installation-guide.html" >Installation guide</a>
+                                       </li>
+                                       <li class="link ">
+                                           <a href="../additional-documentation/configuration-guide.html" >Configuration guide</a>
+                                       </li>
+                                       <li class="link for-chapter">
+                                           <a href="../additional-documentation/configuration-guide/configuring-web-forms.html" >Configuring web forms</a>
+                                       </li>
+                                       <li class="link for-chapter">
+                                           <a href="../additional-documentation/configuration-guide/configuring-email-notifications.html" >Configuring email notifications</a>
+                                       </li>
+                                       <li class="link for-chapter">
+                                           <a href="../additional-documentation/configuration-guide/configuring-integration-with-redbox-and-mint.html" >Configuring integration with RedBox and Mint</a>
+                                       </li>
+                               </ul>
+                           </li>
+                   
+                           <li class="chapter">
+                               <a data-type="chapter-link" href="../modules.html" >
+                                   <div class="menu-toggler linked" data-toggle="collapse"
+                                           data-target="#modules-links"
+                                   >
+                                       <span class="fa fa-archive"></span>
+                                       <span class="link-name">Modules</span>
+                                       <span class="fa fa-angle-down"></span>
+                                   </div>
+                               </a>
+                               <ul class="links collapse "
+                                       id="modules-links"
+                   >
+                                       <li class="link">
+                                           <a href="../modules/DashboardModule.html" >DashboardModule</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../modules/DmpModule.html" >DmpModule</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../modules/ExportModule.html" >ExportModule</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../modules/LocalAuthModule.html" >LocalAuthModule</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../modules/ManageRolesModule.html" >ManageRolesModule</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../modules/ManageUsersModule.html" >ManageUsersModule</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../modules/RecordSearchModule.html" >RecordSearchModule</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../modules/ReportModule.html" >ReportModule</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../modules/SharedModule.html" >SharedModule</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../modules/TransferOwnerModule.html" >TransferOwnerModule</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../modules/UserProfileModule.html" >UserProfileModule</a>
+                                       </li>
+                               </ul>
+                           </li>
+                   
+                           <li class="chapter">
+                               <div class="simple menu-toggler" data-toggle="collapse"
+                                       data-target="#components-links"
+                   >
+                                   <span class="fa fa-cogs"></span>
+                                   <span>Components</span>
+                                   <span class="fa fa-angle-down"></span>
+                               </div>
+                               <ul class="links collapse "
+                                       id="components-links"
+                   >
+                                       <li class="link">
+                                           <a href="../components/AnchorOrButtonComponent.html" >AnchorOrButtonComponent</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../components/ContributorComponent.html" >ContributorComponent</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../components/DashboardComponent.html" >DashboardComponent</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../components/DateTimeComponent.html" >DateTimeComponent</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../components/DmpFieldComponent.html" >DmpFieldComponent</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../components/DmpFormComponent.html" >DmpFormComponent</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../components/DropdownFieldComponent.html" >DropdownFieldComponent</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../components/ExportFormComponent.html" >ExportFormComponent</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../components/HiddenValueComponent.html" >HiddenValueComponent</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../components/HtmlRawComponent.html" >HtmlRawComponent</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../components/LinkValueComponent.html" >LinkValueComponent</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../components/LocalAuthComponent.html" >LocalAuthComponent</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../components/ManageRolesComponent.html" >ManageRolesComponent</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../components/ManageUsersComponent.html" >ManageUsersComponent</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../components/RecordSearchComponent.html" >RecordSearchComponent</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../components/RecordSearchRefinerComponent.html" >RecordSearchRefinerComponent</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../components/RelatedObjectDataComponent.html"  data-type="entity-link" class="active" >RelatedObjectDataComponent</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../components/RepeatableContributorComponent.html" >RepeatableContributorComponent</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../components/RepeatableTextfieldComponent.html" >RepeatableTextfieldComponent</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../components/RepeatableVocabComponent.html" >RepeatableVocabComponent</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../components/ReportComponent.html" >ReportComponent</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../components/SelectionFieldComponent.html" >SelectionFieldComponent</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../components/TabOrAccordionContainerComponent.html" >TabOrAccordionContainerComponent</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../components/TextAreaComponent.html" >TextAreaComponent</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../components/TextBlockComponent.html" >TextBlockComponent</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../components/TextFieldComponent.html" >TextFieldComponent</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../components/TransferOwnerComponent.html" >TransferOwnerComponent</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../components/UserProfileComponent.html" >UserProfileComponent</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../components/VocabFieldComponent.html" >VocabFieldComponent</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../components/WorkflowStepButtonComponent.html" >WorkflowStepButtonComponent</a>
+                                       </li>
+                               </ul>
+                           </li>
+                   
+                   
+                           <li class="chapter">
+                               <div class="simple menu-toggler" data-toggle="collapse"
+                                       data-target="#classes-links"
+                   >
+                                   <span class="fa fa-file-code-o"></span>
+                                   <span>Classes</span>
+                                   <span class="fa fa-angle-down"></span>
+                               </div>
+                               <ul class="links collapse "
+                                       id="classes-links"
+                   >
+                                       <li class="link">
+                                           <a href="../classes/AnchorOrButton.html" >AnchorOrButton</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/AppModuleInjector.html" >AppModuleInjector</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/AppModuleInjector.html" >AppModuleInjector</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/AppModuleInjector.html" >AppModuleInjector</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/AppModuleInjector.html" >AppModuleInjector</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/BaseService.html" >BaseService</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/Container.html" >Container</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/ContributorField.html" >ContributorField</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/DateTime.html" >DateTime</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/DmpModuleInjector.html" >DmpModuleInjector</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/EmbeddableComponent.html" >EmbeddableComponent</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/ExportModuleInjector.html" >ExportModuleInjector</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/FieldBase.html" >FieldBase</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/HiddenValue.html" >HiddenValue</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/LinkValue.html" >LinkValue</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/LoadableComponent.html" >LoadableComponent</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/LoginResult.html" >LoginResult</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/MintLookupDataService.html" >MintLookupDataService</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/Plan.html" >Plan</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/PlanTable.html" >PlanTable</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/RbValidator.html" >RbValidator</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/RecordActionResult.html" >RecordActionResult</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/RecordSearchModuleInjector.html" >RecordSearchModuleInjector</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/RecordSearchParams.html" >RecordSearchParams</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/RecordSearchRefiner.html" >RecordSearchRefiner</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/RelatedObjectDataField.html" >RelatedObjectDataField</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/RepeatableComponent.html" >RepeatableComponent</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/RepeatableContainer.html" >RepeatableContainer</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/RepeatableContributor.html" >RepeatableContributor</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/Report.html" >Report</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/ReportResults.html" >ReportResults</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/Role.html" >Role</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/SaveResult.html" >SaveResult</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/SelectionComponent.html" >SelectionComponent</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/SelectionField.html" >SelectionField</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/SharedModuleInjector.html" >SharedModuleInjector</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/SimpleComponent.html" >SimpleComponent</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/TabOrAccordionContainer.html" >TabOrAccordionContainer</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/TextArea.html" >TextArea</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/TextField.html" >TextField</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/TransferOwnerModuleInjector.html" >TransferOwnerModuleInjector</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/User.html" >User</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/VocabField.html" >VocabField</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/WorkflowStepButton.html" >WorkflowStepButton</a>
+                                       </li>
+                               </ul>
+                           </li>
+                   
+                           <li class="chapter">
+                               <div class="simple menu-toggler" data-toggle="collapse"
+                                       data-target="#injectables-links"
+                   >
+                                   <span class="fa fa-long-arrow-down"></span>
+                                   <span>Injectables</span>
+                                   <span class="fa fa-angle-down"></span>
+                               </div>
+                               <ul class="links collapse "
+                                       id="injectables-links"
+                   >
+                                       <li class="link">
+                                           <a href="../injectables/ConfigService.html" >ConfigService</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../injectables/DashboardService.html" >DashboardService</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../injectables/EmailNotificationService.html" >EmailNotificationService</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../injectables/FieldControlService.html" >FieldControlService</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../injectables/RecordsService.html" >RecordsService</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../injectables/ReportService.html" >ReportService</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../injectables/RolesService.html" >RolesService</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../injectables/TranslationService.html" >TranslationService</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../injectables/UserSimpleService.html" >UserSimpleService</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../injectables/UtilityService.html" >UtilityService</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../injectables/VocabFieldLookupService.html" >VocabFieldLookupService</a>
+                                       </li>
+                               </ul>
+                           </li>
+                   
+                   
+                           <li class="chapter">
+                               <div class="simple menu-toggler" data-toggle="collapse"
+                                       data-target="#interfaces-links"
+                   >
+                                   <span class="fa fa-info"></span>
+                                   <span>Interfaces</span>
+                                   <span class="fa fa-angle-down"></span>
+                               </div>
+                               <ul class="links collapse "
+                                       id="interfaces-links"
+                   >
+                                       <li class="link">
+                                           <a href="../interfaces/UserForm.html" >UserForm</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../interfaces/UserForm.html" >UserForm</a>
+                                       </li>
+                               </ul>
+                           </li>
+                   
+                           <li class="chapter">
+                               <div class="simple menu-toggler" data-toggle="collapse"
+                                       data-target="#pipes-links"
+                   >
+                                   <span class="fa fa-plus"></span>
+                                   <span>Pipes</span>
+                                   <span class="fa fa-angle-down"></span>
+                               </div>
+                               <ul class="links collapse "
+                                       id="pipes-links"
+                   >
+                                       <li class="link">
+                                           <a href="../pipes/MultivalueFieldPipe.html" >MultivalueFieldPipe</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../pipes/StringTemplatePipe.html" >StringTemplatePipe</a>
+                                       </li>
+                               </ul>
+                           </li>
+                   
+                           <li class="chapter">
+                               <div class="simple menu-toggler" data-toggle="collapse"
+                                       data-target="#miscellaneous-links"
+                   >
+                                   <span class="fa fa-cubes"></span>
+                                   <span>Miscellaneous</span>
+                                   <span class="fa fa-angle-down"></span>
+                               </div>
+                               <ul class="links collapse "
+                                       id="miscellaneous-links"
+                   >
+                                       <li class="link">
+                                         <a href="../miscellaneous/functions.html" data-type="entity-link" >Functions</a>
+                                       </li>
+                                       <li class="link">
+                                         <a href="../miscellaneous/variables.html" data-type="entity-link" >Variables</a>
+                                       </li>
+                               </ul>
+                           </li>
+                   
+                   
+                           <li class="chapter">
+                               <a data-type="chapter-link" href="../coverage.html" ><span class="fa fa-tasks"></span>Documentation coverage</a>
+                           </li>
+                   
+                           <li class="divider"></li>
+                           <li class="copyright">
+                                   Documentation generated using <a href="https://compodoc.github.io/website/" target="_blank">
+                                               <img src="..//images/compodoc-vectorise-inverted.svg" class="img-responsive">
+                                   </a>
+                           </li>
+                   
+                       </ul>
+                   
+                   </nav>
                </div>
-               <!-- START CONTENT -->
                <div class="content component">
                    <div class="content-data">
 
@@ -40,26 +1017,25 @@
 </ol>
 
 <ul class="nav nav-tabs" role="tablist">
-        <li class="active">
-            <a href="#info" role="tab" id="info-tab" data-toggle="tab" data-link="info">Info</a>
-        </li>
-        <li >
-            <a href="#source" role="tab" id="source-tab" data-toggle="tab" data-link="source">Source</a>
-        </li>
-        <li >
-            <a href="#templateData" role="tab" id="templateData-tab" data-toggle="tab" data-link="template">Template</a>
-        </li>
-        <li >
-            <a href="#tree" role="tab" id="tree-tab" data-toggle="tab" data-link="dom-tree">DOM Tree</a>
-        </li>
+    <li class="active">
+        <a href="#info" id="info-tab" role="tab" data-toggle="tab" data-link="info">Info</a>
+    </li>
+
+    <li>
+        <a href="#source" role="tab" id="source-tab" data-toggle="tab" data-link="source">Source</a>
+    </li>
+
+    <li>
+        <a href="#tree" role="tab" id="tree-tab" data-toggle="tab" data-link="dom-tree">DOM Tree</a>
+    </li>
 </ul>
 
 <div class="tab-content">
-    <div class="tab-pane fade active in" id="c-info"><p class="comment">
+    <div class="tab-pane fade active in" id="info"><p class="comment">
     <h3>File</h3>
 </p>
 <p class="comment">
-    <code>angular/shared/form/field-relatedobjectdata.component.ts</code>
+    <code>assets/angular/shared/form/field-relatedobjectdata.component.ts</code>
 </p>
 
     <p class="comment">
@@ -74,7 +1050,7 @@
         <h3>Extends</h3>
     </p>
     <p class="comment">
-                <code><a href="../classes/SimpleComponent.html" target="_self" >SimpleComponent</a></code>
+            <code><a href="../classes/SimpleComponent.html" target="_self" >SimpleComponent</a></code>
     </p>
 
 
@@ -94,20 +1070,11 @@
 
 
 
+
             <tr>
                 <td class="col-md-3">selector</td>
                 <td class="col-md-9"><code>rb-relatedobjectdata</code></td>
             </tr>
-
-
-
-
-            <tr>
-                <td class="col-md-3">templateUrl</td>
-                <td class="col-md-9"><code>./field-relatedobjectdata.html</code></td>
-            </tr>
-
-
 
 
 
@@ -119,9 +1086,9 @@
 </section>
 
     <section>
-    <h3 id="index">Index</h3>
-    <table class="table table-sm table-bordered index-table">
-        <tbody>
+        <h3 id="index">Index</h3>
+        <table class="table table-sm table-bordered index-table">
+            <tbody>
                 <tr>
                     <td class="col-md-4">
                         <h6><b>Properties</b></h6>
@@ -131,1069 +1098,72 @@
                     <td class="col-md-4">
                         <ul class="index-list">
                             <li>
-                                <a href="#field">field</a>
-                            </li>
-                            <li>
-                                <a href="#helpShow">helpShow</a>
-                            </li>
-                            <li>
-                                    <span class="modifier">Public</span>
-                                <a href="#injector">injector</a>
-                            </li>
-                            <li>
-                                <a href="#loaded">loaded</a>
-                            </li>
-                            <li>
-                                <a href="#parentId">parentId</a>
+                                 <a href="#field">field</a>
                             </li>
                         </ul>
                     </td>
                 </tr>
-
-                <tr>
-                    <td class="col-md-4">
-                        <h6><b>Methods</b></h6>
-                    </td>
-                </tr>
-                <tr>
-                    <td class="col-md-4">
-                        <ul class="index-list">
-                            <li>
-                                <a href="#sanitizeUrl">sanitizeUrl</a>
-                            </li>
-                            <li>
-                                    <span class="modifier">Public</span>
-                                <a href="#getFormControl">getFormControl</a>
-                            </li>
-                            <li>
-                                <a href="#getFromInjector">getFromInjector</a>
-                            </li>
-                            <li>
-                                    <span class="modifier">Public</span>
-                                <a href="#getGroupClass">getGroupClass</a>
-                            </li>
-                            <li>
-                                <a href="#getRequiredLabelStr">getRequiredLabelStr</a>
-                            </li>
-                            <li>
-                                    <span class="modifier">Public</span>
-                                <a href="#hasRequiredError">hasRequiredError</a>
-                            </li>
-                            <li>
-                                    <span class="modifier">Public</span>
-                                <a href="#toggleHelp">toggleHelp</a>
-                            </li>
-                        </ul>
-                    </td>
-                </tr>
-
-                <tr>
-                    <td class="col-md-4">
-                        <h6><b>Inputs</b></h6>
-                    </td>
-                </tr>
-                <tr>
-                    <td class="col-md-4">
-                        <ul class="index-list">
-                            <li>
-                                <a href="#field">field</a>
-                            </li>
-                            <li>
-                                <a href="#fieldMap">fieldMap</a>
-                            </li>
-                            <li>
-                                <a href="#form">form</a>
-                            </li>
-                            <li>
-                                <a href="#index">index</a>
-                            </li>
-                            <li>
-                                <a href="#isEmbedded">isEmbedded</a>
-                            </li>
-                            <li>
-                                <a href="#name">name</a>
-                            </li>
-                        </ul>
-                    </td>
-                </tr>
+            </tbody>
+        </table>
+    </section>
 
 
 
 
-        </tbody>
-    </table>
-</section>
+
+
 
     <section>
-    <h3 id="constructor">Constructor</h3>
-        <table class="table table-sm table-bordered">
-            <tbody>
-                <tr>
-                    <td class="col-md-4">
-<code>constructor(sanitizer: <a href="https://angular.io/api/platform-browser/DomSanitizer" target="_blank">DomSanitizer</a>)</code>
-                    </td>
-                </tr>
+        
+            <h3 id="inputs">
+                Properties
+            </h3>
+            <table class="table table-sm table-bordered">
+                <tbody>
+                    <tr>
+                        <td class="col-md-4">
+                            <a name="field"></a>
+                            <span class="name"><b> field</b><a href="#field"><span class="fa fa-link"></span></a></span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="col-md-4">
+                            <code>field:     <code><a href="../classes/RelatedObjectDataField.html" target="_self" >RelatedObjectDataField</a></code>
+    </code>
+                        </td>
+                    </tr>
                         <tr>
                             <td class="col-md-4">
-                                <div class="io-line">Defined in <a href="" data-line="174" class="link-to-prism">angular/shared/form/field-relatedobjectdata.component.ts:174</a></div>
-                            </td>
-                        </tr>
-
-                <tr>
-                    <td class="col-md-4">
-                            <div>
-                                    <b>Parameters :</b>
-                                    <table class="params">
-                                        <thead>
-                                            <tr>
-                                                <td>Name</td>
-                                                    <td>Type</td>
-                                                <td>Optional</td>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                                <tr>
-                                                        <td>sanitizer</td>
-                                                  
-                                                        <td>
-                                                                        <code><a href="https://angular.io/api/platform-browser/DomSanitizer" target="_blank" >DomSanitizer</a></code>
-                                                        </td>
-                                                  
-                                                    <td>
-                                                            No
-                                                    </td>
-                                                    
-                                                </tr>
-                                        </tbody>
-                                    </table>
-                            </div>
-                    </td>
-                </tr>
-            </tbody>
-        </table>
-</section>
-
-    <section>
-    <h3 id="inputs">Inputs</h3>
-        <table class="table table-sm table-bordered">
-            <tbody>
-                <tr>
-                    <td class="col-md-4">
-                        <a name="field"></a>
-                        <b>field</b>
-                    </td>
-                </tr>
-                <tr>
-                    <td class="col-md-4">
-                        <i>Type : </i>        <code><a href="../classes/FieldBase.html" target="_self" >FieldBase&lt;any&gt;</a></code>
-
-                    </td>
-                </tr>
-                            <tr>
-                                <td class="col-md-4" colspan="2">
-                                    <div class="io-line">Inherited from         <code><a href="../classes/SimpleComponent.html" target="_self" >SimpleComponent</a></code>
-</div>
-                                </td>
-                            </tr>
-                        <tr>
-                            <td class="col-md-2" colspan="2">
-                                    <div class="io-line">Defined in         <code><a href="../classes/SimpleComponent.html#source" target="_self" >SimpleComponent:37</a></code>
-</div>
-                            </td>
-                        </tr>
-                <tr>
-                    <td class="col-md-4">
-                        <div class="io-description"><p>Field model</p>
-</div>
-                    </td>
-                </tr>
-            </tbody>
-        </table>
-        <table class="table table-sm table-bordered">
-            <tbody>
-                <tr>
-                    <td class="col-md-4">
-                        <a name="fieldMap"></a>
-                        <b>fieldMap</b>
-                    </td>
-                </tr>
-                <tr>
-                    <td class="col-md-4">
-                        <i>Type : </i>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
-
-                    </td>
-                </tr>
-                            <tr>
-                                <td class="col-md-4" colspan="2">
-                                    <div class="io-line">Inherited from         <code><a href="../classes/SimpleComponent.html" target="_self" >SimpleComponent</a></code>
-</div>
-                                </td>
-                            </tr>
-                        <tr>
-                            <td class="col-md-2" colspan="2">
-                                    <div class="io-line">Defined in         <code><a href="../classes/SimpleComponent.html#source" target="_self" >SimpleComponent:45</a></code>
-</div>
-                            </td>
-                        </tr>
-                <tr>
-                    <td class="col-md-4">
-                        <div class="io-description"><p>The field mapping</p>
-</div>
-                    </td>
-                </tr>
-            </tbody>
-        </table>
-        <table class="table table-sm table-bordered">
-            <tbody>
-                <tr>
-                    <td class="col-md-4">
-                        <a name="form"></a>
-                        <b>form</b>
-                    </td>
-                </tr>
-                <tr>
-                    <td class="col-md-4">
-                        <i>Type : </i>        <code><a href="https://angular.io/api/forms/FormGroup" target="_blank" >FormGroup</a></code>
-
-                    </td>
-                </tr>
-                            <tr>
-                                <td class="col-md-4" colspan="2">
-                                    <div class="io-line">Inherited from         <code><a href="../classes/SimpleComponent.html" target="_self" >SimpleComponent</a></code>
-</div>
-                                </td>
-                            </tr>
-                        <tr>
-                            <td class="col-md-2" colspan="2">
-                                    <div class="io-line">Defined in         <code><a href="../classes/SimpleComponent.html#source" target="_self" >SimpleComponent:41</a></code>
-</div>
-                            </td>
-                        </tr>
-                <tr>
-                    <td class="col-md-4">
-                        <div class="io-description"><p>The form group</p>
-</div>
-                    </td>
-                </tr>
-            </tbody>
-        </table>
-        <table class="table table-sm table-bordered">
-            <tbody>
-                <tr>
-                    <td class="col-md-4">
-                        <a name="index"></a>
-                        <b>index</b>
-                    </td>
-                </tr>
-                <tr>
-                    <td class="col-md-4">
-                        <i>Type : </i>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
-
-                    </td>
-                </tr>
-                            <tr>
-                                <td class="col-md-4" colspan="2">
-                                    <div class="io-line">Inherited from         <code><a href="../classes/SimpleComponent.html" target="_self" >SimpleComponent</a></code>
-</div>
-                                </td>
-                            </tr>
-                        <tr>
-                            <td class="col-md-2" colspan="2">
-                                    <div class="io-line">Defined in         <code><a href="../classes/SimpleComponent.html#source" target="_self" >SimpleComponent:49</a></code>
-</div>
-                            </td>
-                        </tr>
-                <tr>
-                    <td class="col-md-4">
-                        <div class="io-description"><p>The index of this field</p>
-</div>
-                    </td>
-                </tr>
-            </tbody>
-        </table>
-        <table class="table table-sm table-bordered">
-            <tbody>
-                <tr>
-                    <td class="col-md-4">
-                        <a name="isEmbedded"></a>
-                        <b>isEmbedded</b>
-                    </td>
-                </tr>
-                <tr>
-                    <td class="col-md-4">
-                        <i>Type : </i>        <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/boolean" target="_blank" >boolean</a></code>
-
-                    </td>
-                </tr>
-                <tr>
-                    <td class="col-md-4">
-                        <i>Default value : </i><code>false</code>
-                    </td>
-                </tr>
-                            <tr>
-                                <td class="col-md-4" colspan="2">
-                                    <div class="io-line">Inherited from         <code><a href="../classes/SimpleComponent.html" target="_self" >SimpleComponent</a></code>
-</div>
-                                </td>
-                            </tr>
-                        <tr>
-                            <td class="col-md-2" colspan="2">
-                                    <div class="io-line">Defined in         <code><a href="../classes/SimpleComponent.html#source" target="_self" >SimpleComponent:55</a></code>
-</div>
-                            </td>
-                        </tr>
-            </tbody>
-        </table>
-        <table class="table table-sm table-bordered">
-            <tbody>
-                <tr>
-                    <td class="col-md-4">
-                        <a name="name"></a>
-                        <b>name</b>
-                    </td>
-                </tr>
-                <tr>
-                    <td class="col-md-4">
-                        <i>Type : </i>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
-
-                    </td>
-                </tr>
-                            <tr>
-                                <td class="col-md-4" colspan="2">
-                                    <div class="io-line">Inherited from         <code><a href="../classes/SimpleComponent.html" target="_self" >SimpleComponent</a></code>
-</div>
-                                </td>
-                            </tr>
-                        <tr>
-                            <td class="col-md-2" colspan="2">
-                                    <div class="io-line">Defined in         <code><a href="../classes/SimpleComponent.html#source" target="_self" >SimpleComponent:53</a></code>
-</div>
-                            </td>
-                        </tr>
-                <tr>
-                    <td class="col-md-4">
-                        <div class="io-description"><p>The name of this field</p>
-</div>
-                    </td>
-                </tr>
-            </tbody>
-        </table>
-</section>
-
-
-
-    <section>
+                                <i>Type : </i>    <code><a href="../classes/RelatedObjectDataField.html" target="_self" >RelatedObjectDataField</a></code>
     
-    <h3 id="methods">
-        Methods
-    </h3>
-    <table class="table table-sm table-bordered">
-        <tbody>
-            <tr>
-                <td class="col-md-4">
-                    <a name="sanitizeUrl"></a>
-                    <span class="name">
-                        <b>
-                            sanitizeUrl
-                        </b>
-                        <a href="#sanitizeUrl"><span class="icon ion-ios-link"></span></a>
-                    </span>
-                </td>
-            </tr>
-            <tr>
-                <td class="col-md-4">
-<code>sanitizeUrl(url: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank">string</a>)</code>
-                </td>
-            </tr>
-
-
-            <tr>
-                <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="180"
-                            class="link-to-prism">angular/shared/form/field-relatedobjectdata.component.ts:180</a></div>
-                </td>
-            </tr>
-
-
-            <tr>
-                <td class="col-md-4">
-
-                    <div class="io-description">
-                        <b>Parameters :</b>
-                        <table class="params">
-                            <thead>
-                                <tr>
-                                    <td>Name</td>
-                                    <td>Type</td>
-                                    <td>Optional</td>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td>url</td>
-                                    <td>
-                                                <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank" >string</a></code>
-                                    </td>
-
-                                    <td>
-                                        No
-                                    </td>
-
-
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                    <div>
-                    </div>
-                    <div class="io-description">
-                        <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
-
-                    </div>
-                    <div class="io-description">
-                        
-                    </div>
-                </td>
-            </tr>
-        </tbody>
-    </table>
-    <table class="table table-sm table-bordered">
-        <tbody>
-            <tr>
-                <td class="col-md-4">
-                    <a name="getFormControl"></a>
-                    <span class="name">
-                        <b>
-                            <span class="modifier">Public</span>
-                            getFormControl
-                        </b>
-                        <a href="#getFormControl"><span class="icon ion-ios-link"></span></a>
-                    </span>
-                </td>
-            </tr>
-            <tr>
-                <td class="col-md-4">
-                    <span class="modifier-icon icon ion-ios-reset"></span>
-                    <code>getFormControl(name: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank">string</a>, ctrlIndex: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/number" target="_blank">number</a>)</code>
-                </td>
-            </tr>
-
-
-            <tr>
-                <td class="col-md-4">
-                    <div class="io-line">Inherited from         <code><a href="../classes/SimpleComponent.html" target="_self" >SimpleComponent</a></code>
-</div>
-                </td>
-            </tr>
-            <tr>
-                <td class="col-md-4">
-                        <div class="io-line">Defined in         <code><a href="../classes/SimpleComponent.html#source" target="_self" >SimpleComponent:80</a></code>
-</div>
-                </td>
-            </tr>
-
-
-            <tr>
-                <td class="col-md-4">
-                    <div class="io-description"><p>Return the NG2 FormControl or subclass thereof</p>
-</div>
-
-                    <div class="io-description">
-                        <b>Parameters :</b>
-                        <table class="params">
-                            <thead>
-                                <tr>
-                                    <td>Name</td>
-                                    <td>Type</td>
-                                    <td>Optional</td>
-                                    <td>Default value</td>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td>name</td>
-                                    <td>
-                                                <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank" >string</a></code>
-                                    </td>
-
-                                    <td>
-                                        No
-                                    </td>
-
-                                    <td>
-                                        <code>null</code>
-                                    </td>
-
-                                </tr>
-                                <tr>
-                                    <td>ctrlIndex</td>
-                                    <td>
-                                                <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/number" target="_blank" >number</a></code>
-                                    </td>
-
-                                    <td>
-                                        No
-                                    </td>
-
-                                    <td>
-                                        <code>null</code>
-                                    </td>
-
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                    <div>
-                    </div>
-                    <div class="io-description">
-                        <b>Returns : </b>        <code><a href="https://angular.io/api/forms/FormControl" target="_blank" >FormControl</a></code>
-
-                    </div>
-                    <div class="io-description">
-                        
-                    </div>
-                </td>
-            </tr>
-        </tbody>
-    </table>
-    <table class="table table-sm table-bordered">
-        <tbody>
-            <tr>
-                <td class="col-md-4">
-                    <a name="getFromInjector"></a>
-                    <span class="name">
-                        <b>
-                            getFromInjector
-                        </b>
-                        <a href="#getFromInjector"><span class="icon ion-ios-link"></span></a>
-                    </span>
-                </td>
-            </tr>
-            <tr>
-                <td class="col-md-4">
-<code>getFromInjector(token: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>)</code>
-                </td>
-            </tr>
-
-
-            <tr>
-                <td class="col-md-4">
-                    <div class="io-line">Inherited from         <code><a href="../classes/SimpleComponent.html" target="_self" >SimpleComponent</a></code>
-</div>
-                </td>
-            </tr>
-            <tr>
-                <td class="col-md-4">
-                        <div class="io-line">Defined in         <code><a href="../classes/SimpleComponent.html#source" target="_self" >SimpleComponent:140</a></code>
-</div>
-                </td>
-            </tr>
-
-
-            <tr>
-                <td class="col-md-4">
-                    <div class="io-description"><p>Returns the NG2 root injector</p>
-</div>
-
-                    <div class="io-description">
-                        <b>Parameters :</b>
-                        <table class="params">
-                            <thead>
-                                <tr>
-                                    <td>Name</td>
-                                    <td>Type</td>
-                                    <td>Optional</td>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td>token</td>
-                                    <td>
-                                                <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
-                                    </td>
-
-                                    <td>
-                                        No
-                                    </td>
-
-
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                    <div>
-                    </div>
-                    <div class="io-description">
-                        <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
-
-                    </div>
-                    <div class="io-description">
-                        
-                    </div>
-                </td>
-            </tr>
-        </tbody>
-    </table>
-    <table class="table table-sm table-bordered">
-        <tbody>
-            <tr>
-                <td class="col-md-4">
-                    <a name="getGroupClass"></a>
-                    <span class="name">
-                        <b>
-                            <span class="modifier">Public</span>
-                            getGroupClass
-                        </b>
-                        <a href="#getGroupClass"><span class="icon ion-ios-link"></span></a>
-                    </span>
-                </td>
-            </tr>
-            <tr>
-                <td class="col-md-4">
-                    <span class="modifier-icon icon ion-ios-reset"></span>
-                    <code>getGroupClass(fldName: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank">string</a>)</code>
-                </td>
-            </tr>
-
-
-            <tr>
-                <td class="col-md-4">
-                    <div class="io-line">Inherited from         <code><a href="../classes/SimpleComponent.html" target="_self" >SimpleComponent</a></code>
-</div>
-                </td>
-            </tr>
-            <tr>
-                <td class="col-md-4">
-                        <div class="io-line">Defined in         <code><a href="../classes/SimpleComponent.html#source" target="_self" >SimpleComponent:110</a></code>
-</div>
-                </td>
-            </tr>
-
-
-            <tr>
-                <td class="col-md-4">
-                    <div class="io-description"><p>Returns the CSS class</p>
-</div>
-
-                    <div class="io-description">
-                        <b>Parameters :</b>
-                        <table class="params">
-                            <thead>
-                                <tr>
-                                    <td>Name</td>
-                                    <td>Type</td>
-                                    <td>Optional</td>
-                                    <td>Default value</td>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td>fldName</td>
-                                    <td>
-                                                <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank" >string</a></code>
-                                    </td>
-
-                                    <td>
-                                        No
-                                    </td>
-
-                                    <td>
-                                        <code>null</code>
-                                    </td>
-
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                    <div>
-                    </div>
-                    <div class="io-description">
-                        <b>Returns : </b>        <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank" >string</a></code>
-
-                    </div>
-                    <div class="io-description">
-                        
-                    </div>
-                </td>
-            </tr>
-        </tbody>
-    </table>
-    <table class="table table-sm table-bordered">
-        <tbody>
-            <tr>
-                <td class="col-md-4">
-                    <a name="getRequiredLabelStr"></a>
-                    <span class="name">
-                        <b>
-                            getRequiredLabelStr
-                        </b>
-                        <a href="#getRequiredLabelStr"><span class="icon ion-ios-link"></span></a>
-                    </span>
-                </td>
-            </tr>
-            <tr>
-                <td class="col-md-4">
-<code>getRequiredLabelStr()</code>
-                </td>
-            </tr>
-
-
-            <tr>
-                <td class="col-md-4">
-                    <div class="io-line">Inherited from         <code><a href="../classes/SimpleComponent.html" target="_self" >SimpleComponent</a></code>
-</div>
-                </td>
-            </tr>
-            <tr>
-                <td class="col-md-4">
-                        <div class="io-line">Defined in         <code><a href="../classes/SimpleComponent.html#source" target="_self" >SimpleComponent:132</a></code>
-</div>
-                </td>
-            </tr>
-
-
-            <tr>
-                <td class="col-md-4">
-                    <div class="io-description"><p>Returns label</p>
-</div>
-
-                    <div>
-                    </div>
-                    <div class="io-description">
-                        <b>Returns : </b>        <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank" >string</a></code>
-
-                    </div>
-                    <div class="io-description">
-                        
-                    </div>
-                </td>
-            </tr>
-        </tbody>
-    </table>
-    <table class="table table-sm table-bordered">
-        <tbody>
-            <tr>
-                <td class="col-md-4">
-                    <a name="hasRequiredError"></a>
-                    <span class="name">
-                        <b>
-                            <span class="modifier">Public</span>
-                            hasRequiredError
-                        </b>
-                        <a href="#hasRequiredError"><span class="icon ion-ios-link"></span></a>
-                    </span>
-                </td>
-            </tr>
-            <tr>
-                <td class="col-md-4">
-                    <span class="modifier-icon icon ion-ios-reset"></span>
-                    <code>hasRequiredError()</code>
-                </td>
-            </tr>
-
-
-            <tr>
-                <td class="col-md-4">
-                    <div class="io-line">Inherited from         <code><a href="../classes/SimpleComponent.html" target="_self" >SimpleComponent</a></code>
-</div>
-                </td>
-            </tr>
-            <tr>
-                <td class="col-md-4">
-                        <div class="io-line">Defined in         <code><a href="../classes/SimpleComponent.html#source" target="_self" >SimpleComponent:118</a></code>
-</div>
-                </td>
-            </tr>
-
-
-            <tr>
-                <td class="col-md-4">
-                    <div class="io-description"><p>If this field has a &#39;required&#39; error.
-Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a></p>
-</div>
-
-                    <div>
-                    </div>
-                    <div class="io-description">
-                        <b>Returns : </b>        <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/boolean" target="_blank" >boolean</a></code>
-
-                    </div>
-                    <div class="io-description">
-                        
-                    </div>
-                </td>
-            </tr>
-        </tbody>
-    </table>
-    <table class="table table-sm table-bordered">
-        <tbody>
-            <tr>
-                <td class="col-md-4">
-                    <a name="toggleHelp"></a>
-                    <span class="name">
-                        <b>
-                            <span class="modifier">Public</span>
-                            toggleHelp
-                        </b>
-                        <a href="#toggleHelp"><span class="icon ion-ios-link"></span></a>
-                    </span>
-                </td>
-            </tr>
-            <tr>
-                <td class="col-md-4">
-                    <span class="modifier-icon icon ion-ios-reset"></span>
-                    <code>toggleHelp()</code>
-                </td>
-            </tr>
-
-
-            <tr>
-                <td class="col-md-4">
-                    <div class="io-line">Inherited from         <code><a href="../classes/SimpleComponent.html" target="_self" >SimpleComponent</a></code>
-</div>
-                </td>
-            </tr>
-            <tr>
-                <td class="col-md-4">
-                        <div class="io-line">Defined in         <code><a href="../classes/SimpleComponent.html#source" target="_self" >SimpleComponent:125</a></code>
-</div>
-                </td>
-            </tr>
-
-
-            <tr>
-                <td class="col-md-4">
-                    <div class="io-description"><p>Convenience method to toggle help mode.</p>
-</div>
-
-                    <div>
-                    </div>
-                    <div class="io-description">
-                        <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >void</a></code>
-
-                    </div>
-                    <div class="io-description">
-                        
-                    </div>
-                </td>
-            </tr>
-        </tbody>
-    </table>
-</section>
-    <section>
+                            </td>
+                        </tr>
+                            <tr>
+                                <td class="col-md-4">
+                                    <div class="io-line">Defined in <a href="" data-line="102" class="link-to-prism">assets/angular/shared/form/field-relatedobjectdata.component.ts:102</a></div>
+                                </td>
+                            </tr>
     
-        <h3 id="inputs">
-            Properties
-        </h3>
-        <table class="table table-sm table-bordered">
-            <tbody>
-                <tr>
-                    <td class="col-md-4">
-                        <a name="field"></a>
-                        <span class="name">
-                            <b>
-                            field</b>
-                            <a href="#field"><span class="icon ion-ios-link"></span></a>
-                        </span>
-                    </td>
-                </tr>
-                    <tr>
-                        <td class="col-md-4">
-                            <i>Type : </i>        <code><a href="../classes/RelatedObjectDataField.html" target="_self" >RelatedObjectDataField</a></code>
-
-                        </td>
-                    </tr>
-                        <tr>
-                            <td class="col-md-4">
-                                    <div class="io-line">Defined in <a href="" data-line="174" class="link-to-prism">angular/shared/form/field-relatedobjectdata.component.ts:174</a></div>
-                            </td>
-                        </tr>
-
-
-            </tbody>
-        </table>
-        <table class="table table-sm table-bordered">
-            <tbody>
-                <tr>
-                    <td class="col-md-4">
-                        <a name="helpShow"></a>
-                        <span class="name">
-                            <b>
-                            helpShow</b>
-                            <a href="#helpShow"><span class="icon ion-ios-link"></span></a>
-                        </span>
-                    </td>
-                </tr>
-                    <tr>
-                        <td class="col-md-4">
-                            <i>Type : </i>        <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/boolean" target="_blank" >boolean</a></code>
-
-                        </td>
-                    </tr>
-                            <tr>
-                                <td class="col-md-4">
-                                    <div class="io-line">Inherited from         <code><a href="../classes/SimpleComponent.html" target="_self" >SimpleComponent</a></code>
-</div>
-                                </td>
-                            </tr>
-                        <tr>
-                            <td class="col-md-4">
-                                    <div class="io-line">Defined in         <code><a href="../classes/SimpleComponent.html#source" target="_self" >SimpleComponent:63</a></code>
-</div>
-                            </td>
-                        </tr>
-
-                <tr>
-                    <td class="col-md-4">
-                        <div class="io-description"><p>Toggles help display</p>
-</div>
-                    </td>
-                </tr>
-
-            </tbody>
-        </table>
-        <table class="table table-sm table-bordered">
-            <tbody>
-                <tr>
-                    <td class="col-md-4">
-                        <a name="injector"></a>
-                        <span class="name">
-                            <b>
-                                <span class="modifier">Public</span>
-                            injector</b>
-                            <a href="#injector"><span class="icon ion-ios-link"></span></a>
-                        </span>
-                    </td>
-                </tr>
-                    <tr>
-                        <td class="col-md-4">
-                            <i>Type : </i>        <code><a href="https://angular.io/api/core/Injector" target="_blank" >Injector</a></code>
-
-                        </td>
-                    </tr>
-                            <tr>
-                                <td class="col-md-4">
-                                    <div class="io-line">Inherited from         <code><a href="../classes/SimpleComponent.html" target="_self" >SimpleComponent</a></code>
-</div>
-                                </td>
-                            </tr>
-                        <tr>
-                            <td class="col-md-4">
-                                    <div class="io-line">Defined in         <code><a href="../classes/SimpleComponent.html#source" target="_self" >SimpleComponent:59</a></code>
-</div>
-                            </td>
-                        </tr>
-
-                <tr>
-                    <td class="col-md-4">
-                        <div class="io-description"><p>The NG2 root injector</p>
-</div>
-                    </td>
-                </tr>
-
-            </tbody>
-        </table>
-        <table class="table table-sm table-bordered">
-            <tbody>
-                <tr>
-                    <td class="col-md-4">
-                        <a name="loaded"></a>
-                        <span class="name">
-                            <b>
-                            loaded</b>
-                            <a href="#loaded"><span class="icon ion-ios-link"></span></a>
-                        </span>
-                    </td>
-                </tr>
-                    <tr>
-                        <td class="col-md-4">
-                            <i>Type : </i>        <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/boolean" target="_blank" >boolean</a></code>
-
-                        </td>
-                    </tr>
-                            <tr>
-                                <td class="col-md-4">
-                                    <div class="io-line">Inherited from         <code><a href="../classes/SimpleComponent.html" target="_self" >SimpleComponent</a></code>
-</div>
-                                </td>
-                            </tr>
-                        <tr>
-                            <td class="col-md-4">
-                                    <div class="io-line">Defined in         <code><a href="../classes/SimpleComponent.html#source" target="_self" >SimpleComponent:73</a></code>
-</div>
-                            </td>
-                        </tr>
-
-                <tr>
-                    <td class="col-md-4">
-                        <div class="io-description"><p>Loaded flag</p>
-</div>
-                    </td>
-                </tr>
-
-            </tbody>
-        </table>
-        <table class="table table-sm table-bordered">
-            <tbody>
-                <tr>
-                    <td class="col-md-4">
-                        <a name="parentId"></a>
-                        <span class="name">
-                            <b>
-                            parentId</b>
-                            <a href="#parentId"><span class="icon ion-ios-link"></span></a>
-                        </span>
-                    </td>
-                </tr>
-                    <tr>
-                        <td class="col-md-4">
-                            <i>Type : </i>        <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank" >string</a></code>
-
-                        </td>
-                    </tr>
-                            <tr>
-                                <td class="col-md-4">
-                                    <div class="io-line">Inherited from         <code><a href="../classes/SimpleComponent.html" target="_self" >SimpleComponent</a></code>
-</div>
-                                </td>
-                            </tr>
-                        <tr>
-                            <td class="col-md-4">
-                                    <div class="io-line">Defined in         <code><a href="../classes/SimpleComponent.html#source" target="_self" >SimpleComponent:68</a></code>
-</div>
-                            </td>
-                        </tr>
-
-                <tr>
-                    <td class="col-md-4">
-                        <div class="io-description"><p>Optional parentId of this component</p>
-</div>
-                    </td>
-                </tr>
-
-            </tbody>
-        </table>
-</section>
+    
+                </tbody>
+            </table>
+    </section>
 
 </div>
 
 
-    <div class="tab-pane fade  tab-source-code" id="c-source">
-        <pre class="line-numbers compodoc-sourcecode"><code class="language-typescript">import { Input, Component, OnInit, Inject, Injector } from &#x27;@angular/core&#x27;;
+    <div class="tab-pane fade tab-source-code" id="source">
+        <pre class="line-numbers"><code class="language-typescript">import { Input, Component, OnInit, Inject, Injector} from &#x27;@angular/core&#x27;;
 import { SimpleComponent } from &#x27;./field-simple.component&#x27;;
 import { FieldBase } from &#x27;./field-base&#x27;;
 import { FormGroup, FormControl, Validators } from &#x27;@angular/forms&#x27;;
-import * as _ from &quot;lodash&quot;;
+import * as _ from &quot;lodash-lib&quot;;
 import { RecordsService } from &#x27;./records.service&#x27;;
-import { Observable } from &#x27;rxjs/Observable&#x27;;
-import &#x27;rxjs/add/observable/zip&#x27;;
-import { fromPromise } from &#x27;rxjs/observable/fromPromise&#x27;;
-import {DomSanitizer} from &#x27;@angular/platform-browser&#x27;;
 
 
 
 /**
- * Related Objects for a particular record.
+ * Contributor Model
  *
  *
  * @author &lt;a target&#x3D;&#x27;_&#x27; href&#x3D;&#x27;https://github.com/shilob&#x27;&gt;Shilo Banihit&lt;/a&gt;
@@ -1205,75 +1175,44 @@ export class RelatedObjectDataField extends FieldBase&lt;any&gt; {
   validators: any;
   enabledValidators: boolean;
   relatedObjects: object[];
-  accessDeniedObjects: object[];
-  failedObjects: object[];
   hasInit: boolean;
   recordsService: RecordsService;
   columns: object[];
-  ignoreEmptyTitle: boolean;
 
   constructor(options: any, injector: any) {
     super(options, injector);
     this.relatedObjects &#x3D; [];
-    this.accessDeniedObjects &#x3D; [];
-    this.failedObjects &#x3D; [];
     this.columns &#x3D; options[&#x27;columns&#x27;] || [];
 
     var relatedObjects &#x3D; this.relatedObjects;
     this.value &#x3D; options[&#x27;value&#x27;] || this.setEmptyValue();
     this.recordsService &#x3D; this.getFromInjector(RecordsService);
-    this.ignoreEmptyTitle &#x3D; _.isUndefined(options[&#x27;ignoreEmptyTitle&#x27;]) ? false : options[&#x27;ignoreEmptyTitle&#x27;];
+    var that &#x3D; this;
+    _.forEach(this.value, (item:any) &#x3D;&gt; {
+       this.recordsService.getRecordMeta(item.id).then(function (meta) {
+         that.relatedObjects.push(meta);
+      });
+    });
   }
 
-/**
-* Loading the metadata for each related object in the array
-*/
-  asyncLoadData() {
-    let getRecordMetaObs &#x3D; [];
-    var that &#x3D; this;
-    const portalPath &#x3D; this.recordsService.getBrandingAndPortalUrl;
-    _.forEach(this.value, (item: any) &#x3D;&gt; {
-      getRecordMetaObs.push(fromPromise(this.recordsService.getRecordMeta(item.id)).flatMap(meta &#x3D;&gt; {
-        const customFields &#x3D; {oid: item.id, portalPath: portalPath};
-        // we add a property called &#x27;oid&#x27; so the item can be &#x27;linked&#x27; in the UI
-        if (!meta) {
-          that.failedObjects.push(customFields);
-        } else {
-          _.merge(meta, customFields);
-          if (meta[&#x27;status&#x27;] &#x3D;&#x3D; &quot;Access Denied&quot;) {
-            that.accessDeniedObjects.push(meta);
-          } else if (meta[&#x27;title&#x27;] || that.ignoreEmptyTitle) {
-            that.relatedObjects.push(meta);
-          } else {
-            that.failedObjects.push(meta);
-          }
-        }
-        return Observable.of(null);
-      }));
-    });
-    if ( getRecordMetaObs.length &gt; 0 ) {
-      return Observable.zip(...getRecordMetaObs);
-    } else {
-      return Observable.of(null);
-    }
-  }
+
 
   createFormModel(valueElem: any &#x3D; undefined): any {
     if (valueElem) {
       this.value &#x3D; valueElem;
     }
 
-    this.formModel &#x3D; new FormControl(this.value || []);
+      this.formModel &#x3D; new FormControl(this.value || []);
 
-    if (this.value) {
-      this.setValue(this.value);
-    }
+      if (this.value) {
+        this.setValue(this.value);
+      }
 
     return this.formModel;
   }
 
-  setValue(value: any) {
-    this.formModel.patchValue(value, { emitEvent: false });
+  setValue(value:any) {
+    this.formModel.patchValue(value, {emitEvent: false });
     this.formModel.markAsTouched();
   }
 
@@ -1281,157 +1220,30 @@ export class RelatedObjectDataField extends FieldBase&lt;any&gt; {
     this.value &#x3D; [];
     return this.value;
   }
-
-  getPropertyValue(item: any, columnConf: any) {
-    let val &#x3D; &#x27;&#x27;;
-    if (_.isArray(columnConf.property)) {
-      _.each(columnConf.property, (propName) &#x3D;&gt; {
-        if (_.isString(item)) {
-          val &#x3D; item;
-        } else {
-          val &#x3D; _.get(item, propName);
-          if (!_.isEmpty(val)) {
-            return false;
-          }
-        }
-      });
-    } else {
-      val &#x3D; _.get(item, columnConf.property);
-    }
-    return val;
-  }
-
-  getPropertyLabel(item: any, columnConf: any) {
-    const val &#x3D; this.getPropertyValue(item, columnConf);
-    return this.getTranslated(val[&#x27;label&#x27;], val[&#x27;label&#x27;]);
-  }
-
-  isMultiValue(item: any, columnConf: any) {
-    return _.isArray(this.getPropertyValue(item, columnConf));
-  }
-
-  getContext(item: any, columConf: any) {
-    return {item: item, column: columConf};
-  }
 }
 
-declare var aotMode
 // Setting the template url to a constant rather than directly in the component as the latter breaks document generation
-let rbRelatedObjectDataTemplate &#x3D; &#x27;./field-relatedobjectdata.html&#x27;;
-if (typeof aotMode &#x3D;&#x3D; &#x27;undefined&#x27;) {
-  rbRelatedObjectDataTemplate &#x3D; &#x27;../angular/shared/form/field-relatedobjectdata.html&#x27;;
-}
-
+const template &#x3D; &#x27;../angular/shared/form/field-relatedobjectdata.html&#x27;;
 /**
 * Component to display information from related objects within ReDBox
 *
 *
-*
+*  
 *
 */
 @Component({
   selector: &#x27;rb-relatedobjectdata&#x27;,
-  templateUrl: &#x27;./field-relatedobjectdata.html&#x27;
+  templateUrl: template
 })
 export class RelatedObjectDataComponent extends SimpleComponent {
   field: RelatedObjectDataField;
 
-  constructor(private sanitizer: DomSanitizer) {
-    super();
-  }
-
-  sanitizeUrl(url:string){
-    return this.sanitizer.bypassSecurityTrustUrl(url);
-  }
 }
 </code></pre>
     </div>
 
-    <div class="tab-pane fade " id="c-templateData">
-        <pre class="line-numbers"><code class="language-html">&lt;div class&#x3D;&#x27;padding-bottom-10&#x27;&gt;
 
-  &lt;div class&#x3D;&quot;row&quot;&gt;
-    &lt;table class&#x3D;&quot;table&quot;&gt;
-      &lt;thead&gt;
-          &lt;tr&gt;
-              &lt;ng-container *ngFor&#x3D;&quot;let header of field.columns&quot;&gt;&lt;th *ngIf&#x3D;&#x27;header.show !&#x3D; false&#x27;&gt;{{ header.label }}&lt;/th&gt;&lt;/ng-container&gt;
-          &lt;/tr&gt;
-      &lt;/thead&gt;
-      &lt;tbody&gt;
-        &lt;tr *ngFor&#x3D;&quot;let item of field.relatedObjects&quot;&gt;
-          &lt;ng-container *ngFor&#x3D;&quot;let column of field.columns&quot;&gt;
-            &lt;td *ngIf&#x3D;&#x27;column.show !&#x3D; false&#x27;&gt;
-
-              &lt;!-- Multi values --&gt;
-              &lt;ng-container *ngIf&#x3D;&#x27;field.isMultiValue(item, column)&#x27;&gt;
-                &lt;div *ngFor&#x3D;&quot;let itemEntry of field.getPropertyValue(item, column)&quot;&gt;
-                  &lt;ng-container *ngIf&#x3D;&#x27;column.link &amp;&amp; column.link.type &#x3D;&#x3D; &quot;dynamic&quot;&#x27;&gt;
-                    &lt;!-- Don&#x27;t run a template when pattern is not set, just show the value as a link --&gt;
-                    &lt;a *ngIf&#x3D;&quot;!column.link.pattern&quot; [href]&#x3D;&quot;sanitizeUrl(field.getPropertyValue(itemEntry, column))&quot;&gt;{{ field.getPropertyValue(itemEntry, column) }}&lt;/a&gt;
-                    &lt;!-- Run a template when we have pattern and use that as the URL, with the value as the link label --&gt;
-                    &lt;a  *ngIf&#x3D;&quot;column.link.pattern&quot; [href]&#x3D;&quot;sanitizeUrl(column.link.pattern | stringTemplate:itemEntry)&quot;&gt;{{ field.getPropertyValue(itemEntry, column) }}&lt;/a&gt;
-                  &lt;/ng-container&gt;
-                  &lt;ng-container *ngIf&#x3D;&#x27;column.link &amp;&amp; column.link.type &#x3D;&#x3D; &quot;static&quot;&#x27;&gt;
-                    &lt;div *ngIf&#x3D;&quot;itemEntry[&#x27;label&#x27;]; else ordinaryLinkBlock&quot;&gt;
-                      &lt;a *ngIf&#x3D;&quot;itemEntry[&#x27;link&#x27;]; else disableLinkBlock&quot; target&#x3D;&quot;_blank&quot; rel&#x3D;&quot;noopener noreferrer&quot; [href]&#x3D;&quot;sanitizeUrl(itemEntry[&#x27;link&#x27;])&quot; [innerHtml]&#x3D;&quot;itemEntry[&#x27;label&#x27;]&quot;&gt;&lt;/a&gt;
-                      &lt;ng-template #disableLinkBlock&gt;
-                        &lt;span&gt;
-                          {{ itemEntry[&#x27;label&#x27;] }}
-                        &lt;/span&gt;
-                      &lt;/ng-template&gt;
-                    &lt;/div&gt;
-                    &lt;ng-template #ordinaryLinkBlock&gt;
-                      &lt;a target&#x3D;&quot;_blank&quot; rel&#x3D;&quot;noopener noreferrer&quot; [href]&#x3D;&quot;sanitizeUrl(itemEntry)&quot; [innerHtml]&#x3D;&quot;itemEntry&quot;&gt;&lt;/a&gt;
-                    &lt;/ng-template&gt;
-                  &lt;/ng-container&gt;
-                  &lt;!-- Displaying the value as is --&gt;
-                  &lt;ng-container *ngIf&#x3D;&#x27;!column.link&#x27;&gt;
-                    {{ itemEntry }}
-                  &lt;/ng-container&gt;
-                &lt;/div&gt;
-              &lt;/ng-container&gt;
-              &lt;!-- Single Values --&gt;
-              &lt;ng-container *ngIf&#x3D;&#x27;field.isMultiValue(item, column) &#x3D;&#x3D;&#x3D; false&#x27;&gt;
-                &lt;ng-container *ngIf&#x3D;&#x27;column.link &amp;&amp; column.link.type &#x3D;&#x3D; &quot;dynamic&quot;&#x27;&gt;
-                  &lt;!-- Don&#x27;t run a template when pattern is not set, just show the value as a link --&gt;
-                  &lt;a *ngIf&#x3D;&quot;!column.link.pattern&quot; [href]&#x3D;&quot;sanitizeUrl(field.getPropertyValue(item, column))&quot;&gt;{{ field.getPropertyValue(item, column) }}&lt;/a&gt;
-                  &lt;!-- Run a template when we have pattern and use that as the URL, with the value as the link label --&gt;
-                  &lt;a  *ngIf&#x3D;&quot;column.link.pattern&quot; [href]&#x3D;&quot;sanitizeUrl(column.link.pattern | stringTemplate:item)&quot;&gt;{{ field.getPropertyValue(item, column) }}&lt;/a&gt;
-                &lt;/ng-container&gt;
-                &lt;!-- For static links --&gt;
-                &lt;ng-container *ngIf&#x3D;&#x27;column.link &amp;&amp; column.link.type &#x3D;&#x3D; &quot;static&quot;&#x27;&gt;
-                  &lt;div *ngIf&#x3D;&quot;field.getPropertyValue(item, column)[&#x27;label&#x27;]; else ordinaryLinkBlock&quot;&gt;
-                    &lt;a *ngIf&#x3D;&quot;field.getPropertyValue(item, column)[&#x27;link&#x27;]; else disableLinkBlock&quot; target&#x3D;&quot;_blank&quot; rel&#x3D;&quot;noopener noreferrer&quot; [href]&#x3D;&quot;sanitizeUrl(field.getPropertyValue(item, column)[&#x27;link&#x27;])&quot; [innerHtml]&#x3D;&quot;field.getPropertyLabel(item, column)&quot;&gt;&lt;/a&gt;
-                    &lt;!-- Disabled link retained for backwards compat --&gt;
-                    &lt;ng-template #disableLinkBlock&gt;
-                      &lt;span&gt;
-                        {{ field.getPropertyValue(item, column) }}
-                      &lt;/span&gt;
-                    &lt;/ng-template&gt;
-                  &lt;/div&gt;
-                  &lt;ng-template #ordinaryLinkBlock&gt;
-                    &lt;a target&#x3D;&quot;_blank&quot; rel&#x3D;&quot;noopener noreferrer&quot; [href]&#x3D;&quot;sanitizeUrl(field.getPropertyValue(item, column))&quot; [innerHtml]&#x3D;&quot;field.getPropertyValue(item, column)&quot;&gt;&lt;/a&gt;
-                  &lt;/ng-template&gt;
-                &lt;/ng-container&gt;
-                &lt;!-- Displaying the value as is --&gt;
-                &lt;ng-container *ngIf&#x3D;&#x27;!column.link&#x27;&gt;
-                  {{ field.getPropertyValue(item, column )}}
-                &lt;/ng-container&gt;
-              &lt;/ng-container&gt;
-            &lt;/td&gt;
-          &lt;/ng-container&gt;
-        &lt;/tr&gt;
-      &lt;/tbody&gt;
-    &lt;/table&gt;
-    &lt;p *ngIf&#x3D;&quot;field.failedObjects.length &gt; 0&quot;&gt;There were {{ field.failedObjects.length }} records that failed to load&lt;/p&gt;
-    &lt;p *ngIf&#x3D;&quot;field.accessDeniedObjects.length &gt; 0&quot;&gt;There were {{ field.accessDeniedObjects.length }} records that you do not have access to&lt;/p&gt;
-  &lt;/div&gt;
-&lt;/div&gt;
-</code></pre>
-    </div>
-
-
-    <div class="tab-pane fade " id="c-tree">
+    <div class="tab-pane fade" id="tree">
         <div id="tree-container"></div>
         <div class="tree-legend">
             <div class="title">
@@ -1448,16 +1260,14 @@ export class RelatedObjectDataComponent extends SimpleComponent {
             </div>
         </div>
     </div>
-
-    
 </div>
 
 <script src="../js/libs/vis.min.js"></script>
 <script src="../js/libs/htmlparser.js"></script>
 <script src="../js/libs/deep-iterator.js"></script>
 <script>
-        var COMPONENT_TEMPLATE = '<div><div class=\'padding-bottom-10\'>  <div class="row">    <table class="table">      <thead>          <tr>              <ng-container *ngFor="let header of field.columns"><th *ngIf=\'header.show != false\'>{{ header.label }}</th></ng-container>          </tr>      </thead>      <tbody>        <tr *ngFor="let item of field.relatedObjects">          <ng-container *ngFor="let column of field.columns">            <td *ngIf=\'column.show != false\'>              <!-- Multi values -->              <ng-container *ngIf=\'field.isMultiValue(item, column)\'>                <div *ngFor="let itemEntry of field.getPropertyValue(item, column)">                  <ng-container *ngIf=\'column.link && column.link.type == "dynamic"\'>                    <!-- Don\'t run a template when pattern is not set, just show the value as a link -->                    <a *ngIf="!column.link.pattern" [href]="sanitizeUrl(field.getPropertyValue(itemEntry, column))">{{ field.getPropertyValue(itemEntry, column) }}</a>                    <!-- Run a template when we have pattern and use that as the URL, with the value as the link label -->                    <a  *ngIf="column.link.pattern" [href]="sanitizeUrl(column.link.pattern | stringTemplate:itemEntry)">{{ field.getPropertyValue(itemEntry, column) }}</a>                  </ng-container>                  <ng-container *ngIf=\'column.link && column.link.type == "static"\'>                    <div *ngIf="itemEntry[\'label\']; else ordinaryLinkBlock">                      <a *ngIf="itemEntry[\'link\']; else disableLinkBlock" target="_blank" rel="noopener noreferrer" [href]="sanitizeUrl(itemEntry[\'link\'])" [innerHtml]="itemEntry[\'label\']"></a>                      <ng-template #disableLinkBlock>                        <span>                          {{ itemEntry[\'label\'] }}                        </span>                      </ng-template>                    </div>                    <ng-template #ordinaryLinkBlock>                      <a target="_blank" rel="noopener noreferrer" [href]="sanitizeUrl(itemEntry)" [innerHtml]="itemEntry"></a>                    </ng-template>                  </ng-container>                  <!-- Displaying the value as is -->                  <ng-container *ngIf=\'!column.link\'>                    {{ itemEntry }}                  </ng-container>                </div>              </ng-container>              <!-- Single Values -->              <ng-container *ngIf=\'field.isMultiValue(item, column) === false\'>                <ng-container *ngIf=\'column.link && column.link.type == "dynamic"\'>                  <!-- Don\'t run a template when pattern is not set, just show the value as a link -->                  <a *ngIf="!column.link.pattern" [href]="sanitizeUrl(field.getPropertyValue(item, column))">{{ field.getPropertyValue(item, column) }}</a>                  <!-- Run a template when we have pattern and use that as the URL, with the value as the link label -->                  <a  *ngIf="column.link.pattern" [href]="sanitizeUrl(column.link.pattern | stringTemplate:item)">{{ field.getPropertyValue(item, column) }}</a>                </ng-container>                <!-- For static links -->                <ng-container *ngIf=\'column.link && column.link.type == "static"\'>                  <div *ngIf="field.getPropertyValue(item, column)[\'label\']; else ordinaryLinkBlock">                    <a *ngIf="field.getPropertyValue(item, column)[\'link\']; else disableLinkBlock" target="_blank" rel="noopener noreferrer" [href]="sanitizeUrl(field.getPropertyValue(item, column)[\'link\'])" [innerHtml]="field.getPropertyLabel(item, column)"></a>                    <!-- Disabled link retained for backwards compat -->                    <ng-template #disableLinkBlock>                      <span>                        {{ field.getPropertyValue(item, column) }}                      </span>                    </ng-template>                  </div>                  <ng-template #ordinaryLinkBlock>                    <a target="_blank" rel="noopener noreferrer" [href]="sanitizeUrl(field.getPropertyValue(item, column))" [innerHtml]="field.getPropertyValue(item, column)"></a>                  </ng-template>                </ng-container>                <!-- Displaying the value as is -->                <ng-container *ngIf=\'!column.link\'>                  {{ field.getPropertyValue(item, column )}}                </ng-container>              </ng-container>            </td>          </ng-container>        </tr>      </tbody>    </table>    <p *ngIf="field.failedObjects.length > 0">There were {{ field.failedObjects.length }} records that failed to load</p>    <p *ngIf="field.accessDeniedObjects.length > 0">There were {{ field.accessDeniedObjects.length }} records that you do not have access to</p>  </div></div></div>'
-    var COMPONENTS = [{'name': 'ActionButtonComponent', 'selector': 'action-button'},{'name': 'AnchorOrButtonComponent', 'selector': 'anchor-button'},{'name': 'ANDSVocabComponent', 'selector': 'ands-vocab-selector'},{'name': 'AsynchComponent', 'selector': 'asynch-component'},{'name': 'ButtonBarContainerComponent', 'selector': 'buttonbarcontainer'},{'name': 'CancelButtonComponent', 'selector': 'cancel-button'},{'name': 'ContributorComponent', 'selector': 'rb-contributor'},{'name': 'DashboardComponent', 'selector': 'dashboard'},{'name': 'DataLocationComponent', 'selector': 'data-location-selector'},{'name': 'DateTimeComponent', 'selector': 'date-time'},{'name': 'DmpFieldComponent', 'selector': 'dmp-field'},{'name': 'DmpFormComponent', 'selector': 'dmp-form'},{'name': 'DropdownFieldComponent', 'selector': 'dropdownfield'},{'name': 'EventHandlerComponent', 'selector': 'event-handler'},{'name': 'ExportFormComponent', 'selector': 'export-form'},{'name': 'GenericGroupComponent', 'selector': 'generic-group-field'},{'name': 'HiddenValueComponent', 'selector': 'hidden-field'},{'name': 'HtmlRawComponent', 'selector': 'htmlraw'},{'name': 'LinkValueComponent', 'selector': 'link-value'},{'name': 'LocalAuthComponent', 'selector': 'local-auth'},{'name': 'ManageRolesComponent', 'selector': 'manage-roles'},{'name': 'ManageUsersComponent', 'selector': 'manage-users'},{'name': 'MapComponent', 'selector': 'rb-mapdata'},{'name': 'MarkdownTextAreaComponent', 'selector': 'markdown-text-area'},{'name': 'ParameterRetrieverComponent', 'selector': 'parameter-retriever'},{'name': 'PDFListComponent', 'selector': 'rb-pdf-list'},{'name': 'PublishDataLocationRefreshComponent', 'selector': 'publish-data-location-refresh'},{'name': 'PublishDataLocationSelectorComponent', 'selector': 'publish-data-location-selector'},{'name': 'RecordMetadataRetrieverComponent', 'selector': 'record-metadata-retriever'},{'name': 'RecordPermissionsComponent', 'selector': 'rb-recordpermissions'},{'name': 'RecordSearchComponent', 'selector': 'record-search'},{'name': 'RecordSearchRefinerComponent', 'selector': 'record-search-refiner'},{'name': 'RelatedFileUploadComponent', 'selector': 'related-fileupload-selector'},{'name': 'RelatedObjectDataComponent', 'selector': 'rb-relatedobjectdata'},{'name': 'RelatedObjectSelectorComponent', 'selector': 'rb-RelatedObjectSelector'},{'name': 'RepeatableContributorComponent', 'selector': 'repeatable-contributor'},{'name': 'RepeatableGroupComponent', 'selector': 'repeatable-group'},{'name': 'RepeatableTextfieldComponent', 'selector': 'repeatable-textfield'},{'name': 'RepeatableVocabComponent', 'selector': 'repeatable-vocab'},{'name': 'ReportComponent', 'selector': 'report'},{'name': 'SaveButtonComponent', 'selector': 'save-button'},{'name': 'SelectionFieldComponent', 'selector': 'selectionfield'},{'name': 'SortComponent', 'selector': 'sort'},{'name': 'SpacerComponent', 'selector': 'spacer'},{'name': 'TabNavButtonComponent', 'selector': 'tab-nav-button'},{'name': 'TabOrAccordionContainerComponent', 'selector': 'tabcontainer'},{'name': 'TextAreaComponent', 'selector': 'text-area'},{'name': 'TextBlockComponent', 'selector': 'text-block'},{'name': 'TextFieldComponent', 'selector': 'textfield'},{'name': 'ToggleComponent', 'selector': 'toggle'},{'name': 'TransferOwnerComponent', 'selector': 'transfer-owner'},{'name': 'TreeNodeCheckboxComponent', 'selector': 'rb-tree-node-checkbox'},{'name': 'UserProfileComponent', 'selector': 'user-profile'},{'name': 'VocabFieldComponent', 'selector': 'rb-vocab'},{'name': 'WorkflowStepButtonComponent', 'selector': 'workflowstep-button'},{'name': 'WorkspaceFieldComponent', 'selector': 'ws-field'},{'name': 'WorkspaceListComponent', 'selector': 'workspace-list'},{'name': 'WorkspaceSelectorComponent', 'selector': 'workspace-selector-parent'},{'name': 'WorkspaceSelectorFieldComponent', 'selector': 'workspace-selector'}];
+        var COMPONENT_TEMPLATE = '<div></div>'
+    var COMPONENTS = [{'name': 'AnchorOrButtonComponent', 'selector': 'anchor-button'},{'name': 'ContributorComponent', 'selector': 'rb-contributor'},{'name': 'DashboardComponent', 'selector': 'dashboard'},{'name': 'DateTimeComponent', 'selector': 'date-time'},{'name': 'DmpFieldComponent', 'selector': 'dmp-field'},{'name': 'DmpFormComponent', 'selector': 'dmp-form'},{'name': 'DropdownFieldComponent', 'selector': 'dropdownfield'},{'name': 'ExportFormComponent', 'selector': 'export-form'},{'name': 'HiddenValueComponent', 'selector': 'hidden-field'},{'name': 'HtmlRawComponent', 'selector': 'htmlraw'},{'name': 'LinkValueComponent', 'selector': 'link-value'},{'name': 'LocalAuthComponent', 'selector': 'local-auth'},{'name': 'ManageRolesComponent', 'selector': 'manage-roles'},{'name': 'ManageUsersComponent', 'selector': 'manage-users'},{'name': 'RecordSearchComponent', 'selector': 'record-search'},{'name': 'RecordSearchRefinerComponent', 'selector': 'record-search-refiner'},{'name': 'RelatedObjectDataComponent', 'selector': 'rb-relatedobjectdata'},{'name': 'RepeatableContributorComponent', 'selector': 'repeatable-contributor'},{'name': 'RepeatableTextfieldComponent', 'selector': 'repeatable-textfield'},{'name': 'RepeatableVocabComponent', 'selector': 'repeatable-vocab'},{'name': 'ReportComponent', 'selector': 'report'},{'name': 'SelectionFieldComponent', 'selector': 'selectionfield'},{'name': 'TabOrAccordionContainerComponent', 'selector': 'tabcontainer'},{'name': 'TextAreaComponent', 'selector': 'text-area'},{'name': 'TextBlockComponent', 'selector': 'text-block'},{'name': 'TextFieldComponent', 'selector': 'textfield'},{'name': 'TransferOwnerComponent', 'selector': 'transfer-owner'},{'name': 'UserProfileComponent', 'selector': 'user-profile'},{'name': 'VocabFieldComponent', 'selector': 'rb-vocab'},{'name': 'WorkflowStepButtonComponent', 'selector': 'workflowstep-button'}];
     var DIRECTIVES = [];
     var ACTUAL_COMPONENT = {'name': 'RelatedObjectDataComponent'};
 </script>
@@ -1472,14 +1282,9 @@ export class RelatedObjectDataComponent extends SimpleComponent {
 
 
 
-                   
-
-
-
-
                    </div><div class="search-results">
     <div class="has-results">
-        <h1 class="search-results-title"><span class='search-results-count'></span> result-matching "<span class='search-query'></span>"</h1>
+        <h1 class="search-results-title"><span class='search-results-count'></span> results matching "<span class='search-query'></span>"</h1>
         <ul class="search-results-list"></ul>
     </div>
     <div class="no-results">
@@ -1487,22 +1292,8 @@ export class RelatedObjectDataComponent extends SimpleComponent {
     </div>
 </div>
 </div>
-               <!-- END CONTENT -->
            </div>
        </div>
-
-       <script>
-            var COMPODOC_CURRENT_PAGE_DEPTH = 1;
-            var COMPODOC_CURRENT_PAGE_CONTEXT = 'component';
-            var COMPODOC_CURRENT_PAGE_URL = 'RelatedObjectDataComponent.html';
-            var MAX_SEARCH_RESULTS = 15;
-       </script>
-
-       <script src="../js/libs/custom-elements.min.js"></script>
-       <script src="../js/libs/lit-html.js"></script>
-       <!-- Required to polyfill modern browsers as code is ES5 for IE... -->
-       <script src="../js/libs/custom-elements-es5-adapter.js" charset="utf-8" defer></script>
-       <script src="../js/menu-wc.js" defer></script>
 
        <script src="../js/libs/bootstrap-native.js"></script>
 
@@ -1513,17 +1304,17 @@ export class RelatedObjectDataComponent extends SimpleComponent {
 
        <script src="../js/compodoc.js"></script>
 
+       <script>var COMPODOC_CURRENT_PAGE_DEPTH = 1;</script>
+
+       <script src="../js/search/search.js"></script>
+       <script src="../js/search/lunr.min.js"></script>
+       <script src="../js/search/search-lunr.js"></script>
+
        <script src="../js/tabs.js"></script>
        <script src="../js/menu.js"></script>
-       <script src="../js/libs/clipboard.min.js"></script>
        <script src="../js/libs/prism.js"></script>
        <script src="../js/sourceCode.js"></script>
-          <script src="../js/search/search.js"></script>
-          <script src="../js/search/lunr.min.js"></script>
-          <script src="../js/search/search-lunr.js"></script>
-          <script src="../js/search/search_index.js"></script>
-       <script src="../js/lazy-load-graphs.js"></script>
-
+       <script src="../js/search/search_index.js"></script>
 
     </body>
 </html>

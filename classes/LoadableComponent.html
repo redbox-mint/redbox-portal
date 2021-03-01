@@ -8,30 +8,1005 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
 
         <link rel="icon" type="image/x-icon" href="../images/favicon.ico">
-	      <link rel="stylesheet" href="../styles/style.css">
-        <link rel="stylesheet" href="../styles/postmark.css">
+	    <link rel="stylesheet" href="../styles/style.css">
+                 <link rel="stylesheet" href="../styles/postmark.css">
     </head>
     <body>
 
         <div class="navbar navbar-default navbar-fixed-top visible-xs">
             <a href="../" class="navbar-brand">ReDBox Portal - NG2 Apps</a>
-            <button type="button" class="btn btn-default btn-menu ion-ios-menu" id="btn-menu"></button>
+            <button type="button" class="btn btn-default btn-menu fa fa-bars" id="btn-menu"></button>
         </div>
 
         <div class="xs-menu menu" id="mobile-menu">
-                <div id="book-search-input" role="search"><input type="text" placeholder="Type to search"></div>            <compodoc-menu></compodoc-menu>
+            <div id="book-search-input" role="search">
+                <input type="text" placeholder="Type to search">
+            </div>
+            <nav>
+            
+                <ul class="list">
+            
+                    <li class="title">
+                        <a href="../index.html">ReDBox Portal - NG2 Apps</a>
+                    </li>
+            
+                    <li class="divider"></li>
+            
+            
+                    <li class="chapter">
+                        <a data-type="chapter-link" href="../index.html"><span class="fa fa-home"></span>Getting started</a>
+                        <ul class="links">
+                                <li class="link">
+                                    <a 
+                                        
+                                         href="../overview.html" 
+                                         href="../overview.html" 
+                                        >
+                                        <span class="fa fa-th"></span>Overview
+                                    </a>
+                                </li>
+                                <li class="link">
+                                  <a href="../index.html" ><span class="fa fa-file-text-o"></span>README</a>
+                                </li>
+                                <li class="link">
+                                        <a href="../license.html"
+                                    >
+                                        <span class="fa fa-file-text-o"></span>LICENSE
+                                    </a>
+                                </li>
+                        </ul>
+                    </li>
+            
+                    <li class="chapter">
+                        <div class="simple menu-toggler" data-toggle="collapse"
+                                data-target="#xs-additional-pages"
+                            >
+                            <span class="fa fa-book"></span>
+                            <span>Additional documentation</span>
+                            <span class="fa fa-angle-down"></span>
+                        </div>
+                        <ul class="links collapse "
+                                id="xs-additional-pages"
+                            >
+                                <li class="link ">
+                                    <a href="../additional-documentation/installation-guide.html" >Installation guide</a>
+                                </li>
+                                <li class="link ">
+                                    <a href="../additional-documentation/configuration-guide.html" >Configuration guide</a>
+                                </li>
+                                <li class="link for-chapter">
+                                    <a href="../additional-documentation/configuration-guide/configuring-web-forms.html" >Configuring web forms</a>
+                                </li>
+                                <li class="link for-chapter">
+                                    <a href="../additional-documentation/configuration-guide/configuring-email-notifications.html" >Configuring email notifications</a>
+                                </li>
+                                <li class="link for-chapter">
+                                    <a href="../additional-documentation/configuration-guide/configuring-integration-with-redbox-and-mint.html" >Configuring integration with RedBox and Mint</a>
+                                </li>
+                        </ul>
+                    </li>
+            
+                    <li class="chapter">
+                        <a data-type="chapter-link" href="../modules.html" >
+                            <div class="menu-toggler linked" data-toggle="collapse"
+                                    data-target="#xs-modules-links"
+                            >
+                                <span class="fa fa-archive"></span>
+                                <span class="link-name">Modules</span>
+                                <span class="fa fa-angle-down"></span>
+                            </div>
+                        </a>
+                        <ul class="links collapse "
+                                id="xs-modules-links"
+                            >
+                                <li class="link">
+                                    <a href="../modules/DashboardModule.html" >DashboardModule</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../modules/DmpModule.html" >DmpModule</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../modules/ExportModule.html" >ExportModule</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../modules/LocalAuthModule.html" >LocalAuthModule</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../modules/ManageRolesModule.html" >ManageRolesModule</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../modules/ManageUsersModule.html" >ManageUsersModule</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../modules/RecordSearchModule.html" >RecordSearchModule</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../modules/ReportModule.html" >ReportModule</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../modules/SharedModule.html" >SharedModule</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../modules/TransferOwnerModule.html" >TransferOwnerModule</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../modules/UserProfileModule.html" >UserProfileModule</a>
+                                </li>
+                        </ul>
+                    </li>
+            
+                    <li class="chapter">
+                        <div class="simple menu-toggler" data-toggle="collapse"
+                                data-target="#xs-components-links"
+                            >
+                            <span class="fa fa-cogs"></span>
+                            <span>Components</span>
+                            <span class="fa fa-angle-down"></span>
+                        </div>
+                        <ul class="links collapse "
+                                id="xs-components-links"
+                            >
+                                <li class="link">
+                                    <a href="../components/AnchorOrButtonComponent.html" >AnchorOrButtonComponent</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../components/ContributorComponent.html" >ContributorComponent</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../components/DashboardComponent.html" >DashboardComponent</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../components/DateTimeComponent.html" >DateTimeComponent</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../components/DmpFieldComponent.html" >DmpFieldComponent</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../components/DmpFormComponent.html" >DmpFormComponent</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../components/DropdownFieldComponent.html" >DropdownFieldComponent</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../components/ExportFormComponent.html" >ExportFormComponent</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../components/HiddenValueComponent.html" >HiddenValueComponent</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../components/HtmlRawComponent.html" >HtmlRawComponent</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../components/LinkValueComponent.html" >LinkValueComponent</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../components/LocalAuthComponent.html" >LocalAuthComponent</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../components/ManageRolesComponent.html" >ManageRolesComponent</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../components/ManageUsersComponent.html" >ManageUsersComponent</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../components/RecordSearchComponent.html" >RecordSearchComponent</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../components/RecordSearchRefinerComponent.html" >RecordSearchRefinerComponent</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../components/RelatedObjectDataComponent.html" >RelatedObjectDataComponent</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../components/RepeatableContributorComponent.html" >RepeatableContributorComponent</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../components/RepeatableTextfieldComponent.html" >RepeatableTextfieldComponent</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../components/RepeatableVocabComponent.html" >RepeatableVocabComponent</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../components/ReportComponent.html" >ReportComponent</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../components/SelectionFieldComponent.html" >SelectionFieldComponent</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../components/TabOrAccordionContainerComponent.html" >TabOrAccordionContainerComponent</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../components/TextAreaComponent.html" >TextAreaComponent</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../components/TextBlockComponent.html" >TextBlockComponent</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../components/TextFieldComponent.html" >TextFieldComponent</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../components/TransferOwnerComponent.html" >TransferOwnerComponent</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../components/UserProfileComponent.html" >UserProfileComponent</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../components/VocabFieldComponent.html" >VocabFieldComponent</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../components/WorkflowStepButtonComponent.html" >WorkflowStepButtonComponent</a>
+                                </li>
+                        </ul>
+                    </li>
+            
+            
+                    <li class="chapter">
+                        <div class="simple menu-toggler" data-toggle="collapse"
+                                data-target="#xs-classes-links"
+                            >
+                            <span class="fa fa-file-code-o"></span>
+                            <span>Classes</span>
+                            <span class="fa fa-angle-down"></span>
+                        </div>
+                        <ul class="links collapse "
+                                id="xs-classes-links"
+                            >
+                                <li class="link">
+                                    <a href="../classes/AnchorOrButton.html" >AnchorOrButton</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/AppModuleInjector.html" >AppModuleInjector</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/AppModuleInjector.html" >AppModuleInjector</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/AppModuleInjector.html" >AppModuleInjector</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/AppModuleInjector.html" >AppModuleInjector</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/BaseService.html" >BaseService</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/Container.html" >Container</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/ContributorField.html" >ContributorField</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/DateTime.html" >DateTime</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/DmpModuleInjector.html" >DmpModuleInjector</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/EmbeddableComponent.html" >EmbeddableComponent</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/ExportModuleInjector.html" >ExportModuleInjector</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/FieldBase.html" >FieldBase</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/HiddenValue.html" >HiddenValue</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/LinkValue.html" >LinkValue</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/LoadableComponent.html"  data-type="entity-link" class="active" >LoadableComponent</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/LoginResult.html" >LoginResult</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/MintLookupDataService.html" >MintLookupDataService</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/Plan.html" >Plan</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/PlanTable.html" >PlanTable</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/RbValidator.html" >RbValidator</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/RecordActionResult.html" >RecordActionResult</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/RecordSearchModuleInjector.html" >RecordSearchModuleInjector</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/RecordSearchParams.html" >RecordSearchParams</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/RecordSearchRefiner.html" >RecordSearchRefiner</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/RelatedObjectDataField.html" >RelatedObjectDataField</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/RepeatableComponent.html" >RepeatableComponent</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/RepeatableContainer.html" >RepeatableContainer</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/RepeatableContributor.html" >RepeatableContributor</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/Report.html" >Report</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/ReportResults.html" >ReportResults</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/Role.html" >Role</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/SaveResult.html" >SaveResult</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/SelectionComponent.html" >SelectionComponent</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/SelectionField.html" >SelectionField</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/SharedModuleInjector.html" >SharedModuleInjector</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/SimpleComponent.html" >SimpleComponent</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/TabOrAccordionContainer.html" >TabOrAccordionContainer</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/TextArea.html" >TextArea</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/TextField.html" >TextField</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/TransferOwnerModuleInjector.html" >TransferOwnerModuleInjector</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/User.html" >User</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/VocabField.html" >VocabField</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/WorkflowStepButton.html" >WorkflowStepButton</a>
+                                </li>
+                        </ul>
+                    </li>
+            
+                    <li class="chapter">
+                        <div class="simple menu-toggler" data-toggle="collapse"
+                                data-target="#xs-injectables-links"
+                            >
+                            <span class="fa fa-long-arrow-down"></span>
+                            <span>Injectables</span>
+                            <span class="fa fa-angle-down"></span>
+                        </div>
+                        <ul class="links collapse "
+                                id="xs-injectables-links"
+                            >
+                                <li class="link">
+                                    <a href="../injectables/ConfigService.html" >ConfigService</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../injectables/DashboardService.html" >DashboardService</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../injectables/EmailNotificationService.html" >EmailNotificationService</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../injectables/FieldControlService.html" >FieldControlService</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../injectables/RecordsService.html" >RecordsService</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../injectables/ReportService.html" >ReportService</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../injectables/RolesService.html" >RolesService</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../injectables/TranslationService.html" >TranslationService</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../injectables/UserSimpleService.html" >UserSimpleService</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../injectables/UtilityService.html" >UtilityService</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../injectables/VocabFieldLookupService.html" >VocabFieldLookupService</a>
+                                </li>
+                        </ul>
+                    </li>
+            
+            
+                    <li class="chapter">
+                        <div class="simple menu-toggler" data-toggle="collapse"
+                                data-target="#xs-interfaces-links"
+                            >
+                            <span class="fa fa-info"></span>
+                            <span>Interfaces</span>
+                            <span class="fa fa-angle-down"></span>
+                        </div>
+                        <ul class="links collapse "
+                                id="xs-interfaces-links"
+                            >
+                                <li class="link">
+                                    <a href="../interfaces/UserForm.html" >UserForm</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../interfaces/UserForm.html" >UserForm</a>
+                                </li>
+                        </ul>
+                    </li>
+            
+                    <li class="chapter">
+                        <div class="simple menu-toggler" data-toggle="collapse"
+                                data-target="#xs-pipes-links"
+                            >
+                            <span class="fa fa-plus"></span>
+                            <span>Pipes</span>
+                            <span class="fa fa-angle-down"></span>
+                        </div>
+                        <ul class="links collapse "
+                                id="xs-pipes-links"
+                            >
+                                <li class="link">
+                                    <a href="../pipes/MultivalueFieldPipe.html" >MultivalueFieldPipe</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../pipes/StringTemplatePipe.html" >StringTemplatePipe</a>
+                                </li>
+                        </ul>
+                    </li>
+            
+                    <li class="chapter">
+                        <div class="simple menu-toggler" data-toggle="collapse"
+                                data-target="#xs-miscellaneous-links"
+                            >
+                            <span class="fa fa-cubes"></span>
+                            <span>Miscellaneous</span>
+                            <span class="fa fa-angle-down"></span>
+                        </div>
+                        <ul class="links collapse "
+                                id="xs-miscellaneous-links"
+                            >
+                                <li class="link">
+                                  <a href="../miscellaneous/functions.html" data-type="entity-link" >Functions</a>
+                                </li>
+                                <li class="link">
+                                  <a href="../miscellaneous/variables.html" data-type="entity-link" >Variables</a>
+                                </li>
+                        </ul>
+                    </li>
+            
+            
+                    <li class="chapter">
+                        <a data-type="chapter-link" href="../coverage.html" ><span class="fa fa-tasks"></span>Documentation coverage</a>
+                    </li>
+            
+                    <li class="divider"></li>
+                    <li class="copyright">
+                            Documentation generated using <a href="https://compodoc.github.io/website/" target="_blank">
+                                        <img src="..//images/compodoc-vectorise-inverted.svg" class="img-responsive">
+                            </a>
+                    </li>
+            
+                </ul>
+            
+            </nav>
         </div>
 
         <div class="container-fluid main">
            <div class="row main">
                <div class="hidden-xs menu">
-                   <compodoc-menu mode="normal"></compodoc-menu>
+                   <nav>
+                   
+                       <ul class="list">
+                   
+                           <li class="title">
+                               <a href="../index.html">ReDBox Portal - NG2 Apps</a>
+                           </li>
+                   
+                           <li class="divider"></li>
+                   
+                               <div id="book-search-input" role="search">
+                                   <input type="text" placeholder="Type to search">
+                               </div>
+                   
+                           <li class="chapter">
+                               <a data-type="chapter-link" href="../index.html"><span class="fa fa-home"></span>Getting started</a>
+                               <ul class="links">
+                                       <li class="link">
+                                           <a 
+                                               
+                                                href="../overview.html" 
+                                                href="../overview.html" 
+                                               >
+                                               <span class="fa fa-th"></span>Overview
+                                           </a>
+                                       </li>
+                                       <li class="link">
+                                         <a href="../index.html" ><span class="fa fa-file-text-o"></span>README</a>
+                                       </li>
+                                       <li class="link">
+                                               <a href="../license.html"
+                                           >
+                                               <span class="fa fa-file-text-o"></span>LICENSE
+                                           </a>
+                                       </li>
+                               </ul>
+                           </li>
+                   
+                           <li class="chapter">
+                               <div class="simple menu-toggler" data-toggle="collapse"
+                                       data-target="#additional-pages"
+                   >
+                                   <span class="fa fa-book"></span>
+                                   <span>Additional documentation</span>
+                                   <span class="fa fa-angle-down"></span>
+                               </div>
+                               <ul class="links collapse "
+                                       id="additional-pages"
+                   >
+                                       <li class="link ">
+                                           <a href="../additional-documentation/installation-guide.html" >Installation guide</a>
+                                       </li>
+                                       <li class="link ">
+                                           <a href="../additional-documentation/configuration-guide.html" >Configuration guide</a>
+                                       </li>
+                                       <li class="link for-chapter">
+                                           <a href="../additional-documentation/configuration-guide/configuring-web-forms.html" >Configuring web forms</a>
+                                       </li>
+                                       <li class="link for-chapter">
+                                           <a href="../additional-documentation/configuration-guide/configuring-email-notifications.html" >Configuring email notifications</a>
+                                       </li>
+                                       <li class="link for-chapter">
+                                           <a href="../additional-documentation/configuration-guide/configuring-integration-with-redbox-and-mint.html" >Configuring integration with RedBox and Mint</a>
+                                       </li>
+                               </ul>
+                           </li>
+                   
+                           <li class="chapter">
+                               <a data-type="chapter-link" href="../modules.html" >
+                                   <div class="menu-toggler linked" data-toggle="collapse"
+                                           data-target="#modules-links"
+                                   >
+                                       <span class="fa fa-archive"></span>
+                                       <span class="link-name">Modules</span>
+                                       <span class="fa fa-angle-down"></span>
+                                   </div>
+                               </a>
+                               <ul class="links collapse "
+                                       id="modules-links"
+                   >
+                                       <li class="link">
+                                           <a href="../modules/DashboardModule.html" >DashboardModule</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../modules/DmpModule.html" >DmpModule</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../modules/ExportModule.html" >ExportModule</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../modules/LocalAuthModule.html" >LocalAuthModule</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../modules/ManageRolesModule.html" >ManageRolesModule</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../modules/ManageUsersModule.html" >ManageUsersModule</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../modules/RecordSearchModule.html" >RecordSearchModule</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../modules/ReportModule.html" >ReportModule</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../modules/SharedModule.html" >SharedModule</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../modules/TransferOwnerModule.html" >TransferOwnerModule</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../modules/UserProfileModule.html" >UserProfileModule</a>
+                                       </li>
+                               </ul>
+                           </li>
+                   
+                           <li class="chapter">
+                               <div class="simple menu-toggler" data-toggle="collapse"
+                                       data-target="#components-links"
+                   >
+                                   <span class="fa fa-cogs"></span>
+                                   <span>Components</span>
+                                   <span class="fa fa-angle-down"></span>
+                               </div>
+                               <ul class="links collapse "
+                                       id="components-links"
+                   >
+                                       <li class="link">
+                                           <a href="../components/AnchorOrButtonComponent.html" >AnchorOrButtonComponent</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../components/ContributorComponent.html" >ContributorComponent</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../components/DashboardComponent.html" >DashboardComponent</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../components/DateTimeComponent.html" >DateTimeComponent</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../components/DmpFieldComponent.html" >DmpFieldComponent</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../components/DmpFormComponent.html" >DmpFormComponent</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../components/DropdownFieldComponent.html" >DropdownFieldComponent</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../components/ExportFormComponent.html" >ExportFormComponent</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../components/HiddenValueComponent.html" >HiddenValueComponent</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../components/HtmlRawComponent.html" >HtmlRawComponent</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../components/LinkValueComponent.html" >LinkValueComponent</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../components/LocalAuthComponent.html" >LocalAuthComponent</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../components/ManageRolesComponent.html" >ManageRolesComponent</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../components/ManageUsersComponent.html" >ManageUsersComponent</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../components/RecordSearchComponent.html" >RecordSearchComponent</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../components/RecordSearchRefinerComponent.html" >RecordSearchRefinerComponent</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../components/RelatedObjectDataComponent.html" >RelatedObjectDataComponent</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../components/RepeatableContributorComponent.html" >RepeatableContributorComponent</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../components/RepeatableTextfieldComponent.html" >RepeatableTextfieldComponent</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../components/RepeatableVocabComponent.html" >RepeatableVocabComponent</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../components/ReportComponent.html" >ReportComponent</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../components/SelectionFieldComponent.html" >SelectionFieldComponent</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../components/TabOrAccordionContainerComponent.html" >TabOrAccordionContainerComponent</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../components/TextAreaComponent.html" >TextAreaComponent</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../components/TextBlockComponent.html" >TextBlockComponent</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../components/TextFieldComponent.html" >TextFieldComponent</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../components/TransferOwnerComponent.html" >TransferOwnerComponent</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../components/UserProfileComponent.html" >UserProfileComponent</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../components/VocabFieldComponent.html" >VocabFieldComponent</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../components/WorkflowStepButtonComponent.html" >WorkflowStepButtonComponent</a>
+                                       </li>
+                               </ul>
+                           </li>
+                   
+                   
+                           <li class="chapter">
+                               <div class="simple menu-toggler" data-toggle="collapse"
+                                       data-target="#classes-links"
+                   >
+                                   <span class="fa fa-file-code-o"></span>
+                                   <span>Classes</span>
+                                   <span class="fa fa-angle-down"></span>
+                               </div>
+                               <ul class="links collapse "
+                                       id="classes-links"
+                   >
+                                       <li class="link">
+                                           <a href="../classes/AnchorOrButton.html" >AnchorOrButton</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/AppModuleInjector.html" >AppModuleInjector</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/AppModuleInjector.html" >AppModuleInjector</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/AppModuleInjector.html" >AppModuleInjector</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/AppModuleInjector.html" >AppModuleInjector</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/BaseService.html" >BaseService</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/Container.html" >Container</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/ContributorField.html" >ContributorField</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/DateTime.html" >DateTime</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/DmpModuleInjector.html" >DmpModuleInjector</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/EmbeddableComponent.html" >EmbeddableComponent</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/ExportModuleInjector.html" >ExportModuleInjector</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/FieldBase.html" >FieldBase</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/HiddenValue.html" >HiddenValue</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/LinkValue.html" >LinkValue</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/LoadableComponent.html"  data-type="entity-link" class="active" >LoadableComponent</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/LoginResult.html" >LoginResult</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/MintLookupDataService.html" >MintLookupDataService</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/Plan.html" >Plan</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/PlanTable.html" >PlanTable</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/RbValidator.html" >RbValidator</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/RecordActionResult.html" >RecordActionResult</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/RecordSearchModuleInjector.html" >RecordSearchModuleInjector</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/RecordSearchParams.html" >RecordSearchParams</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/RecordSearchRefiner.html" >RecordSearchRefiner</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/RelatedObjectDataField.html" >RelatedObjectDataField</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/RepeatableComponent.html" >RepeatableComponent</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/RepeatableContainer.html" >RepeatableContainer</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/RepeatableContributor.html" >RepeatableContributor</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/Report.html" >Report</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/ReportResults.html" >ReportResults</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/Role.html" >Role</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/SaveResult.html" >SaveResult</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/SelectionComponent.html" >SelectionComponent</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/SelectionField.html" >SelectionField</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/SharedModuleInjector.html" >SharedModuleInjector</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/SimpleComponent.html" >SimpleComponent</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/TabOrAccordionContainer.html" >TabOrAccordionContainer</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/TextArea.html" >TextArea</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/TextField.html" >TextField</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/TransferOwnerModuleInjector.html" >TransferOwnerModuleInjector</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/User.html" >User</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/VocabField.html" >VocabField</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/WorkflowStepButton.html" >WorkflowStepButton</a>
+                                       </li>
+                               </ul>
+                           </li>
+                   
+                           <li class="chapter">
+                               <div class="simple menu-toggler" data-toggle="collapse"
+                                       data-target="#injectables-links"
+                   >
+                                   <span class="fa fa-long-arrow-down"></span>
+                                   <span>Injectables</span>
+                                   <span class="fa fa-angle-down"></span>
+                               </div>
+                               <ul class="links collapse "
+                                       id="injectables-links"
+                   >
+                                       <li class="link">
+                                           <a href="../injectables/ConfigService.html" >ConfigService</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../injectables/DashboardService.html" >DashboardService</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../injectables/EmailNotificationService.html" >EmailNotificationService</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../injectables/FieldControlService.html" >FieldControlService</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../injectables/RecordsService.html" >RecordsService</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../injectables/ReportService.html" >ReportService</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../injectables/RolesService.html" >RolesService</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../injectables/TranslationService.html" >TranslationService</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../injectables/UserSimpleService.html" >UserSimpleService</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../injectables/UtilityService.html" >UtilityService</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../injectables/VocabFieldLookupService.html" >VocabFieldLookupService</a>
+                                       </li>
+                               </ul>
+                           </li>
+                   
+                   
+                           <li class="chapter">
+                               <div class="simple menu-toggler" data-toggle="collapse"
+                                       data-target="#interfaces-links"
+                   >
+                                   <span class="fa fa-info"></span>
+                                   <span>Interfaces</span>
+                                   <span class="fa fa-angle-down"></span>
+                               </div>
+                               <ul class="links collapse "
+                                       id="interfaces-links"
+                   >
+                                       <li class="link">
+                                           <a href="../interfaces/UserForm.html" >UserForm</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../interfaces/UserForm.html" >UserForm</a>
+                                       </li>
+                               </ul>
+                           </li>
+                   
+                           <li class="chapter">
+                               <div class="simple menu-toggler" data-toggle="collapse"
+                                       data-target="#pipes-links"
+                   >
+                                   <span class="fa fa-plus"></span>
+                                   <span>Pipes</span>
+                                   <span class="fa fa-angle-down"></span>
+                               </div>
+                               <ul class="links collapse "
+                                       id="pipes-links"
+                   >
+                                       <li class="link">
+                                           <a href="../pipes/MultivalueFieldPipe.html" >MultivalueFieldPipe</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../pipes/StringTemplatePipe.html" >StringTemplatePipe</a>
+                                       </li>
+                               </ul>
+                           </li>
+                   
+                           <li class="chapter">
+                               <div class="simple menu-toggler" data-toggle="collapse"
+                                       data-target="#miscellaneous-links"
+                   >
+                                   <span class="fa fa-cubes"></span>
+                                   <span>Miscellaneous</span>
+                                   <span class="fa fa-angle-down"></span>
+                               </div>
+                               <ul class="links collapse "
+                                       id="miscellaneous-links"
+                   >
+                                       <li class="link">
+                                         <a href="../miscellaneous/functions.html" data-type="entity-link" >Functions</a>
+                                       </li>
+                                       <li class="link">
+                                         <a href="../miscellaneous/variables.html" data-type="entity-link" >Variables</a>
+                                       </li>
+                               </ul>
+                           </li>
+                   
+                   
+                           <li class="chapter">
+                               <a data-type="chapter-link" href="../coverage.html" ><span class="fa fa-tasks"></span>Documentation coverage</a>
+                           </li>
+                   
+                           <li class="divider"></li>
+                           <li class="copyright">
+                                   Documentation generated using <a href="https://compodoc.github.io/website/" target="_blank">
+                                               <img src="..//images/compodoc-vectorise-inverted.svg" class="img-responsive">
+                                   </a>
+                           </li>
+                   
+                       </ul>
+                   
+                   </nav>
                </div>
-               <!-- START CONTENT -->
                <div class="content class">
                    <div class="content-data">
-
-
 
 
 
@@ -47,21 +1022,23 @@
 </ol>
 
 <ul class="nav nav-tabs" role="tablist">
-        <li class="active">
-            <a href="#info" role="tab" id="info-tab" data-toggle="tab" data-link="info">Info</a>
-        </li>
-        <li >
-            <a href="#source" role="tab" id="source-tab" data-toggle="tab" data-link="source">Source</a>
-        </li>
+    <li class="active">
+        <a href="#info" id="info-tab" role="tab" data-toggle="tab" data-link="info">Info</a>
+    </li>
+
+
+    <li>
+        <a href="#source" role="tab" id="source-tab" data-toggle="tab" data-link="source">Source</a>
+    </li>
 </ul>
 
 <div class="tab-content">
-    <div class="tab-pane fade active in" id="c-info">
+    <div class="tab-pane fade active in" id="info">
         <p class="comment">
             <h3>File</h3>
         </p>
         <p class="comment">
-            <code>angular/shared/loadable.component.ts</code>
+            <code>assets/angular/shared/loadable.component.ts</code>
         </p>
 
             <p class="comment">
@@ -77,694 +1054,477 @@
 
 
             <section>
-    <h3 id="index">Index</h3>
-    <table class="table table-sm table-bordered index-table">
-        <tbody>
-                <tr>
-                    <td class="col-md-4">
-                        <h6><b>Properties</b></h6>
-                    </td>
-                </tr>
-                <tr>
-                    <td class="col-md-4">
-                        <ul class="index-list">
-                            <li>
-                                <a href="#isLoading">isLoading</a>
-                            </li>
-                            <li>
-                                <a href="#spinnerElem">spinnerElem</a>
-                            </li>
-                            <li>
-                                <a href="#translationService">translationService</a>
-                            </li>
-                            <li>
-                                <a href="#translatorReady">translatorReady</a>
-                            </li>
-                        </ul>
-                    </td>
-                </tr>
-
-                <tr>
-                    <td class="col-md-4">
-                        <h6><b>Methods</b></h6>
-                    </td>
-                </tr>
-                <tr>
-                    <td class="col-md-4">
-                        <ul class="index-list">
-                            <li>
-                                    <span class="modifier">Public</span>
-                                <a href="#checkIfHasLoaded">checkIfHasLoaded</a>
-                            </li>
-                            <li>
-                                <a href="#getTranslated">getTranslated</a>
-                            </li>
-                            <li>
-                                <a href="#hasLoaded">hasLoaded</a>
-                            </li>
-                            <li>
-                                <a href="#initTranslator">initTranslator</a>
-                            </li>
-                            <li>
-                                <a href="#setLoading">setLoading</a>
-                            </li>
-                            <li>
-                                <a href="#synchLoading">synchLoading</a>
-                            </li>
-                            <li>
-                                <a href="#translatorLoaded">translatorLoaded</a>
-                            </li>
-                            <li>
-                                <a href="#waitForInit">waitForInit</a>
-                            </li>
-                        </ul>
-                    </td>
-                </tr>
-
-
-
-
-
-        </tbody>
-    </table>
-</section>
+                <h3 id="index">Index</h3>
+                <table class="table table-sm table-bordered index-table">
+                    <tbody>
+                        <tr>
+                            <td class="col-md-4">
+                                <h6><b>Properties</b></h6>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="col-md-4">
+                                <ul class="index-list">
+                                    <li>
+                                         <a href="#isLoading">isLoading</a>
+                                    </li>
+                                    <li>
+                                         <a href="#spinnerElem">spinnerElem</a>
+                                    </li>
+                                    <li>
+                                         <a href="#translationService">translationService</a>
+                                    </li>
+                                    <li>
+                                         <a href="#translatorReady">translatorReady</a>
+                                    </li>
+                                </ul>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="col-md-4">
+                                <h6><b>Methods</b></h6>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="col-md-4">
+                                <ul class="index-list">
+                                    <li>
+                                        <span class="modifier">Public</span> <a href="#checkIfHasLoaded">checkIfHasLoaded</a>
+                                    </li>
+                                    <li>
+                                         <a href="#hasLoaded">hasLoaded</a>
+                                    </li>
+                                    <li>
+                                         <a href="#initTranslator">initTranslator</a>
+                                    </li>
+                                    <li>
+                                         <a href="#setLoading">setLoading</a>
+                                    </li>
+                                    <li>
+                                         <a href="#synchLoading">synchLoading</a>
+                                    </li>
+                                    <li>
+                                         <a href="#translatorLoaded">translatorLoaded</a>
+                                    </li>
+                                </ul>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </section>
 
             <section>
-    <h3 id="constructor">Constructor</h3>
-        <table class="table table-sm table-bordered">
-            <tbody>
-                <tr>
-                    <td class="col-md-4">
-<code>constructor()</code>
-                    </td>
-                </tr>
-                        <tr>
-                            <td class="col-md-4">
-                                <div class="io-line">Defined in <a href="" data-line="33" class="link-to-prism">angular/shared/loadable.component.ts:33</a></div>
-                            </td>
-                        </tr>
-
-            </tbody>
-        </table>
-</section>
-
-            <section>
-    
-        <h3 id="inputs">
-            Properties
-        </h3>
-        <table class="table table-sm table-bordered">
-            <tbody>
-                <tr>
-                    <td class="col-md-4">
-                        <a name="isLoading"></a>
-                        <span class="name">
-                            <b>
-                            isLoading</b>
-                            <a href="#isLoading"><span class="icon ion-ios-link"></span></a>
-                        </span>
-                    </td>
-                </tr>
-                    <tr>
-                        <td class="col-md-4">
-                            <i>Type : </i>        <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/boolean" target="_blank" >boolean</a></code>
-
-                        </td>
-                    </tr>
-                        <tr>
-                            <td class="col-md-4">
-                                    <div class="io-line">Defined in <a href="" data-line="30" class="link-to-prism">angular/shared/loadable.component.ts:30</a></div>
-                            </td>
-                        </tr>
-
-
-            </tbody>
-        </table>
-        <table class="table table-sm table-bordered">
-            <tbody>
-                <tr>
-                    <td class="col-md-4">
-                        <a name="spinnerElem"></a>
-                        <span class="name">
-                            <b>
-                            spinnerElem</b>
-                            <a href="#spinnerElem"><span class="icon ion-ios-link"></span></a>
-                        </span>
-                    </td>
-                </tr>
-                    <tr>
-                        <td class="col-md-4">
-                            <i>Type : </i>        <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank" >string</a></code>
-
-                        </td>
-                    </tr>
-                    <tr>
-                        <td class="col-md-4">
-                            <i>Default value : </i><code>&#x60;&lt;i class&#x3D;&quot;fa fa-spinner fa-pulse fa-1x fa-fw&quot;&gt;&lt;/i&gt;&#x60;</code>
-                        </td>
-                    </tr>
-                        <tr>
-                            <td class="col-md-4">
-                                    <div class="io-line">Defined in <a href="" data-line="33" class="link-to-prism">angular/shared/loadable.component.ts:33</a></div>
-                            </td>
-                        </tr>
-
-
-            </tbody>
-        </table>
-        <table class="table table-sm table-bordered">
-            <tbody>
-                <tr>
-                    <td class="col-md-4">
-                        <a name="translationService"></a>
-                        <span class="name">
-                            <b>
-                            translationService</b>
-                            <a href="#translationService"><span class="icon ion-ios-link"></span></a>
-                        </span>
-                    </td>
-                </tr>
-                    <tr>
-                        <td class="col-md-4">
-                            <i>Type : </i>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
-
-                        </td>
-                    </tr>
-                        <tr>
-                            <td class="col-md-4">
-                                    <div class="io-line">Defined in <a href="" data-line="32" class="link-to-prism">angular/shared/loadable.component.ts:32</a></div>
-                            </td>
-                        </tr>
-
-
-            </tbody>
-        </table>
-        <table class="table table-sm table-bordered">
-            <tbody>
-                <tr>
-                    <td class="col-md-4">
-                        <a name="translatorReady"></a>
-                        <span class="name">
-                            <b>
-                            translatorReady</b>
-                            <a href="#translatorReady"><span class="icon ion-ios-link"></span></a>
-                        </span>
-                    </td>
-                </tr>
-                    <tr>
-                        <td class="col-md-4">
-                            <i>Type : </i>        <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/boolean" target="_blank" >boolean</a></code>
-
-                        </td>
-                    </tr>
-                        <tr>
-                            <td class="col-md-4">
-                                    <div class="io-line">Defined in <a href="" data-line="31" class="link-to-prism">angular/shared/loadable.component.ts:31</a></div>
-                            </td>
-                        </tr>
-
-
-            </tbody>
-        </table>
-</section>
+                <h3 id="constructor">Constructor</h3>
+                    <table class="table table-sm table-bordered">
+                        <tbody>
+                            <tr>
+                                <td class="col-md-4">
+                                    <code>constructor()</code>
+                                </td>
+                            </tr>
+                                    <tr>
+                                        <td class="col-md-4">
+                                            <div class="io-line">Defined in <a href="" data-line="32" class="link-to-prism">assets/angular/shared/loadable.component.ts:32</a></div>
+                                        </td>
+                                    </tr>
+            
+                        </tbody>
+                    </table>
+            </section>
 
             <section>
-    
-    <h3 id="methods">
-        Methods
-    </h3>
-    <table class="table table-sm table-bordered">
-        <tbody>
-            <tr>
-                <td class="col-md-4">
-                    <a name="checkIfHasLoaded"></a>
-                    <span class="name">
-                        <b>
-                            <span class="modifier">Public</span>
-                            checkIfHasLoaded
-                        </b>
-                        <a href="#checkIfHasLoaded"><span class="icon ion-ios-link"></span></a>
-                    </span>
-                </td>
-            </tr>
-            <tr>
-                <td class="col-md-4">
-                    <span class="modifier-icon icon ion-ios-reset"></span>
-                    <code>checkIfHasLoaded()</code>
-                </td>
-            </tr>
+                
+                    <h3 id="methods">
+                        Methods
+                    </h3>
+                    <table class="table table-sm table-bordered">
+                        <tbody>
+                            <tr>
+                                <td class="col-md-4">
+                                    <a name="checkIfHasLoaded"></a>
+                                    <span class="name"><b><span class="modifier">Public</span> checkIfHasLoaded</b><a href="#checkIfHasLoaded"><span class="fa fa-link"></span></a></span>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="col-md-4">
+                                        <span class="modifier-icon fa fa-reset"></span>
+                                    <code>checkIfHasLoaded()</code>
+                                </td>
+                            </tr>
+            
+            
+                                    <tr>
+                                        <td class="col-md-4">
+                                            <div class="io-line">Defined in <a href="" data-line="52" class="link-to-prism">assets/angular/shared/loadable.component.ts:52</a></div>
+                                        </td>
+                                    </tr>
+            
+                            <tr>
+                                <td class="col-md-4">
+            
+                                        <div class="io-description">
+                                            <b>Returns : </b>    <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >void</a></code>
+            
+                                        </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <table class="table table-sm table-bordered">
+                        <tbody>
+                            <tr>
+                                <td class="col-md-4">
+                                    <a name="hasLoaded"></a>
+                                    <span class="name"><b> hasLoaded</b><a href="#hasLoaded"><span class="fa fa-link"></span></a></span>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="col-md-4">
+            <code>hasLoaded()</code>
+                                </td>
+                            </tr>
+            
+            
+                                    <tr>
+                                        <td class="col-md-4">
+                                            <div class="io-line">Defined in <a href="" data-line="58" class="link-to-prism">assets/angular/shared/loadable.component.ts:58</a></div>
+                                        </td>
+                                    </tr>
+            
+                            <tr>
+                                <td class="col-md-4">
+            
+                                        <div class="io-description">
+                                            <b>Returns : </b>    <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/boolean" target="_blank" >boolean</a></code>
+            
+                                        </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <table class="table table-sm table-bordered">
+                        <tbody>
+                            <tr>
+                                <td class="col-md-4">
+                                    <a name="initTranslator"></a>
+                                    <span class="name"><b> initTranslator</b><a href="#initTranslator"><span class="fa fa-link"></span></a></span>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="col-md-4">
+            <code>initTranslator(translationService: <a href="../injectables/TranslationService.html">TranslationService</a>)</code>
+                                </td>
+                            </tr>
+            
+            
+                                    <tr>
+                                        <td class="col-md-4">
+                                            <div class="io-line">Defined in <a href="" data-line="40" class="link-to-prism">assets/angular/shared/loadable.component.ts:40</a></div>
+                                        </td>
+                                    </tr>
+            
+                            <tr>
+                                <td class="col-md-4">
+            
+                                        <div class="io-description">
+                                                <b>Parameters :</b>
+                                                <table class="params">
+                                                    <thead>
+                                                        <tr>
+                                                            <td>Name</td>
+                                                            <td>Type</td>
+                                                            <td>Optional</td>
+                                                            <td>Description</td>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                            <tr>
+                                                              <td>translationService</td>
+                                                              <td>
+                                                                      <code><a href="../injectables/TranslationService.html" target="_self" >TranslationService</a></code>
+                                                              </td>
+                                                              <td>
+                                                              </td>
+                                                              <td></td>
+                                                            </tr>
+                                                    </tbody>
+                                                </table>
+                                        </div>
+                                        <div>
+                                        </div>
+                                        <div class="io-description">
+                                            <b>Returns : </b>    <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >void</a></code>
+            
+                                        </div>
+                                            <div class="io-description">
+                                                
+                                            </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <table class="table table-sm table-bordered">
+                        <tbody>
+                            <tr>
+                                <td class="col-md-4">
+                                    <a name="setLoading"></a>
+                                    <span class="name"><b> setLoading</b><a href="#setLoading"><span class="fa fa-link"></span></a></span>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="col-md-4">
+            <code>setLoading(loading: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/boolean" target="_blank">boolean</a>)</code>
+                                </td>
+                            </tr>
+            
+            
+                                    <tr>
+                                        <td class="col-md-4">
+                                            <div class="io-line">Defined in <a href="" data-line="62" class="link-to-prism">assets/angular/shared/loadable.component.ts:62</a></div>
+                                        </td>
+                                    </tr>
+            
+                            <tr>
+                                <td class="col-md-4">
+            
+                                        <div class="io-description">
+                                                <b>Parameters :</b>
+                                                <table class="params">
+                                                    <thead>
+                                                        <tr>
+                                                            <td>Name</td>
+                                                            <td>Type</td>
+                                                            <td>Optional</td>
+                                                            <td>Description</td>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                            <tr>
+                                                              <td>loading</td>
+                                                              <td>
+                                                                      <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/boolean" target="_blank" >boolean</a></code>
+                                                              </td>
+                                                              <td>
+                                                              </td>
+                                                              <td></td>
+                                                            </tr>
+                                                    </tbody>
+                                                </table>
+                                        </div>
+                                        <div>
+                                        </div>
+                                        <div class="io-description">
+                                            <b>Returns : </b>    <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >void</a></code>
+            
+                                        </div>
+                                            <div class="io-description">
+                                                
+                                            </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <table class="table table-sm table-bordered">
+                        <tbody>
+                            <tr>
+                                <td class="col-md-4">
+                                    <a name="synchLoading"></a>
+                                    <span class="name"><b> synchLoading</b><a href="#synchLoading"><span class="fa fa-link"></span></a></span>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="col-md-4">
+            <code>synchLoading()</code>
+                                </td>
+                            </tr>
+            
+            
+                                    <tr>
+                                        <td class="col-md-4">
+                                            <div class="io-line">Defined in <a href="" data-line="67" class="link-to-prism">assets/angular/shared/loadable.component.ts:67</a></div>
+                                        </td>
+                                    </tr>
+            
+                            <tr>
+                                <td class="col-md-4">
+            
+                                        <div class="io-description">
+                                            <b>Returns : </b>    <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >void</a></code>
+            
+                                        </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <table class="table table-sm table-bordered">
+                        <tbody>
+                            <tr>
+                                <td class="col-md-4">
+                                    <a name="translatorLoaded"></a>
+                                    <span class="name"><b> translatorLoaded</b><a href="#translatorLoaded"><span class="fa fa-link"></span></a></span>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="col-md-4">
+            <code>translatorLoaded()</code>
+                                </td>
+                            </tr>
+            
+            
+                                    <tr>
+                                        <td class="col-md-4">
+                                            <div class="io-line">Defined in <a href="" data-line="47" class="link-to-prism">assets/angular/shared/loadable.component.ts:47</a></div>
+                                        </td>
+                                    </tr>
+            
+                            <tr>
+                                <td class="col-md-4">
+            
+                                        <div class="io-description">
+                                            <b>Returns : </b>    <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >void</a></code>
+            
+                                        </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+            </section>
 
 
-            <tr>
-                <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="53"
-                            class="link-to-prism">angular/shared/loadable.component.ts:53</a></div>
-                </td>
-            </tr>
-
-
-            <tr>
-                <td class="col-md-4">
-
-                    <div class="io-description">
-                        <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >void</a></code>
-
-                    </div>
-                </td>
-            </tr>
-        </tbody>
-    </table>
-    <table class="table table-sm table-bordered">
-        <tbody>
-            <tr>
-                <td class="col-md-4">
-                    <a name="getTranslated"></a>
-                    <span class="name">
-                        <b>
-                            getTranslated
-                        </b>
-                        <a href="#getTranslated"><span class="icon ion-ios-link"></span></a>
-                    </span>
-                </td>
-            </tr>
-            <tr>
-                <td class="col-md-4">
-<code>getTranslated(key, defValue)</code>
-                </td>
-            </tr>
-
-
-            <tr>
-                <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="76"
-                            class="link-to-prism">angular/shared/loadable.component.ts:76</a></div>
-                </td>
-            </tr>
-
-
-            <tr>
-                <td class="col-md-4">
-
-                    <div class="io-description">
-                        <b>Parameters :</b>
-                        <table class="params">
-                            <thead>
+            <section>
+                
+                    <h3 id="inputs">
+                        Properties
+                    </h3>
+                    <table class="table table-sm table-bordered">
+                        <tbody>
+                            <tr>
+                                <td class="col-md-4">
+                                    <a name="isLoading"></a>
+                                    <span class="name"><b> isLoading</b><a href="#isLoading"><span class="fa fa-link"></span></a></span>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="col-md-4">
+                                    <code>isLoading:     <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/boolean" target="_blank" >boolean</a></code>
+            </code>
+                                </td>
+                            </tr>
                                 <tr>
-                                    <td>Name</td>
-                                    <td>Optional</td>
+                                    <td class="col-md-4">
+                                        <i>Type : </i>    <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/boolean" target="_blank" >boolean</a></code>
+            
+                                    </td>
                                 </tr>
-                            </thead>
-                            <tbody>
+                                    <tr>
+                                        <td class="col-md-4">
+                                            <div class="io-line">Defined in <a href="" data-line="29" class="link-to-prism">assets/angular/shared/loadable.component.ts:29</a></div>
+                                        </td>
+                                    </tr>
+            
+            
+                        </tbody>
+                    </table>
+                    <table class="table table-sm table-bordered">
+                        <tbody>
+                            <tr>
+                                <td class="col-md-4">
+                                    <a name="spinnerElem"></a>
+                                    <span class="name"><b> spinnerElem</b><a href="#spinnerElem"><span class="fa fa-link"></span></a></span>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="col-md-4">
+                                    <code>spinnerElem:     <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank" >string</a></code>
+            </code>
+                                </td>
+                            </tr>
                                 <tr>
-                                    <td>key</td>
-
-                                    <td>
-                                        No
+                                    <td class="col-md-4">
+                                        <i>Type : </i>    <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank" >string</a></code>
+            
                                     </td>
-
-
-                                </tr>
-                                <tr>
-                                    <td>defValue</td>
-
-                                    <td>
-                                        No
-                                    </td>
-
-
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                    <div>
-                    </div>
-                    <div class="io-description">
-                        <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
-
-                    </div>
-                    <div class="io-description">
-                        
-                    </div>
-                </td>
-            </tr>
-        </tbody>
-    </table>
-    <table class="table table-sm table-bordered">
-        <tbody>
-            <tr>
-                <td class="col-md-4">
-                    <a name="hasLoaded"></a>
-                    <span class="name">
-                        <b>
-                            hasLoaded
-                        </b>
-                        <a href="#hasLoaded"><span class="icon ion-ios-link"></span></a>
-                    </span>
-                </td>
-            </tr>
-            <tr>
-                <td class="col-md-4">
-<code>hasLoaded()</code>
-                </td>
-            </tr>
-
-
-            <tr>
-                <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="59"
-                            class="link-to-prism">angular/shared/loadable.component.ts:59</a></div>
-                </td>
-            </tr>
-
-
-            <tr>
-                <td class="col-md-4">
-
-                    <div class="io-description">
-                        <b>Returns : </b>        <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/boolean" target="_blank" >boolean</a></code>
-
-                    </div>
-                </td>
-            </tr>
-        </tbody>
-    </table>
-    <table class="table table-sm table-bordered">
-        <tbody>
-            <tr>
-                <td class="col-md-4">
-                    <a name="initTranslator"></a>
-                    <span class="name">
-                        <b>
-                            initTranslator
-                        </b>
-                        <a href="#initTranslator"><span class="icon ion-ios-link"></span></a>
-                    </span>
-                </td>
-            </tr>
-            <tr>
-                <td class="col-md-4">
-<code>initTranslator(translationService: <a href="../injectables/TranslationService.html">TranslationService</a>)</code>
-                </td>
-            </tr>
-
-
-            <tr>
-                <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="41"
-                            class="link-to-prism">angular/shared/loadable.component.ts:41</a></div>
-                </td>
-            </tr>
-
-
-            <tr>
-                <td class="col-md-4">
-
-                    <div class="io-description">
-                        <b>Parameters :</b>
-                        <table class="params">
-                            <thead>
-                                <tr>
-                                    <td>Name</td>
-                                    <td>Type</td>
-                                    <td>Optional</td>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td>translationService</td>
-                                    <td>
-                                                <code><a href="../injectables/TranslationService.html" target="_self" >TranslationService</a></code>
-                                    </td>
-
-                                    <td>
-                                        No
-                                    </td>
-
-
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                    <div>
-                    </div>
-                    <div class="io-description">
-                        <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >void</a></code>
-
-                    </div>
-                    <div class="io-description">
-                        
-                    </div>
-                </td>
-            </tr>
-        </tbody>
-    </table>
-    <table class="table table-sm table-bordered">
-        <tbody>
-            <tr>
-                <td class="col-md-4">
-                    <a name="setLoading"></a>
-                    <span class="name">
-                        <b>
-                            setLoading
-                        </b>
-                        <a href="#setLoading"><span class="icon ion-ios-link"></span></a>
-                    </span>
-                </td>
-            </tr>
-            <tr>
-                <td class="col-md-4">
-<code>setLoading(loading: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/boolean" target="_blank">boolean</a>)</code>
-                </td>
-            </tr>
-
-
-            <tr>
-                <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="63"
-                            class="link-to-prism">angular/shared/loadable.component.ts:63</a></div>
-                </td>
-            </tr>
-
-
-            <tr>
-                <td class="col-md-4">
-
-                    <div class="io-description">
-                        <b>Parameters :</b>
-                        <table class="params">
-                            <thead>
-                                <tr>
-                                    <td>Name</td>
-                                    <td>Type</td>
-                                    <td>Optional</td>
-                                    <td>Default value</td>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td>loading</td>
-                                    <td>
-                                                <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/boolean" target="_blank" >boolean</a></code>
-                                    </td>
-
-                                    <td>
-                                        No
-                                    </td>
-
-                                    <td>
-                                        <code>true</code>
-                                    </td>
-
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                    <div>
-                    </div>
-                    <div class="io-description">
-                        <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >void</a></code>
-
-                    </div>
-                    <div class="io-description">
-                        
-                    </div>
-                </td>
-            </tr>
-        </tbody>
-    </table>
-    <table class="table table-sm table-bordered">
-        <tbody>
-            <tr>
-                <td class="col-md-4">
-                    <a name="synchLoading"></a>
-                    <span class="name">
-                        <b>
-                            synchLoading
-                        </b>
-                        <a href="#synchLoading"><span class="icon ion-ios-link"></span></a>
-                    </span>
-                </td>
-            </tr>
-            <tr>
-                <td class="col-md-4">
-<code>synchLoading()</code>
-                </td>
-            </tr>
-
-
-            <tr>
-                <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="68"
-                            class="link-to-prism">angular/shared/loadable.component.ts:68</a></div>
-                </td>
-            </tr>
-
-
-            <tr>
-                <td class="col-md-4">
-
-                    <div class="io-description">
-                        <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >void</a></code>
-
-                    </div>
-                </td>
-            </tr>
-        </tbody>
-    </table>
-    <table class="table table-sm table-bordered">
-        <tbody>
-            <tr>
-                <td class="col-md-4">
-                    <a name="translatorLoaded"></a>
-                    <span class="name">
-                        <b>
-                            translatorLoaded
-                        </b>
-                        <a href="#translatorLoaded"><span class="icon ion-ios-link"></span></a>
-                    </span>
-                </td>
-            </tr>
-            <tr>
-                <td class="col-md-4">
-<code>translatorLoaded()</code>
-                </td>
-            </tr>
-
-
-            <tr>
-                <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="48"
-                            class="link-to-prism">angular/shared/loadable.component.ts:48</a></div>
-                </td>
-            </tr>
-
-
-            <tr>
-                <td class="col-md-4">
-
-                    <div class="io-description">
-                        <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >void</a></code>
-
-                    </div>
-                </td>
-            </tr>
-        </tbody>
-    </table>
-    <table class="table table-sm table-bordered">
-        <tbody>
-            <tr>
-                <td class="col-md-4">
-                    <a name="waitForInit"></a>
-                    <span class="name">
-                        <b>
-                            waitForInit
-                        </b>
-                        <a href="#waitForInit"><span class="icon ion-ios-link"></span></a>
-                    </span>
-                </td>
-            </tr>
-            <tr>
-                <td class="col-md-4">
-<code>waitForInit(serviceArr: any[], handler: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>)</code>
-                </td>
-            </tr>
-
-
-            <tr>
-                <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="89"
-                            class="link-to-prism">angular/shared/loadable.component.ts:89</a></div>
-                </td>
-            </tr>
-
-
-            <tr>
-                <td class="col-md-4">
-
-                    <div class="io-description">
-                        <b>Parameters :</b>
-                        <table class="params">
-                            <thead>
-                                <tr>
-                                    <td>Name</td>
-                                    <td>Type</td>
-                                    <td>Optional</td>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td>serviceArr</td>
-                                    <td>
-                                            <code>any[]</code>
-                                    </td>
-
-                                    <td>
-                                        No
-                                    </td>
-
-
                                 </tr>
                                 <tr>
-                                    <td>handler</td>
-                                    <td>
-                                                <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+                                    <td class="col-md-4">
+                                        <i>Default value : </i><code>&lt;i class&#x3D;&quot;fa fa-spinner fa-pulse fa-1x fa-fw&quot;&gt;&lt;/i&gt;</code>
                                     </td>
-
-                                    <td>
-                                        No
-                                    </td>
-
-
                                 </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                    <div>
-                    </div>
-                    <div class="io-description">
-                        <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >void</a></code>
-
-                    </div>
-                    <div class="io-description">
-                        
-                    </div>
-                </td>
-            </tr>
-        </tbody>
-    </table>
-</section>
-
-
-
-
+                                    <tr>
+                                        <td class="col-md-4">
+                                            <div class="io-line">Defined in <a href="" data-line="32" class="link-to-prism">assets/angular/shared/loadable.component.ts:32</a></div>
+                                        </td>
+                                    </tr>
+            
+            
+                        </tbody>
+                    </table>
+                    <table class="table table-sm table-bordered">
+                        <tbody>
+                            <tr>
+                                <td class="col-md-4">
+                                    <a name="translationService"></a>
+                                    <span class="name"><b> translationService</b><a href="#translationService"><span class="fa fa-link"></span></a></span>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="col-md-4">
+                                    <code>translationService:     <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+            </code>
+                                </td>
+                            </tr>
+                                <tr>
+                                    <td class="col-md-4">
+                                        <i>Type : </i>    <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+            
+                                    </td>
+                                </tr>
+                                    <tr>
+                                        <td class="col-md-4">
+                                            <div class="io-line">Defined in <a href="" data-line="31" class="link-to-prism">assets/angular/shared/loadable.component.ts:31</a></div>
+                                        </td>
+                                    </tr>
+            
+            
+                        </tbody>
+                    </table>
+                    <table class="table table-sm table-bordered">
+                        <tbody>
+                            <tr>
+                                <td class="col-md-4">
+                                    <a name="translatorReady"></a>
+                                    <span class="name"><b> translatorReady</b><a href="#translatorReady"><span class="fa fa-link"></span></a></span>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="col-md-4">
+                                    <code>translatorReady:     <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/boolean" target="_blank" >boolean</a></code>
+            </code>
+                                </td>
+                            </tr>
+                                <tr>
+                                    <td class="col-md-4">
+                                        <i>Type : </i>    <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/boolean" target="_blank" >boolean</a></code>
+            
+                                    </td>
+                                </tr>
+                                    <tr>
+                                        <td class="col-md-4">
+                                            <div class="io-line">Defined in <a href="" data-line="30" class="link-to-prism">assets/angular/shared/loadable.component.ts:30</a></div>
+                                        </td>
+                                    </tr>
+            
+            
+                        </tbody>
+                    </table>
+            </section>
 
     </div>
 
 
-    <div class="tab-pane fade  tab-source-code" id="c-source">
-        <pre class="line-numbers compodoc-sourcecode"><code class="language-typescript">import { TranslationService } from &#x27;./translation-service&#x27;;
+    <div class="tab-pane fade tab-source-code" id="source">
+        <pre class="line-numbers"><code class="language-typescript">import { TranslationService } from &#x27;./translation-service&#x27;;
 
-import * as _ from &quot;lodash&quot;;
 declare var jQuery: any;
 /**
  * Convenience class to wrap JQuery calls ...
@@ -813,42 +1573,12 @@ export class LoadableComponent  {
 
   synchLoading() {
     if (this.isLoading) {
-      jQuery(&quot;#loading&quot;).removeClass(&quot;hidden&quot;);
+      jQuery(&quot;#loading&quot;).show();
     } else {
-      jQuery(&quot;#loading&quot;).addClass(&quot;hidden&quot;);
+      jQuery(&quot;#loading&quot;).hide();
     }
   }
 
-  getTranslated(key, defValue) {
-    if (!_.isEmpty(key) &amp;&amp; !_.isUndefined(key)) {
-      // Keys can now be any string, previously, these were required to start with the &#x27;@&#x27; character
-      if (this.translationService) {
-        return this.translationService.t(key);
-      } else {
-        return key;
-      }
-    } else {
-      return defValue;
-    }
-  }
-
-  waitForInit(serviceArr: any[], handler:any) {
-    const subs &#x3D; _.map(serviceArr, (service)&#x3D;&gt; { return service.getInitSubject() });
-    const subTracker &#x3D; {loaded: {}, subs: {}};
-    const subTrackerFn &#x3D; (serviceIdx:any) &#x3D;&gt; {
-      return (serviceInst:any) &#x3D;&gt; {
-        subTracker.loaded[&#x60;${serviceIdx}&#x60;] &#x3D; serviceInst;
-        if (_.keys(subTracker.loaded).length &gt;&#x3D; subs.length) {
-          subTracker.subs[&#x60;${serviceIdx}&#x60;].unsubscribe();
-          handler();
-        }
-      };
-    };
-    _.forOwn(serviceArr, (service:any, serviceIdx:any) &#x3D;&gt; {
-      subTracker.subs[&#x60;${serviceIdx}&#x60;] &#x3D; service.getInitSubject().subscribe(subTrackerFn(serviceIdx));
-      service.emitInit();
-    });
-  }
 }
 </code></pre>
     </div>
@@ -856,14 +1586,11 @@ export class LoadableComponent  {
 
 
 
-                   
-
-
 
 
                    </div><div class="search-results">
     <div class="has-results">
-        <h1 class="search-results-title"><span class='search-results-count'></span> result-matching "<span class='search-query'></span>"</h1>
+        <h1 class="search-results-title"><span class='search-results-count'></span> results matching "<span class='search-query'></span>"</h1>
         <ul class="search-results-list"></ul>
     </div>
     <div class="no-results">
@@ -871,22 +1598,8 @@ export class LoadableComponent  {
     </div>
 </div>
 </div>
-               <!-- END CONTENT -->
            </div>
        </div>
-
-       <script>
-            var COMPODOC_CURRENT_PAGE_DEPTH = 1;
-            var COMPODOC_CURRENT_PAGE_CONTEXT = 'class';
-            var COMPODOC_CURRENT_PAGE_URL = 'LoadableComponent.html';
-            var MAX_SEARCH_RESULTS = 15;
-       </script>
-
-       <script src="../js/libs/custom-elements.min.js"></script>
-       <script src="../js/libs/lit-html.js"></script>
-       <!-- Required to polyfill modern browsers as code is ES5 for IE... -->
-       <script src="../js/libs/custom-elements-es5-adapter.js" charset="utf-8" defer></script>
-       <script src="../js/menu-wc.js" defer></script>
 
        <script src="../js/libs/bootstrap-native.js"></script>
 
@@ -897,17 +1610,17 @@ export class LoadableComponent  {
 
        <script src="../js/compodoc.js"></script>
 
+       <script>var COMPODOC_CURRENT_PAGE_DEPTH = 1;</script>
+
+       <script src="../js/search/search.js"></script>
+       <script src="../js/search/lunr.min.js"></script>
+       <script src="../js/search/search-lunr.js"></script>
+
        <script src="../js/tabs.js"></script>
        <script src="../js/menu.js"></script>
-       <script src="../js/libs/clipboard.min.js"></script>
        <script src="../js/libs/prism.js"></script>
        <script src="../js/sourceCode.js"></script>
-          <script src="../js/search/search.js"></script>
-          <script src="../js/search/lunr.min.js"></script>
-          <script src="../js/search/search-lunr.js"></script>
-          <script src="../js/search/search_index.js"></script>
-       <script src="../js/lazy-load-graphs.js"></script>
-
+       <script src="../js/search/search_index.js"></script>
 
     </body>
 </html>
