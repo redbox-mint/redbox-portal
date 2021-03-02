@@ -160,14 +160,14 @@ export class PDFListComponent extends SimpleComponent implements OnInit {
 
             attachment.dateUpdated = moment(attachment.dateUpdated).format('LLL');
             that.field.pdfAttachments.push(attachment);
-            if(that.field.latestPdf == null || moment(that.field.latestPdf['dateUpdated']).isBefore(moment(attachment.dateUpdated))) {
+            if(that.field.latestPdf == null || moment(that.field.latestPdf['dateUpdated'], 'LLL').isBefore(moment(attachment.dateUpdated, 'LLL'))) {
               that.field.latestPdf = attachment;
             }
           }
         });
 
         that.field.pdfAttachments.sort(function compare(a, b) {
-          let before = moment(a['dateUpdated']).isBefore(moment(b['dateUpdated']));
+          let before = moment(a['dateUpdated'], 'LLL').isBefore(moment(b['dateUpdated'], 'LLL'));
           //We want descending order so let's reverse it
           return before ? 1 : -1;
         });
