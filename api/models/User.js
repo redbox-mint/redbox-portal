@@ -57,7 +57,7 @@ module.exports = {
   },
   assignAccessToPendingRecords: function(user) {
     try {
-      if(user.email != null) {
+      if(user.email != null && user.name != 'Local Admin') {
         UsersService.findAndAssignAccessToRecords(user.email, user.username);
       }
     } catch(e) {

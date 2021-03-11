@@ -350,6 +350,10 @@ export module Services {
 
     }
 
+    private getSearchService() {
+      return sails.services[sails.config.search.serviceName];
+    }
+
     /**
     @return Object {
           defUser: the default admin user
@@ -358,9 +362,6 @@ export module Services {
     */
     public bootstrap = (defRoles) => {
       let that = this;
-      sails.on('ready', function () {
-        that.searchService = sails.services[sails.config.search.serviceName];
-      });
       const defAuthConfig = ConfigService.getBrand(BrandingService.getDefault().name, 'auth');
       sails.log.verbose("Bootstrapping users....");
 
@@ -494,7 +495,7 @@ export module Services {
     public findAndAssignAccessToRecords(pendingValue, userid) {
       var oid = null;
       const query = `authorization_editPending:${pendingValue}%20OR%20authorization_viewPending:${pendingValue}&sort=date_object_modified desc&version=2.2&wt=json&rows=10000`;
-      this.searchService.searchAdvanced(query).then(results => {
+      this.getSearchService().searchAdvanced(query).then(results => {
         if (_.isEmpty(results) || _.isEmpty(results['response'])) {
           sails.log.verbose(`UsersService::findAndAssignAccessToRecords() -> No pending records: ${pendingValue}`);
           return;
