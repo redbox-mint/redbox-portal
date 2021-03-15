@@ -100,16 +100,16 @@ export class DashboardComponent extends LoadableComponent {
     },
     {
       title: 'header-created',
-      variable: 'date_object_created',
+      variable: 'metaMetadata.createdOn',
       template: '<%= dateCreated %>'
     },
     {
       title: 'header-modified',
-      variable: 'date_object_modified',
+      variable: 'metaMetadata.lastSaveDate',
       template: '<%= dateModified %>'
     }
   ];
-  sortFields = ['date_object_modified', 'date_object_created', 'metadata.title', 'metadata.contributor_ci.text_full_name', 'metadata.contributor_data_manager.text_full_name'];
+  sortFields = ['metaMetadata.lastSaveDate', 'metaMetadata.createdOn', 'metadata.title', 'metadata.contributor_ci.text_full_name', 'metadata.contributor_data_manager.text_full_name'];
   viewAsPackageType: boolean = false;
 
   constructor(@Inject(DashboardService) protected dashboardService: DashboardService, protected recordsService: RecordsService, @Inject(DOCUMENT) protected document: any, elementRef: ElementRef, translationService: TranslationService) {
@@ -176,7 +176,7 @@ export class DashboardComponent extends LoadableComponent {
       };
     }
     this.initTracker.target++;
-    let stagedRecords: RecordResponseTable = await this.dashboardService.getRecords(null, null, 1, packageType, 'date_object_modified:-1');
+    let stagedRecords: RecordResponseTable = await this.dashboardService.getRecords(null, null, 1, packageType, 'metaMetadata.lastSaveDate:-1');
     let planTable: PlanTable = this.evaluatePlanTableColumns(packageType, stagedRecords);
     this.initTracker.loaded++;
     this.setDashboardTitle(planTable);
@@ -208,7 +208,7 @@ export class DashboardComponent extends LoadableComponent {
         };
       }
       this.initTracker.target++;
-      let stagedRecords: RecordResponseTable = await this.dashboardService.getRecords(recordType, step.name, 1, null, 'date_object_modified:-1');
+      let stagedRecords: RecordResponseTable = await this.dashboardService.getRecords(recordType, step.name, 1, null, 'metaMetadata.lastSaveDate:-1');
       let planTable: PlanTable = this.evaluatePlanTableColumns(step.name, stagedRecords);
       this.initTracker.loaded++;
       this.setDashboardTitle(planTable);
@@ -304,7 +304,7 @@ export class DashboardComponent extends LoadableComponent {
         return sortString;
       }
     }
-    return 'date_object_modified:-1';
+    return 'metaMetadata.lastSaveDate:-1';
   }
 
   getTranslated(key, defValue) {
@@ -325,7 +325,7 @@ export class DashboardComponent extends LoadableComponent {
   }
 
   async sortChanged(data) {
-    let sortString = `'${data.variable}':`;
+    let sortString = `${data.variable}:`;
     if (data.sort == 'desc') {
       sortString = sortString + "-1";
     } else {
