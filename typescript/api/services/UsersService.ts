@@ -217,7 +217,7 @@ export module Services {
               });
               return done(null, user);
             } else {
-              sails.log.verbose("At AAF Strategy verify, creating new user...");
+              sails.log.verbose("At OIDC Strategy verify, creating new user...");
               // first time login, create with default role
               var userToCreate = {
                 username: userName,
