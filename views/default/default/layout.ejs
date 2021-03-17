@@ -62,7 +62,11 @@
   <div class="site-branding-area">
     <div class="container">
       <div class="row" style="position:relative">
+        <% if(locals.branding != null && locals.portal != null) { %>
         <%- superPartial("/layout/logo.ejs", branding, portal, true) %>
+        <% } else { %>
+          <%- include layout/logo.ejs %>
+        <%}%>
 
         <div class="col-sm-2 search-box">
         </div>
@@ -70,10 +74,12 @@
     </div>
   </div>
   <!-- End site branding area -->
-
+  <% if(locals.branding != null && locals.portal != null) { %>
   <%- superPartial("/layout/menu.ejs", branding, portal, true) %>
+    <% } else { %>
+    <%- include layout/menu.ejs %>
+    <%}%>
   <!-- End mainmenu area -->
-
 <% if (typeof title!== 'undefined') { %>
 <% } %>
 
@@ -84,7 +90,12 @@
 
 
   <div class="footer-bottom-area navbar-bottom">
+    <% if(locals.branding != null && locals.portal != null) { %>
       <%- superPartial("/layout/footer.ejs", branding, portal, true) %>
+      <% } else { %>
+        <%- include layout/footer.ejs %>
+      <%}%>
+
   </div>
 
   <!--SCRIPTS-->
