@@ -50,7 +50,9 @@ module.exports.policies = {
 	// }
   UserController: {
     'localLogin': true,
-    'aaafLogin': true,
+    'aafLogin': true,
+    'openidConnectLogin': true,
+    'beginOidc': true,
     'info': 'isAuthenticated'
   },
   '*': ['brandingAndPortal',

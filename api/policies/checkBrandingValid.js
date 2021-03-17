@@ -17,6 +17,7 @@ module.exports = function(req, res, next) {
       // brand not found, use default brand so images, css, etc. resolves
       req.options.locals.branding = sails.config.auth.defaultBrand;
       req.options.locals.portal = sails.config.auth.defaultPortal;
+      sails.log.verbose("In checkBrandingValid, brand not found!!!");
       return res.notFound();
     }
   }
