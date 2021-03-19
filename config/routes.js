@@ -373,7 +373,7 @@ module.exports.routes = {
     csrf: false
   },
   'get /:branding/:portal/api/search':{
-    controller: 'webservice/RecordController',
+    controller: 'webservice/SearchController',
     action: 'search',
     csrf: false
   },
