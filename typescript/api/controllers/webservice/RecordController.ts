@@ -554,7 +554,7 @@ export module Controllers {
          rows = 10;
        }
        var results = await this.RecordsService.getRecords(workflowState, recordType, start, rows, username, roles, brand, editAccessOnly, packageType, sort);
-       sails.log.error(    results);  
+       sails.log.debug(    results);  
        let apiReponse: ListAPIResponse<any> = new ListAPIResponse();       
           var totalItems = results.totalItems
           var startIndex = start;

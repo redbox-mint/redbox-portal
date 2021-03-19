@@ -1,7 +1,7 @@
 {
 	"info": {
-		"_postman_id": "f1dde116-a714-470a-9bc9-828db134d94d",
-		"name": "Redbox Portal API - With tests Copy 2",
+		"_postman_id": "5b3ba1a4-4b2d-468c-8c8d-e42f25edb1e6",
+		"name": "Redbox Portal API - With tests",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
 	"item": [
@@ -1668,6 +1668,57 @@
 											"key": "name",
 											"value": "default-1.0-draft"
 										}
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Administration",
+					"item": [
+						{
+							"name": "Refresh Cached Resources",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									},
+									{
+										"key": "",
+										"value": "",
+										"type": "text",
+										"disabled": true
+									}
+								],
+								"url": {
+									"raw": "{{host}}/default/rdmp/api/admin/refreshCachedResources",
+									"host": [
+										"{{host}}"
+									],
+									"path": [
+										"default",
+										"rdmp",
+										"api",
+										"admin",
+										"refreshCachedResources"
 									]
 								}
 							},
