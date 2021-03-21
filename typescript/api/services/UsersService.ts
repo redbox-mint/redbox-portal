@@ -218,6 +218,7 @@ export module Services {
               return done(null, user);
             } else {
               sails.log.verbose("At OIDC Strategy verify, creating new user...");
+              let additionalAttributes = this.mapAdditionalAttributes(profile, claimsMappings['additionalAttributes']);
               // first time login, create with default role
               var userToCreate = {
                 username: userName,
@@ -229,6 +230,7 @@ export module Services {
                 surname: _.get(profile, claimsMappings['surname']),
                 type: 'oidc',
                 roles: openIdConnectDefRoles,
+                additionalAttributes: additionalAttributes,
                 lastLogin: new Date()
               };
               sails.log.verbose(userToCreate);
@@ -319,6 +321,15 @@ export module Services {
         return Observable.of({ defUser: defaultUser, defRoles: defRoles });
       }
     }
+
+    protected mapAdditionalAttributes = (profile, attributeMappings) => {
+      let additionalAttributes = {};
+      for(let attributeMapping in attributeMappings) {
+        additionalAttributes[attributeMapping] = _.get(profile, attributeMapping);
+      }
+      return additionalAttributes;
+    }
+
 
     /**
      * @return User: the newly created user

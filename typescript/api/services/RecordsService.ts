@@ -668,6 +668,9 @@ export module Services {
             if (_.isFunction(postSaveCreateHookFunction)) {
               postSaveCreateHookFunction(oid, record, options, user).subscribe(result => {
                 sails.log.debug(`post-save trigger ${postSaveCreateHookFunctionString} completed for ${oid}`)
+              }, error => {
+                sails.log.error(`post-save trigger ${postSaveCreateHookFunctionString} failed to complete`)
+                sails.log.error(error)
               });
             } else {
               sails.log.error(`Post save function: '${postSaveCreateHookFunctionString}' did not resolve to a valid function, what I got:`);
