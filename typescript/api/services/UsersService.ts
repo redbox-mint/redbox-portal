@@ -53,7 +53,7 @@ export module Services {
       'findUsersWithEmail',
       'findUsersWithQuery',
       'findAndAssignAccessToRecords',
-      'getUsers',
+      'getUsers'
     ];
 
     searchService: SearchService;
@@ -190,65 +190,91 @@ export module Services {
 
     protected openIdConnectAuth = () => {
       const defAuthConfig = ConfigService.getBrand(BrandingService.getDefault().name, 'auth');
-      sails.log.error(defAuthConfig.active);
+      sails.log.verbose(`OIDC, checking if within active array: ${defAuthConfig.active}`);
       if (defAuthConfig.active != undefined && defAuthConfig.active.indexOf('oidc') != -1) {
+        const that = this;
+        sails.log.verbose(`OIDC is active, configuring....`);
         const oidcOpts = defAuthConfig.oidc.opts;
-        let OidcStrategy = require('passport-openidconnect').Strategy;
-        sails.config.passport.use('oidc', new OidcStrategy(oidcOpts.oidcStrategyOptions, (req, issuer, sub, profile, accessToken, refreshToken, done) => {
-          var brand = BrandingService.getBrand(req.session.branding);
-          const authConfig = ConfigService.getBrand(brand.name, 'auth');
-          var claimsMappings = authConfig.oidc.claimMappings;
-          const userName = _.get(profile, claimsMappings['username']);
-          var openIdConnectDefRoles = _.map(RolesService.getNestedRoles(RolesService.getDefAuthenticatedRole(brand).name, brand.roles), 'id');
-
-          User.findOne({ username: userName }, function(err, user) {
-            sails.log.verbose("At OIDC Strategy verify, payload:");
-            sails.log.verbose(profile);
-            sails.log.verbose("User:");
-            sails.log.verbose(user);
-            sails.log.verbose("Error:");
-            sails.log.verbose(err);
-            if (err) {
-              return done(err, false);
-            }
-            if (user) {
-              user.lastLogin = new Date();
-              User.update(user).exec(function(err, user) {
-              });
-              return done(null, user);
-            } else {
-              sails.log.verbose("At OIDC Strategy verify, creating new user...");
-              let additionalAttributes = this.mapAdditionalAttributes(profile, claimsMappings['additionalAttributes']);
-              // first time login, create with default role
-              var userToCreate = {
-                username: userName,
-                name: _.get(profile, claimsMappings['name']),
-                email: _.get(profile, claimsMappings['email']).toLowerCase(),
-                displayname: _.get(profile, claimsMappings['displayName']),
-                cn: _.get(profile, claimsMappings['cn']),
-                givenname: _.get(profile, claimsMappings['givenname']),
-                surname: _.get(profile, claimsMappings['surname']),
-                type: 'oidc',
-                roles: openIdConnectDefRoles,
-                additionalAttributes: additionalAttributes,
-                lastLogin: new Date()
-              };
-              sails.log.verbose(userToCreate);
-              User.create(userToCreate).exec(function(err, newUser) {
-                if (err) {
-                  sails.log.error("Error creating new user:");
-                  sails.log.error(err);
-                  return done(err, false);
-                }
-
-                sails.log.verbose("Done, returning new user:");
-                sails.log.verbose(newUser);
-                return done(null, newUser);
-              });
-            }
+        const { Issuer, Strategy } = require('openid-client');
+        Issuer.discover(oidcOpts.oidcStrategyOptions.issuer).then(issuer => {
+          sails.log.verbose(`OIDC, Got issuer config: `);
+          sails.log.verbose(issuer);
+          const oidcClient = new issuer.Client({
+            client_id: oidcOpts.oidcStrategyOptions.clientID,
+            client_secret: oidcOpts.oidcStrategyOptions.clientSecret,
+            redirect_uris: [oidcOpts.oidcStrategyOptions.callbackURL],
+            post_logout_redirect_uris: [oidcOpts.oidcStrategyOptions.postLogoutUrl]
           });
-
-        }));
+          sails.log.info("OIDC is active, client configured.");
+          const logoutUrl = issuer.end_session_endpoint;
+          sails.config.passport.use('oidc', new Strategy({client: oidcClient, passReqToCallback: true, params: {scope: oidcOpts.oidcStrategyOptions.scope}}, (req, tokenSet, profile, done) => {
+            req.session.logoutUrl = logoutUrl;
+            sails.log.verbose(`OIDC login success, tokenset: `);
+            sails.log.verbose(JSON.stringify(tokenSet));
+            sails.log.verbose(`Profile:`);
+            sails.log.verbose(JSON.stringify(profile));
+            if (defAuthConfig.oidc.debugMode === true) {
+              sails.log.info("OIDC debug mode is active, intentionally failing the login, and redirecting to failure page with all details of this login attempt.");
+              const err = { profile: profile };
+              req.session.errorTextRaw = JSON.stringify(err, null, 2);
+              return done(null, false);
+            }
+            var brand = BrandingService.getBrand(req.session.branding);
+            const authConfig = ConfigService.getBrand(brand.name, 'auth');
+            var claimsMappings = authConfig.oidc.claimMappings;
+            const userName = _.get(profile, claimsMappings['username']);
+            var openIdConnectDefRoles = _.map(RolesService.getNestedRoles(RolesService.getDefAuthenticatedRole(brand).name, brand.roles), 'id');
+  
+            User.findOne({ username: userName }, function(err, user) {
+              sails.log.verbose("At OIDC Strategy verify, payload:");
+              sails.log.verbose(profile);
+              sails.log.verbose("User:");
+              sails.log.verbose(user);
+              sails.log.verbose("Error:");
+              sails.log.verbose(err);
+              if (err) {
+                return done(err, false);
+              }
+              if (user) {
+                user.lastLogin = new Date();
+                User.update(user).exec(function(err, user) {
+                });
+                return done(null, user);
+              } else {
+                sails.log.verbose("At OIDC Strategy verify, creating new user...");
+                let additionalAttributes = that.mapAdditionalAttributes(profile, claimsMappings['additionalAttributes']);
+                // first time login, create with default role
+                var userToCreate = {
+                  username: userName,
+                  name: _.get(profile, claimsMappings['name']),
+                  email: _.get(profile, claimsMappings['email']).toLowerCase(),
+                  displayname: _.get(profile, claimsMappings['displayName']),
+                  cn: _.get(profile, claimsMappings['cn']),
+                  givenname: _.get(profile, claimsMappings['givenname']),
+                  surname: _.get(profile, claimsMappings['surname']),
+                  type: 'oidc',
+                  roles: openIdConnectDefRoles,
+                  additionalAttributes: additionalAttributes,
+                  lastLogin: new Date()
+                };
+                sails.log.verbose(`Creating user: `);
+                sails.log.verbose(userToCreate);
+                User.create(userToCreate).exec(function(err, newUser) {
+                  if (err) {
+                    sails.log.error("Error creating new user:");
+                    sails.log.error(err);
+                    return done(err, false);
+                  }
+  
+                  sails.log.verbose("Done, returning new user:");
+                  sails.log.verbose(newUser);
+                  return done(null, newUser);
+                });
+              }
+            });
+  
+          }));
+        });
       }
     }
 
@@ -322,7 +348,7 @@ export module Services {
       }
     }
 
-    protected mapAdditionalAttributes = (profile, attributeMappings) => {
+    protected mapAdditionalAttributes (profile, attributeMappings) {
       let additionalAttributes = {};
       for(let attributeMapping in attributeMappings) {
         additionalAttributes[attributeMapping] = _.get(profile, attributeMapping);

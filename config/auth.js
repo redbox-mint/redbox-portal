@@ -211,16 +211,18 @@ module.exports.auth = {
       },
       templatePath: 'aaf.ejs'
     },
-      oidc: {
+    oidc: {
+      // debugMode: true, // when 'true', login will always fail, sending the profile to the 'generic' SSO login failure page.
       defaultRole: 'Researcher',
       postLoginRedir: 'researcher/home',
       claimMappings: {
-          username: 'id',
-          name: 'displayName',
-          email: '_json.email',
-          givenname: '_json.given_name',
-          surname: '_json.family_name',
-          cn: 'displayName'
+          username: 'preferred_username',
+          name: 'name',
+          email: 'email',
+          givenname: 'given_name',
+          surname: 'family_name',
+          cn: 'name',
+          displayName: 'name'
       },
       opts: {
         oidcStrategyOptions: {
@@ -232,7 +234,8 @@ module.exports.auth = {
           clientSecret: '',
           callbackURL: 'http://localhost:1500/user/login_oidc',
           scope: 'openid profile email',
-          passReqToCallback: true
+          passReqToCallback: true,
+          postLogoutUrl: 'http://localhost:1500/default/rdmp/user/logout'
         }
       },
       templatePath: 'openidconnect.ejs'
