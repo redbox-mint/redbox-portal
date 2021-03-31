@@ -1133,7 +1133,11 @@ export module Controllers {
       return RecordTypesService.get(brand, recordType).subscribe(recordType => {
         return WorkflowStepsService.getAllForRecordType(recordType).subscribe(wfSteps => {
           return this.ajaxOk(req, res, null, wfSteps);
+        }, error => {
+          return this.ajaxFail(req,res,error['message'])
         });
+      }, error => {
+        return this.ajaxFail(req,res,error['message'])
       });
     }
 
