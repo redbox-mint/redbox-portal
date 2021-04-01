@@ -8,4 +8,6 @@ export TAG=`if [ "$1" != "" ]; then echo "$TAG-$1"; else echo $TAG; fi`
 docker build -f Dockerfile -t $REPO:$CIRCLE_SHA1 .
 docker tag $REPO:$CIRCLE_SHA1 $REPO:$TAG
 docker tag $REPO:$CIRCLE_SHA1 $REPO:circleci-$CIRCLE_BUILD_NUM
-docker push $REPO
+docker push $REPO:$TAG
+docker push $REPO:$CIRCLE_SHA1
+docker push $REPO:circleci-$CIRCLE_BUILD_NUMs
