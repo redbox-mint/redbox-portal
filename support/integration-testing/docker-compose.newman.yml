@@ -3,7 +3,7 @@ networks:
   main:
 services:
   redboxportal:
-    image: qcifengineering/redbox-portal:latest
+    image: qcifengineering/redbox-portal:feature-non-root-path
     ports:
        - "1500:1500"
     volumes:
