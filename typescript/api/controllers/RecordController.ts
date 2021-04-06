@@ -1128,17 +1128,26 @@ export module Controllers {
     }
 
     public getWorkflowSteps(req, res) {
+      this.getWorkflowStepsAsync(req,res).then(response => {});
+
+    }
+
+    protected async getWorkflowStepsAsync(req, res) {
+      try {
       const recordType = req.param('recordType');
       const brand = BrandingService.getBrand(req.session.branding);
-      return RecordTypesService.get(brand, recordType).subscribe(recordType => {
-        return WorkflowStepsService.getAllForRecordType(recordType).subscribe(wfSteps => {
-          return this.ajaxOk(req, res, null, wfSteps);
-        }, error => {
-          return this.ajaxFail(req,res,error['message'])
-        });
-      }, error => {
-        return this.ajaxFail(req,res,error['message'])
-      });
+      let recordTypeModel = await RecordTypesService.get(brand, recordType).toPromise();
+      if(_.isEmpty(recordTypeModel)) {
+        return this.ajaxFail(req,res,"Record type does not exist");
+      }
+      let wfSteps = await WorkflowStepsService.getAllForRecordType(recordTypeModel).toPromise();
+      return this.ajaxOk(req, res, null, wfSteps);
+      } catch (error) {
+        return this.ajaxFail(req,res,error['message']);
+      }
+        
+     
+     
     }
 
     public async getPermissionsInternal(req, res) {

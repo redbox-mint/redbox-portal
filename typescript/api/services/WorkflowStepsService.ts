@@ -107,6 +107,9 @@ export module Services {
     }
 
     public getAllForRecordType(recordType) {
+      if(_.isEmpty(recordType) || _.isEmpty(recordType.id)) {
+        throw new Error("Record type does not exist");
+      }
       return super.getObservable(WorkflowStep.find({recordType: recordType.id, hidden: { '!=': true } }));
     }
 

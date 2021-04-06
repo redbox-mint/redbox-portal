@@ -28,8 +28,9 @@ import {
 import * as request from "request-promise";
 import * as crypto from 'crypto';
 
+
 declare var sails: Sails;
-declare var User, Role, BrandingConfig: Model;
+declare var User, Role, UserAudit, BrandingConfig: Model;
 declare var BrandingService, RolesService, ConfigService, RecordsService;
 declare const Buffer;
 declare var _;
@@ -58,6 +59,7 @@ export module Services {
       'findUsersWithQuery',
       'findAndAssignAccessToRecords',
       'getUsers',
+      'addUserAuditEvent'
     ];
 
     protected localAuthInit = () => {
@@ -148,11 +150,21 @@ export module Services {
       aafOpts.jwtFromRequest = ExtractJwt.fromBodyField('assertion');
       sails.config.passport.use('aaf-jwt', new JwtStrategy(aafOpts, function (req, jwt_payload, done) {
         var brand = BrandingService.getBrandFromReq(req);
+        sails.log.error("brand is: ")
+        sails.log.error(brand)
         const authConfig = ConfigService.getBrand(brand.name, 'auth');
         var aafAttributes = authConfig.aaf.attributesField;
         let authorizedEmailDomains = _.get(authConfig.aaf, "authorizedEmailDomains", []);
         let authorizedEmailExceptions = _.get(authConfig.aaf, "authorizedEmailExceptions", []);
-        var aafDefRoles = _.map(RolesService.getNestedRoles(RolesService.getDefAuthenticatedRole(brand).name, brand.roles), 'id');
+        sails.log.error("Configured roles: ")
+        sails.log.error(sails.config.auth.roles);
+        sails.log.error("AAF default roles ")
+        sails.log.error(ConfigService.getBrand(brand.name, 'auth').aaf.defaultRole)
+        let defaultAuthRole = RolesService.getDefAuthenticatedRole(brand);
+        let aafDefRoles =[]
+        if(defaultAuthRole != undefined) {
+         aafDefRoles = _.map(RolesService.getNestedRoles(defaultAuthRole.name, brand.roles), 'id');
+        }
         var aafUsernameField = authConfig.aaf.usernameField;
         const userName = Buffer.from(jwt_payload[aafUsernameField]).toString('base64');
         User.findOne({
@@ -370,6 +382,21 @@ export module Services {
         });
       }
     }
+
+     /**
+     * @return User: the newly created user
+     *
+     */
+      public addUserAuditEvent = (user, action, additionalContext) => {
+          let auditEvent = {}
+          if(!_.isEmpty(user.password)){
+            delete user.password;
+          }
+          auditEvent['user'] = user;
+          auditEvent['action'] = action;
+          auditEvent['additionalContext'] = additionalContext;
+          return super.getObservable(UserAudit.create(auditEvent));
+      }
 
     /**
      * @return User: the newly created user
