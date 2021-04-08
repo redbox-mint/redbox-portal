@@ -218,7 +218,8 @@ export module Services {
               return done(null, user);
             } else {
               sails.log.verbose("At OIDC Strategy verify, creating new user...");
-              let additionalAttributes = this.mapAdditionalAttributes(profile, claimsMappings['additionalAttributes']);
+              //let additionalAttributes = this.mapAdditionalAttributes(profile, claimsMappings['additionalAttributes']);
+              let additionalAttributes = {};
               // first time login, create with default role
               var userToCreate = {
                 username: userName,
