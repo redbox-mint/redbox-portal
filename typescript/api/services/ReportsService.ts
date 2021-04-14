@@ -55,28 +55,28 @@ export module Services {
 
     public bootstrap = (defBrand) => {
       return super.getObservable(Report.find({
-          branding: defBrand.id
-        })).flatMap(reports => {
-          if (_.isEmpty(reports)) {
-            var rTypes = [];
-            sails.log.verbose("Bootstrapping report definitions... ");
-            _.forOwn(sails.config.reports, (config, report) => {
-              var obs = this.create(defBrand, report, config);
-              obs.subscribe(repProcessed => {})
-              rTypes.push(obs);
-            });
-            return Observable.from(rTypes);
+        branding: defBrand.id
+      })).flatMap(reports => {
+        if (_.isEmpty(reports)) {
+          var rTypes = [];
+          sails.log.verbose("Bootstrapping report definitions... ");
+          _.forOwn(sails.config.reports, (config, report) => {
+            var obs = this.create(defBrand, report, config);
+            obs.subscribe(repProcessed => { })
+            rTypes.push(obs);
+          });
+          return Observable.from(rTypes);
 
-          } else {
+        } else {
 
-            var rTypes = [];
-            _.each(reports, function (report) {
-              rTypes.push(Observable.of(report));
-            });
-            sails.log.verbose("Default reports definition(s) exist.");
-            return Observable.from(rTypes);
-          }
-        })
+          var rTypes = [];
+          _.each(reports, function (report) {
+            rTypes.push(Observable.of(report));
+          });
+          sails.log.verbose("Default reports definition(s) exist.");
+          return Observable.from(rTypes);
+        }
+      })
         .last();
     }
 
@@ -198,9 +198,6 @@ export module Services {
       params = params + "&start=" + start + "&rows=" + rows;
       return params;
     }
-
-
-
 
   }
 }

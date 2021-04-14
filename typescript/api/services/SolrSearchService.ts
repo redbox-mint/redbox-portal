@@ -179,13 +179,7 @@ export module Services {
       let url = `${this.baseUrl}${coreName}/select?q=${query}`;
       sails.log.verbose(`Searching advanced using: ${url}`);
       const wt = _.get(querystring.parse(url), "wt");
-      sails.log.verbose(`wt is ${wt}`);
-      let response
-      if (wt == "csv") {
-        response = await got(url, { responseType: 'text', resolveBodyOnly: true });
-      } else {
-        response = await got(url).json();
-      }
+      const response = wt == "csv" ? await got(url).text() : await got(url).json();
       return response;
     }
 
