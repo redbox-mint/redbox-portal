@@ -77,39 +77,43 @@ export class DashboardComponent extends LoadableComponent {
   //                   <a *ngIf="plan.hasEditAccess" href="/{{ branding }}/{{ portal }}/record/edit/{{ plan.oid }}" [attr.aria-label]="'edit-link-label' | translate"><i class="fa fa-pencil" aria-hidden="true"></i></a>
   //                 </span>
   defaultTableConfig = [{
-      title: 'Record Title',
-      variable: 'metadata.title',
-      template: `<a href='/<%= branding %>/<%= portal %>/record/view/<%= oid %>'><%= metadata.title %></a>
+    title: 'Record Title',
+    variable: 'metadata.title',
+    template: `<a href='/<%= branding %>/<%= portal %>/record/view/<%= oid %>'><%= metadata.title %></a>
         <span class="dashboard-controls">
           <% if(hasEditAccess) { %>
             <a href='/<%= branding %>/<%= portal %>/record/edit/<%= oid %>' aria-label='<%= translationService.t('edit-link-label') %>'><i class="fa fa-pencil" aria-hidden="true"></i></a>
           <% } %>
         </span>
       `,
-      initialSort: 'desc'
-    },
+    initialSort: 'desc'
+  },
     {
       title: 'header-ci',
       variable: 'metadata.contributor_ci.text_full_name',
-      template: '<%= metadata.contributor_ci != undefined ? metadata.contributor_ci.text_full_name : "" %>'
+      template: '<%= metadata.contributor_ci != undefined ? metadata.contributor_ci.text_full_name : "" %>',
+      initialSort: 'desc'
     },
     {
       title: 'header-data-manager',
       variable: 'metadata.contributor_data_manager.text_full_name',
-      template: '<%= metadata.contributor_data_manager != undefined ? metadata.contributor_data_manager.text_full_name : "" %>'
+      template: '<%= metadata.contributor_data_manager != undefined ? metadata.contributor_data_manager.text_full_name : "" %>',
+      initialSort: 'desc'
     },
     {
       title: 'header-created',
-      variable: 'date_object_created',
-      template: '<%= dateCreated %>'
+      variable: 'metaMetadata.createdOn',
+      template: '<%= dateCreated %>',
+      initialSort: 'desc'
     },
     {
       title: 'header-modified',
-      variable: 'date_object_modified',
-      template: '<%= dateModified %>'
+      variable: 'metaMetadata.lastSaveDate',
+      template: '<%= dateModified %>',
+      initialSort: 'desc'
     }
   ];
-  sortFields = ['date_object_modified', 'date_object_created', 'metadata.title', 'metadata.contributor_ci.text_full_name', 'metadata.contributor_data_manager.text_full_name'];
+  sortFields = ['metaMetadata.lastSaveDate', 'metaMetadata.createdOn', 'metadata.title', 'metadata.contributor_ci.text_full_name', 'metadata.contributor_data_manager.text_full_name'];
   viewAsPackageType: boolean = false;
 
   constructor(@Inject(DashboardService) protected dashboardService: DashboardService, protected recordsService: RecordsService, @Inject(DOCUMENT) protected document: any, elementRef: ElementRef, translationService: TranslationService) {
@@ -176,7 +180,7 @@ export class DashboardComponent extends LoadableComponent {
       };
     }
     this.initTracker.target++;
-    let stagedRecords: RecordResponseTable = await this.dashboardService.getRecords(null, null, 1, packageType, 'date_object_modified:-1');
+    let stagedRecords: RecordResponseTable = await this.dashboardService.getRecords(null, null, 1, packageType, 'metaMetadata.lastSaveDate:-1');
     let planTable: PlanTable = this.evaluatePlanTableColumns(packageType, stagedRecords);
     this.initTracker.loaded++;
     this.setDashboardTitle(planTable);
@@ -208,7 +212,7 @@ export class DashboardComponent extends LoadableComponent {
         };
       }
       this.initTracker.target++;
-      let stagedRecords: RecordResponseTable = await this.dashboardService.getRecords(recordType, step.name, 1, null, 'date_object_modified:-1');
+      let stagedRecords: RecordResponseTable = await this.dashboardService.getRecords(recordType, step.name, 1, null, 'metaMetadata.lastSaveDate:-1');
       let planTable: PlanTable = this.evaluatePlanTableColumns(step.name, stagedRecords);
       this.initTracker.loaded++;
       this.setDashboardTitle(planTable);
@@ -293,7 +297,7 @@ export class DashboardComponent extends LoadableComponent {
 
     for (let i = 0; i < fields.length; i++) {
       let sortField = fields[i];
-      let sortString = `'${sortField}':`;
+      let sortString = `${sortField}:`;
 
       if (sortDetails[sortField].sort != null) {
         if (sortDetails[sortField].sort == 'desc') {
@@ -304,7 +308,7 @@ export class DashboardComponent extends LoadableComponent {
         return sortString;
       }
     }
-    return 'date_object_modified:-1';
+    return 'metaMetadata.lastSaveDate:-1';
   }
 
   getTranslated(key, defValue) {
@@ -325,7 +329,7 @@ export class DashboardComponent extends LoadableComponent {
   }
 
   async sortChanged(data) {
-    let sortString = `'${data.variable}':`;
+    let sortString = `${data.variable}:`;
     if (data.sort == 'desc') {
       sortString = sortString + "-1";
     } else {

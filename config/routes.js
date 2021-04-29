@@ -23,55 +23,57 @@
 module.exports.routes = {
 
   /***************************************************************************
-  *                                                                          *
-  * Make the view located at `views/homepage.ejs` (or `views/homepage.jade`, *
-  * etc. depending on your default view engine) your home page.              *
-  *                                                                          *
-  * (Alternatively, remove this and add an `index.html` file in your         *
-  * `assets` directory)                                                      *
-  *                                                                          *
-  ***************************************************************************/
-  'GET /csrfToken': { action: 'security/grant-csrf-token' },
-  '/':  '/default/rdmp/home',
+   *                                                                          *
+   * Make the view located at `views/homepage.ejs` (or `views/homepage.jade`, *
+   * etc. depending on your default view engine) your home page.              *
+   *                                                                          *
+   * (Alternatively, remove this and add an `index.html` file in your         *
+   * `assets` directory)                                                      *
+   *                                                                          *
+   ***************************************************************************/
+  'GET /csrfToken': {
+    action: 'security/grant-csrf-token'
+  },
+  '/': '/default/rdmp/home',
   '/:branding/:portal/home': {
     controller: 'RenderViewController',
     action: 'render',
-    locals:{
+    locals: {
       'view': 'homepage'
     }
   },
   '/:branding/:portal/researcher/home': {
     controller: 'RenderViewController',
     action: 'render',
-    locals:{
+    locals: {
       'view': 'researcher/home'
     }
   },
   '/:branding/:portal/record/view/:oid': {
     controller: 'RenderViewController',
     action: 'render',
-    locals:{
+    locals: {
       'view': 'record/view'
     }
   },
   '/:branding/:portal/record/transfer/:type': {
     controller: 'RenderViewController',
     action: 'render',
-    locals:{
+    locals: {
       'view': 'record/transfer'
     }
   },
   '/:branding/:portal/record/search': {
     controller: 'RenderViewController',
     action: 'render',
-    locals:{
+    locals: {
       'view': 'record/search'
     }
   },
   '/:branding/:portal/record/view-orig/:oid': {
     controller: 'RenderViewController',
     action: 'render',
-    locals:{
+    locals: {
       'view': 'record/view-orig'
     }
   },
@@ -86,7 +88,7 @@ module.exports.routes = {
   '/:branding/:portal/admin': {
     controller: 'RenderViewController',
     action: 'render',
-    locals:{
+    locals: {
       'view': 'admin/home'
     }
   },
@@ -108,7 +110,7 @@ module.exports.routes = {
   '/:branding/:portal/availableServicesList': {
     controller: 'RenderViewController',
     action: 'render',
-    locals:{
+    locals: {
       'view': 'availableServicesList'
     }
   },
@@ -119,19 +121,19 @@ module.exports.routes = {
   '/:branding/:portal/getAdvice': {
     controller: 'RenderViewController',
     action: 'render',
-    locals:{
+    locals: {
       'view': 'getAdvice'
     }
   },
   /***************************************************************************
-  *                                                                          *
-  * Custom routes here...                                                    *
-  *                                                                          *
-  * If a request to a URL doesn't match any of the custom routes above, it   *
-  * is matched against Sails route blueprints. See `config/blueprints.js`    *
-  * for configuration options and examples.                                  *
-  *                                                                          *
-  ***************************************************************************/
+   *                                                                          *
+   * Custom routes here...                                                    *
+   *                                                                          *
+   * If a request to a URL doesn't match any of the custom routes above, it   *
+   * is matched against Sails route blueprints. See `config/blueprints.js`    *
+   * for configuration options and examples.                                  *
+   *                                                                          *
+   ***************************************************************************/
   // 'get /dynamic/': 'UserController.info',
   'get /dynamic/:asset': 'DynamicAssetController.get',
   'get /:branding/:portal/dynamic/:asset': 'DynamicAssetController.get',
@@ -221,33 +223,45 @@ module.exports.routes = {
   'get /:branding/:portal/transferconfig/:type': 'RecordController.getTransferResponsibilityConfig',
   'post /:branding/:portal/action/:action': 'ActionController.callService',
   /***************************************************************************
-  *                                                                          *
-  * REST API routes                                                          *
-  *                                                                          *
-  *                                                                          *
-  *                                                                          *
-  *                                                                          *
-  *                                                                          *
-  ***************************************************************************/
+   *                                                                          *
+   * REST API routes                                                          *
+   *                                                                          *
+   *                                                                          *
+   *                                                                          *
+   *                                                                          *
+   *                                                                          *
+   ***************************************************************************/
 
   'post /:branding/:portal/api/records/metadata/:recordType': {
-      controller: 'webservice/RecordController',
-      action: 'create',
-      csrf: false
-   },
+    controller: 'webservice/RecordController',
+    action: 'create',
+    csrf: false
+  },
   'put /:branding/:portal/api/records/metadata/:oid': {
-      controller: 'webservice/RecordController',
-      action: 'updateMeta',
-      csrf: false
+    controller: 'webservice/RecordController',
+    action: 'updateMeta',
+    csrf: false
   },
   'put /:branding/:portal/api/records/objectmetadata/:oid': {
     controller: 'webservice/RecordController',
     action: 'updateObjectMeta',
     csrf: false
   },
-  'get /:branding/:portal/api/records/metadata/:oid': 'webservice/RecordController.getMeta',
-  'get /:branding/:portal/api/records/list': 'webservice/RecordController.listRecords',
-  'get /:branding/:portal/api/records/objectmetadata/:oid': 'webservice/RecordController.getObjectMeta',
+  'get /:branding/:portal/api/records/metadata/:oid': {
+    controller: 'webservice/RecordController',
+    action: 'getMeta',
+    csrf: false
+  },
+  'get /:branding/:portal/api/records/list': {
+    controller: 'webservice/RecordController',
+    action: 'listRecords',
+    csrf: false
+  },
+  'get /:branding/:portal/api/records/objectmetadata/:oid': {
+    controller: 'webservice/RecordController',
+    action: 'getObjectMeta',
+    csrf: false
+  },
   'delete /:branding/:portal/api/records/metadata/:oid': {
     controller: 'webservice/RecordController',
     action: 'deleteRecord',
@@ -273,7 +287,11 @@ module.exports.routes = {
     action: 'addDataStreams',
     csrf: false
   },
-  'get /:branding/:portal/api/records/datastreams/:oid': 'webservice/RecordController.getDataStream',
+  'get /:branding/:portal/api/records/datastreams/:oid': {
+    controller: 'webservice/RecordController',
+    action: 'getDataStream',
+    csrf: false
+  },
   'put /:branding/:portal/api/records/datastreams/:oid': {
     controller: 'webservice/RecordController',
     action: 'listDatastreams',
@@ -304,37 +322,98 @@ module.exports.routes = {
     action: 'removeRoleView',
     csrf: false
   },
-  'get /:branding/:portal/api/records/permissions/:oid': 'webservice/RecordController.getPermissions',
+  'get /:branding/:portal/api/records/permissions/:oid': {
+    controller: 'webservice/RecordController',
+    action: 'getPermissions',
+    csrf: false
+  },
   'post /:branding/:portal/api/records/workflow/step/:targetStep/:oid': {
     controller: 'webservice/RecordController',
     action: 'transitionWorkflow',
     csrf: false
   },
-  'get /:branding/:portal/api/users': 'webservice/UserManagementController.listUsers',
-  'get /:branding/:portal/api/users/find': 'webservice/UserManagementController.getUser',
-  'get /:branding/:portal/api/users/get': 'webservice/UserManagementController.getUser',
-  'put /:branding/:portal/api/users': 'webservice/UserManagementController.createUser',
-  'post /:branding/:portal/api/users': 'webservice/UserManagementController.updateUser',
-  'get /:branding/:portal/api/users/token/generate': 'webservice/UserManagementController.generateAPIToken',
-  'get /:branding/:portal/api/users/token/revoke': 'webservice/UserManagementController.revokeAPIToken',
-  'get /:branding/:portal/api/roles': 'webservice/UserManagementController.listSystemRoles',
+  'get /:branding/:portal/api/users': {
+    controller: 'webservice/UserManagementController',
+    action: 'listUsers',
+    csrf: false
+  },
+  'get /:branding/:portal/api/users/find':{
+    controller: 'webservice/UserManagementController',
+    action: 'getUser',
+    csrf: false
+  }, 
+  'get /:branding/:portal/api/users/get': {
+    controller: 'webservice/UserManagementController',
+    action: 'getUser',
+    csrf: false
+  },
+  'put /:branding/:portal/api/users': {
+    controller: 'webservice/UserManagementController',
+    action: 'createUser',
+    csrf: false
+  },
+  'post /:branding/:portal/api/users': {
+    controller: 'webservice/UserManagementController',
+    action: 'updateUser',
+    csrf: false
+  },
+  'get /:branding/:portal/api/users/token/generate':{
+    controller: 'webservice/UserManagementController',
+    action: 'generateAPIToken',
+    csrf: false
+  },
+  'get /:branding/:portal/api/users/token/revoke':{
+    controller: 'webservice/UserManagementController',
+    action: 'revokeAPIToken',
+    csrf: false
+  }, 
+  'get /:branding/:portal/api/roles':{
+    controller: 'webservice/UserManagementController',
+    action: 'listSystemRoles',
+    csrf: false
+  },
+  'get /:branding/:portal/api/search':{
+    controller: 'webservice/SearchController',
+    action: 'search',
+    csrf: false
+  },
+  'get /:branding/:portal/api/search/index': {
+    controller: 'webservice/SearchController',
+    action: 'index',
+    csrf: false
+  },
+  'get /:branding/:portal/api/forms/get':{
+    controller:'webservice/FormManagementController',
+    action: 'getForm',
+    csrf: false
+  },
+  'get /:branding/:portal/api/forms': {
+    controller: 'webservice/FormManagementController',
+    action: 'listForms',
+    csrf: false
+  }, 
 
-
-  'get /:branding/:portal/api/search': 'webservice/SearchController.search',
-  'get /:branding/:portal/api/search/index': 'webservice/SearchController.index',
-
-  'get /:branding/:portal/api/forms/get': 'webservice/FormManagementController.getForm',
-  'get /:branding/:portal/api/forms': 'webservice/FormManagementController.listForms',
-
-  'get /:branding/:portal/api/recordtypes/get': 'webservice/RecordTypeController.getRecordType',
-  'get /:branding/:portal/api/recordtypes': 'webservice/RecordTypeController.listRecordTypes',
-
+  'get /:branding/:portal/api/recordtypes/get': {
+    controller: 'webservice/RecordTypeController',
+    action: 'getRecordType',
+    csrf: false
+  },
+  'get /:branding/:portal/api/recordtypes': {
+    controller: 'webservice/RecordTypeController',
+    action: 'listRecordTypes',
+    csrf: false
+  },
+  'get /:branding/:portal/api/admin/refreshCachedResources': {
+    controller: 'webservice/AdminController',
+    action: 'refreshCachedResources',
+    csrf: false
+  },
   'post /:branding/:portal/api/sendNotification': {
     controller: 'EmailController',
     action: 'sendNotification',
     csrf: false
   },
 
-  'get /:branding/:portal/workspaces/types/:name' : 'WorkspaceTypesController.getOne',
-  'get /:branding/:portal/workspaces/types' : 'WorkspaceTypesController.get'
+  'get /:branding/:portal/workspaces/types/:name': 'WorkspaceTypesController.getOne',
+  'get /:branding/:portal/workspaces/types': 'WorkspaceTypesController.get'
 };

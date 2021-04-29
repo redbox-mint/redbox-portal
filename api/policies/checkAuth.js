@@ -1,6 +1,7 @@
 module.exports = function(req, res, next) {
   var brand = BrandingService.getBrand(req.session.branding);
   if (!brand) {
+    sails.log.verbose("In checkAuth, no branding found.");
     // invalid brand
     return res.notFound({
       branding: sails.config.auth.defaultBrand,

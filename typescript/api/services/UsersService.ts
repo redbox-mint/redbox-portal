@@ -53,7 +53,7 @@ export module Services {
       'findUsersWithEmail',
       'findUsersWithQuery',
       'findAndAssignAccessToRecords',
-      'getUsers',
+      'getUsers'
     ];
 
     searchService: SearchService;
@@ -189,65 +189,120 @@ export module Services {
     }
 
     protected openIdConnectAuth = () => {
-      const defAuthConfig = ConfigService.getBrand(BrandingService.getDefault().name, 'auth');
-      sails.log.error(defAuthConfig.active);
-      if (defAuthConfig.active != undefined && defAuthConfig.active.indexOf('oidc') != -1) {
-        const oidcOpts = defAuthConfig.oidc.opts;
-        let OidcStrategy = require('passport-openidconnect').Strategy;
-        sails.config.passport.use('oidc', new OidcStrategy(oidcOpts.oidcStrategyOptions, (req, issuer, sub, profile, accessToken, refreshToken, done) => {
-          var brand = BrandingService.getBrand(req.session.branding);
-          const authConfig = ConfigService.getBrand(brand.name, 'auth');
-          var claimsMappings = authConfig.oidc.claimMappings;
-          const userName = _.get(profile, claimsMappings['username']);
-          var openIdConnectDefRoles = _.map(RolesService.getNestedRoles(RolesService.getDefAuthenticatedRole(brand).name, brand.roles), 'id');
+      sails.on('ready', async () => {
+        const defAuthConfig = ConfigService.getBrand(BrandingService.getDefault().name, 'auth');
+        sails.log.verbose(`OIDC, checking if within active array: ${defAuthConfig.active}`);
+        if (defAuthConfig.active != undefined && defAuthConfig.active.indexOf('oidc') != -1) {
+          const that = this;
+          sails.log.verbose(`OIDC is active, configuring....`);
+          const oidcConfig = defAuthConfig.oidc;
+          const oidcOpts = oidcConfig.opts;
+          const { Issuer, Strategy } = require('openid-client');
+          let configured = false;
+          let discoverAttemptsCtr = 0;
+          while (!configured && discoverAttemptsCtr < oidcConfig.discoverAttemptsMax) {
+            discoverAttemptsCtr++;
+            try {
+              const issuer = await Issuer.discover(oidcOpts.issuer);
+              configured = true;
+              sails.log.verbose(`OIDC, Got issuer config, after ${discoverAttemptsCtr} attempt(s).`);
+              sails.log.verbose(issuer);
+              const oidcClient = new issuer.Client(oidcOpts.client);
+              let verifyCallbackFn = (req, tokenSet, userinfo, done) => {
+                that.openIdConnectAuthVerifyCallback(oidcConfig, issuer, req, tokenSet, userinfo, done);
+              };
+              if (oidcConfig.userInfoSource == 'tokenset_claims') {
+                verifyCallbackFn = (req, tokenSet, done) => {
+                  that.openIdConnectAuthVerifyCallback(oidcConfig, issuer, req, tokenSet, undefined, done);
+                };
+              } 
+              sails.config.passport.use('oidc', new Strategy({
+                client: oidcClient, 
+                passReqToCallback: true, 
+                params: oidcOpts.params
+              }, verifyCallbackFn));
+              sails.log.info("OIDC is active, client configured and ready.");
+            } catch (e) {
+              sails.log.error(`Failed to discover, attempt# ${discoverAttemptsCtr}:`);
+              sails.log.error(e);
+              await this.sleep(oidcConfig.discoverFailureSleep);
+            }
+          }
+        }
+      });
+    }
 
-          User.findOne({ username: userName }, function(err, user) {
-            sails.log.verbose("At OIDC Strategy verify, payload:");
-            sails.log.verbose(profile);
-            sails.log.verbose("User:");
-            sails.log.verbose(user);
-            sails.log.verbose("Error:");
-            sails.log.verbose(err);
+    protected openIdConnectAuthVerifyCallback(oidcConfig, issuer, req, tokenSet, userinfo = undefined, done) {
+      const that = this;
+      req.session.logoutUrl = issuer.end_session_endpoint;
+      sails.log.verbose(`OIDC login success, tokenset: `);
+      sails.log.verbose(JSON.stringify(tokenSet));
+      sails.log.verbose(`Claims:`);
+      sails.log.verbose(JSON.stringify(tokenSet.claims()));
+      if (!_.isUndefined(userinfo)) {
+        sails.log.verbose(`Userinfo:`);
+        sails.log.verbose(JSON.stringify(userinfo));
+      } else {
+        userinfo = tokenSet.claims();
+      }
+      if (oidcConfig.debugMode === true) {
+        sails.log.info("OIDC debug mode is active, intentionally failing the login, and redirecting to failure page with all details of this login attempt.");
+        const err = { userinfo: userinfo, claims: tokenSet.claims(), tokenSet: tokenSet };
+        req.session.errorTextRaw = JSON.stringify(err, null, 2);
+        return done(null, false);
+      }
+      var brand = BrandingService.getBrand(req.session.branding);
+      var claimsMappings = oidcConfig.claimMappings;
+      const userName = _.get(userinfo, claimsMappings['username']);
+      var openIdConnectDefRoles = _.map(RolesService.getNestedRoles(RolesService.getDefAuthenticatedRole(brand).name, brand.roles), 'id');
+
+      User.findOne({ username: userName }, function(err, user) {
+        sails.log.verbose("At OIDC Strategy verify, payload:");
+        sails.log.verbose(userinfo);
+        sails.log.verbose("User:");
+        sails.log.verbose(user);
+        sails.log.verbose("Error:");
+        sails.log.verbose(err);
+        if (err) {
+          return done(err, false);
+        }
+        if (user) {
+          user.lastLogin = new Date();
+          User.update(user).exec(function(err, user) {
+          });
+          return done(null, user);
+        } else {
+          sails.log.verbose("At OIDC Strategy verify, creating new user...");
+          let additionalAttributes = that.mapAdditionalAttributes(userinfo, claimsMappings['additionalAttributes']);
+          // first time login, create with default role
+          var userToCreate = {
+            username: userName,
+            name: _.get(userinfo, claimsMappings['name']),
+            email: _.get(userinfo, claimsMappings['email']).toLowerCase(),
+            displayname: _.get(userinfo, claimsMappings['displayName']),
+            cn: _.get(userinfo, claimsMappings['cn']),
+            givenname: _.get(userinfo, claimsMappings['givenname']),
+            surname: _.get(userinfo, claimsMappings['surname']),
+            type: 'oidc',
+            roles: openIdConnectDefRoles,
+            additionalAttributes: additionalAttributes,
+            lastLogin: new Date()
+          };
+          sails.log.verbose(`Creating user: `);
+          sails.log.verbose(userToCreate);
+          User.create(userToCreate).exec(function(err, newUser) {
             if (err) {
+              sails.log.error("Error creating new user:");
+              sails.log.error(err);
               return done(err, false);
             }
-            if (user) {
-              user.lastLogin = new Date();
-              User.update(user).exec(function(err, user) {
-              });
-              return done(null, user);
-            } else {
-              sails.log.verbose("At AAF Strategy verify, creating new user...");
-              // first time login, create with default role
-              var userToCreate = {
-                username: userName,
-                name: _.get(profile, claimsMappings['name']),
-                email: _.get(profile, claimsMappings['email']).toLowerCase(),
-                displayname: _.get(profile, claimsMappings['displayName']),
-                cn: _.get(profile, claimsMappings['cn']),
-                givenname: _.get(profile, claimsMappings['givenname']),
-                surname: _.get(profile, claimsMappings['surname']),
-                type: 'oidc',
-                roles: openIdConnectDefRoles,
-                lastLogin: new Date()
-              };
-              sails.log.verbose(userToCreate);
-              User.create(userToCreate).exec(function(err, newUser) {
-                if (err) {
-                  sails.log.error("Error creating new user:");
-                  sails.log.error(err);
-                  return done(err, false);
-                }
 
-                sails.log.verbose("Done, returning new user:");
-                sails.log.verbose(newUser);
-                return done(null, newUser);
-              });
-            }
+            sails.log.verbose("Done, returning new user:");
+            sails.log.verbose(newUser);
+            return done(null, newUser);
           });
-
-        }));
-      }
+        }
+      });
     }
 
 
@@ -320,6 +375,15 @@ export module Services {
       }
     }
 
+    protected mapAdditionalAttributes (profile, attributeMappings) {
+      let additionalAttributes = {};
+      for(let attributeMapping in attributeMappings) {
+        additionalAttributes[attributeMapping] = _.get(profile, attributeMapping);
+      }
+      return additionalAttributes;
+    }
+
+
     /**
      * @return User: the newly created user
      *
@@ -350,6 +414,10 @@ export module Services {
 
     }
 
+    private getSearchService() {
+      return sails.services[sails.config.search.serviceName];
+    }
+
     /**
     @return Object {
           defUser: the default admin user
@@ -358,9 +426,6 @@ export module Services {
     */
     public bootstrap = (defRoles) => {
       let that = this;
-      sails.on('ready', function () {
-        that.searchService = sails.services[sails.config.search.serviceName];
-      });
       const defAuthConfig = ConfigService.getBrand(BrandingService.getDefault().name, 'auth');
       sails.log.verbose("Bootstrapping users....");
 
@@ -494,7 +559,7 @@ export module Services {
     public findAndAssignAccessToRecords(pendingValue, userid) {
       var oid = null;
       const query = `authorization_editPending:${pendingValue}%20OR%20authorization_viewPending:${pendingValue}&sort=date_object_modified desc&version=2.2&wt=json&rows=10000`;
-      this.searchService.searchAdvanced(query).then(results => {
+      this.getSearchService().searchAdvanced(query).then(results => {
         if (_.isEmpty(results) || _.isEmpty(results['response'])) {
           sails.log.verbose(`UsersService::findAndAssignAccessToRecords() -> No pending records: ${pendingValue}`);
           return;

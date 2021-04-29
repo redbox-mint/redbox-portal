@@ -37,7 +37,8 @@ export module Services {
 
     protected _exportedMethods: any = [
       'bootstrap',
-      't'
+      't',
+      'reloadResources'
     ];
     /** Warning this is synch... */
     public bootstrap() {
@@ -66,6 +67,11 @@ export module Services {
       //@ts-ignore
       return i18next.t(key);
 
+    }
+
+    public reloadResources() {
+      //@ts-ignore
+      i18next.reloadResources();
     }
   }
 }

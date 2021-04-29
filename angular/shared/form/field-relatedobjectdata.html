@@ -21,7 +21,7 @@
                     <!-- Run a template when we have pattern and use that as the URL, with the value as the link label -->
                     <a  *ngIf="column.link.pattern" [href]="sanitizeUrl(column.link.pattern | stringTemplate:itemEntry)">{{ field.getPropertyValue(itemEntry, column) }}</a>
                   </ng-container>
-                  <ng-container *ngIf='column.link && column.link.type == "static"'>
+                  <ng-container *ngIf='column.link && (column.link.type == "static" || column.link.type == null)'>
                     <div *ngIf="itemEntry['label']; else ordinaryLinkBlock">
                       <a *ngIf="itemEntry['link']; else disableLinkBlock" target="_blank" rel="noopener noreferrer" [href]="sanitizeUrl(itemEntry['link'])" [innerHtml]="itemEntry['label']"></a>
                       <ng-template #disableLinkBlock>

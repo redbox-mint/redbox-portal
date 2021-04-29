@@ -132,6 +132,13 @@ export class VocabField extends FieldBase<any> {
     return this.formModel;
   }
 
+  public reactEvent(eventName: string, eventData: any, origData: any) {
+    let selected = {};
+    selected['originalObject'] = eventData;
+    this.component.onSelect(selected, false, true);
+    super.reactEvent(eventName,eventData,origData);    
+  }
+
   postInit(value: any) {
     if (value) {
       this.value = value;
@@ -502,6 +509,8 @@ export class VocabFieldLookupService extends BaseService {
   getExternalServiceUrl(provider: string) {
     return `${this.brandingAndPortalUrl}/external/vocab/${provider}`;
   }
+
+  
 }
 
 @Component({
@@ -572,6 +581,8 @@ export class VocabFieldComponent extends SimpleComponent {
       return '' ;
     }
   }
+
+  
 
   onSelect(selected: any, emitEvent: boolean = true, updateTitle: boolean = false) {
     console.log(`On select:`);

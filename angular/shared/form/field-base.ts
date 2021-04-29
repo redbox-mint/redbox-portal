@@ -354,7 +354,9 @@ export class FieldBase<T> {
     } else if (srcName == "form") {
       eventEmitter = _.get(this.fieldMap['_rootComp'], eventName);
     } else {
-      eventEmitter = _.get(this.fieldMap[srcName].field, eventName);
+      if(!_.isEmpty(this.fieldMap[srcName])) {
+        eventEmitter = _.get(this.fieldMap[srcName].field, eventName);
+      }
     }
     if (_.isEmpty(eventEmitter)) {
       console.warn(`Missing event emitter: '${srcName} -> ${eventName}' needed by '${this.name}'. Failing softly by creating an eventEmitter that will never fire. In some cases, this should be fine, however, if you're still on active development, verify your form configuration.`);

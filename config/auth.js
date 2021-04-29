@@ -211,28 +211,37 @@ module.exports.auth = {
       },
       templatePath: 'aaf.ejs'
     },
-      oidc: {
+    oidc: {
+      debugMode: false, // when 'true', login will always fail, sending the tokenset, profile, and other information to the 'generic' SSO login failure page.
+      // configures the source for the user information, allows for the idiosynchracies of ADFS 2016, see https://www.michaelboeynaems.com/keycloak-ADFS-OIDC.html
+      // 
+      // possible values: 
+      // 'userinfo_endpoint' - Default when unspecified. Call the the user info endpoint, see https://github.com/panva/node-openid-client/blob/main/docs/README.md#new-strategyoptions-verify
+      // 'tokenset_claims' - Use the information returned by the tokenset claims, see: https://github.com/panva/node-openid-client/blob/main/docs/README.md#tokensetclaims
+      // userInfoSource: 'tokenset_claims', 
+      discoverAttemptsMax: 5, // attempts at discovery before giving up
+      discoverFailureSleep: 5000, // ms to pause before attempting another discovery attempt
       defaultRole: 'Researcher',
       postLoginRedir: 'researcher/home',
       claimMappings: {
-          username: 'id',
-          name: 'displayName',
-          email: '_json.email',
-          givenname: '_json.given_name',
-          surname: '_json.family_name',
-          cn: 'displayName'
+        username: 'sub',
+        name: 'name',
+        email: 'email',
+        givenname: 'given_name',
+        surname: 'family_name',
+        cn: 'name',
+        displayName: 'name'
       },
       opts: {
-        oidcStrategyOptions: {
-          issuer: '',
-          authorizationURL: '',
-          tokenURL: '',
-          userInfoURL: '',
-          clientID: '',
-          clientSecret: '',
-          callbackURL: 'http://localhost:1500/user/login_oidc',
-          scope: 'openid profile email',
-          passReqToCallback: true
+        issuer: '',
+        client: {
+          client_id: '',
+          client_secret: '',
+          redirect_uris: [''],
+          post_logout_redirect_uris: ['']
+        },
+        params: {
+          scope: 'openid email profile'
         }
       },
       templatePath: 'openidconnect.ejs'
