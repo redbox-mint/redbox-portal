@@ -2,6 +2,7 @@ declare var _;
 declare var sails;
 
 import pathExists = require('path-exists');
+import {APIErrorResponse } from './model/APIErrorResponse';
 export module Controllers.Core {
 
   /**
@@ -262,11 +263,13 @@ export module Controllers.Core {
       this.ajaxRespond(req, res, data, forceAjax);
     }
 
-    protected apiFail(req, res, statusCode = 500, msg='', errorDetails='') {
-
-      let  data = {status:false, message:msg, details: errorDetails};
-
-      this.apiRespond(req, res, data, statusCode);
+    protected apiFail(req, res, statusCode = 500, errorResponse:APIErrorResponse = new APIErrorResponse()) {
+      // this.apiRespond(req, res, errorResponse, statusCode);
+      res.set('Cache-control', 'no-cache');
+        res.set('Pragma', 'no-cache');
+        res.set('Expires', 0);
+        res.status(statusCode)
+        return res.json(errorResponse);
     }
 
     protected apiRespond(req, res, jsonObj=null, statusCode=200) {

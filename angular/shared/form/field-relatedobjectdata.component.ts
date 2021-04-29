@@ -47,6 +47,7 @@ export class RelatedObjectDataField extends FieldBase<any> {
   hasInit: boolean;
   recordsService: RecordsService;
   columns: object[];
+  ignoreEmptyTitle: boolean;
 
   constructor(options: any, injector: any) {
     super(options, injector);
@@ -58,7 +59,7 @@ export class RelatedObjectDataField extends FieldBase<any> {
     var relatedObjects = this.relatedObjects;
     this.value = options['value'] || this.setEmptyValue();
     this.recordsService = this.getFromInjector(RecordsService);
-
+    this.ignoreEmptyTitle = _.isUndefined(options['ignoreEmptyTitle']) ? false : options['ignoreEmptyTitle'];
   }
 
 /**
@@ -78,7 +79,7 @@ export class RelatedObjectDataField extends FieldBase<any> {
           _.merge(meta, customFields);
           if (meta['status'] == "Access Denied") {
             that.accessDeniedObjects.push(meta);
-          } else if (meta['title']) {
+          } else if (meta['title'] || that.ignoreEmptyTitle) {
             that.relatedObjects.push(meta);
           } else {
             that.failedObjects.push(meta);

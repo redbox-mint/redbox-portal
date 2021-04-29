@@ -348,13 +348,21 @@ export class FieldBase<T> {
   }
 
   protected getEventEmitter(eventName, srcName) {
+    let eventEmitter = null;
     if (srcName == "this") {
-      return _.get(this, eventName);
+      eventEmitter = _.get(this, eventName);
+    } else if (srcName == "form") {
+      eventEmitter = _.get(this.fieldMap['_rootComp'], eventName);
+    } else {
+      if(!_.isEmpty(this.fieldMap[srcName])) {
+        eventEmitter = _.get(this.fieldMap[srcName].field, eventName);
+      }
     }
-    if (srcName == "form") {
-      return _.get(this.fieldMap['_rootComp'], eventName);
+    if (_.isEmpty(eventEmitter)) {
+      console.warn(`Missing event emitter: '${srcName} -> ${eventName}' needed by '${this.name}'. Failing softly by creating an eventEmitter that will never fire. In some cases, this should be fine, however, if you're still on active development, verify your form configuration.`);
+      eventEmitter = new EventEmitter<any>();
     }
-    return _.get(this.fieldMap[srcName].field, eventName);
+    return eventEmitter;
   }
 
   public emitEvent(eventName: string, eventData: any, origData: any) {
@@ -530,5 +538,22 @@ export class FieldBase<T> {
   //Default asyncLoadData function. No async load required so return empty Observable.
   asyncLoadData() {
     return Observable.of(null);
+  }
+
+  /**
+   * Used for setting another property for fields
+   *
+   * @author <a target='_' href='https://github.com/shilob'>Shilo Banihit</a>
+   * @param  curValue
+   * @param  config
+   * @return
+   */
+  setAnotherProperty(curValue, config: any) {
+    let propValue = curValue;
+    if (!_.isEmpty(config.template)) {
+      propValue = this.utilityService.runTemplate({value: propValue, field: this}, config);
+    }
+    _.set(this, config.propertyPath, propValue);
+    return config.dontChangeValue ? this.value : curValue;
   }
 }

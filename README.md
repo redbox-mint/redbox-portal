@@ -14,6 +14,24 @@ The [Queensland Cyber Infrastructure Foundation](http://www.qcif.edu.au) (QCIF) 
 ## Development
 Requirements:
 
-- Node 8.11.0
-
+- Node 12.16.0
 Development requires Docker. Run `./runForDev.sh install jit` at least once.
+
+- Docker
+
+Run `./runForDev.sh install jit`
+
+It will 
+   - Pull qcifengineering/redbox-portal from docker hub (If a local copy does not exist)
+   - Compile backend
+   - Compile frontend
+   - Then start docker-compose
+   
+Open http://localhost:1500 to start browsing
+
+### Build local docker image
+
+Run `./dockerlocal_dev.sh`
+
+It will
+   - Build a local docker image of qcifengineering/redbox-portal:latest

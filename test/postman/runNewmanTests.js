@@ -31,7 +31,7 @@ sails.lift({
   newman.run({
     collection: require('./test-collection.json'),
     reporters: 'cli',
-    environment: require('./local.environment.json'),
+    environment: require('./local.environment.json')
   }, function(err, summary) {
     const runError = err || summary.run.error || summary.run.failures.length;
     if (err) {

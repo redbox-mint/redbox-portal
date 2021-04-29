@@ -51,7 +51,7 @@ export module Services {
     }
 
     public get(name): Observable<any> {
-      const cacheGet = Observable.bindNodeCallback(this.cache.get)(name);
+      const cacheGet = Observable.of(this.cache.get(name));
       return cacheGet.flatMap(data => {
         if (data) {
           return Observable.of(data);
@@ -74,6 +74,8 @@ export module Services {
           });
         }
       });
+      
+      
     }
 
     public set(name, data, expiry=sails.config.custom_cache.cacheExpiry) {

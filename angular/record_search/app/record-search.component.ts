@@ -55,6 +55,7 @@ export class RecordSearchComponent extends LoadableComponent {
   queryStr: string;
   paramMap: any = {};
   recTypeNames: string[];
+  totalItems = 0;
 
   constructor(
    elm: ElementRef,
@@ -78,6 +79,11 @@ export class RecordSearchComponent extends LoadableComponent {
         ], () => {
       this.recordsService.getAllTypes().then((typeConfs: any) => {
         _.each(typeConfs, typeConf => {
+
+          // check if we want this record type showing up in the search UI
+          if (typeConf.searchable == false) {
+            return;
+          }
           this.recTypeNames.push(typeConf.name);
           const searchParam = new RecordSearchParams(typeConf.name);
           const searchFilterConfig = [];
@@ -157,9 +163,11 @@ export class RecordSearchComponent extends LoadableComponent {
         this.syncLoc();
       }
       this.recordsService.search(this.params).then((res:any) => {
+        this.params.currentPage = res.currentPage;
+        this.totalItems = res.totalItems;
         this.isSearching = false;
         this.searchMsgType = "success";
-        this.searchMsg = `${this.translationService.t('record-search-results')}${res.records.length}`;
+        this.searchMsg = `${this.translationService.t('record-search-results')}${this.totalItems}`;
         this.dashboardService.setDashboardTitle(null, res.records);
         this.params.setFacetValues(res.facets);
         this.plans = res.records;
@@ -168,6 +176,13 @@ export class RecordSearchComponent extends LoadableComponent {
         this.searchMsg = err;
         this.searchMsgType = "danger";
       });
+    }
+  }
+
+  public pageChanged(event: any): void {
+    if (!_.isEmpty(this.params.basicSearch) && this.params.currentPage != _.toInteger(event.page) ) {
+      this.params.currentPage = _.toInteger(event.page);
+      this.search(null, true);
     }
   }
 }

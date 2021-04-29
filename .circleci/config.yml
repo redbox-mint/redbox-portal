@@ -37,7 +37,7 @@ jobs:
            at: /home/circleci/project
       - run: export NVM_DIR=/opt/circleci/.nvm && source /opt/circleci/.nvm/nvm.sh && nvm install 12.16.0 && nvm use 12.16.0
       - run: export NVM_DIR=/opt/circleci/.nvm && source /opt/circleci/.nvm/nvm.sh && nvm use 12.16.0 && node_modules/.bin/tsc -p tsconfig-codecov.json
-      - run: (cd support/integration-testing && docker-compose -f docker-compose.newman.yml up --abort-on-container-exit --exit-code-from redboxportal && docker-compose -f docker-compose.mocha.yml up --abort-on-container-exit --exit-code-from redboxportal)
+      - run: (sudo chmod -R 777 . && cd support/integration-testing && sudo mkdir -p .tmp/attachments/staging && sudo chmod -R 777 . && docker-compose -f docker-compose.newman.yml up --abort-on-container-exit --exit-code-from redboxportal && docker-compose -f docker-compose.mocha.yml up --abort-on-container-exit --exit-code-from redboxportal)
       - run: export NVM_DIR=/opt/circleci/.nvm && source /opt/circleci/.nvm/nvm.sh && nvm use 12.16.0 && npm i -g codecov && codecov -t $CODECOV_TOKEN
       - run: export NVM_DIR=/opt/circleci/.nvm && source /opt/circleci/.nvm/nvm.sh && nvm use 12.16.0 && node_modules/.bin/tsc
   deploy:
@@ -62,7 +62,7 @@ jobs:
             | sed 's/[", \t]//g')
             RBPORTAL_FILENAME=$(ls redbox-portal-*.tgz)
             curl -v -u $MAVEN_USER:$MAVEN_PASSWORD --upload-file $RBPORTAL_FILENAME "https://nexus-prod.redboxresearchdata.com.au/nexus/repository/maven-snapshots/au/edu/qcif/redbox-portal/${PACKAGE_VERSION}-SNAPSHOT/redbox-portal-${PACKAGE_VERSION}-SNAPSHOT.tgz"  
-  deploy-bcryotjs:
+  deploy-bcryptjs:
     docker:
       - image: 'cimg/base:stable'
     steps:
@@ -119,10 +119,57 @@ workflows:
       - test:
           requires:
             - build-bcryptjs
-      - deploy-bcryotjs:
+      - deploy-bcryptjs:
           requires:
             - test
           filters:
             branches:
               ignore: /^dependabot.*/
-        
+  release_build_test_gendocs_and_deploy:
+    jobs:
+      - build:
+          filters:
+            tags:
+              only: /^v.*/
+            branches:
+              ignore: /.*/
+      - test:
+          requires:
+            - build
+          filters:
+            tags:
+              only: /^v.*/
+            branches:
+              ignore: /.*/
+      - deploy:
+          requires:
+            - test     
+          filters:
+            tags:
+              only: /^v.*/
+            branches:
+              ignore: /.*/
+  release_bcryptjs_test_gendocs_and_deploy:
+    jobs:
+      - build-bcryptjs:
+          filters:
+            tags:
+              only: /^v.*/
+            branches:
+              ignore: /.*/
+      - test:
+          requires:
+            - build-bcryptjs
+          filters:
+            tags:
+              only: /^v.*/
+            branches:
+              ignore: /.*/
+      - deploy-bcryptjs:
+          requires:
+            - test
+          filters:
+            tags:
+              only: /^v.*/
+            branches:
+              ignore: /.*/

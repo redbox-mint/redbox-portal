@@ -6,63 +6,52 @@ services:
     build: .
     image: qcifengineering/redbox-portal:latest
     ports:
-       - "1500:1500"
+      - "1500:1500"
+    user: node
     volumes:
-       - ".:/opt/redbox-portal"
-       - "/mnt/data/attachments:/attachments"
-       - "/mnt/data/publication:/publication"
-       - "/opt/hooks:/opt/hooks"
+      - ".:/opt/redbox-portal:delegated"
+      - "./.dev/attachments:/attachments:delegated"
+      - "./.dev/publication:/publication:delegated"
+      - "./.dev/hooks:/opt/hooks:delegated"
     expose:
-       - "1500"
+      - "1500"
     environment:
       - NODE_ENV=docker
       - PORT=1500
       - sails_redbox__apiKey=c8e844fc-8550-497f-b970-7900ec8741ca
-      - sails_record__baseUrl_redbox=http://redbox:9000/redbox
-      - sails_record__baseUrl_mint=https://demo.redboxresearchdata.com.au/mint
-    networks:
-     main:
-       aliases:
-         - rbportal
-    entrypoint: /bin/bash -c "cd /opt/redbox-portal && node app.js"
-
-  nginx:
-    image: nginx
-    ports:
-      - "8080:8080"
-    restart: always
-    volumes:
-      - "/mnt/data/publication:/usr/share/nginx/html"
-      - "/mnt/nginx.conf:/etc/nginx/conf.d"
-    expose:
-      - "8080"
-
-
-  redbox:
-    image: qcifengineering/redbox:2.x
-    expose:
-       - "9000"
-    environment:
-      - RB_API_KEY=c8e844fc-8550-497f-b970-7900ec8741ca
-    volumes:
-        - "/mnt/data/redbox:/opt/redbox/data"
-        - "/var/log/redbox:/opt/redbox/home/logs"
+      - sails_record__baseUrl__redbox=http://redbox:9000/redbox
+      - sails_record__baseUrl__mint=https://demo.redboxresearchdata.com.au/mint
+      # When testing using the API
+      # - sails_auth__default__local__default__token=d077835a-696b-4728-85cf-3ffd57152b1e
+      # - sails_security__csrf=false
     networks:
       main:
         aliases:
-          - redbox
-    ports:
-       - "9000:9000"
-
+          - rbportal
+    entrypoint: /bin/bash -c "cd /opt/redbox-portal && node app.js"
   mongodb:
     image: mvertes/alpine-mongo:latest
     volumes:
-      - "./devdata:/devdata"
-      - "/mnt/data/mongo/data/db:/data/db"
-      - "/var/log/mongo:/var/log/mongo"
+      - "./devdata:/devdata:delegated"
+      - "./dev/mongo/data/db:/data/db:delegated"
+      - "./dev/log/mongo:/var/log/mongo:delegated"
     networks:
       main:
         aliases:
           - mongodb
     ports:
-       - "27017:27017"
+      - "27017:27017"
+  solr:
+    image: solr:8.6.3
+    expose:
+      - "8983"
+    ports:
+      - "8983:8983"
+    networks:
+      main:
+       aliases:
+         - solr
+    entrypoint:
+      - docker-entrypoint.sh
+      - solr-precreate
+      - redbox

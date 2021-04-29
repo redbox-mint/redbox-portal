@@ -16,9 +16,18 @@
           <%= TranslationService.t(req.query.errorTextCode) %>
         </h3>
         <% if (req.query.errorTextRaw) { %>
-          <p class="text-muted">
-            <%= req.query.errorTextRaw %>
-          </p>
+          <div class="row">
+            <div class="col-md-10 text-muted" style="overflow-wrap:break-word;">
+              <%= req.query.errorTextRaw %>
+            </div>
+          </div>
+        <% } %>
+        <% if (!_.isUndefined(req.session.errorTextRaw)) { %>
+          <div class="row">
+            <div class="col-md-10 text-muted" style="overflow-wrap:break-word;">
+              <%= req.session.errorTextRaw %>
+            </div>
+          </div>
         <% } %>
       </div>
     <% } else {%>

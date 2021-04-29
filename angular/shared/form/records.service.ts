@@ -169,7 +169,7 @@ export class RecordsService extends BaseService {
       });
       refinedSearchStr = `${exactSearchNames}${exactSearchValues}${facetSearchNames}${facetSearchValues}`;
     }
-    return this.http.get(`${this.brandingAndPortalUrl}/record/search/${params.recordType}/?searchStr=${params.basicSearch}${refinedSearchStr}`, this.getOptionsClient())
+    return this.http.get(`${this.brandingAndPortalUrl}/record/search/${params.recordType}/?searchStr=${params.basicSearch}&rows=${params.rows}&page=${params.currentPage}${refinedSearchStr}`, this.getOptionsClient())
     .toPromise()
     .then((res:any) => this.extractData(res) as RecordActionResult);
   }
@@ -270,6 +270,8 @@ export class RecordSearchParams {
   basicSearch: string;
   activeRefiners: any[];
   refinerConfig: RecordSearchRefiner[];
+  rows = 10;
+  currentPage = 1;
 
   constructor(recType: string) {
     this.recordType = recType;
@@ -279,6 +281,7 @@ export class RecordSearchParams {
 
   clear() {
     this.basicSearch = null;
+    this.currentPage = 1;
     _.remove(this.activeRefiners, refiner => {
       refiner.value = null;
       refiner.activeValue = null;
@@ -311,7 +314,7 @@ export class RecordSearchParams {
         refinerValues = `${refinerValues}&refiner|${refiner.name}=${_.isEmpty(refiner.value) ? '' : refiner.value}`;
       }
     });
-    return `${searchUrl}?q=${this.basicSearch}&type=${this.recordType}${refinerValues}`;
+    return `${searchUrl}?q=${this.basicSearch}&type=${this.recordType}${refinerValues}&page=${this.currentPage}`;
   }
 
   getRefinerConfigs() {
@@ -335,11 +338,14 @@ export class RecordSearchParams {
     _.forEach(queryStr.split('&'), (q)=> {
       const qObj = q.split('=');
       if (_.startsWith(qObj[0], "q")) {
-        this.basicSearch = qObj[1];
+        this.basicSearch = _.replace(qObj[1], /\+/gi, ' ');
       }
       if (_.startsWith(qObj[0], "refiner|")) {
         const refinerName = qObj[0].split('|')[1];
         refinerValues[refinerName] = qObj[1];
+      }
+      if (_.startsWith(qObj[0], "page")) {
+        this.currentPage = _.toNumber(qObj[1]);
       }
     });
     _.forOwn(refinerValues, (value, name) => {

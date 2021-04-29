@@ -1,449 +1,704 @@
 FORMAT: 1A
-HOST: http://localhost:1337
+HOST: https://demo.redboxresearchdata.com.au
 
-# ReDBox Portal API
+# ReDBox Portal API 
 
 The ReDBox Portal API provides authorized access to manage functions.
 
 
-## Record Collection
+# Group Record
 
-### List records in the system [GET /<%= branding %>/<%= portal %>/api/records/list]
+## Record Actions [/<%= branding %>/<%= portal %>/api/records/]
+
+### List records in the system [GET /<%= branding %>/<%= portal %>/api/records/list{?packageType,recordType,sort,start,rows}]
 + Parameters
-    + packageType (string) ... The type of package
-    + recordType (string) ... The type of record
-    + sort (object) ... Sort by object Example: date_object_modified:-1
-    + start (number) ... The number to start the records
-    + rows (number) ... The number of records per request
+    + recordType: `rdmp` (string, required) - The record type name        
+    + packageType: `rdmp` (string, optional) - The type of ReDBox package to return
+    + sort: `date_object_modified:-1`(object, optional) - Sort results by this parameter.
+        Parameter should be of the pattern `<property name>:<sort direction>` where sort direction is 1 for ascending order and -1 for descending order
+        + Default: date_object_modified:-1
+    + start: `0` (number, optional) - The index number for the first value to return from the result set.
+        + Default: 0
+    + rows: `10` (number,optional) - The number of records to return in the request
+        + Default: 10
 
 + Request Get Records (application/json)
+ 
   + Headers
-    Authorization: Bearer abcabcab-abca-abca-abca-abcabcabcabc
-  + Body
-  {
-    "totalItems": 3,
-    "currentPage": 1,
-    "noItems": 3,
-    "items": [
-      {
-        "oid": "946a62900e045873b0318f44e775d7da",
-        "title": "test3",
-        "metadata": {
-          ...
-        },
-        "dateCreated": "2020-05-20T06:22:56.113Z",
-        "dateModified": "2020-05-20T06:22:56.121Z",
-        "hasEditAccess": true
-      },
-      {
-        ...
-      },
-      {
-        ...
-      }
-    ]
-  }
+       
+            Authorization: Bearer abcabcab-abca-abca-abca-abcabcabcabc
+
++ Response 200 (application/json)
+  + Attributes (ListResponse, fixed-type)
+        - records (array[ListRecord])
+           
+
++ Response 400 (application/json) 
+    + Attributes (Error, fixed-type)
+        - message: You have reached the maximum of request available; Max rows per request 10
+
++ Response 500 (application/json) 
+    + Attributes (Error, fixed-type)
+        - message: An error has occurred
 
 ### Create Record [POST /<%= branding %>/<%= portal %>/api/records/metadata/{recordType}]
 + Parameters
-  + recordType (string) ... The type of record to create
+  + recordType: `rdmp` (string, required) - The record type name
+  
 
 + Request Create Record setting metadata, authorization and workflowStage (application/json)
   + Headers
-    Authorization: Bearer abcabcab-abca-abca-abca-abcabcabcabc
-  + Body
-  {
-    "authorization": {
-      "edit": ["username"],
-      "view": ["username"],
-      "editPending":["anEmail@redboxresearchdata.com.au"],
-      "viewPending":["anEmail@redboxresearchdata.com.au"]
-    },
-    "metadata":{
-      "title": "A sample title",
-      "description": "A description"
-    },
-    "workflowStage": "draft"
-  }
 
+            Authorization: Bearer abcabcab-abca-abca-abca-abcabcabcabc
+
+  + Body
+    + Attributes (CreateRecordRequestFull, fixed-type)
+        - metadata
+            - title: A sample title
+            - description: A description
+        
 + Request Create Record only setting metadata (application/json)
   + Headers
-    Authorization: Bearer abcabcab-abca-abca-abca-abcabcabcabc
+
+            Authorization: Bearer abcabcab-abca-abca-abca-abcabcabcabc
+
   + Body
-  {
-      "title": "A sample title",
-      "description": "A description"
-  }
+    + Attributes (CreateRecordRequest, fixed-type)
+        - metadata
+            - title: A sample title
+            - description: A description
 
 + Request Create Record setting metadata and workflowStage (application/json)
   + Headers
-    Authorization: Bearer abcabcab-abca-abca-abca-abcabcabcabc
-  + Body
-  {
-    "metadata":{
-      "title": "A sample title",
-      "description": "A description"
-    },
-    "workflowStage": "draft"
-  }
 
-+ Request Create Record setting metadata and authorization (application/json)
-  + Headers
-    Authorization: Bearer abcabcab-abca-abca-abca-abcabcabcabc
-  + Body
-  {
-    "authorization": {
-      "edit": ["username"],
-      "view": ["username"],
-      "editPending":["anEmail@redboxresearchdata.com.au"],
-      "viewPending":["anEmail@redboxresearchdata.com.au"]
-    },
-    "metadata":{
-      "title": "A sample title",
-      "description": "A description"
-    }
-  }
+            Authorization: Bearer abcabcab-abca-abca-abca-abcabcabcabc
 
+  + Body
+    + Attributes (CreateRecordRequestWithWorkflowStage, fixed-type)
+
+        
 + Response 201 (application/json)
+    + Headers
+
+            Location: /default/rdmp/api/records/metadata/7e72b5952e8e323c77f72ae268a27c46
+    + Body
+    + Attributes (ObjectActionResponse, fixed-type)
+        - message: Record created successfully
+
+
++ Response 400 (application/json) 
+    + Attributes (Error, fixed-type)
+        - message: Record Type provided is not valid
+
++ Response 500 (application/json) 
+    + Attributes (Error, fixed-type)
+        - message: Create failed
+
+### Transition record through workflow [POST /<%= branding %>/<%= portal %>/api/records/workflow/step/{workflowStage}/{oid}]
++ Parameters
+    + oid: `7e72b5952e8e323c77f72ae268a27c46` (string, required) - The identifier for the record
+    + workflowStage: `queued` (string, required) - The workflow stage to transition the record to.
+  
+
++ Request Transition record to queued workflow stage (application/json)
   + Headers
-    Location: /<%= branding %>/<%= portal %>/api/records/metadata/a2985faeabb6d92b56af665ca466a965
-  + Body
-    {
-      "code": "201",
-      "oid": "a2985faeabb6d92b56af665ca466a965"
-    }
 
+            Authorization: Bearer abcabcab-abca-abca-abca-abcabcabcabc
+        
++ Response 200 (application/json)
+    + Body
+    + Attributes (DatastreamResponse, fixed-type)
 
-### Update Record Metadata [PUT /<%= branding %>/<%= portal %>/api/records/metadata/{id}]
++ Response 500 (application/json) 
+    + Attributes (Error, fixed-type)
+        - message: Failed to transition workflow, please check server logs.
+
+## Record Metadata Actions [/<%= branding %>/<%= portal %>/api/records/metadata/{oid}]
+
+### Update Record Metadata [PUT]
 
 + Parameters
-    + id (string) ... The id of the record to update
+    + oid: `7e72b5952e8e323c77f72ae268a27c46` (string, required) - The identifier for the record
 
 + Request Update record metadata (application/json)
   + Headers
-    Authorization: Bearer abcabcab-abca-abca-abca-abcabcabcabc
+
+              Authorization: Bearer abcabcab-abca-abca-abca-abcabcabcabc
   + Body
-  {
-      "title": "A sample title",
-      "description": "A description"
-  }
+    + Attributes (object, fixed-type)
+        - title: A sample title
+        - description: A sample description
 
 + Response 200 (application/json)
-  {
-    "code": "200",
-    "oid": "a2985faeabb6d92b56af665ca466a965"
-  }
+  + Attributes (ObjectActionResponse, fixed-type)
+        - message: Record updated successfully
 
-### Get Record Metadata [GET /<%= branding %>/<%= portal %>/api/records/metadata/{id}]
++ Response 400 (application/json) 
+    + Attributes (Error, fixed-type)
+        - message: Update metadata failed, failed to retrieve existing record.
+
++ Response 500 (application/json) 
+    + Attributes (Error, fixed-type)
+        - message: Update Metadata failed
+
+### Update Record Metadata [DELETE]
+
 + Parameters
-    + id (string) ... The id of the record to update
+    + oid: `7e72b5952e8e323c77f72ae268a27c46` (string, required) - The identifier for the record
+
++ Request Update record metadata (application/json)
+  + Headers
+
+              Authorization: Bearer abcabcab-abca-abca-abca-abcabcabcabc
+  
+
++ Response 200 (application/json)
+  + Attributes (ObjectActionResponse, fixed-type)
+        - message: Record deleted successfully
+
++ Response 400 (application/json) 
+    + Attributes (Error, fixed-type)
+        - message: Delete metadata failed, failed to retrieve existing record.
+
++ Response 500 (application/json) 
+    + Attributes (Error, fixed-type)
+        - message: Delete Metadata failed
+
+### Get Record Metadata [GET]
+
++ Parameters
+    + oid: `7e72b5952e8e323c77f72ae268a27c46` (string, required) - The identifier for the record
+
 
 + Request
   + Headers
-    Authorization: Bearer abcabcab-abca-abca-abca-abcabcabcabc
+    
+            Authorization: Bearer abcabcab-abca-abca-abca-abcabcabcabc
 
 + Response 200 (application/json)
   + Body
-  {
-    "title": "A sample title",
-    "description": "A description"
-  }
+  
+            {
+                "title": "A sample title",
+                "description": "A description"
+            }
 
++ Response 500 (application/json) 
+    + Attributes (Error, fixed-type)
+        - message: Get Metadata failed, failed to retrieve existing record.
 
-### Give users edit access to record [POST /<%= branding %>/<%= portal %>/api/records/permissions/edit/{id}]
+## Datastream Actions [/<%= branding %>/<%= portal %>/api/records/datastreams]
+
+### Add attachment to record [POST /<%= branding %>/<%= portal %>/api/records/datastreams/{oid}]
 + Parameters
-    + id (string) ... The id of the record to update
+    + oid: `7e72b5952e8e323c77f72ae268a27c46` (string, required) - The identifier for the record
+
++ Request (multipart/form-data; boundary={boundary value})
+  + Headers
+    
+            Authorization: Bearer abcabcab-abca-abca-abca-abcabcabcabc
+
+  + Body 
+
+             --{boundary value}
+            Content-Disposition: form-data; name="attachmentFields"; filename="researchdata.zip"
+            Content-Type: application/zip
+            Content-Transfer-Encoding: base64
+
+            {file content}
+            --{boundary value}
+            
++ Response 200 (application/json)
+  + Body
+  + Attributes (DatastreamResponse, fixed-type)
+        - message: Attachment added successfully
+
++ Response 500 (application/json) 
+    + Attributes (Error, fixed-type)
+        - message: Get Metadata failed, failed to retrieve existing record.
+
+### List attachments in record [PUT /<%= branding %>/<%= portal %>/api/datastreams/{oid}]
++ Parameters
+    + oid: `7e72b5952e8e323c77f72ae268a27c46` (string, required) - The identifier for the record
+
++ Request Get Records (application/json)
+ 
+  + Headers
+       
+            Authorization: Bearer abcabcab-abca-abca-abca-abcabcabcabc
+
++ Response 200 (application/json)
+  + Attributes (ListResponse, fixed-type)
+        - records (array[Attachment])
+           
+
++ Response 400 (application/json) 
+    + Attributes (Error, fixed-type)
+        - message: Missing ID of record.
+
++ Response 500 (application/json) 
+    + Attributes (Error, fixed-type)
+        - message: Failed to list attachments, please check server logs.
+
+
+
+## Record Permission Actions [/<%= branding %>/<%= portal %>/api/records/permissions]
+
+### Give users edit access to record [POST /<%= branding %>/<%= portal %>/api/records/permissions/edit/{oid}]
++ Parameters
+    + oid: `7e72b5952e8e323c77f72ae268a27c46` (string, required) - The identifier for the record
 
 + Request Give users edit access to record (application/json)
   + Headers
-    Authorization: Bearer abcabcab-abca-abca-abca-abcabcabcabc
-  + Body
-  {
-    "users": ["username1","username2"]
-  }
+    
+            Authorization: Bearer abcabcab-abca-abca-abca-abcabcabcabc
 
-+ Request Give users (pending login) edit access to record (application/json)
-  + Headers
-    Authorization: Bearer abcabcab-abca-abca-abca-abcabcabcabc
   + Body
-  {
-    "usersPending": ["pendingusername1@email.com","pendingusername2@email.com"]
-  }
+        
+                {
+                    "users": ["username1","username2"]
+                }
 
-+ Request Give users (known usernames and pending login) edit access to record (application/json)
++ Request Give users pending edit access to record. (application/json)
   + Headers
-    Authorization: Bearer abcabcab-abca-abca-abca-abcabcabcabc
-  {
-    "users": ["username1","username2"],
-    "usersPending": ["pendingusername1@email.com","pendingusername2@email.com"]
-  }
+    
+            Authorization: Bearer abcabcab-abca-abca-abca-abcabcabcabc
+  + Body
+  
+                {
+                    "usersPending": ["pendingusername1@email.com","pendingusername2@email.com"]
+                }
+
+
+
++ Request Give users pending and immediate edit access to record (application/json)
+  + Headers
+    
+            Authorization: Bearer abcabcab-abca-abca-abca-abcabcabcabc
+
+    + Body
+                
+                {
+                    "users": ["username1","username2"],
+                    "usersPending": ["pendingusername1@email.com","pendingusername2@email.com"]
+                }
 
 + Response 200 (application/json)
-{
-  "viewRoles": [
-      "Admin",
-      "Librarians"
-  ],
-  "editRoles": [
-      "Admin",
-      "Librarians"
-  ],
-  "view": [
-      "username1"
-  ],
-  "edit": [
-      "username1",
-      "username2"
-  ],
-  "viewPending": [
-  ],
-  "editPending": ["pendingusername1@email.com","pendingusername2@email.com"]
-}
+    + Attributes (CreateRecordAuthorization, fixed-type)
+        - edit (array)
+            - username1
+            - username2
+        - view (array)
+            - username1
+            - username2
+        - editRoles (array)
+            - Admin
+        - viewRoles (array)
+            - Admin
 
-### Remove users edit access to record [DELETE /<%= branding %>/<%= portal %>/api/records/permissions/edit/{id}]
+### Remove users edit access to record [DELETE /<%= branding %>/<%= portal %>/api/records/permissions/edit/{oid}]
 + Parameters
-    + id (string) ... The id of the record to update
-
-+ Headers
+    + oid: `7e72b5952e8e323c77f72ae268a27c46` (string, required) - The identifier for the record
 
 + Request Remove users edit access to record (application/json)
   + Headers
-    Authorization: Bearer abcabcab-abca-abca-abca-abcabcabcabc
-  + Body
-  {
-    "users": ["username2"]
-  }
 
-+ Request Remove users (pending login) edit access to record (application/json)
-  + Headers
-    Authorization: Bearer abcabcab-abca-abca-abca-abcabcabcabc
-  {
-    "usersPending": ["pendingusername2@email.com"]
-  }
-
-+ Request Remove users (known usernames and pending login) edit access to record (application/json)
-  + Headers
-    Authorization: Bearer abcabcab-abca-abca-abca-abcabcabcabc
+            Authorization: Bearer abcabcab-abca-abca-abca-abcabcabcabc
   + Body
-  {
-    "users": ["username2"],
-    "usersPending": ["pendingusername2@email.com"]
-  }
+
+            {
+                "users": ["username2"]
+            }
+
++ Request Remove pending users edit access to record (application/json)
+  + Headers
+
+            Authorization: Bearer abcabcab-abca-abca-abca-abcabcabcabc
+ 
+  + Body
+            
+                {
+                    "usersPending": ["pendingusername2@email.com"]
+                }
+
++ Request Remove known users and pending users edit access to record (application/json)
+  + Headers
+            
+            Authorization: Bearer abcabcab-abca-abca-abca-abcabcabcabc
+  + Body
+  
+            {
+                "users": ["username2"],
+                "usersPending": ["pendingusername2@email.com"]
+            }
 
 + Response 200 (application/json)
-{
-  "viewRoles": [
-      "Admin",
-      "Librarians"
-  ],
-  "editRoles": [
-      "Admin",
-      "Librarians"
-  ],
-  "view": [
-      "username1"
-  ],
-  "edit": [
-      "username2"
-  ],
-  "viewPending": [
-  ],
-  "editPending": ["pendingusername2@email.com"]
-}
+     + Attributes (CreateRecordAuthorization, fixed-type)
+        - edit (array)
+            - username1
+        - view (array)
+            - username1
+            - username2
+        - editRoles (array)
+            - Admin
+        - viewRoles (array)
+            - Admin
 
-### Give users view access to record [POST /<%= branding %>/<%= portal %>/api/records/permissions/view/{id}]
+### Give users view access to record [POST /<%= branding %>/<%= portal %>/api/records/permissions/view/{oid}]
 + Parameters
-    + id (string) ... The id of the record to update
-
-+ Headers
+    + oid: `7e72b5952e8e323c77f72ae268a27c46` (string, required) - The identifier for the record
 
 + Request Give users view access to record (application/json)
   + Headers
-    Authorization: Bearer abcabcab-abca-abca-abca-abcabcabcabc
-  + Body
-  {
-    "users": ["username1","username2"]
-  }
+    
+            Authorization: Bearer abcabcab-abca-abca-abca-abcabcabcabc
 
-+ Request Give users (pending login) view access to record (application/json)
-  + Headers
-    Authorization: Bearer abcabcab-abca-abca-abca-abcabcabcabc
   + Body
-  {
-    "usersPending": ["pendingusername1@email.com","pendingusername2@email.com"]
-  }
+        
+                {
+                    "users": ["username1","username2"]
+                }
 
-+ Request Give users (known usernames and pending login) view access to record (application/json)
++ Request Give users pending view access to record. (application/json)
   + Headers
-    Authorization: Bearer abcabcab-abca-abca-abca-abcabcabcabc
+    
+            Authorization: Bearer abcabcab-abca-abca-abca-abcabcabcabc
   + Body
-  {
-    "users": ["username1","username2"],
-    "usersPending": ["pendingusername1@email.com","pendingusername2@email.com"]
-  }
+  
+                {
+                    "usersPending": ["pendingusername1@email.com","pendingusername2@email.com"]
+                }
+
+
+
++ Request Give users pending and immediate view access to record (application/json)
+  + Headers
+    
+            Authorization: Bearer abcabcab-abca-abca-abca-abcabcabcabc
+
+    + Body
+                
+                {
+                    "users": ["username1","username2"],
+                    "usersPending": ["pendingusername1@email.com","pendingusername2@email.com"]
+                }
 
 + Response 200 (application/json)
-{
-  "viewRoles": [
-      "Admin",
-      "Librarians"
-  ],
-  "editRoles": [
-      "Admin",
-      "Librarians"
-  ],
-  "view": [
-  "username1",
-  "username2"
-  ],
-  "edit": [
+    + Attributes (CreateRecordAuthorization, fixed-type)
+        - edit (array)
+            - username1
+            - username2
+        - view (array)
+            - username1
+            - username2
+        - editRoles (array)
+            - Admin
+        - viewRoles (array)
+            - Admin
 
-  ],
-  "viewPending": ["pendingusername1@email.com","pendingusername2@email.com"
-  ],
-  "editPending": []
-}
-
-### Remove users view access to record [DELETE /<%= branding %>/<%= portal %>/api/records/permissions/view/{id}]
+### Remove users view access to record [DELETE /<%= branding %>/<%= portal %>/api/records/permissions/view/{oid}]
 + Parameters
-    + id (string) ... The id of the record to update
-
-+ Headers
+    + oid: `7e72b5952e8e323c77f72ae268a27c46` (string, required) - The identifier for the record
 
 + Request Remove users view access to record (application/json)
   + Headers
-    Authorization: Bearer abcabcab-abca-abca-abca-abcabcabcabc
-  + Body
-  {
-    "users": ["username2"]
-  }
 
-+ Request Remove users (pending login) view access to record (application/json)
-  + Headers
-    Authorization: Bearer abcabcab-abca-abca-abca-abcabcabcabc
+            Authorization: Bearer abcabcab-abca-abca-abca-abcabcabcabc
   + Body
-  {
-    "usersPending": ["pendingusername2@email.com"]
-  }
 
-+ Request Remove users (known usernames and pending login) view access to record (application/json)
+            {
+                "users": ["username2"]
+            }
+
++ Request Remove pending users view access to record (application/json)
   + Headers
-    Authorization: Bearer abcabcab-abca-abca-abca-abcabcabcabc
+
+            Authorization: Bearer abcabcab-abca-abca-abca-abcabcabcabc
+ 
   + Body
-  {
-    "users": ["username2"],
-    "usersPending": ["pendingusername2@email.com"]
-  }
+            
+                {
+                    "usersPending": ["pendingusername2@email.com"]
+                }
+
++ Request Remove known users and pending users view access to record (application/json)
+  + Headers
+            
+            Authorization: Bearer abcabcab-abca-abca-abca-abcabcabcabc
+  + Body
+  
+            {
+                "users": ["username2"],
+                "usersPending": ["pendingusername2@email.com"]
+            }
 
 + Response 200 (application/json)
-{
-  "viewRoles": [
-      "Admin",
-      "Librarians"
-  ],
-  "editRoles": [
-      "Admin",
-      "Librarians"
-  ],
-  "view": [
-      "username2"
-  ],
-  "edit": [
-      "username1"
-  ],
-  "viewPending": ["pendingusername2@email.com"
-  ],
-  "editPending": []
-}
+    + Attributes (CreateRecordAuthorization, fixed-type)
+        - edit (array)
+            - username1
+        - view (array)
+            - username1
+            - username2
+        - editRoles (array)
+            - Admin
+        - viewRoles (array)
+            - Admin
 
-### Get access permissions for record [GET /<%= branding %>/<%= portal %>/api/records/permissions/{id}]
+### Get access permissions for record [GET /<%= branding %>/<%= portal %>/api/records/permissions/{oid}]
 + Parameters
-    + id (string) ... The id of the record to update
+    + oid: `7e72b5952e8e323c77f72ae268a27c46` (string, required) - The identifier for the record
 
-+Request
++ Request
     + Headers
-      Authorization: Bearer abcabcab-abca-abca-abca-abcabcabcabc
+
+                Authorization: Bearer abcabcab-abca-abca-abca-abcabcabcabc
 
 + Response 200 (application/json)
-{
-  "viewRoles": [
-      "Admin",
-      "Librarians"
-  ],
-  "editRoles": [
-      "Admin",
-      "Librarians"
-  ],
-  "view": [
-      "username1"
-  ],
-  "edit": [
-      "username1",
-      "username2"
-  ],
-  "viewPending": [
-  ],
-  "editPending": ["pendingusername1@email.com","pendingusername2@email.com"]
-}
+    + Attributes (CreateRecordAuthorization, fixed-type)
 
-## User Collection
+# Group User Management
 
-### List users in the system [GET /<%= branding %>/<%= portal %>/api/users]
+## User Management Actions [/<%= branding %>/<%= portal %>/api/users]
+
+### List users in the system [GET /<%= branding %>/<%= portal %>/api/users{?searchBy,query,start,rows}]
 + Parameters
-    + page (number) ... The page number. Defaults to 1.
-    + pageSize (number) ... The number of results to return per page. Defaults to 10
+    + start: `0` (number, optional) - The index number for the first value to return from the result set.
+        + Default: 0
+    + rows: `10` (number,optional) - The number of records to return in the request
+        + Default: 10
+    + searchBy: `type` (string, optional) - The attribute to search by. e.g. email
+    + query: `local` (string, optional) - The value to query. Only exact matches.
 
-+ Headers
++ Request
+    + Headers
+
+                Authorization: Bearer abcabcab-abca-abca-abca-abcabcabcabc
 
 + Response 200 (application/json)
-{
-    "summary": {
-        "numFound": 1
-    },
-    "records": [
-        {
-            "type": "local",
-            "name": "Local user",
-            "username": "user1",
-            "email": "localuser@redboxresearchdata.com.au",
-            "token": "16f613d9-29da-4326-a120-1ad70078f3c5",
-            "createdAt": "2017-10-09T03:34:47.660Z",
-            "updatedAt": "2017-11-20T04:08:33.061Z",
-            "id": "59daee5720b453050057c2f5"
-        }
-  ]
-}
+    + Attributes (ListResponse, fixed-type)
+        - records (array[User])  
 
-### Find user in the system [GET /<%= branding %>/<%= portal %>/api/users/find]
+### Find user in the system [GET /<%= branding %>/<%= portal %>/api/users/get{?searchBy,query}]
 + Parameters
-    + searchBy (string) ... The attribute to search by. e.g. email
-    + query (string) ... The value to query. Only exact matches.
+    + searchBy: `email` (string) - The attribute to search by. e.g. email
+    + query: `localuser@redboxresearchdata.com.au` (string) - The value to query. Only exact matches.
 
-+ Headers
++ Request
+    + Headers
+
+                Authorization: Bearer abcabcab-abca-abca-abca-abcabcabcabc
 
 + Response 200 (application/json)
-{
-    "type": "local",
-    "name": "Local user",
-    "username": "user1",
-    "email": "localuser@redboxresearchdata.com.au",
-    "token": "16f613d9-29da-4326-a120-1ad70078f3c5",
-    "createdAt": "2017-10-09T03:34:47.660Z",
-    "updatedAt": "2017-11-20T04:08:33.061Z",
-    "id": "59daee5720b453050057c2f5"
-}
+    + Attributes (User, fixed-type)
 
-## Other Functions Collection
 
-### Send an email [POST /<%= branding %>/<%= portal %>/api/email]
+
+### Create Local User [PUT /<%= branding %>/<%= portal %>/api/users]
+
++ Request Create Local User (application/json)
+  + Headers
+
+              Authorization: Bearer abcabcab-abca-abca-abca-abcabcabcabc
+  + Body
+   + Attributes (CreateUser, fixed-type)
+
++ Response 200 (application/json)
+  + Attributes (User, fixed-type)
+
++ Response 500 (application/json) 
+    + Attributes (Error, fixed-type)
+        - message: User creation failed
+
+
+### Update Local User [POST /<%= branding %>/<%= portal %>/api/users]
+
++ Request Create Local User (application/json)
+  + Headers
+
+              Authorization: Bearer abcabcab-abca-abca-abca-abcabcabcabc
+  + Body
+   + Attributes (UpdateUser, fixed-type)
+
++ Response 200 (application/json)
+  + Attributes (User, fixed-type)
+    
+
++ Response 500 (application/json) 
+    + Attributes (Error, fixed-type)
+        - message: User update failed
+
+### Generate API Token for user [GET /<%= branding %>/<%= portal %>/api/users/token/generate(?id}]
+
++ Parameters
+    + id: `59daee5720b453050057c2f5` (string, required) - The user's identifier
+
++ Request Generate API Token for user (application/json)
+  + Headers
+
+              Authorization: Bearer abcabcab-abca-abca-abca-abcabcabcabc
+
++ Response 200 (application/json)
+  + Attributes (UserAPITokenResponse, fixed-type)
+    
++ Response 400 (application/json) 
+    + Attributes (Error, fixed-type)
+        - message: Unable to get user ID
+
++ Response 500 (application/json) 
+    + Attributes (Error, fixed-type)
+        - message: Token generation failed
+
+### Revoke API Token for user [GET /<%= branding %>/<%= portal %>/api/users/token/revoke(?id}]
+
++ Parameters
+    + id: `59daee5720b453050057c2f5` (string, required) - The user's identifier
+
++ Request Revoke API Token for user (application/json)
+  + Headers
+
+              Authorization: Bearer abcabcab-abca-abca-abca-abcabcabcabc
+
++ Response 200 (application/json)
+  + Attributes (UserAPITokenResponse, fixed-type)
+        - token (string, nullable)
+
++ Response 400 (application/json) 
+    + Attributes (Error, fixed-type)
+        - message: Unable to get user ID
+
++ Response 500 (application/json) 
+    + Attributes (Error, fixed-type)
+        - message: Token revocation failed
+
+
+# Group Roles
+
+## Role Actions [/<%= branding %>/<%= portal %>/api/roles]
+
+### List System Roles [GET]
+
++ Request List configured System Roles (application/json)
+  + Headers
+
+              Authorization: Bearer abcabcab-abca-abca-abca-abcabcabcabc
+
++ Response 200 (application/json)
+  + Attributes (ListResponse, fixed-type)
+     - records (array[Role])
+
++ Response 500 (application/json) 
+    + Attributes (Error, fixed-type)
+
+# Group Other
+
+## Email Actions [/<%= branding %>/<%= portal %>/api/sendNotification]
+
+### Send an email [POST]
 
 + Request (application/json)
   + Headers
-    Authorization: Bearer abcabcab-abca-abca-abca-abcabcabcabc
+
+            Authorization: Bearer abcabcab-abca-abca-abca-abcabcabcabc
   + Body
-  {
-    "to": ["user@redboxresearchdata.com.au"],
-    "subject":"A sample subject",
-    "template": "emailTemplateName",
-    "data": {"property": "values to populate in template"}
-   }
+  
+            {
+                "to": ["user@redboxresearchdata.com.au"],
+                "subject":"A sample subject",
+                "template": "emailTemplateName",
+                "data": {"property": "values to populate in template"}
+            }
+
++ Response 200 (application/json)
+    + Attributes (ObjectActionResponse, fixed-type)
+
+## Data Structures
+
+### Error (object)
+- message: An error has occurred - A string stating the error
+- description - A description of the error
+
+### ListResponse (object)
+- summary 
+    - numFound: 1 (required)
+    - page: 1 (required)
+    - start: 0 (required)
+- records (array)
+
+### ListRecord (object)
+- oid: 7e72b5952e8e323c77f72ae268a27c46 (required)
+- title: A sample record title (required)
+- dateCreated: 2020-12-02T00:00:33.01Z (required)
+- dateModified: 2020-12-02T00:00:33.01Z (required)
+- metadata (object) - Record Metadata, this varies depending on the record type
+
+### CreateRecordRequest (object)
+- metadata (object) (required)
+
+### CreateRecordRequestWithWorkflowStage (CreateRecordRequest)
+- workflowStage: draft (optional)
+
+### CreateRecordRequestFull (CreateRecordRequestWithWorkflowStage)
+- authorization (CreateRecordAuthorization) (nullable)
+
+
+### CreateRecordAuthorization (object)
+- edit (array) (nullable)
+    - username
+- view (array) (nullable) 
+    - username
+- editRoles (array) (nullable)
+    - Admin
+- viewRoles (array) (nullable)
+    - Admin
+
+
+### ObjectActionResponse (object)
+- message - Message describing action
+- description - A description of the error
+- oid: 7e72b5952e8e323c77f72ae268a27c46 (required)
+
+### User (object)
+- type: local
+- name: Local user
+- username: user1
+- email: localuser@redboxresearchdata.com.au
+- createdAt: `2017-10-09T03:34:47.660Z`
+- updatedAt: `2017-11-20T04:08:33.061Z`
+- id: 59daee5720b453050057c2f5
+
+### CreateUser (object)
+- name: Local user
+- username: user1
+- email: localuser@redboxresearchdata.com.au
+- password: Password123!
+- roles (array)
+    - Guest
+    - Researcher
+    - Librarian
+    - Admin
+
+### UpdateUser (object)
+- id: 59daee5720b453050057c2f5
+- name: New Local user name (optional)
+- password: Password123! (optional)
+- roles (array) (optional)
+    - Guest
+    - Researcher
+    - Librarian
+    - Admin
+
+### UserAPITokenResponse (object)
+- id: 59daee5720b453050057c2f5
+- username: user1
+- token: aaf688be-0ade-4dbf-845c-d34d9f4cb4ac
+
+### Role (object)
+- name: Admin
+
+### DatastreamResponse (object)
+- message
+- success: true (boolean)
+
+### Attachment (object)
+- filename: researchdata.zip
+

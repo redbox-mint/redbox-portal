@@ -1,3 +1,4 @@
 module.exports.appmode = {
-  bootstrapAlways: true
+  bootstrapAlways: true,
+  hidePlaceholderPages: true
 };
