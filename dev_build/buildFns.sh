@@ -67,6 +67,6 @@ function compileAoT() {
 function convertApiSpec() {
   echo "Running AoT compile..."
   npm install -g api-spec-converter
-  api-spec-converter views/default/default/apidocsapib.ejs --from=api_blueprint --to=swagger_2 --syntax=yaml > views/default/default/apidocsswaggeryaml.ejs
-  api-spec-converter views/default/default/apidocsapib.ejs --from=api_blueprint --to=swagger_2 --syntax=json > views/default/default/apidocsswaggerjson.ejs
+  api-spec-converter views/default/default/apidocsapib.ejs --from=api_blueprint --to=openapi_3 --syntax=yaml > views/default/default/apidocsswaggeryaml.ejs
+  api-spec-converter views/default/default/apidocsapib.ejs --from=api_blueprint --to=openapi_3 --syntax=json > views/default/default/apidocsswaggerjson.ejs
 }

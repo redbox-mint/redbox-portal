@@ -37,6 +37,18 @@ module.exports = [
           variableSubstitutionFields: ['redirectLocation']
         },
         {
+          class: "SaveButton",
+          definition: {
+            label: '@dataPublication-retire',
+            closeOnSave: true,
+            isSubmissionButton: true,
+            redirectLocation: '/@branding/@portal/dashboard/dataPublication',
+            targetStep: 'retired',
+            disabledExpression: '<%= _.isEmpty(relatedRecordId) %>'
+          },
+          variableSubstitutionFields: ['redirectLocation']
+        },
+        {
           class: "CancelButton",
           definition: {
             label: 'Close',

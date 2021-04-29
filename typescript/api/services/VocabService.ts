@@ -220,22 +220,6 @@ export module Services {
       });
     }
 
-    saveInst(instItems) {
-      _.forEach(instItems, item => {
-        // added for Solr case-insensi search
-        item.text_name = item.name;
-      });
-      return RecordsService.createBatch(sails.config.vocab.collection['grid'].type, instItems, 'grid_id');
-    }
-
-    searchInst(searchString, fields) {
-      return RecordsService.search(sails.config.vocab.collection['grid'].type, sails.config.vocab.collection['grid'].searchField, searchString, sails.config.vocab.collection['grid'].fields);
-    }
-
-    getInst(collectionId) {
-      return RecordsService.getOne(sails.config.vocab.collection[collectionId].type);
-    }
-
     protected getMintOptions(url) {
       return {url:url, json:true, headers: {'Authorization': `Bearer ${sails.config.mint.apiKey}`, 'Content-Type': 'application/json; charset=utf-8'}};
     }

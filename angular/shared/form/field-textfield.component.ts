@@ -21,7 +21,8 @@ import { Input, Component, ViewChild, ViewContainerRef, OnInit } from '@angular/
 import * as _ from "lodash";
 import { FieldBase } from './field-base';
 import { EmbeddableComponent, RepeatableComponent } from './field-repeatable.component';
-
+import {Observable} from 'rxjs/Observable';
+import { debounceTime } from 'rxjs/operators';
 declare var jQuery: any;
 
 /**
@@ -57,12 +58,21 @@ export class MarkdownTextArea extends FieldBase<string> {
   cols: number;
 
   lines: string[];
+  enableLivePreview: boolean;
+  updateEventSource: any;
+  updateSub: any;
+  previewData: any;
+  previewLabel: string;
+  previewDelay: number;
 
   constructor(options: any, injector: any) {
     super(options, injector);
     this.rows = options['rows'] || 5;
     this.cols = options['cols'] || null;
     this.controlType = 'textarea';
+    this.enableLivePreview = _.isEmpty(options['enableLivePreview']) ? true : options['enableLivePreview'];
+    this.previewLabel = this.getTranslated(options['previewLabel'], 'Preview');
+    this.previewDelay = _.isEmpty(options['previewDelay']) ? 1000 : _.toInteger(options['previewDelay']);
     if (_.isUndefined(this.value)) {
       this.value = "";
     }
@@ -72,6 +82,34 @@ export class MarkdownTextArea extends FieldBase<string> {
   formatValueForDisplay() {
     this.lines = this.value ? this.value.split("\n") : [];
   }
+
+  public createFormModel(valueElem: any = null): any {
+    this.formModel = super.createFormModel(valueElem);
+    this.setLivePreview(this.enableLivePreview);
+    return this.formModel;
+  }
+
+  setLivePreview(flag: boolean = true) {
+    this.enableLivePreview = flag;
+    if (this.enableLivePreview) {
+      this.previewData = this.value;
+      if (this.formModel && _.isEmpty(this.updateEventSource)) {
+        this.updateEventSource = this.formModel['valueChanges'];
+        // start listening 
+        this.updateSub = this.updateEventSource.pipe(debounceTime(this.previewDelay)).subscribe((val: any) => {
+          this.previewData = this.value;
+        });
+      }
+    } else {
+      this.previewData = null;
+      if (this.updateEventSource) {
+        this.updateSub.unsubscribe();
+        this.updateSub = null;
+        this.updateEventSource = null;
+      }
+    }
+  }
+
 }
 
 export class TextArea extends FieldBase<string> {
@@ -244,8 +282,10 @@ export class TextAreaComponent extends EmbeddableComponent implements OnInit {
     </label><br/>
     <span id="{{ 'helpBlock_' + field.name }}" class="help-block" *ngIf="this.helpShow" [innerHtml]="field.help"></span>
     <textarea [formControl]="getFormControl()"  [attr.rows]="field.rows" [attr.cols]="field.cols" [id]="field.name" [ngClass]="field.cssClasses" [(ngModel)]="field.value"></textarea>
-    <div *ngIf="field.value" style='font-weight:bold'>Preview</div>
-    <markdown *ngIf="field.value" [data]="field.value"></markdown>
+    <ng-container *ngIf="field.previewData">
+      <div style='font-weight:bold' [innerHtml]="field.previewLabel"></div>
+      <markdown [data]="field.previewData"></markdown>
+    </ng-container>
     <div class="text-danger" *ngIf="getFormControl().hasError('required') && getFormControl().touched && !field.validationMessages?.required">{{field.label}} is required</div>
     <div class="text-danger" *ngIf="getFormControl().hasError('required') && getFormControl().touched && field.validationMessages?.required">{{field.validationMessages.required}}</div>
   </div>
@@ -262,6 +302,12 @@ export class MarkdownTextAreaComponent extends EmbeddableComponent implements On
   ngOnInit() {
     if (!this.field.editMode) {
       this.field.formatValueForDisplay();
+    } else {
+      this.field.componentReactors.push(this);
     }
+  }
+
+  public reactEvent(eventName: string, eventData: any, origData: any, elem:any) {
+    this.field.previewData = this.field.value;
   }
 }

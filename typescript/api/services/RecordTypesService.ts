@@ -82,7 +82,8 @@ export module Services {
         searchFilters: config.searchFilters,
         hooks: config.hooks,
         transferResponsibility: config.transferResponsibility,
-        relatedTo: config.relatedTo
+        relatedTo: config.relatedTo,
+        searchable: config.searchable
       }));
     }
 

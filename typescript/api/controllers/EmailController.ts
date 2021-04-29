@@ -57,14 +57,14 @@ export module Controllers {
        *
        * @param req
        * @param res
-       * 
+       *
        * USAGE (ng2):
             var data = {};
             data['data'] = 'test';
             this.emailService.sendNotification('user@example.com', 'template', data, subject?, from?)
             .then(function (res) {console.log(`Email result: ${JSON.stringify(res)}`)});
-       * 
-       * TODO 
+       *
+       * TODO
        *    • proper email address validation
        *    • support for multiple email addresses (trivial: make array)
        */
@@ -72,15 +72,15 @@ export module Controllers {
         public sendNotification(req, res) {
             if (!req.body.to){
                 sails.log.error("No email recipient in email notification request!");
-                return; 
+                return;
             }
             if (!req.body.template){
                 sails.log.error("No template specified in email notification request!");
-                return; 
+                return;
             }
             var to = req.body.to;
             var template = req.body.template;
-            
+
             // use subject if provided, else use template default
             var subject;
             if (req.body.subject) { subject = req.body.subject; }

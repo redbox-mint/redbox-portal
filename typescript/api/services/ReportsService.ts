@@ -168,7 +168,7 @@ export module Services {
 
       return reportObs.flatMap(report => {
         report = this.convertLegacyReport(report);
-        sails.log.error(report)
+        sails.log.debug(report)
         // TODO: Ensure we get all results in a tidier way
         //       Stream the resultset rather than load it in-memory
         var url = this.buildSolrUrl(brand, req, report, start, rows, 'csv');

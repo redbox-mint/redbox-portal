@@ -3,6 +3,8 @@ import { SimpleComponent } from './field-simple.component';
 import { FieldBase } from './field-base';
 import { NotInFormField } from './field-simple';
 import * as _ from "lodash";
+declare var jQuery: any;
+
 /**
  * Handles low-level event handling. Warning: for data changes, etc. please use the field-level subscribe-publish model.
  *

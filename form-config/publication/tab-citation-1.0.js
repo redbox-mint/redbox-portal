@@ -7,8 +7,7 @@ module.exports = [
     definition: {
       id: "citation",
       label: "@dataPublication-citation-tab",
-      fields: [
-        {
+      fields: [{
           class: 'Container',
           compClass: 'TextBlockComponent',
           definition: {
@@ -22,17 +21,17 @@ module.exports = [
             name: 'citation_doi',
             label: '@dataPublication-citation-identifier',
             type: 'text',
-            readOnly:true,
+            readOnly: true,
             subscribe: {
               'form': {
-                onFormLoaded: [
-                  { action: 'publishValueLoaded' }
-                ]
+                onFormLoaded: [{
+                  action: 'publishValueLoaded'
+                }]
               },
               'this': {
-                onValueLoaded: [
-                  { action: 'setVisibility' }
-                ]
+                onValueLoaded: [{
+                  action: 'setVisibility'
+                }]
               }
             },
             visibilityCriteria: {
@@ -49,18 +48,16 @@ module.exports = [
           definition: {
             name: 'requestIdentifier',
             controlType: 'checkbox',
-            options: [
-              {
-                value: "request",
-                label: "@dataPublication-citation-request-identifier"
-              }
-            ],
+            options: [{
+              value: "request",
+              label: "@dataPublication-citation-request-identifier"
+            }],
             visibilityCriteria: undefined, // when doi is undefined, this is visible
             subscribe: {
               'citation_doi': {
-                onValueLoaded: [
-                  { action: 'setVisibility' }
-                ]
+                onValueLoaded: [{
+                  action: 'setVisibility'
+                }]
               }
             }
           }
@@ -85,10 +82,9 @@ module.exports = [
             skipClone: ['showHeader', 'initialValue'],
             disabledExpression: '<%= _.isEmpty(relatedRecordId) %>',
             forceClone: [{
-                field: 'vocabField',
-                skipClone: ['injector']
-              }
-            ],
+              field: 'vocabField',
+              skipClone: ['injector']
+            }],
             fields: [{
               class: 'ContributorField',
               showHeader: true,
@@ -173,12 +169,10 @@ module.exports = [
             readOnly: true,
             subscribe: {
               'form': {
-                onValueChange: [
-                  {
-                    action: 'utilityService.runTemplate',
-                    template: '<%= _.join(_.map(_.filter(_.get(data, "creators"), (c) => {return !_.isEmpty(c.family_name) || !_.isEmpty(c.given_name)}), (c)=> {return !_.isEmpty(c.family_name) || !_.isEmpty(c.given_name) ? ((c.family_name ? c.family_name : "") + ", " + (c.given_name ? c.given_name : "")) : "" }), "; ") + " ("+ moment(_.get(data, "citation_publication_date")).format("YYYY") + "): " + _.get(data, "citation_title") + ". " + _.get(data, "citation_publisher") + ". {ID_WILL_BE_HERE}" %>'
-                  }
-                ]
+                onValueChange: [{
+                  action: 'utilityService.runTemplate',
+                  template: '<%= _.join(_.map(_.filter(_.get(data, "creators"), (c) => {return !_.isEmpty(c.family_name) || !_.isEmpty(c.given_name)}), (c)=> {return !_.isEmpty(c.family_name) || !_.isEmpty(c.given_name) ? ((c.family_name ? c.family_name : "") + ", " + (c.given_name ? c.given_name : "")) : "" }), "; ") + (_.get(data, "citation_publication_date","") == ""  ? " : " : " ("+ moment(_.get(data, "citation_publication_date")).format("YYYY") + "): ") + _.get(data, "citation_title") + ". " + (_.get(data, "citation_publisher","") == ""? "":  _.get(data, "citation_publisher","") + ". ") + (_.get(data, "citation_doi", "") == "" ? (_.get(data, "requestIdentifier", []).length > 0? "{ID_WILL_BE_HERE}" : "") : "https://doi.org/" + _.get(data, "citation_doi")) %>'
+                }]
               }
             }
           }

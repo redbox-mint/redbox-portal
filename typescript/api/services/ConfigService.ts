@@ -51,7 +51,14 @@ export module Services {
     }
 
     public mergeHookConfig(hookName:string, configMap:any=sails.config, config_dirs: string[] = ["form-config", "config"], dontMergeFields:any[] = ["fields"]) {
-      const hook_root_dir = `${sails.config.appPath}/node_modules/${hookName}`;
+      const that = this;
+      var hook_root_dir = `${sails.config.appPath}/node_modules/${hookName}`;
+      var appPath = sails.config.appPath;
+      // check if the app path was launched from the hook directory, e.g. when launching tests.
+      if (!fs.pathExistsSync(hook_root_dir) && _.endsWith(sails.config.appPath, hookName)) {
+        hook_root_dir = sails.config.appPath;
+        appPath = appPath.substring(0, appPath.lastIndexOf(`/node_modules/${hookName}`));
+      }
       const hook_log_header = hookName;
       let origDontMerge = _.clone(dontMergeFields);
       const concatArrsFn = function (objValue, srcValue, key, object, source, stack) {
@@ -124,15 +131,16 @@ export module Services {
       }
       // check if the core exists when API definitions are present ...
       if (fs.pathExistsSync(`${hook_root_dir}/api`) && !fs.pathExistsSync(`${hook_root_dir}/api/core`)) {
-        sails.log.verbose(`${hook_log_header}::Adding Symlink to API core...`);
+        sails.log.verbose(`${hook_log_header}::Adding Symlink to API core... ${hook_root_dir}/api/core -> ${appPath}/api/core`);
         // create core services symlink if not present
-        fs.ensureSymlinkSync(`${sails.config.appPath}/api/core`, `${hook_root_dir}/api/core`);
+        fs.ensureSymlinkSync(`${appPath}/api/core`, `${hook_root_dir}/api/core`);
       }
       sails.log.verbose(`${hook_log_header}::Adding custom API elements...`);
-      let apiDirs = ["services", "controllers"];
+
+      let apiDirs = ["services"];
       _.each(apiDirs, (apiType) => {
         const files = this.walkDirSync(`${hook_root_dir}/api/${apiType}`, []);
-        sails.log.verbose(`${hook_log_header}::Processing:`);
+        sails.log.verbose(`${hook_log_header}::Processing '${apiType}':`);
         sails.log.verbose(JSON.stringify(files));
         if (!_.isEmpty(files)) {
           _.each(files, (file) => {
@@ -143,9 +151,36 @@ export module Services {
           });
         }
       });
+
+      sails.on('lifted', function() {
+      let apiDirs = ["controllers"];
+        _.each(apiDirs, (apiType) => {
+          const files = that.walkDirSync(`${hook_root_dir}/api/${apiType}`, []);
+          sails.log.verbose(`${hook_log_header}::Processing '${apiType}':`);
+          sails.log.verbose(JSON.stringify(files));
+          if (!_.isEmpty(files)) {
+            _.each(files, (file) => {
+              const apiDef = require(file);
+              const apiElemName = _.toLower(basename(file, '.js'))
+              sails[apiType][apiElemName] = apiDef;
+            });
+          }
+        });
+      });
+
+      // for models, we need to copy them over to `api/models`...
+      const modelFiles = this.walkDirSync(`${hook_root_dir}/api/models`, []);
+      if (!_.isEmpty(modelFiles)) {
+        _.each(modelFiles, (modelFile) => {
+          const dest = `${appPath}/api/models/${basename(modelFile)}`;
+          sails.log.verbose(`Copying ${modelFile} to ${dest}`)
+          fs.copySync(modelFile, dest);
+        });
+      }
       sails.log.verbose(`${hook_log_header}::Adding custom API elements...completed.`);
       sails.log.verbose(`${hookName}::Merge complete.`);
     }
+
 
     private walkDirSync(dir:string, filelist:any[] = []) {
       if (!fs.pathExistsSync(dir)) {

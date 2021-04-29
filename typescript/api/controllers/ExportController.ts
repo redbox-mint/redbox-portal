@@ -23,6 +23,9 @@ declare var sails;
 declare var _;
 import { Observable } from 'rxjs/Rx';
 declare var RecordsService, DashboardService, BrandingService, TranslationService;
+import util = require('util');
+import stream = require('stream');
+const pipeline = util.promisify(stream.pipeline);
 /**
  * Package that contains all Controllers.
  */
@@ -52,19 +55,20 @@ export module Controllers {
       return this.sendView(req, res, 'export/index');
     }
 
-    public downloadRecs(req, res) {
+    public async downloadRecs(req, res) {
       const brand = BrandingService.getBrand(req.session.branding);
       const format = req.param('format');
       const recType = req.param('recType');
       const before = _.isEmpty(req.query.before) ? null : req.query.before;
       const after = _.isEmpty(req.query.after) ? null : req.query.after;
       const filename = `${TranslationService.t(`${recType}-title`)} - Exported Records.${format}`;
-      if (format == 'csv') {
-        res.set('Content-Type', 'text/csv');
+      if (format == 'csv' || format == 'json') {
+        res.set('Content-Type', `text/${format}`);
         res.set('Content-Disposition', `attachment; filename="${filename}"`);
-        DashboardService.exportAllPlans(req.user.username, req.user.roles, brand, format, before, after, recType).subscribe(response => {
-          return res.send(200, response);
-        });
+        await pipeline(
+          RecordsService.exportAllPlans(req.user.username, req.user.roles, brand, format, before, after, recType),
+          res
+        );
       } else {
         return res.send(500, 'Unsupported export format');
       }
