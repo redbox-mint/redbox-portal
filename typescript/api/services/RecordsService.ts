@@ -446,7 +446,7 @@ export module Services {
 
       let url = `${sails.config.record.baseUrl.redbox}${sails.config.record.api.search.url}?q=metaMetadata_brandId:${brand.id} AND metaMetadata_type:${type}${searchParam}&version=2.2&wt=json&sort=date_object_modified desc`;
       url = this.addAuthFilter(url, username, roles, brand, false)
-      sails.log.error(`Searching fuzzy using: ${url}`);
+      sails.log.debug(`Searching fuzzy using: ${url}`);
       const options = this.getOptions(url);
       return Observable.fromPromise(request[sails.config.record.api.search.method](options))
         .flatMap(resp => {
@@ -668,6 +668,9 @@ export module Services {
             if (_.isFunction(postSaveCreateHookFunction)) {
               postSaveCreateHookFunction(oid, record, options, user).subscribe(result => {
                 sails.log.debug(`post-save trigger ${postSaveCreateHookFunctionString} completed for ${oid}`)
+              }, error => {
+                sails.log.error(`post-save trigger ${postSaveCreateHookFunctionString} failed to complete`)
+                sails.log.error(error)
               });
             } else {
               sails.log.error(`Post save function: '${postSaveCreateHookFunctionString}' did not resolve to a valid function, what I got:`);

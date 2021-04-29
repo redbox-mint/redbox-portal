@@ -13,7 +13,7 @@
  *   https://github.com/gruntjs/grunt-contrib-less
  *
  */
- const sass = require('node-sass');
+ const sass = require('sass');
  
 module.exports = function(grunt) {
 

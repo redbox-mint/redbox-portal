@@ -19,6 +19,7 @@ module.exports = {
     name : { type: 'string', required: true},
     email: { type: 'string', required: true, unique: true},
     token: { type: 'string'},
+    additionalAttributes: {type: 'json'},
     // users have many workspace apps
     workspaceApps: { collection: 'workspaceApp', via: 'user' },
     // users have many roles
@@ -57,7 +58,7 @@ module.exports = {
   },
   assignAccessToPendingRecords: function(user) {
     try {
-      if(user.email != null) {
+      if(user.email != null && user.name != 'Local Admin') {
         UsersService.findAndAssignAccessToRecords(user.email, user.username);
       }
     } catch(e) {

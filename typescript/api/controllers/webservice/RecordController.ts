@@ -539,7 +539,7 @@ export module Controllers {
        return metadata;
      }
 
-     protected getRecords(workflowState, recordType, start, rows, user, roles, brand, editAccessOnly=undefined, packageType = undefined, sort=undefined) {
+     protected async getRecords(workflowState, recordType, start, rows, user, roles, brand, editAccessOnly=undefined, packageType = undefined, sort=undefined) {
        const username = user.username;
        if (!_.isUndefined(recordType) && !_.isEmpty(recordType)) {
          recordType = recordType.split(',');
@@ -547,38 +547,42 @@ export module Controllers {
        if (!_.isUndefined(packageType) && !_.isEmpty(packageType)) {
          packageType = packageType.split(',');
        }
-       var response = DashboardService.getRecords(workflowState, recordType, start, rows, username, roles, brand, editAccessOnly, packageType, sort);
-
-       return response.map(results => {
-
-        let apiReponse: ListAPIResponse<any> = new ListAPIResponse();
-         var totalItems = results["response"]["numFound"];
-         var startIndex = results["response"]["start"];
-         var noItems = rows;
-         var pageNumber = Math.floor((startIndex / noItems) + 1);
-
-         apiReponse.summary.numFound = totalItems;
-         apiReponse.summary.start = startIndex;
-         apiReponse.summary.page = pageNumber;
-
-
-         var items = [];
-         var docs = results["response"]["docs"];
-
-         for (var i = 0; i < docs.length; i++) {
-           var doc = docs[i];
-           var item = {};
-           item["oid"] = doc["redboxOid"];
-           item["title"] = doc["metadata"]["title"];
-           item["metadata"]= this.getDocMetadata(doc);
-           item["dateCreated"] =  doc["date_object_created"][0];
-           item["dateModified"] = doc["date_object_modified"][0];
-           item["hasEditAccess"] = this.RecordsService.hasEditAccess(brand, user, roles, doc);
-           items.push(item);
-         }
-         apiReponse.records = items;
-         return Observable.of(apiReponse);
-       });
+       if(start == null) {
+         start = 0;
+       }
+       if(rows == undefined) {
+         rows = 10;
+       }
+       var results = await this.RecordsService.getRecords(workflowState, recordType, start, rows, username, roles, brand, editAccessOnly, packageType, sort);
+       sails.log.debug(    results);  
+       let apiReponse: ListAPIResponse<any> = new ListAPIResponse();       
+          var totalItems = results.totalItems
+          var startIndex = start;
+          var noItems = rows;
+          var pageNumber = Math.floor((startIndex / noItems) + 1);
+ 
+          apiReponse.summary.numFound = totalItems;
+          apiReponse.summary.start = startIndex;
+          apiReponse.summary.page = pageNumber;
+ 
+ 
+          var items = [];
+          var docs = results["items"];
+ 
+          for (var i = 0; i < docs.length; i++) {
+            var doc = docs[i];
+            var item = {};
+            item["oid"] = doc["redboxOid"];
+            item["title"] = doc["metadata"]["title"];
+            item["metadata"]= doc["metadata"];
+            item["dateCreated"] =  doc["dateCreated"];
+            item["dateModified"] = doc["lastSaveDate"];
+            item["hasEditAccess"] = this.RecordsService.hasEditAccess(brand, user, roles, doc);
+            items.push(item);
+          }
+          apiReponse.records = items;
+          return apiReponse;
+      
      }
 
      public listRecords(req, res) {
@@ -619,11 +623,9 @@ export module Controllers {
        } else {
          // sails.log.debug(`getRecords: ${recordType} ${workflowState} ${start}`);
          // sails.log.debug(`${rows} ${packageType} ${sort}`);
-         this.getRecords(workflowState, recordType, start, rows, user, roles, brand, editAccessOnly, packageType, sort).flatMap(results => {
-             return results;
-           }).subscribe(response => {
+         this.getRecords(workflowState, recordType, start, rows, user, roles, brand, editAccessOnly, packageType, sort).then(response => {
              res.json(response);
-           }, error => {
+           }).catch( error => {
              sails.log.error("Error:");
              sails.log.error(error);
              var err = error['error'];

@@ -107,9 +107,13 @@ export module Controllers {
       }
 
       public logout(req, res) {
+        let redirUrl = sails.config.auth.postLogoutRedir;
+        if (req.session.user && req.session.user.type == 'oidc') {
+          redirUrl = req.session.logoutUrl;
+        } 
         req.logout();
         req.session.destroy(err => {
-          res.redirect(sails.config.auth.postLogoutRedir);
+          res.redirect(redirUrl);
         });
       }
 
@@ -227,10 +231,20 @@ export module Controllers {
 
 
 
-          if (!_.isEmpty(err) || _.isUndefined(user)) {
+          if (!_.isEmpty(err) ||  _.isUndefined(user) || _.isEmpty(user) || user == false) {
             sails.log.error(`OpenId Connect Login failed!`)
-            // means the provider has authenticated the user, but has been rejected, redirect to catch-all
-              return res.redirect(`${BrandingService.getBrandAndPortalPath(req)}/home?errorTextCode=error-auth&errorTextRaw=${err}`);
+              // means the provider has authenticated the user, but has been rejected, redirect to catch-all
+              if (!_.isEmpty(info) && !_.isString(info) && _.isObject(info) ) {
+                info = JSON.stringify(info);
+              } else {
+                if (_.isUndefined(info) || _.isEmpty(info)) {
+                  info = '';
+                }
+              }
+              if (_.isEmpty(err)) {
+                err = '';
+              }
+              return res.redirect(`${BrandingService.getBrandAndPortalPath(req)}/home?errorTextCode=error-auth&errorTextRaw=${err}${info}`);
               // return res.send({
               //     message: info.message,
               //     user: user
