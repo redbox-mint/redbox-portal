@@ -107,9 +107,13 @@ export module Controllers {
       }
 
       public logout(req, res) {
+        let redirUrl = sails.config.auth.postLogoutRedir;
+        if (req.session.user && req.session.user.type == 'oidc') {
+          redirUrl = req.session.logoutUrl;
+        } 
         req.logout();
         req.session.destroy(err => {
-          res.redirect(sails.config.auth.postLogoutRedir);
+          res.redirect(redirUrl);
         });
       }
 
@@ -233,7 +237,9 @@ export module Controllers {
               if (!_.isEmpty(info) && !_.isString(info) && _.isObject(info) ) {
                 info = JSON.stringify(info);
               } else {
-                info = `${info}`;
+                if (_.isUndefined(info) || _.isEmpty(info)) {
+                  info = '';
+                }
               }
               if (_.isEmpty(err)) {
                 err = '';
