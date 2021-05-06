@@ -101,8 +101,6 @@
   "devDependencies": {
     "@compodoc/compodoc": "^1.1.11",
     "@types/jquery": "^3.5.1",
-    "@types/leaflet": "^1.7.0",
-    "@types/leaflet-draw": "^1.0.3",
     "@types/lodash-es": "^4.17.4",
     "bower": "^1.8.8",
     "chai": "^4.2.0",
