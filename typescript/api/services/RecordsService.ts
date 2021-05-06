@@ -181,7 +181,7 @@ export module Services {
         if (!_.isEmpty(recordType) && triggerPostSaveTriggers === true) {
           // Trigger Post-save sync hooks ...
           try {
-            updateResponse = await this.triggerPostSaveSyncTriggers(updateResponse['oid'], record, recordType, 'onCreate', user, updateResponse);
+            updateResponse = await this.triggerPostSaveSyncTriggers(updateResponse['oid'], record, recordType, 'onUpdate', user, updateResponse);
           } catch (err) {
             sails.log.error(`${this.logHeader} Exception while running post save sync hooks when updating:`);
             sails.log.error(JSON.stringify(err));
@@ -190,7 +190,7 @@ export module Services {
             return updateResponse;
           }
           // Fire Post-save hooks async ...
-          this.triggerPostSaveTriggers(updateResponse['oid'], record, recordType, 'onCreate', user);
+          this.triggerPostSaveTriggers(updateResponse['oid'], record, recordType, 'onUpdate', user);
         }
         this.searchService.index(oid, record);
         // TODO: fire-off audit message
