@@ -110,7 +110,7 @@
     "ejs-cli": "^2.2.1",
     "istanbul": "^0.4.5",
     "mocha": "^8.1.2",
-    "newman": "^5.2.1",
+    "newman": "^5.2.3",
     "supertest": "^4.0.2",
     "uglify-es": "^3.3.10"
   },
