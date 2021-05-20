@@ -39,8 +39,8 @@
 
 import services = require('../core/CoreService.js');
 import QueueService from '../core/QueueService.js';
-import Agenda = require('agenda');
 import {Sails, Model} from "sails";
+import { Agenda } from 'agenda/es';
 
 declare var module;
 declare var sails: Sails;

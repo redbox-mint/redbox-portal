@@ -1,0 +1,18 @@
+/* You can add global styles to this file, and also import other style files */
+@import '~uppy/dist/uppy.min.css';
+@import '~leaflet/dist/leaflet.css';
+@import '~leaflet-draw/dist/leaflet.draw.css';
+@import '~bootstrap-datepicker/dist/css/bootstrap-datepicker3.min.css';
+@import '~bootstrap-timepicker/css/bootstrap-timepicker.min.css';
+@import url(https://vocabs.ardc.edu.au/apps/assets/vocab_widget/css/vocab_widget_v2.css);
+@import '~angular-tree-component/dist/angular-tree-component.css';
+
+.reverse tree-node-expander {
+  order: 0;
+}
+.reverse tree-node-checkbox {
+  order: 1;
+}
+.reverse .node-content-wrapper {
+  order: 2;
+}
