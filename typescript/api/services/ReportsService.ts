@@ -138,7 +138,6 @@ export module Services {
     }
 
     public getResults(brand, name = '', req, start = 0, rows = 10) {
-      const self = this;
       var reportObs = super.getObservable(Report.findOne({
         key: brand.id + "_" + name
       }));
