@@ -21,6 +21,7 @@ import {
   Observable
 } from 'rxjs/Rx';
 import services = require('../core/CoreService.js');
+import SearchService from '../core/SearchService.js';
 import {
   Sails,
   Model
@@ -41,6 +42,8 @@ export module Services {
    */
   export class Reports extends services.Services.Core.Service {
 
+    searchService: SearchService;
+
     protected _exportedMethods: any = [
       'bootstrap',
       'create',
@@ -52,28 +55,28 @@ export module Services {
 
     public bootstrap = (defBrand) => {
       return super.getObservable(Report.find({
-          branding: defBrand.id
-        })).flatMap(reports => {
-          if (_.isEmpty(reports)) {
-            var rTypes = [];
-            sails.log.verbose("Bootstrapping report definitions... ");
-            _.forOwn(sails.config.reports, (config, report) => {
-              var obs = this.create(defBrand, report, config);
-              obs.subscribe(repProcessed => {})
-              rTypes.push(obs);
-            });
-            return Observable.from(rTypes);
+        branding: defBrand.id
+      })).flatMap(reports => {
+        if (_.isEmpty(reports)) {
+          var rTypes = [];
+          sails.log.verbose("Bootstrapping report definitions... ");
+          _.forOwn(sails.config.reports, (config, report) => {
+            var obs = this.create(defBrand, report, config);
+            obs.subscribe(repProcessed => { })
+            rTypes.push(obs);
+          });
+          return Observable.from(rTypes);
 
-          } else {
+        } else {
 
-            var rTypes = [];
-            _.each(reports, function (report) {
-              rTypes.push(Observable.of(report));
-            });
-            sails.log.verbose("Default reports definition(s) exist.");
-            return Observable.from(rTypes);
-          }
-        })
+          var rTypes = [];
+          _.each(reports, function (report) {
+            rTypes.push(Observable.of(report));
+          });
+          sails.log.verbose("Default reports definition(s) exist.");
+          return Observable.from(rTypes);
+        }
+      })
         .last();
     }
 
@@ -100,10 +103,10 @@ export module Services {
       }));
     }
 
-    private buildSolrUrl(brand, req, report, start, rows, format) {
-      var url = this.addQueryParams(sails.config.record.baseUrl.redbox + sails.config.record.api.search.url, report);
-      url = this.addPaginationParams(url, start, rows);
-      url = url + `&fq=metaMetadata_brandId:${brand.id}&wt=${format}`;
+    private buildSolrParams(brand, req, report, start, rows, format) {
+      var params = this.getQueryValue(report);
+      params = this.addPaginationParams(params, start, rows);
+      params = params + `&fq=metaMetadata_brandId:${brand.id}&wt=${format}`;
 
       if (report.filter != null) {
         var filterQuery = ""
@@ -128,14 +131,13 @@ export module Services {
             }
           }
         }
-        url = url + filterQuery;
+        params = params + filterQuery;
       }
 
-      return url;
+      return params;
     }
 
     public getResults(brand, name = '', req, start = 0, rows = 10) {
-
       var reportObs = super.getObservable(Report.findOne({
         key: brand.id + "_" + name
       }));
@@ -143,10 +145,13 @@ export module Services {
       return reportObs.flatMap(report => {
         report = this.convertLegacyReport(report);
 
-        var url = this.buildSolrUrl(brand, req, report, start, rows, 'json');
-        var options = this.getOptions(url);
-        return Observable.fromPromise(request[sails.config.record.api.search.method](options));
+        var url = this.buildSolrParams(brand, req, report, start, rows, 'json');
+        return Observable.fromPromise(this.getSearchService().searchAdvanced(url));
       });
+    }
+
+    private getSearchService() {
+      return sails.services[sails.config.search.serviceName];
     }
 
     private convertLegacyReport(report) {
@@ -171,42 +176,27 @@ export module Services {
         sails.log.debug(report)
         // TODO: Ensure we get all results in a tidier way
         //       Stream the resultset rather than load it in-memory
-        var url = this.buildSolrUrl(brand, req, report, start, rows, 'csv');
-        var options = this.getOptions(url, 'text/csv');
-        return Observable.fromPromise(request[sails.config.record.api.search.method](options));
+        var url = this.buildSolrParams(brand, req, report, start, rows, 'csv');
+        return Observable.fromPromise(this.getSearchService().searchAdvanced(url));
       });
     }
 
-    protected addQueryParams(url, report) {
-      url = url + "?q=" + report.solr_query + "&sort=date_object_modified desc&version=2.2&fl="
+    protected getQueryValue(report) {
+      let query = `${report.solr_query}&sort=date_object_modified desc&version=2.2&fl=`
       for (var i = 0; i < report.columns.length; i++) {
         var column = report.columns[i];
-        url = url + column.property;
+        query = query + column.property;
         if (i != report.columns.length - 1) {
-          url = url + ","
+          query = query + ","
         }
       }
-      return url;
+      return query;
     }
 
-    protected addPaginationParams(url, start = 0, rows) {
-      url = url + "&start=" + start + "&rows=" + rows;
-      return url;
+    protected addPaginationParams(params, start = 0, rows) {
+      params = params + "&start=" + start + "&rows=" + rows;
+      return params;
     }
-
-    protected getOptions(url, contentType = 'application/json; charset=utf-8') {
-      return {
-        url: url,
-        json: true,
-        headers: {
-          'Authorization': `Bearer ${sails.config.redbox.apiKey}`,
-          'Content-Type': contentType
-        }
-      };
-    }
-
-
-
 
   }
 }
