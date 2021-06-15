@@ -10,7 +10,15 @@
 <div class="row">
   <local-auth><!-- Add Angular2 selector --></local-auth>
 </div>
-<script type="text/javascript" src="/angular/localAuth/inline.bundle.js?<%= sails.config.startupMinute %>"></script>
-<script type="text/javascript" src="/angular/localAuth/polyfills.bundle.js?<%= sails.config.startupMinute %>"></script>
-<script type="text/javascript" src="/angular/localAuth/styles.bundle.js?<%= sails.config.startupMinute %>"></script><script type="text/javascript" src="/angular/localAuth/vendor.bundle.js"></script>
-<script type="text/javascript" src="/angular/localAuth/main.bundle.js?<%= sails.config.startupMinute %>"></script>
+
+<script type="text/javascript" src="/angular/localAuth/inline.bundle.js?ts=<%= sails.config.startupMinute %>"></script>
+<script type="text/javascript" src="/angular/localAuth/polyfills.bundle.js?ts=<%= sails.config.startupMinute %>"></script>
+<% if (sails.config.angularDev) { %>
+<script type="text/javascript" src="/angular/localAuth/vendor.bundle.js?ts=<%= sails.config.startupMinute %>"></script>
+<% } %>
+<script type="text/javascript" src="/angular/localAuth/main.bundle.js?ts=<%= sails.config.startupMinute %>"></script>
+<% if (sails.config.angularDev) { %>
+  <script type="text/javascript" src="/angular/localAuth/styles.bundle.js?ts=<%= sails.config.startupMinute %>"></script>
+<% } else { %>
+  <link rel="stylesheet" href="/angular/localAuth/styles.bundle.css?ts=<%= sails.config.startupMinute %>">
+<% } %>
