@@ -1,6 +1,6 @@
 {
 	"info": {
-		"_postman_id": "5b3ba1a4-4b2d-468c-8c8d-e42f25edb1e6",
+		"_postman_id": "4c718598-52e0-465e-a513-9de8f06d4dc2",
 		"name": "Redbox Portal API - With tests",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
@@ -4365,9 +4365,9 @@
 									"    pm.response.to.have.status(200);",
 									"});",
 									"",
-									"pm.test(\"Has record array\", function () {",
+									"pm.test(\"Has items array\", function () {",
 									"    var jsonData = pm.response.json();",
-									"    pm.expect(jsonData).to.have.property(\"records\");",
+									"    pm.expect(jsonData).to.have.property(\"items\");",
 									"});"
 								],
 								"type": "text/javascript"
@@ -4535,10 +4535,10 @@
 									]
 								}
 							},
-							"_postman_previewlanguage": null,
-							"header": null,
+							"_postman_previewlanguage": "Text",
+							"header": [],
 							"cookie": [],
-							"body": null
+							"body": ""
 						}
 					]
 				},
@@ -4554,8 +4554,8 @@
 									"});",
 									"",
 									"pm.test(\"Has record array\", function () {",
-									"    var jsonData = pm.response.json();",
-									"    pm.expect(jsonData).to.have.property(\"records\");",
+									"    var csvData = pm.response.text();",
+									"    pm.expect(csvData.split(',')).to.have.length.greaterThan(1);",
 									"});"
 								],
 								"type": "text/javascript"
@@ -4723,10 +4723,10 @@
 									]
 								}
 							},
-							"_postman_previewlanguage": null,
-							"header": null,
+							"_postman_previewlanguage": "Text",
+							"header": [],
 							"cookie": [],
-							"body": null
+							"body": ""
 						}
 					]
 				},
