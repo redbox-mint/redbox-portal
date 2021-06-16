@@ -206,6 +206,8 @@ export module Services {
       const customResp = {
         records: []
       };
+      let totalItems = response.response.numFound;
+      
       _.forEach(response.response.docs, solrdoc => {
         const customDoc = {};
         _.forEach(returnFields, retField => {
@@ -236,6 +238,7 @@ export module Services {
           });
         });
       }
+      customResp['totalItems'] = totalItems;
       return customResp;
     }
 
