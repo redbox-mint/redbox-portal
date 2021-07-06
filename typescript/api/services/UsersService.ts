@@ -197,13 +197,21 @@ export module Services {
           sails.log.verbose(`OIDC is active, configuring....`);
           const oidcConfig = defAuthConfig.oidc;
           const oidcOpts = oidcConfig.opts;
-          const { Issuer, Strategy } = require('openid-client');
+          const { Issuer, Strategy, custom } = require('openid-client');
           let configured = false;
           let discoverAttemptsCtr = 0;
           while (!configured && discoverAttemptsCtr < oidcConfig.discoverAttemptsMax) {
             discoverAttemptsCtr++;
             try {
-              const issuer = await Issuer.discover(oidcOpts.issuer);
+              let issuer;
+              if (_.isString(oidcOpts.issuer)) {
+                sails.log.verbose(`OIDC, using issuer URL for discovery: ${oidcOpts.issuer}`);
+                issuer = await Issuer.discover(oidcOpts.issuer);
+              } else {
+                sails.log.verbose(`OIDC, using issuer hardcoded configuration:`);
+                sails.log.verbose(JSON.stringify(oidcOpts.issuer));
+                issuer = new Issuer(oidcOpts.issuer);
+              }
               configured = true;
               sails.log.verbose(`OIDC, Got issuer config, after ${discoverAttemptsCtr} attempt(s).`);
               sails.log.verbose(issuer);
