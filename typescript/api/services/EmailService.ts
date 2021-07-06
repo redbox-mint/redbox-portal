@@ -103,8 +103,8 @@ export module Services {
 
     try {
       let sendResult = await transport.sendMail(message);
-      sails.log.verbose(`Emai sent successfully. Message Id: ${sendResult.messageId}`);
-      response['msg'] = `Emai sent successfully. Message Id: ${sendResult.messageId}`;
+      sails.log.verbose(`Email sent successfully. Message Id: ${sendResult.messageId}`);
+      response['msg'] = `Email sent successfully. Message Id: ${sendResult.messageId}`;
       response.success = true;
     } catch(err) {
       response['msg'] = 'Email unable to be submitted';
@@ -218,6 +218,9 @@ export module Services {
       }
       const subject = this.runTemplate(_.get(options, "subject", null), variables);
       const templateName = _.get(options, "template", "");
+      const from = this.runTemplate(_.get(options, "from", sails.config.emailnotification.defaults.from), variables);
+      const msgFormat = _.get(options, "msgFormat", sails.config.emailnotification.defaults.format);
+
       const data = {};
       data['record'] = record;
       data['oid'] = oid;
@@ -228,7 +231,7 @@ export module Services {
             sails.log.error(buildResult);
             return Observable.throw(new Error('Failed to build email body.'));
           }
-          return this.sendMessage(to, buildResult['body'], subject);
+          return this.sendMessage(to, buildResult['body'], subject,from,msgFormat);
         })
         .flatMap(sendResult => {
           if (sendResult['code'] == '200') {
