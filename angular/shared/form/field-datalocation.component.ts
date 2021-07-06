@@ -323,5 +323,6 @@ export class DataLocationComponent extends SimpleComponent {
   public saveNotes() {
     jQuery(`#${this.field.name}_editnotes`).modal('hide');
     this.field.value[this.editingNotes.index].notes = this.editingNotes.notes;
+    this.field.setValue(this.field.value);
   }
 }

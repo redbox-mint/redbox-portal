@@ -10,8 +10,15 @@
 <div class="row">
   <manage-users></manage-users>
 </div>
-<script type="text/javascript" src="/angular/manageUsers/inline.bundle.js?<%= sails.config.startupMinute %>"></script>
-<script type="text/javascript" src="/angular/manageUsers/polyfills.bundle.js?<%= sails.config.startupMinute %>"></script>
-<script type="text/javascript" src="/angular/manageUsers/styles.bundle.js?<%= sails.config.startupMinute %>"></script>
-<script type="text/javascript" src="/angular/manageUsers/vendor.bundle.js?<%= sails.config.startupMinute %>"></script>
-<script type="text/javascript" src="/angular/manageUsers/main.bundle.js?<%= sails.config.startupMinute %>"></script>
+
+<script type="text/javascript" src="/angular/manageUsers/inline.bundle.js?ts=<%= sails.config.startupMinute %>"></script>
+<script type="text/javascript" src="/angular/manageUsers/polyfills.bundle.js?ts=<%= sails.config.startupMinute %>"></script>
+<% if (sails.config.angularDev) { %>
+<script type="text/javascript" src="/angular/manageUsers/vendor.bundle.js?ts=<%= sails.config.startupMinute %>"></script>
+<% } %>
+<script type="text/javascript" src="/angular/manageUsers/main.bundle.js?ts=<%= sails.config.startupMinute %>"></script>
+<% if (sails.config.angularDev) { %>
+  <script type="text/javascript" src="/angular/manageUsers/styles.bundle.js?ts=<%= sails.config.startupMinute %>"></script>
+<% } else { %>
+  <link rel="stylesheet" href="/angular/manageUsers/styles.bundle.css?ts=<%= sails.config.startupMinute %>">
+<% } %>
