@@ -244,11 +244,11 @@ export module Controllers {
               if (_.isEmpty(err)) {
                 err = '';
               }
-              return res.redirect(`${BrandingService.getBrandAndPortalPath(req)}/home?errorTextCode=error-auth&errorTextRaw=${err}${info}`);
-              // return res.send({
-              //     message: info.message,
-              //     user: user
-              // });
+              return res.serverError({ 
+                "message": 'error-auth',
+                "detailedMessager": `${err}${info}`
+              });
+
           }
           req.logIn(user, function(err) {
             if (err) res.send(err);
@@ -274,10 +274,13 @@ export module Controllers {
           sails.log.verbose("User:");
           sails.log.verbose(user);
           if ((err) || (!user)) {
-              return res.send({
-                  message: info.message,
-                  user: user
-              });
+            sails.log.error(err)
+            // means the provider has authenticated the user, but has been rejected, redirect to catch-all
+            return res.serverError({ 
+              "message": 'error-auth',
+              "detailedMessager": `${err}${info}`
+            });
+           
           }
           req.logIn(user, function(err) {
             if (err) res.send(err);
