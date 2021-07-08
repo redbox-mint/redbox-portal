@@ -41,7 +41,7 @@ import {Readable}  from 'stream';
 
 const util = require('util');
 
-declare var FormsService, RolesService, UsersService, WorkflowStepsService, RecordTypesService, RedboxJavaStorageService;
+declare var FormsService, RolesService, UsersService, WorkflowStepsService, RecordTypesService, RedboxJavaStorageService, SolrSearchService;
 declare var sails: Sails;
 declare var _;
 declare var _this;
@@ -57,7 +57,7 @@ export module Services {
 
     storageService: StorageService = null;
     datastreamService: DatastreamService = null;
-    searchService:SearchService = null;
+    searchService: SearchService = null;
 
     constructor() {
       super();
@@ -66,7 +66,7 @@ export module Services {
       sails.on('ready', function () {
         that.getStorageService();
         that.getDatastreamService();
-        that.searchService = sails.services[sails.config.search.serviceName];
+        that.getSearchService();
       });
     }
 
@@ -83,6 +83,14 @@ export module Services {
         this.datastreamService = RedboxJavaStorageService;
       } else {
         this.datastreamService = sails.services[sails.config.storage.serviceName];
+      }
+    }
+
+    getSearchService() {
+      if (_.isEmpty(sails.config.search) || _.isEmpty(sails.config.search.serviceName)) {
+        this.searchService = SolrSearchService;
+      } else {
+        this.searchService = sails.services[sails.config.search.serviceName];
       }
     }
 
@@ -144,7 +152,7 @@ export module Services {
           // Fire Post-save hooks async ...
           this.triggerPostSaveTriggers(createResponse['oid'], record, recordType, 'onCreate', user);
         }
-        this.searchService.index(createResponse['oid'], record);
+            this.searchService.index(createResponse['oid'], record);
         // TODO: fire-off audit message
       } else {
         sails.log.error(`${this.logHeader} Failed to create record, storage service response:`);
@@ -640,7 +648,7 @@ export module Services {
               response = await this.resolveHookResponse(hookResponse);
               sails.log.debug(`${postSaveSyncHooksFunctionString} response now is:`);
               sails.log.verbose(JSON.stringify(response));
-              sails.log.debug(`post-save trigger ${postSaveSyncHooksFunctionString} completed for ${oid}`)
+              sails.log.debug(`post-save sync trigger ${postSaveSyncHooksFunctionString} completed for ${oid}`)
             } else {
               sails.log.error(`Post save function: '${postSaveSyncHooksFunctionString}' did not resolve to a valid function, what I got:`);
               sails.log.error(postSaveSyncHookFunction);

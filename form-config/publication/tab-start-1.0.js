@@ -48,7 +48,7 @@ module.exports = [
           class: 'RelatedObjectSelector',
           compClass: 'RelatedObjectSelectorComponent',
           definition: {
-            label: 'Data record related to this publication',
+            label: '@dataPublication-selector-label',
             name: 'dataRecord',
             recordType: 'dataRecord',
             required: true,
@@ -257,7 +257,7 @@ module.exports = [
             label: "@dmpt-project-anzsrcFor",
             help: "@dmpt-project-anzsrcFor-help",
             name: "dc:subject_anzsrc:for",
-            vocabId: 'anzsrc-for',
+            vocabId: 'anzsrc-2020-for',
             disabledExpression: '<%= _.isEmpty(relatedRecordId) %>',
             subscribe: {
               'dataRecordGetter': {
@@ -276,7 +276,7 @@ module.exports = [
             label: "@dmpt-project-anzsrcSeo",
             help: "@dmpt-project-anzsrcSeo-help",
             name: "dc:subject_anzsrc:seo",
-            vocabId: 'anzsrc-seo',
+            vocabId: 'anzsrc-2020-seo',
             disabledExpression: '<%= _.isEmpty(relatedRecordId) %>',
             subscribe: {
               'dataRecordGetter': {

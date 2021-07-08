@@ -61,7 +61,7 @@ module.exports = {
       viewOnly: true,
       definition: {
         name: 'description',
-        label: 'Description'
+        label: '@dataRecord-description'
       }
     },
     {
@@ -120,7 +120,7 @@ module.exports = {
                   class: 'RelatedObjectSelector',
                   compClass: 'RelatedObjectSelectorComponent',
                   definition: {
-                    label: 'RDMP related to this data record',
+                    label: '@dataRecord-selector-label',
                     name: 'rdmp',
                     recordType: 'rdmp',
                     subscribe: {
@@ -254,7 +254,7 @@ module.exports = {
                     label: "@dmpt-project-anzsrcFor",
                     help: "@dmpt-project-anzsrcFor-help",
                     name: "dc:subject_anzsrc:for",
-                    vocabId: 'anzsrc-for',
+                    vocabId: 'anzsrc-2020-for',
                     subscribe: {
                       'rdmpGetter': {
                         onValueUpdate: [{
@@ -272,7 +272,7 @@ module.exports = {
                     label: "@dmpt-project-anzsrcSeo",
                     help: "@dmpt-project-anzsrcSeo-help",
                     name: "dc:subject_anzsrc:seo",
-                    vocabId: 'anzsrc-seo',
+                    vocabId: 'anzsrc-2020-seo',
                     subscribe: {
                       'rdmpGetter': {
                         onValueUpdate: [{
@@ -317,8 +317,8 @@ module.exports = {
                   compClass: 'TextAreaComponent',
                   definition: {
                     name: 'description',
-                    label: '@dataRecord-description',
-                    help: '@dataRecord-description-help',
+                    label: '@dataRecord-what-tab-description',
+                    help: '@dataRecord-what-tab-description-help',
                     type: 'text',
                     required: true
                   }
@@ -992,14 +992,14 @@ module.exports = {
           {
             class: "SaveButton",
             definition: {
-              label: 'Save',
+              label: '@save-button',
               cssClasses: 'btn-success'
             }
           },
           {
             class: "SaveButton",
             definition: {
-              label: 'Save & Close',
+              label: '@save-and-close-button',
               closeOnSave: true,
               redirectLocation: '/@branding/@portal/dashboard/dataRecord'
             },
@@ -1008,7 +1008,7 @@ module.exports = {
           {
             class: "CancelButton",
             definition: {
-              label: 'Close',
+              label: '@close-button',
             }
           }
         ]
