@@ -699,5 +699,6 @@
   "@dataPublication-dc:accessRights-conditional-val": "Conditional",
   "@record-permissions-tab-heading": "Permissions",
   "@record-permissions-tab": "Permissions",
-  "@dataPublication-retire": "Retire"
+  "@dataPublication-retire": "Retire",
+  "workspace.no-records-found" : "No workspace records were found"
 }
