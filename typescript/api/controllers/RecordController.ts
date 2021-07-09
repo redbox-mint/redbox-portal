@@ -497,6 +497,10 @@ export module Controllers {
 
       let recordType = await RecordTypesService.get(brand, recType).toPromise();
 
+      if (recordType.pacakgeType) {
+        record.metaMetadata.packageType = recordType.packageType;
+      }
+
         if (recordType.packageName) {
           record.metaMetadata.packageName = recordType.packageName;
         }
