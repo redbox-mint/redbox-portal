@@ -75,7 +75,7 @@
     "skipper-gridfs": "^1.0.2",
     "solr-client": "^0.9.0",
     "systemjs": "6.8.3",
-    "ts-node": "^9.0.0",
+    "ts-node": "^10.1.0",
     "ts-smart-logger": "0.1.0",
     "tus-node-server": "^0.3.2",
     "typescript": "4.0",
