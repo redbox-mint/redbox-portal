@@ -4,7 +4,7 @@
   "description": "ReDBox 2 Portal",
   "keywords": [],
   "dependencies": {
-    "@researchdatabox/sails-hook-redbox-storage-mongo": "1.0.0-alpha",
+    "@researchdatabox/sails-hook-redbox-storage-mongo": "1.0.1-alpha",
     "@sailshq/upgrade": "^1.0.9",
     "@uppy/core": "^1.18.0",
     "@uppy/dashboard": "^1.19.0",
