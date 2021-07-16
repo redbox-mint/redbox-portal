@@ -201,7 +201,11 @@ export module Services {
   }
 
   public sendRecordNotification(oid, record, options) {
-    if (this.metTriggerCondition(oid, record, options) == "true") {
+    const isSailsEmailConfigDisabled = (_.get(sails.config, 'services.email.disabled', false) == "true");
+    if (isSailsEmailConfigDisabled) {
+      sails.log.verbose(`Not sending notification log for: ${oid}, config: services.email.disabled is ${isSailsEmailConfigDisabled}`);
+      return Observable.of(null);
+    } else if (this.metTriggerCondition(oid, record, options) == "true") {
       const variables = {
         imports: {
           record: record,
