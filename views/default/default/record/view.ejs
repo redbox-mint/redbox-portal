@@ -15,11 +15,11 @@ var currentMinute = sails.config.startupMinute;
 
 <script type="text/javascript" src="/angular/dmp/inline.bundle.js?ts=<%= currentMinute %>"></script>
 <script type="text/javascript" src="/angular/dmp/polyfills.bundle.js?ts=<%= currentMinute %>"></script>
-<% if (sails.config.angularDev) { %>
+<% if (sails.config.angularDev == 'true') { %>
 <script type="text/javascript" src="/angular/dmp/vendor.bundle.js?ts=<%= currentMinute %>"></script>
 <% } %>
 <script type="text/javascript" src="/angular/dmp/main.bundle.js?ts=<%= currentMinute %>"></script>
-<% if (sails.config.angularDev) { %>
+<% if (sails.config.angularDev == 'true') { %>
   <script type="text/javascript" src="/angular/dmp/styles.bundle.js?ts=<%= currentMinute %>"></script>
 <% } else { %>
   <link rel="stylesheet" href="/angular/dmp/styles.bundle.css?ts=<%= currentMinute %>">

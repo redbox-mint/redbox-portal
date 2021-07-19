@@ -23,11 +23,11 @@
 
    <script type="text/javascript" src="/angular/report/inline.bundle.js?ts=<%= sails.config.startupMinute %>"></script>
 <script type="text/javascript" src="/angular/report/polyfills.bundle.js?ts=<%= sails.config.startupMinute %>"></script>
-<% if (sails.config.angularDev) { %>
+<% if (sails.config.angularDev == 'true') { %>
 <script type="text/javascript" src="/angular/report/vendor.bundle.js?ts=<%= sails.config.startupMinute %>"></script>
 <% } %>
 <script type="text/javascript" src="/angular/report/main.bundle.js?ts=<%= sails.config.startupMinute %>"></script>
-<% if (sails.config.angularDev) { %>
+<% if (sails.config.angularDev == 'true') { %>
   <script type="text/javascript" src="/angular/report/styles.bundle.js?ts=<%= sails.config.startupMinute %>"></script>
 <% } else { %>
   <link rel="stylesheet" href="/angular/report/styles.bundle.css?ts=<%= sails.config.startupMinute %>">
