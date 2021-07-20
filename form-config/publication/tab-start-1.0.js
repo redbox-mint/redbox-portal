@@ -48,7 +48,7 @@ module.exports = [
           class: 'RelatedObjectSelector',
           compClass: 'RelatedObjectSelectorComponent',
           definition: {
-            label: 'Data record related to this publication',
+            label: '@dataPublication-selector-label',
             name: 'dataRecord',
             recordType: 'dataRecord',
             required: true,

@@ -46,7 +46,7 @@ module.exports = {
             class: "AnchorOrButton",
             viewOnly: true,
             definition: {
-              label: '@dmp-create-datarecord-link',
+              label: '@dmpt-create-datarecord-link',
               value: '/@branding/@portal/record/dataRecord/edit?rdmpOid=@oid',
               cssClasses: 'btn btn-large btn-info margin-15',
               controlType: 'anchor'
@@ -58,7 +58,7 @@ module.exports = {
             viewOnly: true,
             definition: {
               name: 'pdf',
-              label: 'pdf',
+              label: '@dmpt-pdf-list-label',
               cssClasses: 'btn btn-large btn-info margin-15'
             }
           }
@@ -70,7 +70,7 @@ module.exports = {
       viewOnly: true,
       definition: {
         name: 'description',
-        label: 'Description'
+        label: '@dmpt-description'
       }
     },
     {
@@ -1199,7 +1199,7 @@ module.exports = {
                     attachmentText: 'Add attachment(s)',
                     attachmentTextDisabled: 'Save your plan to attach files',
                     help: 'Upload your licence or agreements here. You can only upload after you save your plan.',
-                    label: 'Licences or Agreements:'
+                    label: '@dmpt-licences-agreements'
                   }
                 },
                 // Hiddden reactive elements...
@@ -1260,7 +1260,7 @@ module.exports = {
                         }
                       },
                       {
-                        "label": "Description",
+                        "label": "@dmpt-workspaces-description",
                         "property": "description"
                       },
                       {
@@ -1353,14 +1353,14 @@ module.exports = {
           {
             class: "SaveButton",
             definition: {
-              label: 'Save',
+              label: '@save-button',
               cssClasses: 'btn-success'
             }
           },
           {
             class: "SaveButton",
             definition: {
-              label: 'Save & Close',
+              label: '@save-and-close-button',
               closeOnSave: true,
               redirectLocation: '/@branding/@portal/dashboard/rdmp'
             },
@@ -1369,7 +1369,7 @@ module.exports = {
           {
             class: "CancelButton",
             definition: {
-              label: 'Close',
+              label: '@close-button',
             }
           }
         ]
