@@ -12,7 +12,7 @@ module.exports = [
     class: "AnchorOrButton",
     viewOnly: true,
     definition: {
-      label: 'Edit this publication',
+      label: '@header-view-only-edit-label',
       value: '/@branding/@portal/record/edit/@oid',
       cssClasses: 'btn btn-large btn-info margin-15',
       showPencil: true,
@@ -32,7 +32,7 @@ module.exports = [
     viewOnly: true,
     definition: {
       name: 'description',
-      label: 'Description'
+      label: '@header-view-only-description'
     }
   }
 ];

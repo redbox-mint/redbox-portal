@@ -122,7 +122,7 @@ module.exports = {
                         class: 'SaveButton',
                         compClass: 'SaveButtonComponent',
                         definition: {
-                            label: "Save & Close",
+                            label: '@save-and-close-button',
                             closeOnSave: true,
                             redirectLocation: '/@branding/@portal/record/edit/@referrer_rdmp?focusTabId=workspaces'
                         },
@@ -131,7 +131,7 @@ module.exports = {
                     {
                         class: "AnchorOrButton",
                         definition: {
-                          label: 'Cancel',
+                          label: '@cancel-button',
                           value: '/@branding/@portal/record/edit/@referrer_rdmp?focusTabId=workspaces',
                           cssClasses: 'btn btn-warning',
                           controlType: 'anchor'
