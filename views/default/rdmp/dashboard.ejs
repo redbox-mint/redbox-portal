@@ -29,11 +29,11 @@
 
     <script type="text/javascript" src="/angular/dashboard/inline.bundle.js?ts=<%= currentMinute %>"></script>
 <script type="text/javascript" src="/angular/dashboard/polyfills.bundle.js?ts=<%= currentMinute %>"></script>
-<% if (sails.config.angularDev == 'true') { %>
+<% if (sails.config.angularDev) { %>
 <script type="text/javascript" src="/angular/dashboard/vendor.bundle.js?ts=<%= currentMinute %>"></script>
 <% } %>
 <script type="text/javascript" src="/angular/dashboard/main.bundle.js?ts=<%= currentMinute %>"></script>
-<% if (sails.config.angularDev == 'true') { %>
+<% if (sails.config.angularDev) { %>
   <script type="text/javascript" src="/angular/dashboard/styles.bundle.js?ts=<%= currentMinute %>"></script>
 <% } else { %>
   <link rel="stylesheet" href="/angular/dashboard/styles.bundle.css?ts=<%= currentMinute %>">

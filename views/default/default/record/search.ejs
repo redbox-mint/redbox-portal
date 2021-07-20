@@ -11,11 +11,11 @@
 
 <script type="text/javascript" src="/angular/record_search/inline.bundle.js?ts=<%= sails.config.startupMinute %>"></script>
 <script type="text/javascript" src="/angular/record_search/polyfills.bundle.js?ts=<%= sails.config.startupMinute %>"></script>
-<% if (sails.config.angularDev == 'true') { %>
+<% if (sails.config.angularDev) { %>
 <script type="text/javascript" src="/angular/record_search/vendor.bundle.js?ts=<%= sails.config.startupMinute %>"></script>
 <% } %>
 <script type="text/javascript" src="/angular/record_search/main.bundle.js?ts=<%= sails.config.startupMinute %>"></script>
-<% if (sails.config.angularDev == 'true') { %>
+<% if (sails.config.angularDev) { %>
   <script type="text/javascript" src="/angular/record_search/styles.bundle.js?ts=<%= sails.config.startupMinute %>"></script>
 <% } else { %>
   <link rel="stylesheet" href="/angular/record_search/styles.bundle.css?ts=<%= sails.config.startupMinute %>">
