@@ -150,6 +150,16 @@ export module Services {
           }
           if (user) {
             user.lastLogin = new Date();
+            user.name = jwt_payload[aafAttributes].cn;
+            user.email = jwt_payload[aafAttributes].mail.toLowerCase();
+            user.displayname = jwt_payload[aafAttributes].displayname;
+            user.cn = jwt_payload[aafAttributes].cn;
+            user.edupersonscopedaffiliation = jwt_payload[aafAttributes].edupersonscopedaffiliation;
+            user.edupersontargetedid = jwt_payload[aafAttributes].edupersontargetedid;
+            user.edupersonprincipalname = jwt_payload[aafAttributes].edupersonprincipalname;
+            user.givenname = jwt_payload[aafAttributes].givenname;
+            user.surname = jwt_payload[aafAttributes].surname;
+            
             User.update(user).exec(function(err, user) {
             });
             return done(null, user);
@@ -276,6 +286,14 @@ export module Services {
         }
         if (user) {
           user.lastLogin = new Date();
+          user.additionalAttributes = that.mapAdditionalAttributes(userinfo, claimsMappings['additionalAttributes']);
+          user.name = _.get(userinfo, claimsMappings['name']);
+          user.email = _.get(userinfo, claimsMappings['email']).toLowerCase();
+          user.displayname = _.get(userinfo, claimsMappings['displayName']);
+          user.cn = _.get(userinfo, claimsMappings['cn']);
+          user.givenname = _.get(userinfo, claimsMappings['givenname']);
+          user.surname = _.get(userinfo, claimsMappings['surname']);
+
           User.update(user).exec(function(err, user) {
           });
           return done(null, user);
