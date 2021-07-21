@@ -152,7 +152,7 @@ export module Services {
           // Fire Post-save hooks async ...
           this.triggerPostSaveTriggers(createResponse['oid'], record, recordType, 'onCreate', user);
         }
-        this.searchService.index(createResponse['oid'], record);
+            this.searchService.index(createResponse['oid'], record);
         // TODO: fire-off audit message
       } else {
         sails.log.error(`${this.logHeader} Failed to create record, storage service response:`);
@@ -648,7 +648,7 @@ export module Services {
               response = await this.resolveHookResponse(hookResponse);
               sails.log.debug(`${postSaveSyncHooksFunctionString} response now is:`);
               sails.log.verbose(JSON.stringify(response));
-              sails.log.debug(`post-save trigger ${postSaveSyncHooksFunctionString} completed for ${oid}`)
+              sails.log.debug(`post-save sync trigger ${postSaveSyncHooksFunctionString} completed for ${oid}`)
             } else {
               sails.log.error(`Post save function: '${postSaveSyncHooksFunctionString}' did not resolve to a valid function, what I got:`);
               sails.log.error(postSaveSyncHookFunction);

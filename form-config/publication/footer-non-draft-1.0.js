@@ -23,14 +23,14 @@ module.exports = [
         {
           class: "SaveButton",
           definition: {
-            label: 'Save',
+            label: '@save-button',
             cssClasses: 'btn-success'
           }
         },
         {
           class: "SaveButton",
           definition: {
-            label: 'Save & Close',
+            label: '@save-and-close-button',
             closeOnSave: true,
             redirectLocation: '/@branding/@portal/dashboard/dataPublication'
           },
@@ -63,7 +63,7 @@ module.exports = [
         {
           class: "CancelButton",
           definition: {
-            label: 'Close',
+            label: '@close-button',
           }
         }
       ]

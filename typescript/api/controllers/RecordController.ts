@@ -497,7 +497,7 @@ export module Controllers {
 
       let recordType = await RecordTypesService.get(brand, recType).toPromise();
 
-      if (recordType.pacakgeType) {
+      if (recordType.packageType) {
         record.metaMetadata.packageType = recordType.packageType;
       }
 
@@ -529,7 +529,7 @@ export module Controllers {
           let response = await this.recordsService.create(brand, record, recordType, user);
 
           let updateResponse = response;
-          if (response && response.isSuccessful()) {
+      if (response && _.isFunction(response.isSuccessful) && response.isSuccessful()) {
             oid = response.oid;
             if (!_.isEmpty(record.metaMetadata.attachmentFields)) {
               // check if we have any pending-oid elements
@@ -557,7 +557,7 @@ export module Controllers {
           }
           try {
           // handle datastream update
-          if (updateResponse && updateResponse.isSuccessful()) {
+        if (updateResponse && _.isFunction(updateResponse.isSuccessful) && updateResponse.isSuccessful()) {
             if (!_.isEmpty(record.metaMetadata.attachmentFields)) {
               // we emtpy the data locations in cloned record so we can reuse the same `this.updateDataStream` method call
               const emptyDatastreamRecord = _.cloneDeep(record);
