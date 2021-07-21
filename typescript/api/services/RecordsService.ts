@@ -57,7 +57,7 @@ export module Services {
 
     storageService: StorageService = null;
     datastreamService: DatastreamService = null;
-    searchService:SearchService = null;
+    searchService: SearchService = null;
 
     constructor() {
       super();
@@ -66,7 +66,7 @@ export module Services {
       sails.on('ready', function () {
         that.getStorageService();
         that.getDatastreamService();
-        that.searchService = sails.services[sails.config.search.serviceName];
+        that.getSearchService();
       });
     }
 
@@ -87,7 +87,7 @@ export module Services {
     }
 
     getSearchService() {
-      if (_.isEmpty(sails.config.storage) || _.isEmpty(sails.config.search.serviceName)) {
+      if (_.isEmpty(sails.config.search) || _.isEmpty(sails.config.search.serviceName)) {
         this.searchService = SolrSearchService;
       } else {
         this.searchService = sails.services[sails.config.search.serviceName];
