@@ -41,7 +41,7 @@ import {Readable}  from 'stream';
 
 const util = require('util');
 
-declare var FormsService, RolesService, UsersService, WorkflowStepsService, RecordTypesService, RedboxJavaStorageService;
+declare var FormsService, RolesService, UsersService, WorkflowStepsService, RecordTypesService, RedboxJavaStorageService, SolrSearchService;
 declare var sails: Sails;
 declare var _;
 declare var _this;
@@ -83,6 +83,14 @@ export module Services {
         this.datastreamService = RedboxJavaStorageService;
       } else {
         this.datastreamService = sails.services[sails.config.storage.serviceName];
+      }
+    }
+
+    getSearchService() {
+      if (_.isEmpty(sails.config.storage) || _.isEmpty(sails.config.search.serviceName)) {
+        this.searchService = SolrSearchService;
+      } else {
+        this.searchService = sails.services[sails.config.search.serviceName];
       }
     }
 
