@@ -14,5 +14,6 @@ interface StorageService{
   getRecords(workflowState, recordType, start, rows, username, roles, brand, editAccessOnly, packageType, sort): Promise<any>;
   exportAllPlans(username, roles, brand, format, modBefore, modAfter, recType): Readable;
 
+  createRecordAudit?(record):Promise<any>;
 }
 export default StorageService

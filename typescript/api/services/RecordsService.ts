@@ -38,6 +38,8 @@ import {
 } from 'rxjs';
 import StorageService from '../core/StorageService.js';
 import {Readable}  from 'stream';
+import QueueService from '../core/QueueService.js';
+import { RecordAuditModel } from '../core/model/RecordAuditModel.js';
 
 const util = require('util');
 
@@ -58,6 +60,7 @@ export module Services {
     storageService: StorageService = null;
     datastreamService: DatastreamService = null;
     searchService:SearchService = null;
+    protected queueService: QueueService = null;
 
     constructor() {
       super();
@@ -67,6 +70,7 @@ export module Services {
         that.getStorageService();
         that.getDatastreamService();
         that.searchService = sails.services[sails.config.search.serviceName];
+        that.queueService = sails.services[sails.config.queue.serviceName];
       });
     }
 
@@ -153,6 +157,7 @@ export module Services {
           this.triggerPostSaveTriggers(createResponse['oid'], record, recordType, 'onCreate', user);
         }
             this.searchService.index(createResponse['oid'], record);
+            
         // TODO: fire-off audit message
       } else {
         sails.log.error(`${this.logHeader} Failed to create record, storage service response:`);
@@ -161,6 +166,8 @@ export module Services {
       }
       return createResponse;
     }
+
+    
 
     async updateMeta(brand: any, oid: any, record: any, user ? : any, triggerPreSaveTriggers = true, triggerPostSaveTriggers = true) {
       let updateResponse = new StorageServiceResponse();
@@ -288,6 +295,40 @@ export module Services {
         await this.sleep(1000);
       }
       return false;
+    }
+
+    public auditRecord (id: string, record: any, user: any) {
+      if(this.queueService == null) {
+        sails.log.verbose(`${this.logHeader} Queue service isn't defined. Skipping auditing`);
+        return;
+      }
+      if(sails.config.record.auditing.enabled === true || sails.config.record.auditing.enabled === "true") {
+        sails.log.verbose(`${this.logHeader} Not enabled. Skipping auditing`);
+        return;
+      }
+      sails.log.verbose(`${this.logHeader} adding record audit job: ${id} with data:`);
+      // storage_id is used as the main ID in searches
+      let data = new RecordAuditModel(id,record,user)
+      sails.log.verbose(JSON.stringify(data));
+      this.queueService.now(sails.config.record.auditing.recordAuditJobName, data);
+    }
+   
+    public storeRecordAudit (job: any) {
+        let data = job.attrs.data;
+        sails.log.verbose(`${this.logHeader} Storing record Audit entry: `);
+        sails.log.verbose(JSON.stringify(data));
+        this.storageService.createRecordAudit(data).then(response=> {
+          if(response.isSuccessful()) {
+            sails.log.verbose(`${this.logHeader} Record Audit stored successfully `);
+          } else {
+            sails.log.error(`${this.logHeader} Failed to storeRecordAudit for record:`);  
+            sails.log.verbose(JSON.stringify(response));
+          }
+        }).catch(err => {
+          sails.log.error(`${this.logHeader} Failed to storeRecordAudit for record: `);
+          sails.log.error(JSON.stringify(err));
+        });
+      
     }
 
     private info(): Promise < any > {
