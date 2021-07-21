@@ -74,6 +74,27 @@ module.exports.solr = {
         multiValued: true
       },
       {
+        name: "authorization_viewPending",
+        type: "text_general",
+        indexed: true,
+        stored: true,
+        multiValued: true
+      },
+      {
+        name: "authorization_editPending",
+        type: "text_general",
+        indexed: true,
+        stored: true,
+        multiValued: true
+      },
+      {
+        name: "redboxOid",
+        type: "text_general",
+        indexed: true,
+        stored: true,
+        multiValued: false
+      },
+      {
         name: "authorization_viewRoles",
         type: "text_general",
         indexed: true,
