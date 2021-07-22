@@ -943,10 +943,10 @@ module.exports = {
           {
             class: "Container",
             roles: ['Admin', 'Librarians'],
+            editOnly: true,
             definition: {
               id: "permissions",
               label: "@record-permissions-tab",
-              viewOnly: true,
               fields: [{
                   class: 'Container',
                   compClass: 'TextBlockComponent',
