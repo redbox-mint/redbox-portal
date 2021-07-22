@@ -47,6 +47,7 @@ declare var FormsService, RolesService, UsersService, WorkflowStepsService, Reco
 declare var sails: Sails;
 declare var _;
 declare var _this;
+declare var RecordAudit;
 
 export module Services {
   /**
@@ -120,7 +121,8 @@ export module Services {
       'getAttachments',
       'appendToRecord',
       'getRecords',
-      'exportAllPlans'
+      'exportAllPlans',
+      'storeRecordAudit'
     ];
 
 
@@ -158,7 +160,8 @@ export module Services {
         }
             this.searchService.index(createResponse['oid'], record);
             
-        // TODO: fire-off audit message
+       
+        this.auditRecord(createResponse['oid'], record, user)
       } else {
         sails.log.error(`${this.logHeader} Failed to create record, storage service response:`);
         sails.log.error(JSON.stringify(createResponse));
@@ -208,7 +211,7 @@ export module Services {
           this.triggerPostSaveTriggers(updateResponse['oid'], record, recordType, 'onUpdate', user);
         }
         this.searchService.index(oid, record);
-        // TODO: fire-off audit message
+        this.auditRecord(updateResponse['oid'], record, user)
       } else {
         sails.log.error(`${this.logHeader} Failed to update record, storage service response:`);
         sails.log.error(JSON.stringify(updateResponse));
@@ -302,9 +305,12 @@ export module Services {
         sails.log.verbose(`${this.logHeader} Queue service isn't defined. Skipping auditing`);
         return;
       }
-      if(sails.config.record.auditing.enabled === true || sails.config.record.auditing.enabled === "true") {
-        sails.log.verbose(`${this.logHeader} Not enabled. Skipping auditing`);
-        return;
+      sails.log.debug(sails.config.record.auditing.enabled)
+      if(sails.config.record.auditing.enabled !== true) {
+        if(sails.config.record.auditing.enabled !== "true") {
+         sails.log.verbose(`${this.logHeader} Not enabled. Skipping auditing`);
+         return;
+        }
       }
       sails.log.verbose(`${this.logHeader} adding record audit job: ${id} with data:`);
       // storage_id is used as the main ID in searches
@@ -328,7 +334,6 @@ export module Services {
           sails.log.error(`${this.logHeader} Failed to storeRecordAudit for record: `);
           sails.log.error(JSON.stringify(err));
         });
-      
     }
 
     private info(): Promise < any > {

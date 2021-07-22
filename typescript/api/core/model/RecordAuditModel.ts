@@ -3,7 +3,6 @@ import moment = require("moment");
 declare var _:any;
 export class RecordAuditModel {
     redboxOid: string;
-    dateCreated: any;
     user: any;
     record: any;
 
@@ -14,6 +13,5 @@ export class RecordAuditModel {
         this.redboxOid = oid;
         this.record = record;
         this.user = user;
-        this.dateCreated = moment();
     }
 }
