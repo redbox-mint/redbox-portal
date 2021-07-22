@@ -321,6 +321,7 @@ export module Controllers {
       const brand = BrandingService.getBrand(req.session.branding);
       var recordType = req.param('recordType');
 
+      var user = req.user;
       var body = req.body;
       if (body != null) {
         var authorizationEdit, authorizationView, authorizationEditPending, authorizationViewPending;
@@ -390,7 +391,7 @@ export module Controllers {
                 }
 
               });
-              let createPromise = this.RecordsService.create(brand, request, recordTypeModel)
+              let createPromise = this.RecordsService.create(brand, request, recordTypeModel, user)
               var obs = Observable.fromPromise(createPromise);
               obs.subscribe(response => {
                 if (response.isSuccessful()) {
