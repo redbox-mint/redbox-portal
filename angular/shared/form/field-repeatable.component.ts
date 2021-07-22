@@ -199,6 +199,7 @@ export class RepeatableContainer extends Container {
         this.setValueAtElem(idx, entry);
       }
     });
+    this.formModel.updateValueAndValidity({onlySelf: false, emitEvent: false});
   }
 
   public removeAllElems() {

@@ -193,41 +193,43 @@ export class GenericGroupComponent extends EmbeddableComponent {
 @Component({
   selector: 'repeatable-group',
   template: `
-  <div *ngIf="field.editMode">
-    <div *ngIf="field.label">
-      <span class="label-font">
-        {{field.label}} {{getRequiredLabelStr()}}
-        <button type="button" class="btn btn-default" *ngIf="field.help" (click)="toggleHelp()" [attr.aria-label]="'help' | translate "><span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span></button>
-      </span>
-      <span id="{{ 'helpBlock_' + field.name }}" class="help-block" *ngIf="this.helpShow" [innerHtml]="field.help">{{field.help}}</span>
-    </div>
-    <ng-container *ngFor="let fieldElem of field.fields; let i = index;" >
+  <ng-container *ngIf="field.visible">
+    <div *ngIf="field.editMode">
+      <div *ngIf="field.label">
+        <span class="label-font">
+          {{field.label}} {{getRequiredLabelStr()}}
+          <button type="button" class="btn btn-default" *ngIf="field.help" (click)="toggleHelp()" [attr.aria-label]="'help' | translate "><span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span></button>
+        </span>
+        <span id="{{ 'helpBlock_' + field.name }}" class="help-block" *ngIf="this.helpShow" [innerHtml]="field.help">{{field.help}}</span>
+      </div>
+      <ng-container *ngFor="let fieldElem of field.fields; let i = index;" >
+        <div class="row">
+          <span class="col-xs-12">
+            <generic-group-field [name]="field.name" [field]="fieldElem" [form]="form" [fieldMap]="fieldMap" [isEmbedded]="true" [removeBtnText]="field.removeButtonText" [removeBtnClass]="field.removeButtonClass" [canRemove]="field.fields.length > 1" (onRemoveBtnClick)="removeElem($event[0], $event[1])" [index]="i"></generic-group-field>
+          </span>
+        </div>
+        <div class="row">
+          <span class="col-xs-12">&nbsp;</span>
+        </div>
+      </ng-container>
       <div class="row">
-        <span class="col-xs-12">
-          <generic-group-field [name]="field.name" [field]="fieldElem" [form]="form" [fieldMap]="fieldMap" [isEmbedded]="true" [removeBtnText]="field.removeButtonText" [removeBtnClass]="field.removeButtonClass" [canRemove]="field.fields.length > 1" (onRemoveBtnClick)="removeElem($event[0], $event[1])" [index]="i"></generic-group-field>
+        <span class="col-xs-11">&nbsp;
+        </span>
+        <span class="col-xs-1">
+          <button *ngIf="field.addButtonText" type='button' (click)="addElem($event)" [ngClass]="field.addButtonTextClass" >{{field.addButtonText}}</button>
+          <button *ngIf="!field.addButtonText" type='button' (click)="addElem($event)" [ngClass]="field.addButtonClass" [attr.aria-label]="'add-button-label' | translate"></button>
         </span>
       </div>
-      <div class="row">
-        <span class="col-xs-12">&nbsp;</span>
-      </div>
-    </ng-container>
-    <div class="row">
-      <span class="col-xs-11">&nbsp;
-      </span>
-      <span class="col-xs-1">
-        <button *ngIf="field.addButtonText" type='button' (click)="addElem($event)" [ngClass]="field.addButtonTextClass" >{{field.addButtonText}}</button>
-        <button *ngIf="!field.addButtonText" type='button' (click)="addElem($event)" [ngClass]="field.addButtonClass" [attr.aria-label]="'add-button-label' | translate"></button>
-      </span>
     </div>
-  </div>
-  <li *ngIf="!field.editMode" class="key-value-pair">
-    <span *ngIf="field.label" class="key">{{field.label}}</span>
-    <span class="value">
-      <ul class="key-value-list">
-        <generic-group-field *ngFor="let fieldElem of field.fields; let i = index;" [name]="field.name" [index]="i" [field]="fieldElem" [form]="form" [fieldMap]="fieldMap"></generic-group-field>
-      </ul>
-    </span>
-  </li>
+    <li *ngIf="!field.editMode" class="key-value-pair">
+      <span *ngIf="field.label" class="key">{{field.label}}</span>
+      <span class="value">
+        <ul class="key-value-list">
+          <generic-group-field *ngFor="let fieldElem of field.fields; let i = index;" [name]="field.name" [index]="i" [field]="fieldElem" [form]="form" [fieldMap]="fieldMap"></generic-group-field>
+        </ul>
+      </span>
+    </li>
+  </ng-container>
   `,
 })
 export class RepeatableGroupComponent extends RepeatableComponent {
