@@ -47,7 +47,6 @@ declare var FormsService, RolesService, UsersService, WorkflowStepsService, Reco
 declare var sails: Sails;
 declare var _;
 declare var _this;
-declare var RecordAudit;
 
 export module Services {
   /**
@@ -305,7 +304,6 @@ export module Services {
         sails.log.verbose(`${this.logHeader} Queue service isn't defined. Skipping auditing`);
         return;
       }
-      sails.log.debug(sails.config.record.auditing.enabled)
       if(sails.config.record.auditing.enabled !== true) {
         if(sails.config.record.auditing.enabled !== "true") {
          sails.log.verbose(`${this.logHeader} Not enabled. Skipping auditing`);
