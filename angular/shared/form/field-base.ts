@@ -226,6 +226,7 @@ export class FieldBase<T> {
   }
 
   public setupEventHandlers() {
+    const immutableProperties = ['name', 'id', 'controlType', 'compClass'];
     const publishConfig = this.publish;
     const subscribeConfig = this.subscribe;
     if (!_.isEmpty(this.formModel)) {
@@ -290,10 +291,20 @@ export class FieldBase<T> {
           eventEmitter.subscribe((value: any) => {
             let curValue = value;
             let dataAsArray = false;
+            let targetProperty = null;
             _.each(eventConfArr, (eventConf: any) => {
               if (eventConf.dataAsArray) {
                 // process the data as an array, setting one action will set all for this source component
                 dataAsArray = true;
+                return false;
+              }
+            });
+            // adding support for custom target property
+            _.each(eventConfArr, (eventConf: any) => {
+              if (!_.isEmpty(eventConf.targetProperty) && !_.includes(immutableProperties, eventConf.targetProperty)) {
+                // only the first entry will be used to keep it DRY
+                // also doing a simple filter of immutable properties
+                targetProperty = eventConf.targetProperty;
                 return false;
               }
             });
@@ -324,6 +335,8 @@ export class FieldBase<T> {
               _.each(eventConfArr, (eventConf: any) => {
                 // adding source of the event
                 eventConf.srcName = srcName;
+                // adding more properties to the config to support advanced templating
+                eventConf.field = this;
                 const fn: any = _.get(this, eventConf.action);
                 if (fn) {
                   let boundFunction = fn;
@@ -332,14 +345,21 @@ export class FieldBase<T> {
                   } else {
                     var objectName = eventConf.action.substring(0, eventConf.action.indexOf("."));
                     boundFunction = fn.bind(this[objectName]);
-                  }
+                  } 
                   curValue = boundFunction(curValue, eventConf);
                 }
               });
             }
+            
             if (!_.isUndefined(curValue)) {
-              // cascade the event instance wide if only there's a valid value
-              this.reactEvent(eventName, curValue, value);
+              if (_.isEmpty(targetProperty)) {
+                // cascade the event instance wide if only there's a valid value
+                this.reactEvent(eventName, curValue, value);
+              } else {
+                // set the target property instead
+                // note that this DOES NOT trigger a value changed event
+                _.set(this, targetProperty, curValue);
+              }
             }
           });
         });
