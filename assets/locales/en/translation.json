@@ -685,6 +685,8 @@
   "@pdf-download-previous": "Download a previous version",
   "error-header": "Application Error",
   "error-auth": "Apologies, we've encountered an issue with your user credentials. Please contact the application administrator.",
+  "error-403-heading": "Forbidden",
+  "error-please-login": "Please login",
   "@ckan-record-published-prefix": "Record published at ",
   "@ckan-record-submitting-label": "Submitting to CKAN",
   "@ckan-record-unsubmitted-label": "Record not yet published",
