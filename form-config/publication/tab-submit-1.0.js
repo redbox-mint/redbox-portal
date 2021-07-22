@@ -90,6 +90,13 @@ module.exports = [
             help: '@dataPublication-reviewerNote-help',
             disabledExpression: '<%= _.isEmpty(relatedRecordId) %>'
           }
+        },
+        {
+          class: 'EventHandler',
+          definition: {
+            eventName: 'beforeunload',
+            eventSource: 'window'
+          }
         }
       ]
     }

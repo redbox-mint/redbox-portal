@@ -1389,6 +1389,13 @@ module.exports = {
           }
         }]
       }
+    },
+    {
+      class: 'EventHandler',
+      definition: {
+        eventName: 'beforeunload',
+        eventSource: 'window'
+      }
     }
   ]
 }
