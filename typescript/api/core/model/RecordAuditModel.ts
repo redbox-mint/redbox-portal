@@ -7,7 +7,7 @@ export class RecordAuditModel {
     record: any;
 
     constructor(oid, record,user) {
-        if (!_.isEmpty(user.password)) {
+        if (user!= null && !_.isEmpty(user.password)) {
             delete user.password;
         }
         this.redboxOid = oid;
