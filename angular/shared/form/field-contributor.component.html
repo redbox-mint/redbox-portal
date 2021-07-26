@@ -285,7 +285,7 @@
     <div *ngIf="field.showTitle" class="col-xs-1">{{field.value.honorific}}</div>
     <div class="col-xs-3">{{field.value.text_full_name}}</div>
     <div *ngIf="showEmail" [attr.class]="field.showRole? 'col-xs-3':'col-xs-4'">{{field.value.email}}</div>
-    <div [attr.class]="field.showRole? 'col-xs-3':'hidden'">{{field.value.text_full_name != null || field.value.text_full_name != '' field.value.email != null || field.value.email != '' ? field.value.role}}</div>
+    <div [attr.class]="field.showRole? 'col-xs-3':'hidden'">{{field.value.text_full_name != null || field.value.text_full_name != '' || field.value.email != null || field.value.email != '' ? field.value.role : ''}}</div>
     <div *ngIf="showOrcid" [attr.class]="field.showRole? (field.showTitle ? 'col-xs-2' : 'col-xs-3') :'col-xs-4'">{{field.value.orcid}}</div>
   </div>
 </div>
