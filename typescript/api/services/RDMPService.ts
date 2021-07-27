@@ -244,38 +244,41 @@ export module Services {
       this.queueService.now(jobName, queueMessage);
     }
 
-    public async queuedTriggerSubscriptionHandler(job: any) {
+    public queuedTriggerSubscriptionHandler(job: any) {
       let oid = _.get(job, "oid", null);
       let triggerConfiguration = _.get(job, "triggerConfiguration", null);
       let record = _.get(job, "record", null);
       let user = _.get(job, "user", null);
 
-          sails.log.debug(triggerConfiguration);
-          let hookFunctionString = _.get(triggerConfiguration, "function", null);
-          if (hookFunctionString != null) {
-            let hookFunction = eval(hookFunctionString);
-            let options = _.get(triggerConfiguration, "options", {});
-            if (_.isFunction(hookFunction)) {
-              sails.log.debug(`Triggering queuedtrigger: ${hookFunctionString}`)
-              let hookResponse = hookFunction(oid, record, options, user);
-              let response = await this.resolveHookResponse(hookResponse);
-              sails.log.debug(`${hookFunctionString} response now is:`);
-              sails.log.verbose(JSON.stringify(response));
-              sails.log.debug(`queued trigger ${hookFunctionString} completed for ${oid}`)
-            } else {
-              sails.log.error(`queued trigger function: '${hookFunctionString}' did not resolve to a valid function, what I got:`);
-              sails.log.error(hookFunction);
-            }
-          }
-    
+      sails.log.debug(triggerConfiguration);
+      let hookFunctionString = _.get(triggerConfiguration, "function", null);
+      if (hookFunctionString != null) {
+        let hookFunction = eval(hookFunctionString);
+        let options = _.get(triggerConfiguration, "options", {});
+        if (_.isFunction(hookFunction)) {
+          sails.log.debug(`Triggering queuedtrigger: ${hookFunctionString}`)
+          let hookResponse = hookFunction(oid, record, options, user);
+          let response = this.convertToObservable(hookResponse);
+          return response.subscribe(res => {
+            sails.log.debug(`${hookFunctionString} response now is:`);
+            sails.log.verbose(JSON.stringify(res));
+            sails.log.debug(`queued trigger ${hookFunctionString} completed for ${oid}`)
+          });
+
+        } else {
+          sails.log.error(`queued trigger function: '${hookFunctionString}' did not resolve to a valid function, what I got:`);
+          sails.log.error(hookFunction);
+        }
+      }
+
     }
 
-    private resolveHookResponse(hookResponse) {
+    private convertToObservable(hookResponse) {
       let response = hookResponse;
       if (isObservable(hookResponse)) {
-        response = hookResponse.toPromise();
+        return hookResponse;
       } else {
-        response = Promise.resolve(hookResponse);
+        response = Observable.fromPromise(hookResponse);
       }
       return response;
     }
