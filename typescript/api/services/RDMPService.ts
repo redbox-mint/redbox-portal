@@ -244,16 +244,19 @@ export module Services {
       sails.log.debug(`${this.logHeader} Queueing up trigger using job name ${jobName}`);
       sails.log.verbose(queueMessage);
       this.queueService.now(jobName, queueMessage);
+      return Observable.of(record);
     }
 
     public queuedTriggerSubscriptionHandler(job: any) {
-      let oid = _.get(job, "oid", null);
-      let triggerConfiguration = _.get(job, "triggerConfiguration", null);
-      let record = _.get(job, "record", null);
-      let user = _.get(job, "user", null);
-
-      sails.log.debug(triggerConfiguration);
+      let data = job.attrs.data;
+      let oid = _.get(data, "oid", null);
+      let triggerConfiguration = _.get(data, "triggerConfiguration", null);
+      let record = _.get(data, "record", null);
+      let user = _.get(data, "user", null);
+      sails.log.verbose('queuedTriggerSubscriptionHandler Consuming job:');
+      sails.log.verbose(data);
       let hookFunctionString = _.get(triggerConfiguration, "function", null);
+      sails.log.verbose(`Found hook function string ${hookFunctionString}`);
       if (hookFunctionString != null) {
         let hookFunction = eval(hookFunctionString);
         let options = _.get(triggerConfiguration, "options", {});
