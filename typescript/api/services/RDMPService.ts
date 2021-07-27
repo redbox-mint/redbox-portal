@@ -57,7 +57,9 @@ export module Services {
       'stripUserBasedPermissions',
       'restoreUserBasedPermissions',
       'runTemplates',
-      'addWorkspaceToRecord'
+      'addWorkspaceToRecord',
+      'queuedTriggerSubscriptionHandler',
+      'queueTriggerCall'
     ];
 
     constructor() {
