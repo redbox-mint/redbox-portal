@@ -324,7 +324,11 @@ export class FieldBase<T> {
                       var objectName = eventConf.action.substring(0, eventConf.action.indexOf("."));
                       boundFunction = fn.bind(this[objectName]);
                     }
-                    entryVal = boundFunction(entryVal, eventConf);
+                    if (eventConf.includeFieldInFnCall) {
+                      entryVal = boundFunction(entryVal, eventConf, this);
+                    } else {
+                      entryVal = boundFunction(entryVal, eventConf);
+                    }
                   }
                 });
                 if (!_.isEmpty(entryVal)) {
@@ -335,8 +339,6 @@ export class FieldBase<T> {
               _.each(eventConfArr, (eventConf: any) => {
                 // adding source of the event
                 eventConf.srcName = srcName;
-                // adding more properties to the config to support advanced templating
-                eventConf.field = this;
                 const fn: any = _.get(this, eventConf.action);
                 if (fn) {
                   let boundFunction = fn;
@@ -346,7 +348,12 @@ export class FieldBase<T> {
                     var objectName = eventConf.action.substring(0, eventConf.action.indexOf("."));
                     boundFunction = fn.bind(this[objectName]);
                   } 
-                  curValue = boundFunction(curValue, eventConf);
+                  // adding more properties to the config to support advanced templating
+                  if (eventConf.includeFieldInFnCall) {
+                    curValue = boundFunction(curValue, eventConf, this);  
+                  } else {
+                    curValue = boundFunction(curValue, eventConf);
+                  }
                 }
               });
             }

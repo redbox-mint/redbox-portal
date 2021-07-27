@@ -222,8 +222,8 @@ export class UtilityService {
     return _.join(_.get(data, fieldName ? fieldName : config.field), fieldSeparator ? fieldSeparator : config.separator);
   }
 
-  public runTemplate(data: any, config: any) {
-    const imports = _.extend({data: data, config: config, moment: moment, numeral:numeral}, this);
+  public runTemplate(data: any, config: any, field: any = undefined) {
+    const imports = _.extend({data: data, config: config, moment: moment, numeral:numeral, field: field}, this);
     const templateData = {imports: imports};
     const template = _.template(config.template, templateData);
     const templateRes = template();
