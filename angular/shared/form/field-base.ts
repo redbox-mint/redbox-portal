@@ -356,7 +356,7 @@ export class FieldBase<T> {
     } else {
       let sourceField = _.get(this.fieldMap,srcName, null);
       if(!_.isEmpty(sourceField)) {
-        eventEmitter = _.get(sourceField, eventName);
+        eventEmitter = _.get(sourceField.field, eventName);
       }
     } 
     if (_.isEmpty(eventEmitter)) {
