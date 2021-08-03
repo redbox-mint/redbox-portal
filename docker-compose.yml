@@ -43,7 +43,7 @@ services:
     ports:
       - "27017:27017"
   solr:
-    image: solr:8.6.3
+    image: solr:8.8.0
     expose:
       - "8983"
     ports:
