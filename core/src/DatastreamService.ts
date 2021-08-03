@@ -3,7 +3,7 @@ import Datastream from './Datastream';
 
 export interface DatastreamService{
 
-  addDatastreams(oid: string, datastreams: Datastream[]): DatastreamServiceResponse;
+  addDatastreams(oid: string, datastreams: Datastream[]): Promise<DatastreamServiceResponse>;
   updateDatastream(oid: string, record, newMetadata, fileRoot, fileIdsAdded): any;
   removeDatastream(oid, datastream: Datastream): any;
   addDatastream(oid, datastream: Datastream): any;
