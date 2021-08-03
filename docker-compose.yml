@@ -34,8 +34,8 @@ services:
     image: mvertes/alpine-mongo:latest
     volumes:
       - "./devdata:/devdata:delegated"
-      - "./dev/mongo/data/db:/data/db:delegated"
-      - "./dev/log/mongo:/var/log/mongo:delegated"
+      - "./.dev/mongo/data/db:/data/db:delegated"
+      - "./.dev/log/mongo:/var/log/mongo:delegated"
     networks:
       main:
         aliases:
