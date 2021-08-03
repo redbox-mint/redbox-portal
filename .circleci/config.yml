@@ -6,6 +6,7 @@ jobs:
       - checkout
       - node/install:
           node-version: 12.16.0
+      - run: (cd core && npm install && node_nodules.bin/tsc)
       - run: npm install --production
       - run: node_modules/.bin/tsc
       - run: (cd angular && npm install)
