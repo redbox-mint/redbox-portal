@@ -1396,6 +1396,27 @@ module.exports = {
         eventName: 'beforeunload',
         eventSource: 'window'
       }
+    },
+    {
+      class: 'PageTitle',
+      definition: {
+        name: 'pageTitle',
+        // sourceProperty: 'title.control.value', // just using a simple property
+        template: "<%= field.translationService.t('default-title') %> - <%= field.translationService.t('rdmp-title-label') %> - <%= _.isEmpty(field.fieldMap._rootComp.oid) ? field.translationService.t('create-rdmp') : (field.editMode ? field.fieldMap.title.control.value : field.fieldMap.title.field.value) %>",
+        subscribe: {
+          'form': {
+            onFormLoaded: [
+              { action: 'updateTitle' }
+            ],
+            recordCreated: [
+              { action: 'updateTitle' }
+            ],
+            recordSaved: [
+              { action: 'updateTitle' }
+            ]
+          }
+        }
+      }
     }
   ]
 }

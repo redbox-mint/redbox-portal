@@ -40,7 +40,7 @@ import { PDFListField, PDFListComponent } from './form/field-pdflist.component';
 import { AsynchField, AsynchComponent } from './form/field-asynch.component';
 import { PublishDataLocationRefreshField, PublishDataLocationRefreshComponent } from './form/field-publish-data-location-refresh.component';
 import { EventHandler, EventHandlerComponent } from './form/html-event.component';
-
+import { PageTitle, PageTitleComponent } from './form/field-pagetitle.component';
 export const fieldClasses=  {
   'TextField': { 'meta': TextField, 'comp': TextFieldComponent },
   'TextArea': { 'meta': TextArea, 'comp': TextAreaComponent },
@@ -80,5 +80,6 @@ export const fieldClasses=  {
   'Toggle': {'meta': Toggle, 'comp': ToggleComponent},
   'HtmlRaw': {'meta': HtmlRaw, 'comp': HtmlRawComponent},
   'PublishDataLocationRefresh': {'meta': PublishDataLocationRefreshField, 'comp': PublishDataLocationRefreshComponent },
-  'EventHandler': {'meta': EventHandler, 'comp': EventHandlerComponent}
+  'EventHandler': {'meta': EventHandler, 'comp': EventHandlerComponent},
+  'PageTitle': {'meta': PageTitle, 'comp': PageTitleComponent}
 };
