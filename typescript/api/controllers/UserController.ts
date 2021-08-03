@@ -24,10 +24,8 @@ declare var _;
 declare var BrandingService, UsersService, ConfigService;
 import * as uuidv4 from 'uuid/v4';
 
-import controller = require('../core/CoreController.js');
-import {
-  RequestDetails
-} from '../core/model/RequestDetails.js';
+import { Controllers as controllers, RequestDetails} from '@researchdatabox/redbox-core-types';
+
 
 export module Controllers {
   /**
@@ -35,7 +33,7 @@ export module Controllers {
    *
    * Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a>
    */
-  export class User extends controller.Controllers.Core.Controller {
+  export class User extends controllers.Core.Controller {
 
     /**
      * Exported methods, accessible from internet.

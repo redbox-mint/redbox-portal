@@ -27,20 +27,13 @@ declare var DashboardService;
 declare var UsersService;
 declare var User;
 declare var _;
+import { APIActionResponse, APIErrorResponse } from '@researchdatabox/redbox-core-types';
 /**
  * Package that contains all Controllers.
  */
-import controller = require('../../core/CoreController.js');
-import {
-  APIErrorResponse
-} from '../../core/model/APIErrorResponse.js';
-import {
-  APIActionResponse
-} from '../../core/model/APIActionResponse.js';
-import {
-  ListAPIResponse,
-  ListAPISummary
-} from '../../core/model/ListAPIResponse.js';
+ import {Controllers as controllers} from '@researchdatabox/redbox-core-types';
+ 
+
 
 declare var TranslationService;
 
@@ -50,7 +43,7 @@ export module Controllers {
    *
    * @author <a target='_' href='https://github.com/andrewbrazzatti'>Andrew Brazzatti</a>
    */
-  export class Admin extends controller.Controllers.Core.Controller {
+  export class Admin extends controllers.Core.Controller {
 
 
 

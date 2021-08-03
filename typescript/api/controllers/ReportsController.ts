@@ -26,14 +26,14 @@ declare var BrandingService, RolesService, DashboardService, ReportsService;
 /**
  * Package that contains all Controllers.
  */
-import controller = require('../core/CoreController.js');
+import { Controllers as controllers} from '@researchdatabox/redbox-core-types';
 export module Controllers {
   /**
    * Responsible for all things related to the Dashboard
    *
    * @author <a target='_' href='https://github.com/andrewbrazzatti'>Andrew Brazzatti</a>
    */
-  export class Reports extends controller.Controllers.Core.Controller {
+  export class Reports extends controllers.Core.Controller {
 
 
     /**

@@ -20,8 +20,8 @@
 import {
   Observable
 } from 'rxjs/Rx';
-import services = require('../core/CoreService.js');
-import SearchService from '../core/SearchService.js';
+import {SearchService, Services as services}   from '@researchdatabox/redbox-core-types';
+
 import {
   Sails,
   Model
@@ -43,7 +43,7 @@ export module Services {
    * Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a>
    *
    */
-  export class Users extends services.Services.Core.Service {
+  export class Users extends services.Core.Service {
 
     protected _exportedMethods: any = [
       'bootstrap',

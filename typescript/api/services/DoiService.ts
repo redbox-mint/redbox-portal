@@ -18,7 +18,7 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 import { Observable } from 'rxjs/Rx';
-import services = require('../core/CoreService.js');
+import {Services as services}   from '@researchdatabox/redbox-core-types';
 import { Sails, Model } from "sails";
 import 'rxjs/add/operator/toPromise';
 import * as request from "request-promise";
@@ -41,7 +41,7 @@ export module Services {
    * @author <a target='_' href='https://github.com/andrewbrazzatti'>Andrew Brazzatti</a>
    *
    */
-  export class Doi extends services.Services.Core.Service {
+  export class Doi extends services.Core.Service {
 
   	protected _exportedMethods: any = [
   		'publishDoi'

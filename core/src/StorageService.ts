@@ -1,6 +1,6 @@
 import {Readable}  from 'stream';
 
-interface StorageService{
+export interface StorageService{
 
   create(brand, record, recordType, user?):Promise<any>;
   updateMeta(brand, oid, record, user?): Promise<any>;
@@ -16,4 +16,3 @@ interface StorageService{
 
   createRecordAudit?(record):Promise<any>;
 }
-export default StorageService

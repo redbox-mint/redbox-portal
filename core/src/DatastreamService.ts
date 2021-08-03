@@ -1,7 +1,7 @@
 import DatastreamServiceResponse from './DatastreamServiceResponse';
 import Datastream from './Datastream';
 
-interface DatastreamService{
+export interface DatastreamService{
 
   addDatastreams(oid: string, datastreams: Datastream[]): DatastreamServiceResponse;
   updateDatastream(oid: string, record, newMetadata, fileRoot, fileIdsAdded): any;
@@ -11,4 +11,3 @@ interface DatastreamService{
   getDatastream(oid, fileId): any;
   listDatastreams(oid, fileId): any;
 }
-export default DatastreamService

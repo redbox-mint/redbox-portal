@@ -24,14 +24,14 @@ import { Observable } from 'rxjs/Rx';
 /**
  * Package that contains all Controllers.
  */
-import controller = require('../core/CoreController.js');
+import { Controllers as controllers} from '@researchdatabox/redbox-core-types';
 export module Controllers {
   /**
    * DynamicAssetController - returns all dynamic client-side elements
    *
    * Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a>
    */
-  export class DynamicAsset extends controller.Controllers.Core.Controller {
+  export class DynamicAsset extends controllers.Core.Controller {
 
     /**
      * Exported methods, accessible from internet.

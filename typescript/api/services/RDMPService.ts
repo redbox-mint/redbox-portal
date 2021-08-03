@@ -20,14 +20,14 @@
 import {
   Observable
 } from 'rxjs/Rx';
-import services = require('../core/CoreService.js');
+import {QueueService, Services as services}   from '@researchdatabox/redbox-core-types';
 import {
   Sails,
   Model
 } from "sails";
 import moment = require('moment');
 import * as numeral from 'numeral';
-import QueueService from '../core/QueueService.js';
+
 import {
   isObservable
 } from 'rxjs';
@@ -46,7 +46,7 @@ export module Services {
    * Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a>
    *
    */
-  export class RDMPS extends services.Services.Core.Service {
+  export class RDMPS extends services.Core.Service {
 
     protected queueService: QueueService = null;
 

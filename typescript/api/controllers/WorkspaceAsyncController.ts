@@ -12,7 +12,7 @@ declare var WorkspaceAsyncService;
 /**
  * Package that contains all Controllers.
  */
-import controller = require('../core/CoreController.js');
+import { Controllers as controllers} from '@researchdatabox/redbox-core-types';
 
 export module Controllers {
   /**
@@ -20,7 +20,7 @@ export module Controllers {
    *
    * @author <a target='_' href='https://github.com/moisbo'>moisbo</a>
    */
-  export class WorkspaceAsync extends controller.Controllers.Core.Controller {
+  export class WorkspaceAsync extends controllers.Core.Controller {
 
     /**
      * Methods required for workspace dashboard.

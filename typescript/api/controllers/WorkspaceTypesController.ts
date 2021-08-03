@@ -27,7 +27,7 @@ declare var BrandingService, WorkspaceTypesService;
 /**
  * Package that contains all Controllers.
  */
-import controller = require('../core/CoreController.js');
+import { Controllers as controllers} from '@researchdatabox/redbox-core-types';
 
 export module Controllers {
 	/**
@@ -35,7 +35,7 @@ export module Controllers {
 	 *
 	 * Author: <a href='https://github.com/moisbo' target='_blank'>moisbo</a>
 	 */
-	export class WorkspaceTypes extends controller.Controllers.Core.Controller {
+	export class WorkspaceTypes extends controllers.Core.Controller {
 
 		private uriCreds: string = `${sails.config.datastores.mongodb.user}${_.isEmpty(sails.config.datastores.mongodb.password) ? '' : `:${sails.config.datastores.mongodb.password}`}`;
 		private uriHost: string = `${sails.config.datastores.mongodb.host}${_.isNull(sails.config.datastores.mongodb.port) ? '' : `:${sails.config.datastores.mongodb.port}`}`;

@@ -29,14 +29,14 @@ const pipeline = util.promisify(stream.pipeline);
 /**
  * Package that contains all Controllers.
  */
-import controller = require('../core/CoreController.js');
+import { Controllers as controllers} from '@researchdatabox/redbox-core-types';
 export module Controllers {
   /**
    * Responsible for all things related to exporting anything
    *
    * Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a>
    */
-  export class Export extends controller.Controllers.Core.Controller {
+  export class Export extends controllers.Core.Controller {
 
     /**
      * Exported methods, accessible from internet.

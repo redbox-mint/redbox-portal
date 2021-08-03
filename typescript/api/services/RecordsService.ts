@@ -20,9 +20,8 @@
 import {
   Observable
 } from 'rxjs/Rx';
-import services = require('../core/CoreService.js');
-import DatastreamService from '../core/DatastreamService.js';
-import {StorageServiceResponse} from '../core/StorageServiceResponse';
+import {DatastreamService, QueueService, RecordAuditModel, RecordsService, SearchService, Services as services, StorageService, StorageServiceResponse}   from '@researchdatabox/redbox-core-types';
+
 import {
   Sails,
   Model
@@ -31,15 +30,12 @@ import * as request from "request-promise";
 import * as luceneEscapeQuery from "lucene-escape-query";
 import * as fs from 'fs';
 import moment = require('moment');
-import RecordsService from '../core/RecordsService.js';
-import SearchService from '../core/SearchService.js';
+
 import {
   isObservable
 } from 'rxjs';
-import StorageService from '../core/StorageService.js';
+
 import {Readable}  from 'stream';
-import QueueService from '../core/QueueService.js';
-import { RecordAuditModel } from '../core/model/RecordAuditModel.js';
 
 const util = require('util');
 
@@ -55,7 +51,7 @@ export module Services {
    * Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a>
    *
    */
-  export class Records extends services.Services.Core.Service implements RecordsService {
+  export class Records extends services.Core.Service implements RecordsService {
 
     storageService: StorageService = null;
     datastreamService: DatastreamService = null;

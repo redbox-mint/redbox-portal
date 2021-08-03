@@ -18,7 +18,7 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 import { Observable } from 'rxjs/Rx';
-import services = require('../core/CoreService.js');
+import {Services as services}   from '@researchdatabox/redbox-core-types';
 import {Sails, Model} from "sails";
 import * as NodeCache from "node-cache";
 import moment = require('moment');
@@ -33,7 +33,7 @@ export module Services {
    * Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a>
    *
    */
-  export class Cache extends services.Services.Core.Service {
+  export class Cache extends services.Core.Service {
 
     protected _exportedMethods: any = [
       'bootstrap',
