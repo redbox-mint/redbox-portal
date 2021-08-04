@@ -130,7 +130,7 @@ export module Services {
         fs.copySync(`${hook_root_dir}/views/`,"views/");
       }
       // check if the core exists when API definitions are present ...
-      if (fs.pathExistsSync(`${hook_root_dir}/api`) && !fs.pathExistsSync(`${hook_root_dir}/api/core`)) {
+      if (fs.pathExistsSync(`${appPath}/api/core`) && fs.pathExistsSync(`${hook_root_dir}/api`) && !fs.pathExistsSync(`${hook_root_dir}/api/core`)) {
         sails.log.verbose(`${hook_log_header}::Adding Symlink to API core... ${hook_root_dir}/api/core -> ${appPath}/api/core`);
         // create core services symlink if not present
         fs.ensureSymlinkSync(`${appPath}/api/core`, `${hook_root_dir}/api/core`);
