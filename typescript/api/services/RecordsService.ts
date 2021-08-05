@@ -20,690 +20,687 @@
 import {
   Observable
 } from 'rxjs/Rx';
-import {SearchService, Services as services}   from '@researchdatabox/redbox-core-types';
-
+import services = require('../core/CoreService.js');
+import DatastreamService from '../core/DatastreamService.js';
+import {StorageServiceResponse} from '../core/StorageServiceResponse';
 import {
   Sails,
   Model
 } from "sails";
 import * as request from "request-promise";
-import * as crypto from 'crypto';
+import * as luceneEscapeQuery from "lucene-escape-query";
+import * as fs from 'fs';
+import moment = require('moment');
+import RecordsService from '../core/RecordsService.js';
+import SearchService from '../core/SearchService.js';
+import {
+  isObservable
+} from 'rxjs';
+import StorageService from '../core/StorageService.js';
+import {Readable}  from 'stream';
 
+const util = require('util');
+
+declare var FormsService, RolesService, UsersService, WorkflowStepsService, RecordTypesService, RedboxJavaStorageService, SolrSearchService;
 declare var sails: Sails;
-declare var User, Role, UserAudit: Model;
-declare var BrandingService, RolesService, ConfigService, RecordsService;
-declare const Buffer;
 declare var _;
+declare var _this;
 
 export module Services {
   /**
-   * Use services...
-   *
+   * Records related functions...
    *
    * Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a>
    *
    */
-  export class Users extends services.Core.Service {
+  export class Records extends services.Services.Core.Service implements RecordsService {
+
+    storageService: StorageService = null;
+    datastreamService: DatastreamService = null;
+    searchService:SearchService = null;
+
+    constructor() {
+      super();
+      this.logHeader = "RecordsService::";
+      let that = this;
+      sails.on('ready', function () {
+        that.getStorageService();
+        that.getDatastreamService();
+        that.searchService = sails.services[sails.config.search.serviceName];
+      });
+    }
+
+    getStorageService() {
+      if (_.isEmpty(sails.config.storage) || _.isEmpty(sails.config.storage.serviceName)) {
+        this.storageService = RedboxJavaStorageService;
+      } else {
+        this.storageService = sails.services[sails.config.storage.serviceName];
+      }
+    }
+
+    getDatastreamService() {
+      if (_.isEmpty(sails.config.record) || _.isEmpty(sails.config.record.datastreamService)) {
+        this.datastreamService = RedboxJavaStorageService;
+      } else {
+        this.datastreamService = sails.services[sails.config.storage.serviceName];
+      }
+    }
+
+    getSearchService() {
+      if (_.isEmpty(sails.config.storage) || _.isEmpty(sails.config.search.serviceName)) {
+        this.searchService = SolrSearchService;
+      } else {
+        this.searchService = sails.services[sails.config.search.serviceName];
+      }
+    }
 
     protected _exportedMethods: any = [
-      'bootstrap',
-      'updateUserRoles',
-      'updateUserDetails',
-      'getUserWithId',
-      'getUserWithUsername',
-      'addLocalUser',
-      'setUserKey',
-      'hasRole',
-      'findUsersWithName',
-      'findUsersWithEmail',
-      'findUsersWithQuery',
-      'findAndAssignAccessToRecords',
-      'getUsers',
-      'addUserAuditEvent'
+      'create',
+      'updateMeta',
+      'getMeta',
+      'hasEditAccess',
+      'hasViewAccess',
+      'search',
+      'createBatch',
+      'provideUserAccessAndRemovePendingAccess',
+      'searchFuzzy',
+      'deleteFilesFromStageDir',
+      'getRelatedRecords',
+      'delete',
+      'updateNotificationLog',
+      'updateWorkflowStep',
+      'triggerPreSaveTriggers',
+      'triggerPostSaveTriggers',
+      'triggerPostSaveSyncTriggers',
+      'checkRedboxRunning',
+      'getAttachments',
+      'appendToRecord',
+      'getRecords',
+      'exportAllPlans'
     ];
 
-    searchService: SearchService;
 
-    protected localAuthInit = () => {
-      // users the default brand's configuration on startup
-      // TODO: consider moving late initializing this if possible
-      const defAuthConfig = ConfigService.getBrand(BrandingService.getDefault().name, 'auth');
-      var usernameField = defAuthConfig.local.usernameField,
-        passwordField = defAuthConfig.local.passwordField;
-      //
-      // --------- Passport --------------
-      //
-      sails.config.passport = require('passport')
-      var LocalStrategy = require('passport-local').Strategy;
-      var bcrypt;
-      try {
-        bcrypt = require('bcrypt');
-      } catch (err) {
-        bcrypt = require('bcryptjs');
+
+    async create(brand: any, record: any, recordType: any, user ? : any, triggerPreSaveTriggers = true, triggerPostSaveTriggers = true) {
+      let createResponse = new StorageServiceResponse();
+      const failedMessage = "Failed to created record, please check server logs.";
+      // trigger the pre-save
+      if (triggerPreSaveTriggers) {
+        try {
+          record = await this.triggerPreSaveTriggers(null, record, recordType, "onCreate", user);
+        } catch (err) {
+          sails.log.error(`${this.logHeader} Failed to run pre-save hooks when updating..`);
+          sails.log.error(JSON.stringify(err));
+          createResponse.message = failedMessage;
+          return createResponse;
+        }
       }
-      sails.config.passport.serializeUser(function (user, done) {
-        done(null, user.id);
-      });
-      sails.config.passport.deserializeUser(function (id, done) {
-        User.findOne({
-          id: id
-        }).populate('roles').exec(function (err, user) {
-          done(err, user);
-        });
-      });
-      //
-      //  Local Strategy
-      //
-      sails.config.passport.use(new LocalStrategy({
-          usernameField: usernameField,
-          passwordField: passwordField
-        },
-        function (username, password, done) {
-
-          User.findOne({
-            username: username
-          }).populate('roles').exec(function (err, foundUser) {
-            if (err) {
-              return done(err);
-            }
-            if (!foundUser) {
-              return done(null, false, {
-                message: 'Incorrect username/password'
-              });
-            }
-
-            bcrypt.compare(password, foundUser.password, function (err, res) {
-
-              if (!res) {
-                return done(null, false, {
-                  message: 'Incorrect username/password'
-                });
-              }
-
-              foundUser.lastLogin = new Date();
-
-              User.update({
-                username: foundUser.username
-              }, {
-                lastLogin: foundUser.lastLogin
-              });
-
-              return done(null, foundUser, {
-                message: 'Logged In Successfully'
-              });
-
-
-            });
-          });
+      // save the record ...
+      createResponse = await this.storageService.create(brand, record, recordType, user);
+      if (createResponse.isSuccessful()) {
+        if (triggerPostSaveTriggers) {
+          // post-save sync
+          try {
+            createResponse = await this.triggerPostSaveSyncTriggers(createResponse['oid'], record, recordType, 'onCreate', user, createResponse);
+          } catch (err) {
+            sails.log.error(`${this.logHeader} Exception while running post save sync hooks when creating: ${createResponse['oid']}`);
+            sails.log.error(JSON.stringify(err));
+            createResponse.success = false;
+            createResponse.message = failedMessage;
+            return createResponse;
+          }
+          // Fire Post-save hooks async ...
+          this.triggerPostSaveTriggers(createResponse['oid'], record, recordType, 'onCreate', user);
         }
-      ));
-    }
-
-    protected aafAuthInit = () => {
-      // users the default brand's configuration on startup
-      // TODO: consider moving late initializing this if possible
-      const defAuthConfig = ConfigService.getBrand(BrandingService.getDefault().name, 'auth');
-      //
-      // JWT/AAF Strategy
-      //
-      var JwtStrategy = require('passport-jwt').Strategy,
-        ExtractJwt = require('passport-jwt').ExtractJwt;
-      const aafOpts = defAuthConfig.aaf.opts;
-      aafOpts.jwtFromRequest = ExtractJwt.fromBodyField('assertion');
-      sails.config.passport.use('aaf-jwt', new JwtStrategy(aafOpts, function (req, jwt_payload, done) {
-        var brand = BrandingService.getBrand(req.session.branding);
-        const authConfig = ConfigService.getBrand(brand.name, 'auth');
-        var aafAttributes = authConfig.aaf.attributesField;
-        var aafDefRoles = _.map(RolesService.getNestedRoles(RolesService.getDefAuthenticatedRole(brand).name, brand.roles), 'id');
-        var aafUsernameField = authConfig.aaf.usernameField;
-        const userName = Buffer.from(jwt_payload[aafUsernameField]).toString('base64');
-        User.findOne({
-          username: userName
-        }, function (err, user) {
-          sails.log.verbose("At AAF Strategy verify, payload:");
-          sails.log.verbose(jwt_payload);
-          sails.log.verbose("User:");
-          sails.log.verbose(user);
-          sails.log.verbose("Error:");
-          sails.log.verbose(err);
-          if (err) {
-            return done(err, false);
-          }
-          if (user) {
-            user.lastLogin = new Date();
-            user.name = jwt_payload[aafAttributes].cn;
-            user.email = jwt_payload[aafAttributes].mail.toLowerCase();
-            user.displayname = jwt_payload[aafAttributes].displayname;
-            user.cn = jwt_payload[aafAttributes].cn;
-            user.edupersonscopedaffiliation = jwt_payload[aafAttributes].edupersonscopedaffiliation;
-            user.edupersontargetedid = jwt_payload[aafAttributes].edupersontargetedid;
-            user.edupersonprincipalname = jwt_payload[aafAttributes].edupersonprincipalname;
-            user.givenname = jwt_payload[aafAttributes].givenname;
-            user.surname = jwt_payload[aafAttributes].surname;
-
-            User.update(user).exec(function (err, user) {});
-            return done(null, user);
-          } else {
-            sails.log.verbose("At AAF Strategy verify, creating new user...");
-            // first time login, create with default role
-            var userToCreate = {
-              username: userName,
-              name: jwt_payload[aafAttributes].cn,
-              email: jwt_payload[aafAttributes].mail.toLowerCase(),
-              displayname: jwt_payload[aafAttributes].displayname,
-              cn: jwt_payload[aafAttributes].cn,
-              edupersonscopedaffiliation: jwt_payload[aafAttributes].edupersonscopedaffiliation,
-              edupersontargetedid: jwt_payload[aafAttributes].edupersontargetedid,
-              edupersonprincipalname: jwt_payload[aafAttributes].edupersonprincipalname,
-              givenname: jwt_payload[aafAttributes].givenname,
-              surname: jwt_payload[aafAttributes].surname,
-              type: 'aaf',
-              roles: aafDefRoles,
-              lastLogin: new Date()
-            };
-            sails.log.verbose(userToCreate);
-            User.create(userToCreate).exec(function (err, newUser) {
-              if (err) {
-                sails.log.error("Error creating new user:");
-                sails.log.error(err);
-                return done(err, false);
-              }
-
-              sails.log.verbose("Done, returning new user:");
-              sails.log.verbose(newUser);
-              return done(null, newUser);
-            });
-          }
-        });
-      }));
-    }
-
-    protected openIdConnectAuth = () => {
-      sails.on('ready', async () => {
-        const defAuthConfig = ConfigService.getBrand(BrandingService.getDefault().name, 'auth');
-        sails.log.verbose(`OIDC, checking if within active array: ${defAuthConfig.active}`);
-        if (defAuthConfig.active != undefined && defAuthConfig.active.indexOf('oidc') != -1) {
-          const that = this;
-          sails.log.verbose(`OIDC is active, configuring....`);
-          let oidcConfigArray = defAuthConfig.oidc;
-          if (_.isObject(oidcConfigArray)) {
-            let singleOidcConfig = oidcConfigArray;
-            oidcConfigArray = [singleOidcConfig];
-          }
-          for (let oidcConfig of oidcConfigArray) {
-            const oidcOpts = oidcConfig.opts;
-            const {
-              Issuer,
-              Strategy,
-              custom
-            } = require('openid-client');
-            let configured = false;
-            let discoverAttemptsCtr = 0;
-            while (!configured && discoverAttemptsCtr < oidcConfig.discoverAttemptsMax) {
-              discoverAttemptsCtr++;
-              try {
-                let issuer;
-                if (_.isString(oidcOpts.issuer)) {
-                  sails.log.verbose(`OIDC, using issuer URL for discovery: ${oidcOpts.issuer}`);
-                  issuer = await Issuer.discover(oidcOpts.issuer);
-                } else {
-                  sails.log.verbose(`OIDC, using issuer hardcoded configuration:`);
-                  sails.log.verbose(JSON.stringify(oidcOpts.issuer));
-                  issuer = new Issuer(oidcOpts.issuer);
-                }
-                configured = true;
-                sails.log.verbose(`OIDC, Got issuer config, after ${discoverAttemptsCtr} attempt(s).`);
-                sails.log.verbose(issuer);
-                const oidcClient = new issuer.Client(oidcOpts.client);
-                let verifyCallbackFn = (req, tokenSet, userinfo, done) => {
-                  that.openIdConnectAuthVerifyCallback(oidcConfig, issuer, req, tokenSet, userinfo, done);
-                };
-                if (oidcConfig.userInfoSource == 'tokenset_claims') {
-                  verifyCallbackFn = (req, tokenSet, done) => {
-                    that.openIdConnectAuthVerifyCallback(oidcConfig, issuer, req, tokenSet, undefined, done);
-                  };
-                }
-                let passportIdentifier = 'oidc';
-                if(!_.isEmpty(oidcConfig.identifier)) {
-                  passportIdentifier = `oidc-${oidcConfig.identifier}`
-                }
-                
-                sails.config.passport.use(passportIdentifier, new Strategy({
-                  client: oidcClient,
-                  passReqToCallback: true,
-                  params: oidcOpts.params
-                }, verifyCallbackFn));
-                sails.log.info(`OIDC is active, client ${passportIdentifier} configured and ready.`);
-              
-                
-              } catch (e) {
-                sails.log.error(`Failed to discover, attempt# ${discoverAttemptsCtr}:`);
-                sails.log.error(e);
-                await this.sleep(oidcConfig.discoverFailureSleep);
-              }
-            }
-          }
-        }
-      });
-    }
-
-    protected openIdConnectAuthVerifyCallback(oidcConfig, issuer, req, tokenSet, userinfo = undefined, done) {
-      const that = this;
-      req.session.logoutUrl = issuer.end_session_endpoint;
-      sails.log.verbose(`OIDC login success, tokenset: `);
-      sails.log.verbose(JSON.stringify(tokenSet));
-      sails.log.verbose(`Claims:`);
-      sails.log.verbose(JSON.stringify(tokenSet.claims()));
-      if (!_.isUndefined(userinfo)) {
-        sails.log.verbose(`Userinfo:`);
-        sails.log.verbose(JSON.stringify(userinfo));
+            this.searchService.index(createResponse['oid'], record);
+        // TODO: fire-off audit message
       } else {
-        userinfo = tokenSet.claims();
+        sails.log.error(`${this.logHeader} Failed to create record, storage service response:`);
+        sails.log.error(JSON.stringify(createResponse));
+        createResponse.message = failedMessage;
       }
-      if (oidcConfig.debugMode === true) {
-        sails.log.info("OIDC debug mode is active, intentionally failing the login, and redirecting to failure page with all details of this login attempt.");
-        const err = {
-          userinfo: userinfo,
-          claims: tokenSet.claims(),
-          tokenSet: tokenSet
-        };
-        req.session.errorTextRaw = JSON.stringify(err, null, 2);
-        return done(null, false);
-      }
-      var brand = BrandingService.getBrand(req.session.branding);
-      var claimsMappings = oidcConfig.claimMappings;
-      const userName = _.get(userinfo, claimsMappings['username']);
-      var openIdConnectDefRoles = _.map(RolesService.getNestedRoles(RolesService.getDefAuthenticatedRole(brand).name, brand.roles), 'id');
+      return createResponse;
+    }
 
-      User.findOne({
-        username: userName
-      }, function (err, user) {
-        sails.log.verbose("At OIDC Strategy verify, payload:");
-        sails.log.verbose(userinfo);
-        sails.log.verbose("User:");
-        sails.log.verbose(user);
-        sails.log.verbose("Error:");
-        sails.log.verbose(err);
-        if (err) {
-          return done(err, false);
+    async updateMeta(brand: any, oid: any, record: any, user ? : any, triggerPreSaveTriggers = true, triggerPostSaveTriggers = true) {
+      let updateResponse = new StorageServiceResponse();
+      updateResponse.oid = oid;
+      let recordType = null;
+      const failedMessage = "Failed to update record, please check server logs.";
+      // process pre-save
+      if (!_.isEmpty(brand) && triggerPreSaveTriggers === true) {
+        try {
+          recordType = await RecordTypesService.get(brand, record.metaMetadata.type).toPromise();
+          record = await this.triggerPreSaveTriggers(oid, record, recordType, "onUpdate", user);
+        } catch (err) {
+          sails.log.error(`${this.logHeader} Failed to run pre-save hooks when updating..`);
+          sails.log.error(JSON.stringify(err));
+          updateResponse.message = failedMessage;
+          return updateResponse;
         }
-        if (user) {
-          user.lastLogin = new Date();
-          user.additionalAttributes = that.mapAdditionalAttributes(userinfo, claimsMappings['additionalAttributes']);
-          user.name = _.get(userinfo, claimsMappings['name']);
-          user.email = _.get(userinfo, claimsMappings['email']).toLowerCase();
-          user.displayname = _.get(userinfo, claimsMappings['displayName']);
-          user.cn = _.get(userinfo, claimsMappings['cn']);
-          user.givenname = _.get(userinfo, claimsMappings['givenname']);
-          user.surname = _.get(userinfo, claimsMappings['surname']);
+      }
+      // unsetting the ID just to be safe
+      _.unset(record, 'id');
+      _.unset(record, 'redboxOid');
+      // update
+      updateResponse = await this.storageService.updateMeta(brand, oid, record, user);
+      if (updateResponse.isSuccessful()) {
+        // post-save async
+        if (!_.isEmpty(recordType) && triggerPostSaveTriggers === true) {
+          // Trigger Post-save sync hooks ...
+          try {
+            updateResponse = await this.triggerPostSaveSyncTriggers(updateResponse['oid'], record, recordType, 'onUpdate', user, updateResponse);
+          } catch (err) {
+            sails.log.error(`${this.logHeader} Exception while running post save sync hooks when updating:`);
+            sails.log.error(JSON.stringify(err));
+            updateResponse.success = false;
+            updateResponse.message = failedMessage;
+            return updateResponse;
+          }
+          // Fire Post-save hooks async ...
+          this.triggerPostSaveTriggers(updateResponse['oid'], record, recordType, 'onUpdate', user);
+        }
+        this.searchService.index(oid, record);
+        // TODO: fire-off audit message
+      } else {
+        sails.log.error(`${this.logHeader} Failed to update record, storage service response:`);
+        sails.log.error(JSON.stringify(updateResponse));
+        updateResponse.message = failedMessage;
+      }
+      return updateResponse;
+    }
 
-          User.update(user).exec(function (err, user) {});
-          return done(null, user);
+    getMeta(oid: any): Promise < any > {
+      return this.storageService.getMeta(oid);
+    }
+    createBatch(type: any, data: any, harvestIdFldName: any): Promise < any > {
+      return this.storageService.createBatch(type, data, harvestIdFldName);
+    }
+    provideUserAccessAndRemovePendingAccess(oid: any, userid: any, pendingValue: any): void {
+      this.storageService.provideUserAccessAndRemovePendingAccess(oid, userid, pendingValue);
+    }
+    getRelatedRecords(oid: any, brand: any): Promise < any > {
+      return this.storageService.getRelatedRecords(oid, brand);
+    }
+    async delete(oid: any) {
+      const response = await this.storageService.delete(oid);
+      if (response.isSuccessful()) {
+        this.searchService.remove(oid);
+      }
+      return response;
+    }
+    updateNotificationLog(oid: any, record: any, options: any): Promise < any > {
+      return this.storageService.updateNotificationLog(oid, record, options);
+    }
+
+    public getRecords(workflowState, recordType = undefined, start, rows = 10, username, roles, brand, editAccessOnly = undefined, packageType = undefined, sort=undefined) : Promise<any> {
+      return this.storageService.getRecords(workflowState, recordType, start, rows, username, roles, brand, editAccessOnly, packageType, sort);
+    }
+
+    public exportAllPlans(username, roles, brand, format, modBefore, modAfter, recType) : Readable {
+      return this.storageService.exportAllPlans(username, roles, brand, format, modBefore, modAfter, recType);
+    }
+
+    // Gets attachments for this record, will use the `sails.config.record.datastreamService` if set, otherwise will use this service
+    //
+    // Params:
+    // oid - record idea
+    // labelFilterStr - set if you want to be selective in your attachments, will just run a simple `.indexOf`
+    public async getAttachments(oid: string, labelFilterStr: string = undefined): Promise < any > {
+      let datastreams = await this.datastreamService.listDatastreams(oid, null);
+      let attachments = [];
+      _.each(datastreams, (datastream) => {
+        let attachment = {};
+        attachment['dateUpdated'] = moment(datastream['uploadDate']).format();
+        attachment['label'] = _.get(datastream.metadata, 'name');
+        attachment['contentType'] = _.get(datastream.metadata, 'mimeType');
+        attachment = _.merge(attachment, datastream.metadata);
+        if (_.isUndefined(labelFilterStr) && _.isEmpty(labelFilterStr)) {
+          attachments.push(attachment);
         } else {
-          sails.log.verbose("At OIDC Strategy verify, creating new user...");
-          let additionalAttributes = that.mapAdditionalAttributes(userinfo, claimsMappings['additionalAttributes']);
-          // first time login, create with default role
-          var userToCreate = {
-            username: userName,
-            name: _.get(userinfo, claimsMappings['name']),
-            email: _.get(userinfo, claimsMappings['email']).toLowerCase(),
-            displayname: _.get(userinfo, claimsMappings['displayName']),
-            cn: _.get(userinfo, claimsMappings['cn']),
-            givenname: _.get(userinfo, claimsMappings['givenname']),
-            surname: _.get(userinfo, claimsMappings['surname']),
-            type: 'oidc',
-            roles: openIdConnectDefRoles,
-            additionalAttributes: additionalAttributes,
-            lastLogin: new Date()
+          if (datastream['label'] && datastream['label'].indexOf(labelFilterStr) != -1) {
+            attachments.push(attachment);
+          }
+        }
+      });
+      return attachments;
+    }
+
+    /*
+     *
+     */
+    public async checkRedboxRunning(): Promise < any > {
+      // check if a valid storage plugin is loaded....
+      if (!_.isEmpty(sails.config.storage)) {
+        sails.log.info("ReDBox storage plugin is active!");
+        return true;
+      }
+      let retries = 1000;
+      for (let i = 0; i < retries; i++) {
+        try {
+          let response: any = await this.info();
+          if (response['applicationVersion']) {
+            return true;
+          }
+        } catch (err) {
+          sails.log.info("ReDBox Storage hasn't started yet. Retrying...")
+        }
+        await this.sleep(1000);
+      }
+      return false;
+    }
+
+    private info(): Promise < any > {
+
+      const options = this.getOptions(sails.config.record.baseUrl.redbox + sails.config.record.api.info.url);
+      return request[sails.config.record.api.info.method](options)
+    }
+
+    protected getOptions(url, oid = null, packageType = null, isJson: boolean = true) {
+      if (!_.isEmpty(oid)) {
+        url = url.replace('$oid', oid);
+      }
+      if (!_.isEmpty(packageType)) {
+        url = url.replace('$packageType', packageType);
+      }
+      const opts: any = {
+        url: url,
+        headers: {
+          'Authorization': `Bearer ${sails.config.redbox.apiKey}`
+        }
+      };
+      if (isJson == true) {
+        opts.json = true;
+        opts.headers['Content-Type'] = 'application/json; charset=utf-8';
+      } else {
+        opts.encoding = null;
+      }
+      return opts;
+    }
+
+
+    /**
+     * End of block to move/remove
+     */
+
+
+
+    /**
+     * Sets/appends to a field in the targetRecord
+     *
+     * @param  targetRecordOid - the record to modify
+     * @param  data - the data to set
+     * @param  fieldName - the field name to use
+     * @param  fieldType - blank for any, 'array' to create an array
+     * @param  targetRecord - leave blank, otherwise will use this record for updates...
+     * @return - response of the update
+     */
+    public async appendToRecord(targetRecordOid: string, linkData: any, fieldName: string, fieldType: string = undefined, targetRecord: any = undefined) {
+      sails.log.verbose(`RecordsService::Appending to record:${targetRecordOid}`);
+      if (_.isEmpty(targetRecord)) {
+        sails.log.verbose(`RecordsService::Getting record metadata:${targetRecordOid}`);
+        targetRecord = await this.getMeta(targetRecordOid);
+      }
+      const existingData = _.get(targetRecord, fieldName);
+      if (_.isUndefined(existingData)) {
+        if (fieldType == "array") {
+          linkData = [linkData];
+        }
+      } else if (_.isArray(existingData)) {
+        existingData.push(linkData);
+        linkData = existingData;
+      }
+      _.set(targetRecord, fieldName, linkData);
+      sails.log.verbose(`RecordsService::Updating record:${targetRecordOid}`);
+      return await this.updateMeta(null, targetRecordOid, targetRecord);
+    }
+
+    /**
+     * Fine-grained access to the record, converted to sync.
+     *
+     */
+    public hasViewAccess(brand, user, roles, record): boolean {
+      // merge with the edit user and roles, since editors are viewers too...
+      const viewArr = record.authorization ? _.union(record.authorization.view, record.authorization.edit) : _.union(record.authorization_view, record.authorization_edit);
+      const viewRolesArr = record.authorization ? _.union(record.authorization.viewRoles, record.authorization.editRoles) : _.union(record.authorization_viewRoles, record.authorization_editRoles);
+
+      const uname = user.username;
+
+      const isInUserView = _.find(viewArr, username => {
+        return uname == username;
+      });
+      if (!_.isUndefined(isInUserView)) {
+        return true;
+      }
+      const isInRoleView = _.find(viewRolesArr, roleName => {
+        const role = RolesService.getRole(brand, roleName);
+        return role && !_.isUndefined(_.find(roles, r => {
+          return role.id == r.id;
+        }));
+      });
+      return !_.isUndefined(isInRoleView);
+      // Lines below commented out because we're not checking workflow auths anymore,
+      // we're expecting that the workflow auths are bolted into the document on workflow updates.
+      //
+      // if (isInRoleEdit !== undefined) {
+      //   return Observable.of(true);
+      // }
+      //
+      // return WorkflowStepsService.get(brand, record.workflow.stage).flatMap(wfStep => {
+      //   const wfHasRoleEdit = _.find(wfStep.config.authorization.editRoles, roleName => {
+      //     const role = RolesService.getRole(brand, roleName);
+      //     return role && UsersService.hasRole(user, role);
+      //   });
+      //   return Observable.of(wfHasRoleEdit !== undefined);
+      // });
+    }
+
+    /**
+     * Fine-grained access to the record, converted to sync.
+     *
+     */
+    public hasEditAccess(brand, user, roles, record): boolean {
+      const editArr = record.authorization ? record.authorization.edit : record.authorization_edit;
+      const editRolesArr = record.authorization ? record.authorization.editRoles : record.authorization_editRoles;
+      const uname = user.username;
+
+      const isInUserEdit = _.find(editArr, username => {
+        sails.log.verbose(`Username: ${uname} == ${username}`);
+        return uname == username;
+      });
+      // sails.log.verbose(`isInUserEdit: ${isInUserEdit}`);
+      if (!_.isUndefined(isInUserEdit)) {
+        return true;
+      }
+      const isInRoleEdit = _.find(editRolesArr, roleName => {
+        const role = RolesService.getRole(brand, roleName);
+        return role && !_.isUndefined(_.find(roles, r => {
+          return role.id == r.id;
+        }));
+      });
+      return !_.isUndefined(isInRoleEdit);
+      // Lines below commented out because we're not checking workflow auths anymore,
+      // we're expecting that the workflow auths are bolted into the document on workflow updates.
+      //
+      // if (isInRoleEdit !== undefined) {
+      //   return Observable.of(true);
+      // }
+      //
+      // return WorkflowStepsService.get(brand, record.workflow.stage).flatMap(wfStep => {
+      //   const wfHasRoleEdit = _.find(wfStep.config.authorization.editRoles, roleName => {
+      //     const role = RolesService.getRole(brand, roleName);
+      //     return role && UsersService.hasRole(user, role);
+      //   });
+      //   return Observable.of(wfHasRoleEdit !== undefined);
+      // });
+    }
+
+
+    public searchFuzzy(type, workflowState, searchQuery, exactSearches, facetSearches, brand, user, roles, returnFields): Promise < any > {
+
+      const username = user.username;
+      // const url = `${this.getSearchTypeUrl(type, searchField, searchStr)}&start=0&rows=${sails.config.record.export.maxRecords}`;
+      let searchParam = workflowState ? ` AND workflow_stage:${workflowState} ` : '';
+      searchParam = `${searchParam} AND full_text:${searchQuery}`;
+      _.forEach(exactSearches, (exactSearch) => {
+        searchParam = `${searchParam}&fq=${exactSearch.name}:${this.luceneEscape(exactSearch.value)}`
+      });
+      if (facetSearches.length > 0) {
+        searchParam = `${searchParam}&facet=true`
+        _.forEach(facetSearches, (facetSearch) => {
+          searchParam = `${searchParam}&facet.field=${facetSearch.name}${_.isEmpty(facetSearch.value) ? '' : `&fq=${facetSearch.name}:${this.luceneEscape(facetSearch.value)}`}`
+        });
+      }
+
+      let url = `${sails.config.record.baseUrl.redbox}${sails.config.record.api.search.url}?q=metaMetadata_brandId:${brand.id} AND metaMetadata_type:${type}${searchParam}&version=2.2&wt=json&sort=date_object_modified desc`;
+      url = this.addAuthFilter(url, username, roles, brand, false)
+      sails.log.debug(`Searching fuzzy using: ${url}`);
+      const options = this.getOptions(url);
+      return Observable.fromPromise(request[sails.config.record.api.search.method](options))
+        .flatMap(resp => {
+          let response: any = resp;
+          const customResp = {
+            records: []
           };
-          sails.log.verbose(`Creating user: `);
-          sails.log.verbose(userToCreate);
-          User.create(userToCreate).exec(function (err, newUser) {
-            if (err) {
-              sails.log.error("Error creating new user:");
-              sails.log.error(err);
-              return done(err, false);
-            }
-
-            sails.log.verbose("Done, returning new user:");
-            sails.log.verbose(newUser);
-            return done(null, newUser);
+          _.forEach(response.response.docs, solrdoc => {
+            const customDoc = {};
+            _.forEach(returnFields, retField => {
+              if (_.isArray(solrdoc[retField])) {
+                customDoc[retField] = solrdoc[retField][0];
+              } else {
+                customDoc[retField] = solrdoc[retField];
+              }
+            });
+            customDoc["hasEditAccess"] = this.hasEditAccess(brand, user, roles, solrdoc);
+            customResp.records.push(customDoc);
           });
+          // check if have facets turned on...
+          if (response.facet_counts) {
+            customResp['facets'] = [];
+            _.forOwn(response.facet_counts.facet_fields, (facet_field, facet_name) => {
+              const numFacetsValues = _.size(facet_field) / 2;
+              const facetValues = [];
+              for (var i = 0, j = 0; i < numFacetsValues; i++) {
+                facetValues.push({
+                  value: facet_field[j++],
+                  count: facet_field[j++]
+                });
+              }
+              customResp['facets'].push({
+                name: facet_name,
+                values: facetValues
+              });
+            });
+          }
+          return Observable.of(customResp);
+        }).toPromise();
+    }
+
+    protected addAuthFilter(url, username, roles, brand, editAccessOnly = undefined) {
+
+      var roleString = ""
+      var matched = false;
+      for (var i = 0; i < roles.length; i++) {
+        var role = roles[i]
+        if (role.branding == brand.id) {
+          if (matched) {
+            roleString += " OR ";
+            matched = false;
+          }
+          roleString += roles[i].name;
+          matched = true;
         }
-      });
+      }
+      url = url + "&fq=authorization_edit:" + username + (editAccessOnly ? "" : (" OR authorization_view:" + username + " OR authorization_viewRoles:(" + roleString + ")")) + " OR authorization_editRoles:(" + roleString + ")";
+      return url;
+    }
+
+
+    protected getSearchTypeUrl(type, searchField = null, searchStr = null) {
+      const searchParam = searchField ? ` AND ${searchField}:${searchStr}*` : '';
+      return `${sails.config.record.baseUrl.redbox}${sails.config.record.api.search.url}?q=metaMetadata_type:${type}${searchParam}&version=2.2&wt=json&sort=date_object_modified desc`;
     }
 
 
 
-    protected bearerTokenAuthInit = () => {
-      var BearerStrategy = require('passport-http-bearer').Strategy;
-      sails.config.passport.use('bearer', new BearerStrategy(
-        function (token, done) {
-          if (!_.isEmpty(token) && !_.isUndefined(token)) {
-            const tokenHash = crypto.createHash('sha256').update(token).digest('base64');
-            User.findOne({
-              token: tokenHash
-            }).populate('roles').exec(function (err, user) {
-              if (err) {
-                return done(err);
-              }
-              if (!user) {
+    protected luceneEscape(str: string) {
+      return luceneEscapeQuery.escape(str);
+    }
 
-                return done(null, false);
-              }
-              return done(null, user, {
-                scope: 'all'
-              });
-            });
-          } else {
-            // empty token, deny
-            return done(null, false);
+
+
+
+
+    /**
+     *  Pre-save trigger to clear and re-assign permissions based on security config
+     *
+     */
+    public assignPermissions(oid, record, options, user) {
+
+      // sails.log.verbose(`Assign Permissions executing on oid: ${oid}, using options:`);
+      // sails.log.verbose(JSON.stringify(options));
+      // sails.log.verbose(`With record: `);
+      // sails.log.verbose(record);
+      // const emailProperty = _.get(options, "emailProperty", "email");
+      // const editContributorProperties = _.get(options, "editContributorProperties", []);
+      // const viewContributorProperties = _.get(options, "viewContributorProperties", []);
+      // let authorization = _.get(record, "authorization", {});
+      // let editContributorObs = [];
+      // let viewContributorObs = [];
+      // let editContributorEmails = [];
+      // let viewContributorEmails = [];
+      //
+      // // get the new editor list...
+      // editContributorEmails = this.populateContribList(editContributorProperties, record, emailProperty, editContributorEmails);
+      // // get the new viewer list...
+      // viewContributorEmails = this.populateContribList(viewContributorProperties, record, emailProperty, viewContributorEmails);
+      //
+      // if (_.isEmpty(editContributorEmails)) {
+      //   sails.log.error(`No editors for record: ${oid}`);
+      // }
+      // if (_.isEmpty(viewContributorEmails)) {
+      //   sails.log.error(`No viewers for record: ${oid}`);
+      // }
+      // _.each(editContributorEmails, editorEmail => {
+      //   editContributorObs.push(this.getObservable(User.findOne({email: editorEmail})));
+      // });
+      // _.each(viewContributorEmails, viewerEmail => {
+      //   viewContributorObs.push(this.getObservable(User.findOne({email: viewerEmail})));
+      // });
+      //
+      // return Observable.zip(...editContributorObs)
+      // .flatMap(editContributorUsers => {
+      //   let newEditList = [];
+      //   this.filterPending(editContributorUsers, editContributorEmails, newEditList);
+      //   record.authorization.edit = newEditList;
+      //   record.authorization.editPending = editContributorEmails;
+      //   return Observable.zip(...viewContributorObs);
+      // })
+      // .flatMap(viewContributorUsers => {
+      //   let newviewList = [];
+      //   this.filterPending(viewContributorUsers, editContributorEmails, newviewList);
+      //   record.authorization.view = newviewList;
+      //   record.authorization.viewPending = viewContributorEmails;
+      //   return Observable.of(record);
+      // });
+    }
+
+    public updateWorkflowStep(currentRec, nextStep): void {
+      if (!_.isEmpty(nextStep)) {
+        currentRec.previousWorkflow = currentRec.workflow;
+        currentRec.workflow = nextStep.config.workflow;
+        // TODO: validate data with form fields
+        currentRec.metaMetadata.form = nextStep.config.form;
+        // Check for JSON-LD config
+        if (sails.config.jsonld.addJsonLdContext) {
+          currentRec.metadata['@context'] = sails.config.jsonld.contexts[currentRec.metaMetadata.form];
+        }
+        // update authorizations based on workflow...
+        currentRec.authorization.viewRoles = nextStep.config.authorization.viewRoles;
+        currentRec.authorization.editRoles = nextStep.config.authorization.editRoles;
+      }
+    }
+
+    public async triggerPreSaveTriggers(oid: string, record: any, recordType: object, mode: string = 'onUpdate', user: object = undefined) {
+      sails.log.verbose("Triggering pre save triggers for record type: ");
+      sails.log.verbose(`hooks.${mode}.pre`);
+      sails.log.verbose(JSON.stringify(recordType));
+
+      let preSaveUpdateHooks = _.get(recordType, `hooks.${mode}.pre`, null);
+      sails.log.debug(preSaveUpdateHooks);
+
+      if (_.isArray(preSaveUpdateHooks)) {
+
+        for (var i = 0; i < preSaveUpdateHooks.length; i++) {
+          let preSaveUpdateHook = preSaveUpdateHooks[i];
+          let preSaveUpdateHookFunctionString = _.get(preSaveUpdateHook, "function", null);
+          if (preSaveUpdateHookFunctionString != null) {
+            let preSaveUpdateHookFunction = eval(preSaveUpdateHookFunctionString);
+            let options = _.get(preSaveUpdateHook, "options", {});
+
+
+            sails.log.verbose(`Triggering pre save triggers: ${preSaveUpdateHookFunctionString}`);
+            let hookResponse = preSaveUpdateHookFunction(oid, record, options, user);
+            record = await this.resolveHookResponse(hookResponse);
+
           }
         }
-      ));
-    }
-
-    protected initDefAdmin = (defRoles, defAdminRole) => {
-      const authConfig = ConfigService.getBrand(BrandingService.getDefault().name, 'auth');
-      var usernameField = authConfig.local.usernameField,
-        passwordField = authConfig.local.passwordField;
-      var defaultUser = _.find(defAdminRole.users, (o) => {
-        return o[usernameField] == authConfig.local.default.adminUser
-      });
-
-      if (defaultUser == null) {
-        defaultUser = {
-          type: 'local',
-          name: 'Local Admin'
-        };
-        defaultUser[usernameField] = authConfig.local.default.adminUser;
-        defaultUser[passwordField] = authConfig.local.default.adminPw;
-        defaultUser["email"] = authConfig.local.default.email;
-        if (authConfig.local.default.token) {
-          defaultUser["token"] = crypto.createHash('sha256').update(authConfig.local.default.token).digest('base64');
-        }
-        sails.log.verbose("Default user missing, creating...");
-        return super.getObservable(User.create(defaultUser))
-          .flatMap(defUser => {
-            // START Sails 1.0 upgrade
-            const defRoleIds = _.map(defRoles, (o) => {
-              return o.id;
-            });
-            let q = User.addToCollection(defUser.id, 'roles').members(defRoleIds);
-            // END Sails 1.0 upgrade
-            return super.getObservable(q, 'exec', 'simplecb')
-              .flatMap(dUser => {
-                return Observable.from(defRoles)
-                  .map(roleObserved => {
-                    let role: any = roleObserved;
-                    // START Sails 1.0 upgrade
-                    // role.users.add(defUser.id)
-                    q = Role.addToCollection(role.id, 'users').members([defUser.id]);
-                    // END Sails 1.0 upgrade
-                    return super.getObservable(q, 'exec', 'simplecb');
-                  });
-              })
-              .last()
-              .flatMap(lastRole => {
-                return Observable.of({
-                  defUser: defUser,
-                  defRoles: defRoles
-                });
-              });
-          });
-      } else {
-        return Observable.of({
-          defUser: defaultUser,
-          defRoles: defRoles
-        });
       }
+      return record;
     }
 
-    protected mapAdditionalAttributes(profile, attributeMappings) {
-      let additionalAttributes = {};
-      for (let attributeMapping in attributeMappings) {
-        additionalAttributes[attributeMapping] = _.get(profile, attributeMapping);
-      }
-      return additionalAttributes;
-    }
-
-    /**
-     * Creates a user audit record
-     *
-     */
-    public addUserAuditEvent = (user, action, additionalContext) => {
-      let auditEvent = {}
-      if (!_.isEmpty(user.password)) {
-        delete user.password;
-      }
-      auditEvent['user'] = user;
-      auditEvent['action'] = action;
-      auditEvent['additionalContext'] = additionalContext;
-      return super.getObservable(UserAudit.create(auditEvent));
-    }
-
-    /**
-     * @return User: the newly created user
-     *
-     */
-    public addLocalUser = (username, name, email, password) => {
-      const authConfig = ConfigService.getBrand(BrandingService.getDefault().name, 'auth');
-      var usernameField = authConfig.local.usernameField,
-        passwordField = authConfig.local.passwordField;
-
-      return this.getUserWithUsername(username).flatMap(user => {
-        if (user) {
-          return Observable.throw(new Error(`Username already exists`));
-        } else {
-          return this.findUsersWithEmail(email, null, null).flatMap(emailCheck => {
-            if (_.size(emailCheck) > 0) {
-              return Observable.throw(new Error(`Email already exists, it must be unique`));
+    public async triggerPostSaveSyncTriggers(oid: string, record: any, recordType: any, mode: string = 'onUpdate', user: object = undefined, response: any = {}) {
+      sails.log.debug("Triggering post save sync triggers ");
+      sails.log.debug(`hooks.${mode}.postSync`);
+      sails.log.debug(recordType);
+      let postSaveSyncHooks = _.get(recordType, `hooks.${mode}.postSync`, null);
+      if (_.isArray(postSaveSyncHooks)) {
+        for (var i = 0; i < postSaveSyncHooks.length; i++) {
+          let postSaveSyncHook = postSaveSyncHooks[i];
+          sails.log.debug(postSaveSyncHooks);
+          let postSaveSyncHooksFunctionString = _.get(postSaveSyncHook, "function", null);
+          if (postSaveSyncHooksFunctionString != null) {
+            let postSaveSyncHookFunction = eval(postSaveSyncHooksFunctionString);
+            let options = _.get(postSaveSyncHook, "options", {});
+            if (_.isFunction(postSaveSyncHookFunction)) {
+              sails.log.debug(`Triggering post-save sync trigger: ${postSaveSyncHooksFunctionString}`)
+              let hookResponse = postSaveSyncHookFunction(oid, record, options, user, response);
+              response = await this.resolveHookResponse(hookResponse);
+              sails.log.debug(`${postSaveSyncHooksFunctionString} response now is:`);
+              sails.log.verbose(JSON.stringify(response));
+              sails.log.debug(`post-save sync trigger ${postSaveSyncHooksFunctionString} completed for ${oid}`)
             } else {
-              var newUser = {
-                type: 'local',
-                name: name
-              };
-              if (!_.isEmpty(email)) {
-                newUser["email"] = email;
-              }
-              newUser[usernameField] = username;
-              newUser[passwordField] = password;
-              return super.getObservable(User.create(newUser));
+              sails.log.error(`Post save function: '${postSaveSyncHooksFunctionString}' did not resolve to a valid function, what I got:`);
+              sails.log.error(postSaveSyncHookFunction);
             }
-          });
-        }
-      });
-
-    }
-
-    private getSearchService() {
-      return sails.services[sails.config.search.serviceName];
-    }
-
-    /**
-    @return Object {
-          defUser: the default admin user
-          defRoles: the default brand's roles
-        }
-    */
-    public bootstrap = (defRoles) => {
-      let that = this;
-      const defAuthConfig = ConfigService.getBrand(BrandingService.getDefault().name, 'auth');
-      sails.log.verbose("Bootstrapping users....");
-
-      var usernameField = defAuthConfig.local.usernameField,
-        passwordField = defAuthConfig.local.passwordField;
-      var defAdminRole = RolesService.getAdminFromRoles(defRoles);
-      return Observable.of(defAdminRole)
-        .flatMap(defAdminRole => {
-          this.localAuthInit();
-          this.aafAuthInit();
-          this.openIdConnectAuth();
-          this.bearerTokenAuthInit();
-          return this.initDefAdmin(defRoles, defAdminRole);
-        });
-    }
-
-    public getUserWithUsername = (username) => {
-      return this.getObservable(User.findOne({
-        username: username
-      }).populate('roles'));
-    }
-
-    public getUserWithId = (userid) => {
-      return this.getObservable(User.findOne({
-        id: userid
-      }).populate('roles'));
-    }
-
-    /**
-     * @return Collection of all users (local and AAF)
-     */
-    public getUsers = (): Observable < any > => {
-      return super.getObservable(User.find({}).populate('roles'));
-    }
-
-    public setUserKey = (userid, uuid) => {
-      const uuidHash = _.isEmpty(uuid) ? uuid : crypto.createHash('sha256').update(uuid).digest('base64');
-      return this.getUserWithId(userid).flatMap(user => {
-        if (user) {
-          const q = User.update({
-            id: userid
-          }, {
-            token: uuidHash
-          });
-          return this.getObservable(q, 'exec', 'simplecb');
-        } else {
-          return Observable.throw(new Error('No such user with id:' + userid));
-        }
-      });
-    }
-
-    public updateUserDetails = (userid, name, email, password) => {
-      const authConfig = ConfigService.getBrand(BrandingService.getDefault().name, 'auth');
-      var passwordField = authConfig.local.passwordField;
-      return this.getUserWithId(userid).flatMap(user => {
-        if (user) {
-          const update = {
-            name: name
-          };
-
-          if (!_.isEmpty(email)) {
-            update["email"] = email;
           }
-
-          if (!_.isEmpty(password)) {
-            var bcrypt;
-            try {
-              bcrypt = require('bcrypt');
-            } catch (err) {
-              bcrypt = require('bcryptjs');
-            }
-            var salt = salt = bcrypt.genSaltSync(10);
-            update[passwordField] = bcrypt.hashSync(password, salt);
-          }
-          const q = User.update({
-            id: userid
-          }, update);
-          return this.getObservable(q, 'exec', 'simplecb');
-        } else {
-          return Observable.throw(new Error('No such user with id:' + userid));
         }
-      });
-    }
-
-    public updateUserRoles = (userid, newRoleIds) => {
-      return this.getUserWithId(userid).flatMap(user => {
-        if (user) {
-          if (_.isEmpty(newRoleIds) || newRoleIds.length == 0) {
-            return Observable.throw(new Error('Please assign at least one role'));
-          }
-          // START Sails 1.0 upgrade
-          const q = User.replaceCollection(user.id, 'roles').members(newRoleIds);
-          // END Sails 1.0 upgrade
-          return this.getObservable(q, 'exec', 'simplecb');
-        } else {
-          return Observable.throw(new Error('No such user with id:' + userid));
-        }
-      });
-    }
-
-    public hasRole(user, targetRole) {
-      return _.find(user.roles, (role) => {
-        return role.id == targetRole.id;
-      });
-    }
-
-    public findUsersWithName(name: string, brandId: string, source: any = null) {
-      const query = {
-        name: {
-          'contains': name
-        }
-      };
-      // S2TEST-21
-      return this.findUsersWithQuery(query, brandId, source);
-    }
-    // S2TEST-21
-    public findUsersWithEmail(email: string, brandId: string, source: any) {
-      const query = {
-        email: {
-          'contains': email
-        }
-      };
-      return this.findUsersWithQuery(query, brandId, source);
-    }
-    // S2TEST-21
-    public findUsersWithQuery(query: any, brandId: string, source: any = null) {
-      if (!_.isEmpty(source) && !_.isUndefined(source) && !_.isNull(source)) {
-        query['type'] = source;
       }
-      return this.getObservable(User.find(query).populate('roles'))
-        .flatMap(users => {
-          if (brandId) {
-            _.remove(users, (user) => {
-              const isInBrand = _.find(user.roles, (role) => {
-                return role.branding == brandId;
-              });
-              return !isInBrand;
-            });
-          }
-          return Observable.of(users);
-        });
+      return response;
     }
 
-    /**
-     *
-     * Find all records that the user is intended to have access to and assign actual access using their userId.
-     * This is used as users or services may want to provide access for a user to a record but due to single sign-on solutions,
-     * we're not able to reliably determine the username before they login to the system for the first time.
-     *
-     **/
-    public findAndAssignAccessToRecords(pendingValue, userid) {
-      var oid = null;
-      const query = `authorization_editPending:${pendingValue}%20OR%20authorization_viewPending:${pendingValue}&sort=date_object_modified desc&version=2.2&wt=json&rows=10000`;
-      this.getSearchService().searchAdvanced(query).then(results => {
-        if (_.isEmpty(results) || _.isEmpty(results['response'])) {
-          sails.log.verbose(`UsersService::findAndAssignAccessToRecords() -> No pending records: ${pendingValue}`);
-          return;
-        }
-        sails.log.verbose(JSON.stringify(results));
-        if (results["response"] != null) {
-          var docs = results["response"]["docs"];
-          for (var i = 0; i < docs.length; i++) {
-            var doc = docs[i];
-            var item = {};
-            oid = doc["storage_id"];
-            RecordsService.provideUserAccessAndRemovePendingAccess(oid, userid, pendingValue);
+
+
+    public triggerPostSaveTriggers(oid: string, record: any, recordType: any, mode: string = 'onUpdate', user: object = undefined): void {
+      sails.log.debug("Triggering post save triggers ");
+      sails.log.debug(`hooks.${mode}.post`);
+      sails.log.debug(recordType);
+      let postSaveCreateHooks = _.get(recordType, `hooks.${mode}.post`, null);
+      if (_.isArray(postSaveCreateHooks)) {
+        _.each(postSaveCreateHooks, postSaveCreateHook => {
+          sails.log.debug(postSaveCreateHook);
+          let postSaveCreateHookFunctionString = _.get(postSaveCreateHook, "function", null);
+          if (postSaveCreateHookFunctionString != null) {
+            let postSaveCreateHookFunction = eval(postSaveCreateHookFunctionString);
+            let options = _.get(postSaveCreateHook, "options", {});
+            if (_.isFunction(postSaveCreateHookFunction)) {
+              postSaveCreateHookFunction(oid, record, options, user).subscribe(result => {
+                sails.log.debug(`post-save trigger ${postSaveCreateHookFunctionString} completed for ${oid}`)
+              }, error => {
+                sails.log.error(`post-save trigger ${postSaveCreateHookFunctionString} failed to complete`)
+                sails.log.error(error)
+              });
+            } else {
+              sails.log.error(`Post save function: '${postSaveCreateHookFunctionString}' did not resolve to a valid function, what I got:`);
+              sails.log.error(postSaveCreateHookFunction);
+            }
           }
-        }
-      }).catch((error: any) => {
-        // swallow !!!!
-        sails.log.warn(`Failed to assign access to OID: ${oid}`);
-        sails.log.warn(error);
-      });
+        });
+      }
     }
+
+    private resolveHookResponse(hookResponse) {
+      let response = hookResponse;
+      if (isObservable(hookResponse)) {
+        response = hookResponse.toPromise();
+      } else {
+        response = Promise.resolve(hookResponse);
+      }
+      return response;
+    }
+
+
 
   }
 }
-
-module.exports = new Services.Users().exports();
+module.exports = new Services.Records().exports();
