@@ -1,4 +1,4 @@
-import controller = require('../core/CoreController.js');
+import { Controllers as controllers} from '@researchdatabox/redbox-core-types';
 import skipperGridFs = require('skipper-gridfs');
 import {Model} from "sails";
 import {Sails} from "sails";
@@ -17,7 +17,7 @@ declare var BrandingConfig: Model;
  */
 export module Controllers {
 
-  export class Branding extends controller.Controllers.Core.Controller {
+  export class Branding extends controllers.Core.Controller {
     private mongoUri: string = sails.config.datastores.mongodb.url;
     private blobAdapter = skipperGridFs({
       // host: sails.config.datastores.mongodb.host,

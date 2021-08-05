@@ -21,10 +21,8 @@
  * Service interface for Queuing jobs
  */
 
-interface QueueService {
+export interface QueueService {
   every(jobName: string, interval: string, data: any, options: any );
   schedule(jobName: string, schedule: string, data: any);
   now(jobName: string, data: any);
 }
-
-export default QueueService

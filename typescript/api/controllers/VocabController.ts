@@ -27,7 +27,7 @@ declare var VocabService;
 /**
  * Package that contains all Controllers.
  */
-import controller = require('../core/CoreController.js');
+import { Controllers as controllers} from '@researchdatabox/redbox-core-types';
 export module Controllers {
   /**
    * Vocabulary related features....
@@ -35,7 +35,7 @@ export module Controllers {
    * Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a>
    *
    */
-  export class Vocab extends controller.Controllers.Core.Controller {
+  export class Vocab extends controllers.Core.Controller {
 
     /**
      * Exported methods, accessible from internet.
@@ -64,34 +64,37 @@ export module Controllers {
 
     public get(req, res) {
       const vocabId = req.param("vocabId");
+      let that = this;
       VocabService.getVocab(vocabId).subscribe(data => {
-        this.ajaxOk(req, res, null, data);
+        that.ajaxOk(req, res, null, data);
       }, error => {
         sails.log.error(`Failed to get vocab: ${vocabId}`);
         sails.log.error(error);
-        this.ajaxFail(req, res, null, [], true);
+        that.ajaxFail(req, res, null, [], true);
       });
     }
 
     public getCollection(req, res) {
       const collectionId = req.param('collectionId');
       const searchString = req.query.search ? req.query.search.toLowerCase() : '';
+      let that = this;
       VocabService.findCollection(collectionId, searchString).subscribe(collections => {
-        this.ajaxOk(req, res, null, collections, true);
+        that.ajaxOk(req, res, null, collections, true);
       }, error => {
         sails.log.error(`Failed to find collection: ${collectionId}, using: '${searchString}'`);
         sails.log.error(error);
         // return empty data...
-        this.ajaxFail(req, res, null, [], true);
+        that.ajaxFail(req, res, null, [], true);
       });
     }
 
     public loadCollection(req, res) {
       const collectionId = req.param('collectionId');
+      let that = this;
       VocabService.loadCollection(collectionId).subscribe(receipt => {
-        this.ajaxOk(req, res, null, {status: 'queued', message: 'All good.', receipt: receipt}, true);
+        that.ajaxOk(req, res, null, {status: 'queued', message: 'All good.', receipt: receipt}, true);
       }, error => {
-        this.ajaxFail(req, res, null, error, true);
+        that.ajaxFail(req, res, null, error, true);
       });
     }
 
@@ -100,6 +103,7 @@ export module Controllers {
       const searchString = req.query.search;
       const unflatten = req.param('unflatten');
       const flattened_prefix = "flattened_";
+      let that = this;
       VocabService.findInMint(mintSourceType, searchString).subscribe(mintResponse => {
         let response_docs = mintResponse.response.docs;
         if (unflatten == "true") {
@@ -114,24 +118,25 @@ export module Controllers {
           });
         }
         // only return the response...
-        this.ajaxOk(req, res, null, response_docs, true);
+        that.ajaxOk(req, res, null, response_docs, true);
       }, error => {
         sails.log.verbose("Error getting mint data:");
         sails.log.verbose(error);
         _.unset(error, 'options');
         _.unset(error, 'response');
-        this.ajaxFail(req, res, null, error, true);
+        that.ajaxFail(req, res, null, error, true);
       });
     }
 
     public searchExternalService(req, res) {
       const providerName = req.param('provider');
       const params = req.body;
+      let that = this;
       VocabService.findInExternalService(providerName, params).subscribe(response => {
         // only return the response...
-        this.ajaxOk(req, res, null, response, true);
+        that.ajaxOk(req, res, null, response, true);
       }, error => {
-        this.ajaxFail(req, res, null, error, true);
+        that.ajaxFail(req, res, null, error, true);
       });
     }
 
@@ -140,12 +145,12 @@ export module Controllers {
       const page = req.param('page');
       const givenNames = req.param('givenNames');
       const surname = req.param('surname');
-
+      let that = this;
       sails.config.peopleSearch[source](givenNames, surname, page).subscribe(response => {
           // only return the response...
-          this.ajaxOk(req, res, null, response, true);
+          that.ajaxOk(req, res, null, response, true);
         }, error => {
-          this.ajaxFail(req, res, null, error, true);
+          that.ajaxFail(req, res, null, error, true);
         });
 
     }
@@ -153,11 +158,12 @@ export module Controllers {
     public rvaGetResourceDetails(req, res) {
       const uri = req.param('uri');
       const vocab = req.param('vocab');
+      let that = this;
       VocabService.rvaGetResourceDetails(uri,vocab).subscribe(response => {
           // only return the response...
-          this.ajaxOk(req, res, null, response, true);
+          that.ajaxOk(req, res, null, response, true);
         }, error => {
-          this.ajaxFail(req, res, null, error, true);
+          that.ajaxFail(req, res, null, error, true);
         });
 
     }

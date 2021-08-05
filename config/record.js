@@ -1,4 +1,8 @@
 module.exports.record = {
+  auditing: {
+    enabled:true,
+    recordAuditJobName: 'RecordsService-StoreRecordAudit'
+  },
   baseUrl: {
     redbox: "http://localhost:9000/redbox",
     mint: "https://demo.redboxresearchdata.com.au/mint"

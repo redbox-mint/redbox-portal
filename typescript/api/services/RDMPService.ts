@@ -17,11 +17,20 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { Observable } from 'rxjs/Rx';
-import services = require('../core/CoreService.js');
-import { Sails, Model } from "sails";
+import {
+  Observable
+} from 'rxjs/Rx';
+import {QueueService, Services as services}   from '@researchdatabox/redbox-core-types';
+import {
+  Sails,
+  Model
+} from "sails";
 import moment = require('moment');
 import * as numeral from 'numeral';
+
+import {
+  isObservable
+} from 'rxjs';
 
 declare var sails: Sails;
 declare var RecordType, Counter: Model;
@@ -37,16 +46,30 @@ export module Services {
    * Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a>
    *
    */
-  export class RDMPS extends services.Services.Core.Service {
+  export class RDMPS extends services.Core.Service {
+
+    protected queueService: QueueService = null;
 
     protected _exportedMethods: any = [
       'assignPermissions',
+      'complexAssignPermissions',
       'processRecordCounters',
       'stripUserBasedPermissions',
       'restoreUserBasedPermissions',
       'runTemplates',
-      'addWorkspaceToRecord'
+      'addWorkspaceToRecord',
+      'queuedTriggerSubscriptionHandler',
+      'queueTriggerCall'
     ];
+
+    constructor() {
+      super();
+      this.logHeader = "TriggerService::";
+      let that = this;
+      sails.on('ready', function () {
+        that.queueService = sails.services[sails.config.queue.serviceName];
+      });
+    }
 
     /**
      * This is a trigger service method to bump all configured increment counters.
@@ -78,7 +101,14 @@ export module Services {
       // get the counters
       _.each(options.counters, (counter: any) => {
         if (counter.strategy == "global") {
-          obs.push(this.getObservable(Counter.findOrCreate({ name: counter.field_name, branding: brandId }, { name: counter.field_name, branding: brandId, value: 0 })));
+          obs.push(this.getObservable(Counter.findOrCreate({
+            name: counter.field_name,
+            branding: brandId
+          }, {
+            name: counter.field_name,
+            branding: brandId,
+            value: 0
+          })));
         } else if (counter.strategy == "field") {
           let srcVal = record.metadata[counter.field_name];
           if (!_.isEmpty(counter.source_field)) {
@@ -98,7 +128,11 @@ export module Services {
               let counter = options.counters[idx];
               let newVal = counterVal[0].value + 1;
               this.incrementCounter(record, counter, newVal);
-              updateObs.push(this.getObservable(Counter.updateOne({ id: counterVal[0].id }, { value: newVal })));
+              updateObs.push(this.getObservable(Counter.updateOne({
+                id: counterVal[0].id
+              }, {
+                value: newVal
+              })));
             });
             return Observable.zip(...updateObs);
           })
@@ -110,8 +144,14 @@ export module Services {
 
     private incrementCounter(record: any, counter: any, newVal: any) {
       if (!_.isEmpty(counter.template)) {
-        const imports = _.extend({ moment: moment, numeral: numeral, newVal: newVal }, counter);
-        const templateData = { imports: imports };
+        const imports = _.extend({
+          moment: moment,
+          numeral: numeral,
+          newVal: newVal
+        }, counter);
+        const templateData = {
+          imports: imports
+        };
         const template = _.template(counter.template, templateData);
         newVal = template();
       }
@@ -157,6 +197,30 @@ export module Services {
       return _.uniq(emailList);
     }
 
+    protected getContribListByRule(contribProperties, record, rule, emailProperty, emailList) {
+      let compiledRule = _.template(rule);
+      _.each(contribProperties, contributorProperty => {
+        sails.log.verbose(`Processing contributor property ${contributorProperty}`)
+        let contributor = _.get(record, contributorProperty, null);
+        if (contributor) {
+          sails.log.verbose(`Contributor:`);
+          sails.log.verbose(JSON.stringify(contributor));
+          if (_.isArray(contributor)) {
+            _.each(contributor, individualContributor => {
+              if (compiledRule(individualContributor) == true || compiledRule(individualContributor) == "true") {
+                this.addEmailToList(individualContributor, emailProperty, emailList);
+              }
+            });
+          } else {
+            if (compiledRule(contributor) == true || compiledRule(contributor) == "true") {
+              this.addEmailToList(contributor, emailProperty, emailList);
+            }
+          }
+        }
+      });
+      return _.uniq(emailList);
+    }
+
     protected filterPending(users, userEmails, userList) {
       _.each(users, user => {
         if (user != null) {
@@ -168,17 +232,147 @@ export module Services {
       });
     }
 
+    public queueTriggerCall(oid, record, options, user) {
+      let jobName = _.get(options, "jobName", null);
+      let triggerConfiguration = _.get(options, "triggerConfiguration", null);
+      let queueMessage = {
+        oid: oid,
+        record: record,
+        triggerConfiguration: triggerConfiguration,
+        user: user
+      };
+      sails.log.debug(`${this.logHeader} Queueing up trigger using job name ${jobName}`);
+      sails.log.verbose(queueMessage);
+      this.queueService.now(jobName, queueMessage);
+      return Observable.of(record);
+    }
+
+    public queuedTriggerSubscriptionHandler(job: any) {
+      let data = job.attrs.data;
+      let oid = _.get(data, "oid", null);
+      let triggerConfiguration = _.get(data, "triggerConfiguration", null);
+      let record = _.get(data, "record", null);
+      let user = _.get(data, "user", null);
+      sails.log.verbose('queuedTriggerSubscriptionHandler Consuming job:');
+      sails.log.verbose(data);
+      let hookFunctionString = _.get(triggerConfiguration, "function", null);
+      sails.log.verbose(`Found hook function string ${hookFunctionString}`);
+      if (hookFunctionString != null) {
+        let hookFunction = eval(hookFunctionString);
+        let options = _.get(triggerConfiguration, "options", {});
+        if (_.isFunction(hookFunction)) {
+          sails.log.debug(`Triggering queuedtrigger: ${hookFunctionString}`)
+          let hookResponse = hookFunction(oid, record, options, user);
+          let response = this.convertToObservable(hookResponse);
+          return response.subscribe(res => {
+            sails.log.debug(`${hookFunctionString} response now is:`);
+            sails.log.verbose(JSON.stringify(res));
+            sails.log.debug(`queued trigger ${hookFunctionString} completed for ${oid}`)
+          });
+
+        } else {
+          sails.log.error(`queued trigger function: '${hookFunctionString}' did not resolve to a valid function, what I got:`);
+          sails.log.error(hookFunction);
+        }
+      }
+
+    }
+
+    private convertToObservable(hookResponse) {
+      let response = hookResponse;
+      if (isObservable(hookResponse)) {
+        return hookResponse;
+      } else {
+        response = Observable.fromPromise(hookResponse);
+      }
+      return response;
+    }
+
+    public complexAssignPermissions(oid, record, options) {
+      sails.log.verbose(`Complex Assign Permissions executing on oid: ${oid}, using options:`);
+      sails.log.verbose(JSON.stringify(options));
+      sails.log.verbose(`With record: `);
+      sails.log.verbose(JSON.stringify(record));
+
+      const emailProperty = _.get(options, "emailProperty", "email");
+      const userProperties = _.get(options, "userProperties", []);
+      const viewPermissionRule = _.get(options, "viewPermissionRule");
+      const editPermissionRule = _.get(options, "editPermissionRule");
+      const recordCreatorPermissions = _.get(options, "recordCreatorPermissions");
+
+      let editContributorObs = [];
+      let viewContributorObs = [];
+      let editContributorEmails = [];
+      let viewContributorEmails = [];
+
+      // get the new editor list...
+      editContributorEmails = this.getContribListByRule(userProperties, record, editPermissionRule, emailProperty, editContributorEmails);
+      // get the new viewer list...
+      viewContributorEmails = this.getContribListByRule(userProperties, record, viewPermissionRule, emailProperty, viewContributorEmails);
+
+
+      if (_.isEmpty(editContributorEmails)) {
+        sails.log.error(`No editors for record: ${oid}`);
+      }
+      if (_.isEmpty(viewContributorEmails)) {
+        sails.log.error(`No viewers for record: ${oid}`);
+      }
+      // when both are empty, simpy return the record
+      if (_.isEmpty(editContributorEmails) && _.isEmpty(viewContributorEmails)) {
+        return Observable.of(record);
+      }
+      _.each(editContributorEmails, editorEmail => {
+        editContributorObs.push(this.getObservable(User.findOne({
+          email: editorEmail.toLowerCase()
+        })));
+      });
+      _.each(viewContributorEmails, viewerEmail => {
+        viewContributorObs.push(this.getObservable(User.findOne({
+          email: viewerEmail.toLowerCase()
+        })));
+      });
+      let zippedViewContributorUsers = null;
+      if (editContributorObs.length == 0) {
+        zippedViewContributorUsers = Observable.zip(...viewContributorObs);
+      } else {
+        zippedViewContributorUsers = Observable.zip(...editContributorObs)
+          .flatMap(editContributorUsers => {
+            let newEditList = [];
+            this.filterPending(editContributorUsers, editContributorEmails, newEditList);
+            if (recordCreatorPermissions == "edit" || recordCreatorPermissions == "view&edit") {
+              newEditList.push(record.metaMetadata.createdBy);
+            }
+            record.authorization.edit = newEditList;
+            record.authorization.editPending = editContributorEmails;
+            return Observable.zip(...viewContributorObs);
+          })
+      }
+      if (zippedViewContributorUsers.length == 0) {
+        return Observable.of(record);
+      } else {
+        return zippedViewContributorUsers.flatMap(viewContributorUsers => {
+          let newviewList = [];
+          this.filterPending(viewContributorUsers, viewContributorEmails, newviewList);
+          if (recordCreatorPermissions == "view" || recordCreatorPermissions == "view&edit") {
+            newviewList.push(record.metaMetadata.createdBy);
+          }
+          record.authorization.view = newviewList;
+          record.authorization.viewPending = viewContributorEmails;
+          return Observable.of(record);
+        });
+      }
+    }
 
     public assignPermissions(oid, record, options) {
       sails.log.verbose(`Assign Permissions executing on oid: ${oid}, using options:`);
       sails.log.verbose(JSON.stringify(options));
       sails.log.verbose(`With record: `);
       sails.log.verbose(JSON.stringify(record));
+
       const emailProperty = _.get(options, "emailProperty", "email");
       const editContributorProperties = _.get(options, "editContributorProperties", []);
       const viewContributorProperties = _.get(options, "viewContributorProperties", []);
       const recordCreatorPermissions = _.get(options, "recordCreatorPermissions");
-      let authorization = _.get(record, "authorization", {});
       let editContributorObs = [];
       let viewContributorObs = [];
       let editContributorEmails = [];
@@ -201,10 +395,14 @@ export module Services {
         return Observable.of(record);
       }
       _.each(editContributorEmails, editorEmail => {
-        editContributorObs.push(this.getObservable(User.findOne({ email: editorEmail.toLowerCase() })));
+        editContributorObs.push(this.getObservable(User.findOne({
+          email: editorEmail.toLowerCase()
+        })));
       });
       _.each(viewContributorEmails, viewerEmail => {
-        viewContributorObs.push(this.getObservable(User.findOne({ email: viewerEmail.toLowerCase() })));
+        viewContributorObs.push(this.getObservable(User.findOne({
+          email: viewerEmail.toLowerCase()
+        })));
       });
       let zippedViewContributorUsers = null;
       if (editContributorObs.length == 0) {
@@ -303,8 +501,17 @@ export module Services {
       try {
         _.each(options.templates, (templateConfig) => {
           tmplConfig = templateConfig;
-          const imports = _.extend({oid: oid, record: record, user: user, options: options, moment: moment, numeral:numeral}, this);
-          const templateData = {imports: imports};
+          const imports = _.extend({
+            oid: oid,
+            record: record,
+            user: user,
+            options: options,
+            moment: moment,
+            numeral: numeral
+          }, this);
+          const templateData = {
+            imports: imports
+          };
           const data = _.template(templateConfig.template, templateData)();
           _.set(record, templateConfig.field, data);
         });

@@ -25,7 +25,7 @@ import { Observable } from 'rxjs/Rx';
 import * as uuidv4 from 'uuid/v4';
 declare var BrandingService, RolesService, UsersService;
 
-import controller = require('../core/CoreController.js');
+import { Controllers as controllers} from '@researchdatabox/redbox-core-types';
 
 export module Controllers {
   /**
@@ -33,7 +33,7 @@ export module Controllers {
    *
    * Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a>
    */
-  export class Admin extends controller.Controllers.Core.Controller {
+  export class Admin extends controllers.Core.Controller {
 
     /**
      * Exported methods, accessible from internet.

@@ -30,12 +30,7 @@ declare var _;
 /**
  * Package that contains all Controllers.
  */
-import controller = require('../../core/CoreController.js');
-import { APIErrorResponse } from '../../core/model/APIErrorResponse.js';
-import { APIObjectActionResponse } from '../../core/model/APIObjectActionResponse.js';
-import RecordsService from '../../core/RecordsService.js';
-import SearchService from '../../core/SearchService.js';
-import StorageService from '../../core/StorageService.js';
+ import {APIErrorResponse, APIObjectActionResponse, Controllers as controllers,  RecordsService, SearchService} from '@researchdatabox/redbox-core-types';
 
 export module Controllers {
   /**
@@ -43,7 +38,7 @@ export module Controllers {
    *
    * @author <a target='_' href='https://github.com/andrewbrazzatti'>Andrew Brazzatti</a>
    */
-  export class Search extends controller.Controllers.Core.Controller {
+  export class Search extends controllers.Core.Controller {
 
     searchService: SearchService;
     RecordsService: RecordsService = sails.services.recordsservice;

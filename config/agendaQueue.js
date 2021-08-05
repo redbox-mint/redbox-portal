@@ -22,6 +22,10 @@ module.exports.agendaQueue = {
     {
       name: 'SolrSearchService-DeleteFromIndex',
       fnName: 'solrsearchservice.solrDelete'
-    }
+    },
+    {
+      name: 'RecordsService-StoreRecordAudit',
+      fnName: 'recordsservice.storeRecordAudit'
+    },
   ]
 };

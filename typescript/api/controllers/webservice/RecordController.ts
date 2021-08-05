@@ -34,14 +34,9 @@ declare var User;
  */
 import {Observable} from 'rxjs/Rx';
 import * as path from "path";
-import controller = require('../../core/CoreController.js');
-import RecordsService from '../../core/RecordsService.js';
-import SearchService from '../../core/SearchService.js';
-import DatastreamService from '../../core/DatastreamService.js';
-import DatastreamServiceResponse from '../../core/DatastreamServiceResponse';
-import Datastream from '../../core/Datastream';
-import {ListAPIResponse } from '../../core/model/ListAPIResponse';
-import {APIErrorResponse } from '../../core/model/APIErrorResponse';
+import {APIErrorResponse, Controllers as controllers, Datastream, DatastreamService, DatastreamServiceResponse, RecordsService, SearchService} from '@researchdatabox/redbox-core-types';
+import { ListAPIResponse } from '@researchdatabox/redbox-core-types';
+
 
 
 const UUIDGenerator = require('uuid/v4');
@@ -51,7 +46,7 @@ export module Controllers {
    *
    * @author <a target='_' href='https://github.com/andrewbrazzatti'>Andrew Brazzatti</a>
    */
-  export class Record extends controller.Controllers.Core.Controller {
+  export class Record extends controllers.Core.Controller {
 
     RecordsService: RecordsService = sails.services.recordsservice;
     SearchService: SearchService;
@@ -321,6 +316,7 @@ export module Controllers {
       const brand = BrandingService.getBrand(req.session.branding);
       var recordType = req.param('recordType');
 
+      var user = req.user;
       var body = req.body;
       if (body != null) {
         var authorizationEdit, authorizationView, authorizationEditPending, authorizationViewPending;
@@ -390,7 +386,7 @@ export module Controllers {
                 }
 
               });
-              let createPromise = this.RecordsService.create(brand, request, recordTypeModel)
+              let createPromise = this.RecordsService.create(brand, request, recordTypeModel, user)
               var obs = Observable.fromPromise(createPromise);
               obs.subscribe(response => {
                 if (response.isSuccessful()) {

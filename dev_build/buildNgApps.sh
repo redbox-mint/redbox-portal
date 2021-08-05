@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 ng2apps=( `find angular -maxdepth 1 -mindepth 1 -type d -printf '%f '` )
   for ng2app in "${ng2apps[@]}"
   do

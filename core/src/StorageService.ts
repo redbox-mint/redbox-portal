@@ -1,6 +1,6 @@
 import {Readable}  from 'stream';
 
-interface StorageService{
+export interface StorageService{
 
   create(brand, record, recordType, user?):Promise<any>;
   updateMeta(brand, oid, record, user?): Promise<any>;
@@ -14,5 +14,5 @@ interface StorageService{
   getRecords(workflowState, recordType, start, rows, username, roles, brand, editAccessOnly, packageType, sort): Promise<any>;
   exportAllPlans(username, roles, brand, format, modBefore, modAfter, recType): Readable;
 
+  createRecordAudit?(record):Promise<any>;
 }
-export default StorageService

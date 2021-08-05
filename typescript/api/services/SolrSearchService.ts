@@ -18,9 +18,8 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 declare var module;
-import services = require('../core/CoreService.js');
-import QueueService from '../core/QueueService.js';
-import SearchService from '../core/SearchService';
+import {QueueService, SearchService, Services as services}   from '@researchdatabox/redbox-core-types';
+
 import solr = require('solr-client');
 const got = require('got');
 const util = require('util');
@@ -41,7 +40,7 @@ export module Services {
    * Service class for adding documents to Solr.
    *
    */
-  export class SolrSearchService extends services.Services.Core.Service implements SearchService {
+  export class SolrSearchService extends services.Core.Service implements SearchService {
     protected _exportedMethods: any = [
       'index',
       'remove',

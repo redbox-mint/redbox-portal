@@ -30,19 +30,8 @@ declare var _;
 /**
  * Package that contains all Controllers.
  */
-import controller = require('../../core/CoreController.js');
-import {
-  ListAPIResponse
-} from '../../core/model/ListAPIResponse';
-import {
-  APIErrorResponse
-} from '../../core/model/APIErrorResponse';
-import {
-  UserAPITokenAPIResponse
-} from '../../core/model/api/UserAPITokenAPIResponse';
-import {
-  CreateUserAPIResponse
-} from '../../core/model/api/CreateUserAPIResponse';
+ import {APIErrorResponse, Controllers as controllers, CreateUserAPIResponse, ListAPIResponse, User as UserModel, UserAPITokenAPIResponse} from '@researchdatabox/redbox-core-types';
+
 import * as uuidv4 from 'uuid/v4';
 
 export module Controllers {
@@ -51,7 +40,7 @@ export module Controllers {
    *
    * @author <a target='_' href='https://github.com/andrewbrazzatti'>Andrew Brazzatti</a>
    */
-  export class UserManagement extends controller.Controllers.Core.Controller {
+  export class UserManagement extends controllers.Core.Controller {
 
     /**
      * Exported methods, accessible from internet.
@@ -144,7 +133,7 @@ export module Controllers {
     }
 
     public createUser(req, res) {
-      let userReq: User = req.body;
+      let userReq: UserModel = req.body;
 
       UsersService.addLocalUser(userReq.username, userReq.name, userReq.email, userReq.password).subscribe(response => {
 
@@ -187,7 +176,7 @@ export module Controllers {
 
 
     public updateUser(req, res) {
-      let userReq: User = req.body;
+      let userReq: UserModel = req.body;
 
       UsersService.updateUserDetails(userReq.id, userReq.name, userReq.email, userReq.password).subscribe(response => {
         

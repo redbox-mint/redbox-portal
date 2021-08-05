@@ -465,7 +465,7 @@ export class DmpFormComponent extends LoadableComponent {
   }
 
   gotoTab(tabId) {
-    jQuery(`[href=#${tabId}]`).tab('show');
+    jQuery(`[href='#${tabId}']`).tab('show');
     jQuery("html, body").animate({
       scrollTop: 0
     }, 500);
