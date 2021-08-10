@@ -151,7 +151,7 @@ module.exports.solr = {
     ],
     copy: [
       {
-        source: 'dateCreated',
+        source: 'metaMetadata.createdOn',
         dest: 'date_object_created'
       },
       {
