@@ -200,7 +200,7 @@ export module Services {
     return template;
   }
 
-  public sendRecordNotification(oid, record, options) {
+    public sendRecordNotification(oid, record, options, user, response) {
     const isSailsEmailConfigDisabled = (_.get(sails.config, 'services.email.disabled', false) == "true");
     if (isSailsEmailConfigDisabled) {
       sails.log.verbose(`Not sending notification log for: ${oid}, config: services.email.disabled is ${isSailsEmailConfigDisabled}`);
@@ -254,15 +254,21 @@ export module Services {
               });
             }
           }
-          sails.log.verbose("Sending back record as original observable...")
-          return Observable.of(sendResult);
+            if (!_.isEmpty(response)) {
+              return Observable.of(response);
+            } else {
+              return Observable.of(record);
+            }
         });
     } else {
       sails.log.verbose(`Not sending notification log for: ${oid}, condition not met: ${_.get(options, "triggerCondition", "")}`)
       sails.log.verbose(JSON.stringify(record));
     }
-    sails.log.verbose("Sending back record as original NULL...")
-    return Observable.of(null);
+      if (!_.isEmpty(response)) {
+        return Observable.of(response);
+      } else {
+        return Observable.of(record);
+      }
   }
 }
 
