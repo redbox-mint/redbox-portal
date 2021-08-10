@@ -106,18 +106,8 @@ export module Services {
         }
       });
       sails.log.verbose(`${hook_log_header}::Merging configuration...complete.`);
-      sails.log.verbose(`${hook_log_header}::Merging Translation file...`);
-      // language file updates ... only English for now
-      // locales directory moved out of assets directory so we can safely merge
-      const language_file_path = resolve("assets/locales/en/translation.json");
-      const hook_language_file_path = resolve(hook_root_dir, "locales/en/translation.json");
-      if (fs.pathExistsSync(language_file_path) && fs.pathExistsSync(hook_language_file_path)) {
-        sails.log.verbose(hook_log_header + ":: Merging English translation file...");
-        const mainTranslation = require(language_file_path);
-        const hookTranslation = require(hook_language_file_path);
-        _.merge(mainTranslation, hookTranslation);
-        fs.writeFileSync(language_file_path, JSON.stringify(mainTranslation, null, 2));
-      }
+      sails.log.verbose(`${hook_log_header}::Merging Translation files...`);
+      this.mergeTranslationFiles(hook_root_dir, hook_log_header, sails.config.dontBackupCoreLanguageFilesWhenMerging);
       //If assets directory exists, there must be some assets to copy over
       if(fs.pathExistsSync(`${hook_root_dir}/assets/`)) {
         sails.log.verbose(`${hook_log_header}::Copying assets...`);
@@ -202,6 +192,64 @@ export module Services {
       }
       return filelist;
     }
+
+    private getDirsSync(srcPath: string) {
+      if (!fs.pathExistsSync(srcPath)) {
+        return [];
+      }
+      return fs.readdirSync(srcPath, { withFileTypes: true })
+      .filter(dirent => dirent.isDirectory())
+      .map(dirent => dirent.name);
+    }
+
+    private mergeTranslationFiles(hook_root_dir: string, hook_log_header: string, overwriteOrig:boolean = false) {
+      const langCodes = this.getDirsSync(`${hook_root_dir}/locales`);
+      sails.log.verbose(`${hook_log_header}::Language codes to process: ${JSON.stringify(langCodes)}`);
+      for (let langCode of langCodes) {
+        const langBasePath = `locales/${langCode}/translation`;
+        const langJsonPath = `${langBasePath}.json`;
+        const langCsvPath = `${langBasePath}.csv`;
+        const language_file_path = resolve(`assets/${langJsonPath}`);
+        const hook_language_file_path = resolve(hook_root_dir, langJsonPath);  
+        const hook_language_file_csv_path = resolve(hook_root_dir, langCsvPath);
+        // check if the CSV version is there, and if so convert it
+        if (fs.pathExistsSync(hook_language_file_csv_path)) {
+          // convert the CSV to JSON 
+          this.csvToi18Next(hook_language_file_csv_path, hook_language_file_path);
+        }
+        // the actual merge
+        if (fs.pathExistsSync(language_file_path) && fs.pathExistsSync(hook_language_file_path)) {
+          sails.log.verbose(`${hook_log_header}::Merging '${langCode}' translation file...`);
+          const mainTranslation = require(language_file_path);
+          const hookTranslation = require(hook_language_file_path);
+          _.merge(mainTranslation, hookTranslation);
+          // if not overwriting the original, we save a copy of the 'core' version 
+          if (!overwriteOrig) {
+            const core_language_file_path = `assets/${langBasePath}-core.json`;
+            if (!fs.pathExistsSync(core_language_file_path)) {
+              fs.copySync(language_file_path, core_language_file_path);
+            }
+          }
+          fs.writeFileSync(language_file_path, JSON.stringify(mainTranslation, null, 2));
+        } 
+      }
+    }
+
+    private csvToi18Next(csvPath: string, jsonPath: string) {
+      const csv = require('csv-parser');  
+
+      let languageJson = {};
+      fs.createReadStream(csvPath)  
+        .pipe(csv())
+        .on('data', (row) => {
+          languageJson[row.Key] = row.Message;
+        })
+        .on('end', () => {
+          let data = JSON.stringify(languageJson, null, "  ");
+          data = data.replace(/\\\\\\/g, '\\');
+          fs.writeFileSync(jsonPath, data);
+        });
+    }    
 
   }
 }
