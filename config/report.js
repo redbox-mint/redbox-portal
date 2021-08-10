@@ -234,7 +234,7 @@ module.exports.reports = {
   },
   "workspaces": {
     "title": "List workspace records",
-    "solr_query": "metaMetadata_type:workspace",
+    "solr_query": "metaMetadata_packageType:workspace",
     "filter": {
       "type": "date-range",
       "property": "date_object_modified",
