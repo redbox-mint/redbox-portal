@@ -62,11 +62,55 @@ export class UtilityService {
   }
 
   /**
+   * check that all the values to match have values for a given object
+   * 
+   * Author: <a href='https://github.com/andrewbrazzatti' target='_blank'>Andrew Brazzatti</a>
+   * @param  {any} valueObject
+   * @param  {any} fieldsToMatch
+   * @return {boolean}
+   */
+  private checkData(valueObject: any, fieldsToMatch: any) {
+    let dataOk = true;
+    for (let fieldToMatch of fieldsToMatch) {
+      let emittedValueToMatch = _.get(valueObject, fieldToMatch);
+      if(emittedValueToMatch === undefined || emittedValueToMatch === null || _.isUndefined(emittedValueToMatch)){
+        dataOk = false;
+      }
+    }
+    return dataOk;
+  }
+
+  /**
+   * check a given object is not already present in the container list
+   * 
+   * Author: <a href='https://github.com/andrewbrazzatti' target='_blank'>Andrew Brazzatti</a>
+   * @param  {any} valueObject
+   * @param  {any} fieldsToMatch
+   * @param  {any} fieldValues
+   * @return {boolean}
+   */
+  private checkConcatReq(valueObject: any, fieldsToMatch: any, fieldValues: any) {
+    let concatReq = true;
+    for (let fieldValue of fieldValues) {
+      for (let fieldToMatch of fieldsToMatch) {
+        let fieldValueToMatch = _.get(fieldValue, fieldToMatch); 
+        let emittedValueToMatch = _.get(valueObject, fieldToMatch);
+        if(_.isEqual(fieldValueToMatch,emittedValueToMatch)) {
+          concatReq = false;
+        }
+      }
+    }
+    return concatReq;
+  }
+
+  /**
    * returns the same object if is an array or converts it to an array and checks that the contents of the array.
    *
    * Author: <a href='https://github.com/andrewbrazzatti' target='_blank'>Andrew Brazzatti</a>
+   * @param  {any} data
    * @param  {any} config
-   * @return {string}
+   * @param  {any} field
+   * @return {array}
    */
   public getMergedObjectAsArray(data: any, config: any, field: any) {
     const fieldsToMatch = config.fieldsToMatch;
@@ -78,42 +122,15 @@ export class UtilityService {
       wrappedData = [data];
     }
     
-    //check that all the values to match have values for a given object
-    function checkData(emittedDataValue: any, fieldsToMatch: any) {
-      let dataOk = true;
-      for (let fieldToMatch of fieldsToMatch) {
-        let emittedValueToMatch = _.get(emittedDataValue, fieldToMatch);
-        if(emittedValueToMatch === undefined || emittedValueToMatch === null || _.isUndefined(emittedValueToMatch)){
-          dataOk = false;
-        }
-      }
-      return dataOk;
-    }
-  
-    //check a given object is not already present in the container list
-    function checkConcatReq(emittedDataValue: any, fieldsToMatch: any, fieldValues: any) {
-      let concatReq = true;
-      for (let fieldValue of fieldValues) {
-        for (let fieldToMatch of fieldsToMatch) {
-          let fieldValueToMatch = _.get(fieldValue, fieldToMatch); 
-          let emittedValueToMatch = _.get(emittedDataValue, fieldToMatch);
-          if(_.isEqual(fieldValueToMatch,emittedValueToMatch)) {
-            concatReq = false;
-          }
-        }
-      }
-      return concatReq;
-    }
-  
     for (let emittedDataValue of wrappedData) {
       //There are cases where the emitter may send null values just after the field  
       //gets cleared therefore need to checkDataOk if any of the fields to match are  
-      //undefined not enter the if block and the same value will be send back to the 
+      //undefined not enter the if block and the same value will be sent back to the 
       //subscriber field 
-      let checkDataOk = checkData(emittedDataValue,fieldsToMatch);
+      let checkDataOk = this.checkData(emittedDataValue,fieldsToMatch);
       if(checkDataOk){
-        let concatR = checkConcatReq(emittedDataValue,fieldsToMatch,fieldValues);
-        if(concatR) {
+        let concatReq = this.checkConcatReq(emittedDataValue,fieldsToMatch,fieldValues);
+        if(concatReq) {
           let value = _.clone(templateObject);
           for (let fieldToSet of fieldsToSet) {
               let val = _.get(emittedDataValue, fieldToSet); 
