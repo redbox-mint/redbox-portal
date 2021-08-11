@@ -62,6 +62,72 @@ export class UtilityService {
   }
 
   /**
+   * returns the same object if is an array or converts it to an array and checks that the contents of the array.
+   *
+   * Author: <a href='https://github.com/andrewbrazzatti' target='_blank'>Andrew Brazzatti</a>
+   * @param  {any} config
+   * @return {string}
+   */
+  public getMergedObjectAsArray(data: any, config: any, field: any) {
+    const fieldsToMatch = config.fieldsToMatch;
+    const fieldsToSet = config.fieldsToSet;
+    const templateObject = config.templateObject;
+    let fieldValues = _.clone(field.formModel.value);
+    let wrappedData = data;
+    if(!_.isArray(data)) {
+      wrappedData = [data];
+    }
+    
+    //check that all the values to match have values for a given object
+    function checkData(emittedDataValue: any, fieldsToMatch: any) {
+      let dataOk = true;
+      for (let fieldToMatch of fieldsToMatch) {
+        let emittedValueToMatch = _.get(emittedDataValue, fieldToMatch);
+        if(emittedValueToMatch === undefined || emittedValueToMatch === null || _.isUndefined(emittedValueToMatch)){
+          dataOk = false;
+        }
+      }
+      return dataOk;
+    }
+  
+    //check a given object is not already present in the container list
+    function checkConcatReq(emittedDataValue: any, fieldsToMatch: any, fieldValues: any) {
+      let concatReq = true;
+      for (let fieldValue of fieldValues) {
+        for (let fieldToMatch of fieldsToMatch) {
+          let fieldValueToMatch = _.get(fieldValue, fieldToMatch); 
+          let emittedValueToMatch = _.get(emittedDataValue, fieldToMatch);
+          if(_.isEqual(fieldValueToMatch,emittedValueToMatch)) {
+            concatReq = false;
+          }
+        }
+      }
+      return concatReq;
+    }
+  
+    for (let emittedDataValue of wrappedData) {
+      //There are cases where the emitter may send null values just after the field  
+      //gets cleared therefore need to checkDataOk if any of the fields to match are  
+      //undefined not enter the if block and the same value will be send back to the 
+      //subscriber field 
+      let checkDataOk = checkData(emittedDataValue,fieldsToMatch);
+      if(checkDataOk){
+        let concatR = checkConcatReq(emittedDataValue,fieldsToMatch,fieldValues);
+        if(concatR) {
+          let value = _.clone(templateObject);
+          for (let fieldToSet of fieldsToSet) {
+              let val = _.get(emittedDataValue, fieldToSet); 
+              _.set(value, fieldToSet, val);
+          }
+          fieldValues.push(value);
+          console.log(fieldValues);
+        }
+      }
+    }
+    return fieldValues;
+  }
+
+  /**
    * returns a property from the provided object.
    *
    * Author: <a href='https://github.com/andrewbrazzatti' target='_blank'>Andrew Brazzatti</a>

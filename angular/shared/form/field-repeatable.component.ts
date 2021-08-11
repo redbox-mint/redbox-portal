@@ -188,9 +188,9 @@ export class RepeatableContainer extends Container {
   public reactEvent(eventName: string, eventData: any, origData: any) {
     console.log(`Repeatable container field reacting: ${eventName}`);
     console.log(eventData);
-    // delete first...
-    for (let toDelIdx = 1; toDelIdx < this.fields.length; toDelIdx++ ) {
-      this.removeElem(toDelIdx);
+    //delete first and leave only one row that is used as a template for repopulating the list... 
+    while(this.fields.length > 1) {
+      this.removeElem(this.fields.length - 1);
     }
     _.each(eventData, (entry, idx) => {
       if (idx >= this.formModel.controls.length) {
