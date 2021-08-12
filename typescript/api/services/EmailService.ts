@@ -59,14 +59,15 @@ export module Services {
     public sendMessage(msgTo, msgBody: string,
       msgSubject: string = sails.config.emailnotification.defaults.subject,
       msgFrom: string = sails.config.emailnotification.defaults.from,
-      msgFormat: string = sails.config.emailnotification.defaults.format): Observable < any > {
+      msgFormat: string = sails.config.emailnotification.defaults.format,
+      cc: string = _.get(sails.config.emailnotification.defaults, 'cc', '')): Observable < any > {
 
-      return Observable.of(this.sendMessageAsync(msgTo, msgBody, msgSubject, msgFrom, msgFormat));
+      return Observable.of(this.sendMessageAsync(msgTo, msgBody, msgSubject, msgFrom, msgFormat, cc));
 
     }
 
 
-    private async sendMessageAsync(msgTo, msgBody: string, msgSubject: string, msgFrom: string, msgFormat: string): Promise<any> {
+    private async sendMessageAsync(msgTo, msgBody: string, msgSubject: string, msgFrom: string, msgFormat: string, cc: string): Promise<any> {
     if (!sails.config.emailnotification.settings.enabled) {
       sails.log.verbose("Received email notification request, but is disabled. Ignoring.");
       return {
@@ -80,27 +81,25 @@ export module Services {
     try {
       transport = nodemailer.createTransport(sails.config.emailnotification.settings.serverOptions);
     } catch (err) {
+      sails.log.error(err);
       return {
         'code': '500',
         'msg': 'Failed to establish mail transport connection.'
       };
-      sails.log.error(err);
     }
-
-
-    
     
     var message = {
       "to": msgTo,
       "subject": msgSubject,
       "from": msgFrom,
-      
+      "cc": cc
     };
+
     message[msgFormat] = msgBody;
     let response = {
       success: false
     };
-
+    sails.log.verbose(`Email message to send will be ${JSON.stringify(message)}`)
     try {
       let sendResult = await transport.sendMail(message);
       sails.log.verbose(`Email sent successfully. Message Id: ${sendResult.messageId}`);
@@ -224,6 +223,7 @@ export module Services {
       const templateName = _.get(options, "template", "");
       const from = this.runTemplate(_.get(options, "from", sails.config.emailnotification.defaults.from), variables);
       const msgFormat = _.get(options, "msgFormat", sails.config.emailnotification.defaults.format);
+      const cc = this.runTemplate(_.get(options, "cc", sails.config.emailnotification.defaults.cc), variables);
 
       const data = {};
       data['record'] = record;
@@ -235,7 +235,7 @@ export module Services {
             sails.log.error(buildResult);
             return Observable.throw(new Error('Failed to build email body.'));
           }
-          return this.sendMessage(to, buildResult['body'], subject,from,msgFormat);
+          return this.sendMessage(to, buildResult['body'], subject,from,msgFormat, cc);
         })
         .flatMap(sendResult => {
           if (sendResult['code'] == '200') {
