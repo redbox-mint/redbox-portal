@@ -22,7 +22,7 @@ import {
 } from 'rxjs/Rx';
 import services = require('../core/CoreService.js');
 import DatastreamService from '../core/DatastreamService.js';
-import {StorageServiceResponse} from '../core/StorageServiceResponse';
+import { StorageServiceResponse } from '../core/StorageServiceResponse';
 import {
   Sails,
   Model
@@ -37,7 +37,7 @@ import {
   isObservable
 } from 'rxjs';
 import StorageService from '../core/StorageService.js';
-import {Readable}  from 'stream';
+import { Readable } from 'stream';
 
 const util = require('util');
 
@@ -57,7 +57,7 @@ export module Services {
 
     storageService: StorageService = null;
     datastreamService: DatastreamService = null;
-    searchService:SearchService = null;
+    searchService: SearchService = null;
 
     constructor() {
       super();
@@ -120,8 +120,7 @@ export module Services {
     ];
 
 
-
-    async create(brand: any, record: any, recordType: any, user ? : any, triggerPreSaveTriggers = true, triggerPostSaveTriggers = true) {
+    async create(brand: any, record: any, recordType: any, user ?: any, triggerPreSaveTriggers = true, triggerPostSaveTriggers = true) {
       let createResponse = new StorageServiceResponse();
       const failedMessage = "Failed to created record, please check server logs.";
       // trigger the pre-save
@@ -152,7 +151,17 @@ export module Services {
           // Fire Post-save hooks async ...
           this.triggerPostSaveTriggers(createResponse['oid'], record, recordType, 'onCreate', user);
         }
-            this.searchService.index(createResponse['oid'], record);
+        const recordOid = _.get(record, 'redboxOid')
+        if (_.isEmpty(recordOid)) {
+          sails.log.warn(`recordOid: '${recordOid}' is empty! Using response oid: ${createResponse['oid']} for solr index.`)
+          this.searchService.index(createResponse['oid'], record);
+        } else {
+          if (createResponse['oid'] !== recordOid) {
+            sails.log.warn(`response oid: ${createResponse['oid']} is not the same as recordOid: ${recordOid}.`)
+          }
+          this.searchService.index(recordOid, record);
+        }
+
         // TODO: fire-off audit message
       } else {
         sails.log.error(`${this.logHeader} Failed to create record, storage service response:`);
@@ -162,7 +171,7 @@ export module Services {
       return createResponse;
     }
 
-    async updateMeta(brand: any, oid: any, record: any, user ? : any, triggerPreSaveTriggers = true, triggerPostSaveTriggers = true) {
+    async updateMeta(brand: any, oid: any, record: any, user ?: any, triggerPreSaveTriggers = true, triggerPostSaveTriggers = true) {
       let updateResponse = new StorageServiceResponse();
       updateResponse.oid = oid;
       let recordType = null;
@@ -210,18 +219,22 @@ export module Services {
       return updateResponse;
     }
 
-    getMeta(oid: any): Promise < any > {
+    getMeta(oid: any): Promise<any> {
       return this.storageService.getMeta(oid);
     }
-    createBatch(type: any, data: any, harvestIdFldName: any): Promise < any > {
+
+    createBatch(type: any, data: any, harvestIdFldName: any): Promise<any> {
       return this.storageService.createBatch(type, data, harvestIdFldName);
     }
+
     provideUserAccessAndRemovePendingAccess(oid: any, userid: any, pendingValue: any): void {
       this.storageService.provideUserAccessAndRemovePendingAccess(oid, userid, pendingValue);
     }
-    getRelatedRecords(oid: any, brand: any): Promise < any > {
+
+    getRelatedRecords(oid: any, brand: any): Promise<any> {
       return this.storageService.getRelatedRecords(oid, brand);
     }
+
     async delete(oid: any) {
       const response = await this.storageService.delete(oid);
       if (response.isSuccessful()) {
@@ -229,15 +242,16 @@ export module Services {
       }
       return response;
     }
-    updateNotificationLog(oid: any, record: any, options: any): Promise < any > {
+
+    updateNotificationLog(oid: any, record: any, options: any): Promise<any> {
       return this.storageService.updateNotificationLog(oid, record, options);
     }
 
-    public getRecords(workflowState, recordType = undefined, start, rows = 10, username, roles, brand, editAccessOnly = undefined, packageType = undefined, sort=undefined) : Promise<any> {
+    public getRecords(workflowState, recordType = undefined, start, rows = 10, username, roles, brand, editAccessOnly = undefined, packageType = undefined, sort = undefined): Promise<any> {
       return this.storageService.getRecords(workflowState, recordType, start, rows, username, roles, brand, editAccessOnly, packageType, sort);
     }
 
-    public exportAllPlans(username, roles, brand, format, modBefore, modAfter, recType) : Readable {
+    public exportAllPlans(username, roles, brand, format, modBefore, modAfter, recType): Readable {
       return this.storageService.exportAllPlans(username, roles, brand, format, modBefore, modAfter, recType);
     }
 
@@ -246,7 +260,7 @@ export module Services {
     // Params:
     // oid - record idea
     // labelFilterStr - set if you want to be selective in your attachments, will just run a simple `.indexOf`
-    public async getAttachments(oid: string, labelFilterStr: string = undefined): Promise < any > {
+    public async getAttachments(oid: string, labelFilterStr: string = undefined): Promise<any> {
       let datastreams = await this.datastreamService.listDatastreams(oid, null);
       let attachments = [];
       _.each(datastreams, (datastream) => {
@@ -269,7 +283,7 @@ export module Services {
     /*
      *
      */
-    public async checkRedboxRunning(): Promise < any > {
+    public async checkRedboxRunning(): Promise<any> {
       // check if a valid storage plugin is loaded....
       if (!_.isEmpty(sails.config.storage)) {
         sails.log.info("ReDBox storage plugin is active!");
@@ -290,7 +304,7 @@ export module Services {
       return false;
     }
 
-    private info(): Promise < any > {
+    private info(): Promise<any> {
 
       const options = this.getOptions(sails.config.record.baseUrl.redbox + sails.config.record.api.info.url);
       return request[sails.config.record.api.info.method](options)
@@ -322,7 +336,6 @@ export module Services {
     /**
      * End of block to move/remove
      */
-
 
 
     /**
@@ -436,7 +449,7 @@ export module Services {
     }
 
 
-    public searchFuzzy(type, workflowState, searchQuery, exactSearches, facetSearches, brand, user, roles, returnFields): Promise < any > {
+    public searchFuzzy(type, workflowState, searchQuery, exactSearches, facetSearches, brand, user, roles, returnFields): Promise<any> {
 
       const username = user.username;
       // const url = `${this.getSearchTypeUrl(type, searchField, searchStr)}&start=0&rows=${sails.config.record.export.maxRecords}`;
@@ -522,13 +535,9 @@ export module Services {
     }
 
 
-
     protected luceneEscape(str: string) {
       return luceneEscapeQuery.escape(str);
     }
-
-
-
 
 
     /**
@@ -660,7 +669,6 @@ export module Services {
     }
 
 
-
     public triggerPostSaveTriggers(oid: string, record: any, recordType: any, mode: string = 'onUpdate', user: object = undefined): void {
       sails.log.debug("Triggering post save triggers ");
       sails.log.debug(`hooks.${mode}.post`);
@@ -698,7 +706,6 @@ export module Services {
       }
       return response;
     }
-
 
 
   }
