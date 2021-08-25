@@ -561,8 +561,9 @@ export class ContributorComponent extends SimpleComponent {
         if (!_.isEmpty(selected.username) && !_.isUndefined(selected.username)) {
           val['username'] = selected.username;
         }
-
-        val.role = this.field.role;
+        if (!_.isEmpty(selected.role) && !_.isUndefined(selected.role)) {
+          val.role = selected.role;
+        }
         // console.log(`With selected:`);
         // console.log(JSON.stringify(selected));
         // console.log(`Using val:`);

@@ -104,7 +104,7 @@ export class UtilityService {
   }
 
   /**
-   * returns the same object if is an array or converts it to an array and checks that the contents of the array.
+   * Merges emitted object into the subscriber's array of objects if the emitted object is not present.
    *
    * Author: <a href='https://github.com/andrewbrazzatti' target='_blank'>Andrew Brazzatti</a>
    * @param  {any} data
@@ -136,7 +136,19 @@ export class UtilityService {
               let val = _.get(emittedDataValue, fieldToSet); 
               _.set(value, fieldToSet, val);
           }
-          fieldValues.push(value);
+          //If there is only one item in fieldValues array it may be empty and must be re-used 
+          //if there is more than one item in the array it's too cumbersome to manage all  
+          //scenarios and edge cases therefore it's better to add a new item to the array 
+          if(fieldValues.length == 1) {
+            let checkFieldValuesDataOk = this.checkData(fieldValues[0],fieldsToMatch);
+            if(checkFieldValuesDataOk) {
+              fieldValues.push(value);
+            } else {
+              fieldValues = [value];
+            }
+          } else {
+            fieldValues.push(value);
+          }
           console.log(fieldValues);
         }
       }
