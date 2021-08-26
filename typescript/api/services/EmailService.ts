@@ -69,13 +69,13 @@ export module Services {
 
     private async sendMessageAsync(msgTo, msgBody: string, msgSubject: string, msgFrom: string, msgFormat: string, cc: string): Promise<any> {
     if (!sails.config.emailnotification.settings.enabled) {
-      sails.log.verbose("Received email notification request, but is disabled. Ignoring.");
+      sails.log.debug("Received email notification request, but is disabled. Ignoring.");
       return {
         'code': '200',
         'msg': 'Email services disabled.'
       };
     }
-    sails.log.verbose('Received email notification request. Processing.');
+    sails.log.info('Received email notification request. Processing.');
 
     let transport;
     try {
@@ -87,7 +87,7 @@ export module Services {
         'msg': 'Failed to establish mail transport connection.'
       };
     }
-    
+
     var message = {
       "to": msgTo,
       "subject": msgSubject,
@@ -99,22 +99,22 @@ export module Services {
     let response = {
       success: false
     };
-    sails.log.verbose(`Email message to send will be ${JSON.stringify(message)}`)
+    sails.log.debug(`Email message to send will be ${JSON.stringify(message)}`)
     try {
       let sendResult = await transport.sendMail(message);
-      sails.log.verbose(`Email sent successfully. Message Id: ${sendResult.messageId}`);
+      sails.log.info(`Email sent successfully. Message Id: ${sendResult.messageId}`);
       response['msg'] = `Email sent successfully. Message Id: ${sendResult.messageId}`;
       response.success = true;
     } catch(err) {
       response['msg'] = 'Email unable to be submitted';
       sails.log.error("Email sending failed")
       sails.log.error(err)
-    } 
-    
-        
-      
+    }
+
+
+
       return response;
-    
+
   }
 
   /**
@@ -211,7 +211,7 @@ export module Services {
           oid: oid
         }
       };
-      sails.log.verbose(`Sending record notification for oid: ${oid}`);
+      sails.log.debug(`Sending record notification for oid: ${oid}`);
       sails.log.verbose(options);
       // send record notification
       const to = this.runTemplate(_.get(options, "to", null), variables);
