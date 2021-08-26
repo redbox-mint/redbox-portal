@@ -100,7 +100,7 @@ export module Services {
       if(_.isEmpty(rootContext)) {
       return `/${branding}/${portal}`;
       } else {
-       return `/${rootContext}/${branding}/${portal}`;
+       return `${rootContext}/${branding}/${portal}`;
       }
     }
 
