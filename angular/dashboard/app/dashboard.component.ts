@@ -56,6 +56,7 @@ declare var jQuery: any;
 export class DashboardComponent extends LoadableComponent {
   branding: string;
   portal: string;
+  rootContext: string;
   packageType: string;
   recordType: string;
   recordTitle: string;
@@ -79,10 +80,10 @@ export class DashboardComponent extends LoadableComponent {
   defaultTableConfig = [{
     title: 'Record Title',
     variable: 'metadata.title',
-    template: `<a href='/<%= branding %>/<%= portal %>/record/view/<%= oid %>'><%= metadata.title %></a>
+    template: `<a href='<%=rootContext%><%= branding %>/<%= portal %>/record/view/<%= oid %>'><%= metadata.title %></a>
         <span class="dashboard-controls">
           <% if(hasEditAccess) { %>
-            <a href='/<%= branding %>/<%= portal %>/record/edit/<%= oid %>' aria-label='<%= translationService.t('edit-link-label') %>'><i class="fa fa-pencil" aria-hidden="true"></i></a>
+            <a href='<%=rootContext%>/<%= branding %>/<%= portal %>/record/edit/<%= oid %>' aria-label='<%= translationService.t('edit-link-label') %>'><i class="fa fa-pencil" aria-hidden="true"></i></a>
           <% } %>
         </span>
       `,
@@ -123,11 +124,13 @@ export class DashboardComponent extends LoadableComponent {
     this.activePlans = new PlanTable();
     this.branding = elementRef.nativeElement.getAttribute('branding');
     this.portal = elementRef.nativeElement.getAttribute('portal');
+    this.rootContext = elementRef.nativeElement.getAttribute('rootContext');
     this.recordType = elementRef.nativeElement.getAttribute('recordType');
     this.packageType = elementRef.nativeElement.getAttribute('packageType');
   }
 
   ngOnInit() {
+    // this.translationService.setRootContext(this.rootContext);
     this.translationService.isReady(tService => {
       this.waitForInit([
         this.dashboardService,

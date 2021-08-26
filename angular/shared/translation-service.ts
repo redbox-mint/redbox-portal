@@ -17,10 +17,11 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { Injectable, Inject} from '@angular/core';
+import { Injectable, Inject, ElementRef} from '@angular/core';
 import { TranslateI18Next } from 'ngx-i18next';
 import { Subject } from 'rxjs/Subject';
 import { ConfigService } from './config-service';
+
 /**
  * Translation service...
  *
@@ -32,6 +33,7 @@ export class TranslationService {
   protected subjects: any;
   protected translatorReady: boolean;
   protected config: any;
+  
 
   constructor (protected translateI18Next: TranslateI18Next, protected configService: ConfigService) {
     this.subjects = {};
@@ -41,6 +43,8 @@ export class TranslationService {
   initTranslator() {
     this.subjects['init'] = new Subject();
     const ts = new Date().getTime();
+    this.configService.getConfig(config => {
+    let rootContext = config.rootContext;
     this.translateI18Next.init({
         debug: true,                                                        // optional
         returnNull: false,
@@ -54,12 +58,13 @@ export class TranslationService {
         // backend: injectableBackendConfigFactory                             // optional - allows to change "loadPath" i18next parameter
         lng: 'en',
         fallbackLng: 'en',
-        backend: { loadPath: `/locales/{{lng}}/{{ns}}.json?ts=${ts}` }
+        backend: { loadPath: `${rootContext}/locales/{{lng}}/{{ns}}.json?ts=${ts}` }
     }).then(() => {
       console.log(`Translator loaded...`);
       this.translatorReady = true;
       this.translatorLoaded();
     });
+  });
   }
 
   translatorLoaded() {
