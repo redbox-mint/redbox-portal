@@ -40,6 +40,19 @@ export class DashboardService extends BaseService {
       .then((res: any) => this.formatDates(this.extractData(res))as PlanTable);
   }
 
+  getRecordsByFilter(recordType:string, state:string, filterFields:string,filterString:string, start:number=0, rows:number=10): Promise<PlanTable> {
+
+
+    let url = `${this.brandingAndPortalUrl}/listRecords?recordType=${recordType}&editOnly=true&start=${start}&rows=${rows}&filterFields=${filterFields}&filter=${filterString}&ts=${moment().unix()}`;
+    if(state != '') {
+      url += `&state=${state}`;
+    }
+    return this.http.get(url, this.options)
+      .toPromise()
+      .then((res: any) => this.formatDates(this.extractData(res))as PlanTable);
+  }
+
+
   getActivePlans(pageNumber:number): Promise<PlanTable> {
     var rows = 10;
     var start = (pageNumber-1) * rows;
