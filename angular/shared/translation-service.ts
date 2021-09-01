@@ -43,8 +43,14 @@ export class TranslationService {
   initTranslator() {
     this.subjects['init'] = new Subject();
     const ts = new Date().getTime();
-    this.configService.getConfig(config => {
-    let rootContext = config.rootContext;
+    
+    //TODO: Ideally the root context is already in the config service so we should use that value instead, 
+    // however there is a timing issue if we wait for the config service to resolve.
+    let rootContext = '/';
+    let bootstrapElement:any = document.getElementsByTagName("angular-bootstrap")
+    if(bootstrapElement.length > 0) {
+     rootContext = $(bootstrapElement[0]).attr('rootContext');
+    }
     this.translateI18Next.init({
         debug: true,                                                        // optional
         returnNull: false,
@@ -64,7 +70,7 @@ export class TranslationService {
       this.translatorReady = true;
       this.translatorLoaded();
     });
-  });
+  
   }
 
   translatorLoaded() {
