@@ -1190,8 +1190,11 @@ module.exports = {
                   compClass: 'RelatedFileUploadComponent',
                   definition: {
                     name: "licences_agreements",
-                    maxFileSize: 1073741824, // <- Configure web server to match this
-                    maxNumberOfFiles: 50,
+                    restrictions: {
+                      maxFileSize: 1073741824, // <- Configure web server to match this
+                      minNumberOfFiles: 1,
+                      maxNumberOfFiles: 50
+                    },
                     notesEnabled: true,
                     locationHeader: 'Files asociated with this plan',
                     notesHeader: 'Notes',

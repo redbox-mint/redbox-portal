@@ -48,9 +48,7 @@ export class RelatedFileUploadField extends FieldBase<any> {
     'label': 'Attachment',
     'value': 'attachment'
   }];
-  maxFileSize: number; // in bytes
-  maxNumberOfFiles: number;
-  allowedFileTypes: any[];
+  restrictions: any;
   locationHeader: string;
   notesHeader: string;
   uppyDashboardNote: string;
@@ -65,9 +63,7 @@ export class RelatedFileUploadField extends FieldBase<any> {
     this.notesHeader = options['notesHeader'] ? this.getTranslated(options['notesHeader'], options['notesHeader']) : null;
     this.uppyDashboardNote = this.getTranslated(options['uppyDashboardNote'], 'Maximum upload size: 1 Gb per file');
     this.columns = options['columns'] || [];
-    this.maxFileSize = options['maxFileSize'] || null;
-    this.maxNumberOfFiles = options['maxNumberOfFiles'] || null;
-    this.allowedFileTypes = options['allowedFileTypes'] || null;
+    this.restrictions = options['restrictions'] || null;
     this.attachmentText = options['attachmentText'] || 'Add attachment(s)';
     this.attachmentTextDisabled = options['attachmentTextDisabled'] || 'Save your record to attach files';
     this.value = options['value'] || this.setEmptyValue();
@@ -187,11 +183,7 @@ export class RelatedFileUploadComponent extends SimpleComponent {
     const uppyConfig = {
       debug: true,
       autoProceed: false,
-      restrictions: {
-        maxFileSize: this.field.maxFileSize,
-        maxNumberOfFiles: this.field.maxNumberOfFiles,
-        allowedFileTypes: this.field.allowedFileTypes
-      }
+      restrictions: this.field.restrictions
     };
     const uppyDashboardNote = this.field.uppyDashboardNote;
     console.debug(`Using Uppy config:`);
