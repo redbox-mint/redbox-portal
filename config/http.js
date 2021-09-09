@@ -86,6 +86,7 @@ module.exports.http = {
     },
 
     order: [
+      'cacheControl',
       'startRequestTimer',
       'cookieParser',
       'session',
@@ -159,6 +160,42 @@ module.exports.http = {
         // ... more Skipper options here ...
       });
       return skipper(req, res, next);
+    },
+
+    poweredBy:  function (req, res, next) {
+      res.set('X-Powered-By', "QCIF");      
+      return next();
+    },
+
+    cacheControl: function(req, res, next) {
+      let sessionTimeoutSeconds = (_.isUndefined(sails.config.session.cookie) || _.isUndefined(sails.config.session.cookie.maxAge) ? 0 : sails.config.session.cookie.maxAge / 1000 );
+      let cacheControlHeaderVal = null;
+      let expiresHeaderVal = null;
+      if (sessionTimeoutSeconds > 0) {
+        let isMatch = _.find(sails.config.custom.cacheControl.noCache, (path => {
+          return _.endsWith(req.path, path);
+        }));
+        if (!_.isEmpty(isMatch)) {
+          cacheControlHeaderVal = 'no cache, no store';
+          expiresHeaderVal = new Date(0).toUTCString();
+        } else {
+          cacheControlHeaderVal = 'max-age=' + sessionTimeoutSeconds + ', private';
+          const expiresMilli = new Date().getTime() + (sessionTimeoutSeconds * 1000);
+          expiresHeaderVal = new Date(expiresMilli).toUTCString();
+        }
+      } else {
+        // when session expiry isn't set, defaults to one year for everything...
+        cacheControlHeaderVal = 'max-age=' + 31536000 + ', private';
+        expiresHeaderVal = new Date(new Date().getTime() + (31536000 * 1000)).toUTCString();
+      }
+      if (!_.isEmpty(cacheControlHeaderVal)) {
+        res.set('Cache-Control', cacheControlHeaderVal);
+      } 
+      if (!_.isEmpty(expiresHeaderVal)) {
+        res.set('Expires', expiresHeaderVal);
+      }
+      res.set('Pragma', 'no-cache');
+      return next();
     }
 
   },
