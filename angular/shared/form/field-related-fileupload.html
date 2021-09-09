@@ -1,4 +1,5 @@
 <!-- Basic Uppy styles -->
+<ng-container *ngIf="field.visible">
 <div>
   <span class="label-font">
     {{field.label}} {{ getRequiredLabelStr()}}
@@ -54,3 +55,4 @@
     </div>
   </div>
 </div>
+</ng-container>
