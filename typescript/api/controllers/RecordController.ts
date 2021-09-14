@@ -1184,7 +1184,12 @@ export module Controllers {
                 sails.log.verbose("Error: Attachment not found in do attachment.");
                 return Observable.throwError(new Error(TranslationService.t('attachment-not-found')))
               }
-              res.set('Content-Type', found.mimeType);
+              let mimeType = found.mimeType;
+              if(_.isEmpty(mimeType)) {
+                // Set octet stream as a default
+                mimeType = 'application/octet-stream'
+              }
+              res.set('Content-Type', mimeType);
               res.set('Content-Disposition', `attachment; filename="${found.name}"`);
               sails.log.verbose(`Returning datastream observable of ${oid}: ${found.name}, attachId: ${attachId}`);
               return that.datastreamService.getDatastream(oid, attachId).flatMap((response) => {
