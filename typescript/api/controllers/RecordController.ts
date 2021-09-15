@@ -1060,6 +1060,10 @@ export module Controllers {
       const type = req.param('type');
       const rows = req.param('rows');
       const page = req.param('page');
+      let start = 0
+      if(!_.isEmpty(page) && !_.isEmpty(rows) && _.isNumber(page) && _.isNumber(rows)) {
+        start = (page-1)*rows;
+      }
       const workflow = req.query.workflow;
       const searchString = req.query.searchStr;
 
@@ -1082,7 +1086,7 @@ export module Controllers {
       });
 
       try {
-        const searchRes = await this.searchService.searchFuzzy(type, workflow, searchString, exactSearches, facetSearches, brand, req.user, req.user.roles, sails.config.record.search.returnFields);
+        const searchRes = await this.searchService.searchFuzzy(type, workflow, searchString, exactSearches, facetSearches, brand, req.user, req.user.roles, sails.config.record.search.returnFields, start, rows);
         this.ajaxOk(req, res, null, searchRes);
       } catch (error) {
         this.ajaxFail(req, res, error.message);
