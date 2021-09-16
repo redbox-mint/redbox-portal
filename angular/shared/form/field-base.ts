@@ -433,7 +433,7 @@ export class FieldBase<T> {
     this.visible = !this.visible;
   }
 
-  private execVisibilityFn(data, visibilityCriteria) {
+  protected execVisibilityFn(data, visibilityCriteria) {
     let newVisible = this.visible;
     const fn: any = _.get(this, _.get(visibilityCriteria, 'action'));
     if (fn) {
