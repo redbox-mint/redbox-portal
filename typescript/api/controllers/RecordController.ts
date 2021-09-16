@@ -1061,9 +1061,10 @@ export module Controllers {
       const rows = req.param('rows');
       const page = req.param('page');
       let start = 0
-      if(!_.isEmpty(page) && !_.isEmpty(rows) && _.isNumber(page) && _.isNumber(rows)) {
-        start = (page-1)*rows;
+      if(!_.isEmpty(page) && !_.isEmpty(rows) &&  /^-?\d+$/.test(page) &&  /^-?\d+$/.test(rows)) {
+        start = (parseInt(page)-1)*parseInt(rows);
       }
+
       const workflow = req.query.workflow;
       const searchString = req.query.searchStr;
 
