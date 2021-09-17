@@ -1058,10 +1058,16 @@ export module Controllers {
     public async search(req, res) {
       const brand = BrandingService.getBrand(req.session.branding);
       const type = req.param('type');
-      const rows = req.param('rows');
-      const page = req.param('page');
+      let rows = req.param('rows');
+      let page = req.param('page');
+      if(_.isEmpty(rows)) {
+        rows = 10
+      }
+      if(_.isEmpty(page)) {
+        page = 1
+      }
       let start = 0
-      if(!_.isEmpty(page) && !_.isEmpty(rows) &&  /^-?\d+$/.test(page) &&  /^-?\d+$/.test(rows)) {
+      if(/^\d+$/.test(page) &&  /^\d+$/.test(rows)) {
         start = (parseInt(page)-1)*parseInt(rows);
       }
 
@@ -1088,6 +1094,7 @@ export module Controllers {
 
       try {
         const searchRes = await this.searchService.searchFuzzy(type, workflow, searchString, exactSearches, facetSearches, brand, req.user, req.user.roles, sails.config.record.search.returnFields, start, rows);
+        searchRes['page'] = page
         this.ajaxOk(req, res, null, searchRes);
       } catch (error) {
         this.ajaxFail(req, res, error.message);
