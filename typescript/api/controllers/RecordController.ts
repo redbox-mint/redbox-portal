@@ -1156,7 +1156,7 @@ export module Controllers {
       this.initTusServer();
       const method = _.toLower(req.method);
       if (method == 'post') {
-        req.baseUrl = `${BrandingService.getRootContext()}/record/${oid}`
+        req.baseUrl = `${BrandingService.getBrandAndPortalPath()}/record/${oid}`
       } else {
         req.baseUrl = '';
       }
