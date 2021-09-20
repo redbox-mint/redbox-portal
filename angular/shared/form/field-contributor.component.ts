@@ -536,7 +536,7 @@ export class ContributorComponent extends SimpleComponent {
         this.lastSelected = null;
         return;
       } else {
-        if (selected.title && selected.title == this.field.formModel.value.text_full_name) {
+        if (selected.title && selected.title == this.field.formModel.value.text_full_name && selected.email && selected.email == this.field.formModel.value.email && selected.orcid == this.field.formModel.value.orcid) {
           console.log(`Same or empty selection, returning...`);
           return;
         }
@@ -606,7 +606,7 @@ export class ContributorComponent extends SimpleComponent {
         }, 40);
       } else {
         if (this.emptied && this.field.forceLookupOnly) {
-          console.log(`Forced lookup, clearing data..`)
+          console.log(`Forced lookup, clearing data..`);
           this.field.setEmptyValue(true);
           this.lastSelected = null;
           this.field.toggleConditionalValidation(false);
@@ -623,7 +623,7 @@ export class ContributorComponent extends SimpleComponent {
     console.log("here")
     const val = this.ngCompleter.ctrInput.nativeElement.value
     this.field.toggleConditionalValidation(!_.isEmpty(val));
-    if (event && (event.keyCode !== KEY_EN || event.keyCode !== KEY_TAB )) {
+    if (event && event.keyCode !== KEY_EN && event.keyCode !== KEY_TAB) {
       const val = this.field.vocabField.getValue({text_full_name: this.ngCompleter.ctrInput.nativeElement.value });
       this.field.setValue(val, true, false);
     }
