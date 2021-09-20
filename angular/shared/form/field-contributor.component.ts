@@ -623,7 +623,7 @@ export class ContributorComponent extends SimpleComponent {
     console.log("here")
     const val = this.ngCompleter.ctrInput.nativeElement.value
     this.field.toggleConditionalValidation(!_.isEmpty(val));
-    if (event && event.keyCode !== KEY_EN && event.keyCode !== KEY_TAB) {
+    if (event && event.keyCode !== KEY_EN && event.keyCode !== KEY_TAB && event.key !== 'ArrowUp' && event.key !== 'ArrowDown') {
       const val = this.field.vocabField.getValue({text_full_name: this.ngCompleter.ctrInput.nativeElement.value });
       this.field.setValue(val, true, false);
     }
