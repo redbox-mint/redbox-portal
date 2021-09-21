@@ -243,9 +243,9 @@ export module Services {
 
     private clientSleep(done: any) {
       if (!_.isUndefined(sails.config.solr.clientSleepTimeMillis)) {
-        sails.log.verbose(`${this.logheader} sleeping for: ${sails.config.solr.clientSleepTimeMillis}`);
+        sails.log.verbose(`${this.logHeader} sleeping for: ${sails.config.solr.clientSleepTimeMillis}`);
         setTimeout(()=> {
-          sails.log.verbose(`${this.logheader} calling done()`);
+          sails.log.verbose(`${this.logHeader} calling done()`);
           done();
         }, sails.config.solr.clientSleepTimeMillis);
       } else {
