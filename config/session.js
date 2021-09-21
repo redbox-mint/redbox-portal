@@ -69,12 +69,14 @@ module.exports.session = {
   * be shared across multiple Sails.js servers.                              *
   *                                                                          *
   * Requires connect-mongo (https://www.npmjs.com/package/connect-mongo)     *
-  * Use version 0.8.2 with Node version <= 0.12                              *
-  * Use the latest version with Node >= 4.0                                  *
+  * Requires version 4.1.0 or above                                          *
   *                                                                          *
   ***************************************************************************/
   adapter: 'mongo',
-  url: 'mongodb://mongodb:27017/sessions', // user, password and port optional
+  mongoUrl: 'mongodb://mongodb:27017/sessions', // user, password and port optional
+  handleConstructingSessionStore: (sessionConfig, configuredSessionAdapter, expressSessionFromSailsCore) => {
+    return new configuredSessionAdapter(sessionConfig);
+  },
 
   /***************************************************************************
   *                                                                          *
