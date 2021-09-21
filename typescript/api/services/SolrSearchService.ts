@@ -241,7 +241,19 @@ export module Services {
       return customResp;
     }
 
-    public async solrAddOrUpdate(job: any) {
+    private clientSleep(done: any) {
+      if (!_.isUndefined(sails.config.solr.clientSleepTimeMillis)) {
+        sails.log.verbose(`${this.logheader} sleeping for: ${sails.config.solr.clientSleepTimeMillis}`);
+        setTimeout(()=> {
+          sails.log.verbose(`${this.logheader} calling done()`);
+          done();
+        }, sails.config.solr.clientSleepTimeMillis);
+      } else {
+        done();
+      }
+    }
+
+    public async solrAddOrUpdate(job: any, done: any) {
       try {
         let data = job.attrs.data;
         sails.log.verbose(`${this.logHeader} adding document: ${data.id} to index`);
@@ -252,11 +264,13 @@ export module Services {
           if (err) {
             sails.log.error(`${this.logHeader} Failed to add document: `);
             sails.log.error(err);
+            this.clientSleep(done);
             return;
           }
           this.client.commit((commitErr, commitObj) => {
             sails.log.verbose(`${this.logHeader} document added to SOLR: ${data.id}`);
             sails.log.verbose(obj);
+            this.clientSleep(done);
           });
         });
       } catch (err) {
@@ -337,7 +351,7 @@ export module Services {
       return url;
     }
 
-    public solrDelete(job: any) {
+    public solrDelete(job: any, done:any) {
       try {
         let data = job.attrs.data;
         sails.log.verbose(`${this.logHeader} deleting document: ${data.id}`);
@@ -345,11 +359,13 @@ export module Services {
           if (err) {
             sails.log.error(`${this.logHeader} Failed to delete document: ${data.id}`);
             sails.log.error(err);
+            this.clientSleep(done);
             return;
           }
           this.client.commit((commitErr, commitObj) => {
             sails.log.verbose(`${this.logHeader} document deleted in SOLR: ${data.id}`);
             sails.log.verbose(obj);
+            this.clientSleep(done);
           });
         });
       } catch (err) {
