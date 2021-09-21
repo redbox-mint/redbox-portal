@@ -26,7 +26,7 @@ import {  Map,  GeoJSON,   } from 'leaflet';
 declare var omnivore: any;
 declare var L: any;
 declare var jQuery: any;
-
+declare var require: any;
 
 /**
  * Map Model
@@ -62,6 +62,13 @@ export class MapField extends FieldBase<any> {
   importButtonLabel: string;
   invalidDataMessage: string;
 
+  iconSettings = L.icon({
+    iconSize: [25, 41],
+    iconAnchor: [13, 41],
+    iconUrl: require('../../../../../assets/default/default/images/leaflet/marker-icon.png'),
+    shadowUrl: require('../../../../../assets/default/default/images/leaflet/marker-shadow.png')
+  });
+
 
   /*
   *
@@ -82,12 +89,7 @@ export class MapField extends FieldBase<any> {
     },
     draw: {
       marker: {
-        icon: L.icon({
-          iconSize: [25, 41],
-          iconAnchor: [13, 41],
-          iconUrl: 'http://localhost:1500/default/rdmp/images/leaflet/marker-icon.png',
-          shadowUrl: 'http://localhost:1500/default/rdmp/images/leaflet/marker-shadow.png'
-        })
+        icon: this.iconSettings
       },
       circlemarker: false,
       circle: false
@@ -123,7 +125,16 @@ export class MapField extends FieldBase<any> {
   constructor(options: any, injector: any) {
     super(options, injector);
     this.clName = 'MapField';
-
+    //Workaround to overcome ERR_INVALID_URL error thrown when the base64 url is invalid and ends with ")marker-icon.png 
+    //that happens because of a known bug inside leaflet bundle that is a regex issue within _detectIconPath function  
+    //https://github.com/Leaflet/Leaflet/issues/4968
+    //https://stackoverflow.com/questions/55928916/marker-in-leaflet-js-does-not-load-properly-due-to-err-invalid-url-error
+    delete L.Icon.Default.prototype._getIconUrl;
+    L.Icon.Default.mergeOptions({
+      iconRetinaUrl: require('../../../../../assets/default/default/images/leaflet/marker-icon-2x.png'),
+      iconUrl: require('../../../../../assets/default/default/images/leaflet/marker-icon.png'),
+      shadowUrl: require('../../../../../assets/default/default/images/leaflet/marker-shadow.png')
+    });
     this.leafletOptions = options['leafletOptions'] || this.defaultLeafletOptions;
     // merge in master options to ensure we have the right layers configured
     this.leafletOptions = _.merge(this.leafletOptions, this.masterLeafletOptions);
