@@ -26,7 +26,7 @@ import {  Map,  GeoJSON,   } from 'leaflet';
 declare var omnivore: any;
 declare var L: any;
 declare var jQuery: any;
-declare var require: any;
+declare function require(name:string);
 
 /**
  * Map Model
@@ -62,11 +62,14 @@ export class MapField extends FieldBase<any> {
   importButtonLabel: string;
   invalidDataMessage: string;
 
+  MARKER_ICON_PATH = require('../../../assets/default/default/images/leaflet/marker-icon.png');
+  MARKER_SHADOW_PATH = require('../../../assets/default/default/images/leaflet/marker-shadow.png');
+  MARKER_RETINA_PATH = require('../../../assets/default/default/images/leaflet/marker-icon-2x.png');
   iconSettings = L.icon({
     iconSize: [25, 41],
     iconAnchor: [13, 41],
-    iconUrl: require('../../../../../assets/default/default/images/leaflet/marker-icon.png'),
-    shadowUrl: require('../../../../../assets/default/default/images/leaflet/marker-shadow.png')
+    iconUrl: this.MARKER_ICON_PATH,
+    shadowUrl: this.MARKER_SHADOW_PATH
   });
 
 
@@ -131,9 +134,9 @@ export class MapField extends FieldBase<any> {
     //https://stackoverflow.com/questions/55928916/marker-in-leaflet-js-does-not-load-properly-due-to-err-invalid-url-error
     delete L.Icon.Default.prototype._getIconUrl;
     L.Icon.Default.mergeOptions({
-      iconRetinaUrl: require('../../../../../assets/default/default/images/leaflet/marker-icon-2x.png'),
-      iconUrl: require('../../../../../assets/default/default/images/leaflet/marker-icon.png'),
-      shadowUrl: require('../../../../../assets/default/default/images/leaflet/marker-shadow.png')
+      iconRetinaUrl: this.MARKER_RETINA_PATH,
+      iconUrl: this.MARKER_ICON_PATH,
+      shadowUrl: this.MARKER_SHADOW_PATH
     });
     this.leafletOptions = options['leafletOptions'] || this.defaultLeafletOptions;
     // merge in master options to ensure we have the right layers configured
