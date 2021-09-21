@@ -136,8 +136,8 @@ export class ReportComponent extends LoadableComponent {
   }
 
   getDownloadCSVUrl() {
-    let url = `/${this.branding}/${this.portal}/admin/downloadReportCSV?name=${this.name}`
-    let params = this.getParams()
+    let url = `${this.reportService.getBrandingAndPortalUrl}/admin/downloadReportCSV?name=${this.name}`;
+    let params = this.getParams();
     for(var key in params) {
       url=url+'&'+key+"="+params[key];
     }
