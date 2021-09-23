@@ -125,8 +125,11 @@ export module Controllers {
       let user = req.session.user ? req.session.user : req.user;
 
       req.logout();
-      UsersService.addUserAuditEvent(user, "logout", requestDetails).subscribe(response => {
+      UsersService.addUserAuditEvent(user, "logout", requestDetails).then(response => {
         sails.log.debug(`User logout audit event created: ${user.id}`)
+      }).catch(err => {
+        sails.log.error(`User logout audit event failed`)
+        sails.log.error(err)
       });
       req.session.destroy(err => {
         res.redirect(redirUrl);
@@ -230,8 +233,11 @@ export module Controllers {
         let requestDetails = new RequestDetails(req);
         // We don't want to store the password!
         delete requestDetails.body.password;
-        UsersService.addUserAuditEvent(user, "login", requestDetails).subscribe(response => {
+        UsersService.addUserAuditEvent(user, "login", requestDetails).then(response => {
           sails.log.debug(`User login audit event created for local login: ${user.id}`)
+        }).catch(err => {
+          sails.log.error(`User login audit event created for local login failed`)
+          sails.log.error(err)
         });
         req.logIn(user, function (err) {
           if (err) res.send(err);
@@ -287,8 +293,11 @@ export module Controllers {
           }); 
         }       
         let requestDetails = new RequestDetails(req);
-        UsersService.addUserAuditEvent(user, "login", requestDetails).subscribe(response => {
+        UsersService.addUserAuditEvent(user, "login", requestDetails).then(response => {
           sails.log.debug(`User login audit event created for OIDC login: ${user.id}`)
+        }).catch(err => {
+          sails.log.error(`User login audit event created for OIDC login failed`)
+          sails.log.error(err)
         });
 
         req.logIn(user, function (err) {
@@ -328,8 +337,11 @@ export module Controllers {
         }
 
         let requestDetails = new RequestDetails(req);
-        UsersService.addUserAuditEvent(user, "login", requestDetails).subscribe(response => {
+        UsersService.addUserAuditEvent(user, "login", requestDetails).then(response => {
           sails.log.debug(`User login audit event created for AAF login: ${user.id}`)
+        }).catch(err => {
+          sails.log.error(`User login audit event created for AAF login failed`)
+          sails.log.error(err)
         });
 
         req.logIn(user, function (err) {

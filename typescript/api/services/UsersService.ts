@@ -479,7 +479,9 @@ export module Services {
       auditEvent['user'] = user;
       auditEvent['action'] = action;
       auditEvent['additionalContext'] = additionalContext;
-      return super.getObservable(UserAudit.create(auditEvent));
+      sails.log.verbose('Adding user audit event');
+      sails.log.verbose(auditEvent);
+      return super.getObservable(UserAudit.create(auditEvent)).toPromise();
     }
 
     /**
