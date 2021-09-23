@@ -18,7 +18,7 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 import { Observable } from 'rxjs/Rx';
-import services = require('../core/CoreService.js');
+import {Services as services}   from '@researchdatabox/redbox-core-types';
 import {Sails, Model} from "sails";
 
 declare var sails: Sails;
@@ -33,7 +33,7 @@ export module Services {
    * Author: <a href='https://github.com/moisbo' target='_blank'>moisbo</a>
    *
    */
-  export class WorkspaceTypes extends services.Services.Core.Service {
+  export class WorkspaceTypes extends services.Core.Service {
 
     protected _exportedMethods: any = [
       'bootstrap',

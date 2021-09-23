@@ -18,9 +18,8 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 declare var module;
-import services = require('../core/CoreService.js');
-import QueueService from '../core/QueueService.js';
-import SearchService from '../core/SearchService';
+import {QueueService, SearchService, Services as services}   from '@researchdatabox/redbox-core-types';
+
 import solr = require('solr-client');
 const got = require('got');
 const util = require('util');
@@ -41,7 +40,7 @@ export module Services {
    * Service class for adding documents to Solr.
    *
    */
-  export class SolrSearchService extends services.Services.Core.Service implements SearchService {
+  export class SolrSearchService extends services.Core.Service implements SearchService {
     protected _exportedMethods: any = [
       'index',
       'remove',
@@ -70,6 +69,9 @@ export module Services {
       this.client = solr.createClient(sails.config.solr.options);
       this.client.autoCommit = true;
       this.baseUrl = this.getBaseUrl();
+      this.client.promiseAdd = util.promisify(this.client.add);
+      this.client.promiseDelete = util.promisify(this.client.delete);
+      this.client.promiseCommit = util.promisify(this.client.commit);
     }
 
     protected async buildSchema() {
@@ -242,6 +244,15 @@ export module Services {
       return customResp;
     }
 
+    private clientSleep() {
+      if (!_.isUndefined(sails.config.solr.clientSleepTimeMillis)) {
+        sails.log.verbose(`${this.logHeader} sleeping for: ${sails.config.solr.clientSleepTimeMillis}`);
+        return this.sleep(sails.config.solr.clientSleepTimeMillis);
+      } else {
+         return Promise.resolve();
+      }
+    }
+
     public async solrAddOrUpdate(job: any) {
       try {
         let data = job.attrs.data;
@@ -249,17 +260,9 @@ export module Services {
         // flatten the JSON
         const processedData = this.preIndex(data);
         sails.log.verbose(JSON.stringify(processedData));
-        this.client.add(processedData, (err, obj) => {
-          if (err) {
-            sails.log.error(`${this.logHeader} Failed to add document: `);
-            sails.log.error(err);
-            return;
-          }
-          this.client.commit((commitErr, commitObj) => {
-            sails.log.verbose(`${this.logHeader} document added to SOLR: ${data.id}`);
-            sails.log.verbose(obj);
-          });
-        });
+        await this.client.promiseAdd(processedData);
+        await this.clientSleep();
+
       } catch (err) {
         sails.log.error(`${this.logHeader} Failed to solrAddOrUpdate, while pre-processing index: `);
         sails.log.error(JSON.stringify(err));
@@ -338,21 +341,12 @@ export module Services {
       return url;
     }
 
-    public solrDelete(job: any) {
+    public async solrDelete(job: any, done:any) {
       try {
         let data = job.attrs.data;
         sails.log.verbose(`${this.logHeader} deleting document: ${data.id}`);
-        this.client.delete('id', data.id, (err, obj) => {
-          if (err) {
-            sails.log.error(`${this.logHeader} Failed to delete document: ${data.id}`);
-            sails.log.error(err);
-            return;
-          }
-          this.client.commit((commitErr, commitObj) => {
-            sails.log.verbose(`${this.logHeader} document deleted in SOLR: ${data.id}`);
-            sails.log.verbose(obj);
-          });
-        });
+        await this.client.promiseDelete('id', data.id);
+        await this.clientSleep();
       } catch (err) {
         sails.log.error(`${this.logHeader} Failed to solrDelete:`);
         sails.log.error(JSON.stringify(err));

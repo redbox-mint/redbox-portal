@@ -38,11 +38,21 @@
     <div class="col-xs-8">
       <div class="panel panel-danger">
         <div class="panel-heading">
-           <h3 class="panel-title">Forbidden!</h3>
+           <h3 class="panel-title"><%= TranslationService.t('error-403-heading') %></h3>
          </div>
          <div class="panel-body">
            <p>
-             <%= typeof data == 'undefined' ? "You don't have permission on this page, please contact an administrator." : data %>
+             <% if( typeof data == 'undefined') { %>
+              You don't have permission on this page, please contact an administrator.
+            <% } else if( typeof data == 'object') { %>   
+              <%= TranslationService.t(data.message) %>
+            </p>
+            <p>
+              <%= TranslationService.t(data.detailedMessage) %>
+
+            <% }  else { %>
+              <%= TranslationService.t(data) %>
+            <% } % >
            </p>
            <p>
                <a href="<%= BrandingService.getBrandAndPortalPath(req) %>/home">Click here to return to the home page.</a>

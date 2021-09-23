@@ -34,8 +34,8 @@ services:
     image: mvertes/alpine-mongo:latest
     volumes:
       - "./devdata:/devdata:delegated"
-      - "./dev/mongo/data/db:/data/db:delegated"
-      - "./dev/log/mongo:/var/log/mongo:delegated"
+      - "./.dev/mongo/data/db:/data/db:delegated"
+      - "./.dev/log/mongo:/var/log/mongo:delegated"
     networks:
       main:
         aliases:
@@ -43,7 +43,7 @@ services:
     ports:
       - "27017:27017"
   solr:
-    image: solr:8.6.3
+    image: solr:8.8.0
     expose:
       - "8983"
     ports:

@@ -1190,8 +1190,11 @@ module.exports = {
                   compClass: 'RelatedFileUploadComponent',
                   definition: {
                     name: "licences_agreements",
-                    maxFileSize: 1073741824, // <- Configure web server to match this
-                    maxNumberOfFiles: 50,
+                    restrictions: {
+                      maxFileSize: 1073741824, // <- Configure web server to match this
+                      minNumberOfFiles: 1,
+                      maxNumberOfFiles: 50
+                    },
                     notesEnabled: true,
                     locationHeader: 'Files asociated with this plan',
                     notesHeader: 'Notes',
@@ -1303,10 +1306,10 @@ module.exports = {
           {
             class: "Container",
             roles: ['Admin', 'Librarians'],
+            editOnly: true,
             definition: {
               id: "permissions",
               label: "@record-permissions-tab",
-              viewOnly: true,
               fields: [{
                   class: 'Container',
                   compClass: 'TextBlockComponent',
@@ -1388,6 +1391,34 @@ module.exports = {
             type: 'span'
           }
         }]
+      }
+    },
+    {
+      class: 'EventHandler',
+      definition: {
+        eventName: 'beforeunload',
+        eventSource: 'window'
+      }
+    },
+    {
+      class: 'PageTitle',
+      definition: {
+        name: 'pageTitle',
+        // sourceProperty: 'title.control.value', // just using a simple property
+        template: "<%= field.translationService.t('default-title') %> - <%= field.translationService.t('rdmp-title-label') %> - <%= _.isEmpty(field.fieldMap._rootComp.oid) ? field.translationService.t('create-rdmp') : (field.editMode ? field.fieldMap.title.control.value : field.fieldMap.title.field.value) %>",
+        subscribe: {
+          'form': {
+            onFormLoaded: [
+              { action: 'updateTitle' }
+            ],
+            recordCreated: [
+              { action: 'updateTitle' }
+            ],
+            recordSaved: [
+              { action: 'updateTitle' }
+            ]
+          }
+        }
       }
     }
   ]

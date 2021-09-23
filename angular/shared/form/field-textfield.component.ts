@@ -168,6 +168,7 @@ export class TextFieldComponent extends EmbeddableComponent {
 @Component({
   selector: 'repeatable-textfield',
   template: `
+  <ng-container *ngIf="field.visible">
   <div *ngIf="field.editMode">
     <div class="row">
       <div class="col-xs-12">
@@ -204,6 +205,7 @@ export class TextFieldComponent extends EmbeddableComponent {
       </ul>
     </span>
   </li>
+  </ng-container>
   `,
 })
 export class RepeatableTextfieldComponent extends RepeatableComponent {

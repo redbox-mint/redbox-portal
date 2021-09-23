@@ -1,6 +1,6 @@
-import StorageService from "./StorageService";
+import { StorageService } from "./StorageService";
 
-interface RecordsService extends StorageService {
+export interface RecordsService extends StorageService {
 
   triggerPreSaveTriggers(oid: string, record: any, recordType: object, mode: string, user): Promise<any>;
   triggerPostSaveTriggers(oid: string, record: any, recordType: object, mode: string, user): void;
@@ -15,4 +15,4 @@ interface RecordsService extends StorageService {
   checkRedboxRunning(): Promise<any>;
 
 }
-export default RecordsService
+

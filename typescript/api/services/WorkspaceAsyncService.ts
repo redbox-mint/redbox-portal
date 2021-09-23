@@ -1,5 +1,5 @@
 import { Observable } from 'rxjs/Rx';
-import services = require('../core/CoreService.js');
+import {Services as services}   from '@researchdatabox/redbox-core-types';
 import { Sails, Model } from "sails";
 
 const util = require('util');
@@ -16,7 +16,7 @@ export module Services {
    *
    * @author <a target='_' href='https://github.com/moisbo'>moisbo</a>
    */
-  export class WorkspaceAsyncService extends services.Services.Core.Service {
+  export class WorkspaceAsyncService extends services.Core.Service {
 
     protected _exportedMethods: any = [
       'start',

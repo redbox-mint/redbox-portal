@@ -226,6 +226,7 @@ export class FieldBase<T> {
   }
 
   public setupEventHandlers() {
+    const immutableProperties = ['name', 'id', 'controlType', 'compClass'];
     const publishConfig = this.publish;
     const subscribeConfig = this.subscribe;
     if (!_.isEmpty(this.formModel)) {
@@ -290,10 +291,20 @@ export class FieldBase<T> {
           eventEmitter.subscribe((value: any) => {
             let curValue = value;
             let dataAsArray = false;
+            let targetProperty = null;
             _.each(eventConfArr, (eventConf: any) => {
               if (eventConf.dataAsArray) {
                 // process the data as an array, setting one action will set all for this source component
                 dataAsArray = true;
+                return false;
+              }
+            });
+            // adding support for custom target property
+            _.each(eventConfArr, (eventConf: any) => {
+              if (!_.isEmpty(eventConf.targetProperty) && !_.includes(immutableProperties, eventConf.targetProperty)) {
+                // only the first entry will be used to keep it DRY
+                // also doing a simple filter of immutable properties
+                targetProperty = eventConf.targetProperty;
                 return false;
               }
             });
@@ -313,7 +324,11 @@ export class FieldBase<T> {
                       var objectName = eventConf.action.substring(0, eventConf.action.indexOf("."));
                       boundFunction = fn.bind(this[objectName]);
                     }
-                    entryVal = boundFunction(entryVal, eventConf);
+                    if (eventConf.includeFieldInFnCall) {
+                      entryVal = boundFunction(entryVal, eventConf, this);
+                    } else {
+                      entryVal = boundFunction(entryVal, eventConf);
+                    }
                   }
                 });
                 if (!_.isEmpty(entryVal)) {
@@ -332,14 +347,26 @@ export class FieldBase<T> {
                   } else {
                     var objectName = eventConf.action.substring(0, eventConf.action.indexOf("."));
                     boundFunction = fn.bind(this[objectName]);
+                  } 
+                  // adding more properties to the config to support advanced templating
+                  if (eventConf.includeFieldInFnCall) {
+                    curValue = boundFunction(curValue, eventConf, this);  
+                  } else {
+                    curValue = boundFunction(curValue, eventConf);
                   }
-                  curValue = boundFunction(curValue, eventConf);
                 }
               });
             }
+            
             if (!_.isUndefined(curValue)) {
-              // cascade the event instance wide if only there's a valid value
-              this.reactEvent(eventName, curValue, value);
+              if (_.isEmpty(targetProperty)) {
+                // cascade the event instance wide if only there's a valid value
+                this.reactEvent(eventName, curValue, value);
+              } else {
+                // set the target property instead
+                // note that this DOES NOT trigger a value changed event
+                _.set(this, targetProperty, curValue);
+              }
             }
           });
         });
@@ -354,10 +381,11 @@ export class FieldBase<T> {
     } else if (srcName == "form") {
       eventEmitter = _.get(this.fieldMap['_rootComp'], eventName);
     } else {
-      if(!_.isEmpty(this.fieldMap[srcName])) {
-        eventEmitter = _.get(this.fieldMap[srcName].field, eventName);
+      let sourceField = _.get(this.fieldMap,srcName, null);
+      if(!_.isEmpty(sourceField)) {
+        eventEmitter = _.get(sourceField.field, eventName);
       }
-    }
+    } 
     if (_.isEmpty(eventEmitter)) {
       console.warn(`Missing event emitter: '${srcName} -> ${eventName}' needed by '${this.name}'. Failing softly by creating an eventEmitter that will never fire. In some cases, this should be fine, however, if you're still on active development, verify your form configuration.`);
       eventEmitter = new EventEmitter<any>();
@@ -405,7 +433,7 @@ export class FieldBase<T> {
     this.visible = !this.visible;
   }
 
-  private execVisibilityFn(data, visibilityCriteria) {
+  protected execVisibilityFn(data, visibilityCriteria) {
     let newVisible = this.visible;
     const fn: any = _.get(this, _.get(visibilityCriteria, 'action'));
     if (fn) {

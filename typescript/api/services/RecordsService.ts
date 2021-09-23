@@ -20,9 +20,9 @@
 import {
   Observable
 } from 'rxjs/Rx';
-import services = require('../core/CoreService.js');
-import DatastreamService from '../core/DatastreamService.js';
-import { StorageServiceResponse } from '../core/StorageServiceResponse';
+
+import {DatastreamService, QueueService, RecordAuditModel, RecordsService, SearchService, Services as services, StorageService, StorageServiceResponse}   from '@researchdatabox/redbox-core-types';
+
 import {
   Sails,
   Model
@@ -31,13 +31,13 @@ import * as request from "request-promise";
 import * as luceneEscapeQuery from "lucene-escape-query";
 import * as fs from 'fs';
 import moment = require('moment');
-import RecordsService from '../core/RecordsService.js';
-import SearchService from '../core/SearchService.js';
+
 import {
   isObservable
 } from 'rxjs';
-import StorageService from '../core/StorageService.js';
-import { Readable } from 'stream';
+
+import {Readable}  from 'stream';
+
 
 const util = require('util');
 
@@ -53,11 +53,14 @@ export module Services {
    * Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a>
    *
    */
-  export class Records extends services.Services.Core.Service implements RecordsService {
+  export class Records extends services.Core.Service implements RecordsService {
 
     storageService: StorageService = null;
     datastreamService: DatastreamService = null;
-    searchService: SearchService = null;
+
+    searchService:SearchService = null;
+    protected queueService: QueueService = null;
+
 
     constructor() {
       super();
@@ -67,6 +70,7 @@ export module Services {
         that.getStorageService();
         that.getDatastreamService();
         that.searchService = sails.services[sails.config.search.serviceName];
+        that.queueService = sails.services[sails.config.queue.serviceName];
       });
     }
 
@@ -116,7 +120,8 @@ export module Services {
       'getAttachments',
       'appendToRecord',
       'getRecords',
-      'exportAllPlans'
+      'exportAllPlans',
+      'storeRecordAudit'
     ];
 
 
@@ -151,6 +156,7 @@ export module Services {
           // Fire Post-save hooks async ...
           this.triggerPostSaveTriggers(createResponse['oid'], record, recordType, 'onCreate', user);
         }
+
         const recordOid = _.get(record, 'redboxOid')
         if (_.isEmpty(recordOid)) {
           sails.log.warn(`recordOid: '${recordOid}' is empty! Using response oid: ${createResponse['oid']} for solr index.`)
@@ -161,8 +167,9 @@ export module Services {
           }
           this.searchService.index(recordOid, record);
         }
+       
+        this.auditRecord(createResponse['oid'], record, user)
 
-        // TODO: fire-off audit message
       } else {
         sails.log.error(`${this.logHeader} Failed to create record, storage service response:`);
         sails.log.error(JSON.stringify(createResponse));
@@ -171,7 +178,10 @@ export module Services {
       return createResponse;
     }
 
-    async updateMeta(brand: any, oid: any, record: any, user ?: any, triggerPreSaveTriggers = true, triggerPostSaveTriggers = true) {
+
+    
+
+    async updateMeta(brand: any, oid: any, record: any, user ? : any, triggerPreSaveTriggers = true, triggerPostSaveTriggers = true) {
       let updateResponse = new StorageServiceResponse();
       updateResponse.oid = oid;
       let recordType = null;
@@ -210,7 +220,7 @@ export module Services {
           this.triggerPostSaveTriggers(updateResponse['oid'], record, recordType, 'onUpdate', user);
         }
         this.searchService.index(oid, record);
-        // TODO: fire-off audit message
+        this.auditRecord(updateResponse['oid'], record, user)
       } else {
         sails.log.error(`${this.logHeader} Failed to update record, storage service response:`);
         sails.log.error(JSON.stringify(updateResponse));
@@ -304,7 +314,43 @@ export module Services {
       return false;
     }
 
-    private info(): Promise<any> {
+
+    public auditRecord (id: string, record: any, user: any) {
+      if(this.queueService == null) {
+        sails.log.verbose(`${this.logHeader} Queue service isn't defined. Skipping auditing`);
+        return;
+      }
+      if(sails.config.record.auditing.enabled !== true) {
+        if(sails.config.record.auditing.enabled !== "true") {
+         sails.log.verbose(`${this.logHeader} Not enabled. Skipping auditing`);
+         return;
+        }
+      }
+      sails.log.verbose(`${this.logHeader} adding record audit job: ${id} with data:`);
+      // storage_id is used as the main ID in searches
+      let data = new RecordAuditModel(id,record,user)
+      sails.log.verbose(JSON.stringify(data));
+      this.queueService.now(sails.config.record.auditing.recordAuditJobName, data);
+    }
+   
+    public storeRecordAudit (job: any) {
+        let data = job.attrs.data;
+        sails.log.verbose(`${this.logHeader} Storing record Audit entry: `);
+        sails.log.verbose(JSON.stringify(data));
+        this.storageService.createRecordAudit(data).then(response=> {
+          if(response.isSuccessful()) {
+            sails.log.verbose(`${this.logHeader} Record Audit stored successfully `);
+          } else {
+            sails.log.error(`${this.logHeader} Failed to storeRecordAudit for record:`);  
+            sails.log.verbose(JSON.stringify(response));
+          }
+        }).catch(err => {
+          sails.log.error(`${this.logHeader} Failed to storeRecordAudit for record: `);
+          sails.log.error(JSON.stringify(err));
+        });
+    }
+
+    private info(): Promise < any > {
 
       const options = this.getOptions(sails.config.record.baseUrl.redbox + sails.config.record.api.info.url);
       return request[sails.config.record.api.info.method](options)

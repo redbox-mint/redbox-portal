@@ -17,11 +17,42 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { Input, Component, ViewChild, ViewContainerRef, OnInit, Injector, AfterViewInit, AfterViewChecked, ChangeDetectorRef } from '@angular/core';
-import { FieldBase } from './field-base';
-import { SelectionField, HtmlRaw, Container, DateTime, AnchorOrButton, SaveButton, CancelButton, TabOrAccordionContainer,ParameterRetrieverField, TabNavButton, Spacer, Toggle } from './field-simple';
-import { RecordMetadataRetrieverField } from './record-meta.component';
-import { FormGroup, FormControl, FormArray } from '@angular/forms';
+import {
+  Input,
+  Component,
+  ViewChild,
+  ViewContainerRef,
+  OnInit,
+  Injector,
+  AfterViewInit,
+  AfterViewChecked,
+  ChangeDetectorRef
+} from '@angular/core';
+import {
+  FieldBase
+} from './field-base';
+import {
+  SelectionField,
+  HtmlRaw,
+  Container,
+  DateTime,
+  AnchorOrButton,
+  SaveButton,
+  CancelButton,
+  TabOrAccordionContainer,
+  ParameterRetrieverField,
+  TabNavButton,
+  Spacer,
+  Toggle
+} from './field-simple';
+import {
+  RecordMetadataRetrieverField
+} from './record-meta.component';
+import {
+  FormGroup,
+  FormControl,
+  FormArray
+} from '@angular/forms';
 import * as _ from "lodash";
 declare var jQuery: any;
 declare var window: any;
@@ -34,7 +65,7 @@ export class SimpleComponent {
   /**
    * Field model
    */
-  @Input() public field: FieldBase<any>;
+  @Input() public field: FieldBase < any > ;
   /**
    * The form group
    */
@@ -77,7 +108,7 @@ export class SimpleComponent {
    * @param  {string = null} name
    * @return {FormControl}
    */
-  public getFormControl(name: string = null, ctrlIndex: number = null):FormControl {
+  public getFormControl(name: string = null, ctrlIndex: number = null): FormControl {
     let fc = null;
     if (_.isEmpty(name)) {
       name = this.name;
@@ -107,7 +138,7 @@ export class SimpleComponent {
    * @param  {string=null} fldName
    * @return {string}
    */
-  public getGroupClass(fldName:string=null): string {
+  public getGroupClass(fldName: string = null): string {
     return `${ this.field.groupClasses } form-group ${this.hasRequiredError() ? 'has-error' : '' }`;
   }
   /**
@@ -115,7 +146,7 @@ export class SimpleComponent {
    * Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a>
    * @return {[type]}
    */
-  public hasRequiredError():boolean {
+  public hasRequiredError(): boolean {
     return (this.field.formModel ? this.field.formModel.touched && this.field.formModel.hasError('required') : false);
   }
   /**
@@ -129,7 +160,7 @@ export class SimpleComponent {
    * Returns label
    * @return {string}
    */
-  getRequiredLabelStr():string {
+  getRequiredLabelStr(): string {
     return this.field.required ? '(*)' : '';
   }
   /**
@@ -137,7 +168,7 @@ export class SimpleComponent {
    * @param  {any} token
    * @return {any}
    */
-  getFromInjector(token:any): any {
+  getFromInjector(token: any): any {
     return this.injector.get(token);
   }
 }
@@ -149,7 +180,7 @@ export class SelectionComponent extends SimpleComponent {
     if (_.isEmpty(val)) {
       return '';
     }
-    const opt = _.find(this.field.selectOptions, (opt)=> {
+    const opt = _.find(this.field.selectOptions, (opt) => {
       return opt.value == val;
     });
     if (opt) {
@@ -198,9 +229,9 @@ export class DropdownFieldComponent extends SelectionComponent {
   static clName = 'DropdownFieldComponent';
   compare = this.compareFn.bind(this);
 
-  compareFn(a,b) {
-    if(this.field.storeValueAndLabel) {
-      if(b == null || b == "") {
+  compareFn(a, b) {
+    if (this.field.storeValueAndLabel) {
+      if (b == null || b == "") {
         return a.value == b;
       }
       return a.value == b.value;
@@ -273,8 +304,8 @@ export class SelectionFieldComponent extends SelectionComponent {
     return checked;
   }
 
-  onChange(opt:any, event:any) {
-    let formcontrol:any = this.getFormControl();
+  onChange(opt: any, event: any) {
+    let formcontrol: any = this.getFormControl();
     if (event.target.checked) {
       formcontrol.push(new FormControl(opt.value));
     } else {
@@ -355,34 +386,40 @@ export class TabOrAccordionContainerComponent extends SimpleComponent {
   ngAfterViewInit() {
     let that = this;
     _.each(this.field.fields, tab => {
-        tab['expandedChar'] = '+';
-        jQuery(`#${tab.id}`).on('shown.bs.collapse', ()=> {
-          tab["expandedChar"] = '-';
-          that.changeRef.detectChanges();
-          that.field.onAccordionCollapseExpand.emit({shown:true, tabId: tab.id});
+      tab['expandedChar'] = '+';
+      jQuery(`#${tab.id}`).on('shown.bs.collapse', () => {
+        tab["expandedChar"] = '-';
+        that.changeRef.detectChanges();
+        that.field.onAccordionCollapseExpand.emit({
+          shown: true,
+          tabId: tab.id
         });
-        jQuery(`#${tab.id}`).on('hidden.bs.collapse', ()=> {
-          tab["expandedChar"] = '+';
-          that.changeRef.detectChanges();
-          that.field.onAccordionCollapseExpand.emit({shown:false, tabId: tab.id});
+      });
+      jQuery(`#${tab.id}`).on('hidden.bs.collapse', () => {
+        tab["expandedChar"] = '+';
+        that.changeRef.detectChanges();
+        that.field.onAccordionCollapseExpand.emit({
+          shown: false,
+          tabId: tab.id
         });
+      });
     });
 
-    if(!this.field.editMode && this.field.expandAccordionsOnOpen) {
+    if (!this.field.editMode && this.field.expandAccordionsOnOpen) {
       this.field.allExpanded = false;
       this.expandCollapseAll();
     }
   }
 
   expandCollapseAll() {
-    if(this.field.allExpanded) {
+    if (this.field.allExpanded) {
       _.each(this.field.fields, tab => {
-          jQuery(`#${tab.id}`).collapse('hide');
+        jQuery(`#${tab.id}`).collapse('hide');
       });
       this.field.allExpanded = false;
     } else {
       _.each(this.field.fields, tab => {
-          jQuery(`#${tab.id}`).collapse('show');
+        jQuery(`#${tab.id}`).collapse('show');
       });
       this.field.allExpanded = true;
     }
@@ -442,30 +479,30 @@ export class TextBlockComponent extends SimpleComponent {
 
 
 /**
-* #### Save Button Component.
-*
-* Calls the form framework's save function to create or update the record.
-*
-* #### Usage
-* ```
-*     {
-*          class: "SaveButton",
-*          definition: {
-*            label: 'Save & Close',
-*            closeOnSave: true,
-*            redirectLocation: '/@branding/@portal/dashboard'
-*          }
-*        }
-* ```
-*
-*| Property Name       | Description                                                    | Required | Default |
-*|---------------------|----------------------------------------------------------------|----------|---------|
-*| label               | The text to display on the button                              | Yes      |         |
-*| closeOnSave         | Flag to leave the page on successful save                      | No       | false   |
-*| redirectLocation    | The location to redirect to if closeOnSave flag is set to true | No       |         |
-*| disableValidation   | Set if you want to manually disable the validation of the form | No       | false   |
-*| clickedValue        | Set if you want a save button to have a specific value         | No       | ''      |
-*/
+ * #### Save Button Component.
+ *
+ * Calls the form framework's save function to create or update the record.
+ *
+ * #### Usage
+ * ```
+ *     {
+ *          class: "SaveButton",
+ *          definition: {
+ *            label: 'Save & Close',
+ *            closeOnSave: true,
+ *            redirectLocation: '/@branding/@portal/dashboard'
+ *          }
+ *        }
+ * ```
+ *
+ *| Property Name       | Description                                                    | Required | Default |
+ *|---------------------|----------------------------------------------------------------|----------|---------|
+ *| label               | The text to display on the button                              | Yes      |         |
+ *| closeOnSave         | Flag to leave the page on successful save                      | No       | false   |
+ *| redirectLocation    | The location to redirect to if closeOnSave flag is set to true | No       |         |
+ *| disableValidation   | Set if you want to manually disable the validation of the form | No       | false   |
+ *| clickedValue        | Set if you want a save button to have a specific value         | No       | ''      |
+ */
 @Component({
   selector: 'save-button',
   template: `
@@ -516,13 +553,18 @@ export class SaveButtonComponent extends SimpleComponent {
       this.field.setValue(this.field.clickedValue);
       // passing the field's disableValidation setting from the form definition
       successObs = this.field.targetStep ?
-      this.fieldMap._rootComp.onSubmit(this.field.targetStep, this.field.disableValidation, this.field.additionalData)
-      : this.fieldMap._rootComp.onSubmit(null, this.field.disableValidation, this.field.additionalData);
+        this.fieldMap._rootComp.onSubmit(this.field.targetStep, this.field.disableValidation, this.field.additionalData) :
+        this.fieldMap._rootComp.onSubmit(null, this.field.disableValidation, this.field.additionalData);
     }
-    successObs.subscribe( status =>  {
+    successObs.subscribe(status => {
       if (status) {
         if (this.field.closeOnSave == true) {
-          window.location.href= this.field.redirectLocation;
+          let location = this.field.redirectLocation;
+          if (this.field.redirectLocation.indexOf('@oid') != -1) {
+            let oid = this.field.fieldMap._rootComp.oid;
+            location = this.field.redirectLocation.replace("@oid", oid)
+          }
+          window.location.href = location;
         }
       }
       if (this.field.confirmationMessage) {
@@ -534,12 +576,12 @@ export class SaveButtonComponent extends SimpleComponent {
 }
 
 /**
-* # Cancel Button Component
-*
-* #### Button designed to
-*  @param  {CancelButton} cancelButton
-*   @return {FormControl}
-*/
+ * # Cancel Button Component
+ *
+ * #### Button designed to
+ *  @param  {CancelButton} cancelButton
+ *   @return {FormControl}
+ */
 @Component({
   selector: 'cancel-button',
   template: `
@@ -573,9 +615,9 @@ export class CancelButtonComponent extends SimpleComponent {
   }
 
   public cancel() {
-    if(this.field.confirmationMessage != null && this.fieldMap._rootComp.needsSave) {
+    if (this.field.confirmationMessage != null && this.fieldMap._rootComp.needsSave) {
       this.showConfirmDlg();
-    }else {
+    } else {
       this.doAction();
     }
   }
@@ -654,18 +696,18 @@ export class TabNavButtonComponent extends SimpleComponent {
     }
   }
 
-  getUrlParameter(param:string) {
+  getUrlParameter(param: string) {
     var pageURL = decodeURIComponent(window.location.search.substring(1)),
-        urlVariables = pageURL.split('&'),
-        parameterName,
-        i;
+      urlVariables = pageURL.split('&'),
+      parameterName,
+      i;
 
     for (i = 0; i < urlVariables.length; i++) {
-        parameterName = urlVariables[i].split('=');
+      parameterName = urlVariables[i].split('=');
 
-        if (parameterName[0] === param) {
-            return parameterName[1] === undefined ? null : parameterName[1];
-        }
+      if (parameterName[0] === param) {
+        return parameterName[1] === undefined ? null : parameterName[1];
+      }
     }
   }
 }
@@ -701,9 +743,9 @@ export class HiddenValueComponent extends SimpleComponent {
     let targetVal = null;
     if (_.isArray(value)) {
       targetVal = [];
-      _.forEach(value, (v:any)=> {
+      _.forEach(value, (v: any) => {
         let tVal = '';
-        _.forEach(this.field.onChange.control.subFields, (subField:string) => {
+        _.forEach(this.field.onChange.control.subFields, (subField: string) => {
           tVal = `${_.isEmpty(tVal) ? tVal : `${tVal}${this.field.onChange.control.delim}`}${v[subField]}`;
         });
         targetVal.push(tVal);
@@ -777,25 +819,25 @@ export class ParameterRetrieverComponent extends SimpleComponent implements Afte
 
   ngAfterViewInit() {
     const paramValue = this.getUrlParameter(this.field.parameterName);
-    if(paramValue){
+    if (paramValue) {
       this.field.publishParameterValue(paramValue);
     }
   }
 
-  getUrlParameter(param:string) {
+  getUrlParameter(param: string) {
     var pageURL = decodeURIComponent(window.location.search.substring(1)),
-        urlVariables = pageURL.split('&'),
-        parameterName,
-        i;
+      urlVariables = pageURL.split('&'),
+      parameterName,
+      i;
 
     for (i = 0; i < urlVariables.length; i++) {
-        parameterName = urlVariables[i].split('=');
+      parameterName = urlVariables[i].split('=');
 
-        if (parameterName[0] === param) {
-            return parameterName[1] === undefined ? true : parameterName[1];
-        }
+      if (parameterName[0] === param) {
+        return parameterName[1] === undefined ? true : parameterName[1];
+      }
     }
-}
+  }
 }
 
 @Component({

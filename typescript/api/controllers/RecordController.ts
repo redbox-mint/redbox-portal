@@ -33,17 +33,15 @@ declare var FormsService, WorkflowStepsService, BrandingService, RecordsService,
 /**
  * Package that contains all Controllers.
  */
-import controller = require('../core/CoreController.js');
-import RecordsService from '../core/RecordsService.js';
-import SearchService from '../core/SearchService.js';
-import DatastreamService from '../core/DatastreamService.js';
+import { Controllers as controllers, DatastreamService, RecordsService, SearchService} from '@researchdatabox/redbox-core-types';
+
 export module Controllers {
   /**
    * Responsible for all things related to a Record, includings Forms, etc.
    *
    * Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a>
    */
-  export class Record extends controller.Controllers.Core.Controller {
+  export class Record extends controllers.Core.Controller {
 
     recordsService: RecordsService = RecordsService;
     searchService: SearchService;

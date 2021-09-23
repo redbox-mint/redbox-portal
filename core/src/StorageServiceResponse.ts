@@ -25,7 +25,8 @@ export class StorageServiceResponse {
   oid: string;
   message: string;
   metadata:  any;
-
+  totalItems: number;
+  items: any[];
   constructor() {
 
   }

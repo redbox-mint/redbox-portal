@@ -108,6 +108,11 @@ module.exports.auth = {
       can_read: true
     },
     {
+      path: '/:branding/:portal/external(/*)',
+      role: 'Researcher',
+      can_update:true
+    },
+    {
       path: '/:branding/:portal/collection(/*)',
       role: 'Researcher',
       can_read: true

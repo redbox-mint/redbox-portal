@@ -20,7 +20,7 @@
 import {
   Observable
 } from 'rxjs/Rx';
-import services = require('../core/CoreService.js');
+import {Services as services}   from '@researchdatabox/redbox-core-types';
 import {
   Sails,
   Model
@@ -41,7 +41,7 @@ export module Services {
    * @author <a target='_' href='https://github.com/thomcuddihy'>Thom Cuddihy</a>
    *
    */
-  export class Email extends services.Services.Core.Service {
+  export class Email extends services.Core.Service {
 
     protected _exportedMethods: any = [
       'sendMessage',

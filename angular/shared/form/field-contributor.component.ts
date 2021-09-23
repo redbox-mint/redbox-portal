@@ -62,6 +62,8 @@ export class ContributorField extends FieldBase<any> {
   familyNameHdr: string;
   givenNameHdr: string;
   showTitle: boolean;
+  showOrcid: boolean;
+  showEmail: boolean;
   forceLookup_clearOnTabThrough: boolean;
   // Frankenstein end
   component: any;
@@ -83,8 +85,10 @@ export class ContributorField extends FieldBase<any> {
     this.orcidColHdr = options['orcidColHdr'] ? this.getTranslated(options['orcidColHdr'], options['orcidColHdr']) : 'ORCID';
     this.titleColHdr = options['titleColHdr'] ? this.getTranslated(options['titleColHdr'], options['titleColHdr']) : 'Title';
     this.showTitle = options['showTitle'] == undefined ? true : options['showTitle'];
+    this.showOrcid = options['showOrcid'] == undefined ? true : options['showOrcid'];
+    this.showEmail = options['showEmail'] == undefined ? true : options['showEmail'];
     this.showHeader = options['showHeader'] == undefined ? true : options['showHeader'];
-    this.showRole = options['showRole'] == undefined ? true : options['showRole'];
+    this.showRole = options['showRole'] == undefined ? false : options['showRole'];
     this.baseMarginTop = options['baseMarginTop'] || '';
     this.forceLookup_clearOnTabThrough = _.isUndefined(options['forceLookup_clearOnTabThrough']) ? true : options['forceLookup_clearOnTabThrough'];
 
@@ -117,7 +121,7 @@ export class ContributorField extends FieldBase<any> {
     }
     // do not show contributor role if required details are blank
     const showFieldRoleValue = _.get(this.value, 'text_full_name') || _.get(this.value, 'email');
-    this.role = showFieldRoleValue && options['role'] ? this.getTranslated(options['role'], options['role']) : null;
+    this.role = options['role'] ? this.getTranslated(options['role'], options['role']) : null;
     this.username = options['username'] || '';
     this.previousEmail = this.value ? this.value.email : '';
 
@@ -504,6 +508,13 @@ export class ContributorComponent extends SimpleComponent {
           this.field.toggleConditionalValidation(false);
         }
       });
+
+      if(this.field.showRole) {
+        console.log(this.field)
+        // if(_.isEmpty(this.field.value)) {
+        //   this.field.value = {role: this.field.roles[0].value}
+        // }
+      }
     }
   }
 
@@ -525,7 +536,7 @@ export class ContributorComponent extends SimpleComponent {
         this.lastSelected = null;
         return;
       } else {
-        if (selected.title && selected.title == this.field.formModel.value.text_full_name) {
+        if (selected.title && selected.title == this.field.formModel.value.text_full_name && selected.email && selected.email == this.field.formModel.value.email && selected.orcid == this.field.formModel.value.orcid) {
           console.log(`Same or empty selection, returning...`);
           return;
         }
@@ -550,8 +561,9 @@ export class ContributorComponent extends SimpleComponent {
         if (!_.isEmpty(selected.username) && !_.isUndefined(selected.username)) {
           val['username'] = selected.username;
         }
-
-        val.role = this.field.role;
+        if (!_.isEmpty(selected.role) && !_.isUndefined(selected.role)) {
+          val.role = selected.role;
+        }
         // console.log(`With selected:`);
         // console.log(JSON.stringify(selected));
         // console.log(`Using val:`);
@@ -594,7 +606,7 @@ export class ContributorComponent extends SimpleComponent {
         }, 40);
       } else {
         if (this.emptied && this.field.forceLookupOnly) {
-          console.log(`Forced lookup, clearing data..`)
+          console.log(`Forced lookup, clearing data..`);
           this.field.setEmptyValue(true);
           this.lastSelected = null;
           this.field.toggleConditionalValidation(false);
@@ -610,6 +622,7 @@ export class ContributorComponent extends SimpleComponent {
   public onKeyUp(event) {
     const val = this.ngCompleter.ctrInput.nativeElement.value
     this.field.toggleConditionalValidation(!_.isEmpty(val));
+
     if (event && (event.keyCode !== KEY_EN && event.keyCode !== KEY_TAB && event.key !== 'ArrowUp' && event.key !== 'ArrowDown')) {
       const val = this.field.vocabField.getValue({text_full_name: this.ngCompleter.ctrInput.nativeElement.value });
       this.field.setValue(val, true, false);

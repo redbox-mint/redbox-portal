@@ -58,6 +58,9 @@ export class MapField extends FieldBase<any> {
     detectRetina: true
   });
   coordinatesHelp?: any;
+  kmlGeoJsonLabel: string;
+  importButtonLabel: string;
+  invalidDataMessage: string;
 
 
   /*
@@ -134,6 +137,9 @@ export class MapField extends FieldBase<any> {
     this.layerGeoJSON = options.value;
     this.mainTabId = options['mainTabId'] || null;
     this.coordinatesHelp =  this.getTranslated(options.coordinatesHelp, undefined);
+    this.kmlGeoJsonLabel = this.getTranslated(options.kmlGeoJsonLabel, "Enter KML or GeoJSON");
+    this.importButtonLabel =  this.getTranslated(options.importButtonLabel, "Import");
+    this.invalidDataMessage =  this.getTranslated(options.invalidDataMessage, "Entered text is not valid KML or GeoJSON");
   }
 
   onMapReady(map: Map) {
@@ -270,6 +276,17 @@ export class MapField extends FieldBase<any> {
   setEmptyValue() {
     this.layerGeoJSON = {};
     return this.layerGeoJSON;
+  }
+  
+  reactEvent(eventName: string, eventData: any, origData: any) {
+    super.reactEvent(eventName, eventData,origData);
+    if (!_.isEmpty(this.formModel.value)) {
+      this.layerGeoJSON = this.formModel.value;
+      this.drawLayers();
+      this.formModel.patchValue(this.layerGeoJSON, { emitEvent: false });
+      this.formModel.markAsTouched();
+    }
+
   }
 
   importData() {

@@ -18,7 +18,7 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 import { NgModule }      from '@angular/core';
-import { BrowserModule } from '@angular/platform-browser';
+import { BrowserModule, Title } from '@angular/platform-browser';
 import { ReactiveFormsModule, FormsModule} from "@angular/forms";
 import { HttpModule } from '@angular/http';
 import { DmpFormComponent } from './dmp-form.component';
@@ -28,7 +28,7 @@ import * as $ from 'jquery';
 @NgModule({
   imports:      [ BrowserModule, HttpModule, ReactiveFormsModule, SharedModule ],
   declarations: [ DmpFormComponent ],
-  providers:    [ ],
+  providers:    [ Title ],
   bootstrap:    [ DmpFormComponent ],
   entryComponents: [ ]
 })

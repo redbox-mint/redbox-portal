@@ -37,8 +37,8 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 
-import services = require('../core/CoreService.js');
-import QueueService from '../core/QueueService.js';
+import {QueueService, Services as services}   from '@researchdatabox/redbox-core-types';
+
 import {Sails, Model} from "sails";
 import { Agenda } from 'agenda/es';
 
@@ -53,7 +53,7 @@ export module Services {
   * Service class for queuing using Agenda: https://github.com/agenda/agenda
   *
   */
- export class AgendaQueue extends services.Services.Core.Service implements QueueService {
+ export class AgendaQueue extends services.Core.Service implements QueueService {
       protected _exportedMethods: any = [
        'every',
        'schedule',

@@ -175,3 +175,4 @@ assets/angular
 api/core/**/*.js
 dev
 .dev
+core/dist
