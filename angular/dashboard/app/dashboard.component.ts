@@ -42,6 +42,7 @@ import {
 import {
   RecordsService
 } from './shared/form/records.service';
+import { ConfigService } from './shared/config-service';
 
 declare var pageData: any;
 declare var jQuery: any;
@@ -56,6 +57,7 @@ declare var jQuery: any;
 export class DashboardComponent extends LoadableComponent {
   branding: string;
   portal: string;
+  rootContext: string;
   packageType: string;
   recordType: string;
   recordTitle: string;
@@ -79,10 +81,10 @@ export class DashboardComponent extends LoadableComponent {
   defaultTableConfig = [{
     title: 'Record Title',
     variable: 'metadata.title',
-    template: `<a href='/<%= branding %>/<%= portal %>/record/view/<%= oid %>'><%= metadata.title %></a>
+    template: `<a href='<%=rootContext%>/<%= branding %>/<%= portal %>/record/view/<%= oid %>'><%= metadata.title %></a>
         <span class="dashboard-controls">
           <% if(hasEditAccess) { %>
-            <a href='/<%= branding %>/<%= portal %>/record/edit/<%= oid %>' aria-label='<%= translationService.t('edit-link-label') %>'><i class="fa fa-pencil" aria-hidden="true"></i></a>
+            <a href='<%=rootContext%>/<%= branding %>/<%= portal %>/record/edit/<%= oid %>' aria-label='<%= translationService.t('edit-link-label') %>'><i class="fa fa-pencil" aria-hidden="true"></i></a>
           <% } %>
         </span>
       `,
@@ -116,18 +118,23 @@ export class DashboardComponent extends LoadableComponent {
   sortFields = ['metaMetadata.lastSaveDate', 'metaMetadata.createdOn', 'metadata.title', 'metadata.contributor_ci.text_full_name', 'metadata.contributor_data_manager.text_full_name'];
   viewAsPackageType: boolean = false;
 
-  constructor(@Inject(DashboardService) protected dashboardService: DashboardService, protected recordsService: RecordsService, @Inject(DOCUMENT) protected document: any, elementRef: ElementRef, translationService: TranslationService) {
+  constructor(@Inject(DashboardService) protected dashboardService: DashboardService, protected recordsService: RecordsService, @Inject(ConfigService) protected configService: ConfigService, @Inject(DOCUMENT) protected document: any, elementRef: ElementRef, translationService: TranslationService) {
     super();
     this.initTranslator(translationService);
     this.draftPlans = new PlanTable();
     this.activePlans = new PlanTable();
     this.branding = elementRef.nativeElement.getAttribute('branding');
     this.portal = elementRef.nativeElement.getAttribute('portal');
+    let that = this;
+    configService.getConfig(config => {
+      that.rootContext = config.rootContext;
+    });
     this.recordType = elementRef.nativeElement.getAttribute('recordType');
     this.packageType = elementRef.nativeElement.getAttribute('packageType');
   }
 
   ngOnInit() {
+    // this.translationService.setRootContext(this.rootContext);
     this.translationService.isReady(tService => {
       this.waitForInit([
         this.dashboardService,
@@ -238,6 +245,7 @@ export class DashboardComponent extends LoadableComponent {
       imports.workflow = stagedRecord.metadata['workflow'];
       imports.hasEditAccess = stagedRecord.hasEditAccess;
       imports.branding = this.branding;
+      imports.rootContext = this.rootContext;
       imports.portal = this.portal;
       imports.translationService = this.translationService;
 

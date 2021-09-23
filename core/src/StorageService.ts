@@ -11,7 +11,7 @@ export interface StorageService{
   delete(oid): Promise<any>;
   updateNotificationLog(oid, record, options): Promise<any>;
 
-  getRecords(workflowState, recordType, start, rows, username, roles, brand, editAccessOnly, packageType, sort): Promise<any>;
+  getRecords(workflowState, recordType, start, rows, username, roles, brand, editAccessOnly, packageType, sort, fieldNames?, filterString?): Promise<any>;
   exportAllPlans(username, roles, brand, format, modBefore, modAfter, recType): Readable;
 
   createRecordAudit?(record):Promise<any>;

@@ -185,7 +185,7 @@ export module Services {
       return response;
     }
 
-    public async searchFuzzy(type, workflowState, searchQuery, exactSearches, facetSearches, brand, user, roles, returnFields): Promise<any> {
+    public async searchFuzzy(type, workflowState, searchQuery, exactSearches, facetSearches, brand, user, roles, returnFields, start=0, rows=10): Promise<any> {
       const username = user.username;
       const coreName = sails.config.solr.options.core;
       // const url = `${this.getSearchTypeUrl(type, searchField, searchStr)}&start=0&rows=${sails.config.record.export.maxRecords}`;
@@ -200,7 +200,7 @@ export module Services {
           searchParam = `${searchParam}&facet.field=${facetSearch.name}${_.isEmpty(facetSearch.value) ? '' : `&fq=${facetSearch.name}:${this.luceneEscape(facetSearch.value)}`}`
         });
       }
-
+      searchParam= `${searchParam}&start=${start}&rows=${rows}`
       let url = `${this.baseUrl}${coreName}/select?q=metaMetadata_brandId:${brand.id} AND metaMetadata_type:${type}${searchParam}&version=2.2&wt=json&sort=date_object_modified desc`;
       url = this.addAuthFilter(url, username, roles, brand, false)
       sails.log.verbose(`Searching fuzzy using: ${url}`);

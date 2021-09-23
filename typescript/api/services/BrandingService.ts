@@ -42,7 +42,8 @@ export module Services {
       'getBrandAndPortalPath',
       'getBrandFromReq',
       'getPortalFromReq',
-      'getFullPath'
+      'getFullPath',
+      'getRootContext'
     ];
 
     protected availableBrandings: any = []
@@ -95,9 +96,24 @@ export module Services {
     public getBrandAndPortalPath(req) {
       const branding = this.getBrandFromReq(req);
       const portal = this.getPortalFromReq(req);
-      const path = `/${branding}/${portal}`;
-      return path;
+      const rootContext = this.getRootContext();
+      if(_.isEmpty(rootContext)) {
+      return `/${branding}/${portal}`;
+      } else {
+       return `${rootContext}/${branding}/${portal}`;
+      }
     }
+
+    public getRootContext() {
+      
+      const rootContext = sails.config.http.rootContext;
+      if(_.isEmpty(rootContext)) {
+      return ``;
+      } else {
+       return `/${rootContext}`;
+      }
+    }
+
 
     public getFullPath(req){
       return sails.config.appUrl + this.getBrandAndPortalPath(req);
