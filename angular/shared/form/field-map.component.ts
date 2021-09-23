@@ -26,7 +26,7 @@ import {  Map,  GeoJSON,   } from 'leaflet';
 declare var omnivore: any;
 declare var L: any;
 declare var jQuery: any;
-
+declare function require(name:string);
 
 /**
  * Map Model
@@ -58,6 +58,19 @@ export class MapField extends FieldBase<any> {
     detectRetina: true
   });
   coordinatesHelp?: any;
+  kmlGeoJsonLabel: string;
+  importButtonLabel: string;
+  invalidDataMessage: string;
+
+  MARKER_ICON_PATH = require('../../../assets/default/default/images/leaflet/marker-icon.png');
+  MARKER_SHADOW_PATH = require('../../../assets/default/default/images/leaflet/marker-shadow.png');
+  MARKER_RETINA_PATH = require('../../../assets/default/default/images/leaflet/marker-icon-2x.png');
+  iconSettings = L.icon({
+    iconSize: [25, 41],
+    iconAnchor: [13, 41],
+    iconUrl: this.MARKER_ICON_PATH,
+    shadowUrl: this.MARKER_SHADOW_PATH
+  });
 
 
   /*
@@ -79,12 +92,7 @@ export class MapField extends FieldBase<any> {
     },
     draw: {
       marker: {
-        icon: L.icon({
-          iconSize: [25, 41],
-          iconAnchor: [13, 41],
-          iconUrl: 'http://localhost:1500/default/rdmp/images/leaflet/marker-icon.png',
-          shadowUrl: 'http://localhost:1500/default/rdmp/images/leaflet/marker-shadow.png'
-        })
+        icon: this.iconSettings
       },
       circlemarker: false,
       circle: false
@@ -120,7 +128,16 @@ export class MapField extends FieldBase<any> {
   constructor(options: any, injector: any) {
     super(options, injector);
     this.clName = 'MapField';
-
+    //Workaround to overcome ERR_INVALID_URL error thrown when the base64 url is invalid and ends with ")marker-icon.png 
+    //that happens because of a known bug inside leaflet bundle that is a regex issue within _detectIconPath function  
+    //https://github.com/Leaflet/Leaflet/issues/4968
+    //https://stackoverflow.com/questions/55928916/marker-in-leaflet-js-does-not-load-properly-due-to-err-invalid-url-error
+    delete L.Icon.Default.prototype._getIconUrl;
+    L.Icon.Default.mergeOptions({
+      iconRetinaUrl: this.MARKER_RETINA_PATH,
+      iconUrl: this.MARKER_ICON_PATH,
+      shadowUrl: this.MARKER_SHADOW_PATH
+    });
     this.leafletOptions = options['leafletOptions'] || this.defaultLeafletOptions;
     // merge in master options to ensure we have the right layers configured
     this.leafletOptions = _.merge(this.leafletOptions, this.masterLeafletOptions);
@@ -134,6 +151,9 @@ export class MapField extends FieldBase<any> {
     this.layerGeoJSON = options.value;
     this.mainTabId = options['mainTabId'] || null;
     this.coordinatesHelp =  this.getTranslated(options.coordinatesHelp, undefined);
+    this.kmlGeoJsonLabel = this.getTranslated(options.kmlGeoJsonLabel, "Enter KML or GeoJSON");
+    this.importButtonLabel =  this.getTranslated(options.importButtonLabel, "Import");
+    this.invalidDataMessage =  this.getTranslated(options.invalidDataMessage, "Entered text is not valid KML or GeoJSON");
   }
 
   onMapReady(map: Map) {
@@ -270,6 +290,17 @@ export class MapField extends FieldBase<any> {
   setEmptyValue() {
     this.layerGeoJSON = {};
     return this.layerGeoJSON;
+  }
+  
+  reactEvent(eventName: string, eventData: any, origData: any) {
+    super.reactEvent(eventName, eventData,origData);
+    if (!_.isEmpty(this.formModel.value)) {
+      this.layerGeoJSON = this.formModel.value;
+      this.drawLayers();
+      this.formModel.patchValue(this.layerGeoJSON, { emitEvent: false });
+      this.formModel.markAsTouched();
+    }
+
   }
 
   importData() {

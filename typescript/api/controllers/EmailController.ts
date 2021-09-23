@@ -22,7 +22,7 @@ declare var module;
 declare var sails;
 declare var EmailService;
 import { Observable } from 'rxjs/Rx';
-import controller = require('../core/CoreController.js');
+import { Controllers as controllers} from '@researchdatabox/redbox-core-types';
 
 export module Controllers {
   /**
@@ -30,7 +30,7 @@ export module Controllers {
    *
    * @author <a target='_' href='https://github.com/thomcuddihy'>Thom Cuddihy</a>
    */
-  export class Email extends controller.Controllers.Core.Controller {
+  export class Email extends controllers.Core.Controller {
 
       /**
        * Exported methods, accessible from internet.

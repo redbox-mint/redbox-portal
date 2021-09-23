@@ -18,7 +18,7 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 import { Observable } from 'rxjs/Rx';
-import services = require('../core/CoreService.js');
+import {Services as services}   from '@researchdatabox/redbox-core-types';
 import {Sails, Model} from "sails";
 import UrlPattern = require('url-pattern');
 
@@ -36,7 +36,7 @@ export module Services {
    * Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a>
    *
    */
-  export class PathRules extends services.Services.Core.Service {
+  export class PathRules extends services.Core.Service {
 
     protected _exportedMethods: any = [
       'bootstrap',

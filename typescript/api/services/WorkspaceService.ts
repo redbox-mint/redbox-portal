@@ -1,5 +1,5 @@
 import { Observable } from 'rxjs/Rx';
-import services = require('../core/CoreService.js');
+import {Services as services}   from '@researchdatabox/redbox-core-types';
 import { Sails, Model } from "sails";
 import * as request from "request-promise";
 
@@ -11,7 +11,7 @@ declare var Institution, User: Model, WorkspaceApp: Model, Form: Model;
 
 export module Services {
 
-  export class WorkspaceService extends services.Services.Core.Service {
+  export class WorkspaceService extends services.Core.Service {
 
     protected _exportedMethods: any = [
       'createWorkspaceRecord',

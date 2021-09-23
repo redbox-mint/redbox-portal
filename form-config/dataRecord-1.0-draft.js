@@ -61,7 +61,7 @@ module.exports = {
       viewOnly: true,
       definition: {
         name: 'description',
-        label: 'Description'
+        label: '@dataRecord-description'
       }
     },
     {
@@ -120,7 +120,7 @@ module.exports = {
                   class: 'RelatedObjectSelector',
                   compClass: 'RelatedObjectSelectorComponent',
                   definition: {
-                    label: 'RDMP related to this data record',
+                    label: '@dataRecord-selector-label',
                     name: 'rdmp',
                     recordType: 'rdmp',
                     subscribe: {
@@ -254,7 +254,7 @@ module.exports = {
                     label: "@dmpt-project-anzsrcFor",
                     help: "@dmpt-project-anzsrcFor-help",
                     name: "dc:subject_anzsrc:for",
-                    vocabId: 'anzsrc-for',
+                    vocabId: 'anzsrc-2020-for',
                     subscribe: {
                       'rdmpGetter': {
                         onValueUpdate: [{
@@ -272,7 +272,7 @@ module.exports = {
                     label: "@dmpt-project-anzsrcSeo",
                     help: "@dmpt-project-anzsrcSeo-help",
                     name: "dc:subject_anzsrc:seo",
-                    vocabId: 'anzsrc-seo',
+                    vocabId: 'anzsrc-2020-seo',
                     subscribe: {
                       'rdmpGetter': {
                         onValueUpdate: [{
@@ -317,8 +317,8 @@ module.exports = {
                   compClass: 'TextAreaComponent',
                   definition: {
                     name: 'description',
-                    label: '@dataRecord-description',
-                    help: '@dataRecord-description-help',
+                    label: '@dataRecord-what-tab-description',
+                    help: '@dataRecord-what-tab-description-help',
                     type: 'text',
                     required: true
                   }
@@ -918,8 +918,11 @@ module.exports = {
                   compClass: 'DataLocationComponent',
                   definition: {
                     name: "dataLocations",
-                    maxFileSize: 1073741824, // <- Configure web server to match this
-                    maxNumberOfFiles: 50,
+                    restrictions: {
+                      maxFileSize: 1073741824, // <- Configure web server to match this
+                      minNumberOfFiles: 1,
+                      maxNumberOfFiles: 50
+                    },
                     notesHeader: '@dataLocations-notes',
                     uppyDashboardNote: '@dataLocations-uploader-note',
                     locationAddText: '@dataLocations-addText',
@@ -943,10 +946,10 @@ module.exports = {
           {
             class: "Container",
             roles: ['Admin', 'Librarians'],
+            editOnly: true,
             definition: {
               id: "permissions",
               label: "@record-permissions-tab",
-              viewOnly: true,
               fields: [{
                   class: 'Container',
                   compClass: 'TextBlockComponent',
@@ -992,14 +995,14 @@ module.exports = {
           {
             class: "SaveButton",
             definition: {
-              label: 'Save',
+              label: '@save-button',
               cssClasses: 'btn-success'
             }
           },
           {
             class: "SaveButton",
             definition: {
-              label: 'Save & Close',
+              label: '@save-and-close-button',
               closeOnSave: true,
               redirectLocation: '/@branding/@portal/dashboard/dataRecord'
             },
@@ -1008,7 +1011,7 @@ module.exports = {
           {
             class: "CancelButton",
             definition: {
-              label: 'Close',
+              label: '@close-button',
             }
           }
         ]
@@ -1027,6 +1030,13 @@ module.exports = {
             type: 'span'
           }
         }]
+      }
+    },
+    {
+      class: 'EventHandler',
+      definition: {
+        eventName: 'beforeunload',
+        eventSource: 'window'
       }
     }
   ]

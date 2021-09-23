@@ -46,7 +46,7 @@ module.exports = {
             class: "AnchorOrButton",
             viewOnly: true,
             definition: {
-              label: '@dmp-create-datarecord-link',
+              label: '@dmpt-create-datarecord-link',
               value: '/@branding/@portal/record/dataRecord/edit?rdmpOid=@oid',
               cssClasses: 'btn btn-large btn-info margin-15',
               controlType: 'anchor'
@@ -58,7 +58,7 @@ module.exports = {
             viewOnly: true,
             definition: {
               name: 'pdf',
-              label: 'pdf',
+              label: '@dmpt-pdf-list-label',
               cssClasses: 'btn btn-large btn-info margin-15'
             }
           }
@@ -70,7 +70,7 @@ module.exports = {
       viewOnly: true,
       definition: {
         name: 'description',
-        label: 'Description'
+        label: '@dmpt-description'
       }
     },
     {
@@ -359,7 +359,7 @@ module.exports = {
                     label: "@dmpt-project-anzsrcFor",
                     help: "@dmpt-project-anzsrcFor-help",
                     name: "dc:subject_anzsrc:for",
-                    vocabId: 'anzsrc-for'
+                    vocabId: 'anzsrc-2020-for'
                   }
                 },
                 {
@@ -369,7 +369,7 @@ module.exports = {
                     label: "@dmpt-project-anzsrcSeo",
                     help: "@dmpt-project-anzsrcSeo-help",
                     name: "dc:subject_anzsrc:seo",
-                    vocabId: 'anzsrc-seo'
+                    vocabId: 'anzsrc-2020-seo'
                   }
                 }
               ]
@@ -1190,8 +1190,11 @@ module.exports = {
                   compClass: 'RelatedFileUploadComponent',
                   definition: {
                     name: "licences_agreements",
-                    maxFileSize: 1073741824, // <- Configure web server to match this
-                    maxNumberOfFiles: 50,
+                    restrictions: {
+                      maxFileSize: 1073741824, // <- Configure web server to match this
+                      minNumberOfFiles: 1,
+                      maxNumberOfFiles: 50
+                    },
                     notesEnabled: true,
                     locationHeader: 'Files asociated with this plan',
                     notesHeader: 'Notes',
@@ -1199,7 +1202,7 @@ module.exports = {
                     attachmentText: 'Add attachment(s)',
                     attachmentTextDisabled: 'Save your plan to attach files',
                     help: 'Upload your licence or agreements here. You can only upload after you save your plan.',
-                    label: 'Licences or Agreements:'
+                    label: '@dmpt-licences-agreements'
                   }
                 },
                 // Hiddden reactive elements...
@@ -1260,7 +1263,7 @@ module.exports = {
                         }
                       },
                       {
-                        "label": "Description",
+                        "label": "@dmpt-workspaces-description",
                         "property": "description"
                       },
                       {
@@ -1303,10 +1306,10 @@ module.exports = {
           {
             class: "Container",
             roles: ['Admin', 'Librarians'],
+            editOnly: true,
             definition: {
               id: "permissions",
               label: "@record-permissions-tab",
-              viewOnly: true,
               fields: [{
                   class: 'Container',
                   compClass: 'TextBlockComponent',
@@ -1353,14 +1356,14 @@ module.exports = {
           {
             class: "SaveButton",
             definition: {
-              label: 'Save',
+              label: '@save-button',
               cssClasses: 'btn-success'
             }
           },
           {
             class: "SaveButton",
             definition: {
-              label: 'Save & Close',
+              label: '@save-and-close-button',
               closeOnSave: true,
               redirectLocation: '/@branding/@portal/dashboard/rdmp'
             },
@@ -1369,7 +1372,7 @@ module.exports = {
           {
             class: "CancelButton",
             definition: {
-              label: 'Close',
+              label: '@close-button',
             }
           }
         ]
@@ -1388,6 +1391,34 @@ module.exports = {
             type: 'span'
           }
         }]
+      }
+    },
+    {
+      class: 'EventHandler',
+      definition: {
+        eventName: 'beforeunload',
+        eventSource: 'window'
+      }
+    },
+    {
+      class: 'PageTitle',
+      definition: {
+        name: 'pageTitle',
+        // sourceProperty: 'title.control.value', // just using a simple property
+        template: "<%= field.translationService.t('default-title') %> - <%= field.translationService.t('rdmp-title-label') %> - <%= _.isEmpty(field.fieldMap._rootComp.oid) ? field.translationService.t('create-rdmp') : (field.editMode ? field.fieldMap.title.control.value : field.fieldMap.title.field.value) %>",
+        subscribe: {
+          'form': {
+            onFormLoaded: [
+              { action: 'updateTitle' }
+            ],
+            recordCreated: [
+              { action: 'updateTitle' }
+            ],
+            recordSaved: [
+              { action: 'updateTitle' }
+            ]
+          }
+        }
       }
     }
   ]

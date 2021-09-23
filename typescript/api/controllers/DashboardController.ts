@@ -27,14 +27,14 @@ declare var BrandingService, RolesService, RecordsService, TranslationService;
 /**
  * Package that contains all Controllers.
  */
-import controller = require('../core/CoreController.js');
+ import { Controllers as controllers} from '@researchdatabox/redbox-core-types';
 export module Controllers {
   /**
    * Responsible for all things related to the Dashboard
    *
    * @author <a target='_' href='https://github.com/andrewbrazzatti'>Andrew Brazzatti</a>
    */
-  export class Dashboard extends controller.Controllers.Core.Controller {
+  export class Dashboard extends controllers.Core.Controller {
 
     /**
      * Exported methods, accessible from internet.
@@ -93,8 +93,18 @@ export module Controllers {
       const rows = req.param('rows');
       const packageType = req.param('packageType');
       const sort = req.param('sort');
+      const filterFieldString = req.param('filterFields');
+      let filterString = req.param('filter');
+      let filterFields = undefined;
+
+       if(!_.isEmpty(filterFieldString)) {
+         filterFields = filterFieldString.split(',')
+       } else {
+         filterString = undefined;
+       }
+
       try {
-        const response = await this.getRecords(workflowState, recordType, start,rows,user,roles,brand,editAccessOnly, packageType,sort);
+        const response = await this.getRecords(workflowState, recordType, start,rows,user,roles,brand,editAccessOnly, packageType,sort,filterFields,filterString);
         if (response) {
           this.ajaxOk(req, res, null, response);
         } else {
@@ -120,7 +130,7 @@ export module Controllers {
       return metadata;
     }
 
-    protected async getRecords(workflowState, recordType, start,rows,user, roles, brand, editAccessOnly=undefined, packageType = undefined, sort=undefined) {
+    protected async getRecords(workflowState, recordType, start,rows,user, roles, brand, editAccessOnly=undefined, packageType = undefined, sort=undefined, filterFields=undefined, filterString=undefined) {
       const username = user.username;
       if (!_.isUndefined(recordType) && !_.isEmpty(recordType)) {
         recordType = recordType.split(',');
@@ -128,7 +138,7 @@ export module Controllers {
       if (!_.isUndefined(packageType) && !_.isEmpty(packageType)) {
         packageType = packageType.split(',');
       }
-      var results = await RecordsService.getRecords(workflowState,recordType, start,rows,username,roles,brand,editAccessOnly, packageType, sort);
+      var results = await RecordsService.getRecords(workflowState,recordType, start,rows,username,roles,brand,editAccessOnly, packageType, sort,filterFields,filterString);
       if (!results.isSuccessful()) {
         sails.log.verbose(`Failed to retrieve records!`);
         return null;

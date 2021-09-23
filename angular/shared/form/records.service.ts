@@ -314,7 +314,7 @@ export class RecordSearchParams {
         refinerValues = `${refinerValues}&refiner|${refiner.name}=${_.isEmpty(refiner.value) ? '' : refiner.value}`;
       }
     });
-    return `${searchUrl}?q=${this.basicSearch}&type=${this.recordType}${refinerValues}&page=${this.currentPage}`;
+    return `${searchUrl}?q=${encodeURIComponent(this.basicSearch)}&type=${this.recordType}${refinerValues}&page=${this.currentPage}`;
   }
 
   getRefinerConfigs() {
@@ -333,12 +333,11 @@ export class RecordSearchParams {
   }
 
   parseQueryStr(queryStr:string) {
-    queryStr = decodeURI(queryStr);
     let refinerValues = {};
     _.forEach(queryStr.split('&'), (q)=> {
       const qObj = q.split('=');
       if (_.startsWith(qObj[0], "q")) {
-        this.basicSearch = _.replace(qObj[1], /\+/gi, ' ');
+        this.basicSearch = decodeURIComponent(_.replace(qObj[1], /\+/gi, ' '));
       }
       if (_.startsWith(qObj[0], "refiner|")) {
         const refinerName = qObj[0].split('|')[1];

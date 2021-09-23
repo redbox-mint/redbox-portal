@@ -2,7 +2,7 @@
   <div class="col-xs-1">
   </div>
   <div class="col-xs-10">
-    <img class="center-block" src="/images/loading.svg" alt="<%= TranslationService.t('loading-alt-text') %>">
+    <img class="center-block" src="<%= BrandingService.getRootContext() %>/images/loading.svg" alt="<%= TranslationService.t('loading-alt-text') %>">
   </div>
   <div class="col-xs-1">
   </div>
@@ -10,8 +10,15 @@
 <div class="row">
   <manage-roles></manage-roles>
 </div>
-<script type="text/javascript" src="/angular/manageRoles/inline.bundle.js?<%= sails.config.startupMinute %>"></script>
-<script type="text/javascript" src="/angular/manageRoles/polyfills.bundle.js?<%= sails.config.startupMinute %>"></script>
-<script type="text/javascript" src="/angular/manageRoles/styles.bundle.js?<%= sails.config.startupMinute %>"></script>
-<script type="text/javascript" src="/angular/manageRoles/vendor.bundle.js?<%= sails.config.startupMinute %>"></script>
-<script type="text/javascript" src="/angular/manageRoles/main.bundle.js?<%= sails.config.startupMinute %>"></script>
+
+<script type="text/javascript" src="<%= BrandingService.getRootContext() %>/angular/manageRoles/inline.bundle.js?ts=<%= sails.config.startupMinute %>"></script>
+<script type="text/javascript" src="<%= BrandingService.getRootContext() %>/angular/manageRoles/polyfills.bundle.js?ts=<%= sails.config.startupMinute %>"></script>
+<% if (sails.config.angularDev) { %>
+<script type="text/javascript" src="<%= BrandingService.getRootContext() %>/angular/manageRoles/vendor.bundle.js?ts=<%= sails.config.startupMinute %>"></script>
+<% } %>
+<script type="text/javascript" src="<%= BrandingService.getRootContext() %>/angular/manageRoles/main.bundle.js?ts=<%= sails.config.startupMinute %>"></script>
+<% if (sails.config.angularDev) { %>
+  <script type="text/javascript" src="<%= BrandingService.getRootContext() %>/angular/manageRoles/styles.bundle.js?ts=<%= sails.config.startupMinute %>"></script>
+<% } else { %>
+  <link rel="stylesheet" href="<%= BrandingService.getRootContext() %>/angular/manageRoles/styles.bundle.css?ts=<%= sails.config.startupMinute %>">
+<% } %>

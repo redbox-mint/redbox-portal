@@ -1,10 +1,9 @@
-<link rel="stylesheet" type="text/css" href="/node_modules/leaflet/dist/leaflet.css">
-<link rel="stylesheet" type="text/css" href="/node_modules/leaflet-draw/dist/leaflet.draw.css">
+
 <div class="row" id="loading">
   <div class="col-xs-1">
   </div>
   <div class="col-xs-10">
-    <img class="center-block" src="/images/loading.svg" alt="<%= TranslationService.t('loading-alt-text') %>">
+    <img class="center-block" src="<%= BrandingService.getRootContext() %>/images/loading.svg" alt="<%= TranslationService.t('loading-alt-text') %>">
   </div>
   <div class="col-xs-1">
   </div>
@@ -13,8 +12,15 @@
 <%
 var currentMinute = sails.config.startupMinute;
 %>
-<script type="text/javascript" src="/angular/dmp/inline.bundle.js?ts=<%= currentMinute %>"></script>
-<script type="text/javascript" src="/angular/dmp/polyfills.bundle.js?ts=<%= currentMinute %>"></script>
-<script type="text/javascript" src="/angular/dmp/styles.bundle.js?ts=<%= currentMinute %>"></script>
-<script type="text/javascript" src="/angular/dmp/vendor.bundle.js?ts=<%= currentMinute %>"></script>
-<script type="text/javascript" src="/angular/dmp/main.bundle.js?ts=<%= currentMinute %>"></script>
+
+<script type="text/javascript" src="<%= BrandingService.getRootContext() %>/angular/dmp/inline.bundle.js?ts=<%= currentMinute %>"></script>
+<script type="text/javascript" src="<%= BrandingService.getRootContext() %>/angular/dmp/polyfills.bundle.js?ts=<%= currentMinute %>"></script>
+<% if (sails.config.angularDev) { %>
+<script type="text/javascript" src="<%= BrandingService.getRootContext() %>/angular/dmp/vendor.bundle.js?ts=<%= currentMinute %>"></script>
+<% } %>
+<script type="text/javascript" src="<%= BrandingService.getRootContext() %>/angular/dmp/main.bundle.js?ts=<%= currentMinute %>"></script>
+<% if (sails.config.angularDev) { %>
+  <script type="text/javascript" src="<%= BrandingService.getRootContext() %>/angular/dmp/styles.bundle.js?ts=<%= currentMinute %>"></script>
+<% } else { %>
+  <link rel="stylesheet" href="<%= BrandingService.getRootContext() %>/angular/dmp/styles.bundle.css?ts=<%= currentMinute %>">
+<% } %>

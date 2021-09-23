@@ -72,6 +72,7 @@ export class DataLocationField extends FieldBase<any> {
   maxFileSize: number; // in bytes
   maxNumberOfFiles: number;
   allowedFileTypes: any[];
+  restrictions: any;
   locationAddText: string;
   editNotesButtonText: string;
   editNotesTitle: string;
@@ -99,9 +100,7 @@ export class DataLocationField extends FieldBase<any> {
     this.uppyDashboardNote = this.getTranslated(options['uppyDashboardNote'], 'Maximum upload size: 1 Gb per file');
     this.columns = options['columns'] || [];
 
-    this.maxFileSize = options['maxFileSize'] || null;
-    this.maxNumberOfFiles = options['maxNumberOfFiles'] || null;
-    this.allowedFileTypes = options['allowedFileTypes'] || null;
+    this.restrictions = options['restrictions'] || null;
 
     this.value = options['value'] || this.setEmptyValue();
     this.recordsService = this.getFromInjector(RecordsService);
@@ -230,11 +229,7 @@ export class DataLocationComponent extends SimpleComponent {
     const uppyConfig = {
       debug: true,
       autoProceed: false,
-      restrictions: {
-        maxFileSize: this.field.maxFileSize,
-        maxNumberOfFiles: this.field.maxNumberOfFiles,
-        allowedFileTypes: this.field.allowedFileTypes
-      }
+      restrictions: this.field.restrictions
     };
     const uppyDashboardNote = this.field.uppyDashboardNote;
     console.debug(`Using Uppy config:`);
@@ -304,7 +299,7 @@ export class DataLocationComponent extends SimpleComponent {
   }
 
   public getAbsUrl(location: string) {
-    return `${this.field.recordsService.getBrandingAndPortalUrl}/record/${location}`
+    return `${this.field.recordsService.getBrandingAndPortalUrl}/${location}`
   }
 
   public openModal() {
@@ -323,5 +318,6 @@ export class DataLocationComponent extends SimpleComponent {
   public saveNotes() {
     jQuery(`#${this.field.name}_editnotes`).modal('hide');
     this.field.value[this.editingNotes.index].notes = this.editingNotes.notes;
+    this.field.setValue(this.field.value);
   }
 }

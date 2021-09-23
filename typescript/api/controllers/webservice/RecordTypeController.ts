@@ -30,17 +30,8 @@ declare var _;
 /**
  * Package that contains all Controllers.
  */
-import controller = require('../../core/CoreController.js');
-import {
-  APIErrorResponse
-} from '../../core/model/APIErrorResponse.js';
-import {
-  APIObjectActionResponse
-} from '../../core/model/APIObjectActionResponse.js';
-import {
-  ListAPIResponse,
-  ListAPISummary
-} from '../../core/model/ListAPIResponse.js';
+import {APIErrorResponse, Controllers as controllers, ListAPIResponse, ListAPISummary}  from '@researchdatabox/redbox-core-types';
+
 
 declare var RecordTypesService;
 
@@ -50,7 +41,7 @@ export module Controllers {
    *
    * @author <a target='_' href='https://github.com/andrewbrazzatti'>Andrew Brazzatti</a>
    */
-  export class RecordType extends controller.Controllers.Core.Controller {
+  export class RecordType extends controllers.Core.Controller {
 
 
 

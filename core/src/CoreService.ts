@@ -2,7 +2,7 @@ import { Observable } from 'rxjs/Rx';
 declare var sails;
 // changed to a manual lodash load instead of relying on Sails global object
 // this enables testing of installable hooks that rely on services at load-time (i.e. index.js)
-var _ = require('lodash');
+import * as  _ from 'lodash';
 
 export module Services.Core {
   export class Service {
@@ -79,12 +79,6 @@ export module Services.Core {
      * @return
      */
     protected metTriggerCondition(oid, record, options) {
-      const isDisabled = _.get(sails.config, 'services.email.disabled', false);
-      sails.log.verbose('is isDisabled');
-      sails.log.verbose(isDisabled);
-      if (isDisabled) {
-        return "false"
-      }
       const triggerCondition = _.get(options, "triggerCondition", "");
       const forceRun = _.get(options, "forceRun", false);
       const variables = {

@@ -188,9 +188,9 @@ export class RepeatableContainer extends Container {
   public reactEvent(eventName: string, eventData: any, origData: any) {
     console.log(`Repeatable container field reacting: ${eventName}`);
     console.log(eventData);
-    // delete first...
-    for (let toDelIdx = 1; toDelIdx < this.fields.length; toDelIdx++ ) {
-      this.removeElem(toDelIdx);
+    //delete first and leave only one row that is used as a template for repopulating the list... 
+    while(this.fields.length > 1) {
+      this.removeElem(this.fields.length - 1);
     }
     _.each(eventData, (entry, idx) => {
       if (idx >= this.formModel.controls.length) {
@@ -199,6 +199,7 @@ export class RepeatableContainer extends Container {
         this.setValueAtElem(idx, entry);
       }
     });
+    this.formModel.updateValueAndValidity({onlySelf: false, emitEvent: false});
   }
 
   public removeAllElems() {
@@ -215,6 +216,63 @@ export class RepeatableContainer extends Container {
       }
     }
     return data;
+  }
+
+  public setVisibility(data, eventConf:any = {}) {
+    let newVisible = this.visible;
+    if (_.isArray(this.visibilityCriteria)) {
+      // save the value of this data in a map, so we can run complex conditional logic that depends on one or more fields
+      if (!_.isEmpty(eventConf) && !_.isEmpty(eventConf.srcName)) {
+        this.subscriptionData[eventConf.srcName] = data;
+      }
+      // only run the function set if we have all the data...
+      if (_.size(this.subscriptionData) == _.size(this.visibilityCriteria)) {
+        newVisible = true;
+        _.each(this.visibilityCriteria, (visibilityCriteria) => {
+          const dataEntry = this.subscriptionData[visibilityCriteria.fieldName];
+          newVisible = newVisible && this.execVisibilityFn(dataEntry, visibilityCriteria);
+        });
+
+      }
+    } else
+    if (_.isObject(this.visibilityCriteria) && _.get(this.visibilityCriteria, 'type') == 'function') {
+      newVisible = this.execVisibilityFn(data, this.visibilityCriteria);
+    } else {
+      newVisible = _.isEqual(data, this.visibilityCriteria);
+    }
+    const that = this;
+    setTimeout(() => {
+      if (!newVisible) {
+        if (that.visible) {
+          // remove validators
+          if (that.formModel) {
+            that.formModel.clearValidators();
+            that.formModel.updateValueAndValidity();
+          }
+          for(let field of that.fields) {
+            if(field.formModel) {
+              field.formModel.clearValidators();
+              field.formModel.updateValueAndValidity();
+            }
+          }
+        }
+      } else {
+        if (!that.visible) {
+          // restore validators
+          if (that.formModel) {
+            that.formModel.setValidators(that.validators);
+            that.formModel.updateValueAndValidity();
+          }
+          for(let field of that.fields) {
+            if(field.formModel) {
+              field.formModel.setValidators(field.validators);
+              field.formModel.updateValueAndValidity();
+            }
+          }
+        }
+      }
+      that.visible = newVisible;
+    });
   }
 }
 
@@ -380,16 +438,16 @@ export class RepeatableContributor extends RepeatableContainer {
       <div class="row view-contributor">
         <div *ngIf="field.fields[0].showTitle" class="col-xs-1 label-font">{{field.fields[0].titleColHdr}}</div>
         <div class="col-xs-3 label-font">{{field.fields[0].nameColHdr}}</div>
-        <div [attr.class]="field.showRole? 'label-font col-xs-3':'label-font col-xs-4'" class="">{{field.fields[0].emailColHdr}}</div>
-        <div class="label-font" [attr.class]="field.showRole? 'label-font col-xs-3':'hidden'" >{{field.fields[0].roleColHdr}}</div>
-        <div class="col-xs-2 label-font">{{field.fields[0].orcidColHdr}}</div>
+        <div [attr.class]="field.fields[0].showRole? 'label-font col-xs-3':'label-font col-xs-4'" class="">{{field.fields[0].emailColHdr}}</div>
+        <div class="label-font" [attr.class]="field.fields[0].showRole? 'label-font col-xs-3':'hidden'" >{{field.fields[0].roleColHdr}}</div>
+        <div *ngIf="field.fields[0].showOrcid" class="col-xs-2 label-font">{{field.fields[0].orcidColHdr}}</div>
       </div>
       <div class="row view-contributor" *ngFor="let fieldElem of field.fields; let i = index;">
         <div *ngIf="fieldElem.showTitle" class="col-xs-1">{{fieldElem.value.honorific}}</div>
         <div class="col-xs-3">{{fieldElem.value.text_full_name}}</div>
-        <div [attr.class]="field.showRole? 'col-xs-3':'col-xs-4'">{{fieldElem.value.email}}</div>
-        <div [attr.class]="field.showRole? 'col-xs-3':'hidden'">{{fieldElem.value.role}}</div>
-        <div class="col-xs-2">{{fieldElem.value.orcid}}</div>
+        <div [attr.class]="field.fields[0].showRole? 'col-xs-3':'col-xs-4'">{{fieldElem.value.email}}</div>
+        <div [attr.class]="field.fields[0].showRole? 'col-xs-3':'hidden'">{{fieldElem.value.role}}</div>
+        <div *ngIf="field.fields[0].showOrcid" class="col-xs-2">{{fieldElem.value.orcid}}</div>
       </div>
     </div>
   </ng-container>

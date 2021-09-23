@@ -20,7 +20,7 @@
 import {
   Observable
 } from 'rxjs/Rx';
-import services = require('../core/CoreService.js');
+import {Services as services}   from '@researchdatabox/redbox-core-types';
 import {
   Sails,
   Model
@@ -41,7 +41,7 @@ export module Services {
    * @author <a target='_' href='https://github.com/thomcuddihy'>Thom Cuddihy</a>
    *
    */
-  export class Email extends services.Services.Core.Service {
+  export class Email extends services.Core.Service {
 
     protected _exportedMethods: any = [
       'sendMessage',
@@ -59,63 +59,62 @@ export module Services {
     public sendMessage(msgTo, msgBody: string,
       msgSubject: string = sails.config.emailnotification.defaults.subject,
       msgFrom: string = sails.config.emailnotification.defaults.from,
-      msgFormat: string = sails.config.emailnotification.defaults.format): Observable < any > {
+      msgFormat: string = sails.config.emailnotification.defaults.format,
+      cc: string = _.get(sails.config.emailnotification.defaults, 'cc', '')): Observable < any > {
 
-      return Observable.of(this.sendMessageAsync(msgTo, msgBody, msgSubject, msgFrom, msgFormat));
+      return Observable.of(this.sendMessageAsync(msgTo, msgBody, msgSubject, msgFrom, msgFormat, cc));
 
     }
 
 
-    private async sendMessageAsync(msgTo, msgBody: string, msgSubject: string, msgFrom: string, msgFormat: string): Promise<any> {
+    private async sendMessageAsync(msgTo, msgBody: string, msgSubject: string, msgFrom: string, msgFormat: string, cc: string): Promise<any> {
     if (!sails.config.emailnotification.settings.enabled) {
-      sails.log.verbose("Received email notification request, but is disabled. Ignoring.");
+      sails.log.debug("Received email notification request, but is disabled. Ignoring.");
       return {
         'code': '200',
         'msg': 'Email services disabled.'
       };
     }
-    sails.log.verbose('Received email notification request. Processing.');
+    sails.log.info('Received email notification request. Processing.');
 
     let transport;
     try {
       transport = nodemailer.createTransport(sails.config.emailnotification.settings.serverOptions);
     } catch (err) {
+      sails.log.error(err);
       return {
         'code': '500',
         'msg': 'Failed to establish mail transport connection.'
       };
-      sails.log.error(err);
     }
 
-
-    
-    
     var message = {
       "to": msgTo,
       "subject": msgSubject,
       "from": msgFrom,
-      
+      "cc": cc
     };
+
     message[msgFormat] = msgBody;
     let response = {
       success: false
     };
-
+    sails.log.debug(`Email message to send will be ${JSON.stringify(message)}`)
     try {
       let sendResult = await transport.sendMail(message);
-      sails.log.verbose(`Emai sent successfully. Message Id: ${sendResult.messageId}`);
-      response['msg'] = `Emai sent successfully. Message Id: ${sendResult.messageId}`;
+      sails.log.info(`Email sent successfully. Message Id: ${sendResult.messageId}`);
+      response['msg'] = `Email sent successfully. Message Id: ${sendResult.messageId}`;
       response.success = true;
     } catch(err) {
       response['msg'] = 'Email unable to be submitted';
       sails.log.error("Email sending failed")
       sails.log.error(err)
-    } 
-    
-        
-      
+    }
+
+
+
       return response;
-    
+
   }
 
   /**
@@ -200,15 +199,19 @@ export module Services {
     return template;
   }
 
-  public sendRecordNotification(oid, record, options) {
-    if (this.metTriggerCondition(oid, record, options) == "true") {
+    public sendRecordNotification(oid, record, options, user, response) {
+    const isSailsEmailConfigDisabled = (_.get(sails.config, 'services.email.disabled', false) == "true");
+    if (isSailsEmailConfigDisabled) {
+      sails.log.verbose(`Not sending notification log for: ${oid}, config: services.email.disabled is ${isSailsEmailConfigDisabled}`);
+      return Observable.of(null);
+    } else if (this.metTriggerCondition(oid, record, options) == "true") {
       const variables = {
         imports: {
           record: record,
           oid: oid
         }
       };
-      sails.log.verbose(`Sending record notification for oid: ${oid}`);
+      sails.log.debug(`Sending record notification for oid: ${oid}`);
       sails.log.verbose(options);
       // send record notification
       const to = this.runTemplate(_.get(options, "to", null), variables);
@@ -218,6 +221,10 @@ export module Services {
       }
       const subject = this.runTemplate(_.get(options, "subject", null), variables);
       const templateName = _.get(options, "template", "");
+      const from = this.runTemplate(_.get(options, "from", sails.config.emailnotification.defaults.from), variables);
+      const msgFormat = _.get(options, "msgFormat", sails.config.emailnotification.defaults.format);
+      const cc = this.runTemplate(_.get(options, "cc", sails.config.emailnotification.defaults.cc), variables);
+
       const data = {};
       data['record'] = record;
       data['oid'] = oid;
@@ -228,7 +235,7 @@ export module Services {
             sails.log.error(buildResult);
             return Observable.throw(new Error('Failed to build email body.'));
           }
-          return this.sendMessage(to, buildResult['body'], subject);
+          return this.sendMessage(to, buildResult['body'], subject,from,msgFormat, cc);
         })
         .flatMap(sendResult => {
           if (sendResult['code'] == '200') {
@@ -247,13 +254,21 @@ export module Services {
               });
             }
           }
-          return Observable.of(sendResult);
+            if (!_.isEmpty(response)) {
+              return Observable.of(response);
+            } else {
+              return Observable.of(record);
+            }
         });
     } else {
       sails.log.verbose(`Not sending notification log for: ${oid}, condition not met: ${_.get(options, "triggerCondition", "")}`)
       sails.log.verbose(JSON.stringify(record));
     }
-    return Observable.of(null);
+      if (!_.isEmpty(response)) {
+        return Observable.of(response);
+      } else {
+        return Observable.of(record);
+      }
   }
 }
 

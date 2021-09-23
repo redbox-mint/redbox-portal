@@ -33,17 +33,15 @@ declare var FormsService, WorkflowStepsService, BrandingService, RecordsService,
 /**
  * Package that contains all Controllers.
  */
-import controller = require('../core/CoreController.js');
-import RecordsService from '../core/RecordsService.js';
-import SearchService from '../core/SearchService.js';
-import DatastreamService from '../core/DatastreamService.js';
+import { Controllers as controllers, DatastreamService, RecordsService, SearchService} from '@researchdatabox/redbox-core-types';
+
 export module Controllers {
   /**
    * Responsible for all things related to a Record, includings Forms, etc.
    *
    * Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a>
    */
-  export class Record extends controller.Controllers.Core.Controller {
+  export class Record extends controllers.Core.Controller {
 
     recordsService: RecordsService = RecordsService;
     searchService: SearchService;
@@ -497,6 +495,10 @@ export module Controllers {
 
       let recordType = await RecordTypesService.get(brand, recType).toPromise();
 
+      if (recordType.packageType) {
+        record.metaMetadata.packageType = recordType.packageType;
+      }
+
         if (recordType.packageName) {
           record.metaMetadata.packageName = recordType.packageName;
         }
@@ -525,7 +527,7 @@ export module Controllers {
           let response = await this.recordsService.create(brand, record, recordType, user);
 
           let updateResponse = response;
-          if (response && response.isSuccessful()) {
+      if (response && _.isFunction(response.isSuccessful) && response.isSuccessful()) {
             oid = response.oid;
             if (!_.isEmpty(record.metaMetadata.attachmentFields)) {
               // check if we have any pending-oid elements
@@ -553,7 +555,7 @@ export module Controllers {
           }
           try {
           // handle datastream update
-          if (updateResponse && updateResponse.isSuccessful()) {
+        if (updateResponse && _.isFunction(updateResponse.isSuccessful) && updateResponse.isSuccessful()) {
             if (!_.isEmpty(record.metaMetadata.attachmentFields)) {
               // we emtpy the data locations in cloned record so we can reuse the same `this.updateDataStream` method call
               const emptyDatastreamRecord = _.cloneDeep(record);
@@ -1056,8 +1058,24 @@ export module Controllers {
     public async search(req, res) {
       const brand = BrandingService.getBrand(req.session.branding);
       const type = req.param('type');
-      const rows = req.param('rows');
-      const page = req.param('page');
+      let rows = req.param('rows');
+      let page = req.param('page');
+      if(_.isEmpty(rows)) {
+        rows = 10
+      }
+      if(_.isEmpty(page)) {
+        page = 1
+      }
+      let start = 0
+      if(/^\d+$/.test(page)) { 
+        page = parseInt(page)
+      }
+      if (/^\d+$/.test(rows)) {
+        rows = parseInt(rows)
+      }
+
+      start = (page-1)* rows;
+
       const workflow = req.query.workflow;
       const searchString = req.query.searchStr;
 
@@ -1080,7 +1098,8 @@ export module Controllers {
       });
 
       try {
-        const searchRes = await this.searchService.searchFuzzy(type, workflow, searchString, exactSearches, facetSearches, brand, req.user, req.user.roles, sails.config.record.search.returnFields);
+        let searchRes = await this.searchService.searchFuzzy(type, workflow, searchString, exactSearches, facetSearches, brand, req.user, req.user.roles, sails.config.record.search.returnFields, start, rows);
+        searchRes['page'] = page
         this.ajaxOk(req, res, null, searchRes);
       } catch (error) {
         this.ajaxFail(req, res, error.message);
@@ -1149,7 +1168,7 @@ export module Controllers {
       this.initTusServer();
       const method = _.toLower(req.method);
       if (method == 'post') {
-        req.baseUrl = `${sails.config.appPort ? `:${sails.config.appPort}` : ''}/${req.session.branding}/${req.session.portal}/record/${oid}`
+        req.baseUrl = `${BrandingService.getBrandAndPortalPath(req)}/record/${oid}`
       } else {
         req.baseUrl = '';
       }
@@ -1182,7 +1201,12 @@ export module Controllers {
                 sails.log.verbose("Error: Attachment not found in do attachment.");
                 return Observable.throwError(new Error(TranslationService.t('attachment-not-found')))
               }
-              res.set('Content-Type', found.mimeType);
+              let mimeType = found.mimeType;
+              if(_.isEmpty(mimeType)) {
+                // Set octet stream as a default
+                mimeType = 'application/octet-stream'
+              }
+              res.set('Content-Type', mimeType);
               res.set('Content-Disposition', `attachment; filename="${found.name}"`);
               sails.log.verbose(`Returning datastream observable of ${oid}: ${found.name}, attachId: ${attachId}`);
               return that.datastreamService.getDatastream(oid, attachId).flatMap((response) => {

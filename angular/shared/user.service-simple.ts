@@ -41,14 +41,14 @@ export class UserSimpleService extends BaseService {
   }
 
   getInfo(): Promise<User> {
-    return this.http.get(`${this.baseUrl}/user/info`)
+    return this.http.get(`${this.baseUrl}${this.config.rootContext}/user/info`)
     .toPromise()
     .then((res:any) => this.extractData(res, 'user') as User);
   }
 
   loginLocal(username: string, password: string): Promise<any> {
-    console.log(`Loggin in locally using brand: ${this.config.branding}, portal: ${this.config.portal}`);
-    return this.http.post(`${this.baseUrl}/user/login_local`, {username: username, password:password, branding:this.config.branding, portal: this.config.portal}, this.getOptionsClient())
+    console.log(`Logging in locally using brand: ${this.config.branding}, portal: ${this.config.portal}`);
+    return this.http.post(`${this.baseUrl}${this.config.rootContext}/user/login_local`, {username: username, password:password, branding:this.config.branding, portal: this.config.portal}, this.getOptionsClient())
     .toPromise()
     .then(this.extractData);
   }

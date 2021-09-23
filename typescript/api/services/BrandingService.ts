@@ -18,7 +18,7 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 import { Observable } from 'rxjs/Rx';
-import services = require('../core/CoreService.js');
+import {Services as services}   from '@researchdatabox/redbox-core-types';
 import { Sails, Model } from "sails";
 
 declare var sails: Sails;
@@ -31,7 +31,7 @@ export module Services {
    *
    * Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a>
    */
-  export class Branding extends services.Services.Core.Service {
+  export class Branding extends services.Core.Service {
 
     protected _exportedMethods: any = [
       'bootstrap',
@@ -42,7 +42,8 @@ export module Services {
       'getBrandAndPortalPath',
       'getBrandFromReq',
       'getPortalFromReq',
-      'getFullPath'
+      'getFullPath',
+      'getRootContext'
     ];
 
     protected availableBrandings: any = []
@@ -95,9 +96,24 @@ export module Services {
     public getBrandAndPortalPath(req) {
       const branding = this.getBrandFromReq(req);
       const portal = this.getPortalFromReq(req);
-      const path = `/${branding}/${portal}`;
-      return path;
+      const rootContext = this.getRootContext();
+      if(_.isEmpty(rootContext)) {
+      return `/${branding}/${portal}`;
+      } else {
+       return `${rootContext}/${branding}/${portal}`;
+      }
     }
+
+    public getRootContext() {
+      
+      const rootContext = sails.config.http.rootContext;
+      if(_.isEmpty(rootContext)) {
+      return ``;
+      } else {
+       return `/${rootContext}`;
+      }
+    }
+
 
     public getFullPath(req){
       return sails.config.appUrl + this.getBrandAndPortalPath(req);

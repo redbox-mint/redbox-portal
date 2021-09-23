@@ -47,14 +47,7 @@ module.exports = function forbidden (data, options) {
 
   // Attempt to prettify data for views, if it's a non-error object
   var viewData = data;
-  if (!(viewData instanceof Error) && 'object' == typeof viewData) {
-    try {
-      viewData = require('util').inspect(data, {depth: null});
-    }
-    catch(e) {
-      viewData = undefined;
-    }
-  }
+ 
   //TODO: Make this branding aware
   let brandingViewPath = sails.config.appPath + "/views/default/default";
   // If a view was provided in options, serve it.

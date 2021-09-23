@@ -48,6 +48,8 @@ export class RelatedObjectSelectorField extends FieldBase<any> {
 
   relatedObjectSelected:EventEmitter<string> = new EventEmitter<string>();
   resetSelectorEvent: EventEmitter<any> = new EventEmitter<any>();
+  filterMode: string;
+  filterFields:string[]
 
   constructor(options: any, injector: any) {
     super(options, injector);
@@ -56,11 +58,20 @@ export class RelatedObjectSelectorField extends FieldBase<any> {
     this.columnTitle = options['columnTitle'] || "Record title";
     this.value = options['value'] || this.setEmptyValue();
     this.recordType = options['recordType'];
+    this.filterMode = _.get(options, 'filterMode', 'default');
+    this.filterFields = _.get(options, 'filterFields', []);
+    
     this.dashboardService = this.getFromInjector(DashboardService);
     var that = this;
-    this.dashboardService.getAllRecordsCanEdit(this.recordType,'').then((draftPlans: PlanTable) => {
-      this.plans = draftPlans;
-    });
+    if(this.filterMode == 'default') {
+      this.dashboardService.getAllRecordsCanEdit(this.recordType,'').then((draftPlans: PlanTable) => {
+        this.plans = draftPlans;
+      });
+    } else {
+      this.dashboardService.getRecordsByFilter(this.recordType,'',this.filterFields.join(','),'').then((draftPlans: PlanTable) => {
+        this.plans = draftPlans;
+      });
+    }
   }
 
   recordSelected(record: any, config: any) {
@@ -115,11 +126,17 @@ export class RelatedObjectSelectorField extends FieldBase<any> {
   }
 
   onFilterChange() {
+    if(this.filterMode == 'default') {
     this.filteredPlans = _.filter(this.plans.items, (plan: any) => {
       plan.selected = false;
       const title = _.isArray(plan.title) ? plan.title[0] : plan.title;
       return _.toLower(title).includes(_.toLower(this.searchFilterName));
     });
+    } else {
+     this.dashboardService.getRecordsByFilter(this.recordType,'',this.filterFields.join(','),this.searchFilterName).then((records: PlanTable) => {
+        this.filteredPlans = records.items;
+      });
+    }
   }
 
   resetFilter() {

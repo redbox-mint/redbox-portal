@@ -17,15 +17,20 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { Observable } from 'rxjs/Rx';
-import services = require('../core/CoreService.js');
-import SearchService from '../core/SearchService.js';
-import { Sails, Model } from "sails";
+import {
+  Observable
+} from 'rxjs/Rx';
+import {SearchService, Services as services}   from '@researchdatabox/redbox-core-types';
+
+import {
+  Sails,
+  Model
+} from "sails";
 import * as request from "request-promise";
 import * as crypto from 'crypto';
 
 declare var sails: Sails;
-declare var User, Role, BrandingConfig: Model;
+declare var User, Role, UserAudit: Model;
 declare var BrandingService, RolesService, ConfigService, RecordsService;
 declare const Buffer;
 declare var _;
@@ -38,7 +43,7 @@ export module Services {
    * Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a>
    *
    */
-  export class Users extends services.Services.Core.Service {
+  export class Users extends services.Core.Service {
 
     protected _exportedMethods: any = [
       'bootstrap',
@@ -53,7 +58,8 @@ export module Services {
       'findUsersWithEmail',
       'findUsersWithQuery',
       'findAndAssignAccessToRecords',
-      'getUsers'
+      'getUsers',
+      'addUserAuditEvent'
     ];
 
     searchService: SearchService;
@@ -62,7 +68,8 @@ export module Services {
       // users the default brand's configuration on startup
       // TODO: consider moving late initializing this if possible
       const defAuthConfig = ConfigService.getBrand(BrandingService.getDefault().name, 'auth');
-      var usernameField = defAuthConfig.local.usernameField, passwordField = defAuthConfig.local.passwordField;
+      var usernameField = defAuthConfig.local.usernameField,
+        passwordField = defAuthConfig.local.passwordField;
       //
       // --------- Passport --------------
       //
@@ -70,15 +77,17 @@ export module Services {
       var LocalStrategy = require('passport-local').Strategy;
       var bcrypt;
       try {
-      bcrypt = require('bcrypt');
-    }catch(err) {
-      bcrypt = require('bcryptjs');
-    }
-      sails.config.passport.serializeUser(function(user, done) {
+        bcrypt = require('bcrypt');
+      } catch (err) {
+        bcrypt = require('bcryptjs');
+      }
+      sails.config.passport.serializeUser(function (user, done) {
         done(null, user.id);
       });
-      sails.config.passport.deserializeUser(function(id, done) {
-        User.findOne({ id: id }).populate('roles').exec(function(err, user) {
+      sails.config.passport.deserializeUser(function (id, done) {
+        User.findOne({
+          id: id
+        }).populate('roles').exec(function (err, user) {
           done(err, user);
         });
       });
@@ -86,18 +95,24 @@ export module Services {
       //  Local Strategy
       //
       sails.config.passport.use(new LocalStrategy({
-        usernameField: usernameField,
-        passwordField: passwordField
-      },
-        function(username, password, done) {
+          usernameField: usernameField,
+          passwordField: passwordField
+        },
+        function (username, password, done) {
 
-          User.findOne({ username: username }).populate('roles').exec(function(err, foundUser) {
-            if (err) { return done(err); }
+          User.findOne({
+            username: username
+          }).populate('roles').exec(function (err, foundUser) {
+            if (err) {
+              return done(err);
+            }
             if (!foundUser) {
-              return done(null, false, { message: 'Incorrect username/password' });
+              return done(null, false, {
+                message: 'Incorrect username/password'
+              });
             }
 
-            bcrypt.compare(password, foundUser.password, function(err, res) {
+            bcrypt.compare(password, foundUser.password, function (err, res) {
 
               if (!res) {
                 return done(null, false, {
@@ -107,7 +122,11 @@ export module Services {
 
               foundUser.lastLogin = new Date();
 
-              User.update({ username: foundUser.username }, { lastLogin: foundUser.lastLogin });
+              User.update({
+                username: foundUser.username
+              }, {
+                lastLogin: foundUser.lastLogin
+              });
 
               return done(null, foundUser, {
                 message: 'Logged In Successfully'
@@ -131,14 +150,16 @@ export module Services {
         ExtractJwt = require('passport-jwt').ExtractJwt;
       const aafOpts = defAuthConfig.aaf.opts;
       aafOpts.jwtFromRequest = ExtractJwt.fromBodyField('assertion');
-      sails.config.passport.use('aaf-jwt', new JwtStrategy(aafOpts, function(req, jwt_payload, done) {
+      sails.config.passport.use('aaf-jwt', new JwtStrategy(aafOpts, function (req, jwt_payload, done) {
         var brand = BrandingService.getBrand(req.session.branding);
         const authConfig = ConfigService.getBrand(brand.name, 'auth');
         var aafAttributes = authConfig.aaf.attributesField;
         var aafDefRoles = _.map(RolesService.getNestedRoles(RolesService.getDefAuthenticatedRole(brand).name, brand.roles), 'id');
         var aafUsernameField = authConfig.aaf.usernameField;
         const userName = Buffer.from(jwt_payload[aafUsernameField]).toString('base64');
-        User.findOne({ username: userName }, function(err, user) {
+        User.findOne({
+          username: userName
+        }, function (err, user) {
           sails.log.verbose("At AAF Strategy verify, payload:");
           sails.log.verbose(jwt_payload);
           sails.log.verbose("User:");
@@ -150,8 +171,17 @@ export module Services {
           }
           if (user) {
             user.lastLogin = new Date();
-            User.update(user).exec(function(err, user) {
-            });
+            user.name = jwt_payload[aafAttributes].cn;
+            user.email = jwt_payload[aafAttributes].mail.toLowerCase();
+            user.displayname = jwt_payload[aafAttributes].displayname;
+            user.cn = jwt_payload[aafAttributes].cn;
+            user.edupersonscopedaffiliation = jwt_payload[aafAttributes].edupersonscopedaffiliation;
+            user.edupersontargetedid = jwt_payload[aafAttributes].edupersontargetedid;
+            user.edupersonprincipalname = jwt_payload[aafAttributes].edupersonprincipalname;
+            user.givenname = jwt_payload[aafAttributes].givenname;
+            user.surname = jwt_payload[aafAttributes].surname;
+
+            User.update(user).exec(function (err, user) {});
             return done(null, user);
           } else {
             sails.log.verbose("At AAF Strategy verify, creating new user...");
@@ -172,7 +202,7 @@ export module Services {
               lastLogin: new Date()
             };
             sails.log.verbose(userToCreate);
-            User.create(userToCreate).exec(function(err, newUser) {
+            User.create(userToCreate).exec(function (err, newUser) {
               if (err) {
                 sails.log.error("Error creating new user:");
                 sails.log.error(err);
@@ -195,37 +225,62 @@ export module Services {
         if (defAuthConfig.active != undefined && defAuthConfig.active.indexOf('oidc') != -1) {
           const that = this;
           sails.log.verbose(`OIDC is active, configuring....`);
-          const oidcConfig = defAuthConfig.oidc;
-          const oidcOpts = oidcConfig.opts;
-          const { Issuer, Strategy } = require('openid-client');
-          let configured = false;
-          let discoverAttemptsCtr = 0;
-          while (!configured && discoverAttemptsCtr < oidcConfig.discoverAttemptsMax) {
-            discoverAttemptsCtr++;
-            try {
-              const issuer = await Issuer.discover(oidcOpts.issuer);
-              configured = true;
-              sails.log.verbose(`OIDC, Got issuer config, after ${discoverAttemptsCtr} attempt(s).`);
-              sails.log.verbose(issuer);
-              const oidcClient = new issuer.Client(oidcOpts.client);
-              let verifyCallbackFn = (req, tokenSet, userinfo, done) => {
-                that.openIdConnectAuthVerifyCallback(oidcConfig, issuer, req, tokenSet, userinfo, done);
-              };
-              if (oidcConfig.userInfoSource == 'tokenset_claims') {
-                verifyCallbackFn = (req, tokenSet, done) => {
-                  that.openIdConnectAuthVerifyCallback(oidcConfig, issuer, req, tokenSet, undefined, done);
+          let oidcConfigArray = defAuthConfig.oidc;
+          if (_.isObject(oidcConfigArray)) {
+            let singleOidcConfig = oidcConfigArray;
+            oidcConfigArray = [singleOidcConfig];
+          }
+          for (let oidcConfig of oidcConfigArray) {
+            const oidcOpts = oidcConfig.opts;
+            const {
+              Issuer,
+              Strategy,
+              custom
+            } = require('openid-client');
+            let configured = false;
+            let discoverAttemptsCtr = 0;
+            while (!configured && discoverAttemptsCtr < oidcConfig.discoverAttemptsMax) {
+              discoverAttemptsCtr++;
+              try {
+                let issuer;
+                if (_.isString(oidcOpts.issuer)) {
+                  sails.log.verbose(`OIDC, using issuer URL for discovery: ${oidcOpts.issuer}`);
+                  issuer = await Issuer.discover(oidcOpts.issuer);
+                } else {
+                  sails.log.verbose(`OIDC, using issuer hardcoded configuration:`);
+                  sails.log.verbose(JSON.stringify(oidcOpts.issuer));
+                  issuer = new Issuer(oidcOpts.issuer);
+                }
+                configured = true;
+                sails.log.verbose(`OIDC, Got issuer config, after ${discoverAttemptsCtr} attempt(s).`);
+                sails.log.verbose(issuer);
+                const oidcClient = new issuer.Client(oidcOpts.client);
+                let verifyCallbackFn = (req, tokenSet, userinfo, done) => {
+                  that.openIdConnectAuthVerifyCallback(oidcConfig, issuer, req, tokenSet, userinfo, done);
                 };
-              } 
-              sails.config.passport.use('oidc', new Strategy({
-                client: oidcClient, 
-                passReqToCallback: true, 
-                params: oidcOpts.params
-              }, verifyCallbackFn));
-              sails.log.info("OIDC is active, client configured and ready.");
-            } catch (e) {
-              sails.log.error(`Failed to discover, attempt# ${discoverAttemptsCtr}:`);
-              sails.log.error(e);
-              await this.sleep(oidcConfig.discoverFailureSleep);
+                if (oidcConfig.userInfoSource == 'tokenset_claims') {
+                  verifyCallbackFn = (req, tokenSet, done) => {
+                    that.openIdConnectAuthVerifyCallback(oidcConfig, issuer, req, tokenSet, undefined, done);
+                  };
+                }
+                let passportIdentifier = 'oidc';
+                if(!_.isEmpty(oidcConfig.identifier)) {
+                  passportIdentifier = `oidc-${oidcConfig.identifier}`
+                }
+                
+                sails.config.passport.use(passportIdentifier, new Strategy({
+                  client: oidcClient,
+                  passReqToCallback: true,
+                  params: oidcOpts.params
+                }, verifyCallbackFn));
+                sails.log.info(`OIDC is active, client ${passportIdentifier} configured and ready.`);
+              
+                
+              } catch (e) {
+                sails.log.error(`Failed to discover, attempt# ${discoverAttemptsCtr}:`);
+                sails.log.error(e);
+                await this.sleep(oidcConfig.discoverFailureSleep);
+              }
             }
           }
         }
@@ -247,7 +302,11 @@ export module Services {
       }
       if (oidcConfig.debugMode === true) {
         sails.log.info("OIDC debug mode is active, intentionally failing the login, and redirecting to failure page with all details of this login attempt.");
-        const err = { userinfo: userinfo, claims: tokenSet.claims(), tokenSet: tokenSet };
+        const err = {
+          userinfo: userinfo,
+          claims: tokenSet.claims(),
+          tokenSet: tokenSet
+        };
         req.session.errorTextRaw = JSON.stringify(err, null, 2);
         return done(null, false);
       }
@@ -256,7 +315,9 @@ export module Services {
       const userName = _.get(userinfo, claimsMappings['username']);
       var openIdConnectDefRoles = _.map(RolesService.getNestedRoles(RolesService.getDefAuthenticatedRole(brand).name, brand.roles), 'id');
 
-      User.findOne({ username: userName }, function(err, user) {
+      User.findOne({
+        username: userName
+      }, function (err, user) {
         sails.log.verbose("At OIDC Strategy verify, payload:");
         sails.log.verbose(userinfo);
         sails.log.verbose("User:");
@@ -268,8 +329,15 @@ export module Services {
         }
         if (user) {
           user.lastLogin = new Date();
-          User.update(user).exec(function(err, user) {
-          });
+          user.additionalAttributes = that.mapAdditionalAttributes(userinfo, claimsMappings['additionalAttributes']);
+          user.name = _.get(userinfo, claimsMappings['name']);
+          user.email = _.get(userinfo, claimsMappings['email']).toLowerCase();
+          user.displayname = _.get(userinfo, claimsMappings['displayName']);
+          user.cn = _.get(userinfo, claimsMappings['cn']);
+          user.givenname = _.get(userinfo, claimsMappings['givenname']);
+          user.surname = _.get(userinfo, claimsMappings['surname']);
+
+          User.update(user).exec(function (err, user) {});
           return done(null, user);
         } else {
           sails.log.verbose("At OIDC Strategy verify, creating new user...");
@@ -290,7 +358,7 @@ export module Services {
           };
           sails.log.verbose(`Creating user: `);
           sails.log.verbose(userToCreate);
-          User.create(userToCreate).exec(function(err, newUser) {
+          User.create(userToCreate).exec(function (err, newUser) {
             if (err) {
               sails.log.error("Error creating new user:");
               sails.log.error(err);
@@ -310,10 +378,12 @@ export module Services {
     protected bearerTokenAuthInit = () => {
       var BearerStrategy = require('passport-http-bearer').Strategy;
       sails.config.passport.use('bearer', new BearerStrategy(
-        function(token, done) {
+        function (token, done) {
           if (!_.isEmpty(token) && !_.isUndefined(token)) {
             const tokenHash = crypto.createHash('sha256').update(token).digest('base64');
-            User.findOne({ token: tokenHash }).populate('roles').exec(function(err, user) {
+            User.findOne({
+              token: tokenHash
+            }).populate('roles').exec(function (err, user) {
               if (err) {
                 return done(err);
               }
@@ -321,7 +391,9 @@ export module Services {
 
                 return done(null, false);
               }
-              return done(null, user, { scope: 'all' });
+              return done(null, user, {
+                scope: 'all'
+              });
             });
           } else {
             // empty token, deny
@@ -333,11 +405,17 @@ export module Services {
 
     protected initDefAdmin = (defRoles, defAdminRole) => {
       const authConfig = ConfigService.getBrand(BrandingService.getDefault().name, 'auth');
-      var usernameField = authConfig.local.usernameField, passwordField = authConfig.local.passwordField;
-      var defaultUser = _.find(defAdminRole.users, (o) => { return o[usernameField] == authConfig.local.default.adminUser });
+      var usernameField = authConfig.local.usernameField,
+        passwordField = authConfig.local.passwordField;
+      var defaultUser = _.find(defAdminRole.users, (o) => {
+        return o[usernameField] == authConfig.local.default.adminUser
+      });
 
       if (defaultUser == null) {
-        defaultUser = { type: 'local', name: 'Local Admin' };
+        defaultUser = {
+          type: 'local',
+          name: 'Local Admin'
+        };
         defaultUser[usernameField] = authConfig.local.default.adminUser;
         defaultUser[passwordField] = authConfig.local.default.adminPw;
         defaultUser["email"] = authConfig.local.default.email;
@@ -367,22 +445,44 @@ export module Services {
               })
               .last()
               .flatMap(lastRole => {
-                return Observable.of({ defUser: defUser, defRoles: defRoles });
+                return Observable.of({
+                  defUser: defUser,
+                  defRoles: defRoles
+                });
               });
           });
       } else {
-        return Observable.of({ defUser: defaultUser, defRoles: defRoles });
+        return Observable.of({
+          defUser: defaultUser,
+          defRoles: defRoles
+        });
       }
     }
 
-    protected mapAdditionalAttributes (profile, attributeMappings) {
+    protected mapAdditionalAttributes(profile, attributeMappings) {
       let additionalAttributes = {};
-      for(let attributeMapping in attributeMappings) {
+      for (let attributeMapping in attributeMappings) {
         additionalAttributes[attributeMapping] = _.get(profile, attributeMapping);
       }
       return additionalAttributes;
     }
 
+    /**
+     * Creates a user audit record
+     *
+     */
+    public addUserAuditEvent = (user, action, additionalContext) => {
+      let auditEvent = {}
+      if (!_.isEmpty(user.password)) {
+        delete user.password;
+      }
+      auditEvent['user'] = user;
+      auditEvent['action'] = action;
+      auditEvent['additionalContext'] = additionalContext;
+      sails.log.verbose('Adding user audit event');
+      sails.log.verbose(auditEvent);
+      return super.getObservable(UserAudit.create(auditEvent)).toPromise();
+    }
 
     /**
      * @return User: the newly created user
@@ -390,7 +490,8 @@ export module Services {
      */
     public addLocalUser = (username, name, email, password) => {
       const authConfig = ConfigService.getBrand(BrandingService.getDefault().name, 'auth');
-      var usernameField = authConfig.local.usernameField, passwordField = authConfig.local.passwordField;
+      var usernameField = authConfig.local.usernameField,
+        passwordField = authConfig.local.passwordField;
 
       return this.getUserWithUsername(username).flatMap(user => {
         if (user) {
@@ -400,7 +501,10 @@ export module Services {
             if (_.size(emailCheck) > 0) {
               return Observable.throw(new Error(`Email already exists, it must be unique`));
             } else {
-              var newUser = { type: 'local', name: name };
+              var newUser = {
+                type: 'local',
+                name: name
+              };
               if (!_.isEmpty(email)) {
                 newUser["email"] = email;
               }
@@ -443,17 +547,21 @@ export module Services {
     }
 
     public getUserWithUsername = (username) => {
-      return this.getObservable(User.findOne({ username: username }).populate('roles'));
+      return this.getObservable(User.findOne({
+        username: username
+      }).populate('roles'));
     }
 
     public getUserWithId = (userid) => {
-      return this.getObservable(User.findOne({ id: userid }).populate('roles'));
+      return this.getObservable(User.findOne({
+        id: userid
+      }).populate('roles'));
     }
 
     /**
      * @return Collection of all users (local and AAF)
      */
-    public getUsers = (): Observable<any> => {
+    public getUsers = (): Observable < any > => {
       return super.getObservable(User.find({}).populate('roles'));
     }
 
@@ -461,7 +569,11 @@ export module Services {
       const uuidHash = _.isEmpty(uuid) ? uuid : crypto.createHash('sha256').update(uuid).digest('base64');
       return this.getUserWithId(userid).flatMap(user => {
         if (user) {
-          const q = User.update({ id: userid }, { token: uuidHash });
+          const q = User.update({
+            id: userid
+          }, {
+            token: uuidHash
+          });
           return this.getObservable(q, 'exec', 'simplecb');
         } else {
           return Observable.throw(new Error('No such user with id:' + userid));
@@ -474,7 +586,9 @@ export module Services {
       var passwordField = authConfig.local.passwordField;
       return this.getUserWithId(userid).flatMap(user => {
         if (user) {
-          const update = { name: name };
+          const update = {
+            name: name
+          };
 
           if (!_.isEmpty(email)) {
             update["email"] = email;
@@ -484,13 +598,15 @@ export module Services {
             var bcrypt;
             try {
               bcrypt = require('bcrypt');
-            }catch(err) {
+            } catch (err) {
               bcrypt = require('bcryptjs');
             }
             var salt = salt = bcrypt.genSaltSync(10);
             update[passwordField] = bcrypt.hashSync(password, salt);
           }
-          const q = User.update({ id: userid }, update);
+          const q = User.update({
+            id: userid
+          }, update);
           return this.getObservable(q, 'exec', 'simplecb');
         } else {
           return Observable.throw(new Error('No such user with id:' + userid));
@@ -521,13 +637,21 @@ export module Services {
     }
 
     public findUsersWithName(name: string, brandId: string, source: any = null) {
-      const query = { name: { 'contains': name } };
+      const query = {
+        name: {
+          'contains': name
+        }
+      };
       // S2TEST-21
       return this.findUsersWithQuery(query, brandId, source);
     }
     // S2TEST-21
     public findUsersWithEmail(email: string, brandId: string, source: any) {
-      const query = { email: { 'contains': email } };
+      const query = {
+        email: {
+          'contains': email
+        }
+      };
       return this.findUsersWithQuery(query, brandId, source);
     }
     // S2TEST-21
@@ -550,12 +674,12 @@ export module Services {
     }
 
     /**
-    *
-    * Find all records that the user is intended to have access to and assign actual access using their userId.
-    * This is used as users or services may want to provide access for a user to a record but due to single sign-on solutions,
-    * we're not able to reliably determine the username before they login to the system for the first time.
-    *
-    **/
+     *
+     * Find all records that the user is intended to have access to and assign actual access using their userId.
+     * This is used as users or services may want to provide access for a user to a record but due to single sign-on solutions,
+     * we're not able to reliably determine the username before they login to the system for the first time.
+     *
+     **/
     public findAndAssignAccessToRecords(pendingValue, userid) {
       var oid = null;
       const query = `authorization_editPending:${pendingValue}%20OR%20authorization_viewPending:${pendingValue}&sort=date_object_modified desc&version=2.2&wt=json&rows=10000`;

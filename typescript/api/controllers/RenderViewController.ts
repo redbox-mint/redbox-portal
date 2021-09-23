@@ -1,13 +1,13 @@
 //<reference path='./../../typings/loader.d.ts'/>
 
-import controller = require('../core/CoreController.js');
+import { Controllers as controllers} from '@researchdatabox/redbox-core-types';
 
 /**
  * Package that contains all Controllers.
  */
 export module Controllers {
 
-    export class RenderView extends controller.Controllers.Core.Controller {
+    export class RenderView extends controllers.Core.Controller {
 
         /**
          * Exported methods, accessible from internet.

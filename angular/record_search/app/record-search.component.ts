@@ -68,7 +68,10 @@ export class RecordSearchComponent extends LoadableComponent {
     this.record_type = elm.nativeElement.getAttribute('record_type');
     this.search_str = elm.nativeElement.getAttribute('search_str');
     this.search_url = elm.nativeElement.getAttribute('search_url');
-    this.queryStr = elm.nativeElement.getAttribute("full_url").split('?')[1];
+    const urlParts = elm.nativeElement.getAttribute("full_url").split('?');
+    if (!_.isEmpty(urlParts[1])) {
+      this.queryStr = urlParts[1];
+    }
     this.recTypeNames = [];
   }
 
@@ -163,7 +166,7 @@ export class RecordSearchComponent extends LoadableComponent {
         this.syncLoc();
       }
       this.recordsService.search(this.params).then((res:any) => {
-        this.params.currentPage = res.currentPage;
+        this.params.currentPage = res.page;
         this.totalItems = res.totalItems;
         this.isSearching = false;
         this.searchMsgType = "success";

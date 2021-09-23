@@ -28,7 +28,7 @@ import { Observable } from 'rxjs/Observable';
 import 'rxjs/add/observable/zip';
 import * as _ from "lodash";
 import { TranslationService } from './shared/translation-service';
-
+import { Title } from '@angular/platform-browser';
 // STEST-22
 declare var jQuery: any;
 
@@ -141,7 +141,8 @@ export class DmpFormComponent extends LoadableComponent {
     @Inject(FieldControlService) protected fcs: FieldControlService,
     @Inject(Location) protected LocationService: Location,
     public translationService: TranslationService,
-    private changeRef: ChangeDetectorRef
+    private changeRef: ChangeDetectorRef,
+    public title: Title
   ) {
     super();
 
@@ -464,7 +465,7 @@ export class DmpFormComponent extends LoadableComponent {
   }
 
   gotoTab(tabId) {
-    jQuery(`[href=#${tabId}]`).tab('show');
+    jQuery(`[href='#${tabId}']`).tab('show');
     jQuery("html, body").animate({
       scrollTop: 0
     }, 500);

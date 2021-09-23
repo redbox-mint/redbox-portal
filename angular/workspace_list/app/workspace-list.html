@@ -43,6 +43,10 @@
               [(ngModel)]="records.currentPage" (pageChanged)="pageChanged($event)" class="pagination-sm"></pagination>
     </div>
 
+    <div *ngIf="records.totalItems == 0">
+      {{ workspace.no-records-found | translate}}
+    </div>
+
     <div class="row" *ngIf="createMode">
       <rb-RelatedObjectSelector [field]="selectorField"></rb-RelatedObjectSelector>
       <button (click)="cancelCreate()" class="btn btn-primary">{{ backButtonLabel }}</button>

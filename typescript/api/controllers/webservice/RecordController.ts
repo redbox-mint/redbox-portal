@@ -34,14 +34,9 @@ declare var User;
  */
 import {Observable} from 'rxjs/Rx';
 import * as path from "path";
-import controller = require('../../core/CoreController.js');
-import RecordsService from '../../core/RecordsService.js';
-import SearchService from '../../core/SearchService.js';
-import DatastreamService from '../../core/DatastreamService.js';
-import DatastreamServiceResponse from '../../core/DatastreamServiceResponse';
-import Datastream from '../../core/Datastream';
-import {ListAPIResponse } from '../../core/model/ListAPIResponse';
-import {APIErrorResponse } from '../../core/model/APIErrorResponse';
+import {APIErrorResponse, Controllers as controllers, Datastream, DatastreamService, DatastreamServiceResponse, RecordsService, SearchService} from '@researchdatabox/redbox-core-types';
+import { ListAPIResponse } from '@researchdatabox/redbox-core-types';
+
 
 
 const UUIDGenerator = require('uuid/v4');
@@ -51,7 +46,7 @@ export module Controllers {
    *
    * @author <a target='_' href='https://github.com/andrewbrazzatti'>Andrew Brazzatti</a>
    */
-  export class Record extends controller.Controllers.Core.Controller {
+  export class Record extends controllers.Core.Controller {
 
     RecordsService: RecordsService = sails.services.recordsservice;
     SearchService: SearchService;
@@ -321,6 +316,7 @@ export module Controllers {
       const brand = BrandingService.getBrand(req.session.branding);
       var recordType = req.param('recordType');
 
+      var user = req.user;
       var body = req.body;
       if (body != null) {
         var authorizationEdit, authorizationView, authorizationEditPending, authorizationViewPending;
@@ -348,6 +344,9 @@ export module Controllers {
             metaMetadata["brandId"] = brand.id;
             metaMetadata["type"] = recordTypeModel.name;
             metaMetadata["packageName"] = recordTypeModel.packageName;
+            
+            metaMetadata["packageType"] = recordTypeModel.packageType;
+            
             // Resolves #723: removed hardcoded value
             metaMetadata["createdBy"] = req.user.username;
             request["metaMetadata"] = metaMetadata;
@@ -387,7 +386,7 @@ export module Controllers {
                 }
 
               });
-              let createPromise = this.RecordsService.create(brand, request, recordTypeModel)
+              let createPromise = this.RecordsService.create(brand, request, recordTypeModel, user)
               var obs = Observable.fromPromise(createPromise);
               obs.subscribe(response => {
                 if (response.isSuccessful()) {
@@ -539,7 +538,7 @@ export module Controllers {
        return metadata;
      }
 
-     protected async getRecords(workflowState, recordType, start, rows, user, roles, brand, editAccessOnly=undefined, packageType = undefined, sort=undefined) {
+     protected async getRecords(workflowState, recordType, start, rows, user, roles, brand, editAccessOnly=undefined, packageType = undefined, sort=undefined, fieldNames=undefined, filterString=undefined) {
        const username = user.username;
        if (!_.isUndefined(recordType) && !_.isEmpty(recordType)) {
          recordType = recordType.split(',');
@@ -553,7 +552,7 @@ export module Controllers {
        if(rows == undefined) {
          rows = 10;
        }
-       var results = await this.RecordsService.getRecords(workflowState, recordType, start, rows, username, roles, brand, editAccessOnly, packageType, sort);
+       var results = await this.RecordsService.getRecords(workflowState, recordType, start, rows, username, roles, brand, editAccessOnly, packageType, sort,fieldNames, filterString);
        sails.log.debug(    results);  
        let apiReponse: ListAPIResponse<any> = new ListAPIResponse();       
           var totalItems = results.totalItems
@@ -609,6 +608,16 @@ export module Controllers {
        const rows = req.param('rows');
        const packageType = req.param('packageType');
        const sort = req.param('sort');
+       const filterFieldString = req.param('filterFields');
+       let filterString = req.param('filter');
+       let filterFields = undefined;
+
+       if(!_.isEmpty(filterFieldString)) {
+         filterFields = filterString.split(',')
+       } else {
+         filterString = undefined;
+       }
+
        if(rows > parseInt(sails.config.api.max_requests)){
          var error = {
           "code": 400,
@@ -623,7 +632,7 @@ export module Controllers {
        } else {
          // sails.log.debug(`getRecords: ${recordType} ${workflowState} ${start}`);
          // sails.log.debug(`${rows} ${packageType} ${sort}`);
-         this.getRecords(workflowState, recordType, start, rows, user, roles, brand, editAccessOnly, packageType, sort).then(response => {
+         this.getRecords(workflowState, recordType, start, rows, user, roles, brand, editAccessOnly, packageType, sort, filterFields, filterString).then(response => {
              res.json(response);
            }).catch( error => {
              sails.log.error("Error:");
