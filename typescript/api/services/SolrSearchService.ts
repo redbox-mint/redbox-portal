@@ -253,10 +253,6 @@ export module Services {
       }
     }
 
-    private sleep(ms) {
-      return new Promise(resolve => setTimeout(resolve, ms));
-    }
-
     public async solrAddOrUpdate(job: any) {
       try {
         let data = job.attrs.data;
