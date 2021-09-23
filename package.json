@@ -105,7 +105,7 @@
     "@types/jquery": "^3.5.1",
     "@types/lodash-es": "^4.17.4",
     "bower": "^1.8.12",
-    "chai": "^4.2.0",
+    "chai": "^4.3.4",
     "ejs-cli": "^2.2.1",
     "istanbul": "^0.4.5",
     "mocha": "^8.3.2",
