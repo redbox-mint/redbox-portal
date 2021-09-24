@@ -5,7 +5,7 @@ jobs:
     steps:
       - checkout
       - node/install:
-          node-version: 12.16.0
+          node-version: 12.22.6
       - run: (cd core && npm install && node_modules/.bin/tsc)
       - run: npm install --production
       - run: node_modules/.bin/tsc
@@ -15,18 +15,16 @@ jobs:
           root: .
           paths:
             - .
-  build-bcryptjs:
+  build_without_angular:
     docker:
       - image: 'cimg/base:stable'
     steps:
       - checkout
       - node/install:
-          node-version: 12.16.0
+          node-version: 12.22.6
       - run: (cd core && npm install && node_modules/.bin/tsc)
-      - run: npm uninstall bcrypt; npm install bcryptjs --save; npm install --production
+      - run: npm install --production
       - run: node_modules/.bin/tsc
-      - run: (cd angular && npm install)
-      - run: (chmod +x dev_build/buildNgApps.sh && dev_build/buildNgApps.sh)
       - persist_to_workspace:
           root: .
           paths:
@@ -37,17 +35,17 @@ jobs:
       - docker/install-docker-compose
       - attach_workspace:
            at: /home/circleci/project
-      - run: export NVM_DIR=/opt/circleci/.nvm && source /opt/circleci/.nvm/nvm.sh && nvm install 12.16.0 && nvm use 12.16.0
-      - run: export NVM_DIR=/opt/circleci/.nvm && source /opt/circleci/.nvm/nvm.sh && nvm use 12.16.0 && node_modules/.bin/tsc -p tsconfig-codecov.json
+      - run: export NVM_DIR=/opt/circleci/.nvm && source /opt/circleci/.nvm/nvm.sh && nvm install 12.22.6 && nvm use 12.22.6
+      - run: export NVM_DIR=/opt/circleci/.nvm && source /opt/circleci/.nvm/nvm.sh && nvm use 12.22.6 && node_modules/.bin/tsc -p tsconfig-codecov.json
       - run: (sudo chmod -R 777 . && cd support/integration-testing && sudo mkdir -p .tmp/attachments/staging && sudo chmod -R 777 . && docker-compose -f docker-compose.newman.yml up --abort-on-container-exit --exit-code-from redboxportal && docker-compose -f docker-compose.mocha.yml up --abort-on-container-exit --exit-code-from redboxportal)
-      - run: export NVM_DIR=/opt/circleci/.nvm && source /opt/circleci/.nvm/nvm.sh && nvm use 12.16.0 && npm i -g codecov && codecov -t $CODECOV_TOKEN
-      - run: export NVM_DIR=/opt/circleci/.nvm && source /opt/circleci/.nvm/nvm.sh && nvm use 12.16.0 && node_modules/.bin/tsc
+      - run: export NVM_DIR=/opt/circleci/.nvm && source /opt/circleci/.nvm/nvm.sh && nvm use 12.22.6 && npm i -g codecov && codecov -t $CODECOV_TOKEN
+      - run: export NVM_DIR=/opt/circleci/.nvm && source /opt/circleci/.nvm/nvm.sh && nvm use 12.22.6 && node_modules/.bin/tsc
   deploy:
     docker:
       - image: 'cimg/base:stable'
     steps:
       - node/install:
-        node-version: 12.16.0
+        node-version: 12.22.6
       - setup_remote_docker
       - attach_workspace:
             at: /home/circleci/project
@@ -64,15 +62,6 @@ jobs:
             | sed 's/[", \t]//g')
             RBPORTAL_FILENAME=$(ls redbox-portal-*.tgz)
             curl -v -u $MAVEN_USER:$MAVEN_PASSWORD --upload-file $RBPORTAL_FILENAME "https://nexus-prod.redboxresearchdata.com.au/nexus/repository/maven-snapshots/au/edu/qcif/redbox-portal/${PACKAGE_VERSION}-SNAPSHOT/redbox-portal-${PACKAGE_VERSION}-SNAPSHOT.tgz"  
-  deploy-bcryptjs:
-    docker:
-      - image: 'cimg/base:stable'
-    steps:
-      - setup_remote_docker
-      - attach_workspace:
-            at: /home/circleci/project
-      - docker/install-docker-compose
-      - run: (chmod +x dockerhub_deploy.sh && ./dockerhub_deploy.sh bcryptjs)  
   generate-docs:
     machine: true
     steps:
@@ -81,13 +70,13 @@ jobs:
             - "50:0c:a1:7f:b6:64:84:42:01:61:0f:76:3f:e4:78:ff"
       - attach_workspace:
             at: /home/circleci/project
-      - run: export NVM_DIR=/opt/circleci/.nvm && source /opt/circleci/.nvm/nvm.sh && nvm install 12.16.0 && nvm use 12.16.0
-      - run: export NVM_DIR=/opt/circleci/.nvm && source /opt/circleci/.nvm/nvm.sh && nvm use 12.16.0 && npm run doc-ng2
+      - run: export NVM_DIR=/opt/circleci/.nvm && source /opt/circleci/.nvm/nvm.sh && nvm install 12.22.6 && nvm use 12.22.6
+      - run: export NVM_DIR=/opt/circleci/.nvm && source /opt/circleci/.nvm/nvm.sh && nvm use 12.22.6 && npm run doc-ng2
       - run: 
           command: |
             export NVM_DIR=/opt/circleci/.nvm
             source /opt/circleci/.nvm/nvm.sh
-            nvm use 12.16.0 
+            nvm use 12.22.6 
             npm install -g --silent gh-pages@2.0.1
             git config user.email "ci-build@redboxresearchdata.com.au"
             git config user.name "ci-build"
@@ -115,18 +104,6 @@ workflows:
           filters:
             branches:
               only: 'master'
-  build_bcryptjs_test_gendocs_and_deploy:
-    jobs:
-      - build-bcryptjs
-      - test:
-          requires:
-            - build-bcryptjs
-      - deploy-bcryptjs:
-          requires:
-            - test
-          filters:
-            branches:
-              ignore: /^dependabot.*/
   release_build_test_gendocs_and_deploy:
     jobs:
       - build:
@@ -146,30 +123,6 @@ workflows:
       - deploy:
           requires:
             - test     
-          filters:
-            tags:
-              only: /^v.*/
-            branches:
-              ignore: /.*/
-  release_bcryptjs_test_gendocs_and_deploy:
-    jobs:
-      - build-bcryptjs:
-          filters:
-            tags:
-              only: /^v.*/
-            branches:
-              ignore: /.*/
-      - test:
-          requires:
-            - build-bcryptjs
-          filters:
-            tags:
-              only: /^v.*/
-            branches:
-              ignore: /.*/
-      - deploy-bcryptjs:
-          requires:
-            - test
           filters:
             tags:
               only: /^v.*/
