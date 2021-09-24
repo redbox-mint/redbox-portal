@@ -106,12 +106,12 @@ workflows:
               only: 'master'
   build_test_dependabot:
     jobs:
-      - build_without_angular
-        filters:
-          branches:
-            only: /^dependabot.*/
-          tags:
-            ignore: /.*/
+      - build_without_angular:
+          filters:
+            branches:
+              only: /^dependabot.*/
+            tags:
+              ignore: /.*/
       - test:
           requires:
             - build_without_angular
