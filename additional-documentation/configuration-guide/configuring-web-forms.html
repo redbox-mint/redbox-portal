@@ -8,1005 +8,34 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
 
         <link rel="icon" type="image/x-icon" href="../../images/favicon.ico">
-	    <link rel="stylesheet" href="../../styles/style.css">
-                 <link rel="stylesheet" href="../../styles/postmark.css">
+	   <link rel="stylesheet" href="../../styles/style.css">
+        <link rel="stylesheet" href="../../styles/dark.css" media="(prefers-color-scheme: dark)">
+        <link rel="stylesheet" href="../../styles/postmark.css">
     </head>
     <body>
 
         <div class="navbar navbar-default navbar-fixed-top visible-xs">
             <a href="../../" class="navbar-brand">ReDBox Portal - NG2 Apps</a>
-            <button type="button" class="btn btn-default btn-menu fa fa-bars" id="btn-menu"></button>
+            <button type="button" class="btn btn-default btn-menu ion-ios-menu" id="btn-menu"></button>
         </div>
 
         <div class="xs-menu menu" id="mobile-menu">
-            <div id="book-search-input" role="search">
-                <input type="text" placeholder="Type to search">
-            </div>
-            <nav>
-            
-                <ul class="list">
-            
-                    <li class="title">
-                        <a href="../../index.html">ReDBox Portal - NG2 Apps</a>
-                    </li>
-            
-                    <li class="divider"></li>
-            
-            
-                    <li class="chapter">
-                        <a data-type="chapter-link" href="../../index.html"><span class="fa fa-home"></span>Getting started</a>
-                        <ul class="links">
-                                <li class="link">
-                                    <a 
-                                        
-                                         href="../../overview.html" 
-                                         href="../../overview.html" 
-                                        >
-                                        <span class="fa fa-th"></span>Overview
-                                    </a>
-                                </li>
-                                <li class="link">
-                                  <a href="../../index.html" ><span class="fa fa-file-text-o"></span>README</a>
-                                </li>
-                                <li class="link">
-                                        <a href="../../license.html"
-                                    >
-                                        <span class="fa fa-file-text-o"></span>LICENSE
-                                    </a>
-                                </li>
-                        </ul>
-                    </li>
-            
-                    <li class="chapter">
-                        <div class="simple menu-toggler" data-toggle="collapse"
-                                data-target="#xs-additional-pages"
-                            >
-                            <span class="fa fa-book"></span>
-                            <span>Additional documentation</span>
-                            <span class="fa fa-angle-down"></span>
-                        </div>
-                        <ul class="links collapse "
-                                id="xs-additional-pages"
-                            >
-                                <li class="link ">
-                                    <a href="../../additional-documentation/installation-guide.html" >Installation guide</a>
-                                </li>
-                                <li class="link ">
-                                    <a href="../../additional-documentation/configuration-guide.html" >Configuration guide</a>
-                                </li>
-                                <li class="link for-chapter">
-                                    <a href="../../additional-documentation/configuration-guide/configuring-web-forms.html"  data-type="entity-link" class="active" >Configuring web forms</a>
-                                </li>
-                                <li class="link for-chapter">
-                                    <a href="../../additional-documentation/configuration-guide/configuring-email-notifications.html" >Configuring email notifications</a>
-                                </li>
-                                <li class="link for-chapter">
-                                    <a href="../../additional-documentation/configuration-guide/configuring-integration-with-redbox-and-mint.html" >Configuring integration with RedBox and Mint</a>
-                                </li>
-                        </ul>
-                    </li>
-            
-                    <li class="chapter">
-                        <a data-type="chapter-link" href="../../modules.html" >
-                            <div class="menu-toggler linked" data-toggle="collapse"
-                                    data-target="#xs-modules-links"
-                            >
-                                <span class="fa fa-archive"></span>
-                                <span class="link-name">Modules</span>
-                                <span class="fa fa-angle-down"></span>
-                            </div>
-                        </a>
-                        <ul class="links collapse "
-                                id="xs-modules-links"
-                            >
-                                <li class="link">
-                                    <a href="../../modules/DashboardModule.html" >DashboardModule</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../../modules/DmpModule.html" >DmpModule</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../../modules/ExportModule.html" >ExportModule</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../../modules/LocalAuthModule.html" >LocalAuthModule</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../../modules/ManageRolesModule.html" >ManageRolesModule</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../../modules/ManageUsersModule.html" >ManageUsersModule</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../../modules/RecordSearchModule.html" >RecordSearchModule</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../../modules/ReportModule.html" >ReportModule</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../../modules/SharedModule.html" >SharedModule</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../../modules/TransferOwnerModule.html" >TransferOwnerModule</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../../modules/UserProfileModule.html" >UserProfileModule</a>
-                                </li>
-                        </ul>
-                    </li>
-            
-                    <li class="chapter">
-                        <div class="simple menu-toggler" data-toggle="collapse"
-                                data-target="#xs-components-links"
-                            >
-                            <span class="fa fa-cogs"></span>
-                            <span>Components</span>
-                            <span class="fa fa-angle-down"></span>
-                        </div>
-                        <ul class="links collapse "
-                                id="xs-components-links"
-                            >
-                                <li class="link">
-                                    <a href="../../components/AnchorOrButtonComponent.html" >AnchorOrButtonComponent</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../../components/ContributorComponent.html" >ContributorComponent</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../../components/DashboardComponent.html" >DashboardComponent</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../../components/DateTimeComponent.html" >DateTimeComponent</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../../components/DmpFieldComponent.html" >DmpFieldComponent</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../../components/DmpFormComponent.html" >DmpFormComponent</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../../components/DropdownFieldComponent.html" >DropdownFieldComponent</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../../components/ExportFormComponent.html" >ExportFormComponent</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../../components/HiddenValueComponent.html" >HiddenValueComponent</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../../components/HtmlRawComponent.html" >HtmlRawComponent</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../../components/LinkValueComponent.html" >LinkValueComponent</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../../components/LocalAuthComponent.html" >LocalAuthComponent</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../../components/ManageRolesComponent.html" >ManageRolesComponent</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../../components/ManageUsersComponent.html" >ManageUsersComponent</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../../components/RecordSearchComponent.html" >RecordSearchComponent</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../../components/RecordSearchRefinerComponent.html" >RecordSearchRefinerComponent</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../../components/RelatedObjectDataComponent.html" >RelatedObjectDataComponent</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../../components/RepeatableContributorComponent.html" >RepeatableContributorComponent</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../../components/RepeatableTextfieldComponent.html" >RepeatableTextfieldComponent</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../../components/RepeatableVocabComponent.html" >RepeatableVocabComponent</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../../components/ReportComponent.html" >ReportComponent</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../../components/SelectionFieldComponent.html" >SelectionFieldComponent</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../../components/TabOrAccordionContainerComponent.html" >TabOrAccordionContainerComponent</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../../components/TextAreaComponent.html" >TextAreaComponent</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../../components/TextBlockComponent.html" >TextBlockComponent</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../../components/TextFieldComponent.html" >TextFieldComponent</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../../components/TransferOwnerComponent.html" >TransferOwnerComponent</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../../components/UserProfileComponent.html" >UserProfileComponent</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../../components/VocabFieldComponent.html" >VocabFieldComponent</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../../components/WorkflowStepButtonComponent.html" >WorkflowStepButtonComponent</a>
-                                </li>
-                        </ul>
-                    </li>
-            
-            
-                    <li class="chapter">
-                        <div class="simple menu-toggler" data-toggle="collapse"
-                                data-target="#xs-classes-links"
-                            >
-                            <span class="fa fa-file-code-o"></span>
-                            <span>Classes</span>
-                            <span class="fa fa-angle-down"></span>
-                        </div>
-                        <ul class="links collapse "
-                                id="xs-classes-links"
-                            >
-                                <li class="link">
-                                    <a href="../../classes/AnchorOrButton.html" >AnchorOrButton</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../../classes/AppModuleInjector.html" >AppModuleInjector</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../../classes/AppModuleInjector.html" >AppModuleInjector</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../../classes/AppModuleInjector.html" >AppModuleInjector</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../../classes/AppModuleInjector.html" >AppModuleInjector</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../../classes/BaseService.html" >BaseService</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../../classes/Container.html" >Container</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../../classes/ContributorField.html" >ContributorField</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../../classes/DateTime.html" >DateTime</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../../classes/DmpModuleInjector.html" >DmpModuleInjector</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../../classes/EmbeddableComponent.html" >EmbeddableComponent</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../../classes/ExportModuleInjector.html" >ExportModuleInjector</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../../classes/FieldBase.html" >FieldBase</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../../classes/HiddenValue.html" >HiddenValue</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../../classes/LinkValue.html" >LinkValue</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../../classes/LoadableComponent.html" >LoadableComponent</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../../classes/LoginResult.html" >LoginResult</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../../classes/MintLookupDataService.html" >MintLookupDataService</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../../classes/Plan.html" >Plan</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../../classes/PlanTable.html" >PlanTable</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../../classes/RbValidator.html" >RbValidator</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../../classes/RecordActionResult.html" >RecordActionResult</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../../classes/RecordSearchModuleInjector.html" >RecordSearchModuleInjector</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../../classes/RecordSearchParams.html" >RecordSearchParams</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../../classes/RecordSearchRefiner.html" >RecordSearchRefiner</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../../classes/RelatedObjectDataField.html" >RelatedObjectDataField</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../../classes/RepeatableComponent.html" >RepeatableComponent</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../../classes/RepeatableContainer.html" >RepeatableContainer</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../../classes/RepeatableContributor.html" >RepeatableContributor</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../../classes/Report.html" >Report</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../../classes/ReportResults.html" >ReportResults</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../../classes/Role.html" >Role</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../../classes/SaveResult.html" >SaveResult</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../../classes/SelectionComponent.html" >SelectionComponent</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../../classes/SelectionField.html" >SelectionField</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../../classes/SharedModuleInjector.html" >SharedModuleInjector</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../../classes/SimpleComponent.html" >SimpleComponent</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../../classes/TabOrAccordionContainer.html" >TabOrAccordionContainer</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../../classes/TextArea.html" >TextArea</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../../classes/TextField.html" >TextField</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../../classes/TransferOwnerModuleInjector.html" >TransferOwnerModuleInjector</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../../classes/User.html" >User</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../../classes/VocabField.html" >VocabField</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../../classes/WorkflowStepButton.html" >WorkflowStepButton</a>
-                                </li>
-                        </ul>
-                    </li>
-            
-                    <li class="chapter">
-                        <div class="simple menu-toggler" data-toggle="collapse"
-                                data-target="#xs-injectables-links"
-                            >
-                            <span class="fa fa-long-arrow-down"></span>
-                            <span>Injectables</span>
-                            <span class="fa fa-angle-down"></span>
-                        </div>
-                        <ul class="links collapse "
-                                id="xs-injectables-links"
-                            >
-                                <li class="link">
-                                    <a href="../../injectables/ConfigService.html" >ConfigService</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../../injectables/DashboardService.html" >DashboardService</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../../injectables/EmailNotificationService.html" >EmailNotificationService</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../../injectables/FieldControlService.html" >FieldControlService</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../../injectables/RecordsService.html" >RecordsService</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../../injectables/ReportService.html" >ReportService</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../../injectables/RolesService.html" >RolesService</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../../injectables/TranslationService.html" >TranslationService</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../../injectables/UserSimpleService.html" >UserSimpleService</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../../injectables/UtilityService.html" >UtilityService</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../../injectables/VocabFieldLookupService.html" >VocabFieldLookupService</a>
-                                </li>
-                        </ul>
-                    </li>
-            
-            
-                    <li class="chapter">
-                        <div class="simple menu-toggler" data-toggle="collapse"
-                                data-target="#xs-interfaces-links"
-                            >
-                            <span class="fa fa-info"></span>
-                            <span>Interfaces</span>
-                            <span class="fa fa-angle-down"></span>
-                        </div>
-                        <ul class="links collapse "
-                                id="xs-interfaces-links"
-                            >
-                                <li class="link">
-                                    <a href="../../interfaces/UserForm.html" >UserForm</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../../interfaces/UserForm.html" >UserForm</a>
-                                </li>
-                        </ul>
-                    </li>
-            
-                    <li class="chapter">
-                        <div class="simple menu-toggler" data-toggle="collapse"
-                                data-target="#xs-pipes-links"
-                            >
-                            <span class="fa fa-plus"></span>
-                            <span>Pipes</span>
-                            <span class="fa fa-angle-down"></span>
-                        </div>
-                        <ul class="links collapse "
-                                id="xs-pipes-links"
-                            >
-                                <li class="link">
-                                    <a href="../../pipes/MultivalueFieldPipe.html" >MultivalueFieldPipe</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../../pipes/StringTemplatePipe.html" >StringTemplatePipe</a>
-                                </li>
-                        </ul>
-                    </li>
-            
-                    <li class="chapter">
-                        <div class="simple menu-toggler" data-toggle="collapse"
-                                data-target="#xs-miscellaneous-links"
-                            >
-                            <span class="fa fa-cubes"></span>
-                            <span>Miscellaneous</span>
-                            <span class="fa fa-angle-down"></span>
-                        </div>
-                        <ul class="links collapse "
-                                id="xs-miscellaneous-links"
-                            >
-                                <li class="link">
-                                  <a href="../../miscellaneous/functions.html" data-type="entity-link" >Functions</a>
-                                </li>
-                                <li class="link">
-                                  <a href="../../miscellaneous/variables.html" data-type="entity-link" >Variables</a>
-                                </li>
-                        </ul>
-                    </li>
-            
-            
-                    <li class="chapter">
-                        <a data-type="chapter-link" href="../../coverage.html" ><span class="fa fa-tasks"></span>Documentation coverage</a>
-                    </li>
-            
-                    <li class="divider"></li>
-                    <li class="copyright">
-                            Documentation generated using <a href="https://compodoc.github.io/website/" target="_blank">
-                                        <img src="../..//images/compodoc-vectorise-inverted.svg" class="img-responsive">
-                            </a>
-                    </li>
-            
-                </ul>
-            
-            </nav>
+                <div id="book-search-input" role="search"><input type="text" placeholder="Type to search"></div>            <compodoc-menu></compodoc-menu>
         </div>
 
         <div class="container-fluid main">
            <div class="row main">
                <div class="hidden-xs menu">
-                   <nav>
-                   
-                       <ul class="list">
-                   
-                           <li class="title">
-                               <a href="../../index.html">ReDBox Portal - NG2 Apps</a>
-                           </li>
-                   
-                           <li class="divider"></li>
-                   
-                               <div id="book-search-input" role="search">
-                                   <input type="text" placeholder="Type to search">
-                               </div>
-                   
-                           <li class="chapter">
-                               <a data-type="chapter-link" href="../../index.html"><span class="fa fa-home"></span>Getting started</a>
-                               <ul class="links">
-                                       <li class="link">
-                                           <a 
-                                               
-                                                href="../../overview.html" 
-                                                href="../../overview.html" 
-                                               >
-                                               <span class="fa fa-th"></span>Overview
-                                           </a>
-                                       </li>
-                                       <li class="link">
-                                         <a href="../../index.html" ><span class="fa fa-file-text-o"></span>README</a>
-                                       </li>
-                                       <li class="link">
-                                               <a href="../../license.html"
-                                           >
-                                               <span class="fa fa-file-text-o"></span>LICENSE
-                                           </a>
-                                       </li>
-                               </ul>
-                           </li>
-                   
-                           <li class="chapter">
-                               <div class="simple menu-toggler" data-toggle="collapse"
-                                       data-target="#additional-pages"
-                   >
-                                   <span class="fa fa-book"></span>
-                                   <span>Additional documentation</span>
-                                   <span class="fa fa-angle-down"></span>
-                               </div>
-                               <ul class="links collapse "
-                                       id="additional-pages"
-                   >
-                                       <li class="link ">
-                                           <a href="../../additional-documentation/installation-guide.html" >Installation guide</a>
-                                       </li>
-                                       <li class="link ">
-                                           <a href="../../additional-documentation/configuration-guide.html" >Configuration guide</a>
-                                       </li>
-                                       <li class="link for-chapter">
-                                           <a href="../../additional-documentation/configuration-guide/configuring-web-forms.html"  data-type="entity-link" class="active" >Configuring web forms</a>
-                                       </li>
-                                       <li class="link for-chapter">
-                                           <a href="../../additional-documentation/configuration-guide/configuring-email-notifications.html" >Configuring email notifications</a>
-                                       </li>
-                                       <li class="link for-chapter">
-                                           <a href="../../additional-documentation/configuration-guide/configuring-integration-with-redbox-and-mint.html" >Configuring integration with RedBox and Mint</a>
-                                       </li>
-                               </ul>
-                           </li>
-                   
-                           <li class="chapter">
-                               <a data-type="chapter-link" href="../../modules.html" >
-                                   <div class="menu-toggler linked" data-toggle="collapse"
-                                           data-target="#modules-links"
-                                   >
-                                       <span class="fa fa-archive"></span>
-                                       <span class="link-name">Modules</span>
-                                       <span class="fa fa-angle-down"></span>
-                                   </div>
-                               </a>
-                               <ul class="links collapse "
-                                       id="modules-links"
-                   >
-                                       <li class="link">
-                                           <a href="../../modules/DashboardModule.html" >DashboardModule</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../../modules/DmpModule.html" >DmpModule</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../../modules/ExportModule.html" >ExportModule</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../../modules/LocalAuthModule.html" >LocalAuthModule</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../../modules/ManageRolesModule.html" >ManageRolesModule</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../../modules/ManageUsersModule.html" >ManageUsersModule</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../../modules/RecordSearchModule.html" >RecordSearchModule</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../../modules/ReportModule.html" >ReportModule</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../../modules/SharedModule.html" >SharedModule</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../../modules/TransferOwnerModule.html" >TransferOwnerModule</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../../modules/UserProfileModule.html" >UserProfileModule</a>
-                                       </li>
-                               </ul>
-                           </li>
-                   
-                           <li class="chapter">
-                               <div class="simple menu-toggler" data-toggle="collapse"
-                                       data-target="#components-links"
-                   >
-                                   <span class="fa fa-cogs"></span>
-                                   <span>Components</span>
-                                   <span class="fa fa-angle-down"></span>
-                               </div>
-                               <ul class="links collapse "
-                                       id="components-links"
-                   >
-                                       <li class="link">
-                                           <a href="../../components/AnchorOrButtonComponent.html" >AnchorOrButtonComponent</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../../components/ContributorComponent.html" >ContributorComponent</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../../components/DashboardComponent.html" >DashboardComponent</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../../components/DateTimeComponent.html" >DateTimeComponent</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../../components/DmpFieldComponent.html" >DmpFieldComponent</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../../components/DmpFormComponent.html" >DmpFormComponent</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../../components/DropdownFieldComponent.html" >DropdownFieldComponent</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../../components/ExportFormComponent.html" >ExportFormComponent</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../../components/HiddenValueComponent.html" >HiddenValueComponent</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../../components/HtmlRawComponent.html" >HtmlRawComponent</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../../components/LinkValueComponent.html" >LinkValueComponent</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../../components/LocalAuthComponent.html" >LocalAuthComponent</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../../components/ManageRolesComponent.html" >ManageRolesComponent</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../../components/ManageUsersComponent.html" >ManageUsersComponent</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../../components/RecordSearchComponent.html" >RecordSearchComponent</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../../components/RecordSearchRefinerComponent.html" >RecordSearchRefinerComponent</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../../components/RelatedObjectDataComponent.html" >RelatedObjectDataComponent</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../../components/RepeatableContributorComponent.html" >RepeatableContributorComponent</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../../components/RepeatableTextfieldComponent.html" >RepeatableTextfieldComponent</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../../components/RepeatableVocabComponent.html" >RepeatableVocabComponent</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../../components/ReportComponent.html" >ReportComponent</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../../components/SelectionFieldComponent.html" >SelectionFieldComponent</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../../components/TabOrAccordionContainerComponent.html" >TabOrAccordionContainerComponent</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../../components/TextAreaComponent.html" >TextAreaComponent</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../../components/TextBlockComponent.html" >TextBlockComponent</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../../components/TextFieldComponent.html" >TextFieldComponent</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../../components/TransferOwnerComponent.html" >TransferOwnerComponent</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../../components/UserProfileComponent.html" >UserProfileComponent</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../../components/VocabFieldComponent.html" >VocabFieldComponent</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../../components/WorkflowStepButtonComponent.html" >WorkflowStepButtonComponent</a>
-                                       </li>
-                               </ul>
-                           </li>
-                   
-                   
-                           <li class="chapter">
-                               <div class="simple menu-toggler" data-toggle="collapse"
-                                       data-target="#classes-links"
-                   >
-                                   <span class="fa fa-file-code-o"></span>
-                                   <span>Classes</span>
-                                   <span class="fa fa-angle-down"></span>
-                               </div>
-                               <ul class="links collapse "
-                                       id="classes-links"
-                   >
-                                       <li class="link">
-                                           <a href="../../classes/AnchorOrButton.html" >AnchorOrButton</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../../classes/AppModuleInjector.html" >AppModuleInjector</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../../classes/AppModuleInjector.html" >AppModuleInjector</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../../classes/AppModuleInjector.html" >AppModuleInjector</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../../classes/AppModuleInjector.html" >AppModuleInjector</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../../classes/BaseService.html" >BaseService</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../../classes/Container.html" >Container</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../../classes/ContributorField.html" >ContributorField</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../../classes/DateTime.html" >DateTime</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../../classes/DmpModuleInjector.html" >DmpModuleInjector</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../../classes/EmbeddableComponent.html" >EmbeddableComponent</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../../classes/ExportModuleInjector.html" >ExportModuleInjector</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../../classes/FieldBase.html" >FieldBase</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../../classes/HiddenValue.html" >HiddenValue</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../../classes/LinkValue.html" >LinkValue</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../../classes/LoadableComponent.html" >LoadableComponent</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../../classes/LoginResult.html" >LoginResult</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../../classes/MintLookupDataService.html" >MintLookupDataService</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../../classes/Plan.html" >Plan</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../../classes/PlanTable.html" >PlanTable</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../../classes/RbValidator.html" >RbValidator</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../../classes/RecordActionResult.html" >RecordActionResult</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../../classes/RecordSearchModuleInjector.html" >RecordSearchModuleInjector</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../../classes/RecordSearchParams.html" >RecordSearchParams</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../../classes/RecordSearchRefiner.html" >RecordSearchRefiner</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../../classes/RelatedObjectDataField.html" >RelatedObjectDataField</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../../classes/RepeatableComponent.html" >RepeatableComponent</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../../classes/RepeatableContainer.html" >RepeatableContainer</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../../classes/RepeatableContributor.html" >RepeatableContributor</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../../classes/Report.html" >Report</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../../classes/ReportResults.html" >ReportResults</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../../classes/Role.html" >Role</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../../classes/SaveResult.html" >SaveResult</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../../classes/SelectionComponent.html" >SelectionComponent</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../../classes/SelectionField.html" >SelectionField</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../../classes/SharedModuleInjector.html" >SharedModuleInjector</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../../classes/SimpleComponent.html" >SimpleComponent</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../../classes/TabOrAccordionContainer.html" >TabOrAccordionContainer</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../../classes/TextArea.html" >TextArea</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../../classes/TextField.html" >TextField</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../../classes/TransferOwnerModuleInjector.html" >TransferOwnerModuleInjector</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../../classes/User.html" >User</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../../classes/VocabField.html" >VocabField</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../../classes/WorkflowStepButton.html" >WorkflowStepButton</a>
-                                       </li>
-                               </ul>
-                           </li>
-                   
-                           <li class="chapter">
-                               <div class="simple menu-toggler" data-toggle="collapse"
-                                       data-target="#injectables-links"
-                   >
-                                   <span class="fa fa-long-arrow-down"></span>
-                                   <span>Injectables</span>
-                                   <span class="fa fa-angle-down"></span>
-                               </div>
-                               <ul class="links collapse "
-                                       id="injectables-links"
-                   >
-                                       <li class="link">
-                                           <a href="../../injectables/ConfigService.html" >ConfigService</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../../injectables/DashboardService.html" >DashboardService</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../../injectables/EmailNotificationService.html" >EmailNotificationService</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../../injectables/FieldControlService.html" >FieldControlService</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../../injectables/RecordsService.html" >RecordsService</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../../injectables/ReportService.html" >ReportService</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../../injectables/RolesService.html" >RolesService</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../../injectables/TranslationService.html" >TranslationService</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../../injectables/UserSimpleService.html" >UserSimpleService</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../../injectables/UtilityService.html" >UtilityService</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../../injectables/VocabFieldLookupService.html" >VocabFieldLookupService</a>
-                                       </li>
-                               </ul>
-                           </li>
-                   
-                   
-                           <li class="chapter">
-                               <div class="simple menu-toggler" data-toggle="collapse"
-                                       data-target="#interfaces-links"
-                   >
-                                   <span class="fa fa-info"></span>
-                                   <span>Interfaces</span>
-                                   <span class="fa fa-angle-down"></span>
-                               </div>
-                               <ul class="links collapse "
-                                       id="interfaces-links"
-                   >
-                                       <li class="link">
-                                           <a href="../../interfaces/UserForm.html" >UserForm</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../../interfaces/UserForm.html" >UserForm</a>
-                                       </li>
-                               </ul>
-                           </li>
-                   
-                           <li class="chapter">
-                               <div class="simple menu-toggler" data-toggle="collapse"
-                                       data-target="#pipes-links"
-                   >
-                                   <span class="fa fa-plus"></span>
-                                   <span>Pipes</span>
-                                   <span class="fa fa-angle-down"></span>
-                               </div>
-                               <ul class="links collapse "
-                                       id="pipes-links"
-                   >
-                                       <li class="link">
-                                           <a href="../../pipes/MultivalueFieldPipe.html" >MultivalueFieldPipe</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../../pipes/StringTemplatePipe.html" >StringTemplatePipe</a>
-                                       </li>
-                               </ul>
-                           </li>
-                   
-                           <li class="chapter">
-                               <div class="simple menu-toggler" data-toggle="collapse"
-                                       data-target="#miscellaneous-links"
-                   >
-                                   <span class="fa fa-cubes"></span>
-                                   <span>Miscellaneous</span>
-                                   <span class="fa fa-angle-down"></span>
-                               </div>
-                               <ul class="links collapse "
-                                       id="miscellaneous-links"
-                   >
-                                       <li class="link">
-                                         <a href="../../miscellaneous/functions.html" data-type="entity-link" >Functions</a>
-                                       </li>
-                                       <li class="link">
-                                         <a href="../../miscellaneous/variables.html" data-type="entity-link" >Variables</a>
-                                       </li>
-                               </ul>
-                           </li>
-                   
-                   
-                           <li class="chapter">
-                               <a data-type="chapter-link" href="../../coverage.html" ><span class="fa fa-tasks"></span>Documentation coverage</a>
-                           </li>
-                   
-                           <li class="divider"></li>
-                           <li class="copyright">
-                                   Documentation generated using <a href="https://compodoc.github.io/website/" target="_blank">
-                                               <img src="../..//images/compodoc-vectorise-inverted.svg" class="img-responsive">
-                                   </a>
-                           </li>
-                   
-                       </ul>
-                   
-                   </nav>
+                   <compodoc-menu mode="normal"></compodoc-menu>
                </div>
+               <!-- START CONTENT -->
                <div class="content additional-page">
                    <div class="content-data">
+
+
+
+
+
 
 
 
@@ -1030,13 +59,13 @@
 <p>Record Types are configured in the <code>config/recordtype.js</code> file.</p>
 <p>The record type configuration defines the record type (e.g. a research data managment plan record) and what fields in the record should be displayed on the search interface for the purposes of filtering and faceting.</p>
 <p>Record&#39;s are configured via the config/workflow.js file and specifies the workflow stages a record can transition through and the roles that are permitted to view and edit a record for each workflow stage.</p>
-<pre class="line-numbers"><code class="language-none">&lt;record-type&gt;
+<div><pre class="line-numbers"><code class="language-none">&lt;record-type&gt;
 |
 |- search-filters []
     |- name
     |- title
     |- type
-    |- typeLabel</code></pre><p>Where &lt;&gt; are property labels that are variables.</p>
+    |- typeLabel</code></pre></div><p>Where &lt;&gt; are property labels that are variables.</p>
 <table class="table table-bordered compodoc-table">
 <thead>
 <tr>
@@ -1080,7 +109,7 @@
 </tbody>
 </table>
 <h4 id="example">Example</h4>
-<pre class="line-numbers"><code class="language-none">&quot;rdmp&quot;: {
+<div><pre class="line-numbers"><code class="language-none">&quot;rdmp&quot;: {
   searchFilters: [
     {
       name: &quot;text_title&quot;,
@@ -1116,9 +145,9 @@
       alwaysActive: true
     }
   ]
-}</code></pre><h2 id="workflow-configuration">Workflow Configuration</h2>
+}</code></pre></div><h2 id="workflow-configuration">Workflow Configuration</h2>
 <p>The structure of the configuration is as follows</p>
-<pre class="line-numbers"><code class="language-none">&lt;record-type&gt;
+<div><pre class="line-numbers"><code class="language-none">&lt;record-type&gt;
 |
 |- &lt;workflow-stage&gt;
     |
@@ -1134,7 +163,7 @@
             |- viewRoles
             |- editRoles
         |- form
-    |- starting</code></pre><p>Where &lt;&gt; are property labels that are variables.</p>
+    |- starting</code></pre></div><p>Where &lt;&gt; are property labels that are variables.</p>
 <table class="table table-bordered compodoc-table">
 <thead>
 <tr>
@@ -1201,8 +230,8 @@
 </tr>
 </tbody>
 </table>
-<h4 id="example">Example</h4>
-<pre class="line-numbers"><code class="language-none">&quot;rdmp&quot;: {
+<h4 id="example-1">Example</h4>
+<div><pre class="line-numbers"><code class="language-none">&quot;rdmp&quot;: {
     &quot;draft&quot;: {
       config: {
         workflow: {
@@ -1217,10 +246,10 @@
         form: &#39;rdmp-1.0-draft&#39;
       },
       starting: true
-    },</code></pre><h2 id="form-view-configuration">Form/view configuration</h2>
+    },</code></pre></div><h2 id="formview-configuration">Form/view configuration</h2>
 <p>The form and view layout is configured via config/form.js file.</p>
 <p>The structure of the configuration file is as follows</p>
-<pre class="line-numbers"><code class="language-none">defaultForm
+<div><pre class="line-numbers"><code class="language-none">defaultForm
 |
 |- forms
     |
@@ -1242,7 +271,8 @@
             |- viewOnly
             |- definition
                 |
-                |- &lt;component specific properties&gt;</code></pre><h3 id="form-wide-configuration">Form-wide configuration</h3>
+                |- &lt;component specific properties&gt;
+</code></pre></div><h3 id="form-wide-configuration">Form-wide configuration</h3>
 <p>The settings in this section control the behaviour of the entire form.</p>
 <table class="table table-bordered compodoc-table">
 <thead>
@@ -1336,8 +366,8 @@
 </tr>
 </tbody>
 </table>
-<h3 id="example">Example</h3>
-<pre class="line-numbers"><code class="language-none">fields: [
+<h3 id="example-2">Example</h3>
+<div><pre class="line-numbers"><code class="language-none">fields: [
   {
     class: &#39;Container&#39;,
     compClass: &#39;TextBlockComponent&#39;,
@@ -1346,7 +376,7 @@
       name: &#39;title&#39;,
       type: &#39;h1&#39;
     }
-  },</code></pre><h2 id="language-configuration">Language Configuration</h2>
+  },</code></pre></div><h2 id="language-configuration">Language Configuration</h2>
 <p>Messages in the system can be configured using Language files. This allows for internationalisation of the portal as well as editing in a translation management system such as <a href="https://locize.com">Locize</a>.</p>
 <p>The application uses <a href="https://www.i18next.com/">i18next</a> to render the messages and the language files are kept in the assests/locales/<language> directories.</p>
 <p>Please see the <a href="https://www.i18next.com/essentials.html">i18next documentation</a> for more information on how the language file is structured and it&#39;s features.</p>
@@ -1361,8 +391,22 @@
     </div>
 </div>
 </div>
+               <!-- END CONTENT -->
            </div>
        </div>
+
+       <script>
+            var COMPODOC_CURRENT_PAGE_DEPTH = 2;
+            var COMPODOC_CURRENT_PAGE_CONTEXT = 'additional-page';
+            var COMPODOC_CURRENT_PAGE_URL = 'configuring-web-forms.html';
+            var MAX_SEARCH_RESULTS = 15;
+       </script>
+
+       <script src="../../js/libs/custom-elements.min.js"></script>
+       <script src="../../js/libs/lit-html.js"></script>
+
+       <script src="../../js/menu-wc.js" defer></script>
+       <script nomodule src="../../js/menu-wc_es5.js" defer></script>
 
        <script src="../../js/libs/bootstrap-native.js"></script>
 
@@ -1373,17 +417,17 @@
 
        <script src="../../js/compodoc.js"></script>
 
-       <script>var COMPODOC_CURRENT_PAGE_DEPTH = 2;</script>
-
-       <script src="../../js/search/search.js"></script>
-       <script src="../../js/search/lunr.min.js"></script>
-       <script src="../../js/search/search-lunr.js"></script>
-
        <script src="../../js/tabs.js"></script>
        <script src="../../js/menu.js"></script>
+       <script src="../../js/libs/clipboard.min.js"></script>
        <script src="../../js/libs/prism.js"></script>
        <script src="../../js/sourceCode.js"></script>
-       <script src="../../js/search/search_index.js"></script>
+          <script src="../../js/search/search.js"></script>
+          <script src="../../js/search/lunr.min.js"></script>
+          <script src="../../js/search/search-lunr.js"></script>
+          <script src="../../js/search/search_index.js"></script>
+       <script src="../../js/lazy-load-graphs.js"></script>
+
 
     </body>
 </html>

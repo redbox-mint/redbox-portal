@@ -8,1003 +8,27 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
 
         <link rel="icon" type="image/x-icon" href="../images/favicon.ico">
-	    <link rel="stylesheet" href="../styles/style.css">
-                 <link rel="stylesheet" href="../styles/postmark.css">
+	   <link rel="stylesheet" href="../styles/style.css">
+        <link rel="stylesheet" href="../styles/dark.css" media="(prefers-color-scheme: dark)">
+        <link rel="stylesheet" href="../styles/postmark.css">
     </head>
     <body>
 
         <div class="navbar navbar-default navbar-fixed-top visible-xs">
             <a href="../" class="navbar-brand">ReDBox Portal - NG2 Apps</a>
-            <button type="button" class="btn btn-default btn-menu fa fa-bars" id="btn-menu"></button>
+            <button type="button" class="btn btn-default btn-menu ion-ios-menu" id="btn-menu"></button>
         </div>
 
         <div class="xs-menu menu" id="mobile-menu">
-            <div id="book-search-input" role="search">
-                <input type="text" placeholder="Type to search">
-            </div>
-            <nav>
-            
-                <ul class="list">
-            
-                    <li class="title">
-                        <a href="../index.html">ReDBox Portal - NG2 Apps</a>
-                    </li>
-            
-                    <li class="divider"></li>
-            
-            
-                    <li class="chapter">
-                        <a data-type="chapter-link" href="../index.html"><span class="fa fa-home"></span>Getting started</a>
-                        <ul class="links">
-                                <li class="link">
-                                    <a 
-                                        
-                                         href="../overview.html" 
-                                         href="../overview.html" 
-                                        >
-                                        <span class="fa fa-th"></span>Overview
-                                    </a>
-                                </li>
-                                <li class="link">
-                                  <a href="../index.html" ><span class="fa fa-file-text-o"></span>README</a>
-                                </li>
-                                <li class="link">
-                                        <a href="../license.html"
-                                    >
-                                        <span class="fa fa-file-text-o"></span>LICENSE
-                                    </a>
-                                </li>
-                        </ul>
-                    </li>
-            
-                    <li class="chapter">
-                        <div class="simple menu-toggler" data-toggle="collapse"
-                                data-target="#xs-additional-pages"
-                            >
-                            <span class="fa fa-book"></span>
-                            <span>Additional documentation</span>
-                            <span class="fa fa-angle-down"></span>
-                        </div>
-                        <ul class="links collapse "
-                                id="xs-additional-pages"
-                            >
-                                <li class="link ">
-                                    <a href="../additional-documentation/installation-guide.html" >Installation guide</a>
-                                </li>
-                                <li class="link ">
-                                    <a href="../additional-documentation/configuration-guide.html" >Configuration guide</a>
-                                </li>
-                                <li class="link for-chapter">
-                                    <a href="../additional-documentation/configuration-guide/configuring-web-forms.html" >Configuring web forms</a>
-                                </li>
-                                <li class="link for-chapter">
-                                    <a href="../additional-documentation/configuration-guide/configuring-email-notifications.html" >Configuring email notifications</a>
-                                </li>
-                                <li class="link for-chapter">
-                                    <a href="../additional-documentation/configuration-guide/configuring-integration-with-redbox-and-mint.html" >Configuring integration with RedBox and Mint</a>
-                                </li>
-                        </ul>
-                    </li>
-            
-                    <li class="chapter">
-                        <a data-type="chapter-link" href="../modules.html" >
-                            <div class="menu-toggler linked" data-toggle="collapse"
-                                    data-target="#xs-modules-links"
-                            >
-                                <span class="fa fa-archive"></span>
-                                <span class="link-name">Modules</span>
-                                <span class="fa fa-angle-down"></span>
-                            </div>
-                        </a>
-                        <ul class="links collapse "
-                                id="xs-modules-links"
-                            >
-                                <li class="link">
-                                    <a href="../modules/DashboardModule.html" >DashboardModule</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../modules/DmpModule.html" >DmpModule</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../modules/ExportModule.html" >ExportModule</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../modules/LocalAuthModule.html" >LocalAuthModule</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../modules/ManageRolesModule.html" >ManageRolesModule</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../modules/ManageUsersModule.html" >ManageUsersModule</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../modules/RecordSearchModule.html" >RecordSearchModule</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../modules/ReportModule.html" >ReportModule</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../modules/SharedModule.html" >SharedModule</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../modules/TransferOwnerModule.html" >TransferOwnerModule</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../modules/UserProfileModule.html" >UserProfileModule</a>
-                                </li>
-                        </ul>
-                    </li>
-            
-                    <li class="chapter">
-                        <div class="simple menu-toggler" data-toggle="collapse"
-                                data-target="#xs-components-links"
-                            >
-                            <span class="fa fa-cogs"></span>
-                            <span>Components</span>
-                            <span class="fa fa-angle-down"></span>
-                        </div>
-                        <ul class="links collapse "
-                                id="xs-components-links"
-                            >
-                                <li class="link">
-                                    <a href="../components/AnchorOrButtonComponent.html" >AnchorOrButtonComponent</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../components/ContributorComponent.html" >ContributorComponent</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../components/DashboardComponent.html" >DashboardComponent</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../components/DateTimeComponent.html" >DateTimeComponent</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../components/DmpFieldComponent.html" >DmpFieldComponent</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../components/DmpFormComponent.html" >DmpFormComponent</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../components/DropdownFieldComponent.html" >DropdownFieldComponent</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../components/ExportFormComponent.html" >ExportFormComponent</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../components/HiddenValueComponent.html" >HiddenValueComponent</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../components/HtmlRawComponent.html" >HtmlRawComponent</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../components/LinkValueComponent.html" >LinkValueComponent</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../components/LocalAuthComponent.html" >LocalAuthComponent</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../components/ManageRolesComponent.html" >ManageRolesComponent</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../components/ManageUsersComponent.html" >ManageUsersComponent</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../components/RecordSearchComponent.html" >RecordSearchComponent</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../components/RecordSearchRefinerComponent.html" >RecordSearchRefinerComponent</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../components/RelatedObjectDataComponent.html" >RelatedObjectDataComponent</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../components/RepeatableContributorComponent.html" >RepeatableContributorComponent</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../components/RepeatableTextfieldComponent.html" >RepeatableTextfieldComponent</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../components/RepeatableVocabComponent.html" >RepeatableVocabComponent</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../components/ReportComponent.html" >ReportComponent</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../components/SelectionFieldComponent.html" >SelectionFieldComponent</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../components/TabOrAccordionContainerComponent.html" >TabOrAccordionContainerComponent</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../components/TextAreaComponent.html" >TextAreaComponent</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../components/TextBlockComponent.html" >TextBlockComponent</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../components/TextFieldComponent.html" >TextFieldComponent</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../components/TransferOwnerComponent.html" >TransferOwnerComponent</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../components/UserProfileComponent.html" >UserProfileComponent</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../components/VocabFieldComponent.html" >VocabFieldComponent</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../components/WorkflowStepButtonComponent.html" >WorkflowStepButtonComponent</a>
-                                </li>
-                        </ul>
-                    </li>
-            
-            
-                    <li class="chapter">
-                        <div class="simple menu-toggler" data-toggle="collapse"
-                                data-target="#xs-classes-links"
-                            >
-                            <span class="fa fa-file-code-o"></span>
-                            <span>Classes</span>
-                            <span class="fa fa-angle-down"></span>
-                        </div>
-                        <ul class="links collapse "
-                                id="xs-classes-links"
-                            >
-                                <li class="link">
-                                    <a href="../classes/AnchorOrButton.html" >AnchorOrButton</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../classes/AppModuleInjector.html" >AppModuleInjector</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../classes/AppModuleInjector.html" >AppModuleInjector</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../classes/AppModuleInjector.html" >AppModuleInjector</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../classes/AppModuleInjector.html" >AppModuleInjector</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../classes/BaseService.html" >BaseService</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../classes/Container.html" >Container</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../classes/ContributorField.html" >ContributorField</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../classes/DateTime.html" >DateTime</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../classes/DmpModuleInjector.html" >DmpModuleInjector</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../classes/EmbeddableComponent.html" >EmbeddableComponent</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../classes/ExportModuleInjector.html" >ExportModuleInjector</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../classes/FieldBase.html" >FieldBase</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../classes/HiddenValue.html" >HiddenValue</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../classes/LinkValue.html" >LinkValue</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../classes/LoadableComponent.html" >LoadableComponent</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../classes/LoginResult.html" >LoginResult</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../classes/MintLookupDataService.html" >MintLookupDataService</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../classes/Plan.html" >Plan</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../classes/PlanTable.html" >PlanTable</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../classes/RbValidator.html" >RbValidator</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../classes/RecordActionResult.html" >RecordActionResult</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../classes/RecordSearchModuleInjector.html" >RecordSearchModuleInjector</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../classes/RecordSearchParams.html" >RecordSearchParams</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../classes/RecordSearchRefiner.html" >RecordSearchRefiner</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../classes/RelatedObjectDataField.html" >RelatedObjectDataField</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../classes/RepeatableComponent.html" >RepeatableComponent</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../classes/RepeatableContainer.html" >RepeatableContainer</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../classes/RepeatableContributor.html" >RepeatableContributor</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../classes/Report.html" >Report</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../classes/ReportResults.html" >ReportResults</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../classes/Role.html" >Role</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../classes/SaveResult.html" >SaveResult</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../classes/SelectionComponent.html" >SelectionComponent</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../classes/SelectionField.html" >SelectionField</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../classes/SharedModuleInjector.html" >SharedModuleInjector</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../classes/SimpleComponent.html" >SimpleComponent</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../classes/TabOrAccordionContainer.html" >TabOrAccordionContainer</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../classes/TextArea.html" >TextArea</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../classes/TextField.html" >TextField</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../classes/TransferOwnerModuleInjector.html" >TransferOwnerModuleInjector</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../classes/User.html" >User</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../classes/VocabField.html" >VocabField</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../classes/WorkflowStepButton.html" >WorkflowStepButton</a>
-                                </li>
-                        </ul>
-                    </li>
-            
-                    <li class="chapter">
-                        <div class="simple menu-toggler" data-toggle="collapse"
-                                data-target="#xs-injectables-links"
-                            >
-                            <span class="fa fa-long-arrow-down"></span>
-                            <span>Injectables</span>
-                            <span class="fa fa-angle-down"></span>
-                        </div>
-                        <ul class="links collapse "
-                                id="xs-injectables-links"
-                            >
-                                <li class="link">
-                                    <a href="../injectables/ConfigService.html" >ConfigService</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../injectables/DashboardService.html" >DashboardService</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../injectables/EmailNotificationService.html" >EmailNotificationService</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../injectables/FieldControlService.html" >FieldControlService</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../injectables/RecordsService.html" >RecordsService</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../injectables/ReportService.html" >ReportService</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../injectables/RolesService.html" >RolesService</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../injectables/TranslationService.html" >TranslationService</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../injectables/UserSimpleService.html" >UserSimpleService</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../injectables/UtilityService.html"  data-type="entity-link" class="active" >UtilityService</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../injectables/VocabFieldLookupService.html" >VocabFieldLookupService</a>
-                                </li>
-                        </ul>
-                    </li>
-            
-            
-                    <li class="chapter">
-                        <div class="simple menu-toggler" data-toggle="collapse"
-                                data-target="#xs-interfaces-links"
-                            >
-                            <span class="fa fa-info"></span>
-                            <span>Interfaces</span>
-                            <span class="fa fa-angle-down"></span>
-                        </div>
-                        <ul class="links collapse "
-                                id="xs-interfaces-links"
-                            >
-                                <li class="link">
-                                    <a href="../interfaces/UserForm.html" >UserForm</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../interfaces/UserForm.html" >UserForm</a>
-                                </li>
-                        </ul>
-                    </li>
-            
-                    <li class="chapter">
-                        <div class="simple menu-toggler" data-toggle="collapse"
-                                data-target="#xs-pipes-links"
-                            >
-                            <span class="fa fa-plus"></span>
-                            <span>Pipes</span>
-                            <span class="fa fa-angle-down"></span>
-                        </div>
-                        <ul class="links collapse "
-                                id="xs-pipes-links"
-                            >
-                                <li class="link">
-                                    <a href="../pipes/MultivalueFieldPipe.html" >MultivalueFieldPipe</a>
-                                </li>
-                                <li class="link">
-                                    <a href="../pipes/StringTemplatePipe.html" >StringTemplatePipe</a>
-                                </li>
-                        </ul>
-                    </li>
-            
-                    <li class="chapter">
-                        <div class="simple menu-toggler" data-toggle="collapse"
-                                data-target="#xs-miscellaneous-links"
-                            >
-                            <span class="fa fa-cubes"></span>
-                            <span>Miscellaneous</span>
-                            <span class="fa fa-angle-down"></span>
-                        </div>
-                        <ul class="links collapse "
-                                id="xs-miscellaneous-links"
-                            >
-                                <li class="link">
-                                  <a href="../miscellaneous/functions.html" data-type="entity-link" >Functions</a>
-                                </li>
-                                <li class="link">
-                                  <a href="../miscellaneous/variables.html" data-type="entity-link" >Variables</a>
-                                </li>
-                        </ul>
-                    </li>
-            
-            
-                    <li class="chapter">
-                        <a data-type="chapter-link" href="../coverage.html" ><span class="fa fa-tasks"></span>Documentation coverage</a>
-                    </li>
-            
-                    <li class="divider"></li>
-                    <li class="copyright">
-                            Documentation generated using <a href="https://compodoc.github.io/website/" target="_blank">
-                                        <img src="..//images/compodoc-vectorise-inverted.svg" class="img-responsive">
-                            </a>
-                    </li>
-            
-                </ul>
-            
-            </nav>
+                <div id="book-search-input" role="search"><input type="text" placeholder="Type to search"></div>            <compodoc-menu></compodoc-menu>
         </div>
 
         <div class="container-fluid main">
            <div class="row main">
                <div class="hidden-xs menu">
-                   <nav>
-                   
-                       <ul class="list">
-                   
-                           <li class="title">
-                               <a href="../index.html">ReDBox Portal - NG2 Apps</a>
-                           </li>
-                   
-                           <li class="divider"></li>
-                   
-                               <div id="book-search-input" role="search">
-                                   <input type="text" placeholder="Type to search">
-                               </div>
-                   
-                           <li class="chapter">
-                               <a data-type="chapter-link" href="../index.html"><span class="fa fa-home"></span>Getting started</a>
-                               <ul class="links">
-                                       <li class="link">
-                                           <a 
-                                               
-                                                href="../overview.html" 
-                                                href="../overview.html" 
-                                               >
-                                               <span class="fa fa-th"></span>Overview
-                                           </a>
-                                       </li>
-                                       <li class="link">
-                                         <a href="../index.html" ><span class="fa fa-file-text-o"></span>README</a>
-                                       </li>
-                                       <li class="link">
-                                               <a href="../license.html"
-                                           >
-                                               <span class="fa fa-file-text-o"></span>LICENSE
-                                           </a>
-                                       </li>
-                               </ul>
-                           </li>
-                   
-                           <li class="chapter">
-                               <div class="simple menu-toggler" data-toggle="collapse"
-                                       data-target="#additional-pages"
-                   >
-                                   <span class="fa fa-book"></span>
-                                   <span>Additional documentation</span>
-                                   <span class="fa fa-angle-down"></span>
-                               </div>
-                               <ul class="links collapse "
-                                       id="additional-pages"
-                   >
-                                       <li class="link ">
-                                           <a href="../additional-documentation/installation-guide.html" >Installation guide</a>
-                                       </li>
-                                       <li class="link ">
-                                           <a href="../additional-documentation/configuration-guide.html" >Configuration guide</a>
-                                       </li>
-                                       <li class="link for-chapter">
-                                           <a href="../additional-documentation/configuration-guide/configuring-web-forms.html" >Configuring web forms</a>
-                                       </li>
-                                       <li class="link for-chapter">
-                                           <a href="../additional-documentation/configuration-guide/configuring-email-notifications.html" >Configuring email notifications</a>
-                                       </li>
-                                       <li class="link for-chapter">
-                                           <a href="../additional-documentation/configuration-guide/configuring-integration-with-redbox-and-mint.html" >Configuring integration with RedBox and Mint</a>
-                                       </li>
-                               </ul>
-                           </li>
-                   
-                           <li class="chapter">
-                               <a data-type="chapter-link" href="../modules.html" >
-                                   <div class="menu-toggler linked" data-toggle="collapse"
-                                           data-target="#modules-links"
-                                   >
-                                       <span class="fa fa-archive"></span>
-                                       <span class="link-name">Modules</span>
-                                       <span class="fa fa-angle-down"></span>
-                                   </div>
-                               </a>
-                               <ul class="links collapse "
-                                       id="modules-links"
-                   >
-                                       <li class="link">
-                                           <a href="../modules/DashboardModule.html" >DashboardModule</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../modules/DmpModule.html" >DmpModule</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../modules/ExportModule.html" >ExportModule</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../modules/LocalAuthModule.html" >LocalAuthModule</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../modules/ManageRolesModule.html" >ManageRolesModule</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../modules/ManageUsersModule.html" >ManageUsersModule</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../modules/RecordSearchModule.html" >RecordSearchModule</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../modules/ReportModule.html" >ReportModule</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../modules/SharedModule.html" >SharedModule</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../modules/TransferOwnerModule.html" >TransferOwnerModule</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../modules/UserProfileModule.html" >UserProfileModule</a>
-                                       </li>
-                               </ul>
-                           </li>
-                   
-                           <li class="chapter">
-                               <div class="simple menu-toggler" data-toggle="collapse"
-                                       data-target="#components-links"
-                   >
-                                   <span class="fa fa-cogs"></span>
-                                   <span>Components</span>
-                                   <span class="fa fa-angle-down"></span>
-                               </div>
-                               <ul class="links collapse "
-                                       id="components-links"
-                   >
-                                       <li class="link">
-                                           <a href="../components/AnchorOrButtonComponent.html" >AnchorOrButtonComponent</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../components/ContributorComponent.html" >ContributorComponent</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../components/DashboardComponent.html" >DashboardComponent</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../components/DateTimeComponent.html" >DateTimeComponent</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../components/DmpFieldComponent.html" >DmpFieldComponent</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../components/DmpFormComponent.html" >DmpFormComponent</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../components/DropdownFieldComponent.html" >DropdownFieldComponent</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../components/ExportFormComponent.html" >ExportFormComponent</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../components/HiddenValueComponent.html" >HiddenValueComponent</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../components/HtmlRawComponent.html" >HtmlRawComponent</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../components/LinkValueComponent.html" >LinkValueComponent</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../components/LocalAuthComponent.html" >LocalAuthComponent</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../components/ManageRolesComponent.html" >ManageRolesComponent</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../components/ManageUsersComponent.html" >ManageUsersComponent</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../components/RecordSearchComponent.html" >RecordSearchComponent</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../components/RecordSearchRefinerComponent.html" >RecordSearchRefinerComponent</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../components/RelatedObjectDataComponent.html" >RelatedObjectDataComponent</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../components/RepeatableContributorComponent.html" >RepeatableContributorComponent</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../components/RepeatableTextfieldComponent.html" >RepeatableTextfieldComponent</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../components/RepeatableVocabComponent.html" >RepeatableVocabComponent</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../components/ReportComponent.html" >ReportComponent</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../components/SelectionFieldComponent.html" >SelectionFieldComponent</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../components/TabOrAccordionContainerComponent.html" >TabOrAccordionContainerComponent</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../components/TextAreaComponent.html" >TextAreaComponent</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../components/TextBlockComponent.html" >TextBlockComponent</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../components/TextFieldComponent.html" >TextFieldComponent</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../components/TransferOwnerComponent.html" >TransferOwnerComponent</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../components/UserProfileComponent.html" >UserProfileComponent</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../components/VocabFieldComponent.html" >VocabFieldComponent</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../components/WorkflowStepButtonComponent.html" >WorkflowStepButtonComponent</a>
-                                       </li>
-                               </ul>
-                           </li>
-                   
-                   
-                           <li class="chapter">
-                               <div class="simple menu-toggler" data-toggle="collapse"
-                                       data-target="#classes-links"
-                   >
-                                   <span class="fa fa-file-code-o"></span>
-                                   <span>Classes</span>
-                                   <span class="fa fa-angle-down"></span>
-                               </div>
-                               <ul class="links collapse "
-                                       id="classes-links"
-                   >
-                                       <li class="link">
-                                           <a href="../classes/AnchorOrButton.html" >AnchorOrButton</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../classes/AppModuleInjector.html" >AppModuleInjector</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../classes/AppModuleInjector.html" >AppModuleInjector</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../classes/AppModuleInjector.html" >AppModuleInjector</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../classes/AppModuleInjector.html" >AppModuleInjector</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../classes/BaseService.html" >BaseService</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../classes/Container.html" >Container</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../classes/ContributorField.html" >ContributorField</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../classes/DateTime.html" >DateTime</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../classes/DmpModuleInjector.html" >DmpModuleInjector</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../classes/EmbeddableComponent.html" >EmbeddableComponent</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../classes/ExportModuleInjector.html" >ExportModuleInjector</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../classes/FieldBase.html" >FieldBase</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../classes/HiddenValue.html" >HiddenValue</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../classes/LinkValue.html" >LinkValue</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../classes/LoadableComponent.html" >LoadableComponent</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../classes/LoginResult.html" >LoginResult</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../classes/MintLookupDataService.html" >MintLookupDataService</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../classes/Plan.html" >Plan</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../classes/PlanTable.html" >PlanTable</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../classes/RbValidator.html" >RbValidator</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../classes/RecordActionResult.html" >RecordActionResult</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../classes/RecordSearchModuleInjector.html" >RecordSearchModuleInjector</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../classes/RecordSearchParams.html" >RecordSearchParams</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../classes/RecordSearchRefiner.html" >RecordSearchRefiner</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../classes/RelatedObjectDataField.html" >RelatedObjectDataField</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../classes/RepeatableComponent.html" >RepeatableComponent</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../classes/RepeatableContainer.html" >RepeatableContainer</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../classes/RepeatableContributor.html" >RepeatableContributor</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../classes/Report.html" >Report</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../classes/ReportResults.html" >ReportResults</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../classes/Role.html" >Role</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../classes/SaveResult.html" >SaveResult</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../classes/SelectionComponent.html" >SelectionComponent</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../classes/SelectionField.html" >SelectionField</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../classes/SharedModuleInjector.html" >SharedModuleInjector</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../classes/SimpleComponent.html" >SimpleComponent</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../classes/TabOrAccordionContainer.html" >TabOrAccordionContainer</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../classes/TextArea.html" >TextArea</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../classes/TextField.html" >TextField</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../classes/TransferOwnerModuleInjector.html" >TransferOwnerModuleInjector</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../classes/User.html" >User</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../classes/VocabField.html" >VocabField</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../classes/WorkflowStepButton.html" >WorkflowStepButton</a>
-                                       </li>
-                               </ul>
-                           </li>
-                   
-                           <li class="chapter">
-                               <div class="simple menu-toggler" data-toggle="collapse"
-                                       data-target="#injectables-links"
-                   >
-                                   <span class="fa fa-long-arrow-down"></span>
-                                   <span>Injectables</span>
-                                   <span class="fa fa-angle-down"></span>
-                               </div>
-                               <ul class="links collapse "
-                                       id="injectables-links"
-                   >
-                                       <li class="link">
-                                           <a href="../injectables/ConfigService.html" >ConfigService</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../injectables/DashboardService.html" >DashboardService</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../injectables/EmailNotificationService.html" >EmailNotificationService</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../injectables/FieldControlService.html" >FieldControlService</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../injectables/RecordsService.html" >RecordsService</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../injectables/ReportService.html" >ReportService</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../injectables/RolesService.html" >RolesService</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../injectables/TranslationService.html" >TranslationService</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../injectables/UserSimpleService.html" >UserSimpleService</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../injectables/UtilityService.html"  data-type="entity-link" class="active" >UtilityService</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../injectables/VocabFieldLookupService.html" >VocabFieldLookupService</a>
-                                       </li>
-                               </ul>
-                           </li>
-                   
-                   
-                           <li class="chapter">
-                               <div class="simple menu-toggler" data-toggle="collapse"
-                                       data-target="#interfaces-links"
-                   >
-                                   <span class="fa fa-info"></span>
-                                   <span>Interfaces</span>
-                                   <span class="fa fa-angle-down"></span>
-                               </div>
-                               <ul class="links collapse "
-                                       id="interfaces-links"
-                   >
-                                       <li class="link">
-                                           <a href="../interfaces/UserForm.html" >UserForm</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../interfaces/UserForm.html" >UserForm</a>
-                                       </li>
-                               </ul>
-                           </li>
-                   
-                           <li class="chapter">
-                               <div class="simple menu-toggler" data-toggle="collapse"
-                                       data-target="#pipes-links"
-                   >
-                                   <span class="fa fa-plus"></span>
-                                   <span>Pipes</span>
-                                   <span class="fa fa-angle-down"></span>
-                               </div>
-                               <ul class="links collapse "
-                                       id="pipes-links"
-                   >
-                                       <li class="link">
-                                           <a href="../pipes/MultivalueFieldPipe.html" >MultivalueFieldPipe</a>
-                                       </li>
-                                       <li class="link">
-                                           <a href="../pipes/StringTemplatePipe.html" >StringTemplatePipe</a>
-                                       </li>
-                               </ul>
-                           </li>
-                   
-                           <li class="chapter">
-                               <div class="simple menu-toggler" data-toggle="collapse"
-                                       data-target="#miscellaneous-links"
-                   >
-                                   <span class="fa fa-cubes"></span>
-                                   <span>Miscellaneous</span>
-                                   <span class="fa fa-angle-down"></span>
-                               </div>
-                               <ul class="links collapse "
-                                       id="miscellaneous-links"
-                   >
-                                       <li class="link">
-                                         <a href="../miscellaneous/functions.html" data-type="entity-link" >Functions</a>
-                                       </li>
-                                       <li class="link">
-                                         <a href="../miscellaneous/variables.html" data-type="entity-link" >Variables</a>
-                                       </li>
-                               </ul>
-                           </li>
-                   
-                   
-                           <li class="chapter">
-                               <a data-type="chapter-link" href="../coverage.html" ><span class="fa fa-tasks"></span>Documentation coverage</a>
-                           </li>
-                   
-                           <li class="divider"></li>
-                           <li class="copyright">
-                                   Documentation generated using <a href="https://compodoc.github.io/website/" target="_blank">
-                                               <img src="..//images/compodoc-vectorise-inverted.svg" class="img-responsive">
-                                   </a>
-                           </li>
-                   
-                       </ul>
-                   
-                   </nav>
+                   <compodoc-menu mode="normal"></compodoc-menu>
                </div>
+               <!-- START CONTENT -->
                <div class="content injectable">
                    <div class="content-data">
 
@@ -1013,30 +37,30 @@
 
 
 
+
 <ol class="breadcrumb">
   <li>Injectables</li>
-  <li>UtilityService</li>
+  <li >UtilityService</li>
 </ol>
 
 <ul class="nav nav-tabs" role="tablist">
-    <li class="active">
-        <a href="#info" id="info-tab" role="tab" data-toggle="tab" data-link="info">Info</a>
-    </li>
-
-
-    <li>
-        <a href="#source" role="tab" id="source-tab" data-toggle="tab" data-link="source">Source</a>
-    </li>
+        <li class="active">
+            <a href="#info" role="tab" id="info-tab" data-toggle="tab" data-link="info">Info</a>
+        </li>
+        <li >
+            <a href="#source" role="tab" id="source-tab" data-toggle="tab" data-link="source">Source</a>
+        </li>
 </ul>
 
 <div class="tab-content">
-    <div class="tab-pane fade active in" id="info">
+    <div class="tab-pane fade active in" id="c-info">
         <p class="comment">
             <h3>File</h3>
         </p>
         <p class="comment">
-            <code>assets/angular/shared/util-service.ts</code>
+            <code>angular/shared/util-service.ts</code>
         </p>
+
 
             <p class="comment">
                 <h3>Description</h3>
@@ -1048,117 +72,1531 @@
             </p>
 
 
-            <section>
-                <h3 id="index">Index</h3>
-                <table class="table table-sm table-bordered index-table">
-                    <tbody>
-                        <tr>
-                            <td class="col-md-4">
-                                <h6><b>Methods</b></h6>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td class="col-md-4">
-                                <ul class="index-list">
-                                    <li>
-                                        <span class="modifier">Public</span> <a href="#concatenate">concatenate</a>
-                                    </li>
-                                </ul>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </section>
-
 
             <section>
-                
-                    <h3 id="methods">
-                        Methods
-                    </h3>
-                    <table class="table table-sm table-bordered">
-                        <tbody>
-                            <tr>
-                                <td class="col-md-4">
-                                    <a name="concatenate"></a>
-                                    <span class="name"><b><span class="modifier">Public</span> concatenate</b><a href="#concatenate"><span class="fa fa-link"></span></a></span>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td class="col-md-4">
-                                        <span class="modifier-icon fa fa-reset"></span>
-                                    <code>concatenate(data: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>, config: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>)</code>
-                                </td>
-                            </tr>
-            
-            
-                                    <tr>
-                                        <td class="col-md-4">
-                                            <div class="io-line">Defined in <a href="" data-line="38" class="link-to-prism">assets/angular/shared/util-service.ts:38</a></div>
-                                        </td>
-                                    </tr>
-            
-                            <tr>
-                                <td class="col-md-4">
-                                        <div class="io-description"><p>returns concatenated string</p>
-            <p>Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a></p>
-            </div>
-            
-                                        <div class="io-description">
-                                                <b>Parameters :</b>
-                                                <table class="params">
-                                                    <thead>
-                                                        <tr>
-                                                            <td>Name</td>
-                                                            <td>Type</td>
-                                                            <td>Optional</td>
-                                                            <td>Description</td>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody>
-                                                            <tr>
-                                                              <td>data</td>
-                                                              <td>
-                                                                      <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
-                                                              </td>
-                                                              <td>
-                                                              </td>
-                                                              <td></td>
-                                                            </tr>
-                                                            <tr>
-                                                              <td>config</td>
-                                                              <td>
-                                                                      <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
-                                                              </td>
-                                                              <td>
-                                                              </td>
-                                                              <td></td>
-                                                            </tr>
-                                                    </tbody>
-                                                </table>
-                                        </div>
-                                        <div>
-                                        </div>
-                                        <div class="io-description">
-                                            <b>Returns : </b>    <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
-            
-                                        </div>
-                                            <div class="io-description">
-                                                
-                                            </div>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-            </section>
+    <h3 id="index">Index</h3>
+    <table class="table table-sm table-bordered index-table">
+        <tbody>
 
+                <tr>
+                    <td class="col-md-4">
+                        <h6><b>Methods</b></h6>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <ul class="index-list">
+                            <li>
+                                    <span class="modifier">Private</span>
+                                <a href="#checkConcatReq" >checkConcatReq</a>
+                            </li>
+                            <li>
+                                    <span class="modifier">Private</span>
+                                <a href="#checkData" >checkData</a>
+                            </li>
+                            <li>
+                                    <span class="modifier">Public</span>
+                                <a href="#concatenate" >concatenate</a>
+                            </li>
+                            <li>
+                                    <span class="modifier">Public</span>
+                                <a href="#convertToDateFormat" >convertToDateFormat</a>
+                            </li>
+                            <li>
+                                    <span class="modifier">Public</span>
+                                <a href="#getFirstofArray" >getFirstofArray</a>
+                            </li>
+                            <li>
+                                    <span class="modifier">Public</span>
+                                <a href="#getMergedObjectAsArray" >getMergedObjectAsArray</a>
+                            </li>
+                            <li>
+                                    <span class="modifier">Public</span>
+                                <a href="#getPropertyAsArrayFromObject" >getPropertyAsArrayFromObject</a>
+                            </li>
+                            <li>
+                                    <span class="modifier">Public</span>
+                                <a href="#getPropertyFromObject" >getPropertyFromObject</a>
+                            </li>
+                            <li>
+                                    <span class="modifier">Public</span>
+                                <a href="#getPropertyFromObjectConcat" >getPropertyFromObjectConcat</a>
+                            </li>
+                            <li>
+                                    <span class="modifier">Public</span>
+                                <a href="#getPropertyFromObjectMapping" >getPropertyFromObjectMapping</a>
+                            </li>
+                            <li>
+                                    <span class="modifier">Public</span>
+                                <a href="#hasValue" >hasValue</a>
+                            </li>
+                            <li>
+                                    <span class="modifier">Public</span>
+                                <a href="#joinArray" >joinArray</a>
+                            </li>
+                            <li>
+                                    <span class="modifier">Public</span>
+                                <a href="#runTemplate" >runTemplate</a>
+                            </li>
+                            <li>
+                                    <span class="modifier">Public</span>
+                                <a href="#splitArrayStringsToArray" >splitArrayStringsToArray</a>
+                            </li>
+                            <li>
+                                    <span class="modifier">Public</span>
+                                <a href="#splitStringToArray" >splitStringToArray</a>
+                            </li>
+                        </ul>
+                    </td>
+                </tr>
+
+
+
+
+
+        </tbody>
+    </table>
+</section>
+
+
+            <section>
+    
+    <h3 id="methods">
+        Methods
+    </h3>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="checkConcatReq"></a>
+                    <span class="name">
+                        <span class="modifier">Private</span>
+                        <span ><b>checkConcatReq</b></span>
+                        <a href="#checkConcatReq"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                    <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>checkConcatReq(valueObject: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>, fieldsToMatch: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>, fieldValues: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>)</code>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-line">Defined in <a href="" data-line="92"
+                            class="link-to-prism">angular/shared/util-service.ts:92</a></div>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-description"><p>check a given object is not already present in the container list</p>
+<p>Author: <a href='https://github.com/andrewbrazzatti' target='_blank'>Andrew Brazzatti</a></p>
+</div>
+
+                    <div class="io-description">
+                        <b>Parameters :</b>
+                        
+                        <table class="params">
+                            <thead>
+                                <tr>
+                                    <td>Name</td>
+                                    <td>Type</td>
+                                    <td>Optional</td>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>valueObject</td>
+                                    <td>
+                                                <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+
+                                </tr>
+                                <tr>
+                                    <td>fieldsToMatch</td>
+                                    <td>
+                                                <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+
+                                </tr>
+                                <tr>
+                                    <td>fieldValues</td>
+                                    <td>
+                                                <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div>
+                    </div>
+                    <div class="io-description">
+                        <b>Returns : </b>        <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/boolean" target="_blank" >boolean</a></code>
+
+                    </div>
+                    <div class="io-description">
+                        
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="checkData"></a>
+                    <span class="name">
+                        <span class="modifier">Private</span>
+                        <span ><b>checkData</b></span>
+                        <a href="#checkData"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                    <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>checkData(valueObject: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>, fieldsToMatch: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>)</code>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-line">Defined in <a href="" data-line="72"
+                            class="link-to-prism">angular/shared/util-service.ts:72</a></div>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-description"><p>check that all the values to match have values for a given object</p>
+<p>Author: <a href='https://github.com/andrewbrazzatti' target='_blank'>Andrew Brazzatti</a></p>
+</div>
+
+                    <div class="io-description">
+                        <b>Parameters :</b>
+                        
+                        <table class="params">
+                            <thead>
+                                <tr>
+                                    <td>Name</td>
+                                    <td>Type</td>
+                                    <td>Optional</td>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>valueObject</td>
+                                    <td>
+                                                <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+
+                                </tr>
+                                <tr>
+                                    <td>fieldsToMatch</td>
+                                    <td>
+                                                <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div>
+                    </div>
+                    <div class="io-description">
+                        <b>Returns : </b>        <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/boolean" target="_blank" >boolean</a></code>
+
+                    </div>
+                    <div class="io-description">
+                        
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="concatenate"></a>
+                    <span class="name">
+                        <span class="modifier">Public</span>
+                        <span ><b>concatenate</b></span>
+                        <a href="#concatenate"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                    <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>concatenate(data: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>, config: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>)</code>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-line">Defined in <a href="" data-line="40"
+                            class="link-to-prism">angular/shared/util-service.ts:40</a></div>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-description"><p>returns concatenated string</p>
+<p>Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a></p>
+</div>
+
+                    <div class="io-description">
+                        <b>Parameters :</b>
+                        
+                        <table class="params">
+                            <thead>
+                                <tr>
+                                    <td>Name</td>
+                                    <td>Type</td>
+                                    <td>Optional</td>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>data</td>
+                                    <td>
+                                                <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+
+                                </tr>
+                                <tr>
+                                    <td>config</td>
+                                    <td>
+                                                <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div>
+                    </div>
+                    <div class="io-description">
+                        <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+
+                    </div>
+                    <div class="io-description">
+                        
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="convertToDateFormat"></a>
+                    <span class="name">
+                        <span class="modifier">Public</span>
+                        <span ><b>convertToDateFormat</b></span>
+                        <a href="#convertToDateFormat"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                    <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>convertToDateFormat(data: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>, config: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>)</code>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-line">Defined in <a href="" data-line="302"
+                            class="link-to-prism">angular/shared/util-service.ts:302</a></div>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-description"><p>Format date with moment from origin to target</p>
+<p>Author: <a href='https://github.com/moisbo' target='_blank'>Moises Sacal Bonequi</a></p>
+</div>
+
+                    <div class="io-description">
+                        <b>Parameters :</b>
+                        
+                        <table class="params">
+                            <thead>
+                                <tr>
+                                    <td>Name</td>
+                                    <td>Type</td>
+                                    <td>Optional</td>
+                                    <td>Description</td>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>data</td>
+                                    <td>
+                                                <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+
+                                    <td>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>config</td>
+                                    <td>
+                                                <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+
+                                    <td>
+                                        <ul>
+<li>field, formatOrigin, formatTarget</li>
+</ul>
+
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div>
+                    </div>
+                    <div class="io-description">
+                        <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+
+                    </div>
+                    <div class="io-description">
+                        
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="getFirstofArray"></a>
+                    <span class="name">
+                        <span class="modifier">Public</span>
+                        <span ><b>getFirstofArray</b></span>
+                        <a href="#getFirstofArray"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                    <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>getFirstofArray(data: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>, config: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>)</code>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-line">Defined in <a href="" data-line="284"
+                            class="link-to-prism">angular/shared/util-service.ts:284</a></div>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-description"><p>Splits a string of arrays into an array by it&#39;s delimiter</p>
+<p>Author: <a href='https://github.com/moisbo' target='_blank'>Moises Sacal Bonequi</a></p>
+</div>
+
+                    <div class="io-description">
+                        <b>Parameters :</b>
+                        
+                        <table class="params">
+                            <thead>
+                                <tr>
+                                    <td>Name</td>
+                                    <td>Type</td>
+                                    <td>Optional</td>
+                                    <td>Description</td>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>data</td>
+                                    <td>
+                                                <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+
+                                    <td>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>config</td>
+                                    <td>
+                                                <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+
+                                    <td>
+                                        <ul>
+<li>The delimiter</li>
+</ul>
+
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div>
+                    </div>
+                    <div class="io-description">
+                        <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+
+                    </div>
+                    <div class="io-description">
+                        
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="getMergedObjectAsArray"></a>
+                    <span class="name">
+                        <span class="modifier">Public</span>
+                        <span ><b>getMergedObjectAsArray</b></span>
+                        <a href="#getMergedObjectAsArray"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                    <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>getMergedObjectAsArray(data: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>, config: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>, field: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>)</code>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-line">Defined in <a href="" data-line="115"
+                            class="link-to-prism">angular/shared/util-service.ts:115</a></div>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-description"><p>Merges emitted object into the subscriber&#39;s array of objects if the emitted object is not present.</p>
+<p>Author: <a href='https://github.com/andrewbrazzatti' target='_blank'>Andrew Brazzatti</a></p>
+</div>
+
+                    <div class="io-description">
+                        <b>Parameters :</b>
+                        
+                        <table class="params">
+                            <thead>
+                                <tr>
+                                    <td>Name</td>
+                                    <td>Type</td>
+                                    <td>Optional</td>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>data</td>
+                                    <td>
+                                                <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+
+                                </tr>
+                                <tr>
+                                    <td>config</td>
+                                    <td>
+                                                <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+
+                                </tr>
+                                <tr>
+                                    <td>field</td>
+                                    <td>
+                                                <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div>
+                    </div>
+                    <div class="io-description">
+                        <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+
+                    </div>
+                    <div class="io-description">
+                        
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="getPropertyAsArrayFromObject"></a>
+                    <span class="name">
+                        <span class="modifier">Public</span>
+                        <span ><b>getPropertyAsArrayFromObject</b></span>
+                        <a href="#getPropertyAsArrayFromObject"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                    <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>getPropertyAsArrayFromObject(data: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>, config: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>)</code>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-line">Defined in <a href="" data-line="178"
+                            class="link-to-prism">angular/shared/util-service.ts:178</a></div>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-description"><p>returns a property as Array of 1 item from the provided object.</p>
+<p>Author: <a href='https://github.com/mattRedBox' target='_blank'>Matt Mulholland</a></p>
+</div>
+
+                    <div class="io-description">
+                        <b>Parameters :</b>
+                        
+                        <table class="params">
+                            <thead>
+                                <tr>
+                                    <td>Name</td>
+                                    <td>Type</td>
+                                    <td>Optional</td>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>data</td>
+                                    <td>
+                                                <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+
+                                </tr>
+                                <tr>
+                                    <td>config</td>
+                                    <td>
+                                                <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div>
+                    </div>
+                    <div class="io-description">
+                        <b>Returns : </b>    <code>{}</code>
+
+                    </div>
+                    <div class="io-description">
+                        
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="getPropertyFromObject"></a>
+                    <span class="name">
+                        <span class="modifier">Public</span>
+                        <span ><b>getPropertyFromObject</b></span>
+                        <a href="#getPropertyFromObject"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                    <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>getPropertyFromObject(data: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>, config: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>)</code>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-line">Defined in <a href="" data-line="166"
+                            class="link-to-prism">angular/shared/util-service.ts:166</a></div>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-description"><p>returns a property from the provided object.</p>
+<p>Author: <a href='https://github.com/andrewbrazzatti' target='_blank'>Andrew Brazzatti</a></p>
+</div>
+
+                    <div class="io-description">
+                        <b>Parameters :</b>
+                        
+                        <table class="params">
+                            <thead>
+                                <tr>
+                                    <td>Name</td>
+                                    <td>Type</td>
+                                    <td>Optional</td>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>data</td>
+                                    <td>
+                                                <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+
+                                </tr>
+                                <tr>
+                                    <td>config</td>
+                                    <td>
+                                                <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div>
+                    </div>
+                    <div class="io-description">
+                        <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+
+                    </div>
+                    <div class="io-description">
+                        
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="getPropertyFromObjectConcat"></a>
+                    <span class="name">
+                        <span class="modifier">Public</span>
+                        <span ><b>getPropertyFromObjectConcat</b></span>
+                        <a href="#getPropertyFromObjectConcat"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                    <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>getPropertyFromObjectConcat(data: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>, config: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>)</code>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-line">Defined in <a href="" data-line="219"
+                            class="link-to-prism">angular/shared/util-service.ts:219</a></div>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-description"><p>returns an array of concatenated values</p>
+<p>Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a></p>
+</div>
+
+                    <div class="io-description">
+                        <b>Parameters :</b>
+                        
+                        <table class="params">
+                            <thead>
+                                <tr>
+                                    <td>Name</td>
+                                    <td>Type</td>
+                                    <td>Optional</td>
+                                    <td>Description</td>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>data</td>
+                                    <td>
+                                                <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+
+                                    <td>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>config</td>
+                                    <td>
+                                                <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+
+                                    <td>
+                                        <ul>
+<li>dict of field: array of field paths to concat</li>
+</ul>
+
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div>
+                    </div>
+                    <div class="io-description">
+                        <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+
+                    </div>
+                    <div class="io-description">
+                        
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="getPropertyFromObjectMapping"></a>
+                    <span class="name">
+                        <span class="modifier">Public</span>
+                        <span ><b>getPropertyFromObjectMapping</b></span>
+                        <a href="#getPropertyFromObjectMapping"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                    <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>getPropertyFromObjectMapping(data: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>, config: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>)</code>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-line">Defined in <a href="" data-line="190"
+                            class="link-to-prism">angular/shared/util-service.ts:190</a></div>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-description"><p>returns value based on mapping</p>
+<p>Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a></p>
+</div>
+
+                    <div class="io-description">
+                        <b>Parameters :</b>
+                        
+                        <table class="params">
+                            <thead>
+                                <tr>
+                                    <td>Name</td>
+                                    <td>Type</td>
+                                    <td>Optional</td>
+                                    <td>Description</td>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>data</td>
+                                    <td>
+                                                <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+
+                                    <td>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>config</td>
+                                    <td>
+                                                <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+
+                                    <td>
+                                        <ul>
+<li>dict of field: field path of data, mapping - array of dict with &#39;key&#39;, the value and the actual mapping value &#39;val&#39;, &#39;default&#39; - the value if there&#39;s no match</li>
+</ul>
+
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div>
+                    </div>
+                    <div class="io-description">
+                        <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+
+                    </div>
+                    <div class="io-description">
+                        
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="hasValue"></a>
+                    <span class="name">
+                        <span class="modifier">Public</span>
+                        <span ><b>hasValue</b></span>
+                        <a href="#hasValue"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                    <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>hasValue(data: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>, config: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>)</code>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-line">Defined in <a href="" data-line="207"
+                            class="link-to-prism">angular/shared/util-service.ts:207</a></div>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-description"><p>returns true if value is not null, undefined, empty</p>
+<p>Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a></p>
+</div>
+
+                    <div class="io-description">
+                        <b>Parameters :</b>
+                        
+                        <table class="params">
+                            <thead>
+                                <tr>
+                                    <td>Name</td>
+                                    <td>Type</td>
+                                    <td>Optional</td>
+                                    <td>Default value</td>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>data</td>
+                                    <td>
+                                                <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+                                    <td>
+                                    </td>
+
+                                </tr>
+                                <tr>
+                                    <td>config</td>
+                                    <td>
+                                                <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+                                    <td>
+                                        <code>null</code>
+                                    </td>
+
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div>
+                    </div>
+                    <div class="io-description">
+                        <b>Returns : </b>        <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/boolean" target="_blank" >boolean</a></code>
+
+                    </div>
+                    <div class="io-description">
+                        
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="joinArray"></a>
+                    <span class="name">
+                        <span class="modifier">Public</span>
+                        <span ><b>joinArray</b></span>
+                        <a href="#joinArray"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                    <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>joinArray(data: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>, config: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>, fieldName: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank">string</a>, fieldSeparator: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank">string</a>)</code>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-line">Defined in <a href="" data-line="316"
+                            class="link-to-prism">angular/shared/util-service.ts:316</a></div>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+
+                    <div class="io-description">
+                        <b>Parameters :</b>
+                        
+                        <table class="params">
+                            <thead>
+                                <tr>
+                                    <td>Name</td>
+                                    <td>Type</td>
+                                    <td>Optional</td>
+                                    <td>Default value</td>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>data</td>
+                                    <td>
+                                                <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+                                    <td>
+                                    </td>
+
+                                </tr>
+                                <tr>
+                                    <td>config</td>
+                                    <td>
+                                                <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+                                    <td>
+                                    </td>
+
+                                </tr>
+                                <tr>
+                                    <td>fieldName</td>
+                                    <td>
+                                                <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank" >string</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+                                    <td>
+                                        <code>null</code>
+                                    </td>
+
+                                </tr>
+                                <tr>
+                                    <td>fieldSeparator</td>
+                                    <td>
+                                                <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank" >string</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+                                    <td>
+                                        <code>null</code>
+                                    </td>
+
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div>
+                    </div>
+                    <div class="io-description">
+                        <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+
+                    </div>
+                    <div class="io-description">
+                        
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="runTemplate"></a>
+                    <span class="name">
+                        <span class="modifier">Public</span>
+                        <span ><b>runTemplate</b></span>
+                        <a href="#runTemplate"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                    <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>runTemplate(data: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>, config: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>, field: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>)</code>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-line">Defined in <a href="" data-line="320"
+                            class="link-to-prism">angular/shared/util-service.ts:320</a></div>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+
+                    <div class="io-description">
+                        <b>Parameters :</b>
+                        
+                        <table class="params">
+                            <thead>
+                                <tr>
+                                    <td>Name</td>
+                                    <td>Type</td>
+                                    <td>Optional</td>
+                                    <td>Default value</td>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>data</td>
+                                    <td>
+                                                <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+                                    <td>
+                                    </td>
+
+                                </tr>
+                                <tr>
+                                    <td>config</td>
+                                    <td>
+                                                <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+                                    <td>
+                                    </td>
+
+                                </tr>
+                                <tr>
+                                    <td>field</td>
+                                    <td>
+                                                <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+                                    <td>
+                                        <code>undefined</code>
+                                    </td>
+
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div>
+                    </div>
+                    <div class="io-description">
+                        <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+
+                    </div>
+                    <div class="io-description">
+                        
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="splitArrayStringsToArray"></a>
+                    <span class="name">
+                        <span class="modifier">Public</span>
+                        <span ><b>splitArrayStringsToArray</b></span>
+                        <a href="#splitArrayStringsToArray"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                    <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>splitArrayStringsToArray(data: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>, config: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>)</code>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-line">Defined in <a href="" data-line="254"
+                            class="link-to-prism">angular/shared/util-service.ts:254</a></div>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-description"><p>Splits a string of arrays into an array by it&#39;s delimiter</p>
+<p>Author: <a href='https://github.com/moisbo' target='_blank'>Moises Sacal Bonequi</a></p>
+</div>
+
+                    <div class="io-description">
+                        <b>Parameters :</b>
+                        
+                        <table class="params">
+                            <thead>
+                                <tr>
+                                    <td>Name</td>
+                                    <td>Type</td>
+                                    <td>Optional</td>
+                                    <td>Description</td>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>data</td>
+                                    <td>
+                                                <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+
+                                    <td>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>config</td>
+                                    <td>
+                                                <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+
+                                    <td>
+                                        <ul>
+<li>The delimiter</li>
+</ul>
+
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div>
+                    </div>
+                    <div class="io-description">
+                        <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+
+                    </div>
+                    <div class="io-description">
+                        
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="splitStringToArray"></a>
+                    <span class="name">
+                        <span class="modifier">Public</span>
+                        <span ><b>splitStringToArray</b></span>
+                        <a href="#splitStringToArray"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                    <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>splitStringToArray(data: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>, config: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>)</code>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-line">Defined in <a href="" data-line="236"
+                            class="link-to-prism">angular/shared/util-service.ts:236</a></div>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-description"><p>Splits a string into an array by it&#39;s delimiter</p>
+<p>Author: <a href='https://github.com/andrewbrazzatti' target='_blank'>Andrew Brazzatti</a></p>
+</div>
+
+                    <div class="io-description">
+                        <b>Parameters :</b>
+                        
+                        <table class="params">
+                            <thead>
+                                <tr>
+                                    <td>Name</td>
+                                    <td>Type</td>
+                                    <td>Optional</td>
+                                    <td>Description</td>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>data</td>
+                                    <td>
+                                                <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+
+                                    <td>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>config</td>
+                                    <td>
+                                                <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+
+                                    <td>
+                                        <ul>
+<li>The delimiter</li>
+</ul>
+
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div>
+                    </div>
+                    <div class="io-description">
+                        <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+
+                    </div>
+                    <div class="io-description">
+                        
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+</section>
 
     </div>
 
 
-    <div class="tab-pane fade tab-source-code" id="source">
-        <pre class="line-numbers"><code class="language-typescript">import { Injectable } from &#x27;@angular/core&#x27;;
-import * as _ from &quot;lodash-lib&quot;;
+    <div class="tab-pane fade  tab-source-code" id="c-source">
+        <pre class="line-numbers compodoc-sourcecode"><code class="language-typescript">import {Injectable} from &#x27;@angular/core&#x27;;
+import * as _ from &quot;lodash&quot;;
+import * as moment from &#x27;moment&#x27;;
+import * as numeral from &#x27;numeral&#x27;;
 /**
  * Utility service...
  *
@@ -1176,25 +1614,306 @@ export class UtilityService {
    * @return {string}
    */
   public concatenate(data: any, config: any) {
-    let result:any &#x3D; &#x27;&#x27;;
-    _.each(config.fields, (f:any) &#x3D;&gt; {
+    let result: any &#x3D; &#x27;&#x27;;
+    _.each(config.fields, (f: any) &#x3D;&gt; {
       if (_.isArray(data)) {
         result &#x3D; [];
         let itemResult &#x3D; &#x27;&#x27;;
-        _.each(data, (d:any) &#x3D;&gt; {
-          itemResult &#x3D; &#x60;${itemResult}${_.isEmpty(itemResult) ? &#x27;&#x27; : config.delim}${_.get(d, f)}&#x60;;
+        _.each(data, (d: any) &#x3D;&gt; {
+          const fldData &#x3D; _.get(d, f);
+          // checking if field has data, otherwise will be skipping concat
+          if (fldData) {
+            itemResult &#x3D; &#x60;${itemResult}${_.isEmpty(itemResult) ? &#x27;&#x27; : config.delim}${fldData}&#x60;;
+          }
         });
         result.push(itemResult);
       } else {
-        result &#x3D; &#x60;${result}${_.isEmpty(result) ? &#x27;&#x27; : config.delim}${_.get(data, f)}&#x60;;
+        const fldData &#x3D; _.get(data, f);
+        if (fldData) {
+          result &#x3D; &#x60;${result}${_.isEmpty(result) ? &#x27;&#x27; : config.delim}${fldData}&#x60;;
+        }
       }
     });
     return result;
   }
+
+  /**
+   * check that all the values to match have values for a given object
+   * 
+   * Author: &lt;a href&#x3D;&#x27;https://github.com/andrewbrazzatti&#x27; target&#x3D;&#x27;_blank&#x27;&gt;Andrew Brazzatti&lt;/a&gt;
+   * @param  {any} valueObject
+   * @param  {any} fieldsToMatch
+   * @return {boolean}
+   */
+  private checkData(valueObject: any, fieldsToMatch: any) {
+    let dataOk &#x3D; true;
+    for (let fieldToMatch of fieldsToMatch) {
+      let emittedValueToMatch &#x3D; _.get(valueObject, fieldToMatch);
+      if(emittedValueToMatch &#x3D;&#x3D;&#x3D; undefined || emittedValueToMatch &#x3D;&#x3D;&#x3D; null || _.isUndefined(emittedValueToMatch)){
+        dataOk &#x3D; false;
+      }
+    }
+    return dataOk;
+  }
+
+  /**
+   * check a given object is not already present in the container list
+   * 
+   * Author: &lt;a href&#x3D;&#x27;https://github.com/andrewbrazzatti&#x27; target&#x3D;&#x27;_blank&#x27;&gt;Andrew Brazzatti&lt;/a&gt;
+   * @param  {any} valueObject
+   * @param  {any} fieldsToMatch
+   * @param  {any} fieldValues
+   * @return {boolean}
+   */
+  private checkConcatReq(valueObject: any, fieldsToMatch: any, fieldValues: any) {
+    let concatReq &#x3D; true;
+    for (let fieldValue of fieldValues) {
+      for (let fieldToMatch of fieldsToMatch) {
+        let fieldValueToMatch &#x3D; _.get(fieldValue, fieldToMatch); 
+        let emittedValueToMatch &#x3D; _.get(valueObject, fieldToMatch);
+        if(_.isEqual(fieldValueToMatch,emittedValueToMatch)) {
+          concatReq &#x3D; false;
+        }
+      }
+    }
+    return concatReq;
+  }
+
+  /**
+   * Merges emitted object into the subscriber&#x27;s array of objects if the emitted object is not present.
+   *
+   * Author: &lt;a href&#x3D;&#x27;https://github.com/andrewbrazzatti&#x27; target&#x3D;&#x27;_blank&#x27;&gt;Andrew Brazzatti&lt;/a&gt;
+   * @param  {any} data
+   * @param  {any} config
+   * @param  {any} field
+   * @return {array}
+   */
+  public getMergedObjectAsArray(data: any, config: any, field: any) {
+    const fieldsToMatch &#x3D; config.fieldsToMatch;
+    const fieldsToSet &#x3D; config.fieldsToSet;
+    const templateObject &#x3D; config.templateObject;
+    let fieldValues &#x3D; _.clone(field.formModel.value);
+    let wrappedData &#x3D; data;
+    if(!_.isArray(data)) {
+      wrappedData &#x3D; [data];
+    }
+    
+    for (let emittedDataValue of wrappedData) {
+      //There are cases where the emitter may send null values just after the field  
+      //gets cleared therefore need to checkDataOk if any of the fields to match are  
+      //undefined not enter the if block and the same value will be sent back to the 
+      //subscriber field 
+      let checkDataOk &#x3D; this.checkData(emittedDataValue,fieldsToMatch);
+      if(checkDataOk){
+        let concatReq &#x3D; this.checkConcatReq(emittedDataValue,fieldsToMatch,fieldValues);
+        if(concatReq) {
+          let value &#x3D; _.clone(templateObject);
+          for (let fieldToSet of fieldsToSet) {
+              let val &#x3D; _.get(emittedDataValue, fieldToSet); 
+              _.set(value, fieldToSet, val);
+          }
+          //If there is only one item in fieldValues array it may be empty and must be re-used 
+          //if there is more than one item in the array it&#x27;s too cumbersome to manage all  
+          //scenarios and edge cases therefore it&#x27;s better to add a new item to the array 
+          if(fieldValues.length &#x3D;&#x3D; 1) {
+            let checkFieldValuesDataOk &#x3D; this.checkData(fieldValues[0],fieldsToMatch);
+            if(checkFieldValuesDataOk) {
+              fieldValues.push(value);
+            } else {
+              fieldValues &#x3D; [value];
+            }
+          } else {
+            fieldValues.push(value);
+          }
+          console.log(fieldValues);
+        }
+      }
+    }
+    return fieldValues;
+  }
+
+  /**
+   * returns a property from the provided object.
+   *
+   * Author: &lt;a href&#x3D;&#x27;https://github.com/andrewbrazzatti&#x27; target&#x3D;&#x27;_blank&#x27;&gt;Andrew Brazzatti&lt;/a&gt;
+   * @param  {any} config
+   * @return {string}
+   */
+  public getPropertyFromObject(data: any, config: any) {
+    const fieldPath &#x3D; config.field;
+    return _.get(data, fieldPath);
+  }
+
+  /**
+   * returns a property as Array of 1 item from the provided object.
+   *
+   * Author: &lt;a href&#x3D;&#x27;https://github.com/mattRedBox&#x27; target&#x3D;&#x27;_blank&#x27;&gt;Matt Mulholland&lt;/a&gt;
+   * @param data
+   * @param config
+   */
+  public getPropertyAsArrayFromObject(data: any, config: any) {
+    return [this.getPropertyFromObject(data, config)];
+  }
+
+  /**
+   * returns value based on mapping
+   *
+   * Author: &lt;a href&#x3D;&#x27;https://github.com/shilob&#x27; target&#x3D;&#x27;_blank&#x27;&gt;Shilo Banihit&lt;/a&gt;
+   * @param {any} data
+   * @param  {any} config - dict of field: field path of data, mapping - array of dict with &#x27;key&#x27;, the value and the actual mapping value &#x27;val&#x27;, &#x27;default&#x27; - the value if there&#x27;s no match
+   * @return {any}
+   */
+  public getPropertyFromObjectMapping(data: any, config: any) {
+    const fieldPath &#x3D; config.field;
+    const val &#x3D; _.isUndefined(fieldPath) ? data : _.get(data, fieldPath);
+    const foundMapping &#x3D; _.find(config.mapping, (mapEntry) &#x3D;&gt; {
+      return &#x60;${mapEntry.key}&#x60; &#x3D;&#x3D; &#x60;${val}&#x60;;
+    });
+    return foundMapping ? foundMapping.value : config.default;
+  }
+
+  /**
+   * returns true if value is not null, undefined, empty
+   *
+   * Author: &lt;a href&#x3D;&#x27;https://github.com/shilob&#x27; target&#x3D;&#x27;_blank&#x27;&gt;Shilo Banihit&lt;/a&gt;
+   * @param {any} data
+   * @param  {any} config
+   * @return {string}
+   */
+  public hasValue(data: any, config: any &#x3D; null) {
+    return !_.isEmpty(data) &amp;&amp; !_.isUndefined(data) &amp;&amp; !_.isNull(data);
+  }
+
+  /**
+   * returns an array of concatenated values
+   *
+   * Author: &lt;a href&#x3D;&#x27;https://github.com/shilob&#x27; target&#x3D;&#x27;_blank&#x27;&gt;Shilo Banihit&lt;/a&gt;
+   * @param {any} data
+   * @param  {any} config - dict of field: array of field paths to concat
+   * @return {string}
+   */
+  public getPropertyFromObjectConcat(data: any, config: any) {
+    let values &#x3D; [];
+    _.each(config.field, (f) &#x3D;&gt; {
+      values.push(_.get(data, f));
+    });
+    return _.concat([], ...values);
+  }
+
+
+  /**
+   * Splits a string into an array by it&#x27;s delimiter
+   *
+   * Author: &lt;a href&#x3D;&#x27;https://github.com/andrewbrazzatti&#x27; target&#x3D;&#x27;_blank&#x27;&gt;Andrew Brazzatti&lt;/a&gt;
+   * @param {any} data
+   * @param  {any} config - The delimiter
+   * @return {string}
+   */
+  public splitStringToArray(data: any, config: any) {
+    let delim &#x3D; config.delim;
+    let field &#x3D; config.field;
+    let value &#x3D; data;
+    if (field) {
+      value &#x3D; _.get(data, field);
+    }
+    return value.split(delim);
+  }
+
+  /**
+   * Splits a string of arrays into an array by it&#x27;s delimiter
+   *
+   * Author: &lt;a href&#x3D;&#x27;https://github.com/moisbo&#x27; target&#x3D;&#x27;_blank&#x27;&gt;Moises Sacal Bonequi&lt;/a&gt;
+   * @param {any} data
+   * @param  {any} config - The delimiter
+   * @return {array}
+   */
+  public splitArrayStringsToArray(data: any, config: any) {
+    let regex &#x3D; config.regex || &#x27;,&#x27;;
+    let flags &#x3D; config.flags || &#x27;g&#x27;;
+    const reg &#x3D; new RegExp(regex, flags);
+    let regexTrail &#x3D; config.regexTrail || &#x27;(^,)|(,$)&#x27;;
+    let flagsTrail &#x3D; config.flagsTrail || &#x27;g&#x27;;
+    const regTrail &#x3D; new RegExp(regexTrail, flagsTrail);
+    let field &#x3D; config.field;
+    let value &#x3D; data;
+    if (field) {
+      value &#x3D; _.get(data, field);
+    }
+    const values &#x3D; [];
+    _.each(value, (v) &#x3D;&gt; {
+      if (v) {
+        v &#x3D; v.replace(regTrail, &#x27;&#x27;);
+      }
+      values.push(v.split(reg).map(item &#x3D;&gt; item.trim()));
+    });
+    return _.concat([], ...values);
+  }
+
+  /**
+   * Splits a string of arrays into an array by it&#x27;s delimiter
+   *
+   * Author: &lt;a href&#x3D;&#x27;https://github.com/moisbo&#x27; target&#x3D;&#x27;_blank&#x27;&gt;Moises Sacal Bonequi&lt;/a&gt;
+   * @param {any} data
+   * @param  {any} config - The delimiter
+   * @return {array}
+   */
+  public getFirstofArray(data: any, config: any) {
+    let delim &#x3D; config.delim;
+    let field &#x3D; config.field;
+    let value &#x3D; data;
+    if (field) {
+      value &#x3D; _.get(data, field);
+    }
+    return _.first(value);
+  }
+
+  /**
+   * Format date with moment from origin to target
+   *
+   * Author: &lt;a href&#x3D;&#x27;https://github.com/moisbo&#x27; target&#x3D;&#x27;_blank&#x27;&gt;Moises Sacal Bonequi&lt;/a&gt;
+   * @param {any} data
+   * @param  {any} config - field, formatOrigin, formatTarget
+   * @return {array}
+   */
+  public convertToDateFormat(data:any, config:any) {
+    let field &#x3D; config.field;
+    let formatOrigin &#x3D; config.formatOrigin || &#x27;DD-MMM-YY&#x27;;
+    let formatTarget &#x3D; config.formatTarget || &#x27;YYYY-MM-DD&#x27;;
+    let value &#x3D; data;
+
+    if(field) {
+      value &#x3D; _.get(data,field);
+    }
+    const converted &#x3D; moment(value, formatOrigin).format(formatTarget);
+    console.log(&#x60;convertToDateFormat ${converted}&#x60;);
+    return converted;
+  }
+
+  public joinArray(data: any, config: any, fieldName: string &#x3D; null, fieldSeparator: string &#x3D; null) {
+    return _.join(_.get(data, fieldName ? fieldName : config.field), fieldSeparator ? fieldSeparator : config.separator);
+  }
+
+  public runTemplate(data: any, config: any, field: any &#x3D; undefined) {
+    const imports &#x3D; _.extend({data: data, config: config, moment: moment, numeral:numeral, field: field}, this);
+    const templateData &#x3D; {imports: imports};
+    const template &#x3D; _.template(config.template, templateData);
+    const templateRes &#x3D; template();
+    // added ability to parse the string template result into JSON
+    // requirement: template must return a valid JSON string object
+    if (config.json &#x3D;&#x3D; true &amp;&amp; !_.isEmpty(templateRes)) {
+      return JSON.parse(templateRes);
+    }
+    return templateRes;
+  }
 }
 </code></pre>
     </div>
+
 </div>
+
+
+
+
 
 
 
@@ -1213,8 +1932,22 @@ export class UtilityService {
     </div>
 </div>
 </div>
+               <!-- END CONTENT -->
            </div>
        </div>
+
+       <script>
+            var COMPODOC_CURRENT_PAGE_DEPTH = 1;
+            var COMPODOC_CURRENT_PAGE_CONTEXT = 'injectable';
+            var COMPODOC_CURRENT_PAGE_URL = 'UtilityService.html';
+            var MAX_SEARCH_RESULTS = 15;
+       </script>
+
+       <script src="../js/libs/custom-elements.min.js"></script>
+       <script src="../js/libs/lit-html.js"></script>
+
+       <script src="../js/menu-wc.js" defer></script>
+       <script nomodule src="../js/menu-wc_es5.js" defer></script>
 
        <script src="../js/libs/bootstrap-native.js"></script>
 
@@ -1225,17 +1958,17 @@ export class UtilityService {
 
        <script src="../js/compodoc.js"></script>
 
-       <script>var COMPODOC_CURRENT_PAGE_DEPTH = 1;</script>
-
-       <script src="../js/search/search.js"></script>
-       <script src="../js/search/lunr.min.js"></script>
-       <script src="../js/search/search-lunr.js"></script>
-
        <script src="../js/tabs.js"></script>
        <script src="../js/menu.js"></script>
+       <script src="../js/libs/clipboard.min.js"></script>
        <script src="../js/libs/prism.js"></script>
        <script src="../js/sourceCode.js"></script>
-       <script src="../js/search/search_index.js"></script>
+          <script src="../js/search/search.js"></script>
+          <script src="../js/search/lunr.min.js"></script>
+          <script src="../js/search/search-lunr.js"></script>
+          <script src="../js/search/search_index.js"></script>
+       <script src="../js/lazy-load-graphs.js"></script>
+
 
     </body>
 </html>
