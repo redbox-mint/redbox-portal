@@ -1058,8 +1058,24 @@ export module Controllers {
     public async search(req, res) {
       const brand = BrandingService.getBrand(req.session.branding);
       const type = req.param('type');
-      const rows = req.param('rows');
-      const page = req.param('page');
+      let rows = req.param('rows');
+      let page = req.param('page');
+      if(_.isEmpty(rows)) {
+        rows = 10
+      }
+      if(_.isEmpty(page)) {
+        page = 1
+      }
+      let start = 0
+      if(/^\d+$/.test(page)) { 
+        page = parseInt(page)
+      }
+      if (/^\d+$/.test(rows)) {
+        rows = parseInt(rows)
+      }
+
+      start = (page-1)* rows;
+
       const workflow = req.query.workflow;
       const searchString = req.query.searchStr;
 
@@ -1082,7 +1098,8 @@ export module Controllers {
       });
 
       try {
-        const searchRes = await this.searchService.searchFuzzy(type, workflow, searchString, exactSearches, facetSearches, brand, req.user, req.user.roles, sails.config.record.search.returnFields);
+        let searchRes = await this.searchService.searchFuzzy(type, workflow, searchString, exactSearches, facetSearches, brand, req.user, req.user.roles, sails.config.record.search.returnFields, start, rows);
+        searchRes['page'] = page
         this.ajaxOk(req, res, null, searchRes);
       } catch (error) {
         this.ajaxFail(req, res, error.message);
@@ -1151,7 +1168,7 @@ export module Controllers {
       this.initTusServer();
       const method = _.toLower(req.method);
       if (method == 'post') {
-        req.baseUrl = `${sails.config.appPort ? `:${sails.config.appPort}` : ''}/${req.session.branding}/${req.session.portal}/record/${oid}`
+        req.baseUrl = `${BrandingService.getBrandAndPortalPath(req)}/record/${oid}`
       } else {
         req.baseUrl = '';
       }
@@ -1184,7 +1201,12 @@ export module Controllers {
                 sails.log.verbose("Error: Attachment not found in do attachment.");
                 return Observable.throwError(new Error(TranslationService.t('attachment-not-found')))
               }
-              res.set('Content-Type', found.mimeType);
+              let mimeType = found.mimeType;
+              if(_.isEmpty(mimeType)) {
+                // Set octet stream as a default
+                mimeType = 'application/octet-stream'
+              }
+              res.set('Content-Type', mimeType);
               res.set('Content-Disposition', `attachment; filename="${found.name}"`);
               sails.log.verbose(`Returning datastream observable of ${oid}: ${found.name}, attachId: ${attachId}`);
               return that.datastreamService.getDatastream(oid, attachId).flatMap((response) => {

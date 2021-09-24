@@ -25,6 +25,7 @@ import 'rxjs/add/observable/interval';
 import 'rxjs/add/observable/of';
 import 'rxjs/add/operator/mergeMap';
 import * as _ from "lodash";
+
 /**
  * Handles client-side global configuration
  *
@@ -36,10 +37,14 @@ export class ConfigService {
   protected config: any;
   protected subjects: any;
   public csrfToken: any;
-
+  public rootContext:string = "/"
   constructor (@Inject(Http) protected http: any) {
     this.subjects = {};
     this.subjects['get'] = new Subject();
+    let bootstrapElement:any = document.getElementsByTagName("angular-bootstrap")
+    if(bootstrapElement.length > 0) {
+     this.rootContext = $(bootstrapElement[0]).attr('rootContext');
+    }
     this.initConfig();
   }
 
@@ -51,14 +56,15 @@ export class ConfigService {
 
   emitConfig() {
     if (this.config) {
+      this.config.rootContext = this.rootContext;
       this.subjects['get'].next(this.config);
     }
   }
 
   initConfig() {
-    this.http.get(`/csrfToken`).mergeMap((csrfRes:any) => {
+    this.http.get(`${this.rootContext}/csrfToken`).mergeMap((csrfRes:any) => {
       this.csrfToken = csrfRes.json()['_csrf'];
-      return this.http.get(`/dynamic/apiClientConfig?v=${new Date().getTime()}`);
+      return this.http.get(`${this.rootContext}/dynamic/apiClientConfig?v=${new Date().getTime()}`);
     })
     .subscribe((res:any) => {
       this.config = this.extractData(res);

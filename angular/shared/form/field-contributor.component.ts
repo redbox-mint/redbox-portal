@@ -33,6 +33,8 @@ import { Observable} from 'rxjs/Rx';
  */
 const KEY_TAB = 9;
 const KEY_EN = 13;
+const KEY_LEFT = 37;
+const KEY_RIGHT = 39;
 
 export class ContributorField extends FieldBase<any> {
   nameColHdr: string;
@@ -502,7 +504,7 @@ export class ContributorComponent extends SimpleComponent {
         that.emptied = _.isEmpty(v);
         if (that.emptied && that.blurred) {
           that.blurred = false;
-          console.log(`Forced lookup, clearing data..`)
+          console.log(`Forced lookup, clearing data..`);
           this.field.setEmptyValue(true);
           this.lastSelected = null;
           this.field.toggleConditionalValidation(false);
@@ -574,9 +576,9 @@ export class ContributorComponent extends SimpleComponent {
         this.field.setValue(val, emitEvent, updateTitle);
       }
     } else {
-      console.log(`No selected user.`)
+      console.log(`No selected user.`);
       if (this.field.forceLookupOnly) {
-        console.log(`Forced lookup, clearing data..`)
+        console.log(`Forced lookup, clearing data..`);
         this.field.setEmptyValue(emitEvent);
         this.lastSelected = null;
       }
@@ -597,7 +599,7 @@ export class ContributorComponent extends SimpleComponent {
   }
 
   public onKeydown(event) {
-    if (event && (event.keyCode === KEY_EN || event.keyCode === KEY_TAB )) {
+    if (event && (event.keyCode === KEY_EN || event.keyCode === KEY_TAB || event.keyCode === KEY_LEFT || event.keyCode === KEY_RIGHT )) {
       if (this.lastSelected && this.emptied) {
         const that = this;
         setTimeout(() => {
@@ -620,10 +622,12 @@ export class ContributorComponent extends SimpleComponent {
   }
 
   public onKeyUp(event) {
-    console.log("here")
+
     const val = this.ngCompleter.ctrInput.nativeElement.value
     this.field.toggleConditionalValidation(!_.isEmpty(val));
-    if (event && event.keyCode !== KEY_EN && event.keyCode !== KEY_TAB && event.key !== 'ArrowUp' && event.key !== 'ArrowDown') {
+
+    if (event && (event.keyCode !== KEY_EN && event.keyCode !== KEY_TAB && event.key !== 'ArrowUp' && event.key !== 'ArrowDown')) {
+
       const val = this.field.vocabField.getValue({text_full_name: this.ngCompleter.ctrInput.nativeElement.value });
       this.field.setValue(val, true, false);
     }

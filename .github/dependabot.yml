@@ -1,0 +1,43 @@
+version: 2
+updates:
+- package-ecosystem: npm
+  directory: "/"
+  schedule:
+    interval: daily
+    time: "19:30"
+  open-pull-requests-limit: 10
+  ignore:
+  - dependency-name: typescript
+    versions:
+    - "< 4, >= 3.a"
+  - dependency-name: y18n
+    versions:
+    - 4.0.1
+  - dependency-name: rxjs
+    versions:
+    - 6.6.3
+    - 6.6.6
+  - dependency-name: fs-extra
+    versions:
+    - 9.1.0
+  - dependency-name: typescript-require
+    versions:
+    - 0.3.0
+  - dependency-name: sails
+    versions:
+    - 1.4.0
+  - dependency-name: mocha
+    versions:
+    - 8.2.1
+  - dependency-name: "@types/jquery"
+    versions:
+    - 3.5.5
+  - dependency-name: sails-hook-sockets
+    versions:
+    - 2.0.0
+  - dependency-name: ng2-completer
+    versions:
+    - 9.0.1
+  - dependency-name: redux
+    versions:
+    - 4.0.5

@@ -20,10 +20,11 @@ describe('The BrandingService', function () {
 
   it('should resolve the correct brand and portal', function (done) {
     var req = {'params': {'branding': sails.config.auth.defaultBrand, 'portal': sails.config.auth.defaultPortal}};
+    var rootContext = BrandingService.getRootContext();
     var path = BrandingService.getBrandAndPortalPath(req);
-    path.should.equal('/'+req.params.branding + '/' + req.params.portal);
+    path.should.equal(rootContext+'/'+req.params.branding + '/' + req.params.portal);
     path = BrandingService.getBrandAndPortalPath({params:{}});
-    path.should.equal('/'+req.params.branding + '/' + req.params.portal);
+    path.should.equal(rootContext+'/'+req.params.branding + '/' + req.params.portal);
     done();
   });
 });

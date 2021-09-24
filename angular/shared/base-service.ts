@@ -24,6 +24,8 @@ import 'rxjs/add/observable/of';
 import 'rxjs/add/operator/mergeMap';
 import * as _ from "lodash";
 import { Subject } from 'rxjs/Subject';
+
+
 /**
  * Base class for all client-side services...
  *
@@ -47,7 +49,7 @@ export class BaseService {
     this.configService.getConfig((config:any) => {
       this.config = config;
       this.baseUrl = this.config.baseUrl;
-      this.brandingAndPortalUrl = `${this.baseUrl}/${this.config.branding}/${this.config.portal}`;
+      this.brandingAndPortalUrl = `${this.baseUrl}${this.config.rootContext}/${this.config.branding}/${this.config.portal}`;
       this.options = this.getOptionsClient();
       this.emitInit();
     });
