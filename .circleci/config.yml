@@ -104,6 +104,29 @@ workflows:
           filters:
             branches:
               only: 'master'
+  build_test_dependabot:
+    jobs:
+      - build_without_angular
+        filters:
+          branches:
+            only: /^dependabot.*/
+          tags:
+            ignore: /.*/
+      - test:
+          requires:
+            - build_without_angular
+      - deploy:
+          requires:
+            - test
+          filters:
+            branches:
+              ignore: /^dependabot.*/
+      - generate-docs:
+          requires: 
+            - test
+          filters:
+            branches:
+              only: 'master'
   release_build_test_gendocs_and_deploy:
     jobs:
       - build:
