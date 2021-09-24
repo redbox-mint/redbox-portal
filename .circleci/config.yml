@@ -88,7 +88,10 @@ version: 2.1
 workflows:
   build_test_gendocs_and_deploy:
     jobs:
-      - build
+      - build:
+          filters:
+            branches:
+              ignore: /^dependabot.*/
       - test:
           requires:
             - build
