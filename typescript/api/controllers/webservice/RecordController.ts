@@ -538,7 +538,7 @@ export module Controllers {
        return metadata;
      }
 
-     protected async getRecords(workflowState, recordType, start, rows, user, roles, brand, editAccessOnly=undefined, packageType = undefined, sort=undefined) {
+     protected async getRecords(workflowState, recordType, start, rows, user, roles, brand, editAccessOnly=undefined, packageType = undefined, sort=undefined, fieldNames=undefined, filterString=undefined) {
        const username = user.username;
        if (!_.isUndefined(recordType) && !_.isEmpty(recordType)) {
          recordType = recordType.split(',');
@@ -552,7 +552,7 @@ export module Controllers {
        if(rows == undefined) {
          rows = 10;
        }
-       var results = await this.RecordsService.getRecords(workflowState, recordType, start, rows, username, roles, brand, editAccessOnly, packageType, sort);
+       var results = await this.RecordsService.getRecords(workflowState, recordType, start, rows, username, roles, brand, editAccessOnly, packageType, sort,fieldNames, filterString);
        sails.log.debug(    results);  
        let apiReponse: ListAPIResponse<any> = new ListAPIResponse();       
           var totalItems = results.totalItems
@@ -608,6 +608,16 @@ export module Controllers {
        const rows = req.param('rows');
        const packageType = req.param('packageType');
        const sort = req.param('sort');
+       const filterFieldString = req.param('filterFields');
+       let filterString = req.param('filter');
+       let filterFields = undefined;
+
+       if(!_.isEmpty(filterFieldString)) {
+         filterFields = filterString.split(',')
+       } else {
+         filterString = undefined;
+       }
+
        if(rows > parseInt(sails.config.api.max_requests)){
          var error = {
           "code": 400,
@@ -622,7 +632,7 @@ export module Controllers {
        } else {
          // sails.log.debug(`getRecords: ${recordType} ${workflowState} ${start}`);
          // sails.log.debug(`${rows} ${packageType} ${sort}`);
-         this.getRecords(workflowState, recordType, start, rows, user, roles, brand, editAccessOnly, packageType, sort).then(response => {
+         this.getRecords(workflowState, recordType, start, rows, user, roles, brand, editAccessOnly, packageType, sort, filterFields, filterString).then(response => {
              res.json(response);
            }).catch( error => {
              sails.log.error("Error:");

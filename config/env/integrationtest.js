@@ -34,6 +34,9 @@ module.exports = {
     baseUrl: {
       redbox: "http://redbox:9000/redbox",
       mint: "https://demo.redboxresearchdata.com.au/mint"
+    },
+    attachments: {
+      stageDir: "/opt/redbox-portal/attachments"
     }
   },
   redbox: {

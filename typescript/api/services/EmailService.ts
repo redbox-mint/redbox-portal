@@ -59,219 +59,218 @@ export module Services {
     public sendMessage(msgTo, msgBody: string,
       msgSubject: string = sails.config.emailnotification.defaults.subject,
       msgFrom: string = sails.config.emailnotification.defaults.from,
-      msgFormat: string = sails.config.emailnotification.defaults.format): Observable < any > {
+      msgFormat: string = sails.config.emailnotification.defaults.format,
+      cc: string = _.get(sails.config.emailnotification.defaults, 'cc', '')): Observable < any > {
 
-      return Observable.of(this.sendMessageAsync(msgTo, msgBody, msgSubject, msgFrom, msgFormat));
+      return Observable.of(this.sendMessageAsync(msgTo, msgBody, msgSubject, msgFrom, msgFormat, cc));
 
     }
 
 
-    private async sendMessageAsync(msgTo, msgBody: string, msgSubject: string, msgFrom: string, msgFormat: string): Promise < any > {
-      if (!sails.config.emailnotification.settings.enabled) {
-        sails.log.verbose("Received email notification request, but is disabled. Ignoring.");
-        return {
-          'code': '200',
-          'msg': 'Email services disabled.'
-        };
-      }
-      sails.log.verbose('Received email notification request. Processing.');
-
-      let transport;
-      try {
-        transport = nodemailer.createTransport(sails.config.emailnotification.settings.serverOptions);
-      } catch (err) {
-        return {
-          'code': '500',
-          'msg': 'Failed to establish mail transport connection.'
-        };
-        sails.log.error(err);
-      }
-
-
-
-
-      var message = {
-        "to": msgTo,
-        "subject": msgSubject,
-        "from": msgFrom,
-
+    private async sendMessageAsync(msgTo, msgBody: string, msgSubject: string, msgFrom: string, msgFormat: string, cc: string): Promise<any> {
+    if (!sails.config.emailnotification.settings.enabled) {
+      sails.log.debug("Received email notification request, but is disabled. Ignoring.");
+      return {
+        'code': '200',
+        'msg': 'Email services disabled.'
       };
-      message[msgFormat] = msgBody;
-      let response = {
-        success: false
-      };
+    }
+    sails.log.info('Received email notification request. Processing.');
 
-      try {
-        let sendResult = await transport.sendMail(message);
-        sails.log.verbose(`Email sent successfully. Message Id: ${sendResult.messageId}`);
-        response['msg'] = `Email sent successfully. Message Id: ${sendResult.messageId}`;
-        response.success = true;
-      } catch (err) {
-        response['msg'] = 'Email unable to be submitted';
-        sails.log.error("Email sending failed")
-        sails.log.error(err)
-      }
+    let transport;
+    try {
+      transport = nodemailer.createTransport(sails.config.emailnotification.settings.serverOptions);
+    } catch (err) {
+      sails.log.error(err);
+      return {
+        'code': '500',
+        'msg': 'Failed to establish mail transport connection.'
+      };
+    }
+
+    var message = {
+      "to": msgTo,
+      "subject": msgSubject,
+      "from": msgFrom,
+      "cc": cc
+    };
+
+    message[msgFormat] = msgBody;
+    let response = {
+      success: false
+    };
+    sails.log.debug(`Email message to send will be ${JSON.stringify(message)}`)
+    try {
+      let sendResult = await transport.sendMail(message);
+      sails.log.info(`Email sent successfully. Message Id: ${sendResult.messageId}`);
+      response['msg'] = `Email sent successfully. Message Id: ${sendResult.messageId}`;
+      response.success = true;
+    } catch(err) {
+      response['msg'] = 'Email unable to be submitted';
+      sails.log.error("Email sending failed")
+      sails.log.error(err)
+    }
 
 
 
       return response;
 
-    }
+  }
 
-    /**
-     * Build Email Body from Template
-     *
-     * Templates are defined in sails config
-     *
-     * Return: status, body, exc
-     */
+  /**
+   * Build Email Body from Template
+   *
+   * Templates are defined in sails config
+   *
+   * Return: status, body, exc
+   */
 
-    public buildFromTemplate(template: string, data: any = {}): Observable < any > {
+  public buildFromTemplate(template: string, data: any = {}): Observable < any > {
 
-      let readFileAsObservable = Observable.bindNodeCallback((
-        path: string,
-        encoding: string,
-        callback: (error: Error, buffer: Buffer) => void
-      ) => fs.readFile(path, encoding, callback));
+    let readFileAsObservable = Observable.bindNodeCallback((
+      path: string,
+      encoding: string,
+      callback: (error: Error, buffer: Buffer) => void
+    ) => fs.readFile(path, encoding, callback));
 
-      let res = {};
-      let readTemplate = readFileAsObservable(sails.config.emailnotification.settings.templateDir + template + '.ejs', 'utf8');
+    let res = {};
+    let readTemplate = readFileAsObservable(sails.config.emailnotification.settings.templateDir + template + '.ejs', 'utf8');
 
-      return readTemplate.map(
-        buffer => {
-          try {
-            var renderedTemplate = ejs.render((buffer || "").toString(), data, {
-              cache: true,
-              filename: template
-            });
-          } catch (e) {
-            sails.log.error(`Unable to render template ${template} with data: ${data}`);
-            res['status'] = 500;
-            res['body'] = 'Templating error.';
-            res['ex'] = e;
-            sails.log.error(e)
-            return res;
-            //throw e;
-          }
-
-          res['status'] = 200;
-          res['body'] = renderedTemplate;
-          return res;
-        },
-        error => {
-          sails.log.error(`Unable to read template file for ${template}`);
-          res['status'] = 500;
-          res['body'] = 'Template read error.';
-          res['ex'] = error;
-          return res;
-          //throw error;
-        }
-      );
-    }
-
-    /**
-     * Send Email from Template
-     *
-     * Templates are defined in sails config
-     *
-     * Return: status, body, exc
-     */
-    public sendTemplate(to, subject, template, data) {
-      sails.log.verbose("Inside Send Template");
-      var buildResponse = this.buildFromTemplate(template, data);
-      sails.log.verbose("buildResponse");
-      buildResponse.subscribe(buildResult => {
-        if (buildResult['status'] != 200) {
-          return buildResult;
-        } else {
-          var sendResponse = this.sendMessage(to, buildResult['body'], subject);
-
-          sendResponse.subscribe(sendResult => {
-            return sendResult;
+    return readTemplate.map(
+      buffer => {
+        try {
+          var renderedTemplate = ejs.render((buffer || "").toString(), data, {
+            cache: true,
+            filename: template
           });
+        } catch (e) {
+          sails.log.error(`Unable to render template ${template} with data: ${data}`);
+          res['status'] = 500;
+          res['body'] = 'Templating error.';
+          res['ex'] = e;
+          sails.log.error(e)
+          return res;
+          //throw e;
         }
-      });
-    }
 
-    protected runTemplate(template: string, variables) {
-      if (template && template.indexOf('<%') != -1) {
-        return _.template(template, variables)();
+        res['status'] = 200;
+        res['body'] = renderedTemplate;
+        return res;
+      },
+      error => {
+        sails.log.error(`Unable to read template file for ${template}`);
+        res['status'] = 500;
+        res['body'] = 'Template read error.';
+        res['ex'] = error;
+        return res;
+        //throw error;
       }
-      return template;
+    );
+  }
+
+  /**
+   * Send Email from Template
+   *
+   * Templates are defined in sails config
+   *
+   * Return: status, body, exc
+   */
+  public sendTemplate(to, subject, template, data) {
+    sails.log.verbose("Inside Send Template");
+    var buildResponse = this.buildFromTemplate(template, data);
+    sails.log.verbose("buildResponse");
+    buildResponse.subscribe(buildResult => {
+      if (buildResult['status'] != 200) {
+        return buildResult;
+      } else {
+        var sendResponse = this.sendMessage(to, buildResult['body'], subject);
+
+        sendResponse.subscribe(sendResult => {
+          return sendResult;
+        });
+      }
+    });
+  }
+
+  protected runTemplate(template: string, variables) {
+    if (template && template.indexOf('<%') != -1) {
+      return _.template(template, variables)();
     }
+    return template;
+  }
 
     public sendRecordNotification(oid, record, options, user, response) {
-      const isSailsEmailConfigDisabled = (_.get(sails.config, 'services.email.disabled', false) == "true");
-      if (isSailsEmailConfigDisabled) {
-        sails.log.verbose(`Not sending notification log for: ${oid}, config: services.email.disabled is ${isSailsEmailConfigDisabled}`);
-        return Observable.of(null);
-      } else if (this.metTriggerCondition(oid, record, options) == "true") {
-        const variables = {
-          imports: {
-            record: record,
-            oid: oid
-          }
-        };
-        sails.log.verbose(`Sending record notification for oid: ${oid}`);
-        sails.log.verbose(options);
-        // send record notification
-        const to = this.runTemplate(_.get(options, "to", null), variables);
-        if (!to) {
-          sails.log.error(`Error sending notification for oid: ${oid}, invalid 'To' address: ${to}. Please check your configuration 'to' option: ${_.get(options, 'to')}`);
-          return Observable.of(null);
+    const isSailsEmailConfigDisabled = (_.get(sails.config, 'services.email.disabled', false) == "true");
+    if (isSailsEmailConfigDisabled) {
+      sails.log.verbose(`Not sending notification log for: ${oid}, config: services.email.disabled is ${isSailsEmailConfigDisabled}`);
+      return Observable.of(null);
+    } else if (this.metTriggerCondition(oid, record, options) == "true") {
+      const variables = {
+        imports: {
+          record: record,
+          oid: oid
         }
-        const subject = this.runTemplate(_.get(options, "subject", null), variables);
-        const templateName = _.get(options, "template", "");
-        const from = this.runTemplate(_.get(options, "from", sails.config.emailnotification.defaults.from), variables);
-        const msgFormat = _.get(options, "msgFormat", sails.config.emailnotification.defaults.format);
+      };
+      sails.log.debug(`Sending record notification for oid: ${oid}`);
+      sails.log.verbose(options);
+      // send record notification
+      const to = this.runTemplate(_.get(options, "to", null), variables);
+      if (!to) {
+        sails.log.error(`Error sending notification for oid: ${oid}, invalid 'To' address: ${to}. Please check your configuration 'to' option: ${_.get(options, 'to')}`);
+        return Observable.of(null);
+      }
+      const subject = this.runTemplate(_.get(options, "subject", null), variables);
+      const templateName = _.get(options, "template", "");
+      const from = this.runTemplate(_.get(options, "from", sails.config.emailnotification.defaults.from), variables);
+      const msgFormat = _.get(options, "msgFormat", sails.config.emailnotification.defaults.format);
+      const cc = this.runTemplate(_.get(options, "cc", sails.config.emailnotification.defaults.cc), variables);
 
-        const data = {};
-        data['record'] = record;
-        data['oid'] = oid;
-        return this.buildFromTemplate(templateName, data)
-          .flatMap(buildResult => {
-            if (buildResult['status'] != 200) {
-              sails.log.error(`Failed to build email result:`);
-              sails.log.error(buildResult);
-              return Observable.throw(new Error('Failed to build email body.'));
+      const data = {};
+      data['record'] = record;
+      data['oid'] = oid;
+      return this.buildFromTemplate(templateName, data)
+        .flatMap(buildResult => {
+          if (buildResult['status'] != 200) {
+            sails.log.error(`Failed to build email result:`);
+            sails.log.error(buildResult);
+            return Observable.throw(new Error('Failed to build email body.'));
+          }
+          return this.sendMessage(to, buildResult['body'], subject,from,msgFormat, cc);
+        })
+        .flatMap(sendResult => {
+          if (sendResult['code'] == '200') {
+            // perform additional processing on success...
+            const postSendHooks = _.get(options, "onNotifySuccess", null);
+            if (postSendHooks) {
+              _.each(postSendHooks, (postSendHook) => {
+                const postSendHookFnName = _.get(postSendHook, 'function', null);
+                if (postSendHookFnName) {
+                  const postSendHookFn = eval(postSendHookFnName);
+                  const postSendHookOpts = _.get(postSendHook, 'options', null);
+                  postSendHookFn(oid, record, postSendHookOpts).subscribe(postSendRes => {
+                    sails.log.verbose(`Post notification sending hook completed: ${postSendHookFnName}`);
+                  });
+                }
+              });
             }
-            return this.sendMessage(to, buildResult['body'], subject, from, msgFormat);
-          })
-          .flatMap(sendResult => {
-            if (sendResult['code'] == '200') {
-              // perform additional processing on success...
-              const postSendHooks = _.get(options, "onNotifySuccess", null);
-              if (postSendHooks) {
-                _.each(postSendHooks, (postSendHook) => {
-                  const postSendHookFnName = _.get(postSendHook, 'function', null);
-                  if (postSendHookFnName) {
-                    const postSendHookFn = eval(postSendHookFnName);
-                    const postSendHookOpts = _.get(postSendHook, 'options', null);
-                    postSendHookFn(oid, record, postSendHookOpts).subscribe(postSendRes => {
-                      sails.log.verbose(`Post notification sending hook completed: ${postSendHookFnName}`);
-                    });
-                  }
-                });
-              }
-            }
+          }
             if (!_.isEmpty(response)) {
               return Observable.of(response);
             } else {
               return Observable.of(record);
             }
-          });
-
-      } else {
-        sails.log.verbose(`Not sending notification log for: ${oid}, condition not met: ${_.get(options, "triggerCondition", "")}`)
-        sails.log.verbose(JSON.stringify(record));
-      }
+        });
+    } else {
+      sails.log.verbose(`Not sending notification log for: ${oid}, condition not met: ${_.get(options, "triggerCondition", "")}`)
+      sails.log.verbose(JSON.stringify(record));
+    }
       if (!_.isEmpty(response)) {
         return Observable.of(response);
       } else {
         return Observable.of(record);
       }
-    }
   }
+}
 
 
 

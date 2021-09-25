@@ -86,7 +86,16 @@ export module Controllers {
 
     public redirLogin(req, res) {
       if (req.path.indexOf(sails.config.auth.loginPath) == -1) {
-        req.session.redirUrl = req.url;
+
+        let url = req.url;
+
+        if (!_.isEmpty(sails.config.http.rootContext)) {
+
+          url = sails.config.appUrl + '/' + sails.config.http.rootContext + url;
+
+        }
+        req.session.redirUrl = url;
+
       }
       return res.redirect(`${BrandingService.getBrandAndPortalPath(req)}/${sails.config.auth.loginPath}`);
     }

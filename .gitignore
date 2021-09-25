@@ -176,3 +176,5 @@ api/core/**/*.js
 dev
 .dev
 core/dist
+api/models/Record.js
+api/models/RecordAudit.js
