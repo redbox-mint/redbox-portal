@@ -320,6 +320,31 @@ module.exports.recordtype = {
               flagVal: 'draft', // hard coded value
               saveRecord: false // when true, do metadata update -> false, since this is on a pre-save hook, gets saved anyway
             }
+          },
+          {
+            function: 'sails.services.rdmpservice.assignPermissions',
+            options: {
+              "emailProperty": "email",
+              "editContributorProperties": [
+                "metadata.creators"
+              ],
+              "viewContributorProperties": [
+                "metadata.creators"
+              ]
+            }
+          },
+
+          {
+            function: 'sails.services.rdmpservice.stripUserBasedPermissions',
+            options: {
+                triggerCondition: "<%= record.workflow.stage=='published' ||  record.workflow.stage=='queued' || record.workflow.stage=='embargoed' %>"
+            }
+          },
+          {
+            function: 'sails.services.rdmpservice.restoreUserBasedPermissions',
+            options: {
+                triggerCondition: "<%= record.workflow.stage=='draft' %>"
+            }
           }
         ],
         post: [
@@ -404,6 +429,31 @@ module.exports.recordtype = {
               flagVal: 'draft', // hard coded value
               saveRecord: false // when true, do metadata update -> false, since this is on a pre-save hook, gets saved anyway
             }
+          },
+          {
+            function: 'sails.services.rdmpservice.assignPermissions',
+            options: {
+              "emailProperty": "email",
+              "editContributorProperties": [
+                "metadata.creators"
+              ],
+              "viewContributorProperties": [
+                "metadata.creators"
+              ]
+            }
+          },
+
+          {
+            function: 'sails.services.rdmpservice.stripUserBasedPermissions',
+            options: {
+                triggerCondition: "<%= record.workflow.stage=='published' ||  record.workflow.stage=='queued' || record.workflow.stage=='embargoed' %>"
+            }
+          },
+          {
+            function: 'sails.services.rdmpservice.restoreUserBasedPermissions',
+            options: {
+                triggerCondition: "<%= record.workflow.stage=='draft' %>"
+            }
           }
         ],
         post: [
@@ -440,7 +490,7 @@ module.exports.recordtype = {
             }
           },
           
-
+          
 
           // Triggers "Published" Email Notification to FNCI, DM, Collaborators, CC: librarian with RDA link
           {
