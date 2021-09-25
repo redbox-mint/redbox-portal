@@ -2,24 +2,24 @@ version: '3.1'
 networks:
   main:
 services:
-  nginx:
-    image: nginx
-    ports:
-      - "1500:1500"
-    restart: always
-    volumes:
-      - "/home/vagrant/source/redbox-portal/support/nginx.conf:/etc/nginx/conf.d/default.conf:ro"
-    expose:
-      - "1500"
-    networks:
-      main:
-         aliases:
-           - nginx
+  # nginx:
+  #   image: nginx
+  #   ports:
+  #     - "1500:1500"
+  #   restart: always
+  #   volumes:
+  #     - "/home/vagrant/source/redbox-portal/support/nginx.conf:/etc/nginx/conf.d/default.conf:ro"
+  #   expose:
+  #     - "1500"
+  #   networks:
+  #     main:
+  #        aliases:
+  #          - nginx
   redboxportal:
     build: .
     image: qcifengineering/redbox-portal:latest
     ports:
-      - "1337:1337"
+      - "1500:1500"
     user: node
     volumes:
       - ".:/opt/redbox-portal:delegated"
@@ -27,11 +27,11 @@ services:
       - "./.dev/publication:/publication:delegated"
       - "./.dev/hooks:/opt/hooks:delegated"
     expose:
-      - "1337"
+      - "1500"
     environment:
       - NODE_ENV=docker
-      - PORT=1337
-      - sails_angularDev=true
+      - PORT=1500
+      # - sails_angularDev=false
       - sails_redbox__apiKey=c8e844fc-8550-497f-b970-7900ec8741ca
       - sails_record__baseUrl__redbox=http://redbox:9000/redbox
       - sails_record__baseUrl__mint=https://demo.redboxresearchdata.com.au/mint
