@@ -151,10 +151,22 @@ export module Services {
       const aafOpts = defAuthConfig.aaf.opts;
       aafOpts.jwtFromRequest = ExtractJwt.fromBodyField('assertion');
       sails.config.passport.use('aaf-jwt', new JwtStrategy(aafOpts, function (req, jwt_payload, done) {
-        var brand = BrandingService.getBrand(req.session.branding);
+        var brand = BrandingService.getBrandFromReq(req);
+        sails.log.error("brand is: ")
+        sails.log.error(brand)
         const authConfig = ConfigService.getBrand(brand.name, 'auth');
         var aafAttributes = authConfig.aaf.attributesField;
-        var aafDefRoles = _.map(RolesService.getNestedRoles(RolesService.getDefAuthenticatedRole(brand).name, brand.roles), 'id');
+        let authorizedEmailDomains = _.get(authConfig.aaf, "authorizedEmailDomains", []);
+        let authorizedEmailExceptions = _.get(authConfig.aaf, "authorizedEmailExceptions", []);
+        sails.log.error("Configured roles: ")
+        sails.log.error(sails.config.auth.roles);
+        sails.log.error("AAF default roles ")
+        sails.log.error(ConfigService.getBrand(brand.name, 'auth').aaf.defaultRole)
+        let defaultAuthRole = RolesService.getDefAuthenticatedRole(brand);
+        let aafDefRoles =[]
+        if(defaultAuthRole != undefined) {
+         aafDefRoles = _.map(RolesService.getNestedRoles(defaultAuthRole.name, brand.roles), 'id');
+        }
         var aafUsernameField = authConfig.aaf.usernameField;
         const userName = Buffer.from(jwt_payload[aafUsernameField]).toString('base64');
         User.findOne({
