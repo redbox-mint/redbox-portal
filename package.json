@@ -23,6 +23,7 @@
     "dotenv": "^10.0.0",
     "ejs": "3.1.6",
     "flat": "^5.0.2",
+    "fluent-json-schema": "^3.0.1",
     "font-awesome-sass": "4.7.0",
     "fs-extra": "^10.0.0",
     "got": "^11.8.2",
