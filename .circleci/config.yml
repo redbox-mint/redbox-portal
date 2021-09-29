@@ -49,7 +49,7 @@ jobs:
       - setup_remote_docker
       - attach_workspace:
             at: /home/circleci/project
-      - docker/install-docker-compose
+      # - docker/install-docker-compose
       - run: (chmod +x dockerhub_deploy.sh && ./dockerhub_deploy.sh)
       - run:
           command: |
