@@ -479,20 +479,7 @@ export module Services {
         }));
       });
       return !_.isUndefined(isInRoleEdit);
-      // Lines below commented out because we're not checking workflow auths anymore,
-      // we're expecting that the workflow auths are bolted into the document on workflow updates.
-      //
-      // if (isInRoleEdit !== undefined) {
-      //   return Observable.of(true);
-      // }
-      //
-      // return WorkflowStepsService.get(brand, record.workflow.stage).flatMap(wfStep => {
-      //   const wfHasRoleEdit = _.find(wfStep.config.authorization.editRoles, roleName => {
-      //     const role = RolesService.getRole(brand, roleName);
-      //     return role && UsersService.hasRole(user, role);
-      //   });
-      //   return Observable.of(wfHasRoleEdit !== undefined);
-      // });
+ 
     }
 
 
@@ -729,9 +716,10 @@ export module Services {
             let postSaveCreateHookFunction = eval(postSaveCreateHookFunctionString);
             let options = _.get(postSaveCreateHook, "options", {});
             if (_.isFunction(postSaveCreateHookFunction)) {
-              postSaveCreateHookFunction(oid, record, options, user).subscribe(result => {
+              let hookResponse = postSaveCreateHookFunction(oid, record, options, user);
+              this.resolveHookResponse(hookResponse).then(result => {
                 sails.log.debug(`post-save trigger ${postSaveCreateHookFunctionString} completed for ${oid}`)
-              }, error => {
+              }).catch( error => {
                 sails.log.error(`post-save trigger ${postSaveCreateHookFunctionString} failed to complete`)
                 sails.log.error(error)
               });

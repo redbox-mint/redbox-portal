@@ -165,16 +165,21 @@ export module Services {
     }
 
     protected addEmailToList(contributor, emailProperty, emailList) {
-      let editContributorEmailAddress = _.get(contributor, emailProperty, null);
-      if (!editContributorEmailAddress) {
+      let contributorEmailAddress = _.get(contributor, emailProperty, null);
+      if (!contributorEmailAddress) {
         if (!contributor) {
           return;
         }
-        editContributorEmailAddress = contributor;
+        contributorEmailAddress = contributor;
       }
-      if (editContributorEmailAddress != null && !_.isEmpty(editContributorEmailAddress) && !_.isUndefined(editContributorEmailAddress) && _.isString(editContributorEmailAddress)) {
-        sails.log.verbose(`Pushing contrib email address ${editContributorEmailAddress}`)
-        emailList.push(editContributorEmailAddress);
+      if (!_.isEmpty(contributorEmailAddress) && !_.isUndefined(contributorEmailAddress)) {
+        if(_.isArray(contributorEmailAddress) && contributorEmailAddress.length > 0) {
+          contributorEmailAddress = contributorEmailAddress[0]
+        }
+        if(_.isString(contributorEmailAddress)) {
+          sails.log.verbose(`Pushing contrib email address ${contributorEmailAddress}`)
+          emailList.push(contributorEmailAddress);
+        }
       }
     }
 
