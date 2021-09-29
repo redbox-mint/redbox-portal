@@ -32,7 +32,7 @@ jobs:
   test:
     machine: true
     steps:
-      - docker/install-docker-compose
+      # - docker/install-docker-compose
       - attach_workspace:
            at: /home/circleci/project
       - run: export NVM_DIR=/opt/circleci/.nvm && source /opt/circleci/.nvm/nvm.sh && nvm install 12.22.6 && nvm use 12.22.6
