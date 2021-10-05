@@ -181,7 +181,7 @@ export class TextFieldComponent extends EmbeddableComponent {
     </div>
     <div *ngFor="let fieldElem of field.fields; let i = index;" class="row">
       <span class="col-xs-12">
-        <textfield [name]="field.name" [field]="fieldElem" [form]="form" [fieldMap]="fieldMap" [isEmbedded]="true" [removeBtnText]="field.removeButtonText" [removeBtnClass]="field.removeButtonClass" [canRemove]="field.fields.length > 1" (onRemoveBtnClick)="removeElem($event[0], $event[1])" [index]="i"></textfield>
+        <textfield [name]="field.name" [field]="fieldElem" [form]="form" [fieldMap]="fieldMap" [isEmbedded]="true" [removeBtnText]="field.removeButtonText" [removeBtnClass]="field.removeButtonClass" [canRemove]="field.fields.length > field.minimumEntries" (onRemoveBtnClick)="removeElem($event[0], $event[1])" [index]="i"></textfield>
       </span>
     </div>
     <div class="row">
@@ -191,9 +191,9 @@ export class TextFieldComponent extends EmbeddableComponent {
       </div>
     </div>
     <div class="row">
-      <span class="col-xs-12">
-        <button *ngIf="field.addButtonText" type='button' (click)="addElem($event)" [ngClass]="field.addButtonTextClass" >{{field.addButtonText}}</button>
-        <button *ngIf="!field.addButtonText" type='button' (click)="addElem($event)" [ngClass]="field.addButtonClass" [attr.aria-label]="'add-button-label' | translate"></button>
+      <span *ngIf="field.addButtonShow" class="col-xs-12">
+        <button *ngIf="field.addButtonText" type='button' [disabled]="field.fields.length >= field.maximumEntries" (click)="addElem($event)" [ngClass]="field.addButtonTextClass" >{{field.addButtonText}}</button>
+        <button *ngIf="!field.addButtonText" type='button' [disabled]="field.fields.length >= field.maximumEntries" (click)="addElem($event)" [ngClass]="field.addButtonClass" [attr.aria-label]="'add-button-label' | translate"></button>
       </span>
     </div>
   </div>

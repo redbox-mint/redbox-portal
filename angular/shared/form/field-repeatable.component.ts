@@ -43,6 +43,21 @@ export class RepeatableContainer extends Container {
   moveUpButtonClass: any;
   moveDownButtonClass: any;
   delegateErrorHandling: boolean;
+  /**
+   * Optional to set minimum entries required in a repeatable component and validates the value given is non negative 
+   * and that maximumEntries >= minimumEntries. If not set defaults to a minimum value of 1 
+   */
+  minimumEntries: number;
+  /**
+   * Optional to set maximum entries allowed in a repeatable component and validates the value given is non negative 
+   * and that maximumEntries >= minimumEntries. If not set defaults to maximum value of 1000
+   */
+  maximumEntries: number;
+  /**
+   * Optional, hide green plus button if set to false. If not present it will default to true, meaning the add button
+   * will shown. This property is useful to show a list of values but not allow to add any more entries to the list
+   */
+  addButtonShow: boolean;
 
   constructor(options: any, injector: any) {
     super(options, injector);
@@ -58,6 +73,26 @@ export class RepeatableContainer extends Container {
     this.moveUpButtonClass = options['addButtonClass'] || 'fa fa-chevron-circle-up btn text-20 pull-left btn-primary';
     this.moveDownButtonClass = options['addButtonClass'] || 'fa fa-chevron-circle-down btn text-20 pull-left btn-primary';
     this.delegateErrorHandling = !_.isUndefined(options['delegateErrorHandling']) ? options['delegateErrorHandling'] : true;
+    this.addButtonShow = !_.isUndefined(options['addButtonShow']) ? options['addButtonShow'] : true;
+    this.minimumEntries = (!_.isUndefined(options['minimumEntries']) && options['minimumEntries'] > 0) ? options['minimumEntries'] : 1;
+    this.maximumEntries = (!_.isUndefined(options['maximumEntries']) && options['maximumEntries'] > 0) ? options['maximumEntries'] : 1000;
+    //Validate that maximumEntries is bigger or equal to minimumEntries
+    if(this.maximumEntries < this.minimumEntries) {
+      console.debug("minimumEntries "+this.minimumEntries+" cannot be bigger than maximumEntries "+this.maximumEntries
+                    +" setting them to equal smallest value within the range given");
+      this.minimumEntries = this.maximumEntries;
+    }
+    //Set the number of rows on first display if minimumEntries option has been set but also take into account
+    //that defaultValue option may have been set and don't override if it has been set in the form config
+    if(this.minimumEntries > 1 && _.isUndefined(options.defaultValue)) {
+      let arrayWithEmptyValues = [];
+      let i = 0;
+      while ( i < this.minimumEntries) {
+        arrayWithEmptyValues.push("");
+        i++;
+      }
+      this.value = arrayWithEmptyValues;
+    }
   }
 
   getInitArrayEntry() {
