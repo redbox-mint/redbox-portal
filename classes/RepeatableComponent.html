@@ -180,7 +180,7 @@
                 </tr>
                     <tr>
                         <td class="col-md-4">
-                                <div class="io-line">Defined in <a href="" data-line="300" class="link-to-prism">angular/shared/form/field-repeatable.component.ts:300</a></div>
+                                <div class="io-line">Defined in <a href="" data-line="335" class="link-to-prism">angular/shared/form/field-repeatable.component.ts:335</a></div>
                         </td>
                     </tr>
 
@@ -371,8 +371,8 @@
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="302"
-                            class="link-to-prism">angular/shared/form/field-repeatable.component.ts:302</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="337"
+                            class="link-to-prism">angular/shared/form/field-repeatable.component.ts:337</a></div>
                 </td>
             </tr>
 
@@ -446,7 +446,7 @@
             </tr>
             <tr>
                 <td class="col-md-4">
-                        <div class="io-line">Defined in         <code><a href="../classes/SimpleComponent.html#source" target="_self" >SimpleComponent:310</a></code>
+                        <div class="io-line">Defined in         <code><a href="../classes/SimpleComponent.html#source" target="_self" >SimpleComponent:345</a></code>
 </div>
                 </td>
             </tr>
@@ -483,8 +483,8 @@
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="306"
-                            class="link-to-prism">angular/shared/form/field-repeatable.component.ts:306</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="341"
+                            class="link-to-prism">angular/shared/form/field-repeatable.component.ts:341</a></div>
                 </td>
             </tr>
 
@@ -940,6 +940,21 @@ export class RepeatableContainer extends Container {
   moveUpButtonClass: any;
   moveDownButtonClass: any;
   delegateErrorHandling: boolean;
+  /**
+   * Optional to set minimum entries required in a repeatable component and validates the value given is non negative 
+   * and that maximumEntries &gt;&#x3D; minimumEntries. If not set defaults to a minimum value of 1 
+   */
+  minimumEntries: number;
+  /**
+   * Optional to set maximum entries allowed in a repeatable component and validates the value given is non negative 
+   * and that maximumEntries &gt;&#x3D; minimumEntries. If not set defaults to maximum value of 1000
+   */
+  maximumEntries: number;
+  /**
+   * Optional, hide green plus button if set to false. If not present it will default to true, meaning the add button
+   * will shown. This property is useful to show a list of values but not allow to add any more entries to the list
+   */
+  addButtonShow: boolean;
 
   constructor(options: any, injector: any) {
     super(options, injector);
@@ -955,6 +970,26 @@ export class RepeatableContainer extends Container {
     this.moveUpButtonClass &#x3D; options[&#x27;addButtonClass&#x27;] || &#x27;fa fa-chevron-circle-up btn text-20 pull-left btn-primary&#x27;;
     this.moveDownButtonClass &#x3D; options[&#x27;addButtonClass&#x27;] || &#x27;fa fa-chevron-circle-down btn text-20 pull-left btn-primary&#x27;;
     this.delegateErrorHandling &#x3D; !_.isUndefined(options[&#x27;delegateErrorHandling&#x27;]) ? options[&#x27;delegateErrorHandling&#x27;] : true;
+    this.addButtonShow &#x3D; !_.isUndefined(options[&#x27;addButtonShow&#x27;]) ? options[&#x27;addButtonShow&#x27;] : true;
+    this.minimumEntries &#x3D; (!_.isUndefined(options[&#x27;minimumEntries&#x27;]) &amp;&amp; options[&#x27;minimumEntries&#x27;] &gt; 0) ? options[&#x27;minimumEntries&#x27;] : 1;
+    this.maximumEntries &#x3D; (!_.isUndefined(options[&#x27;maximumEntries&#x27;]) &amp;&amp; options[&#x27;maximumEntries&#x27;] &gt; 0) ? options[&#x27;maximumEntries&#x27;] : 1000;
+    //Validate that maximumEntries is bigger or equal to minimumEntries
+    if(this.maximumEntries &lt; this.minimumEntries) {
+      console.debug(&quot;minimumEntries &quot;+this.minimumEntries+&quot; cannot be bigger than maximumEntries &quot;+this.maximumEntries
+                    +&quot; setting them to equal smallest value within the range given&quot;);
+      this.minimumEntries &#x3D; this.maximumEntries;
+    }
+    //Set the number of rows on first display if minimumEntries option has been set but also take into account
+    //that defaultValue option may have been set and don&#x27;t override if it has been set in the form config
+    if(this.minimumEntries &gt; 1 &amp;&amp; _.isUndefined(options.defaultValue)) {
+      let arrayWithEmptyValues &#x3D; [];
+      let i &#x3D; 0;
+      while ( i &lt; this.minimumEntries) {
+        arrayWithEmptyValues.push(&quot;&quot;);
+        i++;
+      }
+      this.value &#x3D; arrayWithEmptyValues;
+    }
   }
 
   getInitArrayEntry() {

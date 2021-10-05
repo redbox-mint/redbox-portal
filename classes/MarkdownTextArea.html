@@ -4261,7 +4261,7 @@ export class TextFieldComponent extends EmbeddableComponent {
     &lt;/div&gt;
     &lt;div *ngFor&#x3D;&quot;let fieldElem of field.fields; let i &#x3D; index;&quot; class&#x3D;&quot;row&quot;&gt;
       &lt;span class&#x3D;&quot;col-xs-12&quot;&gt;
-        &lt;textfield [name]&#x3D;&quot;field.name&quot; [field]&#x3D;&quot;fieldElem&quot; [form]&#x3D;&quot;form&quot; [fieldMap]&#x3D;&quot;fieldMap&quot; [isEmbedded]&#x3D;&quot;true&quot; [removeBtnText]&#x3D;&quot;field.removeButtonText&quot; [removeBtnClass]&#x3D;&quot;field.removeButtonClass&quot; [canRemove]&#x3D;&quot;field.fields.length &gt; 1&quot; (onRemoveBtnClick)&#x3D;&quot;removeElem($event[0], $event[1])&quot; [index]&#x3D;&quot;i&quot;&gt;&lt;/textfield&gt;
+        &lt;textfield [name]&#x3D;&quot;field.name&quot; [field]&#x3D;&quot;fieldElem&quot; [form]&#x3D;&quot;form&quot; [fieldMap]&#x3D;&quot;fieldMap&quot; [isEmbedded]&#x3D;&quot;true&quot; [removeBtnText]&#x3D;&quot;field.removeButtonText&quot; [removeBtnClass]&#x3D;&quot;field.removeButtonClass&quot; [canRemove]&#x3D;&quot;field.fields.length &gt; field.minimumEntries&quot; (onRemoveBtnClick)&#x3D;&quot;removeElem($event[0], $event[1])&quot; [index]&#x3D;&quot;i&quot;&gt;&lt;/textfield&gt;
       &lt;/span&gt;
     &lt;/div&gt;
     &lt;div class&#x3D;&quot;row&quot;&gt;
@@ -4271,9 +4271,9 @@ export class TextFieldComponent extends EmbeddableComponent {
       &lt;/div&gt;
     &lt;/div&gt;
     &lt;div class&#x3D;&quot;row&quot;&gt;
-      &lt;span class&#x3D;&quot;col-xs-12&quot;&gt;
-        &lt;button *ngIf&#x3D;&quot;field.addButtonText&quot; type&#x3D;&#x27;button&#x27; (click)&#x3D;&quot;addElem($event)&quot; [ngClass]&#x3D;&quot;field.addButtonTextClass&quot; &gt;{{field.addButtonText}}&lt;/button&gt;
-        &lt;button *ngIf&#x3D;&quot;!field.addButtonText&quot; type&#x3D;&#x27;button&#x27; (click)&#x3D;&quot;addElem($event)&quot; [ngClass]&#x3D;&quot;field.addButtonClass&quot; [attr.aria-label]&#x3D;&quot;&#x27;add-button-label&#x27; | translate&quot;&gt;&lt;/button&gt;
+      &lt;span *ngIf&#x3D;&quot;field.addButtonShow&quot; class&#x3D;&quot;col-xs-12&quot;&gt;
+        &lt;button *ngIf&#x3D;&quot;field.addButtonText&quot; type&#x3D;&#x27;button&#x27; [disabled]&#x3D;&quot;field.fields.length &gt;&#x3D; field.maximumEntries&quot; (click)&#x3D;&quot;addElem($event)&quot; [ngClass]&#x3D;&quot;field.addButtonTextClass&quot; &gt;{{field.addButtonText}}&lt;/button&gt;
+        &lt;button *ngIf&#x3D;&quot;!field.addButtonText&quot; type&#x3D;&#x27;button&#x27; [disabled]&#x3D;&quot;field.fields.length &gt;&#x3D; field.maximumEntries&quot; (click)&#x3D;&quot;addElem($event)&quot; [ngClass]&#x3D;&quot;field.addButtonClass&quot; [attr.aria-label]&#x3D;&quot;&#x27;add-button-label&#x27; | translate&quot;&gt;&lt;/button&gt;
       &lt;/span&gt;
     &lt;/div&gt;
   &lt;/div&gt;
