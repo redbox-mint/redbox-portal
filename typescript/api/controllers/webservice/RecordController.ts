@@ -355,6 +355,10 @@ export module Controllers {
               request["metadata"] = body;
             } else {
               request["metadata"] = metadata;
+              // Adding custom metaMetadata values when specifying the metadata block
+              if (!_.isEmpty(body["metaMetadata"])) {
+                _.merge(metaMetadata, body["metaMetadata"]);
+              }
             }
 
             // FormsService
