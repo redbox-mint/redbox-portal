@@ -269,6 +269,7 @@ export module Controllers {
       const brand = BrandingService.getBrand(req.session.branding);
       var oid = req.param('oid');
       const shouldMerge = req.param('merge', false);
+      const shouldProcessDatastreams = req.param('datastreams', false);
 
       Observable.fromPromise(this.RecordsService.getMeta(oid)).subscribe(record => {
         if (_.isEmpty(record)) {
@@ -285,8 +286,19 @@ export module Controllers {
           record["metadata"] = req.body;
         }
         var obs = Observable.fromPromise(this.RecordsService.updateMeta(brand, oid, record, req.user));
-        obs.subscribe(result => {
-          return res.json(result);
+        obs.subscribe(async (result) => {
+          // check if we need to process data streams
+          if (shouldProcessDatastreams) {
+            sails.log.verbose(`Processing datastreams of: ${oid}`);
+            for (let attField of record.metaMetadata.attachmentFields) {
+              // TODO: add support for removing datastreams
+              const result:DatastreamServiceResponse = await this.DatastreamService.addDatastreams(oid, _.get(record['metadata'], attField, []));  
+            }
+            return res.json(result);
+          } else {
+            // not processing datastreams... 
+            return res.json(result);
+          }
         }, error=> {
           sails.log.error("Update metadata failed", error);
           return this.apiFail(req, res, 500, new APIErrorResponse("Update Metadata failed"));
@@ -344,7 +356,6 @@ export module Controllers {
             metaMetadata["brandId"] = brand.id;
             metaMetadata["type"] = recordTypeModel.name;
             metaMetadata["packageName"] = recordTypeModel.packageName;
-            
             metaMetadata["packageType"] = recordTypeModel.packageType;
             
             // Resolves #723: removed hardcoded value
