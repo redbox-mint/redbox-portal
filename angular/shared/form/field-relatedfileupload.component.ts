@@ -258,6 +258,9 @@ export class RelatedFileUploadComponent extends SimpleComponent {
   }
 
   public getAbsUrl(location: string) {
+    if (!_.startsWith(location, 'record')) {
+      location = `record/${location}`;
+    }
     return `${this.field.recordsService.getBrandingAndPortalUrl}/${location}`
   }
 
