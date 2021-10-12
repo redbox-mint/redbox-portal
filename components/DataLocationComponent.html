@@ -590,8 +590,8 @@
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="309"
-                            class="link-to-prism">angular/shared/form/field-datalocation.component.ts:309</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="312"
+                            class="link-to-prism">angular/shared/form/field-datalocation.component.ts:312</a></div>
                 </td>
             </tr>
 
@@ -843,8 +843,8 @@
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="314"
-                            class="link-to-prism">angular/shared/form/field-datalocation.component.ts:314</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="317"
+                            class="link-to-prism">angular/shared/form/field-datalocation.component.ts:317</a></div>
                 </td>
             </tr>
 
@@ -1070,8 +1070,8 @@
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="305"
-                            class="link-to-prism">angular/shared/form/field-datalocation.component.ts:305</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="308"
+                            class="link-to-prism">angular/shared/form/field-datalocation.component.ts:308</a></div>
                 </td>
             </tr>
 
@@ -1109,8 +1109,8 @@
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="318"
-                            class="link-to-prism">angular/shared/form/field-datalocation.component.ts:318</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="321"
+                            class="link-to-prism">angular/shared/form/field-datalocation.component.ts:321</a></div>
                 </td>
             </tr>
 
@@ -2149,7 +2149,10 @@ export class DataLocationComponent extends SimpleComponent {
   }
 
   public getAbsUrl(location: string) {
-    return &#x60;${this.field.recordsService.getBrandingAndPortalUrl}/record/${location}&#x60;;
+    if (!_.startsWith(location, &#x27;record&#x27;)) {
+      location &#x3D; &#x60;record/${location}&#x60;;
+    }
+    return &#x60;${this.field.recordsService.getBrandingAndPortalUrl}/${location}&#x60;;
   }
 
   public openModal() {

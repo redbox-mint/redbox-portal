@@ -943,8 +943,8 @@
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="264"
-                            class="link-to-prism">angular/shared/form/field-relatedfileupload.component.ts:264</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="267"
+                            class="link-to-prism">angular/shared/form/field-relatedfileupload.component.ts:267</a></div>
                 </td>
             </tr>
 
@@ -1942,6 +1942,9 @@ export class RelatedFileUploadComponent extends SimpleComponent {
   }
 
   public getAbsUrl(location: string) {
+    if (!_.startsWith(location, &#x27;record&#x27;)) {
+      location &#x3D; &#x60;record/${location}&#x60;;
+    }
     return &#x60;${this.field.recordsService.getBrandingAndPortalUrl}/${location}&#x60;
   }
 
