@@ -13,3 +13,7 @@ docker tag $REPO:$CIRCLE_SHA1 $REPO:circleci-$CIRCLE_BUILD_NUM
 docker push $REPO:$TAG
 docker push $REPO:$CIRCLE_SHA1
 docker push $REPO:circleci-$CIRCLE_BUILD_NUM
+if [ "$CIRCLE_BRANCH" == "master" ]; then
+   docker tag $REPO:$CIRCLE_SHA1 $REPO:master
+   docker push $REPO:master
+fi
