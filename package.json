@@ -42,7 +42,7 @@
     "grunt-sync": "^0.8.2",
     "grunt-ts": "^6.0.0-beta.22",
     "har-validator": "5.1.5",
-    "i18next": "21.1.1",
+    "i18next": "21.3.2",
     "i18next-node-fs-backend": "^2.1.3",
     "include-all": "^4.0.3",
     "lodash": "^4.17.21",
