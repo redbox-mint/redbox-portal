@@ -58,7 +58,9 @@ export module Services {
        'every',
        'schedule',
        'now',
-       'sampleFunctionToDemonstrateHowToDefineAJobFunction'
+       'jobs',
+       'sampleFunctionToDemonstrateHowToDefineAJobFunction',
+       'defineJob'
       ];
 
       protected agenda: Agenda;
@@ -165,6 +167,17 @@ export module Services {
         });
       }
 
+      public defineJob(name, options, serviceFn) {
+       
+            if (_.isEmpty(options)) {
+              this.agenda.define(name, serviceFn);
+            } else {
+              this.agenda.define(name, options, serviceFn);
+            }
+            sails.log.verbose(`AgendaQueue:: Defined job: ${name}`);
+
+      }
+
       private setOptionIfDefined(agendaOpts, optionName, optionVal) {
         if (!_.isEmpty(optionVal)) {
           _.set(agendaOpts, optionName, optionVal);
@@ -192,6 +205,10 @@ export module Services {
           sails.log.error(`AgendaQueue:: Failed to start job now: ${jobName}`);
           sails.log.error(e);
         }
+      }
+
+      public async jobs(query:any= {}, sort = {}, limit = 0,skip = 0) {
+       return await this.agenda.jobs(query, sort, limit, skip);
       }
    }
 }
