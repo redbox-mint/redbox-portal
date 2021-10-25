@@ -90,6 +90,24 @@ export module Services {
         }
         this.agenda = new Agenda(agendaOpts);
         this.defineJobs(sails.config.agendaQueue.jobs);
+        sails.log.verbose(`AgendaQueue:: All jobs defined.`);
+        this.agenda.on('ready', () => {
+          sails.log.verbose(`AgendaQueue:: Started!`);
+        });
+        this.agenda.on('error', (err) => {
+          sails.log.error(`AgendaQueue:: Error:`);
+          sails.log.error(JSON.stringify(err));
+        });
+        this.agenda.on('start', job => {
+          sails.log.verbose(`AgendaQueue:: Job ${job.attrs.name} starting`, );
+        });
+        this.agenda.on('complete', job => {
+          sails.log.verbose(`AgendaQueue:: Job ${job.attrs.name} finished`);
+        });
+        this.agenda.on('fail', (err, job) => {
+          sails.log.error(`AgendaQueue:: Job ${job.attrs.name} failed`);
+          sails.log.error(err);
+        });
         await this.agenda.start();
         // check for in-line job schedule
         _.each(sails.config.agendaQueue.jobs, (job) => {
@@ -141,6 +159,8 @@ export module Services {
             } else {
               this.agenda.define(job.name, job.options, serviceFn);
             }
+            sails.log.verbose(`AgendaQueue:: Defined job:`);
+            sails.log.verbose(JSON.stringify(job));
           }
         });
       }
@@ -165,7 +185,13 @@ export module Services {
       }
 
       public now(jobName: string, data: any = undefined) {
-        this.agenda.now(jobName, data);
+        sails.log.verbose(`AgendaQueue:: Starting job: '${jobName}' now!`)
+        try {
+          this.agenda.now(jobName, data);
+        } catch(e) {
+          sails.log.error(`AgendaQueue:: Failed to start job now: ${jobName}`);
+          sails.log.error(e);
+        }
       }
    }
 }
