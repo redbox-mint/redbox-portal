@@ -75,7 +75,8 @@ module.exports.record = {
   },
   search: {
     returnFields: ['title', 'description', 'storage_id'],
-    maxRecordsPerPage: 1000000
+    maxRecordsPerPage: 1000000,
+    defaultRecordsPerPage: 10,
   },
   attachments: {
     stageDir: '/attachments/staging',

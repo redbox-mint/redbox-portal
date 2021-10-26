@@ -57,7 +57,7 @@ export class DashboardService extends BaseService {
   }
 
   getRecords(recordType:string,state:string,pageNumber:number,packageType:string=undefined, sort:string=undefined): Promise<RecordResponseTable> {
-    var rows = 10;
+    var rows = this.config.defaultSearchRowsPerPage == null? 10 : this.config.defaultSearchRowsPerPage;
     var start = (pageNumber-1) * rows;
     recordType = (!_.isEmpty(recordType) && !_.isUndefined(recordType)) ? `recordType=${recordType}` : '';
     packageType = (!_.isEmpty(packageType) && !_.isUndefined(packageType)) ? `packageType=${packageType}` : '';
