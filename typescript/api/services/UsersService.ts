@@ -151,17 +151,23 @@ export module Services {
       const aafOpts = defAuthConfig.aaf.opts;
       aafOpts.jwtFromRequest = ExtractJwt.fromBodyField('assertion');
       sails.config.passport.use('aaf-jwt', new JwtStrategy(aafOpts, function (req, jwt_payload, done) {
-        var brand = BrandingService.getBrandFromReq(req);
-        sails.log.error("brand is: ")
-        sails.log.error(brand)
+        let brand = BrandingService.getBrandFromReq(req);
+        
+        if(_.isString(brand)) {
+          brand = BrandingService.getBrand(brand);
+        }
         const authConfig = ConfigService.getBrand(brand.name, 'auth');
         var aafAttributes = authConfig.aaf.attributesField;
         let authorizedEmailDomains = _.get(authConfig.aaf, "authorizedEmailDomains", []);
         let authorizedEmailExceptions = _.get(authConfig.aaf, "authorizedEmailExceptions", []);
-        sails.log.error("Configured roles: ")
-        sails.log.error(sails.config.auth.roles);
-        sails.log.error("AAF default roles ")
-        sails.log.error(ConfigService.getBrand(brand.name, 'auth').aaf.defaultRole)
+        sails.log.verbose("Configured roles: ")
+        sails.log.verbose(sails.config.auth.roles);
+        sails.log.verbose("AAF default roles ")
+        sails.log.verbose(ConfigService.getBrand(brand.name, 'auth').aaf.defaultRole)
+        sails.log.verbose("Brand roles ")
+        sails.log.verbose(brand.roles)
+        sails.log.verbose("Brand")
+        sails.log.verbose(brand)
         let defaultAuthRole = RolesService.getDefAuthenticatedRole(brand);
         let aafDefRoles =[]
         if(defaultAuthRole != undefined) {
