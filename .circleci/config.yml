@@ -34,7 +34,7 @@ jobs:
   test:
     machine: true
     steps:
-      - docker/install-docker-compose
+      # - docker/install-docker-compose
       - attach_workspace:
            at: /home/circleci/project
       - run: export NVM_DIR=/opt/circleci/.nvm && source /opt/circleci/.nvm/nvm.sh && nvm install 12.16.0 && nvm use 12.16.0
@@ -51,7 +51,7 @@ jobs:
       - setup_remote_docker
       - attach_workspace:
             at: /home/circleci/project
-      - docker/install-docker-compose
+      # - docker/install-docker-compose
       - run: (chmod +x dockerhub_deploy.sh && ./dockerhub_deploy.sh)
       - run:
           command: |
@@ -71,7 +71,7 @@ jobs:
       - setup_remote_docker
       - attach_workspace:
             at: /home/circleci/project
-      - docker/install-docker-compose
+      # - docker/install-docker-compose
       - run: (chmod +x dockerhub_deploy.sh && ./dockerhub_deploy.sh bcryptjs)  
   generate-docs:
     machine: true
