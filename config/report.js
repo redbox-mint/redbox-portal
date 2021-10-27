@@ -16,8 +16,14 @@ module.exports.reports = {
         "label": "Title",
         "property": "title",
         "link": {
-          "pattern": "record/view/${storage_id}"
+          "pattern": "record/view/${storage_id}",
+          "isExternalURL": false
         }
+      },
+      {
+        "label": "External URL",
+        "property": "reportExternalURL",
+        "show": false
       },
       {
         "label": "Date Created",
@@ -61,8 +67,14 @@ module.exports.reports = {
         "label": "Title",
         "property": "title",
         "link": {
-          "pattern": "record/view/${storage_id}"
+          "pattern": "record/view/${storage_id}",
+          "isExternalURL": false
         }
+      },
+      {
+        "label": "External URL",
+        "property": "reportExternalURL",
+        "show": false
       },
       {
         "label": "Date Modified",
@@ -109,8 +121,14 @@ module.exports.reports = {
         "label": "Title",
         "property": "title",
         "link": {
-          "pattern": "record/view/${storage_id}"
+          "pattern": "record/view/${storage_id}",
+          "isExternalURL": false
         }
+      },
+      {
+        "label": "External URL",
+        "property": "reportExternalURL",
+        "show": false
       },
       {
         "label": "Date Modified",
@@ -157,8 +175,14 @@ module.exports.reports = {
         "label": "Title",
         "property": "title",
         "link": {
-          "pattern": "record/view/${storage_id}"
+          "pattern": "record/view/${storage_id}",
+          "isExternalURL": false
         }
+      },
+      {
+        "label": "External URL",
+        "property": "reportExternalURL",
+        "show": false
       },
       {
         "label": "Date Modified",
@@ -211,8 +235,14 @@ module.exports.reports = {
         "label": "Title",
         "property": "title",
         "link": {
-          "pattern": "record/view/${storage_id}"
+          "pattern": "record/view/${storage_id}",
+          "isExternalURL": false
         }
+      },
+      {
+        "label": "External URL",
+        "property": "reportExternalURL",
+        "show": false
       },
       {
         "label": "Embargo until",
@@ -249,8 +279,14 @@ module.exports.reports = {
         "label": "Title",
         "property": "title",
         "link": {
-          "pattern": "record/view/${storage_id}"
+          "pattern": "record/view/${storage_id}",
+          "isExternalURL": false
         }
+      },
+      {
+        "label": "External URL",
+        "property": "reportExternalURL",
+        "show": false
       },
       {
         "label": "Date Modified",
