@@ -5,6 +5,8 @@ jobs:
     steps:
       - checkout
       - run: curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
+      - run: export NVM_DIR="$HOME/.nvm"
+      - run: [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh".
       - run: export NVM_DIR=/opt/circleci/.nvm && nvm install 12.16.0 && nvm use 12.16.0
       - run: (cd core && npm install && node_modules/.bin/tsc)
       - run: npm install --production
@@ -21,6 +23,8 @@ jobs:
     steps:
       - checkout
       - run: curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
+      - run: export NVM_DIR="$HOME/.nvm"
+      - run: [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh".
       - run: export NVM_DIR=/opt/circleci/.nvm && nvm install 12.16.0 && nvm use 12.16.0
       - run: (cd core && npm install && node_modules/.bin/tsc)
       - run: npm uninstall bcrypt; npm install bcryptjs --save; npm install --production
@@ -38,6 +42,8 @@ jobs:
       - attach_workspace:
            at: /home/circleci/project
       - run: curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
+      - run: export NVM_DIR="$HOME/.nvm"
+      - run: [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh".
       - run: export NVM_DIR=/opt/circleci/.nvm && nvm install 12.16.0 && nvm use 12.16.0
       - run: export NVM_DIR=/opt/circleci/.nvm  && nvm use 12.16.0 && node_modules/.bin/tsc -p tsconfig-codecov.json
       - run: (sudo chmod -R 777 . && cd support/integration-testing && sudo mkdir -p .tmp/attachments/staging && sudo chmod -R 777 . && docker-compose -f docker-compose.newman.yml up --abort-on-container-exit --exit-code-from redboxportal && docker-compose -f docker-compose.mocha.yml up --abort-on-container-exit --exit-code-from redboxportal)
@@ -53,6 +59,8 @@ jobs:
             at: /home/circleci/project
       # - docker/install-docker-compose
       - run: curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
+      - run: export NVM_DIR="$HOME/.nvm"
+      - run: [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh".
       - run: (chmod +x dockerhub_deploy.sh && ./dockerhub_deploy.sh)
       - run:
           command: |
@@ -83,6 +91,8 @@ jobs:
       - attach_workspace:
             at: /home/circleci/project
       - run: curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
+      - run: export NVM_DIR="$HOME/.nvm"
+      - run: [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh".
       - run: export NVM_DIR=/opt/circleci/.nvm && nvm install 12.16.0 && nvm use 12.16.0
       - run: export NVM_DIR=/opt/circleci/.nvm && nvm use 12.16.0 && npm run doc-ng2
       - run: 
