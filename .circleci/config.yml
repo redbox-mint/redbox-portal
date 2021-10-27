@@ -1,7 +1,7 @@
 jobs:
   build:
     docker:
-      - image: 'cimg/base:2021.09'
+      - image: 'cimg/base:2021.07'
     steps:
       - checkout
       - node/install:
@@ -17,7 +17,7 @@ jobs:
             - .
   build_without_angular:
     docker:
-      - image: 'cimg/base:2021.09'
+      - image: 'cimg/base:2021.07'
     steps:
       - checkout
       - node/install:
@@ -42,7 +42,7 @@ jobs:
       - run: export NVM_DIR=/opt/circleci/.nvm && source /opt/circleci/.nvm/nvm.sh && nvm use 12.22.6 && node_modules/.bin/tsc
   deploy:
     docker:
-      - image: 'cimg/base:2021.09'
+      - image: 'cimg/base:2021.07'
     steps:
       - node/install:
         node-version: 12.22.6
