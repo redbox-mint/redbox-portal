@@ -264,11 +264,7 @@ export module Services {
           sails.log.debug(`Triggering queuedtrigger: ${hookFunctionString}`)
           let hookResponse = hookFunction(oid, record, options, user);
           let response = this.convertToObservable(hookResponse);
-          return response.subscribe(res => {
-            sails.log.debug(`${hookFunctionString} response now is:`);
-            sails.log.verbose(JSON.stringify(res));
-            sails.log.debug(`queued trigger ${hookFunctionString} completed for ${oid}`)
-          });
+          return response.toPromise();
 
         } else {
           sails.log.error(`queued trigger function: '${hookFunctionString}' did not resolve to a valid function, what I got:`);
