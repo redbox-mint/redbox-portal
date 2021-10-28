@@ -5035,7 +5035,8 @@ export class DataLocationComponent extends SimpleComponent {
       // add to form control on each upload...
       const urlParts &#x3D; uploadURL.split(&#x27;/&#x27;);
       const fileId &#x3D; urlParts[urlParts.length - 1];
-      const choppedUrl &#x3D; urlParts.slice(6, urlParts.length).join(&#x27;/&#x27;);
+      const oidUrlPosition &#x3D; _.indexOf(urlParts, oid);
+      const choppedUrl &#x3D; urlParts.slice(oidUrlPosition, urlParts.length).join(&#x27;/&#x27;);
       const newLoc &#x3D; { type: &quot;attachment&quot;, pending: true, location: choppedUrl, notes: file.meta.notes, mimeType: file.type, name: file.meta.name, fileId: fileId, uploadUrl: uploadURL };
       console.debug(&#x60;Adding new location:&#x60;);
       console.debug(newLoc);
