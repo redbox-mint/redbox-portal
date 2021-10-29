@@ -1,4 +1,4 @@
-module.exports = {
+module.exports.datacite = {
     username: 'xxxxx',
     password: 'xxxxxxx',
     doiPrefix: "xxxxx",

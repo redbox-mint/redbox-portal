@@ -50,7 +50,9 @@ export module Services {
    */
   export class Doi extends services.Core.Service {
     protected _exportedMethods: any = [
-      'publishDoi'
+      'publishDoi',
+      'publishDoiTrigger',
+      'deleteDoi'
     ];
 
     private async makeCreateDoiCall(instance, postBody, record, oid) {
@@ -70,12 +72,8 @@ export module Services {
 
 
           sails.log.debug(`DOI generated ${doi}`)
-          const brand = BrandingService.getBrand('default');
 
-          Observable.from(RecordsService.updateMeta(brand, oid, record)).subscribe(response => {
-            sails.log.debug(response)
-          });
-
+          return record;
         } else {
           sails.log.error("Unexpected response from DataCite API")
           sails.log.error(response)
@@ -87,26 +85,10 @@ export module Services {
       }
     }
 
-    public publishDoi(oid, record, options): Observable < any > {
-
-      if (this.metTriggerCondition(oid, record, options) === "true") {
-        let doiPrefix = sails.config.datacite.doiPrefix;
+    public async deleteDoi(doi: string) {
+      try {
         let baseUrl = sails.config.datacite.baseUrl;
-        let username = sails.config.datacite.username;
-        let password = sails.config.datacite.password;
-        let citationUrlProperty = sails.config.datacite.citationUrlProperty;
-        let creatorsProperty = sails.config.datacite.creatorsProperty;
-        let authenticationString = `${username}:${password}`;
-        let buff = Buffer.from(authenticationString);
-        let authenticationStringEncoded = buff.toString('base64');
-        let lodashTemplateContext = {
-          record: record,
-          oid: oid,
-          moment: moment
-        };
-
-
-
+        let authenticationStringEncoded = this.getAuthenticationString();
         const instance = axios.create({
           baseURL: baseUrl,
           timeout: 10000,
@@ -115,55 +97,113 @@ export module Services {
             'Content-Type': 'application/vnd.api+json'
           }
         });
+        let response = await instance.delete(`/dois/${doi}`);
+        if (response.status == 204) {
+            return true;
+        } else {
+          sails.log.error("Unexpected response from DataCite API")
+          sails.log.error(response)
+        }
 
-        let url = this.runTemplate(sails.config.datacite.mappings.url, lodashTemplateContext)
-        let publicationYear = this.runTemplate(sails.config.datacite.mappings.publicationYear, lodashTemplateContext);
-        let title = this.runTemplate(sails.config.datacite.mappings.title, lodashTemplateContext);
-        let publisher = this.runTemplate(sails.config.datacite.mappings.publisher, lodashTemplateContext);
+      } catch (err) {
+        sails.log.error("Unexpected response from DataCite API")
+        sails.log.error(err)
+      }
 
-        record.metadata[citationUrlProperty] = url;
+      return false;
+    }
 
-        let postBody = {
-          "data": {
-            "type": "dois",
-            "attributes": {
-              event: 'publish',
-              "prefix": doiPrefix,
-              titles: [{
-                "lang": null,
-                "title": title,
-                "titleType": null
-              }],
-              publisher: publisher,
-              publicationYear: publicationYear,
-              url: url,
-              creators: [],
-              "types": {
-                "ris": "DATA",
-                "bibtex": "misc",
-                "citeproc": "dataset",
-                "schemaOrg": "Dataset",
-                "resourceTypeGeneral": "Dataset"
-              }
+    public async publishDoi(oid, record, event = 'publish') {
+
+      let doiPrefix = sails.config.datacite.doiPrefix;
+      let baseUrl = sails.config.datacite.baseUrl;
+
+      let citationUrlProperty = sails.config.datacite.citationUrlProperty;
+      let creatorsProperty = sails.config.datacite.creatorsProperty;
+      let authenticationStringEncoded = this.getAuthenticationString();
+      let lodashTemplateContext = {
+        record: record,
+        oid: oid,
+        moment: moment
+      };
+
+
+
+      const instance = axios.create({
+        baseURL: baseUrl,
+        timeout: 10000,
+        headers: {
+          'Authorization': `Basic ${authenticationStringEncoded}`,
+          'Content-Type': 'application/vnd.api+json'
+        }
+      });
+
+      let url = this.runTemplate(sails.config.datacite.mappings.url, lodashTemplateContext)
+      let publicationYear = this.runTemplate(sails.config.datacite.mappings.publicationYear, lodashTemplateContext);
+      let title = this.runTemplate(sails.config.datacite.mappings.title, lodashTemplateContext);
+      let publisher = this.runTemplate(sails.config.datacite.mappings.publisher, lodashTemplateContext);
+
+      record.metadata[citationUrlProperty] = url;
+
+      let postBody = {
+        "data": {
+          "type": "dois",
+          "attributes": {
+            event: event,
+            "prefix": doiPrefix,
+            titles: [{
+              "lang": null,
+              "title": title,
+              "titleType": null
+            }],
+            publisher: publisher,
+            publicationYear: publicationYear,
+            url: url,
+            creators: [],
+            "types": {
+              "ris": "DATA",
+              "bibtex": "misc",
+              "citeproc": "dataset",
+              "schemaOrg": "Dataset",
+              "resourceTypeGeneral": "Dataset"
             }
           }
         }
-        let creatorTemplateContext = _.clone(lodashTemplateContext);
-        for (let creator of record.metadata['creatorsProperty']) {
+      }
+      let creatorTemplateContext = _.clone(lodashTemplateContext);
+      for (let creator of record.metadata[creatorsProperty]) {
 
-          creatorTemplateContext['creator'] = creator;
+        creatorTemplateContext['creator'] = creator;
 
-          let citationCreator = {
-            nameType: "Personal",
-            givenName: this.runTemplate(sails.config.datacite.mappings.creatorGivenName, creatorTemplateContext),
-            familyName: this.runTemplate(sails.config.datacite.mappings.creatorFamilyName, creatorTemplateContext)
-          }
-          postBody.data.attributes.creators.push(citationCreator)
+        let citationCreator = {
+          nameType: "Personal",
+          givenName: this.runTemplate(sails.config.datacite.mappings.creatorGivenName, creatorTemplateContext),
+          familyName: this.runTemplate(sails.config.datacite.mappings.creatorFamilyName, creatorTemplateContext)
         }
+        postBody.data.attributes.creators.push(citationCreator)
+      }
+      sails.log.verbose("DOI post body")
+      sails.log.verbose(JSON.stringify(postBody));
 
-        sails.log.debug(JSON.stringify(postBody));
+      let doiRecord = await this.makeCreateDoiCall(instance, postBody, record, oid);
+      return doiRecord;
+    }
+    getAuthenticationString() {
+      let username = sails.config.datacite.username;
+      let password = sails.config.datacite.password;
+      let authenticationString = `${username}:${password}`;
+      let buff = Buffer.from(authenticationString);
+      return buff.toString('base64');
+    }
 
-        this.makeCreateDoiCall(instance, postBody, record, oid).then(response => {});
+    public publishDoiTrigger(oid, record, options): Observable < any > {
+
+      if (this.metTriggerCondition(oid, record, options) === "true") {
+        this.publishDoi(oid, record).then(doiRecord => {
+          const brand = BrandingService.getBrand('default');
+
+          RecordsService.updateMeta(brand, oid, doiRecord).then(response => {});
+        });
       }
 
       return Observable.of(null);
