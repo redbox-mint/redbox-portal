@@ -166,7 +166,7 @@ export class RecordSearchComponent extends LoadableComponent {
         this.syncLoc();
       }
       this.recordsService.search(this.params).then((res:any) => {
-        this.params.currentPage = res.currentPage;
+        this.params.currentPage = res.page;
         this.totalItems = res.totalItems;
         this.isSearching = false;
         this.searchMsgType = "success";
