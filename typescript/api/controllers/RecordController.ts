@@ -44,7 +44,7 @@ export module Controllers {
   export class Record extends controllers.Core.Controller {
 
     recordsService: RecordsService = RecordsService;
-    searchService: SearchService;
+    searchService: any;
     datastreamService: DatastreamService = RecordsService;
 
     constructor() {
