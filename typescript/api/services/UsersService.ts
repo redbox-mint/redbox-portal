@@ -491,6 +491,10 @@ export module Services {
      */
     public addUserAuditEvent = (user, action, additionalContext) => {
       let auditEvent = {}
+      if (_.isEmpty(user)) {
+        sails.log.verbose(`Auditing user event skipped: no user information provided.`);
+        return Observable.of(auditEvent).toPromise();
+      }
       if (!_.isEmpty(user.password)) {
         delete user.password;
       }
