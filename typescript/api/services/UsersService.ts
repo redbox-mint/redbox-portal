@@ -325,7 +325,7 @@ export module Services {
           claims: tokenSet.claims(),
           tokenSet: tokenSet
         };
-        req.session.errorTextRaw = JSON.stringify(err, null, 2);
+        req.session['data'] = JSON.stringify(err, null, 2);
         return done(null, false);
       }
       var brand = BrandingService.getBrand(req.session.branding);

@@ -287,13 +287,17 @@ export module Controllers {
           if (_.isEmpty(err)) {
             err = '';
           }
+
           // from https://sailsjs.com/documentation/reference/response-res/res-server-error
           // "The specified data will be excluded from the JSON response and view locals if the app is running in the "production" environment (i.e. process.env.NODE_ENV === 'production')."
           // so storing the data in session
-          req.session['data'] = { 
-            "message": 'error-auth',
-            "detailedMessager": `${err}${info}`
-          };
+          if (_.isEmpty(req.session.data)) {
+            req.session['data'] = { 
+              "message": 'error-auth',
+              "detailedMessager": `${err}${info}`
+            };
+          }
+          
           return res.serverError(); 
         }       
         let requestDetails = new RequestDetails(req);
@@ -337,10 +341,12 @@ export module Controllers {
             // from https://sailsjs.com/documentation/reference/response-res/res-server-error
             // "The specified data will be excluded from the JSON response and view locals if the app is running in the "production" environment (i.e. process.env.NODE_ENV === 'production')."
             // so storing the data in session
-            req.session['data'] = { 
-              "message": 'error-auth',
-              "detailedMessager": `${err}${info}`
-            };
+            if (_.isEmpty(req.session.data)) {
+              req.session['data'] = { 
+                "message": 'error-auth',
+                "detailedMessager": `${err}${info}`
+              };
+            }
             return res.serverError();
         }
 
