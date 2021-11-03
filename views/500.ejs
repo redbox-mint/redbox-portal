@@ -40,16 +40,16 @@
     </div>
     <div class="panel-body">
       <p>
-        <% if( typeof data == 'undefined') { %>
+        <% if( typeof req.session.data == 'undefined') { %>
          You don't have permission on this page, please contact an administrator.
-       <% } else if( typeof data == 'object') { %>   
-         <%= TranslationService.t(data.message) %>
+       <% } else if( typeof req.session.data == 'object') { %>   
+         <%= TranslationService.t(req.session.data.message) %>
        </p>
        <p>
-         <%= TranslationService.t(data.detailedMessager) %>
+         <%= TranslationService.t(req.session.data.detailedMessager) %>
 
        <% }  else { %>
-         <%= TranslationService.t(data) %>
+         <%= TranslationService.t(req.session.data) %>
        <% } %>
       </p>
      </div>

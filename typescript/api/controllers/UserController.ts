@@ -287,10 +287,14 @@ export module Controllers {
           if (_.isEmpty(err)) {
             err = '';
           }
-          return res.serverError({ 
+          // from https://sailsjs.com/documentation/reference/response-res/res-server-error
+          // "The specified data will be excluded from the JSON response and view locals if the app is running in the "production" environment (i.e. process.env.NODE_ENV === 'production')."
+          // so storing the data in session
+          req.session['data'] = { 
             "message": 'error-auth',
             "detailedMessager": `${err}${info}`
-          }); 
+          };
+          return res.serverError(); 
         }       
         let requestDetails = new RequestDetails(req);
         UsersService.addUserAuditEvent(user, "login", requestDetails).then(response => {
@@ -330,10 +334,14 @@ export module Controllers {
         if ((err) || (!user)) {
           sails.log.error(err)
             // means the provider has authenticated the user, but has been rejected, redirect to catch-all
-            return res.serverError({ 
+            // from https://sailsjs.com/documentation/reference/response-res/res-server-error
+            // "The specified data will be excluded from the JSON response and view locals if the app is running in the "production" environment (i.e. process.env.NODE_ENV === 'production')."
+            // so storing the data in session
+            req.session['data'] = { 
               "message": 'error-auth',
               "detailedMessager": `${err}${info}`
-            });
+            };
+            return res.serverError();
         }
 
         let requestDetails = new RequestDetails(req);
