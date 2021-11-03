@@ -715,5 +715,6 @@
   "@dataPublication-retire": "Retire",
   "workspace.no-records-found" : "No workspace records were found",
   "@header-view-only-description": "Description",
-  "@header-view-only-edit-label": "Edit this publication"
+  "@header-view-only-edit-label": "Edit this publication",
+  "oidc-login-session-destroyed": "There was an error logging you in, please try again."
 }

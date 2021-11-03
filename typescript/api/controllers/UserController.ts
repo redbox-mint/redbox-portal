@@ -284,6 +284,14 @@ export module Controllers {
               info = '';
             }
           }
+
+          // check if the issue is some obscure session destruction bug
+          if (_.startsWith(err, "Error: did not find expected authorization request details in session")) {
+            // letting the user try again seems to 'refresh' the session
+            req.session['data'] = `oidc-login-session-destroyed`;
+            return res.serverError();  
+          }
+
           if (_.isEmpty(err)) {
             err = '';
           }
