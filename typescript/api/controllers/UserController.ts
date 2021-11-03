@@ -126,7 +126,7 @@ export module Controllers {
 
       req.logout();
       UsersService.addUserAuditEvent(user, "logout", requestDetails).then(response => {
-        sails.log.debug(`User logout audit event created: ${user.id}`)
+        sails.log.debug(`User logout audit event created: ${_.isEmpty(user) ? '' : user.id}`)
       }).catch(err => {
         sails.log.error(`User logout audit event failed`)
         sails.log.error(err)
@@ -234,7 +234,7 @@ export module Controllers {
         // We don't want to store the password!
         delete requestDetails.body.password;
         UsersService.addUserAuditEvent(user, "login", requestDetails).then(response => {
-          sails.log.debug(`User login audit event created for local login: ${user.id}`)
+          sails.log.debug(`User login audit event created for local login: ${_.isEmpty(user) ? '' : user.id}`)
         }).catch(err => {
           sails.log.error(`User login audit event created for local login failed`)
           sails.log.error(err)
@@ -294,7 +294,7 @@ export module Controllers {
         }       
         let requestDetails = new RequestDetails(req);
         UsersService.addUserAuditEvent(user, "login", requestDetails).then(response => {
-          sails.log.debug(`User login audit event created for OIDC login: ${user.id}`)
+          sails.log.debug(`User login audit event created for OIDC login: ${_.isEmpty(user) ? '' : user.id}`)
         }).catch(err => {
           sails.log.error(`User login audit event created for OIDC login failed`)
           sails.log.error(err)
@@ -338,7 +338,7 @@ export module Controllers {
 
         let requestDetails = new RequestDetails(req);
         UsersService.addUserAuditEvent(user, "login", requestDetails).then(response => {
-          sails.log.debug(`User login audit event created for AAF login: ${user.id}`)
+          sails.log.debug(`User login audit event created for AAF login: ${_.isEmpty(user) ? '' : user.id}`)
         }).catch(err => {
           sails.log.error(`User login audit event created for AAF login failed`)
           sails.log.error(err)
