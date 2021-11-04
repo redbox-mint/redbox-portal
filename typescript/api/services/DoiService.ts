@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Queensland Cyber Infrastructure Foundation (http://www.qcif.edu.au/)
+// Copyright (c) 2021 Queensland Cyber Infrastructure Foundation (http://www.qcif.edu.au/)
 //
 // GNU GENERAL PUBLIC LICENSE
 //    Version 2, June 1991
@@ -17,12 +17,19 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { Observable } from 'rxjs/Rx';
-import {Services as services}   from '@researchdatabox/redbox-core-types';
-import { Sails, Model } from "sails";
+import {
+  Observable
+} from 'rxjs/Rx';
+import {
+  Services as services
+} from '@researchdatabox/redbox-core-types';
+import {
+  Sails,
+  Model
+} from "sails";
 import 'rxjs/add/operator/toPromise';
-import * as request from "request-promise";
-import path = require('path');
+import * as moment from 'moment';
+import axios from 'axios';
 
 
 declare var sails: Sails;
@@ -42,158 +49,173 @@ export module Services {
    *
    */
   export class Doi extends services.Core.Service {
+    protected _exportedMethods: any = [
+      'publishDoi',
+      'publishDoiTrigger',
+      'deleteDoi'
+    ];
 
-  	protected _exportedMethods: any = [
-  		'publishDoi'
-  	];
+    private async makeCreateDoiCall(instance, postBody, record, oid) {
+      try {
+        let response = await instance.post('/dois', postBody);
+        if (response.status == 201) {
+          let responseBody = response.data;
+          let doi = responseBody.data.id
+          sails.log.debug(`DOI created: ${doi}`)
+
+          record.metadata.citation_doi = doi;
+
+          record.metadata.citation_generated = this.runTemplate('<%= _.join(_.map(_.filter(_.get(data, "creators"), (c) => {return !_.isEmpty(c.family_name) || !_.isEmpty(c.given_name)}), (c)=> {return !_.isEmpty(c.family_name) || !_.isEmpty(c.given_name) ? ((c.family_name ? c.family_name : "") + ", " + (c.given_name ? c.given_name : "")) : "" }), "; ") + " ("+ moment(_.get(data, "citation_publication_date")).format("YYYY") + "): " + _.get(data, "citation_title") + ". " + _.get(data, "citation_publisher") + ". " + (_.get(data, "citation_doi", null) == null ? "{ID_WILL_BE_HERE}" : "https://doi.org/" + _.get(data, "citation_doi")) %>', {
+            data: record,
+            moment: moment
+          });
+
+
+          sails.log.debug(`DOI generated ${doi}`)
+
+          return record;
+        } else {
+          sails.log.error("Unexpected response from DataCite API")
+          sails.log.error(response)
+        }
+
+      } catch (err) {
+        sails.log.error("Unexpected response from DataCite API")
+        sails.log.error(err)
+      }
+    }
+
+    public async deleteDoi(doi: string) {
+      try {
+        let baseUrl = sails.config.datacite.baseUrl;
+        let authenticationStringEncoded = this.getAuthenticationString();
+        const instance = axios.create({
+          baseURL: baseUrl,
+          timeout: 10000,
+          headers: {
+            'Authorization': `Basic ${authenticationStringEncoded}`,
+            'Content-Type': 'application/vnd.api+json'
+          }
+        });
+        let response = await instance.delete(`/dois/${doi}`);
+        if (response.status == 204) {
+            return true;
+        } else {
+          sails.log.error("Unexpected response from DataCite API")
+          sails.log.error(response)
+        }
+
+      } catch (err) {
+        sails.log.error("Unexpected response from DataCite API")
+        sails.log.error(err)
+      }
+
+      return false;
+    }
+
+    public async publishDoi(oid, record, event = 'publish') {
+
+      let doiPrefix = sails.config.datacite.doiPrefix;
+      let baseUrl = sails.config.datacite.baseUrl;
+
+      let citationUrlProperty = sails.config.datacite.citationUrlProperty;
+      let creatorsProperty = sails.config.datacite.creatorsProperty;
+      let authenticationStringEncoded = this.getAuthenticationString();
+      let lodashTemplateContext = {
+        record: record,
+        oid: oid,
+        moment: moment
+      };
 
 
 
-  	public publishDoi(oid, record, options): Observable<any> {
-   		if( this.metTriggerCondition(oid, record, options) === "true") {
-        let apiEndpoints = {
-            create: _.template('<%= baseUrl%>mint.json/?app_id=<%= apiKey%>&url=<%= url%>'),
-            // update: _.template('<%= baseUrl%>update.json/?app_id=<%= apiKey%>&doi=<%= doi%>'),
-            // activate: _.template('<%= baseUrl%>activate.json/?app_id=<%= apiKey%>&doi=<%= doi%>'),
-            // deactivate: _.template('<%= baseUrl%>deactivate.json/?app_id=<%= apiKey%>&doi=<%= doi%>'),
-            // get: _.template('<%= baseUrl%>xml.json/?doi=<%= doi%>'),
-            // status: _.template('<%= baseUrl%>status.json')
-        };
-
-    let mappings = options.mappings;
-
-     let xmlElements = {
-       wrapper: _.template('<resource xmlns="http://datacite.org/schema/kernel-4" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://datacite.org/schema/kernel-4 http://schema.datacite.org/meta/kernel-4.1/metadata.xsd">\n<%= xml %></resource>'),
-       id: _.template('<identifier identifierType="DOI"><%= doi %></identifier>\n'),
-       title: _.template('<titles><title><%= title %></title></titles>\n'),
-       publisher: _.template('<publisher><%= publisher %></publisher>\n'),
-       pubYear: _.template('<publicationYear><%= pubYear %></publicationYear>\n'),
-       resourceType: _.template('<resourceType resourceTypeGeneral="<%= resourceType %>"><%= resourceText %></resourceType>\n'),
-       creator: _.template('<creator><creatorName><%= creatorName %></creatorName></creator>\n'),
-       creatorWrapper: _.template('<creators>\n<%= creators %></creators>\n')
-     }
-
-     let xmlString = "";
-      xmlString += xmlElements.id({doi: "10.0/0"})
-
-    let creators = _.get(record, mappings.creators)
-    if(creators === null || creators.length == 0) {
-
-    } else {
-      let creatorString = "";
-      _.each(creators, creator => {
-        if(creator.text_full_name != null && creator.text_full_name.trim() != '') {
-          creatorString += xmlElements.creator({creatorName: creator.text_full_name});
+      const instance = axios.create({
+        baseURL: baseUrl,
+        timeout: 10000,
+        headers: {
+          'Authorization': `Basic ${authenticationStringEncoded}`,
+          'Content-Type': 'application/vnd.api+json'
         }
       });
-      xmlString += xmlElements.creatorWrapper({creators: creatorString})
-    }
 
+      let url = this.runTemplate(sails.config.datacite.mappings.url, lodashTemplateContext)
+      let publicationYear = this.runTemplate(sails.config.datacite.mappings.publicationYear, lodashTemplateContext);
+      let title = this.runTemplate(sails.config.datacite.mappings.title, lodashTemplateContext);
+      let publisher = this.runTemplate(sails.config.datacite.mappings.publisher, lodashTemplateContext);
 
-    let title = _.get(record, mappings.title);
-      if(title == null || title.trim() == "") {
-          // return;
-      } else {
-          xmlString += xmlElements.title({title:title})
+      record.metadata[citationUrlProperty] = url;
+
+      let postBody = {
+        "data": {
+          "type": "dois",
+          "attributes": {
+            event: event,
+            "prefix": doiPrefix,
+            titles: [{
+              "lang": null,
+              "title": title,
+              "titleType": null
+            }],
+            publisher: publisher,
+            publicationYear: publicationYear,
+            url: url,
+            creators: [],
+            "types": {
+              "ris": "DATA",
+              "bibtex": "misc",
+              "citeproc": "dataset",
+              "schemaOrg": "Dataset",
+              "resourceTypeGeneral": "Dataset"
+            }
+          }
+        }
       }
-    //
-      let publisher =_.get(record, mappings.publisher);
-        if(publisher == null || publisher.trim() == "") {
+      let creatorTemplateContext = _.clone(lodashTemplateContext);
+      for (let creator of record.metadata[creatorsProperty]) {
 
-        } else {
-            xmlString += xmlElements.publisher({publisher:publisher})
+        creatorTemplateContext['creator'] = creator;
+
+        let citationCreator = {
+          nameType: "Personal",
+          givenName: this.runTemplate(sails.config.datacite.mappings.creatorGivenName, creatorTemplateContext),
+          familyName: this.runTemplate(sails.config.datacite.mappings.creatorFamilyName, creatorTemplateContext)
         }
+        postBody.data.attributes.creators.push(citationCreator)
+      }
+      sails.log.verbose("DOI post body")
+      sails.log.verbose(JSON.stringify(postBody));
 
-        let pubYear = _.get(record, mappings.publicationYear);
-          if(pubYear == null || pubYear.trim() == "") {
-              sails.log.debug("No publication year. Can't mint the DOI")
-              return Observable.of(null);
-          } else {
-              xmlString += xmlElements.pubYear({pubYear:pubYear})
-          }
-
-        let resourceType = "Dataset";
-        let resourceTypeText = _.get(record, mappings.resourceTypeText);
-        if(resourceType == null || resourceType.trim() == "") {
-
-        } else {
-          if(resourceTypeText == null || resourceTypeText == "null") {
-            resourceTypeText = ""
-          }
-          xmlString += xmlElements.resourceType({resourceType: resourceType, resourceText: resourceTypeText})
-        }
-
-        let xml = xmlElements.wrapper({xml: xmlString});
-
-        let url = this.runTemplate(mappings.url,record);
-
-        sails.log.error("DOI url is: " + url);
-
-    let createUrl =apiEndpoints.create({baseUrl:options.baseUrl, apiKey:options.apiKey, url: url});
-    let acceptedResponseCodes = ['MT001','MT002','MT003','MT004']
-    if(options.sharedSecretKey) {
-
-      let buff = new Buffer(options.sharedSecretKey);
-      let encodedKey = buff.toString('base64');
-      let postRequest = request.post({url:createUrl,body: xml, headers: { 'Authorization': `Basic ${encodedKey}` }})
-
-      postRequest.then(resp => {
-        let respJson = JSON.parse(resp);
-
-        if(acceptedResponseCodes.indexOf(respJson.response.responsecode) != -1) {
-          let doi = respJson.response.doi;
-
-          record.metadata.citation_doi = doi;
-          sails.log.info(`DOI generated ${doi}`)
-          const brand = BrandingService.getBrand('default');
-
-          RecordsService.updateMeta(brand,oid, record).subscribe(response => { sails.log.debug(response)});
-        } else {
-          sails.log.error('DOI request failed')
-          sails.log.error(resp)
-        }
-      }).catch(function (err) {
-        sails.log.error("DOI generation failed")
-        sails.log.error(err);
-    });
-    } else {
-
-      request.post({url:createUrl,body: xmlString}).then(resp => {
-        let respJson = JSON.parse(resp);
-        if(acceptedResponseCodes.indexOf(respJson.response.responsecode) != -1) {
-          let doi = respJson.response.doi;
-          record.metadata.citation_doi = doi;
-          sails.log.debug(`DOI generated ${doi}`)
-          const brand = BrandingService.getBrand('default');
-
-          RecordsService.updateMeta(brand,oid, record).subscribe(response => { sails.log.debug(response)});
-        } else {
-          sails.log.error('DOI request failed')
-          sails.log.error(resp)
-        }
-      }).catch(function (err) {
-        sails.log.error("DOI generation failed")
-        sails.log.error(err);
-    });
+      let doiRecord = await this.makeCreateDoiCall(instance, postBody, record, oid);
+      return doiRecord;
     }
-} else {
-  sails.log.info("trigger condition failed")
-}
+    getAuthenticationString() {
+      let username = sails.config.datacite.username;
+      let password = sails.config.datacite.password;
+      let authenticationString = `${username}:${password}`;
+      let buff = Buffer.from(authenticationString);
+      return buff.toString('base64');
+    }
 
-				return Observable.of(null);
+    public publishDoiTrigger(oid, record, options): Observable < any > {
 
-  	}
+      if (this.metTriggerCondition(oid, record, options) === "true") {
+        this.publishDoi(oid, record).then(doiRecord => {
+          const brand = BrandingService.getBrand('default');
 
-    protected runTemplate(template:string, variables) {
+          RecordsService.updateMeta(brand, oid, doiRecord).then(response => {});
+        });
+      }
+
+      return Observable.of(null);
+    }
+
+    protected runTemplate(template: string, variables) {
       if (template && template.indexOf('<%') != -1) {
         return _.template(template)(variables);
       }
-      return _.get(template,variables);
+      return _.get(template, variables);
     }
-
-
-
-	}
+  }
 }
 
 module.exports = new Services.Doi().exports();
