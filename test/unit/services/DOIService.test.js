@@ -2,7 +2,7 @@ const {
   expect
 } = require("chai");
 
-describe('The DOI Service crea', function () {
+describe('The DOI Service', function () {
   before(function (done) {
     done();
   });
@@ -28,12 +28,12 @@ describe('The DOI Service crea', function () {
     //   }
     // }
     // sails.services.doiservice.publishDoi(oid, record, 'draft').then(result => {
-    //   expect(result).to.have.property("metadata")
-    //   expect(result.metadata).to.have.property("citation_doi")
-    //   createdDoi = result.metadata.citation_doi
+    //   sails.log.error("DOI result: ")
+    //   sails.log.error(result)
+    //   expect(result).to.not.be.null;
+    //   createdDoi = result
     //   done()
     // }).catch(error => {
-      
     //   fail("Exception thrown");
     //   sails.log.error(error);
     //   done();
@@ -47,8 +47,7 @@ describe('The DOI Service crea', function () {
     // sails.services.doiservice.deleteDoi(createdDoi).then(result => {
     //   expect(result).to.eq(true)
     //   done()
-    // }).catch(error => {
-      
+    // }).catch(error => {    
     //   fail("Exception thrown");
     //   sails.log.error(error);
     //   done();

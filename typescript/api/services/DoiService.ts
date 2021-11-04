@@ -64,17 +64,14 @@ export module Services {
           let doi = responseBody.data.id
           sails.log.debug(`DOI created: ${doi}`)
 
-          record.metadata.citation_doi = doi;
 
-          record.metadata.citation_generated = this.runTemplate('<%= _.join(_.map(_.filter(_.get(data, "creators"), (c) => {return !_.isEmpty(c.family_name) || !_.isEmpty(c.given_name)}), (c)=> {return !_.isEmpty(c.family_name) || !_.isEmpty(c.given_name) ? ((c.family_name ? c.family_name : "") + ", " + (c.given_name ? c.given_name : "")) : "" }), "; ") + " ("+ moment(_.get(data, "citation_publication_date")).format("YYYY") + "): " + _.get(data, "citation_title") + ". " + _.get(data, "citation_publisher") + ". " + (_.get(data, "citation_doi", null) == null ? "{ID_WILL_BE_HERE}" : "https://doi.org/" + _.get(data, "citation_doi")) %>', {
-            data: record,
-            moment: moment
-          });
+
+
 
 
           sails.log.debug(`DOI generated ${doi}`)
 
-          return record;
+          return doi;
         } else {
           sails.log.error("Unexpected response from DataCite API")
           sails.log.error(response)
@@ -100,7 +97,7 @@ export module Services {
         });
         let response = await instance.delete(`/dois/${doi}`);
         if (response.status == 204) {
-            return true;
+          return true;
         } else {
           sails.log.error("Unexpected response from DataCite API")
           sails.log.error(response)
@@ -144,7 +141,7 @@ export module Services {
       let title = this.runTemplate(sails.config.datacite.mappings.title, lodashTemplateContext);
       let publisher = this.runTemplate(sails.config.datacite.mappings.publisher, lodashTemplateContext);
 
-      record.metadata[citationUrlProperty] = url;
+
 
       let postBody = {
         "data": {
@@ -186,8 +183,8 @@ export module Services {
       sails.log.verbose("DOI post body")
       sails.log.verbose(JSON.stringify(postBody));
 
-      let doiRecord = await this.makeCreateDoiCall(instance, postBody, record, oid);
-      return doiRecord;
+      let doi = await this.makeCreateDoiCall(instance, postBody, record, oid);
+      return doi;
     }
     getAuthenticationString() {
       let username = sails.config.datacite.username;
@@ -197,28 +194,55 @@ export module Services {
       return buff.toString('base64');
     }
 
-    public publishDoiTrigger(oid, record, options): Observable < any > {
+    public async publishDoiTrigger(oid, record, options): Promise < any > {
 
       if (this.metTriggerCondition(oid, record, options) === "true") {
-        this.publishDoi(oid, record).then(doiRecord => {
           const brand = BrandingService.getBrand('default');
+          let doi = await this.publishDoi(oid, record);
 
-          RecordsService.updateMeta(brand, oid, doiRecord).then(response => {});
-        });
+        record = this.addDoiDataToRecord(oid, record, doi)
+        RecordsService.updateMeta(brand, oid, record).then(response => {});
+        
       }
 
       return Observable.of(null);
     }
 
-    public publishDoiTriggerSync(oid, record, options): Promise < any > {
+    public async publishDoiTriggerSync(oid, record, options): Promise < any > {
 
       if (this.metTriggerCondition(oid, record, options) === "true") {
-        return this.publishDoi(oid, record);
+        let doi = await this.publishDoi(oid, record);
 
+        record = this.addDoiDataToRecord(oid, record, doi)
 
-        
+        return record;
       }
+      return record;
+    }
 
+
+    addDoiDataToRecord(oid: any, record: any, doi: any) {
+      let lodashTemplateContext = {
+        record: record,
+        oid: oid,
+        moment: moment
+      };
+
+      let citationUrlProperty = sails.config.datacite.citationUrlProperty;
+      let citationDoiProperty = sails.config.datacite.citationDoiProperty;
+      let generatedCitationStringProperty = sails.config.datacite.generatedCitationStringProperty;
+      let citationStringTemplate = sails.config.datacite.citationStringTemplate;
+
+      let generatedCitation = this.runTemplate(citationStringTemplate, {
+        data: record,
+        moment: moment
+      });
+      let url = this.runTemplate(sails.config.datacite.mappings.url, lodashTemplateContext);
+      _.set(record, citationUrlProperty, url);
+      _.set(record, citationDoiProperty, doi);
+      _.set(record, generatedCitationStringProperty, generatedCitation);
+
+      return record;
     }
 
     protected runTemplate(template: string, variables) {
