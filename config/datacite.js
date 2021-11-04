@@ -9,7 +9,7 @@ module.exports.datacite = {
         title: "<%= record.metadata.citation_title %>",
         publisher: "<%= record.metadata.citation_publisher %>",
         creatorGivenName: "<%= creator.given_name %>",
-        creatorFamilynName: "<%= creator.family_name %>",
+        creatorFamilyName: "<%= creator.family_name %>",
     },
     citationUrlProperty: "citation_url",
     creatorsProperty: "creators"

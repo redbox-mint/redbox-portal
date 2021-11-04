@@ -52,6 +52,7 @@ export module Services {
     protected _exportedMethods: any = [
       'publishDoi',
       'publishDoiTrigger',
+      'publishDoiTriggerSync',
       'deleteDoi'
     ];
 
@@ -207,6 +208,17 @@ export module Services {
       }
 
       return Observable.of(null);
+    }
+
+    public publishDoiTriggerSync(oid, record, options): Promise < any > {
+
+      if (this.metTriggerCondition(oid, record, options) === "true") {
+        return this.publishDoi(oid, record);
+
+
+        
+      }
+
     }
 
     protected runTemplate(template: string, variables) {
