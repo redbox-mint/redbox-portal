@@ -28,7 +28,7 @@ module.exports = [
                   action: 'publishValueLoaded'
                 }]
               },
-              'this': {
+              'citation_doi': {
                 onValueLoaded: [{
                   action: 'setVisibility'
                 }]

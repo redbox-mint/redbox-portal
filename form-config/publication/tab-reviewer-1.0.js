@@ -2,6 +2,7 @@ module.exports = [
   {
     class: "Container",
     roles: ['Admin', 'Librarians'],
+    editOnly:true,
     definition: {
       id: "reviewer",
       label: "@dataPublication-reviewer-tab",
