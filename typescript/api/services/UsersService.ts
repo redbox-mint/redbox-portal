@@ -330,8 +330,14 @@ export module Services {
       }
       var brand = BrandingService.getBrand(req.session.branding);
       var claimsMappings = oidcConfig.claimMappings;
-      const userName = _.get(userinfo, claimsMappings['username']);
+      let userName = _.get(userinfo, claimsMappings['username']);
       var openIdConnectDefRoles = _.map(RolesService.getNestedRoles(RolesService.getDefAuthenticatedRole(brand).name, brand.roles), 'id');
+
+      userName = null;
+      // This can occur when the claim mappings are incorrect or a login was cancelled
+      if(_.isEmpty(userName)) {
+        return done(null,null, { message: 'Rejected as username does not have a value'});
+      }
 
       User.findOne({
         username: userName

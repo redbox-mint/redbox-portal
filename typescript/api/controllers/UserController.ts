@@ -305,8 +305,9 @@ export module Controllers {
               "detailedMessager": `${err}${info}`
             };
           }
-          
-          return res.serverError(); 
+
+          const url = `${BrandingService.getFullPath(req)}/home`;
+          return res.redirect(url); 
         }       
         let requestDetails = new RequestDetails(req);
         UsersService.addUserAuditEvent(user, "login", requestDetails).then(response => {
