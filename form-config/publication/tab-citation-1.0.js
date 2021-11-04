@@ -36,8 +36,10 @@ module.exports = [
             },
             visibilityCriteria: {
               type: 'function',
-              action: 'utilityService.hasValue'
-            }
+              action: 'utilityService.runTemplate',
+              passCriteria: true,
+              template: '<%= data != "" && data != null %>'
+          }
           }
         },
         {
