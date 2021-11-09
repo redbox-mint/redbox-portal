@@ -6,7 +6,7 @@ if [ -z "$CIRCLE_BRANCH" ]; then
         export TAG="$CIRCLE_TAG";
 fi;
 #if parameter is passed to script, add parameter to tag. Used to produce bcryptjs versions of the app
-export TAG=`if [ "$1" != "" ]; then echo "2.0.1-$1"; else echo "2.0.1"; fi`
+export TAG=`echo "v2.0.4-dev"`
 docker build -f Dockerfile -t $REPO:$CIRCLE_SHA1 .
 docker tag $REPO:$CIRCLE_SHA1 $REPO:$TAG
 docker tag $REPO:$CIRCLE_SHA1 $REPO:circleci-$CIRCLE_BUILD_NUM
