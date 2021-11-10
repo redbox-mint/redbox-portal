@@ -65,7 +65,7 @@
     "path-exists": "^4.0.0",
     "postcss": "^8.3.11",
     "rc": "1.2.8",
-    "redux": "4.1.1",
+    "redux": "4.1.2",
     "request-promise": "^4.2.6",
     "rxjs": "6.6.2",
     "rxjs-compat": "6.6.7",
