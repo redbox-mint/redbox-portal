@@ -72,7 +72,7 @@
     "sails": "^1.5.0",
     "sails-hook-autoreload": "^1.1.0",
     "sails-hook-grunt": "5.0.0",
-    "sails-hook-orm": "^3.0.2",
+    "sails-hook-orm": "^4.0.0",
     "sails-hook-sockets": "^2.0.1",
     "sails-mongo": "^2.0.0",
     "sass": "^1.42.1",
