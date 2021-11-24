@@ -142,20 +142,31 @@ export module Services {
         }
       });
 
-      sails.on('lifted', function() {
-      let apiDirs = ["controllers"];
-        _.each(apiDirs, (apiType) => {
-          const files = that.walkDirSync(`${hook_root_dir}/api/${apiType}`, []);
-          sails.log.verbose(`${hook_log_header}::Processing '${apiType}':`);
-          sails.log.verbose(JSON.stringify(files));
-          if (!_.isEmpty(files)) {
-            _.each(files, (file) => {
-              const apiDef = require(file);
-              const apiElemName = _.toLower(basename(file, '.js'))
-              sails[apiType][apiElemName] = apiDef;
+      let controllerDirs = ["controllers"];
+      _.each(controllerDirs, (apiType) => {
+        const files = that.walkDirSync(`${hook_root_dir}/api/${apiType}`, []);
+        sails.log.verbose(`${hook_log_header}::Processing '${apiType}':`);
+        sails.log.verbose(JSON.stringify(files));
+        if (!_.isEmpty(files)) {
+          _.each(files, (file) => {
+            const apiDef = require(file);
+            const baseName = basename(file, '.js');
+            const controllerName = basename(baseName, 'Controller')
+            // sails[apiType][apiElemName] = apiDef;
+            if (_.isEmpty(sails.config.controllers)) {
+              sails.config.controllers = {};
+            }
+            if (_.isEmpty(sails.config.controllers.moduleDefinitions)) {
+              sails.config.controllers.moduleDefinitions = {};
+            }
+            _.forOwn(apiDef, (methodFn, methodName) => {
+              if (!_.startsWith(methodName, '_') && _.isFunction(methodFn)) {
+                sails.log.verbose(`Setting: ${controllerName}/${methodName}`);
+                sails.config.controllers.moduleDefinitions[`${controllerName}/${methodName}`] = methodFn;
+              }
             });
-          }
-        });
+          });
+        }
       });
 
       // for models, we need to copy them over to `api/models`...
