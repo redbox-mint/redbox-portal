@@ -5223,7 +5223,6 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"setTimeout(function(){},30000)",
 									"pm.test(\"Status code is 200\", function () {",
 									"    pm.response.to.have.status(200);",
 									"});",
@@ -5232,6 +5231,15 @@
 									"    pm.expect(pm.response.stream.toString()).to.match(/^@charset \"UTF-8\"/)",
 									"});",
 									""
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"setTimeout(function(){},30000)"
 								],
 								"type": "text/javascript"
 							}
