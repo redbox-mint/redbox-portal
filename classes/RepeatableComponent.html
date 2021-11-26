@@ -180,7 +180,7 @@
                 </tr>
                     <tr>
                         <td class="col-md-4">
-                                <div class="io-line">Defined in <a href="" data-line="335" class="link-to-prism">angular/shared/form/field-repeatable.component.ts:335</a></div>
+                                <div class="io-line">Defined in <a href="" data-line="339" class="link-to-prism">angular/shared/form/field-repeatable.component.ts:339</a></div>
                         </td>
                     </tr>
 
@@ -371,8 +371,8 @@
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="337"
-                            class="link-to-prism">angular/shared/form/field-repeatable.component.ts:337</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="341"
+                            class="link-to-prism">angular/shared/form/field-repeatable.component.ts:341</a></div>
                 </td>
             </tr>
 
@@ -446,7 +446,7 @@
             </tr>
             <tr>
                 <td class="col-md-4">
-                        <div class="io-line">Defined in         <code><a href="../classes/SimpleComponent.html#source" target="_self" >SimpleComponent:345</a></code>
+                        <div class="io-line">Defined in         <code><a href="../classes/SimpleComponent.html#source" target="_self" >SimpleComponent:349</a></code>
 </div>
                 </td>
             </tr>
@@ -483,8 +483,8 @@
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="341"
-                            class="link-to-prism">angular/shared/form/field-repeatable.component.ts:341</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="345"
+                            class="link-to-prism">angular/shared/form/field-repeatable.component.ts:345</a></div>
                 </td>
             </tr>
 
@@ -955,6 +955,8 @@ export class RepeatableContainer extends Container {
    * will shown. This property is useful to show a list of values but not allow to add any more entries to the list
    */
   addButtonShow: boolean;
+  allowZeroRows: boolean;
+  hideWhenZeroRows: boolean;
 
   constructor(options: any, injector: any) {
     super(options, injector);
@@ -971,6 +973,8 @@ export class RepeatableContainer extends Container {
     this.moveDownButtonClass &#x3D; options[&#x27;addButtonClass&#x27;] || &#x27;fa fa-chevron-circle-down btn text-20 pull-left btn-primary&#x27;;
     this.delegateErrorHandling &#x3D; !_.isUndefined(options[&#x27;delegateErrorHandling&#x27;]) ? options[&#x27;delegateErrorHandling&#x27;] : true;
     this.addButtonShow &#x3D; !_.isUndefined(options[&#x27;addButtonShow&#x27;]) ? options[&#x27;addButtonShow&#x27;] : true;
+    this.allowZeroRows &#x3D; !_.isUndefined(options[&#x27;allowZeroRows&#x27;]) ? options[&#x27;allowZeroRows&#x27;] : false;
+    this.hideWhenZeroRows &#x3D; !_.isUndefined(options[&#x27;hideWhenZeroRows&#x27;]) ? options[&#x27;hideWhenZeroRows&#x27;] : false;
     this.minimumEntries &#x3D; (!_.isUndefined(options[&#x27;minimumEntries&#x27;]) &amp;&amp; options[&#x27;minimumEntries&#x27;] &gt; 0) ? options[&#x27;minimumEntries&#x27;] : 1;
     this.maximumEntries &#x3D; (!_.isUndefined(options[&#x27;maximumEntries&#x27;]) &amp;&amp; options[&#x27;maximumEntries&#x27;] &gt; 0) ? options[&#x27;maximumEntries&#x27;] : 1000;
     //Validate that maximumEntries is bigger or equal to minimumEntries
@@ -1272,7 +1276,7 @@ export class RepeatableVocab extends RepeatableContainer {
   selector: &#x27;repeatable-vocab&#x27;,
   template: &#x60;
   &lt;div *ngIf&#x3D;&quot;field.editMode&quot;&gt;
-    &lt;div class&#x3D;&quot;row&quot;&gt;
+    &lt;div *ngIf&#x3D;&quot;field.hideWhenZeroRows?field.fields.length &gt;0 : true&quot; class&#x3D;&quot;row&quot;&gt;
       &lt;div class&#x3D;&quot;col-xs-12&quot;&gt;
       &lt;label [attr.for]&#x3D;&quot;field.name&quot;&gt;{{field.label}}
         &lt;button type&#x3D;&quot;button&quot; class&#x3D;&quot;btn btn-default&quot; *ngIf&#x3D;&quot;field.help&quot; (click)&#x3D;&quot;toggleHelp()&quot; [attr.aria-label]&#x3D;&quot;&#x27;help&#x27; | translate &quot;&gt;&lt;span class&#x3D;&quot;glyphicon glyphicon-question-sign&quot; aria-hidden&#x3D;&quot;true&quot;&gt;&lt;/span&gt;&lt;/button&gt;
@@ -1282,25 +1286,29 @@ export class RepeatableVocab extends RepeatableContainer {
     &lt;/div&gt;
     &lt;div *ngFor&#x3D;&quot;let fieldElem of field.fields; let i &#x3D; index;&quot; class&#x3D;&quot;row&quot;&gt;
       &lt;span class&#x3D;&quot;col-xs-12 no-horizontal-padding&quot;&gt;
-        &lt;rb-vocab [name]&#x3D;&quot;field.name&quot; [field]&#x3D;&quot;fieldElem&quot; [form]&#x3D;&quot;form&quot; [fieldMap]&#x3D;&quot;fieldMap&quot; [isEmbedded]&#x3D;&quot;true&quot; [removeBtnText]&#x3D;&quot;field.removeButtonText&quot; [removeBtnClass]&#x3D;&quot;field.removeButtonClass&quot; [canRemove]&#x3D;&quot;field.fields.length &gt; 1&quot; (onRemoveBtnClick)&#x3D;&quot;removeElem($event[0], $event[1])&quot; [index]&#x3D;&quot;i&quot;&gt;&lt;/rb-vocab&gt;
+        &lt;rb-vocab [name]&#x3D;&quot;field.name&quot; [field]&#x3D;&quot;fieldElem&quot; [form]&#x3D;&quot;form&quot; [fieldMap]&#x3D;&quot;fieldMap&quot; [isEmbedded]&#x3D;&quot;true&quot; [removeBtnText]&#x3D;&quot;field.removeButtonText&quot; [removeBtnClass]&#x3D;&quot;field.removeButtonClass&quot; [canRemove]&#x3D;&quot;field.allowZeroRows? true: field.fields.length &gt; 1&quot; (onRemoveBtnClick)&#x3D;&quot;removeElem($event[0], $event[1])&quot; [index]&#x3D;&quot;i&quot;&gt;&lt;/rb-vocab&gt;
       &lt;/span&gt;
     &lt;/div&gt;
     &lt;div class&#x3D;&quot;row&quot;&gt;
       &lt;span class&#x3D;&quot;col-xs-11&quot;&gt;&amp;nbsp;
       &lt;/span&gt;
       &lt;span class&#x3D;&quot;col-xs-1&quot;&gt;
-        &lt;button *ngIf&#x3D;&quot;field.addButtonText&quot; type&#x3D;&#x27;button&#x27; (click)&#x3D;&quot;addElem($event)&quot; [ngClass]&#x3D;&quot;field.addButtonTextClass&quot; &gt;{{field.addButtonText}}&lt;/button&gt;
-        &lt;button *ngIf&#x3D;&quot;!field.addButtonText&quot; type&#x3D;&#x27;button&#x27; (click)&#x3D;&quot;addElem($event)&quot; [ngClass]&#x3D;&quot;field.addButtonClass&quot; [attr.aria-label]&#x3D;&quot;&#x27;add-button-label&#x27; | translate&quot;&gt;&lt;/button&gt;
+       &lt;span *ngIf&#x3D;&quot;field.addButtonShow&quot; class&#x3D;&quot;col-xs-12&quot;&gt;
+         &lt;button *ngIf&#x3D;&quot;field.addButtonText&quot; type&#x3D;&#x27;button&#x27; [disabled]&#x3D;&quot;field.fields.length &gt;&#x3D; field.maximumEntries&quot; (click)&#x3D;&quot;addElem($event)&quot; [ngClass]&#x3D;&quot;field.addButtonTextClass&quot; &gt;{{field.addButtonText}}&lt;/button&gt;
+          &lt;button *ngIf&#x3D;&quot;!field.addButtonText&quot; type&#x3D;&#x27;button&#x27; [disabled]&#x3D;&quot;field.fields.length &gt;&#x3D; field.maximumEntries&quot; (click)&#x3D;&quot;addElem($event)&quot; [ngClass]&#x3D;&quot;field.addButtonClass&quot; [attr.aria-label]&#x3D;&quot;&#x27;add-button-label&#x27; | translate&quot;&gt;&lt;/button&gt;
+        &lt;/span&gt;
       &lt;/span&gt;
     &lt;/div&gt;
   &lt;/div&gt;
   &lt;li *ngIf&#x3D;&quot;!field.editMode&quot; class&#x3D;&quot;key-value-pair&quot;&gt;
+   &lt;ng-container *ngIf&#x3D;&quot;field.hideWhenZeroRows ?field.fields.length &gt;0 : true&quot;&gt;
     &lt;span *ngIf&#x3D;&quot;field.label&quot; class&#x3D;&quot;key&quot;&gt;{{field.label}}&lt;/span&gt;
     &lt;span class&#x3D;&quot;value&quot;&gt;
       &lt;ul class&#x3D;&quot;key-value-list&quot;&gt;
         &lt;rb-vocab *ngFor&#x3D;&quot;let fieldElem of field.fields; let i &#x3D; index;&quot; [field]&#x3D;&quot;fieldElem&quot; [form]&#x3D;&quot;form&quot; [fieldMap]&#x3D;&quot;fieldMap&quot;&gt;&lt;/rb-vocab&gt;
       &lt;/ul&gt;
     &lt;/span&gt;
+    &lt;/ng-container&gt;
   &lt;/li&gt;
   &#x60;,
 })
