@@ -17,7 +17,7 @@
     "bootstrap-sass": "^3.4.1",
     "chokidar": "~3.5.2",
     "connect-mongo": "^4.6.0",
-    "core-js": "^3.19.1",
+    "core-js": "^3.19.2",
     "csv-parser": "^3.0.0",
     "datacrate": "^1.0.12",
     "dotenv": "^10.0.0",
