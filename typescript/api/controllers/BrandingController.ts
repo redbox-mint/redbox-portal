@@ -123,10 +123,10 @@ export module Controllers {
       this.blobAdapter.read(fd, function (error, file) {
         if (error) {
           sails.log.warn(`There was an error reading ${fd}. Sending back /assets/images/${sails.config.static_assets.logoName}`);
-          res.contentType(`image/${sails.config.static_assets.imageType}`);
+          res.contentType(sails.config.static_assets.imageType);
           res.sendFile(sails.config.appPath + `/assets/images/${sails.config.static_assets.logoName}`);
         } else {
-          res.contentType(`image/${sails.config.static_assets.imageType}`);
+          res.contentType(sails.config.static_assets.imageType);
           res.send(new Buffer(file));
         }
       });

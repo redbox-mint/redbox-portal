@@ -58,6 +58,8 @@ export class RepeatableContainer extends Container {
    * will shown. This property is useful to show a list of values but not allow to add any more entries to the list
    */
   addButtonShow: boolean;
+  allowZeroRows: boolean;
+  hideWhenZeroRows: boolean;
 
   constructor(options: any, injector: any) {
     super(options, injector);
@@ -74,6 +76,8 @@ export class RepeatableContainer extends Container {
     this.moveDownButtonClass = options['addButtonClass'] || 'fa fa-chevron-circle-down btn text-20 pull-left btn-primary';
     this.delegateErrorHandling = !_.isUndefined(options['delegateErrorHandling']) ? options['delegateErrorHandling'] : true;
     this.addButtonShow = !_.isUndefined(options['addButtonShow']) ? options['addButtonShow'] : true;
+    this.allowZeroRows = !_.isUndefined(options['allowZeroRows']) ? options['allowZeroRows'] : false;
+    this.hideWhenZeroRows = !_.isUndefined(options['hideWhenZeroRows']) ? options['hideWhenZeroRows'] : false;
     this.minimumEntries = (!_.isUndefined(options['minimumEntries']) && options['minimumEntries'] > 0) ? options['minimumEntries'] : 1;
     this.maximumEntries = (!_.isUndefined(options['maximumEntries']) && options['maximumEntries'] > 0) ? options['maximumEntries'] : 1000;
     //Validate that maximumEntries is bigger or equal to minimumEntries
@@ -375,7 +379,7 @@ export class RepeatableVocab extends RepeatableContainer {
   selector: 'repeatable-vocab',
   template: `
   <div *ngIf="field.editMode">
-    <div class="row">
+    <div *ngIf="field.hideWhenZeroRows?field.fields.length >0 : true" class="row">
       <div class="col-xs-12">
       <label [attr.for]="field.name">{{field.label}}
         <button type="button" class="btn btn-default" *ngIf="field.help" (click)="toggleHelp()" [attr.aria-label]="'help' | translate "><span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span></button>
@@ -385,25 +389,29 @@ export class RepeatableVocab extends RepeatableContainer {
     </div>
     <div *ngFor="let fieldElem of field.fields; let i = index;" class="row">
       <span class="col-xs-12 no-horizontal-padding">
-        <rb-vocab [name]="field.name" [field]="fieldElem" [form]="form" [fieldMap]="fieldMap" [isEmbedded]="true" [removeBtnText]="field.removeButtonText" [removeBtnClass]="field.removeButtonClass" [canRemove]="field.fields.length > 1" (onRemoveBtnClick)="removeElem($event[0], $event[1])" [index]="i"></rb-vocab>
+        <rb-vocab [name]="field.name" [field]="fieldElem" [form]="form" [fieldMap]="fieldMap" [isEmbedded]="true" [removeBtnText]="field.removeButtonText" [removeBtnClass]="field.removeButtonClass" [canRemove]="field.allowZeroRows? true: field.fields.length > 1" (onRemoveBtnClick)="removeElem($event[0], $event[1])" [index]="i"></rb-vocab>
       </span>
     </div>
     <div class="row">
       <span class="col-xs-11">&nbsp;
       </span>
       <span class="col-xs-1">
-        <button *ngIf="field.addButtonText" type='button' (click)="addElem($event)" [ngClass]="field.addButtonTextClass" >{{field.addButtonText}}</button>
-        <button *ngIf="!field.addButtonText" type='button' (click)="addElem($event)" [ngClass]="field.addButtonClass" [attr.aria-label]="'add-button-label' | translate"></button>
+       <span *ngIf="field.addButtonShow" class="col-xs-12">
+         <button *ngIf="field.addButtonText" type='button' [disabled]="field.fields.length >= field.maximumEntries" (click)="addElem($event)" [ngClass]="field.addButtonTextClass" >{{field.addButtonText}}</button>
+          <button *ngIf="!field.addButtonText" type='button' [disabled]="field.fields.length >= field.maximumEntries" (click)="addElem($event)" [ngClass]="field.addButtonClass" [attr.aria-label]="'add-button-label' | translate"></button>
+        </span>
       </span>
     </div>
   </div>
   <li *ngIf="!field.editMode" class="key-value-pair">
+   <ng-container *ngIf="field.hideWhenZeroRows ?field.fields.length >0 : true">
     <span *ngIf="field.label" class="key">{{field.label}}</span>
     <span class="value">
       <ul class="key-value-list">
         <rb-vocab *ngFor="let fieldElem of field.fields; let i = index;" [field]="fieldElem" [form]="form" [fieldMap]="fieldMap"></rb-vocab>
       </ul>
     </span>
+    </ng-container>
   </li>
   `,
 })
