@@ -4,8 +4,8 @@ module.exports.datacite = {
     doiPrefix: "xxxxx",
     baseUrl: 'https://api.test.datacite.org',
     mappings: {
-        url: "<%= 'https://research.jcu.edu.au/data/published/' + oid %>",
-        publicationYear: "<%= record.metadata.citation_publication_date == null ? moment().format('YYYY') : moment(record.metadata.citation_publication_date).format('YYYY')  %>",
+        url: "<%= 'https://redboxresearchdata.com.au/published/' + oid %>",
+        publicationYear: "<%= _.isEmpty(record.metadata.citation_publication_date) ? moment().format('YYYY') : moment(record.metadata.citation_publication_date).format('YYYY')  %>",
         title: "<%= record.metadata.citation_title %>",
         publisher: "<%= record.metadata.citation_publisher %>",
         creatorGivenName: "<%= creator.given_name %>",
