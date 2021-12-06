@@ -1945,7 +1945,7 @@ export class RepeatableVocab extends RepeatableContainer {
 @Component({
   selector: &#x27;repeatable-vocab&#x27;,
   template: &#x60;
-  &lt;div *ngIf&#x3D;&quot;field.editMode&quot;&gt;
+  &lt;div *ngIf&#x3D;&quot;field.editMode &amp;&amp; field.visible&quot;&gt;
     &lt;div *ngIf&#x3D;&quot;field.hideWhenZeroRows?field.fields.length &gt;0 : true&quot; class&#x3D;&quot;row&quot;&gt;
       &lt;div class&#x3D;&quot;col-xs-12&quot;&gt;
       &lt;label [attr.for]&#x3D;&quot;field.name&quot;&gt;{{field.label}}
@@ -1970,7 +1970,7 @@ export class RepeatableVocab extends RepeatableContainer {
       &lt;/span&gt;
     &lt;/div&gt;
   &lt;/div&gt;
-  &lt;li *ngIf&#x3D;&quot;!field.editMode&quot; class&#x3D;&quot;key-value-pair&quot;&gt;
+  &lt;li *ngIf&#x3D;&quot;!field.editMode &amp;&amp; field.visible&quot; class&#x3D;&quot;key-value-pair&quot;&gt;
    &lt;ng-container *ngIf&#x3D;&quot;field.hideWhenZeroRows ?field.fields.length &gt;0 : true&quot;&gt;
     &lt;span *ngIf&#x3D;&quot;field.label&quot; class&#x3D;&quot;key&quot;&gt;{{field.label}}&lt;/span&gt;
     &lt;span class&#x3D;&quot;value&quot;&gt;
