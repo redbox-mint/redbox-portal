@@ -16,11 +16,20 @@
         </span>
       </div>
       <div class="form-group">
+        <label class="col-xs-2 control-label">{{ 'export-format' | translate }} </label>
+        <span class="col-xs-2">
+          <div *ngFor="let recExportFormat of getExportFormatNames()"  >
+            <input [checked]="recExportFormat.checked" (change)="setExportFormat(recExportFormat.id, $event)" id="format-{{recExportFormat.id}}" name="export-format-radio" type="radio" >
+            <label for="format-{{recExportFormat.name}}" >&nbsp;{{ recExportFormat.name }}</label>
+          </div>
+        </span>
+      </div>
+      <div class="form-group">
         <div class="col-xs-2"></div>
         <div class="col-xs-2 padding-remove">
           <span class="input-group-btn">
             <button (click)="download()" class="btn btn-primary">
-              {{ 'export-csv-' + record_type  | translate }}
+              {{ 'export-' + record_type  | translate }}
             </button>
             <button class="btn btn-primary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
               <span class="caret"></span>
@@ -28,7 +37,7 @@
             <ul class="dropdown-menu dropdown-menu-right">
               <li *ngFor="let recTypeName of getRecordTypeNames()">
                 <a href="#" (click)="setRecordType(recTypeName, $event)">
-                  {{ 'export-csv-' + recTypeName  | translate }}
+                  {{ 'export-'+ recTypeName  | translate }}
                 </a>
               </li>
             </ul>

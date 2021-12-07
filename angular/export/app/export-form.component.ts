@@ -48,6 +48,8 @@ export class ExportFormComponent extends LoadableComponent {
   hasClearButton: boolean;
   recTypeNames: string[];
   record_type: string;
+  exportFormatTypes: any[];
+  export_format: { name: string, id: string, checked: string };
 
   constructor(
     elm: ElementRef,
@@ -58,6 +60,8 @@ export class ExportFormComponent extends LoadableComponent {
     super();
     this.timePickerOpts = false;
     this.hasClearButton = false;
+    this.exportFormatTypes = [{name: 'CSV', id: 'csv', checked: 'true'},{name: 'JSON', id: 'json', checked: null}];
+    this.export_format = this.exportFormatTypes[0].id; //set default export format
     this.datePickerOpts = { placeholder: 'dd/mm/yyyy', format: 'dd/mm/yyyy', icon: 'fa fa-calendar' };
     this.initTranslator(translationService);
     this.waitForInit([
@@ -80,7 +84,7 @@ export class ExportFormComponent extends LoadableComponent {
   download() {
     const before = this.modBefore ? moment(this.modBefore).format('YYYY-MM-DD') : '';
     const after = this.modAfter ? moment(this.modAfter).format('YYYY-MM-DD') : '';
-    const url = this.LocationService.prepareExternalUrl(`export/record/download/csv?before=${before}&after=${after}&recType=${this.record_type}`);
+    const url = this.LocationService.prepareExternalUrl(`export/record/download/${this.export_format}?before=${before}&after=${after}&recType=${this.record_type}`);
     window.open(url, '_blank');
   }
 
@@ -88,11 +92,22 @@ export class ExportFormComponent extends LoadableComponent {
     return this.recTypeNames;
   }
 
+  getExportFormatNames() {
+    return this.exportFormatTypes;
+  }
+
   setRecordType(recType, e) {
     if (e) {
       e.preventDefault();
     }
     this.record_type = recType;
+  }
+
+  setExportFormat(exportFormat, e) {
+    if (e) {
+      e.preventDefault();
+    }
+    this.export_format = exportFormat;
   }
 
 }
