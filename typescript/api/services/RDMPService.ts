@@ -20,7 +20,10 @@
 import {
   Observable
 } from 'rxjs/Rx';
-import {QueueService, Services as services}   from '@researchdatabox/redbox-core-types';
+import {
+  QueueService,
+  Services as services
+} from '@researchdatabox/redbox-core-types';
 import {
   Sails,
   Model
@@ -173,11 +176,11 @@ export module Services {
         contributorEmailAddress = contributor;
       }
       if (!_.isEmpty(contributorEmailAddress) && !_.isUndefined(contributorEmailAddress)) {
-        if(_.isArray(contributorEmailAddress) && contributorEmailAddress.length > 0) {
-          contributorEmailAddress = contributorEmailAddress[0]
+        if (_.isArray(contributorEmailAddress) && contributorEmailAddress.length > 0) {
+          contributorEmailAddress = contributorEmailAddress[0];
         }
-        if(_.isString(contributorEmailAddress)) {
-          sails.log.verbose(`Pushing contrib email address ${contributorEmailAddress}`)
+        if (_.isString(contributorEmailAddress)) {
+          sails.log.verbose(`Pushing contrib email address ${contributorEmailAddress}`);
           emailList.push(contributorEmailAddress);
         }
       }
@@ -269,9 +272,7 @@ export module Services {
           sails.log.debug(`Triggering queuedtrigger: ${hookFunctionString}`)
           let hookResponse = hookFunction(oid, record, options, user);
           let response = this.convertToObservable(hookResponse);
-          
-          return response.toPromise()
-         
+          return response.toPromise();
 
         } else {
           sails.log.error(`queued trigger function: '${hookFunctionString}' did not resolve to a valid function, what I got:`);

@@ -20,7 +20,10 @@
 import {
   Observable
 } from 'rxjs/Rx';
-import {SearchService, Services as services}   from '@researchdatabox/redbox-core-types';
+import {
+  SearchService,
+  Services as services
+} from '@researchdatabox/redbox-core-types';
 
 import {
   Sails,
@@ -30,7 +33,7 @@ import * as request from "request-promise";
 import * as crypto from 'crypto';
 
 declare var sails: Sails;
-declare var User, Role, UserAudit: Model;
+declare var User, Role, UserAudit, Record: Model;
 declare var BrandingService, RolesService, ConfigService, RecordsService;
 declare const Buffer;
 declare var _;
@@ -120,12 +123,24 @@ export module Services {
                 });
               }
 
-              foundUser.lastLogin = new Date();
+              // foundUser.lastLogin = new Date();
 
               User.update({
-                username: foundUser.username
-              }, {
-                lastLogin: foundUser.lastLogin
+                username: username
+                }).set({lastLogin: new Date()}).exec(function (err, user) {
+                  if (err) {
+                    sails.log.error("Error updating user:");
+                    sails.log.error(err);
+                    return;
+                  }
+                  if (_.isEmpty(user)) {
+                    sails.log.error("No user found");
+                    return;
+                  }
+          
+                  sails.log.verbose("Done, returning updated user:");
+                  sails.log.verbose(user);
+                  return;
               });
 
               return done(null, foundUser, {
@@ -152,8 +167,8 @@ export module Services {
       aafOpts.jwtFromRequest = ExtractJwt.fromBodyField('assertion');
       sails.config.passport.use('aaf-jwt', new JwtStrategy(aafOpts, function (req, jwt_payload, done) {
         let brand = BrandingService.getBrandFromReq(req);
-        
-        if(_.isString(brand)) {
+
+        if (_.isString(brand)) {
           brand = BrandingService.getBrand(brand);
         }
         const authConfig = ConfigService.getBrand(brand.name, 'auth');
@@ -169,9 +184,9 @@ export module Services {
         sails.log.verbose("Brand")
         sails.log.verbose(brand)
         let defaultAuthRole = RolesService.getDefAuthenticatedRole(brand);
-        let aafDefRoles =[]
-        if(defaultAuthRole != undefined) {
-         aafDefRoles = _.map(RolesService.getNestedRoles(defaultAuthRole.name, brand.roles), 'id');
+        let aafDefRoles = []
+        if (defaultAuthRole != undefined) {
+          aafDefRoles = _.map(RolesService.getNestedRoles(defaultAuthRole.name, brand.roles), 'id');
         }
         var aafUsernameField = authConfig.aaf.usernameField;
         const userName = Buffer.from(jwt_payload[aafUsernameField]).toString('base64');
@@ -199,8 +214,25 @@ export module Services {
             user.givenname = jwt_payload[aafAttributes].givenname;
             user.surname = jwt_payload[aafAttributes].surname;
 
-            User.update(user).exec(function (err, user) {});
-            return done(null, user);
+            User.update({
+              username: user.username
+              }).set(user).exec(function (err, user) {
+              if (err) {
+                sails.log.error("Error updating user:");
+                sails.log.error(err);
+                return done(err, false, {message: "Error updating file"});
+              }
+              if (_.isEmpty(user)) {
+                sails.log.error("No user found");
+                return done("No user found", false, {message: "No user found"});
+              }
+      
+              sails.log.verbose("Done, returning updated user:");
+              sails.log.verbose(user);
+              return done(null, user[0],{
+                message: 'Logged In Successfully'
+              });
+            });
           } else {
             sails.log.verbose("At AAF Strategy verify, creating new user...");
             // first time login, create with default role
@@ -282,18 +314,18 @@ export module Services {
                   };
                 }
                 let passportIdentifier = 'oidc';
-                if(!_.isEmpty(oidcConfig.identifier)) {
+                if (!_.isEmpty(oidcConfig.identifier)) {
                   passportIdentifier = `oidc-${oidcConfig.identifier}`
                 }
-                
+
                 sails.config.passport.use(passportIdentifier, new Strategy({
                   client: oidcClient,
                   passReqToCallback: true,
                   params: oidcOpts.params
                 }, verifyCallbackFn));
                 sails.log.info(`OIDC is active, client ${passportIdentifier} configured and ready.`);
-              
-                
+
+
               } catch (e) {
                 sails.log.error(`Failed to discover, attempt# ${discoverAttemptsCtr}:`);
                 sails.log.error(e);
@@ -325,17 +357,19 @@ export module Services {
           claims: tokenSet.claims(),
           tokenSet: tokenSet
         };
-        req.session['data'] = JSON.stringify(err, null, 2);
+        req.session.errorTextRaw = JSON.stringify(err, null, 2);
         return done(null, false);
       }
       var brand = BrandingService.getBrand(req.session.branding);
       var claimsMappings = oidcConfig.claimMappings;
-      let userName = _.get(userinfo, claimsMappings['username']);
+      const userName = _.get(userinfo, claimsMappings['username']);
       var openIdConnectDefRoles = _.map(RolesService.getNestedRoles(RolesService.getDefAuthenticatedRole(brand).name, brand.roles), 'id');
 
       // This can occur when the claim mappings are incorrect or a login was cancelled
-      if(_.isEmpty(userName)) {
-        return done(null,null, { message: 'Rejected as username does not have a value'});
+      if (_.isEmpty(userName)) {
+        return done(null, null, {
+          message: 'Rejected as username does not have a value'
+        });
       }
 
       User.findOne({
@@ -351,6 +385,7 @@ export module Services {
           return done(err, false);
         }
         if (user) {
+          sails.log.error("At OIDC Strategy verify, updating new user...");
           user.lastLogin = new Date();
           user.additionalAttributes = that.mapAdditionalAttributes(userinfo, claimsMappings['additionalAttributes']);
           user.name = _.get(userinfo, claimsMappings['name']);
@@ -360,8 +395,25 @@ export module Services {
           user.givenname = _.get(userinfo, claimsMappings['givenname']);
           user.surname = _.get(userinfo, claimsMappings['surname']);
 
-          User.update(user).exec(function (err, user) {});
-          return done(null, user);
+
+          User.update({
+            username: user.username
+            }).set(user).exec(function (err, user) {
+            if (err) {
+              sails.log.error("Error updating user:");
+              sails.log.error(err);
+              return done(err, false);
+            }
+            if (_.isEmpty(user)) {
+              sails.log.error("No user found");
+              return done("No user found", false);
+            }
+    
+            sails.log.verbose("Done, returning updated user:");
+            sails.log.verbose(user);
+            return done(null, user[0]);
+          });
+
         } else {
           sails.log.verbose("At OIDC Strategy verify, creating new user...");
           let additionalAttributes = that.mapAdditionalAttributes(userinfo, claimsMappings['additionalAttributes']);
@@ -496,10 +548,6 @@ export module Services {
      */
     public addUserAuditEvent = (user, action, additionalContext) => {
       let auditEvent = {}
-      if (_.isEmpty(user)) {
-        sails.log.verbose(`Auditing user event skipped: no user information provided.`);
-        return Observable.of(auditEvent).toPromise();
-      }
       if (!_.isEmpty(user.password)) {
         delete user.password;
       }
@@ -657,6 +705,26 @@ export module Services {
       });
     }
 
+    private updateUserAfterLogin(user,done){
+      User.update({
+        username: user.username
+        }).set(user).exec(function (err, user) {
+        if (err) {
+          sails.log.error("Error updating user:");
+          sails.log.error(err);
+          return done(err, false);
+        }
+        if (_.isEmpty(user)) {
+          sails.log.error("No user found");
+          return done("No user found", false);
+        }
+
+        sails.log.verbose("Done, returning updated user:");
+        sails.log.verbose(user);
+        return done(null, user[0]);
+      });
+    }
+
     public hasRole(user, targetRole) {
       return _.find(user.roles, (role) => {
         return role.id == targetRole.id;
@@ -708,31 +776,32 @@ export module Services {
      *
      **/
     public findAndAssignAccessToRecords(pendingValue, userid) {
-      var oid = null;
-      const query = `authorization_editPending:${pendingValue}%20OR%20authorization_viewPending:${pendingValue}&sort=date_object_modified desc&version=2.2&wt=json&rows=10000`;
-      this.getSearchService().searchAdvanced(query).then(results => {
-        if (_.isEmpty(results) || _.isEmpty(results['response'])) {
+      
+      Record.find({
+        'or': [{
+          'authorization.editPending': pendingValue
+        }, {
+          'authorization.viewPending': pendingValue
+        }]
+      }).meta({
+        enableExperimentalDeepTargets:true
+      }).then(records => {
+      
+        if (_.isEmpty(records)) {
           sails.log.verbose(`UsersService::findAndAssignAccessToRecords() -> No pending records: ${pendingValue}`);
           return;
         }
-        sails.log.verbose(JSON.stringify(results));
-        if (results["response"] != null) {
-          var docs = results["response"]["docs"];
-          for (var i = 0; i < docs.length; i++) {
-            var doc = docs[i];
-            var item = {};
-            oid = doc["storage_id"];
-            RecordsService.provideUserAccessAndRemovePendingAccess(oid, userid, pendingValue);
-          }
+        sails.log.verbose(`UsersService::findAndAssignAccessToRecords() -> Found ${records.length} records to assign permissions`);
+        for (let record of records) {
+          RecordsService.provideUserAccessAndRemovePendingAccess(record.redboxOid, userid, pendingValue);
         }
       }).catch((error: any) => {
-        // swallow !!!!
-        sails.log.warn(`Failed to assign access to OID: ${oid}`);
+        sails.log.warn(`Failed to assign access for user: ${pendingValue}`);
         sails.log.warn(error);
       });
     }
 
+    }
   }
-}
 
 module.exports = new Services.Users().exports();
