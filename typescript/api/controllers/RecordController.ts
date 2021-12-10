@@ -1160,7 +1160,7 @@ export module Controllers {
       return Buffer.from(entries[field], 'base64').toString('ascii');
     }
 
-    public doAttachment(req, res) {
+    public async doAttachment(req, res) {
       const brand = BrandingService.getBrand(req.session.branding);
       const oid = req.param('oid');
       const attachId = req.param('attachId');
@@ -1177,55 +1177,47 @@ export module Controllers {
         return;
       }
       const that = this;
-      return this.getRecord(oid).flatMap(currentRec => {
-          return this.hasEditAccess(brand, req.user, currentRec).flatMap(hasEditAccess => {
-            if (!hasEditAccess) {
-              sails.log.error("Error: edit error no permissions in do attachment.");
-              return Observable.throwError(new Error(TranslationService.t('edit-error-no-permissions')));
+      const currentRec = await this.getRecord(oid).toPromise();
+
+      if (method == 'get') {
+        const hasViewAccess = await this.hasViewAccess(brand, req.user, currentRec).toPromise();
+
+        if (!hasViewAccess) {
+          sails.log.error("Error: edit error no permissions in do attachment.");
+          return Observable.throwError(new Error(TranslationService.t('edit-error-no-permissions')));
+        }
+        // check if this attachId exists in the record
+        let found = null;
+        _.each(currentRec.metaMetadata.attachmentFields, (attField) => {
+          if (!found) {
+            const attFieldVal = currentRec.metadata[attField];
+            found = _.find(attFieldVal, (attVal) => {
+              return attVal.fileId == attachId
+            });
+            if (found) {
+              return false;
             }
-            if (method == 'get') {
-              // check if this attachId exists in the record
-              let found = null;
-              _.each(currentRec.metaMetadata.attachmentFields, (attField) => {
-                if (!found) {
-                  const attFieldVal = currentRec.metadata[attField];
-                  found = _.find(attFieldVal, (attVal) => {
-                    return attVal.fileId == attachId
-                  });
-                  if (found) {
-                    return false;
-                  }
-                }
-              });
-              if (!found) {
-                sails.log.verbose("Error: Attachment not found in do attachment.");
-                return Observable.throwError(new Error(TranslationService.t('attachment-not-found')))
-              }
-              let mimeType = found.mimeType;
-              if(_.isEmpty(mimeType)) {
-                // Set octet stream as a default
-                mimeType = 'application/octet-stream'
-              }
-              res.set('Content-Type', mimeType);
-              res.set('Content-Disposition', `attachment; filename="${found.name}"`);
-              sails.log.verbose(`Returning datastream observable of ${oid}: ${found.name}, attachId: ${attachId}`);
-              return that.datastreamService.getDatastream(oid, attachId).flatMap((response) => {
-                if (response.readstream) {
-                  response.readstream.pipe(res);
-                } else {
-                  res.end(Buffer.from(response.body), 'binary');
-                }
-                return Observable.of(oid);
-              });
-            } else {
-              // process the upload...
-              this.tusServer.handle(req, res);
-              return Observable.of(oid);
-            }
-          });
-        })
-        .subscribe(whatever => {
-          // ignore...
+          }
+        });
+        if (!found) {
+          sails.log.verbose("Error: Attachment not found in do attachment.");
+          return Observable.throwError(new Error(TranslationService.t('attachment-not-found')))
+        }
+        let mimeType = found.mimeType;
+        if(_.isEmpty(mimeType)) {
+          // Set octet stream as a default
+          mimeType = 'application/octet-stream'
+        }
+        res.set('Content-Type', mimeType);
+        res.set('Content-Disposition', `attachment; filename="${found.name}"`);
+        sails.log.verbose(`Returning datastream observable of ${oid}: ${found.name}, attachId: ${attachId}`);
+        that.datastreamService.getDatastream(oid, attachId).subscribe(response => {
+          if (response.readstream) {
+            response.readstream.pipe(res);
+          } else {
+            res.end(Buffer.from(response.body), 'binary');
+          }
+          return Observable.of(oid);
         }, error => {
           if (this.isAjax(req)) {
             this.ajaxFail(req, res, error.message);
@@ -1237,6 +1229,17 @@ export module Controllers {
             }
           }
         });
+
+      } else {
+        const hasEditAccess = this.hasEditAccess(brand, req.user, currentRec).toPromise();
+        if (!hasEditAccess) {
+          sails.log.error("Error: edit error no permissions in do attachment.");
+          return Observable.throwError(new Error(TranslationService.t('edit-error-no-permissions')));
+        }
+        // process the upload...
+        this.tusServer.handle(req, res);
+        return Observable.of(oid);
+      }
     }
 
     public getWorkflowSteps(req, res) {
@@ -1312,44 +1315,40 @@ export module Controllers {
       });
     }
 
-    public getDataStream(req, res) {
+    public async getDataStream(req, res) {
       const brand = BrandingService.getBrand(req.session.branding);
       const oid = req.param('oid');
       const datastreamId = req.param('datastreamId');
+      const currentRec = await this.getRecord(oid).toPromise();
 
-      return this.getRecord(oid).flatMap(currentRec => {
-        return this.hasEditAccess(brand, req.user, currentRec).flatMap(hasEditAccess => {
-          if (!hasEditAccess) {
-            return Observable.throw(new Error(TranslationService.t('edit-error-no-permissions')));
+      const hasViewAccess = await this.hasViewAccess(brand, req.user, currentRec).toPromise();
+      if (!hasViewAccess) {
+        return Observable.throwError(new Error(TranslationService.t('edit-error-no-permissions')));
+      } else {
+        const fileName = req.param('fileName') ? req.param('fileName') : datastreamId;
+        res.set('Content-Type', 'application/octet-stream');
+        res.set('Content-Disposition', `attachment; filename="${fileName}"`);
+        sails.log.verbose(`Returning datastream observable of ${oid}: ${fileName}, datastreamId: ${datastreamId}`);
+
+        this.datastreamService.getDatastream(oid, datastreamId).subscribe(response => {
+          if (response.readstream) {
+            response.readstream.pipe(res);
           } else {
-            const fileName = req.param('fileName') ? req.param('fileName') : datastreamId;
-            res.set('Content-Type', 'application/octet-stream');
-            res.set('Content-Disposition', `attachment; filename="${fileName}"`);
-            sails.log.verbose(`Returning datastream observable of ${oid}: ${fileName}, datastreamId: ${datastreamId}`);
-
-            return this.datastreamService.getDatastream(oid, datastreamId).flatMap((response) => {
-              if (response.readstream) {
-                response.readstream.pipe(res);
-              } else {
-                res.end(Buffer.from(response.body), 'binary');
-              }
-              return Observable.of(oid);
-            });
+            res.end(Buffer.from(response.body), 'binary');
           }
-        })
-      }).subscribe(whatever => {
-        // ignore...
-      }, error => {
-        if (this.isAjax(req)) {
-          this.ajaxFail(req, res, error.message);
-        } else {
-          if (error.message == TranslationService.t('edit-error-no-permissions')) {
-            res.forbidden();
-          } else if (error.message == TranslationService.t('attachment-not-found')) {
-            res.notFound();
+          return Observable.of(oid);
+        }, error => {
+          if (this.isAjax(req)) {
+            this.ajaxFail(req, res, error.message);
+          } else {
+            if (error.message == TranslationService.t('edit-error-no-permissions')) {
+              res.forbidden();
+            } else if (error.message == TranslationService.t('attachment-not-found')) {
+              res.notFound();
+            }
           }
-        }
-      });
+        });
+      }
     }
 
     /**

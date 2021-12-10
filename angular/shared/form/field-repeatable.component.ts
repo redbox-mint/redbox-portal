@@ -378,7 +378,7 @@ export class RepeatableVocab extends RepeatableContainer {
 @Component({
   selector: 'repeatable-vocab',
   template: `
-  <div *ngIf="field.editMode">
+  <div *ngIf="field.editMode && field.visible">
     <div *ngIf="field.hideWhenZeroRows?field.fields.length >0 : true" class="row">
       <div class="col-xs-12">
       <label [attr.for]="field.name">{{field.label}}
@@ -403,7 +403,7 @@ export class RepeatableVocab extends RepeatableContainer {
       </span>
     </div>
   </div>
-  <li *ngIf="!field.editMode" class="key-value-pair">
+  <li *ngIf="!field.editMode && field.visible" class="key-value-pair">
    <ng-container *ngIf="field.hideWhenZeroRows ?field.fields.length >0 : true">
     <span *ngIf="field.label" class="key">{{field.label}}</span>
     <span class="value">
