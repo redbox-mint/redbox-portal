@@ -362,7 +362,21 @@ export module Services {
       }
       var brand = BrandingService.getBrand(req.session.branding);
       var claimsMappings = oidcConfig.claimMappings;
-      const userName = _.get(userinfo, claimsMappings['username']);
+      let userName = '';
+      let tmpUserName = _.get(userinfo, claimsMappings['username']);
+      let claimsMappingOptions = oidcConfig.claimMappingOptions;
+      let usernameToLowercase = false;
+      if(!_.isUndefined(claimsMappingOptions) && !_.isEmpty(claimsMappingOptions)) {
+        usernameToLowercase = claimsMappingOptions['usernameToLowercase'] || false;
+      }
+      sails.log.verbose("usernameToLowercase "+usernameToLowercase);
+      if(usernameToLowercase) {
+        userName = tmpUserName.toLowerCase();
+        sails.log.verbose("usernameToLowercase "+userName);
+      } else {
+        userName = tmpUserName;
+        sails.log.verbose(userName);
+      }
       var openIdConnectDefRoles = _.map(RolesService.getNestedRoles(RolesService.getDefAuthenticatedRole(brand).name, brand.roles), 'id');
 
       // This can occur when the claim mappings are incorrect or a login was cancelled
