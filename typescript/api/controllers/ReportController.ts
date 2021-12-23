@@ -116,7 +116,9 @@ export module Controllers {
 
       var response = ReportsService.getCSVResult(brand, req.param('name'), req);
       response.subscribe(results => {
-        res.setHeader('Content-disposition', 'attachment; filename='+req.param('name')+'.csv');
+        let fileName = req.param('name')+'.csv';
+        sails.log.verbose("fileName "+fileName);
+        res.attachment(fileName);
         res.set('Content-Type', 'text/csv');
         res.status(200).send(results);
         return res
