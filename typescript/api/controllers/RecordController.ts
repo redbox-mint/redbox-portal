@@ -1209,7 +1209,8 @@ export module Controllers {
           mimeType = 'application/octet-stream'
         }
         res.set('Content-Type', mimeType);
-        res.set('Content-Disposition', `attachment; filename="${found.name}"`);
+        sails.log.verbose("found.name "+found.name);
+        res.attachment(found.name);
         sails.log.verbose(`Returning datastream observable of ${oid}: ${found.name}, attachId: ${attachId}`);
         that.datastreamService.getDatastream(oid, attachId).subscribe(response => {
           if (response.readstream) {
@@ -1327,7 +1328,8 @@ export module Controllers {
       } else {
         const fileName = req.param('fileName') ? req.param('fileName') : datastreamId;
         res.set('Content-Type', 'application/octet-stream');
-        res.set('Content-Disposition', `attachment; filename="${fileName}"`);
+        sails.log.verbose("fileName "+fileName);
+        res.attachment(fileName);
         sails.log.verbose(`Returning datastream observable of ${oid}: ${fileName}, datastreamId: ${datastreamId}`);
 
         this.datastreamService.getDatastream(oid, datastreamId).subscribe(response => {

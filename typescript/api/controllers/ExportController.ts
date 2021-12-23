@@ -64,7 +64,8 @@ export module Controllers {
       const filename = `${TranslationService.t(`${recType}-title`)} - Exported Records.${format}`;
       if (format == 'csv' || format == 'json') {
         res.set('Content-Type', `text/${format}`);
-        res.set('Content-Disposition', `attachment; filename="${filename}"`);
+        sails.log.verbose("filename "+filename);
+        res.attachment(filename);
         await pipeline(
           RecordsService.exportAllPlans(req.user.username, req.user.roles, brand, format, before, after, recType),
           res
