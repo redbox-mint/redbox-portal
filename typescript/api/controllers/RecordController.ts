@@ -1232,7 +1232,7 @@ export module Controllers {
         });
 
       } else {
-        const hasEditAccess = this.hasEditAccess(brand, req.user, currentRec).toPromise();
+        const hasEditAccess = await this.hasEditAccess(brand, req.user, currentRec).toPromise();
         if (!hasEditAccess) {
           sails.log.error("Error: edit error no permissions in do attachment.");
           return Observable.throwError(new Error(TranslationService.t('edit-error-no-permissions')));
