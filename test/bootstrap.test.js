@@ -8,7 +8,6 @@ global.expect = chai.expect;
 global.moment = require('moment');
 
 before(function (done) {
-
   // Increase the Mocha timeout so that Sails has enough time to lift.
   this.timeout(120000);
   sails.lift({
@@ -24,6 +23,11 @@ before(function (done) {
        },
        security: {
          csrf: false
+       },
+       datacite: {
+        username: process.env.datacite_username,
+        password: process.env.datacite_password,
+        doiPrefix: process.env.datacite_doiPrefix
        },
        auth: {
          default: {
