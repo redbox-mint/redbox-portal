@@ -20,9 +20,9 @@ services:
       # - sails_log__level=verbose
       - sails_auth__default__local__default__token=d077835a-696b-4728-85cf-3ffd57152b1e
       - sails_security__csrf=false
-      - sails_datacite__username=${datacite_username}
-      - sails_datacite__password=${datacite_password}
-      - sails_datacite__doiPrefix=${datacite_doiPrefix}
+      - datacite_username=${datacite_username}
+      - datacite_password=${datacite_password}
+      - datacite_doiPrefix=${datacite_doiPrefix}
     networks:
      main:
        aliases:
