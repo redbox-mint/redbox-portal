@@ -19,7 +19,6 @@
     "connect-mongo": "^4.6.0",
     "core-js": "^3.19.3",
     "csv-parser": "^3.0.0",
-    "datacrate": "^1.0.12",
     "dotenv": "^10.0.0",
     "ejs": "3.1.6",
     "flat": "^5.0.2",
