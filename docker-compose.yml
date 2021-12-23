@@ -2,22 +2,10 @@ version: '3.1'
 networks:
   main:
 services:
-  # nginx:
-  #   image: nginx
-  #   ports:
-  #     - "1500:1500"
-  #   restart: always
-  #   volumes:
-  #     - "/home/vagrant/source/redbox-portal/support/nginx.conf:/etc/nginx/conf.d/default.conf:ro"
-  #   expose:
-  #     - "1500"
-  #   networks:
-  #     main:
-  #        aliases:
-  #          - nginx
   redboxportal:
-    build: .
-    image: qcifengineering/redbox-portal:latest
+    # uncomment this if you are making changes to the Dockerfile
+    # build: .
+    image: qcifengineering/redbox-portal:master
     ports:
       - "1500:1500"
     user: node
@@ -31,7 +19,7 @@ services:
     environment:
       - NODE_ENV=docker
       - PORT=1500
-      # - sails_angularDev=false
+      - sails_angularDev=true
       - sails_redbox__apiKey=c8e844fc-8550-497f-b970-7900ec8741ca
       - sails_record__baseUrl__redbox=http://redbox:9000/redbox
       - sails_record__baseUrl__mint=https://demo.redboxresearchdata.com.au/mint
@@ -56,7 +44,7 @@ services:
     ports:
       - "27017:27017"
   solr:
-    image: solr:8.8.0
+    image: solr:latest
     expose:
       - "8983"
     ports:
