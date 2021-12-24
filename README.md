@@ -59,3 +59,9 @@ e.g.
 ```docker-compose -f support/development/docker-compose.yml restart redboxportal```
 
 ```docker-compose -f support/development/docker-compose.yml logs -f redboxportal```
+
+#### Run all (Initial setup)
+
+If you'd like to run all the above steps in one command then you may run
+
+```npm run dev:all```
