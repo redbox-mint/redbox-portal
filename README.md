@@ -22,7 +22,7 @@ Requirements:
 The QCIF team uses a VM provisioned using [Vagrant](https://www.vagrantup.com/) that has all the required tools and is the recommended way to develop ReDBox. It's available in the following repository
 [https://github.com/qcif/vagrant-redbox-dev](https://github.com/qcif/vagrant-redbox-dev)
 
-### Building the application
+### Building and running the application
 
 ReDBox uses typescript and requires compilation to javascript for both the backend Sails application and front end angular.
 
@@ -65,3 +65,33 @@ e.g.
 If you'd like to run all the above steps in one command then you may run
 
 ```npm run dev:all```
+
+
+### Running Tests
+
+ReDBox has 2 sets of tests it runs:
+
+- Integration tests for services written for Mocha
+- Postman API tests run using Newman
+
+#### Running Mocha Tests
+
+To run the mocha tests
+
+```npm run test:mocha```
+
+Note: for the DOI tests to pass you will need to have Datacite Fabrica credentials and these need to be set to the following environment variables:
+
+- `datacite_username`: Your datacite username
+- `datacite_password`: Your datacite password
+- `datacite_doiPrefix`: The DOI prefix
+
+#### Running Postman Tests
+
+To run the postman tests
+
+```npm run test:postman```
+
+Note: if you receive the error below, it's because you have previously run the application for development. To fix, simply delete the support/development/.dev directory and try again.
+
+```EACCES: permission denied, scandir '/opt/redbox-portal/support/development/.dev/mongo/data/db/diagnostic.data'```
