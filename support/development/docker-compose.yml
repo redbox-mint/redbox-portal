@@ -10,7 +10,7 @@ services:
       - "1500:1500"
     user: node
     volumes:
-      - ".:/opt/redbox-portal:delegated"
+      - "../..:/opt/redbox-portal:delegated"
       - "./.dev/attachments:/attachments:delegated"
       - "./.dev/publication:/publication:delegated"
       - "./.dev/hooks:/opt/hooks:delegated"

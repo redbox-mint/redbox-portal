@@ -92,7 +92,10 @@
     "test": "node ./node_modules/mocha/bin/mocha --exit test/bootstrap.test.js test/unit/**/*.test.js",
     "api-test": "node test/postman/runNewmanTests.js",
     "doc-ng2": "npm -g install @compodoc/compodoc &&  npm -g install ejs-cli aglio &&  compodoc -p angular/tsconfig.json -d support/docs/generated/ng2 -n \"ReDBox Portal - NG2 Apps\" --theme postmark --includes support/docs &&  ejs-cli views/default/default/apidocsapib.ejs -O '{\"portal\":\"rdmp\",\"branding\":\"default\"}' > apidocs.apib && aglio -i apidocs.apib -o rest-api.html && mv rest-api.html support/docs/generated/ng2/additional-documentation/",
-    "compile": "./node_modules/.bin/tsc --project tsconfig.json"
+    "compile:sails": "npm install && ./node_modules/.bin/tsc --project tsconfig.json",
+    "compile:ng": "./support/development/compileAngular.sh",
+    "dev:run": "docker-compose -f ./support/development/docker-compose.yml up",
+    "dev:all": "npm run compile:sails && npm run compile:ng && npm run dev:run"
   },
   "main": "app.js",
   "repository": {
