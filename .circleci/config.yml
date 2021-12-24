@@ -10,7 +10,7 @@ jobs:
       - run: npm install --production
       - run: node_modules/.bin/tsc
       - run: (cd angular && npm install)
-      - run: (chmod +x dev_build/buildNgApps.sh && dev_build/buildNgApps.sh)
+      - run: (chmod +x support/build/compileProductionAngular.sh && support/build/compileProductionAngular.sh)
       - persist_to_workspace:
           root: .
           paths:
