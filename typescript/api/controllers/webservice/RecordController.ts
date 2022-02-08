@@ -433,7 +433,8 @@ export module Controllers {
       return Observable.fromPromise(this.RecordsService.getMeta(oid)).flatMap(currentRec => {
             const fileName = req.param('fileName') ? req.param('fileName') : datastreamId;
             res.set('Content-Type', 'application/octet-stream');
-            res.set('Content-Disposition', `attachment; filename="${fileName}"`);
+            sails.log.verbose("fileName "+fileName);
+            res.attachment(fileName);
             sails.log.info(`Returning datastream observable of ${oid}: ${fileName}, datastreamId: ${datastreamId}`);
             return this.DatastreamService.getDatastream(oid, datastreamId).flatMap((response) => {
               if (response.readstream) {

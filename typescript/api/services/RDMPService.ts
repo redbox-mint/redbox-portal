@@ -98,55 +98,102 @@ export module Services {
      * @param  user
      * @return
      */
-    public processRecordCounters(oid, record, options, user) {
+    public async processRecordCounters(oid, record, options, user) {
+
       const brandId = record.metaMetadata.brandId;
-      const obs = [];
+      let processRecordCountersLogLevel = 'verbose'
+      if(sails.config.record.processRecordCountersLogLevel != null) {
+        processRecordCountersLogLevel = sails.config.record.processRecordCountersLogLevel;
+        sails.log.info(`processRecordCounters - log level ${sails.config.record.processRecordCountersLogLevel}`);
+      } else {
+        sails.log.info(`processRecordCounters - log level ${processRecordCountersLogLevel}`);
+      }
+      
+      //For all projects that don't set environment variable "sails_record__processRecordCountersLogLevel" in docker-compose.yml  
+      //the log level of this function is going to be verbose which is the standard but in example for CQU it will be set to 
+      //error to make it so this function always prints logging until the RDMPs missing IDs issue is fixed  
+      sails.log[processRecordCountersLogLevel](`processRecordCounters - brandId: ${record.metaMetadata.brandId}`);
+      sails.log[processRecordCountersLogLevel]('processRecordCounters - options:');
+      sails.log[processRecordCountersLogLevel](options);
       // get the counters
-      _.each(options.counters, (counter: any) => {
+      for(let counter of options.counters) {
+        sails.log[processRecordCountersLogLevel](`processRecordCounters - counter.strategy: ${counter.strategy}`);
+
         if (counter.strategy == "global") {
-          obs.push(this.getObservable(Counter.findOrCreate({
+
+          sails.log[processRecordCountersLogLevel]('processRecordCounters - before - counter:');
+          sails.log[processRecordCountersLogLevel](counter);
+
+          const promiseCounter = await this.getObservable(Counter.findOrCreate({
             name: counter.field_name,
             branding: brandId
           }, {
             name: counter.field_name,
             branding: brandId,
             value: 0
-          })));
+          })).toPromise();
+
+          if (_.isEmpty(promiseCounter)) {
+            sails.log[processRecordCountersLogLevel]('processRecordCounters - promiseCounter isEmpty');
+            sails.log[processRecordCountersLogLevel](promiseCounter);
+
+          } else {
+            sails.log[processRecordCountersLogLevel]('processRecordCounters - promiseCounter:');
+            sails.log[processRecordCountersLogLevel](promiseCounter);
+            sails.log[processRecordCountersLogLevel]('processRecordCounters - after - counter:');
+            sails.log[processRecordCountersLogLevel](counter);
+            let newVal = promiseCounter[0].value + 1;
+            sails.log[processRecordCountersLogLevel]('processRecordCounters - newVal:');
+            sails.log[processRecordCountersLogLevel](newVal);
+
+            //increment counter to get new value for the record's field associated to the counter
+            this.incrementCounter(record, counter, newVal);
+
+            //Update global counter
+            const updateOnePromise = await this.getObservable(Counter.updateOne({
+              id: promiseCounter[0].id
+            }, {
+              value: newVal
+            })).toPromise();
+            sails.log[processRecordCountersLogLevel]('processRecordCounters - updateOnePromise:');
+            sails.log[processRecordCountersLogLevel](updateOnePromise);
+          }
+
         } else if (counter.strategy == "field") {
+          sails.log[processRecordCountersLogLevel]('processRecordCounters - field - enter');
           let srcVal = record.metadata[counter.field_name];
           if (!_.isEmpty(counter.source_field)) {
             srcVal = record.metadata[counter.source_field];
           }
           let newVal = _.isUndefined(srcVal) || _.isEmpty(srcVal) ? 1 : _.toNumber(srcVal) + 1;
+          sails.log[processRecordCountersLogLevel](`processRecordCounters - field - newVal: ${newVal}`);
           this.incrementCounter(record, counter, newVal);
         }
-      });
-      if (_.isEmpty(obs)) {
-        return Observable.of(record);
-      } else {
-        return Observable.zip(...obs)
-          .flatMap(counterVals => {
-            const updateObs = [];
-            _.each(counterVals, (counterVal, idx) => {
-              let counter = options.counters[idx];
-              let newVal = counterVal[0].value + 1;
-              this.incrementCounter(record, counter, newVal);
-              updateObs.push(this.getObservable(Counter.updateOne({
-                id: counterVal[0].id
-              }, {
-                value: newVal
-              })));
-            });
-            return Observable.zip(...updateObs);
-          })
-          .flatMap(updateVals => {
-            return Observable.of(record);
-          });
       }
+      
+      sails.log[processRecordCountersLogLevel]('processRecordCounters - end');
+      return record;
     }
 
     private incrementCounter(record: any, counter: any, newVal: any) {
+
+      let processRecordCountersLogLevel = 'verbose'
+      if(sails.config.record.processRecordCountersLogLevel != null) {
+        processRecordCountersLogLevel = sails.config.record.processRecordCountersLogLevel;
+        sails.log.info(`incrementCounter - log level ${sails.config.record.processRecordCountersLogLevel}`);
+      } else {
+        sails.log.info(`incrementCounter - log level ${processRecordCountersLogLevel}`);
+      }
+      
+      //For all projects that don't set environment variable "sails_record__processRecordCountersLogLevel" in docker-compose.yml  
+      //the log level of this function is going to be verbose which is the standard but in example for CQU it will be set to 
+      //error to make it so this function always prints logging until the RDMPs missing IDs issue is fixed  
+      sails.log[processRecordCountersLogLevel]('incrementCounter - enter');
+
       if (!_.isEmpty(counter.template)) {
+        sails.log[processRecordCountersLogLevel](`incrementCounter - newVal: ${newVal}`);
+        sails.log[processRecordCountersLogLevel]('incrementCounter - counter:');
+        sails.log[processRecordCountersLogLevel](counter);
         const imports = _.extend({
           moment: moment,
           numeral: numeral,
@@ -159,12 +206,16 @@ export module Services {
         newVal = template();
       }
       const recVal = `${TranslationService.t(counter.prefix)}${newVal}`;
+      sails.log[processRecordCountersLogLevel](`incrementCounter - recVal: ${recVal}`);
       _.set(record.metadata, counter.field_name, recVal);
       if (!_.isEmpty(counter.add_value_to_array)) {
         const arrayVal = _.get(record, counter.add_value_to_array, []);
         arrayVal.push(recVal);
         _.set(record, counter.add_value_to_array, arrayVal);
+        sails.log[processRecordCountersLogLevel]('incrementCounter - arrayVal:'); 
+        sails.log[processRecordCountersLogLevel](arrayVal);
       }
+      sails.log[processRecordCountersLogLevel]('incrementCounter - end');
     }
 
     protected addEmailToList(contributor, emailProperty, emailList) {

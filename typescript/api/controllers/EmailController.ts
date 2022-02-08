@@ -21,6 +21,7 @@
 declare var module;
 declare var sails;
 declare var EmailService;
+declare var _;
 import { Observable } from 'rxjs/Rx';
 import { Controllers as controllers} from '@researchdatabox/redbox-core-types';
 
@@ -79,6 +80,24 @@ export module Controllers {
                 return;
             }
             var to = req.body.to;
+            let cc = _.get(sails.config.emailnotification.defaults, 'cc', '')
+            if(!_.isEmpty(req.body.cc)) {
+                cc = req.body.cc;
+            }
+            let from = sails.config.emailnotification.defaults.from;
+            if(!_.isEmpty(req.body.from)) {
+                from = req.body.from    ;
+            }
+
+            let format = sails.config.emailnotification.defaults.format;
+            if(!_.isEmpty(req.body.format)) {
+                format = req.body.format    ;
+            }
+
+            let bcc = null
+            if(!_.isEmpty(req.body.bcc)) {
+                bcc = req.body.bcc;
+            }
             var template = req.body.template;
 
             // use subject if provided, else use template default
@@ -91,19 +110,19 @@ export module Controllers {
 
             var buildResponse = EmailService.buildFromTemplate(template, data);
 
-            buildResponse.subscribe(buildResult => {
+            return buildResponse.subscribe(buildResult => {
                 if (buildResult['status'] != 200) {
-                    this.ajaxFail(req, res, buildResult['msg']);
+                    return this.apiFail(req, res, 500);
                 }
                 else {
-                    var sendResponse = EmailService.sendMessage(to, buildResult['body'], subject);
+                    var sendResponse = EmailService.sendMessage(to, buildResult['body'], subject,from, format,cc);
 
                     sendResponse.subscribe(sendResult => {
-                        if (sendResult['code'] != 200) {
-                            this.ajaxFail(req, res, sendResult['msg']);
+                        if (!sendResult['success']) {
+                            return this.apiFail(req, res, 500);
                         }
                         else {
-                            this.ajaxOk(req, res, sendResult['msg']);
+                            return this.apiRespond(req, res, {message: sendResult['msg']}, 200);
                         }
                     });
                 }

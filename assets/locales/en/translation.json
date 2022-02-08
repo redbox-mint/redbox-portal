@@ -604,7 +604,7 @@
   "@dataPublication-dc:accessRights.dc:RightsStatement.dc:identifier-help": "Statement of rights help text place holder",
   "@dataPublication-citation-tab": "Citation",
   "@dataPublication-citation-tab-heading":"Specify how the data should be cited",
-  "@dataPublication-citation-request-identifier": "Request a DOI checkbox",
+  "@dataPublication-citation-request-identifier": "Request a DOI",
   "@dataPublication-citation-identifier": "Identifier",
   "@dataPublication-citation-title": "Title",
   "@dataPublication-citation-title-help": "Citation title help text placeholder",
