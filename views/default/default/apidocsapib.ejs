@@ -119,6 +119,8 @@ The ReDBox Portal API provides authorized access to manage functions.
 
 + Parameters
     + oid: `7e72b5952e8e323c77f72ae268a27c46` (string, required) - The identifier for the record
+    + merge: `true` (boolean, optional) - When set to true, the post body is recursively merged with the existing metadata record.
+        + Default: false
 
 + Request Update record metadata (application/json)
   + Headers

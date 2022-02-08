@@ -486,8 +486,12 @@ export module Services {
       if (this.metTriggerCondition(oid, record, options) === "true") {
         if (record.authorization.stored != undefined) {
           record.authorization.edit = _.map(record.authorization.stored.edit, _.clone);
+          record.authorization.view = _.map(record.authorization.stored.view, _.clone);
           if (record.authorization.stored.editPending != undefined) {
-            record.authorization.editPending = _.map(record.stored.authorization.editPending, _.clone);
+            record.authorization.editPending = _.map(record.authorization.stored.editPending, _.clone);
+          }
+          if (record.authorization.stored.viewPending != undefined) {
+            record.authorization.viewPending = _.map(record.authorization.stored.viewPending, _.clone);
           }
           delete record.authorization.stored
         }
