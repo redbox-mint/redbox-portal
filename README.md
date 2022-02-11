@@ -12,26 +12,86 @@ The [Queensland Cyber Infrastructure Foundation](http://www.qcif.edu.au) (QCIF) 
 
 
 ## Development
+
 Requirements:
 
-- Node 12.16.0
-Development requires Docker. Run `./runForDev.sh install jit` at least once.
-
+- Node 12.x
 - Docker
+- Docker Compose
 
-Run `./runForDev.sh install jit`
+The QCIF team uses a VM provisioned using [Vagrant](https://www.vagrantup.com/) that has all the required tools and is the recommended way to develop ReDBox. It's available in the following repository
+[https://github.com/qcif/vagrant-redbox-dev](https://github.com/qcif/vagrant-redbox-dev)
 
-It will 
-   - Pull qcifengineering/redbox-portal from docker hub (If a local copy does not exist)
-   - Compile backend
-   - Compile frontend
-   - Then start docker-compose
-   
-Open http://localhost:1500 to start browsing
+### Building and running the application
 
-### Build local docker image
+ReDBox uses typescript and requires compilation to javascript for both the backend Sails application and front end angular.
 
-Run `./dockerlocal_dev.sh`
+#### Building Backend (Sails)
 
-It will
-   - Build a local docker image of qcifengineering/redbox-portal:latest
+Run 
+
+```npm run compile:sails```
+
+to install npm packages and compile the typescript
+
+#### Building Frontend apps (Angular)
+
+Run 
+
+```npm run compile:ng```
+
+to install npm packages and compile the typescript
+
+#### Run the application
+
+Run 
+
+```npm run dev:run```
+
+to bring up the docker-compose stack specified in support/development/docker-compose.yml
+
+Alternatively, you can use all the standard docker-compose commands with the file in support/development/docker-compose.yml
+
+e.g. 
+
+```docker-compose -f support/development/docker-compose.yml up```
+
+```docker-compose -f support/development/docker-compose.yml restart redboxportal```
+
+```docker-compose -f support/development/docker-compose.yml logs -f redboxportal```
+
+#### Run all (Initial setup)
+
+If you'd like to run all the above steps in one command then you may run
+
+```npm run dev:all```
+
+
+### Running Tests
+
+ReDBox has 2 sets of tests it runs:
+
+- Integration tests for services written for Mocha
+- Postman API tests run using Newman
+
+#### Running Mocha Tests
+
+To run the mocha tests
+
+```npm run test:mocha```
+
+Note: for the DOI tests to pass you will need to have Datacite Fabrica credentials and these need to be set to the following environment variables:
+
+- `datacite_username`: Your datacite username
+- `datacite_password`: Your datacite password
+- `datacite_doiPrefix`: The DOI prefix
+
+#### Running Postman Tests
+
+To run the postman tests
+
+```npm run test:postman```
+
+Note: if you receive the error below, it's because you have previously run the application for development. To fix, simply delete the support/development/.dev directory and try again.
+
+```EACCES: permission denied, scandir '/opt/redbox-portal/support/development/.dev/mongo/data/db/diagnostic.data'```

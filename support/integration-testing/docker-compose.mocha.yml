@@ -3,7 +3,7 @@ networks:
   main:
 services:
   redboxportal:
-    image: qcifengineering/redbox-portal:latest
+    image: qcifengineering/redbox-portal:master
     ports:
        - "1500:1500"
     volumes:
@@ -27,7 +27,7 @@ services:
      main:
        aliases:
          - rbportal
-    entrypoint: /bin/bash -c "cd /opt/redbox-portal && npm run test"
+    entrypoint: /bin/bash -c "cd /opt/redbox-portal && node ./node_modules/mocha/bin/mocha --exit test/bootstrap.test.js test/unit/**/*.test.js"
   mongodb:
     image: mvertes/alpine-mongo:latest
     networks:
@@ -37,7 +37,7 @@ services:
     ports:
        - "27017:27017"
   solr:
-    image: solr:8.6.3
+    image: solr:latest
     expose:
       - "8983"
     ports:
