@@ -44,27 +44,54 @@ ReDBox is one of the most popular research data management tools in Australia. I
 <h2 id="development">Development</h2>
 <p>Requirements:</p>
 <ul>
-<li><p>Node 12.16.0
-Development requires Docker. Run <code>./runForDev.sh install jit</code> at least once.</p>
-</li>
-<li><p>Docker</p>
-</li>
+<li>Node 12.x</li>
+<li>Docker</li>
+<li>Docker Compose</li>
 </ul>
-<p>Run <code>./runForDev.sh install jit</code></p>
-<p>It will </p>
+<p>The QCIF team uses a VM provisioned using <a href="https://www.vagrantup.com/">Vagrant</a> that has all the required tools and is the recommended way to develop ReDBox. It&#39;s available in the following repository
+<a href="https://github.com/qcif/vagrant-redbox-dev">https://github.com/qcif/vagrant-redbox-dev</a></p>
+<h3 id="building-and-running-the-application">Building and running the application</h3>
+<p>ReDBox uses typescript and requires compilation to javascript for both the backend Sails application and front end angular.</p>
+<h4 id="building-backend-sails">Building Backend (Sails)</h4>
+<p>Run </p>
+<p><code>npm run compile:sails</code></p>
+<p>to install npm packages and compile the typescript</p>
+<h4 id="building-frontend-apps-angular">Building Frontend apps (Angular)</h4>
+<p>Run </p>
+<p><code>npm run compile:ng</code></p>
+<p>to install npm packages and compile the typescript</p>
+<h4 id="run-the-application">Run the application</h4>
+<p>Run </p>
+<p><code>npm run dev:run</code></p>
+<p>to bring up the docker-compose stack specified in support/development/docker-compose.yml</p>
+<p>Alternatively, you can use all the standard docker-compose commands with the file in support/development/docker-compose.yml</p>
+<p>e.g. </p>
+<p><code>docker-compose -f support/development/docker-compose.yml up</code></p>
+<p><code>docker-compose -f support/development/docker-compose.yml restart redboxportal</code></p>
+<p><code>docker-compose -f support/development/docker-compose.yml logs -f redboxportal</code></p>
+<h4 id="run-all-initial-setup">Run all (Initial setup)</h4>
+<p>If you&#39;d like to run all the above steps in one command then you may run</p>
+<p><code>npm run dev:all</code></p>
+<h3 id="running-tests">Running Tests</h3>
+<p>ReDBox has 2 sets of tests it runs:</p>
 <ul>
-<li>Pull qcifengineering/redbox-portal from docker hub (If a local copy does not exist)</li>
-<li>Compile backend</li>
-<li>Compile frontend</li>
-<li>Then start docker-compose</li>
+<li>Integration tests for services written for Mocha</li>
+<li>Postman API tests run using Newman</li>
 </ul>
-<p>Open <a href="http://localhost:1500">http://localhost:1500</a> to start browsing</p>
-<h3 id="build-local-docker-image">Build local docker image</h3>
-<p>Run <code>./dockerlocal_dev.sh</code></p>
-<p>It will</p>
+<h4 id="running-mocha-tests">Running Mocha Tests</h4>
+<p>To run the mocha tests</p>
+<p><code>npm run test:mocha</code></p>
+<p>Note: for the DOI tests to pass you will need to have Datacite Fabrica credentials and these need to be set to the following environment variables:</p>
 <ul>
-<li>Build a local docker image of qcifengineering/redbox-portal:latest</li>
+<li><code>datacite_username</code>: Your datacite username</li>
+<li><code>datacite_password</code>: Your datacite password</li>
+<li><code>datacite_doiPrefix</code>: The DOI prefix</li>
 </ul>
+<h4 id="running-postman-tests">Running Postman Tests</h4>
+<p>To run the postman tests</p>
+<p><code>npm run test:postman</code></p>
+<p>Note: if you receive the error below, it&#39;s because you have previously run the application for development. To fix, simply delete the support/development/.dev directory and try again.</p>
+<p><code>EACCES: permission denied, scandir &#39;/opt/redbox-portal/support/development/.dev/mongo/data/db/diagnostic.data&#39;</code></p>
 
 
 
