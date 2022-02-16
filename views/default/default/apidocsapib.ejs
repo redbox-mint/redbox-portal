@@ -458,6 +458,36 @@ The ReDBox Portal API provides authorized access to manage functions.
 + Response 200 (application/json)
     + Attributes (CreateRecordAuthorization, fixed-type)
 
+# Group Search
+
+## Search Actions [/<%= branding %>/<%= portal %>/api/search]
+
+### Search for records [GET /<%= branding %>/<%= portal %>/api/search{?searchStr}]
++ Parameters
+    + searchStr: `query` (string, required) - The search string to query the index.
+
++ Request
+    + Headers
+
+                Authorization: Bearer abcabcab-abca-abca-abca-abcabcabcabc
+
++ Response 200 (application/json)
+    + Attributes (ListResponse, fixed-type)
+        - records (array[Record])  
+
+### Reindex record [GET /<%= branding %>/<%= portal %>/api/search/index{?oid}]
++ Parameters
+    + oid: `7e72b5952e8e323c77f72ae268a27c46` (string, required) - The identifier for the record.
+
++ Request
+    + Headers
+
+                Authorization: Bearer abcabcab-abca-abca-abca-abcabcabcabc
+
++ Response 200 (application/json)
+    + Attributes (ListResponse, fixed-type)
+        - records (array[Record])  
+
 # Group User Management
 
 ## User Management Actions [/<%= branding %>/<%= portal %>/api/users]
