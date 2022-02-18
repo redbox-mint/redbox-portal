@@ -862,17 +862,17 @@ export module Controllers {
         for (let record of records) {
           let harvestId = record["harvestId"]
           if (_.isEmpty(harvestId)) {
-            recordResponses.push(new APIHarvestResponse(harvestId, null, false,"HarvestId was not specified"))
+            recordResponses.push(new APIHarvestResponse(harvestId, null, false, "HarvestId was not specified"))
           } else {
-            let existingRecord = await this.findExistingRecord(harvestId, recordType)
+            let existingRecord = await this.findExistingHarvestRecord(harvestId, recordType)
             if (existingRecord.length == 0 || updateMode == "create") {
               recordResponses.push(await this.createHarvestRecord(brand, recordTypeModel, record['recordRequest'], harvestId, updateMode, user));
             } else {
               let oid = existingRecord[0].redboxOid;
-              if(updateMode != "ignore") {
-               recordResponses.push(await this.updateHarvestRecord(brand, recordTypeModel, updateMode, record['recordRequest']['metadata'], oid, harvestId, user));
+              if (updateMode != "ignore") {
+                recordResponses.push(await this.updateHarvestRecord(brand, recordTypeModel, updateMode, record['recordRequest']['metadata'], oid, harvestId, user));
               } else {
-                recordResponses.push(new APIHarvestResponse(harvestId, oid, true,`Record ignored as the record already exists. oid: ${oid}`))
+                recordResponses.push(new APIHarvestResponse(harvestId, oid, true, `Record ignored as the record already exists. oid: ${oid}`))
               }
             }
           }
@@ -888,7 +888,7 @@ export module Controllers {
       try {
         let record = await this.RecordsService.getMeta(oid)
         if (_.isEmpty(record)) {
-          return new APIHarvestResponse(harvestId,oid, false, `Failed to update meta, cannot find existing record with oid: ${oid}`)
+          return new APIHarvestResponse(harvestId, oid, false, `Failed to update meta, cannot find existing record with oid: ${oid}`)
         }
         try {
           if (shouldMerge) {
@@ -901,20 +901,25 @@ export module Controllers {
           } else {
             record["metadata"] = body;
           }
+          let sourceMetadata = body["sourceMetadata"];
+          if (!_.isEmpty(sourceMetadata)) {
+            //Force this to be stored as a string
+            record['metaMetadata']["sourceMetadata"] = "" + sourceMetadata
+          }
           let result = await this.RecordsService.updateMeta(brand, oid, record, user);
 
-          return new APIHarvestResponse(harvestId,oid, true, `Record updated successfully`)
+          return new APIHarvestResponse(harvestId, oid, true, `Record updated successfully`)
 
         } catch (error) {
-          return new APIHarvestResponse(harvestId,oid, false, `Failed to update meta`)
+          return new APIHarvestResponse(harvestId, oid, false, `Failed to update meta`)
         }
       } catch (error) {
-        return new APIHarvestResponse(harvestId,oid, false, `Failed to retrieve record metadata before update`)
+        return new APIHarvestResponse(harvestId, oid, false, `Failed to retrieve record metadata before update`)
       }
     }
 
 
-    private async findExistingRecord(harvestId: any, recordType: any) {
+    private async findExistingHarvestRecord(harvestId: any, recordType: any) {
       let results = await Record.find({
         'harvestId': harvestId,
         'metaMetadata.type': recordType
@@ -940,12 +945,14 @@ export module Controllers {
         authorizationView.push(user.username);
       }
 
+      let sourceMetadata = body["sourceMetadata"];
+
       var metadata = body["metadata"];
       var workflowStage = body["workflowStage"];
       var request = {};
-      if(updateMode != "create") {
-       // Only set harvestId if not in create mode
-       request["harvestId"] = harvestId;
+      if (updateMode != "create") {
+        // Only set harvestId if not in create mode
+        request["harvestId"] = harvestId;
       }
       var metaMetadata = {};
       metaMetadata["brandId"] = brand.id;
@@ -953,6 +960,10 @@ export module Controllers {
       metaMetadata["packageName"] = recordTypeModel.packageName;
       metaMetadata["packageType"] = recordTypeModel.packageType;
 
+      if (!_.isEmpty(sourceMetadata)) {
+        //Force this to be stored as a string
+        metaMetadata["sourceMetadata"] = "" + sourceMetadata
+      }
       // Resolves #723: removed hardcoded value
       metaMetadata["createdBy"] = user.username;
       request["metaMetadata"] = metaMetadata;
@@ -1000,9 +1011,9 @@ export module Controllers {
         let response = await this.RecordsService.create(brand, request, recordTypeModel, user)
 
         if (response.isSuccessful()) {
-           return new APIHarvestResponse(harvestId,response.oid, true, `Record created successfully`);
+          return new APIHarvestResponse(harvestId, response.oid, true, `Record created successfully`);
         } else {
-          
+
           return new APIHarvestResponse(harvestId, null, false, `Record creation failed`);
 
         }
