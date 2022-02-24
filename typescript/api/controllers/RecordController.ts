@@ -895,7 +895,7 @@ export module Controllers {
             field.definition.value = metadata[field.definition.name];
           }
         }
-        this.replaceCustomFields(req, res, field, metadata);
+        this.replaceCustomFields(req, res, field, currentRec);
         const val = field.definition.value;
         if (field.roles) {
           let hasAccess = false;
@@ -944,7 +944,7 @@ export module Controllers {
       });
     }
 
-    protected replaceCustomFields(req, res, field, metadata) {
+    protected replaceCustomFields(req, res, field, record) {
       let variableSubstitutionFields = field.variableSubstitutionFields;
       if (!_.isEmpty(variableSubstitutionFields)) {
         _.forEach(variableSubstitutionFields, fieldName => {
@@ -968,15 +968,24 @@ export module Controllers {
                     break;
                 }
               }
-
-              if (customConfig.source == "metadata") {
+              
+              if (customConfig.source == 'record' || customConfig.source == "metadata") {
                 const startIdx = fieldTarget.indexOf(customKey);
                 const endIdx = fieldTarget.indexOf(']', startIdx);
                 let metadataField = fieldTarget.substring(startIdx + customKey.length + 1, endIdx);
                 customKey = `${customKey}[${metadataField}]`;
-                sails.log.verbose(`Replacing custom field: '${customKey}' with metadata field: ${metadataField}`);
-                replacement = _.get(metadata, metadataField);
+                let dataSrc = record.metadata;
+                if (customConfig.source == 'record') {
+                  // for accessing fields outside of the 'metadata'
+                  dataSrc = record;
+                  sails.log.verbose(`Replacing custom field: '${customKey}' with record field path: ${metadataField}`);
+                } else {
+                  // retained for backwards compat
+                  sails.log.verbose(`Replacing custom field: '${customKey}' with metadata field path: ${metadataField}`);
+                }
+                replacement = _.get(dataSrc, metadataField);
               }
+              
 
               if (!_.isEmpty(replacement)) {
                 if (customConfig.parseUrl && customConfig.searchParams) {

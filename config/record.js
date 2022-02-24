@@ -65,6 +65,9 @@ module.exports.record = {
     },
     '@metadata': {
       source: 'metadata'
+    },
+    '@record': {
+      source: 'record'
     }
   },
   export: {
