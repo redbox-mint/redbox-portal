@@ -1,11 +1,9 @@
 jobs:
   build:
     docker:
-      - image: 'cimg/base:stable'
+      - image: 'cimg/node:12.22.6'
     steps:
       - checkout
-      - node/install:
-          node-version: 12.22.6
       - run: (cd core && npm install && node_modules/.bin/tsc)
       - run: npm install --production
       - run: node_modules/.bin/tsc
@@ -17,11 +15,9 @@ jobs:
             - .
   build_without_angular:
     docker:
-      - image: 'cimg/base:stable'
+      - image: 'cimg/node:12.22.6'
     steps:
       - checkout
-      - node/install:
-          node-version: 12.22.6
       - run: (cd core && npm install && node_modules/.bin/tsc)
       - run: npm install --production
       - run: node_modules/.bin/tsc
@@ -42,10 +38,8 @@ jobs:
       - run: export NVM_DIR=/opt/circleci/.nvm && source /opt/circleci/.nvm/nvm.sh && nvm use 12.22.6 && node_modules/.bin/tsc
   deploy:
     docker:
-      - image: 'cimg/base:stable'
+      - image: 'cimg/node:12.22.6'
     steps:
-      - node/install:
-        node-version: 12.22.6
       - setup_remote_docker
       - attach_workspace:
             at: /home/circleci/project
