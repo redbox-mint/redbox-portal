@@ -26,6 +26,8 @@ jobs:
           paths:
             - .
   test:
+    docker:
+      - image: 'cimg/node:12.22.6'
     steps:
       # - docker/install-docker-compose
       - attach_workspace:
