@@ -88,7 +88,7 @@ export module Controllers {
       let pageCount = 0;
       // keep going until we retrieve all records
       do {
-        let response = await this.RecordsService.getRecords(undefined, undefined, itemsRead, itemsPerPage, req.user.username, req.user.roles, brand);
+        let response = await this.RecordsService.getRecords(undefined, undefined, itemsRead, itemsPerPage, req.user.username, req.user.roles, brand, undefined, undefined, undefined, undefined, undefined);
         if (itemsRead == 0) {
           totalItems = response.totalItems;
           totalPages = Math.ceil(totalItems / itemsPerPage);
