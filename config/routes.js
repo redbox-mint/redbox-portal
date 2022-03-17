@@ -387,6 +387,11 @@ module.exports.routes = {
     action: 'index',
     csrf: false
   },
+  'get /:branding/:portal/api/search/indexAll': {
+    controller: 'webservice/SearchController',
+    action: 'indexAll',
+    csrf: false
+  },
   'get /:branding/:portal/api/forms/get':{
     controller:'webservice/FormManagementController',
     action: 'getForm',

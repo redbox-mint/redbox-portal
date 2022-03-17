@@ -56,7 +56,8 @@ export module Controllers {
      */
     protected _exportedMethods: any = [
       'search',
-      'index'
+      'index',
+      'indexAll'
     ];
 
     /**
@@ -75,6 +76,34 @@ export module Controllers {
       await this.searchService.index(oid,record);
 
       return this.apiRespond(req,res,new APIObjectActionResponse(oid, "Index request added to message queue for processing"),200)
+    }
+
+    public async indexAll(req, res) {
+      const brand = BrandingService.getBrand(req.session.branding);
+      sails.log.verbose(`SearchController::indexAll() -> Indexing all records has been requested!`);
+      let itemsPerPage = 100;
+      let itemsRead = 0;
+      let totalItems = 0;
+      let totalPages = 0;
+      let pageCount = 0;
+      // keep going until we retrieve all records
+      do {
+        let response = await this.RecordsService.getRecords(undefined, undefined, itemsRead, itemsPerPage, req.user.username, req.user.roles, brand);
+        if (itemsRead == 0) {
+          totalItems = response.totalItems;
+          totalPages = Math.ceil(totalItems / itemsPerPage);
+        } 
+        pageCount++;
+        sails.log.verbose(`SearchController::indexAll() -> Indexing ${totalItems} records(s), page: ${pageCount} of ${ totalPages }`);
+        itemsRead += _.size(response.items);
+        for (let responseRec of response.items) {
+          _.unset(responseRec, '_id');
+          await this.searchService.index(responseRec.redboxOid, responseRec);
+        }
+      } while (itemsRead < totalItems)
+      
+      sails.log.verbose(`SearchController::indexAll() -> All records submitted for indexing`);
+      return this.apiRespond(req,res,new APIObjectActionResponse("", "Index all records request added to message queue for processing"),200);
     }
 
     public async search(req, res) {

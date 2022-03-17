@@ -17,15 +17,25 @@ module.exports.agendaQueue = {
   jobs: [
     {
       name: 'SolrSearchService-CreateOrUpdateIndex',
-      fnName: 'solrsearchservice.solrAddOrUpdate'
+      fnName: 'solrsearchservice.solrAddOrUpdate',
+      options: {
+        lockLifetime: 3 * 1000, // 3 seconds max runtime
+        lockLimit: 10,
+        concurrency: 10 
+      }
     },
     {
       name: 'SolrSearchService-DeleteFromIndex',
-      fnName: 'solrsearchservice.solrDelete'
+      fnName: 'solrsearchservice.solrDelete',
+      options: {
+        lockLifetime: 3 * 1000, // 3 seconds max runtime
+        lockLimit: 10,
+        concurrency: 10 
+      }
     },
     {
       name: 'RecordsService-StoreRecordAudit',
-      fnName: 'recordsservice.storeRecordAudit'
+      fnName: 'recordsservice.storeRecordAudit',
     },
   ]
 };
