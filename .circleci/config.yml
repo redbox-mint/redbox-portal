@@ -26,8 +26,8 @@ jobs:
           paths:
             - .
   test:
-    docker:
-      - image: 'cimg/node:12.22.6'
+    machine:
+      image: ubuntu-2004:202201-02
     steps:
       # - docker/install-docker-compose
       - attach_workspace:
@@ -57,8 +57,8 @@ jobs:
             RBPORTAL_FILENAME=$(ls redbox-portal-*.tgz)
             curl -v -u $MAVEN_USER:$MAVEN_PASSWORD --upload-file $RBPORTAL_FILENAME "https://nexus-prod.redboxresearchdata.com.au/nexus/repository/maven-snapshots/au/edu/qcif/redbox-portal/${PACKAGE_VERSION}-SNAPSHOT/redbox-portal-${PACKAGE_VERSION}-SNAPSHOT.tgz"  
   generate-docs:
-    docker:
-      - image: 'cimg/node:12.22.6'
+    machine:
+      image: ubuntu-2004:202201-02
     steps:
       - add_ssh_keys:
           fingerprints:
