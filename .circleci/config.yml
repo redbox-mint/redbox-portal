@@ -1,11 +1,9 @@
 jobs:
   build:
     docker:
-      - image: 'cimg/base:stable'
+      - image: 'cimg/node:12.22.6'
     steps:
       - checkout
-      - node/install:
-          node-version: 12.22.6
       - run: (cd core && npm install && node_modules/.bin/tsc)
       - run: npm install --production
       - run: node_modules/.bin/tsc
@@ -17,11 +15,9 @@ jobs:
             - .
   build_without_angular:
     docker:
-      - image: 'cimg/base:stable'
+      - image: 'cimg/node:12.22.6'
     steps:
       - checkout
-      - node/install:
-          node-version: 12.22.6
       - run: (cd core && npm install && node_modules/.bin/tsc)
       - run: npm install --production
       - run: node_modules/.bin/tsc
@@ -30,22 +26,20 @@ jobs:
           paths:
             - .
   test:
-    machine: true
+    machine:
+      image: ubuntu-2004:202201-02
     steps:
       # - docker/install-docker-compose
       - attach_workspace:
            at: /home/circleci/project
-      - run: export NVM_DIR=/opt/circleci/.nvm && source /opt/circleci/.nvm/nvm.sh && nvm install 12.22.6 && nvm use 12.22.6
-      - run: export NVM_DIR=/opt/circleci/.nvm && source /opt/circleci/.nvm/nvm.sh && nvm use 12.22.6 && node_modules/.bin/tsc -p tsconfig-codecov.json
+      - run: node_modules/.bin/tsc -p tsconfig-codecov.json
       - run: (sudo chmod -R 777 . && cd support/integration-testing && sudo mkdir -p .tmp/attachments/staging && sudo chmod -R 777 . && docker-compose -f docker-compose.newman.yml up --abort-on-container-exit --exit-code-from redboxportal && docker-compose -f docker-compose.mocha.yml up --abort-on-container-exit --exit-code-from redboxportal)
-      - run: export NVM_DIR=/opt/circleci/.nvm && source /opt/circleci/.nvm/nvm.sh && nvm use 12.22.6 && npm i -g codecov && codecov -t $CODECOV_TOKEN
-      - run: export NVM_DIR=/opt/circleci/.nvm && source /opt/circleci/.nvm/nvm.sh && nvm use 12.22.6 && node_modules/.bin/tsc
+      - run: npm i -g codecov && codecov -t $CODECOV_TOKEN
+      - run: node_modules/.bin/tsc
   deploy:
     docker:
-      - image: 'cimg/base:stable'
+      - image: 'cimg/node:12.22.6'
     steps:
-      - node/install:
-        node-version: 12.22.6
       - setup_remote_docker
       - attach_workspace:
             at: /home/circleci/project
@@ -63,20 +57,17 @@ jobs:
             RBPORTAL_FILENAME=$(ls redbox-portal-*.tgz)
             curl -v -u $MAVEN_USER:$MAVEN_PASSWORD --upload-file $RBPORTAL_FILENAME "https://nexus-prod.redboxresearchdata.com.au/nexus/repository/maven-snapshots/au/edu/qcif/redbox-portal/${PACKAGE_VERSION}-SNAPSHOT/redbox-portal-${PACKAGE_VERSION}-SNAPSHOT.tgz"  
   generate-docs:
-    machine: true
+    machine:
+      image: ubuntu-2004:202201-02
     steps:
       - add_ssh_keys:
           fingerprints:
             - "50:0c:a1:7f:b6:64:84:42:01:61:0f:76:3f:e4:78:ff"
       - attach_workspace:
             at: /home/circleci/project
-      - run: export NVM_DIR=/opt/circleci/.nvm && source /opt/circleci/.nvm/nvm.sh && nvm install 12.22.6 && nvm use 12.22.6
-      - run: export NVM_DIR=/opt/circleci/.nvm && source /opt/circleci/.nvm/nvm.sh && nvm use 12.22.6 && npm run doc-ng2
+      - run: npm run doc-ng2
       - run: 
           command: |
-            export NVM_DIR=/opt/circleci/.nvm
-            source /opt/circleci/.nvm/nvm.sh
-            nvm use 12.22.6 
             npm install -g --silent gh-pages@2.0.1
             git config user.email "ci-build@redboxresearchdata.com.au"
             git config user.name "ci-build"

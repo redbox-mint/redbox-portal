@@ -261,6 +261,8 @@ export module Services {
         const processedData = this.preIndex(data);
         sails.log.verbose(JSON.stringify(processedData));
         await this.client.promiseAdd(processedData);
+        // intentionally adding the commit call as the client doesn't respect the 'autoCommit' flag
+        await this.client.promiseCommit();
         await this.clientSleep();
 
       } catch (err) {
@@ -346,6 +348,8 @@ export module Services {
         let data = job.attrs.data;
         sails.log.verbose(`${this.logHeader} deleting document: ${data.id}`);
         await this.client.promiseDelete('id', data.id);
+        // intentionally adding the commit call as the client doesn't respect the 'autoCommit' flag
+        await this.client.promiseCommit();
         await this.clientSleep();
       } catch (err) {
         sails.log.error(`${this.logHeader} Failed to solrDelete:`);
