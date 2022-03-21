@@ -1,6 +1,6 @@
 {
   "name": "redbox-portal",
-  "version": "2.0.5-beta",
+  "version": "2.0.5",
   "description": "ReDBox 2 Portal",
   "keywords": [],
   "dependencies": {
