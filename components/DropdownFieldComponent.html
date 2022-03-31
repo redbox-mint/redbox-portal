@@ -103,7 +103,7 @@
     &lt;button type&#x3D;&quot;button&quot; class&#x3D;&quot;btn btn-default&quot; *ngIf&#x3D;&quot;field.help&quot; (click)&#x3D;&quot;toggleHelp()&quot; [attr.aria-label]&#x3D;&quot;&#x27;help&#x27; | translate &quot;&gt;&lt;span class&#x3D;&quot;glyphicon glyphicon-question-sign&quot; aria-hidden&#x3D;&quot;true&quot;&gt;&lt;/span&gt;&lt;/button&gt;
    &lt;/label&gt;&lt;br/&gt;
    &lt;span id&#x3D;&quot;{{ &#x27;helpBlock_&#x27; + field.name }}&quot; class&#x3D;&quot;help-block&quot; *ngIf&#x3D;&quot;this.helpShow&quot; [innerHtml]&#x3D;&quot;field.help&quot;&gt;&lt;/span&gt;
-   &lt;select [compareWith]&#x3D;&quot;compare&quot; [formControl]&#x3D;&quot;getFormControl()&quot;  [id]&#x3D;&quot;field.name&quot; [ngClass]&#x3D;&quot;field.cssClasses&quot;&gt;
+   &lt;select [compareWith]&#x3D;&quot;field.compare&quot; [formControl]&#x3D;&quot;getFormControl()&quot;  [id]&#x3D;&quot;field.name&quot; [ngClass]&#x3D;&quot;field.cssClasses&quot;&gt;
       &lt;ng-template [ngIf]&#x3D;&quot;!field.storeValueAndLabel&quot;&gt;
         &lt;option *ngFor&#x3D;&quot;let opt of field.selectOptions&quot; [value]&#x3D;&quot;opt.value&quot;&gt;{{opt.label}}&lt;/option&gt;
       &lt;/ng-template&gt;
@@ -111,8 +111,8 @@
         &lt;option *ngFor&#x3D;&quot;let opt of field.selectOptions&quot; [ngValue]&#x3D;&quot;opt&quot;&gt;{{opt.label}}&lt;/option&gt;
       &lt;/ng-template&gt;
    &lt;/select&gt;
-   &lt;div class&#x3D;&quot;text-danger&quot; *ngIf&#x3D;&quot;getFormControl().hasError(&#x27;required&#x27;) &amp;&amp; getFormControl().touched &amp;&amp; !field.validationMessages?.required&quot;&gt;{{field.label}} is required&lt;/div&gt;
-   &lt;div class&#x3D;&quot;text-danger&quot; *ngIf&#x3D;&quot;getFormControl().hasError(&#x27;required&#x27;) &amp;&amp; getFormControl().touched &amp;&amp; field.validationMessages?.required&quot;&gt;{{field.validationMessages.required}}&lt;/div&gt;
+   &lt;div class&#x3D;&quot;text-danger&quot; *ngIf&#x3D;&quot;getFormControl() &amp;&amp; getFormControl().hasError(&#x27;required&#x27;) &amp;&amp; getFormControl().touched &amp;&amp; !field.validationMessages?.required&quot;&gt;{{field.label}} is required&lt;/div&gt;
+   &lt;div class&#x3D;&quot;text-danger&quot; *ngIf&#x3D;&quot;getFormControl() &amp;&amp; getFormControl().hasError(&#x27;required&#x27;) &amp;&amp; getFormControl().touched &amp;&amp; field.validationMessages?.required&quot;&gt;{{field.validationMessages.required}}&lt;/div&gt;
 &lt;/div&gt;
 &lt;div *ngIf&#x3D;&quot;!field.editMode &amp;&amp; field.visible&quot; class&#x3D;&quot;key-value-pair&quot;&gt;
   &lt;span class&#x3D;&quot;key&quot; *ngIf&#x3D;&quot;field.label&quot;&gt;{{field.label}}&lt;/span&gt;
@@ -156,9 +156,6 @@
                                 <a href="#clName" >clName</a>
                             </li>
                             <li>
-                                <a href="#compare" >compare</a>
-                            </li>
-                            <li>
                                 <a href="#field" >field</a>
                             </li>
                             <li>
@@ -186,9 +183,6 @@
                 <tr>
                     <td class="col-md-4">
                         <ul class="index-list">
-                            <li>
-                                <a href="#compareFn" >compareFn</a>
-                            </li>
                             <li>
                                 <a href="#getLabel" >getLabel</a>
                             </li>
@@ -470,80 +464,6 @@
     <h3 id="methods">
         Methods
     </h3>
-    <table class="table table-sm table-bordered">
-        <tbody>
-            <tr>
-                <td class="col-md-4">
-                    <a name="compareFn"></a>
-                    <span class="name">
-                        <span ><b>compareFn</b></span>
-                        <a href="#compareFn"><span class="icon ion-ios-link"></span></a>
-                    </span>
-                </td>
-            </tr>
-            <tr>
-                <td class="col-md-4">
-<code>compareFn(a, b)</code>
-                </td>
-            </tr>
-
-
-            <tr>
-                <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="232"
-                            class="link-to-prism">angular/shared/form/field-simple.component.ts:232</a></div>
-                </td>
-            </tr>
-
-
-            <tr>
-                <td class="col-md-4">
-
-                    <div class="io-description">
-                        <b>Parameters :</b>
-                        
-                        <table class="params">
-                            <thead>
-                                <tr>
-                                    <td>Name</td>
-                                    <td>Optional</td>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td>a</td>
-
-                                    <td>
-                                        No
-                                    </td>
-
-
-                                </tr>
-                                <tr>
-                                    <td>b</td>
-
-                                    <td>
-                                        No
-                                    </td>
-
-
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                    <div>
-                    </div>
-                    <div class="io-description">
-                        <b>Returns : </b>        <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/boolean" target="_blank" >boolean</a></code>
-
-                    </div>
-                    <div class="io-description">
-                        
-                    </div>
-                </td>
-            </tr>
-        </tbody>
-    </table>
     <table class="table table-sm table-bordered">
         <tbody>
             <tr>
@@ -1074,31 +994,6 @@ Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a></p
         <tbody>
             <tr>
                 <td class="col-md-4">
-                    <a name="compare"></a>
-                    <span class="name">
-                        <span ><b>compare</b></span>
-                        <a href="#compare"><span class="icon ion-ios-link"></span></a>
-                    </span>
-                </td>
-            </tr>
-                <tr>
-                    <td class="col-md-4">
-                        <i>Default value : </i><code>this.compareFn.bind(this)</code>
-                    </td>
-                </tr>
-                    <tr>
-                        <td class="col-md-4">
-                                <div class="io-line">Defined in <a href="" data-line="230" class="link-to-prism">angular/shared/form/field-simple.component.ts:230</a></div>
-                        </td>
-                    </tr>
-
-
-        </tbody>
-    </table>
-    <table class="table table-sm table-bordered">
-        <tbody>
-            <tr>
-                <td class="col-md-4">
                     <a name="field"></a>
                     <span class="name">
                         <span ><b>field</b></span>
@@ -1476,7 +1371,7 @@ export class SelectionComponent extends SimpleComponent {
       &lt;button type&#x3D;&quot;button&quot; class&#x3D;&quot;btn btn-default&quot; *ngIf&#x3D;&quot;field.help&quot; (click)&#x3D;&quot;toggleHelp()&quot; [attr.aria-label]&#x3D;&quot;&#x27;help&#x27; | translate &quot;&gt;&lt;span class&#x3D;&quot;glyphicon glyphicon-question-sign&quot; aria-hidden&#x3D;&quot;true&quot;&gt;&lt;/span&gt;&lt;/button&gt;
      &lt;/label&gt;&lt;br/&gt;
      &lt;span id&#x3D;&quot;{{ &#x27;helpBlock_&#x27; + field.name }}&quot; class&#x3D;&quot;help-block&quot; *ngIf&#x3D;&quot;this.helpShow&quot; [innerHtml]&#x3D;&quot;field.help&quot;&gt;&lt;/span&gt;
-     &lt;select [compareWith]&#x3D;&quot;compare&quot; [formControl]&#x3D;&quot;getFormControl()&quot;  [id]&#x3D;&quot;field.name&quot; [ngClass]&#x3D;&quot;field.cssClasses&quot;&gt;
+     &lt;select [compareWith]&#x3D;&quot;field.compare&quot; [formControl]&#x3D;&quot;getFormControl()&quot;  [id]&#x3D;&quot;field.name&quot; [ngClass]&#x3D;&quot;field.cssClasses&quot;&gt;
         &lt;ng-template [ngIf]&#x3D;&quot;!field.storeValueAndLabel&quot;&gt;
           &lt;option *ngFor&#x3D;&quot;let opt of field.selectOptions&quot; [value]&#x3D;&quot;opt.value&quot;&gt;{{opt.label}}&lt;/option&gt;
         &lt;/ng-template&gt;
@@ -1484,8 +1379,8 @@ export class SelectionComponent extends SimpleComponent {
           &lt;option *ngFor&#x3D;&quot;let opt of field.selectOptions&quot; [ngValue]&#x3D;&quot;opt&quot;&gt;{{opt.label}}&lt;/option&gt;
         &lt;/ng-template&gt;
      &lt;/select&gt;
-     &lt;div class&#x3D;&quot;text-danger&quot; *ngIf&#x3D;&quot;getFormControl().hasError(&#x27;required&#x27;) &amp;&amp; getFormControl().touched &amp;&amp; !field.validationMessages?.required&quot;&gt;{{field.label}} is required&lt;/div&gt;
-     &lt;div class&#x3D;&quot;text-danger&quot; *ngIf&#x3D;&quot;getFormControl().hasError(&#x27;required&#x27;) &amp;&amp; getFormControl().touched &amp;&amp; field.validationMessages?.required&quot;&gt;{{field.validationMessages.required}}&lt;/div&gt;
+     &lt;div class&#x3D;&quot;text-danger&quot; *ngIf&#x3D;&quot;getFormControl() &amp;&amp; getFormControl().hasError(&#x27;required&#x27;) &amp;&amp; getFormControl().touched &amp;&amp; !field.validationMessages?.required&quot;&gt;{{field.label}} is required&lt;/div&gt;
+     &lt;div class&#x3D;&quot;text-danger&quot; *ngIf&#x3D;&quot;getFormControl() &amp;&amp; getFormControl().hasError(&#x27;required&#x27;) &amp;&amp; getFormControl().touched &amp;&amp; field.validationMessages?.required&quot;&gt;{{field.validationMessages.required}}&lt;/div&gt;
   &lt;/div&gt;
   &lt;div *ngIf&#x3D;&quot;!field.editMode &amp;&amp; field.visible&quot; class&#x3D;&quot;key-value-pair&quot;&gt;
     &lt;span class&#x3D;&quot;key&quot; *ngIf&#x3D;&quot;field.label&quot;&gt;{{field.label}}&lt;/span&gt;
@@ -1501,17 +1396,6 @@ export class SelectionComponent extends SimpleComponent {
 })
 export class DropdownFieldComponent extends SelectionComponent {
   static clName &#x3D; &#x27;DropdownFieldComponent&#x27;;
-  compare &#x3D; this.compareFn.bind(this);
-
-  compareFn(a, b) {
-    if (this.field.storeValueAndLabel) {
-      if (b &#x3D;&#x3D; null || b &#x3D;&#x3D; &quot;&quot;) {
-        return a.value &#x3D;&#x3D; b;
-      }
-      return a.value &#x3D;&#x3D; b.value;
-    }
-    return a &#x3D;&#x3D; b;
-  }
 }
 
 @Component({
@@ -2169,7 +2053,7 @@ export class ToggleComponent extends SimpleComponent {
 <script src="../js/libs/htmlparser.js"></script>
 <script src="../js/libs/deep-iterator.js"></script>
 <script>
-        var COMPONENT_TEMPLATE = '<div><div [formGroup]=\'form\' *ngIf="field.editMode && field.visible" [ngClass]="getGroupClass()">   <label [attr.for]="field.name">    {{field.label}} {{ getRequiredLabelStr()}}    <button type="button" class="btn btn-default" *ngIf="field.help" (click)="toggleHelp()" [attr.aria-label]="\'help\' | translate "><span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span></button>   </label><br/>   <span id="{{ \'helpBlock_\' + field.name }}" class="help-block" *ngIf="this.helpShow" [innerHtml]="field.help"></span>   <select [compareWith]="compare" [formControl]="getFormControl()"  [id]="field.name" [ngClass]="field.cssClasses">      <ng-template [ngIf]="!field.storeValueAndLabel">        <option *ngFor="let opt of field.selectOptions" [value]="opt.value">{{opt.label}}</option>      </ng-template>      <ng-template [ngIf]="field.storeValueAndLabel">        <option *ngFor="let opt of field.selectOptions" [ngValue]="opt">{{opt.label}}</option>      </ng-template>   </select>   <div class="text-danger" *ngIf="getFormControl().hasError(\'required\') && getFormControl().touched && !field.validationMessages?.required">{{field.label}} is required</div>   <div class="text-danger" *ngIf="getFormControl().hasError(\'required\') && getFormControl().touched && field.validationMessages?.required">{{field.validationMessages.required}}</div></div><div *ngIf="!field.editMode && field.visible" class="key-value-pair">  <span class="key" *ngIf="field.label">{{field.label}}</span>  <ng-template [ngIf]="!field.storeValueAndLabel">  <span *ngIf="!field.valueIsLink" target="_blank" class="value">{{getLabel(field.value)}}</span>  <a *ngIf="field.valueIsLink" href="{{field.value}}" class="value">{{getLabel(field.value)}}</a>  </ng-template>  <ng-template [ngIf]="field.storeValueAndLabel && field.value.value != \'\'">  <span class="value">{{getLabel(field.value.value)}}</span>  </ng-template></div></div>'
+        var COMPONENT_TEMPLATE = '<div><div [formGroup]=\'form\' *ngIf="field.editMode && field.visible" [ngClass]="getGroupClass()">   <label [attr.for]="field.name">    {{field.label}} {{ getRequiredLabelStr()}}    <button type="button" class="btn btn-default" *ngIf="field.help" (click)="toggleHelp()" [attr.aria-label]="\'help\' | translate "><span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span></button>   </label><br/>   <span id="{{ \'helpBlock_\' + field.name }}" class="help-block" *ngIf="this.helpShow" [innerHtml]="field.help"></span>   <select [compareWith]="field.compare" [formControl]="getFormControl()"  [id]="field.name" [ngClass]="field.cssClasses">      <ng-template [ngIf]="!field.storeValueAndLabel">        <option *ngFor="let opt of field.selectOptions" [value]="opt.value">{{opt.label}}</option>      </ng-template>      <ng-template [ngIf]="field.storeValueAndLabel">        <option *ngFor="let opt of field.selectOptions" [ngValue]="opt">{{opt.label}}</option>      </ng-template>   </select>   <div class="text-danger" *ngIf="getFormControl() && getFormControl().hasError(\'required\') && getFormControl().touched && !field.validationMessages?.required">{{field.label}} is required</div>   <div class="text-danger" *ngIf="getFormControl() && getFormControl().hasError(\'required\') && getFormControl().touched && field.validationMessages?.required">{{field.validationMessages.required}}</div></div><div *ngIf="!field.editMode && field.visible" class="key-value-pair">  <span class="key" *ngIf="field.label">{{field.label}}</span>  <ng-template [ngIf]="!field.storeValueAndLabel">  <span *ngIf="!field.valueIsLink" target="_blank" class="value">{{getLabel(field.value)}}</span>  <a *ngIf="field.valueIsLink" href="{{field.value}}" class="value">{{getLabel(field.value)}}</a>  </ng-template>  <ng-template [ngIf]="field.storeValueAndLabel && field.value.value != \'\'">  <span class="value">{{getLabel(field.value.value)}}</span>  </ng-template></div></div>'
     var COMPONENTS = [{'name': 'ActionButtonComponent', 'selector': 'action-button'},{'name': 'AnchorOrButtonComponent', 'selector': 'anchor-button'},{'name': 'ANDSVocabComponent', 'selector': 'ands-vocab-selector'},{'name': 'AsynchComponent', 'selector': 'asynch-component'},{'name': 'ButtonBarContainerComponent', 'selector': 'buttonbarcontainer'},{'name': 'CancelButtonComponent', 'selector': 'cancel-button'},{'name': 'ContributorComponent', 'selector': 'rb-contributor'},{'name': 'DashboardComponent', 'selector': 'dashboard'},{'name': 'DataLocationComponent', 'selector': 'data-location-selector'},{'name': 'DateTimeComponent', 'selector': 'date-time'},{'name': 'DmpFieldComponent', 'selector': 'dmp-field'},{'name': 'DmpFormComponent', 'selector': 'dmp-form'},{'name': 'DropdownFieldComponent', 'selector': 'dropdownfield'},{'name': 'EventHandlerComponent', 'selector': 'event-handler'},{'name': 'ExportFormComponent', 'selector': 'export-form'},{'name': 'GenericGroupComponent', 'selector': 'generic-group-field'},{'name': 'HiddenValueComponent', 'selector': 'hidden-field'},{'name': 'HtmlRawComponent', 'selector': 'htmlraw'},{'name': 'LinkValueComponent', 'selector': 'link-value'},{'name': 'LocalAuthComponent', 'selector': 'local-auth'},{'name': 'ManageRolesComponent', 'selector': 'manage-roles'},{'name': 'ManageUsersComponent', 'selector': 'manage-users'},{'name': 'MapComponent', 'selector': 'rb-mapdata'},{'name': 'MarkdownTextAreaComponent', 'selector': 'markdown-text-area'},{'name': 'PageTitleComponent', 'selector': 'page-title'},{'name': 'ParameterRetrieverComponent', 'selector': 'parameter-retriever'},{'name': 'PDFListComponent', 'selector': 'rb-pdf-list'},{'name': 'PublishDataLocationRefreshComponent', 'selector': 'publish-data-location-refresh'},{'name': 'PublishDataLocationSelectorComponent', 'selector': 'publish-data-location-selector'},{'name': 'RecordMetadataRetrieverComponent', 'selector': 'record-metadata-retriever'},{'name': 'RecordPermissionsComponent', 'selector': 'rb-recordpermissions'},{'name': 'RecordSearchComponent', 'selector': 'record-search'},{'name': 'RecordSearchRefinerComponent', 'selector': 'record-search-refiner'},{'name': 'RelatedFileUploadComponent', 'selector': 'related-fileupload-selector'},{'name': 'RelatedObjectDataComponent', 'selector': 'rb-relatedobjectdata'},{'name': 'RelatedObjectSelectorComponent', 'selector': 'rb-RelatedObjectSelector'},{'name': 'RepeatableContributorComponent', 'selector': 'repeatable-contributor'},{'name': 'RepeatableGroupComponent', 'selector': 'repeatable-group'},{'name': 'RepeatableTextfieldComponent', 'selector': 'repeatable-textfield'},{'name': 'RepeatableVocabComponent', 'selector': 'repeatable-vocab'},{'name': 'ReportComponent', 'selector': 'report'},{'name': 'SaveButtonComponent', 'selector': 'save-button'},{'name': 'SelectionFieldComponent', 'selector': 'selectionfield'},{'name': 'SortComponent', 'selector': 'sort'},{'name': 'SpacerComponent', 'selector': 'spacer'},{'name': 'TabNavButtonComponent', 'selector': 'tab-nav-button'},{'name': 'TabOrAccordionContainerComponent', 'selector': 'tabcontainer'},{'name': 'TextAreaComponent', 'selector': 'text-area'},{'name': 'TextBlockComponent', 'selector': 'text-block'},{'name': 'TextFieldComponent', 'selector': 'textfield'},{'name': 'ToggleComponent', 'selector': 'toggle'},{'name': 'TransferOwnerComponent', 'selector': 'transfer-owner'},{'name': 'TreeNodeCheckboxComponent', 'selector': 'rb-tree-node-checkbox'},{'name': 'UserProfileComponent', 'selector': 'user-profile'},{'name': 'VocabFieldComponent', 'selector': 'rb-vocab'},{'name': 'WorkflowStepButtonComponent', 'selector': 'workflowstep-button'},{'name': 'WorkspaceFieldComponent', 'selector': 'ws-field'},{'name': 'WorkspaceListComponent', 'selector': 'workspace-list'},{'name': 'WorkspaceSelectorComponent', 'selector': 'workspace-selector-parent'},{'name': 'WorkspaceSelectorFieldComponent', 'selector': 'workspace-selector'}];
     var DIRECTIVES = [];
     var ACTUAL_COMPONENT = {'name': 'DropdownFieldComponent'};

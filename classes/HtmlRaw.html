@@ -342,7 +342,7 @@
                 </tr>
                         <tr>
                             <td class="col-md-4">
-                                <div class="io-line">Defined in <a href="" data-line="525" class="link-to-prism">angular/shared/form/field-simple.ts:525</a></div>
+                                <div class="io-line">Defined in <a href="" data-line="536" class="link-to-prism">angular/shared/form/field-simple.ts:536</a></div>
                             </td>
                         </tr>
 
@@ -416,7 +416,7 @@
                 </tr>
                     <tr>
                         <td class="col-md-4">
-                                <div class="io-line">Defined in <a href="" data-line="525" class="link-to-prism">angular/shared/form/field-simple.ts:525</a></div>
+                                <div class="io-line">Defined in <a href="" data-line="536" class="link-to-prism">angular/shared/form/field-simple.ts:536</a></div>
                         </td>
                     </tr>
 
@@ -1788,7 +1788,7 @@
             </tr>
             <tr>
                 <td class="col-md-4">
-                        <div class="io-line">Defined in         <code><a href="../classes/FieldBase.html#source" target="_self" >FieldBase:538</a></code>
+                        <div class="io-line">Defined in         <code><a href="../classes/FieldBase.html#source" target="_self" >FieldBase:549</a></code>
 </div>
                 </td>
             </tr>
@@ -3773,10 +3773,11 @@ export class SelectionField extends FieldBase&lt;any&gt;  {
   selectOptions: any[] &#x3D; [];
   storeValueAndLabel:boolean &#x3D; false;
   valueIsLink: boolean;
+  compare: any;
 
   constructor(options: any, injector: any) {
     super(options, injector);
-
+    this.compare &#x3D; this.compareFn.bind(this);
     this.valueIsLink &#x3D; options.valueIsLink? options.valueIsLink: false;
     // this.options &#x3D; options[&#x27;options&#x27;] || [];
     if(options.selectFor &amp;&amp; options.defaultSelect) {
@@ -3887,6 +3888,16 @@ export class SelectionField extends FieldBase&lt;any&gt;  {
     } else {
       super.setValue(value, emitEvent);
     }
+  }
+
+  compareFn(a, b) {
+    if (this.storeValueAndLabel) {
+      if (b &#x3D;&#x3D; null || b &#x3D;&#x3D; &quot;&quot;) {
+        return a.value &#x3D;&#x3D; b;
+      }
+      return a.value &#x3D;&#x3D; b.value;
+    }
+    return a &#x3D;&#x3D; b;
   }
 }
 

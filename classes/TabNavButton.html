@@ -373,7 +373,7 @@
                 </tr>
                         <tr>
                             <td class="col-md-4">
-                                <div class="io-line">Defined in <a href="" data-line="396" class="link-to-prism">angular/shared/form/field-simple.ts:396</a></div>
+                                <div class="io-line">Defined in <a href="" data-line="407" class="link-to-prism">angular/shared/form/field-simple.ts:407</a></div>
                             </td>
                         </tr>
 
@@ -447,7 +447,7 @@
                 </tr>
                     <tr>
                         <td class="col-md-4">
-                                <div class="io-line">Defined in <a href="" data-line="393" class="link-to-prism">angular/shared/form/field-simple.ts:393</a></div>
+                                <div class="io-line">Defined in <a href="" data-line="404" class="link-to-prism">angular/shared/form/field-simple.ts:404</a></div>
                         </td>
                     </tr>
 
@@ -473,7 +473,7 @@
                 </tr>
                     <tr>
                         <td class="col-md-4">
-                                <div class="io-line">Defined in <a href="" data-line="396" class="link-to-prism">angular/shared/form/field-simple.ts:396</a></div>
+                                <div class="io-line">Defined in <a href="" data-line="407" class="link-to-prism">angular/shared/form/field-simple.ts:407</a></div>
                         </td>
                     </tr>
 
@@ -499,7 +499,7 @@
                 </tr>
                     <tr>
                         <td class="col-md-4">
-                                <div class="io-line">Defined in <a href="" data-line="392" class="link-to-prism">angular/shared/form/field-simple.ts:392</a></div>
+                                <div class="io-line">Defined in <a href="" data-line="403" class="link-to-prism">angular/shared/form/field-simple.ts:403</a></div>
                         </td>
                     </tr>
 
@@ -525,7 +525,7 @@
                 </tr>
                     <tr>
                         <td class="col-md-4">
-                                <div class="io-line">Defined in <a href="" data-line="391" class="link-to-prism">angular/shared/form/field-simple.ts:391</a></div>
+                                <div class="io-line">Defined in <a href="" data-line="402" class="link-to-prism">angular/shared/form/field-simple.ts:402</a></div>
                         </td>
                     </tr>
 
@@ -556,7 +556,7 @@
                 </tr>
                     <tr>
                         <td class="col-md-4">
-                                <div class="io-line">Defined in <a href="" data-line="394" class="link-to-prism">angular/shared/form/field-simple.ts:394</a></div>
+                                <div class="io-line">Defined in <a href="" data-line="405" class="link-to-prism">angular/shared/form/field-simple.ts:405</a></div>
                         </td>
                     </tr>
 
@@ -582,7 +582,7 @@
                 </tr>
                     <tr>
                         <td class="col-md-4">
-                                <div class="io-line">Defined in <a href="" data-line="395" class="link-to-prism">angular/shared/form/field-simple.ts:395</a></div>
+                                <div class="io-line">Defined in <a href="" data-line="406" class="link-to-prism">angular/shared/form/field-simple.ts:406</a></div>
                         </td>
                     </tr>
 
@@ -1948,8 +1948,8 @@
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="430"
-                            class="link-to-prism">angular/shared/form/field-simple.ts:430</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="441"
+                            class="link-to-prism">angular/shared/form/field-simple.ts:441</a></div>
                 </td>
             </tr>
 
@@ -1987,8 +1987,8 @@
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="434"
-                            class="link-to-prism">angular/shared/form/field-simple.ts:434</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="445"
+                            class="link-to-prism">angular/shared/form/field-simple.ts:445</a></div>
                 </td>
             </tr>
 
@@ -2058,8 +2058,8 @@
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="406"
-                            class="link-to-prism">angular/shared/form/field-simple.ts:406</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="417"
+                            class="link-to-prism">angular/shared/form/field-simple.ts:417</a></div>
                 </td>
             </tr>
 
@@ -2097,8 +2097,8 @@
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="418"
-                            class="link-to-prism">angular/shared/form/field-simple.ts:418</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="429"
+                            class="link-to-prism">angular/shared/form/field-simple.ts:429</a></div>
                 </td>
             </tr>
 
@@ -4164,10 +4164,11 @@ export class SelectionField extends FieldBase&lt;any&gt;  {
   selectOptions: any[] &#x3D; [];
   storeValueAndLabel:boolean &#x3D; false;
   valueIsLink: boolean;
+  compare: any;
 
   constructor(options: any, injector: any) {
     super(options, injector);
-
+    this.compare &#x3D; this.compareFn.bind(this);
     this.valueIsLink &#x3D; options.valueIsLink? options.valueIsLink: false;
     // this.options &#x3D; options[&#x27;options&#x27;] || [];
     if(options.selectFor &amp;&amp; options.defaultSelect) {
@@ -4278,6 +4279,16 @@ export class SelectionField extends FieldBase&lt;any&gt;  {
     } else {
       super.setValue(value, emitEvent);
     }
+  }
+
+  compareFn(a, b) {
+    if (this.storeValueAndLabel) {
+      if (b &#x3D;&#x3D; null || b &#x3D;&#x3D; &quot;&quot;) {
+        return a.value &#x3D;&#x3D; b;
+      }
+      return a.value &#x3D;&#x3D; b.value;
+    }
+    return a &#x3D;&#x3D; b;
   }
 }
 

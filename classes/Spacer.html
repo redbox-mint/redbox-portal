@@ -345,7 +345,7 @@
                 </tr>
                         <tr>
                             <td class="col-md-4">
-                                <div class="io-line">Defined in <a href="" data-line="497" class="link-to-prism">angular/shared/form/field-simple.ts:497</a></div>
+                                <div class="io-line">Defined in <a href="" data-line="508" class="link-to-prism">angular/shared/form/field-simple.ts:508</a></div>
                             </td>
                         </tr>
 
@@ -419,7 +419,7 @@
                 </tr>
                     <tr>
                         <td class="col-md-4">
-                                <div class="io-line">Defined in <a href="" data-line="497" class="link-to-prism">angular/shared/form/field-simple.ts:497</a></div>
+                                <div class="io-line">Defined in <a href="" data-line="508" class="link-to-prism">angular/shared/form/field-simple.ts:508</a></div>
                         </td>
                     </tr>
 
@@ -445,7 +445,7 @@
                 </tr>
                     <tr>
                         <td class="col-md-4">
-                                <div class="io-line">Defined in <a href="" data-line="496" class="link-to-prism">angular/shared/form/field-simple.ts:496</a></div>
+                                <div class="io-line">Defined in <a href="" data-line="507" class="link-to-prism">angular/shared/form/field-simple.ts:507</a></div>
                         </td>
                     </tr>
 
@@ -3802,10 +3802,11 @@ export class SelectionField extends FieldBase&lt;any&gt;  {
   selectOptions: any[] &#x3D; [];
   storeValueAndLabel:boolean &#x3D; false;
   valueIsLink: boolean;
+  compare: any;
 
   constructor(options: any, injector: any) {
     super(options, injector);
-
+    this.compare &#x3D; this.compareFn.bind(this);
     this.valueIsLink &#x3D; options.valueIsLink? options.valueIsLink: false;
     // this.options &#x3D; options[&#x27;options&#x27;] || [];
     if(options.selectFor &amp;&amp; options.defaultSelect) {
@@ -3916,6 +3917,16 @@ export class SelectionField extends FieldBase&lt;any&gt;  {
     } else {
       super.setValue(value, emitEvent);
     }
+  }
+
+  compareFn(a, b) {
+    if (this.storeValueAndLabel) {
+      if (b &#x3D;&#x3D; null || b &#x3D;&#x3D; &quot;&quot;) {
+        return a.value &#x3D;&#x3D; b;
+      }
+      return a.value &#x3D;&#x3D; b.value;
+    }
+    return a &#x3D;&#x3D; b;
   }
 }
 

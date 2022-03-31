@@ -1027,7 +1027,7 @@ export class SelectionComponent extends SimpleComponent {
       &lt;button type&#x3D;&quot;button&quot; class&#x3D;&quot;btn btn-default&quot; *ngIf&#x3D;&quot;field.help&quot; (click)&#x3D;&quot;toggleHelp()&quot; [attr.aria-label]&#x3D;&quot;&#x27;help&#x27; | translate &quot;&gt;&lt;span class&#x3D;&quot;glyphicon glyphicon-question-sign&quot; aria-hidden&#x3D;&quot;true&quot;&gt;&lt;/span&gt;&lt;/button&gt;
      &lt;/label&gt;&lt;br/&gt;
      &lt;span id&#x3D;&quot;{{ &#x27;helpBlock_&#x27; + field.name }}&quot; class&#x3D;&quot;help-block&quot; *ngIf&#x3D;&quot;this.helpShow&quot; [innerHtml]&#x3D;&quot;field.help&quot;&gt;&lt;/span&gt;
-     &lt;select [compareWith]&#x3D;&quot;compare&quot; [formControl]&#x3D;&quot;getFormControl()&quot;  [id]&#x3D;&quot;field.name&quot; [ngClass]&#x3D;&quot;field.cssClasses&quot;&gt;
+     &lt;select [compareWith]&#x3D;&quot;field.compare&quot; [formControl]&#x3D;&quot;getFormControl()&quot;  [id]&#x3D;&quot;field.name&quot; [ngClass]&#x3D;&quot;field.cssClasses&quot;&gt;
         &lt;ng-template [ngIf]&#x3D;&quot;!field.storeValueAndLabel&quot;&gt;
           &lt;option *ngFor&#x3D;&quot;let opt of field.selectOptions&quot; [value]&#x3D;&quot;opt.value&quot;&gt;{{opt.label}}&lt;/option&gt;
         &lt;/ng-template&gt;
@@ -1035,8 +1035,8 @@ export class SelectionComponent extends SimpleComponent {
           &lt;option *ngFor&#x3D;&quot;let opt of field.selectOptions&quot; [ngValue]&#x3D;&quot;opt&quot;&gt;{{opt.label}}&lt;/option&gt;
         &lt;/ng-template&gt;
      &lt;/select&gt;
-     &lt;div class&#x3D;&quot;text-danger&quot; *ngIf&#x3D;&quot;getFormControl().hasError(&#x27;required&#x27;) &amp;&amp; getFormControl().touched &amp;&amp; !field.validationMessages?.required&quot;&gt;{{field.label}} is required&lt;/div&gt;
-     &lt;div class&#x3D;&quot;text-danger&quot; *ngIf&#x3D;&quot;getFormControl().hasError(&#x27;required&#x27;) &amp;&amp; getFormControl().touched &amp;&amp; field.validationMessages?.required&quot;&gt;{{field.validationMessages.required}}&lt;/div&gt;
+     &lt;div class&#x3D;&quot;text-danger&quot; *ngIf&#x3D;&quot;getFormControl() &amp;&amp; getFormControl().hasError(&#x27;required&#x27;) &amp;&amp; getFormControl().touched &amp;&amp; !field.validationMessages?.required&quot;&gt;{{field.label}} is required&lt;/div&gt;
+     &lt;div class&#x3D;&quot;text-danger&quot; *ngIf&#x3D;&quot;getFormControl() &amp;&amp; getFormControl().hasError(&#x27;required&#x27;) &amp;&amp; getFormControl().touched &amp;&amp; field.validationMessages?.required&quot;&gt;{{field.validationMessages.required}}&lt;/div&gt;
   &lt;/div&gt;
   &lt;div *ngIf&#x3D;&quot;!field.editMode &amp;&amp; field.visible&quot; class&#x3D;&quot;key-value-pair&quot;&gt;
     &lt;span class&#x3D;&quot;key&quot; *ngIf&#x3D;&quot;field.label&quot;&gt;{{field.label}}&lt;/span&gt;
@@ -1052,17 +1052,6 @@ export class SelectionComponent extends SimpleComponent {
 })
 export class DropdownFieldComponent extends SelectionComponent {
   static clName &#x3D; &#x27;DropdownFieldComponent&#x27;;
-  compare &#x3D; this.compareFn.bind(this);
-
-  compareFn(a, b) {
-    if (this.field.storeValueAndLabel) {
-      if (b &#x3D;&#x3D; null || b &#x3D;&#x3D; &quot;&quot;) {
-        return a.value &#x3D;&#x3D; b;
-      }
-      return a.value &#x3D;&#x3D; b.value;
-    }
-    return a &#x3D;&#x3D; b;
-  }
 }
 
 @Component({
