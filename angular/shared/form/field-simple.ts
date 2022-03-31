@@ -44,10 +44,11 @@ export class SelectionField extends FieldBase<any>  {
   selectOptions: any[] = [];
   storeValueAndLabel:boolean = false;
   valueIsLink: boolean;
+  compare: any;
 
   constructor(options: any, injector: any) {
     super(options, injector);
-
+    this.compare = this.compareFn.bind(this);
     this.valueIsLink = options.valueIsLink? options.valueIsLink: false;
     // this.options = options['options'] || [];
     if(options.selectFor && options.defaultSelect) {
@@ -158,6 +159,16 @@ export class SelectionField extends FieldBase<any>  {
     } else {
       super.setValue(value, emitEvent);
     }
+  }
+
+  compareFn(a, b) {
+    if (this.storeValueAndLabel) {
+      if (b == null || b == "") {
+        return a.value == b;
+      }
+      return a.value == b.value;
+    }
+    return a == b;
   }
 }
 
