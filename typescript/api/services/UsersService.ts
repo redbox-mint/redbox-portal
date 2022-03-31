@@ -430,21 +430,27 @@ export module Services {
 
         } else {
           sails.log.verbose("At OIDC Strategy verify, creating new user...");
-          let additionalAttributes = that.mapAdditionalAttributes(userinfo, claimsMappings['additionalAttributes']);
-          // first time login, create with default role
-          var userToCreate = {
-            username: userName,
-            name: _.get(userinfo, claimsMappings['name']),
-            email: _.get(userinfo, claimsMappings['email']).toLowerCase(),
-            displayname: _.get(userinfo, claimsMappings['displayName']),
-            cn: _.get(userinfo, claimsMappings['cn']),
-            givenname: _.get(userinfo, claimsMappings['givenname']),
-            surname: _.get(userinfo, claimsMappings['surname']),
-            type: 'oidc',
-            roles: openIdConnectDefRoles,
-            additionalAttributes: additionalAttributes,
-            lastLogin: new Date()
-          };
+          try {
+            let additionalAttributes = that.mapAdditionalAttributes(userinfo, claimsMappings['additionalAttributes']);
+            // first time login, create with default role
+            var userToCreate = {
+              username: userName,
+              name: _.get(userinfo, claimsMappings['name']),
+              email: _.get(userinfo, claimsMappings['email']).toLowerCase(),
+              displayname: _.get(userinfo, claimsMappings['displayName']),
+              cn: _.get(userinfo, claimsMappings['cn']),
+              givenname: _.get(userinfo, claimsMappings['givenname']),
+              surname: _.get(userinfo, claimsMappings['surname']),
+              type: 'oidc',
+              roles: openIdConnectDefRoles,
+              additionalAttributes: additionalAttributes,
+              lastLogin: new Date()
+            };
+          } catch (e) {
+            sails.log.error(`Failed to create new user:`);
+            sails.log.error(e);
+            return done(e, false);
+          }
           sails.log.verbose(`Creating user: `);
           sails.log.verbose(userToCreate);
           User.create(userToCreate).exec(function (err, newUser) {
