@@ -99,6 +99,14 @@ export class DataLocationField extends FieldBase<any> {
     this.notesHeader =  this.getTranslated(options['notesHeader'], 'Notes');
     this.uppyDashboardNote = this.getTranslated(options['uppyDashboardNote'], 'Maximum upload size: 1 Gb per file');
     this.columns = options['columns'] || [];
+    if(!_.isEmpty(options['dataTypeLookup'])) {
+      this.dataTypeLookup = options['dataTypeLookup'];
+      console.log(this.dataTypeLookup);
+    }
+    if(!_.isEmpty(options['dataTypes'])) {
+      this.dataTypes = options['dataTypes'];
+      console.log(this.dataTypes);
+    }
 
     this.restrictions = options['restrictions'] || null;
 
