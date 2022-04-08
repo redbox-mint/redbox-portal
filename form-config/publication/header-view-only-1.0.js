@@ -21,6 +21,17 @@ module.exports = [
     variableSubstitutionFields: ['value']
   },
   {
+    class: "AnchorOrButton",
+    viewOnly: true,
+    definition: {
+      label: '@header-view-only-view-data-label',
+      value: '/@branding/@portal/record/view/@metadata[dataRecord.oid]',
+      cssClasses: 'btn btn-large btn-info',
+      controlType: 'anchor'
+    },
+    variableSubstitutionFields: ['value']
+  },
+  {
     class: "ActionButton",
     viewOnly: true,
     definition: {
