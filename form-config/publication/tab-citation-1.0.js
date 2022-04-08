@@ -17,29 +17,21 @@ module.exports = [
         },
         {
           class: 'TextField',
+          roles: ['Admin', 'Librarians'],
+          editOnly: true,
           definition: {
             name: 'citation_doi',
             label: '@dataPublication-citation-identifier',
-            type: 'text',
-            readOnly: true,
-            subscribe: {
-              'form': {
-                onFormLoaded: [{
-                  action: 'publishValueLoaded'
-                }]
-              },
-              'citation_doi': {
-                onValueLoaded: [{
-                  action: 'setVisibility'
-                }]
-              }
-            },
-            visibilityCriteria: {
-              type: 'function',
-              action: 'utilityService.runTemplate',
-              passCriteria: true,
-              template: '<%= data != "" && data != null %>'
+            type: 'text'
           }
+        },
+        {
+          class: 'TextField',
+          viewOnly: true,
+          definition: {
+            name: 'citation_doi',
+            label: '@dataPublication-citation-identifier',
+            type: 'text'
           }
         },
         {
