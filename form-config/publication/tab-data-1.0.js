@@ -199,7 +199,18 @@ module.exports = [
           }
         },
         {
+          class: 'TextField',
+          editOnly: true,
+          definition: {
+            name: 'accessRights_url',
+            label: '@dataPublication-accessRights_url',
+            help: '@dataPublication-accessRights_url-help',
+            type: 'text'
+          }
+        },
+        {
           class: 'LinkValueComponent',
+          viewOnly: true,
           definition: {
             name: 'accessRights_url',
             label: '@dataPublication-accessRights_url',
