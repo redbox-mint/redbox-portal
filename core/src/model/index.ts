@@ -2,7 +2,7 @@ export {APIActionResponse} from "./APIActionResponse";
 export {APIErrorResponse} from "./APIErrorResponse";
 export {APIObjectActionResponse} from "./APIObjectActionResponse";
 export {APIHarvestResponse} from "./APIHarvestResponse";
-export {RBCustomError} from "./RBCustomError";
+export {RBValidationError} from "./RBValidationError";
 export {ListAPIResponse}from "./ListAPIResponse";
 export {ListAPISummary}from "./ListAPISummary";
 export {RecordAuditModel} from "./RecordAuditModel";
