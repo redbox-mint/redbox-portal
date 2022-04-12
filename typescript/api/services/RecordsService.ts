@@ -29,7 +29,8 @@ import {
   SearchService,
   Services as services,
   StorageService,
-  StorageServiceResponse
+  StorageServiceResponse,
+  RBCustomError
 } from '@researchdatabox/redbox-core-types';
 
 import {
@@ -203,9 +204,16 @@ export module Services {
           recordType = await RecordTypesService.get(brand, record.metaMetadata.type).toPromise();
           record = await this.triggerPreSaveTriggers(oid, record, recordType, "onUpdate", user);
         } catch (err) {
-          sails.log.error(`${this.logHeader} Failed to run pre-save hooks when updating..`);
-          sails.log.error(JSON.stringify(err));
-          updateResponse.message = failedMessage;
+          if(err instanceof RBCustomError) {
+            sails.log.error(err.name);
+            sails.log.error(err.message);
+            sails.log.error(JSON.stringify(err));
+            updateResponse.message = err.message;
+          } else {
+            sails.log.error(`${this.logHeader} Failed to run pre-save hooks when updating..`);
+            sails.log.error(JSON.stringify(err));
+            updateResponse.message = failedMessage;
+          }
           return updateResponse;
         }
       }
