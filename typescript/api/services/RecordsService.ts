@@ -72,6 +72,7 @@ export module Services {
 
     searchService: SearchService = null;
     protected queueService: QueueService = null;
+    private nameRBValidationError = 'RBValidationError';
 
 
     constructor() {
@@ -145,9 +146,21 @@ export module Services {
         try {
           record = await this.triggerPreSaveTriggers(null, record, recordType, "onCreate", user);
         } catch (err) {
-          sails.log.error(`${this.logHeader} Failed to run pre-save hooks when updating..`);
-          sails.log.error(JSON.stringify(err));
-          createResponse.message = failedMessage;
+          sails.log.error(`${this.logHeader} Failed to run pre-save hooks when onCreate...`);
+          if(err instanceof RBValidationError) {
+            sails.log.error(`err instanceof RBValidationError true`);
+          } else {
+            sails.log.error(`err instanceof RBValidationError false`);
+          }
+          if(err instanceof RBValidationError || err.name == this.nameRBValidationError) {
+            sails.log.error(err.name);
+            sails.log.error(err.message);
+            sails.log.error(JSON.stringify(err));
+            createResponse.message = err.message;
+          } else {
+            sails.log.error(JSON.stringify(err));
+            createResponse.message = failedMessage;
+          }
           return createResponse;
         }
       }
@@ -204,8 +217,13 @@ export module Services {
           recordType = await RecordTypesService.get(brand, record.metaMetadata.type).toPromise();
           record = await this.triggerPreSaveTriggers(oid, record, recordType, "onUpdate", user);
         } catch (err) {
-          sails.log.error(`${this.logHeader} Failed to run pre-save hooks when updating..`);
+          sails.log.error(`${this.logHeader} Failed to run pre-save hooks when onUpdate...`);
           if(err instanceof RBValidationError) {
+            sails.log.error(`err instanceof RBValidationError true`);
+          } else {
+            sails.log.error(`err instanceof RBValidationError false`);
+          }
+          if(err instanceof RBValidationError || err.name == this.nameRBValidationError) {
             sails.log.error(err.name);
             sails.log.error(err.message);
             sails.log.error(JSON.stringify(err));
