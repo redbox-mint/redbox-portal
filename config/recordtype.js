@@ -330,7 +330,8 @@ module.exports.recordtype = {
               ],
               "viewContributorProperties": [
                 "metadata.creators"
-              ]
+              ],
+              "recordCreatorPermissions" : "view&edit"
             }
           },
 
@@ -440,7 +441,8 @@ module.exports.recordtype = {
               "viewContributorProperties": [
                 "metadata.creators"
               ]
-            }
+            },
+            "recordCreatorPermissions" : "view&edit"
           },
 
           {
