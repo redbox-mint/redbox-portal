@@ -147,15 +147,8 @@ export module Services {
           record = await this.triggerPreSaveTriggers(null, record, recordType, "onCreate", user);
         } catch (err) {
           sails.log.error(`${this.logHeader} Failed to run pre-save hooks when onCreate...`);
-          if(err instanceof RBValidationError) {
-            sails.log.error(`err instanceof RBValidationError true`);
-          } else {
-            sails.log.error(`err instanceof RBValidationError false`);
-          }
-          if(err instanceof RBValidationError || err.name == this.nameRBValidationError) {
-            sails.log.error(err.name);
+          if(err.name == this.nameRBValidationError) {
             sails.log.error(err.message);
-            sails.log.error(JSON.stringify(err));
             createResponse.message = err.message;
           } else {
             sails.log.error(JSON.stringify(err));
@@ -218,15 +211,8 @@ export module Services {
           record = await this.triggerPreSaveTriggers(oid, record, recordType, "onUpdate", user);
         } catch (err) {
           sails.log.error(`${this.logHeader} Failed to run pre-save hooks when onUpdate...`);
-          if(err instanceof RBValidationError) {
-            sails.log.error(`err instanceof RBValidationError true`);
-          } else {
-            sails.log.error(`err instanceof RBValidationError false`);
-          }
-          if(err instanceof RBValidationError || err.name == this.nameRBValidationError) {
-            sails.log.error(err.name);
+          if(err.name == this.nameRBValidationError) {
             sails.log.error(err.message);
-            sails.log.error(JSON.stringify(err));
             updateResponse.message = err.message;
           } else {
             sails.log.error(JSON.stringify(err));

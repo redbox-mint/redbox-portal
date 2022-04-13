@@ -522,11 +522,12 @@ export module Controllers {
       const fieldsToCheck = ['location', 'uploadUrl'];
       let form = await FormsService.getFormByName(record.metaMetadata.form, true).toPromise();
 
-          formDef = form;
-          record.metaMetadata.attachmentFields = form.attachmentFields;
-          let response = await this.recordsService.create(brand, record, recordType, user);
+      formDef = form;
+      record.metaMetadata.attachmentFields = form.attachmentFields;
+      let response = await this.recordsService.create(brand, record, recordType, user);
 
-          let updateResponse = response;
+      sails.log.verbose('RecordController - createRecord - enter');
+      let updateResponse = response;
       if (response && _.isFunction(response.isSuccessful) && response.isSuccessful()) {
             oid = response.oid;
             if (!_.isEmpty(record.metaMetadata.attachmentFields)) {
@@ -544,6 +545,7 @@ export module Controllers {
                 });
               });
               // update the metadata ...
+              sails.log.verbose('RecordController - createRecord - before - recordsService.updateMeta');
               let updateResponse = await this.recordsService.updateMeta(brand, oid, record, user, false, false);
             } else {
               // no need for update... return the creation response
@@ -634,6 +636,7 @@ export module Controllers {
       const failedAttachments = [];
       let recType = null;
 
+      sails.log.verbose('RecordController - update - enter');
 
       this.getRecord(oid).flatMap(cr => {
           currentRec = cr;
@@ -734,6 +737,7 @@ export module Controllers {
      * Handles data stream updates, atm, this call is terminal.
      */
     protected updateDataStream(oid, origRecord, metadata, response, req, res) {
+      sails.log.verbose(`RecordController - updateDataStream - enter`);
       const fileIdsAdded = [];
 
       return this.datastreamService.updateDatastream(oid, origRecord, metadata, sails.config.record.attachments.stageDir, fileIdsAdded)
@@ -779,6 +783,7 @@ export module Controllers {
     }
 
     protected saveMetadata(brand, oid, currentRec, metadata, user): Observable < any > {
+      sails.log.verbose(`RecordController - saveMetadata - enter`);
       currentRec.metadata = metadata;
       return this.updateMetadata(brand, oid, currentRec, user);
     }
@@ -811,6 +816,8 @@ export module Controllers {
     }
 
     protected updateMetadata(brand, oid, currentRec, user) {
+      
+      sails.log.verbose(`RecordController - updateMetadata - enter`);
       if (currentRec.metaMetadata.brandId != brand.id) {
         return Observable.throw(new Error(`Failed to update meta, brand's don't match: ${currentRec.metaMetadata.brandId} != ${brand.id}, with oid: ${oid}`));
       }
