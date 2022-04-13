@@ -202,7 +202,7 @@ export class SelectionComponent extends SimpleComponent {
       <button type="button" class="btn btn-default" *ngIf="field.help" (click)="toggleHelp()" [attr.aria-label]="'help' | translate "><span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span></button>
      </label><br/>
      <span id="{{ 'helpBlock_' + field.name }}" class="help-block" *ngIf="this.helpShow" [innerHtml]="field.help"></span>
-     <select [compareWith]="compare" [formControl]="getFormControl()"  [id]="field.name" [ngClass]="field.cssClasses">
+     <select [compareWith]="field.compare" [formControl]="getFormControl()"  [id]="field.name" [ngClass]="field.cssClasses">
         <ng-template [ngIf]="!field.storeValueAndLabel">
           <option *ngFor="let opt of field.selectOptions" [value]="opt.value">{{opt.label}}</option>
         </ng-template>
@@ -210,8 +210,8 @@ export class SelectionComponent extends SimpleComponent {
           <option *ngFor="let opt of field.selectOptions" [ngValue]="opt">{{opt.label}}</option>
         </ng-template>
      </select>
-     <div class="text-danger" *ngIf="getFormControl().hasError('required') && getFormControl().touched && !field.validationMessages?.required">{{field.label}} is required</div>
-     <div class="text-danger" *ngIf="getFormControl().hasError('required') && getFormControl().touched && field.validationMessages?.required">{{field.validationMessages.required}}</div>
+     <div class="text-danger" *ngIf="getFormControl() && getFormControl().hasError('required') && getFormControl().touched && !field.validationMessages?.required">{{field.label}} is required</div>
+     <div class="text-danger" *ngIf="getFormControl() && getFormControl().hasError('required') && getFormControl().touched && field.validationMessages?.required">{{field.validationMessages.required}}</div>
   </div>
   <div *ngIf="!field.editMode && field.visible" class="key-value-pair">
     <span class="key" *ngIf="field.label">{{field.label}}</span>
@@ -227,17 +227,6 @@ export class SelectionComponent extends SimpleComponent {
 })
 export class DropdownFieldComponent extends SelectionComponent {
   static clName = 'DropdownFieldComponent';
-  compare = this.compareFn.bind(this);
-
-  compareFn(a, b) {
-    if (this.field.storeValueAndLabel) {
-      if (b == null || b == "") {
-        return a.value == b;
-      }
-      return a.value == b.value;
-    }
-    return a == b;
-  }
 }
 
 @Component({

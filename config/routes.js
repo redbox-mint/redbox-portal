@@ -242,6 +242,11 @@ module.exports.routes = {
     action: 'updateMeta',
     csrf: false
   },
+  'post /:branding/:portal/api/records/harvest/:recordType': {
+    controller: 'webservice/RecordController',
+    action: 'harvest',
+    csrf: false
+  },
   'put /:branding/:portal/api/records/objectmetadata/:oid': {
     controller: 'webservice/RecordController',
     action: 'updateObjectMeta',
@@ -382,6 +387,11 @@ module.exports.routes = {
     action: 'index',
     csrf: false
   },
+  'get /:branding/:portal/api/search/indexAll': {
+    controller: 'webservice/SearchController',
+    action: 'indexAll',
+    csrf: false
+  },
   'get /:branding/:portal/api/forms/get':{
     controller:'webservice/FormManagementController',
     action: 'getForm',
@@ -413,7 +423,12 @@ module.exports.routes = {
     action: 'sendNotification',
     csrf: false
   },
-
+  // TODO: named queries staged but not disabled, uncomment when ready
+  // 'get /:branding/:portal/api/report/namedQuery': {
+  //   controller: 'webservice/ReportController',
+  //   action: 'executeNamedQuery',
+  //   csrf: false
+  // },
   'get /:branding/:portal/workspaces/types/:name': 'WorkspaceTypesController.getOne',
   'get /:branding/:portal/workspaces/types': 'WorkspaceTypesController.get'
 };

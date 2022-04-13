@@ -1,7 +1,7 @@
 export {APIActionResponse} from "./APIActionResponse";
 export {APIErrorResponse} from "./APIErrorResponse";
 export {APIObjectActionResponse} from "./APIObjectActionResponse";
-
+export {APIHarvestResponse} from "./APIHarvestResponse";
 export {ListAPIResponse}from "./ListAPIResponse";
 export {ListAPISummary}from "./ListAPISummary";
 export {RecordAuditModel} from "./RecordAuditModel";

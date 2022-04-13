@@ -1,10 +1,10 @@
 {
   "name": "redbox-portal",
-  "version": "2.0.5-beta",
+  "version": "2.0.6",
   "description": "ReDBox 2 Portal",
   "keywords": [],
   "dependencies": {
-    "@researchdatabox/redbox-core-types": "^1.0.5-beta",
+    "@researchdatabox/redbox-core-types": "^1.0.6-beta",
     "@researchdatabox/sails-hook-redbox-storage-mongo": "^1.1.4-alpha",
     "@sailshq/upgrade": "^1.0.9",
     "@uppy/core": "^1.18.0",
@@ -47,7 +47,7 @@
     "lodash": "^4.17.21",
     "lodash-es": "^4.17.21",
     "lucene-escape-query": "^1.0.1",
-    "moment": "^2.29.1",
+    "moment": "^2.29.2",
     "mongodb": "^4.2.1",
     "ng2-completer": "9.0.1",
     "ng2-datetime": "^1.4.0",
