@@ -721,5 +721,6 @@
   "@header-view-only-description": "Description",
   "@header-view-only-edit-label": "Edit this publication",
   "@header-view-only-view-data-label": "View the associated data",
-  "oidc-login-session-destroyed": "There was an error logging you in, please try again."
+  "oidc-login-session-destroyed": "There was an error logging you in, please try again.",
+  "not-enough-disk-space": "There is not enough free space on disk to upload file"
 }

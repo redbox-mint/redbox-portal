@@ -27,6 +27,7 @@ import moment = require('moment');
 import * as tus from 'tus-node-server';
 import * as fs from 'fs';
 import * as url from 'url';
+const checkDiskSpace = require('check-disk-space').default;
 declare var _;
 
 declare var FormsService, WorkflowStepsService, BrandingService, RecordsService, RecordTypesService, TranslationService, User, UsersService, EmailService, RolesService;
@@ -1252,6 +1253,16 @@ export module Controllers {
         if (!hasEditAccess) {
           sails.log.error("Error: edit error no permissions in do attachment.");
           return Observable.throwError(new Error(TranslationService.t('edit-error-no-permissions')));
+        }
+        let uploadFileZise = req.headers['Upload-Length'];
+        let diskSpace = await checkDiskSpace(sails.config.record.mongodbDisk);
+        //set diskSpaceThreshold to a reasonable amount of space on disk that will be left free as a safety buffer 
+        let thresholdAppliedFileSize = uploadFileZise + sails.config.record.diskSpaceThreshold;
+        sails.log.verbose('Total File Size '+thresholdAppliedFileSize+' Total Free Space '+diskSpace.free);
+        if(diskSpace.free <= thresholdAppliedFileSize){
+          let errorMessage = TranslationService.t('not-enough-disk-space');
+          sails.log.error(errorMessage + ' Total File Size '+thresholdAppliedFileSize+' Total Free Space '+diskSpace.free);
+          return Observable.throwError(new Error(errorMessage));
         }
         // process the upload...
         this.tusServer.handle(req, res);
