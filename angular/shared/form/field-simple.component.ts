@@ -452,7 +452,7 @@ export class HtmlRawComponent extends SimpleComponent {
     <span *ngSwitchCase="'h5'" [ngClass]="field.cssClasses">{{field.value == null? '' : field.value}}</span>
     <span *ngSwitchCase="'h6'" [ngClass]="field.cssClasses">{{field.value == null? '' : field.value}}</span>
     <hr *ngSwitchCase="'hr'" [ngClass]="field.cssClasses">
-    <span *ngSwitchCase="'span'" [ngClass]="field.cssClasses">{{field.value == null? '' : field.value}}</span>
+    <span *ngSwitchCase="'span'" [ngClass]="field.cssClasses">{{field.label == null? '' : field.label + ': '}}{{field.value == null? '' : field.value}}</span>
     <p *ngSwitchDefault [ngClass]="field.cssClasses" [innerHtml]="field.value == null? '' : field.value"></p>
     <button type="button" class="btn btn-default" *ngIf="field.editMode && field.help" (click)="toggleHelp()" [attr.aria-label]="'help' | translate "><span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span></button>
   </div>
