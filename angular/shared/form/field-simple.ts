@@ -185,6 +185,7 @@ export class Container extends FieldBase<any> {
     this.active = options['active'] || false;
     this.type = options['type'] || '';
     this.isGroup = true;
+    this.label = this.getTranslated(options['label'], options['label']);
     this.hasControl = _.isUndefined(this.groupName);
     if (_.isEmpty(this.cssClasses) && _.startsWith(this.type, 'h')) {
       this.cssClasses = [`${this.type}-header`];

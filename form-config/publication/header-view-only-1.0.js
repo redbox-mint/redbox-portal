@@ -9,6 +9,18 @@ module.exports = [
     }
   },
   {
+    class: 'Container',
+    compClass: 'TextBlockComponent',
+    viewOnly: true,
+    definition: {
+      label: '@status-label',
+      value: '@record[workflow.stageLabel]',
+      cssClasses: 'badge badge-success',
+      type: 'span'
+    },
+    variableSubstitutionFields: ['value']
+  },
+  {
     class: "AnchorOrButton",
     viewOnly: true,
     definition: {
