@@ -62,7 +62,8 @@ export module Services {
       'runTemplates',
       'addWorkspaceToRecord',
       'queuedTriggerSubscriptionHandler',
-      'queueTriggerCall'
+      'queueTriggerCall',
+      'processQueuedFileUploadToFigshare'
     ];
 
     constructor() {
@@ -101,7 +102,7 @@ export module Services {
     public async processRecordCounters(oid, record, options, user) {
 
       const brandId = record.metaMetadata.brandId;
-      let processRecordCountersLogLevel = 'verbose'
+      let processRecordCountersLogLevel = 'verbose';
       if(sails.config.record.processRecordCountersLogLevel != null) {
         processRecordCountersLogLevel = sails.config.record.processRecordCountersLogLevel;
         sails.log.info(`processRecordCounters - log level ${sails.config.record.processRecordCountersLogLevel}`);
@@ -177,7 +178,7 @@ export module Services {
 
     private incrementCounter(record: any, counter: any, newVal: any) {
 
-      let processRecordCountersLogLevel = 'verbose'
+      let processRecordCountersLogLevel = 'verbose';
       if(sails.config.record.processRecordCountersLogLevel != null) {
         processRecordCountersLogLevel = sails.config.record.processRecordCountersLogLevel;
         sails.log.info(`incrementCounter - log level ${sails.config.record.processRecordCountersLogLevel}`);
@@ -330,7 +331,29 @@ export module Services {
           sails.log.error(hookFunction);
         }
       }
+    }
 
+    public processQueuedFileUploadToFigshare(job: any) {
+      let data = job.attrs.data;
+      let articleId = _.get(data, "articleId", null);
+      let dataPublicationRecord = _.get(data, "dataPublicationRecord", null);
+      let fileName = _.get(data, "fileName", null);
+      let fileSize = _.get(data, "fileSize", null);
+      let hookFunctionString = _.get(data, "function", null);
+      sails.log.verbose(`Found hook function string ${hookFunctionString}`);
+      if (hookFunctionString != null) {
+        let hookFunction = eval(hookFunctionString);
+        if (_.isFunction(hookFunction)) {
+          sails.log.debug(`Triggering queuedtrigger: ${hookFunctionString}`)
+          let hookResponse = hookFunction(articleId, dataPublicationRecord, fileName, fileSize);
+          let response = this.convertToObservable(hookResponse);
+          return response.toPromise();
+
+        } else {
+          sails.log.error(`queued trigger function: '${hookFunctionString}' did not resolve to a valid function, what I got:`);
+          sails.log.error(hookFunction);
+        }
+      }
     }
 
     private convertToObservable(hookResponse) {
