@@ -247,7 +247,9 @@ export module Services {
           let totalSizeOfFilesInRecord = 0;
           for(let attachmentFile of dataLocations) {
             sails.log[functionLogLevel](attachmentFile);
-            totalSizeOfFilesInRecord = totalSizeOfFilesInRecord + _.toInteger(attachmentFile.size);
+            if(!_.isUndefined(attachmentFile.size)) {
+              totalSizeOfFilesInRecord = totalSizeOfFilesInRecord + _.toInteger(attachmentFile.size);
+            }
           }
           
           sails.log[functionLogLevel]('checkTotalSizeOfFilesInRecord - totalSizeOfFilesInRecord '+totalSizeOfFilesInRecord);
