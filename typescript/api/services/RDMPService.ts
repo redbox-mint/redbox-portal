@@ -22,7 +22,8 @@ import {
 } from 'rxjs/Rx';
 import {
   QueueService,
-  Services as services
+  Services as services,
+  RBValidationError
 } from '@researchdatabox/redbox-core-types';
 import {
   Sails,
@@ -63,7 +64,8 @@ export module Services {
       'addWorkspaceToRecord',
       'queuedTriggerSubscriptionHandler',
       'queueTriggerCall',
-      'processQueuedFileUploadToFigshare'
+      'processQueuedFileUploadToFigshare',
+      'checkTotalSizeOfFilesInRecord'
     ];
 
     constructor() {
@@ -217,6 +219,47 @@ export module Services {
         sails.log[processRecordCountersLogLevel](arrayVal);
       }
       sails.log[processRecordCountersLogLevel]('incrementCounter - end');
+    }
+
+    public checkTotalSizeOfFilesInRecord(oid, record, options, user) {
+      let functionLogLevel = 'verbose';
+      if(sails.config.record.checkTotalSizeOfFilesInRecordLogLevel != null) {
+        functionLogLevel = sails.config.record.checkTotalSizeOfFilesInRecordLogLevel;
+        sails.log.info(`checkTotalSizeOfFilesInRecord - log level ${sails.config.record.checkTotalSizeOfFilesInRecordLogLevel}`);
+      } else {
+        sails.log.info(`checkTotalSizeOfFilesInRecord - log level ${functionLogLevel}`);
+      }
+      let dataLocations = record['metadata']['dataLocations'];
+      sails.log[functionLogLevel]('checkTotalSizeOfFilesInRecord - dataLocations');
+      sails.log[functionLogLevel](dataLocations);
+      if(!_.isUndefined(dataLocations)) {
+        let foundAttachment = false;
+
+        for(let attachmentFile of dataLocations) {
+          if(!_.isUndefined(attachmentFile) && !_.isEmpty(attachmentFile) && attachmentFile.type == 'attachment' && _.toInteger(attachmentFile.size) > 0) {
+            foundAttachment = true;
+            break;
+          }
+        }
+  
+        sails.log[functionLogLevel]('checkTotalSizeOfFilesInRecord - foundAttachment '+foundAttachment);
+        if(foundAttachment) {
+          let totalSizeOfFilesInRecord = 0;
+          for(let attachmentFile of dataLocations) {
+            sails.log[functionLogLevel](attachmentFile);
+            totalSizeOfFilesInRecord = totalSizeOfFilesInRecord + _.toInteger(attachmentFile.size);
+          }
+          
+          sails.log[functionLogLevel]('checkTotalSizeOfFilesInRecord - totalSizeOfFilesInRecord '+totalSizeOfFilesInRecord);
+          if(totalSizeOfFilesInRecord > sails.config.record.maxUploadSize) {
+            let customError: RBValidationError = new RBValidationError('Max upload total size is 1GB adding all files associated to the record');
+            throw customError;
+          }
+        }
+      }
+
+      sails.log[functionLogLevel]('checkTotalSizeOfFilesInRecord - end');
+      return record;
     }
 
     protected addEmailToList(contributor, emailProperty, emailList) {
