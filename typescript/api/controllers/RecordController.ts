@@ -1254,15 +1254,19 @@ export module Controllers {
           sails.log.error("Error: edit error no permissions in do attachment.");
           return Observable.throwError(new Error(TranslationService.t('edit-error-no-permissions')));
         }
+        sails.log.verbose(req.headers);
         let uploadFileZise = req.headers['Upload-Length'];
-        let diskSpace = await checkDiskSpace(sails.config.record.mongodbDisk);
-        //set diskSpaceThreshold to a reasonable amount of space on disk that will be left free as a safety buffer 
-        let thresholdAppliedFileSize = uploadFileZise + sails.config.record.diskSpaceThreshold;
-        sails.log.verbose('Total File Size '+thresholdAppliedFileSize+' Total Free Space '+diskSpace.free);
-        if(diskSpace.free <= thresholdAppliedFileSize){
-          let errorMessage = TranslationService.t('not-enough-disk-space');
-          sails.log.error(errorMessage + ' Total File Size '+thresholdAppliedFileSize+' Total Free Space '+diskSpace.free);
-          return Observable.throwError(new Error(errorMessage));
+        let diskSpaceThreshold = sails.config.record.diskSpaceThreshold;
+        if(!_.isUndefined(uploadFileZise) && !_.isUndefined(diskSpaceThreshold)) {
+          let diskSpace = await checkDiskSpace(sails.config.record.mongodbDisk);
+          //set diskSpaceThreshold to a reasonable amount of space on disk that will be left free as a safety buffer 
+          let thresholdAppliedFileSize = _.toInteger(uploadFileZise) + diskSpaceThreshold;
+          sails.log.verbose('Total File Size '+thresholdAppliedFileSize+' Total Free Space '+diskSpace.free);
+          if(diskSpace.free <= thresholdAppliedFileSize){
+            let errorMessage = TranslationService.t('not-enough-disk-space');
+            sails.log.error(errorMessage + ' Total File Size '+thresholdAppliedFileSize+' Total Free Space '+diskSpace.free);
+            return Observable.throwError(new Error(errorMessage));
+          }
         }
         // process the upload...
         this.tusServer.handle(req, res);

@@ -380,23 +380,25 @@ export module Services {
 
     public processQueuedFileUploadToFigshare(job: any) {
       let data = job.attrs.data;
+      let oid = _.get(data, "oid", null);
+      let attachId = _.get(data, "attachId", null);
       let articleId = _.get(data, "articleId", null);
       let dataPublicationRecord = _.get(data, "dataPublicationRecord", null);
       let fileName = _.get(data, "fileName", null);
       let fileSize = _.get(data, "fileSize", null);
-      let hookFunctionString = _.get(data, "function", null);
-      sails.log.verbose(`Found hook function string ${hookFunctionString}`);
-      if (hookFunctionString != null) {
-        let hookFunction = eval(hookFunctionString);
-        if (_.isFunction(hookFunction)) {
-          sails.log.debug(`Triggering queuedtrigger: ${hookFunctionString}`)
-          let hookResponse = hookFunction(articleId, dataPublicationRecord, fileName, fileSize);
+      let figshareUploadHookFunctionString = _.get(data, "function", null);
+      sails.log.verbose(`Found hook function string ${figshareUploadHookFunctionString}`);
+      if (figshareUploadHookFunctionString != null) {
+        let figshareUploadHookFunction = eval(figshareUploadHookFunctionString);
+        if (_.isFunction(figshareUploadHookFunction)) {
+          sails.log.debug(`Triggering queuedtrigger: ${figshareUploadHookFunctionString}`)
+          let hookResponse = figshareUploadHookFunction(oid, attachId, articleId, dataPublicationRecord, fileName, fileSize);
           let response = this.convertToObservable(hookResponse);
           return response.toPromise();
 
         } else {
-          sails.log.error(`queued trigger function: '${hookFunctionString}' did not resolve to a valid function, what I got:`);
-          sails.log.error(hookFunction);
+          sails.log.error(`queued trigger function: '${figshareUploadHookFunctionString}' did not resolve to a valid function, what I got:`);
+          sails.log.error(figshareUploadHookFunction);
         }
       }
     }
