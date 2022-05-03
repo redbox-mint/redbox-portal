@@ -34,7 +34,7 @@ declare var FormsService, WorkflowStepsService, BrandingService, RecordsService,
 /**
  * Package that contains all Controllers.
  */
-import { Controllers as controllers, DatastreamService, RecordsService, SearchService} from '@researchdatabox/redbox-core-types';
+import { Controllers as controllers, DatastreamService, RecordsService, SearchService } from '@researchdatabox/redbox-core-types';
 
 export module Controllers {
   /**
@@ -94,7 +94,7 @@ export module Controllers {
      **************************************************************************************************
      */
 
-    public bootstrap() {}
+    public bootstrap() { }
 
     public getMeta(req, res) {
       const brand = BrandingService.getBrand(req.session.branding);
@@ -166,7 +166,7 @@ export module Controllers {
       }
     }
 
-    protected hasEditAccess(brand, user, currentRec): Observable < boolean > {
+    protected hasEditAccess(brand, user, currentRec): Observable<boolean> {
       sails.log.verbose("Current Record: ");
       sails.log.verbose(currentRec);
       return Observable.of(this.recordsService.hasEditAccess(brand, user, user.roles, currentRec));
@@ -471,10 +471,10 @@ export module Controllers {
     }
 
     public create(req, res) {
-      this.createInternal(req,res).then(result => {});
+      this.createInternal(req, res).then(result => { });
     }
 
-    private async createInternal(req,res) {
+    private async createInternal(req, res) {
       const brand = BrandingService.getBrand(req.session.branding);
       const metadata = req.body;
       let record: any = {
@@ -500,19 +500,19 @@ export module Controllers {
         record.metaMetadata.packageType = recordType.packageType;
       }
 
-        if (recordType.packageName) {
-          record.metaMetadata.packageName = recordType.packageName;
-        }
-        let wfStep = await WorkflowStepsService.getFirst(recordType).toPromise();
-        if (targetStep) {
-          wfStep = await  WorkflowStepsService.get(recType, targetStep).toPromise();
-        }
-       try{
-          this.recordsService.updateWorkflowStep(record, wfStep);
-          return this.createRecord(record, brand, recordType, req, res);
-        }catch (error) {
-          this.ajaxFail(req, res, `Failed to save record: ${error}`);
-        }
+      if (recordType.packageName) {
+        record.metaMetadata.packageName = recordType.packageName;
+      }
+      let wfStep = await WorkflowStepsService.getFirst(recordType).toPromise();
+      if (targetStep) {
+        wfStep = await WorkflowStepsService.get(recType, targetStep).toPromise();
+      }
+      try {
+        this.recordsService.updateWorkflowStep(record, wfStep);
+        return this.createRecord(record, brand, recordType, req, res);
+      } catch (error) {
+        this.ajaxFail(req, res, `Failed to save record: ${error}`);
+      }
 
     }
 
@@ -527,56 +527,54 @@ export module Controllers {
       record.metaMetadata.attachmentFields = form.attachmentFields;
       let response = await this.recordsService.create(brand, record, recordType, user);
 
-      sails.log.verbose('RecordController - createRecord - enter');
       let updateResponse = response;
       if (response && _.isFunction(response.isSuccessful) && response.isSuccessful()) {
-            oid = response.oid;
-            if (!_.isEmpty(record.metaMetadata.attachmentFields)) {
-              // check if we have any pending-oid elements
-              _.each(record.metaMetadata.attachmentFields, (attFieldName) => {
-                _.each(_.get(record.metadata, attFieldName), (attFieldEntry, attFieldIdx) => {
-                  if (!_.isEmpty(attFieldEntry)) {
-                    _.each(fieldsToCheck, (fldName) => {
-                      const fldVal = _.get(attFieldEntry, fldName);
-                      if (!_.isEmpty(fldVal)) {
-                        _.set(record.metadata, `${attFieldName}[${attFieldIdx}].${fldName}`, _.replace(fldVal, 'pending-oid', oid));
-                      }
-                    });
+        oid = response.oid;
+        if (!_.isEmpty(record.metaMetadata.attachmentFields)) {
+          // check if we have any pending-oid elements
+          _.each(record.metaMetadata.attachmentFields, (attFieldName) => {
+            _.each(_.get(record.metadata, attFieldName), (attFieldEntry, attFieldIdx) => {
+              if (!_.isEmpty(attFieldEntry)) {
+                _.each(fieldsToCheck, (fldName) => {
+                  const fldVal = _.get(attFieldEntry, fldName);
+                  if (!_.isEmpty(fldVal)) {
+                    _.set(record.metadata, `${attFieldName}[${attFieldIdx}].${fldName}`, _.replace(fldVal, 'pending-oid', oid));
                   }
                 });
-              });
-              // update the metadata ...
-              sails.log.verbose('RecordController - createRecord - before - recordsService.updateMeta');
-              let updateResponse = await this.recordsService.updateMeta(brand, oid, record, user, false, false);
-            } else {
-              // no need for update... return the creation response
-            }
-          } else {
-            sails.log.error(`Failed to save record:`);
-            sails.log.error(JSON.stringify(response));
-            // return the rsponse instead of throwing an exception
-          }
-          try {
-          // handle datastream update
-        if (updateResponse && _.isFunction(updateResponse.isSuccessful) && updateResponse.isSuccessful()) {
-            if (!_.isEmpty(record.metaMetadata.attachmentFields)) {
-              // we emtpy the data locations in cloned record so we can reuse the same `this.updateDataStream` method call
-              const emptyDatastreamRecord = _.cloneDeep(record);
-              _.each(record.metaMetadata.attachmentFields, (attFieldName: any) => {
-                _.set(emptyDatastreamRecord.metadata, attFieldName, []);
-              });
-              // update the datastreams in RB, this is a terminal call
-              return this.updateDataStream(oid, emptyDatastreamRecord, record.metadata, response, req, res);
-            } else {
-              // terminate the request
-              this.ajaxOk(req, res, null, updateResponse);
-            }
-          } else {
-            this.ajaxFail(req, res, null, response);
-          }
-        } catch(error){
-          throw new Error(`Failed to save record: ${error}`);
+              }
+            });
+          });
+          // update the metadata ...
+          let updateResponse = await this.recordsService.updateMeta(brand, oid, record, user, false, false);
+        } else {
+          // no need for update... return the creation response
         }
+      } else {
+        sails.log.error(`Failed to save record:`);
+        sails.log.error(JSON.stringify(response));
+        // return the rsponse instead of throwing an exception
+      }
+      try {
+        // handle datastream update
+        if (updateResponse && _.isFunction(updateResponse.isSuccessful) && updateResponse.isSuccessful()) {
+          if (!_.isEmpty(record.metaMetadata.attachmentFields)) {
+            // we emtpy the data locations in cloned record so we can reuse the same `this.updateDataStream` method call
+            const emptyDatastreamRecord = _.cloneDeep(record);
+            _.each(record.metaMetadata.attachmentFields, (attFieldName: any) => {
+              _.set(emptyDatastreamRecord.metadata, attFieldName, []);
+            });
+            // update the datastreams in RB, this is a terminal call
+            return this.updateDataStream(oid, emptyDatastreamRecord, record.metadata, response, req, res);
+          } else {
+            // terminate the request
+            this.ajaxOk(req, res, null, updateResponse);
+          }
+        } else {
+          this.ajaxFail(req, res, null, response);
+        }
+      } catch (error) {
+        throw new Error(`Failed to save record: ${error}`);
+      }
     }
 
 
@@ -587,9 +585,9 @@ export module Controllers {
       let currentRec = null;
       let message = null;
       this.getRecord(oid).flatMap(cr => {
-          currentRec = cr;
-          return this.hasEditAccess(brand, user, currentRec);
-        })
+        currentRec = cr;
+        return this.hasEditAccess(brand, user, currentRec);
+      })
         .flatMap(hasEditAccess => {
           if (hasEditAccess) {
             return Observable.fromPromise(this.recordsService.delete(oid));
@@ -618,15 +616,18 @@ export module Controllers {
           if (message == null) {
             message = error.message;
           } else
-          if (error.error && error.error.code == 500) {
-            message = TranslationService.t('missing-record');
-          }
+            if (error.error && error.error.code == 500) {
+              message = TranslationService.t('missing-record');
+            }
           this.ajaxFail(req, res, message);
         });
     }
 
     public update(req, res) {
+      this.updateInternal(req, res).then(result => { });
+    }
 
+    private async updateInternal(req, res) {
       const brand = BrandingService.getBrand(req.session.branding);
       const metadata = req.body;
       const oid = req.param('oid');
@@ -639,95 +640,85 @@ export module Controllers {
 
       sails.log.verbose('RecordController - update - enter');
 
-      this.getRecord(oid).flatMap(cr => {
-          currentRec = cr;
-          return this.hasEditAccess(brand, user, currentRec);
-        })
-        .flatMap(hasEditAccess => {
-          return RecordTypesService.get(brand, currentRec.metaMetadata.type)
-        }).flatMap(recordType => {
-          recType = recordType;
-          if (targetStep) {
-            return WorkflowStepsService.get(recType, targetStep);
-          } else {
-            return Observable.of(null);
-          }
-        }).flatMap(nextStepResp => {
-          if (metadata.delete) {
-            return Observable.of(currentRec);
-          }
-          let nextStep:any = nextStepResp;
-          let hasPermissionToTransition = true;
-          if (nextStep != undefined) {
-            if (nextStep.config != undefined) {
-              if (nextStep.config.authorization.transitionRoles != undefined) {
-                if (nextStep.config.authorization.transitionRoles.length > 0) {
-                  let validRoles = _.filter(nextStep.config.authorization.transitionRoles, role => {
-                    let val = _.find(user.roles, userRole => {
-                      return role == userRole || role == userRole.name;
-                    });
-                    if (val != undefined) {
-                      return true;
-                    }
-                    return false;
+      let cr = await this.getRecord(oid).toPromise()
+      currentRec = cr;
+      let hasEditAccess = await this.hasEditAccess(brand, user, currentRec).toPromise();
+      if (!hasEditAccess) {
+        return res.forbidden();
+      }
+      let recordType = await RecordTypesService.get(brand, currentRec.metaMetadata.type).toPromise();
+      recType = recordType;
+      let nextStepResp = null;
+      if (targetStep) {
+        nextStepResp = await WorkflowStepsService.get(recType, targetStep).toPromise();
+      }
+      if (!metadata.delete) {
+
+        let nextStep: any = nextStepResp;
+        let hasPermissionToTransition = true;
+        if (nextStep != undefined) {
+          if (nextStep.config != undefined) {
+            if (nextStep.config.authorization.transitionRoles != undefined) {
+              if (nextStep.config.authorization.transitionRoles.length > 0) {
+                let validRoles = _.filter(nextStep.config.authorization.transitionRoles, role => {
+                  let val = _.find(user.roles, userRole => {
+                    return role == userRole || role == userRole.name;
                   });
-                  if (validRoles.length == 0) {
-                    hasPermissionToTransition = false;
+                  if (val != undefined) {
+                    return true;
                   }
+                  return false;
+                });
+                if (validRoles.length == 0) {
+                  hasPermissionToTransition = false;
                 }
               }
             }
           }
-          if (hasPermissionToTransition) {
-            this.recordsService.updateWorkflowStep(currentRec, nextStep);
+        }
+        if (hasPermissionToTransition) {
+          this.recordsService.updateWorkflowStep(currentRec, nextStep);
+        }
+        origRecord = _.cloneDeep(currentRec);
+        currentRec.metadata = metadata;
+      }
+
+      try {
+        if (metadata.delete) {
+          let response = await this.recordsService.delete(oid);
+          if (response && response.isSuccessful()) {
+            response.success = true;
+            sails.log.verbose(`Successfully deleted: ${oid}`);
+            this.ajaxOk(req, res, null, response);
+          } else {
+            this.ajaxFail(req, res, TranslationService.t('failed-delete'), response);
           }
-          origRecord = _.cloneDeep(currentRec);
-          currentRec.metadata = metadata;
-
-          return Observable.of(currentRec);
-
-        }).subscribe(record => {
-          if (metadata.delete) {
-            Observable.fromPromise(this.recordsService.delete(oid)).subscribe(response => {
-              if (response && response.isSuccessful()) {
-                response.success = true;
-                sails.log.verbose(`Successfully deleted: ${oid}`);
-                this.ajaxOk(req, res, null, response);
-              } else {
-                this.ajaxFail(req, res, TranslationService.t('failed-delete'), response);
-              }
-            }, error => {
-              sails.log.error(`Error deleting: ${oid}`);
-              sails.log.error(error);
-              this.ajaxFail(req, res, error.message);
-            });
-            return;
-          }
-
-          if (record.metadata) {
-            record = Observable.of(record);
-          }
-          record.subscribe(currentRec => {
+        }
+      } catch (error) {
+        sails.log.error(`Error deleting: ${oid}`);
+        sails.log.error(error);
+        this.ajaxFail(req, res, error.message);
+      }
 
 
-            return FormsService.getFormByName(currentRec.metaMetadata.form, true)
-              .flatMap(form => {
-                currentRec.metaMetadata.attachmentFields = form.attachmentFields;
-                return this.updateMetadata(brand, oid, currentRec, user);
-              })
-              .subscribe(response => {
-                if (response && response.isSuccessful()) {
-                  return this.updateDataStream(oid, origRecord, metadata, response, req, res);
-                } else {
-                  this.ajaxFail(req, res, null, response);
-                }
-              }, error => {
-                sails.log.error("Error updating meta:");
-                sails.log.error(error);
-                this.ajaxFail(req, res, error.message);
-              });
-          });
-        });
+
+
+
+      let form = await FormsService.getFormByName(currentRec.metaMetadata.form, true).toPromise()
+      currentRec.metaMetadata.attachmentFields = form.attachmentFields;
+      try {
+        let response = await this.updateMetadata(brand, oid, currentRec, user).toPromise();
+
+        if (response && response.isSuccessful()) {
+          return this.updateDataStream(oid, origRecord, metadata, response, req, res);
+        } else {
+          this.ajaxFail(req, res, null, response);
+        }
+      } catch (error) {
+        sails.log.error("Error updating meta:");
+        sails.log.error(error);
+        this.ajaxFail(req, res, error.message);
+      }
 
     }
 
@@ -783,14 +774,13 @@ export module Controllers {
         });
     }
 
-    protected saveMetadata(brand, oid, currentRec, metadata, user): Observable < any > {
-      sails.log.verbose(`RecordController - saveMetadata - enter`);
+    protected saveMetadata(brand, oid, currentRec, metadata, user): Observable<any> {
       currentRec.metadata = metadata;
       return this.updateMetadata(brand, oid, currentRec, user);
     }
 
-    protected saveAuthorization(brand, oid, currentRec, authorization, user): Observable < any > {
-      let editAccessResp:Observable<boolean> = this.hasEditAccess(brand, user, currentRec);
+    protected saveAuthorization(brand, oid, currentRec, authorization, user): Observable<any> {
+      let editAccessResp: Observable<boolean> = this.hasEditAccess(brand, user, currentRec);
       return editAccessResp
         .map(hasEditAccess => {
           if (hasEditAccess) {
@@ -843,29 +833,29 @@ export module Controllers {
       const targetStep = req.param('targetStep');
       let origRecord = null;
       return this.getRecord(oid).flatMap(currentRec => {
-          origRecord = _.cloneDeep(currentRec);
-          return this.hasEditAccess(brand, req.user, currentRec)
-            .flatMap(hasEditAccess => {
-              if (!hasEditAccess) {
-                return Observable.throw(new Error(TranslationService.t('edit-error-no-permissions')));
-              }
-              return RecordTypesService.get(brand, origRecord.metaMetadata.type);
-            })
-            .flatMap(recType => {
-              return WorkflowStepsService.get(recType, targetStep)
-                .flatMap(nextStep => {
-                  currentRec.metadata = metadata;
-                  sails.log.verbose("Current rec:");
-                  sails.log.verbose(currentRec);
-                  sails.log.verbose("Next step:");
-                  sails.log.verbose(nextStep);
-                  this.recordsService.updateWorkflowStep(currentRec, nextStep);
-                  return this.updateMetadata(brand, oid, currentRec, req.user);
-                });
-            })
-        })
+        origRecord = _.cloneDeep(currentRec);
+        return this.hasEditAccess(brand, req.user, currentRec)
+          .flatMap(hasEditAccess => {
+            if (!hasEditAccess) {
+              return Observable.throw(new Error(TranslationService.t('edit-error-no-permissions')));
+            }
+            return RecordTypesService.get(brand, origRecord.metaMetadata.type);
+          })
+          .flatMap(recType => {
+            return WorkflowStepsService.get(recType, targetStep)
+              .flatMap(nextStep => {
+                currentRec.metadata = metadata;
+                sails.log.verbose("Current rec:");
+                sails.log.verbose(currentRec);
+                sails.log.verbose("Next step:");
+                sails.log.verbose(nextStep);
+                this.recordsService.updateWorkflowStep(currentRec, nextStep);
+                return this.updateMetadata(brand, oid, currentRec, req.user);
+              });
+          })
+      })
         .subscribe(response => {
-          let responseValue:Observable<any> = response;
+          let responseValue: Observable<any> = response;
           return responseValue.subscribe(response => {
             sails.log.error(response);
             if (response && response.isSuccessful()) {
@@ -899,9 +889,9 @@ export module Controllers {
           if (_.has(metaMetadata, field.definition.name)) {
             field.definition.value = metaMetadata[field.definition.name];
           } else
-          if (_.has(metadata, field.definition.name)) {
-            field.definition.value = metadata[field.definition.name];
-          }
+            if (_.has(metadata, field.definition.name)) {
+              field.definition.value = metadata[field.definition.name];
+            }
         }
         this.replaceCustomFields(req, res, field, currentRec);
         const val = field.definition.value;
@@ -943,9 +933,9 @@ export module Controllers {
             fld.definition.value = _.get(metadata, `${field.definition.name}.${fld.definition.name}`);
           });
         } else
-        if (field.definition.fields) {
-          this.mergeFieldsSync(req, res, field.definition.fields, currentRec, workflowSteps);
-        }
+          if (field.definition.fields) {
+            this.mergeFieldsSync(req, res, field.definition.fields, currentRec, workflowSteps);
+          }
       });
       _.remove(fields, (f) => {
         return _.includes(fieldsToDelete, f);
@@ -976,7 +966,7 @@ export module Controllers {
                     break;
                 }
               }
-              
+
               if (customConfig.source == 'record' || customConfig.source == "metadata") {
                 const startIdx = fieldTarget.indexOf(customKey);
                 const endIdx = fieldTarget.indexOf(']', startIdx);
@@ -993,7 +983,7 @@ export module Controllers {
                 }
                 replacement = _.get(dataSrc, metadataField);
               }
-              
+
 
               if (!_.isEmpty(replacement)) {
                 if (customConfig.parseUrl && customConfig.searchParams) {
@@ -1007,6 +997,7 @@ export module Controllers {
         });
       }
     }
+
 
     /**
      *  Not currently used as transfer responsibility is configured.
@@ -1077,21 +1068,21 @@ export module Controllers {
       const type = req.param('type');
       let rows = req.param('rows');
       let page = req.param('page');
-      if(_.isEmpty(rows)) {
+      if (_.isEmpty(rows)) {
         rows = 10
       }
-      if(_.isEmpty(page)) {
+      if (_.isEmpty(page)) {
         page = 1
       }
       let start = 0
-      if(/^\d+$/.test(page)) { 
+      if (/^\d+$/.test(page)) {
         page = parseInt(page)
       }
       if (/^\d+$/.test(rows)) {
         rows = parseInt(rows)
       }
 
-      start = (page-1)* rows;
+      start = (page - 1) * rows;
 
       const workflow = req.query.workflow;
       const searchString = req.query.searchStr;
@@ -1221,12 +1212,12 @@ export module Controllers {
           return Observable.throwError(new Error(TranslationService.t('attachment-not-found')))
         }
         let mimeType = found.mimeType;
-        if(_.isEmpty(mimeType)) {
+        if (_.isEmpty(mimeType)) {
           // Set octet stream as a default
           mimeType = 'application/octet-stream'
         }
         res.set('Content-Type', mimeType);
-        sails.log.verbose("found.name "+found.name);
+        sails.log.verbose("found.name " + found.name);
         res.attachment(found.name);
         sails.log.verbose(`Returning datastream observable of ${oid}: ${found.name}, attachId: ${attachId}`);
         that.datastreamService.getDatastream(oid, attachId).subscribe(response => {
@@ -1359,7 +1350,7 @@ export module Controllers {
       } else {
         const fileName = req.param('fileName') ? req.param('fileName') : datastreamId;
         res.set('Content-Type', 'application/octet-stream');
-        sails.log.verbose("fileName "+fileName);
+        sails.log.verbose("fileName " + fileName);
         res.attachment(fileName);
         sails.log.verbose(`Returning datastream observable of ${oid}: ${fileName}, datastreamId: ${datastreamId}`);
 

@@ -26,6 +26,9 @@ services:
       # When testing using the API
       # - sails_auth__default__local__default__token=d077835a-696b-4728-85cf-3ffd57152b1e
       # - sails_security__csrf=false
+    # depends_on:
+    #   keycloak:
+    #     condition: service_healthy
     networks:
       main:
         aliases:
@@ -57,3 +60,25 @@ services:
       - docker-entrypoint.sh
       - solr-precreate
       - redbox
+  # keycloak:
+  #   image: quay.io/keycloak/keycloak:17.0.1
+  #   expose:
+  #     - "8080"
+  #   ports:
+  #     - "8080:8080"
+  #   # environment:
+  #   #   - KEYCLOAK_ADMIN=admin
+  #   #   - KEYCLOAK_ADMIN_PASSWORD=admin
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "curl http://localhost:8080"]
+  #     interval: 5s
+  #     timeout: 5s
+  #     retries: 10
+  #   volumes:
+  #     - "../integration-testing/keycloakdb/data:/opt/keycloak/data"
+  #   networks:
+  #     main:
+  #      aliases:
+  #        - keycloak
+  #   command:
+  #     - start-dev
