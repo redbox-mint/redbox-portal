@@ -279,7 +279,7 @@ export class DataLocationComponent extends SimpleComponent {
       const fileId = urlParts[urlParts.length - 1];
       const oidUrlPosition = _.indexOf(urlParts, oid);
       const choppedUrl = urlParts.slice(oidUrlPosition, urlParts.length).join('/');
-      const newLoc = { type: "attachment", pending: true, location: choppedUrl, notes: file.meta.notes, mimeType: file.type, name: file.meta.name, fileId: fileId, uploadUrl: uploadURL };
+      const newLoc = { type: "attachment", pending: true, location: choppedUrl, notes: file.meta.notes, mimeType: file.type, name: file.meta.name, fileId: fileId, uploadUrl: uploadURL, size: file.size };
       console.debug(`Adding new location:`);
       console.debug(newLoc);
       this.field.appendLocation(newLoc);

@@ -27,6 +27,7 @@ import moment = require('moment');
 import * as tus from 'tus-node-server';
 import * as fs from 'fs';
 import * as url from 'url';
+const checkDiskSpace = require('check-disk-space').default;
 declare var _;
 
 declare var FormsService, WorkflowStepsService, BrandingService, RecordsService, RecordTypesService, TranslationService, User, UsersService, EmailService, RolesService;
@@ -637,6 +638,7 @@ export module Controllers {
       const failedAttachments = [];
       let recType = null;
 
+      sails.log.verbose('RecordController - update - enter');
 
       let cr = await this.getRecord(oid).toPromise()
       currentRec = cr;
@@ -727,6 +729,7 @@ export module Controllers {
      * Handles data stream updates, atm, this call is terminal.
      */
     protected updateDataStream(oid, origRecord, metadata, response, req, res) {
+      sails.log.verbose(`RecordController - updateDataStream - enter`);
       const fileIdsAdded = [];
 
       return this.datastreamService.updateDatastream(oid, origRecord, metadata, sails.config.record.attachments.stageDir, fileIdsAdded)
@@ -804,6 +807,8 @@ export module Controllers {
     }
 
     protected updateMetadata(brand, oid, currentRec, user) {
+      
+      sails.log.verbose(`RecordController - updateMetadata - enter`);
       if (currentRec.metaMetadata.brandId != brand.id) {
         return Observable.throw(new Error(`Failed to update meta, brand's don't match: ${currentRec.metaMetadata.brandId} != ${brand.id}, with oid: ${oid}`));
       }
@@ -1239,6 +1244,20 @@ export module Controllers {
         if (!hasEditAccess) {
           sails.log.error("Error: edit error no permissions in do attachment.");
           return Observable.throwError(new Error(TranslationService.t('edit-error-no-permissions')));
+        }
+        sails.log.verbose(req.headers);
+        let uploadFileZise = req.headers['Upload-Length'];
+        let diskSpaceThreshold = sails.config.record.diskSpaceThreshold;
+        if(!_.isUndefined(uploadFileZise) && !_.isUndefined(diskSpaceThreshold)) {
+          let diskSpace = await checkDiskSpace(sails.config.record.mongodbDisk);
+          //set diskSpaceThreshold to a reasonable amount of space on disk that will be left free as a safety buffer 
+          let thresholdAppliedFileSize = _.toInteger(uploadFileZise) + diskSpaceThreshold;
+          sails.log.verbose('Total File Size '+thresholdAppliedFileSize+' Total Free Space '+diskSpace.free);
+          if(diskSpace.free <= thresholdAppliedFileSize){
+            let errorMessage = TranslationService.t('not-enough-disk-space');
+            sails.log.error(errorMessage + ' Total File Size '+thresholdAppliedFileSize+' Total Free Space '+diskSpace.free);
+            return Observable.throwError(new Error(errorMessage));
+          }
         }
         // process the upload...
         this.tusServer.handle(req, res);

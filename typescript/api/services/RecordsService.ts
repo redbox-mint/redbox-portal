@@ -29,7 +29,8 @@ import {
   SearchService,
   Services as services,
   StorageService,
-  StorageServiceResponse
+  StorageServiceResponse,
+  RBValidationError
 } from '@researchdatabox/redbox-core-types';
 
 import {
@@ -71,6 +72,7 @@ export module Services {
 
     searchService: SearchService = null;
     protected queueService: QueueService = null;
+    private nameRBValidationError = 'RBValidationError';
 
 
     constructor() {
@@ -144,9 +146,14 @@ export module Services {
         try {
           record = await this.triggerPreSaveTriggers(null, record, recordType, "onCreate", user);
         } catch (err) {
-          sails.log.error(`${this.logHeader} Failed to run pre-save hooks when updating..`);
-          sails.log.error(JSON.stringify(err));
-          createResponse.message = failedMessage;
+          sails.log.error(`${this.logHeader} Failed to run pre-save hooks when onCreate...`);
+          if(err.name == this.nameRBValidationError) {
+            sails.log.error(err.message);
+            createResponse.message = err.message;
+          } else {
+            sails.log.error(JSON.stringify(err));
+            createResponse.message = failedMessage;
+          }
           return createResponse;
         }
       }
@@ -203,9 +210,14 @@ export module Services {
           recordType = await RecordTypesService.get(brand, record.metaMetadata.type).toPromise();
           record = await this.triggerPreSaveTriggers(oid, record, recordType, "onUpdate", user);
         } catch (err) {
-          sails.log.error(`${this.logHeader} Failed to run pre-save hooks when updating..`);
-          sails.log.error(JSON.stringify(err));
-          updateResponse.message = failedMessage;
+          sails.log.error(`${this.logHeader} Failed to run pre-save hooks when onUpdate...`);
+          if(err.name == this.nameRBValidationError) {
+            sails.log.error(err.message);
+            updateResponse.message = err.message;
+          } else {
+            sails.log.error(JSON.stringify(err));
+            updateResponse.message = failedMessage;
+          }
           return updateResponse;
         }
       }
