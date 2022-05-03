@@ -544,36 +544,44 @@ export module Controllers {
               }
             });
           });
-          // update the metadata ...
-          let updateResponse = await this.recordsService.updateMeta(brand, oid, record, user, false, false);
-        } else {
-          // no need for update... return the creation response
-        }
-      } else {
-        sails.log.error(`Failed to save record:`);
-        sails.log.error(JSON.stringify(response));
-        // return the rsponse instead of throwing an exception
-      }
-      try {
-        // handle datastream update
-        if (updateResponse && _.isFunction(updateResponse.isSuccessful) && updateResponse.isSuccessful()) {
-          if (!_.isEmpty(record.metaMetadata.attachmentFields)) {
+
+          try {
+            // handle datastream update
             // we emtpy the data locations in cloned record so we can reuse the same `this.updateDataStream` method call
             const emptyDatastreamRecord = _.cloneDeep(record);
             _.each(record.metaMetadata.attachmentFields, (attFieldName: any) => {
               _.set(emptyDatastreamRecord.metadata, attFieldName, []);
             });
             // update the datastreams in RB, this is a terminal call
-            return this.updateDataStream(oid, emptyDatastreamRecord, record.metadata, response, req, res);
-          } else {
-            // terminate the request
-            this.ajaxOk(req, res, null, updateResponse);
+            sails.log.verbose(`RecordController - createRecord - updateDataStream`);
+            const fileIdsAdded = [];
+            let responseDatastream = await this.datastreamService.updateDatastream(oid, emptyDatastreamRecord, record.metadata, sails.config.record.attachments.stageDir, fileIdsAdded).toPromise();
+
+            //TODO potentially cleaning staging folder here upon success???
+            
+            // update the metadata ...
+            let updateResponse = await this.recordsService.updateMeta(brand, oid, record, user, false, false);
+            if (updateResponse && _.isFunction(updateResponse.isSuccessful) && updateResponse.isSuccessful()) {
+              // terminate the request
+              this.ajaxOk(req, res, null, updateResponse);
+              return updateResponse;
+            } else {
+              this.ajaxFail(req, res, null, updateResponse);
+            }
+          } catch (error) {
+            throw new Error(`Failed to save record: ${error}`);
           }
+
         } else {
-          this.ajaxFail(req, res, null, response);
+          // no need for update... return the creation response
+          //TODO added return here but double check with Andrew ????
+          return response;
         }
-      } catch (error) {
-        throw new Error(`Failed to save record: ${error}`);
+      } else {
+        sails.log.error(`Failed to save record:`);
+        sails.log.error(JSON.stringify(response));
+        // return the rsponse instead of throwing an exception
+        //TODO double check what to do here????
       }
     }
 
@@ -700,17 +708,20 @@ export module Controllers {
         this.ajaxFail(req, res, error.message);
       }
 
-
-
-
-
-      let form = await FormsService.getFormByName(currentRec.metaMetadata.form, true).toPromise()
+      let form = await FormsService.getFormByName(currentRec.metaMetadata.form, true).toPromise();
       currentRec.metaMetadata.attachmentFields = form.attachmentFields;
       try {
+        
+        sails.log.verbose(`RecordController - createRecord - updateDataStream`);
+        const fileIdsAdded = [];
+        let responseDatastream = await this.datastreamService.updateDatastream(oid, currentRec, currentRec.metadata, sails.config.record.attachments.stageDir, fileIdsAdded).toPromise();
+        
+        //TODO potentially cleaning staging folder here upon success???
+        
         let response = await this.updateMetadata(brand, oid, currentRec, user).toPromise();
 
         if (response && response.isSuccessful()) {
-          return this.updateDataStream(oid, origRecord, metadata, response, req, res);
+          return response;
         } else {
           this.ajaxFail(req, res, null, response);
         }
@@ -721,9 +732,6 @@ export module Controllers {
       }
 
     }
-
-
-
 
     /**
      * Handles data stream updates, atm, this call is terminal.
@@ -794,8 +802,6 @@ export module Controllers {
           }
         });
     }
-
-
 
     protected getRecord(oid) {
       return Observable.fromPromise(this.recordsService.getMeta(oid)).flatMap(currentRec => {
