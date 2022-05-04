@@ -523,6 +523,7 @@ export module Controllers {
       const fieldsToCheck = ['location', 'uploadUrl'];
       let form = await FormsService.getFormByName(record.metaMetadata.form, true).toPromise();
 
+      sails.log.error(`RecordController - createRecord - enter`);
       formDef = form;
       record.metaMetadata.attachmentFields = form.attachmentFields;
       let response = await this.recordsService.create(brand, record, recordType, user);
@@ -547,44 +548,38 @@ export module Controllers {
 
           try {
             // handle datastream update
-            // we emtpy the data locations in cloned record so we can reuse the same `this.updateDataStream` method call
+            // we emtpy the data locations in cloned record so we can reuse the same `handleUpdateDataStream` method call
             const emptyDatastreamRecord = _.cloneDeep(record);
             _.each(record.metaMetadata.attachmentFields, (attFieldName: any) => {
               _.set(emptyDatastreamRecord.metadata, attFieldName, []);
             });
             // update the datastreams in RB, this is a terminal call
-            sails.log.verbose(`RecordController - createRecord - updateDataStream`);
-            const fileIdsAdded = [];
-            let responseDatastream = await this.datastreamService.updateDatastream(oid, emptyDatastreamRecord, record.metadata, sails.config.record.attachments.stageDir, fileIdsAdded).toPromise();
-
-            //TODO potentially cleaning staging folder here upon success???
-            
-            // update the metadata ...
-            let updateResponse = await this.recordsService.updateMeta(brand, oid, record, user, false, false);
-            if (updateResponse && _.isFunction(updateResponse.isSuccessful) && updateResponse.isSuccessful()) {
-              // terminate the request
-              this.ajaxOk(req, res, null, updateResponse);
-              return updateResponse;
-            } else {
-              this.ajaxFail(req, res, null, updateResponse);
-            }
+            sails.log.verbose(`RecordController - createRecord - before handleUpdateDataStream`);
+            let resposeDatastream = await this.handleUpdateDataStream(oid, emptyDatastreamRecord, record.metadata).toPromise();
           } catch (error) {
             throw new Error(`Failed to save record: ${error}`);
           }
 
+          // update the metadata ...
+          let updateResponse = await this.recordsService.updateMeta(brand, oid, record, user, false, false);
+
+          if (updateResponse && _.isFunction(updateResponse.isSuccessful) && updateResponse.isSuccessful()) {
+            sails.log.verbose(`RecordController - createRecord - before ajaxOk`);
+            updateResponse.success = true;
+            this.ajaxOk(req, res, null, updateResponse);
+            return updateResponse;
+          } else {
+            this.ajaxFail(req, res, null, response);
+          }
         } else {
-          // no need for update... return the creation response
-          //TODO added return here but double check with Andrew ????
-          return response;
+          this.ajaxOk(req, res, null, updateResponse);
         }
       } else {
-        sails.log.error(`Failed to save record:`);
+        sails.log.error(`createRecord - Failed to save record:`);
         sails.log.error(JSON.stringify(response));
         // return the rsponse instead of throwing an exception
-        //TODO double check what to do here????
       }
     }
-
 
     public delete(req, res) {
       const brand = BrandingService.getBrand(req.session.branding);
@@ -645,8 +640,7 @@ export module Controllers {
       let origRecord = null;
       const failedAttachments = [];
       let recType = null;
-
-      sails.log.verbose('RecordController - update - enter');
+      sails.log.verbose(`RecordController - updateInternal - enter`);
 
       let cr = await this.getRecord(oid).toPromise()
       currentRec = cr;
@@ -708,19 +702,18 @@ export module Controllers {
         this.ajaxFail(req, res, error.message);
       }
 
-      let form = await FormsService.getFormByName(currentRec.metaMetadata.form, true).toPromise();
+      let form = await FormsService.getFormByName(currentRec.metaMetadata.form, true).toPromise()
       currentRec.metaMetadata.attachmentFields = form.attachmentFields;
       try {
-        
-        sails.log.verbose(`RecordController - createRecord - updateDataStream`);
-        const fileIdsAdded = [];
-        let responseDatastream = await this.datastreamService.updateDatastream(oid, currentRec, currentRec.metadata, sails.config.record.attachments.stageDir, fileIdsAdded).toPromise();
-        
-        //TODO potentially cleaning staging folder here upon success???
-        
-        let response = await this.updateMetadata(brand, oid, currentRec, user).toPromise();
+        sails.log.verbose(`RecordController - updateInternal - before this.updateMetadata`);
+        let resposeDatastream = await this.handleUpdateDataStream(oid, origRecord, metadata).toPromise();
+        sails.log.verbose(`RecordController - updateInternal - Done with updating streams and returning response...`);
+        let response = await this.recordsService.updateMeta(brand, oid, currentRec, user, false, false);
 
         if (response && response.isSuccessful()) {
+          response.success = true;
+          sails.log.verbose(`RecordController - updateInternal - before ajaxOk`);
+          this.ajaxOk(req, res, null, response);
           return response;
         } else {
           this.ajaxFail(req, res, null, response);
@@ -730,7 +723,6 @@ export module Controllers {
         sails.log.error(error);
         this.ajaxFail(req, res, error.message);
       }
-
     }
 
     /**
@@ -738,6 +730,19 @@ export module Controllers {
      */
     protected updateDataStream(oid, origRecord, metadata, response, req, res) {
       sails.log.verbose(`RecordController - updateDataStream - enter`);
+      return this.handleUpdateDataStream(oid, origRecord, metadata)
+        .subscribe(whatever => {
+          sails.log.verbose(`Done with updating streams and returning response...`);
+          response.success = true;
+          this.ajaxOk(req, res, null, response);
+        }, error => {
+          sails.log.error("Error updating datatreams:");
+          sails.log.error(error);
+          this.ajaxFail(req, res, error.message);
+        });
+    }
+
+    protected handleUpdateDataStream(oid, origRecord, metadata) {
       const fileIdsAdded = [];
 
       return this.datastreamService.updateDatastream(oid, origRecord, metadata, sails.config.record.attachments.stageDir, fileIdsAdded)
@@ -770,16 +775,7 @@ export module Controllers {
           }
           return Observable.of(updateResp);
         })
-        .last()
-        .subscribe(whatever => {
-          sails.log.verbose(`Done with updating streams and returning response...`);
-          response.success = true;
-          this.ajaxOk(req, res, null, response);
-        }, error => {
-          sails.log.error("Error updating datatreams:");
-          sails.log.error(error);
-          this.ajaxFail(req, res, error.message);
-        });
+        .last();
     }
 
     protected saveMetadata(brand, oid, currentRec, metadata, user): Observable<any> {
@@ -803,6 +799,8 @@ export module Controllers {
         });
     }
 
+
+
     protected getRecord(oid) {
       return Observable.fromPromise(this.recordsService.getMeta(oid)).flatMap(currentRec => {
         if (_.isEmpty(currentRec)) {
@@ -813,8 +811,6 @@ export module Controllers {
     }
 
     protected updateMetadata(brand, oid, currentRec, user) {
-      
-      sails.log.verbose(`RecordController - updateMetadata - enter`);
       if (currentRec.metaMetadata.brandId != brand.id) {
         return Observable.throw(new Error(`Failed to update meta, brand's don't match: ${currentRec.metaMetadata.brandId} != ${brand.id}, with oid: ${oid}`));
       }
