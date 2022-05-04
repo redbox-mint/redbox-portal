@@ -706,7 +706,7 @@ export module Controllers {
       currentRec.metaMetadata.attachmentFields = form.attachmentFields;
       try {
         sails.log.verbose(`RecordController - updateInternal - before this.updateMetadata`);
-        let resposeDatastream = await this.handleUpdateDataStream(oid, origRecord, metadata).toPromise();
+        let resposeDatastream = await this.handleUpdateDataStream(oid, currentRec, metadata).toPromise();
         sails.log.verbose(`RecordController - updateInternal - Done with updating streams and returning response...`);
         let response = await this.recordsService.updateMeta(brand, oid, currentRec, user, false, false);
 
