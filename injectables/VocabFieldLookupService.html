@@ -1690,7 +1690,7 @@ export class VocabField extends FieldBase&lt;any&gt; {
     }
   }
 
-  public setValue(value: any, emitEvent: boolean &#x3D; true, updateTitle: boolean &#x3D; false) {
+  public setValue(value: any, emitEvent: boolean &#x3D; true, updateTitle: boolean &#x3D; true) {
     this.formModel.setValue(value, { emitEvent: emitEvent });
     if (updateTitle) {
       this.component.ngCompleter.ctrInput.nativeElement.value &#x3D; this.getTitle(value);
