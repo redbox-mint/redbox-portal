@@ -312,6 +312,9 @@ export class RepeatableContainer extends Container {
       }
       that.visible = newVisible;
     });
+    if(eventConf.returnData == true) {
+      return data;
+    }
   }
 }
 
