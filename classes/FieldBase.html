@@ -1503,8 +1503,8 @@
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="567"
-                            class="link-to-prism">angular/shared/form/field-base.ts:567</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="571"
+                            class="link-to-prism">angular/shared/form/field-base.ts:571</a></div>
                 </td>
             </tr>
 
@@ -1788,8 +1788,8 @@
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="508"
-                            class="link-to-prism">angular/shared/form/field-base.ts:508</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="512"
+                            class="link-to-prism">angular/shared/form/field-base.ts:512</a></div>
                 </td>
             </tr>
 
@@ -2336,8 +2336,8 @@ fieldMap[name].field = the Field model (this)</p>
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="512"
-                            class="link-to-prism">angular/shared/form/field-base.ts:512</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="516"
+                            class="link-to-prism">angular/shared/form/field-base.ts:516</a></div>
                 </td>
             </tr>
 
@@ -2470,8 +2470,8 @@ fieldMap[name].field = the Field model (this)</p>
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="501"
-                            class="link-to-prism">angular/shared/form/field-base.ts:501</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="505"
+                            class="link-to-prism">angular/shared/form/field-base.ts:505</a></div>
                 </td>
             </tr>
 
@@ -2535,8 +2535,8 @@ fieldMap[name].field = the Field model (this)</p>
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="579"
-                            class="link-to-prism">angular/shared/form/field-base.ts:579</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="583"
+                            class="link-to-prism">angular/shared/form/field-base.ts:583</a></div>
                 </td>
             </tr>
 
@@ -2773,8 +2773,8 @@ fieldMap[name].field = the Field model (this)</p>
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="531"
-                            class="link-to-prism">angular/shared/form/field-base.ts:531</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="535"
+                            class="link-to-prism">angular/shared/form/field-base.ts:535</a></div>
                 </td>
             </tr>
 
@@ -2838,8 +2838,8 @@ fieldMap[name].field = the Field model (this)</p>
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="516"
-                            class="link-to-prism">angular/shared/form/field-base.ts:516</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="520"
+                            class="link-to-prism">angular/shared/form/field-base.ts:520</a></div>
                 </td>
             </tr>
 
@@ -2903,8 +2903,8 @@ fieldMap[name].field = the Field model (this)</p>
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="551"
-                            class="link-to-prism">angular/shared/form/field-base.ts:551</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="555"
+                            class="link-to-prism">angular/shared/form/field-base.ts:555</a></div>
                 </td>
             </tr>
 
@@ -3154,7 +3154,7 @@ fieldMap[name].field = the Field model (this)</p>
                     <div>
                     </div>
                     <div class="io-description">
-                        <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >void</a></code>
+                        <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
 
                     </div>
                     <div class="io-description">
@@ -3867,6 +3867,10 @@ export class FieldBase&lt;T&gt; {
       }
       that.visible &#x3D; newVisible;
     });
+    if(eventConf.returnData &#x3D;&#x3D; true) {
+      return data;
+    }
+    
   }
 
   public replaceValWithConfig(val) {
