@@ -47,6 +47,7 @@ export module Controllers {
     recordsService: RecordsService = RecordsService;
     searchService: SearchService;
     datastreamService: DatastreamService = RecordsService;
+    private nameRBValidationError = 'RBValidationError';
 
     constructor() {
       super();
@@ -523,14 +524,14 @@ export module Controllers {
       const fieldsToCheck = ['location', 'uploadUrl'];
       let form = await FormsService.getFormByName(record.metaMetadata.form, true).toPromise();
 
-      sails.log.error(`RecordController - createRecord - enter`);
+      sails.log.verbose(`RecordController - createRecord - enter`);
       formDef = form;
       record.metaMetadata.attachmentFields = form.attachmentFields;
-      let response = await this.recordsService.create(brand, record, recordType, user);
+      let updateResponse = await this.recordsService.create(brand, record, recordType, user);
 
-      let updateResponse = response;
-      if (response && _.isFunction(response.isSuccessful) && response.isSuccessful()) {
-        oid = response.oid;
+      if (updateResponse && _.isFunction(updateResponse.isSuccessful) && updateResponse.isSuccessful()) {
+        oid = updateResponse.oid;
+        sails.log.verbose(`RecordController - createRecord - oid ${oid}`);
         if (!_.isEmpty(record.metaMetadata.attachmentFields)) {
           // check if we have any pending-oid elements
           _.each(record.metaMetadata.attachmentFields, (attFieldName) => {
@@ -539,6 +540,7 @@ export module Controllers {
                 _.each(fieldsToCheck, (fldName) => {
                   const fldVal = _.get(attFieldEntry, fldName);
                   if (!_.isEmpty(fldVal)) {
+                    sails.log.verbose(`RecordController - createRecord - fldVal ${fldVal}`);
                     _.set(record.metadata, `${attFieldName}[${attFieldIdx}].${fldName}`, _.replace(fldVal, 'pending-oid', oid));
                   }
                 });
@@ -557,27 +559,26 @@ export module Controllers {
             sails.log.verbose(`RecordController - createRecord - before handleUpdateDataStream`);
             let resposeDatastream = await this.handleUpdateDataStream(oid, emptyDatastreamRecord, record.metadata).toPromise();
           } catch (error) {
-            throw new Error(`Failed to save record: ${error}`);
+            throw new Error(`RecordController - createRecord - Failed to save record: ${error}`);
           }
 
           // update the metadata ...
-          let updateResponse = await this.recordsService.updateMeta(brand, oid, record, user, false, false);
+          updateResponse = await this.recordsService.updateMeta(brand, oid, record, user, false, false);
 
           if (updateResponse && _.isFunction(updateResponse.isSuccessful) && updateResponse.isSuccessful()) {
             sails.log.verbose(`RecordController - createRecord - before ajaxOk`);
-            updateResponse.success = true;
             this.ajaxOk(req, res, null, updateResponse);
             return updateResponse;
           } else {
-            this.ajaxFail(req, res, null, response);
+            this.ajaxFail(req, res, null, updateResponse);
           }
         } else {
           this.ajaxOk(req, res, null, updateResponse);
         }
       } else {
-        sails.log.error(`createRecord - Failed to save record:`);
-        sails.log.error(JSON.stringify(response));
-        // return the rsponse instead of throwing an exception
+        sails.log.error(`createRecord - createRecord - Failed to save record:`);
+        sails.log.error(JSON.stringify(updateResponse));
+        this.ajaxFail(req, res, null, updateResponse);
       }
     }
 
@@ -679,9 +680,11 @@ export module Controllers {
           }
         }
         if (hasPermissionToTransition) {
+          sails.log.verbose(`RecordController - updateInternal - hasPermissionToTransition - enter`);
           this.recordsService.updateWorkflowStep(currentRec, nextStep);
         }
         origRecord = _.cloneDeep(currentRec);
+        sails.log.verbose(`RecordController - updateInternal - origRecord - cloneDeep`);
         currentRec.metadata = metadata;
       }
 
@@ -704,14 +707,23 @@ export module Controllers {
 
       let form = await FormsService.getFormByName(currentRec.metaMetadata.form, true).toPromise()
       currentRec.metaMetadata.attachmentFields = form.attachmentFields;
+      let response;
+      const failedMessage = "Failed to update record, please check server logs.";
       try {
+        // process pre-save
+        if (!_.isEmpty(brand)) {
+          let recordType = await RecordTypesService.get(brand, currentRec.metaMetadata.type).toPromise();
+          currentRec = await this.recordsService.triggerPreSaveTriggers(oid, currentRec, recordType, "onUpdate", user);
+        }
+        sails.log.verbose(`RecordController - updateInternal - metadata.dataLocations `+JSON.stringify(metadata.dataLocations));
+        sails.log.verbose(`RecordController - updateInternal - origRecord.metadata.dataLocations `+JSON.stringify(origRecord.metadata.dataLocations));
+        sails.log.verbose(`RecordController - updateInternal - currentRec.metadata.dataLocations `+JSON.stringify(currentRec.metadata.dataLocations));
         sails.log.verbose(`RecordController - updateInternal - before this.updateMetadata`);
-        let resposeDatastream = await this.handleUpdateDataStream(oid, origRecord, metadata).toPromise();
-        sails.log.verbose(`RecordController - updateInternal - Done with updating streams and returning response...`);
-        let response = await this.updateMetadata(brand, oid, currentRec, user).toPromise();
+        response = await this.handleUpdateDataStream(oid, origRecord, metadata).toPromise();
+        sails.log.verbose(`RecordController - updateInternal - Done with updating streams...`);
+        response = await this.updateMetadataWithTriggerSelector(brand, oid, currentRec, user, false, true).toPromise();
 
         if (response && response.isSuccessful()) {
-          response.success = true;
           sails.log.verbose(`RecordController - updateInternal - before ajaxOk`);
           this.ajaxOk(req, res, null, response);
           return response;
@@ -719,8 +731,15 @@ export module Controllers {
           this.ajaxFail(req, res, null, response);
         }
       } catch (error) {
-        sails.log.error("Error updating meta:");
+        sails.log.error('RecordController - updateInternal - Failed to run pre-save hooks when onUpdate... or Error updating meta:');
         sails.log.error(error);
+        if(error.name == this.nameRBValidationError) {
+          sails.log.error(error.message);
+          response.message = error.message;
+        } else {
+          sails.log.error(JSON.stringify(error));
+          response.message = failedMessage;
+        }
         this.ajaxFail(req, res, error.message);
       }
     }
@@ -819,6 +838,19 @@ export module Controllers {
       sails.log.verbose(`Calling record service...`);
       sails.log.verbose(currentRec);
       return Observable.fromPromise(this.recordsService.updateMeta(brand, oid, currentRec, user));
+    }
+
+    protected updateMetadataWithTriggerSelector(brand, oid, currentRec, user, triggerPreSaveTriggers, triggerPostSaveTriggers) {
+      if (currentRec.metaMetadata.brandId != brand.id) {
+        return Observable.throw(new Error(`RecordController - updateMetadataWithTriggerSelector - Failed to update meta, brand's don't match: ${currentRec.metaMetadata.brandId} != ${brand.id}, with oid: ${oid}`));
+      }
+      currentRec.metaMetadata.lastSavedBy = user.username;
+      currentRec.metaMetadata.lastSaveDate = moment().format();
+      sails.log.verbose(`RecordController - updateMetadataWithTriggerSelector - Calling record service...`);
+      sails.log.verbose(`RecordController - updateMetadataWithTriggerSelector - triggerPreSaveTriggers ${triggerPreSaveTriggers}`);
+      sails.log.verbose(`RecordController - updateMetadataWithTriggerSelector - triggerPostSaveTriggers ${triggerPostSaveTriggers}`);
+      sails.log.verbose(currentRec);
+      return Observable.fromPromise(this.recordsService.updateMeta(brand, oid, currentRec, user, triggerPreSaveTriggers, triggerPostSaveTriggers));
     }
 
     protected updateAuthorization(brand, oid, currentRec, user) {
