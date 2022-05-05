@@ -496,6 +496,10 @@ export class FieldBase<T> {
       }
       that.visible = newVisible;
     });
+    if(eventConf.returnData == true) {
+      return data;
+    }
+    
   }
 
   public replaceValWithConfig(val) {
