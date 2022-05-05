@@ -590,8 +590,8 @@
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="313"
-                            class="link-to-prism">angular/shared/form/field-datalocation.component.ts:313</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="316"
+                            class="link-to-prism">angular/shared/form/field-datalocation.component.ts:316</a></div>
                 </td>
             </tr>
 
@@ -733,8 +733,8 @@
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="302"
-                            class="link-to-prism">angular/shared/form/field-datalocation.component.ts:302</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="305"
+                            class="link-to-prism">angular/shared/form/field-datalocation.component.ts:305</a></div>
                 </td>
             </tr>
 
@@ -843,8 +843,8 @@
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="318"
-                            class="link-to-prism">angular/shared/form/field-datalocation.component.ts:318</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="321"
+                            class="link-to-prism">angular/shared/form/field-datalocation.component.ts:321</a></div>
                 </td>
             </tr>
 
@@ -953,8 +953,8 @@
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="292"
-                            class="link-to-prism">angular/shared/form/field-datalocation.component.ts:292</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="295"
+                            class="link-to-prism">angular/shared/form/field-datalocation.component.ts:295</a></div>
                 </td>
             </tr>
 
@@ -1070,8 +1070,8 @@
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="309"
-                            class="link-to-prism">angular/shared/form/field-datalocation.component.ts:309</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="312"
+                            class="link-to-prism">angular/shared/form/field-datalocation.component.ts:312</a></div>
                 </td>
             </tr>
 
@@ -1109,8 +1109,8 @@
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="322"
-                            class="link-to-prism">angular/shared/form/field-datalocation.component.ts:322</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="325"
+                            class="link-to-prism">angular/shared/form/field-datalocation.component.ts:325</a></div>
                 </td>
             </tr>
 
@@ -2110,6 +2110,7 @@ export class DataLocationComponent extends SimpleComponent {
     console.log(this.uppy);
     let fieldVal: any &#x3D; null;
     // attach event handers...
+    let that &#x3D; this;
     this.uppy.on(&#x27;upload-success&#x27;, (file, resp, uploadURL) &#x3D;&gt; {
       console.debug(&quot;File info:&quot;);
       console.debug(file);
@@ -2119,7 +2120,9 @@ export class DataLocationComponent extends SimpleComponent {
       // add to form control on each upload...
       const urlParts &#x3D; uploadURL.split(&#x27;/&#x27;);
       const fileId &#x3D; urlParts[urlParts.length - 1];
-      const oidUrlPosition &#x3D; _.indexOf(urlParts, oid);
+      let oidGlobal &#x3D; that.field.fieldMap[that.field.name].instance.oid;
+      console.debug(&#x60;oid:${oidGlobal}&#x60;);
+      const oidUrlPosition &#x3D; _.indexOf(urlParts, oidGlobal);
       const choppedUrl &#x3D; urlParts.slice(oidUrlPosition, urlParts.length).join(&#x27;/&#x27;);
       const newLoc &#x3D; { type: &quot;attachment&quot;, pending: true, location: choppedUrl, notes: file.meta.notes, mimeType: file.type, name: file.meta.name, fileId: fileId, uploadUrl: uploadURL };
       console.debug(&#x60;Adding new location:&#x60;);
