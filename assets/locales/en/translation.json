@@ -723,5 +723,6 @@
   "@header-view-only-view-data-label": "View the associated data",
   "oidc-login-session-destroyed": "There was an error logging you in, please try again.",
   "@status-label": "Status",
+  "@dmp-associated-rdmp-link": "View Associated RDMP",
   "not-enough-disk-space": "There is not enough free space on disk to upload file"
 }

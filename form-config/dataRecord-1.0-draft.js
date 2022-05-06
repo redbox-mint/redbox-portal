@@ -46,6 +46,19 @@ module.exports = {
             class: "AnchorOrButton",
             viewOnly: true,
             definition: {
+              label: '@dmp-associated-rdmp-link',
+              value: '/@branding/@portal/record/view/@metadata[rdmp.oid]',
+              cssClasses: 'btn btn-large btn-info margin-15',
+              controlType: 'anchor',
+              visible: '@metadata[rdmp.oid]',
+              skip: '@metadata[rdmp.oid]'
+            },
+            variableSubstitutionFields: ['value','visible']
+          },
+          {
+            class: "AnchorOrButton",
+            viewOnly: true,
+            definition: {
               label: '@dmp-create-datapublication-link',
               value: '/@branding/@portal/record/dataPublication/edit?dataRecordOid=@oid',
               cssClasses: 'btn btn-large btn-info margin-15',
