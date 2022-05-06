@@ -722,5 +722,7 @@
   "@header-view-only-edit-label": "Edit this publication",
   "@header-view-only-view-data-label": "View the associated data",
   "oidc-login-session-destroyed": "There was an error logging you in, please try again.",
-  "@status-label": "Status"
+  "@status-label": "Status",
+  "@dmp-associated-rdmp-link": "View Associated RDMP",
+  "Record Title": "Record Title"
 }

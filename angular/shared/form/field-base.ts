@@ -65,6 +65,7 @@ export class FieldBase<T> {
   componentReactors: any[] = [];
   clName: string;
   visible: boolean;
+  skip: any;
   appConfig: any;
   visibilityCriteria: any;
   validators: any;
@@ -131,6 +132,7 @@ export class FieldBase<T> {
     this.publish = options['publish'] || null;
     this.subscribe = options['subscribe'] || null;
     this.visible = _.isUndefined(options['visible']) ? true : options['visible'];
+    this.skip = options['skip'] || null;
     this.visibilityCriteria = options['visibilityCriteria'];
     this.requiredIfHasValue = options['requiredIfHasValue'] || [];
 
