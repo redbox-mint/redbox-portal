@@ -23,6 +23,10 @@ declare var sails;
 import {
   Observable
 } from 'rxjs/Rx';
+
+import {
+  StorageServiceResponse
+} from '@researchdatabox/redbox-core-types';
 import moment = require('moment');
 import * as tus from 'tus-node-server';
 import * as fs from 'fs';
@@ -708,12 +712,27 @@ export module Controllers {
       let form = await FormsService.getFormByName(currentRec.metaMetadata.form, true).toPromise()
       currentRec.metaMetadata.attachmentFields = form.attachmentFields;
       let response;
+      let preTriggerResponse = new StorageServiceResponse();
       const failedMessage = "Failed to update record, please check server logs.";
       try {
         // process pre-save
         if (!_.isEmpty(brand)) {
-          let recordType = await RecordTypesService.get(brand, currentRec.metaMetadata.type).toPromise();
-          currentRec = await this.recordsService.triggerPreSaveTriggers(oid, currentRec, recordType, "onUpdate", user);
+          try {
+            preTriggerResponse.oid = oid;
+            let recordType = await RecordTypesService.get(brand, currentRec.metaMetadata.type).toPromise();
+            currentRec = await this.recordsService.triggerPreSaveTriggers(oid, currentRec, recordType, "onUpdate", user);
+          } catch(err) {
+            sails.log.verbose(`RecordController - updateInternal - triggerPreSaveTriggers err `+JSON.stringify(err));
+            if(err.name == this.nameRBValidationError) {
+              sails.log.error(err.message);
+              preTriggerResponse.message = err.message;
+            } else {
+              sails.log.error(JSON.stringify(err));
+              preTriggerResponse.message = failedMessage;
+            }
+            this.ajaxFail(req, res, err.message);
+            return preTriggerResponse;
+          }
         }
         sails.log.verbose(`RecordController - updateInternal - metadata.dataLocations `+JSON.stringify(metadata.dataLocations));
         sails.log.verbose(`RecordController - updateInternal - origRecord.metadata.dataLocations `+JSON.stringify(origRecord.metadata.dataLocations));
@@ -733,13 +752,6 @@ export module Controllers {
       } catch (error) {
         sails.log.error('RecordController - updateInternal - Failed to run pre-save hooks when onUpdate... or Error updating meta:');
         sails.log.error(error);
-        if(error.name == this.nameRBValidationError) {
-          sails.log.error(error.message);
-          response.message = error.message;
-        } else {
-          sails.log.error(JSON.stringify(error));
-          response.message = failedMessage;
-        }
         this.ajaxFail(req, res, error.message);
       }
     }
