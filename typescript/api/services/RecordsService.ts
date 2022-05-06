@@ -29,7 +29,8 @@ import {
   SearchService,
   Services as services,
   StorageService,
-  StorageServiceResponse
+  StorageServiceResponse,
+  RBValidationError
 } from '@researchdatabox/redbox-core-types';
 
 import {
@@ -71,6 +72,7 @@ export module Services {
 
     searchService: SearchService = null;
     protected queueService: QueueService = null;
+    private nameRBValidationError = 'RBValidationError';
 
 
     constructor() {
@@ -144,9 +146,14 @@ export module Services {
         try {
           record = await this.triggerPreSaveTriggers(null, record, recordType, "onCreate", user);
         } catch (err) {
-          sails.log.error(`${this.logHeader} Failed to run pre-save hooks when updating..`);
-          sails.log.error(JSON.stringify(err));
-          createResponse.message = failedMessage;
+          sails.log.error(`${this.logHeader} Failed to run pre-save hooks when onCreate...`);
+          if(err.name == this.nameRBValidationError) {
+            sails.log.error(err.message);
+            createResponse.message = err.message;
+          } else {
+            sails.log.error(JSON.stringify(err));
+            createResponse.message = failedMessage;
+          }
           return createResponse;
         }
       }
@@ -200,12 +207,18 @@ export module Services {
       // process pre-save
       if (!_.isEmpty(brand) && triggerPreSaveTriggers === true) {
         try {
+          sails.log.verbose('RecordService - updateMeta - calling triggerPreSaveTriggers');
           recordType = await RecordTypesService.get(brand, record.metaMetadata.type).toPromise();
           record = await this.triggerPreSaveTriggers(oid, record, recordType, "onUpdate", user);
         } catch (err) {
-          sails.log.error(`${this.logHeader} Failed to run pre-save hooks when updating..`);
-          sails.log.error(JSON.stringify(err));
-          updateResponse.message = failedMessage;
+          sails.log.error(`${this.logHeader} Failed to run pre-save hooks when onUpdate...`);
+          if(err.name == this.nameRBValidationError) {
+            sails.log.error(err.message);
+            updateResponse.message = err.message;
+          } else {
+            sails.log.error(JSON.stringify(err));
+            updateResponse.message = failedMessage;
+          }
           return updateResponse;
         }
       }
@@ -214,11 +227,18 @@ export module Services {
       _.unset(record, 'redboxOid');
       // update
       updateResponse = await this.storageService.updateMeta(brand, oid, record, user);
+      sails.log.verbose('RecordService - updateMeta - updateResponse.isSuccessful '+updateResponse.isSuccessful());
       if (updateResponse.isSuccessful()) {
+        //if triggerPreSaveTriggers is false recordType will be empty even if triggerPostSaveTriggers is true
+        //therefore try to set recordType if triggerPostSaveTriggers is true  
+        if(_.isEmpty(recordType) && !_.isEmpty(brand) && triggerPostSaveTriggers === true) {
+          recordType = await RecordTypesService.get(brand, record.metaMetadata.type).toPromise();
+        }
         // post-save async
         if (!_.isEmpty(recordType) && triggerPostSaveTriggers === true) {
-          // Trigger Post-save sync hooks ...
+        // Trigger Post-save sync hooks ...
           try {
+            sails.log.verbose('RecordService - updateMeta - calling triggerPostSaveSyncTriggers');
             updateResponse = await this.triggerPostSaveSyncTriggers(updateResponse['oid'], record, recordType, 'onUpdate', user, updateResponse);
           } catch (err) {
             sails.log.error(`${this.logHeader} Exception while running post save sync hooks when updating:`);
@@ -227,6 +247,7 @@ export module Services {
             updateResponse.message = failedMessage;
             return updateResponse;
           }
+          sails.log.verbose('RecordService - updateMeta - calling triggerPostSaveTriggers');
           // Fire Post-save hooks async ...
           this.triggerPostSaveTriggers(updateResponse['oid'], record, recordType, 'onUpdate', user);
         }

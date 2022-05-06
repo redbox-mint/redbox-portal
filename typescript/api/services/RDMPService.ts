@@ -22,7 +22,8 @@ import {
 } from 'rxjs/Rx';
 import {
   QueueService,
-  Services as services
+  Services as services,
+  RBValidationError
 } from '@researchdatabox/redbox-core-types';
 import {
   Sails,
@@ -62,7 +63,9 @@ export module Services {
       'runTemplates',
       'addWorkspaceToRecord',
       'queuedTriggerSubscriptionHandler',
-      'queueTriggerCall'
+      'queueTriggerCall',
+      'processQueuedFileUploadToFigshare',
+      'checkTotalSizeOfFilesInRecord'
     ];
 
     constructor() {
@@ -101,7 +104,7 @@ export module Services {
     public async processRecordCounters(oid, record, options, user) {
 
       const brandId = record.metaMetadata.brandId;
-      let processRecordCountersLogLevel = 'verbose'
+      let processRecordCountersLogLevel = 'verbose';
       if(sails.config.record.processRecordCountersLogLevel != null) {
         processRecordCountersLogLevel = sails.config.record.processRecordCountersLogLevel;
         sails.log.info(`processRecordCounters - log level ${sails.config.record.processRecordCountersLogLevel}`);
@@ -177,7 +180,7 @@ export module Services {
 
     private incrementCounter(record: any, counter: any, newVal: any) {
 
-      let processRecordCountersLogLevel = 'verbose'
+      let processRecordCountersLogLevel = 'verbose';
       if(sails.config.record.processRecordCountersLogLevel != null) {
         processRecordCountersLogLevel = sails.config.record.processRecordCountersLogLevel;
         sails.log.info(`incrementCounter - log level ${sails.config.record.processRecordCountersLogLevel}`);
@@ -216,6 +219,49 @@ export module Services {
         sails.log[processRecordCountersLogLevel](arrayVal);
       }
       sails.log[processRecordCountersLogLevel]('incrementCounter - end');
+    }
+
+    public checkTotalSizeOfFilesInRecord(oid, record, options, user) {
+      let functionLogLevel = 'verbose';
+      if(sails.config.record.checkTotalSizeOfFilesInRecordLogLevel != null) {
+        functionLogLevel = sails.config.record.checkTotalSizeOfFilesInRecordLogLevel;
+        sails.log.info(`checkTotalSizeOfFilesInRecord - log level ${sails.config.record.checkTotalSizeOfFilesInRecordLogLevel}`);
+      } else {
+        sails.log.info(`checkTotalSizeOfFilesInRecord - log level ${functionLogLevel}`);
+      }
+      let dataLocations = record['metadata']['dataLocations'];
+      sails.log[functionLogLevel]('checkTotalSizeOfFilesInRecord - dataLocations');
+      sails.log[functionLogLevel](dataLocations);
+      if(!_.isUndefined(dataLocations)) {
+        let foundAttachment = false;
+
+        for(let attachmentFile of dataLocations) {
+          if(!_.isUndefined(attachmentFile) && !_.isEmpty(attachmentFile) && attachmentFile.type == 'attachment' && _.toInteger(attachmentFile.size) > 0) {
+            foundAttachment = true;
+            break;
+          }
+        }
+  
+        sails.log[functionLogLevel]('checkTotalSizeOfFilesInRecord - foundAttachment '+foundAttachment);
+        if(foundAttachment) {
+          let totalSizeOfFilesInRecord = 0;
+          for(let attachmentFile of dataLocations) {
+            sails.log[functionLogLevel](attachmentFile);
+            if(!_.isUndefined(attachmentFile.size)) {
+              totalSizeOfFilesInRecord = totalSizeOfFilesInRecord + _.toInteger(attachmentFile.size);
+            }
+          }
+          
+          sails.log[functionLogLevel]('checkTotalSizeOfFilesInRecord - totalSizeOfFilesInRecord '+totalSizeOfFilesInRecord);
+          if(totalSizeOfFilesInRecord > sails.config.record.maxUploadSize) {
+            let customError: RBValidationError = new RBValidationError('Max upload total size is 1GB adding all files associated to the record');
+            throw customError;
+          }
+        }
+      }
+
+      sails.log[functionLogLevel]('checkTotalSizeOfFilesInRecord - end');
+      return record;
     }
 
     protected addEmailToList(contributor, emailProperty, emailList) {
@@ -330,7 +376,31 @@ export module Services {
           sails.log.error(hookFunction);
         }
       }
+    }
 
+    public processQueuedFileUploadToFigshare(job: any) {
+      let data = job.attrs.data;
+      let oid = _.get(data, "oid", null);
+      let attachId = _.get(data, "attachId", null);
+      let articleId = _.get(data, "articleId", null);
+      let dataPublicationRecord = _.get(data, "dataPublicationRecord", null);
+      let fileName = _.get(data, "fileName", null);
+      let fileSize = _.get(data, "fileSize", null);
+      let figshareUploadHookFunctionString = _.get(data, "function", null);
+      sails.log.verbose(`Found hook function string ${figshareUploadHookFunctionString}`);
+      if (figshareUploadHookFunctionString != null) {
+        let figshareUploadHookFunction = eval(figshareUploadHookFunctionString);
+        if (_.isFunction(figshareUploadHookFunction)) {
+          sails.log.debug(`Triggering queuedtrigger: ${figshareUploadHookFunctionString}`)
+          let hookResponse = figshareUploadHookFunction(oid, attachId, articleId, dataPublicationRecord, fileName, fileSize);
+          let response = this.convertToObservable(hookResponse);
+          return response.toPromise();
+
+        } else {
+          sails.log.error(`queued trigger function: '${figshareUploadHookFunctionString}' did not resolve to a valid function, what I got:`);
+          sails.log.error(figshareUploadHookFunction);
+        }
+      }
     }
 
     private convertToObservable(hookResponse) {

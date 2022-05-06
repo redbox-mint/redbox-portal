@@ -268,6 +268,7 @@ export class DataLocationComponent extends SimpleComponent {
     console.log(this.uppy);
     let fieldVal: any = null;
     // attach event handers...
+    let that = this;
     this.uppy.on('upload-success', (file, resp, uploadURL) => {
       console.debug("File info:");
       console.debug(file);
@@ -277,9 +278,11 @@ export class DataLocationComponent extends SimpleComponent {
       // add to form control on each upload...
       const urlParts = uploadURL.split('/');
       const fileId = urlParts[urlParts.length - 1];
-      const oidUrlPosition = _.indexOf(urlParts, oid);
+      let oidGlobal = that.field.fieldMap[that.field.name].instance.oid;
+      console.debug(`oid:${oidGlobal}`);
+      const oidUrlPosition = _.indexOf(urlParts, oidGlobal);
       const choppedUrl = urlParts.slice(oidUrlPosition, urlParts.length).join('/');
-      const newLoc = { type: "attachment", pending: true, location: choppedUrl, notes: file.meta.notes, mimeType: file.type, name: file.meta.name, fileId: fileId, uploadUrl: uploadURL };
+      const newLoc = { type: "attachment", pending: true, location: choppedUrl, notes: file.meta.notes, mimeType: file.type, name: file.meta.name, fileId: fileId, uploadUrl: uploadURL, size: file.size };
       console.debug(`Adding new location:`);
       console.debug(newLoc);
       this.field.appendLocation(newLoc);

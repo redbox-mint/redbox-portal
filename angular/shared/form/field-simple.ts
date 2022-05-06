@@ -323,7 +323,7 @@ export class DateTime extends FieldBase<any> {
       const thisDate = moment(eventData);
       const prevStartDate = moment(this.formModel.value);
       if (!prevStartDate.isValid() || thisDate.isAfter(prevStartDate)) {
-        this.formModel.setValue(eventData);
+        this.formModel.setValue(this.parseToDate(eventData));
       }
       const newOpts = _.cloneDeep(this.datePickerOpts);
       newOpts.startDate = eventData;

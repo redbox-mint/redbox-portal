@@ -724,5 +724,5 @@
   "oidc-login-session-destroyed": "There was an error logging you in, please try again.",
   "@status-label": "Status",
   "@dmp-associated-rdmp-link": "View Associated RDMP",
-  "Record Title": "Record Title"
+  "not-enough-disk-space": "There is not enough free space on disk to upload file"
 }
