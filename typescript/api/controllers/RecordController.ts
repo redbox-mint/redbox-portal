@@ -23,7 +23,6 @@ declare var sails;
 import {
   Observable
 } from 'rxjs/Rx';
-
 import {
   StorageServiceResponse
 } from '@researchdatabox/redbox-core-types';
@@ -793,7 +792,7 @@ export module Controllers {
             return promise.catch(e => {
               sails.log.verbose(`Error in updating stream::::`);
               sails.log.verbose(JSON.stringify(e));
-              return Observable.of(e);
+              return Observable.throwError(new Error(TranslationService.t('attachment-upload-error')));
             });
           } else {
             return Observable.of(null);
@@ -1254,7 +1253,7 @@ export module Controllers {
         });
         if (!found) {
           sails.log.verbose("Error: Attachment not found in do attachment.");
-          return Observable.throwError(new Error(TranslationService.t('attachment-not-found')))
+          return Observable.throwError(new Error(TranslationService.t('attachment-not-found')));
         }
         let mimeType = found.mimeType;
         if (_.isEmpty(mimeType)) {
@@ -1280,6 +1279,8 @@ export module Controllers {
               res.forbidden();
             } else if (error.message == TranslationService.t('attachment-not-found')) {
               res.notFound();
+            } else {
+              res.serverError();
             }
           }
         });
