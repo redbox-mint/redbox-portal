@@ -99,6 +99,14 @@ export class DataLocationField extends FieldBase<any> {
     this.notesHeader =  this.getTranslated(options['notesHeader'], 'Notes');
     this.uppyDashboardNote = this.getTranslated(options['uppyDashboardNote'], 'Maximum upload size: 1 Gb per file');
     this.columns = options['columns'] || [];
+    if(!_.isEmpty(options['dataTypeLookup'])) {
+      this.dataTypeLookup = options['dataTypeLookup'];
+      console.log(this.dataTypeLookup);
+    }
+    if(!_.isEmpty(options['dataTypes'])) {
+      this.dataTypes = options['dataTypes'];
+      console.log(this.dataTypes);
+    }
 
     this.restrictions = options['restrictions'] || null;
 
@@ -274,7 +282,7 @@ export class DataLocationComponent extends SimpleComponent {
       console.debug(`oid:${oidGlobal}`);
       const oidUrlPosition = _.indexOf(urlParts, oidGlobal);
       const choppedUrl = urlParts.slice(oidUrlPosition, urlParts.length).join('/');
-      const newLoc = { type: "attachment", pending: true, location: choppedUrl, notes: file.meta.notes, mimeType: file.type, name: file.meta.name, fileId: fileId, uploadUrl: uploadURL };
+      const newLoc = { type: "attachment", pending: true, location: choppedUrl, notes: file.meta.notes, mimeType: file.type, name: file.meta.name, fileId: fileId, uploadUrl: uploadURL, size: file.size };
       console.debug(`Adding new location:`);
       console.debug(newLoc);
       this.field.appendLocation(newLoc);

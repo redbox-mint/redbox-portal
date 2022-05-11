@@ -452,7 +452,7 @@ export class HtmlRawComponent extends SimpleComponent {
     <span *ngSwitchCase="'h5'" [ngClass]="field.cssClasses">{{field.value == null? '' : field.value}}</span>
     <span *ngSwitchCase="'h6'" [ngClass]="field.cssClasses">{{field.value == null? '' : field.value}}</span>
     <hr *ngSwitchCase="'hr'" [ngClass]="field.cssClasses">
-    <span *ngSwitchCase="'span'" [ngClass]="field.cssClasses">{{field.value == null? '' : field.value}}</span>
+    <span *ngSwitchCase="'span'" [ngClass]="field.cssClasses">{{field.label == null? '' : field.label + ': '}}{{field.value == null? '' : field.value}}</span>
     <p *ngSwitchDefault [ngClass]="field.cssClasses" [innerHtml]="field.value == null? '' : field.value"></p>
     <button type="button" class="btn btn-default" *ngIf="field.editMode && field.help" (click)="toggleHelp()" [attr.aria-label]="'help' | translate "><span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span></button>
   </div>
@@ -620,9 +620,9 @@ export class CancelButtonComponent extends SimpleComponent {
 @Component({
   selector: 'anchor-button',
   template: `
-  <button *ngIf="field.controlType=='button'" type="{{field.type}}" [ngClass]="field.cssClasses" (click)="onClick($event)" [disabled]="isDisabled()">{{field.label}}</button>
-  <a *ngIf="field.controlType=='anchor'" href='{{field.value}}' [ngClass]="field.cssClasses" ><span *ngIf="field.showPencil" class="glyphicon glyphicon-pencil">&nbsp;</span>{{field.label}}</a>
-  <a *ngIf="field.controlType=='htmlAnchor'" href='{{field.value}}' [ngClass]="field.cssClasses" [innerHtml]="field.anchorHtml"></a>
+  <button *ngIf="field.controlType=='button' && field.visible" type="{{field.type}}" [ngClass]="field.cssClasses" (click)="onClick($event)" [disabled]="isDisabled()">{{field.label}}</button>
+  <a *ngIf="field.controlType=='anchor' && field.visible && field.skip!==field.visible" href='{{field.value}}' [ngClass]="field.cssClasses" ><span *ngIf="field.showPencil" class="glyphicon glyphicon-pencil">&nbsp;</span>{{field.label}}</a>
+  <a *ngIf="field.controlType=='htmlAnchor' && field.visible" href='{{field.value}}' [ngClass]="field.cssClasses" [innerHtml]="field.anchorHtml"></a>
   `,
 })
 export class AnchorOrButtonComponent extends SimpleComponent {

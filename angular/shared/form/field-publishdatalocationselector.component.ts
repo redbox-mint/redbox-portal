@@ -91,6 +91,15 @@ export class PublishDataLocationSelectorField extends FieldBase<any> {
     this.typeHeader =  this.getTranslated(options['typeHeader'], 'Type');
     this.locationHeader =  this.getTranslated(options['locationHeader'], 'Location');
     this.notesHeader =  this.getTranslated(options['notesHeader'], 'Notes');
+    
+    if(!_.isEmpty(options['dataTypeLookup'])) {
+      this.dataTypeLookup = options['dataTypeLookup'];
+      console.log(this.dataTypeLookup);
+    }
+    if(!_.isEmpty(options['dataTypes'])) {
+      this.dataTypes = options['dataTypes'];
+      console.log(this.dataTypes);
+    }
 
     this.value = options['value'] || this.setEmptyValue();
     this.recordsService = this.getFromInjector(RecordsService);

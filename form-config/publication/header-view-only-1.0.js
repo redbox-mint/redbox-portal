@@ -9,6 +9,18 @@ module.exports = [
     }
   },
   {
+    class: 'Container',
+    compClass: 'TextBlockComponent',
+    viewOnly: true,
+    definition: {
+      label: '@status-label',
+      value: '@record[workflow.stageLabel]',
+      cssClasses: 'badge badge-success',
+      type: 'span'
+    },
+    variableSubstitutionFields: ['value']
+  },
+  {
     class: "AnchorOrButton",
     viewOnly: true,
     definition: {
@@ -16,6 +28,17 @@ module.exports = [
       value: '/@branding/@portal/record/edit/@oid',
       cssClasses: 'btn btn-large btn-info margin-15',
       showPencil: true,
+      controlType: 'anchor'
+    },
+    variableSubstitutionFields: ['value']
+  },
+  {
+    class: "AnchorOrButton",
+    viewOnly: true,
+    definition: {
+      label: '@header-view-only-view-data-label',
+      value: '/@branding/@portal/record/view/@metadata[dataRecord.oid]',
+      cssClasses: 'btn btn-large btn-info',
       controlType: 'anchor'
     },
     variableSubstitutionFields: ['value']

@@ -1,6 +1,6 @@
 {
 	"info": {
-		"_postman_id": "f372b319-3be3-460f-9326-440747f84bf2",
+		"_postman_id": "3d7d147b-62bd-41e8-8a5d-4b3c46ad56d7",
 		"name": "Redbox Portal API - With tests",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
@@ -865,158 +865,6 @@
 										"step",
 										"queued",
 										"{{tempDataPubOid}}"
-									]
-								}
-							},
-							"response": []
-						},
-						{
-							"name": "Harvest RDMPs",
-							"event": [
-								{
-									"listen": "test",
-									"script": {
-										"exec": [
-											"",
-											"pm.test(\"Status code is 200\", function () {",
-											"    pm.response.to.have.status(200);",
-											"});",
-											"",
-											"pm.test(\"Result array is length 1\", function () {",
-											"    var jsonData = pm.response.json();",
-											"    pm.expect(jsonData.length).to.equal(1);",
-											"});",
-											"",
-											"",
-											"pm.test(\"First result shows successful creation\", function () {",
-											"    var jsonData = pm.response.json()[0];",
-											"    pm.expect(jsonData.status).to.equal(true);",
-											"    pm.expect(jsonData.message).to.equal(\"Record created successfully\");",
-											"});"
-										],
-										"type": "text/javascript"
-									}
-								},
-								{
-									"listen": "prerequest",
-									"script": {
-										"exec": [
-											""
-										],
-										"type": "text/javascript"
-									}
-								}
-							],
-							"request": {
-								"method": "POST",
-								"header": [
-									{
-										"key": "Content-Type",
-										"name": "Content-Type",
-										"value": "application/json",
-										"type": "text"
-									},
-									{
-										"key": "Authorization",
-										"value": "Bearer {{token}}",
-										"type": "text"
-									}
-								],
-								"body": {
-									"mode": "raw",
-									"raw": "{\n  \"records\": [\n    {\n        \"harvestId\": \"redbox1\",\n      \"recordRequest\": {\n        \"metadata\": {\n          \"title\": \"Andrew's Postman test\",\n          \"dc:identifier\": \"http://purl.org/au-research/grants/nhmrc/566728\",\n          \"description\": \"Movement of molecules within cells by a process known as membrane transport is critical for normal cell function and also exploited by bacteria to promote infection. The pathway that connects the import pathway to the export pathway is essential for the function of a large number of proteins, however this connecting pathway is poorly characterised. This study will define the machinery of this trafficking pathway, which will provide the ability to modulate biological processes and cytotoxicity.\",\n          \"finalKeywords\": [\n            \"270199\",\n            \"Golgi apparatus\",\n            \"endocytosis\",\n            \"membrane transport\",\n            \"protein trafficking\",\n            \"secretion\",\n            \"HIV-AIDS\",\n            \"bacterial pathogen\",\n            \"hormone secretion\",\n            \"immune development\",\n            \"lysosomal storage disorder\"\n          ],\n          \"contributor_ci\": {\n            \"text_full_name\": \"Prof Paul Gleeson\",\n            \"email\": \"notAReal@email.edu.au\",\n            \"orcid\": \"http://orcid.org/0000-0000-0000-000\"\n          },\n          \"contributor_data_manager\": {\n            \"text_full_name\": \"Prof Paul Gleeson\",\n            \"email\": \"notAReal@email.edu.au\",\n            \"orcid\": \"http://orcid.org/0000-0000-0000-000\"\n          },\n          \"contributors\": [\n            {\n              \"text_full_name\": \"Prof Paul Gleeson\",\n              \"email\": \"notAReal@email.edu.au\",\n              \"orcid\": \"http://orcid.org/0000-0000-0000-000\"\n            }\n          ],\n          \"vivo:Dataset_redbox:DataCollectionMethodology\": \"The data collection methodology\",\n          \"vivo:Dataset_dc_format\": \"xls\",\n          \"vivo:Dataset_dc:location_rdf:PlainLiteral\": \"eResearch Store network drive\",\n          \"vivo:Dataset_dc:source_dc:location_rdf:PlainLiteral\": \"shared university network drive (e.g. G, H, etc)\",\n          \"vivo:Dataset_dc:extent\": \"100GB - 2TB\",\n          \"redbox:retentionPeriod_dc:date\": \"1year\",\n          \"dc:rightsHolder_dc:name\": \"myUni\",\n          \"dc:accessRights\": \"permission from the data manager\",\n          \"authorization\": []\n        }\n      }\n    }\n  ]\n}"
-								},
-								"url": {
-									"raw": "{{host}}/default/rdmp/api/records/harvest/rdmp",
-									"host": [
-										"{{host}}"
-									],
-									"path": [
-										"default",
-										"rdmp",
-										"api",
-										"records",
-										"harvest",
-										"rdmp"
-									]
-								}
-							},
-							"response": []
-						},
-						{
-							"name": "Harvest RDMPs - Ignore update",
-							"event": [
-								{
-									"listen": "test",
-									"script": {
-										"exec": [
-											"",
-											"pm.test(\"Status code is 200\", function () {",
-											"    pm.response.to.have.status(200);",
-											"});",
-											"",
-											"pm.test(\"Result array is length 1\", function () {",
-											"    var jsonData = pm.response.json();",
-											"    pm.expect(jsonData.length).to.equal(1);",
-											"});",
-											"",
-											"pm.test(\"First result shows successful ignored update\", function () {",
-											"    var jsonData = pm.response.json()[0];",
-											"    pm.expect(jsonData.status).to.equal(true);",
-											"    var oid = jsonData['oid']",
-											"    pm.expect(jsonData.message).to.equal(\"Record ignored as the record already exists. oid: \"+oid);",
-											"});"
-										],
-										"type": "text/javascript"
-									}
-								},
-								{
-									"listen": "prerequest",
-									"script": {
-										"exec": [
-											""
-										],
-										"type": "text/javascript"
-									}
-								}
-							],
-							"request": {
-								"method": "POST",
-								"header": [
-									{
-										"key": "Content-Type",
-										"name": "Content-Type",
-										"value": "application/json",
-										"type": "text"
-									},
-									{
-										"key": "Authorization",
-										"value": "Bearer {{token}}",
-										"type": "text"
-									}
-								],
-								"body": {
-									"mode": "raw",
-									"raw": "{\n  \"records\": [\n    {\n        \"harvestId\": \"redbox1\",\n      \"recordRequest\": {\n        \"metadata\": {\n          \"title\": \"Andrew's Postman test\",\n          \"dc:identifier\": \"http://purl.org/au-research/grants/nhmrc/566728\",\n          \"description\": \"Movement of molecules within cells by a process known as membrane transport is critical for normal cell function and also exploited by bacteria to promote infection. The pathway that connects the import pathway to the export pathway is essential for the function of a large number of proteins, however this connecting pathway is poorly characterised. This study will define the machinery of this trafficking pathway, which will provide the ability to modulate biological processes and cytotoxicity.\",\n          \"finalKeywords\": [\n            \"270199\",\n            \"Golgi apparatus\",\n            \"endocytosis\",\n            \"membrane transport\",\n            \"protein trafficking\",\n            \"secretion\",\n            \"HIV-AIDS\",\n            \"bacterial pathogen\",\n            \"hormone secretion\",\n            \"immune development\",\n            \"lysosomal storage disorder\"\n          ],\n          \"contributor_ci\": {\n            \"text_full_name\": \"Prof Paul Gleeson\",\n            \"email\": \"notAReal@email.edu.au\",\n            \"orcid\": \"http://orcid.org/0000-0000-0000-000\"\n          },\n          \"contributor_data_manager\": {\n            \"text_full_name\": \"Prof Paul Gleeson\",\n            \"email\": \"notAReal@email.edu.au\",\n            \"orcid\": \"http://orcid.org/0000-0000-0000-000\"\n          },\n          \"contributors\": [\n            {\n              \"text_full_name\": \"Prof Paul Gleeson\",\n              \"email\": \"notAReal@email.edu.au\",\n              \"orcid\": \"http://orcid.org/0000-0000-0000-000\"\n            }\n          ],\n          \"vivo:Dataset_redbox:DataCollectionMethodology\": \"The data collection methodology\",\n          \"vivo:Dataset_dc_format\": \"xls\",\n          \"vivo:Dataset_dc:location_rdf:PlainLiteral\": \"eResearch Store network drive\",\n          \"vivo:Dataset_dc:source_dc:location_rdf:PlainLiteral\": \"shared university network drive (e.g. G, H, etc)\",\n          \"vivo:Dataset_dc:extent\": \"100GB - 2TB\",\n          \"redbox:retentionPeriod_dc:date\": \"1year\",\n          \"dc:rightsHolder_dc:name\": \"myUni\",\n          \"dc:accessRights\": \"permission from the data manager\",\n          \"authorization\": []\n        }\n      }\n    }\n  ]\n}"
-								},
-								"url": {
-									"raw": "{{host}}/default/rdmp/api/records/harvest/rdmp?updateMode=ignore",
-									"host": [
-										"{{host}}"
-									],
-									"path": [
-										"default",
-										"rdmp",
-										"api",
-										"records",
-										"harvest",
-										"rdmp"
-									],
-									"query": [
-										{
-											"key": "updateMode",
-											"value": "ignore"
-										}
 									]
 								}
 							},
@@ -5757,6 +5605,488 @@
 							"response": []
 						}
 					]
+				}
+			]
+		},
+		{
+			"name": "OpenID Connect",
+			"item": [
+				{
+					"name": "Load login page",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    // Just loading page to get a session cookiw",
+									"    pm.response.to.have.status(200);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"protocolProfileBehavior": {
+						"disabledSystemHeaders": {
+							"user-agent": true
+						},
+						"followRedirects": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9"
+							},
+							{
+								"key": "Accept-Language",
+								"value": "en-US,en;q=0.9,en-AU;q=0.8,it;q=0.7"
+							},
+							{
+								"key": "Cache-Control",
+								"value": "no-cache"
+							},
+							{
+								"key": "Connection",
+								"value": "keep-alive"
+							},
+							{
+								"key": "Pragma",
+								"value": "no-cache"
+							},
+							{
+								"key": "Referer",
+								"value": "http://localhost:1500/default/rdmp/user/login"
+							},
+							{
+								"key": "Sec-Fetch-Dest",
+								"value": "document"
+							},
+							{
+								"key": "Sec-Fetch-Mode",
+								"value": "navigate"
+							},
+							{
+								"key": "Sec-Fetch-Site",
+								"value": "same-origin"
+							},
+							{
+								"key": "Sec-Fetch-User",
+								"value": "?1"
+							},
+							{
+								"key": "Upgrade-Insecure-Requests",
+								"value": "1"
+							},
+							{
+								"key": "User-Agent",
+								"value": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.4896.88 Safari/537.36"
+							},
+							{
+								"key": "sec-ch-ua",
+								"value": "\" Not A;Brand\";v=\"99\", \"Chromium\";v=\"100\", \"Google Chrome\";v=\"100\""
+							},
+							{
+								"key": "sec-ch-ua-mobile",
+								"value": "?0"
+							},
+							{
+								"key": "sec-ch-ua-platform",
+								"value": "\"macOS\""
+							}
+						],
+						"url": {
+							"raw": "http://localhost:1500/default/rdmp/user/login",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "1500",
+							"path": [
+								"default",
+								"rdmp",
+								"user",
+								"login"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Begin OIDC login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 302\", function () {",
+									"    pm.response.to.have.status(302);",
+									"    postman.setEnvironmentVariable(\"kc_redir_url\", pm.response.headers.get('Location'));",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"protocolProfileBehavior": {
+						"disabledSystemHeaders": {
+							"user-agent": true
+						},
+						"followRedirects": false
+					},
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9"
+							},
+							{
+								"key": "Accept-Language",
+								"value": "en-US,en;q=0.9,en-AU;q=0.8,it;q=0.7"
+							},
+							{
+								"key": "Cache-Control",
+								"value": "no-cache"
+							},
+							{
+								"key": "Connection",
+								"value": "keep-alive"
+							},
+							{
+								"key": "Pragma",
+								"value": "no-cache"
+							},
+							{
+								"key": "Referer",
+								"value": "http://localhost:1500/default/rdmp/user/login"
+							},
+							{
+								"key": "Sec-Fetch-Dest",
+								"value": "document"
+							},
+							{
+								"key": "Sec-Fetch-Mode",
+								"value": "navigate"
+							},
+							{
+								"key": "Sec-Fetch-Site",
+								"value": "same-origin"
+							},
+							{
+								"key": "Sec-Fetch-User",
+								"value": "?1"
+							},
+							{
+								"key": "Upgrade-Insecure-Requests",
+								"value": "1"
+							},
+							{
+								"key": "User-Agent",
+								"value": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.4896.88 Safari/537.36"
+							},
+							{
+								"key": "sec-ch-ua",
+								"value": "\" Not A;Brand\";v=\"99\", \"Chromium\";v=\"100\", \"Google Chrome\";v=\"100\""
+							},
+							{
+								"key": "sec-ch-ua-mobile",
+								"value": "?0"
+							},
+							{
+								"key": "sec-ch-ua-platform",
+								"value": "\"macOS\""
+							}
+						],
+						"url": {
+							"raw": "http://localhost:1500/user/begin_oidc",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "1500",
+							"path": [
+								"user",
+								"begin_oidc"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Keycloak login page",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"    const $ = cheerio.load(pm.response.text());",
+									"",
+									"    postman.setEnvironmentVariable(\"kc_login_url\", $(\"#kc-form-login\").attr('action'));",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"protocolProfileBehavior": {
+						"disabledSystemHeaders": {
+							"user-agent": true
+						},
+						"followRedirects": false
+					},
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9"
+							},
+							{
+								"key": "Accept-Language",
+								"value": "en-US,en;q=0.9,en-AU;q=0.8,it;q=0.7"
+							},
+							{
+								"key": "Cache-Control",
+								"value": "no-cache"
+							},
+							{
+								"key": "Connection",
+								"value": "keep-alive"
+							},
+							{
+								"key": "Pragma",
+								"value": "no-cache"
+							},
+							{
+								"key": "Referer",
+								"value": "http://localhost:1500/default/rdmp/user/login"
+							},
+							{
+								"key": "Sec-Fetch-Dest",
+								"value": "document"
+							},
+							{
+								"key": "Sec-Fetch-Mode",
+								"value": "navigate"
+							},
+							{
+								"key": "Sec-Fetch-Site",
+								"value": "same-origin"
+							},
+							{
+								"key": "Sec-Fetch-User",
+								"value": "?1"
+							},
+							{
+								"key": "Upgrade-Insecure-Requests",
+								"value": "1"
+							},
+							{
+								"key": "User-Agent",
+								"value": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.4896.88 Safari/537.36"
+							},
+							{
+								"key": "sec-ch-ua",
+								"value": "\" Not A;Brand\";v=\"99\", \"Chromium\";v=\"100\", \"Google Chrome\";v=\"100\""
+							},
+							{
+								"key": "sec-ch-ua-mobile",
+								"value": "?0"
+							},
+							{
+								"key": "sec-ch-ua-platform",
+								"value": "\"macOS\""
+							}
+						],
+						"url": {
+							"raw": "{{kc_redir_url}}",
+							"host": [
+								"{{kc_redir_url}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Keycloak login action",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 302\", function () {",
+									"    pm.response.to.have.status(302);",
+									"    postman.setEnvironmentVariable(\"rb_login_url\", pm.response.headers.get('Location'));",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"protocolProfileBehavior": {
+						"followRedirects": false
+					},
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9"
+							},
+							{
+								"key": "Accept-Language",
+								"value": "en-US,en;q=0.9,en-AU;q=0.8,it;q=0.7"
+							},
+							{
+								"key": "Cache-Control",
+								"value": "no-cache"
+							},
+							{
+								"key": "Connection",
+								"value": "keep-alive"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/x-www-form-urlencoded"
+							},
+							{
+								"key": "Origin",
+								"value": "null"
+							},
+							{
+								"key": "Pragma",
+								"value": "no-cache"
+							},
+							{
+								"key": "Upgrade-Insecure-Requests",
+								"value": "1"
+							},
+							{
+								"key": "User-Agent",
+								"value": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.4896.88 Safari/537.36"
+							}
+						],
+						"body": {
+							"mode": "urlencoded",
+							"urlencoded": [
+								{
+									"key": "username",
+									"value": "test-researcher",
+									"type": "text"
+								},
+								{
+									"key": "password",
+									"value": "password",
+									"type": "text"
+								},
+								{
+									"key": "credentialId",
+									"value": "",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{kc_login_url}}",
+							"host": [
+								"{{kc_login_url}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "RedBox OIDC return login",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"",
+									"",
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Welcome message in HTML\", function () {",
+									"    //Testing login worked by looking for welcome message on page",
+									"    pm.expect(pm.response.text()).to.include(\"Test Researcher\")",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9"
+							},
+							{
+								"key": "Accept-Language",
+								"value": "en-US,en;q=0.9,en-AU;q=0.8,it;q=0.7"
+							},
+							{
+								"key": "Cache-Control",
+								"value": "no-cache"
+							},
+							{
+								"key": "Connection",
+								"value": "keep-alive"
+							},
+							{
+								"key": "Pragma",
+								"value": "no-cache"
+							},
+							{
+								"key": "Sec-Fetch-Dest",
+								"value": "document"
+							},
+							{
+								"key": "Sec-Fetch-Mode",
+								"value": "navigate"
+							},
+							{
+								"key": "Sec-Fetch-Site",
+								"value": "cross-site"
+							},
+							{
+								"key": "Sec-Fetch-User",
+								"value": "?1"
+							},
+							{
+								"key": "Upgrade-Insecure-Requests",
+								"value": "1"
+							},
+							{
+								"key": "User-Agent",
+								"value": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.4896.88 Safari/537.36"
+							}
+						],
+						"url": {
+							"raw": "{{rb_login_url}}",
+							"host": [
+								"{{rb_login_url}}"
+							]
+						}
+					},
+					"response": []
 				}
 			]
 		},
