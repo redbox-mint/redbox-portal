@@ -9,7 +9,7 @@ module.exports.record = {
   },
   maxUploadSize: 1073741824,
   mongodbDisk: '/attachments', //volume name as seen from within the docker container /attachments == /mnt/data
-  diskSpaceThreshold: 0, //set diskSpaceThreshold to a reasonable amount of space on disk that will be left free as a safety buffer
+  diskSpaceThreshold: 10737418240, //set diskSpaceThreshold to a reasonable amount of space on disk that will be left free as a safety buffer
   api: {
     create: {method: 'post', url: "/api/v1/object/$packageType"},
     search: {method: 'get', url: "/api/v1/search"},
