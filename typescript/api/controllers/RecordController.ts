@@ -1292,12 +1292,12 @@ export module Controllers {
           return Observable.throwError(new Error(TranslationService.t('edit-error-no-permissions')));
         }
         sails.log.verbose(req.headers);
-        let uploadFileZise = req.headers['Upload-Length'];
+        let uploadFileSize = req.headers['Upload-Length'];
         let diskSpaceThreshold = sails.config.record.diskSpaceThreshold;
-        if(!_.isUndefined(uploadFileZise) && !_.isUndefined(diskSpaceThreshold)) {
+        if(!_.isUndefined(uploadFileSize) && !_.isUndefined(diskSpaceThreshold)) {
           let diskSpace = await checkDiskSpace(sails.config.record.mongodbDisk);
           //set diskSpaceThreshold to a reasonable amount of space on disk that will be left free as a safety buffer 
-          let thresholdAppliedFileSize = _.toInteger(uploadFileZise) + diskSpaceThreshold;
+          let thresholdAppliedFileSize = _.toInteger(uploadFileSize) + diskSpaceThreshold;
           sails.log.verbose('Total File Size '+thresholdAppliedFileSize+' Total Free Space '+diskSpace.free);
           if(diskSpace.free <= thresholdAppliedFileSize){
             let errorMessage = TranslationService.t('not-enough-disk-space');
