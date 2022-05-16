@@ -20,7 +20,7 @@
     "core-js": "^3.19.3",
     "csv-parser": "^3.0.0",
     "dotenv": "^10.0.0",
-    "ejs": "3.1.6",
+    "ejs": "3.1.8",
     "flat": "^5.0.2",
     "font-awesome-sass": "4.7.0",
     "fs-extra": "^10.0.0",
