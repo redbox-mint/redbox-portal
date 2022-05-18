@@ -513,9 +513,92 @@ export class FieldBase<T> {
     return _.isUndefined(_.get(this.appConfig, name)) ? defValue : _.get(this.appConfig, name);
   }
 
+
+  /**
+   * 
+   * Emits the current form value as a value loaded event. 
+   * 
+   * To be used in subscribe blocks
+   * e.g. to emit the form value when the form loads
+   * 
+   *  'form': {
+   *            onFormLoaded: [{
+   *              action: 'publishValueLoaded'
+   *            }]
+   *           }
+   * 
+   */
   public publishValueLoaded() {
     this.onValueLoaded.emit(this.value);
   }
+
+  /**
+   * 
+   * Emits the value passed ot it as a value loaded event. 
+   * 
+   * To be used in subscribe blocks as part of the processing chain to emit the current processed value.
+   * e.g.
+   * 
+   *  'rdmpGetter': {
+   *        onValueUpdate: [
+   *                         {
+   *                            action: 'utilityService.getPropertyFromObject',
+   *                           field: 'some-value-on-object'
+   *                         },
+   *                         {
+   *                            action: 'publishProcessedValueUpdated'
+   *                         }
+   *                        ]
+   *                 }
+   * 
+   */
+  public publishProcessedValueLoaded(curValue) {
+    this.onValueLoaded.emit(curValue);
+  }
+
+  /**
+   * 
+   * Emits the field's current value as a value loaded event. 
+   * 
+   * To be used in subscribe blocks as part of the processing chain to emit the current processed value.
+   * e.g.
+   * 
+   *  'some-property': {
+   *        onValueUpdate: [
+   *                         {
+   *                            action: 'publishValueUpdated'
+   *                         }
+   *                       ]
+   *                 }
+   * 
+   */
+  public publishValueUpdated() {
+    this.onValueUpdate.emit(this.value);
+  }
+
+  /**
+   * 
+   * Emits the value passed to it as a value updated event. 
+   * 
+   * To be used in subscribe blocks as part of the processing chain to emit the current processed value.
+   * e.g.
+   * 
+   *  'rdmpGetter': {
+   *        onValueUpdate: [
+   *                         {
+   *                            action: 'utilityService.getPropertyFromObject',
+   *                           field: 'some-value-on-object'
+   *                         },
+   *                         {
+   *                            action: 'publishProcessedValueUpdated'
+   *                         }
+   *                        ]
+   *                 }
+   * 
+   */
+  public publishProcessedValueUpdated(curValue) {
+    this.onValueUpdate.emit(curValue);
+  }  
 
   setRequiredAndClearValueOnFalse(flag) {
     this.required = flag;
