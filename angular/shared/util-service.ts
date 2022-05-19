@@ -106,6 +106,7 @@ export class UtilityService {
   /**
    * Merges emitted object into the subscriber's array of objects if the emitted object is not present.
    *
+   * Author: <a href='https://github.com/andrewbrazzatti' target='_blank'>Andrew Brazzatti</a>
    * @param  {any} data
    * @param  {any} config
    * @param  {any} field
@@ -116,44 +117,6 @@ export class UtilityService {
     const fieldsToSet = config.fieldsToSet;
     const templateObject = config.templateObject;
     let fieldValues = _.clone(field.formModel.value);
-
-    fieldValues = this.mergeObjectIntoArray(data,fieldValues, fieldsToMatch, fieldsToSet, templateObject);
-
-    return fieldValues;
-  }
-
-
-  public logSubscribeDebugToConsole(data: any, config: any, field: any) {
-    console.log("The data is:" )
-    console.log(JSON.stringify(data))
-    console.log("Config is:" )
-    console.log(JSON.stringify(config))
-    console.log("Field is:" )
-    console.log(JSON.stringify(field))
-    return data;
-  }
-
-  /**
-   * Merges emitted array of object into the subscriber's array of objects if the emitted object is not present.
-   *
-   * @param  {any} data
-   * @param  {any} config
-   * @param  {any} field
-   * @return {array}
-   */
-   public getMergedObjectArrayAsArray(data: any, config: any, field: any) {
-    const fieldsToMatch = config.fieldsToMatch;
-    const fieldsToSet = config.fieldsToSet;
-    const templateObject = config.templateObject;
-    let fieldValues = _.clone(field.formModel.value);
-
-    for(let dataObject of data) {
-      fieldValues = this.mergeObjectIntoArray(dataObject, fieldValues, fieldsToMatch, fieldsToSet, templateObject);
-    }
-    return fieldValues;
-  }
-
-  private mergeObjectIntoArray(data, fieldValues, fieldsToMatch, fieldsToSet, templateObject){
     let wrappedData = data;
     if(!_.isArray(data)) {
       wrappedData = [data];
