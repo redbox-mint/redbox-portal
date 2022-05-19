@@ -297,7 +297,19 @@
                             </li>
                             <li>
                                     <span class="modifier">Public</span>
+                                <a href="#publishProcessedValueLoaded" >publishProcessedValueLoaded</a>
+                            </li>
+                            <li>
+                                    <span class="modifier">Public</span>
+                                <a href="#publishProcessedValueUpdated" >publishProcessedValueUpdated</a>
+                            </li>
+                            <li>
+                                    <span class="modifier">Public</span>
                                 <a href="#publishValueLoaded" >publishValueLoaded</a>
+                            </li>
+                            <li>
+                                    <span class="modifier">Public</span>
+                                <a href="#publishValueUpdated" >publishValueUpdated</a>
                             </li>
                             <li>
                                     <span class="modifier">Public</span>
@@ -2215,7 +2227,7 @@
             </tr>
             <tr>
                 <td class="col-md-4">
-                        <div class="io-line">Defined in         <code><a href="../classes/FieldBase.html#source" target="_self" >FieldBase:571</a></code>
+                        <div class="io-line">Defined in         <code><a href="../classes/FieldBase.html#source" target="_self" >FieldBase:654</a></code>
 </div>
                 </td>
             </tr>
@@ -3009,6 +3021,182 @@ fieldMap[name].field = the Field model (this)</p>
         <tbody>
             <tr>
                 <td class="col-md-4">
+                    <a name="publishProcessedValueLoaded"></a>
+                    <span class="name">
+                        <span class="modifier">Public</span>
+                        <span ><b>publishProcessedValueLoaded</b></span>
+                        <a href="#publishProcessedValueLoaded"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                    <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>publishProcessedValueLoaded(curValue)</code>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-line">Inherited from         <code><a href="../classes/FieldBase.html" target="_self" >FieldBase</a></code>
+</div>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                        <div class="io-line">Defined in         <code><a href="../classes/FieldBase.html#source" target="_self" >FieldBase:555</a></code>
+</div>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-description"><p>Emits the value passed ot it as a value loaded event.</p>
+<p>To be used in subscribe blocks as part of the processing chain to emit the current processed value.
+e.g.</p>
+<p> &#39;rdmpGetter&#39;: {
+       onValueUpdate: [
+                        {
+                           action: &#39;utilityService.getPropertyFromObject&#39;,
+                          field: &#39;some-value-on-object&#39;
+                        },
+                        {
+                           action: &#39;publishProcessedValueUpdated&#39;
+                        }
+                       ]
+                }</p>
+</div>
+
+                    <div class="io-description">
+                        <b>Parameters :</b>
+                        
+                        <table class="params">
+                            <thead>
+                                <tr>
+                                    <td>Name</td>
+                                    <td>Optional</td>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>curValue</td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div>
+                    </div>
+                    <div class="io-description">
+                        <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >void</a></code>
+
+                    </div>
+                    <div class="io-description">
+                        
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="publishProcessedValueUpdated"></a>
+                    <span class="name">
+                        <span class="modifier">Public</span>
+                        <span ><b>publishProcessedValueUpdated</b></span>
+                        <a href="#publishProcessedValueUpdated"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                    <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>publishProcessedValueUpdated(curValue)</code>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-line">Inherited from         <code><a href="../classes/FieldBase.html" target="_self" >FieldBase</a></code>
+</div>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                        <div class="io-line">Defined in         <code><a href="../classes/FieldBase.html#source" target="_self" >FieldBase:599</a></code>
+</div>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-description"><p>Emits the value passed to it as a value updated event.</p>
+<p>To be used in subscribe blocks as part of the processing chain to emit the current processed value.
+e.g.</p>
+<p> &#39;rdmpGetter&#39;: {
+       onValueUpdate: [
+                        {
+                           action: &#39;utilityService.getPropertyFromObject&#39;,
+                          field: &#39;some-value-on-object&#39;
+                        },
+                        {
+                           action: &#39;publishProcessedValueUpdated&#39;
+                        }
+                       ]
+                }</p>
+</div>
+
+                    <div class="io-description">
+                        <b>Parameters :</b>
+                        
+                        <table class="params">
+                            <thead>
+                                <tr>
+                                    <td>Name</td>
+                                    <td>Optional</td>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>curValue</td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div>
+                    </div>
+                    <div class="io-description">
+                        <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >void</a></code>
+
+                    </div>
+                    <div class="io-description">
+                        
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
                     <a name="publishValueLoaded"></a>
                     <span class="name">
                         <span class="modifier">Public</span>
@@ -3033,7 +3221,7 @@ fieldMap[name].field = the Field model (this)</p>
             </tr>
             <tr>
                 <td class="col-md-4">
-                        <div class="io-line">Defined in         <code><a href="../classes/FieldBase.html#source" target="_self" >FieldBase:516</a></code>
+                        <div class="io-line">Defined in         <code><a href="../classes/FieldBase.html#source" target="_self" >FieldBase:531</a></code>
 </div>
                 </td>
             </tr>
@@ -3041,6 +3229,71 @@ fieldMap[name].field = the Field model (this)</p>
 
             <tr>
                 <td class="col-md-4">
+                    <div class="io-description"><p>Emits the current form value as a value loaded event.</p>
+<p>To be used in subscribe blocks
+e.g. to emit the form value when the form loads</p>
+<p> &#39;form&#39;: {
+           onFormLoaded: [{
+             action: &#39;publishValueLoaded&#39;
+           }]
+          }</p>
+</div>
+
+                    <div class="io-description">
+                        <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >void</a></code>
+
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="publishValueUpdated"></a>
+                    <span class="name">
+                        <span class="modifier">Public</span>
+                        <span ><b>publishValueUpdated</b></span>
+                        <a href="#publishValueUpdated"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                    <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>publishValueUpdated()</code>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-line">Inherited from         <code><a href="../classes/FieldBase.html" target="_self" >FieldBase</a></code>
+</div>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                        <div class="io-line">Defined in         <code><a href="../classes/FieldBase.html#source" target="_self" >FieldBase:575</a></code>
+</div>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-description"><p>Emits the field&#39;s current value as a value loaded event.</p>
+<p>To be used in subscribe blocks as part of the processing chain to emit the current processed value.
+e.g.</p>
+<p> &#39;some-property&#39;: {
+       onValueUpdate: [
+                        {
+                           action: &#39;publishValueUpdated&#39;
+                        }
+                      ]
+                }</p>
+</div>
 
                     <div class="io-description">
                         <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >void</a></code>
@@ -3250,7 +3503,7 @@ fieldMap[name].field = the Field model (this)</p>
             </tr>
             <tr>
                 <td class="col-md-4">
-                        <div class="io-line">Defined in         <code><a href="../classes/FieldBase.html#source" target="_self" >FieldBase:583</a></code>
+                        <div class="io-line">Defined in         <code><a href="../classes/FieldBase.html#source" target="_self" >FieldBase:666</a></code>
 </div>
                 </td>
             </tr>
@@ -3506,7 +3759,7 @@ fieldMap[name].field = the Field model (this)</p>
             </tr>
             <tr>
                 <td class="col-md-4">
-                        <div class="io-line">Defined in         <code><a href="../classes/FieldBase.html#source" target="_self" >FieldBase:535</a></code>
+                        <div class="io-line">Defined in         <code><a href="../classes/FieldBase.html#source" target="_self" >FieldBase:618</a></code>
 </div>
                 </td>
             </tr>
@@ -3577,7 +3830,7 @@ fieldMap[name].field = the Field model (this)</p>
             </tr>
             <tr>
                 <td class="col-md-4">
-                        <div class="io-line">Defined in         <code><a href="../classes/FieldBase.html#source" target="_self" >FieldBase:520</a></code>
+                        <div class="io-line">Defined in         <code><a href="../classes/FieldBase.html#source" target="_self" >FieldBase:603</a></code>
 </div>
                 </td>
             </tr>
@@ -3648,7 +3901,7 @@ fieldMap[name].field = the Field model (this)</p>
             </tr>
             <tr>
                 <td class="col-md-4">
-                        <div class="io-line">Defined in         <code><a href="../classes/FieldBase.html#source" target="_self" >FieldBase:555</a></code>
+                        <div class="io-line">Defined in         <code><a href="../classes/FieldBase.html#source" target="_self" >FieldBase:638</a></code>
 </div>
                 </td>
             </tr>

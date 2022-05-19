@@ -266,7 +266,19 @@
                             </li>
                             <li>
                                     <span class="modifier">Public</span>
+                                <a href="#publishProcessedValueLoaded" >publishProcessedValueLoaded</a>
+                            </li>
+                            <li>
+                                    <span class="modifier">Public</span>
+                                <a href="#publishProcessedValueUpdated" >publishProcessedValueUpdated</a>
+                            </li>
+                            <li>
+                                    <span class="modifier">Public</span>
                                 <a href="#publishValueLoaded" >publishValueLoaded</a>
+                            </li>
+                            <li>
+                                    <span class="modifier">Public</span>
+                                <a href="#publishValueUpdated" >publishValueUpdated</a>
                             </li>
                             <li>
                                     <span class="modifier">Public</span>
@@ -1503,8 +1515,8 @@
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="571"
-                            class="link-to-prism">angular/shared/form/field-base.ts:571</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="654"
+                            class="link-to-prism">angular/shared/form/field-base.ts:654</a></div>
                 </td>
             </tr>
 
@@ -2318,6 +2330,170 @@ fieldMap[name].field = the Field model (this)</p>
         <tbody>
             <tr>
                 <td class="col-md-4">
+                    <a name="publishProcessedValueLoaded"></a>
+                    <span class="name">
+                        <span class="modifier">Public</span>
+                        <span ><b>publishProcessedValueLoaded</b></span>
+                        <a href="#publishProcessedValueLoaded"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                    <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>publishProcessedValueLoaded(curValue)</code>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-line">Defined in <a href="" data-line="555"
+                            class="link-to-prism">angular/shared/form/field-base.ts:555</a></div>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-description"><p>Emits the value passed ot it as a value loaded event.</p>
+<p>To be used in subscribe blocks as part of the processing chain to emit the current processed value.
+e.g.</p>
+<p> &#39;rdmpGetter&#39;: {
+       onValueUpdate: [
+                        {
+                           action: &#39;utilityService.getPropertyFromObject&#39;,
+                          field: &#39;some-value-on-object&#39;
+                        },
+                        {
+                           action: &#39;publishProcessedValueUpdated&#39;
+                        }
+                       ]
+                }</p>
+</div>
+
+                    <div class="io-description">
+                        <b>Parameters :</b>
+                        
+                        <table class="params">
+                            <thead>
+                                <tr>
+                                    <td>Name</td>
+                                    <td>Optional</td>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>curValue</td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div>
+                    </div>
+                    <div class="io-description">
+                        <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >void</a></code>
+
+                    </div>
+                    <div class="io-description">
+                        
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="publishProcessedValueUpdated"></a>
+                    <span class="name">
+                        <span class="modifier">Public</span>
+                        <span ><b>publishProcessedValueUpdated</b></span>
+                        <a href="#publishProcessedValueUpdated"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                    <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>publishProcessedValueUpdated(curValue)</code>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-line">Defined in <a href="" data-line="599"
+                            class="link-to-prism">angular/shared/form/field-base.ts:599</a></div>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-description"><p>Emits the value passed to it as a value updated event.</p>
+<p>To be used in subscribe blocks as part of the processing chain to emit the current processed value.
+e.g.</p>
+<p> &#39;rdmpGetter&#39;: {
+       onValueUpdate: [
+                        {
+                           action: &#39;utilityService.getPropertyFromObject&#39;,
+                          field: &#39;some-value-on-object&#39;
+                        },
+                        {
+                           action: &#39;publishProcessedValueUpdated&#39;
+                        }
+                       ]
+                }</p>
+</div>
+
+                    <div class="io-description">
+                        <b>Parameters :</b>
+                        
+                        <table class="params">
+                            <thead>
+                                <tr>
+                                    <td>Name</td>
+                                    <td>Optional</td>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>curValue</td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div>
+                    </div>
+                    <div class="io-description">
+                        <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >void</a></code>
+
+                    </div>
+                    <div class="io-description">
+                        
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
                     <a name="publishValueLoaded"></a>
                     <span class="name">
                         <span class="modifier">Public</span>
@@ -2336,14 +2512,73 @@ fieldMap[name].field = the Field model (this)</p>
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="516"
-                            class="link-to-prism">angular/shared/form/field-base.ts:516</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="531"
+                            class="link-to-prism">angular/shared/form/field-base.ts:531</a></div>
                 </td>
             </tr>
 
 
             <tr>
                 <td class="col-md-4">
+                    <div class="io-description"><p>Emits the current form value as a value loaded event.</p>
+<p>To be used in subscribe blocks
+e.g. to emit the form value when the form loads</p>
+<p> &#39;form&#39;: {
+           onFormLoaded: [{
+             action: &#39;publishValueLoaded&#39;
+           }]
+          }</p>
+</div>
+
+                    <div class="io-description">
+                        <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >void</a></code>
+
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="publishValueUpdated"></a>
+                    <span class="name">
+                        <span class="modifier">Public</span>
+                        <span ><b>publishValueUpdated</b></span>
+                        <a href="#publishValueUpdated"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                    <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>publishValueUpdated()</code>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-line">Defined in <a href="" data-line="575"
+                            class="link-to-prism">angular/shared/form/field-base.ts:575</a></div>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-description"><p>Emits the field&#39;s current value as a value loaded event.</p>
+<p>To be used in subscribe blocks as part of the processing chain to emit the current processed value.
+e.g.</p>
+<p> &#39;some-property&#39;: {
+       onValueUpdate: [
+                        {
+                           action: &#39;publishValueUpdated&#39;
+                        }
+                      ]
+                }</p>
+</div>
 
                     <div class="io-description">
                         <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >void</a></code>
@@ -2535,8 +2770,8 @@ fieldMap[name].field = the Field model (this)</p>
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="583"
-                            class="link-to-prism">angular/shared/form/field-base.ts:583</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="666"
+                            class="link-to-prism">angular/shared/form/field-base.ts:666</a></div>
                 </td>
             </tr>
 
@@ -2773,8 +3008,8 @@ fieldMap[name].field = the Field model (this)</p>
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="535"
-                            class="link-to-prism">angular/shared/form/field-base.ts:535</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="618"
+                            class="link-to-prism">angular/shared/form/field-base.ts:618</a></div>
                 </td>
             </tr>
 
@@ -2838,8 +3073,8 @@ fieldMap[name].field = the Field model (this)</p>
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="520"
-                            class="link-to-prism">angular/shared/form/field-base.ts:520</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="603"
+                            class="link-to-prism">angular/shared/form/field-base.ts:603</a></div>
                 </td>
             </tr>
 
@@ -2903,8 +3138,8 @@ fieldMap[name].field = the Field model (this)</p>
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="555"
-                            class="link-to-prism">angular/shared/form/field-base.ts:555</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="638"
+                            class="link-to-prism">angular/shared/form/field-base.ts:638</a></div>
                 </td>
             </tr>
 
@@ -3884,9 +4119,92 @@ export class FieldBase&lt;T&gt; {
     return _.isUndefined(_.get(this.appConfig, name)) ? defValue : _.get(this.appConfig, name);
   }
 
+
+  /**
+   * 
+   * Emits the current form value as a value loaded event. 
+   * 
+   * To be used in subscribe blocks
+   * e.g. to emit the form value when the form loads
+   * 
+   *  &#x27;form&#x27;: {
+   *            onFormLoaded: [{
+   *              action: &#x27;publishValueLoaded&#x27;
+   *            }]
+   *           }
+   * 
+   */
   public publishValueLoaded() {
     this.onValueLoaded.emit(this.value);
   }
+
+  /**
+   * 
+   * Emits the value passed ot it as a value loaded event. 
+   * 
+   * To be used in subscribe blocks as part of the processing chain to emit the current processed value.
+   * e.g.
+   * 
+   *  &#x27;rdmpGetter&#x27;: {
+   *        onValueUpdate: [
+   *                         {
+   *                            action: &#x27;utilityService.getPropertyFromObject&#x27;,
+   *                           field: &#x27;some-value-on-object&#x27;
+   *                         },
+   *                         {
+   *                            action: &#x27;publishProcessedValueUpdated&#x27;
+   *                         }
+   *                        ]
+   *                 }
+   * 
+   */
+  public publishProcessedValueLoaded(curValue) {
+    this.onValueLoaded.emit(curValue);
+  }
+
+  /**
+   * 
+   * Emits the field&#x27;s current value as a value loaded event. 
+   * 
+   * To be used in subscribe blocks as part of the processing chain to emit the current processed value.
+   * e.g.
+   * 
+   *  &#x27;some-property&#x27;: {
+   *        onValueUpdate: [
+   *                         {
+   *                            action: &#x27;publishValueUpdated&#x27;
+   *                         }
+   *                       ]
+   *                 }
+   * 
+   */
+  public publishValueUpdated() {
+    this.onValueUpdate.emit(this.value);
+  }
+
+  /**
+   * 
+   * Emits the value passed to it as a value updated event. 
+   * 
+   * To be used in subscribe blocks as part of the processing chain to emit the current processed value.
+   * e.g.
+   * 
+   *  &#x27;rdmpGetter&#x27;: {
+   *        onValueUpdate: [
+   *                         {
+   *                            action: &#x27;utilityService.getPropertyFromObject&#x27;,
+   *                           field: &#x27;some-value-on-object&#x27;
+   *                         },
+   *                         {
+   *                            action: &#x27;publishProcessedValueUpdated&#x27;
+   *                         }
+   *                        ]
+   *                 }
+   * 
+   */
+  public publishProcessedValueUpdated(curValue) {
+    this.onValueUpdate.emit(curValue);
+  }  
 
   setRequiredAndClearValueOnFalse(flag) {
     this.required &#x3D; flag;
