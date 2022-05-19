@@ -106,6 +106,7 @@ export class UtilityService {
   /**
    * Merges emitted object into the subscriber's array of objects if the emitted object is not present.
    *
+   * Author: <a href='https://github.com/andrewbrazzatti' target='_blank'>Andrew Brazzatti</a>
    * @param  {any} data
    * @param  {any} config
    * @param  {any} field
@@ -116,7 +117,6 @@ export class UtilityService {
     const fieldsToSet = config.fieldsToSet;
     const templateObject = config.templateObject;
     let fieldValues = _.clone(field.formModel.value);
-
     fieldValues = this.mergeObjectIntoArray(data,fieldValues, fieldsToMatch, fieldsToSet, templateObject);
 
     return fieldValues;
