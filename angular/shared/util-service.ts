@@ -124,6 +124,7 @@ export class UtilityService {
 
 
   public logSubscribeDebugToConsole(data: any, config: any, field: any) {
+    console.log("Logging subscription information" )
     console.log("The data is:" )
     console.log(JSON.stringify(data))
     console.log("Config is:" )
