@@ -75,6 +75,7 @@ jobs:
 orbs:
   node: circleci/node@4.0.0
   docker: circleci/docker@1.4.0
+  python: circleci/python@2.0.3
 version: 2.1
 workflows:
   build_test_gendocs_and_deploy:
