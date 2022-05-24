@@ -252,6 +252,21 @@ export module Services {
               lastLogin: new Date()
             };
             sails.log.verbose(userToCreate);
+            if (authorizedEmailExceptions.length > 0 || authorizedEmailDomains > 0) {
+              let emailParts = userToCreate.email.split('@');
+              if (emailParts.length != 2) {
+                sails.log.error(`Unexpected email format: ${userToCreate.email}`);
+                return done(`Unexpected email format: ${userToCreate.email}`, false);
+              }
+
+              let emailDomain = emailParts[1];
+              if (authorizedEmailDomains.indexOf(emailDomain) == -1) {
+                if (authorizedEmailExceptions.indexOf(userToCreate.email) == -1) {
+                  sails.log.error(`User is not authorized to login: ${userToCreate.email}`);
+                  return done(`User is not authorized to login: ${userToCreate.email}`, false);
+                }
+              }
+            }
             User.create(userToCreate).exec(function (err, newUser) {
               if (err) {
                 sails.log.error("Error creating new user:");
