@@ -45,7 +45,7 @@ jobs:
             - .
   deploy:
     docker:
-      - image: 'node:14.19.0-buster'
+      - image: 'cimg/node:14.19'
     steps:
       - setup_remote_docker
       - attach_workspace:
