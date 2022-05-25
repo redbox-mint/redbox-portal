@@ -15,7 +15,7 @@ jobs:
             - .
   build_without_angular:
     docker:
-      - image: 'cimg/node:16.15'
+      - image: 'node:14.19.0-buster'
     steps:
       - checkout
       - run: (cd core && npm install && node_modules/.bin/tsc)
@@ -38,7 +38,7 @@ jobs:
       - run: node_modules/.bin/tsc
   deploy:
     docker:
-      - image: 'cimg/node:16.15'
+      - image: 'node:14.19.0-buster'
     steps:
       - setup_remote_docker
       - attach_workspace:
