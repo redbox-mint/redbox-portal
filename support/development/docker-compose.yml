@@ -5,7 +5,7 @@ services:
   redboxportal:
     # uncomment this if you are making changes to the Dockerfile
     # build: .
-    image: qcifengineering/redbox-portal:master
+    image: rbnode16
     ports:
       - "1500:1500"
     user: node
