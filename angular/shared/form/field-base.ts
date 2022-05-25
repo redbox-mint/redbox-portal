@@ -556,7 +556,6 @@ export class FieldBase<T> {
    */
   public publishProcessedValueLoaded(curValue) {
     this.onValueLoaded.emit(curValue);
-    return curValue;
   }
 
   /**
@@ -601,7 +600,6 @@ export class FieldBase<T> {
    */
   public publishProcessedValueUpdated(curValue) {
     this.onValueUpdate.emit(curValue);
-    return curValue;
   }  
 
   setRequiredAndClearValueOnFalse(flag) {
