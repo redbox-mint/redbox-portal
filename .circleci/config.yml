@@ -33,16 +33,16 @@ jobs:
       - attach_workspace:
            at: /home/circleci/project
       # Make a copy of original project state as it gets modified for integration testing and code coverage reasons
-      - run: (mkdir -p /tmp/original && cp -Rf /home/circleci/project/* /tmp/original
+      # - run: (mkdir -p /tmp/original && cp -Rf /home/circleci/project/* /tmp/original
       - run: node_modules/.bin/tsc -p tsconfig-codecov.json
       - run: (sudo chmod -R 777 . && cd support/integration-testing && sudo mkdir -p .tmp/attachments/staging && sudo chmod -R 777 . && docker-compose -f docker-compose.newman.yml up --abort-on-container-exit --exit-code-from redboxportal && docker-compose -f docker-compose.mocha.yml up --abort-on-container-exit --exit-code-from redboxportal)
       - run: npm i -g codecov && codecov -t $CODECOV_TOKEN
       # Restore original project state before persiting to workspace
-      - run: (sudo rm -Rf /home/circleci/project/* && cp -Rf /tmp/original/* /home/circleci/project/)
-      - persist_to_workspace:
-          root: .
-          paths:
-            - .
+      # - run: (sudo rm -Rf /home/circleci/project/* && cp -Rf /tmp/original/* /home/circleci/project/)
+      # - persist_to_workspace:
+      #     root: .
+      #     paths:
+      #       - .
   deploy:
     docker:
       - image: 'cimg/node:14.19'
