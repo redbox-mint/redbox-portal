@@ -32,10 +32,17 @@ jobs:
       # - docker/install-docker-compose
       - attach_workspace:
            at: /home/circleci/project
+      # Make a copy of original project state as it gets modified for integration testing and code coverage reasons
+      - run: (mkdir -p /tmp/original && cp -Rf /home/circleci/project/* /tmp/original
       - run: node_modules/.bin/tsc -p tsconfig-codecov.json
       - run: (sudo chmod -R 777 . && cd support/integration-testing && sudo mkdir -p .tmp/attachments/staging && sudo chmod -R 777 . && docker-compose -f docker-compose.newman.yml up --abort-on-container-exit --exit-code-from redboxportal && docker-compose -f docker-compose.mocha.yml up --abort-on-container-exit --exit-code-from redboxportal)
       - run: npm i -g codecov && codecov -t $CODECOV_TOKEN
-      - run: node_modules/.bin/tsc
+      # Restore original project state before persiting to workspace
+      - run: (sudo rm -Rf /home/circleci/project/* && cp -Rf /tmp/original/* /home/circleci/project/)
+      - persist_to_workspace:
+          root: .
+          paths:
+            - .
   deploy:
     docker:
       - image: 'node:14.19.0-buster'
@@ -75,7 +82,6 @@ jobs:
 orbs:
   node: circleci/node@4.0.0
   docker: circleci/docker@1.4.0
-  python: circleci/python@2.0.3
 version: 2.1
 workflows:
   build_test_gendocs_and_deploy:
