@@ -30,7 +30,7 @@ declare var _;
 /**
  * Package that contains all Controllers.
  */
- import {APIErrorResponse, Controllers as controllers, CreateUserAPIResponse, ListAPIResponse, User as UserModel, UserAPITokenAPIResponse} from '@researchdatabox/redbox-core-types';
+ import {APIErrorResponse, Controllers as controllers, CreateUserAPIResponse, ListAPIResponse, User as UserModel, UserAPITokenAPIResponse, APIActionResponse} from '@researchdatabox/redbox-core-types';
 
 import * as uuidv4 from 'uuid/v4';
 
@@ -52,7 +52,8 @@ export module Controllers {
       'updateUser',
       'generateAPIToken',
       'revokeAPIToken',
-      'listSystemRoles'
+      'listSystemRoles',
+      'createSystemRole'
     ];
 
     /**
@@ -284,6 +285,24 @@ export module Controllers {
       response.records =  brand.roles;
       
       return this.apiRespond(req,res,response);
+    }
+
+    public createSystemRole(req, res) {
+      let roleName;
+      if(_.isUndefined(req.body.roleName)) {
+        roleName = req.param('roleName');
+      } else {
+        roleName = req.body.roleName;
+      }
+      sails.log.verbose('createSystemRole - roleName '+roleName);
+      if(!_.isUndefined(roleName)) {
+        let brand = BrandingService.getBrand(req.session.branding);
+        RolesService.createRoleWithBrand(brand,roleName);
+        let response: APIActionResponse = new APIActionResponse (roleName +' create call success',roleName +' create call success');
+        return this.apiRespond(req,res,response);
+      } else {
+        return this.apiFail(req, res, 400, new APIErrorResponse("Role name has to be passed in as url param or in the body { roleName: nameOfRole }"));
+      }
     }
 
 

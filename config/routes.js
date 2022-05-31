@@ -434,6 +434,11 @@ module.exports.routes = {
   //   action: 'executeNamedQuery',
   //   csrf: false
   // },
+  'post /:branding/:portal/api/roles/create/:roleName': {
+    controller: 'webservice/UserManagementController',
+    action: 'createSystemRole',
+    csrf: false
+  },
   'get /:branding/:portal/workspaces/types/:name': 'WorkspaceTypesController.getOne',
   'get /:branding/:portal/workspaces/types': 'WorkspaceTypesController.get'
 };
