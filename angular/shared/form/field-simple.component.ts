@@ -104,11 +104,20 @@ export class SimpleComponent {
   loaded: boolean;
 
   /**
+   * 
+   * Cache for this comp's formControl
+   */
+  fc: any;
+  /**
    * Return the NG2 FormControl or subclass thereof
    * @param  {string = null} name
    * @return {FormControl}
    */
   public getFormControl(name: string = null, ctrlIndex: number = null): FormControl {
+    // cache value
+    if (this.fc) {
+      return this.fc;
+    }
     let fc = null;
     if (_.isEmpty(name)) {
       name = this.name;
@@ -116,23 +125,36 @@ export class SimpleComponent {
     if (_.isEmpty(name)) {
       name = this.field.name;
     }
-    if (this.fieldMap && this.field) {
-      // console.log(name);
-      fc = this.field.getControl(name, this.fieldMap);
-    }
-    if (!_.isNull(ctrlIndex) && !_.isUndefined(ctrlIndex)) {
-      if (!_.isNull(fc.controls) && !_.isUndefined(fc.controls)) {
-        fc = fc.controls[ctrlIndex];
+    //  check first it's within a group, return directly
+    if (!_.isEmpty(this.field.parentField)) {
+      fc = this.field.formModel;
+    } else {
+      // using the field map, the legacy behaviour
+      // TODO: during NG upgrade, review code block below
+      if (this.fieldMap && this.field) {
+        fc = this.field.getControl(name, this.fieldMap);
       }
-    } else
-    if (this.index != null) {
-      fc = fc.controls[this.index];
+      if (!_.isNull(ctrlIndex) && !_.isUndefined(ctrlIndex)) {
+        if (!_.isNull(fc.controls) && !_.isUndefined(fc.controls)) {
+          fc = fc.controls[ctrlIndex];
+        }
+      } else if (this.index != null) {
+        fc = fc.controls[this.index];
+      }
+      if (name != this.field.name && !_.isEmpty(this.field.name) && !_.isUndefined(fc.controls)) {
+        fc = fc.controls[this.field.name];
+      }
+      // END TODO
     }
-    if (name != this.field.name && !_.isEmpty(this.field.name) && !_.isUndefined(fc.controls)) {
-      fc = fc.controls[this.field.name];
+    // check if fc is still null
+    if (_.isEmpty(fc)) {
+      console.warn(`Warning: Unable to retrieve '${name}' formControl. It seems to be nested? Returning 'field.formModel' by default instead of null`);
+      fc = this.field.formModel;
     }
-    return fc;
+    this.fc = fc;
+    return this.fc;
   }
+
   /**
    * Returns the CSS class
    * @param  {string=null} fldName
@@ -232,7 +254,7 @@ export class DropdownFieldComponent extends SelectionComponent {
 @Component({
   selector: 'selectionfield',
   template: `
-  <div [formGroup]='form' *ngIf="field.editMode && field.visible" class="form-group">
+  <div [formGroup]='getFormGroup()' *ngIf="field.editMode && field.visible" class="form-group">
      <span class="label-font">
       {{field.label}} {{ getRequiredLabelStr()}}
       <button type="button" class="btn btn-default" *ngIf="field.help" (click)="toggleHelp()" [attr.aria-label]="'help' | translate "><span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span></button>
@@ -242,9 +264,10 @@ export class DropdownFieldComponent extends SelectionComponent {
       <legend [hidden]="true"><span></span></legend>
         <span *ngFor="let opt of field.selectOptions">
           <!-- radio type hard-coded otherwise accessor directive will not work! -->
-          <input *ngIf="isRadio()" type="radio" name="{{field.name}}" [id]="field.name + '_' + opt.value" [formControl]="getFormControl()" [value]="opt.value" [attr.disabled]="field.readOnly ? '' : null ">
-          <input *ngIf="!isRadio()" type="{{field.controlType}}" name="{{field.name}}" [id]="field.name + '_' + opt.value" [value]="opt.value" (change)="onChange(opt, $event)" [attr.selected]="getCheckedFromOption(opt)" [checked]="getCheckedFromOption(opt)" [attr.disabled]="field.readOnly ? '' : null ">
-          <label for="{{field.name + '_' + opt.value}}" class="radio-label"  [innerHtml]="opt.label"></label>
+          <!-- the ID and associated label->for property is now delegated to a Fn rather than inline-templated here, to make it optional, e.g. if it is nested -->
+          <input *ngIf="isRadio()" type="radio" [id]="getInputId(opt)" [formControlName]="field.name" [value]="opt.value" [attr.disabled]="field.readOnly ? '' : null ">
+          <input *ngIf="!isRadio()" type="{{field.controlType}}" name="{{field.name}}" [id]="getInputId(opt)" [value]="opt.value" (change)="onChange(opt, $event)" [attr.selected]="getCheckedFromOption(opt)" [checked]="getCheckedFromOption(opt)" [attr.disabled]="field.readOnly ? '' : null ">
+          <label [attr.for]="getInputId(opt)" class="radio-label"  [innerHtml]="opt.label"></label>
           <br/>
         </span>
      </fieldset>
@@ -270,6 +293,26 @@ export class DropdownFieldComponent extends SelectionComponent {
 })
 export class SelectionFieldComponent extends SelectionComponent {
   static clName = 'SelectionFieldComponent';
+  fg: any;
+  /**
+   * Allows radio buttons and checkboxes to use a custom form group. Useful when radio buttons are nested within repeatables.
+   * 
+   * @returns the FormGroup for this selection field
+   */
+  getFormGroup() {
+    if (_.isEmpty(this.fg)) {
+      if (!_.isEmpty(this.field.useFormGroup)) {
+        this.fg = _.get(this.field, this.field.useFormGroup);
+        if (_.isEmpty(this.fg)) {
+          console.warn(`Radio button '${this.field.name}' has custom form group: '${this.field.useFormGroup}', but path resolved to an empty value. Failing softly by defaulting to 'this.form'. If you are still in active form configuration development, please check if 'useFormGroup' path is valid.`);
+          this.fg = this.form;
+        }
+      } else {
+        this.fg = this.form;
+      }
+    } 
+    return this.fg;
+  }
 
   isValArray() {
     return _.isArray(this.field.value) || this.field.controlType == 'checkbox';
@@ -280,7 +323,7 @@ export class SelectionFieldComponent extends SelectionComponent {
   }
 
   getControlFromOption(opt: any) {
-    const fc = this.getFormControl();
+    const fc = this.field.formModel;
     let control = _.find(fc['controls'], (ctrl) => {
       return opt.value == ctrl.value;
     });
@@ -294,7 +337,7 @@ export class SelectionFieldComponent extends SelectionComponent {
   }
 
   onChange(opt: any, event: any) {
-    let formcontrol: any = this.getFormControl();
+    let formcontrol: any = this.field.formModel;
     if (event.target.checked) {
       formcontrol.push(new FormControl(opt.value));
     } else {
@@ -307,6 +350,14 @@ export class SelectionFieldComponent extends SelectionComponent {
       });
       formcontrol.removeAt(idx);
     }
+  }
+
+  getInputId(opt) {
+    let id = null;
+    if (!this.field.disableOptionLabelsFor) {
+      id = `${this.field.name}_${opt.value}`;
+    }
+    return id;
   }
 }
 
