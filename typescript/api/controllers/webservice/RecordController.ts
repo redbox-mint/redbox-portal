@@ -33,7 +33,7 @@ declare var User;
 /**
  * Package that contains all Controllers.
  */
-import { Observable } from 'rxjs/Rx';
+import { lastValueFrom, Observable } from "rxjs";
 import * as path from "path";
 import { APIErrorResponse, APIHarvestResponse, Controllers as controllers, Datastream, DatastreamService, DatastreamServiceResponse, RecordsService, SearchService } from '@researchdatabox/redbox-core-types';
 import { ListAPIResponse } from '@researchdatabox/redbox-core-types';
@@ -693,8 +693,8 @@ export module Controllers {
           this.apiFail(req, res, 500, new APIErrorResponse(`User has no edit permissions for :${oid}`));
           return;
         }
-        const recType = await RecordTypesService.get(brand, record.metaMetadata.type).toPromise();
-        const nextStep = await WorkflowStepsService.get(recType, targetStepName).toPromise();
+        const recType = await lastValueFrom(RecordTypesService.get(brand, record.metaMetadata.type));
+        const nextStep = await lastValueFrom(WorkflowStepsService.get(recType, targetStepName));
         this.RecordsService.updateWorkflowStep(record, nextStep);
         const response = await this.RecordsService.updateMeta(brand, oid, record, req.user);
         this.apiRespond(req, res, response);
@@ -844,7 +844,7 @@ export module Controllers {
       }
 
       var recordType = req.param('recordType');
-      var recordTypeModel = await RecordTypesService.get(brand, recordType).toPromise();
+      var recordTypeModel = await lastValueFrom(RecordTypesService.get(brand, recordType));
 
 
       if (recordTypeModel == null) {
@@ -979,7 +979,7 @@ export module Controllers {
       }
 
       // FormsService
-      let workflowSteps = await WorkflowStepsService.getAllForRecordType(recordTypeModel).toPromise();
+      let workflowSteps = await lastValueFrom(WorkflowStepsService.getAllForRecordType(recordTypeModel));
 
 
       for (let workflowStep of workflowSteps) {

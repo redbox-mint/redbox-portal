@@ -1,3 +1,4 @@
+import { lastValueFrom } from 'rxjs';
 // Copyright (c) 2017 Queensland Cyber Infrastructure Foundation (http://www.qcif.edu.au/)
 //
 // GNU GENERAL PUBLIC LICENSE
@@ -47,8 +48,7 @@ export class EmailNotificationService extends BaseService {
     if (from) {
       payload['from'] = from;
     }
-    return this.http.post(`${this.brandingAndPortalUrl}/api/sendNotification`, payload, this.getOptionsClient())
-    .toPromise()
+    return lastValueFrom(this.http.post(`${this.brandingAndPortalUrl}/api/sendNotification`, payload, this.getOptionsClient()))
     .then(this.extractData);
   }
 

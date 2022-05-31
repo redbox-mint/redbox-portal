@@ -1,3 +1,4 @@
+import { lastValueFrom } from 'rxjs';
 // Copyright (c) 2017 Queensland Cyber Infrastructure Foundation (http://www.qcif.edu.au/)
 //
 // GNU GENERAL PUBLIC LICENSE
@@ -38,14 +39,12 @@ export class RolesService extends BaseService {
   }
 
   getBrandRoles() :Promise<Role[]> {
-    return this.http.get(`${this.brandingAndPortalUrl}/admin/roles/get`, this.options)
-    .toPromise()
+    return lastValueFrom(this.http.get(`${this.brandingAndPortalUrl}/admin/roles/get`, this.options))
     .then((res:any) => this.extractData(res) as Role[]);
   }
 
   updateUserRoles(userid: any, roleIds: any) {
-    return this.http.post(`${this.brandingAndPortalUrl}/admin/roles/user`, {userid: userid, roles:roleIds}, this.options)
-    .toPromise()
+    return lastValueFrom(this.http.post(`${this.brandingAndPortalUrl}/admin/roles/user`, {userid: userid, roles:roleIds}, this.options))
     .then((res:any) => this.extractData(res) as SaveResult[]);
   }
 }

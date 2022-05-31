@@ -1,26 +1,3 @@
-// Copyright (c) 2017 Queensland Cyber Infrastructure Foundation (http://www.qcif.edu.au/)
-//
-// GNU GENERAL PUBLIC LICENSE
-//    Version 2, June 1991
-//
-// This program is free software; you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation; either version 2 of the License, or
-// (at your option) any later version.
-//
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License along
-// with this program; if not, write to the Free Software Foundation, Inc.,
-// 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-
-import {
-  Observable
-} from 'rxjs/Rx';
-
 import {
   DatastreamService,
   QueueService,
@@ -41,9 +18,7 @@ import * as luceneEscapeQuery from "lucene-escape-query";
 import * as fs from 'fs';
 import moment = require('moment');
 
-import {
-  isObservable
-} from 'rxjs';
+import { lastValueFrom, Observable, isObservable } from 'rxjs';
 
 import {
   Readable
@@ -200,7 +175,7 @@ export module Services {
       // process pre-save
       if (!_.isEmpty(brand) && triggerPreSaveTriggers === true) {
         try {
-          recordType = await RecordTypesService.get(brand, record.metaMetadata.type).toPromise();
+          recordType = await lastValueFrom(RecordTypesService.get(brand, record.metaMetadata.type));
           record = await this.triggerPreSaveTriggers(oid, record, recordType, "onUpdate", user);
         } catch (err) {
           sails.log.error(`${this.logHeader} Failed to run pre-save hooks when updating..`);
@@ -514,7 +489,7 @@ export module Services {
       url = this.addAuthFilter(url, username, roles, brand, false)
       sails.log.debug(`Searching fuzzy using: ${url}`);
       const options = this.getOptions(url);
-      return Observable.fromPromise(request[sails.config.record.api.search.method](options))
+      return lastValueFrom(Observable.fromPromise(request[sails.config.record.api.search.method](options))
         .flatMap(resp => {
           let response: any = resp;
           const customResp = {
@@ -551,7 +526,7 @@ export module Services {
             });
           }
           return Observable.of(customResp);
-        }).toPromise();
+        }));
     }
 
     protected addAuthFilter(url, username, roles, brand, editAccessOnly = undefined) {

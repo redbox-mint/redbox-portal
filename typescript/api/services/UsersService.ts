@@ -17,9 +17,7 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import {
-  Observable
-} from 'rxjs/Rx';
+import { lastValueFrom, Observable } from 'rxjs';
 import {
   SearchService,
   Services as services
@@ -576,7 +574,7 @@ export module Services {
       auditEvent['additionalContext'] = additionalContext;
       sails.log.verbose('Adding user audit event');
       sails.log.verbose(auditEvent);
-      return super.getObservable(UserAudit.create(auditEvent)).toPromise();
+      return lastValueFrom(super.getObservable(UserAudit.create(auditEvent)));
     }
 
     /**

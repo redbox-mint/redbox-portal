@@ -1,3 +1,4 @@
+import { lastValueFrom } from 'rxjs';
 // Copyright (c) 2017 Queensland Cyber Infrastructure Foundation (http://www.qcif.edu.au/)
 //
 // GNU GENERAL PUBLIC LICENSE
@@ -41,63 +42,53 @@ export class UserSimpleService extends BaseService {
   }
 
   getInfo(): Promise<User> {
-    return this.http.get(`${this.baseUrl}${this.config.rootContext}/user/info`)
-    .toPromise()
+    return lastValueFrom(this.http.get(`${this.baseUrl}${this.config.rootContext}/user/info`))
     .then((res:any) => this.extractData(res, 'user') as User);
   }
 
   loginLocal(username: string, password: string): Promise<any> {
     console.log(`Logging in locally using brand: ${this.config.branding}, portal: ${this.config.portal}`);
-    return this.http.post(`${this.baseUrl}${this.config.rootContext}/user/login_local`, {username: username, password:password, branding:this.config.branding, portal: this.config.portal}, this.getOptionsClient())
-    .toPromise()
+    return lastValueFrom(this.http.post(`${this.baseUrl}${this.config.rootContext}/user/login_local`, {username: username, password:password, branding:this.config.branding, portal: this.config.portal}, this.getOptionsClient()))
     .then(this.extractData);
   }
 
   getUsers() :Promise<User[]> {
-    return this.http.get(`${this.brandingAndPortalUrl}/admin/users/get`, this.options)
-    .toPromise()
+    return lastValueFrom(this.http.get(`${this.brandingAndPortalUrl}/admin/users/get`, this.options))
     .then((res:any) => this.extractData(res) as User[]);
   }
 
   updateUserDetails(userid: any, details: any) {
-    return this.http.post(`${this.brandingAndPortalUrl}/admin/users/update`, {userid: userid, details:details}, this.options)
-    .toPromise()
+    return lastValueFrom(this.http.post(`${this.brandingAndPortalUrl}/admin/users/update`, {userid: userid, details:details}, this.options))
     .then((res:any) => this.extractData(res) as SaveResult[]);
   }
 
   addLocalUser(username: any, details: any) {
-    return this.http.post(`${this.brandingAndPortalUrl}/admin/users/newUser`, {username: username, details:details}, this.options)
-    .toPromise()
+    return lastValueFrom(this.http.post(`${this.brandingAndPortalUrl}/admin/users/newUser`, {username: username, details:details}, this.options))
     .then((res:any) => this.extractData(res) as SaveResult[]);
   }
 
   genKey(userid: any) {
-    return this.http.post(`${this.brandingAndPortalUrl}/admin/users/genKey`, {userid: userid}, this.options)
-    .toPromise()
+    return lastValueFrom(this.http.post(`${this.brandingAndPortalUrl}/admin/users/genKey`, {userid: userid}, this.options))
     .then((res:any) => this.extractData(res) as SaveResult[]);
   }
 
   revokeKey(userid: any) {
-    return this.http.post(`${this.brandingAndPortalUrl}/admin/users/revokeKey`, {userid: userid}, this.options)
-    .toPromise()
+    return lastValueFrom(this.http.post(`${this.brandingAndPortalUrl}/admin/users/revokeKey`, {userid: userid}, this.options))
     .then((res:any) => this.extractData(res) as SaveResult[]);
   }
 
   updateUserProfile(details: any) {
-    return this.http.post(`${this.brandingAndPortalUrl}/user/update`, {details:details}, this.options)
-    .toPromise()
+    return lastValueFrom(this.http.post(`${this.brandingAndPortalUrl}/user/update`, {details:details}, this.options))
     .then((res:any) => this.extractData(res) as SaveResult[]);
   }
 
   genUserKey() {
-    return this.http.post(`${this.brandingAndPortalUrl}/user/genKey`, {},this.options)
-    .toPromise()
+    return lastValueFrom(this.http.post(`${this.brandingAndPortalUrl}/user/genKey`, {},this.options))
     .then((res:any) => this.extractData(res) as SaveResult[]);
   }
 
   revokeUserKey() {
-    return this.http.post(`${this.brandingAndPortalUrl}/user/revokeKey`, {},this.options)
-    .toPromise()
+    return lastValueFrom(this.http.post(`${this.brandingAndPortalUrl}/user/revokeKey`, {},this.options))
     .then((res:any) => this.extractData(res) as SaveResult[]);
   }
 

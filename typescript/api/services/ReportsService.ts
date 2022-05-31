@@ -19,7 +19,7 @@
 
 import {
   Observable
-} from 'rxjs/Rx';
+} from "rxjs";
 import {SearchService, Services as services}   from '@researchdatabox/redbox-core-types';
 
 import {
