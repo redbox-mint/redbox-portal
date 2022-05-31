@@ -17,127 +17,223 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { Observable } from 'rxjs';
+import {
+  Observable
+} from "rxjs";
 import {Services as services}   from '@researchdatabox/redbox-core-types';
-import { Sails, Model } from "sails";
-import * as request from "request-promise";
+import {
+  Sails,
+  Model
+} from "sails";
 
 declare var sails: Sails;
-declare var Report: Model;
+declare var Form: Model;
+declare var RecordType: Model;
+declare var WorkflowStep: Model;
 declare var _this;
 declare var _;
 
-
 export module Services {
   /**
-   * WorkflowSteps related functions...
+   * Forms related functions...
    *
-   * Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a>
+   * @author <a target='_' href='https://github.com/shilob'>Shilo Banihit</a>
    *
    */
-  export class Orcids extends services.Core.Service {
+  export class Forms extends services.Core.Service {
 
     protected _exportedMethods: any = [
-      'searchOrcid'
+      'bootstrap',
+      'getForm',
+      'flattenFields',
+      'getFormByName',
+      'filterFieldsHasEditAccess',
+      'listForms'
     ];
 
-    public bootstrap = (defBrand) => {
+    public bootstrap = (workflowStep): Observable < any > => {
+      let startQ = Form.find({
+        workflowStep: workflowStep.id
+      })
+      if (sails.config.appmode.bootstrapAlways) {
+        sails.log.verbose(`Destroying existing form definitions: ${workflowStep.config.form}`);
+        startQ = Form.destroy({
+          name: workflowStep.config.form
+        })
+      }
+      let formDefs = [];
+      return super.getObservable(startQ)
+        .flatMap(form => {
+          sails.log.verbose("Found : ");
+          sails.log.verbose(form);
+          if (!form || form.length == 0) {
+            sails.log.verbose("Bootstrapping form definitions..");
+            // only bootstrap the form for this workflow step
+            _.forOwn(sails.config.form.forms, (formDef, formName) => {
+              if (formName == workflowStep.config.form) {
+                formDefs.push(formName);
+              }
+            });
+            formDefs = _.uniq(formDefs)
+            sails.log.verbose(JSON.stringify(formDefs));
+            return Observable.from(formDefs);
+          } else {
+            sails.log.verbose("Not Bootstrapping form definitions... ");
+            return Observable.of(null);
+          }
+        })
+        .flatMap(formName => {
+          // check now if the form already exists, if it does, ignore...
+          return this.getObservable(Form.find({
+            name: formName
+          })).flatMap(existingFormDef => {
+            return Observable.of({
+              formName: formName,
+              existingFormDef: existingFormDef
+            });
+          });
+        })
+        .flatMap(existCheck => {
+          sails.log.verbose(`Existing form check: ${existCheck.formName}`);
+          sails.log.verbose(JSON.stringify(existCheck));
+          if (_.isUndefined(existCheck.existingFormDef) || _.isEmpty(existCheck.existingFormDef)) {
+            return Observable.of(existCheck.formName);
+          } else {
+            sails.log.verbose(`Existing form definition for form name: ${existCheck.existingFormDef.name}, ignoring bootstrap.`);
+            return Observable.of(null);
+          }
+        })
+        .flatMap(formName => {
+          sails.log.verbose("FormName is:");
+          sails.log.verbose(formName);
+          let observable = Observable.of(null);
+          if (!_.isNull(formName)) {
+            sails.log.verbose(`Preparing to create form...`);
+            const formObj = {
+              name: formName,
+              fields: sails.config.form.forms[formName].fields,
+              workflowStep: workflowStep.id,
+              type: sails.config.form.forms[formName].type,
+              messages: sails.config.form.forms[formName].messages,
+              viewCssClasses: sails.config.form.forms[formName].viewCssClasses,
+              editCssClasses: sails.config.form.forms[formName].editCssClasses,
+              skipValidationOnSave: sails.config.form.forms[formName].skipValidationOnSave,
+              attachmentFields: sails.config.form.forms[formName].attachmentFields,
+              customAngularApp: sails.config.form.forms[formName].customAngularApp || null
+            };
+
+            var q = Form.create(formObj);
+            observable = Observable.bindCallback(q["exec"].bind(q))();
+            // var obs = Observable.bindCallback(q["exec"].bind(q))();
+          }
+          return observable;
+        })
+        .flatMap(result => {
+          if (result) {
+            sails.log.verbose("Created form record: ");
+            sails.log.verbose(result);
+            return Observable.from(result);
+          }
+          return Observable.of(result);
+        }).flatMap(result => {
+          if (result) {
+            sails.log.verbose(`Updating workflowstep ${result.workflowStep} to: ${result.id}`);
+            // update the workflow step...
+            const q = WorkflowStep.update({
+              id: result.workflowStep
+            }).set({
+              form: result.id
+            });
+            return Observable.bindCallback(q["exec"].bind(q))();
+          }
+          return Observable.of(null);
+        });
 
     }
 
-    public searchOrcid(givenNames: string, familyName: string, page: number) {
-      var rows = 10;
-      var start = (page - 1) * rows;
-      var url = sails.config.orcid.url + '/v1.2/search/orcid-bio/?q=family-name:"' + familyName + '"%20AND%20given-names:"' + givenNames + '"&start=' + start + '&rows=' + rows;
-      var options = this.getOptions(url);
-      var orcidRes = Observable.fromPromise(request[sails.config.record.api.search.method](options));
+    public listForms = (): Observable < any > => {
+      return super.getObservable(Form.find({}));
+    }
 
-      return orcidRes.flatMap(orcidResult => {
-        var results = {};
-        results["numFound"] = orcidResult["orcid-search-results"]["num-found"];
-        results["items"] = [];
 
-        for (var i = 0; i < orcidResult["orcid-search-results"]["orcid-search-result"].length; i++) {
-          var orcidSearchResult = orcidResult["orcid-search-results"]["orcid-search-result"][i];
-          var item = this.mapToPeopleSearchResult(orcidSearchResult);
-          results["items"].push(item);
+    public getFormByName = (formName, editMode): Observable < any > => {
+      return super.getObservable(Form.findOne({
+        name: formName
+      })).flatMap(form => {
+        if (form) {
+          this.setFormEditMode(form.fields, editMode);
+          return Observable.of(form);
         }
-        return Observable.of(results);
+        return Observable.of(null);
       });
     }
 
-    protected mapToPeopleSearchResult(orcidSearchResult) {
-      var item = {};
+    public getForm = (branding, recordType, editMode, starting: boolean): Observable < any > => {
 
-      var profile = orcidSearchResult["orcid-profile"];
-      item["givenNames"] = profile["orcid-bio"]["personal-details"]["given-names"]["value"];
-      item["familyName"] = profile["orcid-bio"]["personal-details"]["family-name"]["value"];
-      item["identifier"] = profile["orcid-identifier"]["uri"];
-      item["extendedAttributes"] = [];
+      return super.getObservable(RecordType.findOne({
+          key: branding + "_" + recordType
+        }))
+        .flatMap(recordType => {
 
-      // Process extended attributes
-      var otherNames = profile["orcid-bio"]["personal-details"]["other-names"] == null ? null : {};
-      if (otherNames != null) {
+          return super.getObservable(WorkflowStep.findOne({
+            recordType: recordType.id,
+            starting: starting
+          }));
+        }).flatMap(workflowStep => {
 
-        var otherNamesArray = profile["orcid-bio"]["personal-details"]["other-names"]["other-name"];
+          if (workflowStep.starting == true) {
 
-        otherNames = this.getExtendedAttributeObject('orcid-other-names', otherNamesArray);
-        item["extendedAttributes"].push(otherNames);
-      }
+            return super.getObservable(Form.findOne({
+              name: workflowStep.config.form
+            }));
+          }
 
-      var biography = profile["orcid-bio"]["biography"] == null ? null : {};
-      if (biography != null) {
+          return Observable.of(null);
+        }).flatMap(form => {
 
-        var biographyValue = profile["orcid-bio"]["biography"];
-
-        biography = this.getExtendedAttributeObject('orcid-biography', biographyValue);
-        item["extendedAttributes"].push(biography);
-      }
-
-
-      var researcherUrls = profile["orcid-bio"]["researcher-urls"] == null ? null : {};
-      if (researcherUrls != null) {
-        var researcherUrlsValueArray = [];
-        var researcherUrlsArray = profile["orcid-bio"]["researcher-urls"]["researcher-url"];
-
-        _.forEach(researcherUrlsArray, function (researcherUrl) {
-            var researcherUrlItem = {};
-            researcherUrlItem["value"] = researcherUrl["url-name"]["value"];
-            researcherUrlItem["url"] = researcherUrl["url"]["value"];
-            researcherUrlsValueArray.push(researcherUrlItem);
-        });
-
-        researcherUrls = this.getExtendedAttributeObject('orcid-researcher-urls', researcherUrlsValueArray);
-        researcherUrls["displayAsLinks"] = true;
-        item["extendedAttributes"].push(researcherUrls);
-      }
-
-      var keywords = profile["orcid-bio"]["keywords"] == null ? null : {};
-      if (keywords != null) {
-        var keywordsArray = profile["orcid-bio"]["keywords"]["keyword"];
-
-        keywords = this.getExtendedAttributeObject('orcid-keywords', keywordsArray);
-        item["extendedAttributes"].push(keywords);
-      }
-
-
-
-      return item;
+          if (form) {
+            this.setFormEditMode(form.fields, editMode);
+            return Observable.of(form);
+          }
+          return Observable.of(null);
+        }).filter(result => result !== null).last();
     }
 
-    private getExtendedAttributeObject(label: string, value) {
-      var extendedAttributes = {};
-      extendedAttributes["label"] = label;
-      extendedAttributes["value"] = value;
-      return extendedAttributes;
+    protected setFormEditMode(fields, editMode) {
+      _.remove(fields, field => {
+        if (editMode) {
+          return field.viewOnly == true;
+        } else {
+          return field.editOnly == true;
+        }
+      });
+      _.forEach(fields, field => {
+        field.definition.editMode = editMode;
+        if (!_.isEmpty(field.definition.fields)) {
+          this.setFormEditMode(field.definition.fields, editMode);
+        }
+      });
     }
 
-    protected getOptions(url, contentType = 'application/json; charset=utf-8') {
-      return { url: url, json: true, headers: { 'Content-Type': contentType } };
+    public filterFieldsHasEditAccess(fields, hasEditAccess) {
+      _.remove(fields, field => {
+        return field.needsEditAccess && hasEditAccess != true;
+      });
+      _.forEach(fields, field => {
+        if (!_.isEmpty(field.definition.fields)) {
+          this.filterFieldsHasEditAccess(field.definition.fields, hasEditAccess);
+        }
+      });
     }
 
-
+    public flattenFields(fields, fieldArr) {
+      _.map(fields, (f) => {
+        fieldArr.push(f);
+        if (f.fields) {
+          this.flattenFields(f.fields, fieldArr);
+        }
+      });
+    }
   }
-
 }
-module.exports = new Services.Orcids().exports();
+module.exports = new Services.Forms().exports();
