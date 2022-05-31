@@ -1,25 +1,3 @@
-// Copyright (c) 2017 Queensland Cyber Infrastructure Foundation (http://www.qcif.edu.au/)
-//
-// GNU GENERAL PUBLIC LICENSE
-//    Version 2, June 1991
-//
-// This program is free software; you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation; either version 2 of the License, or
-// (at your option) any later version.
-//
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License along
-// with this program; if not, write to the Free Software Foundation, Inc.,
-// 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-
-import {
-  Observable
-} from 'rxjs/Rx';
 import {
   QueueService,
   Services as services,
@@ -32,9 +10,7 @@ import {
 import moment = require('moment');
 import * as numeral from 'numeral';
 
-import {
-  isObservable
-} from 'rxjs';
+import { lastValueFrom, Observable, isObservable } from 'rxjs';
 
 declare var sails: Sails;
 declare var RecordType, Counter: Model;
@@ -127,14 +103,14 @@ export module Services {
           sails.log[processRecordCountersLogLevel]('processRecordCounters - before - counter:');
           sails.log[processRecordCountersLogLevel](counter);
 
-          const promiseCounter = await this.getObservable(Counter.findOrCreate({
+          const promiseCounter = await lastValueFrom(this.getObservable(Counter.findOrCreate({
             name: counter.field_name,
             branding: brandId
           }, {
             name: counter.field_name,
             branding: brandId,
             value: 0
-          })).toPromise();
+          })));
 
           if (_.isEmpty(promiseCounter)) {
             sails.log[processRecordCountersLogLevel]('processRecordCounters - promiseCounter isEmpty');
@@ -153,11 +129,11 @@ export module Services {
             this.incrementCounter(record, counter, newVal);
 
             //Update global counter
-            const updateOnePromise = await this.getObservable(Counter.updateOne({
+            const updateOnePromise = await lastValueFrom(this.getObservable(Counter.updateOne({
               id: promiseCounter[0].id
             }, {
               value: newVal
-            })).toPromise();
+            })));
             sails.log[processRecordCountersLogLevel]('processRecordCounters - updateOnePromise:');
             sails.log[processRecordCountersLogLevel](updateOnePromise);
           }
@@ -369,7 +345,7 @@ export module Services {
           sails.log.debug(`Triggering queuedtrigger: ${hookFunctionString}`)
           let hookResponse = hookFunction(oid, record, options, user);
           let response = this.convertToObservable(hookResponse);
-          return response.toPromise();
+          return lastValueFrom(response);
 
         } else {
           sails.log.error(`queued trigger function: '${hookFunctionString}' did not resolve to a valid function, what I got:`);

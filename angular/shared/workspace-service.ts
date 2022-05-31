@@ -1,3 +1,4 @@
+import { lastValueFrom } from 'rxjs';
 // Copyright (c) 2017 Queensland Cyber Infrastructure Foundation (http://www.qcif.edu.au/)
 //
 // GNU GENERAL PUBLIC LICENSE
@@ -41,14 +42,12 @@ export class WorkspaceTypeService extends BaseService {
   }
 
   getWorkspaceTypes() : Promise<any[]> {
-    return this.http.get(`${this.brandingAndPortalUrl}/workspaces/types`, this.options)
-    .toPromise()
+    return lastValueFrom(this.http.get(`${this.brandingAndPortalUrl}/workspaces/types`, this.options))
     .then((res:any) => this.extractData(res));
   }
 
   getWorkspaceType(name: string) : Promise<any[]> {
-    return this.http.get(`${this.brandingAndPortalUrl}/workspaces/types/` + name, this.options)
-    .toPromise()
+    return lastValueFrom(this.http.get(`${this.brandingAndPortalUrl}/workspaces/types/` + name, this.options))
     .then((res:any) => this.extractData(res));
   }
 }

@@ -1,3 +1,4 @@
+import { lastValueFrom } from 'rxjs';
 // Copyright (c) 2017 Queensland Cyber Infrastructure Foundation (http://www.qcif.edu.au/)
 //
 // GNU GENERAL PUBLIC LICENSE
@@ -78,8 +79,7 @@ export class RecordsService extends BaseService {
     console.log("Oid is: " + oid);
     const url = oid ? `${this.brandingAndPortalUrl}/record/form/auto/${oid}?edit=${editable}&ts=${ts}&formName=${formName}` : `${this.brandingAndPortalUrl}/record/form/${recordType}?edit=${editable}&ts=${ts}`;
     console.log("URL is: " + url);
-    return this.http.get(url, this.options)
-      .toPromise()
+    return lastValueFrom(this.http.get(url, this.options))
       .then((res:any) => this.extractData(res));
   }
 
@@ -123,25 +123,22 @@ export class RecordsService extends BaseService {
   }
 
   getAttachments(oid: string) {
-    return this.http.get(`${this.brandingAndPortalUrl}/record/${oid}/attachments`, this.getOptionsClient()).toPromise()
+    return lastValueFrom(this.http.get(`${this.brandingAndPortalUrl}/record/${oid}/attachments`, this.getOptionsClient()))
     .then((res:any) => this.extractData(res));
   }
 
   modifyEditors(records, username, email) {
-    return this.http.post(`${this.brandingAndPortalUrl}/record/editors/modify`, {records:records, username:username, email:email}, this.getOptionsClient())
-    .toPromise()
+    return lastValueFrom(this.http.post(`${this.brandingAndPortalUrl}/record/editors/modify`, {records:records, username:username, email:email}, this.getOptionsClient()))
     .then((res:any) => this.extractData(res) as RecordActionResult);
   }
 
   updateResponsibilities(records, role, updateData) {
-    return this.http.post(`${this.brandingAndPortalUrl}/record/responsibility/update`, {records:records, role:role, updateData:updateData}, this.getOptionsClient())
-    .toPromise()
+    return lastValueFrom(this.http.post(`${this.brandingAndPortalUrl}/record/responsibility/update`, {records:records, role:role, updateData:updateData}, this.getOptionsClient()))
     .then((res:any) => this.extractData(res) as RecordActionResult);
   }
 
   getTransferResponsibility(recordType) {
-    return this.http.get(`${this.brandingAndPortalUrl}/transferconfig/${recordType}`, this.getOptionsClient())
-    .toPromise()
+    return lastValueFrom(this.http.get(`${this.brandingAndPortalUrl}/transferconfig/${recordType}`, this.getOptionsClient()))
     .then((res:any) => this.extractData(res) as Object);
   }
 
@@ -169,20 +166,17 @@ export class RecordsService extends BaseService {
       });
       refinedSearchStr = `${exactSearchNames}${exactSearchValues}${facetSearchNames}${facetSearchValues}`;
     }
-    return this.http.get(`${this.brandingAndPortalUrl}/record/search/${params.recordType}/?searchStr=${params.basicSearch}&rows=${params.rows}&page=${params.currentPage}${refinedSearchStr}`, this.getOptionsClient())
-    .toPromise()
+    return lastValueFrom(this.http.get(`${this.brandingAndPortalUrl}/record/search/${params.recordType}/?searchStr=${params.basicSearch}&rows=${params.rows}&page=${params.currentPage}${refinedSearchStr}`, this.getOptionsClient()))
     .then((res:any) => this.extractData(res) as RecordActionResult);
   }
 
   getType(name: string) {
-    return this.http.get(`${this.brandingAndPortalUrl}/record/type/${name}`, this.getOptionsClient())
-    .toPromise()
+    return lastValueFrom(this.http.get(`${this.brandingAndPortalUrl}/record/type/${name}`, this.getOptionsClient()))
     .then((res:any) => this.extractData(res));
   }
 
   getAllTypes() {
-    return this.http.get(`${this.brandingAndPortalUrl}/record/type/`, this.getOptionsClient())
-    .toPromise()
+    return lastValueFrom(this.http.get(`${this.brandingAndPortalUrl}/record/type/`, this.getOptionsClient()))
     .then((res:any) => this.extractData(res));
   }
 
@@ -192,33 +186,28 @@ export class RecordsService extends BaseService {
   }
 
   getWorkflowSteps(name: string) {
-    return this.http.get(`${this.brandingAndPortalUrl}/record/wfSteps/${name}`, this.getOptionsClient())
-    .toPromise()
+    return lastValueFrom(this.http.get(`${this.brandingAndPortalUrl}/record/wfSteps/${name}`, this.getOptionsClient()))
     .then((res:any) => this.extractData(res));
   }
 
   getRecordMeta(oid:string=null) {
-    return this.http.get(`${this.brandingAndPortalUrl}/record/metadata/`+oid, this.options)
-      .toPromise()
+    return lastValueFrom(this.http.get(`${this.brandingAndPortalUrl}/record/metadata/`+oid, this.options))
       .then((res: any) => this.extractData(res));
   }
 
   getPermissions(oid:string=null) {
-    return this.http.get(`${this.brandingAndPortalUrl}/record/${oid}/permissions`, this.options)
-      .toPromise()
+    return lastValueFrom(this.http.get(`${this.brandingAndPortalUrl}/record/${oid}/permissions`, this.options))
       .then((res: any) => this.extractData(res));
   }
 
 
   executeAction(action:string, params:any) {
-    return this.http.post(`${this.brandingAndPortalUrl}/action/${action}`, params, this.options)
-      .toPromise()
+    return lastValueFrom(this.http.post(`${this.brandingAndPortalUrl}/action/${action}`, params, this.options))
       .then((res: any) => this.extractData(res));
   }
 
   getAsyncProgress(fq:string) {
-    return this.http.get(`${this.brandingAndPortalUrl}/asynch?fq=${fq}`, this.options)
-    .toPromise()
+    return lastValueFrom(this.http.get(`${this.brandingAndPortalUrl}/asynch?fq=${fq}`, this.options))
     .then((res: any) => this.extractData(res));
   }
 

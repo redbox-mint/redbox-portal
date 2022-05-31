@@ -20,12 +20,12 @@
 //<reference path='./../../typings/loader.d.ts'/>
 declare var module;
 declare var sails;
-import {
-  Observable
-} from 'rxjs/Rx';
+
 import {
   StorageServiceResponse
 } from '@researchdatabox/redbox-core-types';
+import { lastValueFrom, Observable } from 'rxjs';
+
 import moment = require('moment');
 import * as tus from 'tus-node-server';
 import * as fs from 'fs';
@@ -498,7 +498,7 @@ export module Controllers {
       record.metaMetadata.type = recType;
       record.metadata = metadata;
 
-      let recordType = await RecordTypesService.get(brand, recType).toPromise();
+      let recordType = await lastValueFrom(RecordTypesService.get(brand, recType));
 
       if (recordType.packageType) {
         record.metaMetadata.packageType = recordType.packageType;
@@ -507,9 +507,9 @@ export module Controllers {
       if (recordType.packageName) {
         record.metaMetadata.packageName = recordType.packageName;
       }
-      let wfStep = await WorkflowStepsService.getFirst(recordType).toPromise();
+      let wfStep = await lastValueFrom(WorkflowStepsService.getFirst(recordType));
       if (targetStep) {
-        wfStep = await WorkflowStepsService.get(recType, targetStep).toPromise();
+        wfStep = await lastValueFrom(WorkflowStepsService.get(recType, targetStep));
       }
       try {
         this.recordsService.updateWorkflowStep(record, wfStep);
@@ -525,7 +525,7 @@ export module Controllers {
       let formDef = null;
       let oid = null;
       const fieldsToCheck = ['location', 'uploadUrl'];
-      let form = await FormsService.getFormByName(record.metaMetadata.form, true).toPromise();
+      let form = await lastValueFrom(FormsService.getFormByName(record.metaMetadata.form, true));
 
       sails.log.verbose(`RecordController - createRecord - enter`);
       formDef = form;
@@ -646,17 +646,17 @@ export module Controllers {
       let recType = null;
       sails.log.verbose(`RecordController - updateInternal - enter`);
 
-      let cr = await this.getRecord(oid).toPromise()
+      let cr = await lastValueFrom(this.getRecord(oid))
       currentRec = cr;
-      let hasEditAccess = await this.hasEditAccess(brand, user, currentRec).toPromise();
+      let hasEditAccess = await lastValueFrom(this.hasEditAccess(brand, user, currentRec));
       if (!hasEditAccess) {
         return res.forbidden();
       }
-      let recordType = await RecordTypesService.get(brand, currentRec.metaMetadata.type).toPromise();
+      let recordType = await lastValueFrom(RecordTypesService.get(brand, currentRec.metaMetadata.type));
       recType = recordType;
       let nextStepResp = null;
       if (targetStep) {
-        nextStepResp = await WorkflowStepsService.get(recType, targetStep).toPromise();
+        nextStepResp = await lastValueFrom(WorkflowStepsService.get(recType, targetStep));
       }
       if (!metadata.delete) {
 
@@ -708,12 +708,13 @@ export module Controllers {
         this.ajaxFail(req, res, error.message);
       }
 
-      let form = await FormsService.getFormByName(currentRec.metaMetadata.form, true).toPromise()
+      let form = await lastValueFrom(FormsService.getFormByName(currentRec.metaMetadata.form, true))
       currentRec.metaMetadata.attachmentFields = form.attachmentFields;
       let response;
       let preTriggerResponse = new StorageServiceResponse();
       const failedMessage = "Failed to update record, please check server logs.";
       try {
+
         // process pre-save
         if (!_.isEmpty(brand)) {
           try {
@@ -737,9 +738,10 @@ export module Controllers {
         sails.log.verbose(`RecordController - updateInternal - origRecord.metadata.dataLocations `+JSON.stringify(origRecord.metadata.dataLocations));
         sails.log.verbose(`RecordController - updateInternal - currentRec.metadata.dataLocations `+JSON.stringify(currentRec.metadata.dataLocations));
         sails.log.verbose(`RecordController - updateInternal - before this.updateMetadata`);
-        response = await this.handleUpdateDataStream(oid, origRecord, metadata).toPromise();
+        response = await lastValueFrom(this.handleUpdateDataStream(oid, origRecord, metadata));
         sails.log.verbose(`RecordController - updateInternal - Done with updating streams...`);
-        response = await this.updateMetadataWithTriggerSelector(brand, oid, currentRec, user, false, true).toPromise();
+        response = await lastValueFrom(this.updateMetadataWithTriggerSelector(brand, oid, currentRec, user, false, true));
+
 
         if (response && response.isSuccessful()) {
           sails.log.verbose(`RecordController - updateInternal - before ajaxOk`);
@@ -918,8 +920,8 @@ export module Controllers {
 
     protected async mergeFields(req, res, fields, type, currentRec) {
 
-      let recordType = await RecordTypesService.get(BrandingService.getBrand(req.session.branding), type).toPromise();
-      let workflowSteps = await WorkflowStepsService.getAllForRecordType(recordType).toPromise();
+      let recordType = await lastValueFrom(RecordTypesService.get(BrandingService.getBrand(req.session.branding), type));
+      let workflowSteps = await lastValueFrom(WorkflowStepsService.getAllForRecordType(recordType));
       this.mergeFieldsSync(req, res, fields, currentRec, workflowSteps);
       return fields;
     }
@@ -1229,10 +1231,10 @@ export module Controllers {
         return;
       }
       const that = this;
-      const currentRec = await this.getRecord(oid).toPromise();
+      const currentRec = await lastValueFrom(this.getRecord(oid));
 
       if (method == 'get') {
-        const hasViewAccess = await this.hasViewAccess(brand, req.user, currentRec).toPromise();
+        const hasViewAccess = await lastValueFrom(this.hasViewAccess(brand, req.user, currentRec));
 
         if (!hasViewAccess) {
           sails.log.error("Error: edit error no permissions in do attachment.");
@@ -1286,7 +1288,7 @@ export module Controllers {
         });
 
       } else {
-        const hasEditAccess = await this.hasEditAccess(brand, req.user, currentRec).toPromise();
+        const hasEditAccess = await lastValueFrom(this.hasEditAccess(brand, req.user, currentRec));
         if (!hasEditAccess) {
           sails.log.error("Error: edit error no permissions in do attachment.");
           return Observable.throwError(new Error(TranslationService.t('edit-error-no-permissions')));
@@ -1324,7 +1326,7 @@ export module Controllers {
     public async getPermissionsInternal(req, res) {
       sails.log.verbose('getting attachments....');
       const oid = req.param('oid');
-      let record = await this.getRecord(oid).toPromise();
+      let record = await lastValueFrom(this.getRecord(oid));
 
       let response = {};
       let authorization = record['authorization'];
@@ -1333,7 +1335,7 @@ export module Controllers {
       let editUserResponse = [];
       for (let i = 0; i < editUsers.length; i++) {
         let editUsername = editUsers[i];
-        let user = await UsersService.getUserWithUsername(editUsername).toPromise();
+        let user = await lastValueFrom(UsersService.getUserWithUsername(editUsername));
         editUserResponse.push({
           username: editUsername,
           name: user.name,
@@ -1345,7 +1347,7 @@ export module Controllers {
       let viewUserResponse = [];
       for (let i = 0; i < viewUsers.length; i++) {
         let viewUsername = viewUsers[i];
-        let user = await UsersService.getUserWithUsername(viewUsername).toPromise();
+        let user = await lastValueFrom(UsersService.getUserWithUsername(viewUsername));
         viewUserResponse.push({
           username: viewUsername,
           name: user.name,
@@ -1388,9 +1390,9 @@ export module Controllers {
       const brand = BrandingService.getBrand(req.session.branding);
       const oid = req.param('oid');
       const datastreamId = req.param('datastreamId');
-      const currentRec = await this.getRecord(oid).toPromise();
+      const currentRec = await lastValueFrom(this.getRecord(oid));
 
-      const hasViewAccess = await this.hasViewAccess(brand, req.user, currentRec).toPromise();
+      const hasViewAccess = await lastValueFrom(this.hasViewAccess(brand, req.user, currentRec));
       if (!hasViewAccess) {
         return Observable.throwError(new Error(TranslationService.t('edit-error-no-permissions')));
       } else {

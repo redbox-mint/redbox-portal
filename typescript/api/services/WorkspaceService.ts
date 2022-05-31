@@ -1,4 +1,4 @@
-import { Observable } from 'rxjs/Rx';
+import { lastValueFrom, Observable } from 'rxjs';
 import {Services as services}   from '@researchdatabox/redbox-core-types';
 import { Sails, Model } from "sails";
 import * as request from "request-promise";
@@ -95,11 +95,11 @@ export module Services {
      */
     public async getWorkspaces(targetRecordOid: string, targetRecord:any = undefined) {
       if (_.isUndefined(targetRecord)) {
-        targetRecord = await RecordsService.getMeta(targetRecordOid).toPromise();
+        targetRecord = await lastValueFrom(RecordsService.getMeta(targetRecordOid));
       }
       const workspaces = [];
       _.each(_.get(targetRecord, 'metadata.workspaces'), async (workspaceInfo:any) => {
-        workspaces.push(await RecordsService.getMeta(workspaceInfo.id).toPromise());
+        workspaces.push(await lastValueFrom(RecordsService.getMeta(workspaceInfo.id)));
       });
       return workspaces;
     }

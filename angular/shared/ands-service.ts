@@ -1,3 +1,4 @@
+import { lastValueFrom } from 'rxjs';
 import { Injectable, Inject} from '@angular/core';
 import { Http } from '@angular/http';
 import 'rxjs/add/operator/map';
@@ -19,8 +20,7 @@ export class ANDSService extends BaseService {
   }
 
   getResourceDetails(uri:string, vocab:string): Promise<any> {
-    return this.http.get(`${this.brandingAndPortalUrl}/ands/vocab/resourceDetails?uri=${uri}&vocab=${vocab}`, this.options)
-      .toPromise()
+    return lastValueFrom(this.http.get(`${this.brandingAndPortalUrl}/ands/vocab/resourceDetails?uri=${uri}&vocab=${vocab}`, this.options))
       .then((res: any) => this.extractData(res));
   }
 

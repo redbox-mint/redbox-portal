@@ -1,3 +1,4 @@
+import { lastValueFrom } from 'rxjs';
 import { Injectable, Inject} from '@angular/core';
 import { Http } from '@angular/http';
 import 'rxjs/add/operator/map';
@@ -20,8 +21,7 @@ export class ReportService extends BaseService {
   }
 
   getReport(name:string): Promise<Report> {
-    return this.http.get(`${this.brandingAndPortalUrl}/admin/getReport?name=`+name, this.options)
-      .toPromise()
+    return lastValueFrom(this.http.get(`${this.brandingAndPortalUrl}/admin/getReport?name=`+name, this.options))
       .then((res: any) => this.extractData(res) as Report);
   }
 
@@ -32,8 +32,7 @@ export class ReportService extends BaseService {
     for(var key in params) {
       url=url+'&'+key+"="+params[key];
     }
-    return this.http.get(url, this.options)
-      .toPromise()
+    return lastValueFrom(this.http.get(url, this.options))
       .then((res: any) => this.extractData(res) as ReportResults);
   }
 

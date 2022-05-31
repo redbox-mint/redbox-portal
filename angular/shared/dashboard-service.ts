@@ -1,3 +1,4 @@
+import { lastValueFrom } from 'rxjs';
 import { Injectable, Inject} from '@angular/core';
 import { Http } from '@angular/http';
 import 'rxjs/add/operator/map';
@@ -22,8 +23,7 @@ export class DashboardService extends BaseService {
   getAllDraftPlansCanEdit(): Promise<PlanTable> {
     const rows = this.config.maxTransferRowsPerPage;
     const start = 0;
-    return this.http.get(`${this.brandingAndPortalUrl}/listRecords?recordType=rdmp&state=draft&editOnly=true&start=${start}&rows=${rows}&ts=${moment().unix()}`, this.options)
-      .toPromise()
+    return lastValueFrom(this.http.get(`${this.brandingAndPortalUrl}/listRecords?recordType=rdmp&state=draft&editOnly=true&start=${start}&rows=${rows}&ts=${moment().unix()}`, this.options))
       .then((res: any) => this.formatDates(this.extractData(res))as PlanTable);
   }
 
@@ -35,8 +35,7 @@ export class DashboardService extends BaseService {
     if(state != '') {
       url += `&state=${state}`;
     }
-    return this.http.get(url, this.options)
-      .toPromise()
+    return lastValueFrom(this.http.get(url, this.options))
       .then((res: any) => this.formatDates(this.extractData(res))as PlanTable);
   }
 
@@ -47,8 +46,7 @@ export class DashboardService extends BaseService {
     if(state != '') {
       url += `&state=${state}`;
     }
-    return this.http.get(url, this.options)
-      .toPromise()
+    return lastValueFrom(this.http.get(url, this.options))
       .then((res: any) => this.formatDates(this.extractData(res))as PlanTable);
   }
 
@@ -56,16 +54,14 @@ export class DashboardService extends BaseService {
   getActivePlans(pageNumber:number): Promise<PlanTable> {
     var rows = 10;
     var start = (pageNumber-1) * rows;
-    return this.http.get(`${this.brandingAndPortalUrl}/listRecords?state=active&start=${start}&rows=${rows}&ts=${moment().unix()}`, this.options)
-      .toPromise()
+    return lastValueFrom(this.http.get(`${this.brandingAndPortalUrl}/listRecords?state=active&start=${start}&rows=${rows}&ts=${moment().unix()}`, this.options))
       .then((res: any) => this.formatDates(this.extractData(res))as PlanTable);
   }
 
   getDraftPlans(pageNumber:number): Promise<PlanTable> {
     var rows = 10;
     var start = (pageNumber-1) * rows;
-    return this.http.get(`${this.brandingAndPortalUrl}/listRecords?recordType=rdmp&state=draft&start=${start}&rows=${rows}&ts=${moment().unix()}`, this.options)
-      .toPromise()
+    return lastValueFrom(this.http.get(`${this.brandingAndPortalUrl}/listRecords?recordType=rdmp&state=draft&start=${start}&rows=${rows}&ts=${moment().unix()}`, this.options))
       .then((res: any) => this.formatDates(this.extractData(res)) as PlanTable);
   }
 
@@ -76,8 +72,7 @@ export class DashboardService extends BaseService {
     packageType = (!_.isEmpty(packageType) && !_.isUndefined(packageType)) ? `packageType=${packageType}` : '';
     sort = (!_.isEmpty(sort) && !_.isUndefined(sort)) ? `&sort=${sort}` : '';
     state = (!_.isEmpty(state) && !_.isUndefined(state)) ? `&state=${state}` : '';
-    return this.http.get(`${this.brandingAndPortalUrl}/listRecords?${recordType}${packageType}${state}${sort}&start=${start}&rows=${rows}&ts=${moment().unix()}`, this.options)
-      .toPromise()
+    return lastValueFrom(this.http.get(`${this.brandingAndPortalUrl}/listRecords?${recordType}${packageType}${state}${sort}&start=${start}&rows=${rows}&ts=${moment().unix()}`, this.options))
       .then((res: any) => this.formatDates(this.extractData(res)) as RecordResponseTable);
   }
 
@@ -99,8 +94,7 @@ export class DashboardService extends BaseService {
   public searchRecords(pageNumber:number, basicSearch: string, facets: any = null) {
     const rows = this.config.maxSearchRowsPerPage;
     const start = (pageNumber-1) * rows;
-    return this.http.get(`${this.brandingAndPortalUrl}/searchPlans?start=${start}&rows=${rows}&query=${basicSearch}&facets=${facets}&ts=${moment().unix()}`, this.options)
-      .toPromise()
+    return lastValueFrom(this.http.get(`${this.brandingAndPortalUrl}/searchPlans?start=${start}&rows=${rows}&query=${basicSearch}&facets=${facets}&ts=${moment().unix()}`, this.options))
       .then((res:any) => this.formatDates(this.extractData(res))as PlanTable);
   }
 

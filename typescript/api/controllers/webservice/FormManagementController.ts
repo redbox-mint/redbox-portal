@@ -27,6 +27,7 @@ declare var DashboardService;
 declare var UsersService;
 declare var User;
 declare var _;
+import { lastValueFrom } from 'rxjs';
 import { APIErrorResponse, ListAPIResponse, ListAPISummary } from '@researchdatabox/redbox-core-types';
 import {Controllers as controllers} from '@researchdatabox/redbox-core-types';
 
@@ -75,7 +76,7 @@ export module Controllers {
         if (editable == null) {
           editable = true;
         }
-        let form = await FormsService.getFormByName(name, editable).toPromise();
+        let form = await lastValueFrom(FormsService.getFormByName(name, editable));
 
         return this.apiRespond(req, res, form, 200)
       } catch (error) {
@@ -85,7 +86,7 @@ export module Controllers {
 
     public async listForms(req, res) {
       try {
-        let forms = await FormsService.listForms().toPromise();
+        let forms = await lastValueFrom(FormsService.listForms());
         let response: ListAPIResponse < any > = new ListAPIResponse();
         let summary: ListAPISummary = new ListAPISummary();
         summary.numFound = forms.length;

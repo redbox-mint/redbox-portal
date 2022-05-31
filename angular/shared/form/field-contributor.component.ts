@@ -23,7 +23,7 @@ import { FieldBase } from './field-base';
 import {FormControl, FormGroup, Validators} from '@angular/forms';
 import * as _ from "lodash";
 import { VocabField } from './field-vocab.component';
-import { Observable} from 'rxjs/Rx';
+import { Observable} from 'rxjs';
 /**
  * Contributor Model
  *

@@ -1,8 +1,8 @@
-import { Observable } from 'rxjs/Rx';
+import { Observable } from "rxjs";
 declare var sails;
 // changed to a manual lodash load instead of relying on Sails global object
 // this enables testing of installable hooks that rely on services at load-time (i.e. index.js)
-import * as  _ from 'lodash';
+import * as _ from 'lodash';
 
 export module Services.Core {
   export class Service {

@@ -27,6 +27,7 @@ declare var DashboardService;
 declare var UsersService;
 declare var User;
 declare var _;
+import { lastValueFrom } from 'rxjs';
 /**
  * Package that contains all Controllers.
  */
@@ -68,7 +69,7 @@ export module Controllers {
       try {
         let name = req.param('name');
         const brand = BrandingService.getBrand(req.session.branding);
-        let recordType = await RecordTypesService.get(brand, name).toPromise();
+        let recordType = await lastValueFrom(RecordTypesService.get(brand, name));
 
         return this.apiRespond(req, res, recordType, 200)
       } catch (error) {
@@ -79,7 +80,7 @@ export module Controllers {
     public async listRecordTypes(req, res) {
       try {
         const brand = BrandingService.getBrand(req.session.branding);
-        let recordTypes = await RecordTypesService.getAll(brand).toPromise();
+        let recordTypes = await lastValueFrom(RecordTypesService.getAll(brand));
         let response: ListAPIResponse < any > = new ListAPIResponse();
         let summary: ListAPISummary = new ListAPISummary();
         summary.numFound = recordTypes.length;
