@@ -2,7 +2,10 @@ import { Observable } from "rxjs";
 declare var sails;
 // changed to a manual lodash load instead of relying on Sails global object
 // this enables testing of installable hooks that rely on services at load-time (i.e. index.js)
-import * as _ from 'lodash';
+
+import * as  _ from 'lodash';
+import { bindCallback, bindNodeCallback } from 'rxjs';
+
 
 export module Services.Core {
   export class Service {
@@ -25,9 +28,9 @@ export module Services.Core {
     */
     protected getObservable(q, method='exec', type='node'): Observable<any> {
       if (type == 'node')
-        return Observable.bindNodeCallback(q[method].bind(q))();
+        return bindNodeCallback(q[method].bind(q))();
       else
-        return Observable.bindCallback(q[method].bind(q))();
+        return bindCallback(q[method].bind(q))();
     }
 
     /**
