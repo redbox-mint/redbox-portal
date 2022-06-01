@@ -1,4 +1,4 @@
-import { HtmlRaw, Container, DateTime, AnchorOrButton, SaveButton, CancelButton, HiddenValue, LinkValue, TabOrAccordionContainer, ButtonBarContainer, SelectionField, ParameterRetrieverField, TabNavButton, Spacer, Toggle } from './form/field-simple';
+import { HtmlRaw, Container, DateTime, AnchorOrButton, SaveButton, CancelButton, HiddenValue, LinkValue, TabOrAccordionContainer, ButtonBarContainer, SelectionField, ParameterRetrieverField, TabNavButton, Spacer, Toggle, NotInFormField } from './form/field-simple';
 import { TextField, TextFieldComponent, RepeatableTextfieldComponent, TextArea, TextAreaComponent, MarkdownTextArea, MarkdownTextAreaComponent} from './form/field-textfield.component';
 import {
   DropdownFieldComponent,
@@ -81,5 +81,6 @@ export const fieldClasses=  {
   'HtmlRaw': {'meta': HtmlRaw, 'comp': HtmlRawComponent},
   'PublishDataLocationRefresh': {'meta': PublishDataLocationRefreshField, 'comp': PublishDataLocationRefreshComponent },
   'EventHandler': {'meta': EventHandler, 'comp': EventHandlerComponent},
-  'PageTitle': {'meta': PageTitle, 'comp': PageTitleComponent}
+  'PageTitle': {'meta': PageTitle, 'comp': PageTitleComponent},
+  'NotInFormField': {'meta': NotInFormField, 'comp': [TextBlockComponent] }
 };
