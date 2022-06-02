@@ -26,7 +26,7 @@ export class NotInFormField extends FieldBase<any> {
   constructor(options: any, injector: any) {
     super(options, injector);
     // indicate that this class shouldn't have a formModel, i.e. not in the form
-    this.hasControl = false;
+    this.controlType = 'none';
   }
 
   public createFormModel(valueElem:any = null): any {
@@ -218,7 +218,7 @@ export class Container extends FieldBase<any> {
     const grp = {};
     _.each(this.fields, (field) => {
       let fldVal = null;
-      if (this.hasControl) {
+      if (field.controlType != 'none') {
         if (this.value) {
           fldVal = _.get(this.value, field.name);
           // TODO: add fallback logic in fieldBase.setOptions
