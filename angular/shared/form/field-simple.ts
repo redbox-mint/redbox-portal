@@ -25,6 +25,8 @@ import * as moment from 'moment';
 export class NotInFormField extends FieldBase<any> {
   constructor(options: any, injector: any) {
     super(options, injector);
+    // indicate that this class shouldn't have a formModel, i.e. not in the form
+    this.hasControl = false;
   }
 
   public createFormModel(valueElem:any = null): any {
@@ -216,13 +218,16 @@ export class Container extends FieldBase<any> {
     const grp = {};
     _.each(this.fields, (field) => {
       let fldVal = null;
-      if (this.value) {
-        fldVal = _.get(this.value, field.name);
-      }
-      field.value = fldVal;
-      grp[field.name] = field.createFormModel(fldVal);
-      if (this.setParentField) {
-        field.parentField = this;
+      if (this.hasControl) {
+        if (this.value) {
+          fldVal = _.get(this.value, field.name);
+          // TODO: add fallback logic in fieldBase.setOptions
+        }
+        field.value = fldVal;
+        grp[field.name] = field.createFormModel(fldVal);
+        if (this.setParentField) {
+          field.parentField = this;
+        }
       }
     });
     this.formModel = this.required ? new FormGroup(grp, Validators.required) : new FormGroup(grp);
