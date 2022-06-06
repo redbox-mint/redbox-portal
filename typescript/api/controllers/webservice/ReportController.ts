@@ -109,7 +109,7 @@ export module Controllers {
         const ignore = 'ignore';
         const ISODate = 'ISODate';
         const days = 'days';
-        const fomrat = 'format';
+        const format = 'format';
 
         //data types
         const dateDT = 'date';
@@ -149,16 +149,20 @@ export module Controllers {
               let query = {};
               if (_.isUndefined(value)) {
                 if (queryParams[queryParam][whenUndefined] == defaultValue) {
-                  if(queryParams[queryParam][fomrat] == days) {
+                  if(queryParams[queryParam][format] == days) {
                     let days = _.toNumber(queryParams[queryParam][defaultValue]);
+                    const millisecsInADay = 24*60*60*1000;
+                    const nowInMillisecs = new Date().getTime();
                     if (days >= 0) {
-                      value = new Date(new Date().getTime()+days*24*60*60*1000).toISOString();
+                      //Going forward in time X number of days
+                      value = new Date(nowInMillisecs + (days * millisecsInADay)).toISOString();
                     } else {
                       //This "additional" step makes the code self explanatory
                       days = days * -1;
-                      value = new Date(new Date().getTime()-days*24*60*60*1000).toISOString();
+                      //Going backwards in time X number of days
+                      value = new Date(nowInMillisecs - (days * millisecsInADay)).toISOString();
                     }
-                  } else if(queryParams[queryParam][fomrat] == ISODate) {
+                  } else if(queryParams[queryParam][format] == ISODate) {
                     value = queryParams[queryParam][defaultValue];
                   }
                   query[queryParams[queryParam][queryType]] = value;

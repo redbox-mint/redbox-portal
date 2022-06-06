@@ -45,7 +45,7 @@ module.exports.namedQuery = {
                         //-365 = 365 days difference in the past
                         //20 = 20 days difference in the future
                         //if format is "ISODate" 
-                        //a full iso date like 2021-06-01T07:09:51.498Z is expected
+                        //a full ISO date like 2021-06-01T07:09:51.498Z is expected
         whenUndefined: 'defaultValue',
         defaultValue: '-365'
       }
