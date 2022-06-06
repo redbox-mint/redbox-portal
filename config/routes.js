@@ -434,7 +434,7 @@ module.exports.routes = {
   //   action: 'executeNamedQuery',
   //   csrf: false
   // },
-  'post /:branding/:portal/api/roles/create/:roleName': {
+  'post /:branding/:portal/api/roles/:roleName': {
     controller: 'webservice/UserManagementController',
     action: 'createSystemRole',
     csrf: false
