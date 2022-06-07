@@ -29,6 +29,7 @@ declare var User;
 declare var Record;
 declare var _;
 import { APIActionResponse, APIErrorResponse, ListAPIResponse } from '@researchdatabox/redbox-core-types';
+const moment = require('moment');
 /**
  * Package that contains all Controllers.
  */
@@ -150,18 +151,18 @@ export module Controllers {
               if (_.isUndefined(value)) {
                 if (queryParams[queryParam][whenUndefined] == defaultValue) {
                   if(queryParams[queryParam][format] == days) {
-                    let days = _.toNumber(queryParams[queryParam][defaultValue]);
-                    const millisecsInADay = 24*60*60*1000;
-                    const nowInMillisecs = new Date().getTime();
-                    if (days >= 0) {
+                    let days = _.toInteger(queryParams[queryParam][defaultValue]);
+                    let nowDateAddOrSubtract = moment();
+                    if (days > 0) {
                       //Going forward in time X number of days
-                      value = new Date(nowInMillisecs + (days * millisecsInADay)).toISOString();
-                    } else {
+                      nowDateAddOrSubtract = nowDateAddOrSubtract.add(days, 'days');
+                    } else if(days < 0) {
                       //This "additional" step makes the code self explanatory
                       days = days * -1;
                       //Going backwards in time X number of days
-                      value = new Date(nowInMillisecs - (days * millisecsInADay)).toISOString();
+                      nowDateAddOrSubtract = nowDateAddOrSubtract.subtract(days, 'days');
                     }
+                    value = nowDateAddOrSubtract.toISOString();
                   } else if(queryParams[queryParam][format] == ISODate) {
                     value = queryParams[queryParam][defaultValue];
                   }
