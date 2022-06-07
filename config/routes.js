@@ -428,6 +428,11 @@ module.exports.routes = {
     action: 'sendNotification',
     csrf: false
   },
+  'post /:branding/:portal/api/roles/:roleName': {
+    controller: 'webservice/UserManagementController',
+    action: 'createSystemRole',
+    csrf: false
+  },
   'get /:branding/:portal/api/report/namedQuery': {
     controller: 'webservice/ReportController',
     action: 'executeNamedQuery',
