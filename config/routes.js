@@ -428,15 +428,14 @@ module.exports.routes = {
     action: 'sendNotification',
     csrf: false
   },
-  // TODO: named queries staged but not disabled, uncomment when ready
-  // 'get /:branding/:portal/api/report/namedQuery': {
-  //   controller: 'webservice/ReportController',
-  //   action: 'executeNamedQuery',
-  //   csrf: false
-  // },
   'post /:branding/:portal/api/roles/:roleName': {
     controller: 'webservice/UserManagementController',
     action: 'createSystemRole',
+    csrf: false
+  },
+  'get /:branding/:portal/api/report/namedQuery': {
+    controller: 'webservice/ReportController',
+    action: 'executeNamedQuery',
     csrf: false
   },
   'get /:branding/:portal/workspaces/types/:name': 'WorkspaceTypesController.getOne',

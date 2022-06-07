@@ -50,6 +50,8 @@ export class PublishDataLocationRefreshField extends FieldBase<any> {
     this.recordsService.getRecordMeta(this.value).then(data => {
       this.onValueUpdate.emit(data);
       this.options['disabledExpression'] = this.origDisabledExpr;
+      this.formModel.markAsTouched();
+      this.formModel.markAsDirty();
     });
   }
 
