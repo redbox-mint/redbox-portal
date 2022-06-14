@@ -73,6 +73,10 @@ export class FieldBase<T> {
   defaultSelect: string;
   parentField: any;
   setParentField:boolean;
+  /**
+   * Flag to indicate there is a potential configuration issue for this field
+   */
+   hasRuntimeConfigWarning: boolean;
   
   @Output() public onValueUpdate: EventEmitter<any> = new EventEmitter<any>();
   @Output() public onValueLoaded: EventEmitter<any> = new EventEmitter<any>();

@@ -104,20 +104,11 @@ export class SimpleComponent {
   loaded: boolean;
 
   /**
-   * 
-   * Cache for this comp's formControl
-   */
-  fc: any;
-  /**
    * Return the NG2 FormControl or subclass thereof
    * @param  {string = null} name
    * @return {FormControl}
    */
   public getFormControl(name: string = null, ctrlIndex: number = null): FormControl {
-    // cache value
-    if (this.fc) {
-      return this.fc;
-    }
     let fc = null;
     if (_.isEmpty(name)) {
       name = this.name;
@@ -129,30 +120,40 @@ export class SimpleComponent {
     if (!_.isEmpty(this.field.parentField)) {
       fc = this.field.formModel;
     } else {
-      // using the field map, the legacy behaviour
-      // TODO: during NG upgrade, review code block below
-      if (this.fieldMap && this.field) {
-        fc = this.field.getControl(name, this.fieldMap);
-      }
-      if (!_.isNull(ctrlIndex) && !_.isUndefined(ctrlIndex)) {
-        if (!_.isNull(fc.controls) && !_.isUndefined(fc.controls)) {
-          fc = fc.controls[ctrlIndex];
+      try {
+        // using the field map, the legacy behaviour
+        // TODO: during NG upgrade, review code block below
+        if (this.fieldMap && this.field) {
+          fc = this.field.getControl(name, this.fieldMap);
+        } 
+        if (!_.isEmpty(fc)) {
+          if (!_.isNull(ctrlIndex) && !_.isUndefined(ctrlIndex)) {
+            if (!_.isNull(fc.controls) && !_.isUndefined(fc.controls)) {
+              fc = fc.controls[ctrlIndex];
+            }
+          } else if (this.index != null) {
+            fc = fc.controls[this.index];
+          }
+          if (name != this.field.name && !_.isEmpty(this.field.name) && !_.isUndefined(fc.controls)) {
+            fc = fc.controls[this.field.name];
+          }
         }
-      } else if (this.index != null) {
-        fc = fc.controls[this.index];
-      }
-      if (name != this.field.name && !_.isEmpty(this.field.name) && !_.isUndefined(fc.controls)) {
-        fc = fc.controls[this.field.name];
+      } catch (e) {
+        // swallow the error, potential config issue will be dealt later on
       }
       // END TODO
     }
     // check if fc is still null
     if (_.isEmpty(fc)) {
-      console.warn(`Warning: Unable to retrieve '${name}' formControl. It seems to be nested? Returning 'field.formModel' by default instead of null`);
+      if (!this.field.hasRuntimeConfigIssue) {
+        // since we're no longer caching the FC:
+        // only display once so as not to flood the console
+        console.warn(`Warning: Unable to retrieve '${name}' formControl. It seems to be nested? Returning 'field.formModel' by default instead of null`);
+      }
+      this.field.hasRuntimeConfigWarning = true;
       fc = this.field.formModel;
     }
-    this.fc = fc;
-    return this.fc;
+    return fc;
   }
 
   /**
