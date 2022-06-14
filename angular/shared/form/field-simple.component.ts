@@ -145,7 +145,7 @@ export class SimpleComponent {
     }
     // check if fc is still null
     if (_.isEmpty(fc)) {
-      if (!this.field.hasRuntimeConfigIssue) {
+      if (!this.field.hasRuntimeConfigWarning) {
         // since we're no longer caching the FC:
         // only display once so as not to flood the console
         console.warn(`Warning: Unable to retrieve '${name}' formControl. It seems to be nested? Returning 'field.formModel' by default instead of null`);
