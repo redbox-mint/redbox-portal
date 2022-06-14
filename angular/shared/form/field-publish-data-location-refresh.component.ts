@@ -44,11 +44,12 @@ export class PublishDataLocationRefreshField extends FieldBase<any> {
     this.origDisabledExpr = options['disabledExpression'];
   }
 
-  public getAttachments(event) {
+  public getAttachments(event: any, emitEvent: boolean = true ) {
     event.preventDefault();
     this.options['disabledExpression'] = "true";
     this.recordsService.getRecordMeta(this.value).then(data => {
       this.onValueUpdate.emit(data);
+      this.formModel.patchValue(this.value, {emitEvent: true, emitModelToViewChange:true });
       this.options['disabledExpression'] = this.origDisabledExpr;
       this.formModel.markAsTouched();
       this.formModel.markAsDirty();
