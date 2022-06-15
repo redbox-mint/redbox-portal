@@ -72,7 +72,13 @@ export class FieldBase<T> {
   requiredIfHasValue: any[];
   selectFor: string;
   defaultSelect: string;
-
+  parentField: any;
+  setParentField:boolean;
+  /**
+   * Flag to indicate there is a potential configuration issue for this field
+   */
+   hasRuntimeConfigWarning: boolean;
+  
   @Output() public onValueUpdate: EventEmitter<any> = new EventEmitter<any>();
   @Output() public onValueLoaded: EventEmitter<any> = new EventEmitter<any>();
 
@@ -135,6 +141,7 @@ export class FieldBase<T> {
     this.skip = options['skip'] || null;
     this.visibilityCriteria = options['visibilityCriteria'];
     this.requiredIfHasValue = options['requiredIfHasValue'] || [];
+    this.setParentField = options['setParentField'];
 
     if (this.groupName) {
       this.hasGroup = true;
@@ -376,13 +383,20 @@ export class FieldBase<T> {
     }
   }
 
-  protected getEventEmitter(eventName, srcName) {
+  protected getEventEmitter(origEventName, srcName) {
     let eventEmitter = null;
+    // NOTE: because MongoDB  replacing '_$_' with '.', yes more DSL!
+    const objectDelim = '_$_';
+    let eventName = origEventName ? origEventName.replaceAll(objectDelim, '.') : origEventName;
     if (srcName == "this") {
+      // access relative from this object
       eventEmitter = _.get(this, eventName);
     } else if (srcName == "form") {
+      // access relative from the form
       eventEmitter = _.get(this.fieldMap['_rootComp'], eventName);
     } else {
+      // defaults to using the field map to access the event emitter
+      // note: not all components are accessible via the name of the field, i.e. repeatables, grouped components, etc.
       let sourceField = _.get(this.fieldMap,srcName, null);
       if(!_.isEmpty(sourceField)) {
         eventEmitter = _.get(sourceField.field, eventName);

@@ -57,6 +57,11 @@ export class FieldControlMetaService extends BaseService {
       }
       if (f.definition && f.definition.fields) {
         inst.fields = this.getFieldsMeta(f.definition.fields);
+        if (f.definition.setParentField) {
+          _.each(inst.fields, (childField) => {
+            childField.parentField = inst;
+          });
+        }
       }
       return inst;
     });

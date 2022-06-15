@@ -100,13 +100,18 @@ export class RepeatableContainer extends Container {
   }
 
   getInitArrayEntry() {
+    let initArrayEntry = null;
     if (this.fields[0].isGroup) {
       const grp = {};
       const fm = {};
       const fg = this.fields[0].getGroup(grp, fm);
-      return [fg];
+      initArrayEntry = [fg];
+    } else {
+      initArrayEntry = [this.fields[0].createFormModel()];
     }
-    return [this.fields[0].createFormModel()];
+    // propagate the event handler in the first entry
+    this.fields[0].setupEventHandlers();
+    return initArrayEntry;
   }
 
   getGroup(group: any, fieldMap: any) {
@@ -174,6 +179,9 @@ export class RepeatableContainer extends Container {
     if (_.isFunction(newInst.postInit)) {
       newInst.postInit(value);
     }
+    if (newInst.setParentField) {
+      newInst.parentField = this;
+    }
     return newInst;
   }
 
@@ -194,9 +202,13 @@ export class RepeatableContainer extends Container {
     if (val == null && _.isFunction(newElem.setEmptyValue)) {
       newElem.setEmptyValue();
     }
-    this.fields.push(newElem);
     const newFormModel = newElem.createFormModel();
     this.formModel.push(newFormModel);
+    // Group component event handling: will need to set up event handlers within the new element
+    newElem.setupEventHandlers();
+    // finally, render in the UI
+    newElem['arrayIndex'] = this.fields.length; 
+    this.fields.push(newElem);
     return newElem;
   }
 
@@ -336,6 +348,7 @@ export class EmbeddableComponent extends SimpleComponent {
     }
     return `${baseClass} ${this.hasRequiredError() ? 'has-error' : '' } ${this.field.groupClasses}`;
   }
+  
 }
 
 export class RepeatableComponent extends SimpleComponent {
