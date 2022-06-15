@@ -48,7 +48,8 @@ export module Services {
       'getRoleByName',
       'getDefAuthenticatedRole',
       'getDefUnathenticatedRole',
-      'getNestedRoles'
+      'getNestedRoles',
+      'createRoleWithBrand'
     ];
 
     public getRoleWithName = (roles, roleName) :any => {
@@ -103,6 +104,38 @@ export module Services {
     public getRoleIds = (fromRoles, roleNames) => {
       sails.log.verbose("Getting id of role names...");
       return _.map(_.filter(fromRoles, (role)=> {return _.includes(roleNames, role.name)}), 'id');
+    }
+
+    public async createRoleWithBrand(brand, roleName) {
+      let roleConfig = 
+      {
+        name: roleName,
+        branding: brand.id
+      };
+      sails.log.verbose('createRoleWithBrand - brand.id '+brand.id);
+      let rolesResp:any = {};
+      let rolesRespPromise = await this.getRolesWithBrand(brand).flatMap(roles => {
+        _.map(roles, (role) => {
+          if (_.isEmpty(rolesResp.roles)) {
+            rolesResp.roles = [];
+          }
+          rolesResp.roles.push(role);
+        });
+        return Observable.of(rolesResp);
+      }).first().toPromise();
+    
+      sails.log.verbose(rolesRespPromise);
+      let roleToCreate = _.find(rolesRespPromise.roles, ['name',roleName]);
+      if(_.isUndefined(roleToCreate)) {
+        sails.log.verbose('createRoleWithBrand - roleConfig '+JSON.stringify(roleConfig));
+        let newRole = await Role.create(roleConfig);
+        sails.log.verbose("createRoleWithBrand - adding role to brand " + newRole.id);
+        const q = BrandingConfig.addToCollection(brand.id, 'roles').members([newRole.id]);
+        return await super.getObservable(q, 'exec', 'simplecb').toPromise();
+      } else {
+        sails.log.verbose('createRoleWithBrand - role ' +roleName + ' exists');
+        return Observable.of(brand);
+      }
     }
 
     public bootstrap = (defBrand) => {

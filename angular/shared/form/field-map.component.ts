@@ -202,8 +202,6 @@ export class MapField extends FieldBase<any> {
 
   }
 
-
-
   registerMapEventHandlers(map: Map) {
     let that = this;
     map.on(L.Draw.Event.CREATED, function(e: any) {
@@ -278,12 +276,13 @@ export class MapField extends FieldBase<any> {
     return this.formModel;
   }
 
-  setValue(value: any) {
+  setValue(value: any, emitEvent: boolean = true) {
     if (!_.isEmpty(value)) {
       this.layerGeoJSON = value;
       this.drawLayers();
-      this.formModel.patchValue(this.layerGeoJSON, { emitEvent: false });
+      this.formModel.patchValue(this.layerGeoJSON, { emitEvent: emitEvent, emitModelToViewChange: true });
       this.formModel.markAsTouched();
+      this.formModel.markAsDirty();
     }
   }
 

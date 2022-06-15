@@ -93,7 +93,7 @@ Generic component for grouping components together. The resulting JSON will have
         <div [formGroup]='form' [ngClass]="field.cssClasses">
           <div class='row'>
             <div class="col-xs-11">
-              <dmp-field *ngFor="let childField of field.fields" [name]="name" [index]="index" [field]="childField" [form]="form" [fieldMap]="fieldMap"></dmp-field>
+              <dmp-field *ngFor="let childField of field.fields" [name]="childField.name" [index]="index" [field]="childField" [form]="form" [fieldMap]="fieldMap" ></dmp-field>
             </div>
             <div class="col-xs-1">
               <button type='button' *ngIf="removeBtnText" [disabled]="!canRemove" (click)="onRemove($event)" [ngClass]="removeBtnClass" >{{removeBtnText}}</button>
@@ -104,7 +104,7 @@ Generic component for grouping components together. The resulting JSON will have
       </ng-container>
       <ng-container *ngIf="!isEmbedded">
         <div [formGroup]='form' [ngClass]="field.cssClasses">
-          <dmp-field *ngFor="let field of field.fields" [field]="field" [form]="form" [fieldMap]="fieldMap"></dmp-field>
+          <dmp-field *ngFor="let childField of field.fields" [field]="childField" [form]="form" [fieldMap]="fieldMap" [name] = "childField.name" ></dmp-field>
         </div>
       </ng-container>
     </ng-container>
@@ -205,7 +205,7 @@ export class GenericGroupComponent extends EmbeddableComponent {
       <ng-container *ngFor="let fieldElem of field.fields; let i = index;" >
         <div class="row">
           <span class="col-xs-12">
-            <generic-group-field [name]="field.name" [field]="fieldElem" [form]="form" [fieldMap]="fieldMap" [isEmbedded]="true" [removeBtnText]="field.removeButtonText" [removeBtnClass]="field.removeButtonClass" [canRemove]="field.fields.length > 1" (onRemoveBtnClick)="removeElem($event[0], $event[1])" [index]="i"></generic-group-field>
+            <generic-group-field [name]="fieldElem.name" [field]="fieldElem" [form]="form" [fieldMap]="fieldMap" [isEmbedded]="true" [removeBtnText]="field.removeButtonText" [removeBtnClass]="field.removeButtonClass" [canRemove]="field.fields.length > 1" (onRemoveBtnClick)="removeElem($event[0], $event[1])" [index]="i" ></generic-group-field>
           </span>
         </div>
         <div class="row">
@@ -225,7 +225,7 @@ export class GenericGroupComponent extends EmbeddableComponent {
       <span *ngIf="field.label" class="key">{{field.label}}</span>
       <span class="value">
         <ul class="key-value-list">
-          <generic-group-field *ngFor="let fieldElem of field.fields; let i = index;" [name]="field.name" [index]="i" [field]="fieldElem" [form]="form" [fieldMap]="fieldMap"></generic-group-field>
+          <generic-group-field *ngFor="let fieldElem of field.fields; let i = index;" [name]="fieldElem.name" [index]="i" [field]="fieldElem" [form]="form" [fieldMap]="fieldMap" [isEmbedded]="true"></generic-group-field>
         </ul>
       </span>
     </li>

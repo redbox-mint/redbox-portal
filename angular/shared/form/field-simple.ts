@@ -25,6 +25,8 @@ import * as moment from 'moment';
 export class NotInFormField extends FieldBase<any> {
   constructor(options: any, injector: any) {
     super(options, injector);
+    // indicate that this class shouldn't have a formModel, i.e. not in the form
+    this.controlType = 'none';
   }
 
   public createFormModel(valueElem:any = null): any {
@@ -45,7 +47,9 @@ export class SelectionField extends FieldBase<any>  {
   storeValueAndLabel:boolean = false;
   valueIsLink: boolean;
   compare: any;
-
+  disableOptionLabelsFor: boolean = false;
+  useFormGroup: string;
+  
   constructor(options: any, injector: any) {
     super(options, injector);
     this.compare = this.compareFn.bind(this);
@@ -75,6 +79,8 @@ export class SelectionField extends FieldBase<any>  {
           }
       }
     }
+    this.disableOptionLabelsFor = options['disableOptionLabelsFor'];
+    this.useFormGroup = options['useFormGroup'];
   }
 
 
@@ -195,26 +201,39 @@ export class Container extends FieldBase<any> {
 
   public getGroup(group: any, fieldMap: any) : any {
     this.fieldMap = fieldMap;
-    _.set(fieldMap, `${this.getFullFieldName()}.field`, this);
-    group[this.name] =  this.required ? new FormGroup({}, Validators.required) : new FormGroup({});
+    let formGroup = this.required ? new FormGroup({}, Validators.required) : new FormGroup({});
     _.each(this.fields, (field) => {
       field.getGroup(group, fieldMap);
     });
-    return group[this.name];
+    if (this.parentField) {
+      formGroup = this.createFormModel();
+    } else {
+      // if this isn't inside a container, add the name as key to the FormGroup, otherwise leave it anonymous as it will be accessible via the group
+      group[this.name] = formGroup;
+      _.set(fieldMap, `${this.getFullFieldName()}.field`, this);
+    }
+    return formGroup;
   }
 
   public createFormModel(valueElem:any=null): any {
     const grp = {};
     _.each(this.fields, (field) => {
       let fldVal = null;
-      if (this.value) {
-        fldVal = _.get(this.value, field.name);
+      if (field.controlType != 'none') {
+        if (this.value) {
+          fldVal = _.get(this.value, field.name);
+          // TODO: add fallback logic in fieldBase.setOptions
+        }
+        field.value = fldVal;
+        grp[field.name] = field.createFormModel(fldVal);
+        if (this.setParentField) {
+          field.parentField = this;
+        }
       }
-      field.value = fldVal;
-      grp[field.name] = field.createFormModel(fldVal);
     });
     this.formModel = this.required ? new FormGroup(grp, Validators.required) : new FormGroup(grp);
     return this.formModel;
+
   }
 
   public setValue(value:any, emitEvent:boolean=true) {
@@ -233,6 +252,13 @@ export class Container extends FieldBase<any> {
     }
   }
 
+  // Overriding to implement nested event handlers
+  public setupEventHandlers() {
+    super.setupEventHandlers();
+    _.each(this.fields, (field) => {
+      field.setupEventHandlers();
+    });
+  }
 }
 
 export class TabOrAccordionContainer extends Container {

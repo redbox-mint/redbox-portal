@@ -94,7 +94,10 @@ export module Controllers {
       VocabService.loadCollection(collectionId).subscribe(receipt => {
         that.ajaxOk(req, res, null, {status: 'queued', message: 'All good.', receipt: receipt}, true);
       }, error => {
-        that.ajaxFail(req, res, null, error, true);
+        sails.log.error(`Error calling loadCollection:`)
+        sails.log.error(error)
+        that.ajaxFail(req, res, null, "An error occurred" , true);
+        
       });
     }
 
@@ -122,9 +125,7 @@ export module Controllers {
       }, error => {
         sails.log.verbose("Error getting mint data:");
         sails.log.verbose(error);
-        _.unset(error, 'options');
-        _.unset(error, 'response');
-        that.ajaxFail(req, res, null, error, true);
+        that.ajaxFail(req, res, null, "An error occurred", true);
       });
     }
 
@@ -136,7 +137,9 @@ export module Controllers {
         // only return the response...
         that.ajaxOk(req, res, null, response, true);
       }, error => {
-        that.ajaxFail(req, res, null, error, true);
+          sails.log.error(`Error calling searchExternalService:`)
+          sails.log.error(error)
+          that.ajaxFail(req, res, null, "An error occurred" , true);
       });
     }
 
@@ -150,7 +153,9 @@ export module Controllers {
           // only return the response...
           that.ajaxOk(req, res, null, response, true);
         }, error => {
-          that.ajaxFail(req, res, null, error, true);
+          sails.log.error(`Error calling searchPeople:`)
+          sails.log.error(error)
+          that.ajaxFail(req, res, null, "An error occurred" , true);
         });
 
     }
