@@ -102,6 +102,9 @@ export class RepeatableContainer extends Container {
   getInitArrayEntry() {
     let initArrayEntry = null;
     if (this.fields[0].isGroup) {
+      // This is a repeatable container, we set the parentField automatically
+      this.fields[0].setParentField = true;
+      this.fields[0].parentField = this;
       const grp = {};
       const fm = {};
       const fg = this.fields[0].getGroup(grp, fm);
