@@ -530,7 +530,7 @@ export class FieldBase<T> {
    *           }
    * 
    */
-  public publishValueLoaded() {
+  public publishValueLoaded(data, config) {
     this.onValueLoaded.emit(this.value);
   }
 
@@ -554,9 +554,12 @@ export class FieldBase<T> {
    *                 }
    * 
    */
-  public publishProcessedValueLoaded(curValue) {
+  public publishProcessedValueLoaded(curValue, config) {
     this.onValueLoaded.emit(curValue);
-    return curValue;
+    // Default value (null) should be treated as true here
+    if(config == null || config.returnData != false) {
+       return curValue;
+    }
   }
 
   /**
@@ -575,7 +578,7 @@ export class FieldBase<T> {
    *                 }
    * 
    */
-  public publishValueUpdated() {
+  public publishValueUpdated(data, config) {
     this.onValueUpdate.emit(this.value);
   }
 
@@ -599,9 +602,11 @@ export class FieldBase<T> {
    *                 }
    * 
    */
-  public publishProcessedValueUpdated(curValue) {
+  public publishProcessedValueUpdated(curValue, config) {
     this.onValueUpdate.emit(curValue);
-    return curValue;
+    if(config == null || config.returnData != false) {
+      return curValue;
+   }
   }  
 
   setRequiredAndClearValueOnFalse(flag) {
