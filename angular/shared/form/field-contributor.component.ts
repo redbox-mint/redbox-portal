@@ -197,6 +197,17 @@ export class ContributorField extends FieldBase<any> {
         this.formModel.addControl('family_name', new FormControl(this.value.family_name));
         this.formModel.addControl('given_name', new FormControl(this.value.given_name));
       }
+
+      if(!_.isUndefined(this.fieldNames) && _.isArray(this.fieldNames)){
+        for(let fldKeyName of this.fieldNames) {
+          _.forOwn(fldKeyName, (value, key) => { 
+            let formControl = this.formModel.controls[key];
+            if(_.isUndefined(formControl)){
+              this.formModel.addControl(key, new FormControl(this.value[key]));
+            }
+          });
+        }
+      }
     }
     if (this.required) {
       this.enableValidators();
