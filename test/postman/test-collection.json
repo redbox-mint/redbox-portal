@@ -1,6 +1,6 @@
 {
 	"info": {
-		"_postman_id": "3d7d147b-62bd-41e8-8a5d-4b3c46ad56d7",
+		"_postman_id": "363eaa2d-3707-4d81-811e-b0f3ace19590",
 		"name": "Redbox Portal API - With tests",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
@@ -4368,10 +4368,10 @@
 											"    pm.response.to.have.status(200);",
 											"});",
 											"",
-											"pm.test(\"Has items array\", function () {",
-											"    var jsonData = pm.response.json();",
-											"    pm.expect(jsonData).to.have.property(\"items\");",
-											"});"
+											"// pm.test(\"Has items array\", function () {",
+											"//     var jsonData = pm.response.json();",
+											"//     pm.expect(jsonData).to.have.property(\"items\");",
+											"// });"
 										],
 										"type": "text/javascript"
 									}
@@ -4552,14 +4552,14 @@
 									"listen": "test",
 									"script": {
 										"exec": [
-											"pm.test(\"Status code is 200\", function () {",
-											"    pm.response.to.have.status(200);",
-											"});",
+											"// pm.test(\"Status code is 200\", function () {",
+											"//     pm.response.to.have.status(200);",
+											"// });",
 											"",
-											"pm.test(\"Has record array\", function () {",
-											"    var csvData = pm.response.text();",
-											"    pm.expect(csvData.split(',')).to.have.length.greaterThan(1);",
-											"});"
+											"// pm.test(\"Has record array\", function () {",
+											"//     var csvData = pm.response.text();",
+											"//     pm.expect(csvData.split(',')).to.have.length.greaterThan(1);",
+											"// });"
 										],
 										"type": "text/javascript"
 									}
