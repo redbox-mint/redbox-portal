@@ -254,7 +254,23 @@ export module Services {
           
           sails.log[functionLogLevel]('checkTotalSizeOfFilesInRecord - totalSizeOfFilesInRecord '+totalSizeOfFilesInRecord);
           if(totalSizeOfFilesInRecord > sails.config.record.maxUploadSize) {
-            let customError: RBValidationError = new RBValidationError('Max upload total size is 1GB adding all files associated to the record');
+            
+            let maxUploadSizeMessage = TranslationService.t('max-1GB-total-files-upload');
+            let alternativeMessageCode = options['maxUploadSizeMessageCode'];
+            
+            if(!_.isUndefined(alternativeMessageCode)) {
+              let replaceOrAppend = options['replaceOrAppend'];
+              if(_.isUndefined(replaceOrAppend)) {
+                replaceOrAppend = 'append';
+              }
+              if(replaceOrAppend == 'replace'){
+                maxUploadSizeMessage = TranslationService.t(alternativeMessageCode);
+              } else if (replaceOrAppend == 'append') {
+                let tmpMaxUploadSizeMessage = maxUploadSizeMessage + ' ' + TranslationService.t(alternativeMessageCode);
+                maxUploadSizeMessage = tmpMaxUploadSizeMessage;
+              }
+            }
+            let customError: RBValidationError = new RBValidationError(maxUploadSizeMessage);
             throw customError;
           }
         }

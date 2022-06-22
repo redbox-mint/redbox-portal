@@ -51,7 +51,17 @@ module.exports.recordtype = {
             ],
             "recordCreatorPermissions" : "view&edit"
           }
-        }],
+        },
+        {
+          function: 'sails.services.rdmpservice.checkTotalSizeOfFilesInRecord',
+          options: {
+              triggerCondition: '<%= _.isEqual(record.workflow.stage, "draft") || _.isEqual(record.workflow.stage, "queued") || _.isEqual(record.workflow.stage, "published") %>',
+              maxUploadSizeMessageCode: 'max-1GB-total-files-upload-alternative',
+              replaceOrAppend:'append'
+              }
+          }
+      
+      ],
         // Requires the PDF Gen hook to be installed https://www.npmjs.com/package/@researchdatabox/sails-hook-redbox-pdfgen
         // post: [{
         //   function: 'sails.services.pdfservice.createPDF',
