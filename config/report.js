@@ -11,7 +11,7 @@ module.exports.reports = {
       {
         "paramName": "dateObjectCreatedRange",
         "type": "date-range",
-        "property": "date_object_created",
+        "property": "dateCreated",
         "message": "Filter by date created"
       },
       {
@@ -45,7 +45,7 @@ module.exports.reports = {
       },
       {
         "label": "Date Created",
-        "property": "date_object_created"
+        "property": "dateCreated"
       },
       {
         "label": "Chief Investigator",
@@ -65,7 +65,7 @@ module.exports.reports = {
       {
         "paramName": "dateObjectCreatedRange",
         "type": "date-range",
-        "property": "date_object_created",
+        "property": "dateCreated",
         "message": "Filter by date created"
       },
       {
@@ -99,7 +99,7 @@ module.exports.reports = {
       },
       {
         "label": "Date Created",
-        "property": "date_object_created"
+        "property": "dateCreated"
       },
       {
         "label": "Chief Investigator",
@@ -119,7 +119,7 @@ module.exports.reports = {
       {
         "paramName": "dateObjectCreatedRange",
         "type": "date-range",
-        "property": "date_object_created",
+        "property": "dateCreated",
         "message": "Filter by date created"
       },
       {
@@ -153,7 +153,7 @@ module.exports.reports = {
       },
       {
         "label": "Date Created",
-        "property": "date_object_created"
+        "property": "dateCreated"
       },
       {
         "label": "Chief Investigator",
@@ -179,7 +179,7 @@ module.exports.reports = {
       {
         "paramName": "dateObjectCreatedRange",
         "type": "date-range",
-        "property": "date_object_created",
+        "property": "dateCreated",
         "message": "Filter by date created"
       },
       {
@@ -217,7 +217,7 @@ module.exports.reports = {
       },
       {
         "label": "Date Created",
-        "property": "date_object_created"
+        "property": "dateCreated"
       },
       {
         "label": "Chief Investigator",
@@ -257,7 +257,7 @@ module.exports.reports = {
       },
       {
         "label": "Date Created",
-        "property": "date_object_created"
+        "property": "dateCreated"
       }
     ]
   },
