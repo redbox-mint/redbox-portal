@@ -140,7 +140,7 @@ export class RelatedObjectDataField extends FieldBase<any> {
 
   getPropertyLabel(item: any, columnConf: any) {
     const val = this.getPropertyValue(item, columnConf);
-    return this.getTranslated(val['label'], val['label']);
+    return this.getTranslated(_.get(val,'label',null), _.get(val,'label',''));
   }
 
   isMultiValue(item: any, columnConf: any) {
