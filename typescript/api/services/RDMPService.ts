@@ -254,7 +254,26 @@ export module Services {
           
           sails.log[functionLogLevel]('checkTotalSizeOfFilesInRecord - totalSizeOfFilesInRecord '+totalSizeOfFilesInRecord);
           if(totalSizeOfFilesInRecord > sails.config.record.maxUploadSize) {
-            let customError: RBValidationError = new RBValidationError('Max upload total size is 1GB adding all files associated to the record');
+            
+            let maxUploadSizeMessage = TranslationService.t('max-total-files-upload-size-validation-error');
+            let alternativeMessageCode = options['maxUploadSizeMessageCode'];
+            
+            if(!_.isUndefined(alternativeMessageCode)) {
+              let replaceOrAppend = options['replaceOrAppend'];
+              if(_.isUndefined(replaceOrAppend)) {
+                replaceOrAppend = 'append';
+              }
+              if(replaceOrAppend == 'replace'){
+                maxUploadSizeMessage = TranslationService.t(alternativeMessageCode);
+              } else if (replaceOrAppend == 'append') {
+                let tmpMaxUploadSizeMessage = maxUploadSizeMessage + ' ' + TranslationService.t(alternativeMessageCode);
+                maxUploadSizeMessage = tmpMaxUploadSizeMessage;
+              }
+            }
+            let maxSizeFormatted = this.formatBytes(sails.config.record.maxUploadSize);
+            let interMessage = TranslationService.tInter(maxUploadSizeMessage,{maxUploadSize: maxSizeFormatted});
+            maxUploadSizeMessage = interMessage;
+            let customError: RBValidationError = new RBValidationError(maxUploadSizeMessage);
             throw customError;
           }
         }
@@ -262,6 +281,21 @@ export module Services {
 
       sails.log[functionLogLevel]('checkTotalSizeOfFilesInRecord - end');
       return record;
+    }
+
+    //Fixed version, unminified and ES6'ed 
+    //taken from SO
+    //https://stackoverflow.com/questions/15900485/correct-way-to-convert-size-in-bytes-to-kb-mb-gb-in-javascript
+    private formatBytes(bytes, decimals = 2) {
+      if (bytes === 0) return '0 Bytes';
+  
+      const k = 1024;
+      const dm = decimals < 0 ? 0 : decimals;
+      const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
+  
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+  
+      return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
     }
 
     protected addEmailToList(contributor, emailProperty, emailList) {

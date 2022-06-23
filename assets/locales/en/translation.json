@@ -725,5 +725,7 @@
   "@status-label": "Status",
   "@dmp-associated-rdmp-link": "View Associated RDMP",
   "not-enough-disk-space": "There is not enough free space on disk to upload file",
-  "attachment-upload-error": "There is an error uploading files"
+  "attachment-upload-error": "There is an error uploading files",
+  "max-total-files-upload-size-validation-error": "Max upload total size is {{maxUploadSize}} per record.",
+  "max-total-files-upload-size-alternative-validation-error": ""
 }
