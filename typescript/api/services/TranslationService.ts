@@ -38,7 +38,8 @@ export module Services {
     protected _exportedMethods: any = [
       'bootstrap',
       't',
-      'reloadResources'
+      'reloadResources',
+      'tInter'
     ];
     /** Warning this is synch... */
     public bootstrap() {
@@ -53,6 +54,7 @@ export module Services {
           lng: 'en',
           fallbackLng: 'en',
           initImmediate: false,
+          skipOnVariables: false,
           backend: {
             loadPath: `${sails.config.appPath}/assets/locales/{{lng}}/{{ns}}.json`
           }
@@ -66,7 +68,11 @@ export module Services {
     public t(key, context = null) {
       //@ts-ignore
       return i18next.t(key);
+    }
 
+    public tInter(key, context = null) {
+      //@ts-ignore
+      return i18next.t(key, context);
     }
 
     public reloadResources() {

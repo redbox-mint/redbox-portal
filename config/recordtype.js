@@ -56,7 +56,7 @@ module.exports.recordtype = {
           function: 'sails.services.rdmpservice.checkTotalSizeOfFilesInRecord',
           options: {
               triggerCondition: '<%= _.isEqual(record.workflow.stage, "draft") || _.isEqual(record.workflow.stage, "queued") || _.isEqual(record.workflow.stage, "published") %>',
-              maxUploadSizeMessageCode: 'max-1GB-total-files-upload-alternative',
+              maxUploadSizeMessageCode: 'max-total-files-upload-size-alternative-validation-error',
               replaceOrAppend:'append'
               }
           }

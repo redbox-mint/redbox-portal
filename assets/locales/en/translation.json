@@ -726,6 +726,6 @@
   "@dmp-associated-rdmp-link": "View Associated RDMP",
   "not-enough-disk-space": "There is not enough free space on disk to upload file",
   "attachment-upload-error": "There is an error uploading files",
-  "max-1GB-total-files-upload": "Max upload total size is 1GB adding all files associated to the record.",
-  "max-1GB-total-files-upload-alternative": "For bigger files please follow the following alternative process"
+  "max-total-files-upload-size-validation-error": "Max upload total size is {{maxUploadSize}} per record.",
+  "max-total-files-upload-size-alternative-validation-error": ""
 }
