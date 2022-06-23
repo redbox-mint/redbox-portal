@@ -527,8 +527,8 @@
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="399"
-                            class="link-to-prism">angular/shared/form/field-map.component.ts:399</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="398"
+                            class="link-to-prism">angular/shared/form/field-map.component.ts:398</a></div>
                 </td>
             </tr>
 
@@ -566,8 +566,8 @@
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="405"
-                            class="link-to-prism">angular/shared/form/field-map.component.ts:405</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="404"
+                            class="link-to-prism">angular/shared/form/field-map.component.ts:404</a></div>
                 </td>
             </tr>
 
@@ -707,7 +707,7 @@
             </tr>
             <tr>
                 <td class="col-md-4">
-                        <div class="io-line">Defined in         <code><a href="../classes/SimpleComponent.html#source" target="_self" >SimpleComponent:171</a></code>
+                        <div class="io-line">Defined in         <code><a href="../classes/SimpleComponent.html#source" target="_self" >SimpleComponent:194</a></code>
 </div>
                 </td>
             </tr>
@@ -786,7 +786,7 @@
             </tr>
             <tr>
                 <td class="col-md-4">
-                        <div class="io-line">Defined in         <code><a href="../classes/SimpleComponent.html#source" target="_self" >SimpleComponent:141</a></code>
+                        <div class="io-line">Defined in         <code><a href="../classes/SimpleComponent.html#source" target="_self" >SimpleComponent:164</a></code>
 </div>
                 </td>
             </tr>
@@ -867,7 +867,7 @@
             </tr>
             <tr>
                 <td class="col-md-4">
-                        <div class="io-line">Defined in         <code><a href="../classes/SimpleComponent.html#source" target="_self" >SimpleComponent:163</a></code>
+                        <div class="io-line">Defined in         <code><a href="../classes/SimpleComponent.html#source" target="_self" >SimpleComponent:186</a></code>
 </div>
                 </td>
             </tr>
@@ -919,7 +919,7 @@
             </tr>
             <tr>
                 <td class="col-md-4">
-                        <div class="io-line">Defined in         <code><a href="../classes/SimpleComponent.html#source" target="_self" >SimpleComponent:149</a></code>
+                        <div class="io-line">Defined in         <code><a href="../classes/SimpleComponent.html#source" target="_self" >SimpleComponent:172</a></code>
 </div>
                 </td>
             </tr>
@@ -972,7 +972,7 @@ Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a></p
             </tr>
             <tr>
                 <td class="col-md-4">
-                        <div class="io-line">Defined in         <code><a href="../classes/SimpleComponent.html#source" target="_self" >SimpleComponent:156</a></code>
+                        <div class="io-line">Defined in         <code><a href="../classes/SimpleComponent.html#source" target="_self" >SimpleComponent:179</a></code>
 </div>
                 </td>
             </tr>
@@ -1021,7 +1021,7 @@ Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a></p
                 </tr>
                     <tr>
                         <td class="col-md-4">
-                                <div class="io-line">Defined in <a href="" data-line="397" class="link-to-prism">angular/shared/form/field-map.component.ts:397</a></div>
+                                <div class="io-line">Defined in <a href="" data-line="396" class="link-to-prism">angular/shared/form/field-map.component.ts:396</a></div>
                         </td>
                     </tr>
 
@@ -1047,7 +1047,7 @@ Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a></p
                 </tr>
                     <tr>
                         <td class="col-md-4">
-                                <div class="io-line">Defined in <a href="" data-line="395" class="link-to-prism">angular/shared/form/field-map.component.ts:395</a></div>
+                                <div class="io-line">Defined in <a href="" data-line="394" class="link-to-prism">angular/shared/form/field-map.component.ts:394</a></div>
                         </td>
                     </tr>
 
@@ -1403,8 +1403,6 @@ export class MapField extends FieldBase&lt;any&gt; {
 
   }
 
-
-
   registerMapEventHandlers(map: Map) {
     let that &#x3D; this;
     map.on(L.Draw.Event.CREATED, function(e: any) {
@@ -1479,12 +1477,13 @@ export class MapField extends FieldBase&lt;any&gt; {
     return this.formModel;
   }
 
-  setValue(value: any) {
+  setValue(value: any, emitEvent: boolean &#x3D; true) {
     if (!_.isEmpty(value)) {
       this.layerGeoJSON &#x3D; value;
       this.drawLayers();
-      this.formModel.patchValue(this.layerGeoJSON, { emitEvent: false });
+      this.formModel.patchValue(this.layerGeoJSON, { emitEvent: emitEvent, emitModelToViewChange: true });
       this.formModel.markAsTouched();
+      this.formModel.markAsDirty();
     }
   }
 

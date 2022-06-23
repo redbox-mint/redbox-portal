@@ -533,7 +533,7 @@
             </tr>
             <tr>
                 <td class="col-md-4">
-                        <div class="io-line">Defined in         <code><a href="../classes/RepeatableComponent.html#source" target="_self" >RepeatableComponent:511</a></code>
+                        <div class="io-line">Defined in         <code><a href="../classes/RepeatableComponent.html#source" target="_self" >RepeatableComponent:527</a></code>
 </div>
                 </td>
             </tr>
@@ -604,8 +604,8 @@
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="549"
-                            class="link-to-prism">angular/shared/form/field-repeatable.component.ts:549</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="565"
+                            class="link-to-prism">angular/shared/form/field-repeatable.component.ts:565</a></div>
                 </td>
             </tr>
 
@@ -687,8 +687,8 @@
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="538"
-                            class="link-to-prism">angular/shared/form/field-repeatable.component.ts:538</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="554"
+                            class="link-to-prism">angular/shared/form/field-repeatable.component.ts:554</a></div>
                 </td>
             </tr>
 
@@ -768,8 +768,8 @@
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="505"
-                            class="link-to-prism">angular/shared/form/field-repeatable.component.ts:505</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="521"
+                            class="link-to-prism">angular/shared/form/field-repeatable.component.ts:521</a></div>
                 </td>
             </tr>
 
@@ -807,8 +807,8 @@
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="529"
-                            class="link-to-prism">angular/shared/form/field-repeatable.component.ts:529</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="545"
+                            class="link-to-prism">angular/shared/form/field-repeatable.component.ts:545</a></div>
                 </td>
             </tr>
 
@@ -918,7 +918,7 @@
             </tr>
             <tr>
                 <td class="col-md-4">
-                        <div class="io-line">Defined in         <code><a href="../classes/RepeatableComponent.html#source" target="_self" >RepeatableComponent:522</a></code>
+                        <div class="io-line">Defined in         <code><a href="../classes/RepeatableComponent.html#source" target="_self" >RepeatableComponent:538</a></code>
 </div>
                 </td>
             </tr>
@@ -1005,7 +1005,7 @@
             </tr>
             <tr>
                 <td class="col-md-4">
-                        <div class="io-line">Defined in         <code><a href="../classes/SimpleComponent.html#source" target="_self" >SimpleComponent:352</a></code>
+                        <div class="io-line">Defined in         <code><a href="../classes/SimpleComponent.html#source" target="_self" >SimpleComponent:368</a></code>
 </div>
                 </td>
             </tr>
@@ -1146,7 +1146,7 @@
             </tr>
             <tr>
                 <td class="col-md-4">
-                        <div class="io-line">Defined in         <code><a href="../classes/SimpleComponent.html#source" target="_self" >SimpleComponent:171</a></code>
+                        <div class="io-line">Defined in         <code><a href="../classes/SimpleComponent.html#source" target="_self" >SimpleComponent:194</a></code>
 </div>
                 </td>
             </tr>
@@ -1225,7 +1225,7 @@
             </tr>
             <tr>
                 <td class="col-md-4">
-                        <div class="io-line">Defined in         <code><a href="../classes/SimpleComponent.html#source" target="_self" >SimpleComponent:141</a></code>
+                        <div class="io-line">Defined in         <code><a href="../classes/SimpleComponent.html#source" target="_self" >SimpleComponent:164</a></code>
 </div>
                 </td>
             </tr>
@@ -1306,7 +1306,7 @@
             </tr>
             <tr>
                 <td class="col-md-4">
-                        <div class="io-line">Defined in         <code><a href="../classes/SimpleComponent.html#source" target="_self" >SimpleComponent:163</a></code>
+                        <div class="io-line">Defined in         <code><a href="../classes/SimpleComponent.html#source" target="_self" >SimpleComponent:186</a></code>
 </div>
                 </td>
             </tr>
@@ -1358,7 +1358,7 @@
             </tr>
             <tr>
                 <td class="col-md-4">
-                        <div class="io-line">Defined in         <code><a href="../classes/SimpleComponent.html#source" target="_self" >SimpleComponent:156</a></code>
+                        <div class="io-line">Defined in         <code><a href="../classes/SimpleComponent.html#source" target="_self" >SimpleComponent:179</a></code>
 </div>
                 </td>
             </tr>
@@ -1413,7 +1413,7 @@
                         </tr>
                     <tr>
                         <td class="col-md-4">
-                                <div class="io-line">Defined in         <code><a href="../classes/RepeatableComponent.html#source" target="_self" >RepeatableComponent:503</a></code>
+                                <div class="io-line">Defined in         <code><a href="../classes/RepeatableComponent.html#source" target="_self" >RepeatableComponent:519</a></code>
 </div>
                         </td>
                     </tr>
@@ -1667,13 +1667,21 @@ export class RepeatableContainer extends Container {
   }
 
   getInitArrayEntry() {
+    let initArrayEntry &#x3D; null;
     if (this.fields[0].isGroup) {
+      // This is a repeatable container, we set the parentField automatically
+      this.fields[0].setParentField &#x3D; true;
+      this.fields[0].parentField &#x3D; this;
       const grp &#x3D; {};
       const fm &#x3D; {};
       const fg &#x3D; this.fields[0].getGroup(grp, fm);
-      return [fg];
+      initArrayEntry &#x3D; [fg];
+    } else {
+      initArrayEntry &#x3D; [this.fields[0].createFormModel()];
     }
-    return [this.fields[0].createFormModel()];
+    // propagate the event handler in the first entry
+    this.fields[0].setupEventHandlers();
+    return initArrayEntry;
   }
 
   getGroup(group: any, fieldMap: any) {
@@ -1741,6 +1749,9 @@ export class RepeatableContainer extends Container {
     if (_.isFunction(newInst.postInit)) {
       newInst.postInit(value);
     }
+    if (newInst.setParentField) {
+      newInst.parentField &#x3D; this;
+    }
     return newInst;
   }
 
@@ -1761,9 +1772,13 @@ export class RepeatableContainer extends Container {
     if (val &#x3D;&#x3D; null &amp;&amp; _.isFunction(newElem.setEmptyValue)) {
       newElem.setEmptyValue();
     }
-    this.fields.push(newElem);
     const newFormModel &#x3D; newElem.createFormModel();
     this.formModel.push(newFormModel);
+    // Group component event handling: will need to set up event handlers within the new element
+    newElem.setupEventHandlers();
+    // finally, render in the UI
+    newElem[&#x27;arrayIndex&#x27;] &#x3D; this.fields.length; 
+    this.fields.push(newElem);
     return newElem;
   }
 
@@ -1903,6 +1918,7 @@ export class EmbeddableComponent extends SimpleComponent {
     }
     return &#x60;${baseClass} ${this.hasRequiredError() ? &#x27;has-error&#x27; : &#x27;&#x27; } ${this.field.groupClasses}&#x60;;
   }
+  
 }
 
 export class RepeatableComponent extends SimpleComponent {

@@ -176,7 +176,7 @@ cssClasses : &quot;width-80 form-control&quot;
     &lt;ng-container *ngFor&#x3D;&quot;let fieldElem of field.fields; let i &#x3D; index;&quot; &gt;
       &lt;div class&#x3D;&quot;row&quot;&gt;
         &lt;span class&#x3D;&quot;col-xs-12&quot;&gt;
-          &lt;generic-group-field [name]&#x3D;&quot;field.name&quot; [field]&#x3D;&quot;fieldElem&quot; [form]&#x3D;&quot;form&quot; [fieldMap]&#x3D;&quot;fieldMap&quot; [isEmbedded]&#x3D;&quot;true&quot; [removeBtnText]&#x3D;&quot;field.removeButtonText&quot; [removeBtnClass]&#x3D;&quot;field.removeButtonClass&quot; [canRemove]&#x3D;&quot;field.fields.length &gt; 1&quot; (onRemoveBtnClick)&#x3D;&quot;removeElem($event[0], $event[1])&quot; [index]&#x3D;&quot;i&quot;&gt;&lt;/generic-group-field&gt;
+          &lt;generic-group-field [name]&#x3D;&quot;fieldElem.name&quot; [field]&#x3D;&quot;fieldElem&quot; [form]&#x3D;&quot;form&quot; [fieldMap]&#x3D;&quot;fieldMap&quot; [isEmbedded]&#x3D;&quot;true&quot; [removeBtnText]&#x3D;&quot;field.removeButtonText&quot; [removeBtnClass]&#x3D;&quot;field.removeButtonClass&quot; [canRemove]&#x3D;&quot;field.fields.length &gt; 1&quot; (onRemoveBtnClick)&#x3D;&quot;removeElem($event[0], $event[1])&quot; [index]&#x3D;&quot;i&quot; &gt;&lt;/generic-group-field&gt;
         &lt;/span&gt;
       &lt;/div&gt;
       &lt;div class&#x3D;&quot;row&quot;&gt;
@@ -196,7 +196,7 @@ cssClasses : &quot;width-80 form-control&quot;
     &lt;span *ngIf&#x3D;&quot;field.label&quot; class&#x3D;&quot;key&quot;&gt;{{field.label}}&lt;/span&gt;
     &lt;span class&#x3D;&quot;value&quot;&gt;
       &lt;ul class&#x3D;&quot;key-value-list&quot;&gt;
-        &lt;generic-group-field *ngFor&#x3D;&quot;let fieldElem of field.fields; let i &#x3D; index;&quot; [name]&#x3D;&quot;field.name&quot; [index]&#x3D;&quot;i&quot; [field]&#x3D;&quot;fieldElem&quot; [form]&#x3D;&quot;form&quot; [fieldMap]&#x3D;&quot;fieldMap&quot;&gt;&lt;/generic-group-field&gt;
+        &lt;generic-group-field *ngFor&#x3D;&quot;let fieldElem of field.fields; let i &#x3D; index;&quot; [name]&#x3D;&quot;fieldElem.name&quot; [index]&#x3D;&quot;i&quot; [field]&#x3D;&quot;fieldElem&quot; [form]&#x3D;&quot;form&quot; [fieldMap]&#x3D;&quot;fieldMap&quot; [isEmbedded]&#x3D;&quot;true&quot;&gt;&lt;/generic-group-field&gt;
       &lt;/ul&gt;
     &lt;/span&gt;
   &lt;/li&gt;
@@ -569,7 +569,7 @@ cssClasses : &quot;width-80 form-control&quot;
             </tr>
             <tr>
                 <td class="col-md-4">
-                        <div class="io-line">Defined in         <code><a href="../classes/RepeatableComponent.html#source" target="_self" >RepeatableComponent:344</a></code>
+                        <div class="io-line">Defined in         <code><a href="../classes/RepeatableComponent.html#source" target="_self" >RepeatableComponent:360</a></code>
 </div>
                 </td>
             </tr>
@@ -644,7 +644,7 @@ cssClasses : &quot;width-80 form-control&quot;
             </tr>
             <tr>
                 <td class="col-md-4">
-                        <div class="io-line">Defined in         <code><a href="../classes/SimpleComponent.html#source" target="_self" >SimpleComponent:352</a></code>
+                        <div class="io-line">Defined in         <code><a href="../classes/SimpleComponent.html#source" target="_self" >SimpleComponent:368</a></code>
 </div>
                 </td>
             </tr>
@@ -687,7 +687,7 @@ cssClasses : &quot;width-80 form-control&quot;
             </tr>
             <tr>
                 <td class="col-md-4">
-                        <div class="io-line">Defined in         <code><a href="../classes/RepeatableComponent.html#source" target="_self" >RepeatableComponent:348</a></code>
+                        <div class="io-line">Defined in         <code><a href="../classes/RepeatableComponent.html#source" target="_self" >RepeatableComponent:364</a></code>
 </div>
                 </td>
             </tr>
@@ -872,7 +872,7 @@ cssClasses : &quot;width-80 form-control&quot;
             </tr>
             <tr>
                 <td class="col-md-4">
-                        <div class="io-line">Defined in         <code><a href="../classes/SimpleComponent.html#source" target="_self" >SimpleComponent:171</a></code>
+                        <div class="io-line">Defined in         <code><a href="../classes/SimpleComponent.html#source" target="_self" >SimpleComponent:194</a></code>
 </div>
                 </td>
             </tr>
@@ -951,7 +951,7 @@ cssClasses : &quot;width-80 form-control&quot;
             </tr>
             <tr>
                 <td class="col-md-4">
-                        <div class="io-line">Defined in         <code><a href="../classes/SimpleComponent.html#source" target="_self" >SimpleComponent:141</a></code>
+                        <div class="io-line">Defined in         <code><a href="../classes/SimpleComponent.html#source" target="_self" >SimpleComponent:164</a></code>
 </div>
                 </td>
             </tr>
@@ -1032,7 +1032,7 @@ cssClasses : &quot;width-80 form-control&quot;
             </tr>
             <tr>
                 <td class="col-md-4">
-                        <div class="io-line">Defined in         <code><a href="../classes/SimpleComponent.html#source" target="_self" >SimpleComponent:163</a></code>
+                        <div class="io-line">Defined in         <code><a href="../classes/SimpleComponent.html#source" target="_self" >SimpleComponent:186</a></code>
 </div>
                 </td>
             </tr>
@@ -1084,7 +1084,7 @@ cssClasses : &quot;width-80 form-control&quot;
             </tr>
             <tr>
                 <td class="col-md-4">
-                        <div class="io-line">Defined in         <code><a href="../classes/SimpleComponent.html#source" target="_self" >SimpleComponent:156</a></code>
+                        <div class="io-line">Defined in         <code><a href="../classes/SimpleComponent.html#source" target="_self" >SimpleComponent:179</a></code>
 </div>
                 </td>
             </tr>
@@ -1171,7 +1171,7 @@ cssClasses : &quot;width-80 form-control&quot;
                         </tr>
                     <tr>
                         <td class="col-md-4">
-                                <div class="io-line">Defined in         <code><a href="../classes/RepeatableComponent.html#source" target="_self" >RepeatableComponent:342</a></code>
+                                <div class="io-line">Defined in         <code><a href="../classes/RepeatableComponent.html#source" target="_self" >RepeatableComponent:358</a></code>
 </div>
                         </td>
                     </tr>
@@ -1419,7 +1419,7 @@ Generic component for grouping components together. The resulting JSON will have
         &lt;div [formGroup]&#x3D;&#x27;form&#x27; [ngClass]&#x3D;&quot;field.cssClasses&quot;&gt;
           &lt;div class&#x3D;&#x27;row&#x27;&gt;
             &lt;div class&#x3D;&quot;col-xs-11&quot;&gt;
-              &lt;dmp-field *ngFor&#x3D;&quot;let childField of field.fields&quot; [name]&#x3D;&quot;name&quot; [index]&#x3D;&quot;index&quot; [field]&#x3D;&quot;childField&quot; [form]&#x3D;&quot;form&quot; [fieldMap]&#x3D;&quot;fieldMap&quot;&gt;&lt;/dmp-field&gt;
+              &lt;dmp-field *ngFor&#x3D;&quot;let childField of field.fields&quot; [name]&#x3D;&quot;childField.name&quot; [index]&#x3D;&quot;index&quot; [field]&#x3D;&quot;childField&quot; [form]&#x3D;&quot;form&quot; [fieldMap]&#x3D;&quot;fieldMap&quot; &gt;&lt;/dmp-field&gt;
             &lt;/div&gt;
             &lt;div class&#x3D;&quot;col-xs-1&quot;&gt;
               &lt;button type&#x3D;&#x27;button&#x27; *ngIf&#x3D;&quot;removeBtnText&quot; [disabled]&#x3D;&quot;!canRemove&quot; (click)&#x3D;&quot;onRemove($event)&quot; [ngClass]&#x3D;&quot;removeBtnClass&quot; &gt;{{removeBtnText}}&lt;/button&gt;
@@ -1430,7 +1430,7 @@ Generic component for grouping components together. The resulting JSON will have
       &lt;/ng-container&gt;
       &lt;ng-container *ngIf&#x3D;&quot;!isEmbedded&quot;&gt;
         &lt;div [formGroup]&#x3D;&#x27;form&#x27; [ngClass]&#x3D;&quot;field.cssClasses&quot;&gt;
-          &lt;dmp-field *ngFor&#x3D;&quot;let field of field.fields&quot; [field]&#x3D;&quot;field&quot; [form]&#x3D;&quot;form&quot; [fieldMap]&#x3D;&quot;fieldMap&quot;&gt;&lt;/dmp-field&gt;
+          &lt;dmp-field *ngFor&#x3D;&quot;let childField of field.fields&quot; [field]&#x3D;&quot;childField&quot; [form]&#x3D;&quot;form&quot; [fieldMap]&#x3D;&quot;fieldMap&quot; [name] &#x3D; &quot;childField.name&quot; &gt;&lt;/dmp-field&gt;
         &lt;/div&gt;
       &lt;/ng-container&gt;
     &lt;/ng-container&gt;
@@ -1531,7 +1531,7 @@ export class GenericGroupComponent extends EmbeddableComponent {
       &lt;ng-container *ngFor&#x3D;&quot;let fieldElem of field.fields; let i &#x3D; index;&quot; &gt;
         &lt;div class&#x3D;&quot;row&quot;&gt;
           &lt;span class&#x3D;&quot;col-xs-12&quot;&gt;
-            &lt;generic-group-field [name]&#x3D;&quot;field.name&quot; [field]&#x3D;&quot;fieldElem&quot; [form]&#x3D;&quot;form&quot; [fieldMap]&#x3D;&quot;fieldMap&quot; [isEmbedded]&#x3D;&quot;true&quot; [removeBtnText]&#x3D;&quot;field.removeButtonText&quot; [removeBtnClass]&#x3D;&quot;field.removeButtonClass&quot; [canRemove]&#x3D;&quot;field.fields.length &gt; 1&quot; (onRemoveBtnClick)&#x3D;&quot;removeElem($event[0], $event[1])&quot; [index]&#x3D;&quot;i&quot;&gt;&lt;/generic-group-field&gt;
+            &lt;generic-group-field [name]&#x3D;&quot;fieldElem.name&quot; [field]&#x3D;&quot;fieldElem&quot; [form]&#x3D;&quot;form&quot; [fieldMap]&#x3D;&quot;fieldMap&quot; [isEmbedded]&#x3D;&quot;true&quot; [removeBtnText]&#x3D;&quot;field.removeButtonText&quot; [removeBtnClass]&#x3D;&quot;field.removeButtonClass&quot; [canRemove]&#x3D;&quot;field.fields.length &gt; 1&quot; (onRemoveBtnClick)&#x3D;&quot;removeElem($event[0], $event[1])&quot; [index]&#x3D;&quot;i&quot; &gt;&lt;/generic-group-field&gt;
           &lt;/span&gt;
         &lt;/div&gt;
         &lt;div class&#x3D;&quot;row&quot;&gt;
@@ -1551,7 +1551,7 @@ export class GenericGroupComponent extends EmbeddableComponent {
       &lt;span *ngIf&#x3D;&quot;field.label&quot; class&#x3D;&quot;key&quot;&gt;{{field.label}}&lt;/span&gt;
       &lt;span class&#x3D;&quot;value&quot;&gt;
         &lt;ul class&#x3D;&quot;key-value-list&quot;&gt;
-          &lt;generic-group-field *ngFor&#x3D;&quot;let fieldElem of field.fields; let i &#x3D; index;&quot; [name]&#x3D;&quot;field.name&quot; [index]&#x3D;&quot;i&quot; [field]&#x3D;&quot;fieldElem&quot; [form]&#x3D;&quot;form&quot; [fieldMap]&#x3D;&quot;fieldMap&quot;&gt;&lt;/generic-group-field&gt;
+          &lt;generic-group-field *ngFor&#x3D;&quot;let fieldElem of field.fields; let i &#x3D; index;&quot; [name]&#x3D;&quot;fieldElem.name&quot; [index]&#x3D;&quot;i&quot; [field]&#x3D;&quot;fieldElem&quot; [form]&#x3D;&quot;form&quot; [fieldMap]&#x3D;&quot;fieldMap&quot; [isEmbedded]&#x3D;&quot;true&quot;&gt;&lt;/generic-group-field&gt;
         &lt;/ul&gt;
       &lt;/span&gt;
     &lt;/li&gt;
@@ -1592,7 +1592,7 @@ export class RepeatableGroupComponent extends RepeatableComponent {
 <script src="../js/libs/htmlparser.js"></script>
 <script src="../js/libs/deep-iterator.js"></script>
 <script>
-        var COMPONENT_TEMPLATE = '<div><ng-container *ngIf="field.visible">  <div *ngIf="field.editMode">    <div *ngIf="field.label">      <span class="label-font">        {{field.label}} {{getRequiredLabelStr()}}        <button type="button" class="btn btn-default" *ngIf="field.help" (click)="toggleHelp()" [attr.aria-label]="\'help\' | translate "><span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span></button>      </span>      <span id="{{ \'helpBlock_\' + field.name }}" class="help-block" *ngIf="this.helpShow" [innerHtml]="field.help">{{field.help}}</span>    </div>    <ng-container *ngFor="let fieldElem of field.fields; let i = index;" >      <div class="row">        <span class="col-xs-12">          <generic-group-field [name]="field.name" [field]="fieldElem" [form]="form" [fieldMap]="fieldMap" [isEmbedded]="true" [removeBtnText]="field.removeButtonText" [removeBtnClass]="field.removeButtonClass" [canRemove]="field.fields.length > 1" (onRemoveBtnClick)="removeElem($event[0], $event[1])" [index]="i"></generic-group-field>        </span>      </div>      <div class="row">        <span class="col-xs-12">&nbsp;</span>      </div>    </ng-container>    <div class="row">      <span class="col-xs-11">&nbsp;      </span>      <span class="col-xs-1">        <button *ngIf="field.addButtonText" type=\'button\' (click)="addElem($event)" [ngClass]="field.addButtonTextClass" >{{field.addButtonText}}</button>        <button *ngIf="!field.addButtonText" type=\'button\' (click)="addElem($event)" [ngClass]="field.addButtonClass" [attr.aria-label]="\'add-button-label\' | translate"></button>      </span>    </div>  </div>  <li *ngIf="!field.editMode" class="key-value-pair">    <span *ngIf="field.label" class="key">{{field.label}}</span>    <span class="value">      <ul class="key-value-list">        <generic-group-field *ngFor="let fieldElem of field.fields; let i = index;" [name]="field.name" [index]="i" [field]="fieldElem" [form]="form" [fieldMap]="fieldMap"></generic-group-field>      </ul>    </span>  </li></ng-container></div>'
+        var COMPONENT_TEMPLATE = '<div><ng-container *ngIf="field.visible">  <div *ngIf="field.editMode">    <div *ngIf="field.label">      <span class="label-font">        {{field.label}} {{getRequiredLabelStr()}}        <button type="button" class="btn btn-default" *ngIf="field.help" (click)="toggleHelp()" [attr.aria-label]="\'help\' | translate "><span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span></button>      </span>      <span id="{{ \'helpBlock_\' + field.name }}" class="help-block" *ngIf="this.helpShow" [innerHtml]="field.help">{{field.help}}</span>    </div>    <ng-container *ngFor="let fieldElem of field.fields; let i = index;" >      <div class="row">        <span class="col-xs-12">          <generic-group-field [name]="fieldElem.name" [field]="fieldElem" [form]="form" [fieldMap]="fieldMap" [isEmbedded]="true" [removeBtnText]="field.removeButtonText" [removeBtnClass]="field.removeButtonClass" [canRemove]="field.fields.length > 1" (onRemoveBtnClick)="removeElem($event[0], $event[1])" [index]="i" ></generic-group-field>        </span>      </div>      <div class="row">        <span class="col-xs-12">&nbsp;</span>      </div>    </ng-container>    <div class="row">      <span class="col-xs-11">&nbsp;      </span>      <span class="col-xs-1">        <button *ngIf="field.addButtonText" type=\'button\' (click)="addElem($event)" [ngClass]="field.addButtonTextClass" >{{field.addButtonText}}</button>        <button *ngIf="!field.addButtonText" type=\'button\' (click)="addElem($event)" [ngClass]="field.addButtonClass" [attr.aria-label]="\'add-button-label\' | translate"></button>      </span>    </div>  </div>  <li *ngIf="!field.editMode" class="key-value-pair">    <span *ngIf="field.label" class="key">{{field.label}}</span>    <span class="value">      <ul class="key-value-list">        <generic-group-field *ngFor="let fieldElem of field.fields; let i = index;" [name]="fieldElem.name" [index]="i" [field]="fieldElem" [form]="form" [fieldMap]="fieldMap" [isEmbedded]="true"></generic-group-field>      </ul>    </span>  </li></ng-container></div>'
     var COMPONENTS = [{'name': 'ActionButtonComponent', 'selector': 'action-button'},{'name': 'AnchorOrButtonComponent', 'selector': 'anchor-button'},{'name': 'ANDSVocabComponent', 'selector': 'ands-vocab-selector'},{'name': 'AsynchComponent', 'selector': 'asynch-component'},{'name': 'ButtonBarContainerComponent', 'selector': 'buttonbarcontainer'},{'name': 'CancelButtonComponent', 'selector': 'cancel-button'},{'name': 'ContributorComponent', 'selector': 'rb-contributor'},{'name': 'DashboardComponent', 'selector': 'dashboard'},{'name': 'DataLocationComponent', 'selector': 'data-location-selector'},{'name': 'DateTimeComponent', 'selector': 'date-time'},{'name': 'DmpFieldComponent', 'selector': 'dmp-field'},{'name': 'DmpFormComponent', 'selector': 'dmp-form'},{'name': 'DropdownFieldComponent', 'selector': 'dropdownfield'},{'name': 'EventHandlerComponent', 'selector': 'event-handler'},{'name': 'ExportFormComponent', 'selector': 'export-form'},{'name': 'GenericGroupComponent', 'selector': 'generic-group-field'},{'name': 'HiddenValueComponent', 'selector': 'hidden-field'},{'name': 'HtmlRawComponent', 'selector': 'htmlraw'},{'name': 'LinkValueComponent', 'selector': 'link-value'},{'name': 'LocalAuthComponent', 'selector': 'local-auth'},{'name': 'ManageRolesComponent', 'selector': 'manage-roles'},{'name': 'ManageUsersComponent', 'selector': 'manage-users'},{'name': 'MapComponent', 'selector': 'rb-mapdata'},{'name': 'MarkdownTextAreaComponent', 'selector': 'markdown-text-area'},{'name': 'PageTitleComponent', 'selector': 'page-title'},{'name': 'ParameterRetrieverComponent', 'selector': 'parameter-retriever'},{'name': 'PDFListComponent', 'selector': 'rb-pdf-list'},{'name': 'PublishDataLocationRefreshComponent', 'selector': 'publish-data-location-refresh'},{'name': 'PublishDataLocationSelectorComponent', 'selector': 'publish-data-location-selector'},{'name': 'RecordMetadataRetrieverComponent', 'selector': 'record-metadata-retriever'},{'name': 'RecordPermissionsComponent', 'selector': 'rb-recordpermissions'},{'name': 'RecordSearchComponent', 'selector': 'record-search'},{'name': 'RecordSearchRefinerComponent', 'selector': 'record-search-refiner'},{'name': 'RelatedFileUploadComponent', 'selector': 'related-fileupload-selector'},{'name': 'RelatedObjectDataComponent', 'selector': 'rb-relatedobjectdata'},{'name': 'RelatedObjectSelectorComponent', 'selector': 'rb-RelatedObjectSelector'},{'name': 'RepeatableContributorComponent', 'selector': 'repeatable-contributor'},{'name': 'RepeatableGroupComponent', 'selector': 'repeatable-group'},{'name': 'RepeatableTextfieldComponent', 'selector': 'repeatable-textfield'},{'name': 'RepeatableVocabComponent', 'selector': 'repeatable-vocab'},{'name': 'ReportComponent', 'selector': 'report'},{'name': 'SaveButtonComponent', 'selector': 'save-button'},{'name': 'SelectionFieldComponent', 'selector': 'selectionfield'},{'name': 'SortComponent', 'selector': 'sort'},{'name': 'SpacerComponent', 'selector': 'spacer'},{'name': 'TabNavButtonComponent', 'selector': 'tab-nav-button'},{'name': 'TabOrAccordionContainerComponent', 'selector': 'tabcontainer'},{'name': 'TextAreaComponent', 'selector': 'text-area'},{'name': 'TextBlockComponent', 'selector': 'text-block'},{'name': 'TextFieldComponent', 'selector': 'textfield'},{'name': 'ToggleComponent', 'selector': 'toggle'},{'name': 'TransferOwnerComponent', 'selector': 'transfer-owner'},{'name': 'TreeNodeCheckboxComponent', 'selector': 'rb-tree-node-checkbox'},{'name': 'UserProfileComponent', 'selector': 'user-profile'},{'name': 'VocabFieldComponent', 'selector': 'rb-vocab'},{'name': 'WorkflowStepButtonComponent', 'selector': 'workflowstep-button'},{'name': 'WorkspaceFieldComponent', 'selector': 'ws-field'},{'name': 'WorkspaceListComponent', 'selector': 'workspace-list'},{'name': 'WorkspaceSelectorComponent', 'selector': 'workspace-selector-parent'},{'name': 'WorkspaceSelectorFieldComponent', 'selector': 'workspace-selector'}];
     var DIRECTIVES = [];
     var ACTUAL_COMPONENT = {'name': 'RepeatableGroupComponent'};

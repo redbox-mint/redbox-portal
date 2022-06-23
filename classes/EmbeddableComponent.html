@@ -386,7 +386,7 @@
             </tr>
             <tr>
                 <td class="col-md-4">
-                        <div class="io-line">Defined in         <code><a href="../classes/SimpleComponent.html#source" target="_self" >SimpleComponent:332</a></code>
+                        <div class="io-line">Defined in         <code><a href="../classes/SimpleComponent.html#source" target="_self" >SimpleComponent:347</a></code>
 </div>
                 </td>
             </tr>
@@ -459,8 +459,8 @@
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="328"
-                            class="link-to-prism">angular/shared/form/field-repeatable.component.ts:328</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="343"
+                            class="link-to-prism">angular/shared/form/field-repeatable.component.ts:343</a></div>
                 </td>
             </tr>
 
@@ -632,7 +632,7 @@
             </tr>
             <tr>
                 <td class="col-md-4">
-                        <div class="io-line">Defined in         <code><a href="../classes/SimpleComponent.html#source" target="_self" >SimpleComponent:171</a></code>
+                        <div class="io-line">Defined in         <code><a href="../classes/SimpleComponent.html#source" target="_self" >SimpleComponent:194</a></code>
 </div>
                 </td>
             </tr>
@@ -709,7 +709,7 @@
             </tr>
             <tr>
                 <td class="col-md-4">
-                        <div class="io-line">Defined in         <code><a href="../classes/SimpleComponent.html#source" target="_self" >SimpleComponent:163</a></code>
+                        <div class="io-line">Defined in         <code><a href="../classes/SimpleComponent.html#source" target="_self" >SimpleComponent:186</a></code>
 </div>
                 </td>
             </tr>
@@ -761,7 +761,7 @@
             </tr>
             <tr>
                 <td class="col-md-4">
-                        <div class="io-line">Defined in         <code><a href="../classes/SimpleComponent.html#source" target="_self" >SimpleComponent:149</a></code>
+                        <div class="io-line">Defined in         <code><a href="../classes/SimpleComponent.html#source" target="_self" >SimpleComponent:172</a></code>
 </div>
                 </td>
             </tr>
@@ -814,7 +814,7 @@ Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a></p
             </tr>
             <tr>
                 <td class="col-md-4">
-                        <div class="io-line">Defined in         <code><a href="../classes/SimpleComponent.html#source" target="_self" >SimpleComponent:156</a></code>
+                        <div class="io-line">Defined in         <code><a href="../classes/SimpleComponent.html#source" target="_self" >SimpleComponent:179</a></code>
 </div>
                 </td>
             </tr>
@@ -863,7 +863,7 @@ Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a></p
                 </tr>
                         <tr>
                             <td class="col-md-2" colspan="2">
-                                    <div class="io-line">Defined in <a href="" data-line="322" class="link-to-prism">angular/shared/form/field-repeatable.component.ts:322</a></div>
+                                    <div class="io-line">Defined in <a href="" data-line="337" class="link-to-prism">angular/shared/form/field-repeatable.component.ts:337</a></div>
                             </td>
                         </tr>
             </tbody>
@@ -884,7 +884,7 @@ Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a></p
                 </tr>
                         <tr>
                             <td class="col-md-2" colspan="2">
-                                    <div class="io-line">Defined in <a href="" data-line="325" class="link-to-prism">angular/shared/form/field-repeatable.component.ts:325</a></div>
+                                    <div class="io-line">Defined in <a href="" data-line="340" class="link-to-prism">angular/shared/form/field-repeatable.component.ts:340</a></div>
                             </td>
                         </tr>
             </tbody>
@@ -910,7 +910,7 @@ Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a></p
                 </tr>
                         <tr>
                             <td class="col-md-2" colspan="2">
-                                    <div class="io-line">Defined in <a href="" data-line="324" class="link-to-prism">angular/shared/form/field-repeatable.component.ts:324</a></div>
+                                    <div class="io-line">Defined in <a href="" data-line="339" class="link-to-prism">angular/shared/form/field-repeatable.component.ts:339</a></div>
                             </td>
                         </tr>
             </tbody>
@@ -936,7 +936,7 @@ Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a></p
                 </tr>
                         <tr>
                             <td class="col-md-2" colspan="2">
-                                    <div class="io-line">Defined in <a href="" data-line="323" class="link-to-prism">angular/shared/form/field-repeatable.component.ts:323</a></div>
+                                    <div class="io-line">Defined in <a href="" data-line="338" class="link-to-prism">angular/shared/form/field-repeatable.component.ts:338</a></div>
                             </td>
                         </tr>
             </tbody>
@@ -960,7 +960,7 @@ Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a></p
                 </tr>
                         <tr>
                             <td class="col-md-2" colspan="2">
-                                    <div class="io-line">Defined in <a href="" data-line="326" class="link-to-prism">angular/shared/form/field-repeatable.component.ts:326</a></div>
+                                    <div class="io-line">Defined in <a href="" data-line="341" class="link-to-prism">angular/shared/form/field-repeatable.component.ts:341</a></div>
                             </td>
                         </tr>
             </tbody>
@@ -1055,13 +1055,21 @@ export class RepeatableContainer extends Container {
   }
 
   getInitArrayEntry() {
+    let initArrayEntry &#x3D; null;
     if (this.fields[0].isGroup) {
+      // This is a repeatable container, we set the parentField automatically
+      this.fields[0].setParentField &#x3D; true;
+      this.fields[0].parentField &#x3D; this;
       const grp &#x3D; {};
       const fm &#x3D; {};
       const fg &#x3D; this.fields[0].getGroup(grp, fm);
-      return [fg];
+      initArrayEntry &#x3D; [fg];
+    } else {
+      initArrayEntry &#x3D; [this.fields[0].createFormModel()];
     }
-    return [this.fields[0].createFormModel()];
+    // propagate the event handler in the first entry
+    this.fields[0].setupEventHandlers();
+    return initArrayEntry;
   }
 
   getGroup(group: any, fieldMap: any) {
@@ -1129,6 +1137,9 @@ export class RepeatableContainer extends Container {
     if (_.isFunction(newInst.postInit)) {
       newInst.postInit(value);
     }
+    if (newInst.setParentField) {
+      newInst.parentField &#x3D; this;
+    }
     return newInst;
   }
 
@@ -1149,9 +1160,13 @@ export class RepeatableContainer extends Container {
     if (val &#x3D;&#x3D; null &amp;&amp; _.isFunction(newElem.setEmptyValue)) {
       newElem.setEmptyValue();
     }
-    this.fields.push(newElem);
     const newFormModel &#x3D; newElem.createFormModel();
     this.formModel.push(newFormModel);
+    // Group component event handling: will need to set up event handlers within the new element
+    newElem.setupEventHandlers();
+    // finally, render in the UI
+    newElem[&#x27;arrayIndex&#x27;] &#x3D; this.fields.length; 
+    this.fields.push(newElem);
     return newElem;
   }
 
@@ -1291,6 +1306,7 @@ export class EmbeddableComponent extends SimpleComponent {
     }
     return &#x60;${baseClass} ${this.hasRequiredError() ? &#x27;has-error&#x27; : &#x27;&#x27; } ${this.field.groupClasses}&#x60;;
   }
+  
 }
 
 export class RepeatableComponent extends SimpleComponent {

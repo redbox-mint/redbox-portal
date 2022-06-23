@@ -485,8 +485,8 @@ Based on: <a href="https://bootstrap-datepicker.readthedocs.io/en/stable/">https
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="792"
-                            class="link-to-prism">angular/shared/form/field-simple.component.ts:792</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="844"
+                            class="link-to-prism">angular/shared/form/field-simple.component.ts:844</a></div>
                 </td>
             </tr>
 
@@ -524,8 +524,8 @@ Based on: <a href="https://bootstrap-datepicker.readthedocs.io/en/stable/">https
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="784"
-                            class="link-to-prism">angular/shared/form/field-simple.component.ts:784</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="836"
+                            class="link-to-prism">angular/shared/form/field-simple.component.ts:836</a></div>
                 </td>
             </tr>
 
@@ -665,7 +665,7 @@ Based on: <a href="https://bootstrap-datepicker.readthedocs.io/en/stable/">https
             </tr>
             <tr>
                 <td class="col-md-4">
-                        <div class="io-line">Defined in         <code><a href="../classes/SimpleComponent.html#source" target="_self" >SimpleComponent:171</a></code>
+                        <div class="io-line">Defined in         <code><a href="../classes/SimpleComponent.html#source" target="_self" >SimpleComponent:194</a></code>
 </div>
                 </td>
             </tr>
@@ -744,7 +744,7 @@ Based on: <a href="https://bootstrap-datepicker.readthedocs.io/en/stable/">https
             </tr>
             <tr>
                 <td class="col-md-4">
-                        <div class="io-line">Defined in         <code><a href="../classes/SimpleComponent.html#source" target="_self" >SimpleComponent:141</a></code>
+                        <div class="io-line">Defined in         <code><a href="../classes/SimpleComponent.html#source" target="_self" >SimpleComponent:164</a></code>
 </div>
                 </td>
             </tr>
@@ -825,7 +825,7 @@ Based on: <a href="https://bootstrap-datepicker.readthedocs.io/en/stable/">https
             </tr>
             <tr>
                 <td class="col-md-4">
-                        <div class="io-line">Defined in         <code><a href="../classes/SimpleComponent.html#source" target="_self" >SimpleComponent:163</a></code>
+                        <div class="io-line">Defined in         <code><a href="../classes/SimpleComponent.html#source" target="_self" >SimpleComponent:186</a></code>
 </div>
                 </td>
             </tr>
@@ -877,7 +877,7 @@ Based on: <a href="https://bootstrap-datepicker.readthedocs.io/en/stable/">https
             </tr>
             <tr>
                 <td class="col-md-4">
-                        <div class="io-line">Defined in         <code><a href="../classes/SimpleComponent.html#source" target="_self" >SimpleComponent:149</a></code>
+                        <div class="io-line">Defined in         <code><a href="../classes/SimpleComponent.html#source" target="_self" >SimpleComponent:172</a></code>
 </div>
                 </td>
             </tr>
@@ -930,7 +930,7 @@ Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a></p
             </tr>
             <tr>
                 <td class="col-md-4">
-                        <div class="io-line">Defined in         <code><a href="../classes/SimpleComponent.html#source" target="_self" >SimpleComponent:156</a></code>
+                        <div class="io-line">Defined in         <code><a href="../classes/SimpleComponent.html#source" target="_self" >SimpleComponent:179</a></code>
 </div>
                 </td>
             </tr>
@@ -989,7 +989,7 @@ Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a></p
                 </tr>
                     <tr>
                         <td class="col-md-4">
-                                <div class="io-line">Defined in <a href="" data-line="782" class="link-to-prism">angular/shared/form/field-simple.component.ts:782</a></div>
+                                <div class="io-line">Defined in <a href="" data-line="834" class="link-to-prism">angular/shared/form/field-simple.component.ts:834</a></div>
                         </td>
                     </tr>
 
@@ -1016,7 +1016,7 @@ Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a></p
                 </tr>
                     <tr>
                         <td class="col-md-4">
-                                <div class="io-line">Defined in <a href="" data-line="780" class="link-to-prism">angular/shared/form/field-simple.component.ts:780</a></div>
+                                <div class="io-line">Defined in <a href="" data-line="832" class="link-to-prism">angular/shared/form/field-simple.component.ts:832</a></div>
                         </td>
                     </tr>
 
@@ -1291,23 +1291,46 @@ export class SimpleComponent {
     if (_.isEmpty(name)) {
       name &#x3D; this.field.name;
     }
-    if (this.fieldMap &amp;&amp; this.field) {
-      // console.log(name);
-      fc &#x3D; this.field.getControl(name, this.fieldMap);
-    }
-    if (!_.isNull(ctrlIndex) &amp;&amp; !_.isUndefined(ctrlIndex)) {
-      if (!_.isNull(fc.controls) &amp;&amp; !_.isUndefined(fc.controls)) {
-        fc &#x3D; fc.controls[ctrlIndex];
+    //  check first it&#x27;s within a group, return directly
+    if (!_.isEmpty(this.field.parentField)) {
+      fc &#x3D; this.field.formModel;
+    } else {
+      try {
+        // using the field map, the legacy behaviour
+        // TODO: during NG upgrade, review code block below
+        if (this.fieldMap &amp;&amp; this.field) {
+          fc &#x3D; this.field.getControl(name, this.fieldMap);
+        } 
+        if (!_.isEmpty(fc)) {
+          if (!_.isNull(ctrlIndex) &amp;&amp; !_.isUndefined(ctrlIndex)) {
+            if (!_.isNull(fc.controls) &amp;&amp; !_.isUndefined(fc.controls)) {
+              fc &#x3D; fc.controls[ctrlIndex];
+            }
+          } else if (this.index !&#x3D; null) {
+            fc &#x3D; fc.controls[this.index];
+          }
+          if (name !&#x3D; this.field.name &amp;&amp; !_.isEmpty(this.field.name) &amp;&amp; !_.isUndefined(fc.controls)) {
+            fc &#x3D; fc.controls[this.field.name];
+          }
+        }
+      } catch (e) {
+        // swallow the error, potential config issue will be dealt later on
       }
-    } else
-    if (this.index !&#x3D; null) {
-      fc &#x3D; fc.controls[this.index];
+      // END TODO
     }
-    if (name !&#x3D; this.field.name &amp;&amp; !_.isEmpty(this.field.name) &amp;&amp; !_.isUndefined(fc.controls)) {
-      fc &#x3D; fc.controls[this.field.name];
+    // check if fc is still null
+    if (_.isEmpty(fc)) {
+      if (!this.field.hasRuntimeConfigWarning) {
+        // since we&#x27;re no longer caching the FC:
+        // only display once so as not to flood the console
+        console.warn(&#x60;Warning: Unable to retrieve &#x27;${name}&#x27; formControl. It seems to be nested? Returning &#x27;field.formModel&#x27; by default instead of null&#x60;);
+      }
+      this.field.hasRuntimeConfigWarning &#x3D; true;
+      fc &#x3D; this.field.formModel;
     }
     return fc;
   }
+
   /**
    * Returns the CSS class
    * @param  {string&#x3D;null} fldName
@@ -1407,7 +1430,7 @@ export class DropdownFieldComponent extends SelectionComponent {
 @Component({
   selector: &#x27;selectionfield&#x27;,
   template: &#x60;
-  &lt;div [formGroup]&#x3D;&#x27;form&#x27; *ngIf&#x3D;&quot;field.editMode &amp;&amp; field.visible&quot; class&#x3D;&quot;form-group&quot;&gt;
+  &lt;div [formGroup]&#x3D;&#x27;getFormGroup()&#x27; *ngIf&#x3D;&quot;field.editMode &amp;&amp; field.visible&quot; class&#x3D;&quot;form-group&quot;&gt;
      &lt;span class&#x3D;&quot;label-font&quot;&gt;
       {{field.label}} {{ getRequiredLabelStr()}}
       &lt;button type&#x3D;&quot;button&quot; class&#x3D;&quot;btn btn-default&quot; *ngIf&#x3D;&quot;field.help&quot; (click)&#x3D;&quot;toggleHelp()&quot; [attr.aria-label]&#x3D;&quot;&#x27;help&#x27; | translate &quot;&gt;&lt;span class&#x3D;&quot;glyphicon glyphicon-question-sign&quot; aria-hidden&#x3D;&quot;true&quot;&gt;&lt;/span&gt;&lt;/button&gt;
@@ -1417,9 +1440,10 @@ export class DropdownFieldComponent extends SelectionComponent {
       &lt;legend [hidden]&#x3D;&quot;true&quot;&gt;&lt;span&gt;&lt;/span&gt;&lt;/legend&gt;
         &lt;span *ngFor&#x3D;&quot;let opt of field.selectOptions&quot;&gt;
           &lt;!-- radio type hard-coded otherwise accessor directive will not work! --&gt;
-          &lt;input *ngIf&#x3D;&quot;isRadio()&quot; type&#x3D;&quot;radio&quot; name&#x3D;&quot;{{field.name}}&quot; [id]&#x3D;&quot;field.name + &#x27;_&#x27; + opt.value&quot; [formControl]&#x3D;&quot;getFormControl()&quot; [value]&#x3D;&quot;opt.value&quot; [attr.disabled]&#x3D;&quot;field.readOnly ? &#x27;&#x27; : null &quot;&gt;
-          &lt;input *ngIf&#x3D;&quot;!isRadio()&quot; type&#x3D;&quot;{{field.controlType}}&quot; name&#x3D;&quot;{{field.name}}&quot; [id]&#x3D;&quot;field.name + &#x27;_&#x27; + opt.value&quot; [value]&#x3D;&quot;opt.value&quot; (change)&#x3D;&quot;onChange(opt, $event)&quot; [attr.selected]&#x3D;&quot;getCheckedFromOption(opt)&quot; [checked]&#x3D;&quot;getCheckedFromOption(opt)&quot; [attr.disabled]&#x3D;&quot;field.readOnly ? &#x27;&#x27; : null &quot;&gt;
-          &lt;label for&#x3D;&quot;{{field.name + &#x27;_&#x27; + opt.value}}&quot; class&#x3D;&quot;radio-label&quot;  [innerHtml]&#x3D;&quot;opt.label&quot;&gt;&lt;/label&gt;
+          &lt;!-- the ID and associated label-&gt;for property is now delegated to a Fn rather than inline-templated here, to make it optional, e.g. if it is nested --&gt;
+          &lt;input *ngIf&#x3D;&quot;isRadio()&quot; type&#x3D;&quot;radio&quot; [id]&#x3D;&quot;getInputId(opt)&quot; [formControlName]&#x3D;&quot;field.name&quot; [value]&#x3D;&quot;opt.value&quot; [attr.disabled]&#x3D;&quot;field.readOnly ? &#x27;&#x27; : null &quot;&gt;
+          &lt;input *ngIf&#x3D;&quot;!isRadio()&quot; type&#x3D;&quot;{{field.controlType}}&quot; name&#x3D;&quot;{{field.name}}&quot; [id]&#x3D;&quot;getInputId(opt)&quot; [value]&#x3D;&quot;opt.value&quot; (change)&#x3D;&quot;onChange(opt, $event)&quot; [attr.selected]&#x3D;&quot;getCheckedFromOption(opt)&quot; [checked]&#x3D;&quot;getCheckedFromOption(opt)&quot; [attr.disabled]&#x3D;&quot;field.readOnly ? &#x27;&#x27; : null &quot;&gt;
+          &lt;label [attr.for]&#x3D;&quot;getInputId(opt)&quot; class&#x3D;&quot;radio-label&quot;  [innerHtml]&#x3D;&quot;opt.label&quot;&gt;&lt;/label&gt;
           &lt;br/&gt;
         &lt;/span&gt;
      &lt;/fieldset&gt;
@@ -1445,6 +1469,26 @@ export class DropdownFieldComponent extends SelectionComponent {
 })
 export class SelectionFieldComponent extends SelectionComponent {
   static clName &#x3D; &#x27;SelectionFieldComponent&#x27;;
+  fg: any;
+  /**
+   * Allows radio buttons and checkboxes to use a custom form group. Useful when radio buttons are nested within repeatables.
+   * 
+   * @returns the FormGroup for this selection field
+   */
+  getFormGroup() {
+    if (_.isEmpty(this.fg)) {
+      if (!_.isEmpty(this.field.useFormGroup)) {
+        this.fg &#x3D; _.get(this.field, this.field.useFormGroup);
+        if (_.isEmpty(this.fg)) {
+          console.warn(&#x60;Radio button &#x27;${this.field.name}&#x27; has custom form group: &#x27;${this.field.useFormGroup}&#x27;, but path resolved to an empty value. Failing softly by defaulting to &#x27;this.form&#x27;. If you are still in active form configuration development, please check if &#x27;useFormGroup&#x27; path is valid.&#x60;);
+          this.fg &#x3D; this.form;
+        }
+      } else {
+        this.fg &#x3D; this.form;
+      }
+    } 
+    return this.fg;
+  }
 
   isValArray() {
     return _.isArray(this.field.value) || this.field.controlType &#x3D;&#x3D; &#x27;checkbox&#x27;;
@@ -1455,7 +1499,7 @@ export class SelectionFieldComponent extends SelectionComponent {
   }
 
   getControlFromOption(opt: any) {
-    const fc &#x3D; this.getFormControl();
+    const fc &#x3D; this.field.formModel;
     let control &#x3D; _.find(fc[&#x27;controls&#x27;], (ctrl) &#x3D;&gt; {
       return opt.value &#x3D;&#x3D; ctrl.value;
     });
@@ -1469,7 +1513,7 @@ export class SelectionFieldComponent extends SelectionComponent {
   }
 
   onChange(opt: any, event: any) {
-    let formcontrol: any &#x3D; this.getFormControl();
+    let formcontrol: any &#x3D; this.field.formModel;
     if (event.target.checked) {
       formcontrol.push(new FormControl(opt.value));
     } else {
@@ -1482,6 +1526,14 @@ export class SelectionFieldComponent extends SelectionComponent {
       });
       formcontrol.removeAt(idx);
     }
+  }
+
+  getInputId(opt) {
+    let id &#x3D; null;
+    if (!this.field.disableOptionLabelsFor) {
+      id &#x3D; &#x60;${this.field.name}_${opt.value}&#x60;;
+    }
+    return id;
   }
 }
 
@@ -1627,7 +1679,7 @@ export class HtmlRawComponent extends SimpleComponent {
     &lt;span *ngSwitchCase&#x3D;&quot;&#x27;h5&#x27;&quot; [ngClass]&#x3D;&quot;field.cssClasses&quot;&gt;{{field.value &#x3D;&#x3D; null? &#x27;&#x27; : field.value}}&lt;/span&gt;
     &lt;span *ngSwitchCase&#x3D;&quot;&#x27;h6&#x27;&quot; [ngClass]&#x3D;&quot;field.cssClasses&quot;&gt;{{field.value &#x3D;&#x3D; null? &#x27;&#x27; : field.value}}&lt;/span&gt;
     &lt;hr *ngSwitchCase&#x3D;&quot;&#x27;hr&#x27;&quot; [ngClass]&#x3D;&quot;field.cssClasses&quot;&gt;
-    &lt;span *ngSwitchCase&#x3D;&quot;&#x27;span&#x27;&quot; [ngClass]&#x3D;&quot;field.cssClasses&quot;&gt;{{field.value &#x3D;&#x3D; null? &#x27;&#x27; : field.value}}&lt;/span&gt;
+    &lt;span *ngSwitchCase&#x3D;&quot;&#x27;span&#x27;&quot; [ngClass]&#x3D;&quot;field.cssClasses&quot;&gt;{{field.label &#x3D;&#x3D; null? &#x27;&#x27; : field.label + &#x27;: &#x27;}}{{field.value &#x3D;&#x3D; null? &#x27;&#x27; : field.value}}&lt;/span&gt;
     &lt;p *ngSwitchDefault [ngClass]&#x3D;&quot;field.cssClasses&quot; [innerHtml]&#x3D;&quot;field.value &#x3D;&#x3D; null? &#x27;&#x27; : field.value&quot;&gt;&lt;/p&gt;
     &lt;button type&#x3D;&quot;button&quot; class&#x3D;&quot;btn btn-default&quot; *ngIf&#x3D;&quot;field.editMode &amp;&amp; field.help&quot; (click)&#x3D;&quot;toggleHelp()&quot; [attr.aria-label]&#x3D;&quot;&#x27;help&#x27; | translate &quot;&gt;&lt;span class&#x3D;&quot;glyphicon glyphicon-question-sign&quot; aria-hidden&#x3D;&quot;true&quot;&gt;&lt;/span&gt;&lt;/button&gt;
   &lt;/div&gt;
@@ -1795,9 +1847,9 @@ export class CancelButtonComponent extends SimpleComponent {
 @Component({
   selector: &#x27;anchor-button&#x27;,
   template: &#x60;
-  &lt;button *ngIf&#x3D;&quot;field.controlType&#x3D;&#x3D;&#x27;button&#x27;&quot; type&#x3D;&quot;{{field.type}}&quot; [ngClass]&#x3D;&quot;field.cssClasses&quot; (click)&#x3D;&quot;onClick($event)&quot; [disabled]&#x3D;&quot;isDisabled()&quot;&gt;{{field.label}}&lt;/button&gt;
-  &lt;a *ngIf&#x3D;&quot;field.controlType&#x3D;&#x3D;&#x27;anchor&#x27;&quot; href&#x3D;&#x27;{{field.value}}&#x27; [ngClass]&#x3D;&quot;field.cssClasses&quot; &gt;&lt;span *ngIf&#x3D;&quot;field.showPencil&quot; class&#x3D;&quot;glyphicon glyphicon-pencil&quot;&gt;&amp;nbsp;&lt;/span&gt;{{field.label}}&lt;/a&gt;
-  &lt;a *ngIf&#x3D;&quot;field.controlType&#x3D;&#x3D;&#x27;htmlAnchor&#x27;&quot; href&#x3D;&#x27;{{field.value}}&#x27; [ngClass]&#x3D;&quot;field.cssClasses&quot; [innerHtml]&#x3D;&quot;field.anchorHtml&quot;&gt;&lt;/a&gt;
+  &lt;button *ngIf&#x3D;&quot;field.controlType&#x3D;&#x3D;&#x27;button&#x27; &amp;&amp; field.visible&quot; type&#x3D;&quot;{{field.type}}&quot; [ngClass]&#x3D;&quot;field.cssClasses&quot; (click)&#x3D;&quot;onClick($event)&quot; [disabled]&#x3D;&quot;isDisabled()&quot;&gt;{{field.label}}&lt;/button&gt;
+  &lt;a *ngIf&#x3D;&quot;field.controlType&#x3D;&#x3D;&#x27;anchor&#x27; &amp;&amp; field.visible &amp;&amp; field.skip!&#x3D;&#x3D;field.visible&quot; href&#x3D;&#x27;{{field.value}}&#x27; [ngClass]&#x3D;&quot;field.cssClasses&quot; &gt;&lt;span *ngIf&#x3D;&quot;field.showPencil&quot; class&#x3D;&quot;glyphicon glyphicon-pencil&quot;&gt;&amp;nbsp;&lt;/span&gt;{{field.label}}&lt;/a&gt;
+  &lt;a *ngIf&#x3D;&quot;field.controlType&#x3D;&#x3D;&#x27;htmlAnchor&#x27; &amp;&amp; field.visible&quot; href&#x3D;&#x27;{{field.value}}&#x27; [ngClass]&#x3D;&quot;field.cssClasses&quot; [innerHtml]&#x3D;&quot;field.anchorHtml&quot;&gt;&lt;/a&gt;
   &#x60;,
 })
 export class AnchorOrButtonComponent extends SimpleComponent {
