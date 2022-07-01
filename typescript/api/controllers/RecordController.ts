@@ -738,6 +738,25 @@ export module Controllers {
         sails.log.verbose(`RecordController - updateInternal - currentRec.metadata.dataLocations `+JSON.stringify(currentRec.metadata.dataLocations));
         sails.log.verbose(`RecordController - updateInternal - before this.updateMetadata`);
         response = await this.handleUpdateDataStream(oid, origRecord, metadata).toPromise();
+
+        const fieldsToCheck = ['location', 'uploadUrl'];
+        if (!_.isEmpty(currentRec.metaMetadata.attachmentFields)) {
+          // check if we have any pending-oid elements
+          _.each(currentRec.metaMetadata.attachmentFields, (attFieldName) => {
+            _.each(_.get(currentRec.metadata, attFieldName), (attFieldEntry, attFieldIdx) => {
+              if (!_.isEmpty(attFieldEntry)) {
+                _.each(fieldsToCheck, (fldName) => {
+                  const fldVal = _.get(attFieldEntry, fldName);
+                  if (!_.isEmpty(fldVal)) {
+                    sails.log.verbose(`RecordController - updateInternal - fldVal ${fldVal}`);
+                    _.set(currentRec.metadata, `${attFieldName}[${attFieldIdx}].${fldName}`, _.replace(fldVal, 'pending-oid', oid));
+                  }
+                });
+              }
+            });
+          });
+        }
+
         sails.log.verbose(`RecordController - updateInternal - Done with updating streams...`);
         response = await this.updateMetadataWithTriggerSelector(brand, oid, currentRec, user, false, true).toPromise();
 
