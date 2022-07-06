@@ -79,7 +79,8 @@ export module Services {
           branding: brand.id,
           subtitle: workspaceType['subtitle'],
           description: workspaceType['description'],
-          logo: workspaceType['logo']
+          logo: workspaceType['logo'],
+          externallyProvisioned: workspaceType['externallyProvisioned']
         })
       )
     }

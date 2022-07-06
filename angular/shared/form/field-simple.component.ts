@@ -807,6 +807,7 @@ Based on: https://bootstrap-datepicker.readthedocs.io/en/stable/
 @Component({
   selector: 'date-time',
   template: `
+  <ng-container *ngIf="field.visible">
   <div *ngIf="field.editMode" [formGroup]='form' class="form-group">
     <span class="label-font">
       {{field.label}} {{ getRequiredLabelStr()}}
@@ -823,6 +824,8 @@ Based on: https://bootstrap-datepicker.readthedocs.io/en/stable/
     <span class="key" *ngIf="field.label">{{field.label}}</span>
     <span class="value">{{field.formatValueForDisplay()}}</span>
   </li>
+
+  </ng-container>
   `
 })
 export class DateTimeComponent extends SimpleComponent {
