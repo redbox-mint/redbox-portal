@@ -29,6 +29,10 @@ module.exports = {
     },
     description: {
       type: 'string'
+    },
+    externallyProvisioned: {
+      type: 'boolean',
+      defaultsTo: false
     }
   }
 }
