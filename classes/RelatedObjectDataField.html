@@ -4962,7 +4962,7 @@ export class RelatedObjectDataField extends FieldBase&lt;any&gt; {
 
   getPropertyLabel(item: any, columnConf: any) {
     const val &#x3D; this.getPropertyValue(item, columnConf);
-    return this.getTranslated(val[&#x27;label&#x27;], val[&#x27;label&#x27;]);
+    return this.getTranslated(_.get(val,&#x27;label&#x27;,null), _.get(val,&#x27;label&#x27;,&#x27;&#x27;));
   }
 
   isMultiValue(item: any, columnConf: any) {

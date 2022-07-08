@@ -1174,8 +1174,8 @@ export class WorkspaceSelectorComponent extends SimpleComponent {
               &lt;div class&#x3D;&quot;col-md-8 col-sm-8 col-xs-8 col-lg-8&quot;&gt;
                 &lt;h5&gt;{{ field.workspaceApp.subtitle }}&lt;/h5&gt;
                 &lt;span *ngIf&#x3D;&quot;field.allowAdd&quot;&gt;
-                  &lt;p&gt;{{ field.workspaceApp.description }}&lt;/p&gt;
-                  &lt;button type&#x3D;&#x27;button&#x27; (click)&#x3D;&quot;saveAndOpenWorkspace()&quot;  class&#x3D;&quot;btn btn-primary&quot;&gt;{{ field.open }}&lt;/button&gt;
+                  &lt;p [innerHtml]&#x3D;&quot;field.workspaceApp.description&quot;&gt;&lt;/p&gt;
+                  &lt;button *ngIf&#x3D;&quot;field.workspaceApp.externallyProvisioned !&#x3D; true&quot; type&#x3D;&#x27;button&#x27; (click)&#x3D;&quot;saveAndOpenWorkspace()&quot;  class&#x3D;&quot;btn btn-primary&quot;&gt;{{ field.open }}&lt;/button&gt;
                 &lt;/span&gt;
                 &lt;span *ngIf&#x3D;&quot;!field.allowAdd&quot;&gt;
                   &lt;p class&#x3D;&quot;text-danger&quot;&gt;

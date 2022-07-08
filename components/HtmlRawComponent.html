@@ -1829,6 +1829,7 @@ Based on: https://bootstrap-datepicker.readthedocs.io/en/stable/
 @Component({
   selector: &#x27;date-time&#x27;,
   template: &#x60;
+  &lt;ng-container *ngIf&#x3D;&quot;field.visible&quot;&gt;
   &lt;div *ngIf&#x3D;&quot;field.editMode&quot; [formGroup]&#x3D;&#x27;form&#x27; class&#x3D;&quot;form-group&quot;&gt;
     &lt;span class&#x3D;&quot;label-font&quot;&gt;
       {{field.label}} {{ getRequiredLabelStr()}}
@@ -1845,6 +1846,8 @@ Based on: https://bootstrap-datepicker.readthedocs.io/en/stable/
     &lt;span class&#x3D;&quot;key&quot; *ngIf&#x3D;&quot;field.label&quot;&gt;{{field.label}}&lt;/span&gt;
     &lt;span class&#x3D;&quot;value&quot;&gt;{{field.formatValueForDisplay()}}&lt;/span&gt;
   &lt;/li&gt;
+
+  &lt;/ng-container&gt;
   &#x60;
 })
 export class DateTimeComponent extends SimpleComponent {
