@@ -59,8 +59,8 @@ export class WorkspaceSelectorComponent extends SimpleComponent {
               <div class="col-md-8 col-sm-8 col-xs-8 col-lg-8">
                 <h5>{{ field.workspaceApp.subtitle }}</h5>
                 <span *ngIf="field.allowAdd">
-                  <p>{{ field.workspaceApp.description }}</p>
-                  <button type='button' (click)="saveAndOpenWorkspace()"  class="btn btn-primary">{{ field.open }}</button>
+                  <p [innerHtml]="field.workspaceApp.description"></p>
+                  <button *ngIf="field.workspaceApp.externallyProvisioned != true" type='button' (click)="saveAndOpenWorkspace()"  class="btn btn-primary">{{ field.open }}</button>
                 </span>
                 <span *ngIf="!field.allowAdd">
                   <p class="text-danger">
