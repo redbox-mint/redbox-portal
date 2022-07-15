@@ -5992,6 +5992,65 @@
 					"response": []
 				}
 			]
+		},
+		{
+			"name": "Solr",
+			"item": [
+				{
+					"name": "Start indexing",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Solr HTTP status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Solr reports no error\", function () {",
+									"    pm.expect(pm.response.stream.toString()).to.include('\"status\":0')",
+									"});",
+									"",
+									"pm.test(\"Solr reports Query Time\", function () {",
+									"    pm.expect(pm.response.stream.toString()).to.include('\"QTime\":')",
+									"});",
+									""
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"setTimeout(function(){},30000)"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{solrhost}}/solr/redbox/update/json?wt=json&add=[8d95849003df11ed8b078341db3bde98 (1738385794638282752)]",
+							"host": [
+								"{{solrhost}}"
+							],
+							"path": [
+								"solr",
+								"redbox",
+								"update",
+								"json"
+							],
+							"query": [
+								{"key":"wt","value":"json"},
+								{"key":"add","value":"[8d95849003df11ed8b078341db3bde98 (1738385794638282752)]"}							]
+						}
+					},
+					"response": []
+				}
+			]
 		}
 	]
 }
