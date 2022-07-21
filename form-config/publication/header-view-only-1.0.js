@@ -44,6 +44,18 @@ module.exports = [
     variableSubstitutionFields: ['value']
   },
   {
+    class: "AnchorOrButton",
+    roles: ['Admin', 'Librarians'],
+    viewOnly: true,
+    definition: {
+      label: '@view-record-audit-link',
+      value: '/@branding/@portal/api/records/audit/@oid',
+      cssClasses: 'btn btn-large btn-info margin-15',
+      controlType: 'anchor'
+    },
+    variableSubstitutionFields: ['value']
+  },
+  {
     class: "ActionButton",
     viewOnly: true,
     definition: {

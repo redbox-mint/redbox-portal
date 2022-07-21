@@ -359,6 +359,149 @@
 							"response": []
 						},
 						{
+							"name": "Get RDMP's Record Audit",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.be.ok",
+											"});",
+											"",
+											"pm.test(\"Search Type is correct\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(pm.response.json()).to.have.property('Type')",
+          									"      .and.equal('Record Audit')",
+											"});",
+											"",
+											"pm.test(\"Number of found items is returned\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(pm.response.json()).to.have.property('Found')",
+											"      .and.equal(2)",
+											"});",
+											"",
+											"pm.test(\"Data is returned\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(pm.response.json()).to.have.property('data')",
+											"      .and.to.have.property(0)",
+											"      .and.to.have.property('redboxOid')",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"type": "text",
+										"value": "Bearer {{token}}"
+									},
+									{
+										"key": "",
+										"type": "text",
+										"value": "",
+										"disabled": true
+									}
+								],
+								"url": {
+									"raw": "{{host}}/default/rdmp/api/records/audit/{{dmpOid}}",
+									"host": [
+										"{{host}}"
+									],
+									"path": [
+										"default",
+										"rdmp",
+										"api",
+										"records",
+										"audit",
+										"{{dmpOid}}"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Get RDMP's Record Audit with Date filters",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.be.ok",
+											"});",
+											"",
+											"pm.test(\"Search Type is correct\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(pm.response.json()).to.have.property('Type')",
+          									"      .and.equal('Record Audit')",
+											"});",
+											"",
+											"pm.test(\"Zero items found\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(pm.response.json()).to.have.property('Found')",
+											"      .and.equal(0)",
+											"});",
+											"",
+											"pm.test(\"Date From is set\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(pm.response.json()).to.have.property('Search Parameters')",
+											"      .and.to.have.property('dateFrom')",
+          									"      .and.equal('2023-01-01T00:00:00.000Z')",
+											"});",
+											"",
+											"pm.test(\"Date To is set\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(pm.response.json()).to.have.property('Search Parameters')",
+											"      .and.to.have.property('dateTo')",
+          									"      .and.equal('2021-01-01T00:00:00.000Z')",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"type": "text",
+										"value": "Bearer {{token}}"
+									},
+									{
+										"key": "",
+										"type": "text",
+										"value": "",
+										"disabled": true
+									}
+								],
+								"url": {
+									"raw": "{{host}}/default/rdmp/api/records/audit/{{dmpOid}}?dateFrom=2023&dateTo=2021",
+									"host": [
+										"{{host}}"
+									],
+									"path": [
+										"default",
+										"rdmp",
+										"api",
+										"records",
+										"audit",
+										"{{dmpOid}}"
+									],
+								"query": [
+									{"key":"dateFrom","value":"2023"},
+									{"key":"dateTo","value":"2021"}
+								]
+								}
+							},
+							"response": []
+						},
+						{
 							"name": "Give user edit permissions to RDMP",
 							"event": [
 								{
