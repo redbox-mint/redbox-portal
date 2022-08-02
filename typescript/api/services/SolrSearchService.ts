@@ -104,10 +104,7 @@ export module Services {
         schemaDef['add-field'].push(sails.config.solr.initSchemaFlag);
         sails.log.verbose(`${this.logHeader} sending schema definition:`);
         sails.log.verbose(JSON.stringify(schemaDef));
-        const response = await axios.post(schemaUrl, {
-          json: schemaDef,
-          responseType: 'json'
-        }).then(response => response.data);
+        const response = await axios.post(schemaUrl,schemaDef).then(response => response.data);
         sails.log.verbose(`${this.logHeader} Schema build successful, response: `);
         sails.log.verbose(JSON.stringify(response));
       } catch (err) {
