@@ -53,7 +53,8 @@ export module Services {
       'publishDoi',
       'publishDoiTrigger',
       'publishDoiTriggerSync',
-      'deleteDoi'
+      'deleteDoi',
+      'changeDoiState'
     ];
 
     private async makeCreateDoiCall(instance, postBody, record, oid) {
@@ -97,6 +98,42 @@ export module Services {
         });
         let response = await instance.delete(`/dois/${doi}`);
         if (response.status == 204) {
+          return true;
+        } else {
+          sails.log.error("Unexpected response from DataCite API")
+          sails.log.error(response)
+        }
+
+      } catch (err) {
+        sails.log.error("Unexpected response from DataCite API")
+        sails.log.error(err)
+      }
+
+      return false;
+    }
+    public async changeDoiState(doi: string, event: string) {
+      try {
+        let baseUrl = sails.config.datacite.baseUrl;
+        let authenticationStringEncoded = this.getAuthenticationString();
+        const instance = axios.create({
+          baseURL: baseUrl,
+          timeout: 10000,
+          headers: {
+            'Authorization': `Basic ${authenticationStringEncoded}`,
+            'Content-Type': 'application/vnd.api+json'
+          }
+        });
+        let putBody = {
+          "data": {
+            "type": "dois",
+            "attributes": {
+              "event": event
+            }
+          }
+        }
+  
+        let response = await instance.put(`/dois/${doi}`, putBody);
+        if (response.status == 200) {
           return true;
         } else {
           sails.log.error("Unexpected response from DataCite API")
