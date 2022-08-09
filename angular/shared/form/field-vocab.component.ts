@@ -516,6 +516,7 @@ export class VocabFieldLookupService extends BaseService {
 @Component({
   selector: 'rb-vocab',
   template: `
+  <ng-container *ngIf="field.visible">
   <div *ngIf="field.editMode && !isEmbedded" [formGroup]='form' [ngClass]="getGroupClass()">
     <label [attr.for]="field.name" *ngIf="field.label">
       {{field.label}} {{getRequiredLabelStr()}}
@@ -545,6 +546,7 @@ export class VocabFieldLookupService extends BaseService {
     <span *ngIf="field.label" class="key">{{field.label}}</span>
     <span class="value">{{getTitle()}}</span>
   </li>
+  </ng-container>
   `,
 })
 export class VocabFieldComponent extends SimpleComponent {
