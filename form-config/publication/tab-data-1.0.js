@@ -102,6 +102,15 @@ module.exports = [
           }
         },
         {
+          class: 'TextField',
+          definition: {
+            name: 'collectionCapacity',
+            label: '@dataPublication-collectionCapacity',
+            type: 'text',
+            visibilityCriteria: false, // visible when access rights is checked
+          }
+      },
+        {
           class: 'HtmlRaw',
           compClass: 'HtmlRawComponent',
           editOnly:true,
