@@ -10,6 +10,15 @@ module.exports.datacite = {
         publisher: "<%= record.metadata.citation_publisher %>",
         creatorGivenName: "<%= creator.given_name %>",
         creatorFamilyName: "<%= creator.family_name %>",
+        size: "<%= record.metadata.collectionCapacity %>",
+        identifiers: "<%= record.metadata.finalIdentifiers %>",
+        "dates": [
+            {"dateType": "Available", "template": "<%= record.metadata.embargoUntil %>"},
+            {"dateType": "Created", "template":  "<%= record.dateCreated %>"},
+            {"dateType": "Updated", "template":  "<%= record.dateUpdated %>"},
+            {"dateType": "Other", "template":  "<%= record.metadata.startDate %>", "dateInformation": "Start Date"},
+            {"dateType": "Other", "template":  "<%= record.metadata.endDate %>", "dateInformation": "End Date"}
+        ]
     },
     citationUrlProperty: "metadata.citation_url",
     citationDoiProperty: "metadata.citation_doi",
