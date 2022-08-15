@@ -724,6 +724,7 @@
   "oidc-login-session-destroyed": "There was an error logging you in, please try again.",
   "@status-label": "Status",
   "@dmp-associated-rdmp-link": "View Associated RDMP",
+  "@view-record-audit-link": "View Record Audit",
   "not-enough-disk-space": "There is not enough free space on disk to upload file",
   "attachment-upload-error": "There is an error uploading files",
   "max-total-files-upload-size-validation-error": "Max upload total size is {{maxUploadSize}} per record.",
