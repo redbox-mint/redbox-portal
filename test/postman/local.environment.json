@@ -87,6 +87,15 @@
 				"type": "text/plain"
 			},
 			"enabled": true
+		},
+		{
+			"key": "solrhost",
+			"value": "http://solr:8983",
+			"description": {
+				"content": "",
+				"type": "text/plain"
+			},
+			"enabled": true
 		}
 	],
 	"_postman_variable_scope": "environment",
