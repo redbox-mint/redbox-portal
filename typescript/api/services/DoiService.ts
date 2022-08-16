@@ -267,7 +267,7 @@ export module Services {
       if(!_.isEmpty(allSizes)){
         let sizes = _.split(allSizes, ',')
         for (var i = 0; i < sizes.length; i++ ) {
-          postBody.data.attributes.identifiers.push(sizes[i])
+          postBody.data.attributes.sizes.push(sizes[i])
         }
       }
 
