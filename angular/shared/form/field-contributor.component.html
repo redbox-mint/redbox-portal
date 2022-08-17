@@ -1,3 +1,4 @@
+<ng-container *ngIf="field.visible">
 <div *ngIf="field.editMode" class='padding-bottom-10'>
   <div class="row" *ngIf="field.label && field.showHeader">
     <div class="col-xs-12">
@@ -289,3 +290,4 @@
     <div *ngIf="field.showOrcid" [attr.class]="field.showRole? (field.showTitle ? 'col-xs-2' : 'col-xs-3') :'col-xs-4'">{{field.value.orcid}}</div>
   </div>
 </div>
+</ng-container>
