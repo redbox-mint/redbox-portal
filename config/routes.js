@@ -423,6 +423,21 @@ module.exports.routes = {
     action: 'refreshCachedResources',
     csrf: false
   },
+  'post /:branding/:portal/api/admin/config/:configKey': {
+    controller: 'webservice/AdminController',
+    action: 'setAppConfig',
+    csrf: false
+  },
+  'get /:branding/:portal/api/admin/config/:configKey': {
+    controller: 'webservice/AdminController',
+    action: 'getAppConfig',
+    csrf: false
+  },
+  'get /:branding/:portal/api/admin/config': {
+    controller: 'webservice/AdminController',
+    action: 'getAppConfig',
+    csrf: false
+  },
   'post /:branding/:portal/api/sendNotification': {
     controller: 'EmailController',
     action: 'sendNotification',

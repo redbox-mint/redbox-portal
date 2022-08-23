@@ -48,17 +48,21 @@ export module Services {
 
     public bootstrap = (): Observable<any> => {
       this.brandingAppConfigMap = {}
-      return Observable.fromPromise(this.boostrapAsync());
+      return Observable.fromPromise(this.bootstrapAsync());
     }
 
-
-    private async boostrapAsync() {
+    private async bootstrapAsync() {
       let availableBrandings = BrandingService.getAvailable();
       for (let availableBranding of availableBrandings) {
         let branding = BrandingService.getBrand(availableBranding);
         let appConfigObject = await this.loadAppConfigurationModel(branding.id);
         this.brandingAppConfigMap[availableBranding] = appConfigObject;
       }
+    }
+
+    private async refreshBrandingAppConfigMap(branding) {
+      let appConfig = await this.loadAppConfigurationModel(branding.id)
+      this.brandingAppConfigMap[branding.name] = appConfig;
     }
 
     public getAppConfigurationForBrand(brandName): any {
@@ -90,15 +94,19 @@ export module Services {
       return dbConfig.configData;
     }
 
-    public async createOrUpdateConfig(brandId, configKey, configData): Promise<any> {
-      let dbConfig = await AppConfig.findOne({ branding: brandId, configKey });
+    public async createOrUpdateConfig(brandName, configKey, configData): Promise<any> {
+      let branding = BrandingService.getBrand(brandName);
+      let dbConfig = await AppConfig.findOne({ branding: branding.id, configKey });
+      
       // Create if no config exists
       if (dbConfig == null) {
-        let createdRecord = await AppConfig.create({ branding: brandId, configKey: configKey, configData: configData });
+        let createdRecord = await AppConfig.create({ branding: branding.id, configKey: configKey, configData: configData });
+        
+        this.refreshBrandingAppConfigMap(branding);
         return createdRecord.configData;
       }
 
-      let updatedRecord = await AppConfig.updateOne({ branding: brandId, configKey }).set({ configData: configData });
+      let updatedRecord = await AppConfig.updateOne({ branding: branding.id, configKey }).set({ configData: configData });
       return updatedRecord.configData;
     }
 
