@@ -369,21 +369,16 @@
 											"    pm.response.to.be.ok",
 											"});",
 											"",
-											"pm.test(\"Search Type is correct\", function () {",
-											"    var jsonData = pm.response.json();",
-											"    pm.expect(pm.response.json()).to.have.property('Type')",
-          									"      .and.equal('Record Audit')",
-											"});",
-											"",
 											"pm.test(\"Number of found items is returned\", function () {",
 											"    var jsonData = pm.response.json();",
-											"    pm.expect(pm.response.json()).to.have.property('Found')",
+											"    pm.expect(pm.response.json()).to.have.property('summary')",
+											"      .and.to.have.property('numFound')",
 											"      .and.equal(2)",
 											"});",
 											"",
 											"pm.test(\"Data is returned\", function () {",
 											"    var jsonData = pm.response.json();",
-											"    pm.expect(pm.response.json()).to.have.property('data')",
+											"    pm.expect(pm.response.json()).to.have.property('records')",
 											"      .and.to.have.property(0)",
 											"      .and.to.have.property('redboxOid')",
 											"});"
@@ -435,30 +430,11 @@
 											"    pm.response.to.be.ok",
 											"});",
 											"",
-											"pm.test(\"Search Type is correct\", function () {",
-											"    var jsonData = pm.response.json();",
-											"    pm.expect(pm.response.json()).to.have.property('Type')",
-          									"      .and.equal('Record Audit')",
-											"});",
-											"",
 											"pm.test(\"Zero items found\", function () {",
 											"    var jsonData = pm.response.json();",
-											"    pm.expect(pm.response.json()).to.have.property('Found')",
+											"    pm.expect(pm.response.json()).to.have.property('summary')",
+											"   .and.to.have.property('numFound')",
 											"      .and.equal(0)",
-											"});",
-											"",
-											"pm.test(\"Date From is set\", function () {",
-											"    var jsonData = pm.response.json();",
-											"    pm.expect(pm.response.json()).to.have.property('Search Parameters')",
-											"      .and.to.have.property('dateFrom')",
-          									"      .and.equal('2023-01-01T00:00:00.000Z')",
-											"});",
-											"",
-											"pm.test(\"Date To is set\", function () {",
-											"    var jsonData = pm.response.json();",
-											"    pm.expect(pm.response.json()).to.have.property('Search Parameters')",
-											"      .and.to.have.property('dateTo')",
-          									"      .and.equal('2021-01-01T00:00:00.000Z')",
 											"});"
 										],
 										"type": "text/javascript"
@@ -6130,6 +6106,65 @@
 								"images",
 								"logo"
 							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Solr",
+			"item": [
+				{
+					"name": "Start indexing",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Solr HTTP status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Solr reports no error\", function () {",
+									"    pm.expect(pm.response.stream.toString()).to.include('\"status\":0')",
+									"});",
+									"",
+									"pm.test(\"Solr reports Query Time\", function () {",
+									"    pm.expect(pm.response.stream.toString()).to.include('\"QTime\":')",
+									"});",
+									""
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"setTimeout(function(){},30000)"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{solrhost}}/solr/redbox/update/json?wt=json&add=[8d95849003df11ed8b078341db3bde98 (1738385794638282752)]",
+							"host": [
+								"{{solrhost}}"
+							],
+							"path": [
+								"solr",
+								"redbox",
+								"update",
+								"json"
+							],
+							"query": [
+								{"key":"wt","value":"json"},
+								{"key":"add","value":"[8d95849003df11ed8b078341db3bde98 (1738385794638282752)]"}							]
 						}
 					},
 					"response": []

@@ -57,6 +57,33 @@ module.exports = [
           }
         },
         {
+          class: 'RepeatableContainer',
+          compClass: 'RepeatableTextfieldComponent',
+          definition: {
+            label: "@dataPublication-identifiers",
+            help: "@dataPublication-identifiers-help",
+            name: "finalIdentifiers",
+            editOnly: true,
+            required: false,
+            //disabledExpression: '<%= _.isEmpty(relatedRecordId) %>',
+            fields: [{
+              class: 'TextField',
+              definition: {
+                type: 'text',
+                required: false
+              }
+            }],
+            subscribe: {
+              'dataRecordGetter': {
+                onValueUpdate: [{
+                  action: 'utilityService.getPropertyFromObject',
+                  field: 'finalidentifiers'
+                }]
+              }
+            }
+          }
+        },
+        {
           class: 'TextField',
           definition: {
             name: 'citation_title',
