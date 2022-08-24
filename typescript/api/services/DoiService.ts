@@ -30,6 +30,7 @@ import {
 import 'rxjs/add/operator/toPromise';
 import * as moment from 'moment';
 import axios from 'axios';
+import { isArray } from 'lodash';
 
 
 declare var sails: Sails;
@@ -201,6 +202,7 @@ export module Services {
             "subjects": [],
             "descriptions": [],
             "rightsList": [],
+            "fundingReferences": [],
             "types": {
               "ris": "DATA",
               "bibtex": "misc",
@@ -235,18 +237,47 @@ export module Services {
         }
       }
 
+      let fundingReferences = mappings.fundingReferences
+
+      if(!_.isEmpty(fundingReferences) && _.isArray(fundingReferences)){
+        for (var i = 0; i < fundingReferences.length; i++ ) {
+          let fundingReference = fundingReferences[i]
+          let funderName = JSON.parse(this.runTemplate(fundingReference.funderName, lodashTemplateContext))
+          let awardTitle = JSON.parse(this.runTemplate(fundingReference.awardTitle, lodashTemplateContext))
+          sails.log.verbose("----------------------------------------------------------------")
+          //sails.log.verbose(JSON.stringify(fundingReference))
+          sails.log.verbose(JSON.stringify(funderName, null, 4))
+          sails.log.verbose(JSON.stringify(awardTitle, null, 4))
+
+          //let aDescription = this.runTemplate(fundingReferences.template, lodashTemplateContext)
+          for (var j = 0; j < funderName.length; j++ ) {
+            if(!_.isEmpty(funderName[j])) {
+              postBody.data.attributes.fundingReferences.push({"finderName": funderName[j], "awardTitle": awardTitle[j]})
+            }
+          }
+        }
+      }
+
+
       let descriptions = mappings.descriptions
 
       if(!_.isEmpty(descriptions) && _.isArray(descriptions)){
         for (var i = 0; i < descriptions.length; i++ ) {
           let description = descriptions[i]
+          sails.log.verbose("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
+          //sails.log.verbose(description)
+
           let descriptionType = description.descriptionType
-          let aDescription = this.runTemplate(description.template, lodashTemplateContext)
-          if(!_.isEmpty(aDescription)) {
-            postBody.data.attributes.descriptions.push({"descriptionType": descriptionType, "description": aDescription})
+          let allDescriptions = JSON.parse(this.runTemplate(description.template, lodashTemplateContext))
+          sails.log.debug(allDescriptions)
+          for (var j = 0; j < allDescriptions.length; j++ ) {
+            let aDescription = allDescriptions[j]
+            if(!_.isEmpty(aDescription)) {
+                postBody.data.attributes.descriptions.push({"descriptionType": descriptionType, "description": aDescription})
+              }
+            }
           }
         }
-      }
 
       let rightsList = mappings.rightsList
 
