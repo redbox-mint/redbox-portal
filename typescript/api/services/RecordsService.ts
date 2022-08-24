@@ -30,7 +30,8 @@ import {
   Services as services,
   StorageService,
   StorageServiceResponse,
-  RBValidationError
+  RBValidationError,
+  RecordAuditParams
 } from '@researchdatabox/redbox-core-types';
 
 import {
@@ -115,6 +116,7 @@ export module Services {
       'create',
       'updateMeta',
       'getMeta',
+      'getRecordAudit',
       'hasEditAccess',
       'hasViewAccess',
       'search',
@@ -230,7 +232,7 @@ export module Services {
       sails.log.verbose('RecordService - updateMeta - updateResponse.isSuccessful '+updateResponse.isSuccessful());
       if (updateResponse.isSuccessful()) {
         //if triggerPreSaveTriggers is false recordType will be empty even if triggerPostSaveTriggers is true
-        //therefore try to set recordType if triggerPostSaveTriggers is true  
+        //therefore try to set recordType if triggerPostSaveTriggers is true
         if(_.isEmpty(recordType) && !_.isEmpty(brand) && triggerPostSaveTriggers === true) {
           recordType = await RecordTypesService.get(brand, record.metaMetadata.type).toPromise();
         }
@@ -265,6 +267,10 @@ export module Services {
       return this.storageService.getMeta(oid);
     }
 
+    getRecordAudit(params: RecordAuditParams): Promise < any > {
+      return this.storageService.getRecordAudit(params);
+    }
+
     createBatch(type: any, data: any, harvestIdFldName: any): Promise < any > {
       return this.storageService.createBatch(type, data, harvestIdFldName);
     }
@@ -288,7 +294,6 @@ export module Services {
     updateNotificationLog(oid: any, record: any, options: any): Promise < any > {
       return this.storageService.updateNotificationLog(oid, record, options);
     }
-
 
     public getRecords(workflowState, recordType = undefined, start, rows = 10, username, roles, brand, editAccessOnly = undefined, packageType = undefined, sort = undefined, fieldNames = undefined, filterString = undefined): Promise < any > {
       return this.storageService.getRecords(workflowState, recordType, start, rows, username, roles, brand, editAccessOnly, packageType, sort, fieldNames, filterString);

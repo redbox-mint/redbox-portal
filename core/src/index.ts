@@ -43,5 +43,9 @@ export {
     StorageService
 }
 from "./StorageService";
+export {
+    RecordAuditParams
+}
+from "./RecordAuditParams";
 
 export * from './model'
