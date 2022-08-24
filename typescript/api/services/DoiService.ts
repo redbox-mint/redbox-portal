@@ -30,6 +30,7 @@ import {
 import 'rxjs/add/operator/toPromise';
 import * as moment from 'moment';
 import axios from 'axios';
+import { isArray } from 'lodash';
 
 
 declare var sails: Sails;
@@ -201,6 +202,7 @@ export module Services {
             "subjects": [],
             "descriptions": [],
             "rightsList": [],
+            "fundingReferences": [],
             "types": {
               "ris": "DATA",
               "bibtex": "misc",
@@ -235,18 +237,38 @@ export module Services {
         }
       }
 
+      let fundingReferences = mappings.fundingReferences
+
+      if(!_.isEmpty(fundingReferences) && _.isArray(fundingReferences)){
+        for (var i = 0; i < fundingReferences.length; i++ ) {
+          let fundingReference = fundingReferences[i]
+          let funderName = JSON.parse(this.runTemplate(fundingReference.funderName, lodashTemplateContext))
+          let awardTitle = JSON.parse(this.runTemplate(fundingReference.awardTitle, lodashTemplateContext))
+          for (var j = 0; j < funderName.length; j++ ) {
+            if(!_.isEmpty(funderName[j])) {
+              postBody.data.attributes.fundingReferences.push({"funderName": funderName[j], "awardTitle": awardTitle[j]})
+            }
+          }
+        }
+      }
+
+
       let descriptions = mappings.descriptions
 
       if(!_.isEmpty(descriptions) && _.isArray(descriptions)){
         for (var i = 0; i < descriptions.length; i++ ) {
           let description = descriptions[i]
+
           let descriptionType = description.descriptionType
-          let aDescription = this.runTemplate(description.template, lodashTemplateContext)
-          if(!_.isEmpty(aDescription)) {
-            postBody.data.attributes.descriptions.push({"descriptionType": descriptionType, "description": aDescription})
+          let allDescriptions = JSON.parse(this.runTemplate(description.template, lodashTemplateContext))
+          for (var j = 0; j < allDescriptions.length; j++ ) {
+            let aDescription = allDescriptions[j]
+            if(!_.isEmpty(aDescription)) {
+                postBody.data.attributes.descriptions.push({"descriptionType": descriptionType, "description": aDescription})
+              }
+            }
           }
         }
-      }
 
       let rightsList = mappings.rightsList
 
@@ -262,32 +284,35 @@ export module Services {
       }
 
 
-      let allSizes = this.runTemplate(mappings.sizes, lodashTemplateContext)
+      let sizes = JSON.parse(this.runTemplate(mappings.sizes, lodashTemplateContext))
 
-      if(!_.isEmpty(allSizes)){
-        let sizes = _.split(allSizes, ',')
+      if(!_.isEmpty(sizes) && _.isArray(sizes)){
         for (var i = 0; i < sizes.length; i++ ) {
-          postBody.data.attributes.sizes.push(sizes[i])
+          if(!_.isEmpty(sizes[i])){
+            postBody.data.attributes.sizes.push(sizes[i])
+          }
         }
       }
 
-      let allIdentifiers = this.runTemplate(mappings.identifiers, lodashTemplateContext)
+      let identifiers = JSON.parse(this.runTemplate(mappings.identifiers, lodashTemplateContext))
 
-      if(!_.isEmpty(allIdentifiers)){
-        let identifiers = _.split(allIdentifiers, ',')
+      if(!_.isEmpty(identifiers) && _.isArray(identifiers)){
         for (var i = 0; i < identifiers.length; i++ ) {
-          let identifier = {"identifier": identifiers[i], "identifierType": "Other"}
-          postBody.data.attributes.identifiers.push(identifier)
+          if(!_.isEmpty(identifiers[i])) {
+            let identifier = {"identifier": identifiers[i], "identifierType": "Other"}
+            postBody.data.attributes.identifiers.push(identifier)
+          }
         }
       }
 
-      let allSubjects = this.runTemplate(mappings.subjects, lodashTemplateContext)
+      let subjects = JSON.parse(this.runTemplate(mappings.subjects, lodashTemplateContext))
 
-      if(!_.isEmpty(allSubjects)){
-        let subjects = _.split(allSubjects, ',')
+      if(!_.isEmpty(subjects) && _.isArray(subjects)){
         for (var i = 0; i < subjects.length; i++ ) {
-          let subject = {"subject": subjects[i]}
-          postBody.data.attributes.subjects.push(subject)
+          if(!_.isEmpty(subjects[i])) {
+            let subject = {"subject": subjects[i]}
+            postBody.data.attributes.subjects.push(subject)
+          }
         }
       }
 
