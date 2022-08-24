@@ -10,9 +10,9 @@ module.exports.datacite = {
         publisher: "<%= record.metadata.citation_publisher %>",
         creatorGivenName: "<%= creator.given_name %>",
         creatorFamilyName: "<%= creator.family_name %>",
-        "sizes": "<%= record.metadata.collectionCapacity %>",
-        "identifiers": "<%= record.metadata.finalIdentifiers %>",
-        "subjects": "<%= record.metadata.finalKeywords %>",
+        "sizes": "<%= JSON.stringify([record.metadata.collectionCapacity]) %>",
+        "identifiers": "<%= JSON.stringify(record.metadata.finalIdentifiers) %>",
+        "subjects": "<%= JSON.stringify(record.metadata.finalKeywords) %>",
         "dates": [
             {"dateType": "Available", "template": "<%= record.metadata.embargoUntil %>"},
             {"dateType": "Created", "template":  "<%= record.dateCreated %>"},
@@ -21,10 +21,10 @@ module.exports.datacite = {
             {"dateType": "Other", "template":  "<%= record.metadata.endDate %>", "dateInformation": "End Date"}
         ],
         "rightsList": [
-            {"key": "rightsUri", "template": "<%= record.metadata.license_identifier %>"},
+            {"key": "rightsUri", "template": "<%= record.metadata.license_identifier %>"}
         ],
         "descriptions": [
-            {"descriptionType": "abstract", "template": "<%= record.metadata.description %>"}
+            {"descriptionType": "Abstract", "template": "<%= JSON.stringify([record.metadata.description]) %>"}
         ]
     },
     citationUrlProperty: "metadata.citation_url",

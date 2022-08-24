@@ -244,15 +244,9 @@ export module Services {
           let fundingReference = fundingReferences[i]
           let funderName = JSON.parse(this.runTemplate(fundingReference.funderName, lodashTemplateContext))
           let awardTitle = JSON.parse(this.runTemplate(fundingReference.awardTitle, lodashTemplateContext))
-          sails.log.verbose("----------------------------------------------------------------")
-          //sails.log.verbose(JSON.stringify(fundingReference))
-          sails.log.verbose(JSON.stringify(funderName, null, 4))
-          sails.log.verbose(JSON.stringify(awardTitle, null, 4))
-
-          //let aDescription = this.runTemplate(fundingReferences.template, lodashTemplateContext)
           for (var j = 0; j < funderName.length; j++ ) {
             if(!_.isEmpty(funderName[j])) {
-              postBody.data.attributes.fundingReferences.push({"finderName": funderName[j], "awardTitle": awardTitle[j]})
+              postBody.data.attributes.fundingReferences.push({"funderName": funderName[j], "awardTitle": awardTitle[j]})
             }
           }
         }
@@ -264,12 +258,9 @@ export module Services {
       if(!_.isEmpty(descriptions) && _.isArray(descriptions)){
         for (var i = 0; i < descriptions.length; i++ ) {
           let description = descriptions[i]
-          sails.log.verbose("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
-          //sails.log.verbose(description)
 
           let descriptionType = description.descriptionType
           let allDescriptions = JSON.parse(this.runTemplate(description.template, lodashTemplateContext))
-          sails.log.debug(allDescriptions)
           for (var j = 0; j < allDescriptions.length; j++ ) {
             let aDescription = allDescriptions[j]
             if(!_.isEmpty(aDescription)) {
@@ -293,32 +284,35 @@ export module Services {
       }
 
 
-      let allSizes = this.runTemplate(mappings.sizes, lodashTemplateContext)
+      let sizes = JSON.parse(this.runTemplate(mappings.sizes, lodashTemplateContext))
 
-      if(!_.isEmpty(allSizes)){
-        let sizes = _.split(allSizes, ',')
+      if(!_.isEmpty(sizes) && _.isArray(sizes)){
         for (var i = 0; i < sizes.length; i++ ) {
-          postBody.data.attributes.sizes.push(sizes[i])
+          if(!_.isEmpty(sizes[i])){
+            postBody.data.attributes.sizes.push(sizes[i])
+          }
         }
       }
 
-      let allIdentifiers = this.runTemplate(mappings.identifiers, lodashTemplateContext)
+      let identifiers = JSON.parse(this.runTemplate(mappings.identifiers, lodashTemplateContext))
 
-      if(!_.isEmpty(allIdentifiers)){
-        let identifiers = _.split(allIdentifiers, ',')
+      if(!_.isEmpty(identifiers) && _.isArray(identifiers)){
         for (var i = 0; i < identifiers.length; i++ ) {
-          let identifier = {"identifier": identifiers[i], "identifierType": "Other"}
-          postBody.data.attributes.identifiers.push(identifier)
+          if(!_.isEmpty(identifiers[i])) {
+            let identifier = {"identifier": identifiers[i], "identifierType": "Other"}
+            postBody.data.attributes.identifiers.push(identifier)
+          }
         }
       }
 
-      let allSubjects = this.runTemplate(mappings.subjects, lodashTemplateContext)
+      let subjects = JSON.parse(this.runTemplate(mappings.subjects, lodashTemplateContext))
 
-      if(!_.isEmpty(allSubjects)){
-        let subjects = _.split(allSubjects, ',')
+      if(!_.isEmpty(subjects) && _.isArray(subjects)){
         for (var i = 0; i < subjects.length; i++ ) {
-          let subject = {"subject": subjects[i]}
-          postBody.data.attributes.subjects.push(subject)
+          if(!_.isEmpty(subjects[i])) {
+            let subject = {"subject": subjects[i]}
+            postBody.data.attributes.subjects.push(subject)
+          }
         }
       }
 
