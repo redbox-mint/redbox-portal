@@ -156,7 +156,6 @@ export module Services {
 
       let doiPrefix = sails.config.datacite.doiPrefix;
       let baseUrl = sails.config.datacite.baseUrl;
-
       let citationUrlProperty = sails.config.datacite.citationUrlProperty;
       let creatorsProperty = sails.config.datacite.creatorsProperty;
       let authenticationStringEncoded = this.getAuthenticationString();
@@ -284,7 +283,10 @@ export module Services {
       }
 
 
-      let sizes = JSON.parse(this.runTemplate(mappings.sizes, lodashTemplateContext))
+      let sizes =  this.runTemplate(mappings.sizes, lodashTemplateContext)
+      if(!_.isEmpty(sizes)){
+        sizes = JSON.parse(sizes)
+      }
 
       if(!_.isEmpty(sizes) && _.isArray(sizes)){
         for (var i = 0; i < sizes.length; i++ ) {
@@ -294,7 +296,10 @@ export module Services {
         }
       }
 
-      let identifiers = JSON.parse(this.runTemplate(mappings.identifiers, lodashTemplateContext))
+      let identifiers = this.runTemplate(mappings.identifiers, lodashTemplateContext)
+      if(!_.isEmpty(identifiers)){
+        identifiers = JSON.parse(identifiers)
+      }
 
       if(!_.isEmpty(identifiers) && _.isArray(identifiers)){
         for (var i = 0; i < identifiers.length; i++ ) {
@@ -305,8 +310,10 @@ export module Services {
         }
       }
 
-      let subjects = JSON.parse(this.runTemplate(mappings.subjects, lodashTemplateContext))
-
+      let subjects = this.runTemplate(mappings.subjects, lodashTemplateContext)
+      if(!_.isEmpty(subjects)){
+        subjects = JSON.parse(subjects)
+      }
       if(!_.isEmpty(subjects) && _.isArray(subjects)){
         for (var i = 0; i < subjects.length; i++ ) {
           if(!_.isEmpty(subjects[i])) {
