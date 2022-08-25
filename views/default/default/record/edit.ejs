@@ -11,8 +11,8 @@
 <!-- DateTime Picker Deps -->
 <script src="<%= BrandingService.getRootContext() %>/node_modules/bootstrap-datepicker/dist/js/bootstrap-datepicker.min.js"></script>
 <script src="<%= BrandingService.getRootContext() %>/node_modules/bootstrap-timepicker/js/bootstrap-timepicker.js"></script>
-<script src="https://vocabs.ardc.edu.au/apps/assets/vocab_widget/js/vocab_widget_v2.js"></script>
-<script src='//api.tiles.mapbox.com/mapbox.js/plugins/leaflet-omnivore/v0.3.1/leaflet-omnivore.min.js'></script>
+<script src="<%= BrandingService.getBrandAndPortalPath(req) %>/js/vocab_widget_v2.js"></script>
+<script src='<%= BrandingService.getBrandAndPortalPath(req) %>/js/v0_3_1-leaflet-omnivore.min.js'></script>
 <%
 var currentMinute = sails.config.startupMinute;
 %>
