@@ -30,6 +30,7 @@ import {
 import 'rxjs/add/operator/toPromise';
 import * as moment from 'moment';
 import axios from 'axios';
+import { isArray } from 'lodash';
 
 
 declare var sails: Sails;
@@ -53,12 +54,15 @@ export module Services {
       'publishDoi',
       'publishDoiTrigger',
       'publishDoiTriggerSync',
-      'deleteDoi'
+      'deleteDoi',
+      'changeDoiState'
     ];
 
     private async makeCreateDoiCall(instance, postBody, record, oid) {
+
       try {
         let response = await instance.post('/dois', postBody);
+
         if (response.status == 201) {
           let responseBody = response.data;
           let doi = responseBody.data.id
@@ -86,6 +90,7 @@ export module Services {
     public async deleteDoi(doi: string) {
       try {
         let baseUrl = sails.config.datacite.baseUrl;
+
         let authenticationStringEncoded = this.getAuthenticationString();
         const instance = axios.create({
           baseURL: baseUrl,
@@ -110,12 +115,47 @@ export module Services {
 
       return false;
     }
+    public async changeDoiState(doi: string, event: string) {
+      try {
+        let baseUrl = sails.config.datacite.baseUrl;
+        let authenticationStringEncoded = this.getAuthenticationString();
+        const instance = axios.create({
+          baseURL: baseUrl,
+          timeout: 10000,
+          headers: {
+            'Authorization': `Basic ${authenticationStringEncoded}`,
+            'Content-Type': 'application/vnd.api+json'
+          }
+        });
+        let putBody = {
+          "data": {
+            "type": "dois",
+            "attributes": {
+              "event": event
+            }
+          }
+        }
+
+        let response = await instance.put(`/dois/${doi}`, putBody);
+        if (response.status == 200) {
+          return true;
+        } else {
+          sails.log.error("Unexpected response from DataCite API")
+          sails.log.error(response)
+        }
+
+      } catch (err) {
+        sails.log.error("Unexpected response from DataCite API")
+        sails.log.error(err)
+      }
+
+      return false;
+    }
 
     public async publishDoi(oid, record, event = 'publish') {
 
       let doiPrefix = sails.config.datacite.doiPrefix;
       let baseUrl = sails.config.datacite.baseUrl;
-
       let citationUrlProperty = sails.config.datacite.citationUrlProperty;
       let creatorsProperty = sails.config.datacite.creatorsProperty;
       let authenticationStringEncoded = this.getAuthenticationString();
@@ -124,8 +164,6 @@ export module Services {
         oid: oid,
         moment: moment
       };
-
-
 
       const instance = axios.create({
         baseURL: baseUrl,
@@ -136,28 +174,34 @@ export module Services {
         }
       });
 
-      let url = this.runTemplate(sails.config.datacite.mappings.url, lodashTemplateContext)
-      let publicationYear = this.runTemplate(sails.config.datacite.mappings.publicationYear, lodashTemplateContext);
-      let title = this.runTemplate(sails.config.datacite.mappings.title, lodashTemplateContext);
-      let publisher = this.runTemplate(sails.config.datacite.mappings.publisher, lodashTemplateContext);
-
-
+      let mappings = sails.config.datacite.mappings
+      let url = this.runTemplate(mappings.url, lodashTemplateContext)
+      let publicationYear = this.runTemplate(mappings.publicationYear, lodashTemplateContext);
+      let title = this.runTemplate(mappings.title, lodashTemplateContext);
+      let publisher = this.runTemplate(mappings.publisher, lodashTemplateContext);
 
       let postBody = {
         "data": {
           "type": "dois",
           "attributes": {
-            event: event,
+            "event": event,
             "prefix": doiPrefix,
-            titles: [{
+            "titles": [{
               "lang": null,
               "title": title,
               "titleType": null
             }],
-            publisher: publisher,
-            publicationYear: publicationYear,
-            url: url,
-            creators: [],
+            "publisher": publisher,
+            "publicationYear": publicationYear,
+            "url": url,
+            "sizes": [],
+            "creators": [],
+            "dates": [],
+            "identifiers": [],
+            "subjects": [],
+            "descriptions": [],
+            "rightsList": [],
+            "fundingReferences": [],
             "types": {
               "ris": "DATA",
               "bibtex": "misc",
@@ -175,17 +219,118 @@ export module Services {
 
         let citationCreator = {
           nameType: "Personal",
-          givenName: this.runTemplate(sails.config.datacite.mappings.creatorGivenName, creatorTemplateContext),
-          familyName: this.runTemplate(sails.config.datacite.mappings.creatorFamilyName, creatorTemplateContext)
+          givenName: this.runTemplate(mappings.creatorGivenName, creatorTemplateContext),
+          familyName: this.runTemplate(mappings.creatorFamilyName, creatorTemplateContext)
         }
         postBody.data.attributes.creators.push(citationCreator)
       }
-      sails.log.verbose("DOI post body")
-      sails.log.verbose(JSON.stringify(postBody));
+      let dates = mappings.dates
 
-      let doi = await this.makeCreateDoiCall(instance, postBody, record, oid);
+      if(!_.isEmpty(dates) && _.isArray(dates)){
+        for (var i = 0; i < dates.length; i++ ) {
+          let oDate = dates[i]
+          let aDate = this.runTemplate(oDate.template, lodashTemplateContext)
+          if(!_.isEmpty(aDate)) {
+            postBody.data.attributes.dates.push({"date": aDate, "dateType": oDate.dateType, "dateInformation": oDate.dateInformation})
+          }
+        }
+      }
+
+      let fundingReferences = mappings.fundingReferences
+
+      if(!_.isEmpty(fundingReferences) && _.isArray(fundingReferences)){
+        for (var i = 0; i < fundingReferences.length; i++ ) {
+          let fundingReference = fundingReferences[i]
+          let funderName = JSON.parse(this.runTemplate(fundingReference.funderName, lodashTemplateContext))
+          let awardTitle = JSON.parse(this.runTemplate(fundingReference.awardTitle, lodashTemplateContext))
+          for (var j = 0; j < funderName.length; j++ ) {
+            if(!_.isEmpty(funderName[j])) {
+              postBody.data.attributes.fundingReferences.push({"funderName": funderName[j], "awardTitle": awardTitle[j]})
+            }
+          }
+        }
+      }
+
+
+      let descriptions = mappings.descriptions
+
+      if(!_.isEmpty(descriptions) && _.isArray(descriptions)){
+        for (var i = 0; i < descriptions.length; i++ ) {
+          let description = descriptions[i]
+
+          let descriptionType = description.descriptionType
+          let allDescriptions = JSON.parse(this.runTemplate(description.template, lodashTemplateContext))
+          for (var j = 0; j < allDescriptions.length; j++ ) {
+            let aDescription = allDescriptions[j]
+            if(!_.isEmpty(aDescription)) {
+                postBody.data.attributes.descriptions.push({"descriptionType": descriptionType, "description": aDescription})
+              }
+            }
+          }
+        }
+
+      let rightsList = mappings.rightsList
+
+      if(!_.isEmpty(rightsList) && _.isArray(rightsList)){
+        for (var i = 0; i < rightsList.length; i++ ) {
+          let rights = rightsList[i]
+          let key = rights.key
+          let value = this.runTemplate(rights.template, lodashTemplateContext)
+          if(!_.isEmpty(value)) {
+            postBody.data.attributes.rightsList.push({[key]: value})
+          }
+        }
+      }
+
+
+      let sizes =  this.runTemplate(mappings.sizes, lodashTemplateContext)
+      if(!_.isEmpty(sizes)){
+        sizes = JSON.parse(sizes)
+      }
+
+      if(!_.isEmpty(sizes) && _.isArray(sizes)){
+        for (var i = 0; i < sizes.length; i++ ) {
+          if(!_.isEmpty(sizes[i])){
+            postBody.data.attributes.sizes.push(sizes[i])
+          }
+        }
+      }
+
+      let identifiers = this.runTemplate(mappings.identifiers, lodashTemplateContext)
+      if(!_.isEmpty(identifiers)){
+        identifiers = JSON.parse(identifiers)
+      }
+
+      if(!_.isEmpty(identifiers) && _.isArray(identifiers)){
+        for (var i = 0; i < identifiers.length; i++ ) {
+          if(!_.isEmpty(identifiers[i])) {
+            let identifier = {"identifier": identifiers[i], "identifierType": "Other"}
+            postBody.data.attributes.identifiers.push(identifier)
+          }
+        }
+      }
+
+      let subjects = this.runTemplate(mappings.subjects, lodashTemplateContext)
+      if(!_.isEmpty(subjects)){
+        subjects = JSON.parse(subjects)
+      }
+      if(!_.isEmpty(subjects) && _.isArray(subjects)){
+        for (var i = 0; i < subjects.length; i++ ) {
+          if(!_.isEmpty(subjects[i])) {
+            let subject = {"subject": subjects[i]}
+            postBody.data.attributes.subjects.push(subject)
+          }
+        }
+      }
+
+      sails.log.verbose("DOI post body")
+      sails.log.verbose(JSON.stringify(postBody))
+
+      let doi = await this.makeCreateDoiCall(instance, postBody, record, oid)
       return doi;
+
     }
+
     getAuthenticationString() {
       let username = sails.config.datacite.username;
       let password = sails.config.datacite.password;
@@ -202,7 +347,7 @@ export module Services {
 
         record = this.addDoiDataToRecord(oid, record, doi)
         RecordsService.updateMeta(brand, oid, record).then(response => {});
-        
+
       }
 
       return Observable.of(null);
@@ -211,7 +356,7 @@ export module Services {
     public async publishDoiTriggerSync(oid, record, options): Promise < any > {
 
       if (this.metTriggerCondition(oid, record, options) === "true") {
-        let doi = await this.publishDoi(oid, record);
+        let doi = await this.publishDoi(oid, record, options["event"]);
 
         record = this.addDoiDataToRecord(oid, record, doi)
 

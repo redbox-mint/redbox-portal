@@ -262,6 +262,11 @@ module.exports.routes = {
     action: 'getMeta',
     csrf: false
   },
+  'get /:branding/:portal/api/records/audit/:oid': {
+    controller: 'webservice/RecordController',
+    action: 'getRecordAudit',
+    csrf: false
+  },
   'get /:branding/:portal/api/records/list': {
     controller: 'webservice/RecordController',
     action: 'listRecords',

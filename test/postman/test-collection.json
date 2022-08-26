@@ -359,6 +359,125 @@
 							"response": []
 						},
 						{
+							"name": "Get RDMP's Record Audit",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.be.ok",
+											"});",
+											"",
+											"pm.test(\"Number of found items is returned\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(pm.response.json()).to.have.property('summary')",
+											"      .and.to.have.property('numFound')",
+											"      .and.equal(2)",
+											"});",
+											"",
+											"pm.test(\"Data is returned\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(pm.response.json()).to.have.property('records')",
+											"      .and.to.have.property(0)",
+											"      .and.to.have.property('redboxOid')",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"type": "text",
+										"value": "Bearer {{token}}"
+									},
+									{
+										"key": "",
+										"type": "text",
+										"value": "",
+										"disabled": true
+									}
+								],
+								"url": {
+									"raw": "{{host}}/default/rdmp/api/records/audit/{{dmpOid}}",
+									"host": [
+										"{{host}}"
+									],
+									"path": [
+										"default",
+										"rdmp",
+										"api",
+										"records",
+										"audit",
+										"{{dmpOid}}"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Get RDMP's Record Audit with Date filters",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.be.ok",
+											"});",
+											"",
+											"pm.test(\"Zero items found\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(pm.response.json()).to.have.property('summary')",
+											"   .and.to.have.property('numFound')",
+											"      .and.equal(0)",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"type": "text",
+										"value": "Bearer {{token}}"
+									},
+									{
+										"key": "",
+										"type": "text",
+										"value": "",
+										"disabled": true
+									}
+								],
+								"url": {
+									"raw": "{{host}}/default/rdmp/api/records/audit/{{dmpOid}}?dateFrom=2023&dateTo=2021",
+									"host": [
+										"{{host}}"
+									],
+									"path": [
+										"default",
+										"rdmp",
+										"api",
+										"records",
+										"audit",
+										"{{dmpOid}}"
+									],
+								"query": [
+									{"key":"dateFrom","value":"2023"},
+									{"key":"dateTo","value":"2021"}
+								]
+								}
+							},
+							"response": []
+						},
+						{
 							"name": "Give user edit permissions to RDMP",
 							"event": [
 								{
@@ -5987,6 +6106,65 @@
 								"images",
 								"logo"
 							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Solr",
+			"item": [
+				{
+					"name": "Start indexing",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Solr HTTP status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Solr reports no error\", function () {",
+									"    pm.expect(pm.response.stream.toString()).to.include('\"status\":0')",
+									"});",
+									"",
+									"pm.test(\"Solr reports Query Time\", function () {",
+									"    pm.expect(pm.response.stream.toString()).to.include('\"QTime\":')",
+									"});",
+									""
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"setTimeout(function(){},30000)"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{solrhost}}/solr/redbox/update/json?wt=json&add=[8d95849003df11ed8b078341db3bde98 (1738385794638282752)]",
+							"host": [
+								"{{solrhost}}"
+							],
+							"path": [
+								"solr",
+								"redbox",
+								"update",
+								"json"
+							],
+							"query": [
+								{"key":"wt","value":"json"},
+								{"key":"add","value":"[8d95849003df11ed8b078341db3bde98 (1738385794638282752)]"}							]
 						}
 					},
 					"response": []

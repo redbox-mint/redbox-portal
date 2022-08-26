@@ -21,7 +21,7 @@ declare var module;
 import {QueueService, SearchService, Services as services}   from '@researchdatabox/redbox-core-types';
 
 import solr = require('solr-client');
-const got = require('got');
+const axios = require('axios');
 const util = require('util');
 const querystring = require('querystring');
 import {
@@ -104,10 +104,7 @@ export module Services {
         schemaDef['add-field'].push(sails.config.solr.initSchemaFlag);
         sails.log.verbose(`${this.logHeader} sending schema definition:`);
         sails.log.verbose(JSON.stringify(schemaDef));
-        const response = await got.post(schemaUrl, {
-          json: schemaDef,
-          responseType: 'json'
-        }).json();
+        const response = await axios.post(schemaUrl,schemaDef).then(response => response.data);
         sails.log.verbose(`${this.logHeader} Schema build successful, response: `);
         sails.log.verbose(JSON.stringify(response));
       } catch (err) {
@@ -123,7 +120,7 @@ export module Services {
 
     private async getSchema(core: string) {
       const schemaUrl = `${this.baseUrl}${core}/schema?wt=json`;
-      return await got(schemaUrl).json();
+      return await axios.get(schemaUrl).then(response => response.data);
     }
 
     private async waitForSolr() {
@@ -135,7 +132,7 @@ export module Services {
         try {
           tryCtr++;
           sails.log.verbose(`${this.logHeader} Checking if SOLR is up, try #${tryCtr}... ${urlCheck}`);
-          const solrStat = await got.get(urlCheck).json();
+          const solrStat = await axios.get(urlCheck).then(response => response.data);
           sails.log.verbose(`${this.logHeader} Response is:`);
           sails.log.verbose(JSON.stringify(solrStat));
           if (solrStat.status[coreName].instanceDir) {
@@ -180,8 +177,7 @@ export module Services {
       const coreName = sails.config.solr.options.core;
       let url = `${this.baseUrl}${coreName}/select?q=${query}`;
       sails.log.verbose(`Searching advanced using: ${url}`);
-      const wt = _.get(querystring.parse(url), "wt");
-      const response = wt == "csv" ? await got(url).text() : await got(url).json();
+      const response = await axios.get(url).then(response => response.data);
       return response;
     }
 
@@ -202,9 +198,9 @@ export module Services {
       }
       searchParam= `${searchParam}&start=${start}&rows=${rows}`
       let url = `${this.baseUrl}${coreName}/select?q=metaMetadata_brandId:${brand.id} AND metaMetadata_type:${type}${searchParam}&version=2.2&wt=json&sort=date_object_modified desc`;
-      url = this.addAuthFilter(url, username, roles, brand, false)
+      url = this.addAuthFilter(url, username, roles, brand, false);
       sails.log.verbose(`Searching fuzzy using: ${url}`);
-      const response = await got(url).json();
+      const response = await axios.get(url).then(response => response.data);
       const customResp = {
         records: []
       };

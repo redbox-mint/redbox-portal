@@ -60,6 +60,7 @@ export module Controllers {
       'updateMeta',
       'updateObjectMeta',
       'getMeta',
+      'getRecordAudit',
       'getObjectMeta',
       'addUserEdit',
       'removeUserEdit',
@@ -256,6 +257,35 @@ export module Controllers {
         });
     }
 
+    public async getRecordAudit(req, res) {
+      const brand = BrandingService.getBrand(req.session.branding);
+      var oid = req.param('oid');
+      var dateFrom = req.param('dateFrom');
+      var dateTo = req.param('dateTo');
+      let params = {'oid': oid, 'dateFrom': null, 'dateTo': null};
+      if(!_.isEmpty(dateFrom)) {
+        params['dateFrom'] =  new Date(dateFrom);
+      }
+
+      if(!_.isEmpty(dateTo)) {
+        params['dateTo'] =  new Date(dateTo);
+      }
+
+      try {
+        const audit = await this.RecordsService.getRecordAudit(params);
+        let response: ListAPIResponse<any> = new ListAPIResponse<any>();
+        response.summary.numFound = _.size(audit);
+        response.summary.page = 1;
+        response.records = audit;
+        this.apiRespond(req, res, response);
+      } catch (err) {
+        sails.log.error(`Failed to list audit records for ${oid}`);
+        sails.log.error(JSON.stringify(err));
+        this.apiFail(req, res, 500, new APIErrorResponse(`Failed to list audit records, please check server logs.`));
+      }
+
+    }
+
     public getObjectMeta(req, res) {
       const brand = BrandingService.getBrand(req.session.branding);
       sails.log.debug('brand is...');
@@ -298,7 +328,7 @@ export module Controllers {
             }
             return res.json(result);
           } else {
-            // not processing datastreams... 
+            // not processing datastreams...
             return res.json(result);
           }
         }, error => {
