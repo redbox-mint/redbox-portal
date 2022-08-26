@@ -54,6 +54,7 @@ export module Services {
       'publishDoi',
       'publishDoiTrigger',
       'publishDoiTriggerSync',
+      'updateDoiTriggerSync',
       'deleteDoi',
       'changeDoiState'
     ];
@@ -83,6 +84,26 @@ export module Services {
 
       } catch (err) {
         sails.log.error("Unexpected response from DataCite API")
+        sails.log.error(err)
+      }
+    }
+
+    private async makeUpdateDoiCall(instance, postBody, doi) {
+
+      try {
+        let response = await instance.patch(`/dois/${doi}`, postBody);
+
+        if (response.status == 200) {
+          let responseBody = response.data;
+          let doi = responseBody.data.id
+          sails.log.debug(`DOI Updated: ${doi}`)
+          return doi;
+        } else {
+          sails.log.error("DOI Update Failed. Unexpected response from DataCite API")
+          sails.log.error(response)
+        }
+      } catch (err) {
+        sails.log.error("DOI Update Failed. Unexpected response from DataCite API")
         sails.log.error(err)
       }
     }
@@ -152,7 +173,7 @@ export module Services {
       return false;
     }
 
-    public async publishDoi(oid, record, event = 'publish') {
+    public async publishDoi(oid, record, event = 'publish', action='create') {
 
       let doiPrefix = sails.config.datacite.doiPrefix;
       let baseUrl = sails.config.datacite.baseUrl;
@@ -325,10 +346,14 @@ export module Services {
 
       sails.log.verbose("DOI post body")
       sails.log.verbose(JSON.stringify(postBody))
-
-      let doi = await this.makeCreateDoiCall(instance, postBody, record, oid)
+      let doi = null
+      if(action == 'update') {
+        doi = await this.makeUpdateDoiCall(instance, postBody, record.metadata.citation_doi)
+      }
+      else {
+        doi = await this.makeCreateDoiCall(instance, postBody, record, oid)
+      }
       return doi;
-
     }
 
     getAuthenticationString() {
@@ -365,6 +390,14 @@ export module Services {
       return record;
     }
 
+    public async updateDoiTriggerSync(oid, record, options): Promise < any > {
+
+      let doi = null
+      if (this.metTriggerCondition(oid, record, options) === "true") {
+        doi = await this.publishDoi(oid, record, options["event"],'update');
+      }
+      return record
+    }
 
     addDoiDataToRecord(oid: any, record: any, doi: any) {
       let lodashTemplateContext = {

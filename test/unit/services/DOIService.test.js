@@ -41,6 +41,22 @@ describe('The DOI Service', function () {
     });
   });
 
+  it("Should update a DOI", function (done) {
+    this.timeout(5000);
+    record.metadata.citation_doi = createdDoi
+    sails.services.doiservice.publishDoi(oid, record, 'draft', 'update').then(result => {
+      sails.log.debug("DOI result: ")
+      sails.log.debug(result)
+      expect(result).to.not.be.null;
+      done()
+    }).catch(error => {
+      fail("Exception thrown");
+      sails.log.error(error);
+      done();
+    });
+  });
+
+
   it("Should delete a DOI", function (done) {
     this.timeout(5000);
     sails.log.debug("Deleting the created DOI: " + createdDoi)
