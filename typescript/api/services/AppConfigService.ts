@@ -110,6 +110,20 @@ export module Services {
       return updatedRecord.configData;
     }
 
+    public async createConfig(brandName, configKey, configData): Promise<any> {
+      let branding = BrandingService.getBrand(brandName);
+      let dbConfig = await AppConfig.findOne({ branding: branding.id, configKey });
+      
+      // Create if no config exists
+      if (dbConfig == null) {
+        let createdRecord = await AppConfig.create({ branding: branding.id, configKey: configKey, configData: configData });
+        
+        this.refreshBrandingAppConfigMap(branding);
+        return createdRecord.configData;
+      }
+
+      throw Error(`Config with key ${configKey} for branding ${brandName} already exists`)
+    }
 
   }
 
