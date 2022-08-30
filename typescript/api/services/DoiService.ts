@@ -21,7 +21,8 @@ import {
   Observable
 } from 'rxjs/Rx';
 import {
-  Services as services
+  Services as services,
+  RBValidationError
 } from '@researchdatabox/redbox-core-types';
 import {
   Sails,
@@ -36,6 +37,7 @@ import { isArray } from 'lodash';
 declare var sails: Sails;
 declare var RecordsService;
 declare var BrandingService;
+declare var TranslationService;
 declare var _;
 
 
@@ -78,33 +80,41 @@ export module Services {
 
           return doi;
         } else {
-          sails.log.error("Unexpected response from DataCite API")
+         let errorMessage = TranslationService.t(response)
+         let customError: RBValidationError = new RBValidationError(errorMessage)
+          throw customError
           sails.log.error(response)
         }
 
       } catch (err) {
-        sails.log.error("Unexpected response from DataCite API")
-        sails.log.error(err)
-      }
+        let errorMessage = TranslationService.t(err)
+        let customError: RBValidationError = new RBValidationError(errorMessage)
+        throw customError;
+        sails.log.error(errorMessage)
     }
+  }
 
     private async makeUpdateDoiCall(instance, postBody, doi) {
 
       try {
-        let response = await instance.patch(`/dois/${doi}`, postBody);
+        let response = await instance.patch(`/dois/${doi}`, postBody)
 
         if (response.status == 200) {
-          let responseBody = response.data;
+          let responseBody = response.data
           let doi = responseBody.data.id
           sails.log.debug(`DOI Updated: ${doi}`)
           return doi;
         } else {
-          sails.log.error("DOI Update Failed. Unexpected response from DataCite API")
-          sails.log.error(response)
-        }
+          let errorMessage = TranslationService.t(response)
+          let customError: RBValidationError = new RBValidationError(errorMessage)
+          throw customError
+          sails.log.error(errorMessage)
+      }
       } catch (err) {
-        sails.log.error("DOI Update Failed. Unexpected response from DataCite API")
-        sails.log.error(err)
+        let errorMessage = TranslationService.t(err)
+        let customError: RBValidationError = new RBValidationError(errorMessage)
+        throw customError
+        sails.log.error(errorMessage)
       }
     }
 
@@ -125,21 +135,26 @@ export module Services {
         if (response.status == 204) {
           return true;
         } else {
-          sails.log.error("Unexpected response from DataCite API")
-          sails.log.error(response)
-        }
+          let errorMessage = TranslationService.t(response)
+          let customError: RBValidationError = new RBValidationError(errorMessage)
+          throw customError
+          sails.log.error(errorMessage)
+          }
 
       } catch (err) {
-        sails.log.error("Unexpected response from DataCite API")
-        sails.log.error(err)
+        let errorMessage = TranslationService.t(err)
+        let customError: RBValidationError = new RBValidationError(errorMessage)
+        throw customError
+        sails.log.error(errorMessage)
+
       }
 
       return false;
     }
     public async changeDoiState(doi: string, event: string) {
       try {
-        let baseUrl = sails.config.datacite.baseUrl;
-        let authenticationStringEncoded = this.getAuthenticationString();
+        let baseUrl = sails.config.datacite.baseUrl
+        let authenticationStringEncoded = this.getAuthenticationString()
         const instance = axios.create({
           baseURL: baseUrl,
           timeout: 10000,
@@ -157,17 +172,21 @@ export module Services {
           }
         }
 
-        let response = await instance.put(`/dois/${doi}`, putBody);
+        let response = await instance.put(`/dois/${doi}`, putBody)
         if (response.status == 200) {
-          return true;
+          return true
         } else {
-          sails.log.error("Unexpected response from DataCite API")
-          sails.log.error(response)
-        }
+          let errorMessage = TranslationService.t(response)
+          let customError: RBValidationError = new RBValidationError(errorMessage)
+          throw customError
+          sails.log.error(errorMessage)
+          }
 
       } catch (err) {
-        sails.log.error("Unexpected response from DataCite API")
-        sails.log.error(err)
+          let errorMessage = TranslationService.t(err)
+          let customError: RBValidationError = new RBValidationError(errorMessage)
+          throw customError
+          sails.log.error(errorMessage)
       }
 
       return false;
