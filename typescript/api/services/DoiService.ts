@@ -21,7 +21,8 @@ import {
   Observable
 } from 'rxjs/Rx';
 import {
-  Services as services
+  Services as services,
+  RBValidationError
 } from '@researchdatabox/redbox-core-types';
 import {
   Sails,
@@ -36,6 +37,7 @@ import { isArray } from 'lodash';
 declare var sails: Sails;
 declare var RecordsService;
 declare var BrandingService;
+declare var TranslationService;
 declare var _;
 
 
@@ -78,33 +80,41 @@ export module Services {
 
           return doi;
         } else {
-          sails.log.error("Unexpected response from DataCite API")
+         let errorMessage = TranslationService.t(response)
+         let customError: RBValidationError = new RBValidationError(errorMessage)
+          throw customError
           sails.log.error(response)
         }
 
       } catch (err) {
-        sails.log.error("Unexpected response from DataCite API")
-        sails.log.error(err)
-      }
+        let errorMessage = TranslationService.t(err)
+        let customError: RBValidationError = new RBValidationError(errorMessage)
+        throw customError;
+        sails.log.error(errorMessage)
     }
+  }
 
     private async makeUpdateDoiCall(instance, postBody, doi) {
 
       try {
-        let response = await instance.patch(`/dois/${doi}`, postBody);
+        let response = await instance.patch(`/dois/${doi}`, postBody)
 
         if (response.status == 200) {
-          let responseBody = response.data;
+          let responseBody = response.data
           let doi = responseBody.data.id
           sails.log.debug(`DOI Updated: ${doi}`)
           return doi;
         } else {
-          sails.log.error("DOI Update Failed. Unexpected response from DataCite API")
-          sails.log.error(response)
-        }
+          let errorMessage = TranslationService.t(response)
+          let customError: RBValidationError = new RBValidationError(errorMessage)
+          throw customError
+          sails.log.error(errorMessage)
+      }
       } catch (err) {
-        sails.log.error("DOI Update Failed. Unexpected response from DataCite API")
-        sails.log.error(err)
+        let errorMessage = TranslationService.t(err)
+        let customError: RBValidationError = new RBValidationError(errorMessage)
+        throw customError
+        sails.log.error(errorMessage)
       }
     }
 
@@ -125,21 +135,26 @@ export module Services {
         if (response.status == 204) {
           return true;
         } else {
-          sails.log.error("Unexpected response from DataCite API")
-          sails.log.error(response)
-        }
+          let errorMessage = TranslationService.t(response)
+          let customError: RBValidationError = new RBValidationError(errorMessage)
+          throw customError
+          sails.log.error(errorMessage)
+          }
 
       } catch (err) {
-        sails.log.error("Unexpected response from DataCite API")
-        sails.log.error(err)
+        let errorMessage = TranslationService.t(err)
+        let customError: RBValidationError = new RBValidationError(errorMessage)
+        throw customError
+        sails.log.error(errorMessage)
+
       }
 
       return false;
     }
     public async changeDoiState(doi: string, event: string) {
       try {
-        let baseUrl = sails.config.datacite.baseUrl;
-        let authenticationStringEncoded = this.getAuthenticationString();
+        let baseUrl = sails.config.datacite.baseUrl
+        let authenticationStringEncoded = this.getAuthenticationString()
         const instance = axios.create({
           baseURL: baseUrl,
           timeout: 10000,
@@ -157,17 +172,21 @@ export module Services {
           }
         }
 
-        let response = await instance.put(`/dois/${doi}`, putBody);
+        let response = await instance.put(`/dois/${doi}`, putBody)
         if (response.status == 200) {
-          return true;
+          return true
         } else {
-          sails.log.error("Unexpected response from DataCite API")
-          sails.log.error(response)
-        }
+          let errorMessage = TranslationService.t(response)
+          let customError: RBValidationError = new RBValidationError(errorMessage)
+          throw customError
+          sails.log.error(errorMessage)
+          }
 
       } catch (err) {
-        sails.log.error("Unexpected response from DataCite API")
-        sails.log.error(err)
+          let errorMessage = TranslationService.t(err)
+          let customError: RBValidationError = new RBValidationError(errorMessage)
+          throw customError
+          sails.log.error(errorMessage)
       }
 
       return false;
@@ -197,9 +216,8 @@ export module Services {
 
       let mappings = sails.config.datacite.mappings
       let url = this.runTemplate(mappings.url, lodashTemplateContext)
-      let publicationYear = this.runTemplate(mappings.publicationYear, lodashTemplateContext);
-      let title = this.runTemplate(mappings.title, lodashTemplateContext);
-      let publisher = this.runTemplate(mappings.publisher, lodashTemplateContext);
+      let publicationYear = this.runTemplate(mappings.publicationYear, lodashTemplateContext)
+      let publisher = this.runTemplate(mappings.publisher, lodashTemplateContext)
 
       let postBody = {
         "data": {
@@ -207,11 +225,7 @@ export module Services {
           "attributes": {
             "event": event,
             "prefix": doiPrefix,
-            "titles": [{
-              "lang": null,
-              "title": title,
-              "titleType": null
-            }],
+            "titles": [],
             "publisher": publisher,
             "publicationYear": publicationYear,
             "url": url,
@@ -233,17 +247,27 @@ export module Services {
           }
         }
       }
+
+      let title = this.runTemplate(mappings.title, lodashTemplateContext);
+
+      if(!_.isEmpty(title)) {
+        postBody.data.attributes.titles.push({"lang": null, "title": title, "titleType": null})
+      }
+
       let creatorTemplateContext = _.clone(lodashTemplateContext);
       for (let creator of record.metadata[creatorsProperty]) {
 
         creatorTemplateContext['creator'] = creator;
-
-        let citationCreator = {
-          nameType: "Personal",
-          givenName: this.runTemplate(mappings.creatorGivenName, creatorTemplateContext),
-          familyName: this.runTemplate(mappings.creatorFamilyName, creatorTemplateContext)
+        let creatorGivenName = this.runTemplate(mappings.creatorGivenName, creatorTemplateContext)
+        let creatorFamilyName = this.runTemplate(mappings.creatorFamilyName, creatorTemplateContext)
+        if(!_.isEmpty(creatorFamilyName) && !_.isEmpty(creatorGivenName)) {
+          let citationCreator = {
+            nameType: "Personal",
+            givenName: creatorGivenName,
+            familyName: creatorFamilyName
+          }
+          postBody.data.attributes.creators.push(citationCreator)
         }
-        postBody.data.attributes.creators.push(citationCreator)
       }
       let dates = mappings.dates
 
@@ -346,6 +370,40 @@ export module Services {
 
       sails.log.verbose("DOI post body")
       sails.log.verbose(JSON.stringify(postBody))
+
+      let postBodyValidateError = 'glorn'
+
+      if(_.isEmpty(postBody.data.attributes.titles)){
+        postBodyValidateError = TranslationService.t("Title is required")
+      }
+
+      if(_.isEmpty(postBody.data.attributes.publisher)){
+        postBodyValidateError = TranslationService.t("Publisher is required")
+      }
+
+      if(_.isEmpty(postBody.data.attributes.creators)){
+        postBodyValidateError = TranslationService.t("Creators are required")
+      }
+
+      if(_.isEmpty(postBody.data.attributes.publicationYear)){
+        postBodyValidateError = TranslationService.t("Publication Year is required")
+      }
+
+      if(_.isEmpty(postBody.data.attributes.types.resourceTypeGeneral)){
+        postBodyValidateError = TranslationService.t("General Resource Tipe  is required")
+      }
+
+      if(action == "update" && _.isEmpty(record.metadata.citation_doi)){
+        postBodyValidateError = postBodyValidateError + ' ' + TranslationService.t("DOI is required")
+      }
+
+      if(!_.isEmpty(postBodyValidateError)){
+        let errorMessage = postBodyValidateError
+        let customError: RBValidationError = new RBValidationError(errorMessage)
+        throw customError
+        sails.log.error(customError)
+        return false
+      }
       let doi = null
       if(action == 'update') {
         doi = await this.makeUpdateDoiCall(instance, postBody, record.metadata.citation_doi)
