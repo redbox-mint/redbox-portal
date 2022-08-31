@@ -216,9 +216,8 @@ export module Services {
 
       let mappings = sails.config.datacite.mappings
       let url = this.runTemplate(mappings.url, lodashTemplateContext)
-      let publicationYear = this.runTemplate(mappings.publicationYear, lodashTemplateContext);
-      let title = this.runTemplate(mappings.title, lodashTemplateContext);
-      let publisher = this.runTemplate(mappings.publisher, lodashTemplateContext);
+      let publicationYear = this.runTemplate(mappings.publicationYear, lodashTemplateContext)
+      let publisher = this.runTemplate(mappings.publisher, lodashTemplateContext)
 
       let postBody = {
         "data": {
@@ -226,11 +225,7 @@ export module Services {
           "attributes": {
             "event": event,
             "prefix": doiPrefix,
-            "titles": [{
-              "lang": null,
-              "title": title,
-              "titleType": null
-            }],
+            "titles": [],
             "publisher": publisher,
             "publicationYear": publicationYear,
             "url": url,
@@ -252,17 +247,27 @@ export module Services {
           }
         }
       }
+
+      let title = this.runTemplate(mappings.title, lodashTemplateContext);
+
+      if(!_.isEmpty(title)) {
+        postBody.data.attributes.titles.push({"lang": null, "title": title, "titleType": null})
+      }
+
       let creatorTemplateContext = _.clone(lodashTemplateContext);
       for (let creator of record.metadata[creatorsProperty]) {
 
         creatorTemplateContext['creator'] = creator;
-
-        let citationCreator = {
-          nameType: "Personal",
-          givenName: this.runTemplate(mappings.creatorGivenName, creatorTemplateContext),
-          familyName: this.runTemplate(mappings.creatorFamilyName, creatorTemplateContext)
+        let creatorGivenName = this.runTemplate(mappings.creatorGivenName, creatorTemplateContext)
+        let creatorFamilyName = this.runTemplate(mappings.creatorFamilyName, creatorTemplateContext)
+        if(!_.isEmpty(creatorFamilyName) && !_.isEmpty(creatorGivenName)) {
+          let citationCreator = {
+            nameType: "Personal",
+            givenName: creatorGivenName,
+            familyName: creatorFamilyName
+          }
+          postBody.data.attributes.creators.push(citationCreator)
         }
-        postBody.data.attributes.creators.push(citationCreator)
       }
       let dates = mappings.dates
 
@@ -365,6 +370,40 @@ export module Services {
 
       sails.log.verbose("DOI post body")
       sails.log.verbose(JSON.stringify(postBody))
+
+      let postBodyValidateError = 'glorn'
+
+      if(_.isEmpty(postBody.data.attributes.titles)){
+        postBodyValidateError = TranslationService.t("Title is required")
+      }
+
+      if(_.isEmpty(postBody.data.attributes.publisher)){
+        postBodyValidateError = TranslationService.t("Publisher is required")
+      }
+
+      if(_.isEmpty(postBody.data.attributes.creators)){
+        postBodyValidateError = TranslationService.t("Creators are required")
+      }
+
+      if(_.isEmpty(postBody.data.attributes.publicationYear)){
+        postBodyValidateError = TranslationService.t("Publication Year is required")
+      }
+
+      if(_.isEmpty(postBody.data.attributes.types.resourceTypeGeneral)){
+        postBodyValidateError = TranslationService.t("General Resource Tipe  is required")
+      }
+
+      if(action == "update" && _.isEmpty(record.metadata.citation_doi)){
+        postBodyValidateError = postBodyValidateError + ' ' + TranslationService.t("DOI is required")
+      }
+
+      if(!_.isEmpty(postBodyValidateError)){
+        let errorMessage = postBodyValidateError
+        let customError: RBValidationError = new RBValidationError(errorMessage)
+        throw customError
+        sails.log.error(customError)
+        return false
+      }
       let doi = null
       if(action == 'update') {
         doi = await this.makeUpdateDoiCall(instance, postBody, record.metadata.citation_doi)
