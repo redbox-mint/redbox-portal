@@ -135,6 +135,7 @@ export module Services {
         if (response.status == 204) {
           return true;
         } else {
+
           let errorMessage = this.doiResponseErrorMessage(response.status)
           let customError: RBValidationError = new RBValidationError(errorMessage)
           throw customError
@@ -176,6 +177,7 @@ export module Services {
         if (response.status == 200) {
           return true
         } else {
+
           let errorMessage = this.doiResponseErrorMessage(response.status)
           let customError: RBValidationError = new RBValidationError(errorMessage)
           throw customError
@@ -264,7 +266,6 @@ export module Services {
           }
         }
       }
-
       let title = this.runTemplate(mappings.title, lodashTemplateContext)
 
       if(!_.isEmpty(title)) {
