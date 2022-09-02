@@ -80,7 +80,7 @@ export module Services {
 
           return doi;
         } else {
-         let errorMessage = TranslationService.t(response)
+         let errorMessage = this.doiResponseErrorMessage(response.status)
          let customError: RBValidationError = new RBValidationError(errorMessage)
           throw customError
           sails.log.error(response)
@@ -105,7 +105,7 @@ export module Services {
           sails.log.debug(`DOI Updated: ${doi}`)
           return doi;
         } else {
-          let errorMessage = TranslationService.t(response)
+          let errorMessage = this.doiResponseErrorMessage(response.status)
           let customError: RBValidationError = new RBValidationError(errorMessage)
           throw customError
           sails.log.error(errorMessage)
@@ -135,7 +135,8 @@ export module Services {
         if (response.status == 204) {
           return true;
         } else {
-          let errorMessage = TranslationService.t(response)
+
+          let errorMessage = this.doiResponseErrorMessage(response.status)
           let customError: RBValidationError = new RBValidationError(errorMessage)
           throw customError
           sails.log.error(errorMessage)
@@ -176,7 +177,8 @@ export module Services {
         if (response.status == 200) {
           return true
         } else {
-          let errorMessage = TranslationService.t(response)
+
+          let errorMessage = this.doiResponseErrorMessage(response.status)
           let customError: RBValidationError = new RBValidationError(errorMessage)
           throw customError
           sails.log.error(errorMessage)
@@ -192,12 +194,29 @@ export module Services {
       return false;
     }
 
+    doiResponseErrorMessage(statusCode){
+      let errorMessage = [TranslationService.t('Datacite API error')]
+      let message = ''
+      switch(statusCode){
+        case 403:
+          message = 'not-authorised'
+        case 404:
+          message = 'not-found' //Happens when a) invalid credentials when creating; and b) DOI is invalid.
+        case 422:
+          message = 'invalid-format'
+        case 500:
+          message = 'server-error'
+        default:
+          message = 'unknown-error'
+      }
+      errorMessage.push(TranslationService.t(message))
+      return errorMessage
+    }
     public async publishDoi(oid, record, event = 'publish', action='create') {
 
       let doiPrefix = sails.config.datacite.doiPrefix;
       let baseUrl = sails.config.datacite.baseUrl;
       let citationUrlProperty = sails.config.datacite.citationUrlProperty;
-      let creatorsProperty = sails.config.datacite.creatorsProperty;
       let authenticationStringEncoded = this.getAuthenticationString();
       let lodashTemplateContext = {
         record: record,
@@ -247,30 +266,24 @@ export module Services {
           }
         }
       }
-
-      let title = this.runTemplate(mappings.title, lodashTemplateContext);
+      let title = this.runTemplate(mappings.title, lodashTemplateContext)
 
       if(!_.isEmpty(title)) {
         postBody.data.attributes.titles.push({"lang": null, "title": title, "titleType": null})
       }
 
-      let creatorTemplateContext = _.clone(lodashTemplateContext);
+      let creatorTemplateContext = _.clone(lodashTemplateContext)
+      let creatorsProperty = sails.config.datacite.creatorsProperty
       for (let creator of record.metadata[creatorsProperty]) {
-
-        creatorTemplateContext['creator'] = creator;
+        creatorTemplateContext['creator'] = creator
         let creatorGivenName = this.runTemplate(mappings.creatorGivenName, creatorTemplateContext)
         let creatorFamilyName = this.runTemplate(mappings.creatorFamilyName, creatorTemplateContext)
         if(!_.isEmpty(creatorFamilyName) && !_.isEmpty(creatorGivenName)) {
-          let citationCreator = {
-            nameType: "Personal",
-            givenName: creatorGivenName,
-            familyName: creatorFamilyName
-          }
-          postBody.data.attributes.creators.push(citationCreator)
+          postBody.data.attributes.creators.push({'nameType': 'Personal','givenName': creatorGivenName,'familyName': creatorFamilyName})
         }
       }
-      let dates = mappings.dates
 
+      let dates = mappings.dates
       if(!_.isEmpty(dates) && _.isArray(dates)){
         for (var i = 0; i < dates.length; i++ ) {
           let oDate = dates[i]
@@ -298,11 +311,9 @@ export module Services {
 
 
       let descriptions = mappings.descriptions
-
       if(!_.isEmpty(descriptions) && _.isArray(descriptions)){
         for (var i = 0; i < descriptions.length; i++ ) {
           let description = descriptions[i]
-
           let descriptionType = description.descriptionType
           let allDescriptions = JSON.parse(this.runTemplate(description.template, lodashTemplateContext))
           for (var j = 0; j < allDescriptions.length; j++ ) {
@@ -315,7 +326,6 @@ export module Services {
         }
 
       let rightsList = mappings.rightsList
-
       if(!_.isEmpty(rightsList) && _.isArray(rightsList)){
         for (var i = 0; i < rightsList.length; i++ ) {
           let rights = rightsList[i]
@@ -326,7 +336,6 @@ export module Services {
           }
         }
       }
-
 
       let sizes =  this.runTemplate(mappings.sizes, lodashTemplateContext)
       if(!_.isEmpty(sizes)){
@@ -371,34 +380,64 @@ export module Services {
       sails.log.verbose("DOI post body")
       sails.log.verbose(JSON.stringify(postBody))
 
-      let postBodyValidateError = 'glorn'
+      let postBodyValidateError = []
 
       if(_.isEmpty(postBody.data.attributes.titles)){
-        postBodyValidateError = TranslationService.t("Title is required")
+        postBodyValidateError.push('title-required')
       }
 
       if(_.isEmpty(postBody.data.attributes.publisher)){
-        postBodyValidateError = TranslationService.t("Publisher is required")
+        postBodyValidateError.push('publisher-required')
       }
 
       if(_.isEmpty(postBody.data.attributes.creators)){
-        postBodyValidateError = TranslationService.t("Creators are required")
+        postBodyValidateError.push('creators-required')
       }
 
       if(_.isEmpty(postBody.data.attributes.publicationYear)){
-        postBodyValidateError = TranslationService.t("Publication Year is required")
+        postBodyValidateError.push('publication-year-required')
+      }
+      else if(_.size(postBody.data.attributes.publicationYear) != 4 ||  _. isNaN(postBody.data.attributes.publicationYear)){
+        postBodyValidateError.push('publication-year-invalid')
+      }
+
+      if(_.isEmpty(postBody.data.attributes.url)){
+        postBodyValidateError.push('url-required')
+      }
+      else {
+        try {
+          new URL(postBody.data.attributes.url)
+        }
+        catch {
+          postBodyValidateError.push('url-invalid')
+        }
+      }
+
+      if(!_.isEmpty(postBody.data.attributes.dates)){
+        let dates = postBody.data.attributes.dates
+        for (var i = 0; i < _.size(dates); i++ ) {
+          let date = moment(new Date(dates[i].date)).format('YYYY-MM-DD')
+          if (!moment(date, 'YYYY-MM-DD', true).isValid()) {
+            postBodyValidateError.push('date-invalid')
+          }
+        }
       }
 
       if(_.isEmpty(postBody.data.attributes.types.resourceTypeGeneral)){
-        postBodyValidateError = TranslationService.t("General Resource Tipe  is required")
+        postBodyValidateError.push('general-resource-type-required')
       }
 
-      if(action == "update" && _.isEmpty(record.metadata.citation_doi)){
-        postBodyValidateError = postBodyValidateError + ' ' + TranslationService.t("DOI is required")
+      if(action == 'update' && _.isEmpty(record.metadata.citation_doi)){
+        postBodyValidateError.push('doi-required')
       }
 
       if(!_.isEmpty(postBodyValidateError)){
-        let errorMessage = postBodyValidateError
+        let errors = [TranslationService.t('datacite-validation-error')]
+        for (var i = 0; i < _.size(postBodyValidateError); i++ ) {
+          errors.push(TranslationService.t(postBodyValidateError[i]))
+        }
+
+        let errorMessage = errors
         let customError: RBValidationError = new RBValidationError(errorMessage)
         throw customError
         sails.log.error(customError)
