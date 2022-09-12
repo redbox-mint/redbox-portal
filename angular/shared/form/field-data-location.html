@@ -55,7 +55,7 @@
         <span class="label-font">{{ field.locationHeader }}</span>
       </div>
       <div class="col-xs-4">
-        <span class="label-font" *ngIf="field.newLocation.type != 'attachment'">{{ field.notesHeader }}</span>
+        <span class="label-font" *ngIf="!field.isNotesHiddenForLocationType(field.newLocation.type)">{{ field.notesHeader }}</span>
       </div>
       <div class="col-xs-1">
         <button type="button" class="btn btn-default" *ngIf="field.help" (click)="toggleHelp()" [attr.aria-label]="'help' | translate "><span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span></button>
@@ -79,7 +79,7 @@
           [style.display]="field.newLocation.type == 'attachment' ? 'inherit' : 'none'" (click)="openModal()">{{ field.attachmentText }}</a>
         </div>
         <div class="col-xs-4">
-          <input [(ngModel)]="field.newLocation.notes"  *ngIf="field.newLocation.type != 'attachment'" type="text" class="form-control" [attr.aria-label]="field.notesHeader" />
+          <input [(ngModel)]="field.newLocation.notes" type="text" *ngIf="!field.isNotesHiddenForLocationType(field.newLocation.type)" class="form-control" [attr.aria-label]="field.notesHeader" />
         </div>
         <div class="col-xs-1">
           <a  *ngIf="field.newLocation.type != 'attachment' && !field.locationAddText" class="fa fa-plus-circle btn text-20 pull-right btn-success" (click)="field.addLocation()"></a>
