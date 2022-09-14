@@ -431,6 +431,11 @@ export module Services {
         postBodyValidateError.push('doi-required')
       }
 
+      if(action == 'update' && !_.isEmpty(record.metadata.citation_doi) && record.metadata.citation_doi.indexOf(doiPrefix) != 0){
+        sails.log.warn(`The citation DOI ${record.metadata.citation_doi} does not begin with the correct prefix ${doiPrefix}. Will not attempt to update`)
+        return null;
+      }
+
       if(!_.isEmpty(postBodyValidateError)){
         let errors = [TranslationService.t('datacite-validation-error')]
         for (var i = 0; i < _.size(postBodyValidateError); i++ ) {
@@ -467,9 +472,10 @@ export module Services {
           const brand = BrandingService.getBrand('default');
           let doi = await this.publishDoi(oid, record);
 
-        record = this.addDoiDataToRecord(oid, record, doi)
-        RecordsService.updateMeta(brand, oid, record).then(response => {});
-
+        if(doi != null) {
+          record = this.addDoiDataToRecord(oid, record, doi)
+          RecordsService.updateMeta(brand, oid, record).then(response => {});
+        }
       }
 
       return Observable.of(null);
@@ -480,8 +486,9 @@ export module Services {
       if (this.metTriggerCondition(oid, record, options) === "true") {
         let doi = await this.publishDoi(oid, record, options["event"]);
 
-        record = this.addDoiDataToRecord(oid, record, doi)
-
+        if(doi != null) {
+          record = this.addDoiDataToRecord(oid, record, doi)
+        }
         return record;
       }
       return record;
