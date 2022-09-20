@@ -79,7 +79,7 @@ export module Services {
       super();
       this.logHeader = "RecordsService::";
       let that = this;
-      sails.on('ready', function () {
+      sails.after(['hook:redbox:storage:ready', 'hook:redbox:datastream:ready', 'ready'], function () {
         that.getStorageService();
         that.getDatastreamService();
         that.searchService = sails.services[sails.config.search.serviceName];
@@ -99,7 +99,8 @@ export module Services {
       if (_.isEmpty(sails.config.record) || _.isEmpty(sails.config.record.datastreamService)) {
         this.datastreamService = RedboxJavaStorageService;
       } else {
-        this.datastreamService = sails.services[sails.config.storage.serviceName];
+        this.datastreamService = sails.services[sails.config.record.datastreamService];
+        sails.log.verbose(`${this.logHeader} Using datastreamService: ${sails.config.record.datastreamService}`);
       }
     }
 
@@ -134,7 +135,8 @@ export module Services {
       'appendToRecord',
       'getRecords',
       'exportAllPlans',
-      'storeRecordAudit'
+      'storeRecordAudit',
+      'exists'
     ];
 
 
@@ -304,6 +306,7 @@ export module Services {
     // oid - record idea
     // labelFilterStr - set if you want to be selective in your attachments, will just run a simple `.indexOf`
     public async getAttachments(oid: string, labelFilterStr: string = undefined): Promise < any > {
+      sails.log.verbose(`RecordsService::Getting attachments of ${oid}`);
       let datastreams = await this.datastreamService.listDatastreams(oid, null);
       let attachments = [];
       _.each(datastreams, (datastream) => {
@@ -790,7 +793,9 @@ export module Services {
       return response;
     }
 
-
+    public async exists(oid: string) {
+      return this.storageService.exists(oid);
+    }
   }
 }
 module.exports = new Services.Records().exports();

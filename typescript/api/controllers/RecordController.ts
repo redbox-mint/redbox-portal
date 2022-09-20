@@ -55,7 +55,7 @@ export module Controllers {
     constructor() {
       super();
       let that = this;
-      sails.on('ready', function () {
+      sails.after(['hook:redbox:storage:ready', 'hook:redbox:datastream:ready', 'ready'], function () {
         let datastreamServiceName = sails.config.record.datastreamService;
         sails.log.verbose(`RecordController ready, using datastream service: ${datastreamServiceName}`);
         if (datastreamServiceName != undefined) {
@@ -1283,14 +1283,15 @@ export module Controllers {
         sails.log.verbose("found.name " + found.name);
         res.attachment(found.name);
         sails.log.verbose(`Returning datastream observable of ${oid}: ${found.name}, attachId: ${attachId}`);
-        that.datastreamService.getDatastream(oid, attachId).subscribe(response => {
+        try {
+          const response = await that.datastreamService.getDatastream(oid, attachId);
           if (response.readstream) {
             response.readstream.pipe(res);
           } else {
             res.end(Buffer.from(response.body), 'binary');
           }
           return Observable.of(oid);
-        }, error => {
+        } catch (error) {
           if (this.isAjax(req)) {
             this.ajaxFail(req, res, error.message);
           } else {
@@ -1302,8 +1303,7 @@ export module Controllers {
               res.serverError();
             }
           }
-        });
-
+        }
       } else {
         const hasEditAccess = await this.hasEditAccess(brand, req.user, currentRec).toPromise();
         if (!hasEditAccess) {
@@ -1341,7 +1341,6 @@ export module Controllers {
     }
 
     public async getPermissionsInternal(req, res) {
-      sails.log.verbose('getting attachments....');
       const oid = req.param('oid');
       let record = await this.getRecord(oid).toPromise();
 
@@ -1418,15 +1417,15 @@ export module Controllers {
         sails.log.verbose("fileName " + fileName);
         res.attachment(fileName);
         sails.log.verbose(`Returning datastream observable of ${oid}: ${fileName}, datastreamId: ${datastreamId}`);
-
-        this.datastreamService.getDatastream(oid, datastreamId).subscribe(response => {
+        try {
+          const response = await this.datastreamService.getDatastream(oid, datastreamId);
           if (response.readstream) {
             response.readstream.pipe(res);
           } else {
             res.end(Buffer.from(response.body), 'binary');
           }
           return Observable.of(oid);
-        }, error => {
+        } catch (error) {
           if (this.isAjax(req)) {
             this.ajaxFail(req, res, error.message);
           } else {
@@ -1436,7 +1435,7 @@ export module Controllers {
               res.notFound();
             }
           }
-        });
+        }
       }
     }
 

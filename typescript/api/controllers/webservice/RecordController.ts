@@ -82,7 +82,7 @@ export module Controllers {
     constructor() {
       super();
       let that = this;
-      sails.on('ready', function () {
+      sails.after(['hook:redbox:storage:ready', 'hook:redbox:datastream:ready', 'ready'], function () {
         let datastreamServiceName = sails.config.record.datastreamService;
         sails.log.verbose(`RecordController Webservice ready, using datastream service: ${datastreamServiceName}`);
         if (datastreamServiceName != undefined) {
@@ -438,14 +438,17 @@ export module Controllers {
         sails.log.verbose("fileName " + fileName);
         res.attachment(fileName);
         sails.log.info(`Returning datastream observable of ${oid}: ${fileName}, datastreamId: ${datastreamId}`);
-        return this.DatastreamService.getDatastream(oid, datastreamId).flatMap((response) => {
+        try {
+          const response = await this.DatastreamService.getDatastream(oid, datastreamId);
           if (response.readstream) {
             response.readstream.pipe(res);
           } else {
             res.end(Buffer.from(response.body), 'binary');
           }
           return Observable.of(oid);
-        });
+        } catch (error) {
+          return this.customErrorMessageHandlingOnUpstreamResult(error, res);
+        }
       }).subscribe(whatever => {
         // ignore...
         sails.log.verbose(`Done with updating streams and returning response...`);
