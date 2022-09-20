@@ -15,4 +15,5 @@ export interface StorageService{
   exportAllPlans(username, roles, brand, format, modBefore, modAfter, recType): Readable;
 
   createRecordAudit?(record):Promise<any>;
+  exists(oid): Promise<boolean>;
 }
