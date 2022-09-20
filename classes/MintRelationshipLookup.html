@@ -127,7 +127,7 @@
                 </tr>
                         <tr>
                             <td class="col-md-4">
-                                <div class="io-line">Defined in <a href="" data-line="647" class="link-to-prism">angular/shared/form/field-vocab.component.ts:647</a></div>
+                                <div class="io-line">Defined in <a href="" data-line="649" class="link-to-prism">angular/shared/form/field-vocab.component.ts:649</a></div>
                             </td>
                         </tr>
 
@@ -213,7 +213,7 @@
                 </tr>
                     <tr>
                         <td class="col-md-4">
-                                <div class="io-line">Defined in <a href="" data-line="647" class="link-to-prism">angular/shared/form/field-vocab.component.ts:647</a></div>
+                                <div class="io-line">Defined in <a href="" data-line="649" class="link-to-prism">angular/shared/form/field-vocab.component.ts:649</a></div>
                         </td>
                     </tr>
 
@@ -239,7 +239,7 @@
                 </tr>
                     <tr>
                         <td class="col-md-4">
-                                <div class="io-line">Defined in <a href="" data-line="646" class="link-to-prism">angular/shared/form/field-vocab.component.ts:646</a></div>
+                                <div class="io-line">Defined in <a href="" data-line="648" class="link-to-prism">angular/shared/form/field-vocab.component.ts:648</a></div>
                         </td>
                     </tr>
 
@@ -273,8 +273,8 @@
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="654"
-                            class="link-to-prism">angular/shared/form/field-vocab.component.ts:654</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="656"
+                            class="link-to-prism">angular/shared/form/field-vocab.component.ts:656</a></div>
                 </td>
             </tr>
 
@@ -836,6 +836,7 @@ export class VocabFieldLookupService extends BaseService {
 @Component({
   selector: &#x27;rb-vocab&#x27;,
   template: &#x60;
+  &lt;ng-container *ngIf&#x3D;&quot;field.visible&quot;&gt;
   &lt;div *ngIf&#x3D;&quot;field.editMode &amp;&amp; !isEmbedded&quot; [formGroup]&#x3D;&#x27;form&#x27; [ngClass]&#x3D;&quot;getGroupClass()&quot;&gt;
     &lt;label [attr.for]&#x3D;&quot;field.name&quot; *ngIf&#x3D;&quot;field.label&quot;&gt;
       {{field.label}} {{getRequiredLabelStr()}}
@@ -865,6 +866,7 @@ export class VocabFieldLookupService extends BaseService {
     &lt;span *ngIf&#x3D;&quot;field.label&quot; class&#x3D;&quot;key&quot;&gt;{{field.label}}&lt;/span&gt;
     &lt;span class&#x3D;&quot;value&quot;&gt;{{getTitle()}}&lt;/span&gt;
   &lt;/li&gt;
+  &lt;/ng-container&gt;
   &#x60;,
 })
 export class VocabFieldComponent extends SimpleComponent {

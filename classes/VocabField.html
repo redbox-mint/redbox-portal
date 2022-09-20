@@ -6231,6 +6231,7 @@ export class VocabFieldLookupService extends BaseService {
 @Component({
   selector: &#x27;rb-vocab&#x27;,
   template: &#x60;
+  &lt;ng-container *ngIf&#x3D;&quot;field.visible&quot;&gt;
   &lt;div *ngIf&#x3D;&quot;field.editMode &amp;&amp; !isEmbedded&quot; [formGroup]&#x3D;&#x27;form&#x27; [ngClass]&#x3D;&quot;getGroupClass()&quot;&gt;
     &lt;label [attr.for]&#x3D;&quot;field.name&quot; *ngIf&#x3D;&quot;field.label&quot;&gt;
       {{field.label}} {{getRequiredLabelStr()}}
@@ -6260,6 +6261,7 @@ export class VocabFieldLookupService extends BaseService {
     &lt;span *ngIf&#x3D;&quot;field.label&quot; class&#x3D;&quot;key&quot;&gt;{{field.label}}&lt;/span&gt;
     &lt;span class&#x3D;&quot;value&quot;&gt;{{getTitle()}}&lt;/span&gt;
   &lt;/li&gt;
+  &lt;/ng-container&gt;
   &#x60;,
 })
 export class VocabFieldComponent extends SimpleComponent {
