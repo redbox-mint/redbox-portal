@@ -207,7 +207,9 @@ export module Controllers {
           responseRecords.push({
             oid: record.redboxOid,
             title: record.metadata.title,
-            metadata: record.metadata
+            metadata: record.metadata,
+            lastSaveDate: record.lastSaveDate,
+            dateCreated: record.dateCreated
           })
         }
         let response = new ListAPIResponse();
