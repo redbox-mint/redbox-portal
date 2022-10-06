@@ -168,7 +168,7 @@ module.exports.http = {
     },
 
     cacheControl: function(req, res, next) {
-      let sessionTimeoutSeconds = (_.isUndefined(sails.config.session.cookie) || _.isUndefined(sails.config.session.cookie.maxAge) ? 0 : sails.config.session.cookie.maxAge / 1000 );
+      let sessionTimeoutSeconds = (_.isUndefined(sails.config.session.cookie) || _.isUndefined(sails.config.session.cookie.maxAge) ? 31536000 : sails.config.session.cookie.maxAge / 1000 );
       let cacheControlHeaderVal = null;
       let expiresHeaderVal = null;
       if (sessionTimeoutSeconds > 0) {
