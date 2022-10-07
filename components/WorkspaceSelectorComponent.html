@@ -1144,7 +1144,7 @@ export class WorkspaceSelectorComponent extends SimpleComponent {
   template: &#x60;
   &lt;div [formGroup]&#x3D;&#x27;form&#x27; *ngIf&#x3D;&quot;field.editMode&quot; [ngClass]&#x3D;&quot;getGroupClass()&quot;&gt;
     &lt;label [attr.for]&#x3D;&quot;field.name&quot;&gt;
-      {{field.label}} {{ getRequiredLabelStr()}}
+     &lt;span [outerHTML]&#x3D;&quot;field.label&quot;&gt;&lt;/span&gt;&lt;span class&#x3D;&quot;form-field-required-indicator&quot; [innerHTML]&#x3D;&quot;getRequiredLabelStr()&quot;&gt;&lt;/span&gt;
       &lt;button type&#x3D;&quot;button&quot; class&#x3D;&quot;btn btn-default&quot; *ngIf&#x3D;&quot;field.help&quot; (click)&#x3D;&quot;toggleHelp()&quot; [attr.aria-label]&#x3D;&quot;&#x27;help&#x27; | translate &quot;&gt;&lt;span
         class&#x3D;&quot;glyphicon glyphicon-question-sign&quot; aria-hidden&#x3D;&quot;true&quot;&gt;&lt;/span&gt;&lt;/button&gt;
     &lt;/label&gt;
