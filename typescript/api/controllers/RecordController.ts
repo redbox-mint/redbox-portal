@@ -947,13 +947,8 @@ export module Controllers {
       const fieldsToDelete = [];
       const metadata = currentRec.metadata;
       const metaMetadata = currentRec.metaMetadata;
-      _.forEach(fields, (field: any) => {
-        sails.log.error(`_.isEmpty(field.definition.requiredFieldIndicator): ${_.isEmpty(field.definition.requiredFieldIndicator)}`)
-        sails.log.error(`!_.isUndefined(requiredFieldIndicator): ${!_.isUndefined(requiredFieldIndicator)}`)
-        sails.log.error(`_.isUndefined(field.definition.requiredFieldIndicator): ${_.isUndefined(field.definition.requiredFieldIndicator)}`)
+      _.forEach(fields, (field: any) => {   
         if (!_.isUndefined(requiredFieldIndicator) && _.isEmpty(field.definition.requiredFieldIndicator) && _.isUndefined(field.definition.requiredFieldIndicator)) {
-          sails.log.error("REQUIRED FIELD INDICATOR")
-          sails.log.error(requiredFieldIndicator)
           _.set(field,'definition.requiredFieldIndicator',requiredFieldIndicator)
         }
         if (!_.isEmpty(field.definition.name) && !_.isUndefined(field.definition.name)) {
