@@ -47,7 +47,7 @@ export module Services {
    *
    */
   export class Users extends services.Core.Service {
-
+    
     protected _exportedMethods: any = [
       'bootstrap',
       'updateUserRoles',
@@ -586,12 +586,23 @@ export module Services {
       if (!_.isEmpty(user.password)) {
         delete user.password;
       }
-      auditEvent['user'] = user;
+      user.additionalAttributes = this.stringifyObject(user.additionalAttributes)
+      auditEvent['user'] = user
       auditEvent['action'] = action;
-      auditEvent['additionalContext'] = additionalContext;
+      auditEvent['additionalContext'] = this.stringifyObject(additionalContext);
       sails.log.verbose('Adding user audit event');
       sails.log.verbose(auditEvent);
       return super.getObservable(UserAudit.create(auditEvent)).toPromise();
+    }
+
+    stringifyObject(object: any): any {
+      return JSON.stringify(object, function(key, value) {
+        if (typeof value === 'function') {
+          return 'function-property-not-exported'
+        } else {
+          return value;
+        }
+      })
     }
 
     /**
