@@ -16,4 +16,5 @@ export interface StorageService{
 
   createRecordAudit?(record):Promise<any>;
   exists(oid): Promise<boolean>;
+  getRecordAudit(params): Promise<any>;
 }
