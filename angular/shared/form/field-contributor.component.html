@@ -3,7 +3,7 @@
   <div class="row" *ngIf="field.label && field.showHeader">
     <div class="col-xs-12">
       <span class="label-font">
-        {{field.label}} {{getRequiredLabelStr()}}
+       <span [outerHTML]="field.label"></span><span class="form-field-required-indicator" [innerHTML]="getRequiredLabelStr()"></span>
         <button type="button" class="btn btn-default" *ngIf="field.help" (click)="toggleHelp()" [attr.aria-label]="'help' | translate "><span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span></button>
       </span>
     </div>

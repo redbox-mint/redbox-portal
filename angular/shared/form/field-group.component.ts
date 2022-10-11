@@ -84,7 +84,7 @@ Generic component for grouping components together. The resulting JSON will have
     <ng-container *ngIf="field.editMode">
       <div *ngIf="field.label">
         <label>
-          {{field.label}} {{getRequiredLabelStr()}}
+         <span [outerHTML]="field.label"></span><span class="form-field-required-indicator" [innerHTML]="getRequiredLabelStr()"></span>
           <button type="button" class="btn btn-default" *ngIf="field.help" (click)="toggleHelp()" [attr.aria-label]="'help' | translate "><span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span></button>
         </label>
         <span id="{{ 'helpBlock_' + field.name }}" class="help-block" *ngIf="this.helpShow" [innerHtml]="field.help">{{field.help}}</span>
@@ -197,7 +197,7 @@ export class GenericGroupComponent extends EmbeddableComponent {
     <div *ngIf="field.editMode">
       <div *ngIf="field.label">
         <span class="label-font">
-          {{field.label}} {{getRequiredLabelStr()}}
+         <span [outerHTML]="field.label"></span><span class="form-field-required-indicator" [innerHTML]="getRequiredLabelStr()"></span>
           <button type="button" class="btn btn-default" *ngIf="field.help" (click)="toggleHelp()" [attr.aria-label]="'help' | translate "><span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span></button>
         </span>
         <span id="{{ 'helpBlock_' + field.name }}" class="help-block" *ngIf="this.helpShow" [innerHtml]="field.help">{{field.help}}</span>
