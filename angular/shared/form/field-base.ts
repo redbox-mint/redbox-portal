@@ -74,6 +74,7 @@ export class FieldBase<T> {
   defaultSelect: string;
   parentField: any;
   setParentField:boolean;
+  requiredFieldIndicator:string = `(*)`
   /**
    * Flag to indicate there is a potential configuration issue for this field
    */
@@ -112,6 +113,7 @@ export class FieldBase<T> {
     defaultValue?: any,
     selectFor?: string,
     defaultSelect?: string,
+    requiredFieldIndicator?: string
   } = {}) {
     this.value = this.getTranslated(options.value, undefined);
     this.name = options.name || '';
@@ -148,6 +150,9 @@ export class FieldBase<T> {
     }
     this.options = options;
     this.hasControl = true;
+    if(options.requiredFieldIndicator) {
+      this.requiredFieldIndicator = options.requiredFieldIndicator;
+    }
     this.validationMessages = {};
     _.forOwn(options['validationMessages'] || {}, (messageKey, messageName) => {
       this.validationMessages[messageName] = this.getTranslated(messageKey, messageKey);

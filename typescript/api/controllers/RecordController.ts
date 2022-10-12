@@ -398,7 +398,7 @@ export module Controllers {
       let obs = null;
       if (_.isEmpty(oid)) {
         obs = FormsService.getForm(brand.id, name, editMode, true).flatMap(form => {
-          let mergedForm = this.mergeFields(req, res, form.fields, name, {}).then(fields => {
+          let mergedForm = this.mergeFields(req, res, form.fields, form.requiredFieldIndicator, name, {}).then(fields => {
             form.fields = fields;
             return form;
           });
@@ -422,7 +422,7 @@ export module Controllers {
                   if (_.isEmpty(form)) {
                     return Observable.throw(new Error(`Error, getting form ${formName} for OID: ${oid}`));
                   }
-                  let mergedForm = this.mergeFields(req, res, form.fields, currentRec.metaMetadata.type, currentRec).then(fields => {
+                  let mergedForm = this.mergeFields(req, res, form.fields, form.requiredFieldIndicator, currentRec.metaMetadata.type, currentRec).then(fields => {
                     form.fields = fields;
 
                     return form;
@@ -444,7 +444,7 @@ export module Controllers {
                     return Observable.throw(new Error(`Error, getting form ${formName} for OID: ${oid}`));
                   }
                   FormsService.filterFieldsHasEditAccess(form.fields, hasEditAccess);
-                  return this.mergeFields(req, res, form.fields, currentRec.metaMetadata.type, currentRec).then(fields => {
+                  return this.mergeFields(req, res, form.fields, form.requiredFieldIndicator, currentRec.metaMetadata.type, currentRec).then(fields => {
                     form.fields = fields;
 
                     return form;
@@ -935,19 +935,22 @@ export module Controllers {
         });
     }
 
-    protected async mergeFields(req, res, fields, type, currentRec) {
+    protected async mergeFields(req, res, fields, requiredFieldIndicator, type, currentRec) {
 
       let recordType = await RecordTypesService.get(BrandingService.getBrand(req.session.branding), type).toPromise();
       let workflowSteps = await WorkflowStepsService.getAllForRecordType(recordType).toPromise();
-      this.mergeFieldsSync(req, res, fields, currentRec, workflowSteps);
+      this.mergeFieldsSync(req, res, fields,requiredFieldIndicator, currentRec, workflowSteps);
       return fields;
     }
 
-    protected mergeFieldsSync(req, res, fields, currentRec, workflowSteps) {
+    protected mergeFieldsSync(req, res, fields,requiredFieldIndicator, currentRec, workflowSteps) {
       const fieldsToDelete = [];
       const metadata = currentRec.metadata;
       const metaMetadata = currentRec.metaMetadata;
-      _.forEach(fields, (field: any) => {
+      _.forEach(fields, (field: any) => {   
+        if (!_.isUndefined(requiredFieldIndicator) && _.isEmpty(field.definition.requiredFieldIndicator) && _.isUndefined(field.definition.requiredFieldIndicator)) {
+          _.set(field,'definition.requiredFieldIndicator',requiredFieldIndicator)
+        }
         if (!_.isEmpty(field.definition.name) && !_.isUndefined(field.definition.name)) {
           if (_.has(metaMetadata, field.definition.name)) {
             field.definition.value = metaMetadata[field.definition.name];
@@ -997,7 +1000,7 @@ export module Controllers {
           });
         } else
           if (field.definition.fields) {
-            this.mergeFieldsSync(req, res, field.definition.fields, currentRec, workflowSteps);
+            this.mergeFieldsSync(req, res, field.definition.fields, requiredFieldIndicator, currentRec, workflowSteps);
           }
       });
       _.remove(fields, (f) => {
