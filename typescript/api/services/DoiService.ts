@@ -80,19 +80,20 @@ export module Services {
 
           return doi;
         } else {
-         let errorMessage = this.doiResponseErrorMessage(response.status)
-         let customError: RBValidationError = new RBValidationError(errorMessage)
+          let errorMessage = this.doiResponseErrorMessage(response.status)
+          let customError: RBValidationError = new RBValidationError(errorMessage)
+          sails.log.error(errorMessage)
           throw customError
-          sails.log.error(response)
+          
         }
 
       } catch (err) {
         let errorMessage = TranslationService.t(err)
         let customError: RBValidationError = new RBValidationError(errorMessage)
-        throw customError;
         sails.log.error(errorMessage)
+        throw customError;
+      }
     }
-  }
 
     private async makeUpdateDoiCall(instance, postBody, doi) {
 
@@ -107,14 +108,14 @@ export module Services {
         } else {
           let errorMessage = this.doiResponseErrorMessage(response.status)
           let customError: RBValidationError = new RBValidationError(errorMessage)
-          throw customError
           sails.log.error(errorMessage)
-      }
+          throw customError
+        }
       } catch (err) {
         let errorMessage = TranslationService.t(err)
         let customError: RBValidationError = new RBValidationError(errorMessage)
-        throw customError
         sails.log.error(errorMessage)
+        throw customError
       }
     }
 
@@ -138,16 +139,15 @@ export module Services {
 
           let errorMessage = this.doiResponseErrorMessage(response.status)
           let customError: RBValidationError = new RBValidationError(errorMessage)
-          throw customError
           sails.log.error(errorMessage)
-          }
+          throw customError
+        }
 
       } catch (err) {
         let errorMessage = TranslationService.t(err)
         let customError: RBValidationError = new RBValidationError(errorMessage)
-        throw customError
         sails.log.error(errorMessage)
-
+        throw customError
       }
 
       return false;
@@ -180,24 +180,24 @@ export module Services {
 
           let errorMessage = this.doiResponseErrorMessage(response.status)
           let customError: RBValidationError = new RBValidationError(errorMessage)
-          throw customError
           sails.log.error(errorMessage)
-          }
+          throw customError
+        }
 
       } catch (err) {
-          let errorMessage = TranslationService.t(err)
-          let customError: RBValidationError = new RBValidationError(errorMessage)
-          throw customError
-          sails.log.error(errorMessage)
+        let errorMessage = TranslationService.t(err)
+        let customError: RBValidationError = new RBValidationError(errorMessage)
+        sails.log.error(errorMessage)
+        throw customError
       }
 
       return false;
     }
 
-    doiResponseErrorMessage(statusCode){
+    doiResponseErrorMessage(statusCode) {
       let errorMessage = [TranslationService.t('Datacite API error')]
       let message = ''
-      switch(statusCode){
+      switch (statusCode) {
         case 403:
           message = 'not-authorised'
         case 404:
@@ -212,16 +212,31 @@ export module Services {
       errorMessage.push(TranslationService.t(message))
       return errorMessage
     }
-    public async publishDoi(oid, record, event = 'publish', action='create') {
+
+    private processForCodes(forCodes: any[]) {
+      let doiForCodeList = []
+      for (let forCode of forCodes) {
+        doiForCodeList.push({
+          subject: forCode.name,
+          schemeUri: "https://www.abs.gov.au/ausstats/abs@.nsf/0",
+          subjectScheme: "Australian and New Zealand Standard Research Classification (ANZSRC) 2020: Fields of Research (FoR) codes",
+          classificationCode: forCode.notation
+        })
+      }
+      return doiForCodeList;
+    }
+
+    public async publishDoi(oid, record, event = 'publish', action = 'create') {
 
       let doiPrefix = sails.config.datacite.doiPrefix;
       let baseUrl = sails.config.datacite.baseUrl;
-      let citationUrlProperty = sails.config.datacite.citationUrlProperty;
+
       let authenticationStringEncoded = this.getAuthenticationString();
       let lodashTemplateContext = {
         record: record,
         oid: oid,
-        moment: moment
+        moment: moment,
+        processForCodes: this.processForCodes
       };
 
       const instance = axios.create({
@@ -268,8 +283,8 @@ export module Services {
       }
       let title = this.runTemplate(mappings.title, lodashTemplateContext)
 
-      if(!_.isEmpty(title)) {
-        postBody.data.attributes.titles.push({"lang": null, "title": title, "titleType": null})
+      if (!_.isEmpty(title)) {
+        postBody.data.attributes.titles.push({ "lang": null, "title": title, "titleType": null })
       }
 
       let creatorTemplateContext = _.clone(lodashTemplateContext)
@@ -278,32 +293,39 @@ export module Services {
         creatorTemplateContext['creator'] = creator
         let creatorGivenName = this.runTemplate(mappings.creatorGivenName, creatorTemplateContext)
         let creatorFamilyName = this.runTemplate(mappings.creatorFamilyName, creatorTemplateContext)
-        if(!_.isEmpty(creatorFamilyName) && !_.isEmpty(creatorGivenName)) {
-          postBody.data.attributes.creators.push({'nameType': 'Personal','givenName': creatorGivenName,'familyName': creatorFamilyName})
+        let creatorIdentifier = this.runTemplate(mappings.creatorIdentifier, creatorTemplateContext)
+        if (!_.isEmpty(creatorFamilyName) && !_.isEmpty(creatorGivenName)) {
+          postBody.data.attributes.creators.push({
+            'nameType': 'Personal', 'givenName': creatorGivenName, 'familyName': creatorFamilyName, nameIdentifiers: [{
+              schemeUri: "https://orcid.org",
+              nameIdentifier: creatorIdentifier,
+              nameIdentifierScheme: "ORCID"
+            }]
+          })
         }
       }
 
       let dates = mappings.dates
-      if(!_.isEmpty(dates) && _.isArray(dates)){
-        for (var i = 0; i < dates.length; i++ ) {
+      if (!_.isEmpty(dates) && _.isArray(dates)) {
+        for (var i = 0; i < dates.length; i++) {
           let oDate = dates[i]
           let aDate = this.runTemplate(oDate.template, lodashTemplateContext)
-          if(!_.isEmpty(aDate)) {
-            postBody.data.attributes.dates.push({"date": aDate, "dateType": oDate.dateType, "dateInformation": oDate.dateInformation})
+          if (!_.isEmpty(aDate)) {
+            postBody.data.attributes.dates.push({ "date": aDate, "dateType": oDate.dateType, "dateInformation": oDate.dateInformation })
           }
         }
       }
 
       let fundingReferences = mappings.fundingReferences
 
-      if(!_.isEmpty(fundingReferences) && _.isArray(fundingReferences)){
-        for (var i = 0; i < fundingReferences.length; i++ ) {
+      if (!_.isEmpty(fundingReferences) && _.isArray(fundingReferences)) {
+        for (var i = 0; i < fundingReferences.length; i++) {
           let fundingReference = fundingReferences[i]
           let funderName = JSON.parse(this.runTemplate(fundingReference.funderName, lodashTemplateContext))
           let awardTitle = JSON.parse(this.runTemplate(fundingReference.awardTitle, lodashTemplateContext))
-          for (var j = 0; j < funderName.length; j++ ) {
-            if(!_.isEmpty(funderName[j])) {
-              postBody.data.attributes.fundingReferences.push({"funderName": funderName[j], "awardTitle": awardTitle[j]})
+          for (var j = 0; j < funderName.length; j++) {
+            if (!_.isEmpty(funderName[j])) {
+              postBody.data.attributes.fundingReferences.push({ "funderName": funderName[j], "awardTitle": awardTitle[j] })
             }
           }
         }
@@ -311,97 +333,101 @@ export module Services {
 
 
       let descriptions = mappings.descriptions
-      if(!_.isEmpty(descriptions) && _.isArray(descriptions)){
-        for (var i = 0; i < descriptions.length; i++ ) {
+      if (!_.isEmpty(descriptions) && _.isArray(descriptions)) {
+        for (var i = 0; i < descriptions.length; i++) {
           let description = descriptions[i]
           let descriptionType = description.descriptionType
           let allDescriptions = JSON.parse(this.runTemplate(description.template, lodashTemplateContext))
-          for (var j = 0; j < allDescriptions.length; j++ ) {
+          for (var j = 0; j < allDescriptions.length; j++) {
             let aDescription = allDescriptions[j]
-            if(!_.isEmpty(aDescription)) {
-                postBody.data.attributes.descriptions.push({"descriptionType": descriptionType, "description": aDescription})
-              }
+            if (!_.isEmpty(aDescription)) {
+              postBody.data.attributes.descriptions.push({ "descriptionType": descriptionType, "description": aDescription })
             }
           }
         }
+      }
 
       let rightsList = mappings.rightsList
-      if(!_.isEmpty(rightsList) && _.isArray(rightsList)){
-        for (var i = 0; i < rightsList.length; i++ ) {
+      if (!_.isEmpty(rightsList) && _.isArray(rightsList)) {
+        for (var i = 0; i < rightsList.length; i++) {
           let rights = rightsList[i]
           let key = rights.key
           let value = this.runTemplate(rights.template, lodashTemplateContext)
-          if(!_.isEmpty(value)) {
-            postBody.data.attributes.rightsList.push({[key]: value})
+          if (!_.isEmpty(value)) {
+            postBody.data.attributes.rightsList.push({ [key]: value })
           }
         }
       }
 
-      let sizes =  this.runTemplate(mappings.sizes, lodashTemplateContext)
-      if(!_.isEmpty(sizes)){
+      let sizes = this.runTemplate(mappings.sizes, lodashTemplateContext)
+      if (!_.isEmpty(sizes)) {
         sizes = JSON.parse(sizes)
       }
 
-      if(!_.isEmpty(sizes) && _.isArray(sizes)){
-        for (var i = 0; i < sizes.length; i++ ) {
-          if(!_.isEmpty(sizes[i])){
+      if (!_.isEmpty(sizes) && _.isArray(sizes)) {
+        for (var i = 0; i < sizes.length; i++) {
+          if (!_.isEmpty(sizes[i])) {
             postBody.data.attributes.sizes.push(sizes[i])
           }
         }
       }
 
       let identifiers = this.runTemplate(mappings.identifiers, lodashTemplateContext)
-      if(!_.isEmpty(identifiers)){
+      if (!_.isEmpty(identifiers)) {
         identifiers = JSON.parse(identifiers)
       }
 
-      if(!_.isEmpty(identifiers) && _.isArray(identifiers)){
-        for (var i = 0; i < identifiers.length; i++ ) {
-          if(!_.isEmpty(identifiers[i])) {
-            let identifier = {"identifier": identifiers[i], "identifierType": "Other"}
+      if (!_.isEmpty(identifiers) && _.isArray(identifiers)) {
+        for (var i = 0; i < identifiers.length; i++) {
+          if (!_.isEmpty(identifiers[i])) {
+            let identifier = { "identifier": identifiers[i], "identifierType": "Other" }
             postBody.data.attributes.identifiers.push(identifier)
           }
         }
       }
-
-      let subjects = this.runTemplate(mappings.subjects, lodashTemplateContext)
-      if(!_.isEmpty(subjects)){
-        subjects = JSON.parse(subjects)
-      }
-      if(!_.isEmpty(subjects) && _.isArray(subjects)){
-        for (var i = 0; i < subjects.length; i++ ) {
-          if(!_.isEmpty(subjects[i])) {
-            let subject = {"subject": subjects[i]}
-            postBody.data.attributes.subjects.push(subject)
+      for (let subjectTemplate of mappings.subjects) {
+        let subjects = this.runTemplate(subjectTemplate, lodashTemplateContext)
+        if (!_.isEmpty(subjects)) {
+          subjects = JSON.parse(subjects)
+        }
+        if (!_.isEmpty(subjects) && _.isArray(subjects)) {
+          for (var i = 0; i < subjects.length; i++) {
+            if (!_.isEmpty(subjects[i])) {
+              if (typeof (subjects[i]) == 'string') {
+                let subject = { "subject": subjects[i] }
+                postBody.data.attributes.subjects.push(subject)
+              } else {
+                postBody.data.attributes.subjects.push(subjects[i])
+              }
+            }
           }
         }
       }
-
       sails.log.verbose("DOI post body")
       sails.log.verbose(JSON.stringify(postBody))
 
       let postBodyValidateError = []
 
-      if(_.isEmpty(postBody.data.attributes.titles)){
+      if (_.isEmpty(postBody.data.attributes.titles)) {
         postBodyValidateError.push('title-required')
       }
 
-      if(_.isEmpty(postBody.data.attributes.publisher)){
+      if (_.isEmpty(postBody.data.attributes.publisher)) {
         postBodyValidateError.push('publisher-required')
       }
 
-      if(_.isEmpty(postBody.data.attributes.creators)){
+      if (_.isEmpty(postBody.data.attributes.creators)) {
         postBodyValidateError.push('creators-required')
       }
 
-      if(_.isEmpty(postBody.data.attributes.publicationYear)){
+      if (_.isEmpty(postBody.data.attributes.publicationYear)) {
         postBodyValidateError.push('publication-year-required')
       }
-      else if(_.size(postBody.data.attributes.publicationYear) != 4 ||  _. isNaN(postBody.data.attributes.publicationYear)){
+      else if (_.size(postBody.data.attributes.publicationYear) != 4 || _.isNaN(postBody.data.attributes.publicationYear)) {
         postBodyValidateError.push('publication-year-invalid')
       }
 
-      if(_.isEmpty(postBody.data.attributes.url)){
+      if (_.isEmpty(postBody.data.attributes.url)) {
         postBodyValidateError.push('url-required')
       }
       else {
@@ -413,9 +439,9 @@ export module Services {
         }
       }
 
-      if(!_.isEmpty(postBody.data.attributes.dates)){
+      if (!_.isEmpty(postBody.data.attributes.dates)) {
         let dates = postBody.data.attributes.dates
-        for (var i = 0; i < _.size(dates); i++ ) {
+        for (var i = 0; i < _.size(dates); i++) {
           let date = moment(new Date(dates[i].date)).format('YYYY-MM-DD')
           if (!moment(date, 'YYYY-MM-DD', true).isValid()) {
             postBodyValidateError.push('date-invalid')
@@ -423,33 +449,33 @@ export module Services {
         }
       }
 
-      if(_.isEmpty(postBody.data.attributes.types.resourceTypeGeneral)){
+      if (_.isEmpty(postBody.data.attributes.types.resourceTypeGeneral)) {
         postBodyValidateError.push('general-resource-type-required')
       }
 
-      if(action == 'update' && _.isEmpty(record.metadata.citation_doi)){
+      if (action == 'update' && _.isEmpty(record.metadata.citation_doi)) {
         postBodyValidateError.push('doi-required')
       }
 
-      if(action == 'update' && !_.isEmpty(record.metadata.citation_doi) && record.metadata.citation_doi.indexOf(doiPrefix) != 0){
+      if (action == 'update' && !_.isEmpty(record.metadata.citation_doi) && record.metadata.citation_doi.indexOf(doiPrefix) != 0) {
         sails.log.warn(`The citation DOI ${record.metadata.citation_doi} does not begin with the correct prefix ${doiPrefix}. Will not attempt to update`)
         return null;
       }
 
-      if(!_.isEmpty(postBodyValidateError)){
+      if (!_.isEmpty(postBodyValidateError)) {
         let errors = [TranslationService.t('datacite-validation-error')]
-        for (var i = 0; i < _.size(postBodyValidateError); i++ ) {
+        for (var i = 0; i < _.size(postBodyValidateError); i++) {
           errors.push(TranslationService.t(postBodyValidateError[i]))
         }
 
         let errorMessage = errors
         let customError: RBValidationError = new RBValidationError(errorMessage)
-        throw customError
         sails.log.error(customError)
+        throw customError
         return false
       }
       let doi = null
-      if(action == 'update') {
+      if (action == 'update') {
         doi = await this.makeUpdateDoiCall(instance, postBody, record.metadata.citation_doi)
       }
       else {
@@ -466,27 +492,27 @@ export module Services {
       return buff.toString('base64');
     }
 
-    public async publishDoiTrigger(oid, record, options): Promise < any > {
+    public async publishDoiTrigger(oid, record, options): Promise<any> {
 
       if (this.metTriggerCondition(oid, record, options) === "true") {
-          const brand = BrandingService.getBrand('default');
-          let doi = await this.publishDoi(oid, record);
+        const brand = BrandingService.getBrand('default');
+        let doi = await this.publishDoi(oid, record);
 
-        if(doi != null) {
+        if (doi != null) {
           record = this.addDoiDataToRecord(oid, record, doi)
-          RecordsService.updateMeta(brand, oid, record).then(response => {});
+          RecordsService.updateMeta(brand, oid, record).then(response => { });
         }
       }
 
       return Observable.of(null);
     }
 
-    public async publishDoiTriggerSync(oid, record, options): Promise < any > {
+    public async publishDoiTriggerSync(oid, record, options): Promise<any> {
 
       if (this.metTriggerCondition(oid, record, options) === "true") {
         let doi = await this.publishDoi(oid, record, options["event"]);
 
-        if(doi != null) {
+        if (doi != null) {
           record = this.addDoiDataToRecord(oid, record, doi)
         }
         return record;
@@ -494,11 +520,11 @@ export module Services {
       return record;
     }
 
-    public async updateDoiTriggerSync(oid, record, options): Promise < any > {
+    public async updateDoiTriggerSync(oid, record, options): Promise<any> {
 
       let doi = null
       if (this.metTriggerCondition(oid, record, options) === "true") {
-        doi = await this.publishDoi(oid, record, options["event"],'update');
+        doi = await this.publishDoi(oid, record, options["event"], 'update');
       }
       return record
     }
