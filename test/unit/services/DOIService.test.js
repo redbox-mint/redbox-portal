@@ -27,7 +27,7 @@ describe('The DOI Service', function () {
  }
 
   it("Should create a DOI", function (done) {
-    this.timeout(5000);
+    this.timeout(25000);
     sails.services.doiservice.publishDoi(oid, record, 'draft').then(result => {
       sails.log.debug("DOI result: ")
       sails.log.debug(result)
@@ -42,7 +42,7 @@ describe('The DOI Service', function () {
   });
 
   it("Should update a DOI", function (done) {
-    this.timeout(5000);
+    this.timeout(25000);
     record.metadata.citation_doi = createdDoi
     sails.services.doiservice.publishDoi(oid, record, 'draft', 'update').then(result => {
       sails.log.debug("DOI result: ")
@@ -58,7 +58,7 @@ describe('The DOI Service', function () {
 
 
   it("Should delete a DOI", function (done) {
-    this.timeout(5000);
+    this.timeout(25000);
     sails.log.debug("Deleting the created DOI: " + createdDoi)
     sails.services.doiservice.deleteDoi(createdDoi).then(result => {
       expect(result).to.eq(true)
@@ -71,7 +71,7 @@ describe('The DOI Service', function () {
   });
 
    it("Should create a draft DOI", function (done) {
-     this.timeout(5000);
+     this.timeout(25000);
      sails.services.doiservice.publishDoi(oid, record, 'draft').then(result => {
        sails.log.debug("DOI result: ")
        sails.log.debug(result)
@@ -86,7 +86,7 @@ describe('The DOI Service', function () {
    });
 
    it("Should register a DOI", function (done) {
-     this.timeout(5000);
+     this.timeout(25000);
      sails.log.debug("Registering the created DOI: " + createdDoi)
      sails.services.doiservice.changeDoiState(createdDoi,'register').then(result => {
        expect(result).to.eq(true)
@@ -99,7 +99,7 @@ describe('The DOI Service', function () {
    });
 
    it("Should publish a DOI", function (done) {
-     this.timeout(5000);
+     this.timeout(25000);
      sails.log.debug("Publishing the registered DOI: " + createdDoi)
      sails.services.doiservice.changeDoiState(createdDoi,'publish').then(result => {
        expect(result).to.eq(true)
@@ -112,7 +112,7 @@ describe('The DOI Service', function () {
    });
 
    it("Should hide a DOI", function (done) {
-     this.timeout(5000);
+     this.timeout(25000);
      sails.log.debug("Hiding the published DOI: " + createdDoi)
      sails.services.doiservice.changeDoiState(createdDoi,'hide').then(result => {
        expect(result).to.eq(true)
