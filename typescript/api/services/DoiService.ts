@@ -84,7 +84,6 @@ export module Services {
           let customError: RBValidationError = new RBValidationError(errorMessage)
           sails.log.error(errorMessage)
           throw customError
-          
         }
 
       } catch (err) {
@@ -215,13 +214,15 @@ export module Services {
 
     private processForCodes(forCodes: any[]) {
       let doiForCodeList = []
-      for (let forCode of forCodes) {
-        doiForCodeList.push({
-          subject: forCode.name,
-          schemeUri: "https://www.abs.gov.au/ausstats/abs@.nsf/0",
-          subjectScheme: "Australian and New Zealand Standard Research Classification (ANZSRC) 2020: Fields of Research (FoR) codes",
-          classificationCode: forCode.notation
-        })
+      if (!_.isUndefined(forCodes)) {
+        for (let forCode of forCodes) {
+          doiForCodeList.push({
+            subject: forCode.name,
+            schemeUri: "https://www.abs.gov.au/ausstats/abs@.nsf/0",
+            subjectScheme: "Australian and New Zealand Standard Research Classification (ANZSRC) 2020: Fields of Research (FoR) codes",
+            classificationCode: forCode.notation
+          })
+        }
       }
       return doiForCodeList;
     }
@@ -281,6 +282,7 @@ export module Services {
           }
         }
       }
+
       let title = this.runTemplate(mappings.title, lodashTemplateContext)
 
       if (!_.isEmpty(title)) {
@@ -371,7 +373,7 @@ export module Services {
           }
         }
       }
-
+=
       let identifiers = this.runTemplate(mappings.identifiers, lodashTemplateContext)
       if (!_.isEmpty(identifiers)) {
         identifiers = JSON.parse(identifiers)
@@ -385,14 +387,18 @@ export module Services {
           }
         }
       }
+
       for (let subjectTemplate of mappings.subjects) {
+
         let subjects = this.runTemplate(subjectTemplate, lodashTemplateContext)
         if (!_.isEmpty(subjects)) {
           subjects = JSON.parse(subjects)
         }
+
         if (!_.isEmpty(subjects) && _.isArray(subjects)) {
           for (var i = 0; i < subjects.length; i++) {
             if (!_.isEmpty(subjects[i])) {
+
               if (typeof (subjects[i]) == 'string') {
                 let subject = { "subject": subjects[i] }
                 postBody.data.attributes.subjects.push(subject)
@@ -403,6 +409,7 @@ export module Services {
           }
         }
       }
+
       sails.log.verbose("DOI post body")
       sails.log.verbose(JSON.stringify(postBody))
 
@@ -475,6 +482,7 @@ export module Services {
         return false
       }
       let doi = null
+
       if (action == 'update') {
         doi = await this.makeUpdateDoiCall(instance, postBody, record.metadata.citation_doi)
       }
