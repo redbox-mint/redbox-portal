@@ -70,7 +70,7 @@ export class VocabField extends FieldBase<any> {
 
   @Output() onItemSelect: EventEmitter<any> = new EventEmitter<any>();
 
-  constructor(options: any, injector: any  ) {
+  constructor(options: any, injector: any) {
     super(options, injector);
     this.clName = 'VocabField';
     this.hasLookup = true;
@@ -87,7 +87,7 @@ export class VocabField extends FieldBase<any> {
     this.placeHolder = this.translationService.t(this.placeHolder);
     this.disableEditAfterSelect = options['disableEditAfterSelect'] == undefined ? true : options['disableEditAfterSelect'];
     this.stringLabelToField = options['stringLabelToField'] ? options['stringLabelToField'] : 'dc_title';
-    this.restrictToSelection = _.isUndefined(options['restrictToSelection']) ? false : options['restrictToSelection'];
+    this.restrictToSelection = _.isUndefined(options['restrictToSelection']) ? (_.isUndefined(options['forceLookup']) ? false : options['forceLookup']) : options['restrictToSelection'];
     this.storeLabelOnly = options['storeLabelOnly'] ? options['storeLabelOnly'] : false;
     this.provider = options['provider'] ? options['provider'] : '';
     this.resultArrayProperty = options['resultArrayProperty'] ? options['resultArrayProperty'] : '';
@@ -113,16 +113,16 @@ export class VocabField extends FieldBase<any> {
       this.formModel = new FormControl(this.value || '');
     }
     if (this.value) {
-      if(!_.isString(this.value)) {
-      const init = _.cloneDeep(this.value);
-      init.title = this.getTitle(this.value);
-      this.initialValue = init;
-    } else {
-      let init = {};
-      init['title'] = this.value;
-      init[this.stringLabelToField] = this.value;
-      this.initialValue = init;
-    }
+      if (!_.isString(this.value)) {
+        const init = _.cloneDeep(this.value);
+        init.title = this.getTitle(this.value);
+        this.initialValue = init;
+      } else {
+        let init = {};
+        init['title'] = this.value;
+        init[this.stringLabelToField] = this.value;
+        this.initialValue = init;
+      }
 
     }
 
@@ -136,7 +136,7 @@ export class VocabField extends FieldBase<any> {
     let selected = {};
     selected['originalObject'] = eventData;
     this.component.onSelect(selected, false, true);
-    super.reactEvent(eventName,eventData,origData);    
+    super.reactEvent(eventName, eventData, origData);
   }
 
   postInit(value: any) {
@@ -213,7 +213,7 @@ export class VocabField extends FieldBase<any> {
   public getTitle(data: any): string {
     let title = '';
     if (data) {
-      if(_.isString(data)) {
+      if (_.isString(data)) {
         return data;
       }
       if (_.isString(this.titleFieldDelim)) {
@@ -250,13 +250,13 @@ export class VocabField extends FieldBase<any> {
         return valObj;
       }
 
-        _.forEach(this.fieldNames, (fldName: any) => {
-          if (data.originalObject) {
-            this.getFieldValuePair(fldName, data.originalObject, valObj)
-          } else {
-            this.getFieldValuePair(fldName, data, valObj)
-          }
-        });
+      _.forEach(this.fieldNames, (fldName: any) => {
+        if (data.originalObject) {
+          this.getFieldValuePair(fldName, data.originalObject, valObj)
+        } else {
+          this.getFieldValuePair(fldName, data, valObj)
+        }
+      });
 
     }
     return valObj;
@@ -295,67 +295,67 @@ export class VocabField extends FieldBase<any> {
 
 class ExternalLookupDataService extends Subject<CompleterItem[]> implements CompleterData {
 
-    constructor(private url: string,
-      private http: Http,
-      private arrayProperty: string,
-      private compositeTitleName: string,
-      private titleFieldArr: string[],
-      private titleFieldDelim: string) {
-      super();
+  constructor(private url: string,
+    private http: Http,
+    private arrayProperty: string,
+    private compositeTitleName: string,
+    private titleFieldArr: string[],
+    private titleFieldDelim: string) {
+    super();
+  }
+
+  public search(term: string): void {
+
+    this.http.post(this.url, { options: { query: term } }).map((res: any, index: number) => {
+      // Convert the result to CompleterItem[]
+      let data = res.json();
+      let itemArray = _.get(data, this.arrayProperty);
+      let matches: CompleterItem[] = [];
+      _.each(itemArray, item => {
+        matches.push(this.convertToItem(item));
+      })
+
+      this.next(matches);
+    }).subscribe();
+  }
+
+  public cancel() {
+    // Handle cancel
+  }
+
+  public convertToItem(data: any): CompleterItem | null {
+    if (!data) {
+      return null;
     }
+    let completerItem = {};
+    completerItem[this.compositeTitleName] = this.getTitle(data);
+    completerItem['originalObject'] = data;
+    return completerItem as CompleterItem;
+  }
 
-    public search(term: string): void {
-
-      this.http.post(this.url,{options:{query: term}}).map((res: any, index: number) => {
-        // Convert the result to CompleterItem[]
-        let data = res.json();
-        let itemArray = _.get(data, this.arrayProperty);
-        let matches: CompleterItem[] = [];
-        _.each(itemArray, item => {
-          matches.push(this.convertToItem(item));
-        })
-
-        this.next(matches);
-      }).subscribe();
-    }
-
-    public cancel() {
-      // Handle cancel
-    }
-
-    public convertToItem(data: any): CompleterItem | null {
-      if (!data) {
-        return null;
+  getTitle(data: any): string {
+    let title = '';
+    if (data) {
+      if (_.isString(this.titleFieldDelim)) {
+        _.forEach(this.titleFieldArr, (titleFld: string) => {
+          const titleVal = _.get(data, titleFld);
+          if (titleVal) {
+            title = `${title}${_.isEmpty(title) ? '' : this.titleFieldDelim}${titleVal}`;
+          }
+        });
+      } else {
+        // // expecting a delim pair array, 'prefix', 'suffix'
+        // _.forEach(this.titleFieldArr, (titleFld: string, idx) => {
+        //   const delimPair = this.titleFieldDelim[idx];
+        //   const titleVal = data[titleFld];
+        //   if (titleVal) {
+        //     title = `${title} ${titleVal}`;
+        //   }
+        // });
       }
-      let completerItem = {};
-      completerItem[this.compositeTitleName] = this.getTitle(data);
-      completerItem['originalObject'] = data;
-      return completerItem as CompleterItem;
     }
-
-    getTitle(data: any): string {
-      let title = '';
-      if (data) {
-        if (_.isString(this.titleFieldDelim)) {
-          _.forEach(this.titleFieldArr, (titleFld: string) => {
-            const titleVal = _.get(data, titleFld);
-            if (titleVal) {
-              title = `${title}${_.isEmpty(title) ? '' : this.titleFieldDelim}${titleVal}`;
-            }
-          });
-        } else {
-          // // expecting a delim pair array, 'prefix', 'suffix'
-          // _.forEach(this.titleFieldArr, (titleFld: string, idx) => {
-          //   const delimPair = this.titleFieldDelim[idx];
-          //   const titleVal = data[titleFld];
-          //   if (titleVal) {
-          //     title = `${title} ${titleVal}`;
-          //   }
-          // });
-        }
-      }
-      return title;
-    }
+    return title;
+  }
 
 }
 class MintLookupDataService extends Subject<CompleterItem[]> implements CompleterData {
@@ -401,7 +401,7 @@ class MintLookupDataService extends Subject<CompleterItem[]> implements Complete
     if (!data) {
       return null;
     }
-    const item:any = {};
+    const item: any = {};
     _.forEach(this.fields, (fieldName) => {
       if (_.isString(fieldName)) {
         item[fieldName] = data[fieldName];
@@ -427,11 +427,11 @@ class MintLookupDataService extends Subject<CompleterItem[]> implements Complete
   getCompleterDescription(data: any): string {
     let description = '';
     const fieldDesc = this.titleCompleterDescription;
-    if(data) {
+    if (data) {
       if (_.isString(fieldDesc)) {
         const ele = data[fieldDesc];
         description = _.toString(_.head(ele)) || '';
-      } else if (_.isArray(fieldDesc)){
+      } else if (_.isArray(fieldDesc)) {
         // enable descriptions to be built as an array
         _.forEach(fieldDesc, (fDesc: any) => {
           description = `${description}${_.isEmpty(description) ? '' : this.titleFieldDelim}${data[fDesc]}`
@@ -510,7 +510,7 @@ export class VocabFieldLookupService extends BaseService {
     return `${this.brandingAndPortalUrl}/external/vocab/${provider}`;
   }
 
-  
+
 }
 
 @Component({
@@ -574,17 +574,17 @@ export class VocabFieldComponent extends SimpleComponent {
   }
 
   public getGroupClass(fldName: string = null): string {
-    if(this.isEmbedded) {
+    if (this.isEmbedded) {
       return `col-xs-12 form-group ${this.hasRequiredError() ? 'has-error' : ''}`;
     } else {
-      if(!_.isEmpty(this.field.groupClasses)) {
+      if (!_.isEmpty(this.field.groupClasses)) {
         return this.field.groupClasses
       }
-      return '' ;
+      return '';
     }
   }
 
-  
+
 
   onSelect(selected: any, emitEvent: boolean = true, updateTitle: boolean = false) {
     console.log(`On select:`);
@@ -600,7 +600,7 @@ export class VocabFieldComponent extends SimpleComponent {
         // set the flag after initial call
         this.loaded = true;
       }
-      if(this.field.storeLabelOnly){
+      if (this.field.storeLabelOnly) {
         this.field.setValue(this.field.getValue(selected.title), emitEvent, updateTitle);
       } else {
         this.field.setValue(this.field.getValue(selected['originalObject']), emitEvent, updateTitle);
@@ -649,16 +649,16 @@ export class MintRelationshipLookup {
   http: Http;
 
   constructor(private url: string, http: Http, searchFieldStr: string) {
-      this.http = http;
-      this.searchFieldStr = searchFieldStr;
+    this.http = http;
+    this.searchFieldStr = searchFieldStr;
   }
 
   search(term, lower) {
     term = _.trim(luceneEscapeQuery.escape(term));
     let searchString = '';
     if (!_.isEmpty(term)) {
-      if(lower) term = _.toLower(term);
-      if(_.isEmpty(this.searchFieldStr)) {
+      if (lower) term = _.toLower(term);
+      if (_.isEmpty(this.searchFieldStr)) {
         searchString = term;
       } else {
         _.forEach(this.searchFieldStr.split(','), (searchFld) => {
