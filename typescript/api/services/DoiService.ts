@@ -373,7 +373,7 @@ export module Services {
           }
         }
       }
-=
+
       let identifiers = this.runTemplate(mappings.identifiers, lodashTemplateContext)
       if (!_.isEmpty(identifiers)) {
         identifiers = JSON.parse(identifiers)
