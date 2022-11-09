@@ -1688,7 +1688,7 @@ export class VocabField extends FieldBase&lt;any&gt; {
 
   @Output() onItemSelect: EventEmitter&lt;any&gt; &#x3D; new EventEmitter&lt;any&gt;();
 
-  constructor(options: any, injector: any  ) {
+  constructor(options: any, injector: any) {
     super(options, injector);
     this.clName &#x3D; &#x27;VocabField&#x27;;
     this.hasLookup &#x3D; true;
@@ -1705,7 +1705,7 @@ export class VocabField extends FieldBase&lt;any&gt; {
     this.placeHolder &#x3D; this.translationService.t(this.placeHolder);
     this.disableEditAfterSelect &#x3D; options[&#x27;disableEditAfterSelect&#x27;] &#x3D;&#x3D; undefined ? true : options[&#x27;disableEditAfterSelect&#x27;];
     this.stringLabelToField &#x3D; options[&#x27;stringLabelToField&#x27;] ? options[&#x27;stringLabelToField&#x27;] : &#x27;dc_title&#x27;;
-    this.restrictToSelection &#x3D; _.isUndefined(options[&#x27;restrictToSelection&#x27;]) ? false : options[&#x27;restrictToSelection&#x27;];
+    this.restrictToSelection &#x3D; _.isUndefined(options[&#x27;restrictToSelection&#x27;]) ? (_.isUndefined(options[&#x27;forceLookupOnly&#x27;]) ? false : options[&#x27;forceLookupOnly&#x27;]) : options[&#x27;restrictToSelection&#x27;];
     this.storeLabelOnly &#x3D; options[&#x27;storeLabelOnly&#x27;] ? options[&#x27;storeLabelOnly&#x27;] : false;
     this.provider &#x3D; options[&#x27;provider&#x27;] ? options[&#x27;provider&#x27;] : &#x27;&#x27;;
     this.resultArrayProperty &#x3D; options[&#x27;resultArrayProperty&#x27;] ? options[&#x27;resultArrayProperty&#x27;] : &#x27;&#x27;;
@@ -1731,16 +1731,16 @@ export class VocabField extends FieldBase&lt;any&gt; {
       this.formModel &#x3D; new FormControl(this.value || &#x27;&#x27;);
     }
     if (this.value) {
-      if(!_.isString(this.value)) {
-      const init &#x3D; _.cloneDeep(this.value);
-      init.title &#x3D; this.getTitle(this.value);
-      this.initialValue &#x3D; init;
-    } else {
-      let init &#x3D; {};
-      init[&#x27;title&#x27;] &#x3D; this.value;
-      init[this.stringLabelToField] &#x3D; this.value;
-      this.initialValue &#x3D; init;
-    }
+      if (!_.isString(this.value)) {
+        const init &#x3D; _.cloneDeep(this.value);
+        init.title &#x3D; this.getTitle(this.value);
+        this.initialValue &#x3D; init;
+      } else {
+        let init &#x3D; {};
+        init[&#x27;title&#x27;] &#x3D; this.value;
+        init[this.stringLabelToField] &#x3D; this.value;
+        this.initialValue &#x3D; init;
+      }
 
     }
 
@@ -1754,7 +1754,7 @@ export class VocabField extends FieldBase&lt;any&gt; {
     let selected &#x3D; {};
     selected[&#x27;originalObject&#x27;] &#x3D; eventData;
     this.component.onSelect(selected, false, true);
-    super.reactEvent(eventName,eventData,origData);    
+    super.reactEvent(eventName, eventData, origData);
   }
 
   postInit(value: any) {
@@ -1831,7 +1831,7 @@ export class VocabField extends FieldBase&lt;any&gt; {
   public getTitle(data: any): string {
     let title &#x3D; &#x27;&#x27;;
     if (data) {
-      if(_.isString(data)) {
+      if (_.isString(data)) {
         return data;
       }
       if (_.isString(this.titleFieldDelim)) {
@@ -1868,13 +1868,13 @@ export class VocabField extends FieldBase&lt;any&gt; {
         return valObj;
       }
 
-        _.forEach(this.fieldNames, (fldName: any) &#x3D;&gt; {
-          if (data.originalObject) {
-            this.getFieldValuePair(fldName, data.originalObject, valObj)
-          } else {
-            this.getFieldValuePair(fldName, data, valObj)
-          }
-        });
+      _.forEach(this.fieldNames, (fldName: any) &#x3D;&gt; {
+        if (data.originalObject) {
+          this.getFieldValuePair(fldName, data.originalObject, valObj)
+        } else {
+          this.getFieldValuePair(fldName, data, valObj)
+        }
+      });
 
     }
     return valObj;
@@ -1913,67 +1913,67 @@ export class VocabField extends FieldBase&lt;any&gt; {
 
 class ExternalLookupDataService extends Subject&lt;CompleterItem[]&gt; implements CompleterData {
 
-    constructor(private url: string,
-      private http: Http,
-      private arrayProperty: string,
-      private compositeTitleName: string,
-      private titleFieldArr: string[],
-      private titleFieldDelim: string) {
-      super();
+  constructor(private url: string,
+    private http: Http,
+    private arrayProperty: string,
+    private compositeTitleName: string,
+    private titleFieldArr: string[],
+    private titleFieldDelim: string) {
+    super();
+  }
+
+  public search(term: string): void {
+
+    this.http.post(this.url, { options: { query: term } }).map((res: any, index: number) &#x3D;&gt; {
+      // Convert the result to CompleterItem[]
+      let data &#x3D; res.json();
+      let itemArray &#x3D; _.get(data, this.arrayProperty);
+      let matches: CompleterItem[] &#x3D; [];
+      _.each(itemArray, item &#x3D;&gt; {
+        matches.push(this.convertToItem(item));
+      })
+
+      this.next(matches);
+    }).subscribe();
+  }
+
+  public cancel() {
+    // Handle cancel
+  }
+
+  public convertToItem(data: any): CompleterItem | null {
+    if (!data) {
+      return null;
     }
+    let completerItem &#x3D; {};
+    completerItem[this.compositeTitleName] &#x3D; this.getTitle(data);
+    completerItem[&#x27;originalObject&#x27;] &#x3D; data;
+    return completerItem as CompleterItem;
+  }
 
-    public search(term: string): void {
-
-      this.http.post(this.url,{options:{query: term}}).map((res: any, index: number) &#x3D;&gt; {
-        // Convert the result to CompleterItem[]
-        let data &#x3D; res.json();
-        let itemArray &#x3D; _.get(data, this.arrayProperty);
-        let matches: CompleterItem[] &#x3D; [];
-        _.each(itemArray, item &#x3D;&gt; {
-          matches.push(this.convertToItem(item));
-        })
-
-        this.next(matches);
-      }).subscribe();
-    }
-
-    public cancel() {
-      // Handle cancel
-    }
-
-    public convertToItem(data: any): CompleterItem | null {
-      if (!data) {
-        return null;
+  getTitle(data: any): string {
+    let title &#x3D; &#x27;&#x27;;
+    if (data) {
+      if (_.isString(this.titleFieldDelim)) {
+        _.forEach(this.titleFieldArr, (titleFld: string) &#x3D;&gt; {
+          const titleVal &#x3D; _.get(data, titleFld);
+          if (titleVal) {
+            title &#x3D; &#x60;${title}${_.isEmpty(title) ? &#x27;&#x27; : this.titleFieldDelim}${titleVal}&#x60;;
+          }
+        });
+      } else {
+        // // expecting a delim pair array, &#x27;prefix&#x27;, &#x27;suffix&#x27;
+        // _.forEach(this.titleFieldArr, (titleFld: string, idx) &#x3D;&gt; {
+        //   const delimPair &#x3D; this.titleFieldDelim[idx];
+        //   const titleVal &#x3D; data[titleFld];
+        //   if (titleVal) {
+        //     title &#x3D; &#x60;${title} ${titleVal}&#x60;;
+        //   }
+        // });
       }
-      let completerItem &#x3D; {};
-      completerItem[this.compositeTitleName] &#x3D; this.getTitle(data);
-      completerItem[&#x27;originalObject&#x27;] &#x3D; data;
-      return completerItem as CompleterItem;
     }
-
-    getTitle(data: any): string {
-      let title &#x3D; &#x27;&#x27;;
-      if (data) {
-        if (_.isString(this.titleFieldDelim)) {
-          _.forEach(this.titleFieldArr, (titleFld: string) &#x3D;&gt; {
-            const titleVal &#x3D; _.get(data, titleFld);
-            if (titleVal) {
-              title &#x3D; &#x60;${title}${_.isEmpty(title) ? &#x27;&#x27; : this.titleFieldDelim}${titleVal}&#x60;;
-            }
-          });
-        } else {
-          // // expecting a delim pair array, &#x27;prefix&#x27;, &#x27;suffix&#x27;
-          // _.forEach(this.titleFieldArr, (titleFld: string, idx) &#x3D;&gt; {
-          //   const delimPair &#x3D; this.titleFieldDelim[idx];
-          //   const titleVal &#x3D; data[titleFld];
-          //   if (titleVal) {
-          //     title &#x3D; &#x60;${title} ${titleVal}&#x60;;
-          //   }
-          // });
-        }
-      }
-      return title;
-    }
+    return title;
+  }
 
 }
 class MintLookupDataService extends Subject&lt;CompleterItem[]&gt; implements CompleterData {
@@ -2019,7 +2019,7 @@ class MintLookupDataService extends Subject&lt;CompleterItem[]&gt; implements Co
     if (!data) {
       return null;
     }
-    const item:any &#x3D; {};
+    const item: any &#x3D; {};
     _.forEach(this.fields, (fieldName) &#x3D;&gt; {
       if (_.isString(fieldName)) {
         item[fieldName] &#x3D; data[fieldName];
@@ -2045,11 +2045,11 @@ class MintLookupDataService extends Subject&lt;CompleterItem[]&gt; implements Co
   getCompleterDescription(data: any): string {
     let description &#x3D; &#x27;&#x27;;
     const fieldDesc &#x3D; this.titleCompleterDescription;
-    if(data) {
+    if (data) {
       if (_.isString(fieldDesc)) {
         const ele &#x3D; data[fieldDesc];
         description &#x3D; _.toString(_.head(ele)) || &#x27;&#x27;;
-      } else if (_.isArray(fieldDesc)){
+      } else if (_.isArray(fieldDesc)) {
         // enable descriptions to be built as an array
         _.forEach(fieldDesc, (fDesc: any) &#x3D;&gt; {
           description &#x3D; &#x60;${description}${_.isEmpty(description) ? &#x27;&#x27; : this.titleFieldDelim}${data[fDesc]}&#x60;
@@ -2128,7 +2128,7 @@ export class VocabFieldLookupService extends BaseService {
     return &#x60;${this.brandingAndPortalUrl}/external/vocab/${provider}&#x60;;
   }
 
-  
+
 }
 
 @Component({
@@ -2192,17 +2192,17 @@ export class VocabFieldComponent extends SimpleComponent {
   }
 
   public getGroupClass(fldName: string &#x3D; null): string {
-    if(this.isEmbedded) {
+    if (this.isEmbedded) {
       return &#x60;col-xs-12 form-group ${this.hasRequiredError() ? &#x27;has-error&#x27; : &#x27;&#x27;}&#x60;;
     } else {
-      if(!_.isEmpty(this.field.groupClasses)) {
+      if (!_.isEmpty(this.field.groupClasses)) {
         return this.field.groupClasses
       }
-      return &#x27;&#x27; ;
+      return &#x27;&#x27;;
     }
   }
 
-  
+
 
   onSelect(selected: any, emitEvent: boolean &#x3D; true, updateTitle: boolean &#x3D; false) {
     console.log(&#x60;On select:&#x60;);
@@ -2218,7 +2218,7 @@ export class VocabFieldComponent extends SimpleComponent {
         // set the flag after initial call
         this.loaded &#x3D; true;
       }
-      if(this.field.storeLabelOnly){
+      if (this.field.storeLabelOnly) {
         this.field.setValue(this.field.getValue(selected.title), emitEvent, updateTitle);
       } else {
         this.field.setValue(this.field.getValue(selected[&#x27;originalObject&#x27;]), emitEvent, updateTitle);
@@ -2267,16 +2267,16 @@ export class MintRelationshipLookup {
   http: Http;
 
   constructor(private url: string, http: Http, searchFieldStr: string) {
-      this.http &#x3D; http;
-      this.searchFieldStr &#x3D; searchFieldStr;
+    this.http &#x3D; http;
+    this.searchFieldStr &#x3D; searchFieldStr;
   }
 
   search(term, lower) {
     term &#x3D; _.trim(luceneEscapeQuery.escape(term));
     let searchString &#x3D; &#x27;&#x27;;
     if (!_.isEmpty(term)) {
-      if(lower) term &#x3D; _.toLower(term);
-      if(_.isEmpty(this.searchFieldStr)) {
+      if (lower) term &#x3D; _.toLower(term);
+      if (_.isEmpty(this.searchFieldStr)) {
         searchString &#x3D; term;
       } else {
         _.forEach(this.searchFieldStr.split(&#x27;,&#x27;), (searchFld) &#x3D;&gt; {
