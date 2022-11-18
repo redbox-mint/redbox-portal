@@ -24,7 +24,7 @@ import {FormControl, FormGroup, Validators} from '@angular/forms';
 import * as _ from "lodash";
 import { VocabField } from './field-vocab.component';
 import { Observable} from 'rxjs/Rx';
-import { CustomValidationHandler } from './custom-validation-handler';
+import { CustomValidationHandlerField } from './custom-validation-handler';
 
 /**
  * Contributor Model
@@ -38,7 +38,7 @@ const KEY_EN = 13;
 const KEY_LEFT = 37;
 const KEY_RIGHT = 39;
 
-export class ContributorField extends FieldBase<any> implements CustomValidationHandler {
+export class ContributorField extends FieldBase<any> implements CustomValidationHandlerField {
   nameColHdr: string;
   emailColHdr: string;
   roleColHdr: string;
