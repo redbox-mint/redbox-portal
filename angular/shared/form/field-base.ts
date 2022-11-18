@@ -509,8 +509,7 @@ export class FieldBase<T> {
       } else {
         if (!that.visible) {
           // restore validators
-          if (that.formModel) {
-            if (that.formModel) {
+          if (that.formModel) {       
               if(that['enableValidators'] != null && typeof(that['enableValidators']) == 'function') {
                 that['enableValidators']();
               } else {
