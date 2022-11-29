@@ -18,10 +18,15 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 import { map, firstValueFrom } from 'rxjs';
-import { Injectable } from '@angular/core';
+import { Inject, Injectable } from '@angular/core';
 import * as _ from "lodash";
+import { HttpClient } from '@angular/common/http';
+import { APP_BASE_HREF } from '@angular/common';
 
+import { ConfigService } from './config.service';
+import { UtilityService } from './utility.service';
 import { HttpClientService } from './httpClient.service';
+
 
 export interface User {
   id: string;
@@ -53,6 +58,14 @@ export class UserService extends HttpClientService {
   protected infoUrl: string = "";
   protected loginUrl: string = "";
 
+  constructor( 
+    @Inject(HttpClient) protected override http: any, 
+    @Inject(APP_BASE_HREF) public override rootContext: string,
+    @Inject(UtilityService) protected override utilService: UtilityService,
+    @Inject(ConfigService) protected override configService: ConfigService
+  ) {
+    super(http, rootContext, utilService, configService);
+  }
   public getInfo(): Promise<User> {
     const req = this.http.get(this.infoUrl, {responseType: 'json', observe: 'body'});
     req.pipe(

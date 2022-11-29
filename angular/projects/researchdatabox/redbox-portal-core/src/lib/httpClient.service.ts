@@ -43,8 +43,8 @@ export class HttpClientService implements Service {
   constructor( 
   @Inject(HttpClient) protected http: any, 
   @Inject(APP_BASE_HREF) public rootContext: string,
-  @Inject(UtilityService) private utilService: UtilityService,
-  @Inject(ConfigService) private configService: ConfigService
+  @Inject(UtilityService) protected utilService: UtilityService,
+  @Inject(ConfigService) protected configService: ConfigService
   ) {
     this.initSubject = new Subject();
     if (_.isEmpty(this.rootContext)) {

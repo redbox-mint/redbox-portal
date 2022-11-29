@@ -16,8 +16,8 @@
 // You should have received a copy of the GNU General Public License along
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-import { Inject, Injectable, HttpRequest, HttpHandler } from '@angular/core';
-import { HttpInterceptor } from '@angular/common/http';
+import { Inject, Injectable } from '@angular/core';
+import { HttpInterceptor, HttpRequest, HttpHandler } from '@angular/common/http';
 import * as _ from "lodash";
 
 import { ConfigService } from './config.service';
