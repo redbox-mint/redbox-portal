@@ -18,7 +18,10 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 import { Observable } from 'rxjs/Rx';
-import {Services as services}   from '@researchdatabox/redbox-core-types';
+import {
+  Services as services,
+  RBValidationError
+}   from '@researchdatabox/redbox-core-types';
 import { Sails, Model } from "sails";
 
 declare var sails: Sails;
@@ -27,6 +30,7 @@ declare var _this;
 declare var _;
 declare var User;
 declare var RecordsService;
+declare var TranslationService;
 
 export module Services {
   /**
@@ -39,7 +43,8 @@ export module Services {
 
     protected _exportedMethods: any = [
       'transitionWorkflow',
-      'runHooksSync'
+      'runHooksSync',
+      'validateFieldUsingRegex'
     ];
 
     /**
@@ -121,7 +126,59 @@ export module Services {
       }
     }
 
+    private validateRegex(data, regexPattern, fieldLanguageCode, errorMessageCode) {
+      let re = new RegExp(regexPattern,'i');
+      let reTest = re.test(data.toString());
+      sails.log.error('validateFieldUsingRegex reTest '+reTest);
+      if(!reTest) {
+        let customError: RBValidationError;
+        if(!_.isUndefined(fieldLanguageCode)) {
+          let fieldName = TranslationService.t(fieldLanguageCode);
+          let baseErrorMessage = TranslationService.t(errorMessageCode);
+          customError = new RBValidationError(fieldName + ' '+ baseErrorMessage);
+        } else {
+          let baseErrorMessage = TranslationService.t(errorMessageCode);
+          customError = new RBValidationError(baseErrorMessage);
+        }
+        throw customError;
+      }
+    }
 
+    public validateFieldUsingRegex(oid, record, options) {
+      
+      let fieldDBName = _.get(options,'fieldDBName');
+      let fieldLanguageCode = _.get(options,'fieldLanguageCode');
+      let errorMessageCode = _.get(options,'errorLanguageCode');
+      let regexPattern = _.get(options,'regexPattern');
+      let arrayObjFieldDBName = _.get(options,'arrayObjFieldDBName');
+      let data = _.get(record, fieldDBName);
+
+      if(_.isArray(data) && !_.isUndefined(arrayObjFieldDBName)) {  
+
+        sails.log.error(`validateFieldUsingRegex is array ${fieldDBName} `+JSON.stringify(data));
+        sails.log.error('validateFieldUsingRegex is array regexPattern '+regexPattern);
+        for(let row of data) {
+
+          let objField = _.get(row, arrayObjFieldDBName);
+
+          if(!_.isUndefined(objField) && objField != null && objField != '' && !_.isUndefined(regexPattern) && !_.isUndefined(errorMessageCode) ) {
+
+            this.validateRegex(objField, regexPattern, fieldLanguageCode, errorMessageCode);
+          }
+        }
+
+      } else {
+
+        sails.log.error(`validateFieldUsingRegex ${fieldDBName} `+data);
+        sails.log.error('validateFieldUsingRegex regexPattern '+regexPattern);
+        if(!_.isUndefined(data) && data != null && data != '' &&  !_.isUndefined(regexPattern) && !_.isUndefined(errorMessageCode) ) {
+
+          this.validateRegex(data, regexPattern, fieldLanguageCode, errorMessageCode);
+        }
+      }
+
+      return Observable.of(record);
+    }
 
   }
 }
