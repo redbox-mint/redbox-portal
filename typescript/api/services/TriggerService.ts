@@ -145,18 +145,20 @@ export module Services {
     }
 
     public validateFieldUsingRegex(oid, record, options) {
-      
+      //mandatory
       let fieldDBName = _.get(options,'fieldDBName');
-      let fieldLanguageCode = _.get(options,'fieldLanguageCode');
       let errorMessageCode = _.get(options,'errorLanguageCode');
       let regexPattern = _.get(options,'regexPattern');
+      //optional
+      let fieldLanguageCode = _.get(options,'fieldLanguageCode');
       let arrayObjFieldDBName = _.get(options,'arrayObjFieldDBName');
+      
       let data = _.get(record, fieldDBName);
 
       if(_.isArray(data) && !_.isUndefined(arrayObjFieldDBName)) {  
 
-        sails.log.error(`validateFieldUsingRegex is array ${fieldDBName} `+JSON.stringify(data));
-        sails.log.error('validateFieldUsingRegex is array regexPattern '+regexPattern);
+        sails.log.verbose(`validateFieldUsingRegex is array ${fieldDBName} `+JSON.stringify(data));
+        sails.log.verbose('validateFieldUsingRegex is array regexPattern '+regexPattern);
         for(let row of data) {
 
           let objField = _.get(row, arrayObjFieldDBName);
@@ -169,8 +171,8 @@ export module Services {
 
       } else {
 
-        sails.log.error(`validateFieldUsingRegex ${fieldDBName} `+data);
-        sails.log.error('validateFieldUsingRegex regexPattern '+regexPattern);
+        sails.log.verbose(`validateFieldUsingRegex ${fieldDBName} `+data);
+        sails.log.verbose('validateFieldUsingRegex regexPattern '+regexPattern);
         if(!_.isUndefined(data) && data != null && data != '' &&  !_.isUndefined(regexPattern) && !_.isUndefined(errorMessageCode) ) {
 
           this.validateRegex(data, regexPattern, fieldLanguageCode, errorMessageCode);
