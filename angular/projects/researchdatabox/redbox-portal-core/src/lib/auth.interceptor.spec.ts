@@ -58,21 +58,25 @@ describe('AuthInterceptor', () => {
     expect(interceptor).toBeDefined();
   });
 
-  it('when ConfigService has inited, should insert the csrf token', () => {
+  it('when ConfigService has inited, should insert the csrf token, etc.', () => {
     httpClient.get('/any-url').subscribe(() => {
     }, () => {});
     
     const req = httpTestingController.expectOne('/any-url');
     expect(req.request.headers.get('X-CSRF-Token')).toBe(configService.csrfToken);
+    expect(req.request.headers.get('X-Source')).toBe('jsclient');
+    expect(req.request.headers.get('Content-Type')).toBe('application/json;charset=utf-8');
   });
 
-  it('when ConfigService has inited, should insert the csrf token', () => {
+  it('when ConfigService has not inited, should not insert the csrf token, but insert the rest', () => {
     configService.isInitializing = function() { return true; };
     httpClient.get('/any-url').subscribe(() => {
     }, () => {});
     
     const req = httpTestingController.expectOne('/any-url');
     expect(req.request.headers.get('X-CSRF-Token')).toBeNull();
+    expect(req.request.headers.get('X-Source')).toBe('jsclient');
+    expect(req.request.headers.get('Content-Type')).toBe('application/json;charset=utf-8');
   });
 
   afterEach(() => {
