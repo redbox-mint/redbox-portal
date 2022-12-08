@@ -213,7 +213,63 @@ export class SelectionComponent extends SimpleComponent {
     }
   }
 
+  isOptionAvailable(val: any, opt:any): boolean { 
 
+    let historicalOnly = _.get(opt, 'historicalOnly');
+
+    //If the field has no value selected all historical only options are hidden
+    if (_.isEmpty(val) && historicalOnly) {
+      return false;
+
+    } else if(!_.isEmpty(val) && historicalOnly) {
+
+      //If the field has a historical only value selected then that particualr
+      //historical only option becomes available
+      let currValMatchHistOnlyValue = false;
+      for(let currentOption of this.field.selectOptions) {
+        let histOnly = _.get(currentOption, 'historicalOnly');
+        //handle dropdown and radio
+        if(!_.isArray(val)) {
+          if(histOnly && currentOption.value == val) {
+            currValMatchHistOnlyValue = true;
+            break;
+          }
+        } else {
+          //handle checkbox
+          for(let v of val) {
+            if(histOnly && v == currentOption.value) {
+              currValMatchHistOnlyValue = true;
+              break;
+            }
+          }
+        }
+      }
+
+      if(currValMatchHistOnlyValue) {
+        return true;
+      } else {
+        return false;
+      }
+
+    } else {
+      //If it's not historical only then the option is always available
+      return true;
+    }
+  }
+
+  findAvailableOptions(val: any): any[] {
+
+    let availableOptions: any[] = [];
+
+    for(let option of this.field.selectOptions) {
+
+      if(this.isOptionAvailable(val, option)) {
+        availableOptions.push(option);
+      }
+    }
+
+    return availableOptions;
+  }
 }
 
 @Component({
@@ -227,10 +283,14 @@ export class SelectionComponent extends SimpleComponent {
      <span id="{{ 'helpBlock_' + field.name }}" class="help-block" *ngIf="this.helpShow" [innerHtml]="field.help"></span>
      <select [compareWith]="field.compare" [formControl]="getFormControl()"  [id]="field.name" [ngClass]="field.cssClasses">
         <ng-template [ngIf]="!field.storeValueAndLabel">
-          <option *ngFor="let opt of field.selectOptions" [value]="opt.value">{{opt.label}}</option>
+          <option *ngFor="let opt of findAvailableOptions(field.value)" [value]="opt.value">
+              {{opt.label}}
+          </option>
         </ng-template>
         <ng-template [ngIf]="field.storeValueAndLabel">
-          <option *ngFor="let opt of field.selectOptions" [ngValue]="opt">{{opt.label}}</option>
+          <option *ngFor="let opt of findAvailableOptions(field.value)" [ngValue]="opt">
+              {{opt.label}}
+          </option>
         </ng-template>
      </select>
      <div class="text-danger" *ngIf="getFormControl() && getFormControl().hasError('required') && getFormControl().touched && !field.validationMessages?.required">{{field.label}} is required</div>
@@ -263,7 +323,7 @@ export class DropdownFieldComponent extends SelectionComponent {
      <span id="{{ 'helpBlock_' + field.name }}" class="help-block" *ngIf="this.helpShow" [innerHtml]="field.help"></span>
      <fieldset>
       <legend [hidden]="true"><span></span></legend>
-        <span *ngFor="let opt of field.selectOptions">
+        <span *ngFor="let opt of findAvailableOptions(field.value)">
           <!-- radio type hard-coded otherwise accessor directive will not work! -->
           <!-- the ID and associated label->for property is now delegated to a Fn rather than inline-templated here, to make it optional, e.g. if it is nested -->
           <input *ngIf="isRadio()" type="radio" [id]="getInputId(opt)" [formControlName]="field.name" [value]="opt.value" [attr.disabled]="field.readOnly ? '' : null ">

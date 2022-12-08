@@ -65,6 +65,16 @@ export class SelectionField extends FieldBase<any>  {
     this.selectOptions = _.map(options['options'] || [], (option)=> {
       option['label'] = this.getTranslated(option['label'], option['label']);
       option['value'] = this.getTranslated(option['value'], option['value']);
+
+      let histOnly = _.get(option, 'historicalOnly');
+      //Check if historicalOnly attribute is present and set to true  
+      if(!_.isUndefined(histOnly) && histOnly == true) {
+        _.set(option, 'historicalOnly', true);
+      } else {
+          //By default if historicalOnly attribute is not present it will set to false
+        _.set(option, 'historicalOnly', false);
+      }
+
       return option;
     });
 
