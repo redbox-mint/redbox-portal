@@ -31,7 +31,7 @@
         <% } %>
       </div>
     <% } else {%>
-      <div class="container"><%= TranslationService.t('welcome-homepage-text') %></div>
+      <div class="container"><%- TranslationService.t('welcome-homepage-text') %></div>
       <div class="main container clearfix">
         <br/>
         <a href="<%= BrandingService.getBrandAndPortalPath(req) %>/researcher/home"><%= TranslationService.t('welcome-dashboard-link-text') %></a>
