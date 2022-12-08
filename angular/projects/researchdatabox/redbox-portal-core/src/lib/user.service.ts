@@ -59,7 +59,7 @@ export class UserService extends HttpClientService {
   protected loginUrl: string = "";
 
   constructor( 
-    @Inject(HttpClient) protected override http: any, 
+    @Inject(HttpClient) protected override http: HttpClient, 
     @Inject(APP_BASE_HREF) public override rootContext: string,
     @Inject(UtilityService) protected override utilService: UtilityService,
     @Inject(ConfigService) protected override configService: ConfigService
@@ -67,7 +67,7 @@ export class UserService extends HttpClientService {
     super(http, rootContext, utilService, configService);
   }
   public getInfo(): Promise<User> {
-    const req = this.http.get(this.infoUrl, {responseType: 'json', observe: 'body'});
+    const req = this.http.get<User>(this.infoUrl, {responseType: 'json', observe: 'body'});
     req.pipe(
       map((data:any) => {
         return data as User;

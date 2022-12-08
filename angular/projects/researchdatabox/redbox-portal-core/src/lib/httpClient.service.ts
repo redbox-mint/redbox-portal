@@ -41,7 +41,7 @@ export class HttpClientService implements Service {
   public baseUrlWithContext: string;
 
   constructor( 
-  @Inject(HttpClient) protected http: any, 
+  @Inject(HttpClient) protected http: HttpClient, 
   @Inject(APP_BASE_HREF) public rootContext: string,
   @Inject(UtilityService) protected utilService: UtilityService,
   @Inject(ConfigService) protected configService: ConfigService
