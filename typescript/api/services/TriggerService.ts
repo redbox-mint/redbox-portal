@@ -152,6 +152,9 @@ export module Services {
       //optional
       let fieldLanguageCode = _.get(options,'fieldLanguageCode');
       let arrayObjFieldDBName = _.get(options,'arrayObjFieldDBName');
+      //Set false by default if not present this option will remove leading and trailing spaces from a none array value
+      //then it will modify the value in the record if the the regex validation is passed therefore handle with care
+      let trimLeadingAndTrailingSpacesBeforeValidation = _.get(options,'trimLeadingAndTrailingSpacesBeforeValidation') || false;
       
       let data = _.get(record, fieldDBName);
 
@@ -175,7 +178,16 @@ export module Services {
         sails.log.verbose('validateFieldUsingRegex regexPattern '+regexPattern);
         if(!_.isUndefined(data) && data != null && data != '' &&  !_.isUndefined(regexPattern) && !_.isUndefined(errorMessageCode) ) {
 
+          if(trimLeadingAndTrailingSpacesBeforeValidation) {
+            let trimData = _.trim(data);
+            data = trimData;
+          }
+
           this.validateRegex(data, regexPattern, fieldLanguageCode, errorMessageCode);
+          
+          if(trimLeadingAndTrailingSpacesBeforeValidation) {
+            _.set(record,fieldDBName,data);
+          }
         }
       }
 
