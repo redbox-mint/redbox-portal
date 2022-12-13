@@ -1,7 +1,7 @@
 #! /bin/bash
 set -e
 function buildAngularApp() {
-    (cd angular && node_modules/.bin/ng build --app=${1} --prod --build-optimizer --output-hashing=none --extract-css true)
+    (cd angular-legacy && node_modules/.bin/ng build --app=${1} --prod --build-optimizer --output-hashing=none --extract-css true)
 }
 
 if [ $# -ne 0 ]
@@ -9,7 +9,7 @@ if [ $# -ne 0 ]
     echo "Bundling ${1}"
     buildAngularApp "$1"
 else 
-  ng2apps=( `find angular -maxdepth 1 -mindepth 1 -type d -printf '%f '` )
+  ng2apps=( `find angular-legacy -maxdepth 1 -mindepth 1 -type d -printf '%f '` )
   for ng2app in "${ng2apps[@]}"
   do
     if [ "$ng2app" != "shared" ]; then
