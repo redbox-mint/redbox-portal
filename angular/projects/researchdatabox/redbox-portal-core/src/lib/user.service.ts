@@ -26,7 +26,7 @@ import { APP_BASE_HREF } from '@angular/common';
 import { ConfigService } from './config.service';
 import { UtilityService } from './utility.service';
 import { HttpClientService } from './httpClient.service';
-
+import { LoggerService } from './logger.service';
 
 export interface User {
   id: string;
@@ -52,6 +52,15 @@ export interface UserLoginResult {
   url: string;
 }
 
+/**
+ * User-centric functions. 
+ * 
+ * Note: functions will be ported over as these are consumed by the apps/
+ *
+ * Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a>
+ *
+ * 
+ */
 @Injectable()
 export class UserService extends HttpClientService {
 
@@ -62,7 +71,8 @@ export class UserService extends HttpClientService {
     @Inject(HttpClient) protected override http: HttpClient, 
     @Inject(APP_BASE_HREF) public override rootContext: string,
     @Inject(UtilityService) protected override utilService: UtilityService,
-    @Inject(ConfigService) protected override configService: ConfigService
+    @Inject(ConfigService) protected override configService: ConfigService,
+    @Inject(LoggerService) private loggerService: LoggerService
   ) {
     super(http, rootContext, utilService, configService);
   }
@@ -77,7 +87,7 @@ export class UserService extends HttpClientService {
   } 
 
   loginLocal(username: string, password: string): Promise<any> {
-    console.log(`Logging in locally using brand: ${this.config.branding}, portal: ${this.config.portal}`);
+    this.loggerService.debug(`Logging in locally using brand: ${this.config.branding}, portal: ${this.config.portal}`);
     const req = this.http.post(this.loginUrl, {username: username, password:password, branding:this.config.branding, portal: this.config.portal}, {responseType: 'json', observe: 'body'});
     req.pipe(
       map((data: any) => {

@@ -81,7 +81,6 @@ export class ConfigService implements Service {
       this.config = config;
       this.config['csrfToken'] = this.csrfToken;
       this.config['rootContext'] = this.rootContext;
-      console.log(`ConfigService, initialized. `);
       this.emitConfig();
     });
   }

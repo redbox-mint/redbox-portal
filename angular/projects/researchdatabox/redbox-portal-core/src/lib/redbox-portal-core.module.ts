@@ -10,6 +10,7 @@ import { ConfigService } from './config.service';
 import { UtilityService } from './utility.service';
 import { AuthInterceptor } from './auth.interceptor';
 import { UserService } from './user.service';
+import { LoggerService } from './logger.service';
 
 function trimLastSlashFromUrl(baseUrl: string) {
   if (!_.isEmpty(baseUrl) && (baseUrl[baseUrl.length - 1] == '/')) {
@@ -29,6 +30,7 @@ function trimLastSlashFromUrl(baseUrl: string) {
       deps: [PlatformLocation]
     },
     ConfigService,
+    LoggerService,
     UtilityService,
     {
       provide: HTTP_INTERCEPTORS,

@@ -28,6 +28,7 @@ import { I18NEXT_SERVICE, ITranslationService, defaultInterpolationFormat, I18Ne
 import HttpApi from 'i18next-http-backend';
 import { ConfigService } from './config.service';
 import { UtilityService } from './utility.service';
+import { LoggerService  } from './logger.service';
 /**
  * Translation related functions. Uses i18next library to support translation source for both frontend and backend.
  *
@@ -80,7 +81,8 @@ export class TranslationService implements Service {
     @Inject(APP_BASE_HREF) public rootContext: string, 
     @Inject(I18NEXT_SERVICE) private i18NextService: any,
     @Inject(UtilityService) private utilService: UtilityService,
-    @Inject(ConfigService) private configService: ConfigService
+    @Inject(ConfigService) private configService: ConfigService,
+    @Inject(LoggerService) private loggerService: LoggerService
     ) {
     this.subjects = {};
     this.subjects['init'] = new Subject<any>();
@@ -105,7 +107,7 @@ export class TranslationService implements Service {
       this.i18NextOpts = this.i18NextOptsDefault;
       _.set(this.i18NextOpts, 'backend.loadPath', this.loadPath);
     }
-    console.log(`Using language loadpath: ${this.loadPath}`);
+    this.loggerService.log(`Using language loadpath: ${this.loadPath}`);
     await this.i18NextService
               .use(HttpApi)
               .init(this.i18NextOpts);

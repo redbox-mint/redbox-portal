@@ -24,6 +24,7 @@ import { HttpClient } from '@angular/common/http';
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
 import { UtilityService } from './utility.service';
 import { User, UserLoginResult, UserService } from './user.service';
+import { LoggerService } from './logger.service';
 
 describe('UserService testing', () => {
   let configService: ConfigService;
@@ -46,6 +47,7 @@ describe('UserService testing', () => {
           useValue: 'base'
         },
         ConfigService,
+        LoggerService,
         UtilityService,
         UserService        
       ]
@@ -53,6 +55,7 @@ describe('UserService testing', () => {
     httpClient = TestBed.inject(HttpClient);
     httpTestingController = TestBed.inject(HttpTestingController);
     configService = TestBed.inject(ConfigService);
+    TestBed.inject(LoggerService);
     TestBed.inject(UtilityService);
     userService = TestBed.inject(UserService);
 

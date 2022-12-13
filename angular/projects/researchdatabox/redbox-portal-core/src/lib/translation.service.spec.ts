@@ -25,6 +25,7 @@ import { ConfigService } from './config.service';
 import { HttpClient } from '@angular/common/http';
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
 import { UtilityService } from './utility.service';
+import { LoggerService } from './logger.service';
 
 describe('TranslationService testing', () => {
   let translationService: TranslationService;
@@ -44,6 +45,7 @@ describe('TranslationService testing', () => {
           useValue: 'base'
         },
         ConfigService,
+        LoggerService,
         UtilityService,
         TranslationService
       ]
@@ -52,6 +54,7 @@ describe('TranslationService testing', () => {
     httpTestingController = TestBed.inject(HttpTestingController);
     TestBed.inject(I18NEXT_SERVICE);
     configService = TestBed.inject(ConfigService);
+    TestBed.inject(LoggerService);
     TestBed.inject(UtilityService);
     translationService = TestBed.inject(TranslationService);
   });
