@@ -25,7 +25,7 @@ import * as _ from "lodash";
 import { APP_BASE_HREF } from '@angular/common';
 import { Service } from './service.interface';
 /**
- * Loads Global client-side configuration. Injected as a singleton.
+ * Loads Global client-side configuration.
  *
  * Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a>
  *

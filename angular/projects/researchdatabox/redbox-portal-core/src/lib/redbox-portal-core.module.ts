@@ -8,7 +8,7 @@ import { I18NextModule } from 'angular-i18next';
 
 import { ConfigService } from './config.service';
 import { UtilityService } from './utility.service';
-import { AuthInterceptor } from './auth.interceptor';
+import { CsrfInterceptor } from './csrf.interceptor';
 import { UserService } from './user.service';
 import { LoggerService } from './logger.service';
 
@@ -17,7 +17,7 @@ function trimLastSlashFromUrl(baseUrl: string) {
     var trimmedUrl = baseUrl.substring(0, baseUrl.length - 1);
     return trimmedUrl;
   }
-  return null;
+  return baseUrl;
 }
 
 @NgModule({
@@ -34,7 +34,7 @@ function trimLastSlashFromUrl(baseUrl: string) {
     UtilityService,
     {
       provide: HTTP_INTERCEPTORS,
-      useClass: AuthInterceptor,
+      useClass: CsrfInterceptor,
       multi: true
     },
     UserService
@@ -45,7 +45,7 @@ function trimLastSlashFromUrl(baseUrl: string) {
     I18NextModule.forRoot()
   ],
   exports: [
-
+    I18NextModule
   ]
 })
 export class RedboxPortalCoreModule { }

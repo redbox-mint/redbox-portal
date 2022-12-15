@@ -18,13 +18,14 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 import { Subject } from 'rxjs';
 import { Inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpContext } from '@angular/common/http';
 import { APP_BASE_HREF } from '@angular/common';
 import * as _ from "lodash";
 
 import { Service } from './service.interface';
 import { ConfigService } from './config.service';
 import { UtilityService } from './utility.service';
+import { RB_HTTP_INTERCEPTOR_AUTH_CSRF } from './csrf.interceptor';
 
 
 /**
@@ -39,6 +40,7 @@ export class HttpClientService implements Service {
   public baseUrl:string;
   public brandingAndPortalUrl:string;
   public baseUrlWithContext: string;
+  protected httpContext: HttpContext = null as any;
 
   constructor( 
   @Inject(HttpClient) protected http: HttpClient, 
@@ -81,8 +83,9 @@ export class HttpClientService implements Service {
     await this.utilService.waitForDependencies([this.configService]);
     this.config = await this.configService.getConfig();
     this.baseUrl = this.config.baseUrl;
-    this.brandingAndPortalUrl = `${this.baseUrl}${this.rootContext}/${this.config.branding}/${this.config.portal}`;
+    this.brandingAndPortalUrl = `${this.baseUrl}${this.rootContext}/${this.config.branding}/${this.config.portal}`;0
     this.baseUrlWithContext = `${this.baseUrl}${this.rootContext}`;
+    this.httpContext = new HttpContext();
     return this;
   }  
   /**
@@ -92,5 +95,11 @@ export class HttpClientService implements Service {
    */
   public isInitializing(): boolean {
     return _.isUndefined(this.config) || _.isEmpty(this.config);
+  }
+  /**
+   * Call from extending class to enable CSRF in the header
+   */
+  protected enableCsrfHeader() {
+    this.httpContext.set(RB_HTTP_INTERCEPTOR_AUTH_CSRF, this.config.csrfToken);
   }
 }

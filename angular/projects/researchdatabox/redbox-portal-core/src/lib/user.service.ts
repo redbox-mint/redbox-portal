@@ -66,7 +66,7 @@ export class UserService extends HttpClientService {
 
   protected infoUrl: string = "";
   protected loginUrl: string = "";
-
+  
   constructor( 
     @Inject(HttpClient) protected override http: HttpClient, 
     @Inject(APP_BASE_HREF) public override rootContext: string,
@@ -77,7 +77,7 @@ export class UserService extends HttpClientService {
     super(http, rootContext, utilService, configService);
   }
   public getInfo(): Promise<User> {
-    const req = this.http.get<User>(this.infoUrl, {responseType: 'json', observe: 'body'});
+    const req = this.http.get<User>(this.infoUrl, {responseType: 'json', observe: 'body', context: this.httpContext});
     req.pipe(
       map((data:any) => {
         return data as User;
@@ -87,8 +87,8 @@ export class UserService extends HttpClientService {
   } 
 
   loginLocal(username: string, password: string): Promise<any> {
-    this.loggerService.debug(`Logging in locally using brand: ${this.config.branding}, portal: ${this.config.portal}`);
-    const req = this.http.post(this.loginUrl, {username: username, password:password, branding:this.config.branding, portal: this.config.portal}, {responseType: 'json', observe: 'body'});
+    this.loggerService.debug(`Logging in locally using brand: ${this.config.branding}, portal: ${this.config.portal}:: ${this.loginUrl}`);
+    const req = this.http.post(this.loginUrl, {username: username, password:password, branding:this.config.branding, portal: this.config.portal}, {responseType: 'json', observe: 'body', context: this.httpContext});
     req.pipe(
       map((data: any) => {
         return data as UserLoginResult
@@ -101,6 +101,7 @@ export class UserService extends HttpClientService {
     await super.waitForInit();
     this.infoUrl = `${this.baseUrlWithContext}/user/info`;
     this.loginUrl = `${this.baseUrlWithContext}/user/login_local`;
+    this.enableCsrfHeader();
     return this;
   }
 

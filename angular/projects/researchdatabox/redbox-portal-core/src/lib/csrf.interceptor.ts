@@ -16,33 +16,33 @@
 // You should have received a copy of the GNU General Public License along
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-import { Inject, Injectable } from '@angular/core';
-import { HttpInterceptor, HttpRequest, HttpHandler } from '@angular/common/http';
+import { Injectable } from '@angular/core';
+import { HttpInterceptor, HttpRequest, HttpHandler, HttpContextToken } from '@angular/common/http';
 import * as _ from "lodash";
 
-import { ConfigService } from './config.service';
 
-
+export const RB_HTTP_INTERCEPTOR_AUTH_CSRF = new HttpContextToken(() => '');
 /**
- * Interceptor for Authentication, CSRF, etc.
+ * Interceptor for CSRF, etc.
  *
  * Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a>
  */
 
  @Injectable()
- export class AuthInterceptor implements HttpInterceptor {
-
-  constructor(@Inject(ConfigService) private configService: ConfigService) {
-
-  }
-
-  intercept(req: HttpRequest<any>, next: HttpHandler) {
-    let headers = {
+ export class CsrfInterceptor implements HttpInterceptor {
+  private headers: any;
+  constructor() {
+    this.headers = {
       'X-Source': 'jsclient',
       'Content-Type': 'application/json;charset=utf-8'
     };
-    if (!this.configService.isInitializing()) {
-      _.set(headers, 'X-CSRF-Token', this.configService.csrfToken);
+  }
+
+  intercept(req: HttpRequest<any>, next: HttpHandler) {
+    const headers = _.clone(this.headers);
+    const csrfToken = req.context.get(RB_HTTP_INTERCEPTOR_AUTH_CSRF);
+    if (!_.isEmpty(csrfToken) && _.isEmpty(_.get(this.headers, 'X-CSRF-Token'))) {
+      _.set(headers, 'X-CSRF-Token', csrfToken);
     }
     const authReq = req.clone({
       setHeaders: headers

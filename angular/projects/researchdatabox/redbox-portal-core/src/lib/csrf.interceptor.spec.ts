@@ -17,13 +17,13 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { HTTP_INTERCEPTORS, HttpClient } from '@angular/common/http';
+import { HTTP_INTERCEPTORS, HttpClient, HttpContext } from '@angular/common/http';
 import { TestBed } from '@angular/core/testing';
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
-import { AuthInterceptor } from './auth.interceptor';
+import { CsrfInterceptor, RB_HTTP_INTERCEPTOR_AUTH_CSRF } from './csrf.interceptor';
 import { ConfigService } from './config.service';
 
-describe('AuthInterceptor', () => {
+describe('CsrfInterceptor', () => {
   let httpTestingController: HttpTestingController;
   let configService: any;
   let interceptor: any;
@@ -37,20 +37,20 @@ describe('AuthInterceptor', () => {
     TestBed.configureTestingModule({
       imports: [HttpClientTestingModule],
       providers: [
-        AuthInterceptor,
+        CsrfInterceptor,
         {
           provide: ConfigService,
           useValue: configService
         },
         {
           provide: HTTP_INTERCEPTORS,
-          useClass: AuthInterceptor,
+          useClass: CsrfInterceptor,
           multi: true
         }
       ]
     });
     httpTestingController = TestBed.inject(HttpTestingController);
-    interceptor = TestBed.get(AuthInterceptor);
+    interceptor = TestBed.get(CsrfInterceptor);
     httpClient = TestBed.get(HttpClient);
   });
 
@@ -58,8 +58,10 @@ describe('AuthInterceptor', () => {
     expect(interceptor).toBeDefined();
   });
 
-  it('when ConfigService has inited, should insert the csrf token, etc.', () => {
-    httpClient.get('/any-url').subscribe(() => {
+  it('when CSRF Token is set, should insert the csrf header, etc.', () => {
+    const httpContext = new HttpContext();
+    httpContext.set(RB_HTTP_INTERCEPTOR_AUTH_CSRF, configService.csrfToken);
+    httpClient.get('/any-url', {context: httpContext}).subscribe(() => {
     }, () => {});
     
     const req = httpTestingController.expectOne('/any-url');
@@ -68,9 +70,9 @@ describe('AuthInterceptor', () => {
     expect(req.request.headers.get('Content-Type')).toBe('application/json;charset=utf-8');
   });
 
-  it('when ConfigService has not inited, should not insert the csrf token, but insert the rest', () => {
-    configService.isInitializing = function() { return true; };
-    httpClient.get('/any-url').subscribe(() => {
+  it('when CSRF Token is not set, should not insert the csrf header, but insert the rest', () => {
+    const httpContext = new HttpContext();
+    httpClient.get('/any-url', {context: httpContext}).subscribe(() => {
     }, () => {});
     
     const req = httpTestingController.expectOne('/any-url');
