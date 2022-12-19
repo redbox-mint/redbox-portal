@@ -378,7 +378,7 @@
                 </tr>
                         <tr>
                             <td class="col-md-4">
-                                <div class="io-line">Defined in <a href="" data-line="416" class="link-to-prism">angular/shared/form/field-simple.ts:416</a></div>
+                                <div class="io-line">Defined in <a href="" data-line="426" class="link-to-prism">angular/shared/form/field-simple.ts:426</a></div>
                             </td>
                         </tr>
 
@@ -452,7 +452,7 @@
                 </tr>
                     <tr>
                         <td class="col-md-4">
-                                <div class="io-line">Defined in <a href="" data-line="415" class="link-to-prism">angular/shared/form/field-simple.ts:415</a></div>
+                                <div class="io-line">Defined in <a href="" data-line="425" class="link-to-prism">angular/shared/form/field-simple.ts:425</a></div>
                         </td>
                     </tr>
 
@@ -478,7 +478,7 @@
                 </tr>
                     <tr>
                         <td class="col-md-4">
-                                <div class="io-line">Defined in <a href="" data-line="413" class="link-to-prism">angular/shared/form/field-simple.ts:413</a></div>
+                                <div class="io-line">Defined in <a href="" data-line="423" class="link-to-prism">angular/shared/form/field-simple.ts:423</a></div>
                         </td>
                     </tr>
 
@@ -504,7 +504,7 @@
                 </tr>
                     <tr>
                         <td class="col-md-4">
-                                <div class="io-line">Defined in <a href="" data-line="414" class="link-to-prism">angular/shared/form/field-simple.ts:414</a></div>
+                                <div class="io-line">Defined in <a href="" data-line="424" class="link-to-prism">angular/shared/form/field-simple.ts:424</a></div>
                         </td>
                     </tr>
 
@@ -530,7 +530,7 @@
                 </tr>
                     <tr>
                         <td class="col-md-4">
-                                <div class="io-line">Defined in <a href="" data-line="416" class="link-to-prism">angular/shared/form/field-simple.ts:416</a></div>
+                                <div class="io-line">Defined in <a href="" data-line="426" class="link-to-prism">angular/shared/form/field-simple.ts:426</a></div>
                         </td>
                     </tr>
 
@@ -562,7 +562,7 @@
                         </tr>
                     <tr>
                         <td class="col-md-4">
-                                <div class="io-line">Defined in         <code><a href="../classes/FieldBase.html#source" target="_self" >FieldBase:412</a></code>
+                                <div class="io-line">Defined in         <code><a href="../classes/FieldBase.html#source" target="_self" >FieldBase:422</a></code>
 </div>
                         </td>
                     </tr>
@@ -4422,6 +4422,16 @@ export class SelectionField extends FieldBase&lt;any&gt;  {
     this.selectOptions &#x3D; _.map(options[&#x27;options&#x27;] || [], (option)&#x3D;&gt; {
       option[&#x27;label&#x27;] &#x3D; this.getTranslated(option[&#x27;label&#x27;], option[&#x27;label&#x27;]);
       option[&#x27;value&#x27;] &#x3D; this.getTranslated(option[&#x27;value&#x27;], option[&#x27;value&#x27;]);
+
+      let histOnly &#x3D; _.get(option, &#x27;historicalOnly&#x27;);
+      //Check if historicalOnly attribute is present and set to true  
+      if(!_.isUndefined(histOnly) &amp;&amp; histOnly &#x3D;&#x3D; true) {
+        _.set(option, &#x27;historicalOnly&#x27;, true);
+      } else {
+          //By default if historicalOnly attribute is not present it will set to false
+        _.set(option, &#x27;historicalOnly&#x27;, false);
+      }
+
       return option;
     });
 

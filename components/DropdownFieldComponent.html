@@ -105,10 +105,14 @@
    &lt;span id&#x3D;&quot;{{ &#x27;helpBlock_&#x27; + field.name }}&quot; class&#x3D;&quot;help-block&quot; *ngIf&#x3D;&quot;this.helpShow&quot; [innerHtml]&#x3D;&quot;field.help&quot;&gt;&lt;/span&gt;
    &lt;select [compareWith]&#x3D;&quot;field.compare&quot; [formControl]&#x3D;&quot;getFormControl()&quot;  [id]&#x3D;&quot;field.name&quot; [ngClass]&#x3D;&quot;field.cssClasses&quot;&gt;
       &lt;ng-template [ngIf]&#x3D;&quot;!field.storeValueAndLabel&quot;&gt;
-        &lt;option *ngFor&#x3D;&quot;let opt of field.selectOptions&quot; [value]&#x3D;&quot;opt.value&quot;&gt;{{opt.label}}&lt;/option&gt;
+        &lt;option *ngFor&#x3D;&quot;let opt of findAvailableOptions(field.value)&quot; [value]&#x3D;&quot;opt.value&quot;&gt;
+            {{opt.label}}
+        &lt;/option&gt;
       &lt;/ng-template&gt;
       &lt;ng-template [ngIf]&#x3D;&quot;field.storeValueAndLabel&quot;&gt;
-        &lt;option *ngFor&#x3D;&quot;let opt of field.selectOptions&quot; [ngValue]&#x3D;&quot;opt&quot;&gt;{{opt.label}}&lt;/option&gt;
+        &lt;option *ngFor&#x3D;&quot;let opt of findAvailableOptions(field.value)&quot; [ngValue]&#x3D;&quot;opt&quot;&gt;
+            {{opt.label}}
+        &lt;/option&gt;
       &lt;/ng-template&gt;
    &lt;/select&gt;
    &lt;div class&#x3D;&quot;text-danger&quot; *ngIf&#x3D;&quot;getFormControl() &amp;&amp; getFormControl().hasError(&#x27;required&#x27;) &amp;&amp; getFormControl().touched &amp;&amp; !field.validationMessages?.required&quot;&gt;{{field.label}} is required&lt;/div&gt;
@@ -184,7 +188,13 @@
                     <td class="col-md-4">
                         <ul class="index-list">
                             <li>
+                                <a href="#findAvailableOptions" >findAvailableOptions</a>
+                            </li>
+                            <li>
                                 <a href="#getLabel" >getLabel</a>
+                            </li>
+                            <li>
+                                <a href="#isOptionAvailable" >isOptionAvailable</a>
                             </li>
                             <li>
                                     <span class="modifier">Public</span>
@@ -468,6 +478,81 @@
         <tbody>
             <tr>
                 <td class="col-md-4">
+                    <a name="findAvailableOptions"></a>
+                    <span class="name">
+                        <span ><b>findAvailableOptions</b></span>
+                        <a href="#findAvailableOptions"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+<code>findAvailableOptions(val: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>)</code>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-line">Inherited from         <code><a href="../classes/SelectionComponent.html" target="_self" >SelectionComponent</a></code>
+</div>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                        <div class="io-line">Defined in         <code><a href="../classes/SelectionComponent.html#source" target="_self" >SelectionComponent:260</a></code>
+</div>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+
+                    <div class="io-description">
+                        <b>Parameters :</b>
+                        
+                        <table class="params">
+                            <thead>
+                                <tr>
+                                    <td>Name</td>
+                                    <td>Type</td>
+                                    <td>Optional</td>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>val</td>
+                                    <td>
+                                                <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div>
+                    </div>
+                    <div class="io-description">
+                        <b>Returns : </b>    <code>any[]</code>
+
+                    </div>
+                    <div class="io-description">
+                        
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
                     <a name="getLabel"></a>
                     <span class="name">
                         <span ><b>getLabel</b></span>
@@ -530,6 +615,93 @@
                     </div>
                     <div class="io-description">
                         <b>Returns : </b>        <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank" >string</a></code>
+
+                    </div>
+                    <div class="io-description">
+                        
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="isOptionAvailable"></a>
+                    <span class="name">
+                        <span ><b>isOptionAvailable</b></span>
+                        <a href="#isOptionAvailable"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+<code>isOptionAvailable(val: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>, opt: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>)</code>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-line">Inherited from         <code><a href="../classes/SelectionComponent.html" target="_self" >SelectionComponent</a></code>
+</div>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                        <div class="io-line">Defined in         <code><a href="../classes/SelectionComponent.html#source" target="_self" >SelectionComponent:216</a></code>
+</div>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+
+                    <div class="io-description">
+                        <b>Parameters :</b>
+                        
+                        <table class="params">
+                            <thead>
+                                <tr>
+                                    <td>Name</td>
+                                    <td>Type</td>
+                                    <td>Optional</td>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>val</td>
+                                    <td>
+                                                <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+
+                                </tr>
+                                <tr>
+                                    <td>opt</td>
+                                    <td>
+                                                <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div>
+                    </div>
+                    <div class="io-description">
+                        <b>Returns : </b>        <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/boolean" target="_blank" >boolean</a></code>
 
                     </div>
                     <div class="io-description">
@@ -983,7 +1155,7 @@ Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a></p
                 </tr>
                     <tr>
                         <td class="col-md-4">
-                                <div class="io-line">Defined in <a href="" data-line="252" class="link-to-prism">angular/shared/form/field-simple.component.ts:252</a></div>
+                                <div class="io-line">Defined in <a href="" data-line="312" class="link-to-prism">angular/shared/form/field-simple.component.ts:312</a></div>
                         </td>
                     </tr>
 
@@ -1382,7 +1554,63 @@ export class SelectionComponent extends SimpleComponent {
     }
   }
 
+  isOptionAvailable(val: any, opt:any): boolean { 
 
+    let historicalOnly &#x3D; _.get(opt, &#x27;historicalOnly&#x27;);
+
+    //If the field has no value selected all historical only options are hidden
+    if (_.isEmpty(val) &amp;&amp; historicalOnly) {
+      return false;
+
+    } else if(!_.isEmpty(val) &amp;&amp; historicalOnly) {
+
+      //If the field has a historical only value selected then that particualr
+      //historical only option becomes available
+      let currValMatchHistOnlyValue &#x3D; false;
+      for(let currentOption of this.field.selectOptions) {
+        let histOnly &#x3D; _.get(currentOption, &#x27;historicalOnly&#x27;);
+        //handle dropdown and radio
+        if(!_.isArray(val)) {
+          if(histOnly &amp;&amp; currentOption.value &#x3D;&#x3D; val) {
+            currValMatchHistOnlyValue &#x3D; true;
+            break;
+          }
+        } else {
+          //handle checkbox
+          for(let v of val) {
+            if(histOnly &amp;&amp; v &#x3D;&#x3D; currentOption.value) {
+              currValMatchHistOnlyValue &#x3D; true;
+              break;
+            }
+          }
+        }
+      }
+
+      if(currValMatchHistOnlyValue) {
+        return true;
+      } else {
+        return false;
+      }
+
+    } else {
+      //If it&#x27;s not historical only then the option is always available
+      return true;
+    }
+  }
+
+  findAvailableOptions(val: any): any[] {
+
+    let availableOptions: any[] &#x3D; [];
+
+    for(let option of this.field.selectOptions) {
+
+      if(this.isOptionAvailable(val, option)) {
+        availableOptions.push(option);
+      }
+    }
+
+    return availableOptions;
+  }
 }
 
 @Component({
@@ -1396,10 +1624,14 @@ export class SelectionComponent extends SimpleComponent {
      &lt;span id&#x3D;&quot;{{ &#x27;helpBlock_&#x27; + field.name }}&quot; class&#x3D;&quot;help-block&quot; *ngIf&#x3D;&quot;this.helpShow&quot; [innerHtml]&#x3D;&quot;field.help&quot;&gt;&lt;/span&gt;
      &lt;select [compareWith]&#x3D;&quot;field.compare&quot; [formControl]&#x3D;&quot;getFormControl()&quot;  [id]&#x3D;&quot;field.name&quot; [ngClass]&#x3D;&quot;field.cssClasses&quot;&gt;
         &lt;ng-template [ngIf]&#x3D;&quot;!field.storeValueAndLabel&quot;&gt;
-          &lt;option *ngFor&#x3D;&quot;let opt of field.selectOptions&quot; [value]&#x3D;&quot;opt.value&quot;&gt;{{opt.label}}&lt;/option&gt;
+          &lt;option *ngFor&#x3D;&quot;let opt of findAvailableOptions(field.value)&quot; [value]&#x3D;&quot;opt.value&quot;&gt;
+              {{opt.label}}
+          &lt;/option&gt;
         &lt;/ng-template&gt;
         &lt;ng-template [ngIf]&#x3D;&quot;field.storeValueAndLabel&quot;&gt;
-          &lt;option *ngFor&#x3D;&quot;let opt of field.selectOptions&quot; [ngValue]&#x3D;&quot;opt&quot;&gt;{{opt.label}}&lt;/option&gt;
+          &lt;option *ngFor&#x3D;&quot;let opt of findAvailableOptions(field.value)&quot; [ngValue]&#x3D;&quot;opt&quot;&gt;
+              {{opt.label}}
+          &lt;/option&gt;
         &lt;/ng-template&gt;
      &lt;/select&gt;
      &lt;div class&#x3D;&quot;text-danger&quot; *ngIf&#x3D;&quot;getFormControl() &amp;&amp; getFormControl().hasError(&#x27;required&#x27;) &amp;&amp; getFormControl().touched &amp;&amp; !field.validationMessages?.required&quot;&gt;{{field.label}} is required&lt;/div&gt;
@@ -1432,7 +1664,7 @@ export class DropdownFieldComponent extends SelectionComponent {
      &lt;span id&#x3D;&quot;{{ &#x27;helpBlock_&#x27; + field.name }}&quot; class&#x3D;&quot;help-block&quot; *ngIf&#x3D;&quot;this.helpShow&quot; [innerHtml]&#x3D;&quot;field.help&quot;&gt;&lt;/span&gt;
      &lt;fieldset&gt;
       &lt;legend [hidden]&#x3D;&quot;true&quot;&gt;&lt;span&gt;&lt;/span&gt;&lt;/legend&gt;
-        &lt;span *ngFor&#x3D;&quot;let opt of field.selectOptions&quot;&gt;
+        &lt;span *ngFor&#x3D;&quot;let opt of findAvailableOptions(field.value)&quot;&gt;
           &lt;!-- radio type hard-coded otherwise accessor directive will not work! --&gt;
           &lt;!-- the ID and associated label-&gt;for property is now delegated to a Fn rather than inline-templated here, to make it optional, e.g. if it is nested --&gt;
           &lt;input *ngIf&#x3D;&quot;isRadio()&quot; type&#x3D;&quot;radio&quot; [id]&#x3D;&quot;getInputId(opt)&quot; [formControlName]&#x3D;&quot;field.name&quot; [value]&#x3D;&quot;opt.value&quot; [attr.disabled]&#x3D;&quot;field.readOnly ? &#x27;&#x27; : null &quot;&gt;
@@ -2108,7 +2340,7 @@ export class ToggleComponent extends SimpleComponent {
 <script src="../js/libs/htmlparser.js"></script>
 <script src="../js/libs/deep-iterator.js"></script>
 <script>
-        var COMPONENT_TEMPLATE = '<div><div [formGroup]=\'form\' *ngIf="field.editMode && field.visible" [ngClass]="getGroupClass()">   <label [attr.for]="field.name">   <span [outerHTML]="field.label"></span><span class="form-field-required-indicator" [innerHTML]="getRequiredLabelStr()"></span>    <button type="button" class="btn btn-default" *ngIf="field.help" (click)="toggleHelp()" [attr.aria-label]="\'help\' | translate "><span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span></button>   </label><br/>   <span id="{{ \'helpBlock_\' + field.name }}" class="help-block" *ngIf="this.helpShow" [innerHtml]="field.help"></span>   <select [compareWith]="field.compare" [formControl]="getFormControl()"  [id]="field.name" [ngClass]="field.cssClasses">      <ng-template [ngIf]="!field.storeValueAndLabel">        <option *ngFor="let opt of field.selectOptions" [value]="opt.value">{{opt.label}}</option>      </ng-template>      <ng-template [ngIf]="field.storeValueAndLabel">        <option *ngFor="let opt of field.selectOptions" [ngValue]="opt">{{opt.label}}</option>      </ng-template>   </select>   <div class="text-danger" *ngIf="getFormControl() && getFormControl().hasError(\'required\') && getFormControl().touched && !field.validationMessages?.required">{{field.label}} is required</div>   <div class="text-danger" *ngIf="getFormControl() && getFormControl().hasError(\'required\') && getFormControl().touched && field.validationMessages?.required">{{field.validationMessages.required}}</div></div><div *ngIf="!field.editMode && field.visible" class="key-value-pair">  <span class="key" *ngIf="field.label">{{field.label}}</span>  <ng-template [ngIf]="!field.storeValueAndLabel">  <span *ngIf="!field.valueIsLink" target="_blank" class="value">{{getLabel(field.value)}}</span>  <a *ngIf="field.valueIsLink" href="{{field.value}}" class="value">{{getLabel(field.value)}}</a>  </ng-template>  <ng-template [ngIf]="field.storeValueAndLabel && field.value.value != \'\'">  <span class="value">{{getLabel(field.value.value)}}</span>  </ng-template></div></div>'
+        var COMPONENT_TEMPLATE = '<div><div [formGroup]=\'form\' *ngIf="field.editMode && field.visible" [ngClass]="getGroupClass()">   <label [attr.for]="field.name">   <span [outerHTML]="field.label"></span><span class="form-field-required-indicator" [innerHTML]="getRequiredLabelStr()"></span>    <button type="button" class="btn btn-default" *ngIf="field.help" (click)="toggleHelp()" [attr.aria-label]="\'help\' | translate "><span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span></button>   </label><br/>   <span id="{{ \'helpBlock_\' + field.name }}" class="help-block" *ngIf="this.helpShow" [innerHtml]="field.help"></span>   <select [compareWith]="field.compare" [formControl]="getFormControl()"  [id]="field.name" [ngClass]="field.cssClasses">      <ng-template [ngIf]="!field.storeValueAndLabel">        <option *ngFor="let opt of findAvailableOptions(field.value)" [value]="opt.value">            {{opt.label}}        </option>      </ng-template>      <ng-template [ngIf]="field.storeValueAndLabel">        <option *ngFor="let opt of findAvailableOptions(field.value)" [ngValue]="opt">            {{opt.label}}        </option>      </ng-template>   </select>   <div class="text-danger" *ngIf="getFormControl() && getFormControl().hasError(\'required\') && getFormControl().touched && !field.validationMessages?.required">{{field.label}} is required</div>   <div class="text-danger" *ngIf="getFormControl() && getFormControl().hasError(\'required\') && getFormControl().touched && field.validationMessages?.required">{{field.validationMessages.required}}</div></div><div *ngIf="!field.editMode && field.visible" class="key-value-pair">  <span class="key" *ngIf="field.label">{{field.label}}</span>  <ng-template [ngIf]="!field.storeValueAndLabel">  <span *ngIf="!field.valueIsLink" target="_blank" class="value">{{getLabel(field.value)}}</span>  <a *ngIf="field.valueIsLink" href="{{field.value}}" class="value">{{getLabel(field.value)}}</a>  </ng-template>  <ng-template [ngIf]="field.storeValueAndLabel && field.value.value != \'\'">  <span class="value">{{getLabel(field.value.value)}}</span>  </ng-template></div></div>'
     var COMPONENTS = [{'name': 'ActionButtonComponent', 'selector': 'action-button'},{'name': 'AnchorOrButtonComponent', 'selector': 'anchor-button'},{'name': 'ANDSVocabComponent', 'selector': 'ands-vocab-selector'},{'name': 'AsynchComponent', 'selector': 'asynch-component'},{'name': 'ButtonBarContainerComponent', 'selector': 'buttonbarcontainer'},{'name': 'CancelButtonComponent', 'selector': 'cancel-button'},{'name': 'ContributorComponent', 'selector': 'rb-contributor'},{'name': 'DashboardComponent', 'selector': 'dashboard'},{'name': 'DataLocationComponent', 'selector': 'data-location-selector'},{'name': 'DateTimeComponent', 'selector': 'date-time'},{'name': 'DmpFieldComponent', 'selector': 'dmp-field'},{'name': 'DmpFormComponent', 'selector': 'dmp-form'},{'name': 'DropdownFieldComponent', 'selector': 'dropdownfield'},{'name': 'EventHandlerComponent', 'selector': 'event-handler'},{'name': 'ExportFormComponent', 'selector': 'export-form'},{'name': 'GenericGroupComponent', 'selector': 'generic-group-field'},{'name': 'HiddenValueComponent', 'selector': 'hidden-field'},{'name': 'HtmlRawComponent', 'selector': 'htmlraw'},{'name': 'LinkValueComponent', 'selector': 'link-value'},{'name': 'LocalAuthComponent', 'selector': 'local-auth'},{'name': 'ManageRolesComponent', 'selector': 'manage-roles'},{'name': 'ManageUsersComponent', 'selector': 'manage-users'},{'name': 'MapComponent', 'selector': 'rb-mapdata'},{'name': 'MarkdownTextAreaComponent', 'selector': 'markdown-text-area'},{'name': 'PageTitleComponent', 'selector': 'page-title'},{'name': 'ParameterRetrieverComponent', 'selector': 'parameter-retriever'},{'name': 'PDFListComponent', 'selector': 'rb-pdf-list'},{'name': 'PublishDataLocationRefreshComponent', 'selector': 'publish-data-location-refresh'},{'name': 'PublishDataLocationSelectorComponent', 'selector': 'publish-data-location-selector'},{'name': 'RecordMetadataRetrieverComponent', 'selector': 'record-metadata-retriever'},{'name': 'RecordPermissionsComponent', 'selector': 'rb-recordpermissions'},{'name': 'RecordSearchComponent', 'selector': 'record-search'},{'name': 'RecordSearchRefinerComponent', 'selector': 'record-search-refiner'},{'name': 'RelatedFileUploadComponent', 'selector': 'related-fileupload-selector'},{'name': 'RelatedObjectDataComponent', 'selector': 'rb-relatedobjectdata'},{'name': 'RelatedObjectSelectorComponent', 'selector': 'rb-RelatedObjectSelector'},{'name': 'RepeatableContributorComponent', 'selector': 'repeatable-contributor'},{'name': 'RepeatableGroupComponent', 'selector': 'repeatable-group'},{'name': 'RepeatableTextfieldComponent', 'selector': 'repeatable-textfield'},{'name': 'RepeatableVocabComponent', 'selector': 'repeatable-vocab'},{'name': 'ReportComponent', 'selector': 'report'},{'name': 'SaveButtonComponent', 'selector': 'save-button'},{'name': 'SelectionFieldComponent', 'selector': 'selectionfield'},{'name': 'SortComponent', 'selector': 'sort'},{'name': 'SpacerComponent', 'selector': 'spacer'},{'name': 'TabNavButtonComponent', 'selector': 'tab-nav-button'},{'name': 'TabOrAccordionContainerComponent', 'selector': 'tabcontainer'},{'name': 'TextAreaComponent', 'selector': 'text-area'},{'name': 'TextBlockComponent', 'selector': 'text-block'},{'name': 'TextFieldComponent', 'selector': 'textfield'},{'name': 'ToggleComponent', 'selector': 'toggle'},{'name': 'TransferOwnerComponent', 'selector': 'transfer-owner'},{'name': 'TreeNodeCheckboxComponent', 'selector': 'rb-tree-node-checkbox'},{'name': 'UserProfileComponent', 'selector': 'user-profile'},{'name': 'VocabFieldComponent', 'selector': 'rb-vocab'},{'name': 'WorkflowStepButtonComponent', 'selector': 'workflowstep-button'},{'name': 'WorkspaceFieldComponent', 'selector': 'ws-field'},{'name': 'WorkspaceListComponent', 'selector': 'workspace-list'},{'name': 'WorkspaceSelectorComponent', 'selector': 'workspace-selector-parent'},{'name': 'WorkspaceSelectorFieldComponent', 'selector': 'workspace-selector'}];
     var DIRECTIVES = [];
     var ACTUAL_COMPONENT = {'name': 'DropdownFieldComponent'};

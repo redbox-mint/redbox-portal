@@ -1209,7 +1209,63 @@ export class SelectionComponent extends SimpleComponent {
     }
   }
 
+  isOptionAvailable(val: any, opt:any): boolean { 
 
+    let historicalOnly &#x3D; _.get(opt, &#x27;historicalOnly&#x27;);
+
+    //If the field has no value selected all historical only options are hidden
+    if (_.isEmpty(val) &amp;&amp; historicalOnly) {
+      return false;
+
+    } else if(!_.isEmpty(val) &amp;&amp; historicalOnly) {
+
+      //If the field has a historical only value selected then that particualr
+      //historical only option becomes available
+      let currValMatchHistOnlyValue &#x3D; false;
+      for(let currentOption of this.field.selectOptions) {
+        let histOnly &#x3D; _.get(currentOption, &#x27;historicalOnly&#x27;);
+        //handle dropdown and radio
+        if(!_.isArray(val)) {
+          if(histOnly &amp;&amp; currentOption.value &#x3D;&#x3D; val) {
+            currValMatchHistOnlyValue &#x3D; true;
+            break;
+          }
+        } else {
+          //handle checkbox
+          for(let v of val) {
+            if(histOnly &amp;&amp; v &#x3D;&#x3D; currentOption.value) {
+              currValMatchHistOnlyValue &#x3D; true;
+              break;
+            }
+          }
+        }
+      }
+
+      if(currValMatchHistOnlyValue) {
+        return true;
+      } else {
+        return false;
+      }
+
+    } else {
+      //If it&#x27;s not historical only then the option is always available
+      return true;
+    }
+  }
+
+  findAvailableOptions(val: any): any[] {
+
+    let availableOptions: any[] &#x3D; [];
+
+    for(let option of this.field.selectOptions) {
+
+      if(this.isOptionAvailable(val, option)) {
+        availableOptions.push(option);
+      }
+    }
+
+    return availableOptions;
+  }
 }
 
 @Component({
@@ -1223,10 +1279,14 @@ export class SelectionComponent extends SimpleComponent {
      &lt;span id&#x3D;&quot;{{ &#x27;helpBlock_&#x27; + field.name }}&quot; class&#x3D;&quot;help-block&quot; *ngIf&#x3D;&quot;this.helpShow&quot; [innerHtml]&#x3D;&quot;field.help&quot;&gt;&lt;/span&gt;
      &lt;select [compareWith]&#x3D;&quot;field.compare&quot; [formControl]&#x3D;&quot;getFormControl()&quot;  [id]&#x3D;&quot;field.name&quot; [ngClass]&#x3D;&quot;field.cssClasses&quot;&gt;
         &lt;ng-template [ngIf]&#x3D;&quot;!field.storeValueAndLabel&quot;&gt;
-          &lt;option *ngFor&#x3D;&quot;let opt of field.selectOptions&quot; [value]&#x3D;&quot;opt.value&quot;&gt;{{opt.label}}&lt;/option&gt;
+          &lt;option *ngFor&#x3D;&quot;let opt of findAvailableOptions(field.value)&quot; [value]&#x3D;&quot;opt.value&quot;&gt;
+              {{opt.label}}
+          &lt;/option&gt;
         &lt;/ng-template&gt;
         &lt;ng-template [ngIf]&#x3D;&quot;field.storeValueAndLabel&quot;&gt;
-          &lt;option *ngFor&#x3D;&quot;let opt of field.selectOptions&quot; [ngValue]&#x3D;&quot;opt&quot;&gt;{{opt.label}}&lt;/option&gt;
+          &lt;option *ngFor&#x3D;&quot;let opt of findAvailableOptions(field.value)&quot; [ngValue]&#x3D;&quot;opt&quot;&gt;
+              {{opt.label}}
+          &lt;/option&gt;
         &lt;/ng-template&gt;
      &lt;/select&gt;
      &lt;div class&#x3D;&quot;text-danger&quot; *ngIf&#x3D;&quot;getFormControl() &amp;&amp; getFormControl().hasError(&#x27;required&#x27;) &amp;&amp; getFormControl().touched &amp;&amp; !field.validationMessages?.required&quot;&gt;{{field.label}} is required&lt;/div&gt;
@@ -1259,7 +1319,7 @@ export class DropdownFieldComponent extends SelectionComponent {
      &lt;span id&#x3D;&quot;{{ &#x27;helpBlock_&#x27; + field.name }}&quot; class&#x3D;&quot;help-block&quot; *ngIf&#x3D;&quot;this.helpShow&quot; [innerHtml]&#x3D;&quot;field.help&quot;&gt;&lt;/span&gt;
      &lt;fieldset&gt;
       &lt;legend [hidden]&#x3D;&quot;true&quot;&gt;&lt;span&gt;&lt;/span&gt;&lt;/legend&gt;
-        &lt;span *ngFor&#x3D;&quot;let opt of field.selectOptions&quot;&gt;
+        &lt;span *ngFor&#x3D;&quot;let opt of findAvailableOptions(field.value)&quot;&gt;
           &lt;!-- radio type hard-coded otherwise accessor directive will not work! --&gt;
           &lt;!-- the ID and associated label-&gt;for property is now delegated to a Fn rather than inline-templated here, to make it optional, e.g. if it is nested --&gt;
           &lt;input *ngIf&#x3D;&quot;isRadio()&quot; type&#x3D;&quot;radio&quot; [id]&#x3D;&quot;getInputId(opt)&quot; [formControlName]&#x3D;&quot;field.name&quot; [value]&#x3D;&quot;opt.value&quot; [attr.disabled]&#x3D;&quot;field.readOnly ? &#x27;&#x27; : null &quot;&gt;

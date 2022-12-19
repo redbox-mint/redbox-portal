@@ -118,7 +118,13 @@
                     <td class="col-md-4">
                         <ul class="index-list">
                             <li>
+                                <a href="#findAvailableOptions" >findAvailableOptions</a>
+                            </li>
+                            <li>
                                 <a href="#getLabel" >getLabel</a>
+                            </li>
+                            <li>
+                                <a href="#isOptionAvailable" >isOptionAvailable</a>
                             </li>
                             <li>
                                     <span class="modifier">Public</span>
@@ -354,6 +360,75 @@
         <tbody>
             <tr>
                 <td class="col-md-4">
+                    <a name="findAvailableOptions"></a>
+                    <span class="name">
+                        <span ><b>findAvailableOptions</b></span>
+                        <a href="#findAvailableOptions"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+<code>findAvailableOptions(val: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>)</code>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-line">Defined in <a href="" data-line="260"
+                            class="link-to-prism">angular/shared/form/field-simple.component.ts:260</a></div>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+
+                    <div class="io-description">
+                        <b>Parameters :</b>
+                        
+                        <table class="params">
+                            <thead>
+                                <tr>
+                                    <td>Name</td>
+                                    <td>Type</td>
+                                    <td>Optional</td>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>val</td>
+                                    <td>
+                                                <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div>
+                    </div>
+                    <div class="io-description">
+                        <b>Returns : </b>    <code>any[]</code>
+
+                    </div>
+                    <div class="io-description">
+                        
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
                     <a name="getLabel"></a>
                     <span class="name">
                         <span ><b>getLabel</b></span>
@@ -410,6 +485,87 @@
                     </div>
                     <div class="io-description">
                         <b>Returns : </b>        <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank" >string</a></code>
+
+                    </div>
+                    <div class="io-description">
+                        
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="isOptionAvailable"></a>
+                    <span class="name">
+                        <span ><b>isOptionAvailable</b></span>
+                        <a href="#isOptionAvailable"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+<code>isOptionAvailable(val: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>, opt: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>)</code>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-line">Defined in <a href="" data-line="216"
+                            class="link-to-prism">angular/shared/form/field-simple.component.ts:216</a></div>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+
+                    <div class="io-description">
+                        <b>Parameters :</b>
+                        
+                        <table class="params">
+                            <thead>
+                                <tr>
+                                    <td>Name</td>
+                                    <td>Type</td>
+                                    <td>Optional</td>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>val</td>
+                                    <td>
+                                                <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+
+                                </tr>
+                                <tr>
+                                    <td>opt</td>
+                                    <td>
+                                                <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div>
+                    </div>
+                    <div class="io-description">
+                        <b>Returns : </b>        <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/boolean" target="_blank" >boolean</a></code>
 
                     </div>
                     <div class="io-description">
@@ -1038,7 +1194,63 @@ export class SelectionComponent extends SimpleComponent {
     }
   }
 
+  isOptionAvailable(val: any, opt:any): boolean { 
 
+    let historicalOnly &#x3D; _.get(opt, &#x27;historicalOnly&#x27;);
+
+    //If the field has no value selected all historical only options are hidden
+    if (_.isEmpty(val) &amp;&amp; historicalOnly) {
+      return false;
+
+    } else if(!_.isEmpty(val) &amp;&amp; historicalOnly) {
+
+      //If the field has a historical only value selected then that particualr
+      //historical only option becomes available
+      let currValMatchHistOnlyValue &#x3D; false;
+      for(let currentOption of this.field.selectOptions) {
+        let histOnly &#x3D; _.get(currentOption, &#x27;historicalOnly&#x27;);
+        //handle dropdown and radio
+        if(!_.isArray(val)) {
+          if(histOnly &amp;&amp; currentOption.value &#x3D;&#x3D; val) {
+            currValMatchHistOnlyValue &#x3D; true;
+            break;
+          }
+        } else {
+          //handle checkbox
+          for(let v of val) {
+            if(histOnly &amp;&amp; v &#x3D;&#x3D; currentOption.value) {
+              currValMatchHistOnlyValue &#x3D; true;
+              break;
+            }
+          }
+        }
+      }
+
+      if(currValMatchHistOnlyValue) {
+        return true;
+      } else {
+        return false;
+      }
+
+    } else {
+      //If it&#x27;s not historical only then the option is always available
+      return true;
+    }
+  }
+
+  findAvailableOptions(val: any): any[] {
+
+    let availableOptions: any[] &#x3D; [];
+
+    for(let option of this.field.selectOptions) {
+
+      if(this.isOptionAvailable(val, option)) {
+        availableOptions.push(option);
+      }
+    }
+
+    return availableOptions;
+  }
 }
 
 @Component({
@@ -1052,10 +1264,14 @@ export class SelectionComponent extends SimpleComponent {
      &lt;span id&#x3D;&quot;{{ &#x27;helpBlock_&#x27; + field.name }}&quot; class&#x3D;&quot;help-block&quot; *ngIf&#x3D;&quot;this.helpShow&quot; [innerHtml]&#x3D;&quot;field.help&quot;&gt;&lt;/span&gt;
      &lt;select [compareWith]&#x3D;&quot;field.compare&quot; [formControl]&#x3D;&quot;getFormControl()&quot;  [id]&#x3D;&quot;field.name&quot; [ngClass]&#x3D;&quot;field.cssClasses&quot;&gt;
         &lt;ng-template [ngIf]&#x3D;&quot;!field.storeValueAndLabel&quot;&gt;
-          &lt;option *ngFor&#x3D;&quot;let opt of field.selectOptions&quot; [value]&#x3D;&quot;opt.value&quot;&gt;{{opt.label}}&lt;/option&gt;
+          &lt;option *ngFor&#x3D;&quot;let opt of findAvailableOptions(field.value)&quot; [value]&#x3D;&quot;opt.value&quot;&gt;
+              {{opt.label}}
+          &lt;/option&gt;
         &lt;/ng-template&gt;
         &lt;ng-template [ngIf]&#x3D;&quot;field.storeValueAndLabel&quot;&gt;
-          &lt;option *ngFor&#x3D;&quot;let opt of field.selectOptions&quot; [ngValue]&#x3D;&quot;opt&quot;&gt;{{opt.label}}&lt;/option&gt;
+          &lt;option *ngFor&#x3D;&quot;let opt of findAvailableOptions(field.value)&quot; [ngValue]&#x3D;&quot;opt&quot;&gt;
+              {{opt.label}}
+          &lt;/option&gt;
         &lt;/ng-template&gt;
      &lt;/select&gt;
      &lt;div class&#x3D;&quot;text-danger&quot; *ngIf&#x3D;&quot;getFormControl() &amp;&amp; getFormControl().hasError(&#x27;required&#x27;) &amp;&amp; getFormControl().touched &amp;&amp; !field.validationMessages?.required&quot;&gt;{{field.label}} is required&lt;/div&gt;
@@ -1088,7 +1304,7 @@ export class DropdownFieldComponent extends SelectionComponent {
      &lt;span id&#x3D;&quot;{{ &#x27;helpBlock_&#x27; + field.name }}&quot; class&#x3D;&quot;help-block&quot; *ngIf&#x3D;&quot;this.helpShow&quot; [innerHtml]&#x3D;&quot;field.help&quot;&gt;&lt;/span&gt;
      &lt;fieldset&gt;
       &lt;legend [hidden]&#x3D;&quot;true&quot;&gt;&lt;span&gt;&lt;/span&gt;&lt;/legend&gt;
-        &lt;span *ngFor&#x3D;&quot;let opt of field.selectOptions&quot;&gt;
+        &lt;span *ngFor&#x3D;&quot;let opt of findAvailableOptions(field.value)&quot;&gt;
           &lt;!-- radio type hard-coded otherwise accessor directive will not work! --&gt;
           &lt;!-- the ID and associated label-&gt;for property is now delegated to a Fn rather than inline-templated here, to make it optional, e.g. if it is nested --&gt;
           &lt;input *ngIf&#x3D;&quot;isRadio()&quot; type&#x3D;&quot;radio&quot; [id]&#x3D;&quot;getInputId(opt)&quot; [formControlName]&#x3D;&quot;field.name&quot; [value]&#x3D;&quot;opt.value&quot; [attr.disabled]&#x3D;&quot;field.readOnly ? &#x27;&#x27; : null &quot;&gt;

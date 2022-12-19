@@ -373,7 +373,7 @@
                 </tr>
                         <tr>
                             <td class="col-md-4">
-                                <div class="io-line">Defined in <a href="" data-line="520" class="link-to-prism">angular/shared/form/field-simple.ts:520</a></div>
+                                <div class="io-line">Defined in <a href="" data-line="530" class="link-to-prism">angular/shared/form/field-simple.ts:530</a></div>
                             </td>
                         </tr>
 
@@ -447,7 +447,7 @@
                 </tr>
                     <tr>
                         <td class="col-md-4">
-                                <div class="io-line">Defined in <a href="" data-line="520" class="link-to-prism">angular/shared/form/field-simple.ts:520</a></div>
+                                <div class="io-line">Defined in <a href="" data-line="530" class="link-to-prism">angular/shared/form/field-simple.ts:530</a></div>
                         </td>
                     </tr>
 
@@ -1989,8 +1989,8 @@
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="527"
-                            class="link-to-prism">angular/shared/form/field-simple.ts:527</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="537"
+                            class="link-to-prism">angular/shared/form/field-simple.ts:537</a></div>
                 </td>
             </tr>
 
@@ -4410,6 +4410,16 @@ export class SelectionField extends FieldBase&lt;any&gt;  {
     this.selectOptions &#x3D; _.map(options[&#x27;options&#x27;] || [], (option)&#x3D;&gt; {
       option[&#x27;label&#x27;] &#x3D; this.getTranslated(option[&#x27;label&#x27;], option[&#x27;label&#x27;]);
       option[&#x27;value&#x27;] &#x3D; this.getTranslated(option[&#x27;value&#x27;], option[&#x27;value&#x27;]);
+
+      let histOnly &#x3D; _.get(option, &#x27;historicalOnly&#x27;);
+      //Check if historicalOnly attribute is present and set to true  
+      if(!_.isUndefined(histOnly) &amp;&amp; histOnly &#x3D;&#x3D; true) {
+        _.set(option, &#x27;historicalOnly&#x27;, true);
+      } else {
+          //By default if historicalOnly attribute is not present it will set to false
+        _.set(option, &#x27;historicalOnly&#x27;, false);
+      }
+
       return option;
     });
 
