@@ -126,10 +126,16 @@ export module Services {
       }
     }
 
-    private validateRegex(data, regexPattern, fieldLanguageCode, errorMessageCode) {
-      let re = new RegExp(regexPattern,'i');
+    private validateRegex(data, regexPattern, fieldLanguageCode, errorMessageCode, caseSensitive) {
+      let re;
+      if(caseSensitive) {
+        re = new RegExp(regexPattern);
+      } else {
+        re = new RegExp(regexPattern,'i');
+      }
+      sails.log.verbose('validateFieldUsingRegex data.toString() '+data.toString());
       let reTest = re.test(data.toString());
-      sails.log.error('validateFieldUsingRegex reTest '+reTest);
+      sails.log.verbose('validateFieldUsingRegex caseSensitive '+caseSensitive+' reTest '+reTest);
       if(!reTest) {
         let customError: RBValidationError;
         if(!_.isUndefined(fieldLanguageCode)) {
@@ -155,6 +161,7 @@ export module Services {
       //Set false by default if not present this option will remove leading and trailing spaces from a none array value
       //then it will modify the value in the record if the the regex validation is passed therefore handle with care
       let trimLeadingAndTrailingSpacesBeforeValidation = _.get(options,'trimLeadingAndTrailingSpacesBeforeValidation') || false;
+      let caseSensitive = _.get(options,'caseSensitive') || true;
       
       let data = _.get(record, fieldDBName);
 
@@ -168,7 +175,7 @@ export module Services {
 
           if(!_.isUndefined(objField) && objField != null && objField != '' && !_.isUndefined(regexPattern) && !_.isUndefined(errorMessageCode) ) {
 
-            this.validateRegex(objField, regexPattern, fieldLanguageCode, errorMessageCode);
+            this.validateRegex(objField, regexPattern, fieldLanguageCode, errorMessageCode, caseSensitive);
           }
         }
 
@@ -183,7 +190,7 @@ export module Services {
             data = trimData;
           }
 
-          this.validateRegex(data, regexPattern, fieldLanguageCode, errorMessageCode);
+          this.validateRegex(data, regexPattern, fieldLanguageCode, errorMessageCode, caseSensitive);
           
           if(trimLeadingAndTrailingSpacesBeforeValidation) {
             _.set(record,fieldDBName,data);
