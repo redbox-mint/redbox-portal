@@ -17,10 +17,10 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { Component, Inject } from '@angular/core';
+import { Component, Inject, OnInit } from '@angular/core';
 import { FormGroup, Validators, FormBuilder } from '@angular/forms';
 import { DOCUMENT } from "@angular/common"
-import { UserService, UserLoginResult, UtilityService, LoggerService } from '@researchdatabox/redbox-portal-core';
+import { UserService, UserLoginResult, UtilityService, LoggerService, TranslationService } from '@researchdatabox/redbox-portal-core';
 
 /**
  * Local Authentication  Component
@@ -32,9 +32,9 @@ import { UserService, UserLoginResult, UtilityService, LoggerService } from '@re
   selector: 'local-auth',
   templateUrl: './local-auth.component.html'
 })
-export class LocalAuthComponent {
+export class LocalAuthComponent implements OnInit {
   form: FormGroup = null as any;
-  loginMessage: string = "";
+  loginMessage: string = null as any;
   isLoginDisabled: boolean = false;
 
   constructor(
@@ -42,13 +42,14 @@ export class LocalAuthComponent {
     @Inject(UserService) private userService: UserService,
     @Inject(UtilityService) private utilService: UtilityService,
     @Inject(FormBuilder) private fb: FormBuilder,
-    @Inject(DOCUMENT) private document: Document
+    @Inject(DOCUMENT) private document: Document,
+    @Inject(TranslationService) private translationService: TranslationService
   ) {
   }
 
   async ngOnInit() {
     this.loggerService.debug(`LocalAuth waiting for deps to init...`); 
-    await this.utilService.waitForDependencies([this.userService]);
+    await this.utilService.waitForDependencies([this.translationService, this.userService]);
     this.form = this.fb.group({
       "username": ["", Validators.required],
       "password":["", Validators.required]

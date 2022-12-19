@@ -11,6 +11,7 @@ import { UtilityService } from './utility.service';
 import { CsrfInterceptor } from './csrf.interceptor';
 import { UserService } from './user.service';
 import { LoggerService } from './logger.service';
+import { TranslationService  } from './translation.service';
 
 function trimLastSlashFromUrl(baseUrl: string) {
   if (!_.isEmpty(baseUrl) && (baseUrl[baseUrl.length - 1] == '/')) {
@@ -30,6 +31,7 @@ function trimLastSlashFromUrl(baseUrl: string) {
       deps: [PlatformLocation]
     },
     ConfigService,
+    TranslationService,
     LoggerService,
     UtilityService,
     {
@@ -37,7 +39,7 @@ function trimLastSlashFromUrl(baseUrl: string) {
       useClass: CsrfInterceptor,
       multi: true
     },
-    UserService
+    UserService,
   ],
   imports: [
     BrowserModule,
