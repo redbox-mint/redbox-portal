@@ -3,8 +3,6 @@ help:
 	    @echo "To build all apps run make make build-frontend"
 
 build-frontend:
-			@echo "Building local_auth"
-	        node_modules/.bin/ng build -a=0 --extract-css true
 			@echo "Building dashboard"
 			node_modules/.bin/ng build -a=1 --extract-css true
 			@echo "Building record_search"
@@ -27,8 +25,6 @@ build-frontend:
 			node_modules/.bin/ng build -a=10 --extract-css true
 
 build-frontend-prod:
-			@echo "Building local_auth"
-	    node_modules/.bin/ng build -a=0 --prod --build-optimizer --output-hashing=none --extract-css true
 			@echo "Building dashboard"
 			node_modules/.bin/ng build -a=1 --prod --build-optimizer --output-hashing=none --extract-css true
 			@echo "Building record_search"
@@ -51,8 +47,6 @@ build-frontend-prod:
 			node_modules/.bin/ng build -a=10 --prod --build-optimizer --output-hashing=none --extract-css true
 
 build-frontend-prod-sourcemaps:
-			@echo "Building local_auth"
-	    node_modules/.bin/ng build -a=0 --prod --build-optimizer --output-hashing=none --sourcemaps=true --extract-css true
 			@echo "Building dashboard"
 			node_modules/.bin/ng build -a=1 --prod --build-optimizer --output-hashing=none --sourcemaps=true --extract-css true
 			@echo "Building record_search"
