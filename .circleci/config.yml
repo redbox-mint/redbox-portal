@@ -5,14 +5,14 @@ jobs:
     steps:
       - checkout
       - run: (cd core && npm install && node_modules/.bin/tsc)
-      - run: npm install --production
+      - run: npm install --production --legacy-peer-deps
       - run: node_modules/.bin/tsc
       - run: curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.2/install.sh | bash
       - run: export NVM_DIR="$HOME/.nvm"; 
       - run: source "$NVM_DIR/nvm.sh"
-      - run: (cd angular-legacy && nvm i < .nvmrc && npm install)
+      - run: (cd angular-legacy && nvm i < .nvmrc && npm install --legacy-peer-deps)
       - run: (chmod +x support/build/compileProductionAngularLegacy.sh && support/build/compileProductionAngularLegacy.sh)
-      - run: (cd ../angular && nvm i < .nvmrc && npm i)
+      - run: (cd ../angular && nvm i < .nvmrc && npm i --legacy-peer-deps)
       - run: (chmod +x support/build/compileProductionAngular.sh && support/build/compileProductionAngular.sh)
       - persist_to_workspace:
           root: .
