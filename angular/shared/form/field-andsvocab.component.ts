@@ -45,6 +45,7 @@ export class ANDSVocabField extends FieldBase<any> {
   public disableCheckboxRegexEnabled:boolean;
   public disableCheckboxRegexPattern:string;
   public disableCheckboxRegexTestValue:string;
+  public disableCheckboxRegexCaseSensitive: boolean;
 
   constructor(options: any, injector: any) {
     super(options, injector);
@@ -53,6 +54,7 @@ export class ANDSVocabField extends FieldBase<any> {
     this.disableCheckboxRegexEnabled = options['disableCheckboxRegexEnabled'] || false;
     this.disableCheckboxRegexPattern = options['disableCheckboxRegexPattern'] || "";
     this.disableCheckboxRegexTestValue = options['disableCheckboxRegexTestValue'] || "";
+    this.disableCheckboxRegexCaseSensitive = options['disableCheckboxRegexCaseSensitive'] || true;
 
     this.andsService = this.getFromInjector(ANDSService);
   }
@@ -311,11 +313,16 @@ export class ANDSVocabComponent extends SimpleComponent {
     if(this.field.disableCheckboxRegexEnabled) {
       const data = childNode.data;
       let nodeId = _.get(data,this.field.disableCheckboxRegexTestValue);
-      let re = new RegExp(this.field.disableCheckboxRegexPattern,'i');
+      let re; 
+      if(this.field.disableCheckboxRegexCaseSensitive) {
+        re = new RegExp(this.field.disableCheckboxRegexPattern);
+      } else {
+        re = new RegExp(this.field.disableCheckboxRegexPattern,'i');
+      }
       if(!_.isUndefined(nodeId)) {
-        let reTest = re.test(nodeId.toString());
-        console.log(nodeId + ' ' + this.field.disableCheckboxRegexTestValue + ' ' + reTest);
-        if(!reTest) {
+        let regexTest = re.test(nodeId.toString());
+        console.log('nodeId ' + nodeId + ' testValue ' + this.field.disableCheckboxRegexTestValue + ' regexTest ' + regexTest);
+        if(!regexTest) {
           valid = false;
         } 
       }
