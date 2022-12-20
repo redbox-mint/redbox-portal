@@ -9,7 +9,7 @@ jobs:
       - run: node_modules/.bin/tsc
       - run: curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.2/install.sh | bash
       - run: export NVM_DIR="$HOME/.nvm"; 
-      - run: source "$HOME/.nvm/nvm.sh"
+      - run: '[ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"'
       - run: (cd angular-legacy && nvm i < .nvmrc && npm install --legacy-peer-deps)
       - run: (chmod +x support/build/compileProductionAngularLegacy.sh && support/build/compileProductionAngularLegacy.sh)
       - run: (cd ../angular && nvm i < .nvmrc && npm i --legacy-peer-deps)
