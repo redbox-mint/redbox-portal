@@ -37,7 +37,7 @@
         }
       }
     },
-    "@researchdatabox/localAuth": {
+    "@researchdatabox/local-auth": {
       "projectType": "application",
       "schematics": {
         "@schematics/angular:component": {
@@ -51,7 +51,7 @@
         "build": {
           "builder": "@angular-devkit/build-angular:browser",
           "options": {
-            "outputPath": "../assets/angular/localAuth",
+            "outputPath": "../assets/angular/local-auth",
             "index": "projects/researchdatabox/local-auth/src/index.html",
             "main": "projects/researchdatabox/local-auth/src/main.ts",
             "polyfills": [
@@ -99,10 +99,10 @@
           "builder": "@angular-devkit/build-angular:dev-server",
           "configurations": {
             "production": {
-              "browserTarget": "@researchdatabox/localAuth:build:production"
+              "browserTarget": "@researchdatabox/local-auth:build:production"
             },
             "development": {
-              "browserTarget": "@researchdatabox/localAuth:build:development"
+              "browserTarget": "@researchdatabox/local-auth:build:development"
             }
           },
           "defaultConfiguration": "development"
@@ -110,7 +110,7 @@
         "extract-i18n": {
           "builder": "@angular-devkit/build-angular:extract-i18n",
           "options": {
-            "browserTarget": "@researchdatabox/localAuth:build"
+            "browserTarget": "@researchdatabox/local-auth:build"
           }
         },
         "test": {

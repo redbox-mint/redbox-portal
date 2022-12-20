@@ -9,9 +9,9 @@
     </div>
   </local-auth>
 </div>
-<script src="<%= BrandingService.getRootContext() %>/angular/localAuth/runtime<%= CacheService.getNgAppFileHash('localAuth', 'runtime', '.') %>.js" type="module"></script>
-<script src="<%= BrandingService.getRootContext() %>/angular/localAuth/polyfills<%=CacheService.getNgAppFileHash('localAuth', 'polyfills', '.') %>.js" type="module"></script>
+<script src="<%= BrandingService.getRootContext() %>/angular/local-auth/runtime<%= CacheService.getNgAppFileHash('local-auth', 'runtime', '.') %>.js" type="module"></script>
+<script src="<%= BrandingService.getRootContext() %>/angular/local-auth/polyfills<%=CacheService.getNgAppFileHash('local-auth', 'polyfills', '.') %>.js" type="module"></script>
 <% if (sails.config.angularDev) { %>
-<script src="<%= BrandingService.getRootContext() %>/angular/localAuth/vendor.js" type="module"></script>
+<script src="<%= BrandingService.getRootContext() %>/angular/local-auth/vendor.js" type="module"></script>
 <% } %>
-<script src="<%= BrandingService.getRootContext() %>/angular/localAuth/main<%=CacheService.getNgAppFileHash('localAuth', 'main', '.') %>.js" type="module"></script>
+<script src="<%= BrandingService.getRootContext() %>/angular/local-auth/main<%=CacheService.getNgAppFileHash('local-auth', 'main', '.') %>.js" type="module"></script>
