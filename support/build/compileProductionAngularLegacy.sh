@@ -8,7 +8,6 @@ export NVM_DIR="$HOME/.nvm"
 [ -s "$HOME/.nvm/nvm.sh" ] && . "$HOME/.nvm/nvm.sh"
 cd angular-legacy
 nvm i < .nvmrc && npm install --legacy-peer-deps
-cd ..
 
 if [ $# -ne 0 ]
   then
