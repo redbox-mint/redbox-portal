@@ -13,16 +13,14 @@ if [ $# -ne 0 ]
     echo "Bundling ${1}"
     buildAngularApp "$1"
 else 
+  echo "Building core..."
+  buildAngularApp "redbox-portal-core"
   ng2apps=( `find ./projects/researchdatabox -maxdepth 1 -mindepth 1 -type d -printf '%f '` )
   for ng2app in "${ng2apps[@]}"
   do
-    if [ "$ng2app" != "shared" ]; then
-      if [ "$ng2app" != "e2e" ]; then
-        if [ "$ng2app" != "node_modules" ]; then
-          echo "Bundling ${ng2app}"
-          buildAngularApp "${ng2app}"
-        fi
-      fi
+    if [ "$ng2app" != "redbox-portal-core" ]; then
+      echo "Building ${ng2app}"
+      buildAngularApp "${ng2app}"
     fi
   done
 fi
