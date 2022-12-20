@@ -1,8 +1,14 @@
 #! /bin/bash
 set -e
 function buildAngularApp() {
-    (cd angular-legacy && node_modules/.bin/ng build --app=${1} --prod --build-optimizer --output-hashing=none --extract-css true)
+  (node_modules/.bin/ng build --app=${1} --prod --build-optimizer --output-hashing=none --extract-css true)
 }
+
+export NVM_DIR="$HOME/.nvm"
+[ -s "$HOME/.nvm/nvm.sh" ] && . "$HOME/.nvm/nvm.sh"
+cd angular-legacy
+nvm i < .nvmrc && npm install --legacy-peer-deps
+cd ..
 
 if [ $# -ne 0 ]
   then

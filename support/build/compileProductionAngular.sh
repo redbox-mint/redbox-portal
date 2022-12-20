@@ -1,8 +1,12 @@
 #! /bin/bash
 set -e
 function buildAngularApp() {
-    (cd angular && node_modules/.bin/ng b @researchdatabox/${1} --configuration production)
+  (node_modules/.bin/ng b @researchdatabox/${1} --configuration production)
 }
+export NVM_DIR="$HOME/.nvm"
+[ -s "$HOME/.nvm/nvm.sh" ] && . "$HOME/.nvm/nvm.sh"
+cd angular
+nvm i < .nvmrc && npm install --legacy-peer-deps
 
 if [ $# -ne 0 ]
   then
