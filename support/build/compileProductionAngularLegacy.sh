@@ -19,7 +19,7 @@ else
   do
     if [ "$ng2app" != "shared" ]; then
       if [ "$ng2app" != "e2e" ]; then
-        if [ "$ng2app" != "node_modules" ]; then
+        if [ "$ng2app" != "node_modules" && "$ng2app" != "localAuth" ]; then
           echo "Bundling ${ng2app}"
           buildAngularApp "${ng2app}"
         fi
