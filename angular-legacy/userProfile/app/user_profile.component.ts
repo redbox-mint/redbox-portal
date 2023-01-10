@@ -33,9 +33,10 @@ import * as $ from 'jquery';
 declare var pageData :any;
 /**
  * User Profile component
- *
+ * 
  *
  * @author <a target='_' href='https://github.com/thomcuddihy'>Thom Cuddihy</a>
+ * @author <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a>
  */
 @Component({
   moduleId: module.id,

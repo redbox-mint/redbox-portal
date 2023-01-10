@@ -16,7 +16,8 @@
         "suppressImplicitAnyIndexErrors": true,
         "sourceMap": false,
         "outDir": "./",
-        "rootDir": "./typescript"
+        "rootDir": "./typescript",
+        "types": ["node"]
     },
     "exclude": [
         "node_modules/**",

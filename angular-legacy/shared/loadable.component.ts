@@ -21,7 +21,11 @@ import { TranslationService } from './translation-service';
 import * as _ from "lodash";
 declare var jQuery: any;
 /**
- * Convenience class to wrap JQuery calls ...
+ * Base class for components that require async initialization. Base implementation will wait for the TranslatorService to load. This can be overloaded to wait for other services, data, etc.
+ * 
+ * The state is exported via the `isLoading` property, UI elements will need to use this property to communicate the state.
+ * 
+ * Breaking change (14 Nov 2022): previously the component is injecting the 'hidden' class into the '#loading' element, components will need to self-manage the specifics on how to communicate loading state to the user.
  *
  * Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a>
  *
