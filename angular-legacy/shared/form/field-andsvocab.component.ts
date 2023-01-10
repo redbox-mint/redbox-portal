@@ -42,11 +42,19 @@ export class ANDSVocabField extends FieldBase<any> {
 
   public andsService:ANDSService;
   public vocabId:string;
+  public disableCheckboxRegexEnabled:boolean;
+  public disableCheckboxRegexPattern:string;
+  public disableCheckboxRegexTestValue:string;
+  public disableCheckboxRegexCaseSensitive: boolean;
 
   constructor(options: any, injector: any) {
     super(options, injector);
     this.value = options['value'] || this.setEmptyValue();
     this.vocabId  = options['vocabId'] || 'anzsrc-for';
+    this.disableCheckboxRegexEnabled = options['disableCheckboxRegexEnabled'] || false;
+    this.disableCheckboxRegexPattern = options['disableCheckboxRegexPattern'] || "";
+    this.disableCheckboxRegexTestValue = options['disableCheckboxRegexTestValue'] || "";
+    this.disableCheckboxRegexCaseSensitive = options['disableCheckboxRegexCaseSensitive'] || true;
 
     this.andsService = this.getFromInjector(ANDSService);
   }
@@ -174,6 +182,9 @@ export class ANDSVocabComponent extends SimpleComponent {
   public onEvent(event) {
     switch(event.eventName) {
       case "select":
+        if(!this.isSelectionValid(event.node)){
+          break;
+        }
         this.field.setSelected(this.getValueFromChildData(event.node), true);
         break;
       case "deselect":
@@ -191,7 +202,11 @@ export class ANDSVocabComponent extends SimpleComponent {
     switch(event.eventName) {
       case "nodeActivate":
         if (currentState == undefined) {
-          currentState = true;
+          if(!this.isSelectionValid(event.node)){
+            currentState = false;
+          } else {
+            currentState = true;
+          }
         } else {
           currentState = false;
         }
@@ -291,6 +306,28 @@ export class ANDSVocabComponent extends SimpleComponent {
     const val = { name: `${data.notation} - ${data.label}`,  label: data.label, notation: data.notation };
     this.setParentTree(val, childNode);
     return val;
+  }
+
+  public isSelectionValid(childNode: any) {
+    let valid = true;
+    if(this.field.disableCheckboxRegexEnabled) {
+      const data = childNode.data;
+      let nodeId = _.get(data,this.field.disableCheckboxRegexTestValue);
+      let re; 
+      if(this.field.disableCheckboxRegexCaseSensitive) {
+        re = new RegExp(this.field.disableCheckboxRegexPattern);
+      } else {
+        re = new RegExp(this.field.disableCheckboxRegexPattern,'i');
+      }
+      if(!_.isUndefined(nodeId)) {
+        let regexTest = re.test(nodeId.toString());
+        console.log('nodeId ' + nodeId + ' testValue ' + this.field.disableCheckboxRegexTestValue + ' regexTest ' + regexTest);
+        if(!regexTest) {
+          valid = false;
+        } 
+      }
+    }
+    return valid;
   }
 
   public setParentTree(val:any, childNode: any) {
