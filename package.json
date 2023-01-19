@@ -4,6 +4,7 @@
   "description": "ReDBox 2 Portal",
   "keywords": [],
   "dependencies": {
+    "@researchdatabox/raido-openapi-generated-node": "^0.0.1",
     "@researchdatabox/redbox-core-types": "^1.1.1",
     "@researchdatabox/sails-hook-redbox-storage-mongo": "^1.2.1",
     "@sailshq/upgrade": "^1.0.9",
