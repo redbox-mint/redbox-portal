@@ -64,6 +64,7 @@ export module Controllers {
       const recordType = req.param('recordType') ? req.param('recordType') : '';
       const packageType = req.param('packageType') ? req.param('packageType') : '';
       const titleLabel = req.param('titleLabel') ? TranslationService.t(req.param('titleLabel')) : `${TranslationService.t('edit-dashboard')} ${TranslationService.t(recordType+'-title-label')}`;
+      sails.log.error('Dashboard controller render: '+recordType+' '+titleLabel);
       return this.sendView(req, res, 'dashboard', {recordType: recordType, packageType: packageType, titleLabel: titleLabel });
     }
 

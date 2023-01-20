@@ -123,10 +123,16 @@ export module Controllers {
       const oid = req.param('oid') ? req.param('oid') : '';
       const recordType = req.param('recordType') ? req.param('recordType') : '';
       const rdmp = req.query.rdmp ? req.query.rdmp : '';
+      let localFormName;
+      if(!_.isUndefined(req.options.locals) && !_.isNull(req.options.locals)) {
+        localFormName = req.options.locals.localFormName;
+      }
+      const extFormName =  localFormName ? localFormName : '';
       let appSelector = 'dmp-form';
       let appName = 'dmp';
-      sails.log.debug('RECORD::APP: ' + appName)
-      if (recordType != '') {
+      sails.log.debug('RECORD::APP: ' + appName);
+      sails.log.debug('RECORD::APP formName: ' + extFormName);
+      if (recordType != '' && extFormName == '') {
         FormsService.getForm(brand.id, recordType, true, true).subscribe(form => {
           if (form['customAngularApp'] != null) {
             appSelector = form['customAngularApp']['appSelector'];
@@ -136,6 +142,22 @@ export module Controllers {
             oid: oid,
             rdmp: rdmp,
             recordType: recordType,
+            formName: extFormName,
+            appSelector: appSelector,
+            appName: appName
+          });
+        });
+      } else if (extFormName != '') {
+        FormsService.getFormByName(extFormName, true).subscribe(form => {
+          if (form['customAngularApp'] != null) {
+            appSelector = form['customAngularApp']['appSelector'];
+            appName = form['customAngularApp']['appName'];
+          }
+          return this.sendView(req, res, 'record/edit', {
+            oid: oid,
+            rdmp: rdmp,
+            recordType: recordType,
+            formName: extFormName,
             appSelector: appSelector,
             appName: appName
           });
@@ -154,6 +176,7 @@ export module Controllers {
             oid: oid,
             rdmp: rdmp,
             recordType: recordType,
+            formName: extFormName,
             appSelector: appSelector,
             appName: appName
           });
@@ -162,6 +185,7 @@ export module Controllers {
             oid: oid,
             rdmp: rdmp,
             recordType: recordType,
+            formName: extFormName,
             appSelector: appSelector,
             appName: appName
           });
