@@ -745,5 +745,7 @@
   "not-found": "DOI Not found",
   "invalid-format": "Submission format is invalid",
   "server-error": "Server error",
-  "unknown-error": "Unknown error"
+  "unknown-error": "Unknown error",
+  "@dmpt-raid": "RAiD",
+  "@dmpt-raid-help": "RAiD created when you first saved your plan. See https://raid.org"
 }
