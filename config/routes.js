@@ -178,6 +178,13 @@ module.exports.routes = {
   'get /:branding/:portal/record/type/:recordType': 'RecordController.getType',
   'get /:branding/:portal/record/:recordType/edit': 'RecordController.edit',
   'get /:branding/:portal/record/edit/:oid': 'RecordController.edit',
+  'get /:branding/:portal/record/finalise/:recordType/edit/:oid': {
+    controller: 'RecordController',
+    action: 'edit',
+    locals: {
+      'localFormName': 'rdmp-1.0-finalised'
+    }
+  },
   'delete /:branding/:portal/record/delete/:oid': 'RecordController.delete',
   '/:branding/:portal/record/:oid/attach': 'RecordController.doAttachment',
   '/:branding/:portal/record/:oid/attach/:attachId': 'RecordController.doAttachment',
