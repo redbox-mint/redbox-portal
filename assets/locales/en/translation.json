@@ -747,5 +747,8 @@
   "server-error": "Server error",
   "unknown-error": "Unknown error",
   "@dmpt-raid": "RAiD",
-  "@dmpt-raid-help": "RAiD created when you first saved your plan. See https://raid.org"
+  "@dmpt-raid-help": "RAiD created when you first save your plan. See https://raid.org",
+  "raid-mint-transform-validation-error": "There's an issue preparing your data for RAiD, please contact your administrator. ",
+  "raid-mint-server-error": "There's an issue minting you RAiD at the moment, we will try again later.",
+  "raid-mint-transform-missing-contributorid-error": "The ORCID seems to be invalid for "
 }

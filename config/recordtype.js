@@ -61,6 +61,11 @@ module.exports.recordtype = {
                       src: '<%= _.startsWith(record.metadata["dc:accessRights"], "open") ? types.AccessType.Open : types.AccessType.Closed %>',
                       dest: 'access.type'
                     },
+                    // return the value/label when access rights isn't "open"
+                    access_statement: {
+                      src: '<%= _.startsWith(record.metadata["dc:accessRights"], "open") ? "" : record.metadata["dc:accessRights"] %>',
+                      dest: 'access.accessStatement'
+                    },
                     contributors: {
                       src: '<%= JSON.stringify(that.getContributors(record, options, fieldConfig, mappedData)) %>',
                       dest: 'contributors',
@@ -69,7 +74,7 @@ module.exports.recordtype = {
                         contributor_ci: {
                           fieldMap: { id: 'orcid' },
                           position: 'Leader',
-                          role: 'Supervision'        
+                          role: 'Investigation'        
                         },
                         contributor_data_manager: {
                           fieldMap: { id: 'orcid' },
@@ -83,7 +88,7 @@ module.exports.recordtype = {
                         },
                         contributor_supervisor: {
                           fieldMap: { id: 'orcid' },
-                          position: 'ChiefInvestigator',
+                          position: 'PrincipalInvestigator',
                           role: 'Investigation'        
                         }
                       }
@@ -118,119 +123,133 @@ module.exports.recordtype = {
         //     // token: 'abcd-efgh-abcd-abcd-abcd'
         //   }
         // }]
+        post: [
+          {
+            function: 'sails.services.raidservice.mintPostCreateRetryHandler',
+            options: {
+              // nothing here as the record-specific options are in the metaMetadata
+            }
+          }
+        ]
       },
       onUpdate: {
-        pre: [{
-          function: 'sails.services.rdmpservice.assignPermissions',
-          options: {
-            "emailProperty": "email",
-            "editContributorProperties": [
-              "metadata.contributor_ci",
-              "metadata.contributor_data_manager",
-              "metadata.dataowner_email"
-            ],
-            "viewContributorProperties": [
-              "metadata.contributor_ci",
-              "metadata.contributor_data_manager",
-              "metadata.contributor_supervisor",
-              "metadata.contributors"
-            ],
-            "recordCreatorPermissions" : "view&edit"
-          }
-        },
-        {
-          function: 'sails.services.rdmpservice.checkTotalSizeOfFilesInRecord',
-          options: {
-              triggerCondition: '<%= _.isEqual(record.workflow.stage, "draft") || _.isEqual(record.workflow.stage, "queued") || _.isEqual(record.workflow.stage, "published") %>',
-              maxUploadSizeMessageCode: 'max-total-files-upload-size-alternative-validation-error',
-              replaceOrAppend:'append'
-              }
-        },
-        {
-          function: 'sails.services.raidservice.mintTrigger',
-          options: {
-            triggerCondition: '<%= _.isEmpty(record.metadata.raidUrl) %>',
-            request: {
-              mint: {
-                fields: {
-                  title: {
-                    src: 'metadata.title',
-                    dest: 'titles[0].title'
-                  },
-                  title_type: {
-                    src: '<%= types.TitleType.PrimaryTitle %>',
-                    dest: 'titles[0].type'
-                  },
-                  title_startDate: {
-                    src: 'metadata.dc:coverage_vivo:DateTimeInterval_vivo:start',
-                    dest: 'titles[0].startDate'
-                  },
-                  date_start: {
-                    src: 'metadata.dc:coverage_vivo:DateTimeInterval_vivo:start',
-                    dest: 'dates.startDate'
-                  },
-                  date_end: {
-                    src: 'metadata.dc:coverage_vivo:DateTimeInterval_vivo:end',
-                    dest: 'dates.endDate'
-                  },
-                  description_main: {
-                    src: 'metadata.description',
-                    dest: 'descriptions[0].description'
-                  },
-                  description_type: {
-                    src: '<%= types.DescriptionType.PrimaryDescription %>',
-                    dest: 'descriptions[0].type'
-                  }, 
-                  access_type: {
-                    src: '<%= _.startsWith(record.metadata["dc:accessRights"], "open") ? types.AccessType.Open : types.AccessType.Closed %>',
-                    dest: 'access.type'
-                  },
-                  contributors: {
-                    src: '<%= JSON.stringify(that.getContributors(record, options, fieldConfig, mappedData)) %>',
-                    dest: 'contributors',
-                    parseJson: true,
-                    contributorMap: {
-                      contributor_ci: {
-                        fieldMap: { id: 'orcid' },
-                        position: 'Leader',
-                        role: 'Investigation'        
-                      },
-                      contributor_data_manager: {
-                        fieldMap: { id: 'orcid' },
-                        position: 'ContactPerson',
-                        role: 'DataCuration'        
-                      },
-                      contributors: {
-                        fieldMap: { id: 'orcid' },
-                        position: 'CoInvestigator',
-                        role: 'Investigation'        
-                      },
-                      contributor_supervisor: {
-                        fieldMap: { id: 'orcid' },
-                        position: 'PrincipalInvestigator',
-                        role: 'Investigation'        
+        pre: [
+          {
+            function: 'sails.services.rdmpservice.assignPermissions',
+            options: {
+              "emailProperty": "email",
+              "editContributorProperties": [
+                "metadata.contributor_ci",
+                "metadata.contributor_data_manager",
+                "metadata.dataowner_email"
+              ],
+              "viewContributorProperties": [
+                "metadata.contributor_ci",
+                "metadata.contributor_data_manager",
+                "metadata.contributor_supervisor",
+                "metadata.contributors"
+              ],
+              "recordCreatorPermissions" : "view&edit"
+            }
+          },
+          {
+            function: 'sails.services.rdmpservice.checkTotalSizeOfFilesInRecord',
+            options: {
+                triggerCondition: '<%= _.isEqual(record.workflow.stage, "draft") || _.isEqual(record.workflow.stage, "queued") || _.isEqual(record.workflow.stage, "published") %>',
+                maxUploadSizeMessageCode: 'max-total-files-upload-size-alternative-validation-error',
+                replaceOrAppend:'append'
+                }
+          },
+          {
+            function: 'sails.services.raidservice.mintTrigger',
+            options: {
+              triggerCondition: '<%= _.isEmpty(record.metadata.raidUrl) %>',
+              request: {
+                mint: {
+                  fields: {
+                    title: {
+                      src: 'metadata.title',
+                      dest: 'titles[0].title'
+                    },
+                    title_type: {
+                      src: '<%= types.TitleType.PrimaryTitle %>',
+                      dest: 'titles[0].type'
+                    },
+                    title_startDate: {
+                      src: 'metadata.dc:coverage_vivo:DateTimeInterval_vivo:start',
+                      dest: 'titles[0].startDate'
+                    },
+                    date_start: {
+                      src: 'metadata.dc:coverage_vivo:DateTimeInterval_vivo:start',
+                      dest: 'dates.startDate'
+                    },
+                    date_end: {
+                      src: 'metadata.dc:coverage_vivo:DateTimeInterval_vivo:end',
+                      dest: 'dates.endDate'
+                    },
+                    description_main: {
+                      src: 'metadata.description',
+                      dest: 'descriptions[0].description'
+                    },
+                    description_type: {
+                      src: '<%= types.DescriptionType.PrimaryDescription %>',
+                      dest: 'descriptions[0].type'
+                    }, 
+                    access_type: {
+                      src: '<%= _.startsWith(record.metadata["dc:accessRights"], "open") ? types.AccessType.Open : types.AccessType.Closed %>',
+                      dest: 'access.type'
+                    },
+                    // return the value/label when access rights isn't "open"
+                    access_statement: {
+                      src: '<%= _.startsWith(record.metadata["dc:accessRights"], "open") ? "" : record.metadata["dc:accessRights"] %>',
+                      dest: 'access.accessStatement'
+                    },
+                    contributors: {
+                      src: '<%= JSON.stringify(that.getContributors(record, options, fieldConfig, mappedData)) %>',
+                      dest: 'contributors',
+                      parseJson: true,
+                      contributorMap: {
+                        contributor_ci: {
+                          fieldMap: { id: 'orcid' },
+                          position: 'Leader',
+                          role: 'Investigation'        
+                        },
+                        contributor_data_manager: {
+                          fieldMap: { id: 'orcid' },
+                          position: 'ContactPerson',
+                          role: 'DataCuration'        
+                        },
+                        contributors: {
+                          fieldMap: { id: 'orcid' },
+                          position: 'CoInvestigator',
+                          role: 'Investigation'        
+                        },
+                        contributor_supervisor: {
+                          fieldMap: { id: 'orcid' },
+                          position: 'PrincipalInvestigator',
+                          role: 'Investigation'        
+                        }
                       }
+                    },
+                    organisations_id: {
+                      src: "<%= 'https://ror.org/03sd43014' %>",
+                      dest: 'organisations[0].id'
+                    },
+                    organisations_identifierSchemeUri: {
+                      src: "<%= types.OrganisationIdentifierSchemeType.HttpsRorOrg %>",
+                      dest: 'organisations[0].identifierSchemeUri'
+                    },
+                    organisations_roles: {
+                      src: "<% const roles = [{ roleSchemeUri: types.OrganisationRoleSchemeType.HttpsRaidOrg, role:types.OrganisationRoleType.LeadResearchOrganisation }]; print(JSON.stringify(roles)) %>",
+                      parseJson: true,
+                      dest: 'organisations[0].roles'
                     }
-                  },
-                  organisations_id: {
-                    src: "<%= 'https://ror.org/03sd43014' %>",
-                    dest: 'organisations[0].id'
-                  },
-                  organisations_identifierSchemeUri: {
-                    src: "<%= types.OrganisationIdentifierSchemeType.HttpsRorOrg %>",
-                    dest: 'organisations[0].identifierSchemeUri'
-                  },
-                  organisations_roles: {
-                    src: "<% const roles = [{ roleSchemeUri: types.OrganisationRoleSchemeType.HttpsRaidOrg, role:types.OrganisationRoleType.LeadResearchOrganisation }]; print(JSON.stringify(roles)) %>",
-                    parseJson: true,
-                    dest: 'organisations[0].roles'
                   }
                 }
               }
             }
-          }
-        }  
-      ],
+          }  
+        ],
         // Requires the PDF Gen hook to be installed https://www.npmjs.com/package/@researchdatabox/sails-hook-redbox-pdfgen
         // post: [{
         //   function: 'sails.services.pdfservice.createPDF',

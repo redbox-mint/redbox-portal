@@ -36,9 +36,8 @@ import * as numeral from 'numeral';
 
 declare var sails: Sails;
 declare var RecordsService;
-declare var BrandingService;
 declare var TranslationService;
-declare var RDMPService;
+declare var AgendaQueueService;
 declare var _;
 
 export module Services {
@@ -52,7 +51,9 @@ export module Services {
     protected _exportedMethods: any = [
       'mintTrigger',
       'buildContributors',
-      'buildContribVal'
+      'buildContribVal',
+      'mintPostCreateRetryHandler',
+      'mintRetryJob'
     ];    
 
     constructor() {
@@ -67,7 +68,30 @@ export module Services {
       return record;
     }
 
-    private async mintRaid(oid, record, options): Promise<any> {
+    /** 
+     * Light AgendaQueue wrapper for the main mint method. 
+    */
+    public async mintRetryJob(job:any) {
+      const data = job.attrs.data;
+      const record = await RecordsService.getMeta(data.oid);
+      await this.mintRaid(data.oid, record, data.options, data.attemptCount);
+    }
+    /**
+     * Light retry handler for preSave onCreate failures, when OID is still unknown.
+     * 
+     * @param oid 
+     * @param record 
+     * @param options 
+     */
+    public async mintPostCreateRetryHandler(oid, record, options) {
+      const attemptCount = _.get(record.metaMetadata, 'raid.attemptCount');
+      if (!_.isEmpty(oid) && _.isEmpty(_.get(record.metadata, 'raidUrl')) && attemptCount > 0) {
+        sails.log.verbose(`${this.logHeader} mintPostCreateRetryHandler() -> Scheduled for ${oid} `);
+        this.scheduleMintRetry({oid: oid, options: _.get(record.metaMetadata, 'raid.options'), attemptCount: attemptCount });
+      }
+    }
+
+    private async mintRaid(oid, record, options, attemptCount:number = 0): Promise<any> {
       const basePath = sails.config.raid.basePath;
       const apiToken = sails.config.raid.token;
       const servicePointId = sails.config.raid.servicePointId;
@@ -92,42 +116,82 @@ export module Services {
         request.metadata.contributors = _.get(mappedData, 'contributors') as ContributorBlock[];
         request.metadata.organisations = _.get(mappedData, 'organisations') as OrganisationBlock[];
       } catch (error) {
-        // let errorMessage = TranslationService.t(error);
-        // let customError:RBValidationError = new RBValidationError(errorMessage);
-        // sails.log.error(errorMessage);
-        // throw customError;
-        sails.log.error(error);
-        throw error;
+        let customError:RBValidationError = undefined;
+        if (error.name == "RBValidationError") {
+          customError = error;
+        } else {
+          let errorMessage = TranslationService.t('raid-mint-transform-validation-error');
+          customError = new RBValidationError(errorMessage);
+          sails.log.error(errorMessage);
+        }
+        throw customError;
       }
       let raid = undefined;
       let metaMetadataInfo = undefined;
       try {
-        sails.log.verbose(`${this.logHeader} mintRaid() -> Sending data::`);
+        sails.log.verbose(`${this.logHeader} mintRaid() ${oid} -> Sending data::`);
         sails.log.verbose(JSON.stringify(request));
         const { response, body } = await api.mintRaidoSchemaV1(request);
-        if (body.success === true) {
-          raid = body.raid.url;
+        sails.log.verbose(JSON.stringify(response));
+        sails.log.verbose(`${this.logHeader} mintRaid() ${oid} -> Body::`);
+        sails.log.verbose(JSON.stringify(body));
+        if (body.success === true && response.statusCode == 200) {
+          raid = _.get(body, 'raid.url');
           if (sails.config.raid.saveBodyInMeta) {
             metaMetadataInfo = body;
           }
         } else {
-          sails.log.error(`${this.logHeader} mintRaid() -> Failed to mint raid:`);
-          sails.log.error(body);
-          // let errorMessage = TranslationService.t(error);
-          // let customError:RBValidationError = new RBValidationError(errorMessage);
-          // sails.log.error(errorMessage);
-          throw new Error("Failed to mint RAiD, see server logs.");
+          sails.log.error(`${this.logHeader} mintRaid() ${oid} -> Failed to mint raid:`);
+          sails.log.error(JSON.stringify(body));
+          let errorMessage = TranslationService.t('raid-mint-server-error');
+          // Note: if there's any 'notSet' validation errors, these will have to be hashed out during development, with the specific fields set to 'required' and not treat these as runtime errors
+          let customError:RBValidationError = new RBValidationError(errorMessage);
+          sails.log.error(errorMessage);
+          throw customError;
         }
       } catch (error) {
         sails.log.error(error);
-        throw error;
+        // swallow as this will be handled after this block
       }
-      // add raid to record
-      _.set(record.metadata, 'raidUrl', raid);
-      if (sails.config.raid.saveBodyInMeta) {
-        _.set(record.metaMetadata, 'raid', metaMetadataInfo.raid);
+      if (!_.isEmpty(raid)) {
+        // add raid to record
+        _.set(record.metadata, 'raidUrl', raid);
+        if (sails.config.raid.saveBodyInMeta) {
+          _.set(record.metaMetadata, 'raid', metaMetadataInfo.raid);
+        }
+      } else {
+        sails.log.error(`${this.logHeader} mintRaid() ${oid} -> Failed to mint raid!`);
+        let errorMessage = TranslationService.t('raid-mint-server-error');
+        let customError:RBValidationError = new RBValidationError(errorMessage);
+        sails.log.error(errorMessage);
+        if (!_.isEmpty(sails.config.raid.retryJobName)) {
+          // a generic/comms error, so we put this in the queue so we can retry later
+          attemptCount++;
+          if (attemptCount <= sails.config.raid.retryJobMaxAttempts) {
+            if (_.isEmpty(oid)) {
+              // set the flag for post-save processor to add the job
+              _.set(record.metaMetadata, 'raid.attemptCount', attemptCount);
+              _.set(record.metaMetadata, 'raid.options', options);
+            } else {
+              _.set(record.metaMetadata, 'raid.attemptCount', attemptCount);
+              _.set(record.metaMetadata, 'raid.options', options);
+              // same as above but directly schedule as we know the oid
+              this.scheduleMintRetry({oid: oid, options: options, attemptCount: attemptCount });
+            }
+            // we let the process proceed so the record is saved
+          } else {
+            sails.log.error(`${this.logHeader} mintRaid() -> Max retry attempts reached, giving up: ${oid}`);  
+          }
+        } else {
+          // we fail fast if retries aren't supported
+          throw customError;
+        }
       }
       return record;
+    }
+
+    private scheduleMintRetry(data: any) {
+      AgendaQueueService.schedule(sails.config.raid.retryJobName, sails.config.raid.retryJobSchedule, data);
     }
 
     public getContributors(record, options, fieldConfig?:any, mappedData?:any) {
@@ -152,6 +216,10 @@ export module Services {
     }
 
     public buildContribVal(contributors, contribVal, contribConfig, startDate, endDate) {
+      if (_.isEmpty(contribVal.text_full_name)) {
+        sails.log.verbose(`${this.logHeader} buildContribVal() -> Ignoring blank record.`);
+        return;
+      }
       const id = this.getContributorId(contribVal, contribConfig);
       if (!_.isEmpty(id)) {
         if (_.isUndefined(contributors[id])) {
@@ -171,15 +239,29 @@ export module Services {
          contributors[id].roles.push(this.getContributorRole(contribConfig.role));
         }
       } else {
-        sails.log.verbose(`${this.logHeader} buildContribVal() -> No identifier for: ${contribVal}`);
+        sails.log.verbose(`${this.logHeader} buildContribVal() -> Missing/invalid identifier for: ${contribVal}`);
+        // reject mint if we have missing ids
+        let errorMessage = TranslationService.t('raid-mint-transform-missing-contributorid-error');
+        let customError:RBValidationError = new RBValidationError(`${errorMessage} '${contribVal.text_full_name}'`);
+        throw customError;
       }
     }
 
+    /**
+     * As per https://support.orcid.org/hc/en-us/articles/360006897674-Structure-of-the-ORCID-Identifier 
+     * 
+     * orcid must be a 0-9,X
+     * 
+     * @param contribVal 
+     * @param contribConfig 
+     * @returns 
+     */
     private getContributorId(contribVal: any, contribConfig: any) {
-      let id = _.get(contribVal, contribConfig.fieldMap.id);
-      if (_.startsWith(id, 'https://orcid.org/')) {
-        id = _.replace(id, 'https://orcid.org/', '');
-      }
+      let id = _.replace(_.get(contribVal, contribConfig.fieldMap.id), 'https://orcid.org/', '');
+      let regex = /(\d{4}-){3}\d{3}(\d|X)/;
+      if (_.isEmpty(id) || _.size(id) != 19 || regex.test(id) === false) {
+        id = undefined;
+      } 
       return id;
     }
 

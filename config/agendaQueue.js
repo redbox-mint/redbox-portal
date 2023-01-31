@@ -37,5 +37,9 @@ module.exports.agendaQueue = {
       name: 'RecordsService-StoreRecordAudit',
       fnName: 'recordsservice.storeRecordAudit',
     },
+    {
+      name: 'RaidMintRetryJob',
+      fnName: 'raidservice.mintRetryJob'
+    }
   ]
 };
