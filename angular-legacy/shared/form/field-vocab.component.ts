@@ -20,7 +20,7 @@
 import { Input, Component, Injectable, Inject, OnInit, Output, EventEmitter, ElementRef, ViewChild } from '@angular/core';
 import { SimpleComponent } from './field-simple.component';
 import { FieldBase } from './field-base';
-import { FormGroup, FormControl, Validators } from '@angular/forms';
+import { FormGroup, FormControl, Validators, ValidatorFn, AbstractControl, ValidationErrors } from '@angular/forms';
 import * as _ from "lodash";
 import { Observable } from 'rxjs';
 import { Subject } from "rxjs/Subject";
@@ -127,7 +127,7 @@ export class VocabField extends FieldBase<any> {
     }
 
     if (this.required) {
-      this.formModel.setValidators([Validators.required]);
+      this.formModel.setValidators([objectRequired()]);
     }
     return this.formModel;
   }
@@ -291,7 +291,53 @@ export class VocabField extends FieldBase<any> {
     return mlu.search(searchTerm, lowerTerm);
   }
 
+
+  setRequiredAndClearValueOnFalse(flag) {
+    this.required = flag;
+    if (flag) {
+      this.validators =objectRequired();
+      this.formModel.setValidators(this.validators);
+    } else {
+      if (_.isFunction(this.validators) && _.isEqual(this.validators,objectRequired())) {
+        this.validators = null;
+      }
+      this.formModel.clearValidators();
+      this.formModel.setValue(null);
+      this.value = null;
+    }
+  }
+
+  setRequired(flag) {
+    this.required = flag;
+    if (flag) {
+      this.validators = objectRequired();
+    } else {
+      if (_.isFunction(this.validators) && _.isEqual(this.validators,objectRequired())) {
+        this.validators = null;
+      } else {
+        _.remove(this.validators, (v) => {
+          return _.isEqual(v,objectRequired());
+        });
+      }
+    }
+    if (this.validators) {
+      this.formModel.setValidators(this.validators);
+    } else {
+      this.formModel.clearValidators();
+    }
+  }
+
 }
+
+export function objectRequired(): ValidationErrors|null {
+  
+  return (control: AbstractControl): { [key: string]: any } | null =>  
+  (_.isEqual(control.value, {}) || _.isEmpty(control.value)) 
+            ? {'required': true} : null;
+            
+  
+}
+
 
 class ExternalLookupDataService extends Subject<CompleterItem[]> implements CompleterData {
 

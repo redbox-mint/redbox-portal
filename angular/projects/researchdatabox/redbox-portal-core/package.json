@@ -1,0 +1,18 @@
+{
+  "name": "@researchdatabox/redbox-portal-core",
+  "version": "0.0.1",
+  "dependencies": {
+    "tslib": "^2.3.0"
+  },
+  "peerDependencies": {
+    "@angular/common": "^15.0.0",
+    "@angular/core": "^15.0.0",
+    "angular-i18next": "^14.0.5",
+    "i18next-http-backend": "^2.0.1",
+    "moment": "^2.29.4",
+    "numeral": "^2.0.6"
+  },
+  "devDependencies": {
+    "@types/numeral": "^2.0.2"
+  }
+}
