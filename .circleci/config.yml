@@ -7,8 +7,8 @@ jobs:
       - run: (cd core && npm install && node_modules/.bin/tsc)
       - run: npm install --production
       - run: node_modules/.bin/tsc
-      #- run: (cd angular && npm install)
-      #- run: (chmod +x support/build/compileProductionAngular.sh && support/build/compileProductionAngular.sh)
+      - run: (cd angular && npm install)
+      - run: (chmod +x support/build/compileProductionAngular.sh && support/build/compileProductionAngular.sh)
       - persist_to_workspace:
           root: .
           paths:
@@ -32,10 +32,10 @@ jobs:
       - attach_workspace:
            at: /home/circleci/project
       # Make a copy of original project state as it gets modified for integration testing and code coverage reasons
-      # - run: (mkdir -p /tmp/original && cp -Rf /home/circleci/project/* /tmp/original
-      #- run: node_modules/.bin/tsc -p tsconfig-codecov.json
-      #- run: (sudo chmod -R 777 . && cd support/integration-testing && sudo mkdir -p .tmp/attachments/staging && sudo chmod -R 777 . && docker-compose -f docker-compose.newman.yml up --abort-on-container-exit --exit-code-from redboxportal && docker-compose -f docker-compose.mocha.yml up --abort-on-container-exit --exit-code-from redboxportal)
-      #- run: npm i -g codecov && codecov -t $CODECOV_TOKEN
+      - run: (mkdir -p /tmp/original && cp -Rf /home/circleci/project/* /tmp/original
+      - run: node_modules/.bin/tsc -p tsconfig-codecov.json
+      - run: (sudo chmod -R 777 . && cd support/integration-testing && sudo mkdir -p .tmp/attachments/staging && sudo chmod -R 777 . && docker-compose -f docker-compose.newman.yml up --abort-on-container-exit --exit-code-from redboxportal && docker-compose -f docker-compose.mocha.yml up --abort-on-container-exit --exit-code-from redboxportal)
+      - run: npm i -g codecov && codecov -t $CODECOV_TOKEN
       - run: npm i
   deploy:
     docker:
