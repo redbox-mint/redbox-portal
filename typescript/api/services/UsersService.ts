@@ -360,6 +360,10 @@ export module Services {
     protected openIdConnectAuthVerifyCallback(oidcConfig, issuer, req, tokenSet, userinfo = undefined, done) {
       const that = this;
       req.session.logoutUrl = issuer.end_session_endpoint;
+      const postLogoutUris = _.get(oidcConfig.opts, 'client.post_logout_redirect_uris');
+      if (!_.isEmpty(postLogoutUris)) {
+        req.session.logoutUrl = `${req.session.logoutUrl}?post_logout_redirect_uri=${postLogoutUris[0]}`;
+      }
       sails.log.verbose(`OIDC login success, tokenset: `);
       sails.log.verbose(JSON.stringify(tokenSet));
       sails.log.verbose(`Claims:`);

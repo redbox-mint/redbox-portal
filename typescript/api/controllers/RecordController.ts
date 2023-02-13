@@ -161,6 +161,10 @@ export module Controllers {
             appSelector: appSelector,
             appName: appName
           });
+        }, error=> {
+          sails.log.error("Failed to load form")
+          sails.log.error(error)
+          return res.serverError();
         });
       } else {
         Observable.fromPromise(this.recordsService.getMeta(oid)).flatMap(record => {
