@@ -18,7 +18,7 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 import {Injectable} from '@angular/core';
-import * as _ from "lodash";
+import { get as _get, isEmpty as _isEmpty, isUndefined as _isUndefined, set as _set, isArray as _isArray, clone as _clone, each as _each, isEqual as _isEqual, isNull as _isNull, first as _first, join as  _join,  extend as _extend, template as _template, concat as _concat, find as _find } from 'lodash-es';
 import * as moment from 'moment';
 import * as numeral from 'numeral';
 
@@ -41,22 +41,22 @@ export class UtilityService {
    */
   public concatenate(data: any, config: any) {
     let result: any = '';
-    _.each(config.fields, (f: any) => {
-      if (_.isArray(data)) {
+    _each(config.fields, (f: any) => {
+      if (_isArray(data)) {
         result = [];
         let itemResult = '';
-        _.each(data, (d: any) => {
-          const fldData = _.get(d, f);
+        _each(data, (d: any) => {
+          const fldData = _get(d, f);
           // checking if field has data, otherwise will be skipping concat
           if (fldData) {
-            itemResult = `${itemResult}${_.isEmpty(itemResult) ? '' : config.delim}${fldData}`;
+            itemResult = `${itemResult}${_isEmpty(itemResult) ? '' : config.delim}${fldData}`;
           }
         });
         result.push(itemResult);
       } else {
-        const fldData = _.get(data, f);
+        const fldData = _get(data, f);
         if (fldData) {
-          result = `${result}${_.isEmpty(result) ? '' : config.delim}${fldData}`;
+          result = `${result}${_isEmpty(result) ? '' : config.delim}${fldData}`;
         }
       }
     });
@@ -74,8 +74,8 @@ export class UtilityService {
   private checkData(valueObject: any, fieldsToMatch: any) {
     let dataOk = true;
     for (let fieldToMatch of fieldsToMatch) {
-      let emittedValueToMatch = _.get(valueObject, fieldToMatch);
-      if(emittedValueToMatch === undefined || emittedValueToMatch === null || _.isUndefined(emittedValueToMatch)){
+      let emittedValueToMatch = _get(valueObject, fieldToMatch);
+      if(emittedValueToMatch === undefined || emittedValueToMatch === null || _isUndefined(emittedValueToMatch)){
         dataOk = false;
       }
     }
@@ -95,9 +95,9 @@ export class UtilityService {
     let concatReq = true;
     for (let fieldValue of fieldValues) {
       for (let fieldToMatch of fieldsToMatch) {
-        let fieldValueToMatch = _.get(fieldValue, fieldToMatch); 
-        let emittedValueToMatch = _.get(valueObject, fieldToMatch);
-        if(_.isEqual(fieldValueToMatch,emittedValueToMatch)) {
+        let fieldValueToMatch = _get(fieldValue, fieldToMatch); 
+        let emittedValueToMatch = _get(valueObject, fieldToMatch);
+        if(_isEqual(fieldValueToMatch,emittedValueToMatch)) {
           concatReq = false;
         }
       }
@@ -118,7 +118,7 @@ export class UtilityService {
     const fieldsToMatch = config.fieldsToMatch;
     const fieldsToSet = config.fieldsToSet;
     const templateObject = config.templateObject;
-    let fieldValues = _.clone(field.formModel.value);
+    let fieldValues = _clone(field.formModel.value);
     fieldValues = this.mergeObjectIntoArray(data,fieldValues, fieldsToMatch, fieldsToSet, templateObject);
 
     return fieldValues;
@@ -148,7 +148,7 @@ export class UtilityService {
     const fieldsToMatch = config.fieldsToMatch;
     const fieldsToSet = config.fieldsToSet;
     const templateObject = config.templateObject;
-    let fieldValues = _.clone(field.formModel.value);
+    let fieldValues = _clone(field.formModel.value);
 
     for(let dataObject of data) {
       fieldValues = this.mergeObjectIntoArray(dataObject, fieldValues, fieldsToMatch, fieldsToSet, templateObject);
@@ -158,7 +158,7 @@ export class UtilityService {
 
   private mergeObjectIntoArray(data:any, fieldValues:any, fieldsToMatch:any, fieldsToSet:any, templateObject:any){
     let wrappedData = data;
-    if(!_.isArray(data)) {
+    if(!_isArray(data)) {
       wrappedData = [data];
     }
     
@@ -171,10 +171,10 @@ export class UtilityService {
       if(checkDataOk){
         let concatReq = this.checkConcatReq(emittedDataValue,fieldsToMatch,fieldValues);
         if(concatReq) {
-          let value = _.clone(templateObject);
+          let value = _clone(templateObject);
           for (let fieldToSet of fieldsToSet) {
-              let val = _.get(emittedDataValue, fieldToSet); 
-              _.set(value, fieldToSet, val);
+              let val = _get(emittedDataValue, fieldToSet); 
+              _set(value, fieldToSet, val);
           }
           //If there is only one item in fieldValues array it may be empty and must be re-used 
           //if there is more than one item in the array it's too cumbersome to manage all  
@@ -205,7 +205,7 @@ export class UtilityService {
    */
   public getPropertyFromObject(data: any, config: any) {
     const fieldPath = config.field;
-    return _.get(data, fieldPath);
+    return _get(data, fieldPath);
   }
 
   /**
@@ -229,8 +229,8 @@ export class UtilityService {
    */
   public getPropertyFromObjectMapping(data: any, config: any) {
     const fieldPath = config.field;
-    const val = _.isUndefined(fieldPath) ? data : _.get(data, fieldPath);
-    const foundMapping = _.find(config.mapping, (mapEntry) => {
+    const val = _isUndefined(fieldPath) ? data : _get(data, fieldPath);
+    const foundMapping = _find(config.mapping, (mapEntry: any) => {
       return `${mapEntry.key}` == `${val}`;
     });
     return foundMapping ? foundMapping.value : config.default;
@@ -245,7 +245,7 @@ export class UtilityService {
    * @return {string}
    */
   public hasValue(data: any, config: any = null) {
-    return !_.isEmpty(data) && !_.isUndefined(data) && !_.isNull(data);
+    return !_isEmpty(data) && !_isUndefined(data) && !_isNull(data);
   }
 
   /**
@@ -258,10 +258,10 @@ export class UtilityService {
    */
   public getPropertyFromObjectConcat(data: any, config: any) {
     let values:any = [];
-    _.each(config.field, (f:any) => {
-      values.push(_.get(data, f));
+    _each(config.field, (f:any) => {
+      values.push(_get(data, f));
     });
-    return _.concat([], ...values);
+    return _concat([], ...values);
   }
 
 
@@ -278,7 +278,7 @@ export class UtilityService {
     let field = config.field;
     let value = data;
     if (field) {
-      value = _.get(data, field);
+      value = _get(data, field);
     }
     return value.split(delim);
   }
@@ -301,16 +301,16 @@ export class UtilityService {
     let field = config.field;
     let value = data;
     if (field) {
-      value = _.get(data, field);
+      value = _get(data, field);
     }
     const values:any = [];
-    _.each(value, (v:any) => {
+    _each(value, (v:any) => {
       if (v) {
         v = v.replace(regTrail, '');
       }
       values.push(v.split(reg).map((item:any) => item.trim()));
     });
-    return _.concat([], ...values);
+    return _concat([], ...values);
   }
 
   /**
@@ -326,9 +326,9 @@ export class UtilityService {
     let field = config.field;
     let value = data;
     if (field) {
-      value = _.get(data, field);
+      value = _get(data, field);
     }
-    return _.first(value);
+    return _first(value);
   }
 
   /**
@@ -346,7 +346,7 @@ export class UtilityService {
     let value = data;
 
     if(field) {
-      value = _.get(data,field);
+      value = _get(data,field);
     }
     const converted = moment(value, formatOrigin).format(formatTarget);
     console.log(`convertToDateFormat ${converted}`);
@@ -354,17 +354,17 @@ export class UtilityService {
   }
 
   public joinArray(data: any, config: any, fieldName?: string, fieldSeparator?: string) {
-    return _.join(_.get(data, fieldName ? fieldName : config.field), fieldSeparator ? fieldSeparator : config.separator);
+    return _join(_get(data, fieldName ? fieldName : config.field), fieldSeparator ? fieldSeparator : config.separator);
   }
 
   public runTemplate(data: any, config: any, field: any = undefined) {
-    const imports = _.extend({data: data, config: config, moment: moment, numeral:numeral, field: field}, this);
+    const imports = _extend({data: data, config: config, moment: moment, numeral:numeral, field: field}, this);
     const templateData = {imports: imports};
-    const template = _.template(config.template, templateData);
+    const template = _template(config.template, templateData);
     const templateRes = template();
     // added ability to parse the string template result into JSON
     // requirement: template must return a valid JSON string object
-    if (config.json == true && !_.isEmpty(templateRes)) {
+    if (config.json == true && !_isEmpty(templateRes)) {
       return JSON.parse(templateRes);
     }
     return templateRes;

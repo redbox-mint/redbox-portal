@@ -19,7 +19,6 @@
 
 import { map, firstValueFrom } from 'rxjs';
 import { Inject, Injectable } from '@angular/core';
-import * as _ from "lodash";
 import { HttpClient } from '@angular/common/http';
 import { APP_BASE_HREF } from '@angular/common';
 

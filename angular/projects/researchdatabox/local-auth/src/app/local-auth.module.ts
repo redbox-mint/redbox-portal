@@ -4,12 +4,12 @@ import { ReactiveFormsModule } from '@angular/forms';
 import { RedboxPortalCoreModule } from '@researchdatabox/redbox-portal-core';
 import { APP_BASE_HREF, PlatformLocation } from '@angular/common';
 import { RouterModule } from '@angular/router'; 
-import * as _ from 'lodash';
+import { isEmpty as _isEmpty } from 'lodash-es';
 
 import { LocalAuthComponent } from './local-auth.component';
 
 function trimLastSlashFromUrl(baseUrl: string) {
-  if (!_.isEmpty(baseUrl) && (baseUrl[baseUrl.length - 1] == '/')) {
+  if (!_isEmpty(baseUrl) && (baseUrl[baseUrl.length - 1] == '/')) {
     var trimmedUrl = baseUrl.substring(0, baseUrl.length - 1);
     return trimmedUrl;
   }
