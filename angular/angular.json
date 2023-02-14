@@ -149,7 +149,7 @@
         "build": {
           "builder": "@angular-devkit/build-angular:browser",
           "options": {
-            "outputPath": "dist/researchdatabox/export",
+            "outputPath": "../assets/angular/export",
             "index": "projects/researchdatabox/export/src/index.html",
             "main": "projects/researchdatabox/export/src/main.ts",
             "polyfills": [

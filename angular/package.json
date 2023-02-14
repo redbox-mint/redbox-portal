@@ -21,7 +21,8 @@
     "angular-i18next": "^15.0.5",
     "i18next-http-backend": "^2.1.1",
     "lodash-es": "^4.17.21",
-    "rxjs": "~7.5.0",
+    "ngx-bootstrap": "^10.2.0",
+    "rxjs": "^7.4.0",
     "tslib": "^2.3.0",
     "zone.js": "~0.12.0"
   },
