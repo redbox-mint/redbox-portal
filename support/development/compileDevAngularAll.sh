@@ -1,4 +1,4 @@
 #! /bin/bash
 
-./compileDevAngular.sh
-./compileDevAngularLegacy.sh
+./support/development/compileDevAngular.sh
+./support/development/compileDevAngularLegacy.sh
