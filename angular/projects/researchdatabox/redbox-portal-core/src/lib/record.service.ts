@@ -18,11 +18,8 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 import { Injectable, Inject } from '@angular/core';
-import { Subject, firstValueFrom } from 'rxjs';
 import { APP_BASE_HREF } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
-import { mergeMap } from 'rxjs/operators';
-import { Service } from './service.interface';
 import { ConfigService } from './config.service';
 import { UtilityService } from './utility.service';
 import { LoggerService } from './logger.service';
