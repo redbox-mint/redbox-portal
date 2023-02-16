@@ -24,6 +24,8 @@ import { ConfigService } from './config.service';
 import { UtilityService } from './utility.service';
 import { LoggerService } from './logger.service';
 import { HttpClientService } from './httpClient.service';
+import { firstValueFrom, lastValueFrom } from 'rxjs';
+import { map } from 'rxjs/operators';
 
 /**
  * Record Service
@@ -46,7 +48,42 @@ export class RecordService extends HttpClientService {
   public override async waitForInit(): Promise<any> {
     await super.waitForInit();
     this.enableCsrfHeader();
+    this.loggerService.debug('waitForInit RecordService');
     return this;
+  }
+  
+  // protected getOptions(headersObj: any) {
+  //   let headers = new Headers(headersObj);
+  //   return new RequestOptions({ headers: headers });
+  // }
+
+  // protected getOptionsClient(headersObj: any = {}) {
+  //   headersObj['X-Source'] = 'jsclient';
+  //   headersObj['Content-Type'] = 'application/json;charset=utf-8';
+  //   headersObj['X-CSRF-Token'] = this.config.csrfToken;
+
+  //   return this.getOptions(headersObj);
+  // }
+
+  protected extractData(res: any, parentField: any = null) {
+    let body = res;
+    if (parentField) {
+        console.log(body);
+        return body[parentField] || {};
+    } else {
+        return body || {};
+    }
+  }
+
+  async getWorkflowSteps(name: string) {
+    let url = `${this.brandingAndPortalUrl}/record/wfSteps/${name}`;
+    const result$ = this.http.get(url).pipe(map(res => res));
+    let result = await firstValueFrom(result$);
+    //console.log(result);
+    return this.extractData(result, '0');
+    // return this.http.get(`${this.brandingAndPortalUrl}/record/wfSteps/${name}`, this.getOptionsClient())
+    // .toPromise()
+    // .then((res:any) => this.extractData(res));
   }
 
 }
