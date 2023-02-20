@@ -1,7 +1,7 @@
 import { NgModule } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
-import { ReactiveFormsModule, FormsModule} from "@angular/forms";
+import { FormsModule } from "@angular/forms";
 // import { NKDatetimeModule } from 'ng2-datetime/ng2-datetime';
 import { APP_BASE_HREF, PlatformLocation } from '@angular/common';
 import { isEmpty as _isEmpty } from 'lodash-es';
@@ -23,9 +23,9 @@ function trimLastSlashFromUrl(baseUrl: string) {
   ],
   imports: [
     BrowserModule,
-    ReactiveFormsModule,
-    RedboxPortalCoreModule,
+    FormsModule,
     BrowserAnimationsModule,
+    RedboxPortalCoreModule,
     BsDatepickerModule.forRoot()
   ],
   providers: [

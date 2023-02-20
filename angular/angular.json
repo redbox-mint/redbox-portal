@@ -162,7 +162,8 @@
               "projects/researchdatabox/export/src/assets"
             ],
             "styles": [
-              "projects/researchdatabox/export/src/styles.scss"
+              "projects/researchdatabox/export/src/styles.scss",
+              "node_modules/ngx-bootstrap/datepicker/bs-datepicker.scss"
             ],
             "scripts": []
           },
