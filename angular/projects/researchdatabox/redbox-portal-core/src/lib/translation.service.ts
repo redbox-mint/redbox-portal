@@ -69,17 +69,10 @@ export class TranslationService implements Service {
       // cookieDomain: I18NEXT_LANG_COOKIE_DOMAIN
     }
   };
-  /*
-  TODO: When type issue is resolved:
- Error: export 'ITranslationService' (imported as 'ITranslationService') was not found in 'angular-i18next' (possible exports: I18NEXT_ERROR_HANDLING_STRATEGY, I18NEXT_NAMESPACE, I18NEXT_NAMESPACE_RESOLVER, I18NEXT_SCOPE, I18NEXT_SERVICE, I18NextCapPipe, I18NextEagerPipe, I18NextFormatPipe, I18NextModule, I18NextPipe, I18NextService, I18NextTitle, NativeErrorHandlingStrategy, StrictErrorHandlingStrategy, defaultInterpolationFormat, i18nextNamespaceResolverFactory, resolver)
- 
-  into 
-
-  `@Inject(I18NEXT_SERVICE) private i18NextService: ITranslationService `
-  */ 
+  
   constructor (
     @Inject(APP_BASE_HREF) public rootContext: string, 
-    @Inject(I18NEXT_SERVICE) private i18NextService: any,
+    @Inject(I18NEXT_SERVICE) private i18NextService: ITranslationService,
     @Inject(UtilityService) private utilService: UtilityService,
     @Inject(ConfigService) private configService: ConfigService,
     @Inject(LoggerService) private loggerService: LoggerService
@@ -148,7 +141,7 @@ export class TranslationService implements Service {
   }
 
   public isInitializing(): boolean {
-    return this.translatorReady;
+    return !this.translatorReady;
   }
 
   public getConfig(appName?:string) {
