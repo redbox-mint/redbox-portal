@@ -11,6 +11,7 @@ import { UtilityService } from './utility.service';
 import { CsrfInterceptor } from './csrf.interceptor';
 import { UserService } from './user.service';
 import { LoggerService } from './logger.service';
+import { RecordService } from './record.service';
 import { TranslationService  } from './translation.service';
 
 function trimLastSlashFromUrl(baseUrl: string) {
@@ -40,6 +41,7 @@ function trimLastSlashFromUrl(baseUrl: string) {
       multi: true
     },
     UserService,
+    RecordService
   ],
   imports: [
     BrowserModule,
