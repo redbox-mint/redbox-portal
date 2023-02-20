@@ -83,7 +83,7 @@ export class HttpClientService implements Service {
     await this.utilService.waitForDependencies([this.configService]);
     this.config = await this.configService.getConfig();
     this.baseUrl = this.config.baseUrl;
-    this.brandingAndPortalUrl = `${this.baseUrl}${this.rootContext}/${this.config.branding}/${this.config.portal}`;0
+    this.brandingAndPortalUrl = `${this.baseUrl}${this.rootContext}/${this.config.branding}/${this.config.portal}`;
     this.baseUrlWithContext = `${this.baseUrl}${this.rootContext}`;
     this.httpContext = new HttpContext();
     return this;
