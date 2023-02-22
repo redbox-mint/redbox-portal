@@ -89,7 +89,8 @@ export module Controllers {
       'getPermissionsInternal',
       'getDataStream',
       'getAllTypes',
-      'delete'
+      'delete',
+      'getRelatedRecords'
     ];
 
     /**
@@ -1369,6 +1370,22 @@ export module Controllers {
           return this.ajaxOk(req, res, null, wfSteps);
         });
       });
+    }
+
+    public getRelatedRecords(req, res) {
+      return this.getRelatedRecordsInternal(req, res).then(response => {
+        return this.ajaxOk(req, res, null, response);
+      });
+    }
+
+    public async getRelatedRecordsInternal(req, res) {
+      sails.log.verbose(`getRelatedRecordsInternal - starting...`);
+      const brand = BrandingService.getBrand(req.session.branding);
+      const oid = req.param('oid');
+      //TODO may need to check user authorization like in getPermissionsInternal?
+      //let record = await this.getRecord(oid).toPromise();
+      let relatedRecords = await this.recordsService.getRelatedRecords(oid, brand);
+      return relatedRecords;
     }
 
     public async getPermissionsInternal(req, res) {

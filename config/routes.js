@@ -192,6 +192,7 @@ module.exports.routes = {
   'get /:branding/:portal/record/:oid/datastream*': 'RecordController.getDataStream',
   'get /:branding/:portal/record/:oid/attachments': 'RecordController.getAttachments',
   'get /:branding/:portal/record/:oid/permissions': 'RecordController.getPermissions',
+  'get /:branding/:portal/record/:oid/relatedRecords': 'RecordController.getRelatedRecords',
   'get /:branding/:portal/record/wfSteps/:recordType': 'RecordController.getWorkflowSteps',
   'post /:branding/:portal/recordmeta/:recordType': 'RecordController.create',
   'put /:branding/:portal/recordmeta/:oid': 'RecordController.update',

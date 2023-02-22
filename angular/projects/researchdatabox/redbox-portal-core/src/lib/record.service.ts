@@ -26,6 +26,7 @@ import { LoggerService } from './logger.service';
 import { HttpClientService } from './httpClient.service';
 import { firstValueFrom, lastValueFrom } from 'rxjs';
 import { map } from 'rxjs/operators';
+import * as _ from 'lodash';
 
 /**
  * Record Service
@@ -69,21 +70,43 @@ export class RecordService extends HttpClientService {
     let body = res;
     if (parentField) {
         console.log(body);
-        return body[parentField] || {};
+        return _.get(body, parentField) || {};
     } else {
         return body || {};
     }
   }
 
-  async getWorkflowSteps(name: string) {
+  public async getWorkflowSteps(name: string) {
     let url = `${this.brandingAndPortalUrl}/record/wfSteps/${name}`;
     const result$ = this.http.get(url).pipe(map(res => res));
     let result = await firstValueFrom(result$);
     //console.log(result);
-    return this.extractData(result, '0');
+    //return this.extractData(result, '0');
+    return result; 
     // return this.http.get(`${this.brandingAndPortalUrl}/record/wfSteps/${name}`, this.getOptionsClient())
     // .toPromise()
     // .then((res:any) => this.extractData(res));
+  }
+
+  public async getRelatedRecords(oid: string){
+    let url = `${this.brandingAndPortalUrl}/record/${oid}/relatedRecords`;
+    const result$ = this.http.get(url).pipe(map(res => res));
+    let result = await firstValueFrom(result$);
+    // console.log(result);
+    return result;
+  }
+
+  public async getRecords(recordType:string,state:string,pageNumber:number,packageType:string='', sort:string='') {
+    var rows = 10;
+    var start = (pageNumber-1) * rows;
+    recordType = (!_.isEmpty(recordType) && !_.isUndefined(recordType)) ? `recordType=${recordType}` : '';
+    packageType = (!_.isEmpty(packageType) && !_.isUndefined(packageType)) ? `packageType=${packageType}` : '';
+    sort = (!_.isEmpty(sort) && !_.isUndefined(sort)) ? `&sort=${sort}` : '';
+    state = (!_.isEmpty(state) && !_.isUndefined(state)) ? `&state=${state}` : '';
+    let url = `${this.brandingAndPortalUrl}/listRecords?${recordType}${packageType}${state}${sort}&start=${start}&rows=${rows}}`;
+    const result$ = this.http.get(url).pipe(map(res => res));
+    let result = await firstValueFrom(result$);
+    return result;
   }
 
 }
