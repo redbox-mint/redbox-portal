@@ -36,6 +36,8 @@ export class LocalAuthComponent implements OnInit {
   form: FormGroup = null as any;
   loginMessage: string = null as any;
   isLoginDisabled: boolean = false;
+  loginResult:  UserLoginResult = null as any;
+  window: any;
 
   constructor(
     @Inject(LoggerService) private loggerService: LoggerService,
@@ -45,6 +47,7 @@ export class LocalAuthComponent implements OnInit {
     @Inject(DOCUMENT) private document: Document,
     @Inject(TranslationService) private translationService: TranslationService
   ) {
+    this.window = this.document.defaultView;
   }
 
   async ngOnInit() {
@@ -70,16 +73,15 @@ export class LocalAuthComponent implements OnInit {
     }
     event.preventDefault();
     this.isLoginDisabled = true;
-    const res: UserLoginResult = await this.userService.loginLocal(this.form.value.username, this.form.value.password);
-    this.loggerService.debug(`LocalAuth, login result: `, res);
-    if (res.user) {
-      this.loggerService.debug(`LocalAuth, login success, redirecting...${res.url}`);
-      this.document.location.href = res.url;
+    this.loginResult = await this.userService.loginLocal(this.form.value.username, this.form.value.password);
+    this.loggerService.debug(`LocalAuth, login result: `, this.loginResult);
+    if (this.loginResult.user) {
+      this.loggerService.debug(`LocalAuth, login success, redirecting...${this.loginResult.url}`);
+      this.window.location.href = this.loginResult.url;
     } else {
-      this.loginMessage = res.message;
+      this.loginMessage = this.loginResult.message;
       this.isLoginDisabled = false;
     }
-    
   }
 
   private getErrors():void {

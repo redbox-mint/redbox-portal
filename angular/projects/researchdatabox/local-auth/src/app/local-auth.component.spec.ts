@@ -6,9 +6,20 @@ import { HttpClientTestingModule, HttpTestingController } from '@angular/common/
 import { FormBuilder } from '@angular/forms';
 import { LocalAuthComponent } from './local-auth.component';
 import { UtilityService, LoggerService, UserService, TranslationService, ConfigService } from '@researchdatabox/redbox-portal-core';
+import { getStubConfigService, getStubTranslationService, getStubUserService, getStubNgDocument  } from 'projects/researchdatabox/redbox-portal-core/src/lib/helper.spec';
+
+let configService:any;
+let userService: any;
+let translationService: any;
+const username = 'testUser';
+const password = 'very-scary-password';
+let app: any;
 
 describe('LocalAuthComponent', () => {
   beforeEach(async () => {
+    configService = getStubConfigService();
+    translationService = getStubTranslationService();
+    userService = getStubUserService(username, password);
     await TestBed.configureTestingModule({
       imports: [
         HttpClientTestingModule,
@@ -24,40 +35,55 @@ describe('LocalAuthComponent', () => {
           provide: APP_BASE_HREF,
           useValue: 'base'
         },
-        UserService,
         LoggerService,
         UtilityService,
-        TranslationService,
-        ConfigService
+        {
+          provide: TranslationService,
+          useValue: translationService
+        },
+        {
+          provide: ConfigService,
+          useValue: configService
+        },
+        {
+          provide: UserService,
+          useValue: userService
+        }
       ]
     }).compileComponents();
     TestBed.inject(HttpClient);
     TestBed.inject(FormBuilder);
-    TestBed.inject(ConfigService);
     TestBed.inject(LoggerService);
     TestBed.inject(UtilityService);
-    TestBed.inject(TranslationService);
-    TestBed.inject(UserService);
   });
 
-  it('should create the app', async function () {
+  it('should create the app and handle valid/invalid login', async function () {
     const fixture = TestBed.createComponent(LocalAuthComponent);
-    const app = fixture.componentInstance;
+    app = fixture.componentInstance;
     expect(app).toBeTruthy();
-    // await app.ngOnInit();
-    // expect(app.form).toBeTruthy();
+    // test init
+    await app.ngOnInit();
+    expect(app.form).toBeTruthy();
+    // test login message 
+    app.form.setValue({'username': '', 'password': ''});
+    expect(app.loginMessage).toEqual('Please provide a username.');
+    app.form.setValue({'username': username, 'password': ''});
+    expect(app.loginMessage).toEqual('Please provide a password.');
+    const event = { preventDefault: function() {}};
+    app.window = { location: { href: '' } };
+    // test login suppression
+    await app.onLogin(event);
+    expect(app.isLoginDisabled).toBeTruthy();
+    // test invalid login
+    app.form.setValue({'username': username, 'password': 'wrong-password'});
+    await app.onLogin(event);
+    expect(app.loginResult.user).toBeNull();
+    expect(app.loginMessage).toEqual(userService.loginResult.message);
+    expect(app.window.location.href).toEqual('');
+    // test valid login
+    app.form.setValue({'username': username, 'password': password});
+    await app.onLogin(event);
+    expect(app.loginResult.user).toBeTruthy();
+    expect(app.window.location.href).toEqual(userService.loginResult.url);
   });
-
-  // it(`should have as title '@researchdatabox/localAuth'`, () => {
-  //   const fixture = TestBed.createComponent(LocalAuthComponent);
-  //   const app = fixture.componentInstance;
-  //   expect(app.title).toEqual('@researchdatabox/localAuth');
-  // });
-
-  // it('should render title', () => {
-  //   const fixture = TestBed.createComponent(LocalAuthComponent);
-  //   fixture.detectChanges();
-  //   const compiled = fixture.nativeElement as HTMLElement;
-  //   expect(compiled.querySelector('.content span')?.textContent).toContain('@researchdatabox/localAuth app is running!');
-  // });
 });
