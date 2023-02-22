@@ -1,4 +1,4 @@
-import { Component, Inject, OnInit } from '@angular/core';
+import { Component, Inject, OnInit, ElementRef } from '@angular/core';
 import { UtilityService, LoggerService, TranslationService, RecordService, PlanTable, Plan, RecordResponseTable } from '@researchdatabox/redbox-portal-core';
 import * as _ from 'lodash';
 
@@ -21,6 +21,7 @@ export class DashboardComponent implements OnInit {
   sortMap: any = {};
   tableConfig: any = {};
   recordTitle: string = '';
+  standardDashboard: boolean = false;
   defaultTableConfig = [
     {
       title: 'Record Title',
@@ -65,9 +66,14 @@ export class DashboardComponent implements OnInit {
     @Inject(LoggerService) private loggerService: LoggerService,
     @Inject(UtilityService) private utilService: UtilityService,
     @Inject(TranslationService) private translationService: TranslationService,
-    @Inject(RecordService) private recordService: RecordService
+    @Inject(RecordService) private recordService: RecordService,
+    elementRef: ElementRef
   ) {
-   //do nothing
+    //do nothing
+    this.recordType = elementRef.nativeElement.getAttribute('recordType');
+    console.log(`constructor this.recordType ${this.recordType}`);
+    this.standardDashboard = elementRef.nativeElement.getAttribute('standardDashboard');
+    console.log(`constructor this.standardDashboard ${this.standardDashboard}`);
   }
 
   async ngOnInit() {
@@ -75,15 +81,17 @@ export class DashboardComponent implements OnInit {
     await this.utilService.waitForDependencies([this.translationService, this.recordService]);
     this.loggerService.debug(`Export initialised.`); 
     this.recordType = 'rdmp';
-    this.config = this.translationService.getConfig('dashboard');
+    this.config = this.recordService.getConfig();
+    console.log(this.config);
     this.rootContext = _.get(this.config, 'baseUrl');
     this.branding = _.get(this.config, 'branding');
     this.portal = _.get(this.config, 'portal');
     // this.workflowSteps = await this.recordService.getWorkflowSteps(this.recordType);
     // this.records = await this.recordService.getRecords(this.recordType,'draft',1);
     // console.log(this.records);
-    //console.log(this.config);
+    console.log(JSON.stringify(this.config));
     // this.loggerService.debug(this.config);
+    console.log(`config: rootContext ${this.rootContext} branding ${this.branding} portal ${this.portal}`);
     this.typeLabel = `${this.translationService.t(`${this.recordType}-name-plural`)}`;
     this.recordTitle = `${this.translationService.t(`${this.recordType}-title`)}`;
     await this.initRecordType(this.recordType);
@@ -92,8 +100,8 @@ export class DashboardComponent implements OnInit {
 
   async ngAfterViewInit() {
     await this.utilService.waitForDependencies([this.translationService, this.recordService]);
+    this.wfSteps = await this.recordService.getRelatedRecords('fbff59909c6111ed8dfd4d8104fc0287');
     this.isReady = true;
-    this.wfSteps = this.recordService.getRelatedRecords('fbff59909c6111ed8dfd4d8104fc0287');
   }
 
   async initRecordType(recordType: string) {
