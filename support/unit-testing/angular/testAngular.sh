@@ -3,12 +3,14 @@
 set -e
 function testAngular() {
   (node_modules/.bin/ng t --browsers=ChromeHeadless @researchdatabox/${1} --no-watch --code-coverage)
-  codecov -t $CODECOV_TOKEN -c -f ./projects/researchdatabox/${1}/coverage/coverage-final.json -F ${2}
+  /tmp/codecov -t $CODECOV_TOKEN -c -f ./projects/researchdatabox/${1}/coverage/coverage-final.json -F ${2}
 }
 export NVM_DIR="$HOME/.nvm"
 [ -s "$HOME/.nvm/nvm.sh" ] && . "$HOME/.nvm/nvm.sh"
 cd angular
 nvm i < .nvmrc && npm install
+curl -o /tmp/codecov -Os https://uploader.codecov.io/latest/linux/codecov 
+chmod +x /tmp/codecov
 
 testAngular "redbox-portal-core" "frontend-core-lib"
 ng2apps=( `find ./projects/researchdatabox -maxdepth 1 -mindepth 1 -type d -printf '%f '` )
