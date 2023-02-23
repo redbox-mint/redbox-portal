@@ -19,9 +19,7 @@
 
 import {Injectable} from '@angular/core';
 import { get as _get, isEmpty as _isEmpty, isUndefined as _isUndefined, set as _set, isArray as _isArray, clone as _clone, each as _each, isEqual as _isEqual, isNull as _isNull, first as _first, join as  _join,  extend as _extend, template as _template, concat as _concat, find as _find } from 'lodash-es';
-import * as moment from 'moment';
-import * as numeral from 'numeral';
-
+import { DateTime } from 'luxon';
 import { Initable } from './initable.interface';
 /**
  * Utility service...
@@ -348,7 +346,7 @@ export class UtilityService {
     if(field) {
       value = _get(data,field);
     }
-    const converted = moment(value, formatOrigin).format(formatTarget);
+    const converted = DateTime.fromFormat(value, formatOrigin).toFormat(formatTarget);
     console.log(`convertToDateFormat ${converted}`);
     return converted;
   }
@@ -357,8 +355,16 @@ export class UtilityService {
     return _join(_get(data, fieldName ? fieldName : config.field), fieldSeparator ? fieldSeparator : config.separator);
   }
 
+  public numberFormat(number: number, locale:string = '', options: any = undefined ): string {
+    if (_isEmpty(locale)) {
+      return new Intl.NumberFormat().format(number);
+    } else {
+      return new Intl.NumberFormat(locale, options).format(number);
+    }
+  }
+
   public runTemplate(data: any, config: any, field: any = undefined) {
-    const imports = _extend({data: data, config: config, moment: moment, numeral:numeral, field: field}, this);
+    const imports = _extend({data: data, config: config, DateTime: DateTime, numberFormat:this.numberFormat, field: field}, this);
     const templateData = {imports: imports};
     const template = _template(config.template, templateData);
     const templateRes = template();

@@ -3,7 +3,6 @@ import { APP_BASE_HREF } from '@angular/common';
 import { UtilityService, LoggerService, TranslationService, RecordService, ConfigService } from '@researchdatabox/redbox-portal-core';
 import { getStubConfigService, getStubTranslationService, getStubRecordService } from 'projects/researchdatabox/redbox-portal-core/src/lib/helper.spec';
 import { ExportComponent } from './export.component';
-import { DateTime } from 'luxon';
 
 let configService:any;
 let recordService: any;

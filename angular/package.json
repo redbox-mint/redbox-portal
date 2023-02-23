@@ -35,7 +35,6 @@
     "@types/lodash": "^4.14.191",
     "@types/lodash-es": "^4.17.6",
     "@types/luxon": "^3.2.0",
-    "@types/numeral": "^2.0.2",
     "jasmine-core": "~4.5.0",
     "karma": "~6.4.0",
     "karma-chrome-launcher": "~3.1.0",
