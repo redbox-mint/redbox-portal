@@ -18,6 +18,7 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 import { Component, Inject, OnInit } from '@angular/core';
+import { DOCUMENT } from "@angular/common"
 import { UtilityService, LoggerService, TranslationService, RecordService } from '@researchdatabox/redbox-portal-core';
 import { map as _map } from 'lodash-es';
 import { DateTime } from 'luxon';
@@ -39,13 +40,15 @@ export class ExportComponent implements OnInit {
   exportFormatTypes: any[] = null as any;
   export_format: { name: string, id: string, checked: string } = null as any;
   labelModAfter: string = '';
+  window: any;
   constructor(
     @Inject(LoggerService) private loggerService: LoggerService,
     @Inject(RecordService) private recordService: RecordService,
     @Inject(UtilityService) private utilService: UtilityService,
-    @Inject(TranslationService) private translationService: TranslationService
+    @Inject(TranslationService) private translationService: TranslationService,
+    @Inject(DOCUMENT) private document: Document
   ) {
-
+    this.window = this.document.defaultView;
   }
 
   async ngOnInit() {
@@ -63,11 +66,11 @@ export class ExportComponent implements OnInit {
   }
 
   download() {
-    const formatStr = 'yyyy-mm-dd'
+    const formatStr = 'yyyy-MM-dd'
     const before = this.modBefore ? DateTime.fromObject(this.modBefore).toFormat(formatStr) : '';
     const after = this.modAfter ? DateTime.fromObject(this.modAfter).toFormat(formatStr) : '';
     const url = `${this.recordService.brandingAndPortalUrl}/export/record/download/${this.export_format}?before=${before}&after=${after}&recType=${this.record_type}`;
-    window.open(url, '_blank');
+    this.window.open(url, '_blank');
   }
 
   getRecordTypeNames() {

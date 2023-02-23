@@ -81,7 +81,14 @@ export function getStubTranslationService(translationMap: any = null) {
     }
   };
 }
-
+/**
+ * Returns a UserService stub.
+ * 
+ * @param username 
+ * @param password 
+ * @param loginResult 
+ * @returns 
+ */
 export function getStubUserService(username: string = '', password: string = '', loginResult: any = {url: '#greatsuccess', user: null}) {
 
   return {
@@ -106,8 +113,19 @@ export function getStubUserService(username: string = '', password: string = '',
   };
 }
 
-export function getStubNgDocument() {
+export function getStubRecordService(recordData: any = {}) {
+
   return {
-    location: { href: ''}
-  }
+    baseUrl: 'base',
+    brandingAndPortalUrl: 'base/default/rdmp',
+    waitForInit: function() {
+      return this;
+    },
+    isInitializing: function() {
+      return false;
+    },
+    getAllTypes: function() {
+      return recordData['types'];
+    }
+  };
 }

@@ -1,12 +1,9 @@
 import { TestBed } from '@angular/core/testing';
 import { APP_BASE_HREF } from '@angular/common'; 
-import { I18NextModule, I18NEXT_SERVICE } from 'angular-i18next';
-import { HttpClient } from '@angular/common/http';
-import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
 import { FormBuilder } from '@angular/forms';
 import { LocalAuthComponent } from './local-auth.component';
 import { UtilityService, LoggerService, UserService, TranslationService, ConfigService } from '@researchdatabox/redbox-portal-core';
-import { getStubConfigService, getStubTranslationService, getStubUserService, getStubNgDocument  } from 'projects/researchdatabox/redbox-portal-core/src/lib/helper.spec';
+import { getStubConfigService, getStubTranslationService, getStubUserService } from 'projects/researchdatabox/redbox-portal-core/src/lib/helper.spec';
 
 let configService:any;
 let userService: any;
@@ -21,15 +18,10 @@ describe('LocalAuthComponent', () => {
     translationService = getStubTranslationService();
     userService = getStubUserService(username, password);
     await TestBed.configureTestingModule({
-      imports: [
-        HttpClientTestingModule,
-        I18NextModule.forRoot()
-      ],
       declarations: [
         LocalAuthComponent
       ],
       providers: [
-        HttpClient,
         FormBuilder,
         {
           provide: APP_BASE_HREF,
@@ -51,7 +43,6 @@ describe('LocalAuthComponent', () => {
         }
       ]
     }).compileComponents();
-    TestBed.inject(HttpClient);
     TestBed.inject(FormBuilder);
     TestBed.inject(LoggerService);
     TestBed.inject(UtilityService);
