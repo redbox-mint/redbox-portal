@@ -66,15 +66,15 @@ export class RecordService extends HttpClientService {
   //   return this.getOptions(headersObj);
   // }
 
-  protected extractData(res: any, parentField: any = null) {
-    let body = res;
-    if (parentField) {
-        console.log(body);
-        return _.get(body, parentField) || {};
-    } else {
-        return body || {};
-    }
-  }
+  // protected extractData(res: any, parentField: any = null) {
+  //   let body = res;
+  //   if (parentField) {
+  //       console.log(body);
+  //       return _.get(body, parentField) || {};
+  //   } else {
+  //       return body || {};
+  //   }
+  // }
 
   public async getWorkflowSteps(name: string) {
     let url = `${this.brandingAndPortalUrl}/record/wfSteps/${name}`;
@@ -88,12 +88,78 @@ export class RecordService extends HttpClientService {
     // .then((res:any) => this.extractData(res));
   }
 
-  public async getRelatedRecords(oid: string){
+  private getDocMetadata(doc: any) {
+    let metadata: any = {};
+    for(var key in doc){
+      if(key.indexOf('authorization_') != 0 && key.indexOf('metaMetadata_') != 0) {
+        metadata[key] = doc[key];
+      }
+      if(key == 'authorization_editRoles') {
+        metadata[key] = doc[key];
+      }
+    }
+    return metadata;
+  }
+
+  public async getRelatedRecords(oid: string, rawJson: boolean = false){
     let url = `${this.brandingAndPortalUrl}/record/${oid}/relatedRecords`;
     const result$ = this.http.get(url).pipe(map(res => res));
-    let result = await firstValueFrom(result$);
-    // console.log(result);
-    return result;
+    let relatedRecords = await firstValueFrom(result$);
+    if(rawJson) {
+      return relatedRecords;
+    } else {
+      console.log(relatedRecords);
+      let totalItems = 1;
+      let startIndex = 0;
+      let noItems = 1;
+      let pageNumber = (startIndex / noItems) + 1;
+
+      let response: any = {};
+      response["totalItems"] = totalItems;
+      response["currentPage"] = pageNumber;
+      response["noItems"] = noItems;
+
+      let items = [];
+
+      // let parentOrTreeLevel1: string = 'rdmp';
+      let childOrTreeLevel2: any = _.get(relatedRecords, 'processedRelationships');
+
+      console.log(childOrTreeLevel2);
+
+      // let parentArr = _.get(relatedRecords, 'relatedObjects.'+parentOrTreeLevel1);
+      // if(_.isArray(parentArr)) {
+      //   let item: any = {};
+      //   let parent = parentArr[0];
+      //   item["oid"] = parent["redboxOid"];
+      //   item["title"] = parent["metadata"]["title"];
+      //   item["metadata"]= this.getDocMetadata(parent);
+      //   item["dateCreated"] =  parent["dateCreated"];
+      //   item["dateModified"] = parent["lastSaveDate"];
+      //   items.push(item);
+      // }
+      for(let childNameStr of childOrTreeLevel2) {
+        let childArr = _.get(relatedRecords,'relatedObjects.'+childNameStr);
+        console.log('------------------------------------------------- childNameStr '+childNameStr);
+        console.log(JSON.stringify(childArr));
+        console.log('-------------------------------------------------');
+        if(!_.isUndefined(childArr) && _.isArray(childArr)) {
+          for (let child of childArr) {
+            let item: any = {};
+            item["oid"] = child["redboxOid"];
+            item["title"] = child["metadata"]["title"];
+            item["metadata"]= this.getDocMetadata(child);
+            item["dateCreated"] =  child["dateCreated"];
+            item["dateModified"] = child["lastSaveDate"];
+            // item["hasEditAccess"] = RecordsService.hasEditAccess(brand, user, roles, doc);
+            items.push(item);
+          }
+        }
+      }
+
+      response["items"] = items;
+      // console.log(response);
+      return response;
+    }
   }
 
   public async getRecords(recordType:string,state:string,pageNumber:number,packageType:string='', sort:string='') {
@@ -106,6 +172,14 @@ export class RecordService extends HttpClientService {
     let url = `${this.brandingAndPortalUrl}/listRecords?${recordType}${packageType}${state}${sort}&start=${start}&rows=${rows}}`;
     const result$ = this.http.get(url).pipe(map(res => res));
     let result = await firstValueFrom(result$);
+    return result;
+  }
+
+  //TODO needs to re-implement as fit for purpose ajax call
+  public async getRecordTypes(packageType: string) {
+    let result = null;
+    //old endpoint that will be deprecated
+    //this.http.get(`${this.brandingAndPortalUrl}/record/type/`, this.getOptionsClient())
     return result;
   }
 

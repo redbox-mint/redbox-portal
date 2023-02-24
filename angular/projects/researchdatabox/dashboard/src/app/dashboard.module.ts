@@ -3,10 +3,11 @@ import { BrowserModule } from '@angular/platform-browser';
 import { ReactiveFormsModule } from '@angular/forms';
 import { RedboxPortalCoreModule } from '@researchdatabox/redbox-portal-core';
 import { APP_BASE_HREF, PlatformLocation } from '@angular/common';
-import { RouterModule } from '@angular/router'; 
+import { RouterModule } from '@angular/router';
 import * as _ from 'lodash';
 
 import { DashboardComponent } from './dashboard.component';
+import { SortComponent } from './sort/sort.component';
 
 function trimLastSlashFromUrl(baseUrl: string) {
   if (!_.isEmpty(baseUrl) && (baseUrl[baseUrl.length - 1] == '/')) {
@@ -18,7 +19,8 @@ function trimLastSlashFromUrl(baseUrl: string) {
 
 @NgModule({
   declarations: [
-    DashboardComponent
+    DashboardComponent,
+    SortComponent
   ],
   imports: [
     BrowserModule,

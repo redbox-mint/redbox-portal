@@ -1377,13 +1377,15 @@ export module Controllers {
         return this.ajaxOk(req, res, null, response);
       });
     }
-
+    
     public async getRelatedRecordsInternal(req, res) {
       sails.log.verbose(`getRelatedRecordsInternal - starting...`);
       const brand = BrandingService.getBrand(req.session.branding);
       const oid = req.param('oid');
       //TODO may need to check user authorization like in getPermissionsInternal?
       //let record = await this.getRecord(oid).toPromise();
+      //or the permissions may be checked in a parent call that will retrieved record oids that a user has access to
+      //plus some additional rules/logic that may be applied to filter the records
       let relatedRecords = await this.recordsService.getRelatedRecords(oid, brand);
       return relatedRecords;
     }
