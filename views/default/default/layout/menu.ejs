@@ -10,7 +10,6 @@
                 <% if (req.isAuthenticated()) {
                   %>
                   <li><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/researcher/home"><%= TranslationService.t('menu-home')%></a></li>
-
                   <li class="dropdown">
                     <a class="dropdown-toggle" data-toggle="dropdown" href="#"><%= TranslationService.t('menu-plan-nav')%></a>
                     <ul class="dropdown-menu">

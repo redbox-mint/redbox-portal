@@ -20,36 +20,20 @@
   <link href='//fonts.googleapis.com/css?family=Roboto+Condensed:400,700,300' rel='stylesheet' type='text/css'>
   <link href='//fonts.googleapis.com/css?family=Raleway:400,100' rel='stylesheet' type='text/css'>
 
-  <link rel="stylesheet"
-   href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css"
-    integrity="sha384-rbsA2VBKQhggwzxH7pPCaAqO46MgnOM80zW1RWuH61DGLwZJEdK2Kadq2F9CUG65"
-  crossorigin="anonymous">
-
-  <!-- Latest compiled and minified CSS -->
-<!-- link rel="stylesheet"
- href="https://cdn.jsdelivr.net/npm/bootstrap@3.3.7/dist/css/bootstrap.min.css"
-integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u"
-crossorigin="anonymous" -->
-
+  <!-- current latest boostrap css (5.2.3) -->
+  <link rel="stylesheet" href="<%= BrandingService.getBrandAndPortalPath(req) %>/styles/bootstrap.min.css">
 
   <!-- Custom CSS -->
   <link rel="stylesheet" href="<%= BrandingService.getBrandAndPortalPath(req) %>/styles/style.min.css">
   <link rel="stylesheet" href="<%= BrandingService.getBrandAndPortalPath(req) %>/styles/theme.css">
 
-  <!-- Latest jQuery form server -->
-  <!-- script
-  src="<%= BrandingService.getBrandAndPortalPath(req) %>/js/jquery-3.6.0.min.js"
-  integrity="sha256-gPBHF/MuoDIMXoYY+6zt0f7jqHda2CkhQKYRNVHUtbA="
-  crossorigin="anonymous"></script -->
-  <script src="https://code.jquery.com/jquery-3.6.3.min.js"
-     integrity="sha256-pvPw+upLPUjgMXY0G+8O0xUf+/Im1MZjXxxgOcBQBXU=" crossorigin="anonymous"></script>
-  <!-- Bootstrap JS form CDN -->
-  <script src="<%= BrandingService.getBrandAndPortalPath(req) %>/js/3_4_1-bootstrap.min.js"
-    integrity="sha384-aJ21OjlMXNL5UyIl/XNwTMqvzeRMZH2w8c5cRVpzpU8Y5bApTppSuUkhZXN0VxHd"
-    crossorigin="anonymous"></script>
-
-    <!-- script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.min.js"
-    integrity="sha384-cuYeSxntonz0PPNlHhBs68uyIAVpIIOZZ5JqeqvYYIcEL727kskC66kF92t6Xl2V"
+  <!-- Current latest jQuery -->
+  <script src="<%= BrandingService.getBrandAndPortalPath(req) %>/js/jquery-3.6.3.min.js"></script>
+  <!-- Current latest Bootstrap JS  -->
+  <!-- switching between versions for testing -->
+  <script src="<%= BrandingService.getBrandAndPortalPath(req) %>/js/bootstrap.4.bundle.min.js"></script>
+  <!-- script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"
+    integrity="sha384-kenU1KFdBIe4zVF0s0G1M5b4hcpxyD9F7jL+jjXkk+Q2h455rYXK/7HAuoJl+0I4"
     crossorigin="anonymous"></script -->
 
     <angular-bootstrap rootContext="<%= BrandingService.getRootContext() %>"></angular-bootstrap>
