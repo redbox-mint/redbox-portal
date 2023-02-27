@@ -113,7 +113,7 @@ The ReDBox Portal API provides authorized access to manage functions.
     + Attributes (Error, fixed-type)
         - message: Failed to transition workflow, please check server logs.
 
-## Record Metadata Actions [/<%= branding %>/<%= portal %>/api/records/metadata/{oid}]
+## Record Metadata Actions [/<%= branding %>/<%= portal %>/api/records/metadata/{oid}{?merge}]
 
 ### Update Record Metadata [PUT]
 
@@ -642,6 +642,54 @@ The ReDBox Portal API provides authorized access to manage functions.
 
 + Response 200 (application/json)
     + Attributes (ObjectActionResponse, fixed-type)
+
+# Group Mint
+
+The following APIs are for the Mint system used to manage records used in lookups in ReDBox. Like ReDBox, the Mint system is configurable so the record type and associated metadata required varies from system to system.
+
+## Harvest records [/mint/api/v1.1/harvest/{record_type}]
+
+### Harvest a set of records into Mint [POST]
++ Parameters
+    + record_type: `Activities` (string, required) - The name of the configured record type in Mint.
+
++ Request (application/json)
+  + Headers
+
+            Authorization: Bearer abcabcab-abca-abca-abca-abcabcabcabc      
+
+  + Body 
+
+                    {
+                     "records": [
+                         {
+                           "harvest_id": "someSourceSystemIdentifierValue",
+                              "metadata": {
+                                  "TITLE": "Activity Title",
+                                  "DESCRIPTION": "Activity Description"
+                                }
+                            }
+                        ]
+                    }
+
++ Response 200 (application/json)
+    + Attributes (ObjectActionResponse, fixed-type)    
+
+## Search Mint records [/mint/api/v1.1/search{?q}]
+This endpoint is an authenticated wrapper to Apache solr's search endpoint and supports all the [basic common query parameters](https://solr.apache.org/guide/6_6/common-query-parameters.html).
+
+### Search [GET]
+
++ Parameters
+    + q: `query` (string, required) - The search string to query the index.
+
++ Request
+    + Headers
+
+                Authorization: Bearer abcabcab-abca-abca-abca-abcabcabcabc
+
++ Response 200 (application/json)
+
 
 ## Data Structures
 
