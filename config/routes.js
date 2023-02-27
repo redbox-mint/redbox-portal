@@ -115,7 +115,7 @@ module.exports.routes = {
     }
   },
   '/:branding/:portal/workspaces/list': {
-    controller: 'DashboardController',
+    controller: 'RecordController',
     action: 'listWorkspaces'
   },
   '/:branding/:portal/getAdvice': {
@@ -200,8 +200,8 @@ module.exports.routes = {
   //TODO: Reinstate it when we add formal permission editing screens
   // 'post /:branding/:portal/record/editors/modify': 'RecordController.modifyEditors',
   'post /:branding/:portal/record/responsibility/update': 'RecordController.updateResponsibilities',
-  'get /:branding/:portal/dashboard/:recordType': 'DashboardController.render',
-  'get /:branding/:portal/listRecords': 'DashboardController.getRecordList',
+  'get /:branding/:portal/dashboard/:recordType': 'RecordController.render',
+  'get /:branding/:portal/listRecords': 'RecordController.getRecordList',
   'get /:branding/:portal/vocab/:vocabId': 'VocabController.get',
   'get /:branding/:portal/ands/vocab/resourceDetails': 'VocabController.rvaGetResourceDetails',
   'get /:branding/:portal/mint/:mintSourceType': 'VocabController.getMint',
