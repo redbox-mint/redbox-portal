@@ -189,6 +189,26 @@ The ReDBox Portal API provides authorized access to manage functions.
     + Attributes (Error, fixed-type)
         - message: Get Metadata failed, failed to retrieve existing record.
 
+## Record Audit Actions [/<%= branding %>/<%= portal %>/api/records/audit]
+
+### Get Record Audit Information [GET /<%= branding %>/<%= portal %>/api/records/audit/{oid}{?dateFrom,dateTo}]
+
++ Parameters
+    + oid: `7e72b5952e8e323c77f72ae268a27c46` (string, required) - The identifier for the record
+    + dateFrom: `2023-02-14T00:44:26Z` (string, required) - Show modifications to the record from this date. ISO8601 format
+    + dateTo: `2023-02-28T00:44:26Z` (string, required) - Show modifications to the record from this date. ISO8601 format
+
+
+
++ Request
+
+    + Headers
+
+                    Authorization: Bearer abcabcab-abca-abca-abca-abcabcabcabc
+
++ Response 200 (application/json)
+  
+
 ## Datastream Actions [/<%= branding %>/<%= portal %>/api/records/datastreams]
 
 ### Add attachment to record [POST /<%= branding %>/<%= portal %>/api/records/datastreams/{oid}]
@@ -781,4 +801,3 @@ This endpoint is an authenticated wrapper to Apache solr's search endpoint and s
 
 ### Attachment (object)
 - filename: researchdata.zip
-
