@@ -52,8 +52,9 @@ describe('LocalAuthComponent', () => {
     const fixture = TestBed.createComponent(LocalAuthComponent);
     app = fixture.componentInstance;
     expect(app).toBeTruthy();
+    fixture.detectChanges();
     // test init
-    await app.ngOnInit();
+    await app.waitForInit();
     expect(app.form).toBeTruthy();
     // test login message 
     app.form.setValue({'username': '', 'password': ''});

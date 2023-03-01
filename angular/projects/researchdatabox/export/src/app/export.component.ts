@@ -17,9 +17,9 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { Component, Inject, OnInit } from '@angular/core';
+import { Component, Inject } from '@angular/core';
 import { DOCUMENT } from "@angular/common"
-import { UtilityService, LoggerService, TranslationService, RecordService } from '@researchdatabox/redbox-portal-core';
+import { UtilityService, LoggerService, TranslationService, RecordService, BaseComponent } from '@researchdatabox/redbox-portal-core';
 import { map as _map } from 'lodash-es';
 import { DateTime } from 'luxon';
 
@@ -27,7 +27,7 @@ import { DateTime } from 'luxon';
   selector: 'export',
   templateUrl: './export.component.html'
 })
-export class ExportComponent implements OnInit {
+export class ExportComponent extends BaseComponent {
   datePickerPlaceHolder: string = '';
   criticalError: any;
   modBefore: any;
@@ -48,12 +48,13 @@ export class ExportComponent implements OnInit {
     @Inject(TranslationService) private translationService: TranslationService,
     @Inject(DOCUMENT) private document: Document
   ) {
+    super();
+    this.loggerService.debug(`Export waiting for deps to init...`); 
     this.window = this.document.defaultView;
+    this.initDependencies = [this.translationService, this.recordService];
   }
 
-  async ngOnInit() {
-    this.loggerService.debug(`Export waiting for deps to init...`); 
-    await this.utilService.waitForDependencies([this.translationService, this.recordService]);
+  protected override async initComponent():Promise<void> {
     this.datePickerOpts = { dateInputFormat: 'DD/MM/YYYY' };
     this.datePickerPlaceHolder = 'dd/mm/yyyy';
     this.exportFormatTypes = [{name: 'CSV', id: 'csv', checked: 'true'},{name: 'JSON', id: 'json', checked: null}];
@@ -62,7 +63,7 @@ export class ExportComponent implements OnInit {
     const typeConfs = await this.recordService.getAllTypes();
     this.recTypeNames = _map(typeConfs, (typeConf:any) => { return typeConf.name });
     this.record_type = this.recTypeNames[0];
-    this.loggerService.debug(`Export initialised.`); 
+    this.loggerService.debug(`Export initialised`); 
   }
 
   download() {
