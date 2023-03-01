@@ -19,8 +19,8 @@
 
 import { Component, Inject } from '@angular/core';
 import { DOCUMENT } from "@angular/common"
-import { UtilityService, LoggerService, TranslationService, RecordService, BaseComponent } from '@researchdatabox/redbox-portal-core';
-import { map as _map } from 'lodash-es';
+import { ConfigService, LoggerService, TranslationService, RecordService, BaseComponent } from '@researchdatabox/redbox-portal-core';
+import { map as _map, get as _get } from 'lodash-es';
 import { DateTime } from 'luxon';
 
 @Component({
@@ -44,7 +44,7 @@ export class ExportComponent extends BaseComponent {
   constructor(
     @Inject(LoggerService) private loggerService: LoggerService,
     @Inject(RecordService) private recordService: RecordService,
-    @Inject(UtilityService) private utilService: UtilityService,
+    @Inject(ConfigService) private configService: ConfigService,
     @Inject(TranslationService) private translationService: TranslationService,
     @Inject(DOCUMENT) private document: Document
   ) {
@@ -55,8 +55,13 @@ export class ExportComponent extends BaseComponent {
   }
 
   protected override async initComponent():Promise<void> {
-    this.datePickerOpts = { dateInputFormat: 'DD/MM/YYYY' };
-    this.datePickerPlaceHolder = 'dd/mm/yyyy';
+    const exportAppConfig = this.configService.getConfig('export'); 
+    const defaultDatePickerOpts = { dateInputFormat: 'DD/MM/YYYY', containerClass: 'theme-dark-blue' };
+    const exportAppDatePickerOpts = _get(exportAppConfig, 'datePicketOpts');
+    this.datePickerOpts =  exportAppDatePickerOpts ? exportAppDatePickerOpts : defaultDatePickerOpts;
+    const defaultDatePickerPlaceHolder = 'dd/mm/yyyy';
+    const exportAppDatePickerPlaceHolder = _get(exportAppConfig, 'datePickerPlaceHolder');
+    this.datePickerPlaceHolder = exportAppDatePickerPlaceHolder  ? exportAppDatePickerPlaceHolder : defaultDatePickerPlaceHolder;
     this.exportFormatTypes = [{name: 'CSV', id: 'csv', checked: 'true'},{name: 'JSON', id: 'json', checked: null}];
     this.export_format = this.exportFormatTypes[0].id; //set default export format
     this.labelModAfter = `${this.translationService.t('export-modified-after')}`;

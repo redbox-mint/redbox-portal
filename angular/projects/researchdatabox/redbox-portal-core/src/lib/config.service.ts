@@ -55,10 +55,13 @@ export class ConfigService implements Service {
   /**
    * Returns the configuration block.
    * 
-   * TODO: implement retrieval of app-specific configuration
    */
   public async getConfig(appName?:string): Promise<any> {
     if (this.config) {
+      if (!_isEmpty(appName)) {
+        // tries to get the app config if name is supplied
+        return _get(this.config, `apps.${appName}`);
+      }
       return this.config;
     }
     return firstValueFrom(this.getInitSubject());
