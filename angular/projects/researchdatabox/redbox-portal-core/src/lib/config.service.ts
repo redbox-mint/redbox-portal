@@ -22,6 +22,7 @@ import { HttpClient } from '@angular/common/http';
 import { Subject, firstValueFrom } from 'rxjs';
 import { mergeMap } from 'rxjs/operators';
 import * as _ from "lodash";
+import { get as _get, isEmpty as _isEmpty, isUndefined as _isUndefined } from 'lodash-es';
 import { APP_BASE_HREF } from '@angular/common';
 import { Service } from './service.interface';
 /**
@@ -42,7 +43,7 @@ export class ConfigService implements Service {
 
   constructor (@Inject(HttpClient) protected http: any, @Inject(APP_BASE_HREF) public rootContext: string) {
     this.initSubject = new Subject();
-    if (_.isEmpty(this.rootContext)) {
+    if (_isEmpty(this.rootContext)) {
       this.rootContext = ""
     }
     this.configUrl = `${this.rootContext}/dynamic/apiClientConfig?v=${new Date().getTime()}`;
@@ -54,10 +55,13 @@ export class ConfigService implements Service {
   /**
    * Returns the configuration block.
    * 
-   * TODO: implement retrieval of app-specific configuration
    */
   public async getConfig(appName?:string): Promise<any> {
     if (this.config) {
+      if (!_isEmpty(appName)) {
+        // tries to get the app config if name is supplied
+        return _get(this.config, `apps.${appName}`);
+      }
       return this.config;
     }
     return firstValueFrom(this.getInitSubject());
@@ -74,7 +78,7 @@ export class ConfigService implements Service {
     this.http.get(this.csrfTokenUrl)
     .pipe(
       mergeMap((csrfRes:any) => {
-        this.csrfToken = _.get(csrfRes, '_csrf');
+        this.csrfToken = _get(csrfRes, '_csrf');
         return this.http.get(this.configUrl);
       })
     ).subscribe((config:any) => {
@@ -94,6 +98,6 @@ export class ConfigService implements Service {
   }
 
   public isInitializing():boolean {
-    return _.isUndefined(this.config) || _.isEmpty(this.config);
+    return _isUndefined(this.config) || _isEmpty(this.config);
   }
 }

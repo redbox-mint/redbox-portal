@@ -17,11 +17,10 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { Component, Inject, OnInit } from '@angular/core';
+import { Component, Inject } from '@angular/core';
 import { FormGroup, Validators, FormBuilder } from '@angular/forms';
 import { DOCUMENT } from "@angular/common"
-import { UserService, UserLoginResult, UtilityService, LoggerService, TranslationService } from '@researchdatabox/redbox-portal-core';
-
+import { BaseComponent, UserService, UserLoginResult, UtilityService, LoggerService, TranslationService } from '@researchdatabox/redbox-portal-core';
 /**
  * Local Authentication  Component
  *
@@ -32,24 +31,29 @@ import { UserService, UserLoginResult, UtilityService, LoggerService, Translatio
   selector: 'local-auth',
   templateUrl: './local-auth.component.html'
 })
-export class LocalAuthComponent implements OnInit {
+export class LocalAuthComponent extends BaseComponent {
   form: FormGroup = null as any;
   loginMessage: string = null as any;
   isLoginDisabled: boolean = false;
+  loginResult:  UserLoginResult = null as any;
+  window: any;
 
   constructor(
     @Inject(LoggerService) private loggerService: LoggerService,
     @Inject(UserService) private userService: UserService,
-    @Inject(UtilityService) private utilService: UtilityService,
+    @Inject(UtilityService) protected utilService: UtilityService,
     @Inject(FormBuilder) private fb: FormBuilder,
     @Inject(DOCUMENT) private document: Document,
     @Inject(TranslationService) private translationService: TranslationService
   ) {
+    super();
+    this.loggerService.debug(`LocalAuth waiting for deps to init...`); 
+    this.window = this.document.defaultView;
+    // set this component's dependencies
+    this.initDependencies = [translationService, userService];
   }
 
-  async ngOnInit() {
-    this.loggerService.debug(`LocalAuth waiting for deps to init...`); 
-    await this.utilService.waitForDependencies([this.translationService, this.userService]);
+  protected override async initComponent():Promise<void> {
     this.form = this.fb.group({
       "username": ["", Validators.required],
       "password":["", Validators.required]
@@ -70,16 +74,15 @@ export class LocalAuthComponent implements OnInit {
     }
     event.preventDefault();
     this.isLoginDisabled = true;
-    const res: UserLoginResult = await this.userService.loginLocal(this.form.value.username, this.form.value.password);
-    this.loggerService.debug(`LocalAuth, login result: `, res);
-    if (res.user) {
-      this.loggerService.debug(`LocalAuth, login success, redirecting...${res.url}`);
-      this.document.location.href = res.url;
+    this.loginResult = await this.userService.loginLocal(this.form.value.username, this.form.value.password);
+    this.loggerService.debug(`LocalAuth, login result: `, this.loginResult);
+    if (this.loginResult.user) {
+      this.loggerService.debug(`LocalAuth, login success, redirecting...${this.loginResult.url}`);
+      this.window.location.href = this.loginResult.url;
     } else {
-      this.loginMessage = res.message;
+      this.loginMessage = this.loginResult.message;
       this.isLoginDisabled = false;
     }
-    
   }
 
   private getErrors():void {

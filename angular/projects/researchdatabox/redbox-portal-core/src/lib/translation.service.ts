@@ -20,7 +20,7 @@
 import { Injectable, Inject } from '@angular/core';
 import { Subject, firstValueFrom } from 'rxjs';
 import { APP_BASE_HREF } from '@angular/common';
-import * as _ from "lodash";
+import { get as _get, isEmpty as _isEmpty, isUndefined as _isUndefined, set as _set } from 'lodash-es';
 
 import { Service } from './service.interface';
 
@@ -69,17 +69,10 @@ export class TranslationService implements Service {
       // cookieDomain: I18NEXT_LANG_COOKIE_DOMAIN
     }
   };
-  /*
-  TODO: When type issue is resolved:
- Error: export 'ITranslationService' (imported as 'ITranslationService') was not found in 'angular-i18next' (possible exports: I18NEXT_ERROR_HANDLING_STRATEGY, I18NEXT_NAMESPACE, I18NEXT_NAMESPACE_RESOLVER, I18NEXT_SCOPE, I18NEXT_SERVICE, I18NextCapPipe, I18NextEagerPipe, I18NextFormatPipe, I18NextModule, I18NextPipe, I18NextService, I18NextTitle, NativeErrorHandlingStrategy, StrictErrorHandlingStrategy, defaultInterpolationFormat, i18nextNamespaceResolverFactory, resolver)
- 
-  into 
-
-  `@Inject(I18NEXT_SERVICE) private i18NextService: ITranslationService `
-  */ 
+  
   constructor (
     @Inject(APP_BASE_HREF) public rootContext: string, 
-    @Inject(I18NEXT_SERVICE) private i18NextService: any,
+    @Inject(I18NEXT_SERVICE) private i18NextService: ITranslationService,
     @Inject(UtilityService) private utilService: UtilityService,
     @Inject(ConfigService) private configService: ConfigService,
     @Inject(LoggerService) private loggerService: LoggerService
@@ -94,26 +87,32 @@ export class TranslationService implements Service {
   async initTranslator(): Promise<any> {
     await this.utilService.waitForDependencies([this.configService]);
     this.config = this.configService.getConfig();
-    if (!_.isEmpty(_.get(this.config, 'i18NextOpts'))) {
-      this.i18NextOpts = _.get(this.config, 'i18NextOpts');
-      if (_.isUndefined(_.get(this.i18NextOpts, 'backend.loadPath'))) {
-        _.set(this.i18NextOpts, 'backend.loadPath', this.loadPath);
+    if (!_isEmpty(_get(this.config, 'i18NextOpts'))) {
+      this.i18NextOpts = _get(this.config, 'i18NextOpts');
+      if (_isUndefined(_get(this.i18NextOpts, 'backend.loadPath'))) {
+        _set(this.i18NextOpts, 'backend.loadPath', this.loadPath);
       }
-      if (_.isUndefined(_.get(this.i18NextOpts, 'interpolation'))) {
-        _.set(this.i18NextOpts, 'interpolation', this.i18NextOptsDefault.interpolation);
+      if (_isUndefined(_get(this.i18NextOpts, 'interpolation'))) {
+        _set(this.i18NextOpts, 'interpolation', this.i18NextOptsDefault.interpolation);
       }
     } else {
       // default value...
       this.i18NextOpts = this.i18NextOptsDefault;
-      _.set(this.i18NextOpts, 'backend.loadPath', this.loadPath);
+      _set(this.i18NextOpts, 'backend.loadPath', this.loadPath);
     }
     this.loggerService.log(`Using language loadpath: ${this.loadPath}`);
-    await this.i18NextService
-              .use(HttpApi)
-              .init(this.i18NextOpts);
-
-    this.translatorReady = true;
-    this.translatorLoaded();
+    try {
+    	await this.i18NextService
+	              .use(HttpApi)
+	              .init(this.i18NextOpts);
+      this.loggerService.info(`Language service ready`);
+	    this.translatorReady = true;
+	    this.translatorLoaded();
+    } catch (error) {
+      this.loggerService.error(`Failed to initialise language service:`) ;
+      this.loggerService.error(JSON.stringify(error));
+      throw error;
+    }
     return this;
   }
 
@@ -135,14 +134,14 @@ export class TranslationService implements Service {
     if (this.translatorReady) {
       return this;
     } 
-    if (_.isUndefined(this.i18NextOpts)) {
+    if (_isUndefined(this.i18NextOpts)) {
       this.initTranslator();
     }
     return firstValueFrom(this.getInitSubject());
   }
 
   public isInitializing(): boolean {
-    return this.translatorReady;
+    return !this.translatorReady;
   }
 
   public getConfig(appName?:string) {

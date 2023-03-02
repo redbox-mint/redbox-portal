@@ -116,6 +116,7 @@
         "test": {
           "builder": "@angular-devkit/build-angular:karma",
           "options": {
+            "karmaConfig": "projects/researchdatabox/local-auth/karma.conf.js",
             "polyfills": [
               "zone.js",
               "zone.js/testing"
@@ -128,6 +129,105 @@
             ],
             "styles": [
               "projects/researchdatabox/local-auth/src/styles.scss"
+            ],
+            "scripts": []
+          }
+        }
+      }
+    },
+    "@researchdatabox/export": {
+      "projectType": "application",
+      "schematics": {
+        "@schematics/angular:component": {
+          "style": "scss"
+        }
+      },
+      "root": "projects/researchdatabox/export",
+      "sourceRoot": "projects/researchdatabox/export/src",
+      "prefix": "app",
+      "architect": {
+        "build": {
+          "builder": "@angular-devkit/build-angular:browser",
+          "options": {
+            "outputPath": "../assets/angular/export",
+            "index": "projects/researchdatabox/export/src/index.html",
+            "main": "projects/researchdatabox/export/src/main.ts",
+            "polyfills": [
+              "zone.js"
+            ],
+            "tsConfig": "projects/researchdatabox/export/tsconfig.app.json",
+            "inlineStyleLanguage": "scss",
+            "assets": [
+              "projects/researchdatabox/export/src/favicon.ico",
+              "projects/researchdatabox/export/src/assets"
+            ],
+            "styles": [
+              "projects/researchdatabox/export/src/styles.scss",
+              "node_modules/ngx-bootstrap/datepicker/bs-datepicker.scss"
+            ],
+            "scripts": []
+          },
+          "configurations": {
+            "production": {
+              "budgets": [
+                {
+                  "type": "initial",
+                  "maximumWarning": "1mb",
+                  "maximumError": "2mb"
+                },
+                {
+                  "type": "anyComponentStyle",
+                  "maximumWarning": "2kb",
+                  "maximumError": "4kb"
+                }
+              ],
+              "outputHashing": "all"
+            },
+            "development": {
+              "buildOptimizer": false,
+              "optimization": false,
+              "vendorChunk": true,
+              "extractLicenses": false,
+              "sourceMap": true,
+              "namedChunks": true
+            }
+          },
+          "defaultConfiguration": "production"
+        },
+        "serve": {
+          "builder": "@angular-devkit/build-angular:dev-server",
+          "configurations": {
+            "production": {
+              "browserTarget": "@researchdatabox/export:build:production"
+            },
+            "development": {
+              "browserTarget": "@researchdatabox/export:build:development"
+            }
+          },
+          "defaultConfiguration": "development"
+        },
+        "extract-i18n": {
+          "builder": "@angular-devkit/build-angular:extract-i18n",
+          "options": {
+            "browserTarget": "@researchdatabox/export:build"
+          }
+        },
+        "test": {
+          "builder": "@angular-devkit/build-angular:karma",
+          "options": {
+            "karmaConfig": "projects/researchdatabox/export/karma.conf.js",
+            "polyfills": [
+              "zone.js",
+              "zone.js/testing"
+            ],
+            "tsConfig": "projects/researchdatabox/export/tsconfig.spec.json",
+            "inlineStyleLanguage": "scss",
+            "assets": [
+              "projects/researchdatabox/export/src/favicon.ico",
+              "projects/researchdatabox/export/src/assets"
+            ],
+            "styles": [
+              "projects/researchdatabox/export/src/styles.scss"
             ],
             "scripts": []
           }

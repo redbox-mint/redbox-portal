@@ -26,14 +26,16 @@ import { HttpClient } from '@angular/common/http';
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
 import { UtilityService } from './utility.service';
 import { LoggerService } from './logger.service';
+import { getStubConfigService } from './helper.spec';
 
 describe('TranslationService testing', () => {
   let translationService: TranslationService;
-  let configService: ConfigService;
+  let configService: any;
   let httpTestingController: HttpTestingController;
   let httpClient: HttpClient;
   
   beforeEach(function () {
+    configService = getStubConfigService();
     TestBed.configureTestingModule({
       imports: [
         HttpClientTestingModule,
@@ -44,7 +46,10 @@ describe('TranslationService testing', () => {
           provide: APP_BASE_HREF,
           useValue: 'base'
         },
-        ConfigService,
+        {
+          provide: ConfigService,
+          useValue: configService
+        },
         LoggerService,
         UtilityService,
         TranslationService
@@ -53,78 +58,22 @@ describe('TranslationService testing', () => {
     httpClient = TestBed.inject(HttpClient);
     httpTestingController = TestBed.inject(HttpTestingController);
     TestBed.inject(I18NEXT_SERVICE);
-    configService = TestBed.inject(ConfigService);
     TestBed.inject(LoggerService);
     TestBed.inject(UtilityService);
     translationService = TestBed.inject(TranslationService);
   });
 
   it('should produce a valid translation using configService with valid config', async function () {
-    const mockCsrfData = { _csrf: 'testCsrfValue' };
     const mockConfigData = {
-      csrfToken: mockCsrfData._csrf, 
-      rootContext: 'base', 
-      i18NextOpts: {
-        load: 'languageOnly',
-        supportedLngs: ['en'],
-        fallbackLng: 'en',
-        debug: true,
-        returnEmptyString: false,
-        ns: [
-          'translation'
-        ],
-        // lang detection plugin options
-        detection: {
-          // order and from where user language should be detected
-          order: ['cookie'],
-          // keys or params to lookup language from
-          lookupCookie: 'lang',
-          // cache user language on
-          caches: ['cookie'],
-          // optional expire and domain for set cookie
-          cookieMinutes: 10080, // 7 days
-          // cookieDomain: I18NEXT_LANG_COOKIE_DOMAIN
-        }
-      }
+      csrfToken: 'test', 
+      rootContext: 'base'
     };
-
-    const obs = from(configService.waitForInit());
-    obs.subscribe((config:any) => {
-      console.log(`Using config: `);
-      console.log(JSON.stringify(config));
-    });
-    
-    const csrfReq = httpTestingController.expectOne(configService.csrfTokenUrl);
-    expect(csrfReq.request.method).toEqual('GET');
-    csrfReq.flush(mockCsrfData);
-
-    const configReq = httpTestingController.expectOne(configService.configUrl);
-    expect(configReq.request.method).toEqual('GET');
-    configReq.flush(mockConfigData);
+    configService.getConfig = function () { return mockConfigData};
     await translationService.waitForInit();
     expect(translationService.t('key1')).toEqual("value1");
   });
 
   it('should produce a valid translation using configService with default config', async function () {
-    const mockCsrfData = { _csrf: 'testCsrfValue' };
-    const mockConfigData = {
-      csrfToken: mockCsrfData._csrf, 
-      rootContext: 'base'
-    };
-
-    const obs = from(configService.waitForInit());
-    obs.subscribe((config:any) => {
-      console.log(`Using config: `);
-      console.log(JSON.stringify(config));
-    });
-    
-    const csrfReq = httpTestingController.expectOne(configService.csrfTokenUrl);
-    expect(csrfReq.request.method).toEqual('GET');
-    csrfReq.flush(mockCsrfData);
-
-    const configReq = httpTestingController.expectOne(configService.configUrl);
-    expect(configReq.request.method).toEqual('GET');
-    configReq.flush(mockConfigData);
     await translationService.waitForInit();
     expect(translationService.t('key1')).toEqual("value1");
   });
