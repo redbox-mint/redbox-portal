@@ -24,7 +24,7 @@
                         <% } %>
                     </ul>
                   </li>
-                  <li class="dropdown">
+                  <li class="nav-item dropdown">
                     <a class="dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false"><%= TranslationService.t('menu-organisation-nav')%></a>
                     <ul class="dropdown-menu">
                       <li><a class="dropdown-item" href="<%= BrandingService.getBrandAndPortalPath(req) %>/workspaces/list"><%= TranslationService.t('workspaces-dashboard')%></a></li>
@@ -36,20 +36,20 @@
                         <% } %>
                     </ul>
                   </li>
-                <li class="dropdown">
-                    <a class="dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false"><%= TranslationService.t('menu-manage-nav')%></a>
+                <li class="nav-item dropdown">
+                  <a class="dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false"><%= TranslationService.t('menu-manage-nav')%></a>
+                  <ul class="dropdown-menu">
+                    <li><a class="dropdown-item" href="<%= BrandingService.getBrandAndPortalPath(req) %>/record/dataRecord/edit"><%= TranslationService.t('create-datarecord')%></a></li>
+                    <li><a class="dropdown-item" href="<%= BrandingService.getBrandAndPortalPath(req) %>/dashboard/dataRecord"><%= TranslationService.t('edit-dashboard-datarecord')%></a></li>
+                  </ul>
+                </li>
+                  <li class="nav-item dropdown">
+                    <a class="dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false"><%= TranslationService.t('menu-publish-nav')%></a>
                     <ul class="dropdown-menu">
-                      <li><a class="dropdown-item" href="<%= BrandingService.getBrandAndPortalPath(req) %>/record/dataRecord/edit"><%= TranslationService.t('create-datarecord')%></a></li>
-                      <li><a class="dropdown-item" href="<%= BrandingService.getBrandAndPortalPath(req) %>/dashboard/dataRecord"><%= TranslationService.t('edit-dashboard-datarecord')%></a></li>
+                      <li><a class="dropdown-item" href="<%= BrandingService.getBrandAndPortalPath(req) %>/record/dataPublication/edit"><%= TranslationService.t('create-data-publication')%></a></li>
+                      <li><a class="dropdown-item" href="<%= BrandingService.getBrandAndPortalPath(req) %>/dashboard/dataPublication"><%= TranslationService.t('edit-dashboard-publication')%></a></li>
                     </ul>
                   </li>
-                  <li class="dropdown">
-                      <a class="dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false"><%= TranslationService.t('menu-publish-nav')%></a>
-                      <ul class="dropdown-menu">
-                        <li><a class="dropdown-item" href="<%= BrandingService.getBrandAndPortalPath(req) %>/record/dataPublication/edit"><%= TranslationService.t('create-data-publication')%></a></li>
-                        <li><a class="dropdown-item" href="<%= BrandingService.getBrandAndPortalPath(req) %>/dashboard/dataPublication"><%= TranslationService.t('edit-dashboard-publication')%></a></li>
-                      </ul>
-                    </li>
                   <%
                     if ( hasRole(req,'Admin') || hasRole(req,'Librarians')) {%>
                   <li>
