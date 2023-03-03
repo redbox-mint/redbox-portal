@@ -3,7 +3,9 @@ import { BrowserModule } from '@angular/platform-browser';
 import { ReactiveFormsModule } from '@angular/forms';
 import { RedboxPortalCoreModule } from '@researchdatabox/redbox-portal-core';
 import { APP_BASE_HREF, PlatformLocation } from '@angular/common';
-import { RouterModule } from '@angular/router';
+import { RouterModule } from '@angular/router'; 
+import { TooltipModule } from 'ngx-bootstrap/tooltip';
+import { PaginationModule } from 'ngx-bootstrap/pagination';
 import * as _ from 'lodash';
 
 import { DashboardComponent } from './dashboard.component';
@@ -26,7 +28,9 @@ function trimLastSlashFromUrl(baseUrl: string) {
     BrowserModule,
     ReactiveFormsModule,
     RouterModule,
-    RedboxPortalCoreModule
+    RedboxPortalCoreModule,
+    PaginationModule.forRoot(), 
+    TooltipModule.forRoot()
   ],
   providers: [
     {

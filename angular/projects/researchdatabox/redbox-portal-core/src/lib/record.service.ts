@@ -109,15 +109,15 @@ export class RecordService extends HttpClientService {
       return relatedRecords;
     } else {
       console.log(relatedRecords);
-      let totalItems = 1;
-      let startIndex = 0;
-      let noItems = 1;
-      let pageNumber = (startIndex / noItems) + 1;
+      // let totalItems = 1;
+      // let startIndex = 0;
+      // let noItems = 1;
+      // let pageNumber = (startIndex / noItems) + 1;
 
       let response: any = {};
-      response["totalItems"] = totalItems;
-      response["currentPage"] = pageNumber;
-      response["noItems"] = noItems;
+      // response["totalItems"] = totalItems;
+      // response["currentPage"] = pageNumber;
+      // response["noItems"] = noItems;
 
       let items = [];
 
@@ -139,9 +139,9 @@ export class RecordService extends HttpClientService {
       // }
       for(let childNameStr of childOrTreeLevel2) {
         let childArr = _.get(relatedRecords,'relatedObjects.'+childNameStr);
-        console.log('------------------------------------------------- childNameStr '+childNameStr);
-        console.log(JSON.stringify(childArr));
-        console.log('-------------------------------------------------');
+        // console.log('------------------------------------------------- childNameStr '+childNameStr);
+        // console.log(JSON.stringify(childArr));
+        // console.log('-------------------------------------------------');
         if(!_.isUndefined(childArr) && _.isArray(childArr)) {
           for (let child of childArr) {
             let item: any = {};
@@ -162,14 +162,17 @@ export class RecordService extends HttpClientService {
     }
   }
 
-  public async getRecords(recordType:string,state:string,pageNumber:number,packageType:string='', sort:string='') {
-    var rows = 10;
-    var start = (pageNumber-1) * rows;
+  public async getRecords(recordType:string,state:string,pageNumber:number,packageType:string='', sort:string='', filterFields:string='', filterString:string='', filterMode:string='') {
+    let rows = 10;
+    let start = (pageNumber-1) * rows;
     recordType = (!_.isEmpty(recordType) && !_.isUndefined(recordType)) ? `recordType=${recordType}` : '';
     packageType = (!_.isEmpty(packageType) && !_.isUndefined(packageType)) ? `packageType=${packageType}` : '';
     sort = (!_.isEmpty(sort) && !_.isUndefined(sort)) ? `&sort=${sort}` : '';
     state = (!_.isEmpty(state) && !_.isUndefined(state)) ? `&state=${state}` : '';
-    let url = `${this.brandingAndPortalUrl}/listRecords?${recordType}${packageType}${state}${sort}&start=${start}&rows=${rows}}`;
+    filterFields = (!_.isEmpty(filterFields) && !_.isUndefined(filterFields)) ? `&filterFields=${filterFields}` : '';
+    filterString = (!_.isEmpty(filterString) && !_.isUndefined(filterString)) ? `&filter=${filterString}` : '';
+    filterMode = (!_.isEmpty(filterMode) && !_.isUndefined(filterMode)) ? `&filterMode=${filterMode}` : '';
+    let url = `${this.brandingAndPortalUrl}/listRecords?${recordType}${packageType}${state}${sort}${filterFields}${filterString}${filterMode}&start=${start}&rows=${rows}}`;
     const result$ = this.http.get(url).pipe(map(res => res));
     let result = await firstValueFrom(result$);
     return result;
@@ -177,9 +180,14 @@ export class RecordService extends HttpClientService {
 
   //TODO needs to re-implement as fit for purpose ajax call
   public async getRecordTypes(packageType: string) {
-    let result = null;
     //old endpoint that will be deprecated
     //this.http.get(`${this.brandingAndPortalUrl}/record/type/`, this.getOptionsClient())
+    let url = `${this.brandingAndPortalUrl}/record/type/`;
+    const result$ = this.http.get(url).pipe(map(res => res));
+    let result = await firstValueFrom(result$);
+    console.log('-------------------------------------------------');
+    console.log(result);
+    console.log('-------------------------------------------------');
     return result;
   }
 
