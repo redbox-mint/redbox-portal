@@ -1542,6 +1542,8 @@ export module Controllers {
       const filterFieldString = req.param('filterFields');
       let filterString = req.param('filter');
       let filterFields = undefined;
+      const filterModeString = req.param('filterMode');
+      let filterMode = undefined;
 
        if(!_.isEmpty(filterFieldString)) {
          filterFields = filterFieldString.split(',')
@@ -1549,8 +1551,20 @@ export module Controllers {
          filterString = undefined;
        }
 
+       if(!_.isEmpty(filterModeString)) {
+         filterMode = filterModeString.split(',')
+       } else {
+         filterMode = undefined;
+       }
+
+      // sails.log.error('-------------Record Controller getRecordList------------------------');
+      // sails.log.error('filterFields '+ filterFields);
+      // sails.log.error('filterString '+ filterString);
+      // sails.log.error('filterMode '+ filterMode);
+      // sails.log.error('----------------------------------------------------------');
+
       try {
-        const response = await this.getRecords(workflowState, recordType, start,rows,user,roles,brand,editAccessOnly, packageType,sort,filterFields,filterString);
+        const response = await this.getRecords(workflowState, recordType, start,rows,user,roles,brand,editAccessOnly, packageType,sort,filterFields,filterString,filterMode);
         if (response) {
           this.ajaxOk(req, res, null, response);
         } else {
@@ -1576,7 +1590,7 @@ export module Controllers {
       return metadata;
     }
 
-    protected async getRecords(workflowState, recordType, start,rows,user, roles, brand, editAccessOnly=undefined, packageType = undefined, sort=undefined, filterFields=undefined, filterString=undefined) {
+    protected async getRecords(workflowState, recordType, start,rows,user, roles, brand, editAccessOnly=undefined, packageType = undefined, sort=undefined, filterFields=undefined, filterString=undefined, filterMode=undefined) {
       const username = user.username;
       if (!_.isUndefined(recordType) && !_.isEmpty(recordType)) {
         recordType = recordType.split(',');
@@ -1584,12 +1598,12 @@ export module Controllers {
       if (!_.isUndefined(packageType) && !_.isEmpty(packageType)) {
         packageType = packageType.split(',');
       }
-      var results = await RecordsService.getRecords(workflowState,recordType, start,rows,username,roles,brand,editAccessOnly, packageType, sort,filterFields,filterString);
+      var results = await RecordsService.getRecords(workflowState,recordType, start,rows,username,roles,brand,editAccessOnly, packageType, sort,filterFields,filterString, filterMode);
       if (!results.isSuccessful()) {
         sails.log.verbose(`Failed to retrieve records!`);
         return null;
       }
-      
+
       var totalItems = results.totalItems;
       var startIndex = start;
       var noItems = rows;

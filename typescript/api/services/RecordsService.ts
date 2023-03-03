@@ -297,8 +297,16 @@ export module Services {
       return this.storageService.updateNotificationLog(oid, record, options);
     }
 
-    public getRecords(workflowState, recordType = undefined, start, rows = 10, username, roles, brand, editAccessOnly = undefined, packageType = undefined, sort = undefined, fieldNames = undefined, filterString = undefined): Promise < any > {
-      return this.storageService.getRecords(workflowState, recordType, start, rows, username, roles, brand, editAccessOnly, packageType, sort, fieldNames, filterString);
+    public getRecords(workflowState, recordType = undefined, start, rows = 10, username, roles, brand, editAccessOnly = undefined, packageType = undefined, sort = undefined, fieldNames = undefined, filterString = undefined, filterMode=undefined): Promise < any > {
+
+      
+      // sails.log.error('------------- Record Service -----------------------------');
+      // sails.log.error('fieldNames '+ fieldNames);
+      // sails.log.error('filterString '+ filterString);
+      // sails.log.error('filterMode '+ filterMode);
+      // sails.log.error('----------------------------------------------------------');
+
+      return this.storageService.getRecords(workflowState, recordType, start, rows, username, roles, brand, editAccessOnly, packageType, sort, fieldNames, filterString, filterMode);
     }
 
     public exportAllPlans(username, roles, brand, format, modBefore, modAfter, recType): Readable {
