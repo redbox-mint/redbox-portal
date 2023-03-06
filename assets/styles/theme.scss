@@ -7487,7 +7487,8 @@ button.close {
 }
 
 .show {
-    display: block!important
+    display: block!important;
+    opacity: 1!important /*Boostrap 5 fix */
 }
 
 .invisible {
