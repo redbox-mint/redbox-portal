@@ -1,12 +1,13 @@
 import { NgModule } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
-import { ReactiveFormsModule } from '@angular/forms';
-import { RedboxPortalCoreModule } from '@researchdatabox/redbox-portal-core';
+import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
+import { FormsModule } from "@angular/forms";
+// import { NKDatetimeModule } from 'ng2-datetime/ng2-datetime';
 import { APP_BASE_HREF, PlatformLocation } from '@angular/common';
-import { RouterModule } from '@angular/router'; 
 import { isEmpty as _isEmpty } from 'lodash-es';
-
-import { LocalAuthComponent } from './local-auth.component';
+import { BsDatepickerModule } from 'ngx-bootstrap/datepicker';
+import { RedboxPortalCoreModule } from '@researchdatabox/redbox-portal-core';
+import { ExportComponent } from './export.component';
 
 function trimLastSlashFromUrl(baseUrl: string) {
   if (!_isEmpty(baseUrl) && (baseUrl[baseUrl.length - 1] == '/')) {
@@ -18,13 +19,14 @@ function trimLastSlashFromUrl(baseUrl: string) {
 
 @NgModule({
   declarations: [
-    LocalAuthComponent
+    ExportComponent
   ],
   imports: [
     BrowserModule,
-    ReactiveFormsModule,
-    RouterModule,
-    RedboxPortalCoreModule
+    FormsModule,
+    BrowserAnimationsModule,
+    RedboxPortalCoreModule,
+    BsDatepickerModule.forRoot()
   ],
   providers: [
     {
@@ -33,6 +35,6 @@ function trimLastSlashFromUrl(baseUrl: string) {
       deps: [PlatformLocation]
     }
   ],
-  bootstrap: [LocalAuthComponent]
+  bootstrap: [ExportComponent]
 })
-export class LocalAuthModule { }
+export class ExportModule { }

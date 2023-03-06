@@ -745,5 +745,6 @@
   "not-found": "DOI Not found",
   "invalid-format": "Submission format is invalid",
   "server-error": "Server error",
-  "unknown-error": "Unknown error"
+  "unknown-error": "Unknown error",
+  "local-auth-login": "Login"
 }

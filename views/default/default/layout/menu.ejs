@@ -4,7 +4,7 @@
 
       <nav class="navbar navbar-expand-lg">
         <div class="navbar-header container-fluid">
-            <div class="navbar-collapse collapse">
+            <div class="collapse navbar-collapse">
               <ul class="nav navbar-nav d-flex">
 
                 <% if (req.isAuthenticated()) {
@@ -13,42 +13,42 @@
                   <li class="dropdown">
                     <a class="dropdown-toggle" data-toggle="dropdown" href="#"><%= TranslationService.t('menu-plan-nav')%></a>
                     <ul class="dropdown-menu">
-                      <li><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/record/rdmp/edit"><%= TranslationService.t('create-rdmp')%></a></li>
-                      <li><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/dashboard/rdmp"><%= TranslationService.t('edit-dashboard-rdmp')%></a></li>
+                      <li><a class="dropdown-item" href="<%= BrandingService.getBrandAndPortalPath(req) %>/record/rdmp/edit"><%= TranslationService.t('create-rdmp')%></a></li>
+                      <li><a class="dropdown-item" href="<%= BrandingService.getBrandAndPortalPath(req) %>/dashboard/rdmp"><%= TranslationService.t('edit-dashboard-rdmp')%></a></li>
                         <% if (TranslationService.t('get-advice-link') != "get-advice-link") {
                         %>
-                            <li><a target="_blank" rel="noopener noreferrer" href="<%= (TranslationService.t('get-advice-link'))%>"><%= TranslationService.t('get-advice') %></a></li>
+                            <li><a class="dropdown-item" target="_blank" rel="noopener noreferrer" href="<%= (TranslationService.t('get-advice-link'))%>"><%= TranslationService.t('get-advice') %></a></li>
                         <%  } else if (sails.config.appmode.hidePlaceholderPages == false) { %>
-                            <li><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/getAdvice"><%= TranslationService.t('get-advice') %></a></li>
+                            <li><a class="dropdown-item" href="<%= BrandingService.getBrandAndPortalPath(req) %>/getAdvice"><%= TranslationService.t('get-advice') %></a></li>
                         <% } %>
                     </ul>
                   </li>
-                  <li class="dropdown">
-                    <a class="dropdown-toggle" data-toggle="dropdown" href="#"><%= TranslationService.t('menu-organisation-nav')%></a>
+                  <li class="nav-item dropdown">
+                    <a class="dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false"><%= TranslationService.t('menu-organisation-nav')%></a>
                     <ul class="dropdown-menu">
-                      <li><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/workspaces/list"><%= TranslationService.t('workspaces-dashboard')%></a></li>
+                      <li><a class="dropdown-item" href="<%= BrandingService.getBrandAndPortalPath(req) %>/workspaces/list"><%= TranslationService.t('workspaces-dashboard')%></a></li>
                         <% if (TranslationService.t('workspace-services-list-link') != "workspace-services-list-link") {
                           %>
-                            <li><a target="_blank" rel="noopener noreferrer" href="<%= (TranslationService.t('workspace-services-list-link'))%>"><%= TranslationService.t('workspace-services-list') %></a></li>
+                            <li><a class="dropdown-item" target="_blank" rel="noopener noreferrer" href="<%= (TranslationService.t('workspace-services-list-link'))%>"><%= TranslationService.t('workspace-services-list') %></a></li>
                         <%  } else if (sails.config.appmode.hidePlaceholderPages == false) { %>
-                            <li><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/availableServicesList"><%= TranslationService.t('workspace-services-list') %></a></li>
+                            <li><a class="dropdown-item" href="<%= BrandingService.getBrandAndPortalPath(req) %>/availableServicesList"><%= TranslationService.t('workspace-services-list') %></a></li>
                         <% } %>
                     </ul>
                   </li>
-                <li class="dropdown">
-                    <a class="dropdown-toggle" data-toggle="dropdown" href="#"><%= TranslationService.t('menu-manage-nav')%></a>
+                <li class="nav-item dropdown">
+                  <a class="dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false"><%= TranslationService.t('menu-manage-nav')%></a>
+                  <ul class="dropdown-menu">
+                    <li><a class="dropdown-item" href="<%= BrandingService.getBrandAndPortalPath(req) %>/record/dataRecord/edit"><%= TranslationService.t('create-datarecord')%></a></li>
+                    <li><a class="dropdown-item" href="<%= BrandingService.getBrandAndPortalPath(req) %>/dashboard/dataRecord"><%= TranslationService.t('edit-dashboard-datarecord')%></a></li>
+                  </ul>
+                </li>
+                  <li class="nav-item dropdown">
+                    <a class="dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false"><%= TranslationService.t('menu-publish-nav')%></a>
                     <ul class="dropdown-menu">
-                      <li><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/record/dataRecord/edit"><%= TranslationService.t('create-datarecord')%></a></li>
-                      <li><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/dashboard/dataRecord"><%= TranslationService.t('edit-dashboard-datarecord')%></a></li>
+                      <li><a class="dropdown-item" href="<%= BrandingService.getBrandAndPortalPath(req) %>/record/dataPublication/edit"><%= TranslationService.t('create-data-publication')%></a></li>
+                      <li><a class="dropdown-item" href="<%= BrandingService.getBrandAndPortalPath(req) %>/dashboard/dataPublication"><%= TranslationService.t('edit-dashboard-publication')%></a></li>
                     </ul>
                   </li>
-                  <li class="dropdown">
-                      <a class="dropdown-toggle" data-toggle="dropdown" href="#"><%= TranslationService.t('menu-publish-nav')%></a>
-                      <ul class="dropdown-menu">
-                        <li><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/record/dataPublication/edit"><%= TranslationService.t('create-data-publication')%></a></li>
-                        <li><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/dashboard/dataPublication"><%= TranslationService.t('edit-dashboard-publication')%></a></li>
-                      </ul>
-                    </li>
                   <%
                     if ( hasRole(req,'Admin') || hasRole(req,'Librarians')) {%>
                   <li>

@@ -139,6 +139,10 @@ export module Controllers {
             appSelector: appSelector,
             appName: appName
           });
+        }, error=> {
+          sails.log.error("Failed to load form")
+          sails.log.error(error)
+          return res.serverError();
         });
       } else {
         Observable.fromPromise(this.recordsService.getMeta(oid)).flatMap(record => {
@@ -1179,21 +1183,34 @@ export module Controllers {
         this.ajaxFail(req, res, error.message);
       }
     }
-    /** Returns the RecordType configuration */
+    /** Returns the RecordType configuration 
+     * 
+     * @deprecated Create/Use fit-for-purpose endpoints going forward.
+    */
     public getType(req, res) {
       const recordType = req.param('recordType');
       const brand = BrandingService.getBrand(req.session.branding);
       RecordTypesService.get(brand, recordType).subscribe(recordType => {
+        // a step towards deprecation: remove the hook configuration
+        _.unset(recordType, 'hooks');
         this.ajaxOk(req, res, null, recordType);
       }, error => {
         this.ajaxFail(req, res, error.message);
       });
     }
 
-    /** Returns all RecordTypes configuration */
+    /** 
+     * Returns all RecordTypes configuration 
+     * 
+     * @deprecated Create/Use fit-for-purpose endpoints going forward.
+     * */
     public getAllTypes(req, res) {
       const brand = BrandingService.getBrand(req.session.branding);
       RecordTypesService.getAll(brand).subscribe(recordTypes => {
+        // a step towards deprecation: remove the hook configuration
+        for (let recType of recordTypes) {
+          _.unset(recType, 'hooks');
+        }
         this.ajaxOk(req, res, null, recordTypes);
       }, error => {
         this.ajaxFail(req, res, error.message);

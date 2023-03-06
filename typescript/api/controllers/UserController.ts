@@ -123,17 +123,16 @@ export module Controllers {
         redirUrl = req.session.logoutUrl;
       }
       let user = req.session.user ? req.session.user : req.user;
-
       req.logout();
       UsersService.addUserAuditEvent(user, "logout", requestDetails).then(response => {
-        sails.log.debug(`User logout audit event created: ${_.isEmpty(user) ? '' : user.id}`)
+        sails.log.debug(`User logout audit event created: ${_.isEmpty(user) ? '' : user.id}`);
       }).catch(err => {
         sails.log.error(`User logout audit event failed`)
         sails.log.error(err)
       });
-      req.session.destroy(err => {
-        res.redirect(redirUrl);
-      });
+      // instead of destroying the session, as per M$ directions, we only unset the user, so branding, etc. is retained in the session
+      _.unset(req.session, 'user');
+      res.redirect(redirUrl); 
     }
 
     public info(req, res) {
@@ -262,7 +261,6 @@ export module Controllers {
       if(!_.isEmpty(req.param('id'))) {
         passportIdentifier= `oidc-${req.param('id')}`
       }
-
       sails.config.passport.authenticate(passportIdentifier, function (err, user, info) {
         sails.log.verbose("At openIdConnectAuth Controller, verify...");
         sails.log.verbose("Error:");

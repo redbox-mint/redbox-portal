@@ -8,4 +8,7 @@ export * from './lib/logger.service';
 export * from './lib/utility.service';
 export * from './lib/translation.service';
 export * from './lib/user.service';
+export * from './lib/record.service';
+export * from './lib/base.component';
+export * from './lib/helper.spec';
 export * from './lib/redbox-portal-core.module';

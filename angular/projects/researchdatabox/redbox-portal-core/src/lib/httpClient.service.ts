@@ -20,7 +20,7 @@ import { Subject } from 'rxjs';
 import { Inject } from '@angular/core';
 import { HttpClient, HttpContext } from '@angular/common/http';
 import { APP_BASE_HREF } from '@angular/common';
-import * as _ from "lodash";
+import { isEmpty as _isEmpty, isUndefined as _isUndefined } from 'lodash-es';
 
 import { Service } from './service.interface';
 import { ConfigService } from './config.service';
@@ -49,7 +49,7 @@ export class HttpClientService implements Service {
   @Inject(ConfigService) protected configService: ConfigService
   ) {
     this.initSubject = new Subject();
-    if (_.isEmpty(this.rootContext)) {
+    if (_isEmpty(this.rootContext)) {
       this.rootContext = ""
     }
     this.baseUrl = "";
@@ -83,7 +83,7 @@ export class HttpClientService implements Service {
     await this.utilService.waitForDependencies([this.configService]);
     this.config = await this.configService.getConfig();
     this.baseUrl = this.config.baseUrl;
-    this.brandingAndPortalUrl = `${this.baseUrl}${this.rootContext}/${this.config.branding}/${this.config.portal}`;0
+    this.brandingAndPortalUrl = `${this.baseUrl}${this.rootContext}/${this.config.branding}/${this.config.portal}`;
     this.baseUrlWithContext = `${this.baseUrl}${this.rootContext}`;
     this.httpContext = new HttpContext();
     return this;
@@ -94,7 +94,7 @@ export class HttpClientService implements Service {
    * @returns true if service is ready
    */
   public isInitializing(): boolean {
-    return _.isUndefined(this.config) || _.isEmpty(this.config);
+    return _isUndefined(this.config) || _isEmpty(this.config);
   }
   /**
    * Call from extending class to enable CSRF in the header
