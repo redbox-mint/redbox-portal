@@ -155,20 +155,19 @@ export module Services {
       // mandatory
       let fieldDBNames = _.get(options, 'fieldDBNames', []);
       // Allow a certain user to edit
-      let userWithPermissionToEdit = _.get(options, 'userWithPermissionToEdit')
-      let roleEditPermission = _.get(options, 'roleEditPermission')
-      user.role
+      let userWithPermissionToEdit = _.get(options, 'userWithPermissionToEdit');
+      let roleEditPermission = _.get(options, 'roleEditPermission');
 
       if (user.username != userWithPermissionToEdit && !this.userHasRoleEditPermission(user, roleEditPermission)) {
-        let previousRecord = await RecordsService.getMeta(oid)
+        let previousRecord = await RecordsService.getMeta(oid);
         for (let fieldDBName of fieldDBNames) {
           let data = _.get(record, fieldDBName);
           sails.log.debug(`field name ${fieldDBName} value is ${data}`)
           let previousData = _.get(previousRecord, fieldDBName);
-          sails.log.debug(`previous field name ${fieldDBName} value is ${previousData}`)
+          sails.log.debug(`previous field name ${fieldDBName} value is ${previousData}`);
           if (previousData != null && previousData.trim() != '') {
             _.set(record, fieldDBName, previousData);
-            sails.log.info(`Setting field name ${fieldDBName} of record with OID ${oid} to ${previousData}`)
+            sails.log.info(`Setting field name ${fieldDBName} of record with OID ${oid} to ${previousData}`);
           }
         }
       }
@@ -182,7 +181,7 @@ export module Services {
           return true;
         }
       }
-      return false
+      return false;
     }
 
     public validateFieldUsingRegex(oid, record, options) {
