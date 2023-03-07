@@ -2,12 +2,12 @@
 
 <span *ngIf="field.pdfAttachments.length > 0">
   <!-- <a [attr.href]="getDownloadUrl(field.latestPdf)+'&fileName=rdmp.pdf'" target="_blank" [ngClass]="field.cssClasses"><i class="fa fa-file-pdf-o">&nbsp;</i> Download a PDF of this plan</a>
-  <a *ngIf="field.pdfAttachments.length > 1" data-toggle="modal" data-target="#pdfHistoryModal" [ngClass]="field.cssClasses">Download a previous version</a> -->
+  <a *ngIf="field.pdfAttachments.length > 1" data-bs-toggle="modal" data-target="#pdfHistoryModal" [ngClass]="field.cssClasses">Download a previous version</a> -->
 
 
   <div class="btn-group">
     <a type="button" [attr.href]="getDownloadUrl(field.latestPdf, true)" target="_blank" class="btn btn-danger"><i class="fa fa-file-pdf-o">&nbsp;</i>{{ field.downloadBtnLabel }}</a>
-    <button type="button" class="btn btn-danger dropdown-toggle" data-toggle="dropdown">
+    <button type="button" class="btn btn-danger dropdown-toggle" data-bs-toggle="dropdown">
       <span class="caret"></span>
       <span class="sr-only" [innerHtml]="'toggle-dropdown' | translate"></span>
     </button>
@@ -38,7 +38,7 @@
         </table>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-default" data-dismiss="modal">{{ '@pdf-close' | translate }}</button>
+        <button type="button" class="btn btn-default" data-bs-dismiss="modal">{{ '@pdf-close' | translate }}</button>
       </div>
     </div>
   </div>
