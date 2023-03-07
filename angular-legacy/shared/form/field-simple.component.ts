@@ -125,7 +125,7 @@ export class SimpleComponent {
         // TODO: during NG upgrade, review code block below
         if (this.fieldMap && this.field) {
           fc = this.field.getControl(name, this.fieldMap);
-        } 
+        }
         if (!_.isEmpty(fc)) {
           if (!_.isNull(ctrlIndex) && !_.isUndefined(ctrlIndex)) {
             if (!_.isNull(fc.controls) && !_.isUndefined(fc.controls)) {
@@ -213,7 +213,7 @@ export class SelectionComponent extends SimpleComponent {
     }
   }
 
-  isOptionAvailable(val: any, opt:any): boolean { 
+  isOptionAvailable(val: any, opt:any): boolean {
 
     let historicalOnly = _.get(opt, 'historicalOnly');
 
@@ -357,7 +357,7 @@ export class SelectionFieldComponent extends SelectionComponent {
   fg: any;
   /**
    * Allows radio buttons and checkboxes to use a custom form group. Useful when radio buttons are nested within repeatables.
-   * 
+   *
    * @returns the FormGroup for this selection field
    */
   getFormGroup() {
@@ -371,7 +371,7 @@ export class SelectionFieldComponent extends SelectionComponent {
       } else {
         this.fg = this.form;
       }
-    } 
+    }
     return this.fg;
   }
 
@@ -433,7 +433,7 @@ Container components
     <div [ngClass]="field.cssClasses">
       <div [ngClass]="field.tabNavContainerClass">
         <ul [ngClass]="field.tabNavClass">
-          <li *ngFor="let tab of field.fields" [ngClass]="{'active': tab.active}"><a href="#{{tab.id}}" data-toggle="tab" role="tab">{{tab.label}}</a></li>
+          <li *ngFor="let tab of field.fields" [ngClass]="{'active': tab.active}"><a href="#{{tab.id}}" data-bs-toggle="tab" role="tab">{{tab.label}}</a></li>
         </ul>
       </div>
       <div [ngClass]="field.tabContentContainerClass">
@@ -459,7 +459,7 @@ Container components
         <ng-container *ngIf="tab.visible">
           <div class="panel-heading">
             <span class="panel-title tab-header-font">
-              <a data-toggle="collapse" href="#{{tab.id}}">
+              <a data-bs-toggle="collapse" href="#{{tab.id}}">
                 {{ tab.expandedChar }} {{ tab.label }}
               </a>
             </span>
@@ -613,12 +613,12 @@ export class TextBlockComponent extends SimpleComponent {
         <div class="modal-dialog" role="document">
           <div class="modal-content">
             <div class="modal-header">
-              <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+              <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
               <h4 class="modal-title" id="{{ field.name }}_confirmation_label" [innerHtml]="field.confirmationTitle"></h4>
             </div>
             <div class="modal-body" [innerHtml]="field.confirmationMessage"></div>
             <div class="modal-footer">
-              <button (click)="hideConfirmDlg()" type="button" class="btn btn-default" data-dismiss="modal" [innerHtml]="field.cancelButtonMessage"></button>
+              <button (click)="hideConfirmDlg()" type="button" class="btn btn-default" data-bs-dismiss="modal" [innerHtml]="field.cancelButtonMessage"></button>
               <button (click)="doAction()" type="button" class="btn btn-primary" [innerHtml]="field.confirmButtonMessage"></button>
             </div>
           </div>
@@ -691,12 +691,12 @@ export class SaveButtonComponent extends SimpleComponent {
       <div class="modal-dialog" role="document">
         <div class="modal-content">
           <div class="modal-header">
-            <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+            <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
             <h4 class="modal-title" id="{{ field.name }}_confirmation_label" [innerHtml]="field.confirmationTitle"></h4>
           </div>
           <div class="modal-body" [innerHtml]="field.confirmationMessage"></div>
           <div class="modal-footer">
-            <button (click)="hideConfirmDlg()" type="button" class="btn btn-default" data-dismiss="modal" [innerHtml]="field.cancelButtonMessage"></button>
+            <button (click)="hideConfirmDlg()" type="button" class="btn btn-default" data-bs-dismiss="modal" [innerHtml]="field.cancelButtonMessage"></button>
             <button (click)="doAction()" type="button" class="btn btn-primary" [innerHtml]="field.confirmButtonMessage"></button>
           </div>
         </div>
@@ -774,7 +774,7 @@ export class TabNavButtonComponent extends SimpleComponent {
 
   ngOnInit() {
     this.field.getTabs();
-    jQuery('a[data-toggle="tab"]').on('shown.bs.tab', (e) => {
+    jQuery('a[data-bs-toggle="tab"]').on('shown.bs.tab', (e) => {
       const tabId = e.target.href.split('#')[1];
       this.field.currentTab = tabId;
       this.changeRef.detectChanges();
