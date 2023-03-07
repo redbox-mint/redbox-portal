@@ -14,7 +14,7 @@ import { LoggerService } from './logger.service';
 import { RecordService } from './record.service';
 import { TranslationService  } from './translation.service';
 
-function trimLastSlashFromUrl(baseUrl: string) {
+export function trimLastSlashFromUrl(baseUrl: string) {
   if (!_isEmpty(baseUrl) && (baseUrl[baseUrl.length - 1] == '/')) {
     var trimmedUrl = baseUrl.substring(0, baseUrl.length - 1);
     return trimmedUrl;
