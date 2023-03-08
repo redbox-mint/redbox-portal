@@ -104,7 +104,7 @@ z-index: 999;
     color: white;
 }
 
- .mainmenu-area ul.navbar-nav li.active a {
+ .mainmenu-area ul.navbar-nav li a.active {
    background-color: $main-menu-active-item-background-color;
    color:$main-menu-active-item-color;
 }
@@ -114,7 +114,7 @@ z-index: 999;
     background-color: $mainmenu-inactive-item-background-color;
 }
 
-.mainmenu-area ul.navbar-nav li:hover a, .mainmenu-area ul.navbar-nav li.active a {}
+.mainmenu-area ul.navbar-nav li:hover a, .mainmenu-area ul.navbar-nav li a.active {}
 .mainmenu-area .nav > li > a:focus {color: $mainmenu-selected-item-color}
 
 
@@ -505,12 +505,9 @@ span.form-field-required-indicator {
 .bg-success {
     background-color: #def2de !important
 }
-/*
-.bg-danger.text-danger, .bg-danger.text-danger a {
-  color: #FFFFFF !important;
+.modal-header {
+    display: block
 }
-
-*/
 .bg-danger.text-danger a {
     color: #428bca
 }
@@ -531,9 +528,16 @@ a:not([href]):not([class]), a:not([href]):not([class]):hover {
 }
 
 .navbar {
-    padding: 0;
+    padding: 0
 }
 
+.input-group {
+    width:auto !important
+}
+
+.form-control {
+    appearance: auto !important
+}
 /* pre-boostrap 5 styles to review */
 /* @charset "UTF-8";/*!
  * Bootstrap v3.4.1 (https://getbootstrap.com/)
@@ -4893,7 +4897,7 @@ tbody.collapse.in {
     border-color: #eee #eee #ddd
 }
 
-.nav-tabs>li.active>a,.nav-tabs>li.active>a:focus,.nav-tabs>li.active>a:hover {
+.nav-tabs>li>a.active,.nav-tabs>li>a.active:focus,.nav-tabs>li>a.active:hover {
     color: #555;
     cursor: default;
     background-color: #fff;
@@ -4913,7 +4917,7 @@ tbody.collapse.in {
     margin-left: 2px
 }
 
-.nav-pills>li.active>a,.nav-pills>li.active>a:focus,.nav-pills>li.active>a:hover {
+.nav-pills>li>a.active,.nav-pills>li>a.active:focus,.nav-pills>li>a.active:hover {
     color: #fff;
     background-color: #337ab7
 }

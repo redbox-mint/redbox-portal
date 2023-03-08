@@ -433,7 +433,7 @@ Container components
     <div [ngClass]="field.cssClasses">
       <div [ngClass]="field.tabNavContainerClass">
         <ul [ngClass]="field.tabNavClass">
-          <li *ngFor="let tab of field.fields" [ngClass]="{'active': tab.active}"><a href="#{{tab.id}}" data-bs-toggle="tab" role="tab">{{tab.label}}</a></li>
+          <li *ngFor="let tab of field.fields"><a href="#{{tab.id}}" [ngClass]="{'active': tab.active}" data-bs-toggle="tab" role="tab">{{tab.label}}</a></li>
         </ul>
       </div>
       <div [ngClass]="field.tabContentContainerClass">
