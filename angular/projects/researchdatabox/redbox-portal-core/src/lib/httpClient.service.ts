@@ -60,7 +60,6 @@ export class HttpClientService implements Service {
   /**
    * Returns the config block 
    * 
-   * @param appName 
    * @returns 
    */
   public getConfig() {
