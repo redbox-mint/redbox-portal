@@ -491,14 +491,12 @@ export class DashboardComponent implements OnInit {
       } else {
         sortString = sortString + "1";
       }
-
-      //TODO load columns field mappings from mogodb config and override this.defaultDasboardColumnMappings
-      let columnMappings = this.defaultDashboardColumnMappings;
-      if(!_.isEmpty(this.dashboardColumnMappings)) {
-        columnMappings = this.dashboardColumnMappings;
+      let stagedRecords: any;
+      if(this.dashboardTypeSelected == 'workspace') {
+        stagedRecords = await this.recordService.getRecords('', '', 1, this.dashboardTypeSelected, sortString);
+      } else {
+        stagedRecords = await this.recordService.getRecords(this.recordType, data.step, 1, '', sortString);
       }
-      
-      let stagedRecords: any = await this.recordService.getRecords(this.recordType, data.step, 1, '', sortString);
       
       let planTable: PlanTable = this.evaluatePlanTableColumns({},{},{}, data.step, stagedRecords);
       

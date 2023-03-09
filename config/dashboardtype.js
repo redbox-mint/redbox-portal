@@ -1,4 +1,4 @@
-module.exports.dashboard = {
+module.exports.dashboardtype = {
   "standard": {
     formatRules: {
         filterBy: [], //filterBase can only have two values user or record

@@ -58,40 +58,12 @@ export class RecordService extends HttpClientService {
     _merge(this.requestOptions, {context: this.httpContext})
     return this;
   }
-  
-  // protected getOptions(headersObj: any) {
-  //   let headers = new Headers(headersObj);
-  //   return new RequestOptions({ headers: headers });
-  // }
-
-  // protected getOptionsClient(headersObj: any = {}) {
-  //   headersObj['X-Source'] = 'jsclient';
-  //   headersObj['Content-Type'] = 'application/json;charset=utf-8';
-  //   headersObj['X-CSRF-Token'] = this.config.csrfToken;
-
-  //   return this.getOptions(headersObj);
-  // }
-
-  // protected extractData(res: any, parentField: any = null) {
-  //   let body = res;
-  //   if (parentField) {
-  //       console.log(body);
-  //       return _.get(body, parentField) || {};
-  //   } else {
-  //       return body || {};
-  //   }
-  // }
 
   public async getWorkflowSteps(name: string) {
     let url = `${this.brandingAndPortalUrl}/record/wfSteps/${name}`;
     const result$ = this.http.get(url).pipe(map(res => res));
     let result = await firstValueFrom(result$);
-    //console.log(result);
-    //return this.extractData(result, '0');
     return result; 
-    // return this.http.get(`${this.brandingAndPortalUrl}/record/wfSteps/${name}`, this.getOptionsClient())
-    // .toPromise()
-    // .then((res:any) => this.extractData(res));
   }
 
   private getDocMetadata(doc: any) {
@@ -108,45 +80,18 @@ export class RecordService extends HttpClientService {
   }
 
   public async getRelatedRecords(oid: string) {
+    
     let url = `${this.brandingAndPortalUrl}/record/${oid}/relatedRecords`;
     const result$ = this.http.get(url).pipe(map(res => res));
     let relatedRecords = await firstValueFrom(result$);
     
-    // console.log(relatedRecords);
-    
-    // let totalItems = 1;
-    // let startIndex = 0;
-    // let noItems = 1;
-    // let pageNumber = (startIndex / noItems) + 1;
-
     let response: any = {};
-    // response["totalItems"] = totalItems;
-    // response["currentPage"] = pageNumber;
-    // response["noItems"] = noItems;
-
     let items = [];
-
-    // let parentOrTreeLevel1: string = 'rdmp';
     let childOrTreeLevel2: any = _.get(relatedRecords, 'processedRelationships');
 
-    // console.log(childOrTreeLevel2);
-
-    // let parentArr = _.get(relatedRecords, 'relatedObjects.'+parentOrTreeLevel1);
-    // if(_.isArray(parentArr)) {
-    //   let item: any = {};
-    //   let parent = parentArr[0];
-    //   item["oid"] = parent["redboxOid"];
-    //   item["title"] = parent["metadata"]["title"];
-    //   item["metadata"]= this.getDocMetadata(parent);
-    //   item["dateCreated"] =  parent["dateCreated"];
-    //   item["dateModified"] = parent["lastSaveDate"];
-    //   items.push(item);
-    // }
     for(let childNameStr of childOrTreeLevel2) {
       let childArr = _.get(relatedRecords,'relatedObjects.'+childNameStr);
-      // console.log('------------------------------------------------- childNameStr '+childNameStr);
-      // console.log(JSON.stringify(childArr));
-      // console.log('-------------------------------------------------');
+      
       if(!_.isUndefined(childArr) && _.isArray(childArr)) {
         for (let child of childArr) {
           let item: any = {};
@@ -155,6 +100,7 @@ export class RecordService extends HttpClientService {
           item["metadata"]= this.getDocMetadata(child);
           item["dateCreated"] =  child["dateCreated"];
           item["dateModified"] = child["lastSaveDate"];
+          //TODO double check that this is needed or not
           // item["hasEditAccess"] = RecordsService.hasEditAccess(brand, user, roles, doc);
           items.push(item);
         }
@@ -162,7 +108,6 @@ export class RecordService extends HttpClientService {
     }
 
     response["items"] = items;
-    // console.log(response);
     return response;
   }
 
@@ -182,27 +127,11 @@ export class RecordService extends HttpClientService {
     return result;
   }
 
-  //TODO needs to re-implement as fit for purpose ajax call
-  public async getRecordTypes(packageType: string) {
-    //old endpoint that will be deprecated
-    //this.http.get(`${this.brandingAndPortalUrl}/record/type/`, this.getOptionsClient())
+  public async getAllTypes() {
     let url = `${this.brandingAndPortalUrl}/record/type/`;
     const result$ = this.http.get(url).pipe(map(res => res));
     let result = await firstValueFrom(result$);
-    console.log('-------------------------------------------------');
-    console.log(result);
-    console.log('-------------------------------------------------');
     return result;
-  }
-
-  async getAllTypes(): Promise<any> {
-    const req = this.http.get(`${this.brandingAndPortalUrl}/record/type/`, this.requestOptions);
-    req.pipe(
-      map((data:any) => {
-        return data as RecordTypeConf
-      })
-    );
-    return firstValueFrom(req);
   }
 
 }
