@@ -17,6 +17,7 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
+import { map, firstValueFrom } from 'rxjs';
 import { Injectable, Inject } from '@angular/core';
 import { APP_BASE_HREF } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
@@ -24,10 +25,12 @@ import { ConfigService } from './config.service';
 import { UtilityService } from './utility.service';
 import { LoggerService } from './logger.service';
 import { HttpClientService } from './httpClient.service';
-import { firstValueFrom, lastValueFrom } from 'rxjs';
-import { map } from 'rxjs/operators';
 import * as _ from 'lodash';
+import { merge as _merge } from 'lodash-es';
 
+export interface RecordTypeConf {
+  name: string;
+}
 /**
  * Record Service
  * 
@@ -35,6 +38,7 @@ import * as _ from 'lodash';
  */
 @Injectable()
 export class RecordService extends HttpClientService {
+  private requestOptions:any = null as any;
 
   constructor( 
     @Inject(HttpClient) protected override http: HttpClient, 
@@ -44,12 +48,14 @@ export class RecordService extends HttpClientService {
     @Inject(LoggerService) private loggerService: LoggerService
   ) {
     super(http, rootContext, utilService, configService);
+    this.requestOptions = {responseType: 'json', observe: 'body'};
   }
 
   public override async waitForInit(): Promise<any> {
     await super.waitForInit();
     this.enableCsrfHeader();
     this.loggerService.debug('waitForInit RecordService');
+    _merge(this.requestOptions, {context: this.httpContext})
     return this;
   }
   
@@ -187,6 +193,16 @@ export class RecordService extends HttpClientService {
     console.log(result);
     console.log('-------------------------------------------------');
     return result;
+  }
+
+  async getAllTypes(): Promise<any> {
+    const req = this.http.get(`${this.brandingAndPortalUrl}/record/type/`, this.requestOptions);
+    req.pipe(
+      map((data:any) => {
+        return data as RecordTypeConf
+      })
+    );
+    return firstValueFrom(req);
   }
 
 }

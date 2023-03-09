@@ -530,9 +530,10 @@ export class DashboardComponent implements OnInit {
   }
 
   protected setDashboardTitle(planTable: PlanTable) {
-    _.forEach(planTable.items, (plan: Plan) => {
-      plan.dashboardTitle = (_.isUndefined(plan.title) || _.isEmpty(plan.title) || _.isEmpty(plan.title[0])) ? this.translationService.t('plan-with-no-title') : plan.title;
-    });
+    //TODO resolve this error
+    // _.forEach(planTable.items, (plan: Plan) => {
+    //   plan.dashboardTitle = (_.isUndefined(plan.title) || _.isEmpty(plan.title) || _.isEmpty(plan.title[0])) ? this.translationService.t('plan-with-no-title') : plan.title;
+    // });
   }
 
   public evaluateRowLevelRules(rulesConfig: any, metadata:any, metaMetadata:any, workflow:any, oid:string, ruleSetName:string) {

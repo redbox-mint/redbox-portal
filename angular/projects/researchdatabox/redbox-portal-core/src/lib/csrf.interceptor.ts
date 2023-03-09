@@ -18,7 +18,7 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 import { Injectable } from '@angular/core';
 import { HttpInterceptor, HttpRequest, HttpHandler, HttpContextToken } from '@angular/common/http';
-import * as _ from "lodash";
+import { get as _get, isEmpty as _isEmpty, set as _set, clone as _clone } from 'lodash-es';
 
 
 export const RB_HTTP_INTERCEPTOR_AUTH_CSRF = new HttpContextToken(() => '');
@@ -39,10 +39,10 @@ export const RB_HTTP_INTERCEPTOR_AUTH_CSRF = new HttpContextToken(() => '');
   }
 
   intercept(req: HttpRequest<any>, next: HttpHandler) {
-    const headers = _.clone(this.headers);
+    const headers = _clone(this.headers);
     const csrfToken = req.context.get(RB_HTTP_INTERCEPTOR_AUTH_CSRF);
-    if (!_.isEmpty(csrfToken) && _.isEmpty(_.get(this.headers, 'X-CSRF-Token'))) {
-      _.set(headers, 'X-CSRF-Token', csrfToken);
+    if (!_isEmpty(csrfToken) && _isEmpty(_get(this.headers, 'X-CSRF-Token'))) {
+      _set(headers, 'X-CSRF-Token', csrfToken);
     }
     const authReq = req.clone({
       setHeaders: headers
