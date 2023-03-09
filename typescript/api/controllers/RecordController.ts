@@ -24,7 +24,8 @@ import {
   Observable
 } from 'rxjs/Rx';
 import {
-  StorageServiceResponse
+  StorageServiceResponse,
+  RecordTypeResponseModel
 } from '@researchdatabox/redbox-core-types';
 import moment = require('moment');
 import * as tus from 'tus-node-server';
@@ -1211,35 +1212,34 @@ export module Controllers {
         this.ajaxFail(req, res, error.message);
       }
     }
-    /** Returns the RecordType configuration 
-     * 
-     * @deprecated Create/Use fit-for-purpose endpoints going forward.
-    */
+    /** 
+     * Returns the RecordType configuration based of the response model that is intentionally restricting 
+     * the object schema and information that is allowed to be sent back in this endpoint
+     */
     public getType(req, res) {
       const recordType = req.param('recordType');
       const brand = BrandingService.getBrand(req.session.branding);
       RecordTypesService.get(brand, recordType).subscribe(recordType => {
-        // a step towards deprecation: remove the hook configuration
-        _.unset(recordType, 'hooks');
-        this.ajaxOk(req, res, null, recordType);
+        let recordTypeModel = new RecordTypeResponseModel(_.get(recordType, 'name'));
+        this.ajaxOk(req, res, null, recordTypeModel);
       }, error => {
         this.ajaxFail(req, res, error.message);
       });
     }
 
     /** 
-     * Returns all RecordTypes configuration 
-     * 
-     * @deprecated Create/Use fit-for-purpose endpoints going forward.
-     * */
+     * Returns all RecordTypes configuration based of the response model that is intentionally restricting 
+     * the object schema and information that is allowed to be sent back in this endpoint
+     */
     public getAllTypes(req, res) {
       const brand = BrandingService.getBrand(req.session.branding);
       RecordTypesService.getAll(brand).subscribe(recordTypes => {
-        // a step towards deprecation: remove the hook configuration
+        let recordTypeModels = [];
         for (let recType of recordTypes) {
-          _.unset(recType, 'hooks');
+          let recordTypeModel = new RecordTypeResponseModel(_.get(recType, 'name'));
+          recordTypeModels.push(recordTypeModel);
         }
-        this.ajaxOk(req, res, null, recordTypes);
+        this.ajaxOk(req, res, null, recordTypeModels);
       }, error => {
         this.ajaxFail(req, res, error.message);
       });
