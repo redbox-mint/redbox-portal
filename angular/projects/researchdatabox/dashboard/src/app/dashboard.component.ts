@@ -1,5 +1,5 @@
 import { Component, Inject, OnInit, ElementRef } from '@angular/core';
-import { UtilityService, LoggerService, TranslationService, RecordService, PlanTable, Plan, RecordResponseTable } from '@researchdatabox/redbox-portal-core';
+import { UtilityService, LoggerService, TranslationService, RecordService, PlanTable, Plan, RecordResponseTable, UserService } from '@researchdatabox/redbox-portal-core';
 import * as _ from 'lodash';
 
 @Component({
@@ -8,7 +8,6 @@ import * as _ from 'lodash';
 })
 export class DashboardComponent implements OnInit {
   title = '@researchdatabox/dashboard';
-  wfSteps: any = {}; 
   config: any = {};
   branding: string = '';
   portal: string = '';
@@ -22,11 +21,11 @@ export class DashboardComponent implements OnInit {
   sortMap: any = {};
   tableConfig: any = {};
   recordTitle: string = '';
-  viewAsPackageType: boolean = false;
-  dashboardTypesOptions: any = ['standard', 'package', 'custom']; //custom or consolidated?
+  dashboardTypesOptions: any = ['standard', 'workspace', 'consolidated'];
   defaultDashboardTypeSelected: string = 'standard';
   dashboardTypeSelected: string;
   rulesService: object;
+  currentUser: object = {};
   defaultTableConfig = [
     {
       title: 'Record Title',
@@ -94,7 +93,7 @@ export class DashboardComponent implements OnInit {
   };
 
   //Format rule types :
-  // filter(record types, field values, workflow steps) and sort(simple or relationships hierarchy) 
+  // filter(record types, field values, workflow steps) and sortBy(simple) or groupBy(relationships hierarchy ) 
 
   //Format rule modes:
   // per grouped records or table wide
@@ -102,256 +101,135 @@ export class DashboardComponent implements OnInit {
   //TODO potentially merge with sortBy or merge sortFields attribute into the below object ?
   sortFields = ['metaMetadata.lastSaveDate', 'metaMetadata.createdOn', 'metadata.title', 'metadata.contributor_ci.text_full_name', 'metadata.contributor_data_manager.text_full_name'];
   
-  defaultFormatCustomRules: any = {
-    filterBy: [], 
-    sortBy: '',
-    groupBy: '', //values: notGroupedAnyOrder == empty, groupedByRecordType, groupedByRelationships 
+  defaultFormatRules: any = {
+    filterBy: [], //filterBase can only have two values user or record
+    filterWorkflowStepsBy: [], //values: empty array (all) or a list with particular types i.e. [ 'draft', 'finalised' ]  
+    sortBy: 'metaMetadata.lastSaveDate:-1',
+    groupBy: '', //values: empty (not grouped any order), groupedByRecordType, groupedByRelationships 
     sortGroupBy: [], //values: as many levels as required?
-    filterWorkflowStepsBy: 'all', //values: all or a particular type i.e. draft or finalised  
   };
-  formatCustomRules: any = {};
+  formatRules: any = {};
 
   defaultGroupRowConfig = {};
   groupRowConfig = {};
 
   //Per group rules like show/hide buttons/activities(links) that apply to one group
-  defaultGroupRowCustomRules: any = {};
-  groupRowCustomRules: any = {};
+  defaultGroupRowRules: any = {};
+  groupRowRules: any = {};
 
-  //Per each row rules show/hide fields or buttons/activities(links)
-  defaultRowLevelCustomRules: any = {};
-  rowLevelCustomRules: any = {};
+  //Per each row rules show/hide fields or buttons/activities(links) that apply to one row
+  defaultRowLevelRules: any = {};
+  rowLevelRules: any = {};
 
   constructor(
     @Inject(LoggerService) private loggerService: LoggerService,
     @Inject(UtilityService) private utilService: UtilityService,
     @Inject(TranslationService) private translationService: TranslationService,
     @Inject(RecordService) private recordService: RecordService,
+    @Inject(UserService) private userService: UserService,
     elementRef: ElementRef
   ) {
+    //TODO double check that is ok to use elementRef.nativeElement.getAttribute ?
     this.recordType = _.trim(elementRef.nativeElement.getAttribute('recordType'));
     this.packageType = _.trim(elementRef.nativeElement.getAttribute('packageType'));
-    // console.log(`constructor this.recordType ${this.recordType}`);
     let dashboardType = _.trim(elementRef.nativeElement.getAttribute('dashboardType'));
     if(_.isUndefined(dashboardType) || _.isNull(dashboardType) || _.isEmpty(dashboardType)) {
       this.dashboardTypeSelected = this.defaultDashboardTypeSelected;
     } else {
       this.dashboardTypeSelected = dashboardType;
     }
-    //TODO hack for older compatibility may or may not need to be removed later
     if(!_.isUndefined(this.packageType) && !_.isNull(this.packageType) && !_.isEmpty(this.packageType)) {
-      this.dashboardTypeSelected = 'package';
+      this.dashboardTypeSelected = this.packageType;
     }
 
-    console.log(`constructor dashboardTypeSelected ${this.dashboardTypeSelected}`);
+    console.log(`constructor dashboardTypeSelected ${this.dashboardTypeSelected} ${this.packageType}`);
     this.rulesService = this;
   }
 
   async ngOnInit() {
     this.loggerService.debug(`Dashboard waiting for deps to init...`); 
-    await this.utilService.waitForDependencies([this.translationService, this.recordService]);
+    await this.utilService.waitForDependencies([this.translationService, this.recordService, this.userService]);
     this.loggerService.debug(`Dashboard initialised.`); 
-    //this.recordType = 'rdmp';
     this.config = this.recordService.getConfig();
     console.log(this.config);
     this.rootContext = _.get(this.config, 'baseUrl');
     this.branding = _.get(this.config, 'branding');
     this.portal = _.get(this.config, 'portal');
-    // this.workflowSteps = await this.recordService.getWorkflowSteps(this.recordType);
-    // this.records = await this.recordService.getRecords(this.recordType,'draft',1);
-    // console.log(this.records);
-    // console.log(JSON.stringify(this.config));
-    // this.loggerService.debug(this.config);
-    // console.log(`config: rootContext ${this.rootContext} branding ${this.branding} portal ${this.portal}`);
-    if(this.dashboardTypeSelected == 'standard') {
       this.typeLabel = `${this.translationService.t(`${this.recordType}-name-plural`)}`; //TODO check interpolation legacy had additonal attribute "Records"
       this.recordTitle = `${this.translationService.t(`${this.recordType}-title`)}`; //TODO check interpolation legacy had additonal attribute "Title"
-      // this.typeLabel = this.getTranslated(`${this.recordType}-name-plural`, "Records");
-      // this.recordTitle = this.getTranslated(`${this.recordType}-title`, "Title");
-      await this.initRecordType(this.recordType);
-    } else if(this.dashboardTypeSelected == 'package') {
-      this.viewAsPackageType = true;
-      this.typeLabel = `${this.translationService.t(`${this.packageType}-name-plural`)}`; //TODO check interpolation legacy had additonal attribute "Records"
-      this.recordTitle = `${this.translationService.t(`${this.packageType}-title`)}`; //TODO check interpolation legacy had additonal attribute "Title"
-      // this.typeLabel = this.getTranslated(`${this.packageType}-name-plural`, "Records");
-      // this.recordTitle = this.getTranslated(`${this.packageType}-title`, "Title");
-      await this.initPackageType(this.packageType);
-    } else if(this.dashboardTypeSelected == 'custom') {
-      this.typeLabel = `${this.translationService.t(`${this.recordType}-name-plural`)}`; //TODO check interpolation legacy had additonal attribute "Records"
-      this.recordTitle = `${this.translationService.t(`${this.recordType}-title`)}`; //TODO check interpolation legacy had additonal attribute "Title"
-      await this.initCustomView(this.recordType);
+    if(this.dashboardTypeSelected == 'standard' || this.dashboardTypeSelected == 'consolidated') {
+      await this.initView(this.recordType);
+    } else if(this.dashboardTypeSelected == 'workspace') {
+      await this.initView('');
     }
+
+    this.currentUser = await this.userService.getInfo();
+    this.loggerService.debug(`Current user ${JSON.stringify(this.currentUser)}`); 
     this.isReady = true;
   }
-
-  // async ngAfterViewInit() {
-  //   await this.utilService.waitForDependencies([this.translationService, this.recordService]);
-  //   this.wfSteps = await this.recordService.getRelatedRecords('fbff59909c6111ed8dfd4d8104fc0287');
-  //   this.isReady = true;
-  // }
-
-  async initPackageType(packageType: string) {
-    // we're retrieving all recordTypes for this packageType
-    const recordTypes: any = await this.recordService.getRecordTypes(packageType); //TODO needs to re-implement fit for purpose endpoint
-    if (_.isEmpty(this.defaultTableConfig[0].title)) {
-      this.defaultTableConfig[0].title= `${this.packageType}-title`, "Title";
-    }
-    let mainWorkflowStep = null;
-    for (let recType of recordTypes) {
-      const recTypeSteps: any = await this.recordService.getWorkflowSteps(recType.name);
-      mainWorkflowStep = _.find(recTypeSteps, (step) => { return step.config.displayIndex == 0 });
-      if (!_.isEmpty(mainWorkflowStep)) {
-        break;
-      }
-    }
-    if (_.isEmpty(mainWorkflowStep)) {
-      console.error(`Failed to load the main workflow step for package type: ${packageType}`);
-      return;
-    }
-
-    let stepTableConfig = this.defaultTableConfig;
-    if(mainWorkflowStep.config.dashboard != null && mainWorkflowStep.config.dashboard.table != null && mainWorkflowStep.config.dashboard.table.rowConfig != null) {
-      stepTableConfig = mainWorkflowStep.config.dashboard.table.rowConfig;
-      this.sortFields = _.map(mainWorkflowStep.config.dashboard.table.rowConfig, (config) => { return config.variable });
-    }
-
-    this.tableConfig[packageType] = stepTableConfig;
-    this.sortMap[packageType] = {};
-    for (let rowConfig of stepTableConfig) {
-      this.sortMap[packageType][rowConfig.variable] = {
-        sort: rowConfig.initialSort
-      };
-    }
-    // this.initTracker.target++;
-    let stagedRecords: any = await this.recordService.getRecords('', '', 1, packageType, 'metaMetadata.lastSaveDate:-1');
-    let planTable: PlanTable = this.evaluatePlanTableColumns(packageType, stagedRecords);
-    // this.initTracker.loaded++;
-    this.setDashboardTitle(planTable);
-    this.records[packageType] = planTable;
-    // this.checkIfHasLoaded();
-  }
-
-  async initRecordType(recordType: string) {
-    let steps: any = await this.recordService.getWorkflowSteps(recordType);
-    steps = _.orderBy(steps, ['config.displayIndex'], ['asc']);
-    // this.workflowSteps = steps;
-    // this.workflowSteps.push(steps);
-    for (let step of steps) {
-      step.recordTypeName = recordType;
-      this.workflowSteps.push(step);
-      let stepTableConfig = this.defaultTableConfig;
-      if (_.isEmpty(this.defaultTableConfig[0].title)) {
-        this.defaultTableConfig[0].title= `${recordType}-title`, "Title";
-      }
-      if(step.config.dashboard != null && step.config.dashboard.table != null && step.config.dashboard.table.rowConfig != null) {
-        stepTableConfig = step.config.dashboard.table.rowConfig;
-        this.sortFields = _.map(step.config.dashboard.table.rowConfig, (config) => { return config.variable });
-      }
-      this.tableConfig[step.name] = stepTableConfig;
-      this.sortMap[step.name] = {};
-      for (let rowConfig of stepTableConfig) {
-        this.sortMap[step.name][rowConfig.variable] = {
-          sort: rowConfig.initialSort
-        };
-      }
-      // this.initTracker.target++;
-      let stagedRecords: any = await this.recordService.getRecords(recordType,step.name,1,'','metaMetadata.lastSaveDate:-1');
-      // console.log('-------------------------------------------------');
-      // console.log(JSON.stringify(stagedRecords));
-      // console.log('-------------------------------------------------');
-      let planTable: PlanTable = this.evaluatePlanTableColumns(step.name, stagedRecords);
-      // console.log(JSON.stringify(planTable));
-      // console.log(planTable);
-      // this.initTracker.loaded++;
-      this.setDashboardTitle(planTable);
-      // console.log(this.records);
-      this.records[step.name] = planTable;
-      // this.checkIfHasLoaded();
-      // console.log(this.records);
-    }
-  }
-
-  evaluatePlanTableColumns(stepName: string, stagedRecords: RecordResponseTable): PlanTable {
-    let planTable: PlanTable = stagedRecords;
-    let recordRows = [];
-    for (let stagedRecord of stagedRecords.items) {
-
-      const imports: any = {};
-      imports.dateCreated = stagedRecord.dateCreated
-      imports.dateModified = stagedRecord.dateModified
-      imports.dashboardTitle = stagedRecord.dashboardTitle
-      imports.oid = stagedRecord.oid
-      imports.title = stagedRecord.title
-      imports.metadata = stagedRecord.metadata['metadata'];
-      imports.metaMetadata = stagedRecord.metadata['metaMetadata'];
-      imports.packageType = stagedRecord.metadata['packageType'];
-      imports.workflow = stagedRecord.metadata['workflow'];
-      imports.hasEditAccess = stagedRecord.hasEditAccess;
-      imports.branding = this.branding;
-      imports.rootContext = this.rootContext;
-      imports.portal = this.portal;
-      imports.translationService = this.translationService;
-
-      const templateData = {
-        imports: imports
-      };
-      let record: any = {};
-      let stepTableCOnfig = _.isEmpty(this.tableConfig[stepName]) ? this.defaultTableConfig : this.tableConfig[stepName];
-
-      for (let rowConfig of stepTableCOnfig) {
-        // console.log(rowConfig);
-        const template = _.template(rowConfig.template, templateData);
-        const templateRes = template();
-        // console.log('-------------------------------------------------');
-        // console.log(templateRes);
-        // console.log('-------------------------------------------------');
-        record[rowConfig.variable] = templateRes;
-      }
-      recordRows.push(record);
-    }
-    planTable.items = recordRows;
-
-    return planTable;
-  }
   
-  async initCustomView(recordType: string) {
-    //TODO need to implement ajax call that will retrieve redboxOids for which a user is primary/lead investigator "contributor_ci"
-    //TODO check why the dashboardCustom config was not retrieved outside of dashboard config section
-    let steps: any = await this.recordService.getWorkflowSteps(recordType);
-    steps = _.orderBy(steps, ['config.displayIndex'], ['asc']);
-    this.formatCustomRules = this.defaultFormatCustomRules;
-    this.rowLevelCustomRules = this.defaultRowLevelCustomRules;
+  async initView(recordType: string) {
+
+    console.log('----------------------- initView --------------------------');
+    this.formatRules = this.defaultFormatRules;
+    this.rowLevelRules = this.defaultRowLevelRules;
     this.groupRowConfig = this.defaultGroupRowConfig;
-    this.groupRowCustomRules = this.defaultGroupRowCustomRules;
+    this.groupRowRules = this.defaultGroupRowRules;
+
+    if(recordType == '') {
+      recordType = _.get(this.formatRules, 'recordType');
+    }
+    
+    let beforeFilterSteps: any = await this.recordService.getWorkflowSteps(recordType);
+    
+    let filterWorkflowStepsBy = _.get(this.formatRules, 'filterWorkflowStepsBy');
+    let steps = [];
+    
+    if(!_.isUndefined(filterWorkflowStepsBy) && _.isArray(filterWorkflowStepsBy) && !_.isEmpty(filterWorkflowStepsBy)) {
+      for (let bfStep of beforeFilterSteps) {
+        let filterByStage = _.get(bfStep, 'config.workflow.stage');
+        if(!_.isUndefined(filterByStage)) {
+          let indexFilterByStage = _.indexOf(filterWorkflowStepsBy, filterByStage);
+          if(indexFilterByStage >= 0) {
+            steps.push(bfStep);
+          }
+        }
+      }
+    } else {
+      steps = beforeFilterSteps;
+    }
+    steps = _.orderBy(steps, ['config.displayIndex'], ['asc']);
+
     for (let step of steps) {
       step.recordTypeName = recordType;
       this.workflowSteps.push(step);
       let stepTableConfig = this.defaultTableConfig;
       if (_.isEmpty(this.defaultTableConfig[0].title)) {
-        this.defaultTableConfig[0].title= `${recordType}-title`, "Title";
+        this.defaultTableConfig[0].title= `${recordType}-title`, 'Title';
       }
-      if(!_.isUndefined(_.get(step,'config.dashboard.dashboardCustom')) 
-        && !_.isUndefined(_.get(step, 'config.dashboard.dashboardCustom.table'))) {
+      if(!_.isUndefined(_.get(step,'config.dashboard')) 
+        && !_.isUndefined(_.get(step, 'config.dashboard.table'))) {
         
-        if(!_.isUndefined(_.get(step, 'config.dashboard.dashboardCustom.table.rowConfig'))) {
-          stepTableConfig = _.get(step,'config.dashboard.dashboardCustom.table.rowConfig');
-          this.sortFields = _.map(_.get(step,'config.dashboard.dashboardCustom.table.rowConfig'), (config) => { return config.variable });
+        if(!_.isUndefined(_.get(step, 'config.dashboard.table.rowConfig'))) {
+          stepTableConfig = _.get(step,'config.dashboard.table.rowConfig');
+          this.sortFields = _.map(_.get(step,'config.dashboard.table.rowConfig'), (config) => { return config.variable });
         }
 
-        if(!_.isUndefined(_.get(step, 'config.dashboard.dashboardCustom.table.rowRulesConfig'))) {
-          this.rowLevelCustomRules = _.get(step, 'config.dashboard.dashboardCustom.table.rowRulesConfig');
+        if(!_.isUndefined(_.get(step, 'config.dashboard.table.rowRulesConfig'))) {
+          this.rowLevelRules = _.get(step, 'config.dashboard.table.rowRulesConfig');
+          console.log(JSON.stringify(this.rowLevelRules));
         }
 
-        if(!_.isUndefined(_.get(step, 'config.dashboard.dashboardCustom.table.groupRowConfig'))) {
-          this.groupRowConfig = _.get(step, 'config.dashboard.dashboardCustom.table.groupRowConfig');
+        if(!_.isUndefined(_.get(step, 'config.dashboard.table.groupRowConfig'))) {
+          this.groupRowConfig = _.get(step, 'config.dashboard.table.groupRowConfig');
         }
         
-        if(!_.isUndefined(_.get(step, 'config.dashboard.dashboardCustom.table.groupRowRulesConfig'))) {
-          this.groupRowCustomRules = _.get(step, 'config.dashboard.dashboardCustom.table.groupRowRulesConfig');
+        if(!_.isUndefined(_.get(step, 'config.dashboard.table.groupRowRulesConfig'))) {
+          this.groupRowRules = _.get(step, 'config.dashboard.table.groupRowRulesConfig');
         }
 
-        if(!_.isUndefined(_.get(step, 'config.dashboard.dashboardCustom.table.formatCustomRules'))) {
-          this.formatCustomRules = _.get(step, 'config.dashboard.dashboardCustom.table.formatCustomRules');
+        if(!_.isUndefined(_.get(step, 'config.dashboard.table.formatRules'))) {
+          this.formatRules = _.get(step, 'config.dashboard.table.formatRules');
         }
       }
       this.tableConfig[step.name] = stepTableConfig;
@@ -361,112 +239,138 @@ export class DashboardComponent implements OnInit {
           sort: rowConfig.initialSort
         };
       }
-
-      //TODO define what step will be used for consolidated view? a normal step of the workflow or a special step? 
-      //     perhaps a property may be needed to identify a particular workflow step as "special" ?
-
-      //TODO double check if this initTracker variable and checkIfHasLoaded function are needed ???
-      // this.initTracker.target++;
       
-      //TODO double check what's the best way/right way to obtain current logged in user
-      let filterString = 'alberto.zweinstein@example.edu.au';
-      let filterFileds = 'metadata.contributor_ci.email';
-      let filterMode = 'equal';
+      let filterBy = _.get(this.formatRules, 'filterBy');
+      let filterString;
+      let filterFileds;
+      let filterMode;
+      if(!_.isUndefined(filterBy) && _.isArray(filterBy) && !_.isEmpty(filterBy)) {
+        let filterBase = _.get(filterBy,'filterBase');
+        if(filterBase == 'user') {
+          let filterBaseObj = this.currentUser;
+          filterString =  _.get(filterBaseObj,'filterBaseFieldOrValue');
+        } else if(filterBase == 'record') {
+          filterString =  _.get(filterBy,'filterBaseFieldOrValue');
+        }
+        filterFileds = _.get(filterBy,'filterField');
+        filterMode = _.get(filterBy,'filterMode');
+      }
+
+      let sortBy = _.get(this.formatRules, 'sortBy');
+      let sortByString = '';
+      if(!_.isUndefined(sortBy) && !_.isEmpty(sortBy)) {
+        sortByString = sortBy;
+      }
+
+      let packageType = '';
+      let stepName = '';
+      let evaluateStepName = ''; 
+      if (this.dashboardTypeSelected == 'consolidated') {
+        packageType = '';
+        stepName = '';
+        evaluateStepName = _.get(step,'name'); 
+      } else if (this.dashboardTypeSelected == 'workspace') {
+        stepName = '';
+        packageType = this.packageType;
+        evaluateStepName = _.get(step,'name');
+        recordType = '';
+      } else {
+        packageType = '';
+        stepName = _.get(step,'name');
+        evaluateStepName = stepName;
+      }
+
       let totalItems = 0;
       let startIndex = 1;
       let noItemsPerPage = 10; //TODO getRecords defaults to 10 perhaps add another param to set?
-                               //TODO getRecords can retrieve all states if attribute draft is passed in empty ?
-      let records = await this.recordService.getRecords(this.recordType,'draft',startIndex,'','',filterFileds,filterString,filterMode);
-      // console.log('-------------------------------------------------');
-      // console.log(JSON.stringify(records));
-      // console.log('-------------------------------------------------');
-      let items: any = _.get(records, 'items');
-      let allItemsByGroup = [];
-      let sortGroupBy = _.get(this.formatCustomRules,'sortGroupBy');
-      for(let item of items) {
+      let stagedRecords = await this.recordService.getRecords(recordType,stepName,startIndex,packageType,sortByString,filterFileds,filterString,filterMode);
+      
+      console.log(JSON.stringify(stagedRecords));
 
-        let oid = _.get(item, 'oid');
-        let itemsAfterApplyInnerGroupFormatRules = [];
-        let itemsGroupRelated: any = await this.recordService.getRelatedRecords(oid);
-        totalItems = totalItems + itemsGroupRelated.items.length;
-        let getItems =_.get(itemsGroupRelated,'items');
-        // console.log('-------------------------------------------------');
-        // console.log(JSON.stringify(getItems));
-        // console.log('-------------------------------------------------');
+      let planTable: PlanTable; 
 
-        //TODO assert this is the best place for group sort and other groupBy format settings ?
-        //TODO make sure it works when simple format settings are set without groupBy etc
-        if(!_.isUndefined(sortGroupBy)) {
-          for(let getItem of getItems) {
-            let getOid = _.get(getItem, 'oid'); 
-            let countHerarchyLevels = sortGroupBy.length;
-            for(let i = 0; i < countHerarchyLevels; i++) {
-              let rule = _.find(sortGroupBy, function(o) { if(_.get(o,'rowLevel') == i){
-                                                                            return o
-                                                                          }});
-              // console.log(JSON.stringify(rule));
-              let compareField = _.get(rule,'compareField');
-              let compareFieldValue = _.get(rule,'compareFieldValue');
-              // console.log('compareField '+compareField);
-              // console.log('compareFieldValue '+compareFieldValue);
-              let row = _.find(getItems, function(obj) { if(_.get(obj,compareField) == compareFieldValue && 
-                                                            _.get(obj,'oid') == getOid)
-                                                            {
-                                                              return obj
-                                                            }});
-              // console.log(row);
-              if(!_.isUndefined(row) && !_.isNull(row) && !_.isEmpty(row)) {
-                _.set(row, 'rowLevel', i);
-                itemsAfterApplyInnerGroupFormatRules.push(row);
+      if(this.dashboardTypeSelected == 'consolidated') {
+        let items: any = _.get(stagedRecords, 'items');
+        let allItemsByGroup = [];
+        
+        console.log(JSON.stringify(this.formatRules));
+        let sortGroupBy = _.get(this.formatRules,'sortGroupBy');
+        for(let item of items) {
+
+          let oid = _.get(item, 'oid');
+          let itemsAfterApplyInnerGroupFormatRules = [];
+          let groupBy = _.get(this.formatRules, 'groupBy');
+          if(groupBy == 'groupedByRelationships' || groupBy == 'groupedByRecordType') {
+            console.log('groupBy '+groupBy);
+            let itemsGroupRelated: any = await this.recordService.getRelatedRecords(oid);
+            totalItems = totalItems + itemsGroupRelated.items.length;
+            let getItems =_.get(itemsGroupRelated,'items');
+
+            if(!_.isUndefined(sortGroupBy)) {
+              for(let getItem of getItems) {
+                let getOid = _.get(getItem, 'oid'); 
+                let countHerarchyLevels = sortGroupBy.length;
+                for(let i = 0; i < countHerarchyLevels; i++) {
+                  let rule = _.find(sortGroupBy, function(o) { if(_.get(o,'rowLevel') == i){
+                                                                                return o
+                                                                              }});
+
+                  let compareField = _.get(rule,'compareField');
+                  let compareFieldValue = _.get(rule,'compareFieldValue');
+                  let row = _.find(getItems, function(obj) { if(_.get(obj,compareField) == compareFieldValue && 
+                                                                _.get(obj,'oid') == getOid)
+                                                                {
+                                                                  return obj
+                                                                }});
+                                                                
+                  if(!_.isUndefined(row) && !_.isNull(row) && !_.isEmpty(row)) {
+                    _.set(row, 'rowLevel', i);
+                    itemsAfterApplyInnerGroupFormatRules.push(row);
+                  }
+                }
+                if(!_.isEmpty(itemsAfterApplyInnerGroupFormatRules)) {
+                  let sorted = _.sortBy(itemsAfterApplyInnerGroupFormatRules, 'rowLevel');
+                  _.set(itemsGroupRelated,'items', sorted);
+                }
               }
             }
-            if(!_.isEmpty(itemsAfterApplyInnerGroupFormatRules)) {
-              let sorted = _.sortBy(itemsAfterApplyInnerGroupFormatRules, 'rowLevel');
-              _.set(itemsGroupRelated,'items', sorted);
-            }
+            allItemsByGroup.push(itemsGroupRelated);
           }
         }
 
-        allItemsByGroup.push(itemsGroupRelated);
+        let pageNumber = (startIndex / noItemsPerPage) + 1;
+        let groupedRecords: any = {};
+        _.set(groupedRecords, 'totalItems', totalItems);
+        _.set(groupedRecords, 'currentPage', pageNumber);
+        _.set(groupedRecords, 'noItems', noItemsPerPage);
+        _.set(groupedRecords, 'itemsByGroup', true);
+        _.set(groupedRecords, 'groupedItems', allItemsByGroup);
 
-        //TODO consider remove the raw JSON boolean option or not?
-        //customRules = await this.recordService.getRelatedRecords(oid, true);
-      }
+        planTable = this.evaluatePlanTableColumns(this.groupRowConfig, this.groupRowRules, this.rowLevelRules, evaluateStepName, groupedRecords);
       
-      // console.log('-------------------------------------------------');
-      // console.log(JSON.stringify(allItemsByGroup));
-      // console.log('-------------------------------------------------');
+      } else {
 
-      let pageNumber = (startIndex / noItemsPerPage) + 1;
-      _.set(this.wfSteps, 'totalItems', totalItems);
-      _.set(this.wfSteps, 'currentPage', pageNumber);
-      _.set(this.wfSteps, 'noItems', noItemsPerPage);
-      _.set(this.wfSteps, 'itemsByGroup', true);
-      _.set(this.wfSteps, 'groupedItems', allItemsByGroup);
-
-      // console.log('-------------------------------------------------');
-      // console.log(JSON.stringify(this.wfSteps));
-      // console.log('-------------------------------------------------');
-
-      //TODO load custom columns field mappings from mogodb config and override this.defaultDasboardColumnMappings
-      let customColumnMappings = this.defaultDashboardColumnMappings;
-      if(!_.isEmpty(this.dashboardColumnMappings)) {
-        customColumnMappings = this.dashboardColumnMappings;
+        planTable = this.evaluatePlanTableColumns({},{},{}, evaluateStepName, stagedRecords);
       }
 
-      let planTable: PlanTable = this.evaluatePlanTableColumnsCustomRules(this.groupRowConfig, this.groupRowCustomRules, this.rowLevelCustomRules, customColumnMappings, step.name, this.wfSteps);
-      // console.log(JSON.stringify(planTable));
-      // console.log(planTable);
+      //TODO double check if this initTracker variable and checkIfHasLoaded function are needed ???
+      // this.initTracker.target++;
       // this.initTracker.loaded++;
       this.setDashboardTitle(planTable);
       // console.log(this.records);
-      this.records[step.name] = planTable;
+      this.records[evaluateStepName] = planTable;
+      
+
       // this.checkIfHasLoaded();
+
       // console.log(this.records);
+      console.log('-------------------------------------------------');
+      console.log(JSON.stringify(this.records));
+      console.log('-------------------------------------------------');
     }
   }
 
-  evaluatePlanTableColumnsCustomRules(groupRowConfig: any, groupRowCustomRules: any, rowLevelCustomRulesConfig: any, cunstomColumns: any , stepName: string, stagedOrGroupedRecords: any): PlanTable {
+  evaluatePlanTableColumns(groupRowConfig: any, groupRowRules: any, rowLevelRulesConfig: any, stepName: string, stagedOrGroupedRecords: any): PlanTable {
     
     let recordRows: any = [];
     let planTable: PlanTable = {
@@ -476,9 +380,15 @@ export class DashboardComponent implements OnInit {
       noItems: _.get(stagedOrGroupedRecords, 'noItems')
     };
 
+    //TODO load columns field mappings from mogodb config and override this.defaultDasboardColumnMappings
+    let columnMappings = this.defaultDashboardColumnMappings;
+    if(!_.isEmpty(this.dashboardColumnMappings)) {
+      columnMappings = this.dashboardColumnMappings;
+    }
+
     let isGrouped = _.get(stagedOrGroupedRecords, 'itemsByGroup');
     let allGroupedItems = _.get(stagedOrGroupedRecords, 'groupedItems');
-    if(isGrouped && !_.isUndefined(allGroupedItems)) {
+    if(isGrouped && !_.isUndefined(allGroupedItems) && !_.isEmpty(allGroupedItems)) {
 
       const imports: any = {};
       for(let groupedRecords of allGroupedItems) {
@@ -487,7 +397,7 @@ export class DashboardComponent implements OnInit {
 
         for (let stagedRecord of groupedItems) {
 
-          _.forEach(cunstomColumns, (value, key) => {
+          _.forEach(columnMappings, (value, key) => {
             _.set(imports, key, _.get(stagedRecord, value));
           });
 
@@ -496,9 +406,9 @@ export class DashboardComponent implements OnInit {
           _.set(imports, 'portal', this.portal);
           _.set(imports, 'translationService', this.translationService);
           _.set(imports, 'rulesService', this.rulesService);
-          _.set(imports, 'rulesConfig', rowLevelCustomRulesConfig);
-          if(!_.isUndefined(groupRowCustomRules) && !_.isEmpty(groupRowCustomRules)) {
-            _.set(imports, 'groupRulesConfig', groupRowCustomRules);
+          _.set(imports, 'rulesConfig', rowLevelRulesConfig);
+          if(!_.isUndefined(groupRowRules) && !_.isEmpty(groupRowRules)) {
+            _.set(imports, 'groupRulesConfig', groupRowRules);
             _.set(imports, 'groupedItems', groupedItems);
           }
 
@@ -512,14 +422,8 @@ export class DashboardComponent implements OnInit {
 
           for (let rowConfig of stepTableConfig) {
 
-            // console.log(rowConfig);
             const template = _.template(rowConfig.template, templateData);
             const templateRes = template();
-            // if(rowConfig.title == 'Actions') {
-            //   console.log('-------------------------------------------------');
-            //   console.log(templateRes);
-            //   console.log('-------------------------------------------------');
-            // }
             record[rowConfig.variable] = templateRes;
           }
           recordRows.push(record);
@@ -540,30 +444,69 @@ export class DashboardComponent implements OnInit {
           }
           recordRows.push(groupRecord);
         }
+      }
 
+    } else {
+
+      for (let stagedRecord of stagedOrGroupedRecords.items) {
+
+        const imports: any = {};
+        
+        _.forEach(columnMappings, (value, key) => {
+          _.set(imports, key, _.get(stagedRecord, value));
+        });
+  
+        _.set(imports, 'branding',this.branding);
+        _.set(imports, 'rootContext', this.rootContext);
+        _.set(imports, 'portal', this.portal);
+        _.set(imports, 'translationService', this.translationService);
+  
+        const templateData = {
+          imports: imports
+        };
+        let record: any = {};
+        let stepTableCOnfig = _.isEmpty(this.tableConfig[stepName]) ? this.defaultTableConfig : this.tableConfig[stepName];
+  
+        for (let rowConfig of stepTableCOnfig) {
+          
+          const template = _.template(rowConfig.template, templateData);
+          const templateRes = template();
+          record[rowConfig.variable] = templateRes;
+        }
+        recordRows.push(record);
       }
     }
+
     planTable.items = recordRows;
 
     return planTable;
   }
   
   async sortChanged(data: any) {
-    let sortString = `${data.variable}:`;
-    if (data.sort == 'desc') {
-      sortString = sortString + "-1";
-    } else {
-      sortString = sortString + "1";
-    }
-    //TODO sort doesn't work in consolidated view
-    let stagedRecords: any = await this.recordService.getRecords(this.recordType, data.step, 1, '', sortString);
-    // console.log(stagedRecords);
-    let planTable: PlanTable = this.evaluatePlanTableColumns(data.step, stagedRecords);
-    // console.log(planTable);
-    this.setDashboardTitle(stagedRecords);
-    this.records[data.step] = stagedRecords;
+    //TODO consolidated view sort may only apply to groupedByRecordTypes but not sure if it's needed?
+    if(this.dashboardTypeSelected == 'standard' || this.dashboardTypeSelected == 'workspace') {
+      let sortString = `${data.variable}:`;
+      if (data.sort == 'desc') {
+        sortString = sortString + "-1";
+      } else {
+        sortString = sortString + "1";
+      }
 
-    this.updateSortMap(data);
+      //TODO load columns field mappings from mogodb config and override this.defaultDasboardColumnMappings
+      let columnMappings = this.defaultDashboardColumnMappings;
+      if(!_.isEmpty(this.dashboardColumnMappings)) {
+        columnMappings = this.dashboardColumnMappings;
+      }
+      
+      let stagedRecords: any = await this.recordService.getRecords(this.recordType, data.step, 1, '', sortString);
+      
+      let planTable: PlanTable = this.evaluatePlanTableColumns({},{},{}, data.step, stagedRecords);
+      
+      this.setDashboardTitle(stagedRecords);
+      this.records[data.step] = stagedRecords;
+  
+      this.updateSortMap(data);
+    } 
   }
 
   updateSortMap(sortData: any) {
@@ -658,8 +601,6 @@ export class DashboardComponent implements OnInit {
   public evaluateGroupRowRules(rulesConfig: any, groupedItems:any, ruleSetName:string) {
     
     let res: any;
-
-    console.log(groupedItems);
 
     let ruleSetConfig = _.find(rulesConfig,['ruleSetName',ruleSetName]);
 

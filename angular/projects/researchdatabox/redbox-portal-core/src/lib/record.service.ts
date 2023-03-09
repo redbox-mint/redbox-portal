@@ -101,65 +101,63 @@ export class RecordService extends HttpClientService {
     return metadata;
   }
 
-  public async getRelatedRecords(oid: string, rawJson: boolean = false){
+  public async getRelatedRecords(oid: string) {
     let url = `${this.brandingAndPortalUrl}/record/${oid}/relatedRecords`;
     const result$ = this.http.get(url).pipe(map(res => res));
     let relatedRecords = await firstValueFrom(result$);
-    if(rawJson) {
-      return relatedRecords;
-    } else {
-      console.log(relatedRecords);
-      // let totalItems = 1;
-      // let startIndex = 0;
-      // let noItems = 1;
-      // let pageNumber = (startIndex / noItems) + 1;
+    
+    // console.log(relatedRecords);
+    
+    // let totalItems = 1;
+    // let startIndex = 0;
+    // let noItems = 1;
+    // let pageNumber = (startIndex / noItems) + 1;
 
-      let response: any = {};
-      // response["totalItems"] = totalItems;
-      // response["currentPage"] = pageNumber;
-      // response["noItems"] = noItems;
+    let response: any = {};
+    // response["totalItems"] = totalItems;
+    // response["currentPage"] = pageNumber;
+    // response["noItems"] = noItems;
 
-      let items = [];
+    let items = [];
 
-      // let parentOrTreeLevel1: string = 'rdmp';
-      let childOrTreeLevel2: any = _.get(relatedRecords, 'processedRelationships');
+    // let parentOrTreeLevel1: string = 'rdmp';
+    let childOrTreeLevel2: any = _.get(relatedRecords, 'processedRelationships');
 
-      console.log(childOrTreeLevel2);
+    // console.log(childOrTreeLevel2);
 
-      // let parentArr = _.get(relatedRecords, 'relatedObjects.'+parentOrTreeLevel1);
-      // if(_.isArray(parentArr)) {
-      //   let item: any = {};
-      //   let parent = parentArr[0];
-      //   item["oid"] = parent["redboxOid"];
-      //   item["title"] = parent["metadata"]["title"];
-      //   item["metadata"]= this.getDocMetadata(parent);
-      //   item["dateCreated"] =  parent["dateCreated"];
-      //   item["dateModified"] = parent["lastSaveDate"];
-      //   items.push(item);
-      // }
-      for(let childNameStr of childOrTreeLevel2) {
-        let childArr = _.get(relatedRecords,'relatedObjects.'+childNameStr);
-        // console.log('------------------------------------------------- childNameStr '+childNameStr);
-        // console.log(JSON.stringify(childArr));
-        // console.log('-------------------------------------------------');
-        if(!_.isUndefined(childArr) && _.isArray(childArr)) {
-          for (let child of childArr) {
-            let item: any = {};
-            item["oid"] = child["redboxOid"];
-            item["title"] = child["metadata"]["title"];
-            item["metadata"]= this.getDocMetadata(child);
-            item["dateCreated"] =  child["dateCreated"];
-            item["dateModified"] = child["lastSaveDate"];
-            // item["hasEditAccess"] = RecordsService.hasEditAccess(brand, user, roles, doc);
-            items.push(item);
-          }
+    // let parentArr = _.get(relatedRecords, 'relatedObjects.'+parentOrTreeLevel1);
+    // if(_.isArray(parentArr)) {
+    //   let item: any = {};
+    //   let parent = parentArr[0];
+    //   item["oid"] = parent["redboxOid"];
+    //   item["title"] = parent["metadata"]["title"];
+    //   item["metadata"]= this.getDocMetadata(parent);
+    //   item["dateCreated"] =  parent["dateCreated"];
+    //   item["dateModified"] = parent["lastSaveDate"];
+    //   items.push(item);
+    // }
+    for(let childNameStr of childOrTreeLevel2) {
+      let childArr = _.get(relatedRecords,'relatedObjects.'+childNameStr);
+      // console.log('------------------------------------------------- childNameStr '+childNameStr);
+      // console.log(JSON.stringify(childArr));
+      // console.log('-------------------------------------------------');
+      if(!_.isUndefined(childArr) && _.isArray(childArr)) {
+        for (let child of childArr) {
+          let item: any = {};
+          item["oid"] = child["redboxOid"];
+          item["title"] = child["metadata"]["title"];
+          item["metadata"]= this.getDocMetadata(child);
+          item["dateCreated"] =  child["dateCreated"];
+          item["dateModified"] = child["lastSaveDate"];
+          // item["hasEditAccess"] = RecordsService.hasEditAccess(brand, user, roles, doc);
+          items.push(item);
         }
       }
-
-      response["items"] = items;
-      // console.log(response);
-      return response;
     }
+
+    response["items"] = items;
+    // console.log(response);
+    return response;
   }
 
   public async getRecords(recordType:string,state:string,pageNumber:number,packageType:string='', sort:string='', filterFields:string='', filterString:string='', filterMode:string='') {
