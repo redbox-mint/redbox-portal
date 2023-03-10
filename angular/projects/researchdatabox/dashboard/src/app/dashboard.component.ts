@@ -1,12 +1,12 @@
 import { Component, Inject, OnInit, ElementRef } from '@angular/core';
-import { UtilityService, LoggerService, TranslationService, RecordService, PlanTable, Plan, RecordResponseTable, UserService} from '@researchdatabox/redbox-portal-core';
+import { BaseComponent, UtilityService, LoggerService, TranslationService, RecordService, PlanTable, Plan, RecordResponseTable, UserService} from '@researchdatabox/redbox-portal-core';
 import * as _ from 'lodash';
 
 @Component({
   selector: 'dashboard',
   templateUrl: './dashboard.component.html'
 })
-export class DashboardComponent implements OnInit {
+export class DashboardComponent extends BaseComponent {
   title = '@researchdatabox/dashboard';
   config: any = {};
   branding: string = '';
@@ -16,7 +16,6 @@ export class DashboardComponent implements OnInit {
   typeLabel: string = '';
   recordType: string;
   packageType: string;
-  isReady: boolean = false; 
   records: any = {};
   sortMap: any = {};
   tableConfig: any = {};
@@ -129,6 +128,7 @@ export class DashboardComponent implements OnInit {
     @Inject(UserService) private userService: UserService,
     elementRef: ElementRef
   ) {
+    super();
     //TODO double check that is ok to use elementRef.nativeElement.getAttribute ?
     this.recordType = _.trim(elementRef.nativeElement.getAttribute('recordType'));
     this.packageType = _.trim(elementRef.nativeElement.getAttribute('packageType'));
@@ -142,30 +142,26 @@ export class DashboardComponent implements OnInit {
       this.dashboardTypeSelected = this.packageType;
     }
 
+    this.initDependencies = [this.translationService, this.recordService, this.userService];
     console.log(`constructor dashboardTypeSelected ${this.dashboardTypeSelected} ${this.packageType}`);
     this.rulesService = this;
   }
 
-  async ngOnInit() {
+  protected override async initComponent():Promise<void> {
     this.loggerService.debug(`Dashboard waiting for deps to init...`); 
-    await this.utilService.waitForDependencies([this.translationService, this.recordService, this.userService]);
+    // await this.utilService.waitForDependencies([this.translationService, this.recordService, this.userService]);
     this.loggerService.debug(`Dashboard initialised.`); 
     this.config = this.recordService.getConfig();
-    console.log(this.config);
+    // console.log(this.config);
     this.rootContext = _.get(this.config, 'baseUrl');
     this.branding = _.get(this.config, 'branding');
     this.portal = _.get(this.config, 'portal');
-      this.typeLabel = `${this.translationService.t(`${this.recordType}-name-plural`)}`; //TODO check interpolation legacy had additonal attribute "Records"
-      this.recordTitle = `${this.translationService.t(`${this.recordType}-title`)}`; //TODO check interpolation legacy had additonal attribute "Title"
-    if(this.dashboardTypeSelected == 'standard' || this.dashboardTypeSelected == 'consolidated') {
-      await this.initView(this.recordType);
-    } else if(this.dashboardTypeSelected == 'workspace') {
-      await this.initView('');
-    }
-
+    this.typeLabel = `${this.translationService.t(`${this.recordType}-name-plural`)}`; //TODO check interpolation legacy had additonal attribute "Records"
+    this.recordTitle = `${this.translationService.t(`${this.recordType}-title`)}`; //TODO check interpolation legacy had additonal attribute "Title"
     this.currentUser = await this.userService.getInfo();
-    this.loggerService.debug(`Current user ${JSON.stringify(this.currentUser)}`); 
-    this.isReady = true;
+    await this.initView(this.recordType);
+    // this.loggerService.debug(`Current user ${JSON.stringify(this.currentUser)}`); 
+    // this.isReady = true;
   }
   
   async initView(recordType: string) {
@@ -179,11 +175,13 @@ export class DashboardComponent implements OnInit {
     let dashboardType: any = await this.recordService.getDashboardType(this.dashboardTypeSelected);
     let formatRules = _.get(dashboardType, 'formatRules');
     if(!_.isUndefined(formatRules) && !_.isNull(formatRules) && !_.isEmpty(formatRules)) {
+      //global format rules from dashboardtype.js config
       this.formatRules = formatRules;
     }
 
-    if(recordType == '') {
-      recordType = _.get(this.formatRules, 'recordType');
+    let recordTypeFilterBy = _.get(this.formatRules, 'recordTypeFilterBy');
+    if(!_.isUndefined(recordTypeFilterBy) && !_.isNull(formatRules) && !_.isEmpty(formatRules)) {
+      recordType = recordTypeFilterBy;
     }
     
     let beforeFilterSteps: any = await this.recordService.getWorkflowSteps(recordType);
@@ -234,6 +232,7 @@ export class DashboardComponent implements OnInit {
           this.groupRowRules = _.get(step, 'config.dashboard.table.groupRowRulesConfig');
         }
 
+        //formtatRules override at step level from workflow.js config
         if(!_.isUndefined(_.get(step, 'config.dashboard.table.formatRules'))) {
           this.formatRules = _.get(step, 'config.dashboard.table.formatRules');
         }
@@ -299,47 +298,58 @@ export class DashboardComponent implements OnInit {
         let items: any = _.get(stagedRecords, 'items');
         let allItemsByGroup = [];
         
-        console.log(JSON.stringify(this.formatRules));
+        // console.log(JSON.stringify(this.formatRules));
+        let groupBy = _.get(this.formatRules, 'groupBy');
         let sortGroupBy = _.get(this.formatRules,'sortGroupBy');
-        for(let item of items) {
 
-          let oid = _.get(item, 'oid');
-          let itemsAfterApplyInnerGroupFormatRules = [];
-          let groupBy = _.get(this.formatRules, 'groupBy');
-          if(groupBy == 'groupedByRelationships' || groupBy == 'groupedByRecordType') {
-            console.log('groupBy '+groupBy);
+        if(groupBy == 'groupedByRelationships' && !_.isUndefined(sortGroupBy) && !_.isEmpty(sortGroupBy)) {
+          for(let item of items) {
+            let oid = _.get(item, 'oid');
+            let itemsAfterApplyInnerGroupFormatRules = [];
+            // console.log('groupBy '+groupBy);
             let itemsGroupRelated: any = await this.recordService.getRelatedRecords(oid);
             totalItems = totalItems + itemsGroupRelated.items.length;
             let getItems =_.get(itemsGroupRelated,'items');
 
-            if(!_.isUndefined(sortGroupBy)) {
-              for(let getItem of getItems) {
-                let getOid = _.get(getItem, 'oid'); 
-                let countHerarchyLevels = sortGroupBy.length;
-                for(let i = 0; i < countHerarchyLevels; i++) {
-                  let rule = _.find(sortGroupBy, function(o) { if(_.get(o,'rowLevel') == i){
-                                                                                return o
-                                                                              }});
+            for(let getItem of getItems) {
+              let getOid = _.get(getItem, 'oid'); 
+              let countHerarchyLevels = sortGroupBy.length;
+              for(let i = 0; i < countHerarchyLevels; i++) {
+                let rule = _.find(sortGroupBy, function(o) { if(_.get(o,'rowLevel') == i){
+                                                                              return o
+                                                                            }});
 
-                  let compareField = _.get(rule,'compareField');
-                  let compareFieldValue = _.get(rule,'compareFieldValue');
-                  let row = _.find(getItems, function(obj) { if(_.get(obj,compareField) == compareFieldValue && 
-                                                                _.get(obj,'oid') == getOid)
-                                                                {
-                                                                  return obj
-                                                                }});
-                                                                
-                  if(!_.isUndefined(row) && !_.isNull(row) && !_.isEmpty(row)) {
-                    _.set(row, 'rowLevel', i);
-                    itemsAfterApplyInnerGroupFormatRules.push(row);
-                  }
-                }
-                if(!_.isEmpty(itemsAfterApplyInnerGroupFormatRules)) {
-                  let sorted = _.sortBy(itemsAfterApplyInnerGroupFormatRules, 'rowLevel');
-                  _.set(itemsGroupRelated,'items', sorted);
+                let compareField = _.get(rule,'compareField');
+                let compareFieldValue = _.get(rule,'compareFieldValue');
+                let row = _.find(getItems, function(obj) { if(_.get(obj,compareField) == compareFieldValue && 
+                                                              _.get(obj,'oid') == getOid)
+                                                              {
+                                                                return obj
+                                                              }});
+                                                              
+                if(!_.isUndefined(row) && !_.isNull(row) && !_.isEmpty(row)) {
+                  _.set(row, 'rowLevel', i);
+                  itemsAfterApplyInnerGroupFormatRules.push(row);
                 }
               }
+              if(!_.isEmpty(itemsAfterApplyInnerGroupFormatRules)) {
+                let sorted = _.sortBy(itemsAfterApplyInnerGroupFormatRules, 'rowLevel');
+                _.set(itemsGroupRelated,'items', sorted);
+              }
             }
+            allItemsByGroup.push(itemsGroupRelated);
+          }
+        } else if(groupBy == 'groupedByRecordType' && !_.isUndefined(sortGroupBy) && !_.isEmpty(sortGroupBy)) {
+
+          let countHerarchyLevels = sortGroupBy.length;
+          for(let i = 0; i < countHerarchyLevels; i++) {
+            
+            let rule = _.find(sortGroupBy, function(o) { if(_.get(o,'rowLevel') == i){
+              return o
+            }});
+            let compareFieldValue = _.get(rule,'compareFieldValue');
+            let itemsGroupRelated: any = await this.recordService.getRecords(compareFieldValue,stepName,startIndex,packageType,sortByString,filterFileds,filterString,filterMode);
+            totalItems = totalItems + itemsGroupRelated.items.length;
             allItemsByGroup.push(itemsGroupRelated);
           }
         }

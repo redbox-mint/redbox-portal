@@ -10,7 +10,7 @@ module.exports.dashboardtype = {
   },
   "workspace": {
     formatRules: {
-      recordType: 'existing-locations',
+      recordTypeFilterBy: 'existing-locations',
       filterBy: [], //filterBase can only have two values user or record
       filterWorkflowStepsBy: ['existing-locations-draft'], //values: empty array (all) or a list with particular types i.e. [ 'draft', 'finalised' ] 
       sortBy: 'metaMetadata.lastSaveDate:-1',
@@ -24,9 +24,9 @@ module.exports.dashboardtype = {
         filterWorkflowStepsBy: ['consolidated'], //values: empty array (all) or a list with particular types i.e. [ 'draft', 'finalised' ]   
         sortBy: '',
         groupBy: 'groupedByRelationships', //values: empty (not grouped any order), groupedByRecordType, groupedByRelationships 
-        sortGroupBy: [{ rowLevel: 0, compareFieldValue: 'rdmp', compareField: 'metadata.metaMetadata.type', indent: 0, icon: 'none' }, 
-                      { rowLevel: 1, compareFieldValue: 'dataRecord', compareField: 'metadata.metaMetadata.type', indent: 1, icon: 'tree-relationsip.png' }, 
-                      { rowLevel: 2, compareFieldValue: 'dataPublication', compareField: 'metadata.metaMetadata.type', indent: 1, icon: 'tree-relationsip.png' }] //values: as many levels as required?
+        sortGroupBy: [{ rowLevel: 0, compareFieldValue: 'rdmp', compareField: 'metadata.metaMetadata.type', icon: 'none' }, 
+                      { rowLevel: 1, compareFieldValue: 'dataRecord', compareField: 'metadata.metaMetadata.type', icon: 'tree-relationsip.png' }, 
+                      { rowLevel: 2, compareFieldValue: 'dataPublication', compareField: 'metadata.metaMetadata.type', icon: 'tree-relationsip.png' }] //values: as many levels as required?
       }
   }
 };

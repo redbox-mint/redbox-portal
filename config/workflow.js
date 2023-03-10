@@ -115,11 +115,10 @@ module.exports.workflow = {
             formatRules: {
               filterBy: [ {filterBase: 'user', filterBaseFieldOrValue: 'user.email', filterField: 'metadata.contributor_ci.email', filterMode: 'equal' } ], //filterBase can only have two values user or record
               sortBy: '',
-              groupBy: 'groupedByRelationships', //values: empty (not grouped any order), groupedByRecordType, groupedByRelationships 
-              sortGroupBy: [{ rowLevel: 0, compareFieldValue: 'rdmp', compareField: 'metadata.metaMetadata.type', indent: 0, icon: 'none' }, 
-                            { rowLevel: 1, compareFieldValue: 'dataRecord', compareField: 'metadata.metaMetadata.type', indent: 1, icon: 'tree-relationsip.png' }, 
-                            { rowLevel: 2, compareFieldValue: 'dataPublication', compareField: 'metadata.metaMetadata.type', indent: 1, icon: 'tree-relationsip.png' }], //values: as many levels as required?
-              filterWorkflowStepsBy: ['consolidated'] //values: empty array (all) or a list with particular types i.e. [ 'draft', 'finalised' ]   
+              groupBy: 'groupedByRecordType', //values: empty (not grouped any order), groupedByRecordType, groupedByRelationships 
+              sortGroupBy: [{ rowLevel: 0, compareFieldValue: 'rdmp', icon: 'none' }, 
+                            { rowLevel: 1, compareFieldValue: 'dataRecord', icon: 'none' }, 
+                            { rowLevel: 2, compareFieldValue: 'dataPublication', icon: 'none' }] //values: as many levels as required
             },
             rowRulesConfig: [
               {
