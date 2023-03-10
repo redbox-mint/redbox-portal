@@ -25,7 +25,8 @@ import {
 } from 'rxjs/Rx';
 import {
   StorageServiceResponse,
-  RecordTypeResponseModel
+  RecordTypeResponseModel,
+  DashboardTypeResponseModel
 } from '@researchdatabox/redbox-core-types';
 import moment = require('moment');
 import * as tus from 'tus-node-server';
@@ -35,6 +36,7 @@ const checkDiskSpace = require('check-disk-space').default;
 declare var _;
 
 declare var FormsService, WorkflowStepsService, BrandingService, RecordsService, RecordTypesService, TranslationService, User, UsersService, EmailService, RolesService;
+declare var DashboardTypesService;
 /**
  * Package that contains all Controllers.
  */
@@ -94,7 +96,9 @@ export module Controllers {
       'getRelatedRecords',
       'render',
       'getRecordList',
-      'listWorkspaces'
+      'listWorkspaces',
+      'getAllDashboardTypes',
+      'getDashboardType'
     ];
 
     /**
@@ -1240,6 +1244,31 @@ export module Controllers {
           recordTypeModels.push(recordTypeModel);
         }
         this.ajaxOk(req, res, null, recordTypeModels);
+      }, error => {
+        this.ajaxFail(req, res, error.message);
+      });
+    }
+
+    public getDashboardType(req, res) {
+      const dashboardTypeParam = req.param('dashboardType');
+      const brand = BrandingService.getBrand(req.session.branding);
+      DashboardTypesService.get(brand, dashboardTypeParam).subscribe(dashboardType => {
+        let dashboardTypeModel = new DashboardTypeResponseModel(_.get(dashboardType, 'name'), _.get(dashboardType,'formatRules'));
+        this.ajaxOk(req, res, null, dashboardTypeModel);
+      }, error => {
+        this.ajaxFail(req, res, error.message);
+      });
+    }
+
+    public getAllDashboardTypes(req, res) {
+      const brand = BrandingService.getBrand(req.session.branding);
+      DashboardTypesService.getAll(brand).subscribe(dashboardTypes => {
+        let dashboardTypeModels = [];
+        for (let dashboardType of dashboardTypes) {
+          let dashboardTypeModel = new DashboardTypeResponseModel(_.get(dashboardType, 'name'), _.get(dashboardType,'formatRules'));
+          dashboardTypeModels.push(dashboardTypeModel);
+        }
+        this.ajaxOk(req, res, null, dashboardTypeModels);
       }, error => {
         this.ajaxFail(req, res, error.message);
       });

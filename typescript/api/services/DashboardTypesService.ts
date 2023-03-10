@@ -83,19 +83,13 @@ export module Services {
       }));
     }
 
-    public get(brand, name, fields:any[]=null) {
+    public get(brand, name) {
       const criteria:any = {where: {branding: brand.id, name: name}};
-      if (fields) {
-        criteria.select = fields;
-      }
       return super.getObservable(DashboardType.findOne(criteria));
     }
 
-    public getAll(brand, fields:any[] = null) {
+    public getAll(brand) {
       const criteria:any = {where: {branding: brand.id}};
-      if (fields) {
-        criteria.select = fields;
-      }
       return super.getObservable(DashboardType.find(criteria));
     }
   }

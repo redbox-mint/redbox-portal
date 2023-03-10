@@ -175,6 +175,8 @@ module.exports.routes = {
   'get /:branding/:portal/record/form/:name/:oid': 'RecordController.getForm',
   'get /:branding/:portal/record/search/:type': 'RecordController.search',
   'get /:branding/:portal/record/type': 'RecordController.getAllTypes',
+  'get /:branding/:portal/dashboard/type/:dashboardType': 'RecordController.getDashboardType',
+  'get /:branding/:portal/dashboard/type': 'RecordController.getAllDashboardTypes',
   'get /:branding/:portal/record/type/:recordType': 'RecordController.getType',
   'get /:branding/:portal/record/:recordType/edit': 'RecordController.edit',
   'get /:branding/:portal/record/edit/:oid': 'RecordController.edit',
