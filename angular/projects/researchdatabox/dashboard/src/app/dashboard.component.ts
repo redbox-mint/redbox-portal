@@ -1,5 +1,5 @@
 import { Component, Inject, OnInit, ElementRef } from '@angular/core';
-import { UtilityService, LoggerService, TranslationService, RecordService, PlanTable, Plan, RecordResponseTable, UserService } from '@researchdatabox/redbox-portal-core';
+import { UtilityService, LoggerService, TranslationService, RecordService, PlanTable, Plan, RecordResponseTable, UserService} from '@researchdatabox/redbox-portal-core';
 import * as _ from 'lodash';
 
 @Component({
@@ -176,6 +176,12 @@ export class DashboardComponent implements OnInit {
     this.groupRowConfig = this.defaultGroupRowConfig;
     this.groupRowRules = this.defaultGroupRowRules;
 
+    let dashboardType: any = await this.recordService.getDashboardType(this.dashboardTypeSelected);
+    let formatRules = _.get(dashboardType, 'formatRules');
+    if(!_.isUndefined(formatRules) && !_.isNull(formatRules) && !_.isEmpty(formatRules)) {
+      this.formatRules = formatRules;
+    }
+
     if(recordType == '') {
       recordType = _.get(this.formatRules, 'recordType');
     }
@@ -285,7 +291,7 @@ export class DashboardComponent implements OnInit {
       let noItemsPerPage = 10; //TODO getRecords defaults to 10 perhaps add another param to set?
       let stagedRecords = await this.recordService.getRecords(recordType,stepName,startIndex,packageType,sortByString,filterFileds,filterString,filterMode);
       
-      console.log(JSON.stringify(stagedRecords));
+      // console.log(JSON.stringify(stagedRecords));
 
       let planTable: PlanTable; 
 
@@ -364,9 +370,9 @@ export class DashboardComponent implements OnInit {
       // this.checkIfHasLoaded();
 
       // console.log(this.records);
-      console.log('-------------------------------------------------');
-      console.log(JSON.stringify(this.records));
-      console.log('-------------------------------------------------');
+      // console.log('-------------------------------------------------');
+      // console.log(JSON.stringify(this.records));
+      // console.log('-------------------------------------------------');
     }
   }
 
