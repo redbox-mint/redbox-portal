@@ -149,24 +149,20 @@ export class DashboardComponent extends BaseComponent {
 
   protected override async initComponent():Promise<void> {
     this.loggerService.debug(`Dashboard waiting for deps to init...`); 
-    // await this.utilService.waitForDependencies([this.translationService, this.recordService, this.userService]);
     this.loggerService.debug(`Dashboard initialised.`); 
     this.config = this.recordService.getConfig();
-    // console.log(this.config);
     this.rootContext = _.get(this.config, 'baseUrl');
     this.branding = _.get(this.config, 'branding');
     this.portal = _.get(this.config, 'portal');
-    this.typeLabel = `${this.translationService.t(`${this.recordType}-name-plural`)}`; //TODO check interpolation legacy had additonal attribute "Records"
-    this.recordTitle = `${this.translationService.t(`${this.recordType}-title`)}`; //TODO check interpolation legacy had additonal attribute "Title"
+    this.typeLabel = `${this.translationService.t(`${this.recordType}-name-plural`)}`, 'Records';
+    this.recordTitle = `${this.translationService.t(`${this.recordType}-title`)}`, 'Title';
     this.currentUser = await this.userService.getInfo();
     await this.initView(this.recordType);
-    // this.loggerService.debug(`Current user ${JSON.stringify(this.currentUser)}`); 
-    // this.isReady = true;
   }
   
   async initView(recordType: string) {
 
-    console.log('----------------------- initView --------------------------');
+    console.log('----------------------- initView -------------------------- '+this.typeLabel+' '+this.recordTitle);
     this.formatRules = this.defaultFormatRules;
     this.rowLevelRules = this.defaultRowLevelRules;
     this.groupRowConfig = this.defaultGroupRowConfig;
@@ -207,6 +203,7 @@ export class DashboardComponent extends BaseComponent {
     for (let step of steps) {
       step.recordTypeName = recordType;
       this.workflowSteps.push(step);
+      console.log('----------------------- step -------------------------- '+step.config.workflow.stageLabel);
       let stepTableConfig = this.defaultTableConfig;
       if (_.isEmpty(this.defaultTableConfig[0].title)) {
         this.defaultTableConfig[0].title= `${recordType}-title`, 'Title';
@@ -730,24 +727,6 @@ export class DashboardComponent extends BaseComponent {
     }
     return 'metaMetadata.lastSaveDate:-1';
   }
-
-  //TODO migrated as is it may not be needed with new interpolation
-  // protected getTranslated(key: string, defValue: string) {
-  //   if (!_.isEmpty(key) && !_.isUndefined(key)) {
-  //     if (_.isFunction(key.startsWith)) {
-  //       let translatedValue = this.translationService.t(key);
-  //       if (translatedValue == key) {
-  //         return defValue;
-  //       } else {
-  //         return translatedValue;
-  //       }
-  //     } else {
-  //       return key;
-  //     }
-  //   } else {
-  //     return defValue;
-  //   }
-  // }
 
 }
 
