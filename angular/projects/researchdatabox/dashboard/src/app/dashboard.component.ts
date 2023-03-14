@@ -689,6 +689,48 @@ export class DashboardComponent extends BaseComponent {
     return res;
   }
 
+  //TODO look at impact of using import { PageChangedEvent } from 'ngx-bootstrap/pagination';
+  //from latest ngx bootstrap documentation 
+  //https://valor-software.com/ngx-bootstrap/#/components/pagination?tab=overview#basic
+  //public pageChanged(event: PageChangedEvent, step: string): void {
+  public pageChanged(event: any, step: string): void {
+    let sortDetails = this.sortMap[step];
+
+    if (_.isEmpty(this.packageType)) {
+      this.recordService.getRecords(this.recordType, step, event.page, '', this.getSortString(sortDetails)).then((stagedRecords: any) => {
+        let planTable: PlanTable = this.evaluatePlanTableColumns({},{},{}, step, stagedRecords);
+        this.setDashboardTitle(stagedRecords);
+        this.records[step] = stagedRecords;
+      });
+    } else {
+      const stagedRecords = this.recordService.getRecords('', '', event.page, this.packageType, this.getSortString(sortDetails)).then((stagedRecords: any) => {
+        let planTable: PlanTable = this.evaluatePlanTableColumns({},{},{}, this.packageType, stagedRecords);
+        this.setDashboardTitle(stagedRecords);
+        this.records[this.packageType] = stagedRecords;
+      });
+    }
+  }
+
+  getSortString(sortDetails: any) {
+
+    let fields = this.sortFields;
+
+    for (let i = 0; i < fields.length; i++) {
+      let sortField = fields[i];
+      let sortString = `${sortField}:`;
+
+      if (sortDetails[sortField].sort != null) {
+        if (sortDetails[sortField].sort == 'desc') {
+          sortString = sortString + "-1";
+        } else {
+          sortString = sortString + "1";
+        }
+        return sortString;
+      }
+    }
+    return 'metaMetadata.lastSaveDate:-1';
+  }
+
   //TODO migrated as is it may not be needed with new interpolation
   // protected getTranslated(key: string, defValue: string) {
   //   if (!_.isEmpty(key) && !_.isUndefined(key)) {

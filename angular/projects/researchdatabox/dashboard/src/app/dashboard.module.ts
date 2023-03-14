@@ -1,6 +1,7 @@
 import { NgModule } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 import { ReactiveFormsModule } from '@angular/forms';
+import { FormsModule } from '@angular/forms';
 import { RedboxPortalCoreModule } from '@researchdatabox/redbox-portal-core';
 import { APP_BASE_HREF, PlatformLocation } from '@angular/common';
 import { RouterModule } from '@angular/router'; 
@@ -27,6 +28,7 @@ function trimLastSlashFromUrl(baseUrl: string) {
   imports: [
     BrowserModule,
     ReactiveFormsModule,
+    FormsModule,
     RouterModule,
     RedboxPortalCoreModule,
     PaginationModule.forRoot(), 
