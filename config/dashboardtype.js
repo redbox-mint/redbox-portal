@@ -10,9 +10,9 @@ module.exports.dashboardtype = {
   },
   "workspace": {
     formatRules: {
-      recordTypeFilterBy: 'existing-locations',
       filterBy: [], //filterBase can only have two values user or record
-      filterWorkflowStepsBy: ['existing-locations-draft'], //values: empty array (all) or a list with particular types i.e. [ 'draft', 'finalised' ] 
+      recordTypeFilterBy: 'existing-locations',
+      filterWorkflowStepsBy: ['existing-locations-draft'], //values: empty array (all) or a list with particular types i.e. [ 'draft', 'finalised'] 
       sortBy: 'metaMetadata.lastSaveDate:-1',
       groupBy: '', //values: empty (not grouped any order), groupedByRecordType, groupedByRelationships 
       sortGroupBy: [] //values: as many levels as required? 

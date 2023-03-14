@@ -601,7 +601,7 @@ export class DashboardComponent extends BaseComponent {
           }
         }
           
-        if(_.get(ruleSetConfig,'type') == 'multi-value') {
+        if(_.get(ruleSetConfig,'type') == 'multi-item-rendering') {
           let separator = _.get(ruleSetConfig,'separator');
           res = _.join(resArray, separator);
         } else {
@@ -677,7 +677,7 @@ export class DashboardComponent extends BaseComponent {
           }
         }
 
-        if(_.get(ruleSetConfig,'type') == 'multi-value') {
+        if(_.get(ruleSetConfig,'type') == 'multi-item-rendering') {
           let separator = _.get(ruleSetConfig,'separator');
           res = _.join(resArray, separator);
         } else {

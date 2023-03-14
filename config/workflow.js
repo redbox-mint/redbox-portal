@@ -20,9 +20,6 @@ module.exports.workflow = {
                             <span class="dashboard-controls">
                               <% if(hasEditAccess) { %>
                                 <a href='/<%= branding %>/<%= portal %>/record/edit/<%= oid %>' aria-label='<%= translationService.t('edit-link-label') %>'><i class="fa fa-pencil" aria-hidden="true"></i></a>
-                                <% if(workflow.stage == 'draft') { %>
-                                  <a href='<%=rootContext%>/<%= branding %>/<%= portal %>/record/finalise/rdmp/edit/<%= oid %>' aria-label='Finalise Plan'>F</a>
-                                <% } %>
                               <% } %>
                             </span>
                           `
@@ -124,7 +121,7 @@ module.exports.workflow = {
               {
                 ruleSetName: 'dashboardActionsPerRow',
                 applyRuleSet: true, //easy way to enable or desable the whole rule set
-                type: 'multi-value',
+                type: 'multi-item-rendering',
                 separator: ' | ',
                 rules: [ 
                     {
