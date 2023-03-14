@@ -10,47 +10,7 @@ module.exports.workflow = {
           viewRoles: ['Admin', 'Librarians'],
           editRoles: ['Admin', 'Librarians']
         },
-        form: 'default-1.0-draft',
-        dashboard: {
-          table: {
-            rowConfig: [{
-                title: 'Record Title',
-                variable: 'metadata.title',
-                template: `<a href='/<%= branding %>/<%= portal %>/record/view/<%= oid %>'><%= metadata.title %></a>
-                            <span class="dashboard-controls">
-                              <% if(hasEditAccess) { %>
-                                <a href='/<%= branding %>/<%= portal %>/record/edit/<%= oid %>' aria-label='<%= translationService.t('edit-link-label') %>'><i class="fa fa-pencil" aria-hidden="true"></i></a>
-                              <% } %>
-                            </span>
-                          `
-              },
-              {
-                title: 'header-ci',
-                variable: 'metadata.contributor_ci.text_full_name',
-                template: '<%= metadata.contributor_ci != undefined ? metadata.contributor_ci.text_full_name : "" %>',
-                
-              },
-              {
-                title: 'header-supervisor',
-                variable: 'metadata.contributor_supervisor.text_full_name',
-                template: '<%= metadata.contributor_supervisor != undefined && metadata.contributor_supervisor.length > 0 ? metadata.contributor_supervisor[0].text_full_name : "" %>',
-                
-              },
-              {
-                title: 'header-created',
-                variable: 'metaMetadata.createdOn',
-                template: '<%= dateCreated %>',
-                
-              },
-              {
-                title: 'header-modified',
-                variable: 'metaMetadata.lastSaveDate',
-                template: '<%= dateModified %>',
-                initialSort: 'desc'
-              }
-            ]
-          }
-        }
+        form: 'default-1.0-draft'
       },
       starting: true
     },
@@ -180,7 +140,6 @@ module.exports.workflow = {
                       action: 'show', //options show / hide
                       renderItemTemplate: `<%= name %>`,
                       evaluateRulesTemplate: `<%= _.get(workflow, 'stage') == 'draft' %>`
-                      // evaluateRulesTemplate: `<%= _.get(workflow, 'stage') == 'finalised' && _.get(metadata, 'project-type') == 'rhd' %>`
                     }
                   ]
                 }
