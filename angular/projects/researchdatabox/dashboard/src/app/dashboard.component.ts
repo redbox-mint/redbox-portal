@@ -154,8 +154,8 @@ export class DashboardComponent extends BaseComponent {
     this.rootContext = _.get(this.config, 'baseUrl');
     this.branding = _.get(this.config, 'branding');
     this.portal = _.get(this.config, 'portal');
-    this.typeLabel = `${this.translationService.t(`${this.recordType}-name-plural`)}`, 'Records';
-    this.recordTitle = `${this.translationService.t(`${this.recordType}-title`)}`, 'Title';
+    this.typeLabel = `${this.translationService.t(`${this.recordType}-name-plural`)}` || 'Records';
+    this.recordTitle = `${this.translationService.t(`${this.recordType}-title`)}` || 'Title';
     this.currentUser = await this.userService.getInfo();
     await this.initView(this.recordType);
   }
@@ -206,7 +206,8 @@ export class DashboardComponent extends BaseComponent {
       console.log('----------------------- step -------------------------- '+step.config.workflow.stageLabel);
       let stepTableConfig = this.defaultTableConfig;
       if (_.isEmpty(this.defaultTableConfig[0].title)) {
-        this.defaultTableConfig[0].title= `${recordType}-title`, 'Title';
+        this.defaultTableConfig[0].title= `${recordType}-title` || 'Title';
+        console.log('----------------------- title -------------------------- '+this.defaultTableConfig[0].title);
       }
       if(!_.isUndefined(_.get(step,'config.dashboard')) 
         && !_.isUndefined(_.get(step, 'config.dashboard.table'))) {
