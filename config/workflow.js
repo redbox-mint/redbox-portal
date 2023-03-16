@@ -25,7 +25,7 @@ module.exports.workflow = {
           viewRoles: ['Admin', 'Librarians'],
           editRoles: ['Admin', 'Librarians']
         },
-        form: 'default-1.0-draft',
+        form: 'dummy-1.0-draft',
         dashboard: {
           table: {
             rowConfig: [
@@ -147,6 +147,7 @@ module.exports.workflow = {
           }
         }
       },
+      starting: false,
       consolidated: true
     }
   },
