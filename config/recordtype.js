@@ -563,5 +563,12 @@ module.exports.recordtype = {
         ]
       }
     }
+  },
+  "consolidated": {
+    "searchable": false,
+    "packageType": "rdmp",
+    "packageName": "consolidated",
+    "searchFilters": [],
+    hooks: { }
   }
 };
