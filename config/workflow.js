@@ -156,6 +156,7 @@ module.exports.workflow = {
           editRoles: ['Admin', 'Librarians']
         },
         form: 'default-1.0-draft',
+        baseRecordType: 'rdmp',
         dashboard: {
           table: {
             rowConfig: [

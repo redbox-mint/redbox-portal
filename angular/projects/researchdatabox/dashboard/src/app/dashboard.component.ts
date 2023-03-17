@@ -271,7 +271,8 @@ export class DashboardComponent extends BaseComponent {
       if (this.dashboardTypeSelected == 'consolidated') {
         packageType = '';
         stepName = '';
-        evaluateStepName = _.get(step,'name'); 
+        evaluateStepName = _.get(step,'name');
+        recordType = _.get(step,'config.baseRecordType');
       } else if (this.dashboardTypeSelected == 'workspace') {
         stepName = '';
         packageType = this.packageType;
