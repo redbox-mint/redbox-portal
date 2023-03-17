@@ -1,7 +1,7 @@
-import { TestBed } from '@angular/core/testing';
-import { DashboardComponent } from './dashboard.component';
+// import { TestBed } from '@angular/core/testing';
+// import { DashboardComponent } from './dashboard.component';
 
-describe('DashboardComponent', () => {
+// describe('DashboardComponent', () => {
 //   beforeEach(async () => {
 //     await TestBed.configureTestingModule({
 //       declarations: [
@@ -28,4 +28,4 @@ describe('DashboardComponent', () => {
   //   const compiled = fixture.nativeElement as HTMLElement;
   //   expect(compiled.querySelector('.content span')?.textContent).toContain('@researchdatabox/dashboard app is running!');
   // });
-});
+// });
