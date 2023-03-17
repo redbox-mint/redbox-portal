@@ -1224,7 +1224,7 @@ export module Controllers {
       const recordType = req.param('recordType');
       const brand = BrandingService.getBrand(req.session.branding);
       RecordTypesService.get(brand, recordType).subscribe(recordType => {
-        let recordTypeModel = new RecordTypeResponseModel(_.get(recordType, 'name'));
+        let recordTypeModel = new RecordTypeResponseModel(_.get(recordType, 'name'), _.get(recordType, 'packageType'));
         this.ajaxOk(req, res, null, recordTypeModel);
       }, error => {
         this.ajaxFail(req, res, error.message);
@@ -1240,7 +1240,7 @@ export module Controllers {
       RecordTypesService.getAll(brand).subscribe(recordTypes => {
         let recordTypeModels = [];
         for (let recType of recordTypes) {
-          let recordTypeModel = new RecordTypeResponseModel(_.get(recType, 'name'));
+          let recordTypeModel = new RecordTypeResponseModel(_.get(recType, 'name'), _.get(recType, 'packageType'));
           recordTypeModels.push(recordTypeModel);
         }
         this.ajaxOk(req, res, null, recordTypeModels);
