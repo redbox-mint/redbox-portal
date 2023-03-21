@@ -4,23 +4,27 @@
       <thead>
         <tr>
           <!-- TODO: converted to sortable headers -->
-          <th *ngFor="let colHeader of columnConfig">
-            {{ colHeader.label | i18next }}
-          </th>
+          <ng-container *ngFor="let col of columnConfig">
+            <th *ngIf="!col.hide">
+                {{ col.label | i18next }}
+            </th>
+          </ng-container>
         </tr>
       </thead>
       <tbody>
-        <tr *ngFor="let row of currentPage.items">
-          <td *ngFor="let col of columnConfig" [innerHtml]="getColValue(row, col)">
-          </td>
+        <tr *ngFor="let row of currentPage.records">
+          <ng-container *ngFor="let col of columnConfig">
+            <td *ngIf="!col.hide" [innerHtml]="getColValue(row, col)">
+            </td>
+          </ng-container>
         </tr>
       </tbody>
     </table>
   </div>
   <!-- Pagination -->
   <div class="row">
-    <pagination *ngIf="currentPage.totalItems > 0" [directionLinks]="paginationDirectionLinks" [boundaryLinks]="paginationBoundaryLinks"
-      [totalItems]="currentPage.totalItems" [(ngModel)]="currentPage.pageNum"
+    <pagination *ngIf="currentPage.total > 0" [directionLinks]="paginationDirectionLinks" [boundaryLinks]="paginationBoundaryLinks"
+      [totalItems]="currentPage.total" [(ngModel)]="currentPage.pageNum"
       (pageChanged)="gotoPage($event)" [class]="paginationClass" [maxSize]="paginationMaxSize" [rotate]="paginationRotate"></pagination>
   </div>
 </ng-container>

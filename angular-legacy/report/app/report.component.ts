@@ -32,7 +32,7 @@ export class ReportComponent extends LoadableComponent {
   initSubs: any;
   initTracker: any = { reportLoaded: false, resultsReturned: false };
   resultCountParam: object;
-  filterParams: object;
+  filterParams: any;
   @ViewChildren('dateTime1') public dateTime1: any;
   @ViewChildren('dateTime2') public dateTime2: any;
   fromDate: string = "";

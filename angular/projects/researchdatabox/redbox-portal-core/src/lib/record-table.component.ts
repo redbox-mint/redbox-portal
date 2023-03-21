@@ -20,42 +20,10 @@
 import { Component, Input, Inject } from '@angular/core';
 import { BaseComponent } from './base.component';
 import { LoggerService } from './logger.service';
+import { UtilityService } from './utility.service';
 import { isEmpty as _isEmpty, get as _get, merge as _merge, template as _template } from 'lodash-es';
-
-// TODO: Move the following interfaces to the record.service?
-/**
- * Defines the property/column rendering configuration
- */
-export interface RecordPropMeta {
-  // control visibility
-  show: boolean; 
-  // if set, will run this against _.template
-  template: string;
-  // the property/variable name
-  variable: string;
-  // the column header
-  label: string;
-  // whether to expect the property to be multi-valued
-  multivalue: boolean;
-}
-
-/**
- * Model for each page of records
- */
-export interface RecordPage {
-  items: any[];
-  totalItems: number;
-  pageNum: number;
-}
-
-/**
- * The data source, decouples the renderer.
- */
-export interface RecordSource {
-  getPage(pageNum: number, params: any): Promise<RecordPage>;
-}
-// END TODO
-
+import { RecordPropViewMeta, RecordSource, RecordPage } from './record.model';
+import { DateTime } from 'luxon';
 /**
  * This component displays records in a table. 
  * 
@@ -76,13 +44,15 @@ export interface RecordSource {
 })
 export class RecordTableComponent extends BaseComponent {
   // row/column config
-  @Input() columnConfig: RecordPropMeta[] = null as any;
+  @Input() columnConfig: RecordPropViewMeta[] = null as any;
   // the data source
   @Input() dataSource: RecordSource = null as any;
   // additional binding data for templates
   @Input() optTemplateData: any = {};
   // the data 
   currentPage: RecordPage = null as any;
+  // the dataSource params
+  @Input() dataSourceParams: any = null as any;
   // pagination 
   @Input() paginationDirectionLinks:boolean = false;
   @Input() paginationBoundaryLinks: boolean = true;
@@ -90,27 +60,30 @@ export class RecordTableComponent extends BaseComponent {
   @Input() paginationMaxSize:number = 10;
   @Input() paginationRotate: boolean = true;
   
-  constructor(@Inject(LoggerService) private loggerService: LoggerService) {
+  constructor(
+    @Inject(LoggerService) private loggerService: LoggerService,
+    @Inject(UtilityService) private utilService: UtilityService,
+    ) {
     super();
     // no deps
     this.initDependencies = [];
   }
 
   protected override async initComponent():Promise<void> {
-    // get the first page
+    // get the first page on load
     if (!_isEmpty(this.dataSource)) {
       this.loggerService.debug(JSON.stringify(this.columnConfig));
       this.loggerService.debug(`RecordTableComponent getting the first page...`);
-      this.currentPage = await this.dataSource.getPage(1, {});
+      this.currentPage = await this.dataSource.getPage(1, this.dataSourceParams);
       this.loggerService.debug(JSON.stringify(this.currentPage));
       this.loggerService.debug(`RecordTableComponent got first page.`);
     }
   }
 
-  getColValue(row: any, col: RecordPropMeta) {
+  getColValue(row: any, col: RecordPropViewMeta) {
     if (col.multivalue) {
       let retVal = [];
-      for (let val of _get(row, col.variable)) {
+      for (let val of _get(row, col.property)) {
         retVal.push(this.getEntryValue(row, col, val));
       }
       return retVal.join('');
@@ -119,20 +92,19 @@ export class RecordTableComponent extends BaseComponent {
     }
   }
 
-  getEntryValue(row: any, col: RecordPropMeta, val: any = undefined) {
+  getEntryValue(row: any, col: RecordPropViewMeta, val: any = undefined) {
     let retVal = '';
     if (!_isEmpty(col.template)) {
-      const imports = _merge({}, row, {
+      const data = _merge({}, row, {
         recordTableMeta: { 
           col: col, 
           val: val
         },
         optTemplateData: this.optTemplateData
       });
-      const templateData = {imports: imports};
-      retVal = _template(col.template, templateData)();
+      retVal = this.utilService.runTemplate(data, {template: col.template}, null);
     } else {
-      retVal = _get(row, col.variable, val);
+      retVal = _get(row, col.property, val);
     }
     return retVal;
   }

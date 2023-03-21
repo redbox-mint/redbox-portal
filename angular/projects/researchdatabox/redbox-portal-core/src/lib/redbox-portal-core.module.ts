@@ -16,6 +16,7 @@ import { LoggerService } from './logger.service';
 import { RecordService } from './record.service';
 import { TranslationService  } from './translation.service';
 import { RecordTableComponent } from './record-table.component';
+import { ReportService } from './report.service';
 
 export function trimLastSlashFromUrl(baseUrl: string) {
   if (!_isEmpty(baseUrl) && (baseUrl[baseUrl.length - 1] == '/')) {
@@ -45,7 +46,8 @@ export function trimLastSlashFromUrl(baseUrl: string) {
       multi: true
     },
     UserService,
-    RecordService
+    RecordService,
+    ReportService
   ],
   imports: [
     BrowserModule,
