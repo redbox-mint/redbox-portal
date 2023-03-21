@@ -20,7 +20,7 @@ module.exports.dashboardtype = {
   },
   "consolidated": {
     formatRules: {
-        filterBy: [ {filterBase: 'user', filterBaseFieldOrValue: 'user.email', filterField: 'metadata.contributor_ci.email', filterMode: 'equal' } ], //filterBase can only have two values user or record
+        filterBy: {filterBase: 'record', filterBaseFieldOrValue: 'rdmp', filterField: 'metaMetadata.type', filterMode: 'equal' }, //filterBase can only have two values user or record
         filterWorkflowStepsBy: ['consolidated'], //values: empty array (all) or a list with particular types i.e. [ 'draft', 'finalised' ]   
         sortBy: '',
         groupBy: 'groupedByRelationships', //values: empty (not grouped any order), groupedByRecordType, groupedByRelationships 

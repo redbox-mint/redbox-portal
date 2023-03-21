@@ -201,7 +201,7 @@ module.exports.workflow = {
               }
             ],
             formatRules: {
-              filterBy: [ {filterBase: 'user', filterBaseFieldOrValue: 'user.email', filterField: 'metadata.contributor_ci.email', filterMode: 'equal' } ], //filterBase can only have two values user or record
+              filterBy: {filterBase: 'user', filterBaseFieldOrValue: 'user.email', filterField: 'metadata.contributor_ci.email', filterMode: 'equal' }, //filterBase can only have two values user or record
               sortBy: '',
               groupBy: 'groupedByRecordType', //values: empty (not grouped any order), groupedByRecordType, groupedByRelationships 
               sortGroupBy: [{ rowLevel: 0, compareFieldValue: 'rdmp', icon: 'none' }, 

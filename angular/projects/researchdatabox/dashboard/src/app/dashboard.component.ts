@@ -247,11 +247,11 @@ export class DashboardComponent extends BaseComponent {
       let filterString;
       let filterFileds;
       let filterMode;
-      if(!_.isUndefined(filterBy) && _.isArray(filterBy) && !_.isEmpty(filterBy)) {
+      if(!_.isUndefined(filterBy) && !_.isEmpty(filterBy)) {
         let filterBase = _.get(filterBy,'filterBase');
         if(filterBase == 'user') {
           let filterBaseObj = this.currentUser;
-          filterString =  _.get(filterBaseObj,'filterBaseFieldOrValue');
+          filterString =  _.get(filterBaseObj, _.get(filterBy,'filterBaseFieldOrValue'));
         } else if(filterBase == 'record') {
           filterString =  _.get(filterBy,'filterBaseFieldOrValue');
         }
