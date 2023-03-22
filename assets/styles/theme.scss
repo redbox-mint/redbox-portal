@@ -42,6 +42,7 @@ body { font-family: 'Titillium Web', sans-serif; }
 .header-area {
     background: none repeat scroll 0 0 $header-branding-background-color;
 }
+
 .header-area a {
     color: $header-branding-link-color;
 }
@@ -83,7 +84,7 @@ body { font-family: 'Titillium Web', sans-serif; }
 }
 
 .mainmenu-area {
-background: none repeat scroll 0 0 $mainmenu-branding-background-color;
+background: none repeat scroll 0 0 $main-menu-branding-background-color;
 font-family: "Roboto Condensed",sans-serif;
 text-transform: uppercase;
 width: 100%;
@@ -106,7 +107,14 @@ z-index: 999;
     font-size: 16px;
     font-weight: 700;
     padding: 20px;
-    color: $main-menu-active-item-color;
+    color: $main-menu-inactive-item-color;
+}
+
+.mainmenu-area ul.navbar-nav li a:hover {
+    font-size: 16px;
+    font-weight: 700;
+    padding: 20px;
+    color: $main-menu-inactive-item-color-hover;
 }
 
  .mainmenu-area ul.navbar-nav li a.active {
@@ -115,23 +123,32 @@ z-index: 999;
 }
 
 .mainmenu-area ul.dropdown-menu li a {
-    color: $mainmenu-inactive-item-color;
-    background-color: $mainmenu-inactive-item-background-color;
+    color: $main-menu-inactive-item-color;
+    background-color: $main-menu-inactive-item-background-color;
 }
 
 .mainmenu-area ul.navbar-nav li:hover a, .mainmenu-area ul.navbar-nav li a.active {}
-.mainmenu-area .nav > li > a:focus {color: $mainmenu-selected-item-color}
+.mainmenu-area .nav > li > a:focus {color: $main-menu-selected-item-color}
 
 .mainmenu-area ul.navbar-nav li.site-branding-area a {
     color:  $main-menu-active-item-color;
 }
 
 .mainmenu-area ul.navbar-nav li.site-branding-area a.dropdown-item {
-    color: $mainmenu-inactive-item-color;
+    color: $main-menu-active-dropdown-item-color;
+}
+
+.mainmenu-area ul.navbar-nav li.site-branding-area a.dropdown-item:hover {
+    color: $main-menu-active-dropdown-item-color-hover;
+    background-color: $main-menu-active-dropdown-item-background-color-hover;
 }
 
 .mainmenu-area ul.dropdown-menu li a.dropdown-item {
-    color: $mainmenu-inactive-item-color;
+    color: $main-menu-inactive-dropdown-item-color;
+}
+
+.mainmenu-area ul.dropdown-menu li a.dropdown-item:hover {
+    color: $main-menu-inactive-dropdown-item-color-hover;
 }
 
 .maincontent-area {padding-bottom: 170px}
@@ -4071,7 +4088,6 @@ a.btn.disabled,fieldset[disabled] a.btn {
 }
 
 .btn-primary {
-    color: #fff;
     background-color: #337ab7;
     border-color: #2e6da4
 }
