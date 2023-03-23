@@ -318,6 +318,7 @@
               "zone.js",
               "zone.js/testing"
             ],
+            "karmaConfig": "projects/researchdatabox/report/karma.conf.js",
             "tsConfig": "projects/researchdatabox/report/tsconfig.spec.json",
             "inlineStyleLanguage": "scss",
             "assets": [
