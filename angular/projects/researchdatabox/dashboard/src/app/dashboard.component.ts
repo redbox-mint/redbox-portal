@@ -308,34 +308,45 @@ export class DashboardComponent extends BaseComponent {
             // console.log('groupBy '+groupBy);
             let itemsGroupRelated: any = await this.recordService.getRelatedRecords(oid);
             totalItems = totalItems + itemsGroupRelated.items.length;
-            let getItems =_.get(itemsGroupRelated,'items');
-
-            for(let getItem of getItems) {
-              let getOid = _.get(getItem, 'oid'); 
-              let countHerarchyLevels = sortGroupBy.length;
+            let sortItems =_.get(itemsGroupRelated,'items');
+            let totalSortItems = sortItems.length;
+            let countHerarchyLevels = sortGroupBy.length;
+            
+            for(let j = 0; j < totalSortItems; j++) {
+              let parentTreeNodeOid = oid;
               for(let i = 0; i < countHerarchyLevels; i++) {
                 let rule = _.find(sortGroupBy, function(o) { if(_.get(o,'rowLevel') == i){
                                                                               return o
                                                                             }});
-
                 let compareField = _.get(rule,'compareField');
                 let compareFieldValue = _.get(rule,'compareFieldValue');
-                let row = _.find(getItems, function(obj) { if(_.get(obj,compareField) == compareFieldValue && 
-                                                              _.get(obj,'oid') == getOid)
-                                                              {
-                                                                return obj
-                                                              }});
-                                                              
-                if(!_.isUndefined(row) && !_.isNull(row) && !_.isEmpty(row)) {
-                  _.set(row, 'rowLevel', i);
-                  itemsAfterApplyInnerGroupFormatRules.push(row);
+                let relatedTo = _.get(rule, 'relatedTo');
+
+                for(let sortItem of sortItems) {
+                  let relatedToOid = _.get(sortItem, relatedTo);
+                  let foundParent = relatedToOid == parentTreeNodeOid;
+                  let foundRecord = _.get(sortItem,compareField) == compareFieldValue;
+                  let foundTopLevelParent = relatedTo == '';
+                  if(foundRecord && (foundParent || foundTopLevelParent)) {      
+                    let currentOid = _.get(sortItem, 'oid');
+                    let rowExists = _.find(itemsAfterApplyInnerGroupFormatRules, ['oid',currentOid]);
+                    if(_.isUndefined(rowExists)) {
+                      itemsAfterApplyInnerGroupFormatRules.push(sortItem);
+                      if((i+1) < countHerarchyLevels) {
+                        parentTreeNodeOid = currentOid;
+                        break;
+                      }
+                    }
+                  }
+
                 }
               }
-              if(!_.isEmpty(itemsAfterApplyInnerGroupFormatRules)) {
-                let sorted = _.sortBy(itemsAfterApplyInnerGroupFormatRules, 'rowLevel');
-                _.set(itemsGroupRelated,'items', sorted);
-              }
             }
+            
+            if(!_.isEmpty(itemsAfterApplyInnerGroupFormatRules)) {
+              _.set(itemsGroupRelated,'items', itemsAfterApplyInnerGroupFormatRules);
+            }
+
             allItemsByGroup.push(itemsGroupRelated);
           }
         } else if(groupBy == 'groupedByRecordType' && !_.isUndefined(sortGroupBy) && !_.isEmpty(sortGroupBy)) {
