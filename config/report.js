@@ -44,7 +44,7 @@ module.exports.reports = {
       },
       {
         "label": "Date Created",
-        "property": "data_object_created",
+        "property": "date_object_created",
         "template" : "${ DateTime.fromISO(data.date_object_created).toFormat('dd/MM/yyyy') }"
       },
       {
@@ -66,7 +66,7 @@ module.exports.reports = {
       {
         "paramName": "dateObjectCreatedRange",
         "type": "date-range",
-        "property": "dateCreated",
+        "property": "date_object_created",
         "message": "Filter by date created"
       },
       {
@@ -76,35 +76,36 @@ module.exports.reports = {
         "message": "Filter by title"
       }
     ],
-    "columns": [{
+    "columns": [
+      {
         "label": "Id",
-        "property": "storage_id",
-        "show": false
+        "property": "id",
+        "hide": true
       },
       {
         "label": "Title",
         "property": "title",
-        "link": {
-          "pattern": "record/view/${storage_id}",
-          "isExternalURL": false
-        }
+        "template": "<a href='${ data.optTemplateData.brandingAndPortalUrl }/record/view/${ data.id }'>${ data.title }</a>"
       },
       {
         "label": "External URL",
         "property": "reportExternalURL",
-        "show": false
+        "hide": true
       },
       {
         "label": "Date Modified",
-        "property": "date_object_modified"
+        "property": "date_object_modified",
+        "template" : "${ DateTime.fromISO(data.date_object_modified).toFormat('dd/MM/yyyy') }"
       },
       {
         "label": "Date Created",
-        "property": "dateCreated"
+        "property": "date_object_created",
+        "template" : "${ DateTime.fromISO(data.date_object_created).toFormat('dd/MM/yyyy') }"
       },
       {
         "label": "Chief Investigator",
-        "property": "contributor_ci.text_full_name"
+        "property": "contributor_ci.text_full_name",
+        "template" : "${ data['contributor_ci.text_full_name'] }"
       }
     ]
   },
@@ -120,7 +121,7 @@ module.exports.reports = {
       {
         "paramName": "dateObjectCreatedRange",
         "type": "date-range",
-        "property": "dateCreated",
+        "property": "date_object_created",
         "message": "Filter by date created"
       },
       {
@@ -130,35 +131,36 @@ module.exports.reports = {
         "message": "Filter by title"
       }
     ],
-    "columns": [{
+    "columns": [
+      {
         "label": "Id",
-        "property": "storage_id",
-        "show": false
+        "property": "id",
+        "hide": true
       },
       {
         "label": "Title",
         "property": "title",
-        "link": {
-          "pattern": "record/view/${storage_id}",
-          "isExternalURL": false
-        }
+        "template": "<a href='${ data.optTemplateData.brandingAndPortalUrl }/record/view/${ data.id }'>${ data.title }</a>"
       },
       {
         "label": "External URL",
         "property": "reportExternalURL",
-        "show": false
+        "hide": true
       },
       {
         "label": "Date Modified",
-        "property": "date_object_modified"
+        "property": "date_object_modified",
+        "template" : "${ DateTime.fromISO(data.date_object_modified).toFormat('dd/MM/yyyy') }"
       },
       {
         "label": "Date Created",
-        "property": "dateCreated"
+        "property": "date_object_created",
+        "template" : "${ DateTime.fromISO(data.date_object_created).toFormat('dd/MM/yyyy') }"
       },
       {
         "label": "Chief Investigator",
-        "property": "contributor_ci.text_full_name"
+        "property": "contributor_ci.text_full_name",
+        "template" : "${ data['contributor_ci.text_full_name'] }"
       }
     ]
   },
@@ -180,7 +182,7 @@ module.exports.reports = {
       {
         "paramName": "dateObjectCreatedRange",
         "type": "date-range",
-        "property": "dateCreated",
+        "property": "date_object_created",
         "message": "Filter by date created"
       },
       {
@@ -190,23 +192,21 @@ module.exports.reports = {
         "message": "Filter by title"
       }
     ],
-    "columns": [{
+    "columns": [
+      {
         "label": "Id",
-        "property": "storage_id",
-        "show": false
+        "property": "id",
+        "hide": true
       },
       {
         "label": "Title",
         "property": "title",
-        "link": {
-          "pattern": "record/view/${storage_id}",
-          "isExternalURL": false
-        }
+        "template": "<a href='${ data.optTemplateData.brandingAndPortalUrl }/record/view/${ data.id }'>${ data.title }</a>"
       },
       {
         "label": "External URL",
         "property": "reportExternalURL",
-        "show": false
+        "hide": true
       },
       {
         "label": "Embargo until",
@@ -214,51 +214,56 @@ module.exports.reports = {
       },
       {
         "label": "Date Modified",
-        "property": "date_object_modified"
+        "property": "date_object_modified",
+        "template" : "${ DateTime.fromISO(data.date_object_modified).toFormat('dd/MM/yyyy') }"
       },
       {
         "label": "Date Created",
-        "property": "dateCreated"
+        "property": "date_object_created",
+        "template" : "${ DateTime.fromISO(data.date_object_created).toFormat('dd/MM/yyyy') }"
       },
       {
         "label": "Chief Investigator",
-        "property": "contributor_ci.text_full_name"
+        "property": "contributor_ci.text_full_name",
+        "template" : "${ data['contributor_ci.text_full_name'] }"
       }
     ]
   },
   "workspaces": {
     "title": "List workspace records",
     "solr_query": "metaMetadata_packageType:workspace",
-    "filter": {
-      "type": "date-range",
-      "property": "date_object_modified",
-      "message": "Filter by date modified"
-    },
-    "columns": [{
+    "filter": [
+      {
+        "type": "date-range",
+        "property": "date_object_modified",
+        "message": "Filter by date modified"
+      }
+    ],
+    "columns": [
+      {
         "label": "Id",
-        "property": "storage_id",
-        "show": false
+        "property": "id",
+        "hide": true
       },
       {
         "label": "Title",
         "property": "title",
-        "link": {
-          "pattern": "record/view/${storage_id}",
-          "isExternalURL": false
-        }
+        "template": "<a href='${ data.optTemplateData.brandingAndPortalUrl }/record/view/${ data.id }'>${ data.title }</a>"
       },
       {
         "label": "External URL",
         "property": "reportExternalURL",
-        "show": false
+        "hide": true
       },
       {
         "label": "Date Modified",
-        "property": "date_object_modified"
+        "property": "date_object_modified",
+        "template" : "${ DateTime.fromISO(data.date_object_modified).toFormat('dd/MM/yyyy') }"
       },
       {
         "label": "Date Created",
-        "property": "dateCreated"
+        "property": "date_object_created",
+        "template" : "${ DateTime.fromISO(data.date_object_created).toFormat('dd/MM/yyyy') }"
       }
     ]
   },

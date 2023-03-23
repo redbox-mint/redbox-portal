@@ -79,7 +79,7 @@ export module Controllers {
         var response = {};
         response["total"] = totalItems;
         response["pageNum"] = pageNumber;
-        response["recordPerPage"] = noItems;
+        response["recordPerPage"] = _.toNumber(noItems);
 
         var items = [];
         var docs = results["response"]["docs"];

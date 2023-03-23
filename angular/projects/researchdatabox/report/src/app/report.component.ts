@@ -18,9 +18,10 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 import { Component, Inject, ElementRef } from '@angular/core';
-import { ConfigService, LoggerService, TranslationService, ReportService, BaseComponent, RecordPage } from '@researchdatabox/redbox-portal-core';
+import { ConfigService, LoggerService, TranslationService, ReportService, BaseComponent, RecordPage, ReportFilter } from '@researchdatabox/redbox-portal-core';
 import { RecordSource, RecordPropViewMeta, Report, ReportResult } from '@researchdatabox/redbox-portal-core';
 import { isEmpty as _isEmpty, set as _set, map as _map } from 'lodash-es';
+import { DateTime } from 'luxon';
 /**
  * Report Component
  * 
@@ -43,6 +44,9 @@ export class ReportComponent extends BaseComponent implements RecordSource {
   reportName: string = '';
   reportParams: any = {};
   recordsPerPage: number = 10;
+  paginationMaxSize: number = 10;
+  // See https://moment.github.io/luxon/docs/manual/zones.html#specifying-a-zone
+  dateParamTz: string = 'utc';
 
   constructor(
     @Inject(LoggerService) private loggerService: LoggerService,
@@ -57,9 +61,13 @@ export class ReportComponent extends BaseComponent implements RecordSource {
     this.loggerService.debug(`'${this.appName} - ${this.reportName}' waiting for deps to init...`); 
   }
 
-  async getPage(pageNum: number, params: any): Promise<RecordPage> {
+  getCurrentPage() {
+    return this.reportResult;
+  }
+
+  async gotoPage(pageNum: number): Promise<RecordPage> {
     this.initTracker.resultsReturned = false;
-    this.reportResult =  await this.reportService.getReportResult(this.reportName, pageNum, params, this.recordsPerPage);
+    this.reportResult =  await this.reportService.getReportResult(this.reportName, pageNum, this.getParams(), this.recordsPerPage);
     this.initTracker.resultsReturned = true;
     return this.reportResult;
   }
@@ -73,17 +81,59 @@ export class ReportComponent extends BaseComponent implements RecordSource {
     this.brandingAndPortalUrl = this.reportService.brandingAndPortalUrl;
     _set(this.optTemplateData, 'brandingAndPortalUrl', this.brandingAndPortalUrl);
     this.recordsPerPage = ConfigService._getAppConfigProperty(sysConfig, this.appName, 'recordsPerPage', this.recordsPerPage);
+    this.dateParamTz = ConfigService._getAppConfigProperty(sysConfig, this.appName, 'dateParamTz', this.dateParamTz);
+    this.paginationMaxSize = ConfigService._getAppConfigProperty(sysConfig, this.appName, 'paginationMaxSize', this.paginationMaxSize);
     this.report = await this.reportService.getReportConfig(this.reportName);
     this.tableHeaders = this.report.columns;
     this.initTracker.reportLoaded = true;
+    this.gotoPage(1);
     this.loggerService.debug(`'${this.appName}' ready!`); 
   }
 
-  public filter(event?: any): void {
-    
+  public async filter(event?: any) {
+    await this.gotoPage(1);
   }
 
   public getDownloadCSVUrl() {
-    return '';
+    let url = `${this.brandingAndPortalUrl}/admin/downloadReportCSV?name=${this.reportName}`;
+    let params = this.getParams();
+    for(var key in params) {
+      url=url+'&'+key+"="+params[key];
+    }
+    return url;
+  }
+
+  private getLuxonDateFromJs(srcDate: Date, tz: string, mode: string) {
+    if (mode == 'floor') {
+      srcDate.setHours(0, 0, 0, 0);
+    } else if (mode == 'ceil') {
+      srcDate.setHours(23, 59, 59, 999);
+    } 
+    return DateTime.fromJSDate(srcDate, {zone: tz});
+  }
+
+  private getParams() {
+    var params:any = {};
+    for(let filter of this.report.filter) {
+      if (filter.type == 'date-range') {
+        const fromDateJs = this.filterParams[filter.paramName + "_fromDate"];
+        const toDateJs = this.filterParams[filter.paramName + "_toDate"];
+        var fromDate = fromDateJs ? this.getLuxonDateFromJs(fromDateJs, this.dateParamTz, 'floor') : null;
+        var toDate = toDateJs ? this.getLuxonDateFromJs(toDateJs, this.dateParamTz, 'ceil') : null;
+  
+        if (fromDate != null) {
+          params[filter.paramName + "_fromDate"] = fromDate.toISO();
+        } 
+        if (toDate != null) {
+          params[filter.paramName + "_toDate"] = toDate.toISO();
+        } 
+      } else {
+        let paramValue = this.filterParams[filter.paramName];
+        if(!_isEmpty(paramValue)) {
+         params[filter.paramName] = paramValue;
+        }
+      }
+    }
+    return params;
   }
 }

@@ -47,5 +47,6 @@ export interface RecordPage {
  * The data source, decouples the renderer.
  */
 export interface RecordSource {
-  getPage(pageNum: number, params: any): Promise<RecordPage>;
+  getCurrentPage(): RecordPage;
+  gotoPage(pageNum: number): Promise<RecordPage>;
 }

@@ -49,11 +49,8 @@ export class RecordTableComponent extends BaseComponent {
   @Input() dataSource: RecordSource = null as any;
   // additional binding data for templates
   @Input() optTemplateData: any = {};
-  // the data 
-  currentPage: RecordPage = null as any;
-  // the dataSource params
-  @Input() dataSourceParams: any = null as any;
   // pagination 
+  @Input() paginationItemsPerPage: number = 10;
   @Input() paginationDirectionLinks:boolean = false;
   @Input() paginationBoundaryLinks: boolean = true;
   @Input() paginationClass: string = 'pagination-sm';
@@ -70,13 +67,9 @@ export class RecordTableComponent extends BaseComponent {
   }
 
   protected override async initComponent():Promise<void> {
-    // get the first page on load
-    if (!_isEmpty(this.dataSource)) {
-      this.loggerService.debug(JSON.stringify(this.columnConfig));
-      this.loggerService.debug(`RecordTableComponent getting the first page...`);
-      this.currentPage = await this.dataSource.getPage(1, this.dataSourceParams);
-      this.loggerService.debug(JSON.stringify(this.currentPage));
-      this.loggerService.debug(`RecordTableComponent got first page.`);
+    if (_isEmpty(this.dataSource)) {
+      this.loggerService.error(`RecordTableComponent is missing a datasource parameter!`);
+      throw new Error(`RecordTableComponent is missing a datasource parameter!`);
     }
   }
 
@@ -110,6 +103,6 @@ export class RecordTableComponent extends BaseComponent {
   }
 
   async gotoPage(event: any) {
-    this.currentPage = await this.dataSource.getPage(event.page, {});
+    await this.dataSource.gotoPage(event.page);
   } 
 }
