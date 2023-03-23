@@ -204,9 +204,9 @@ module.exports.workflow = {
               filterBy: {filterBase: 'user', filterBaseFieldOrValue: 'user.email', filterField: 'metadata.contributor_ci.email', filterMode: 'equal' }, //filterBase can only have two values user or record
               sortBy: '',
               groupBy: 'groupedByRecordType', //values: empty (not grouped any order), groupedByRecordType, groupedByRelationships 
-              sortGroupBy: [{ rowLevel: 0, compareFieldValue: 'rdmp', icon: 'none' }, 
-                            { rowLevel: 1, compareFieldValue: 'dataRecord', icon: 'none' }, 
-                            { rowLevel: 2, compareFieldValue: 'dataPublication', icon: 'none' }] //values: as many levels as required
+              sortGroupBy: [{ rowLevel: 0, compareFieldValue: 'rdmp' }, 
+                            { rowLevel: 1, compareFieldValue: 'dataRecord' }, 
+                            { rowLevel: 2, compareFieldValue: 'dataPublication'}] //values: as many levels as required
             },
             rowRulesConfig: [
               {
