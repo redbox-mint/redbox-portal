@@ -135,7 +135,7 @@ export class VocabField extends FieldBase<any> {
   public reactEvent(eventName: string, eventData: any, origData: any) {
     let selected = {};
     if (this.storeLabelOnly) {
-      selected['title'] = 'eventData'; 
+      selected['title'] = eventData; 
     }
     selected['originalObject'] = eventData;
     this.component.onSelect(selected, false, true);
