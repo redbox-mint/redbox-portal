@@ -99,7 +99,6 @@ export class DashboardComponent extends BaseComponent {
   //Format rule modes:
   // per grouped records or table wide
 
-  //TODO potentially merge with sortBy or merge sortFields attribute into the below object ?
   sortFields = ['metaMetadata.lastSaveDate', 'metaMetadata.createdOn', 'metadata.title', 'metadata.contributor_ci.text_full_name', 'metadata.contributor_data_manager.text_full_name'];
   
   defaultFormatRules: any = {
@@ -131,7 +130,6 @@ export class DashboardComponent extends BaseComponent {
     elementRef: ElementRef
   ) {
     super();
-    //TODO double check that is ok to use elementRef.nativeElement.getAttribute ?
     this.recordType = _.trim(elementRef.nativeElement.getAttribute('recordType'));
     this.packageType = _.trim(elementRef.nativeElement.getAttribute('packageType'));
     let dashboardType = _.trim(elementRef.nativeElement.getAttribute('dashboardType'));
@@ -162,9 +160,9 @@ export class DashboardComponent extends BaseComponent {
     await this.initView(this.recordType);
   }
   
-  async initView(recordType: string, startIndex = 1) {
+  async initView(recordType: string) {
 
-    console.log('----------------------- initView -------------------------- '+this.typeLabel+' '+this.recordTitle);
+    // console.log('----------------------- initView -------------------------- '+this.typeLabel+' '+this.recordTitle);
     this.formatRules = this.defaultFormatRules;
     this.rowLevelRules = this.defaultRowLevelRules;
     this.groupRowConfig = this.defaultGroupRowConfig;
@@ -172,6 +170,7 @@ export class DashboardComponent extends BaseComponent {
 
     let dashboardType: any = await this.recordService.getDashboardType(this.dashboardTypeSelected);
     let formatRules = _.get(dashboardType, 'formatRules');
+    let startIndex = 1;
     if(!_.isUndefined(formatRules) && !_.isNull(formatRules) && !_.isEmpty(formatRules)) {
       //global format rules from dashboardtype.js config
       this.formatRules = formatRules;
@@ -205,11 +204,11 @@ export class DashboardComponent extends BaseComponent {
     for (let step of steps) {
       step.recordTypeName = recordType;
       this.workflowSteps.push(step);
-      console.log('----------------------- step -------------------------- '+step.config.workflow.stageLabel);
+      // console.log('----------------------- step -------------------------- '+step.config.workflow.stageLabel);
       let stepTableConfig = this.defaultTableConfig;
       if (_.isEmpty(this.defaultTableConfig[0].title)) {
         this.defaultTableConfig[0].title= `${recordType}-title` || 'Title';
-        console.log('----------------------- title -------------------------- '+this.defaultTableConfig[0].title);
+        // console.log('----------------------- title -------------------------- '+this.defaultTableConfig[0].title);
       }
       if(!_.isUndefined(_.get(step,'config.dashboard')) 
         && !_.isUndefined(_.get(step, 'config.dashboard.table'))) {
@@ -245,150 +244,153 @@ export class DashboardComponent extends BaseComponent {
         };
       }
       
-      let filterBy = _.get(this.formatRules, 'filterBy');
-      let filterString;
-      let filterFileds;
-      let filterMode;
-      if(!_.isUndefined(filterBy) && !_.isEmpty(filterBy)) {
-        let filterBase = _.get(filterBy,'filterBase');
-        if(filterBase == 'user') {
-          let filterBaseObj = this.currentUser;
-          filterString =  _.get(filterBaseObj, _.get(filterBy,'filterBaseFieldOrValue'));
-        } else if(filterBase == 'record') {
-          filterString =  _.get(filterBy,'filterBaseFieldOrValue');
-        }
-        filterFileds = _.get(filterBy,'filterField');
-        filterMode = _.get(filterBy,'filterMode');
-      }
-
-      let sortBy = _.get(this.formatRules, 'sortBy');
-      let sortByString = '';
-      if(!_.isUndefined(sortBy) && !_.isEmpty(sortBy)) {
-        sortByString = sortBy;
-      }
-
       let packageType = '';
       let stepName = '';
-      let evaluateStepName = ''; 
+      let evaluateStepName = '';
       if (this.dashboardTypeSelected == 'consolidated') {
         packageType = '';
         stepName = '';
-        evaluateStepName = _.get(step,'name');
-        recordType = _.get(step,'config.baseRecordType');
+        evaluateStepName = _.get(step, 'name');
+        recordType = _.get(step, 'config.baseRecordType');
       } else if (this.dashboardTypeSelected == 'workspace') {
         stepName = '';
         packageType = this.packageType;
-        evaluateStepName = _.get(step,'name');
+        evaluateStepName = _.get(step, 'name');
         recordType = '';
       } else {
         packageType = '';
-        stepName = _.get(step,'name');
+        stepName = _.get(step, 'name');
         evaluateStepName = stepName;
       }
 
-      //TODO getRecords defaults to 10 perhaps add another param to set?
-      let stagedRecords = await this.recordService.getRecords(recordType,stepName,startIndex,packageType,sortByString,filterFileds,filterString,filterMode);
-      
-      // console.log(JSON.stringify(stagedRecords));
-
-      let planTable: PlanTable; 
-
-      if(this.dashboardTypeSelected == 'consolidated') {
-        let items: any = _.get(stagedRecords, 'items');
-        let totalItems = _.get(stagedRecords, 'totalItems');
-        let noItemsPerPage = _.get(stagedRecords, 'noItems');
-        let allItemsByGroup = [];
-        
-        // console.log(JSON.stringify(this.formatRules));
-        let groupBy = _.get(this.formatRules, 'groupBy');
-        let sortGroupBy = _.get(this.formatRules,'sortGroupBy');
-
-        if(groupBy == 'groupedByRelationships' && !_.isUndefined(sortGroupBy) && !_.isEmpty(sortGroupBy)) {
-          for(let item of items) {
-            let oid = _.get(item, 'oid');
-            let itemsAfterApplyInnerGroupFormatRules = [];
-            // console.log('groupBy '+groupBy);
-            let itemsGroupRelated: any = await this.recordService.getRelatedRecords(oid);
-            let sortItems =_.get(itemsGroupRelated,'items');
-            let totalSortItems = sortItems.length;
-            let countHerarchyLevels = sortGroupBy.length;
-            
-            for(let j = 0; j < totalSortItems; j++) {
-              let parentTreeNodeOid = oid;
-              for(let i = 0; i < countHerarchyLevels; i++) {
-                let rule = _.find(sortGroupBy, function(o) { if(_.get(o,'rowLevel') == i){
-                                                                              return o
-                                                                            }});
-                let compareField = _.get(rule,'compareField');
-                let compareFieldValue = _.get(rule,'compareFieldValue');
-                let relatedTo = _.get(rule, 'relatedTo');
-
-                for(let sortItem of sortItems) {
-                  let relatedToOid = _.get(sortItem, relatedTo);
-                  let foundParent = relatedToOid == parentTreeNodeOid;
-                  let foundRecord = _.get(sortItem,compareField) == compareFieldValue;
-                  let foundTopLevelParent = relatedTo == '';
-                  if(foundRecord && (foundParent || foundTopLevelParent)) {      
-                    let currentOid = _.get(sortItem, 'oid');
-                    let rowExists = _.find(itemsAfterApplyInnerGroupFormatRules, ['oid',currentOid]);
-                    if(_.isUndefined(rowExists)) {
-                      itemsAfterApplyInnerGroupFormatRules.push(sortItem);
-                      if((i+1) < countHerarchyLevels) {
-                        parentTreeNodeOid = currentOid;
-                        break;
-                      }
-                    }
-                  }
-
-                }
-              }
-            }
-            
-            if(!_.isEmpty(itemsAfterApplyInnerGroupFormatRules)) {
-              _.set(itemsGroupRelated,'items', itemsAfterApplyInnerGroupFormatRules);
-            }
-
-            allItemsByGroup.push(itemsGroupRelated);
-          }
-        } else if(groupBy == 'groupedByRecordType' && !_.isUndefined(sortGroupBy) && !_.isEmpty(sortGroupBy)) {
-
-          let countHerarchyLevels = sortGroupBy.length;
-          for(let i = 0; i < countHerarchyLevels; i++) {
-            
-            let rule = _.find(sortGroupBy, function(o) { if(_.get(o,'rowLevel') == i){
-              return o
-            }});
-            let compareFieldValue = _.get(rule,'compareFieldValue');
-            let itemsGroupRelated: any = await this.recordService.getRecords(compareFieldValue,stepName,startIndex,packageType,sortByString,filterFileds,filterString,filterMode);
-            
-            allItemsByGroup.push(itemsGroupRelated);
-          }
-        }
-
-        let pageNumber = _.get(stagedRecords, 'currentPage');
-        // if(!_.isInteger(pageNumber)){
-        //   pageNumber = 1;
-        // }
-        let groupedRecords: any = {};
-        _.set(groupedRecords, 'totalItems', totalItems);
-        _.set(groupedRecords, 'currentPage', pageNumber);
-        _.set(groupedRecords, 'noItems', noItemsPerPage);
-        _.set(groupedRecords, 'itemsByGroup', true);
-        _.set(groupedRecords, 'groupedItems', allItemsByGroup);
-
-        planTable = this.evaluatePlanTableColumns(this.groupRowConfig, this.groupRowRules, this.rowLevelRules, evaluateStepName, groupedRecords);
-      
-      } else {
-
-        planTable = this.evaluatePlanTableColumns({},{},{}, evaluateStepName, stagedRecords);
-      }
-
-      this.records[evaluateStepName] = planTable;
+      await this.initStep(stepName, evaluateStepName, recordType, packageType, startIndex);
       
       // console.log('-------------------------------------------------');
       // console.log(JSON.stringify(this.records));
       // console.log('-------------------------------------------------');
     }
+  }
+
+  private async initStep(stepName: string, evaluateStepName: string, recordType: string, packageType: string, startIndex: number) {
+
+    let filterBy = _.get(this.formatRules, 'filterBy');
+    let filterString;
+    let filterFileds;
+    let filterMode;
+    if(!_.isUndefined(filterBy) && !_.isEmpty(filterBy)) {
+      let filterBase = _.get(filterBy,'filterBase');
+      if(filterBase == 'user') {
+        let filterBaseObj = this.currentUser;
+        filterString =  _.get(filterBaseObj, _.get(filterBy,'filterBaseFieldOrValue'));
+      } else if(filterBase == 'record') {
+        filterString =  _.get(filterBy,'filterBaseFieldOrValue');
+      }
+      filterFileds = _.get(filterBy,'filterField');
+      filterMode = _.get(filterBy,'filterMode');
+    }
+
+    let sortBy = _.get(this.formatRules, 'sortBy');
+    let sortByString = '';
+    if(!_.isUndefined(sortBy) && !_.isEmpty(sortBy)) {
+      sortByString = sortBy;
+    }
+
+    //TODO getRecords defaults to 10 perhaps add another param to set?
+    let stagedRecords = await this.recordService.getRecords(recordType, stepName, startIndex, packageType, sortByString, filterFileds, filterString, filterMode);
+
+    let planTable: PlanTable;
+
+    if (this.dashboardTypeSelected == 'consolidated') {
+      let items: any = _.get(stagedRecords, 'items');
+      let totalItems = _.get(stagedRecords, 'totalItems');
+      let noItemsPerPage = _.get(stagedRecords, 'noItems');
+      let allItemsByGroup = [];
+
+      let groupBy = _.get(this.formatRules, 'groupBy');
+      let sortGroupBy = _.get(this.formatRules, 'sortGroupBy');
+
+      if (groupBy == 'groupedByRelationships' && !_.isUndefined(sortGroupBy) && !_.isEmpty(sortGroupBy)) {
+        for (let item of items) {
+          let oid = _.get(item, 'oid');
+          let itemsAfterApplyInnerGroupFormatRules = [];
+          
+          let itemsGroupRelated: any = await this.recordService.getRelatedRecords(oid);
+          let sortItems = _.get(itemsGroupRelated, 'items');
+          let totalSortItems = sortItems.length;
+          let countHerarchyLevels = sortGroupBy.length;
+
+          for (let j = 0; j < totalSortItems; j++) {
+            let parentTreeNodeOid = oid;
+            for (let i = 0; i < countHerarchyLevels; i++) {
+              let rule = _.find(sortGroupBy, function (o) {
+                if (_.get(o, 'rowLevel') == i) {
+                  return o;
+                }
+              });
+              let compareField = _.get(rule, 'compareField');
+              let compareFieldValue = _.get(rule, 'compareFieldValue');
+              let relatedTo = _.get(rule, 'relatedTo');
+
+              for (let sortItem of sortItems) {
+                let relatedToOid = _.get(sortItem, relatedTo);
+                let foundParent = relatedToOid == parentTreeNodeOid;
+                let foundRecord = _.get(sortItem, compareField) == compareFieldValue;
+                let foundTopLevelParent = relatedTo == '';
+                if (foundRecord && (foundParent || foundTopLevelParent)) {
+                  let currentOid = _.get(sortItem, 'oid');
+                  let rowExists = _.find(itemsAfterApplyInnerGroupFormatRules, ['oid', currentOid]);
+                  if (_.isUndefined(rowExists)) {
+                    itemsAfterApplyInnerGroupFormatRules.push(sortItem);
+                    if ((i + 1) < countHerarchyLevels) {
+                      parentTreeNodeOid = currentOid;
+                      break;
+                    }
+                  }
+                }
+              }
+            }
+          }
+
+          if (!_.isEmpty(itemsAfterApplyInnerGroupFormatRules)) {
+            _.set(itemsGroupRelated, 'items', itemsAfterApplyInnerGroupFormatRules);
+          }
+
+          allItemsByGroup.push(itemsGroupRelated);
+        }
+      } else if (groupBy == 'groupedByRecordType' && !_.isUndefined(sortGroupBy) && !_.isEmpty(sortGroupBy)) {
+
+        let countHerarchyLevels = sortGroupBy.length;
+        for (let i = 0; i < countHerarchyLevels; i++) {
+
+          let rule = _.find(sortGroupBy, function (o) {
+            if (_.get(o, 'rowLevel') == i) {
+              return o;
+            }
+          });
+          let compareFieldValue = _.get(rule, 'compareFieldValue');
+          let itemsGroupRelated: any = await this.recordService.getRecords(compareFieldValue, stepName, startIndex, packageType, sortByString, filterFileds, filterString, filterMode);
+
+          allItemsByGroup.push(itemsGroupRelated);
+        }
+      }
+
+      let pageNumber = _.get(stagedRecords, 'currentPage');
+      
+      let groupedRecords: any = {};
+      _.set(groupedRecords, 'totalItems', totalItems);
+      _.set(groupedRecords, 'currentPage', pageNumber);
+      _.set(groupedRecords, 'noItems', noItemsPerPage);
+      _.set(groupedRecords, 'itemsByGroup', true);
+      _.set(groupedRecords, 'groupedItems', allItemsByGroup);
+
+      planTable = this.evaluatePlanTableColumns(this.groupRowConfig, this.groupRowRules, this.rowLevelRules, evaluateStepName, groupedRecords);
+
+    } else {
+
+      planTable = this.evaluatePlanTableColumns({}, {}, {}, evaluateStepName, stagedRecords);
+    }
+
+    this.records[evaluateStepName] = planTable;
   }
 
   evaluatePlanTableColumns(groupRowConfig: any, groupRowRules: any, rowLevelRulesConfig: any, stepName: string, stagedOrGroupedRecords: any): PlanTable {
@@ -401,7 +403,6 @@ export class DashboardComponent extends BaseComponent {
       noItems: _.get(stagedOrGroupedRecords, 'noItems')
     };
 
-    //TODO load columns field mappings from mogodb config and override this.defaultDasboardColumnMappings
     let columnMappings = this.defaultDashboardColumnMappings;
     if(!_.isEmpty(this.dashboardColumnMappings)) {
       columnMappings = this.dashboardColumnMappings;
@@ -676,27 +677,28 @@ export class DashboardComponent extends BaseComponent {
     return res;
   }
 
-  public pageChanged(event: PageChangedEvent, step: string): void {
+  public async pageChanged(event: PageChangedEvent, step: string) {
     
     let sortDetails = this.sortMap[step];
 
     if (this.dashboardTypeSelected == 'standard') {
-      this.recordService.getRecords(this.recordType, step, event.page, '', this.getSortString(sortDetails)).then((stagedRecords: any) => {
-        let planTable: PlanTable = this.evaluatePlanTableColumns({},{},{}, step, stagedRecords);
-        this.records[step] = planTable;
-      });
+      let stagedRecords = await this.recordService.getRecords(this.recordType, step, event.page, '', this.getSortString(sortDetails));
+      let planTable: PlanTable = this.evaluatePlanTableColumns({},{},{}, step, stagedRecords);
+      this.records[step] = planTable;
     } else if(this.dashboardTypeSelected == 'workspace'){
-      const stagedRecords = this.recordService.getRecords('', '', event.page, this.packageType, this.getSortString(sortDetails)).then((stagedRecords: any) => {
-        let planTable: PlanTable = this.evaluatePlanTableColumns({},{},{}, this.packageType, stagedRecords);
-        this.records[this.packageType] = planTable;
-      });
+      let stagedRecords = await this.recordService.getRecords('', '', event.page, this.packageType, this.getSortString(sortDetails)); 
+      let planTable: PlanTable = this.evaluatePlanTableColumns({},{},{}, this.packageType, stagedRecords);
+      this.records[this.packageType] = planTable;
     } else if(this.dashboardTypeSelected == 'consolidated') {
-      this.records[step].currentPage = event.page;
-      this.initView(this.dashboardTypeSelected, event.page);
+      let packageType = '';
+      let stepName = '';
+      let evaluateStepName = _.get(this.workflowSteps[0], 'name');
+      let recordType = _.get(this.workflowSteps[0], 'config.baseRecordType');
+      await this.initStep(stepName, evaluateStepName, recordType, packageType, event.page);
     }
   }
 
-  getSortString(sortDetails: any) {
+  private getSortString(sortDetails: any) {
 
     let fields = this.sortFields;
 
