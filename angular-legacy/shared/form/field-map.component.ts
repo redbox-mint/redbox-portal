@@ -128,8 +128,8 @@ export class MapField extends FieldBase<any> {
   constructor(options: any, injector: any) {
     super(options, injector);
     this.clName = 'MapField';
-    //Workaround to overcome ERR_INVALID_URL error thrown when the base64 url is invalid and ends with ")marker-icon.png 
-    //that happens because of a known bug inside leaflet bundle that is a regex issue within _detectIconPath function  
+    //Workaround to overcome ERR_INVALID_URL error thrown when the base64 url is invalid and ends with ")marker-icon.png
+    //that happens because of a known bug inside leaflet bundle that is a regex issue within _detectIconPath function
     //https://github.com/Leaflet/Leaflet/issues/4968
     //https://stackoverflow.com/questions/55928916/marker-in-leaflet-js-does-not-load-properly-due-to-err-invalid-url-error
     delete L.Icon.Default.prototype._getIconUrl;
@@ -172,7 +172,7 @@ export class MapField extends FieldBase<any> {
     } else {
       if (this.editMode) {
         // Note: this assumes the tabId is unqiue in the page, which may not be when there are multiple tab layouts.
-        jQuery('a[data-toggle="tab"]').on('shown.bs.tab', (e) => {
+        jQuery('a[data-bs-toggle="tab"]').on('shown.bs.tab', (e) => {
           const curTabId = e.target.href.split('#')[1];
           if (curTabId == that.tabId) {
             that.initMap(map, that);
@@ -290,7 +290,7 @@ export class MapField extends FieldBase<any> {
     this.layerGeoJSON = {};
     return this.layerGeoJSON;
   }
-  
+
   reactEvent(eventName: string, eventData: any, origData: any) {
     super.reactEvent(eventName, eventData,origData);
     if (!_.isEmpty(this.formModel.value)) {

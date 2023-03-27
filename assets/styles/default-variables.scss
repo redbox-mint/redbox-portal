@@ -1,0 +1,39 @@
+$site-branding-area-background: $branding-color-1;
+$site-branding-area-heading-color: $branding-color-4;
+
+$panel-branding-background-color: $branding-color-1;
+$panel-branding-color: $branding-color-3;
+
+$main-menu-branding-background-color: $branding-color-2;
+
+$header-branding-link-color: $branding-color-6;
+$header-branding-background-color: $branding-color-11;
+$logo-link-color-branding: $branding-color-7;
+
+/* The text colour and background colour of focused main menu item */
+$main-menu-active-item-color: $branding-color-3;
+$main-menu-active-item-background-color: $branding-color-2;
+
+
+/* The text colour and background colour of an unfocused main menu item*/
+$main-menu-inactive-item-color: $branding-color-3;
+$main-menu-inactive-item-color-hover: $branding-color-4;
+$main-menu-inactive-item-background-color-hover: $branding-color-3;
+$main-menu-inactive-item-background-color:$branding-color-6;
+
+$main-menu-inactive-dropdown-item-color: $branding-color-8;
+$main-menu-inactive-dropdown-item-color-hover: $branding-color-4;
+
+$main-menu-active-dropdown-item-color: $branding-color-8;
+$main-menu-active-dropdown-item-color-hover: $branding-color-4;
+$main-menu-active-dropdown-item-background-color-hover: $branding-color-1;
+
+/* The text colour and background-color of a selected main menu item */
+$main-menu-selected-item-color: $branding-color-9;
+$main-menu-selected-item-background-color: $main-menu-active-item-background-color;
+
+/* The text colour and background-color for the footer */
+$footer-bottom-area-branding-background-color: $branding-color-9;
+$footer-bottom-area-branding-color: $branding-color-3;
+
+$maincontent-heading-text-branding-color:  $branding-color-9;

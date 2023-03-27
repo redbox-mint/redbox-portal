@@ -10,9 +10,8 @@
                 <% if (req.isAuthenticated()) {
                   %>
                   <li><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/researcher/home"><%= TranslationService.t('menu-home')%></a></li>
-
-                  <li class="nav-item dropdown">
-                    <a class="dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false"><%= TranslationService.t('menu-plan-nav')%></a>
+                  <li class="dropdown">
+                    <a class="dropdown-toggle" data-bs-toggle="dropdown" href="#"><%= TranslationService.t('menu-plan-nav')%></a>
                     <ul class="dropdown-menu">
                       <li><a class="dropdown-item" href="<%= BrandingService.getBrandAndPortalPath(req) %>/record/rdmp/edit"><%= TranslationService.t('create-rdmp')%></a></li>
                       <li><a class="dropdown-item" href="<%= BrandingService.getBrandAndPortalPath(req) %>/dashboard/rdmp"><%= TranslationService.t('edit-dashboard-rdmp')%></a></li>
