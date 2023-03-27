@@ -1,4 +1,5 @@
 import { Component, Inject, OnInit, ElementRef } from '@angular/core';
+import { PageChangedEvent } from 'ngx-bootstrap/pagination';
 import { BaseComponent, UtilityService, LoggerService, TranslationService, RecordService, PlanTable, Plan, RecordResponseTable, UserService} from '@researchdatabox/redbox-portal-core';
 import * as _ from 'lodash';
 
@@ -25,6 +26,7 @@ export class DashboardComponent extends BaseComponent {
   dashboardTypeSelected: string;
   rulesService: object;
   currentUser: object = {};
+
   defaultTableConfig = [
     {
       title: 'Record Title',
@@ -160,7 +162,7 @@ export class DashboardComponent extends BaseComponent {
     await this.initView(this.recordType);
   }
   
-  async initView(recordType: string) {
+  async initView(recordType: string, startIndex = 1) {
 
     console.log('----------------------- initView -------------------------- '+this.typeLabel+' '+this.recordTitle);
     this.formatRules = this.defaultFormatRules;
@@ -284,9 +286,7 @@ export class DashboardComponent extends BaseComponent {
         evaluateStepName = stepName;
       }
 
-      let totalItems = 0;
-      let startIndex = 1;
-      let noItemsPerPage = 10; //TODO getRecords defaults to 10 perhaps add another param to set?
+      //TODO getRecords defaults to 10 perhaps add another param to set?
       let stagedRecords = await this.recordService.getRecords(recordType,stepName,startIndex,packageType,sortByString,filterFileds,filterString,filterMode);
       
       // console.log(JSON.stringify(stagedRecords));
@@ -295,6 +295,8 @@ export class DashboardComponent extends BaseComponent {
 
       if(this.dashboardTypeSelected == 'consolidated') {
         let items: any = _.get(stagedRecords, 'items');
+        let totalItems = _.get(stagedRecords, 'totalItems');
+        let noItemsPerPage = _.get(stagedRecords, 'noItems');
         let allItemsByGroup = [];
         
         // console.log(JSON.stringify(this.formatRules));
@@ -307,7 +309,6 @@ export class DashboardComponent extends BaseComponent {
             let itemsAfterApplyInnerGroupFormatRules = [];
             // console.log('groupBy '+groupBy);
             let itemsGroupRelated: any = await this.recordService.getRelatedRecords(oid);
-            totalItems = totalItems + itemsGroupRelated.items.length;
             let sortItems =_.get(itemsGroupRelated,'items');
             let totalSortItems = sortItems.length;
             let countHerarchyLevels = sortGroupBy.length;
@@ -359,12 +360,15 @@ export class DashboardComponent extends BaseComponent {
             }});
             let compareFieldValue = _.get(rule,'compareFieldValue');
             let itemsGroupRelated: any = await this.recordService.getRecords(compareFieldValue,stepName,startIndex,packageType,sortByString,filterFileds,filterString,filterMode);
-            totalItems = totalItems + itemsGroupRelated.items.length;
+            
             allItemsByGroup.push(itemsGroupRelated);
           }
         }
 
-        let pageNumber = (startIndex / noItemsPerPage) + 1;
+        let pageNumber = _.get(stagedRecords, 'currentPage');
+        // if(!_.isInteger(pageNumber)){
+        //   pageNumber = 1;
+        // }
         let groupedRecords: any = {};
         _.set(groupedRecords, 'totalItems', totalItems);
         _.set(groupedRecords, 'currentPage', pageNumber);
@@ -379,17 +383,8 @@ export class DashboardComponent extends BaseComponent {
         planTable = this.evaluatePlanTableColumns({},{},{}, evaluateStepName, stagedRecords);
       }
 
-      //TODO double check if this initTracker variable and checkIfHasLoaded function are needed ???
-      // this.initTracker.target++;
-      // this.initTracker.loaded++;
-      this.setDashboardTitle(planTable);
-      // console.log(this.records);
       this.records[evaluateStepName] = planTable;
       
-
-      // this.checkIfHasLoaded();
-
-      // console.log(this.records);
       // console.log('-------------------------------------------------');
       // console.log(JSON.stringify(this.records));
       // console.log('-------------------------------------------------');
@@ -509,7 +504,7 @@ export class DashboardComponent extends BaseComponent {
   }
   
   async sortChanged(data: any) {
-    //TODO consolidated view sort may only apply to groupedByRecordTypes but not sure if it's needed?
+    
     if(this.dashboardTypeSelected == 'standard' || this.dashboardTypeSelected == 'workspace') {
       let sortString = `${data.variable}:`;
       if (data.sort == 'desc') {
@@ -526,39 +521,21 @@ export class DashboardComponent extends BaseComponent {
       
       let planTable: PlanTable = this.evaluatePlanTableColumns({},{},{}, data.step, stagedRecords);
       
-      this.setDashboardTitle(stagedRecords);
-      this.records[data.step] = stagedRecords;
+      this.records[data.step] = planTable;
   
       this.updateSortMap(data);
     } 
   }
 
   updateSortMap(sortData: any) {
-    let sortDetails = this.sortMap[sortData.step];
-
-    sortDetails = {};
-
-    let stepRowConfig = this.tableConfig[sortData.step];
-    for (let rowConfig of stepRowConfig) {
-      sortDetails[rowConfig.variable] = {
-        sort: null
-      };
-
+    let stepTableConfig = this.tableConfig[sortData.step];
+    for (let rowConfig of stepTableConfig) {
+      this.sortMap[sortData.step][rowConfig.variable] = { sort: rowConfig.noSort };
     }
 
-    sortDetails[sortData.variable] = {
-      sort: sortData.sort
-    };
-
-    this.sortMap[sortData.step] = sortDetails;
+    this.sortMap[sortData.step][sortData.variable] = { sort: sortData.sort };
   }
 
-  protected setDashboardTitle(planTable: PlanTable) {
-    //TODO resolve this error
-    // _.forEach(planTable.items, (plan: Plan) => {
-    //   plan.dashboardTitle = (_.isUndefined(plan.title) || _.isEmpty(plan.title) || _.isEmpty(plan.title[0])) ? this.translationService.t('plan-with-no-title') : plan.title;
-    // });
-  }
 
   public evaluateRowLevelRules(rulesConfig: any, metadata:any, metaMetadata:any, workflow:any, oid:string, ruleSetName:string) {
     
@@ -699,25 +676,23 @@ export class DashboardComponent extends BaseComponent {
     return res;
   }
 
-  //TODO look at impact of using import { PageChangedEvent } from 'ngx-bootstrap/pagination';
-  //from latest ngx bootstrap documentation 
-  //https://valor-software.com/ngx-bootstrap/#/components/pagination?tab=overview#basic
-  //public pageChanged(event: PageChangedEvent, step: string): void {
-  public pageChanged(event: any, step: string): void {
+  public pageChanged(event: PageChangedEvent, step: string): void {
+    
     let sortDetails = this.sortMap[step];
 
-    if (_.isEmpty(this.packageType)) {
+    if (this.dashboardTypeSelected == 'standard') {
       this.recordService.getRecords(this.recordType, step, event.page, '', this.getSortString(sortDetails)).then((stagedRecords: any) => {
         let planTable: PlanTable = this.evaluatePlanTableColumns({},{},{}, step, stagedRecords);
-        this.setDashboardTitle(stagedRecords);
-        this.records[step] = stagedRecords;
+        this.records[step] = planTable;
       });
-    } else {
+    } else if(this.dashboardTypeSelected == 'workspace'){
       const stagedRecords = this.recordService.getRecords('', '', event.page, this.packageType, this.getSortString(sortDetails)).then((stagedRecords: any) => {
         let planTable: PlanTable = this.evaluatePlanTableColumns({},{},{}, this.packageType, stagedRecords);
-        this.setDashboardTitle(stagedRecords);
-        this.records[this.packageType] = stagedRecords;
+        this.records[this.packageType] = planTable;
       });
+    } else if(this.dashboardTypeSelected == 'consolidated') {
+      this.records[step].currentPage = event.page;
+      this.initView(this.dashboardTypeSelected, event.page);
     }
   }
 

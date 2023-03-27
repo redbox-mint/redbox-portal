@@ -121,7 +121,7 @@ export class RecordService extends HttpClientService {
     filterFields = (!_.isEmpty(filterFields) && !_.isUndefined(filterFields)) ? `&filterFields=${filterFields}` : '';
     filterString = (!_.isEmpty(filterString) && !_.isUndefined(filterString)) ? `&filter=${filterString}` : '';
     filterMode = (!_.isEmpty(filterMode) && !_.isUndefined(filterMode)) ? `&filterMode=${filterMode}` : '';
-    let url = `${this.brandingAndPortalUrl}/listRecords?${recordType}${packageType}${state}${sort}${filterFields}${filterString}${filterMode}&start=${start}&rows=${rows}}`;
+    let url = `${this.brandingAndPortalUrl}/listRecords?${recordType}${packageType}${state}${sort}${filterFields}${filterString}${filterMode}&start=${start}&rows=${rows}`;
     const result$ = this.http.get(url).pipe(map(res => res));
     let result = await firstValueFrom(result$);
     return result;
