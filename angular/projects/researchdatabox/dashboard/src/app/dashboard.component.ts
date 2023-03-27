@@ -20,7 +20,6 @@ export class DashboardComponent extends BaseComponent {
   records: any = {};
   sortMap: any = {};
   tableConfig: any = {};
-  recordTitle: string = '';
   dashboardTypesOptions: any = ['standard', 'workspace', 'consolidated'];
   defaultDashboardTypeSelected: string = 'standard';
   dashboardTypeSelected: string;
@@ -65,19 +64,6 @@ export class DashboardComponent extends BaseComponent {
       initialSort: 'desc'
     }
   ];
-
-  defaultDashboardColumnMappings: any = {
-    dateCreated: 'dateCreated',
-    dateModified: 'dateModified',
-    dashboardTitle: 'dashboardTitle',
-    oid: 'oid',
-    title: 'title',
-    metadata: 'metadata.metadata',
-    metaMetadata: 'metadata.metaMetadata',
-    packageType: 'metadata.packageType',
-    workflow: 'metadata.workflow',
-    hasEditAccess: 'hasEditAccess'
-  };
 
   dashboardColumnMappings: any = {
     dateCreated: 'dateCreated',
@@ -155,14 +141,13 @@ export class DashboardComponent extends BaseComponent {
     this.branding = _.get(this.config, 'branding');
     this.portal = _.get(this.config, 'portal');
     this.typeLabel = `${this.translationService.t(`${this.recordType}-name-plural`)}` || 'Records';
-    this.recordTitle = `${this.translationService.t(`${this.recordType}-title`)}` || 'Title';
     this.currentUser = await this.userService.getInfo();
     await this.initView(this.recordType);
   }
   
   async initView(recordType: string) {
 
-    // console.log('----------------------- initView -------------------------- '+this.typeLabel+' '+this.recordTitle);
+    // console.log('----------------------- initView -------------------------- ');
     this.formatRules = this.defaultFormatRules;
     this.rowLevelRules = this.defaultRowLevelRules;
     this.groupRowConfig = this.defaultGroupRowConfig;
@@ -403,10 +388,7 @@ export class DashboardComponent extends BaseComponent {
       noItems: _.get(stagedOrGroupedRecords, 'noItems')
     };
 
-    let columnMappings = this.defaultDashboardColumnMappings;
-    if(!_.isEmpty(this.dashboardColumnMappings)) {
-      columnMappings = this.dashboardColumnMappings;
-    }
+    let columnMappings = this.dashboardColumnMappings;
 
     let isGrouped = _.get(stagedOrGroupedRecords, 'itemsByGroup');
     let allGroupedItems = _.get(stagedOrGroupedRecords, 'groupedItems');
