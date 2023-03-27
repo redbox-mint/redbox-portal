@@ -36,7 +36,7 @@ h6 {
     margin: 0 0 15px;
 }
 
-body { font-family: 'Titillium Web', sans-serif; }
+body { font-family: $body-font-family; }
 
 
 .header-area {
@@ -85,7 +85,7 @@ body { font-family: 'Titillium Web', sans-serif; }
 
 .mainmenu-area {
 background: none repeat scroll 0 0 $main-menu-branding-background-color;
-font-family: "Roboto Condensed",sans-serif;
+font-family: $main-menu-branding-font-family;
 text-transform: uppercase;
 width: 100%;
 z-index: 999;
@@ -102,6 +102,9 @@ z-index: 999;
 }
 .logo h1 a:hover {text-decoration: none;opacity: .7}
 
+.nav-search-bar .btn {
+    font-size: 15px;  
+}
 
 .mainmenu-area ul.navbar-nav li a {
     font-size: 16px;
@@ -153,12 +156,14 @@ z-index: 999;
 
 .maincontent-area {padding-bottom: 170px}
 
-.footer-bottom-area {background: $footer-bottom-area-branding-background-color;
+.footer-bottom-area {
+  background: none repeat scroll 0 0  $footer-bottom-area-branding-background-color;
   color: $footer-bottom-area-branding-color;
+  padding-bottom: 40px;
 }
 
 .footer-wid-title {
-  font-family: raleway;
+  font-family: $branding-footer-font-family;
   font-size: 30px;
   font-weight: 100;
   color: #fff
@@ -185,7 +190,7 @@ a {color: #428bca}
 
 
 .maincontent-bit-title h2 {
-  font-family: raleway;
+  font-family: $maincontent-heading-font-family;
   font-size: 50px;
   font-weight: 200;
   margin: 0;
@@ -7540,7 +7545,12 @@ button.close {
 }
 
 .hidden {
-    display: none!important
+    display: none!important;
+    visibility: hidden;
+}
+
+.italic {
+    font-style: italic;
 }
 
 .affix {
