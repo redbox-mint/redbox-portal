@@ -129,7 +129,9 @@ describe('ReportComponent', () => {
     expect(app.reportResult.total).toEqual(mockReportData.reportResult.total);
     // test download url
     const downloadUrl = app.getDownloadCSVUrl();
+    console.log(`Download url: ${downloadUrl}`);
     const expectedUrl = `base/default/rdmp/admin/downloadReportCSV?name=${mockReportData.reportConfig.name}&dateObjectModifiedRange_fromDate=2022-12-31T14:00:00.000Z&dateObjectModifiedRange_toDate=2023-02-01T13:59:59.999Z&title=test`;
+    console.log(`Expected Download url: ${expectedUrl}`);
     expect(downloadUrl).toEqual(expectedUrl);
   });
 });
