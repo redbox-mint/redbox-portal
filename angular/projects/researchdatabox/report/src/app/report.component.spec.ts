@@ -27,6 +27,12 @@ describe('ReportComponent', () => {
           "type": "date-range",
           "property": "date_object_modified",
           "message": "Filter by date modified"
+        },
+        {
+          "paramName": "title",
+          "type": "text",
+          "property": "title",
+          "message": "Filter by title"
         }
       ] as ReportFilter[],
       columns: [
@@ -41,7 +47,8 @@ describe('ReportComponent', () => {
     const mockReportResult = {
       records: [
         {
-          id: '123'
+          id: '123',
+          "contributor_ci.text_full_name": "John Doe"
         }
       ],
       total: 10,
@@ -100,15 +107,29 @@ describe('ReportComponent', () => {
     await testModule.compileComponents();
   });
 
-  it('should create the app', async function() {
+  it('should create the app, and apply report filters', async function() {
     const fixture = TestBed.createComponent(ReportComponent);
     fixture.debugElement.nativeElement.setAttribute('reportName', mockReportData.reportConfig.name);
     const app = fixture.componentInstance;
-    
+    app.reportName = mockReportData.reportConfig.name;
+
     expect(app).toBeTruthy();
     fixture.autoDetectChanges(true);
     await app.waitForInit();
     await fixture.whenStable();
 
+    expect(app.reportResult.total).toEqual(mockReportData.reportResult.total);
+    
+    mockReportData.reportResult.total = 2;
+    // apply filter
+    app.filterParams['dateObjectModifiedRange_fromDate'] = new Date(2023, 0, 1);
+    app.filterParams['dateObjectModifiedRange_toDate'] = new Date(2023, 1, 1);
+    app.filterParams['title'] = 'test';
+    await app.filter(); 
+    expect(app.reportResult.total).toEqual(mockReportData.reportResult.total);
+    // test download url
+    const downloadUrl = app.getDownloadCSVUrl();
+    const expectedUrl = `base/default/rdmp/admin/downloadReportCSV?name=${mockReportData.reportConfig.name}&dateObjectModifiedRange_fromDate=2022-12-31T14:00:00.000Z&dateObjectModifiedRange_toDate=2023-02-01T13:59:59.999Z&title=test`;
+    expect(downloadUrl).toEqual(expectedUrl);
   });
 });
