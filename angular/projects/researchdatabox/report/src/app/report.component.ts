@@ -103,7 +103,7 @@ export class ReportComponent extends BaseComponent implements RecordSource {
     return url;
   }
 
-  private getLuxonDateFromJs(srcDate: Date, tz: string, mode: string) {
+  public getLuxonDateFromJs(srcDate: Date, tz: string, mode: string) {
     if (mode == 'floor') {
       srcDate.setHours(0, 0, 0, 0);
     } else if (mode == 'ceil') {
@@ -112,7 +112,7 @@ export class ReportComponent extends BaseComponent implements RecordSource {
     return DateTime.fromJSDate(srcDate, {zone: tz});
   }
 
-  private getParams() {
+  public getParams() {
     var params:any = {};
     for(let filter of this.report.filter) {
       if (filter.type == 'date-range') {

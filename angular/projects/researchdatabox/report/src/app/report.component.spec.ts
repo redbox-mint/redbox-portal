@@ -130,7 +130,7 @@ describe('ReportComponent', () => {
     // test download url
     const downloadUrl = app.getDownloadCSVUrl();
     console.log(`Download url: ${downloadUrl}`);
-    const expectedUrl = `base/default/rdmp/admin/downloadReportCSV?name=${mockReportData.reportConfig.name}&dateObjectModifiedRange_fromDate=2022-12-31T14:00:00.000Z&dateObjectModifiedRange_toDate=2023-02-01T13:59:59.999Z&title=test`;
+    const expectedUrl = `base/default/rdmp/admin/downloadReportCSV?name=${mockReportData.reportConfig.name}&dateObjectModifiedRange_fromDate=${app.getLuxonDateFromJs(app.filterParams['dateObjectModifiedRange_fromDate'], app.dateParamTz, 'floor')}&dateObjectModifiedRange_toDate=${app.getLuxonDateFromJs(app.filterParams['dateObjectModifiedRange_toDate'], app.dateParamTz, 'ceil')}&title=test`;
     console.log(`Expected Download url: ${expectedUrl}`);
     expect(downloadUrl).toEqual(expectedUrl);
   });
