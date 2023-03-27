@@ -102,7 +102,7 @@ describe('ReportService testing', () => {
   });
 
   it('should return a valid ReportResult object', async function () {
-    const obsErr = from(reportService.getReportConfig(''));
+    const obsErr = from(reportService.getReportResult('', 1, null));
     obsErr.subscribe(null, (error:any) => {
       expect(error.message).toEqual('Report name is empty!');
     });  
