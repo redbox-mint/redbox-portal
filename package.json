@@ -14,6 +14,7 @@
     "async": "3.2.2",
     "axios": "^0.24.0",
     "bcryptjs": "^2.4.3",
+    "bootstrap": "^5.2.3",
     "check-disk-space": "^3.3.0",
     "chokidar": "~3.5.2",
     "connect-mongo": "^4.6.0",

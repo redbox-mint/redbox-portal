@@ -36,4 +36,9 @@ $main-menu-selected-item-background-color: $main-menu-active-item-background-col
 $footer-bottom-area-branding-background-color: $branding-color-9;
 $footer-bottom-area-branding-color: $branding-color-3;
 
-$maincontent-heading-text-branding-color:  $branding-color-9;
+$main-content-heading-text-branding-color:  $branding-color-9;
+
+// Bootstrap variable overrides
+$input-btn-font-size: 1.6rem;
+$input-btn-padding-y: 0.5rem;
+$input-btn-padding-x: 1.4rem;
