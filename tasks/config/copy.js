@@ -35,6 +35,12 @@ module.exports = function(grunt) {
       cwd: './node_modules/bootstrap/dist/js/' ,
       src: ['bootstrap.bundle.min.js'],
       dest: '.tmp/public/default/default/js'
+    },
+    {
+      expand: true,
+      cwd: './node_modules/jquery/dist/' ,
+      src: ['jquery.min.js'],
+      dest: '.tmp/public/default/default/js'
     }
   ];
   var apiFilesConfig = [
