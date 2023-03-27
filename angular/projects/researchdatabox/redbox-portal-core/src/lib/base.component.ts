@@ -38,6 +38,8 @@ export abstract class BaseComponent implements Initable {
   protected initSubject: BehaviorSubject<any> = new BehaviorSubject(false);
   protected initDependencies: Initable[] = [];
   private filterFn = function(initStat: boolean) { return initStat; };
+  // convenience properties
+  protected brandingAndPortalUrl: string = '';
 
   constructor() {
   }
@@ -85,7 +87,7 @@ export abstract class BaseComponent implements Initable {
    * For those interested in the init from the Promise-land
    */
   async waitForInit(): Promise<any> {
-    return firstValueFrom(this.getInitSubject().pipe(filter(this.filterFn)));
+    return await firstValueFrom(this.getInitSubject().pipe(filter(this.filterFn)));
   }
   /**
    * Main flag to indicate the init status

@@ -59,13 +59,29 @@ describe('ConfigService testing', () => {
     configService = TestBed.inject(ConfigService);
   });
 
-  it('should have a valid config object', async function () {
+  it('should have a valid config object', function (done:any) {
     const mockCsrfData = { _csrf: 'testCsrfValue' };
-    const mockConfigData = {csrfToken: mockCsrfData._csrf, rootContext: '', someRandomKey: 'someRandomValue'};
-
+    const mockConfigData = {
+      csrfToken: mockCsrfData._csrf, 
+      rootContext: '', 
+      someRandomKey: 'someRandomValue', 
+      app: {
+        sample: {
+          block: {
+            present: 'yes'
+          }
+        }
+      }
+    };
+    expect(configService.isInitializing()).toEqual(true);
     const obs = from(configService.waitForInit());
     obs.subscribe((config:any) => {
       expect(config).toEqual(mockConfigData);
+      const defaultVal = 'defaultSpecificVal';
+      expect(ConfigService._getAppConfig(config, 'sample')).toEqual(mockConfigData.app.sample);
+      expect(ConfigService._getAppConfigProperty(config, 'sample', 'block.present', defaultVal)).toEqual(mockConfigData.app.sample.block.present);
+      expect(ConfigService._getAppConfigProperty(config, 'sample', 'missingProperty', defaultVal)).toEqual(defaultVal);
+      done();
     });
     
     const csrfReq = httpTestingController.expectOne(configService.csrfTokenUrl);

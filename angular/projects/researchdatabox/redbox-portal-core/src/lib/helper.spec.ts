@@ -149,3 +149,23 @@ export function appInit(i18next: ITranslationService) {
     return promise;
   };
 }
+
+export function getStubReportService(reportData: any = {}) {
+
+  return {
+    baseUrl: 'base',
+    brandingAndPortalUrl: 'base/default/rdmp',
+    waitForInit: function() {
+      return this;
+    },
+    isInitializing: function() {
+      return false;
+    },
+    getReportResult: function(name: string, pageNum:number, params:any, rows:number = 10) {
+      return reportData.reportResult;
+    },
+    getReportConfig: function(name: string) {
+      return reportData.reportConfig;
+    }
+  };
+}

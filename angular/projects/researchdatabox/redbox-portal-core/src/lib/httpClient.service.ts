@@ -30,6 +30,13 @@ import { RB_HTTP_INTERCEPTOR_AUTH_CSRF } from './csrf.interceptor';
 
 /**
  * Convenience base class for services that use HTTP client.
+ * 
+ * Notes: 
+ * 
+ * Beware when using typed responses, as per: https://angular.io/guide/http#requesting-a-typed-response
+ * 
+ * ```To specify the response object type, first define an interface with the required properties. Use an interface rather than a class, because the response is a plain object that cannot be automatically converted to an instance of a class.```
+ *
  *
  * Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a>
  */
@@ -41,6 +48,8 @@ export class HttpClientService implements Service {
   public brandingAndPortalUrl:string;
   public baseUrlWithContext: string;
   protected httpContext: HttpContext = null as any;
+  // define some predefined request options here for extensions can use,clone,modify,etc.
+  protected reqOptsJsonBodyOnly:any = {responseType: 'json', observe: 'body'};
 
   constructor( 
   @Inject(HttpClient) protected http: HttpClient, 
@@ -60,7 +69,6 @@ export class HttpClientService implements Service {
   /**
    * Returns the config block 
    * 
-   * @param appName 
    * @returns 
    */
   public getConfig() {
