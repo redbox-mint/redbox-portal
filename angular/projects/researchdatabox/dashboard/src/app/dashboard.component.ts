@@ -145,7 +145,7 @@ export class DashboardComponent extends BaseComponent {
     await this.initView(this.recordType);
   }
   
-  async initView(recordType: string) {
+  private async initView(recordType: string) {
 
     // console.log('----------------------- initView -------------------------- ');
     this.formatRules = this.defaultFormatRules;
@@ -378,7 +378,7 @@ export class DashboardComponent extends BaseComponent {
     this.records[evaluateStepName] = planTable;
   }
 
-  evaluatePlanTableColumns(groupRowConfig: any, groupRowRules: any, rowLevelRulesConfig: any, stepName: string, stagedOrGroupedRecords: any): PlanTable {
+  private evaluatePlanTableColumns(groupRowConfig: any, groupRowRules: any, rowLevelRulesConfig: any, stepName: string, stagedOrGroupedRecords: any): PlanTable {
     
     let recordRows: any = [];
     let planTable: PlanTable = {
@@ -486,7 +486,7 @@ export class DashboardComponent extends BaseComponent {
     return planTable;
   }
   
-  async sortChanged(data: any) {
+  public async sortChanged(data: any) {
     
     if(this.dashboardTypeSelected == 'standard' || this.dashboardTypeSelected == 'workspace') {
       let sortString = `${data.variable}:`;
@@ -510,7 +510,7 @@ export class DashboardComponent extends BaseComponent {
     } 
   }
 
-  updateSortMap(sortData: any) {
+  private updateSortMap(sortData: any) {
     let stepTableConfig = this.tableConfig[sortData.step];
     for (let rowConfig of stepTableConfig) {
       this.sortMap[sortData.step][rowConfig.variable] = { sort: rowConfig.noSort };
@@ -583,11 +583,11 @@ export class DashboardComponent extends BaseComponent {
     return res;
   }
 
-  public evaluateGroupRowRules(rulesConfig: any, groupedItems:any, ruleSetName:string) {
+  public evaluateGroupRowRules(groupRulesConfig: any, groupedItems:any, ruleSetName:string) {
     
     let res: any;
 
-    let ruleSetConfig = _.find(rulesConfig,['ruleSetName',ruleSetName]);
+    let ruleSetConfig = _.find(groupRulesConfig,['ruleSetName',ruleSetName]);
 
     if(!_.isUndefined(ruleSetConfig)) {
 
@@ -605,6 +605,7 @@ export class DashboardComponent extends BaseComponent {
           let evaluatedAction = '';
           let results = [];
           let action = _.get(rule, 'action');
+          let mode = _.get(rule, 'mode');
 
           const imports: any = {};
           for(let item of groupedItems) {
@@ -630,10 +631,12 @@ export class DashboardComponent extends BaseComponent {
             if(result == 'true')
             {
               results.push(result);
+            } else if(mode == 'all') {
+              results.push(result);
             }
           }
 
-          if(!_.isEmpty(results) && (_.indexOf(results, 'false') < 0)) {
+          if(!_.isEmpty(results) && (_.indexOf(results, 'false') < 0) && (_.indexOf(results, 'true') >= 0)) {
              evaluatedAction =  action;
           }
           
