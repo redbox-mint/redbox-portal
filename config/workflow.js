@@ -269,6 +269,7 @@ module.exports.workflow = {
                     {
                       name: 'Send for Conferral', 
                       action: 'show', //options show / hide
+                      mode: 'alo', //options 'all' members of the group pass the rule or 'alo' at least one member of the group row passes the rule
                       renderItemTemplate: `<%= name %>`,
                       evaluateRulesTemplate: `<%= _.get(workflow, 'stage') == 'draft' %>`
                     }
