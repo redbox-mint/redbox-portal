@@ -127,7 +127,7 @@
                 </tr>
                         <tr>
                             <td class="col-md-4">
-                                <div class="io-line">Defined in <a href="" data-line="649" class="link-to-prism">angular/shared/form/field-vocab.component.ts:649</a></div>
+                                <div class="io-line">Defined in <a href="" data-line="698" class="link-to-prism">angular/shared/form/field-vocab.component.ts:698</a></div>
                             </td>
                         </tr>
 
@@ -213,7 +213,7 @@
                 </tr>
                     <tr>
                         <td class="col-md-4">
-                                <div class="io-line">Defined in <a href="" data-line="649" class="link-to-prism">angular/shared/form/field-vocab.component.ts:649</a></div>
+                                <div class="io-line">Defined in <a href="" data-line="698" class="link-to-prism">angular/shared/form/field-vocab.component.ts:698</a></div>
                         </td>
                     </tr>
 
@@ -239,7 +239,7 @@
                 </tr>
                     <tr>
                         <td class="col-md-4">
-                                <div class="io-line">Defined in <a href="" data-line="648" class="link-to-prism">angular/shared/form/field-vocab.component.ts:648</a></div>
+                                <div class="io-line">Defined in <a href="" data-line="697" class="link-to-prism">angular/shared/form/field-vocab.component.ts:697</a></div>
                         </td>
                     </tr>
 
@@ -273,8 +273,8 @@
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="656"
-                            class="link-to-prism">angular/shared/form/field-vocab.component.ts:656</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="705"
+                            class="link-to-prism">angular/shared/form/field-vocab.component.ts:705</a></div>
                 </td>
             </tr>
 
@@ -340,7 +340,7 @@
         <pre class="line-numbers compodoc-sourcecode"><code class="language-typescript">import { Input, Component, Injectable, Inject, OnInit, Output, EventEmitter, ElementRef, ViewChild } from &#x27;@angular/core&#x27;;
 import { SimpleComponent } from &#x27;./field-simple.component&#x27;;
 import { FieldBase } from &#x27;./field-base&#x27;;
-import { FormGroup, FormControl, Validators } from &#x27;@angular/forms&#x27;;
+import { FormGroup, FormControl, Validators, ValidatorFn, AbstractControl, ValidationErrors } from &#x27;@angular/forms&#x27;;
 import * as _ from &quot;lodash&quot;;
 import { Observable } from &#x27;rxjs&#x27;;
 import { Subject } from &quot;rxjs/Subject&quot;;
@@ -447,13 +447,16 @@ export class VocabField extends FieldBase&lt;any&gt; {
     }
 
     if (this.required) {
-      this.formModel.setValidators([Validators.required]);
+      this.formModel.setValidators([objectRequired()]);
     }
     return this.formModel;
   }
 
   public reactEvent(eventName: string, eventData: any, origData: any) {
     let selected &#x3D; {};
+    if (this.storeLabelOnly) {
+      selected[&#x27;title&#x27;] &#x3D; eventData; 
+    }
     selected[&#x27;originalObject&#x27;] &#x3D; eventData;
     this.component.onSelect(selected, false, true);
     super.reactEvent(eventName, eventData, origData);
@@ -611,7 +614,53 @@ export class VocabField extends FieldBase&lt;any&gt; {
     return mlu.search(searchTerm, lowerTerm);
   }
 
+
+  setRequiredAndClearValueOnFalse(flag) {
+    this.required &#x3D; flag;
+    if (flag) {
+      this.validators &#x3D;objectRequired();
+      this.formModel.setValidators(this.validators);
+    } else {
+      if (_.isFunction(this.validators) &amp;&amp; _.isEqual(this.validators,objectRequired())) {
+        this.validators &#x3D; null;
+      }
+      this.formModel.clearValidators();
+      this.formModel.setValue(null);
+      this.value &#x3D; null;
+    }
+  }
+
+  setRequired(flag) {
+    this.required &#x3D; flag;
+    if (flag) {
+      this.validators &#x3D; objectRequired();
+    } else {
+      if (_.isFunction(this.validators) &amp;&amp; _.isEqual(this.validators,objectRequired())) {
+        this.validators &#x3D; null;
+      } else {
+        _.remove(this.validators, (v) &#x3D;&gt; {
+          return _.isEqual(v,objectRequired());
+        });
+      }
+    }
+    if (this.validators) {
+      this.formModel.setValidators(this.validators);
+    } else {
+      this.formModel.clearValidators();
+    }
+  }
+
 }
+
+export function objectRequired(): ValidationErrors|null {
+  
+  return (control: AbstractControl): { [key: string]: any } | null &#x3D;&gt;  
+  (_.isEqual(control.value, {}) || _.isEmpty(control.value)) 
+            ? {&#x27;required&#x27;: true} : null;
+            
+  
+}
+
 
 class ExternalLookupDataService extends Subject&lt;CompleterItem[]&gt; implements CompleterData {
 
