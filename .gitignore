@@ -178,3 +178,4 @@ dev
 core/dist
 api/models/Record.js
 api/models/RecordAudit.js
+angular/.angular/cache/

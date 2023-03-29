@@ -55,7 +55,7 @@ export module Controllers {
     constructor() {
       super();
       let that = this;
-      sails.on('ready', function () {
+      sails.after(['hook:redbox:storage:ready', 'hook:redbox:datastream:ready', 'ready'], function () {
         let datastreamServiceName = sails.config.record.datastreamService;
         sails.log.verbose(`RecordController ready, using datastream service: ${datastreamServiceName}`);
         if (datastreamServiceName != undefined) {
@@ -137,8 +137,13 @@ export module Controllers {
             rdmp: rdmp,
             recordType: recordType,
             appSelector: appSelector,
+            formName: '',
             appName: appName
           });
+        }, error=> {
+          sails.log.error("Failed to load form")
+          sails.log.error(error)
+          return res.serverError();
         });
       } else {
         Observable.fromPromise(this.recordsService.getMeta(oid)).flatMap(record => {
@@ -155,6 +160,7 @@ export module Controllers {
             rdmp: rdmp,
             recordType: recordType,
             appSelector: appSelector,
+            formName: '',
             appName: appName
           });
         }, error => {
@@ -163,6 +169,7 @@ export module Controllers {
             rdmp: rdmp,
             recordType: recordType,
             appSelector: appSelector,
+            formName: '',
             appName: appName
           });
         });
@@ -398,7 +405,7 @@ export module Controllers {
       let obs = null;
       if (_.isEmpty(oid)) {
         obs = FormsService.getForm(brand.id, name, editMode, true).flatMap(form => {
-          let mergedForm = this.mergeFields(req, res, form.fields, name, {}).then(fields => {
+          let mergedForm = this.mergeFields(req, res, form.fields, form.requiredFieldIndicator, name, {}).then(fields => {
             form.fields = fields;
             return form;
           });
@@ -422,7 +429,7 @@ export module Controllers {
                   if (_.isEmpty(form)) {
                     return Observable.throw(new Error(`Error, getting form ${formName} for OID: ${oid}`));
                   }
-                  let mergedForm = this.mergeFields(req, res, form.fields, currentRec.metaMetadata.type, currentRec).then(fields => {
+                  let mergedForm = this.mergeFields(req, res, form.fields, form.requiredFieldIndicator, currentRec.metaMetadata.type, currentRec).then(fields => {
                     form.fields = fields;
 
                     return form;
@@ -444,7 +451,7 @@ export module Controllers {
                     return Observable.throw(new Error(`Error, getting form ${formName} for OID: ${oid}`));
                   }
                   FormsService.filterFieldsHasEditAccess(form.fields, hasEditAccess);
-                  return this.mergeFields(req, res, form.fields, currentRec.metaMetadata.type, currentRec).then(fields => {
+                  return this.mergeFields(req, res, form.fields, form.requiredFieldIndicator, currentRec.metaMetadata.type, currentRec).then(fields => {
                     form.fields = fields;
 
                     return form;
@@ -935,19 +942,22 @@ export module Controllers {
         });
     }
 
-    protected async mergeFields(req, res, fields, type, currentRec) {
+    protected async mergeFields(req, res, fields, requiredFieldIndicator, type, currentRec) {
 
       let recordType = await RecordTypesService.get(BrandingService.getBrand(req.session.branding), type).toPromise();
       let workflowSteps = await WorkflowStepsService.getAllForRecordType(recordType).toPromise();
-      this.mergeFieldsSync(req, res, fields, currentRec, workflowSteps);
+      this.mergeFieldsSync(req, res, fields,requiredFieldIndicator, currentRec, workflowSteps);
       return fields;
     }
 
-    protected mergeFieldsSync(req, res, fields, currentRec, workflowSteps) {
+    protected mergeFieldsSync(req, res, fields,requiredFieldIndicator, currentRec, workflowSteps) {
       const fieldsToDelete = [];
       const metadata = currentRec.metadata;
       const metaMetadata = currentRec.metaMetadata;
-      _.forEach(fields, (field: any) => {
+      _.forEach(fields, (field: any) => {   
+        if (!_.isUndefined(requiredFieldIndicator) && _.isEmpty(field.definition.requiredFieldIndicator) && _.isUndefined(field.definition.requiredFieldIndicator)) {
+          _.set(field,'definition.requiredFieldIndicator',requiredFieldIndicator)
+        }
         if (!_.isEmpty(field.definition.name) && !_.isUndefined(field.definition.name)) {
           if (_.has(metaMetadata, field.definition.name)) {
             field.definition.value = metaMetadata[field.definition.name];
@@ -997,7 +1007,7 @@ export module Controllers {
           });
         } else
           if (field.definition.fields) {
-            this.mergeFieldsSync(req, res, field.definition.fields, currentRec, workflowSteps);
+            this.mergeFieldsSync(req, res, field.definition.fields, requiredFieldIndicator, currentRec, workflowSteps);
           }
       });
       _.remove(fields, (f) => {
@@ -1176,21 +1186,34 @@ export module Controllers {
         this.ajaxFail(req, res, error.message);
       }
     }
-    /** Returns the RecordType configuration */
+    /** Returns the RecordType configuration 
+     * 
+     * @deprecated Create/Use fit-for-purpose endpoints going forward.
+    */
     public getType(req, res) {
       const recordType = req.param('recordType');
       const brand = BrandingService.getBrand(req.session.branding);
       RecordTypesService.get(brand, recordType).subscribe(recordType => {
+        // a step towards deprecation: remove the hook configuration
+        _.unset(recordType, 'hooks');
         this.ajaxOk(req, res, null, recordType);
       }, error => {
         this.ajaxFail(req, res, error.message);
       });
     }
 
-    /** Returns all RecordTypes configuration */
+    /** 
+     * Returns all RecordTypes configuration 
+     * 
+     * @deprecated Create/Use fit-for-purpose endpoints going forward.
+     * */
     public getAllTypes(req, res) {
       const brand = BrandingService.getBrand(req.session.branding);
       RecordTypesService.getAll(brand).subscribe(recordTypes => {
+        // a step towards deprecation: remove the hook configuration
+        for (let recType of recordTypes) {
+          _.unset(recType, 'hooks');
+        }
         this.ajaxOk(req, res, null, recordTypes);
       }, error => {
         this.ajaxFail(req, res, error.message);
@@ -1283,14 +1306,15 @@ export module Controllers {
         sails.log.verbose("found.name " + found.name);
         res.attachment(found.name);
         sails.log.verbose(`Returning datastream observable of ${oid}: ${found.name}, attachId: ${attachId}`);
-        that.datastreamService.getDatastream(oid, attachId).subscribe(response => {
+        try {
+          const response = await that.datastreamService.getDatastream(oid, attachId);
           if (response.readstream) {
             response.readstream.pipe(res);
           } else {
             res.end(Buffer.from(response.body), 'binary');
           }
           return Observable.of(oid);
-        }, error => {
+        } catch (error) {
           if (this.isAjax(req)) {
             this.ajaxFail(req, res, error.message);
           } else {
@@ -1302,8 +1326,7 @@ export module Controllers {
               res.serverError();
             }
           }
-        });
-
+        }
       } else {
         const hasEditAccess = await this.hasEditAccess(brand, req.user, currentRec).toPromise();
         if (!hasEditAccess) {
@@ -1341,7 +1364,6 @@ export module Controllers {
     }
 
     public async getPermissionsInternal(req, res) {
-      sails.log.verbose('getting attachments....');
       const oid = req.param('oid');
       let record = await this.getRecord(oid).toPromise();
 
@@ -1418,15 +1440,15 @@ export module Controllers {
         sails.log.verbose("fileName " + fileName);
         res.attachment(fileName);
         sails.log.verbose(`Returning datastream observable of ${oid}: ${fileName}, datastreamId: ${datastreamId}`);
-
-        this.datastreamService.getDatastream(oid, datastreamId).subscribe(response => {
+        try {
+          const response = await this.datastreamService.getDatastream(oid, datastreamId);
           if (response.readstream) {
             response.readstream.pipe(res);
           } else {
             res.end(Buffer.from(response.body), 'binary');
           }
           return Observable.of(oid);
-        }, error => {
+        } catch (error) {
           if (this.isAjax(req)) {
             this.ajaxFail(req, res, error.message);
           } else {
@@ -1436,7 +1458,7 @@ export module Controllers {
               res.notFound();
             }
           }
-        });
+        }
       }
     }
 

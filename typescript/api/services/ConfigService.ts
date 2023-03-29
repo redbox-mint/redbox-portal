@@ -168,15 +168,17 @@ export module Services {
           });
         }
       });
-
-      // for models, we need to copy them over to `api/models`...
-      const modelFiles = this.walkDirSync(`${hook_root_dir}/api/models`, []);
-      if (!_.isEmpty(modelFiles)) {
-        _.each(modelFiles, (modelFile) => {
-          const dest = `${appPath}/api/models/${basename(modelFile)}`;
-          sails.log.verbose(`Copying ${modelFile} to ${dest}`)
-          fs.copySync(modelFile, dest);
-        });
+      // for simple copying of API elements...
+      const apiCopyDirs = ['models', 'policies', 'responses'];
+      for (let apiCopyDir of apiCopyDirs) {
+        const apiCopyFiles = this.walkDirSync(`${hook_root_dir}/api/${apiCopyDir}`, []);
+        if (!_.isEmpty(apiCopyFiles)) {
+          for (let apiCopyFile of apiCopyFiles) {
+            const dest = `${appPath}/api/${apiCopyDir}/${basename(apiCopyFile)}`;
+            sails.log.verbose(`Copying ${apiCopyFile} to ${dest}`)
+            fs.copySync(apiCopyFile, dest);
+          }
+        }
       }
       sails.log.verbose(`${hook_log_header}::Adding custom API elements...completed.`);
       sails.log.verbose(`${hookName}::Merge complete.`);
