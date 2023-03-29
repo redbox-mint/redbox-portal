@@ -1671,8 +1671,8 @@
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="682"
-                            class="link-to-prism">angular/shared/form/field-base.ts:682</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="686"
+                            class="link-to-prism">angular/shared/form/field-base.ts:686</a></div>
                 </td>
             </tr>
 
@@ -1956,8 +1956,8 @@
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="533"
-                            class="link-to-prism">angular/shared/form/field-base.ts:533</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="537"
+                            class="link-to-prism">angular/shared/form/field-base.ts:537</a></div>
                 </td>
             </tr>
 
@@ -2504,8 +2504,8 @@ fieldMap[name].field = the Field model (this)</p>
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="576"
-                            class="link-to-prism">angular/shared/form/field-base.ts:576</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="580"
+                            class="link-to-prism">angular/shared/form/field-base.ts:580</a></div>
                 </td>
             </tr>
 
@@ -2595,8 +2595,8 @@ e.g.</p>
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="624"
-                            class="link-to-prism">angular/shared/form/field-base.ts:624</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="628"
+                            class="link-to-prism">angular/shared/form/field-base.ts:628</a></div>
                 </td>
             </tr>
 
@@ -2686,8 +2686,8 @@ e.g.</p>
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="552"
-                            class="link-to-prism">angular/shared/form/field-base.ts:552</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="556"
+                            class="link-to-prism">angular/shared/form/field-base.ts:556</a></div>
                 </td>
             </tr>
 
@@ -2771,8 +2771,8 @@ e.g. to emit the form value when the form loads</p>
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="600"
-                            class="link-to-prism">angular/shared/form/field-base.ts:600</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="604"
+                            class="link-to-prism">angular/shared/form/field-base.ts:604</a></div>
                 </td>
             </tr>
 
@@ -2953,8 +2953,8 @@ e.g.</p>
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="526"
-                            class="link-to-prism">angular/shared/form/field-base.ts:526</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="530"
+                            class="link-to-prism">angular/shared/form/field-base.ts:530</a></div>
                 </td>
             </tr>
 
@@ -3018,8 +3018,8 @@ e.g.</p>
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="694"
-                            class="link-to-prism">angular/shared/form/field-base.ts:694</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="698"
+                            class="link-to-prism">angular/shared/form/field-base.ts:698</a></div>
                 </td>
             </tr>
 
@@ -3256,8 +3256,8 @@ e.g.</p>
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="646"
-                            class="link-to-prism">angular/shared/form/field-base.ts:646</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="650"
+                            class="link-to-prism">angular/shared/form/field-base.ts:650</a></div>
                 </td>
             </tr>
 
@@ -3321,8 +3321,8 @@ e.g.</p>
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="631"
-                            class="link-to-prism">angular/shared/form/field-base.ts:631</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="635"
+                            class="link-to-prism">angular/shared/form/field-base.ts:635</a></div>
                 </td>
             </tr>
 
@@ -3386,8 +3386,8 @@ e.g.</p>
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="666"
-                            class="link-to-prism">angular/shared/form/field-base.ts:666</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="670"
+                            class="link-to-prism">angular/shared/form/field-base.ts:670</a></div>
                 </td>
             </tr>
 
@@ -4363,9 +4363,13 @@ export class FieldBase&lt;T&gt; {
       } else {
         if (!that.visible) {
           // restore validators
-          if (that.formModel) {
-            that.formModel.setValidators(that.validators);
-            that.formModel.updateValueAndValidity();
+          if (that.formModel) {       
+              if(that[&#x27;enableValidators&#x27;] !&#x3D; null &amp;&amp; typeof(that[&#x27;enableValidators&#x27;]) &#x3D;&#x3D; &#x27;function&#x27;) {
+                that[&#x27;enableValidators&#x27;]();
+              } else {
+                that.formModel.setValidators(that.validators);
+              }
+              that.formModel.updateValueAndValidity();
           }
         }
       }
