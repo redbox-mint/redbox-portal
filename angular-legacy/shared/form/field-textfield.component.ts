@@ -277,7 +277,7 @@ export class TextAreaComponent extends EmbeddableComponent implements OnInit {
 @Component({
   selector: 'markdown-text-area',
   template: `
-  <div *ngIf="field.editMode" [formGroup]='form' class="form-group">
+  <div *ngIf="field.editMode && field.visible" [formGroup]='form' class="form-group">
     <label [attr.for]="field.name">
      <span [outerHTML]="field.label"></span><span class="form-field-required-indicator" [innerHTML]="getRequiredLabelStr()"></span>
       <button type="button" class="btn btn-default" *ngIf="field.help" (click)="toggleHelp()" [attr.aria-label]="'help' | translate "><span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span></button>
@@ -291,7 +291,7 @@ export class TextAreaComponent extends EmbeddableComponent implements OnInit {
     <div class="text-danger" *ngIf="getFormControl().hasError('required') && getFormControl().touched && !field.validationMessages?.required">{{field.label}} is required</div>
     <div class="text-danger" *ngIf="getFormControl().hasError('required') && getFormControl().touched && field.validationMessages?.required">{{field.validationMessages.required}}</div>
   </div>
-  <li *ngIf="!field.editMode" class="key-value-pair">
+  <li *ngIf="!field.editMode && field.visible" class="key-value-pair">
     <span class="key" *ngIf="field.label">{{field.label}}</span>
     <markdown *ngIf="field.value" [data]="field.value"></markdown>
     <br/>
