@@ -56,12 +56,8 @@ export class ConfigService implements Service {
    * Returns the configuration block.
    * 
    */
-  public async getConfig(appName?:string): Promise<any> {
+  public async getConfig(): Promise<any> {
     if (this.config) {
-      if (!_isEmpty(appName)) {
-        // tries to get the app config if name is supplied
-        return _get(this.config, `apps.${appName}`);
-      }
       return this.config;
     }
     return firstValueFrom(this.getInitSubject());
@@ -99,5 +95,28 @@ export class ConfigService implements Service {
 
   public isInitializing():boolean {
     return _isUndefined(this.config) || _isEmpty(this.config);
+  }
+
+  /**
+   * Static method for returning an app-specific config. Making it static removes the need to wait for the config block to be present.
+   * @param config 
+   * @param appName 
+   * @returns Application-specific configuration or undefined (failing fast and avoids accidentally returning a top-level property, if further processing is done)
+   */
+  public static _getAppConfig(config: any, appName: string) {
+    return _get(config, `app.${appName}`);
+  }
+
+  /**
+   * Static convenience method for getting an app-specific property from the config with fallback support, intentionally static so there is no need to 'await'.
+   * 
+   * @param config 
+   * @param appName 
+   * @param propertyPath 
+   * @param defaultVal 
+   * @returns 
+   */
+  public static _getAppConfigProperty(config: any, appName:string, propertyPath:string, defaultVal: any): any {
+    return _get(ConfigService._getAppConfig(config, appName), propertyPath, defaultVal);
   }
 }

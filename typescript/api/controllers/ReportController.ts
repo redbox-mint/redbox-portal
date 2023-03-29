@@ -22,7 +22,7 @@ declare var module;
 declare var sails;
 import { Observable } from 'rxjs/Rx';
 declare var BrandingService, RolesService, DashboardService, ReportsService;
-
+declare var _;
 /**
  * Package that contains all Controllers.
  */
@@ -73,13 +73,13 @@ export module Controllers {
       return response.map(results => {
         var totalItems = results["response"]["numFound"];
         var startIndex = results["response"]["start"];
-        var noItems = 10;
+        var noItems = _.isUndefined(req.param('rows')) ? 10  : req.param('rows');
         var pageNumber = (startIndex / noItems) + 1;
 
         var response = {};
-        response["totalItems"] = totalItems;
-        response["currentPage"] = pageNumber;
-        response["noItems"] = noItems;
+        response["total"] = totalItems;
+        response["pageNum"] = pageNumber;
+        response["recordPerPage"] = _.toNumber(noItems);
 
         var items = [];
         var docs = results["response"]["docs"];
@@ -93,7 +93,7 @@ export module Controllers {
           items.push(item);
         }
 
-        response["items"] = items;
+        response["records"] = items;
         return Observable.of(response);
       }).flatMap(results => {
           return results;

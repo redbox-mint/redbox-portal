@@ -55,14 +55,14 @@ export class ExportComponent extends BaseComponent {
   }
 
   protected override async initComponent():Promise<void> {
-    const exportAppConfig = this.configService.getConfig('export'); 
+    const sysConfig = await this.configService.getConfig();
+    const appName = 'export';
     const defaultDatePickerOpts = { dateInputFormat: 'DD/MM/YYYY', containerClass: 'theme-dark-blue' };
-    const exportAppDatePickerOpts = _get(exportAppConfig, 'datePicketOpts');
-    this.datePickerOpts =  exportAppDatePickerOpts ? exportAppDatePickerOpts : defaultDatePickerOpts;
     const defaultDatePickerPlaceHolder = 'dd/mm/yyyy';
-    const exportAppDatePickerPlaceHolder = _get(exportAppConfig, 'datePickerPlaceHolder');
-    this.datePickerPlaceHolder = exportAppDatePickerPlaceHolder  ? exportAppDatePickerPlaceHolder : defaultDatePickerPlaceHolder;
-    this.exportFormatTypes = [{name: 'CSV', id: 'csv', checked: 'true'},{name: 'JSON', id: 'json', checked: null}];
+    const defaultExportFormatTypes = [{name: 'CSV', id: 'csv', checked: 'true'},{name: 'JSON', id: 'json', checked: null}];
+    this.datePickerOpts = ConfigService._getAppConfigProperty(sysConfig, appName, 'datePickerOpts', defaultDatePickerOpts);  
+    this.datePickerPlaceHolder = ConfigService._getAppConfigProperty(sysConfig, appName, 'datePickerPlaceHolder', defaultDatePickerPlaceHolder);
+    this.exportFormatTypes = ConfigService._getAppConfigProperty(sysConfig, appName, 'exportFormatTypes', defaultExportFormatTypes);
     this.export_format = this.exportFormatTypes[0].id; //set default export format
     this.labelModAfter = `${this.translationService.t('export-modified-after')}`;
     const typeConfs = await this.recordService.getAllTypes();

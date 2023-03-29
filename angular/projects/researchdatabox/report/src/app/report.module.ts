@@ -1,23 +1,24 @@
 import { NgModule } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
-import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { FormsModule } from "@angular/forms";
-// import { NKDatetimeModule } from 'ng2-datetime/ng2-datetime';
 import { APP_BASE_HREF, PlatformLocation } from '@angular/common';
+import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { BsDatepickerModule } from 'ngx-bootstrap/datepicker';
+import { PaginationModule } from 'ngx-bootstrap/pagination';
 import { RedboxPortalCoreModule, trimLastSlashFromUrl } from '@researchdatabox/redbox-portal-core';
-import { ExportComponent } from './export.component';
+import { ReportComponent } from './report.component';
 
 @NgModule({
   declarations: [
-    ExportComponent
+    ReportComponent
   ],
   imports: [
     BrowserModule,
     FormsModule,
     BrowserAnimationsModule,
     RedboxPortalCoreModule,
-    BsDatepickerModule.forRoot()
+    BsDatepickerModule.forRoot(),
+    PaginationModule.forRoot()
   ],
   providers: [
     {
@@ -26,6 +27,6 @@ import { ExportComponent } from './export.component';
       deps: [PlatformLocation]
     }
   ],
-  bootstrap: [ExportComponent]
+  bootstrap: [ReportComponent]
 })
-export class ExportModule { }
+export class ReportModule { }

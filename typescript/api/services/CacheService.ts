@@ -112,7 +112,7 @@ export module Services {
       if (_.isEmpty(sails.config.angularDev) || sails.config.angularDev == 'false') {
         const ngRootPath = `${sails.config.appPath}/assets/angular/`;
         const ngAppDirs = await readdir(ngRootPath);
-        const targetFilesPrefix = ['runtime', 'polyfills', 'main'];
+        const targetFilesPrefix = ['runtime', 'polyfills', 'main', 'styles'];
         for (const appName of ngAppDirs) {
           let ngPath = `${sails.config.appPath}/assets/angular/${appName}`;
           const ngFiles = await readdir(ngPath);
