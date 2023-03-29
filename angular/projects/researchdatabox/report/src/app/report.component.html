@@ -66,7 +66,7 @@
         <div class="row">
           <div class="col-xs-2"></div>
           <div class="col-xs-6" style="text-align:right; padding-top:15px;">
-            <a class="btn btn-large btn-info" (click)="filter()">
+            <a class="btn btn-large btn-primary" (click)="filter()">
               <span class="glyphicon glyphicon-search"></span>
               {{ 'report-filter-button' | i18next }}
             </a>
@@ -88,7 +88,7 @@
     </div>
     <div class="col-xs-8"></div>
     <div class="col-xs-2">
-      <a class="btn btn-large btn-info" [attr.href]='getDownloadCSVUrl()'>
+      <a class="btn btn-large btn-primary" [attr.href]='getDownloadCSVUrl()'>
         <span class="glyphicon glyphicon-download"></span>
         {{ 'report-csv-download' | i18next }}
       </a>
