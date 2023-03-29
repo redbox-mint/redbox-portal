@@ -423,8 +423,8 @@
   "@dataPublication-geolocation-help": "Locations help",
   "@dataPublication-selector-label": "Data record related to this publication",
   "@dmp-create-datapublication-link": "Create a data publication from this record",
-  "report-results-returned": "{count} result returned",
-  "report-results-returned_plural": "{count} results returned",
+  "report-results-returned": "{{count}} result returned",
+  "report-results-returned_plural": "{{count}} results returned",
   "report-csv-download": "Download as CSV",
   "report-retrieving-results": "Retrieving results",
   "report-filter-date-from": "From:",
@@ -745,5 +745,6 @@
   "not-found": "DOI Not found",
   "invalid-format": "Submission format is invalid",
   "server-error": "Server error",
-  "unknown-error": "Unknown error"
+  "unknown-error": "Unknown error",
+  "local-auth-login": "Login"
 }

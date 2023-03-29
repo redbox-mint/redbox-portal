@@ -56,12 +56,15 @@
      sails.log.debug('cronjobs scheduled...');
    }
  
- 
    sails.log.verbose("Cron service, bootstrapped.");
    // After last, because it was being triggered twice
    await sails.services.workspacetypesservice.bootstrap(sails.services.brandingservice.getDefault()).toPromise();
  
    sails.log.verbose("WorkspaceTypes service, bootstrapped.");
+
+   await sails.services.cacheservice.bootstrap();
+   sails.log.verbose("Cache service, bootstrapped.");
+
    sails.log.ship = function () {
      sails.log.info(".----------------. .----------------. .----------------. ");
      sails.log.info("| .--------------. | .--------------. | .--------------. |");
@@ -106,8 +109,7 @@
    }
    // sails.config.peopleSearch.orcid = sails.services.orcidservice.searchOrcid;
    sails.config.startupMinute = Math.floor(Date.now() / 60000);
-   sails.services.cacheservice.bootstrap();
-   sails.log.verbose("Cache service, bootstrapped.");
+   
    sails.services.translationservice.bootstrap();
    sails.log.verbose("Translation service, bootstrapped.");
    if (sails.config.environment == "production" || sails.config.ng2.force_bundle) {

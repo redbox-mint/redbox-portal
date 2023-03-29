@@ -1,24 +1,17 @@
-<div class="row" id="loading">
-  <div class="col-xs-1">
-  </div>
-  <div class="col-xs-10">
-    <img class="center-block" src="<%= BrandingService.getRootContext() %>/images/loading.svg" alt="<%= TranslationService.t('loading-alt-text') %>">
-  </div>
-  <div class="col-xs-1">
-  </div>
-</div>
 <div class="row">
-  <local-auth><!-- Add Angular2 selector --></local-auth>
+  <local-auth>
+    <div class="col-xs-1">
+    </div>
+    <div class="col-xs-10">
+      <img class="center-block" src="<%= BrandingService.getRootContext() %>/images/loading.svg" alt="<%= TranslationService.t('loading-alt-text') %>">
+    </div>
+    <div class="col-xs-1">
+    </div>
+  </local-auth>
 </div>
-
-<script type="text/javascript" src="<%= BrandingService.getRootContext() %>/angular/localAuth/inline.bundle.js?ts=<%= sails.config.startupMinute %>"></script>
-<script type="text/javascript" src="<%= BrandingService.getRootContext() %>/angular/localAuth/polyfills.bundle.js?ts=<%= sails.config.startupMinute %>"></script>
+<script src="<%= BrandingService.getRootContext() %>/angular/local-auth/runtime<%= CacheService.getNgAppFileHash('local-auth', 'runtime', '.') %>.js" type="module"></script>
+<script src="<%= BrandingService.getRootContext() %>/angular/local-auth/polyfills<%=CacheService.getNgAppFileHash('local-auth', 'polyfills', '.') %>.js" type="module"></script>
 <% if (sails.config.angularDev) { %>
-<script type="text/javascript" src="<%= BrandingService.getRootContext() %>/angular/localAuth/vendor.bundle.js?ts=<%= sails.config.startupMinute %>"></script>
+<script src="<%= BrandingService.getRootContext() %>/angular/local-auth/vendor.js" type="module"></script>
 <% } %>
-<script type="text/javascript" src="<%= BrandingService.getRootContext() %>/angular/localAuth/main.bundle.js?ts=<%= sails.config.startupMinute %>"></script>
-<% if (sails.config.angularDev) { %>
-  <script type="text/javascript" src="<%= BrandingService.getRootContext() %>/angular/localAuth/styles.bundle.js?ts=<%= sails.config.startupMinute %>"></script>
-<% } else { %>
-  <link rel="stylesheet" href="<%= BrandingService.getRootContext() %>/angular/localAuth/styles.bundle.css?ts=<%= sails.config.startupMinute %>">
-<% } %>
+<script src="<%= BrandingService.getRootContext() %>/angular/local-auth/main<%=CacheService.getNgAppFileHash('local-auth', 'main', '.') %>.js" type="module"></script>

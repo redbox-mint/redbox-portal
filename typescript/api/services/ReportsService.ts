@@ -119,7 +119,7 @@ export module Services {
             filterQuery = filterQuery + "&fq=" + searchProperty + ":[";
             filterQuery = filterQuery + (fromDate == null ? "*" : fromDate);
             filterQuery = filterQuery + " TO ";
-            filterQuery = filterQuery + (toDate == null ? "*" : toDate) + "]";
+            filterQuery = filterQuery + (toDate == null ? "NOW" : toDate) + "]";
           }
           if (filter.type == 'text') {
             let paramName = filter.paramName;
