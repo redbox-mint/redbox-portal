@@ -8,7 +8,6 @@ import * as _ from 'lodash';
   templateUrl: './dashboard.component.html'
 })
 export class DashboardComponent extends BaseComponent {
-  title = '@researchdatabox/dashboard';
   config: any = {};
   branding: string = '';
   portal: string = '';
@@ -20,8 +19,8 @@ export class DashboardComponent extends BaseComponent {
   records: any = {};
   sortMap: any = {};
   tableConfig: any = {};
-  dashboardTypesOptions: any = ['standard', 'workspace', 'consolidated'];
-  defaultDashboardTypeSelected: string = 'standard';
+  dashboardTypeOptions: any = ['standard', 'workspace', 'consolidated'];
+  defaultDashboardTypeSelected: string = this.dashboardTypeOptions[0];
   dashboardTypeSelected: string;
   rulesService: object;
   currentUser: object = {};
@@ -134,20 +133,24 @@ export class DashboardComponent extends BaseComponent {
   }
 
   protected override async initComponent():Promise<void> {
-    this.loggerService.debug(`Dashboard waiting for deps to init...`); 
-    this.loggerService.debug(`Dashboard initialised.`); 
-    this.config = this.recordService.getConfig();
-    this.rootContext = _.get(this.config, 'baseUrl');
-    this.branding = _.get(this.config, 'branding');
-    this.portal = _.get(this.config, 'portal');
-    this.typeLabel = `${this.translationService.t(`${this.recordType}-name-plural`)}` || 'Records';
-    this.currentUser = await this.userService.getInfo();
-    await this.initView(this.recordType);
+    if(_.indexOf(this.dashboardTypeOptions, this.dashboardTypeSelected) >= 0) {
+      this.loggerService.debug(`Dashboard waiting for deps to init...`); 
+      this.loggerService.debug(`Dashboard initialised.`); 
+      this.config = this.recordService.getConfig();
+      this.rootContext = _.get(this.config, 'baseUrl');
+      this.branding = _.get(this.config, 'branding');
+      this.portal = _.get(this.config, 'portal');
+      this.typeLabel = `${this.translationService.t(`${this.recordType}-name-plural`)}` || 'Records';
+      this.currentUser = await this.userService.getInfo();
+      await this.initView(this.recordType);
+    } else {
+      this.loggerService.debug(`Unsupported Dashboard Type: ${this.dashboardTypeSelected}`); 
+    }
   }
   
-  private async initView(recordType: string) {
+  public async initView(recordType: string) {
 
-    // console.log('----------------------- initView -------------------------- ');
+    //console.log('----------------------- initView -------------------------- '+this.dashboardTypeSelected);
     this.formatRules = this.defaultFormatRules;
     this.rowLevelRules = this.defaultRowLevelRules;
     this.groupRowConfig = this.defaultGroupRowConfig;
@@ -256,7 +259,7 @@ export class DashboardComponent extends BaseComponent {
     }
   }
 
-  private async initStep(stepName: string, evaluateStepName: string, recordType: string, packageType: string, startIndex: number) {
+  public async initStep(stepName: string, evaluateStepName: string, recordType: string, packageType: string, startIndex: number) {
 
     let filterBy = _.get(this.formatRules, 'filterBy');
     let filterString;
@@ -378,7 +381,7 @@ export class DashboardComponent extends BaseComponent {
     this.records[evaluateStepName] = planTable;
   }
 
-  private evaluatePlanTableColumns(groupRowConfig: any, groupRowRules: any, rowLevelRulesConfig: any, stepName: string, stagedOrGroupedRecords: any): PlanTable {
+  public evaluatePlanTableColumns(groupRowConfig: any, groupRowRules: any, rowLevelRulesConfig: any, stepName: string, stagedOrGroupedRecords: any): PlanTable {
     
     let recordRows: any = [];
     let planTable: PlanTable = {
