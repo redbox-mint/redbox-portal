@@ -20,17 +20,23 @@ let recordDataStandard = {
       sortGroupBy: [], 
     }
   },
-  step: {
+  step: [{
+    name: 'draft',
     rdmp: {
       draft: {
         config: {
           workflow: {
             stage: 'draft'
+          },
+          dashboard: {
+            table: {
+              rowConfig: []
+            }
           }
         }
       }
     }
-  },
+  }],
   records: {
     items: [ 
       { 
@@ -77,17 +83,23 @@ let recordDataWorkspace = {
       sortGroupBy: [], 
     }
   },
-  step: {
+  step: [{
+    name: 'existing-locations-draft',
     'existing-locations': {
       'existing-locations-draft': {
         config: {
           workflow: {
             stage: 'existing-locations-draft'
+          },
+          dashboard: {
+            table: {
+              rowConfig: []
+            }
           }
         }
       }
     }
-  },
+  }],
   records: {
     items: [ 
       { 
@@ -112,7 +124,7 @@ let recordDataWorkspace = {
   },
   sortData: {
     sort: 'asc',
-    step: 'draft',
+    step: 'existing-locations-draft',
     title: 'Record Title',
     variable: 'metadata.title'
   },
@@ -134,7 +146,8 @@ let recordDataConsolidated = {
       sortGroupBy: [{ rowLevel: 0, compareFieldValue: 'rdmp' }], 
     }
   },
-  step: {
+  step: [{
+    name: 'consolidated',
     consolidated: {
       consolidated: {
         config: {
@@ -149,7 +162,6 @@ let recordDataConsolidated = {
                   ruleSetName: 'dashboardActionsPerRow',
                   applyRuleSet: true, 
                   type: 'multi-item-rendering',
-                  // separator: '',
                   rules: [ 
                     {
                       name: 'Edit', 
@@ -187,7 +199,7 @@ let recordDataConsolidated = {
         }
       }
     }
-  },
+  }],
   records: {
     items: [ 
       { 
@@ -316,9 +328,9 @@ describe('DashboardComponent standard', () => {
     await dashboardComponent.initStep('draft','draft','rdmp','',1);
     let planTable = dashboardComponent.evaluatePlanTableColumns({}, {}, {}, 'draft', recordDataStandard['records']);
     expect(planTable.items.length).toBeGreaterThan(0);
+    dashboardComponent.sortChanged(recordDataStandard['sortData']);
+    dashboardComponent.pageChanged(recordDataStandard['paginationData'], recordDataStandard['paginationData'].step);
     expect(dashboardComponent.dashboardTypeSelected).toEqual('standard');
-    // dashboardComponent.sortChanged(recordDataStandard['sortData']);
-    // dashboardComponent.pageChanged(recordDataStandard['paginationData'], recordDataStandard['paginationData'].step);
   });
 });
 
@@ -397,8 +409,8 @@ describe('DashboardComponent workspace', () => {
     let planTable = dashboardComponent.evaluatePlanTableColumns({}, {}, {}, 'existing-locations-draft', recordDataWorkspace['records']);
     expect(planTable.items.length).toBeGreaterThan(0);
     expect(dashboardComponent.dashboardTypeSelected).toEqual('workspace');
-    // dashboardComponent.sortChanged(recordDataWorkspace['sortData']);
-    // dashboardComponent.pageChanged(recordDataWorkspace['paginationData'], recordDataWorkspace['paginationData'].step);
+    dashboardComponent.sortChanged(recordDataWorkspace['sortData']);
+    dashboardComponent.pageChanged(recordDataWorkspace['paginationData'], recordDataWorkspace['paginationData'].step);
   });
 });
 
@@ -480,15 +492,14 @@ describe('DashboardComponent consolidated', () => {
                                                                 'draft', 
                                                                 groupedRecords);
     expect(planTable.items.length).toBeGreaterThan(0);
-    dashboardComponent.evaluateRowLevelRules(dashboardComponent.rowLevelRules, recordDataConsolidated['records'].items[0].metadata.metadata, 
+    dashboardComponent.evaluateRowLevelRules(dashboardComponent.rowLevelRules, 
+                                             recordDataConsolidated['records'].items[0].metadata.metadata, 
                                              recordDataConsolidated['records'].items[0].metadata.metaMetadata, 
-                                             recordDataConsolidated['records'].items[0].metadata.workflow, recordDataConsolidated['records'].items[0].oid, 
+                                             recordDataConsolidated['records'].items[0].metadata.workflow, 
+                                             recordDataConsolidated['records'].items[0].oid, 
                                              'dashboardActionsPerRow');
     dashboardComponent.evaluateGroupRowRules(dashboardComponent.groupRowRules,groupedRecords['groupedItems'][0].items, 'dashboardActionsPerGroupRow');
-    console.log('------------- records plan table -------------');
-    console.log(JSON.stringify(dashboardComponent.records));
-    console.log('------------- records plan table -------------');
+    dashboardComponent.pageChanged(recordDataWorkspace['paginationData'], recordDataWorkspace['paginationData'].step);
     expect(dashboardComponent.dashboardTypeSelected).toEqual('consolidated');
-    // dashboardComponent.pageChanged(recordDataWorkspace['paginationData'], recordDataWorkspace['paginationData'].step);
   });
 });
