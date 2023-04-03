@@ -5,7 +5,7 @@ import { FormsModule } from "@angular/forms";
 // import { NKDatetimeModule } from 'ng2-datetime/ng2-datetime';
 import { APP_BASE_HREF, PlatformLocation } from '@angular/common';
 import { BsDatepickerModule } from 'ngx-bootstrap/datepicker';
-import { RedboxPortalCoreModule, trimLastSlashFromUrl } from '@researchdatabox/redbox-portal-core';
+import { RedboxPortalCoreModule, trimLastSlashFromUrl } from '@researchdatabox/portal-ng-common';
 import { ExportComponent } from './export.component';
 
 @NgModule({

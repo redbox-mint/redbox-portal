@@ -3,23 +3,23 @@
   "version": 1,
   "newProjectRoot": "projects",
   "projects": {
-    "@researchdatabox/redbox-portal-core": {
+    "@researchdatabox/portal-ng-common": {
       "projectType": "library",
-      "root": "projects/researchdatabox/redbox-portal-core",
-      "sourceRoot": "projects/researchdatabox/redbox-portal-core/src",
+      "root": "projects/researchdatabox/portal-ng-common",
+      "sourceRoot": "projects/researchdatabox/portal-ng-common/src",
       "prefix": "lib",
       "architect": {
         "build": {
           "builder": "@angular-devkit/build-angular:ng-packagr",
           "options": {
-            "project": "projects/researchdatabox/redbox-portal-core/ng-package.json"
+            "project": "projects/researchdatabox/portal-ng-common/ng-package.json"
           },
           "configurations": {
             "production": {
-              "tsConfig": "projects/researchdatabox/redbox-portal-core/tsconfig.lib.prod.json"
+              "tsConfig": "projects/researchdatabox/portal-ng-common/tsconfig.lib.prod.json"
             },
             "development": {
-              "tsConfig": "projects/researchdatabox/redbox-portal-core/tsconfig.lib.json"
+              "tsConfig": "projects/researchdatabox/portal-ng-common/tsconfig.lib.json"
             }
           },
           "defaultConfiguration": "production"
@@ -27,8 +27,8 @@
         "test": {
           "builder": "@angular-devkit/build-angular:karma",
           "options": {
-            "karmaConfig": "projects/researchdatabox/redbox-portal-core/karma.conf.js",
-            "tsConfig": "projects/researchdatabox/redbox-portal-core/tsconfig.spec.json",
+            "karmaConfig": "projects/researchdatabox/portal-ng-common/karma.conf.js",
+            "tsConfig": "projects/researchdatabox/portal-ng-common/tsconfig.spec.json",
             "polyfills": [
               "zone.js",
               "zone.js/testing"

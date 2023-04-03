@@ -1,7 +1,7 @@
 import { APP_INITIALIZER, LOCALE_ID } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { APP_BASE_HREF } from '@angular/common'; 
-import { RedboxPortalCoreModule, UtilityService, LoggerService, TranslationService, ConfigService, ReportService, getStubConfigService, getStubTranslationService, appInit, localeId, getStubReportService, ReportFilter, Report, ReportResult, RecordPropViewMeta } from '@researchdatabox/redbox-portal-core';
+import { RedboxPortalCoreModule, UtilityService, LoggerService, TranslationService, ConfigService, ReportService, getStubConfigService, getStubTranslationService, appInit, localeId, getStubReportService, ReportFilter, Report, ReportResult, RecordPropViewMeta } from '@researchdatabox/portal-ng-common';
 import { I18NextModule, I18NEXT_SERVICE } from 'angular-i18next';
 import { BsDatepickerModule } from 'ngx-bootstrap/datepicker';
 import { FormsModule } from "@angular/forms";

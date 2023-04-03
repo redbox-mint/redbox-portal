@@ -12,11 +12,11 @@ nvm i < .nvmrc && npm install
 curl -o /tmp/codecov -Os https://uploader.codecov.io/latest/linux/codecov 
 chmod +x /tmp/codecov
 
-testAngular "redbox-portal-core" "frontend-core-lib"
+testAngular "portal-ng-common" "frontend-core-lib"
 ng2apps=( `find ./projects/researchdatabox -maxdepth 1 -mindepth 1 -type d -printf '%f '` )
 for ng2app in "${ng2apps[@]}"
 do
-  if [ "$ng2app" != "redbox-portal-core" ]; then
+  if [ "$ng2app" != "portal-ng-common" ]; then
     echo "Testing ${ng2app}"
     testAngular "${ng2app}" "frontend-${ng2app}"
   fi
