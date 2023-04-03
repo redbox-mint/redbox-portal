@@ -32,10 +32,216 @@ let recordDataStandard = {
     }
   },
   records: {
-    items: [],
+    items: [ 
+      { 
+        oid: '1234567890',
+        title: 'test',
+        dateCreated: 'dateCreated',
+        dateModified: 'dateModified',
+        metadata: {
+          metaMetadata: { type: 'rdmp',
+                          lastSaveDate: '' },
+          metadata: { title: 'test' },
+          packageType: 'rdmp',
+          workflow: '',
+          hasEditAccess: '',
+          recordType: 'rdmp'
+        }
+      }
+    ],
     totalItems: 0,
     currentPage: 1,
     noItems: 10
+  },
+  sortData: {
+    sort: 'asc',
+    step: 'draft',
+    title: 'Record Title',
+    variable: 'metadata.title'
+  },
+  paginationData: {
+    itemsPerPage: 10,
+    page: 2,
+    step: 'draft'
+  }
+};
+
+let recordDataWorkspace = { 
+  dashboardType: 
+  { 
+    formatRules: {
+      filterBy: [], 
+      filterWorkflowStepsBy: [], 
+      sortBy: '',
+      groupBy: '', 
+      sortGroupBy: [], 
+    }
+  },
+  step: {
+    'existing-locations': {
+      'existing-locations-draft': {
+        config: {
+          workflow: {
+            stage: 'existing-locations-draft'
+          }
+        }
+      }
+    }
+  },
+  records: {
+    items: [ 
+      { 
+        oid: '1234567890',
+        title: 'test',
+        dateCreated: 'dateCreated',
+        dateModified: 'dateModified',
+        metadata: {
+          metaMetadata: { type: 'rdmp',
+                          lastSaveDate: '' },
+          metadata: { title: 'test' },
+          packageType: 'workspace',
+          workflow: '',
+          hasEditAccess: '',
+          recordType: 'existing-locations'
+        }
+      }
+    ],
+    totalItems: 0,
+    currentPage: 1,
+    noItems: 10
+  },
+  sortData: {
+    sort: 'asc',
+    step: 'draft',
+    title: 'Record Title',
+    variable: 'metadata.title'
+  },
+  paginationData: {
+    itemsPerPage: 10,
+    page: 2,
+    step: 'existing-locations-draft'
+  }
+};
+
+let recordDataConsolidated = { 
+  dashboardType: 
+  { 
+    formatRules: {
+      filterBy: [], 
+      filterWorkflowStepsBy: [], 
+      sortBy: '',
+      groupBy: 'groupedByRecordType', 
+      sortGroupBy: [{ rowLevel: 0, compareFieldValue: 'rdmp' }], 
+    }
+  },
+  step: {
+    consolidated: {
+      consolidated: {
+        config: {
+          workflow: {
+            stage: 'consolidated'
+          },
+          baseRecordType: 'rdmp',
+          dashboard: {
+            table: {
+              rowRulesConfig: [
+                {
+                  ruleSetName: 'dashboardActionsPerRow',
+                  applyRuleSet: true, 
+                  type: 'multi-item-rendering',
+                  // separator: '',
+                  rules: [ 
+                    {
+                      name: 'Edit', 
+                      action: 'show', 
+                      renderItemTemplate: `<%= name %>`,
+                      evaluateRulesTemplate: `<%= true %>`  
+                    }
+                  ]
+                }
+              ],
+              groupRowConfig: [
+                {
+                  title: 'Actions',
+                  variable: '',
+                  template: `<%= rulesService.evaluateGroupRowRules(groupRulesConfig, groupedItems, 'dashboardActionsPerGroupRow') %>`
+                }
+              ],
+              groupRowRulesConfig: [
+                {
+                  ruleSetName: 'dashboardActionsPerGroupRow',
+                  applyRuleSet: true, 
+                  rules: [ 
+                    {
+                      name: 'Send for Conferral', 
+                      action: 'show', 
+                      mode: 'alo', 
+                      renderItemTemplate: `<%= name %>`,
+                      evaluateRulesTemplate: `<%= true %>`
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      }
+    }
+  },
+  records: {
+    items: [ 
+      { 
+        oid: '1234567890',
+        title: 'test',
+        dateCreated: 'dateCreated',
+        dateModified: 'dateModified',
+        metadata: {
+          metaMetadata: { type: 'rdmp',
+                          lastSaveDate: '' },
+          metadata: { title: 'test' },
+          packageType: 'rdmp',
+          workflow: '',
+          hasEditAccess: '',
+          recordType: 'rdmp'
+        }
+      }
+    ],
+    totalItems: 0,
+    currentPage: 1,
+    noItems: 10
+  },
+  groupedRecords: {
+    totalItems: 1,
+    currentPage: 1,
+    noItems: 10,
+    itemsByGroup: true,
+    groupedItems: 
+    [
+      {
+        items: [
+          {
+            oid: '1234567890',
+            title: 'test',
+            dateCreated: 'dateCreated',
+            dateModified: 'dateModified',
+            metadata: {
+              metaMetadata: { type: 'rdmp',
+                              lastSaveDate: '' },
+              metadata: { title: 'test' },
+              packageType: 'rdmp',
+              workflow: '',
+              hasEditAccess: '',
+              recordType: 'rdmp'
+            }
+          }
+        ]
+      }
+    ]
+  },
+  paginationData: {
+    itemsPerPage: 10,
+    page: 2,
+    step: 'consolidated'
   }
 };
 
@@ -109,8 +315,180 @@ describe('DashboardComponent standard', () => {
     expect(dashboardComponent.defaultTableConfig.length).toBeGreaterThan(0);
     await dashboardComponent.initStep('draft','draft','rdmp','',1);
     let planTable = dashboardComponent.evaluatePlanTableColumns({}, {}, {}, 'draft', recordDataStandard['records']);
-    expect(planTable.items.length).toEqual(0);
+    expect(planTable.items.length).toBeGreaterThan(0);
     expect(dashboardComponent.dashboardTypeSelected).toEqual('standard');
+    // dashboardComponent.sortChanged(recordDataStandard['sortData']);
+    // dashboardComponent.pageChanged(recordDataStandard['paginationData'], recordDataStandard['paginationData'].step);
+  });
+});
+
+describe('DashboardComponent workspace', () => {
+  beforeEach(async () => {
+    let configService = getStubConfigService();
+    let translationService = getStubTranslationService();
+    let recordService = getStubRecordService(recordDataWorkspace);
+    let userService = getStubUserService(username, password);
+
+    const testModule = TestBed.configureTestingModule({
+      declarations: [
+        DashboardComponent
+      ],
+      imports: [
+        FormsModule,
+        I18NextModule.forRoot()
+      ],
+      providers: [
+        {
+          provide: APP_BASE_HREF,
+          useValue: 'base'
+        },
+        LoggerService,
+        UtilityService,
+        {
+          provide: TranslationService,
+          useValue: translationService
+        },
+        {
+          provide: ConfigService,
+          useValue: configService
+        },
+        {
+          provide: RecordService,
+          useValue: recordService
+        },
+        {
+          provide: UserService,
+          useValue: userService
+        }
+      ]
+    });
+    // TestBed.inject(I18NEXT_SERVICE);
+    TestBed.inject(RecordService);
+    await testModule.compileComponents();
   });
 
+  it('should create the app', () => {
+    const fixture = TestBed.createComponent(DashboardComponent);
+    const dashboardComponent = fixture.componentInstance;
+    expect(dashboardComponent).toBeTruthy();
+  });
+
+  it(`should have a set a pre defined dashboard type options`, () => {
+    const fixture = TestBed.createComponent(DashboardComponent);
+    const dashboardComponent = fixture.componentInstance;
+    expect(dashboardComponent.dashboardTypeOptions).toEqual(dashboardTypeOptions);
+  });
+  
+  it(`should have a default dashboard type`, () => {
+    const fixture = TestBed.createComponent(DashboardComponent);
+    const dashboardComponent = fixture.componentInstance;
+    dashboardComponent.dashboardTypeSelected = 'workspace';
+    expect(dashboardComponent.dashboardTypeSelected).toEqual('workspace');
+  });
+
+  it(`init view`, async () => {
+    const fixture = TestBed.createComponent(DashboardComponent);
+    const dashboardComponent = fixture.componentInstance;
+    dashboardComponent.dashboardTypeSelected = 'workspace';
+    await dashboardComponent.initView('');
+    expect(dashboardComponent.workflowSteps.length).toBeGreaterThan(0);
+    expect(dashboardComponent.defaultTableConfig.length).toBeGreaterThan(0);
+    await dashboardComponent.initStep('existing-locations','existing-locations-draft','','workspace',1);
+    let planTable = dashboardComponent.evaluatePlanTableColumns({}, {}, {}, 'existing-locations-draft', recordDataWorkspace['records']);
+    expect(planTable.items.length).toBeGreaterThan(0);
+    expect(dashboardComponent.dashboardTypeSelected).toEqual('workspace');
+    // dashboardComponent.sortChanged(recordDataWorkspace['sortData']);
+    // dashboardComponent.pageChanged(recordDataWorkspace['paginationData'], recordDataWorkspace['paginationData'].step);
+  });
+});
+
+describe('DashboardComponent consolidated', () => {
+  beforeEach(async () => {
+    let configService = getStubConfigService();
+    let translationService = getStubTranslationService();
+    let recordService = getStubRecordService(recordDataConsolidated);
+    let userService = getStubUserService(username, password);
+
+    const testModule = TestBed.configureTestingModule({
+      declarations: [
+        DashboardComponent
+      ],
+      imports: [
+        FormsModule,
+        I18NextModule.forRoot()
+      ],
+      providers: [
+        {
+          provide: APP_BASE_HREF,
+          useValue: 'base'
+        },
+        LoggerService,
+        UtilityService,
+        {
+          provide: TranslationService,
+          useValue: translationService
+        },
+        {
+          provide: ConfigService,
+          useValue: configService
+        },
+        {
+          provide: RecordService,
+          useValue: recordService
+        },
+        {
+          provide: UserService,
+          useValue: userService
+        }
+      ]
+    });
+    TestBed.inject(RecordService);
+    await testModule.compileComponents();
+  });
+
+  it('should create the app', () => {
+    const fixture = TestBed.createComponent(DashboardComponent);
+    const dashboardComponent = fixture.componentInstance;
+    expect(dashboardComponent).toBeTruthy();
+  });
+
+  it(`should have a set a pre defined dashboard type options`, () => {
+    const fixture = TestBed.createComponent(DashboardComponent);
+    const dashboardComponent = fixture.componentInstance;
+    expect(dashboardComponent.dashboardTypeOptions).toEqual(dashboardTypeOptions);
+  });
+  
+  it(`should have a default dashboard type`, () => {
+    const fixture = TestBed.createComponent(DashboardComponent);
+    const dashboardComponent = fixture.componentInstance;
+    dashboardComponent.dashboardTypeSelected = 'consolidated';
+    expect(dashboardComponent.dashboardTypeSelected).toEqual('consolidated');
+  });
+
+  it(`init view`, async () => {
+    const fixture = TestBed.createComponent(DashboardComponent);
+    const dashboardComponent = fixture.componentInstance;
+    dashboardComponent.dashboardTypeSelected = 'consolidated';
+    await dashboardComponent.initView('rdmp');
+    expect(dashboardComponent.workflowSteps.length).toBeGreaterThan(0);
+    expect(dashboardComponent.defaultTableConfig.length).toBeGreaterThan(0);
+    await dashboardComponent.initStep('consolidated','consolidated','rdmp','',1);
+    let groupedRecords = recordDataConsolidated['groupedRecords'];
+    let planTable = dashboardComponent.evaluatePlanTableColumns(dashboardComponent.groupRowConfig, 
+                                                                dashboardComponent.groupRowRules, 
+                                                                dashboardComponent.rowLevelRules, 
+                                                                'draft', 
+                                                                groupedRecords);
+    expect(planTable.items.length).toBeGreaterThan(0);
+    dashboardComponent.evaluateRowLevelRules(dashboardComponent.rowLevelRules, recordDataConsolidated['records'].items[0].metadata.metadata, 
+                                             recordDataConsolidated['records'].items[0].metadata.metaMetadata, 
+                                             recordDataConsolidated['records'].items[0].metadata.workflow, recordDataConsolidated['records'].items[0].oid, 
+                                             'dashboardActionsPerRow');
+    dashboardComponent.evaluateGroupRowRules(dashboardComponent.groupRowRules,groupedRecords['groupedItems'][0].items, 'dashboardActionsPerGroupRow');
+    console.log('------------- records plan table -------------');
+    console.log(JSON.stringify(dashboardComponent.records));
+    console.log('------------- records plan table -------------');
+    expect(dashboardComponent.dashboardTypeSelected).toEqual('consolidated');
+    // dashboardComponent.pageChanged(recordDataWorkspace['paginationData'], recordDataWorkspace['paginationData'].step);
+  });
 });
