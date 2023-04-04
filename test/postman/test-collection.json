@@ -1948,6 +1948,249 @@
 							"response": []
 						},
 						{
+							"name": "List Dashboard Types",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test(\"Has forms in response\", function () {",
+											"    var jsonData = pm.response.json();",
+											"     pm.expect(jsonData).to.have.property(\"dashboardTypes\");",
+											"     pm.expect(jsonData.dashboardTypes.length).to.be.greaterThan(0)",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									},
+									{
+										"key": "X-Source",
+										"value": "jsclient",
+										"type": "text"
+									},
+									{
+										"key": "Accept",
+										"value": "application/json, text/plain, */*",
+										"type": "text"
+									},
+									{
+										"key": "Cookie",
+										"value": "{{cookie}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{host}}/default/rdmp/dashboard/type",
+									"host": [
+										"{{host}}"
+									],
+									"path": [
+										"default",
+										"rdmp",
+										"dashboard",
+										"type"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Get Dashboard Type Standard",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test(\"Has name property\", function () {",
+											"    var jsonData = pm.response.json();",
+											"     pm.expect(jsonData).to.have.property(\"name\");",
+											"     pm.expect(jsonData).to.have.property(\"formatRules\");",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									},
+									{
+										"key": "X-Source",
+										"value": "jsclient",
+										"type": "text"
+									},
+									{
+										"key": "Accept",
+										"value": "application/json, text/plain, */*",
+										"type": "text"
+									},
+									{
+										"key": "Cookie",
+										"value": "{{cookie}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{host}}/default/rdmp/dashboard/type/standard",
+									"host": [
+										"{{host}}"
+									],
+									"path": [
+										"default",
+										"rdmp",
+										"dashboard",
+										"type",
+										"standard"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Get Dashboard Type Workspace",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test(\"Has name property\", function () {",
+											"    var jsonData = pm.response.json();",
+											"     pm.expect(jsonData).to.have.property(\"name\");",
+											"     pm.expect(jsonData).to.have.property(\"formatRules\");",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									},
+									{
+										"key": "X-Source",
+										"value": "jsclient",
+										"type": "text"
+									},
+									{
+										"key": "Accept",
+										"value": "application/json, text/plain, */*",
+										"type": "text"
+									},
+									{
+										"key": "Cookie",
+										"value": "{{cookie}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{host}}/default/rdmp/dashboard/type/workspace",
+									"host": [
+										"{{host}}"
+									],
+									"path": [
+										"default",
+										"rdmp",
+										"dashboard",
+										"type",
+										"workspace"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Get Dashboard Type Consolidated",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test(\"Has name property\", function () {",
+											"    var jsonData = pm.response.json();",
+											"     pm.expect(jsonData).to.have.property(\"name\");",
+											"     pm.expect(jsonData).to.have.property(\"formatRules\");",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									},
+									{
+										"key": "X-Source",
+										"value": "jsclient",
+										"type": "text"
+									},
+									{
+										"key": "Accept",
+										"value": "application/json, text/plain, */*",
+										"type": "text"
+									},
+									{
+										"key": "Cookie",
+										"value": "{{cookie}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{host}}/default/rdmp/dashboard/type/consolidated",
+									"host": [
+										"{{host}}"
+									],
+									"path": [
+										"default",
+										"rdmp",
+										"dashboard",
+										"type",
+										"consolidated"
+									]
+								}
+							},
+							"response": []
+						},
+						{
 							"name": "Dashboard List RDMP Records",
 							"event": [
 								{
