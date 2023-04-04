@@ -489,38 +489,6 @@ export class DashboardComponent extends BaseComponent {
     return planTable;
   }
   
-  public async sortChanged(data: any) {
-    
-    if(this.dashboardTypeSelected == 'standard' || this.dashboardTypeSelected == 'workspace') {
-      let sortString = `${data.variable}:`;
-      if (data.sort == 'desc') {
-        sortString = sortString + "-1";
-      } else {
-        sortString = sortString + "1";
-      }
-      let stagedRecords: any;
-      if(this.dashboardTypeSelected == 'workspace') {
-        stagedRecords = await this.recordService.getRecords('', '', 1, this.dashboardTypeSelected, sortString);
-      } else {
-        stagedRecords = await this.recordService.getRecords(this.recordType, data.step, 1, '', sortString);
-      }
-      
-      let planTable: PlanTable = this.evaluatePlanTableColumns({},{},{}, data.step, stagedRecords);
-      
-      this.records[data.step] = planTable;
-  
-      this.updateSortMap(data);
-    } 
-  }
-
-  private updateSortMap(sortData: any) {
-    let stepTableConfig = this.tableConfig[sortData.step];
-    for (let rowConfig of stepTableConfig) {
-      this.sortMap[sortData.step][rowConfig.variable] = { sort: rowConfig.noSort };
-    }
-
-    this.sortMap[sortData.step][sortData.variable] = { sort: sortData.sort };
-  }
 
 
   public evaluateRowLevelRules(rulesConfig: any, metadata:any, metaMetadata:any, workflow:any, oid:string, ruleSetName:string) {
@@ -665,6 +633,39 @@ export class DashboardComponent extends BaseComponent {
     return res;
   }
 
+  public async sortChanged(data: any) {
+    
+    if(this.dashboardTypeSelected == 'standard' || this.dashboardTypeSelected == 'workspace') {
+      let sortString = `${data.variable}:`;
+      if (data.sort == 'desc') {
+        sortString = sortString + "-1";
+      } else {
+        sortString = sortString + "1";
+      }
+      let stagedRecords: any;
+      if(this.dashboardTypeSelected == 'workspace') {
+        stagedRecords = await this.recordService.getRecords('', '', 1, this.dashboardTypeSelected, sortString);
+      } else {
+        stagedRecords = await this.recordService.getRecords(this.recordType, data.step, 1, '', sortString);
+      }
+      
+      let planTable: PlanTable = this.evaluatePlanTableColumns({},{},{}, data.step, stagedRecords);
+      
+      this.records[data.step] = planTable;
+  
+      this.updateSortMap(data);
+    } 
+  }
+
+  private updateSortMap(sortData: any) {
+    let stepTableConfig = this.tableConfig[sortData.step];
+    for (let rowConfig of stepTableConfig) {
+      this.sortMap[sortData.step][rowConfig.variable] = { sort: rowConfig.noSort };
+    }
+
+    this.sortMap[sortData.step][sortData.variable] = { sort: sortData.sort };
+  }
+  
   public async pageChanged(event: PageChangedEvent, step: string) {
     
     let sortDetails = this.sortMap[step];
