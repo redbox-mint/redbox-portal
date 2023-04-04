@@ -135,8 +135,10 @@ export function getStubRecordService(recordData: any = {}) {
       return recordData['step'];
     },getRecords: function() {
       return recordData['records'];
+    },getRelatedRecords: function() {
+      return recordData['relatedRecords'];
     }
-  };
+  }
 }
 
 export const localeId = 'cimode';
