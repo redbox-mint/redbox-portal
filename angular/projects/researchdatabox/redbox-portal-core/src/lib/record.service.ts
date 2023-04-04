@@ -129,7 +129,7 @@ export class RecordService extends HttpClientService {
 
   //TODO not used anymore by new dashboard dicuss if still needs implementation here?
   public async getAllTypes() {
-    let url = `${this.brandingAndPortalUrl}/record/type/`;
+    let url = `${this.brandingAndPortalUrl}/record/type`;
     const result$ = this.http.get(url).pipe(map(res => res));
     let result = await firstValueFrom(result$);
     return result;
@@ -143,7 +143,7 @@ export class RecordService extends HttpClientService {
   }
 
   public async getAllDashboardTypes() {
-    let url = `${this.brandingAndPortalUrl}/dashboard/type/`;
+    let url = `${this.brandingAndPortalUrl}/dashboard/type`;
     const result$ = this.http.get(url).pipe(map(res => res));
     let result = await firstValueFrom(result$);
     return result;
