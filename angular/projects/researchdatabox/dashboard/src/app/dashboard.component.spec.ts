@@ -140,12 +140,15 @@ describe('DashboardComponent standard', () => {
     await dashboardComponent.initView('rdmp');
     expect(dashboardComponent.workflowSteps.length).toBeGreaterThan(0);
     expect(dashboardComponent.defaultTableConfig.length).toBeGreaterThan(0);
+    expect(dashboardComponent.dashboardTypeSelected).toEqual('standard');
     await dashboardComponent.initStep('draft','draft','rdmp','',1);
     let planTable = dashboardComponent.evaluatePlanTableColumns({}, {}, {}, 'draft', recordDataStandard['records']);
     expect(planTable.items.length).toBeGreaterThan(0);
     dashboardComponent.sortChanged(recordDataStandard['sortData']);
+    expect(dashboardComponent.sortMap['draft']['metadata.title'].sort).toEqual('desc');
     dashboardComponent.pageChanged(recordDataStandard['paginationData'], recordDataStandard['paginationData'].step);
-    expect(dashboardComponent.dashboardTypeSelected).toEqual('standard');
+    expect(dashboardComponent.records['draft'].currentPage).toEqual(1);
+    expect(dashboardComponent.records['draft'].items.length).toBeGreaterThan(0);
   });
 });
 
@@ -280,15 +283,18 @@ describe('DashboardComponent workspace', () => {
     const fixture = TestBed.createComponent(DashboardComponent);
     const dashboardComponent = fixture.componentInstance;
     dashboardComponent.dashboardTypeSelected = 'workspace';
-    await dashboardComponent.initView('');
+    await dashboardComponent.initView('workspace');
     expect(dashboardComponent.workflowSteps.length).toBeGreaterThan(0);
     expect(dashboardComponent.defaultTableConfig.length).toBeGreaterThan(0);
-    await dashboardComponent.initStep('existing-locations','existing-locations-draft','','workspace',1);
+    expect(dashboardComponent.dashboardTypeSelected).toEqual('workspace');
+    await dashboardComponent.initStep('','existing-locations-draft','','workspace',1);
     let planTable = dashboardComponent.evaluatePlanTableColumns({}, {}, {}, 'existing-locations-draft', recordDataWorkspace['records']);
     expect(planTable.items.length).toBeGreaterThan(0);
-    expect(dashboardComponent.dashboardTypeSelected).toEqual('workspace');
     dashboardComponent.sortChanged(recordDataWorkspace['sortData']);
+    expect(dashboardComponent.sortMap['existing-locations-draft']['metadata.title'].sort).toEqual('desc');
     dashboardComponent.pageChanged(recordDataWorkspace['paginationData'], recordDataWorkspace['paginationData'].step);
+    expect(dashboardComponent.records['existing-locations-draft'].currentPage).toEqual(1);
+    expect(dashboardComponent.records['existing-locations-draft'].items.length).toBeGreaterThan(0);
   });
 });
 
@@ -481,15 +487,16 @@ describe('DashboardComponent consolidated group by record type', () => {
     const fixture = TestBed.createComponent(DashboardComponent);
     const dashboardComponent = fixture.componentInstance;
     dashboardComponent.dashboardTypeSelected = 'consolidated';
-    await dashboardComponent.initView('rdmp');
+    await dashboardComponent.initView('consolidated');
     expect(dashboardComponent.workflowSteps.length).toBeGreaterThan(0);
     expect(dashboardComponent.defaultTableConfig.length).toBeGreaterThan(0);
-    await dashboardComponent.initStep('consolidated','consolidated','rdmp','',1);
+    expect(dashboardComponent.dashboardTypeSelected).toEqual('consolidated');
+    await dashboardComponent.initStep('','consolidated','rdmp','',1);
     let groupedRecords = recordDataConsolidated['groupedRecords'];
     let planTable = dashboardComponent.evaluatePlanTableColumns(dashboardComponent.groupRowConfig, 
                                                                 dashboardComponent.groupRowRules, 
                                                                 dashboardComponent.rowLevelRules, 
-                                                                'draft', 
+                                                                'consolidated', 
                                                                 groupedRecords);
     expect(planTable.items.length).toBeGreaterThan(0);
     dashboardComponent.evaluateRowLevelRules(dashboardComponent.rowLevelRules, 
@@ -500,7 +507,8 @@ describe('DashboardComponent consolidated group by record type', () => {
                                              'dashboardActionsPerRow');
     dashboardComponent.evaluateGroupRowRules(dashboardComponent.groupRowRules,groupedRecords['groupedItems'][0].items, 'dashboardActionsPerGroupRow');
     dashboardComponent.pageChanged(recordDataConsolidated['paginationData'], recordDataConsolidated['paginationData'].step);
-    expect(dashboardComponent.dashboardTypeSelected).toEqual('consolidated');
+    expect(dashboardComponent.records['consolidated'].currentPage).toEqual(1);
+    expect(dashboardComponent.records['consolidated'].items.length).toBeGreaterThan(0);
   });
 });
 
@@ -710,15 +718,16 @@ describe('DashboardComponent consolidated group by relationships', () => {
     const fixture = TestBed.createComponent(DashboardComponent);
     const dashboardComponent = fixture.componentInstance;
     dashboardComponent.dashboardTypeSelected = 'consolidated';
-    await dashboardComponent.initView('rdmp');
+    await dashboardComponent.initView('consolidated');
     expect(dashboardComponent.workflowSteps.length).toBeGreaterThan(0);
     expect(dashboardComponent.defaultTableConfig.length).toBeGreaterThan(0);
-    await dashboardComponent.initStep('consolidated','consolidated','rdmp','',1);
+    expect(dashboardComponent.dashboardTypeSelected).toEqual('consolidated');
+    await dashboardComponent.initStep('','consolidated','rdmp','',1);
     let groupedRecords = recordDataConsolidatedRelationships['groupedRecords'];
     let planTable = dashboardComponent.evaluatePlanTableColumns(dashboardComponent.groupRowConfig, 
                                                                 dashboardComponent.groupRowRules, 
                                                                 dashboardComponent.rowLevelRules, 
-                                                                'draft', 
+                                                                'consolidated',
                                                                 groupedRecords);
     expect(planTable.items.length).toBeGreaterThan(0);
     dashboardComponent.evaluateRowLevelRules(dashboardComponent.rowLevelRules, 
@@ -729,6 +738,7 @@ describe('DashboardComponent consolidated group by relationships', () => {
                                              'dashboardActionsPerRow');
     dashboardComponent.evaluateGroupRowRules(dashboardComponent.groupRowRules,groupedRecords['groupedItems'][0].items, 'dashboardActionsPerGroupRow');
     dashboardComponent.pageChanged(recordDataConsolidatedRelationships['paginationData'], recordDataConsolidatedRelationships['paginationData'].step);
-    expect(dashboardComponent.dashboardTypeSelected).toEqual('consolidated');
+    expect(dashboardComponent.records['consolidated'].currentPage).toEqual(1);
+    expect(dashboardComponent.records['consolidated'].items.length).toBeGreaterThan(0);
   });
 });
