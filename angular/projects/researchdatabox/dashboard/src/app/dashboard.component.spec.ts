@@ -72,6 +72,83 @@ let recordDataStandard = {
   }
 };
 
+describe('DashboardComponent standard', () => {
+  beforeEach(async () => {
+    let configService = getStubConfigService();
+    let translationService = getStubTranslationService();
+    let recordService = getStubRecordService(recordDataStandard);
+    let userService = getStubUserService(username, password);
+
+    const testModule = TestBed.configureTestingModule({
+      declarations: [
+        DashboardComponent
+      ],
+      imports: [
+        FormsModule,
+        I18NextModule.forRoot()
+      ],
+      providers: [
+        {
+          provide: APP_BASE_HREF,
+          useValue: 'base'
+        },
+        LoggerService,
+        UtilityService,
+        {
+          provide: TranslationService,
+          useValue: translationService
+        },
+        {
+          provide: ConfigService,
+          useValue: configService
+        },
+        {
+          provide: RecordService,
+          useValue: recordService
+        },
+        {
+          provide: UserService,
+          useValue: userService
+        }
+      ]
+    });
+    TestBed.inject(RecordService);
+    await testModule.compileComponents();
+  });
+
+  it('should create the app', () => {
+    const fixture = TestBed.createComponent(DashboardComponent);
+    const dashboardComponent = fixture.componentInstance;
+    expect(dashboardComponent).toBeTruthy();
+  });
+
+  it(`should have a set a pre defined dashboard type options`, () => {
+    const fixture = TestBed.createComponent(DashboardComponent);
+    const dashboardComponent = fixture.componentInstance;
+    expect(dashboardComponent.dashboardTypeOptions).toEqual(dashboardTypeOptions);
+  });
+  
+  it(`should have a default dashboard type`, () => {
+    const fixture = TestBed.createComponent(DashboardComponent);
+    const dashboardComponent = fixture.componentInstance;
+    expect(dashboardComponent.dashboardTypeSelected).toEqual(dashboardComponent.defaultDashboardTypeSelected);
+  });
+
+  it(`init view`, async () => {
+    const fixture = TestBed.createComponent(DashboardComponent);
+    const dashboardComponent = fixture.componentInstance;
+    await dashboardComponent.initView('rdmp');
+    expect(dashboardComponent.workflowSteps.length).toBeGreaterThan(0);
+    expect(dashboardComponent.defaultTableConfig.length).toBeGreaterThan(0);
+    await dashboardComponent.initStep('draft','draft','rdmp','',1);
+    let planTable = dashboardComponent.evaluatePlanTableColumns({}, {}, {}, 'draft', recordDataStandard['records']);
+    expect(planTable.items.length).toBeGreaterThan(0);
+    dashboardComponent.sortChanged(recordDataStandard['sortData']);
+    dashboardComponent.pageChanged(recordDataStandard['paginationData'], recordDataStandard['paginationData'].step);
+    expect(dashboardComponent.dashboardTypeSelected).toEqual('standard');
+  });
+});
+
 let recordDataWorkspace = { 
   dashboardType: 
   { 
@@ -134,6 +211,86 @@ let recordDataWorkspace = {
     step: 'existing-locations-draft'
   }
 };
+
+describe('DashboardComponent workspace', () => {
+  beforeEach(async () => {
+    let configService = getStubConfigService();
+    let translationService = getStubTranslationService();
+    let recordService = getStubRecordService(recordDataWorkspace);
+    let userService = getStubUserService(username, password);
+
+    const testModule = TestBed.configureTestingModule({
+      declarations: [
+        DashboardComponent
+      ],
+      imports: [
+        FormsModule,
+        I18NextModule.forRoot()
+      ],
+      providers: [
+        {
+          provide: APP_BASE_HREF,
+          useValue: 'base'
+        },
+        LoggerService,
+        UtilityService,
+        {
+          provide: TranslationService,
+          useValue: translationService
+        },
+        {
+          provide: ConfigService,
+          useValue: configService
+        },
+        {
+          provide: RecordService,
+          useValue: recordService
+        },
+        {
+          provide: UserService,
+          useValue: userService
+        }
+      ]
+    });
+    // TestBed.inject(I18NEXT_SERVICE);
+    TestBed.inject(RecordService);
+    await testModule.compileComponents();
+  });
+
+  it('should create the app', () => {
+    const fixture = TestBed.createComponent(DashboardComponent);
+    const dashboardComponent = fixture.componentInstance;
+    expect(dashboardComponent).toBeTruthy();
+  });
+
+  it(`should have a set a pre defined dashboard type options`, () => {
+    const fixture = TestBed.createComponent(DashboardComponent);
+    const dashboardComponent = fixture.componentInstance;
+    expect(dashboardComponent.dashboardTypeOptions).toEqual(dashboardTypeOptions);
+  });
+  
+  it(`should have a default dashboard type`, () => {
+    const fixture = TestBed.createComponent(DashboardComponent);
+    const dashboardComponent = fixture.componentInstance;
+    dashboardComponent.dashboardTypeSelected = 'workspace';
+    expect(dashboardComponent.dashboardTypeSelected).toEqual('workspace');
+  });
+
+  it(`init view`, async () => {
+    const fixture = TestBed.createComponent(DashboardComponent);
+    const dashboardComponent = fixture.componentInstance;
+    dashboardComponent.dashboardTypeSelected = 'workspace';
+    await dashboardComponent.initView('');
+    expect(dashboardComponent.workflowSteps.length).toBeGreaterThan(0);
+    expect(dashboardComponent.defaultTableConfig.length).toBeGreaterThan(0);
+    await dashboardComponent.initStep('existing-locations','existing-locations-draft','','workspace',1);
+    let planTable = dashboardComponent.evaluatePlanTableColumns({}, {}, {}, 'existing-locations-draft', recordDataWorkspace['records']);
+    expect(planTable.items.length).toBeGreaterThan(0);
+    expect(dashboardComponent.dashboardTypeSelected).toEqual('workspace');
+    dashboardComponent.sortChanged(recordDataWorkspace['sortData']);
+    dashboardComponent.pageChanged(recordDataWorkspace['paginationData'], recordDataWorkspace['paginationData'].step);
+  });
+});
 
 let recordDataConsolidated = { 
   dashboardType: 
@@ -256,163 +413,6 @@ let recordDataConsolidated = {
     step: 'consolidated'
   }
 };
-
-describe('DashboardComponent standard', () => {
-  beforeEach(async () => {
-    let configService = getStubConfigService();
-    let translationService = getStubTranslationService();
-    let recordService = getStubRecordService(recordDataStandard);
-    let userService = getStubUserService(username, password);
-
-    const testModule = TestBed.configureTestingModule({
-      declarations: [
-        DashboardComponent
-      ],
-      imports: [
-        FormsModule,
-        I18NextModule.forRoot()
-      ],
-      providers: [
-        {
-          provide: APP_BASE_HREF,
-          useValue: 'base'
-        },
-        LoggerService,
-        UtilityService,
-        {
-          provide: TranslationService,
-          useValue: translationService
-        },
-        {
-          provide: ConfigService,
-          useValue: configService
-        },
-        {
-          provide: RecordService,
-          useValue: recordService
-        },
-        {
-          provide: UserService,
-          useValue: userService
-        }
-      ]
-    });
-    TestBed.inject(RecordService);
-    await testModule.compileComponents();
-  });
-
-  it('should create the app', () => {
-    const fixture = TestBed.createComponent(DashboardComponent);
-    const dashboardComponent = fixture.componentInstance;
-    expect(dashboardComponent).toBeTruthy();
-  });
-
-  it(`should have a set a pre defined dashboard type options`, () => {
-    const fixture = TestBed.createComponent(DashboardComponent);
-    const dashboardComponent = fixture.componentInstance;
-    expect(dashboardComponent.dashboardTypeOptions).toEqual(dashboardTypeOptions);
-  });
-  
-  it(`should have a default dashboard type`, () => {
-    const fixture = TestBed.createComponent(DashboardComponent);
-    const dashboardComponent = fixture.componentInstance;
-    expect(dashboardComponent.dashboardTypeSelected).toEqual(dashboardComponent.defaultDashboardTypeSelected);
-  });
-
-  it(`init view`, async () => {
-    const fixture = TestBed.createComponent(DashboardComponent);
-    const dashboardComponent = fixture.componentInstance;
-    await dashboardComponent.initView('rdmp');
-    expect(dashboardComponent.workflowSteps.length).toBeGreaterThan(0);
-    expect(dashboardComponent.defaultTableConfig.length).toBeGreaterThan(0);
-    await dashboardComponent.initStep('draft','draft','rdmp','',1);
-    let planTable = dashboardComponent.evaluatePlanTableColumns({}, {}, {}, 'draft', recordDataStandard['records']);
-    expect(planTable.items.length).toBeGreaterThan(0);
-    dashboardComponent.sortChanged(recordDataStandard['sortData']);
-    dashboardComponent.pageChanged(recordDataStandard['paginationData'], recordDataStandard['paginationData'].step);
-    expect(dashboardComponent.dashboardTypeSelected).toEqual('standard');
-  });
-});
-
-describe('DashboardComponent workspace', () => {
-  beforeEach(async () => {
-    let configService = getStubConfigService();
-    let translationService = getStubTranslationService();
-    let recordService = getStubRecordService(recordDataWorkspace);
-    let userService = getStubUserService(username, password);
-
-    const testModule = TestBed.configureTestingModule({
-      declarations: [
-        DashboardComponent
-      ],
-      imports: [
-        FormsModule,
-        I18NextModule.forRoot()
-      ],
-      providers: [
-        {
-          provide: APP_BASE_HREF,
-          useValue: 'base'
-        },
-        LoggerService,
-        UtilityService,
-        {
-          provide: TranslationService,
-          useValue: translationService
-        },
-        {
-          provide: ConfigService,
-          useValue: configService
-        },
-        {
-          provide: RecordService,
-          useValue: recordService
-        },
-        {
-          provide: UserService,
-          useValue: userService
-        }
-      ]
-    });
-    // TestBed.inject(I18NEXT_SERVICE);
-    TestBed.inject(RecordService);
-    await testModule.compileComponents();
-  });
-
-  it('should create the app', () => {
-    const fixture = TestBed.createComponent(DashboardComponent);
-    const dashboardComponent = fixture.componentInstance;
-    expect(dashboardComponent).toBeTruthy();
-  });
-
-  it(`should have a set a pre defined dashboard type options`, () => {
-    const fixture = TestBed.createComponent(DashboardComponent);
-    const dashboardComponent = fixture.componentInstance;
-    expect(dashboardComponent.dashboardTypeOptions).toEqual(dashboardTypeOptions);
-  });
-  
-  it(`should have a default dashboard type`, () => {
-    const fixture = TestBed.createComponent(DashboardComponent);
-    const dashboardComponent = fixture.componentInstance;
-    dashboardComponent.dashboardTypeSelected = 'workspace';
-    expect(dashboardComponent.dashboardTypeSelected).toEqual('workspace');
-  });
-
-  it(`init view`, async () => {
-    const fixture = TestBed.createComponent(DashboardComponent);
-    const dashboardComponent = fixture.componentInstance;
-    dashboardComponent.dashboardTypeSelected = 'workspace';
-    await dashboardComponent.initView('');
-    expect(dashboardComponent.workflowSteps.length).toBeGreaterThan(0);
-    expect(dashboardComponent.defaultTableConfig.length).toBeGreaterThan(0);
-    await dashboardComponent.initStep('existing-locations','existing-locations-draft','','workspace',1);
-    let planTable = dashboardComponent.evaluatePlanTableColumns({}, {}, {}, 'existing-locations-draft', recordDataWorkspace['records']);
-    expect(planTable.items.length).toBeGreaterThan(0);
-    expect(dashboardComponent.dashboardTypeSelected).toEqual('workspace');
-    dashboardComponent.sortChanged(recordDataWorkspace['sortData']);
-    dashboardComponent.pageChanged(recordDataWorkspace['paginationData'], recordDataWorkspace['paginationData'].step);
-  });
-});
 
 describe('DashboardComponent consolidated', () => {
   beforeEach(async () => {
