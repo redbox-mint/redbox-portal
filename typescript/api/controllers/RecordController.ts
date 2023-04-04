@@ -1263,12 +1263,14 @@ export module Controllers {
     public getAllDashboardTypes(req, res) {
       const brand = BrandingService.getBrand(req.session.branding);
       DashboardTypesService.getAll(brand).subscribe(dashboardTypes => {
-        let dashboardTypeModels = [];
+        let dashboardTypesModel = { dashboardTypes: [] };
+        let dashboardTypesModelList = [];
         for (let dashboardType of dashboardTypes) {
           let dashboardTypeModel = new DashboardTypeResponseModel(_.get(dashboardType, 'name'), _.get(dashboardType,'formatRules'));
-          dashboardTypeModels.push(dashboardTypeModel);
+          dashboardTypesModelList.push(dashboardTypeModel);
         }
-        this.ajaxOk(req, res, null, dashboardTypeModels);
+        _.set(dashboardTypesModel, 'dashboardTypes', dashboardTypesModelList);
+        this.ajaxOk(req, res, null, dashboardTypesModel);
       }, error => {
         this.ajaxFail(req, res, error.message);
       });
