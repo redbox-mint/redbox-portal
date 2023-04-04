@@ -15,24 +15,20 @@ let recordDataStandard = {
     formatRules: {
       filterBy: [], 
       filterWorkflowStepsBy: [], 
-      sortBy: '',
+      sortBy: 'metaMetadata.lastSaveDate:-1',
       groupBy: '', 
       sortGroupBy: [], 
     }
   },
   step: [{
     name: 'draft',
-    rdmp: {
-      draft: {
-        config: {
-          workflow: {
-            stage: 'draft'
-          },
-          dashboard: {
-            table: {
-              rowConfig: []
-            }
-          }
+    config: {
+      workflow: {
+        stage: 'draft'
+      },
+      dashboard: {
+        table: { 
+          dummyRowConfig: [ 'dummy' ] //intentionally not using rowConfig to avoid overriding the default but making sure config.dashboard.table is not undefined
         }
       }
     }
@@ -157,25 +153,22 @@ let recordDataWorkspace = {
   { 
     formatRules: {
       filterBy: [], 
-      filterWorkflowStepsBy: [], 
-      sortBy: '',
+      recordTypeFilterBy: 'existing-locations',
+      filterWorkflowStepsBy: [ 'existing-locations-draft'], 
+      sortBy: 'metaMetadata.lastSaveDate:-1',
       groupBy: '', 
       sortGroupBy: [], 
     }
   },
   step: [{
     name: 'existing-locations-draft',
-    'existing-locations': {
-      'existing-locations-draft': {
-        config: {
-          workflow: {
-            stage: 'existing-locations-draft'
-          },
-          dashboard: {
-            table: {
-              rowConfig: []
-            }
-          }
+    config: {
+      workflow: {
+        stage: 'existing-locations-draft'
+      },
+      dashboard: {
+        table: {
+          dummyRowConfig: [ 'dummy' ] //intentionally not using rowConfig to avoid overriding the default but making sure config.dashboard.table is not undefined
         }
       }
     }
@@ -303,7 +296,7 @@ let recordDataConsolidated = {
   { 
     formatRules: {
       filterBy: [], 
-      filterWorkflowStepsBy: [], 
+      filterWorkflowStepsBy: ['consolidated'], 
       sortBy: '',
       groupBy: 'groupedByRecordType', 
       sortGroupBy: [{ rowLevel: 0, compareFieldValue: 'rdmp' }], 
@@ -311,54 +304,50 @@ let recordDataConsolidated = {
   },
   step: [{
     name: 'consolidated',
-    consolidated: {
-      consolidated: {
-        config: {
-          workflow: {
-            stage: 'consolidated'
-          },
-          baseRecordType: 'rdmp',
-          dashboard: {
-            table: {
-              rowRulesConfig: [
+    config: {
+      workflow: {
+        stage: 'consolidated'
+      },
+      baseRecordType: 'rdmp',
+      dashboard: {
+        table: {
+          rowRulesConfig: [
+            {
+              ruleSetName: 'dashboardActionsPerRow',
+              applyRuleSet: true, 
+              type: 'multi-item-rendering',
+              rules: [ 
                 {
-                  ruleSetName: 'dashboardActionsPerRow',
-                  applyRuleSet: true, 
-                  type: 'multi-item-rendering',
-                  rules: [ 
-                    {
-                      name: 'Edit', 
-                      action: 'show', 
-                      renderItemTemplate: `<%= name %>`,
-                      evaluateRulesTemplate: `<%= true %>`  
-                    }
-                  ]
-                }
-              ],
-              groupRowConfig: [
-                {
-                  title: 'Actions',
-                  variable: '',
-                  template: `<%= rulesService.evaluateGroupRowRules(groupRulesConfig, groupedItems, 'dashboardActionsPerGroupRow') %>`
-                }
-              ],
-              groupRowRulesConfig: [
-                {
-                  ruleSetName: 'dashboardActionsPerGroupRow',
-                  applyRuleSet: true, 
-                  rules: [ 
-                    {
-                      name: 'Send for Conferral', 
-                      action: 'show', 
-                      mode: 'alo', 
-                      renderItemTemplate: `<%= name %>`,
-                      evaluateRulesTemplate: `<%= true %>`
-                    }
-                  ]
+                  name: 'Edit', 
+                  action: 'show', 
+                  renderItemTemplate: `<%= name %>`,
+                  evaluateRulesTemplate: `<%= true %>`  
                 }
               ]
             }
-          }
+          ],
+          groupRowConfig: [
+            {
+              title: 'Actions',
+              variable: '',
+              template: `<%= rulesService.evaluateGroupRowRules(groupRulesConfig, groupedItems, 'dashboardActionsPerGroupRow') %>`
+            }
+          ],
+          groupRowRulesConfig: [
+            {
+              ruleSetName: 'dashboardActionsPerGroupRow',
+              applyRuleSet: true, 
+              rules: [ 
+                {
+                  name: 'Send for Conferral', 
+                  action: 'show', 
+                  mode: 'alo', 
+                  renderItemTemplate: `<%= name %>`,
+                  evaluateRulesTemplate: `<%= true %>`
+                }
+              ]
+            }
+          ]
         }
       }
     }
@@ -517,7 +506,7 @@ let recordDataConsolidatedRelationships = {
   { 
     formatRules: {
       filterBy: [], 
-      filterWorkflowStepsBy: [], 
+      filterWorkflowStepsBy: ['consolidated'], 
       sortBy: '',
       groupBy: 'groupedByRelationships', 
       sortGroupBy: [{ rowLevel: 0, compareFieldValue: 'rdmp' }], 
@@ -525,54 +514,50 @@ let recordDataConsolidatedRelationships = {
   },
   step: [{
     name: 'consolidated',
-    consolidated: {
-      consolidated: {
-        config: {
-          workflow: {
-            stage: 'consolidated'
-          },
-          baseRecordType: 'rdmp',
-          dashboard: {
-            table: {
-              rowRulesConfig: [
+    config: {
+      workflow: {
+        stage: 'consolidated'
+      },
+      baseRecordType: 'rdmp',
+      dashboard: {
+        table: {
+          rowRulesConfig: [
+            {
+              ruleSetName: 'dashboardActionsPerRow',
+              applyRuleSet: true, 
+              type: 'multi-item-rendering',
+              rules: [ 
                 {
-                  ruleSetName: 'dashboardActionsPerRow',
-                  applyRuleSet: true, 
-                  type: 'multi-item-rendering',
-                  rules: [ 
-                    {
-                      name: 'Edit', 
-                      action: 'show', 
-                      renderItemTemplate: `<%= name %>`,
-                      evaluateRulesTemplate: `<%= true %>`  
-                    }
-                  ]
-                }
-              ],
-              groupRowConfig: [
-                {
-                  title: 'Actions',
-                  variable: '',
-                  template: `<%= rulesService.evaluateGroupRowRules(groupRulesConfig, groupedItems, 'dashboardActionsPerGroupRow') %>`
-                }
-              ],
-              groupRowRulesConfig: [
-                {
-                  ruleSetName: 'dashboardActionsPerGroupRow',
-                  applyRuleSet: true, 
-                  rules: [ 
-                    {
-                      name: 'Send for Conferral', 
-                      action: 'show', 
-                      mode: 'alo', 
-                      renderItemTemplate: `<%= name %>`,
-                      evaluateRulesTemplate: `<%= true %>`
-                    }
-                  ]
+                  name: 'Edit', 
+                  action: 'show', 
+                  renderItemTemplate: `<%= name %>`,
+                  evaluateRulesTemplate: `<%= true %>`  
                 }
               ]
             }
-          }
+          ],
+          groupRowConfig: [
+            {
+              title: 'Actions',
+              variable: '',
+              template: `<%= rulesService.evaluateGroupRowRules(groupRulesConfig, groupedItems, 'dashboardActionsPerGroupRow') %>`
+            }
+          ],
+          groupRowRulesConfig: [
+            {
+              ruleSetName: 'dashboardActionsPerGroupRow',
+              applyRuleSet: true, 
+              rules: [ 
+                {
+                  name: 'Send for Conferral', 
+                  action: 'show', 
+                  mode: 'alo', 
+                  renderItemTemplate: `<%= name %>`,
+                  evaluateRulesTemplate: `<%= true %>`
+                }
+              ]
+            }
+          ]
         }
       }
     }
