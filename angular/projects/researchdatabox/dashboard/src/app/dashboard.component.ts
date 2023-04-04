@@ -190,7 +190,7 @@ export class DashboardComponent extends BaseComponent {
     steps = _.orderBy(steps, ['config.displayIndex'], ['asc']);
 
     for (let step of steps) {
-      step.recordTypeName = recordType;
+      
       this.workflowSteps.push(step);
       // console.log('----------------------- step -------------------------- '+step.config.workflow.stageLabel);
       let stepTableConfig = this.defaultTableConfig;
@@ -665,7 +665,7 @@ export class DashboardComponent extends BaseComponent {
 
     this.sortMap[sortData.step][sortData.variable] = { sort: sortData.sort };
   }
-  
+
   public async pageChanged(event: PageChangedEvent, step: string) {
     
     let sortDetails = this.sortMap[step];
