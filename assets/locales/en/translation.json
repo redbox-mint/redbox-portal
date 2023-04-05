@@ -1,6 +1,6 @@
 {
-  "dashboard-heading": "My {stage} {recordTypeName}",
-  "dashboard-heading-one-step": "My {recordTypeName}",
+  "dashboard-heading": "My {{stage}} {{recordTypeName}}",
+  "dashboard-heading-one-step": "My {{recordTypeName}}",
   "create-plan": "Create a plan",
   "create-rdmp": "Create RDMP",
   "rdmp-name-plural": "Plans",
@@ -64,7 +64,7 @@
   "header-data-manager": "Data manager",
   "no-draft-plans": "You currently don't have any draft plans.",
   "no-active-plans": "You currently don't have any active plans.",
-  "no-records": "You currently don't have any {stage} {recordTypeName}.",
+  "no-records": "You currently don't have any {{stage}} {{recordTypeName}}.",
   "local-creds-header": "Local Credentials",
   "export-modified-after": "Modified after:",
   "export-modified-before": "Modified before:",
