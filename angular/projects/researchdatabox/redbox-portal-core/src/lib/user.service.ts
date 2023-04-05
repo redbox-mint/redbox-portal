@@ -51,6 +51,11 @@ export interface UserLoginResult {
   url: string;
 }
 
+export interface SaveResult {
+  status: boolean;
+  message: string;
+}
+
 /**
  * User-centric functions. 
  * 
@@ -111,4 +116,58 @@ export class UserService extends HttpClientService {
   public getInfoUrl(): string {
     return this.infoUrl;
   }
+
+  // old options from angular legacy
+  // headersObj['X-Source'] = 'jsclient';
+  // headersObj['Content-Type'] = 'application/json;charset=utf-8';
+  // headersObj['X-CSRF-Token'] = this.config.csrfToken;
+  public async getUsers() {
+    let url = `${this.brandingAndPortalUrl}/admin/users/get`;
+    const result$ = this.http.get(url, this.reqOptsJsonBodyOnly).pipe(map(res => res));
+    let result =  await firstValueFrom(result$);
+    return result; // old function in angular legacy returned User[]
+  }
+
+  public async updateUserDetails(userid: any, details: any) {
+    let url = `${this.brandingAndPortalUrl}/admin/users/update`;
+    const result$ = this.http.post(url, {userid: userid, details:details}, this.reqOptsJsonBodyOnly).pipe(map(res => res));
+    let result =  await firstValueFrom(result$);
+    return result; // old function in angular legacy returned SaveResult[]
+  }
+
+  public async addLocalUser(username: any, details: any) {
+    let url = `${this.brandingAndPortalUrl}/admin/users/newUser`;
+    const result$ =  this.http.post(url, {username: username, details:details}, this.reqOptsJsonBodyOnly).pipe(map(res => res));
+    let result =  await firstValueFrom(result$);
+    return result; // old function in angular legacy returned SaveResult[]
+  }
+
+  public async genKey(userid: any) {
+    let url = `${this.brandingAndPortalUrl}/admin/users/genKey`;
+    const result$ = this.http.post(url, {userid: userid}, this.reqOptsJsonBodyOnly).pipe(map(res => res));
+    let result =  await firstValueFrom(result$);
+    return result; // old function in angular legacy returned SaveResult[]
+  }
+
+  public async revokeKey(userid: any) {
+    let url = `${this.brandingAndPortalUrl}/admin/users/revokeKey`;
+    const result$ = this.http.post(url, {userid: userid}, this.reqOptsJsonBodyOnly).pipe(map(res => res));
+    let result =  await firstValueFrom(result$);
+    return result; // old function in angular legacy returned SaveResult[]
+  }
+
+  public async getBrandRoles() {
+    let url = `${this.brandingAndPortalUrl}/admin/roles/get`;
+    const result$ = this.http.get(url,this.reqOptsJsonBodyOnly).pipe(map(res => res));
+    let result =  await firstValueFrom(result$);
+    return result; // old function in angular legacy returned Role[]
+  }
+
+  public async updateUserRoles(userid: any, roleIds: any) {
+    let url = `${this.brandingAndPortalUrl}/admin/roles/user`;
+    const result$ = this.http.post(url, {userid: userid, roles:roleIds},this.reqOptsJsonBodyOnly).pipe(map(res => res));
+    let result =  await firstValueFrom(result$);
+    return result; // old function in angular legacy returned SaveResult[]
+  }
+  
 }
