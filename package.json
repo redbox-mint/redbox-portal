@@ -22,7 +22,7 @@
     "express-session": "^1.17.3",
     "flat": "^5.0.2",
     "font-awesome-sass": "4.7.0",
-    "fs-extra": "^10.0.0",
+    "fs-extra": "^11.1.1",
     "grunt": "^1.6.1",
     "grunt-contrib-clean": "^2.0.1",
     "grunt-contrib-coffee": "^2.1.0",
