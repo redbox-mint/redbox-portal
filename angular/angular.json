@@ -441,7 +441,7 @@
         "build": {
           "builder": "@angular-devkit/build-angular:browser",
           "options": {
-            "outputPath": "dist/researchdatabox/manage-users",
+            "outputPath": "../assets/angular/manage-users",
             "index": "projects/researchdatabox/manage-users/src/index.html",
             "main": "projects/researchdatabox/manage-users/src/main.ts",
             "polyfills": [
