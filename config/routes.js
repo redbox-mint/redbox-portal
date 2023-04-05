@@ -184,7 +184,7 @@ module.exports.routes = {
     controller: 'RecordController',
     action: 'edit',
     locals: {
-      'localFormName': 'rdmp-1.0-finalised'
+      'localFormName': 'default-1.0-draft'
     }
   },
   'delete /:branding/:portal/record/delete/:oid': 'RecordController.delete',
