@@ -40,7 +40,7 @@ import { ListAPIResponse } from '@researchdatabox/redbox-core-types';
 
 
 
-const UUIDGenerator = require('uuid/v4');
+import { v4 as UUIDGenerator } from 'uuid';
 export module Controllers {
   /**
    * RecordController API version
