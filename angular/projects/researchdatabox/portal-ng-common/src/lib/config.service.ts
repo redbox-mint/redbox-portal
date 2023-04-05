@@ -21,7 +21,6 @@ import { Injectable, Inject} from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Subject, firstValueFrom } from 'rxjs';
 import { mergeMap } from 'rxjs/operators';
-import * as _ from "lodash";
 import { get as _get, isEmpty as _isEmpty, isUndefined as _isUndefined } from 'lodash-es';
 import { APP_BASE_HREF } from '@angular/common';
 import { Service } from './service.interface';

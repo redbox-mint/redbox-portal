@@ -1,5 +1,5 @@
 /*
- * Public API Surface of redbox-portal-core
+ * Public API Surface of portal-ng-common
  */
 
 export * from './lib/service.interface';
@@ -15,4 +15,4 @@ export * from './lib/helper.spec';
 export * from './lib/report.service';
 export * from './lib/record.model';
 export * from './lib/record-table.component';
-export * from './lib/redbox-portal-core.module';
+export * from './lib/portal-ng-common.module';

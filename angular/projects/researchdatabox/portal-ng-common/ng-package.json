@@ -1,6 +1,6 @@
 {
   "$schema": "../../../node_modules/ng-packagr/ng-package.schema.json",
-  "dest": "../../../dist/researchdatabox/redbox-portal-core",
+  "dest": "../../../dist/researchdatabox/portal-ng-common",
   "lib": {
     "entryFile": "src/public-api.ts"
   }

@@ -22,7 +22,7 @@ declare var module;
 declare var sails;
 declare var _;
 declare var BrandingService, UsersService, ConfigService;
-import * as uuidv4 from 'uuid/v4';
+import { v4 as uuidv4 } from 'uuid';
 
 import { Controllers as controllers, RequestDetails} from '@researchdatabox/redbox-core-types';
 

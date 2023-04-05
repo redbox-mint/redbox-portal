@@ -18,7 +18,6 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 import { Injectable } from '@angular/core';
-import * as _ from "lodash";
 
 /**
  *

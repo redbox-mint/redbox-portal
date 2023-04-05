@@ -25,8 +25,7 @@ import { ConfigService } from './config.service';
 import { UtilityService } from './utility.service';
 import { LoggerService } from './logger.service';
 import { HttpClientService } from './httpClient.service';
-import * as _ from 'lodash';
-import { merge as _merge } from 'lodash-es';
+import { merge as _merge, isUndefined as _isUndefined, isEmpty as _isEmpty, get as _get, isArray as _isArray } from 'lodash-es';
 
 export interface RecordTypeConf {
   name: string;
@@ -87,12 +86,12 @@ export class RecordService extends HttpClientService {
     
     let response: any = {};
     let items = [];
-    let childOrTreeLevel2: any = _.get(relatedRecords, 'processedRelationships');
+    let childOrTreeLevel2: any = _get(relatedRecords, 'processedRelationships');
 
     for(let childNameStr of childOrTreeLevel2) {
-      let childArr = _.get(relatedRecords,'relatedObjects.'+childNameStr);
+      let childArr = _get(relatedRecords,'relatedObjects.'+childNameStr);
       
-      if(!_.isUndefined(childArr) && _.isArray(childArr)) {
+      if(!_isUndefined(childArr) && _isArray(childArr)) {
         for (let child of childArr) {
           let item: any = {};
           item["oid"] = child["redboxOid"];
@@ -114,13 +113,13 @@ export class RecordService extends HttpClientService {
   public async getRecords(recordType:string,state:string,pageNumber:number,packageType:string='', sort:string='', filterFields:string='', filterString:string='', filterMode:string='') {
     let rows = 10;
     let start = (pageNumber-1) * rows;
-    recordType = (!_.isEmpty(recordType) && !_.isUndefined(recordType)) ? `recordType=${recordType}` : '';
-    packageType = (!_.isEmpty(packageType) && !_.isUndefined(packageType)) ? `packageType=${packageType}` : '';
-    sort = (!_.isEmpty(sort) && !_.isUndefined(sort)) ? `&sort=${sort}` : '';
-    state = (!_.isEmpty(state) && !_.isUndefined(state)) ? `&state=${state}` : '';
-    filterFields = (!_.isEmpty(filterFields) && !_.isUndefined(filterFields)) ? `&filterFields=${filterFields}` : '';
-    filterString = (!_.isEmpty(filterString) && !_.isUndefined(filterString)) ? `&filter=${filterString}` : '';
-    filterMode = (!_.isEmpty(filterMode) && !_.isUndefined(filterMode)) ? `&filterMode=${filterMode}` : '';
+    recordType = (!_isEmpty(recordType) && !_isUndefined(recordType)) ? `recordType=${recordType}` : '';
+    packageType = (!_isEmpty(packageType) && !_isUndefined(packageType)) ? `packageType=${packageType}` : '';
+    sort = (!_isEmpty(sort) && !_isUndefined(sort)) ? `&sort=${sort}` : '';
+    state = (!_isEmpty(state) && !_isUndefined(state)) ? `&state=${state}` : '';
+    filterFields = (!_isEmpty(filterFields) && !_isUndefined(filterFields)) ? `&filterFields=${filterFields}` : '';
+    filterString = (!_isEmpty(filterString) && !_isUndefined(filterString)) ? `&filter=${filterString}` : '';
+    filterMode = (!_isEmpty(filterMode) && !_isUndefined(filterMode)) ? `&filterMode=${filterMode}` : '';
     let url = `${this.brandingAndPortalUrl}/listRecords?${recordType}${packageType}${state}${sort}${filterFields}${filterString}${filterMode}&start=${start}&rows=${rows}`;
     const result$ = this.http.get(url).pipe(map(res => res));
     let result = await firstValueFrom(result$);
