@@ -60,7 +60,7 @@
     "openid-client": "^5.1.6",
     "passport": "^0.4.1",
     "passport-http-bearer": "^1.0.1",
-    "passport-jwt": "^4.0.0",
+    "passport-jwt": "^4.0.1",
     "passport-local": "^1.0.0",
     "path-exists": "^4.0.0",
     "postcss": "^8.4.4",
