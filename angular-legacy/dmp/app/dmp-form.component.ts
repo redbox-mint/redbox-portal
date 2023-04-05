@@ -112,7 +112,7 @@ export class DmpFormComponent extends LoadableComponent {
   /**
     The form name to use, by default you don't need to specify this.
    */
-  formName: string;
+  @Input() formName: string;
 
   finishedRendering:boolean;
 
@@ -160,7 +160,7 @@ export class DmpFormComponent extends LoadableComponent {
         this.recordType = elm.nativeElement.getAttribute('recordType');
         this.needsSave = _.isUndefined(elm.nativeElement.getAttribute('needsSave')) ? false : elm.nativeElement.getAttribute('needsSave') == "true";
         this.formName = elm.nativeElement.getAttribute('formName') || "";
-        console.log(`Loading form with OID: ${this.oid}, on edit mode:${this.editMode}, Record Type: ${this.recordType}`);
+        console.log(`Loading form with OID: ${this.oid}, on edit mode:${this.editMode}, Record Type: ${this.recordType}, formName: ${this.formName}`);
         this.RecordsService.getForm(this.oid, this.recordType, this.editMode, this.formName).then((obs:any) => {
           obs.subscribe((form:any) => {
             this.formDef = form;
