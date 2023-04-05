@@ -1,4 +1,4 @@
-<% include ../../functions %>
+<% include('../../functions') %>
 <!DOCTYPE html>
 <html lang="en">
 
@@ -64,7 +64,7 @@
         <% if(locals.branding != null && locals.portal != null) { %>
         <%- superPartial("/layout/logo.ejs", branding, portal, true) %>
         <% } else { %>
-          <%- include layout/logo.ejs %>
+          <%- include('layout/logo.ejs') %>
         <%}%>
 
         <div class="col-sm-2 search-box">
@@ -76,7 +76,7 @@
   <% if(locals.branding != null && locals.portal != null) { %>
   <%- superPartial("/layout/menu.ejs", branding, portal, true) %>
     <% } else { %>
-    <%- include layout/menu.ejs %>
+    <%- include('layout/menu.ejs') %>
     <%}%>
   <!-- End mainmenu area -->
 <% if (typeof title!== 'undefined') { %>
@@ -92,14 +92,12 @@
     <% if(locals.branding != null && locals.portal != null) { %>
       <%- superPartial("/layout/footer.ejs", branding, portal, true) %>
       <% } else { %>
-        <%- include layout/footer.ejs %>
+        <%- include('layout/footer.ejs') %>
       <%}%>
 
   </div>
 
-  <!--SCRIPTS-->
-  <script src="/js/dependencies/sails.io.js"></script>
-  <!--SCRIPTS END-->
+  
   <script>
   $(document).ready(function() {
     $('li.active').removeClass('active');

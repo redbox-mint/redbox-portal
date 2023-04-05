@@ -1,6 +1,6 @@
 import { Component, Inject, OnInit, ElementRef } from '@angular/core';
 import { PageChangedEvent } from 'ngx-bootstrap/pagination';
-import { BaseComponent, UtilityService, LoggerService, TranslationService, RecordService, PlanTable, Plan, RecordResponseTable, UserService} from '@researchdatabox/redbox-portal-core';
+import { BaseComponent, UtilityService, LoggerService, TranslationService, RecordService, PlanTable, Plan, RecordResponseTable, UserService} from '@researchdatabox/portal-ng-common';
 import * as _ from 'lodash';
 
 @Component({

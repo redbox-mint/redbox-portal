@@ -3,8 +3,8 @@ import { DashboardComponent } from './dashboard.component';
 import { FormsModule } from "@angular/forms";
 import { APP_BASE_HREF } from '@angular/common'; 
 import { I18NextModule, I18NEXT_SERVICE } from 'angular-i18next';
-import { UtilityService, LoggerService, ConfigService, TranslationService, RecordService, UserService } from '@researchdatabox/redbox-portal-core';
-import { getStubConfigService, getStubTranslationService, getStubRecordService, getStubUserService } from '@researchdatabox/redbox-portal-core';
+import { UtilityService, LoggerService, ConfigService, TranslationService, RecordService, UserService } from '@researchdatabox/portal-ng-common';
+import { getStubConfigService, getStubTranslationService, getStubRecordService, getStubUserService } from '@researchdatabox/portal-ng-common';
 
 const username = 'testUser';
 const password = 'some-password';

@@ -18,8 +18,8 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 import { Component, Inject, ElementRef } from '@angular/core';
-import { ConfigService, LoggerService, TranslationService, ReportService, BaseComponent, RecordPage, ReportFilter } from '@researchdatabox/redbox-portal-core';
-import { RecordSource, RecordPropViewMeta, Report, ReportResult } from '@researchdatabox/redbox-portal-core';
+import { ConfigService, LoggerService, TranslationService, ReportService, BaseComponent, RecordPage, ReportFilter } from '@researchdatabox/portal-ng-common';
+import { RecordSource, RecordPropViewMeta, Report, ReportResult } from '@researchdatabox/portal-ng-common';
 import { isEmpty as _isEmpty, set as _set, map as _map } from 'lodash-es';
 import { DateTime } from 'luxon';
 /**
