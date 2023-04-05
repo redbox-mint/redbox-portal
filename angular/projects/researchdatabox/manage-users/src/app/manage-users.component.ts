@@ -1,7 +1,7 @@
 import { Component } from '@angular/core';
 
 @Component({
-  selector: 'manage-users-root',
+  selector: 'manage-users',
   templateUrl: './manage-users.component.html'
 })
 export class ManageUsersComponent {
