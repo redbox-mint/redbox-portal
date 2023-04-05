@@ -29,6 +29,12 @@ module.exports.http = {
      * router is invoked by the "router" middleware below.)                     *
      *                                                                          *
      ***************************************************************************/
+    redboxSession: require('express-session')({
+      name: 'redbox.sid',
+      secret: 'a7f06b2584ca1b8e456874024e95ec73',
+      adapter: 'mongo',
+      mongoUrl: 'mongodb://mongodb:27017/sessions', // user, password and port optional
+    }),
     passportInit: require('passport').initialize(),
     passportSession: require('passport').session(),
     brandingAndPortalAwareStaticRouter: function(req, res, next) {
@@ -89,7 +95,7 @@ module.exports.http = {
       'cacheControl',
       'startRequestTimer',
       'cookieParser',
-      'session',
+      'redboxSession',
       'passportInit',
       'passportSession',
       'myBodyParser',
