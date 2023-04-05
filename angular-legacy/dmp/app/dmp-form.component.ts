@@ -153,19 +153,13 @@ export class DmpFormComponent extends LoadableComponent {
       this.initSubs.unsubscribe();
       translationService.isReady(tService => {
         this.fieldMap = {_rootComp:this};
-        console.log(this.fieldMap);
-        console.log('================= fieldMap');
         this.oid = elm.nativeElement.getAttribute('oid');
         this.branding = elm.nativeElement.getAttribute('branding');
         this.portal = elm.nativeElement.getAttribute('portal');
         this.editMode = elm.nativeElement.getAttribute('editMode') == "true";
         this.recordType = elm.nativeElement.getAttribute('recordType');
-        console.log(elm.nativeElement.getAttribute('recordType'));
-        console.log('================= recordType');
         this.needsSave = _.isUndefined(elm.nativeElement.getAttribute('needsSave')) ? false : elm.nativeElement.getAttribute('needsSave') == "true";
         this.formName = elm.nativeElement.getAttribute('formName') || "";
-        console.log(elm.nativeElement.getAttribute('formName'));
-        console.log('================= formName');
         console.log(`Loading form with OID: ${this.oid}, on edit mode:${this.editMode}, Record Type: ${this.recordType}, formName: ${this.formName}`);
         this.RecordsService.getForm(this.oid, this.recordType, this.editMode, this.formName).then((obs:any) => {
           obs.subscribe((form:any) => {
