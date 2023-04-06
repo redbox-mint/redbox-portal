@@ -1,8 +1,8 @@
 import { Component, Inject, ViewChild } from '@angular/core';
 import { ModalDirective } from 'ngx-bootstrap/modal';
 import { FormArray, FormGroup, FormControl, Validators, FormBuilder } from '@angular/forms';
-import { Role, User, UserLoginResult, SaveResult } from '@researchdatabox/redbox-portal-core';
-import { BaseComponent, LoggerService, TranslationService, UserService} from '@researchdatabox/redbox-portal-core';
+import { Role, User, UserLoginResult, SaveResult } from '@researchdatabox/portal-ng-common';
+import { BaseComponent, LoggerService, TranslationService, UserService} from '@researchdatabox/portal-ng-common';
 import { UserForm, matchingValuesValidator, optionalEmailValidator, passwordStrengthValidator } from './forms';
 import * as _ from 'lodash';
 
@@ -15,7 +15,7 @@ export class ManageUsersComponent extends BaseComponent {
   title = '@researchdatabox/manage-users';
   
   allUsers: User[] = [];
-  filteredUsers: User[] = [];
+  filteredUsers: any[] = [];
   allRoles: Role[] = [];
 
   searchFilter: { name: string, 
@@ -28,31 +28,22 @@ export class ManageUsersComponent extends BaseComponent {
                     };
 
   hiddenUsers: any = [''];
-  currentUser: User = {
-    id: '',
-    username: '',
-    password: '',
-    type: '',
-    name: '',
-    email: '',
-    token: '',
-    roles: []
-  };
+  currentUser!: User;
 
   updateDetailsMsg: string = '';
   updateDetailsMsgType: string = 'info';
   newUserMsg: string = '';
   newUserMsgType: string = 'info';
 
-  @ViewChild('userDetailsModal') userDetailsModal:ModalDirective;
-  @ViewChild('userNewModal') userNewModal:ModalDirective;
+  @ViewChild('userDetailsModal') userDetailsModal!: ModalDirective;
+  @ViewChild('userNewModal') userNewModal!: ModalDirective;
 
-  isDetailsModalShown:boolean = false;
-  isNewUserModalShown:boolean = false;
-  updateUserForm: FormGroup;
-  newUserForm: FormGroup;
-  submitted: boolean;
-  showToken: boolean;
+  isDetailsModalShown: boolean = false;
+  isNewUserModalShown: boolean = false;
+  updateUserForm!: FormGroup;
+  newUserForm!: FormGroup;
+  submitted!: boolean;
+  showToken!: boolean;
 
   constructor(
     @Inject(LoggerService) private loggerService: LoggerService,
@@ -156,14 +147,16 @@ export class ManageUsersComponent extends BaseComponent {
         }
       });
       _.map(this.filteredUsers, (user:any)=> {user.roleStr = _.join(_.map(user.roles, 'name'), ', ')});
-      // this.checkIfHasLoaded();
     });
   }
 
   editUser(username: string) {
     this.showToken = false;
     this.setUpdateMessage();
-    this.currentUser = _.find(this.allUsers, (user:any)=>{return user.username == username});
+    let user = _.find(this.allUsers, (user:any)=>{return user.username == username});
+    if(!_.isUndefined(user)) {
+      this.currentUser = user;
+    }
     this.setupForms();
     this.showDetailsModal();
   }
@@ -286,4 +279,23 @@ export class ManageUsersComponent extends BaseComponent {
     _.map(this.searchFilter.users, (user:any)=> user.checked = user.value == null);
     this.onFilterChange();
   }
+
+  getPasswordsControls() {
+    let passControls = (this.updateUserForm.get('passwords') as FormArray).controls;
+    for(let control of passControls) {
+      //if(control['confirmPassword'].touched) {
+        return true;  
+      //}
+    }
+    return false;
+  }
+
+  getUpdateUserFormControls() {
+    return (this.updateUserForm.get('allRoles') as FormArray).controls;
+  }
+
+  getNewUserFormControls() {
+    return (this.newUserForm.get('allRoles') as FormArray).controls;
+  }
+
 }

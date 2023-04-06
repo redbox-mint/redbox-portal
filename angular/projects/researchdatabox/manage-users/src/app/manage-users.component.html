@@ -76,8 +76,8 @@
                 <td>{{ 'manage-users-name' | i18next }}</td>
                 <td *ngIf="currentUser.type == 'local'">
                     <input type="text" formControlName="name" class="form-control input-sm chat-input"/>
-                    <div class='form-text error text-danger' *ngIf='updateUserForm.controls.name.touched || submitted'>
-                        <div *ngIf="updateUserForm.controls.name.hasError('required')">{{ 'manage-users-validation-name' | i18next }}</div>
+                    <div class='form-text error text-danger' *ngIf="updateUserForm.controls['name'].touched || submitted">
+                        <div *ngIf="updateUserForm.controls['name'].hasError('required')">{{ 'manage-users-validation-name' | i18next }}</div>
                     </div>
                 </td>
                 <td *ngIf="currentUser.type != 'local'">{{currentUser.name}}</td>
@@ -86,8 +86,8 @@
                 <td>{{ 'manage-users-email' | i18next }}</td>
                 <td *ngIf="currentUser.type == 'local'">
                     <input type="email" formControlName="email" class="form-control input-sm chat-input"/>
-                    <div class='form-text error text-danger' *ngIf='updateUserForm.controls.email.touched || submitted'>
-                        <div *ngIf="updateUserForm.controls.email.hasError('invalidEmail')">{{ 'manage-users-validation-email' | i18next }}</div>
+                    <div class='form-text error text-danger' *ngIf="updateUserForm.controls['email'].touched || submitted">
+                        <div *ngIf="updateUserForm.controls['email'].hasError('invalidEmail')">{{ 'manage-users-validation-email' | i18next }}</div>
                         </div>
                 </td>
                 <td *ngIf="currentUser.type != 'local'">{{currentUser.email}}</td>
@@ -107,10 +107,10 @@
                         <div formGroupName="passwords">
                         <input type="password" formControlName="confirmPassword" class="form-control input-sm chat-input" placeholder="Confirm Password"/>
                         </div>
-                        <div class='form-text error text-danger' *ngIf="updateUserForm.controls.passwords.controls.confirmPassword.touched || submitted">
-                        <div *ngIf="updateUserForm.controls.passwords.hasError('mismatched')">{{ 'manage-users-validation-confirmpassword' | i18next }}</div>
-                        <ng-container *ngIf="updateUserForm.controls.passwords.hasError('passwordStrength')" >
-                            <div *ngFor="let errorMsg of updateUserForm.controls.passwords.errors.passwordStrengthDetails.errors" >
+                        <div class='form-text error text-danger' *ngIf="getPasswordsControls() || submitted">
+                        <div *ngIf="updateUserForm.controls['passwords'].hasError('mismatched')">{{ 'manage-users-validation-confirmpassword' | i18next }}</div>
+                        <ng-container *ngIf="updateUserForm.controls['passwords'].hasError('passwordStrength')" >
+                            <div *ngFor="let errorMsg of updateUserForm.controls['passwords'].errors.passwordStrengthDetails.errors" >
                             {{ errorMsg | i18next }}
                             </div>
                         </ng-container>
@@ -134,11 +134,11 @@
                     <td class="col-md-2">{{ 'manage-roles-role' | i18next }}</td>
                     <td class="col-md-8">
                         <div [formArrayName]="'allRoles'">
-                            <div *ngFor="let role of updateUserForm.controls.allRoles.controls; let i = index;" [formGroup]="role">
+                            <div *ngFor="let role of getUpdateUserFormControls(); let i = index;" [formGroup]="role">
                             <input type="checkbox" formControlName="checked" id="role_{{ role.controls.key.value }}">
                             <label attr.for="role_{{ role.controls.key.value }}">{{ role.controls.value.value }}</label>
                             </div>
-                            <div class='form-text error text-danger' *ngIf="!updateUserForm.controls.roles.valid">
+                            <div class='form-text error text-danger' *ngIf="!updateUserForm.controls['roles'].valid">
                                 <div>{{ 'manage-users-validation-role' | i18next }}</div>
                             </div>
                         </div>
@@ -176,8 +176,8 @@
                             <td>{{ 'manage-users-username' | i18next }}</td>
                             <td>
                                 <input type="text" formControlName="username" class="form-control input-sm chat-input" placeholder="{{ 'manage-users-username' | i18next }}" [attr.aria-label]="'manage-users-username' | i18next"/>
-                                <div class='form-text error text-danger' *ngIf='newUserForm.controls.username.touched || submitted'>
-                                    <div *ngIf="newUserForm.controls.username.hasError('required')">{{ 'manage-users-validation-username' | i18next }}</div>
+                                <div class='form-text error text-danger' *ngIf="newUserForm.controls['username'].touched || submitted">
+                                    <div *ngIf="newUserForm.controls['username'].hasError('required')">{{ 'manage-users-validation-username' | i18next }}</div>
                                 </div>
                             </td>
                         </tr>
@@ -185,8 +185,8 @@
                         <td>{{ 'manage-users-name' | i18next }}</td>
                         <td>
                             <input type="text" formControlName="name" class="form-control input-sm chat-input" placeholder="{{ 'manage-users-name' | i18next }}" [attr.aria-label]="'manage-users-name' | i18next "/>
-                            <div class='form-text error text-danger' *ngIf='newUserForm.controls.name.touched || submitted'>
-                                <div *ngIf="newUserForm.controls.name.hasError('required')">{{ 'manage-users-validation-name' | i18next }}</div>
+                            <div class='form-text error text-danger' *ngIf="newUserForm.controls['name'].touched || submitted">
+                                <div *ngIf="newUserForm.controls['name'].hasError('required')">{{ 'manage-users-validation-name' | i18next }}</div>
                                 </div>
                         </td>
                         </tr>
@@ -194,8 +194,8 @@
                         <td>{{ 'manage-users-email' | i18next }}</td>
                         <td>
                             <input type="email" formControlName="email" class="form-control input-sm chat-input" placeholder="{{ 'manage-users-email' | i18next }}" [attr.aria-label]="'manage-users-email' | i18next"/>
-                            <div class='form-text error text-danger' *ngIf='newUserForm.controls.email.touched || submitted'>
-                                <div *ngIf="newUserForm.controls.email.hasError('invalidEmail')">{{ 'manage-users-validation-email' | i18next }}</div>
+                            <div class='form-text error text-danger' *ngIf="newUserForm.controls['email'].touched || submitted">
+                                <div *ngIf="newUserForm.controls['email'].hasError('invalidEmail')">{{ 'manage-users-validation-email' | i18next }}</div>
                                 </div>
                         </td>
                         </tr>
@@ -205,8 +205,8 @@
                             <div formGroupName="passwords">
                                 <input type="password" formControlName="password" class="form-control input-sm chat-input" placeholder="{{ 'manage-users-password' | i18next }}" [attr.aria-label]="'manage-users-password' | i18next "/>
                             </div>
-                            <div class='form-text error text-danger' *ngIf="newUserForm.controls.passwords.controls.password.touched || submitted">
-                                <div *ngIf="newUserForm.controls.passwords.controls.password.hasError('required')">{{ 'manage-users-validation-password' | i18next }}</div>
+                            <div class='form-text error text-danger' *ngIf="newUserForm.controls['passwords'].controls.password.touched || submitted">
+                                <div *ngIf="newUserForm.controls['passwords'].controls.password.hasError('required')">{{ 'manage-users-validation-password' | i18next }}</div>
                                 </div>
                         </td>
                         </tr>
@@ -217,9 +217,9 @@
                                     <input type="password" formControlName="confirmPassword" class="form-control input-sm chat-input" placeholder="{{ 'manage-users-confirm-password' | i18next }}" [attr.aria-label]="'manage-users-confirm-password' | i18next"/>
                                 </div>
                                 <div class='form-text error text-danger' *ngIf="newUserForm.controls.passwords.controls.confirmPassword.touched || submitted">
-                                    <div *ngIf="newUserForm.controls.passwords.hasError('mismatched')">{{ 'manage-users-validation-confirmpassword' | i18next }}</div>
-                                    <ng-container *ngIf="newUserForm.controls.passwords.hasError('passwordStrength')" >
-                                        <div *ngFor="let errorMsg of newUserForm.controls.passwords.errors.passwordStrengthDetails.errors" >
+                                    <div *ngIf="newUserForm.controls['passwords'].hasError('mismatched')">{{ 'manage-users-validation-confirmpassword' | i18next }}</div>
+                                    <ng-container *ngIf="newUserForm.controls['passwords'].hasError('passwordStrength')" >
+                                        <div *ngFor="let errorMsg of newUserForm.controls['passwords'].errors.passwordStrengthDetails.errors" >
                                         {{ errorMsg | i18next }}
                                         </div>
                                     </ng-container>
@@ -230,11 +230,11 @@
                             <td class="col-md-2">{{ 'manage-roles-role' | i18next }}</td>
                             <td class="col-md-8">
                                 <div [formArrayName]="'allRoles'">
-                                    <div *ngFor="let role of newUserForm.controls.allRoles.controls; let i = index;" [formGroup]="role">
+                                    <div *ngFor="let role of getNewUserFormControls(); let i = index;" [formGroup]="role">
                                         <input type="checkbox" formControlName="checked" id="role_{{ role.controls.key.value }}">
                                         <label attr.for="role_{{ role.controls.key.value }}">{{ role.controls.value.value }}</label>
                                     </div>
-                                    <div class='form-text error text-danger' *ngIf="!newUserForm.controls.roles.valid">
+                                    <div class='form-text error text-danger' *ngIf="!newUserForm.controls['roles'].valid">
                                         <div>{{ 'manage-users-validation-role' | i18next }}</div>
                                         </div>
                                     </div>

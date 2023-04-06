@@ -1,9 +1,10 @@
 import { NgModule } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
-import { FormsModule } from "@angular/forms";
-import { APP_BASE_HREF, PlatformLocation } from '@angular/common';
-import { RedboxPortalCoreModule, trimLastSlashFromUrl } from '@researchdatabox/redbox-portal-core';
+import { FormsModule, ReactiveFormsModule } from "@angular/forms";
+import { APP_BASE_HREF, PlatformLocation, CommonModule } from '@angular/common';
+import { RedboxPortalCoreModule, trimLastSlashFromUrl } from '@researchdatabox/portal-ng-common';
+import { ModalModule } from 'ngx-bootstrap/modal';
 import { ManageUsersComponent } from './manage-users.component';
 
 @NgModule({
@@ -13,8 +14,11 @@ import { ManageUsersComponent } from './manage-users.component';
   imports: [
     BrowserModule,
     FormsModule,
+    ReactiveFormsModule,
     BrowserAnimationsModule,
-    RedboxPortalCoreModule
+    RedboxPortalCoreModule,
+    CommonModule,
+    ModalModule.forRoot()
   ],
   providers: [
     {

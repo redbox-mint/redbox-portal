@@ -1,6 +1,6 @@
-import { Role } from '@researchdatabox/redbox-portal-core';
-import { FormGroup, FormControl } from '@angular/forms';
-const owasp = require('owasp-password-strength-test');
+import { Role } from '@researchdatabox/portal-ng-common';
+import { FormGroup, FormControl, ValidatorFn, AbstractControl  } from '@angular/forms';
+import * as owasp from 'owasp-password-strength-test';
 import * as _ from 'lodash';
 
 export interface UserForm {
@@ -12,15 +12,19 @@ export interface UserForm {
     roles: any[]
 }
 
-export function matchingValuesValidator(control1: string, control2: string) {
-    return (group: FormGroup): any => { //{[key: string]: any}
-        let val1 = group.controls[control1];
-        let val2 = group.controls[control2];
+export function matchingValuesValidator(control1: string, control2: string): ValidatorFn {
+    return (group: AbstractControl):{ [key: string]: any } | null => {
+        let val1 = group.get(control1);
+        let val2 = group.get(control2);
+
+        if (!val1 || !val2) {
+          return null;
+        }
 
         if (val1.value !== val2.value) {
-          return {
-              mismatched: true
-          };
+          return { mismatched: true };
+        } else {
+          return null;
         }
     }
 }
@@ -34,12 +38,20 @@ export function optionalEmailValidator(control: FormControl): any { //{[key: str
     }
 }
 
-export function passwordStrengthValidator(control1: string) {
-  return (group: FormGroup): any => { //{[key: string]: any}
-    let password = group.controls[control1].value;
+export function passwordStrengthValidator(control1: string): ValidatorFn  {
+  return (group: AbstractControl):{ [key: string]: any } | null => {
+    
+    let password = group.get(control1);
+
+    if(!password){
+      return null;
+    }
+
     if (!_.isEmpty(password)) {
-      const result = owasp.test(password);
-      return result.errors.length == 0 ? undefined : { passwordStrength: true, passwordStrengthDetails: result };
+      const result = owasp.test(password.value);
+      return result.errors.length == 0 ? null : { passwordStrength: true, passwordStrengthDetails: result };
+    } else {
+      return null;
     }
   }
 }
