@@ -62,7 +62,7 @@
     "rc": "1.2.8",
     "redux": "4.2.1",
     "request-promise": "^4.2.6",
-    "rxjs": "6.6.2",
+    "rxjs": "7.8.0",
     "rxjs-compat": "6.6.7",
     "sails": "^1.5.4",
     "sails-hook-autoreload": "^1.1.0",
