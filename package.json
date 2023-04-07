@@ -79,7 +79,7 @@
     "typescript": "4.6",
     "typescript-require": "~0.3.0",
     "url-pattern": "^1.0.3",
-    "zone.js": "^0.11.4"
+    "zone.js": "^0.13.0"
   },
   "scripts": {
     "debug": "node debug app.js",
