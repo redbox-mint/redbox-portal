@@ -35,7 +35,7 @@
     "grunt-contrib-watch": "^1.1.0",
     "grunt-sails-linker": "^1.0.4",
     "grunt-sass": "3.1.0",
-    "grunt-shell": "^3.0.1",
+    "grunt-shell": "^4.0.0",
     "grunt-sync": "^0.8.2",
     "grunt-ts": "^6.0.0-beta.22",
     "har-validator": "5.1.5",
