@@ -47,7 +47,7 @@
     "lodash-es": "^4.17.21",
     "lucene-escape-query": "^1.0.1",
     "moment": "^2.29.4",
-    "mongodb": "^4.2.1",
+    "mongodb": "^4.15.0",
     "node-cache": "^5.1.2",
     "node-schedule": "^2.1.1",
     "nodemailer": "^6.9.1",
