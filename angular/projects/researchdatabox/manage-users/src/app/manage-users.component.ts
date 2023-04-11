@@ -57,6 +57,11 @@ export class ManageUsersComponent extends BaseComponent {
   }
 
   protected override async initComponent():Promise<void> {
+    let roles: any = await this.userService.getBrandRoles();
+    for(let role of roles) {
+      this.allRoles.push(role);
+    }
+    await this.refreshUsers();
   }
 
   setupForms() {
@@ -133,21 +138,22 @@ export class ManageUsersComponent extends BaseComponent {
     return selectedRoles.length ? selectedRoles : null;
   }
 
-  refreshUsers() {
-    this.userService.getUsers().then((users:any) => {
-      this.allUsers = users;
-      _.forEach(this.searchFilter.users, (user:any) => {
-        this.searchFilter.users.pop();
-      });
-      this.filteredUsers = [];
-      _.forEach(users, (user:any) => {
-        this.searchFilter.users.push({value:user.name, label:user.name, checked:false});
-        if (!_.includes(this.hiddenUsers, user.username)) {
-          this.filteredUsers.push(user);
-        }
-      });
-      _.map(this.filteredUsers, (user:any)=> {user.roleStr = _.join(_.map(user.roles, 'name'), ', ')});
+  async refreshUsers() {
+    let users: any =  await this.userService.getUsers();
+    for(let user of users) {
+      this.allUsers.push(user);
+    }
+    _.forEach(this.searchFilter.users, (user:any) => {
+      this.searchFilter.users.pop();
     });
+    this.filteredUsers = [];
+    _.forEach(users, (user:any) => {
+      this.searchFilter.users.push({value:user.name, label:user.name, checked:false});
+      if (!_.includes(this.hiddenUsers, user.username)) {
+        this.filteredUsers.push(user);
+      }
+    });
+    _.map(this.filteredUsers, (user:any)=> {user.roleStr = _.join(_.map(user.roles, 'name'), ', ')});
   }
 
   editUser(username: string) {
@@ -280,22 +286,48 @@ export class ManageUsersComponent extends BaseComponent {
     this.onFilterChange();
   }
 
-  getPasswordsControls() {
-    let passControls = (this.updateUserForm.get('passwords') as FormArray).controls;
-    for(let control of passControls) {
-      //if(control['confirmPassword'].touched) {
+  isUpdateUserFormConfirmPasswordTouched() {
+    let passControls = (this.updateUserForm.controls['passwords'] as FormGroup).controls;
+    if(passControls['confirmPassword'] && passControls['confirmPassword'].touched) {
         return true;  
-      //}
     }
     return false;
   }
+  
+  getUpdateUserPasswordErrors() {
+    let errors = this.updateUserForm.controls['passwords'].errors;
+    let errorMessages = [];
+    if(errors) {
+      for(let errorMsg of errors['passwordStrengthDetails'].errors) {
+        errorMessages.push(errorMsg);
+      }
+    }
+
+    return errorMessages;
+  }
+
+  getNewUserPasswordErrors() {
+    let errors = this.newUserForm.controls['passwords'].errors;
+    let errorMessages = [];
+    if(errors) {
+      for(let errorMsg of errors['passwordStrengthDetails'].errors) {
+        errorMessages.push(errorMsg);
+      }
+    }
+
+    return errorMessages;
+  }
+
+  getNewUserPasswordFormControls() {
+    return (this.newUserForm.controls['passwords'] as FormGroup).controls;
+  }
 
   getUpdateUserFormControls() {
-    return (this.updateUserForm.get('allRoles') as FormArray).controls;
+    return (this.updateUserForm.get('allRoles') as FormArray).controls as FormGroup[];
   }
 
   getNewUserFormControls() {
-    return (this.newUserForm.get('allRoles') as FormArray).controls;
+    return (this.newUserForm.get('allRoles') as FormArray).controls as FormGroup[];
   }
 
 }
