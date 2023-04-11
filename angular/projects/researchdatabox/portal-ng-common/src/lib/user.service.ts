@@ -26,6 +26,7 @@ import { ConfigService } from './config.service';
 import { UtilityService } from './utility.service';
 import { HttpClientService } from './httpClient.service';
 import { LoggerService } from './logger.service';
+import { merge as _merge } from 'lodash-es';
 
 export interface User {
   id: string;
@@ -70,6 +71,7 @@ export class UserService extends HttpClientService {
 
   protected infoUrl: string = "";
   protected loginUrl: string = "";
+  private requestOptions:any = null as any;
   
   constructor( 
     @Inject(HttpClient) protected override http: HttpClient, 
@@ -105,7 +107,9 @@ export class UserService extends HttpClientService {
     await super.waitForInit();
     this.infoUrl = `${this.baseUrlWithContext}/user/info`;
     this.loginUrl = `${this.baseUrlWithContext}/user/login_local`;
+    this.requestOptions = this.reqOptsJsonBodyOnly;
     this.enableCsrfHeader();
+    _merge(this.requestOptions, {context: this.httpContext});
     return this;
   }
 
@@ -123,49 +127,49 @@ export class UserService extends HttpClientService {
   // headersObj['X-CSRF-Token'] = this.config.csrfToken;
   public async getUsers() {
     let url = `${this.brandingAndPortalUrl}/admin/users/get`;
-    const result$ = this.http.get(url, this.reqOptsJsonBodyOnly).pipe(map(res => res));
+    const result$ = this.http.get(url, this.requestOptions).pipe(map(res => res));
     let result =  await firstValueFrom(result$);
     return result; // old function in angular legacy returned User[]
   }
 
   public async updateUserDetails(userid: any, details: any) {
     let url = `${this.brandingAndPortalUrl}/admin/users/update`;
-    const result$ = this.http.post(url, {userid: userid, details:details}, this.reqOptsJsonBodyOnly).pipe(map(res => res));
+    const result$ = this.http.post(url, {userid: userid, details:details}, this.requestOptions).pipe(map(res => res));
     let result =  await firstValueFrom(result$);
     return result; // old function in angular legacy returned SaveResult[]
   }
 
   public async addLocalUser(username: any, details: any) {
     let url = `${this.brandingAndPortalUrl}/admin/users/newUser`;
-    const result$ =  this.http.post(url, {username: username, details:details}, this.reqOptsJsonBodyOnly).pipe(map(res => res));
+    const result$ =  this.http.post(url, {username: username, details:details}, this.requestOptions).pipe(map(res => res));
     let result =  await firstValueFrom(result$);
     return result; // old function in angular legacy returned SaveResult[]
   }
 
   public async genKey(userid: any) {
     let url = `${this.brandingAndPortalUrl}/admin/users/genKey`;
-    const result$ = this.http.post(url, {userid: userid}, this.reqOptsJsonBodyOnly).pipe(map(res => res));
+    const result$ = this.http.post(url, {userid: userid}, this.requestOptions).pipe(map(res => res));
     let result =  await firstValueFrom(result$);
     return result; // old function in angular legacy returned SaveResult[]
   }
 
   public async revokeKey(userid: any) {
     let url = `${this.brandingAndPortalUrl}/admin/users/revokeKey`;
-    const result$ = this.http.post(url, {userid: userid}, this.reqOptsJsonBodyOnly).pipe(map(res => res));
+    const result$ = this.http.post(url, {userid: userid}, this.requestOptions).pipe(map(res => res));
     let result =  await firstValueFrom(result$);
     return result; // old function in angular legacy returned SaveResult[]
   }
 
   public async getBrandRoles() {
     let url = `${this.brandingAndPortalUrl}/admin/roles/get`;
-    const result$ = this.http.get(url,this.reqOptsJsonBodyOnly).pipe(map(res => res));
+    const result$ = this.http.get(url,this.requestOptions).pipe(map(res => res));
     let result =  await firstValueFrom(result$);
     return result; // old function in angular legacy returned Role[]
   }
 
   public async updateUserRoles(userid: any, roleIds: any) {
     let url = `${this.brandingAndPortalUrl}/admin/roles/user`;
-    const result$ = this.http.post(url, {userid: userid, roles:roleIds},this.reqOptsJsonBodyOnly).pipe(map(res => res));
+    const result$ = this.http.post(url, {userid: userid, roles:roleIds},this.requestOptions).pipe(map(res => res));
     let result =  await firstValueFrom(result$);
     return result; // old function in angular legacy returned SaveResult[]
   }
