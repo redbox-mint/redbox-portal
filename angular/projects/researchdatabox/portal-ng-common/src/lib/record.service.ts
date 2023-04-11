@@ -54,7 +54,7 @@ export class RecordService extends HttpClientService {
     await super.waitForInit();
     this.enableCsrfHeader();
     this.loggerService.debug('waitForInit RecordService');
-    _merge(this.requestOptions, {context: this.httpContext})
+    _merge(this.requestOptions, {context: this.httpContext});
     return this;
   }
 
