@@ -126,7 +126,6 @@ export class RecordService extends HttpClientService {
     return result;
   }
 
-  //TODO not used anymore by new dashboard dicuss if still needs implementation here?
   public async getAllTypes() {
     let url = `${this.brandingAndPortalUrl}/record/type`;
     const result$ = this.http.get(url).pipe(map(res => res));

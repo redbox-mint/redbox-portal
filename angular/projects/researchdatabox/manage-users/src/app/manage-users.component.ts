@@ -28,22 +28,22 @@ export class ManageUsersComponent extends BaseComponent {
                     };
 
   hiddenUsers: any = [''];
-  currentUser!: User;
+  currentUser: User = null as any;
 
   updateDetailsMsg: string = '';
   updateDetailsMsgType: string = 'info';
   newUserMsg: string = '';
   newUserMsgType: string = 'info';
 
-  @ViewChild('userDetailsModal') userDetailsModal!: ModalDirective;
-  @ViewChild('userNewModal') userNewModal!: ModalDirective;
+  @ViewChild('userDetailsModal', { static: false }) userDetailsModal?: ModalDirective;
+  @ViewChild('userNewModal', { static: false }) userNewModal?: ModalDirective;
 
   isDetailsModalShown: boolean = false;
   isNewUserModalShown: boolean = false;
-  updateUserForm!: FormGroup;
-  newUserForm!: FormGroup;
-  submitted!: boolean;
-  showToken!: boolean;
+  updateUserForm: FormGroup = null as any;;
+  newUserForm: FormGroup = null as any;;
+  submitted: boolean = false;
+  showToken: boolean = false;
 
   constructor(
     @Inject(LoggerService) private loggerService: LoggerService,
@@ -64,64 +64,74 @@ export class ManageUsersComponent extends BaseComponent {
     await this.refreshUsers();
   }
 
-  setupForms() {
+  setupForms(newUser: boolean) {
     this.submitted = false;
-    let updateRolesControlArray = new FormArray(this.allRoles.map((role) => {
-      return new FormGroup({
-        key: new FormControl(role.id),
-        value: new FormControl(role.name),
-        checked: new FormControl(_.includes(_.flatMap(this.currentUser.roles, role => { return role['name']; }), role.name)),
+
+    if(newUser) {
+
+      let newRolesControlArray = new FormArray(this.allRoles.map((role) => {
+        return new FormGroup({
+          key: new FormControl(role.id),
+          value: new FormControl(role.name),
+          checked: new FormControl(false),
+        });
+      }));
+
+      const pwGroup_new = this._fb.group(
+        {
+          password: [''],
+          confirmPassword: ['']
+        }
+      );
+      pwGroup_new.setValidators([matchingValuesValidator('password', 'confirmPassword'), passwordStrengthValidator('confirmPassword')]);
+      
+      this.newUserForm = this._fb.group({
+        username: ['', Validators.required],
+        name: ['', Validators.required],
+        email: ['', optionalEmailValidator],
+        passwords: pwGroup_new,
+        allRoles: newRolesControlArray,
+        roles: [this.mapRoles(newRolesControlArray.value), Validators.required]
       });
-    }));
 
-    let newRolesControlArray = new FormArray(this.allRoles.map((role) => {
-      return new FormGroup({
-        key: new FormControl(role.id),
-        value: new FormControl(role.name),
-        checked: new FormControl(false),
+      newRolesControlArray.valueChanges.subscribe((v) => {
+        this.newUserForm.controls['roles'].setValue(this.mapRoles(v));
       });
-    }));
-    const pwGroup_new = this._fb.group(
-      {
-        password: [''],
-        confirmPassword: ['']
-      }
-    );
-    const pwGroup_update = this._fb.group(
-      {
-        password: [''],
-        confirmPassword: ['']
-      }
-    );
-    pwGroup_new.setValidators([matchingValuesValidator('password', 'confirmPassword'), passwordStrengthValidator('confirmPassword')])
-    pwGroup_update.setValidators([matchingValuesValidator('password', 'confirmPassword'), passwordStrengthValidator('confirmPassword')])
-    this.updateUserForm = this._fb.group({
-      userid: this.currentUser.id,
-      username: this.currentUser.username,
-      name: [this.currentUser.name, Validators.required],
-      email: [this.currentUser.email, optionalEmailValidator],
-      passwords: pwGroup_update,
-      allRoles: updateRolesControlArray,
-      roles: [this.mapRoles(updateRolesControlArray.value), Validators.required]
-    });
 
-    this.newUserForm = this._fb.group({
-      username: ['', Validators.required],
-      name: ['', Validators.required],
-      email: ['', optionalEmailValidator],
-      passwords: pwGroup_new,
-      allRoles: newRolesControlArray,
-      roles: [this.mapRoles(newRolesControlArray.value), Validators.required]
-    });
+    } else {
 
-    updateRolesControlArray.valueChanges.subscribe((v) => {
-      this.updateUserForm.controls['roles'].setValue(this.mapRoles(v));
-    });
+      let updateRolesControlArray = new FormArray(this.allRoles.map((role) => {
+        return new FormGroup({
+          key: new FormControl(role.id),
+          value: new FormControl(role.name),
+          checked: new FormControl(_.includes(_.flatMap(this.currentUser.roles, role => { return role['name']; }), role.name)),
+        });
+      }));
 
-    newRolesControlArray.valueChanges.subscribe((v) => {
-      this.newUserForm.controls['roles'].setValue(this.mapRoles(v));
-    });
+      const pwGroup_update = this._fb.group(
+        {
+          password: [''],
+          confirmPassword: ['']
+        }
+      );
 
+      pwGroup_update.setValidators([matchingValuesValidator('password', 'confirmPassword'), passwordStrengthValidator('confirmPassword')]);
+
+      this.updateUserForm = this._fb.group({
+        userid: this.currentUser.id,
+        username: this.currentUser.username,
+        name: [this.currentUser.name, Validators.required],
+        email: [this.currentUser.email, optionalEmailValidator],
+        passwords: pwGroup_update,
+        allRoles: updateRolesControlArray,
+        roles: [this.mapRoles(updateRolesControlArray.value), Validators.required]
+      });
+
+      updateRolesControlArray.valueChanges.subscribe((v) => {
+        this.updateUserForm.controls['roles'].setValue(this.mapRoles(v));
+      });
+      
+    }
   }
 
   mapRoles(roles: any) {
@@ -163,23 +173,45 @@ export class ManageUsersComponent extends BaseComponent {
     if(!_.isUndefined(user)) {
       this.currentUser = user;
     }
-    this.setupForms();
+    this.setupForms(false);
     this.showDetailsModal();
   }
 
   newUser() {
     this.setNewUserMessage();
-    this.setupForms();
+    this.setupForms(true);
     this.showNewUserModal();
   }
 
-  showDetailsModal():void {this.isDetailsModalShown = true;}
-  hideDetailsModal():void {this.userDetailsModal.hide();}
-  onDetailsModalHidden():void {this.isDetailsModalShown = false;}
+  showDetailsModal(): void {
+    this.isDetailsModalShown = true;
+    this.userDetailsModal?.show();
+  }
 
-  showNewUserModal():void {this.isNewUserModalShown = true;}
-  hideNewUserModal():void {this.userNewModal.hide();}
-  onNewUserHidden():void {this.isNewUserModalShown = false;}
+  hideDetailsModal(): void {
+    if(!_.isUndefined(this.userDetailsModal)) {
+      this.userDetailsModal.hide();
+    }
+  }
+
+  onDetailsModalHidden(): void {
+    this.isDetailsModalShown = false;
+  }
+
+  showNewUserModal(): void {
+    this.isNewUserModalShown = true;
+    
+  }
+
+  hideNewUserModal(): void {
+    if(!_.isUndefined(this.userNewModal)) {
+      this.userNewModal.hide();
+    }
+  }
+
+  onNewUserHidden(): void {
+    this.isNewUserModalShown = false;
+  }
 
   genKey(userid: string) {
     this.setUpdateMessage('Generating...', 'primary');

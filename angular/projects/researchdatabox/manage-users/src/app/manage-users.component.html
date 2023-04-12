@@ -55,101 +55,103 @@
 </div>
   
 <!-- User Details Modal -->
-<div *ngIf="isDetailsModalShown" [config]="{ show: true }" (onHidden)="onDetailsModalHidden()" bsModal #userDetailsModal="bs-modal" class="modal fade" tabindex="-1" role="dialog" aria-hidden="true">
-    <div class="modal-dialog">
-    <!-- Modal content-->
-    <div class="modal-content">
-    <div class="modal-header">
-        <button type="button" class="close" (click)="hideDetailsModal()">&times;</button>
-        <h4 class="modal-title">{{ 'manage-users-edit' | i18next }}</h4>
-    </div>
-    <div class="modal-body">
-        <form id="detailsform" [formGroup]="updateUserForm" novalidate (ngSubmit)="updateUserSubmit(updateUserForm.value, updateUserForm.valid)">
-        <div class="table-responsive">
-            <table class="table">
-            <tbody>
-                <tr *ngIf="currentUser.type == 'local'">
-                <td>{{ 'manage-users-username' | i18next }}</td>
-                <td>{{ currentUser.username }}</td>
-                </tr>
-                <tr>
-                <td>{{ 'manage-users-name' | i18next }}</td>
-                <td *ngIf="currentUser.type == 'local'">
-                    <input type="text" formControlName="name" class="form-control input-sm chat-input"/>
-                    <div class='form-text error text-danger' *ngIf="updateUserForm.controls['name'].touched || submitted">
-                        <div *ngIf="updateUserForm.controls['name'].hasError('required')">{{ 'manage-users-validation-name' | i18next }}</div>
+<div *ngIf="isDetailsModalShown" [config]="{backdrop: 'static', show: true}" (onHidden)="onDetailsModalHidden()" bsModal #userDetailsModal="bs-modal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="detailsform" >
+    <div class="modal-dialog modal-md">
+        <!-- Modal content-->
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" (click)="hideDetailsModal()">
+                    <span aria-hidden="true" class="visually-hidden">&times;</span>
+                </button>
+                <h4 class="modal-title">{{ 'manage-users-edit' | i18next }}</h4>
+            </div>
+            <div class="modal-body">
+                <form id="detailsform" [formGroup]="updateUserForm" novalidate (ngSubmit)="updateUserSubmit(updateUserForm.value, updateUserForm.valid)">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <tbody>
+                                <tr *ngIf="currentUser.type == 'local'">
+                                    <td>{{ 'manage-users-username' | i18next }}</td>
+                                    <td>{{ currentUser.username }}</td>
+                                </tr>
+                                <tr>
+                                    <td>{{ 'manage-users-name' | i18next }}</td>
+                                    <td *ngIf="currentUser.type == 'local'">
+                                        <input type="text" formControlName="name" class="form-control input-sm chat-input"/>
+                                        <div class='form-text error text-danger' *ngIf="updateUserForm.controls['name'].touched || submitted">
+                                            <div *ngIf="updateUserForm.controls['name'].hasError('required')">{{ 'manage-users-validation-name' | i18next }}</div>
+                                        </div>
+                                    </td>
+                                    <td *ngIf="currentUser.type != 'local'">{{currentUser.name}}</td>
+                                </tr>
+                                <tr>
+                                    <td>{{ 'manage-users-email' | i18next }}</td>
+                                    <td *ngIf="currentUser.type == 'local'">
+                                        <input type="email" formControlName="email" class="form-control input-sm chat-input"/>
+                                        <div class='form-text error text-danger' *ngIf="updateUserForm.controls['email'].touched || submitted">
+                                            <div *ngIf="updateUserForm.controls['email'].hasError('invalidEmail')">{{ 'manage-users-validation-email' | i18next }}</div>
+                                            </div>
+                                    </td>
+                                    <td *ngIf="currentUser.type != 'local'">{{currentUser.email}}</td>
+                                </tr>
+                                <tr>
+                                    <td>{{ 'manage-users-password' | i18next }}</td>
+                                    <td *ngIf="currentUser.type == 'local'">
+                                        <div formGroupName="passwords">
+                                            <input type="password" formControlName="password" class="form-control input-sm chat-input" placeholder="{{ 'manage-users-update-password' | i18next }}"/>
+                                        </div>
+                                    </td>
+                                    <td *ngIf="currentUser.type != 'local'">{{ 'manage-users-aaf-password' | i18next}}</td>
+                                </tr>
+                                <tr *ngIf="currentUser.type == 'local'">
+                                    <td>{{ 'manage-users-confirm-password' | i18next }}</td>
+                                    <td>
+                                        <div formGroupName="passwords">
+                                        <input type="password" formControlName="confirmPassword" class="form-control input-sm chat-input" placeholder="Confirm Password"/>
+                                        </div>
+                                        <div class='form-text error text-danger' *ngIf="isUpdateUserFormConfirmPasswordTouched() || submitted">
+                                        <div *ngIf="updateUserForm.controls['passwords'].hasError('mismatched')">{{ 'manage-users-validation-confirmpassword' | i18next }}</div>
+                                        <ng-container *ngIf="updateUserForm.controls['passwords'].hasError('passwordStrength')" >
+                                            <div *ngFor="let errorMsg of getUpdateUserPasswordErrors()" >
+                                            {{ errorMsg | i18next }}
+                                            </div>
+                                        </ng-container>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>{{ 'manage-users-api' | i18next }}</td>
+                                    <td *ngIf="!currentUser.token">
+                                        <button type="button" class="btn btn-primary" (click)="genKey(currentUser.id)">{{ 'manage-users-api-generate' | i18next }}</button>
+                                    </td>
+                                    <td *ngIf="currentUser.token">
+                                        <ng-container *ngIf="showToken">
+                                        <p>{{ 'manage-users-token-message' | i18next }}</p>
+                                        <p><strong>{{ currentUser.token }}</strong></p>
+                                        </ng-container>
+                                        <button type="button" class="btn btn-primary" (click)="revokeKey(currentUser.id)">{{ 'manage-users-api-revoke' | i18next }}</button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="col-md-2">{{ 'manage-roles-role' | i18next }}</td>
+                                    <td class="col-md-8">
+                                        <div [formArrayName]="'allRoles'">
+                                            <div *ngFor="let role of getUpdateUserFormControls(); let i = index;" [formGroup]="role">
+                                                <input type="checkbox" formControlName="checked" id="role_{{ role.controls['key'].value }}">
+                                                <label attr.for="role_{{ role.controls['key'].value }}">{{ role.controls['value'].value }}</label>
+                                            </div>
+                                            <div class='form-text error text-danger' *ngIf="!updateUserForm.controls['roles'].valid">
+                                                <div>{{ 'manage-users-validation-role' | i18next }}</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
-                </td>
-                <td *ngIf="currentUser.type != 'local'">{{currentUser.name}}</td>
-                </tr>
-                <tr>
-                <td>{{ 'manage-users-email' | i18next }}</td>
-                <td *ngIf="currentUser.type == 'local'">
-                    <input type="email" formControlName="email" class="form-control input-sm chat-input"/>
-                    <div class='form-text error text-danger' *ngIf="updateUserForm.controls['email'].touched || submitted">
-                        <div *ngIf="updateUserForm.controls['email'].hasError('invalidEmail')">{{ 'manage-users-validation-email' | i18next }}</div>
-                        </div>
-                </td>
-                <td *ngIf="currentUser.type != 'local'">{{currentUser.email}}</td>
-                </tr>
-                <tr>
-                <td>{{ 'manage-users-password' | i18next }}</td>
-                <td *ngIf="currentUser.type == 'local'">
-                    <div formGroupName="passwords">
-                        <input type="password" formControlName="password" class="form-control input-sm chat-input" placeholder="{{ 'manage-users-update-password' | i18next }}"/>
-                    </div>
-                </td>
-                <td *ngIf="currentUser.type != 'local'">{{ 'manage-users-aaf-password' | i18next}}</td>
-                </tr>
-                <tr *ngIf="currentUser.type == 'local'">
-                    <td>{{ 'manage-users-confirm-password' | i18next }}</td>
-                    <td>
-                        <div formGroupName="passwords">
-                        <input type="password" formControlName="confirmPassword" class="form-control input-sm chat-input" placeholder="Confirm Password"/>
-                        </div>
-                        <div class='form-text error text-danger' *ngIf="isUpdateUserFormConfirmPasswordTouched() || submitted">
-                        <div *ngIf="updateUserForm.controls['passwords'].hasError('mismatched')">{{ 'manage-users-validation-confirmpassword' | i18next }}</div>
-                        <ng-container *ngIf="updateUserForm.controls['passwords'].hasError('passwordStrength')" >
-                            <div *ngFor="let errorMsg of getUpdateUserPasswordErrors()" >
-                            {{ errorMsg | i18next }}
-                            </div>
-                        </ng-container>
-                        </div>
-                    </td>
-                </tr>
-                <tr>
-                <td>{{ 'manage-users-api' | i18next }}</td>
-                <td *ngIf="!currentUser.token">
-                    <button type="button" class="btn btn-primary" (click)="genKey(currentUser.id)">{{ 'manage-users-api-generate' | i18next }}</button>
-                </td>
-                <td *ngIf="currentUser.token">
-                    <ng-container *ngIf="showToken">
-                    <p>{{ 'manage-users-token-message' | i18next }}</p>
-                    <p><strong>{{ currentUser.token }}</strong></p>
-                    </ng-container>
-                    <button type="button" class="btn btn-primary" (click)="revokeKey(currentUser.id)">{{ 'manage-users-api-revoke' | i18next }}</button>
-                </td>
-                </tr>
-                <tr>
-                    <td class="col-md-2">{{ 'manage-roles-role' | i18next }}</td>
-                    <td class="col-md-8">
-                        <div [formArrayName]="'allRoles'">
-                            <div *ngFor="let role of getUpdateUserFormControls(); let i = index;" [formGroup]="role">
-                            <input type="checkbox" formControlName="checked" id="role_{{ role.controls['key'].value }}">
-                            <label attr.for="role_{{ role.controls['key'].value }}">{{ role.controls['value'].value }}</label>
-                            </div>
-                            <div class='form-text error text-danger' *ngIf="!updateUserForm.controls['roles'].valid">
-                                <div>{{ 'manage-users-validation-role' | i18next }}</div>
-                            </div>
-                        </div>
-                    </td>
-                </tr>
-            </tbody>
-            </table>
-        </div>
-        </form>
-        <div class="bg-{{updateDetailsMsgType}} center-block">{{updateDetailsMsg}}</div>
-        </div>
+                </form>
+                <div class="bg-{{updateDetailsMsgType}} center-block">{{updateDetailsMsg}}</div>
+            </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-primary" form="detailsform" type="submit">{{ 'manage-users-save' | i18next }}</button>
                 <button type="button" class="btn btn-default" (click)="hideDetailsModal()">{{ 'manage-users-cancel' | i18next }}</button>
