@@ -516,7 +516,7 @@
               "projects/researchdatabox/manage-users/src/assets"
             ],
             "styles": [
-              "projects/researchdatabox/manage-users/src/styles.css"
+              "projects/researchdatabox/manage-users/src/styles.scss"
             ],
             "scripts": []
           }
