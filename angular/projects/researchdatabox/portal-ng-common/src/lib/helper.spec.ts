@@ -116,6 +116,10 @@ export function getStubUserService(username: string = '', password: string = '',
       return rolesData;
     }, getUsers() {
       return userData;
+    }, updateUserDetails() {
+      return { status: 'OK' };
+    }, addLocalUser() {
+      return { status: 'OK' };
     }
   };
 }
