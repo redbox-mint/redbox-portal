@@ -15,28 +15,25 @@ const password = 'very-scary-password';
 
 let rolesData = [
         {
-            users: [
-                {
-                    username: "admin",
-                    type: "local",
-                    name: "Local Admin"
-                }
-            ],
-            id: "ABC123",
-            name: "Admin"
+          name: "Admin",
+          id: "123"
         }
     ];
 
 let usersData = [
         {
-            roles: [
-                {
-                    name: "Admin"
-                }
-            ],
-            username: "admin",
-            type: "local",
-            name: "Local Admin"
+          name: "Local Admin",
+          username: "admin",
+          type: "local",
+          userid: "ABC123",
+          email: '',
+          passwords: { password: '', confirmPassword: '' },
+          roles: [ 
+                   {
+                     name: "Admin",
+                     id: "123"
+                   } 
+                ]
         }
    ];
 
@@ -44,7 +41,7 @@ describe('AppComponent', () => {
   beforeEach(async () => {
     configService = getStubConfigService();
     translationService = getStubTranslationService();
-    userService = getStubUserService(username, password, {}, rolesData, usersData);
+    userService = getStubUserService(username, password, {}, usersData, rolesData);
     const testModule = TestBed.configureTestingModule({
       declarations: [
         ManageUsersComponent
@@ -93,7 +90,7 @@ describe('AppComponent', () => {
     await testModule.compileComponents();
   });
 
-  it('should create the app', async () =>  {
+  it('should create the app and perform testing of basic functions', async () =>  {
     const fixture = TestBed.createComponent(ManageUsersComponent);
     const app = fixture.componentInstance;
     fixture.autoDetectChanges(true);
@@ -102,6 +99,20 @@ describe('AppComponent', () => {
     await fixture.whenStable();
     expect(app.allRoles.length).toBeGreaterThan(0);
     expect(app.allUsers.length).toBeGreaterThan(0);
+    app.newUser();
+    expect(app.isNewUserModalShown).toEqual(true);
+    app.hideNewUserModal();
+    app.onNewUserHidden();
+    expect(app.isNewUserModalShown).toEqual(false);
+    app.editUser('admin');
+    expect(app.isDetailsModalShown).toEqual(true);
+    app.hideDetailsModal();
+    app.onDetailsModalHidden();
+    expect(app.isDetailsModalShown).toEqual(false);
+    app.updateUserSubmit(usersData[0], true);
+    expect(app.currentUser.roles.length).toBeGreaterThan(0);
+    app.newUserSubmit(usersData[0], true);
+    expect(app.currentUser.roles.length).toBeGreaterThan(0);
   });
 
 });

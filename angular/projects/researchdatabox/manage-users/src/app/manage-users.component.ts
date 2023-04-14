@@ -240,54 +240,51 @@ export class ManageUsersComponent extends BaseComponent {
     });
   }
 
-  updateUserSubmit(user: UserForm, isValid: boolean) {
+  async updateUserSubmit(user: UserForm, isValid: boolean) {
     this.submitted = true;
     if (!isValid){
       this.setUpdateMessage(this.translationService.t('manage-users-validation-submit'), 'danger');
       return;
     }
-    var details: { name: string, email: string, password: string, roles: any[] } =
+    let details: { name: string, email: string, password: string, roles: any[] } =
       { name: user.name, email: user.email, password: user.passwords.password, roles: [] };
     _.forEach(user.roles, (role:any) => {
       details.roles.push(role.name);
     });
     this.setUpdateMessage('Saving...', 'primary');
 
-    this.userService.updateUserDetails(user.userid, details).then((saveRes:any) => { //SaveResult
-      if (saveRes.status) {
-        this.hideDetailsModal();
-        this.refreshUsers();
-        this.setUpdateMessage();
-      } else {
-        this.setUpdateMessage(saveRes.message, 'danger');
-      }
-    });
+    let saveRes:any = await this.userService.updateUserDetails(user.userid, details); //SaveResult
+    if (saveRes.status) {
+      this.hideDetailsModal();
+      this.refreshUsers();
+      this.setUpdateMessage();
+    } else {
+      this.setUpdateMessage(saveRes.message, 'danger');
+    }
   }
 
-  newUserSubmit(user: UserForm, isValid: boolean) {
+  async newUserSubmit(user: UserForm, isValid: boolean) {
     this.submitted = true;
     if (!isValid){
       this.setNewUserMessage(this.translationService.t('manage-users-validation-submit'), 'danger');
       return;
     }
-    var details: { name: string, email: string, password: string, roles: any[] } =
+    let details: { name: string, email: string, password: string, roles: any[] } =
       { name: user.name, email: user.email, password: user.passwords.password, roles: [] };
 
-    var userRoles:any[] = [];
     _.forEach(user.roles, (role:any) => {
       details.roles.push(role.name);
     });
 
     this.setNewUserMessage('Saving...', 'primary');
-    this.userService.addLocalUser(user.username, details).then((saveRes:any) => { //SaveResult
-      if (saveRes.status) {
-        this.hideNewUserModal();
-        this.refreshUsers();
-        this.setNewUserMessage();
-      } else {
-        this.setNewUserMessage(saveRes.message, 'danger');
-      }
-    });
+    let saveRes:any = await this.userService.addLocalUser(user.username, details); //SaveResult
+    if (saveRes.status) {
+      this.hideNewUserModal();
+      this.refreshUsers();
+      this.setNewUserMessage();
+    } else {
+      this.setNewUserMessage(saveRes.message, 'danger');
+    }
   }
 
   setUpdateMessage(msg:any=undefined, type:string='primary') {
