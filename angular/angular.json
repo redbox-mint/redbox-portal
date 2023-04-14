@@ -433,7 +433,11 @@
     },
     "@researchdatabox/manage-users": {
       "projectType": "application",
-      "schematics": {},
+      "schematics": {
+        "@schematics/angular:component": {
+          "style": "scss"
+        }
+      },
       "root": "projects/researchdatabox/manage-users",
       "sourceRoot": "projects/researchdatabox/manage-users/src",
       "prefix": "manage-users",
@@ -452,6 +456,11 @@
               "projects/researchdatabox/manage-users/src/favicon.ico",
               "projects/researchdatabox/manage-users/src/assets"
             ],
+            "stylePreprocessorOptions": {
+              "includePaths": [
+                "../node_modules/bootstrap/scss"
+              ]
+            },
             "styles": [
               "projects/researchdatabox/manage-users/src/styles.scss"
             ],
