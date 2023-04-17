@@ -92,7 +92,7 @@ export function getStubTranslationService(translationMap: any = null) {
  * @param loginResult 
  * @returns 
  */
-export function getStubUserService(username: string = '', password: string = '', loginResult: any = {url: '#greatsuccess', user: null}) {
+export function getStubUserService(username: string = '', password: string = '', loginResult: any = {url: '#greatsuccess', user: null}, userData: any = {}, rolesData: any = {}) {
 
   return {
     waitForInit: function() {
@@ -112,6 +112,14 @@ export function getStubUserService(username: string = '', password: string = '',
         this.loginResult.message = 'Invalid username/password';
       }
       return this.loginResult;
+    }, getBrandRoles() {
+      return rolesData;
+    }, getUsers() {
+      return userData;
+    }, updateUserDetails() {
+      return { status: 'OK' };
+    }, addLocalUser() {
+      return { status: 'OK' };
     }
   };
 }
