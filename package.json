@@ -58,7 +58,7 @@
     "passport-jwt": "^4.0.1",
     "passport-local": "^1.0.0",
     "path-exists": "^4.0.0",
-    "postcss": "^8.4.21",
+    "postcss": "^8.4.22",
     "rc": "1.2.8",
     "redux": "4.2.1",
     "request-promise": "^4.2.6",
