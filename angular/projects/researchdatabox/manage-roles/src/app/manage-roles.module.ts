@@ -1,6 +1,10 @@
 import { NgModule } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
-
+import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
+import { APP_BASE_HREF, PlatformLocation, CommonModule } from '@angular/common';
+import { FormsModule, ReactiveFormsModule } from "@angular/forms";
+import { RedboxPortalCoreModule, trimLastSlashFromUrl } from '@researchdatabox/portal-ng-common';
+import { ModalModule } from 'ngx-bootstrap/modal';
 import { ManageRolesComponent } from './manage-roles.component';
 
 @NgModule({
@@ -8,9 +12,21 @@ import { ManageRolesComponent } from './manage-roles.component';
     ManageRolesComponent
   ],
   imports: [
-    BrowserModule
+    BrowserModule,
+    FormsModule,
+    ReactiveFormsModule,
+    BrowserAnimationsModule,
+    CommonModule,
+    RedboxPortalCoreModule,
+    ModalModule.forRoot()
   ],
-  providers: [],
+  providers: [
+    {
+      provide: APP_BASE_HREF,
+      useFactory: (s: PlatformLocation) => trimLastSlashFromUrl(s.getBaseHrefFromDOM()),
+      deps: [PlatformLocation]
+    }
+  ],
   bootstrap: [ManageRolesComponent]
 })
 export class ManageRolesModule { }

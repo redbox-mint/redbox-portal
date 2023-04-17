@@ -559,7 +559,8 @@
               "projects/researchdatabox/manage-roles/src/assets"
             ],
             "styles": [
-              "projects/researchdatabox/manage-roles/src/styles.scss"
+              "projects/researchdatabox/manage-roles/src/styles.scss",
+              "../node_modules/bootstrap/scss/bootstrap.scss"
             ],
             "scripts": []
           },
