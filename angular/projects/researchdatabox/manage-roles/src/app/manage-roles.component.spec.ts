@@ -1,31 +1,119 @@
 import { TestBed } from '@angular/core/testing';
 import { ManageRolesComponent } from './manage-roles.component';
+import { APP_INITIALIZER, LOCALE_ID } from '@angular/core';
+import { APP_BASE_HREF } from '@angular/common'; 
+import { FormsModule } from "@angular/forms";
+import { I18NextModule, I18NEXT_SERVICE } from 'angular-i18next';
+import { UtilityService, LoggerService, TranslationService, ConfigService, UserService } from '@researchdatabox/portal-ng-common';
+import { getStubConfigService, getStubTranslationService, getStubUserService, appInit, localeId } from '@researchdatabox/portal-ng-common';
+
+let configService:any;
+let userService: any;
+let translationService: any;
+const username = 'testUser';
+const password = 'very-scary-password';
+
+let rolesData = [
+        {
+          name: "Admin",
+          id: "123"
+        }
+    ];
+
+let usersData = [
+        {
+          name: "Local Admin",
+          username: "admin",
+          type: "local",
+          userid: "ABC123",
+          email: '',
+          id: '',
+          password: '',
+          token: '',
+          passwords: { password: '', confirmPassword: '' },
+          roles: [ 
+                   {
+                     name: "Admin",
+                     id: "123",
+                     users: [],
+                     hasRole: true
+                   } 
+                ],
+          newRoles: [ 
+            {
+              name: "Researcher",
+              id: "456",
+              users: [],
+              hasRole: true
+            } 
+         ],
+         roleStr: 'Admin, Researcher'
+        }
+   ];
 
 describe('AppComponent', () => {
   beforeEach(async () => {
-    await TestBed.configureTestingModule({
+    configService = getStubConfigService();
+    translationService = getStubTranslationService();
+    userService = getStubUserService(username, password, {}, usersData, rolesData);
+    const testModule = TestBed.configureTestingModule({
       declarations: [
         ManageRolesComponent
       ],
-    }).compileComponents();
+      imports: [
+        FormsModule,
+        I18NextModule.forRoot()
+      ],
+      providers: [
+        {
+          provide: APP_BASE_HREF,
+          useValue: 'base'
+        },
+        LoggerService,
+        UtilityService,
+        {
+          provide: TranslationService,
+          useValue: translationService
+        },
+        {
+          provide: ConfigService,
+          useValue: configService
+        },
+        {
+          provide: UserService,
+          useValue: userService
+        },
+        {
+          provide: APP_INITIALIZER,
+          useFactory: appInit,
+          deps: [I18NEXT_SERVICE],
+          multi: true,
+        },
+        {
+          provide: LOCALE_ID,
+          deps: [I18NEXT_SERVICE],
+          useValue: localeId
+        }
+      ]
+    });
+    
+    TestBed.inject(UserService);
+    TestBed.inject(I18NEXT_SERVICE);
+    await testModule.compileComponents();
   });
 
-  it('should create the app', () => {
+  it('should create the app and perform testing of basic functions', async () =>  {
     const fixture = TestBed.createComponent(ManageRolesComponent);
     const app = fixture.componentInstance;
+    fixture.autoDetectChanges(true);
     expect(app).toBeTruthy();
+    await app.waitForInit();
+    await fixture.whenStable();
+    expect(app.roles.length).toBeGreaterThan(0);
+    app.users = usersData;
+    expect(app.users.length).toBeGreaterThan(0);
+    app.editUser('admin');
+    app.saveCurrentUser({});
+    expect(app.currentUser.roles.length).toBeGreaterThan(0);
   });
-
-  // it(`should have as title '@researchdatabox/manage-roles'`, () => {
-  //   const fixture = TestBed.createComponent(ManageRolesComponent);
-  //   const app = fixture.componentInstance;
-  //   expect(app.title).toEqual('@researchdatabox/manage-roles');
-  // });
-
-  // it('should render title', () => {
-  //   const fixture = TestBed.createComponent(ManageRolesComponent);
-  //   fixture.detectChanges();
-  //   const compiled = fixture.nativeElement as HTMLElement;
-  //   expect(compiled.querySelector('.content span')?.textContent).toContain('@researchdatabox/manage-roles app is running!');
-  // });
 });

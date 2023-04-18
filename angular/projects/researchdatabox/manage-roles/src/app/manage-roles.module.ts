@@ -1,8 +1,8 @@
 import { NgModule } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
-import { APP_BASE_HREF, PlatformLocation, CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule } from "@angular/forms";
+import { APP_BASE_HREF, PlatformLocation, CommonModule } from '@angular/common';
 import { RedboxPortalCoreModule, trimLastSlashFromUrl } from '@researchdatabox/portal-ng-common';
 import { ModalModule } from 'ngx-bootstrap/modal';
 import { ManageRolesComponent } from './manage-roles.component';
@@ -16,8 +16,8 @@ import { ManageRolesComponent } from './manage-roles.component';
     FormsModule,
     ReactiveFormsModule,
     BrowserAnimationsModule,
-    CommonModule,
     RedboxPortalCoreModule,
+    CommonModule,
     ModalModule.forRoot()
   ],
   providers: [

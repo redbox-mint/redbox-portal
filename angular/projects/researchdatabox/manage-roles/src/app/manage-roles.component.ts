@@ -1,8 +1,6 @@
 import { Component, Inject } from '@angular/core';
-import { DOCUMENT } from "@angular/common"
 import { LoggerService, TranslationService, UserService, BaseComponent } from '@researchdatabox/portal-ng-common';
-import { FormBuilder } from '@angular/forms';
-import { Role } from '@researchdatabox/portal-ng-common';
+import { Role, User } from '@researchdatabox/portal-ng-common';
 import * as _ from 'lodash';
 
 declare var jQuery: any;
@@ -15,34 +13,38 @@ declare var jQuery: any;
 export class ManageRolesComponent extends BaseComponent {
   title = '@researchdatabox/manage-roles';
 
-  users: any[] = [];
+  users: User[] = [];
   filteredUsers: any[] = [];
-  searchFilter: { name: string, role: any, prevName: string, prevRole: any, roles: any[] } = { name: '', role: null, prevName: '', prevRole:null, roles: [ {value: null, label:'Any', checked:true}]};
+  searchFilter: { 
+                  name: string, 
+                  role: any, 
+                  prevName: string, 
+                  prevRole: any, 
+                  roles: any[] } = { 
+                                     name: '', 
+                                     role: null, 
+                                     prevName: '', 
+                                     prevRole:null, 
+                                     roles: [ {value: null, label:'Any', checked:true}]
+                                    };
   roles: Role[] = [];
   hiddenUsers = ['admin'];
-  currentUser: any = {username:'', name:'', email:'', roles:[]};
+  currentUser: User = {username:'', name:'', email:'', roles:[]} as any;
   saveMsg = "";
   saveMsgType ="info";
-  initSubs: any;
 
   
   constructor(
     @Inject(LoggerService) private loggerService: LoggerService,
-    @Inject(UserService) private userService: UserService,
-    @Inject(FormBuilder) private formBuilder: FormBuilder,
     @Inject(TranslationService) private translationService: TranslationService,
-    @Inject(DOCUMENT) private document: Document
+    @Inject(UserService) private userService: UserService
   ) {
     super();
-    this.loggerService.debug(`Export waiting for deps to init...`); 
-    
+    this.loggerService.debug(`Manage Roles waiting for deps to init...`); 
     this.initDependencies = [this.translationService, this.userService];
   }
 
   protected override async initComponent():Promise<void> {
-    
-    this.initSubs = await this.userService.waitForInit();
-    
     let roles: any = await this.userService.getBrandRoles();
     this.roles = roles;
     _.forEach(roles, (role:any) => {
@@ -63,15 +65,21 @@ export class ManageRolesComponent extends BaseComponent {
     });
     _.map(this.users, (user:any)=> {user.roleStr = _.join(user.roles, ', ')});
     this.filteredUsers = this.users;
+    this.loggerService.debug(`Manage Roles initComponent done`);
   }
 
   editUser(username:string) {
     this.setSaveMessage();
-    this.currentUser = _.find(this.users, (user:any)=>{return user.username == username});
-    this.currentUser.newRoles = _.map(this.roles, (r:any) => {
-      return {name: r.name, id:r.id, hasRole: _.includes(this.currentUser.roles, r.name)};
-    });
-    jQuery('#myModal').modal('show');
+    let currUser = _.find(this.users, (user:any)=>{return user.username == username});
+    if(!_.isUndefined(currUser)) {
+      this.currentUser = currUser;
+      this.currentUser.newRoles = _.map(this.roles, (r:any) => {
+        return {name: r.name, id:r.id, users: [], hasRole: _.includes(this.currentUser.roles, r.name)};
+      });
+      try {
+        jQuery('#myModal').modal('show');
+      } catch(e) {}
+    }
   }
 
   async saveCurrentUser($event:any) {
@@ -92,7 +100,9 @@ export class ManageRolesComponent extends BaseComponent {
       this.currentUser.roles = newRoles;
       this.currentUser.roleStr =  _.join(this.currentUser.roles);
       this.setSaveMessage();
-      jQuery('#myModal').modal('hide');
+      try {
+        jQuery('#myModal').modal('hide');
+      } catch(e) {}
     } else {
       this.setSaveMessage(saveRes.message, "danger");
     }
