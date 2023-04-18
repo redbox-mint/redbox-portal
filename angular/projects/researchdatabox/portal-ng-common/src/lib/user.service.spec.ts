@@ -33,7 +33,7 @@ describe('UserService testing', () => {
   let userService: UserService;
 
   const mockUserData = { id: '123', username: 'username', password: 'password', type: 'type', name: 'name', email: 'email', token: 'token',
-      roles: []}
+      roles: [], newRoles: [], roleStr: ''}
   const mockUser:User = mockUserData as User;
 
   beforeEach(async function () {
