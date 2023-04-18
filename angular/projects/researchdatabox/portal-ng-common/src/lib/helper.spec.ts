@@ -120,6 +120,8 @@ export function getStubUserService(username: string = '', password: string = '',
       return { status: 'OK' };
     }, addLocalUser() {
       return { status: 'OK' };
+    }, updateUserRoles() {
+      return { status: 'OK' };
     }
   };
 }
