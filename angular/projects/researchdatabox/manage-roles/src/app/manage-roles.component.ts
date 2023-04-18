@@ -71,6 +71,7 @@ export class ManageRolesComponent extends BaseComponent {
     this.currentUser.newRoles = _.map(this.roles, (r:any) => {
       return {name: r.name, id:r.id, hasRole: _.includes(this.currentUser.roles, r.name)};
     });
+    jQuery('#myModal').modal('show');
   }
 
   async saveCurrentUser($event:any) {
