@@ -558,9 +558,13 @@
               "projects/researchdatabox/manage-roles/src/favicon.ico",
               "projects/researchdatabox/manage-roles/src/assets"
             ],
+            "stylePreprocessorOptions": {
+              "includePaths": [
+                "../node_modules/bootstrap/scss"
+              ]
+            },
             "styles": [
-              "projects/researchdatabox/manage-roles/src/styles.scss",
-              "../node_modules/bootstrap/scss/bootstrap.scss"
+              "projects/researchdatabox/manage-roles/src/styles.scss"
             ],
             "scripts": []
           },
