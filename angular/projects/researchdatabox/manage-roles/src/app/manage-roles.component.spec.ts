@@ -111,9 +111,13 @@ describe('AppComponent', () => {
     await fixture.whenStable();
     expect(app.roles.length).toBeGreaterThan(0);
     app.users = usersData;
+    app.filteredUsers = usersData;
     expect(app.users.length).toBeGreaterThan(0);
     app.editUser('admin');
     app.saveCurrentUser({});
     expect(app.currentUser.roles.length).toBeGreaterThan(0);
+    expect(app.users.length).toBeGreaterThan(0);
+    app.resetFilter();
+    expect(app.filteredUsers.length).toBeGreaterThan(0);
   });
 });
