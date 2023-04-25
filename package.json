@@ -75,7 +75,7 @@
     "solr-client": "^0.9.0",
     "systemjs": "6.14.1",
     "ts-node": "^10.9.1",
-    "tus-node-server": "^0.4.0",
+    "tus-node-server": "^0.9.0",
     "typescript": "4.6",
     "typescript-require": "~0.3.0",
     "url-pattern": "^1.0.3",
