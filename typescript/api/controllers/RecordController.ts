@@ -1280,14 +1280,17 @@ export module Controllers {
 
     protected initTusServer() {
       if (!this.tusServer) {
-        this.tusServer = new tus.Server();
+        let tusServerOptions = {
+        path: sails.config.record.attachments.path
+      }
+        this.tusServer = new tus.Server(tusServerOptions);
+        
         const targetDir = sails.config.record.attachments.stageDir;
         if (!fs.existsSync(targetDir)) {
           fs.mkdirSync(targetDir);
         }
         // path below is appended to the 'Location' header, so it must match the routes for this controller if you want to keep your sanity
         this.tusServer.datastore = new tus.FileStore({
-          path: sails.config.record.attachments.path,
           directory: targetDir
         });
         this.tusServer.on(tus.EVENTS.EVENT_UPLOAD_COMPLETE, (event) => {
