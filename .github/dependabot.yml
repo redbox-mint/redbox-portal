@@ -1,5 +1,11 @@
 version: 2
 updates:
+- package-ecosystem: "docker"
+  directory: "/"
+  schedule:
+    interval: "daily"
+    time: "19:30"
+  target-branch: "develop"
 - package-ecosystem: npm
   directory: "/angular"
   schedule:
