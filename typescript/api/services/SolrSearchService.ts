@@ -294,22 +294,6 @@ export module Services {
       _.each(sails.config.solr.preIndex.copy, (copyConfig:any) => {
         _.set(processedData, copyConfig.dest, _.get(data, copyConfig.source));
       });
-      // flattening...
-      // first remove those with special flattening options
-      _.each(sails.config.solr.preIndex.flatten.special, (specialFlattenConfig:any) => {
-        _.unset(processedData, specialFlattenConfig.field);
-      });
-      processedData = flat.flatten(processedData, sails.config.solr.preIndex.flatten.options);
-      _.each(sails.config.solr.preIndex.flatten.special, (specialFlattenConfig:any) => {
-        const dataToFlatten:any = {};
-        if (specialFlattenConfig.dest) {
-          _.set(dataToFlatten, specialFlattenConfig.dest, _.get(data, specialFlattenConfig.source));
-        } else {
-          _.set(dataToFlatten, specialFlattenConfig.source, _.get(data, specialFlattenConfig.source));
-        }
-        let flattened:any = flat.flatten(dataToFlatten, specialFlattenConfig.options);
-        _.merge(processedData, flattened);
-      });
 
       _.each(sails.config.solr.preIndex.jsonString, (jsonStringConfig:any) => {
         let setProperty:string = jsonStringConfig.source;
@@ -336,6 +320,23 @@ export module Services {
 
         let template:any = _.template(templateConfig.template)
         _.set(processedData, setProperty, template({data: templateData}) );
+      });
+
+      // flattening...
+      // first remove those with special flattening options
+      _.each(sails.config.solr.preIndex.flatten.special, (specialFlattenConfig:any) => {
+        _.unset(processedData, specialFlattenConfig.field);
+      });
+      processedData = flat.flatten(processedData, sails.config.solr.preIndex.flatten.options);
+      _.each(sails.config.solr.preIndex.flatten.special, (specialFlattenConfig:any) => {
+        const dataToFlatten:any = {};
+        if (specialFlattenConfig.dest) {
+          _.set(dataToFlatten, specialFlattenConfig.dest, _.get(data, specialFlattenConfig.source));
+        } else {
+          _.set(dataToFlatten, specialFlattenConfig.source, _.get(data, specialFlattenConfig.source));
+        }
+        let flattened:any = flat.flatten(dataToFlatten, specialFlattenConfig.options);
+        _.merge(processedData, flattened);
       });
 
       // sanitise any empty keys so SOLR doesn't complain
