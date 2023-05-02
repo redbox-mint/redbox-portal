@@ -26,7 +26,7 @@ import {
   Sails,
   Model
 } from "sails";
-import * as request from "request-promise";
+import { ReportDto, ReportFilter, RecordPropViewMeta } from '@researchdatabox/sails-ng-common';
 
 declare var sails: Sails;
 declare var Report: Model;
@@ -51,6 +51,7 @@ export module Services {
       'get',
       'getResults',
       'getCSVResult',
+      'getReportDto'
     ];
 
     public bootstrap = (defBrand) => {
@@ -86,10 +87,10 @@ export module Services {
       }));
     }
 
-    public get(brand, name) {
-      return super.getObservable(Report.findOne({
+    public async get(brand, name) {
+      return await Report.findOne({
         key: brand.id + "_" + name
-      }));
+      })
     }
 
     public create(brand, name, config) {
@@ -196,6 +197,12 @@ export module Services {
     protected addPaginationParams(params, start = 0, rows) {
       params = params + "&start=" + start + "&rows=" + rows;
       return params;
+    }
+
+    public getReportDto(reportModel: Model): ReportDto {
+      return this.convertToType<ReportDto>(reportModel, new ReportDto(), {
+        "solr_query": "solrQuery"
+      }, true); 
     }
 
   }
