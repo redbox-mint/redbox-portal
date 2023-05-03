@@ -26,7 +26,7 @@ import {
   Sails,
   Model
 } from "sails";
-import { ReportDto, ReportFilter, RecordPropViewMeta } from '@researchdatabox/sails-ng-common';
+import { ReportDto } from '@researchdatabox/sails-ng-common';
 
 declare var sails: Sails;
 declare var Report: Model;
