@@ -29,6 +29,8 @@ module.exports.http = {
      * router is invoked by the "router" middleware below.)                     *
      *                                                                          *
      ***************************************************************************/
+    
+    redboxSession: require('../api/middleware/redboxSession')(require('./redboxSession').redboxSession),
     passportInit: require('passport').initialize(),
     passportSession: require('passport').session(),
     brandingAndPortalAwareStaticRouter: function(req, res, next) {
@@ -89,7 +91,7 @@ module.exports.http = {
       'cacheControl',
       'startRequestTimer',
       'cookieParser',
-      'session',
+      'redboxSession',
       'passportInit',
       'passportSession',
       'myBodyParser',

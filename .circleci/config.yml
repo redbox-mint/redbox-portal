@@ -101,7 +101,7 @@ workflows:
               only: 'master'
   build_test_dependabot:
     jobs:
-      - build_without_angular:
+      - build:
           filters:
             branches:
               only: /^dependabot.*/
@@ -109,7 +109,7 @@ workflows:
               ignore: /.*/
       - test:
           requires:
-            - build_without_angular
+            - build
       - deploy:
           requires:
             - test
