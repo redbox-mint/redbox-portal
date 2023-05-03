@@ -4,7 +4,11 @@
     "declaration": true,
     "declarationMap": true,
     "outDir": "./dist",
-    "strict": false
+    "strict": false,
+    "lib": [
+      "es2023",
+      "dom"
+    ]
   },
   "include": [
     "src/**/*"
