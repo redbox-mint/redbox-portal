@@ -102,9 +102,8 @@ z-index: 999;
 }
 .logo h1 a:hover {text-decoration: none;opacity: .7}
 
-.nav-search-bar .btn {
-    font-size: 15px;  
-}
+
+
 
 .mainmenu-area ul.navbar-nav li a {
     font-size: 16px;
@@ -4785,7 +4784,7 @@ tbody.collapse.in {
 
 .input-group-addon {
     padding: 6px 12px;
-    font-size: 14px;
+    font-size: 1.5rem;
     font-weight: 400;
     line-height: 1;
     color: #555;
@@ -4836,7 +4835,8 @@ tbody.collapse.in {
 }
 
 .input-group-btn>.btn {
-    position: relative
+    position: relative;
+    font-size: 1.5rem;
 }
 
 .input-group-btn>.btn+.btn {
