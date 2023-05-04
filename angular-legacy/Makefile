@@ -3,8 +3,6 @@ help:
 	    @echo "To build all apps run make make build-frontend"
 
 build-frontend:
-			@echo "Building dashboard"
-			node_modules/.bin/ng build -a=1 --extract-css true
 			@echo "Building record_search"
 			node_modules/.bin/ng build -a=2 --extract-css true
 			@echo "Building transfer_owner"
@@ -25,8 +23,6 @@ build-frontend:
 			node_modules/.bin/ng build -a=10 --extract-css true
 
 build-frontend-prod:
-			@echo "Building dashboard"
-			node_modules/.bin/ng build -a=1 --prod --build-optimizer --output-hashing=none --extract-css true
 			@echo "Building record_search"
 			node_modules/.bin/ng build -a=2 --prod --build-optimizer --output-hashing=none --extract-css true
 			@echo "Building transfer_owner"
@@ -47,8 +43,6 @@ build-frontend-prod:
 			node_modules/.bin/ng build -a=10 --prod --build-optimizer --output-hashing=none --extract-css true
 
 build-frontend-prod-sourcemaps:
-			@echo "Building dashboard"
-			node_modules/.bin/ng build -a=1 --prod --build-optimizer --output-hashing=none --sourcemaps=true --extract-css true
 			@echo "Building record_search"
 			node_modules/.bin/ng build -a=2 --prod --build-optimizer --output-hashing=none --sourcemaps=true --extract-css true
 			@echo "Building transfer_owner"
