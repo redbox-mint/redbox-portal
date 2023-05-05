@@ -37,12 +37,15 @@ export interface User {
   email: string;
   token: string;
   roles: Role[];
+  newRoles: Role[];
+  roleStr: string;
 }
 
 export interface Role {
   id: string;
   name: string;
   users: User[];
+  hasRole: boolean;
 }
 
 export interface UserLoginResult {
