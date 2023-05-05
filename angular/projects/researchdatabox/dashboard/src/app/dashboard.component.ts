@@ -436,8 +436,8 @@ export class DashboardComponent extends BaseComponent {
           recordRows.push(record);
         }
 
-
-        if(!_.isUndefined(groupRowConfig) && !_.isEmpty(groupRowConfig)) {
+        //Don't evaluate group rules if no records were retrieved meaning recordsRows array has length 0
+        if(!_.isUndefined(groupRowConfig) && !_.isEmpty(groupRowConfig) && recordRows.length > 0 && !_.isEmpty(imports)) {
 
           const groupTemplateData = {
             imports: imports
@@ -455,32 +455,36 @@ export class DashboardComponent extends BaseComponent {
 
     } else {
 
-      for (let stagedRecord of stagedOrGroupedRecords.items) {
+      let stagedOrGroupedRecordItems = _.get(stagedOrGroupedRecords, 'items');
+      if(!_.isUndefined(stagedOrGroupedRecordItems) && !_.isEmpty(stagedOrGroupedRecordItems)) {
 
-        const imports: any = {};
-        
-        _.forEach(columnMappings, (value, key) => {
-          _.set(imports, key, _.get(stagedRecord, value));
-        });
-  
-        _.set(imports, 'branding',this.branding);
-        _.set(imports, 'rootContext', this.rootContext);
-        _.set(imports, 'portal', this.portal);
-        _.set(imports, 'translationService', this.translationService);
-  
-        const templateData = {
-          imports: imports
-        };
-        let record: any = {};
-        let stepTableCOnfig = _.isEmpty(this.tableConfig[stepName]) ? this.defaultTableConfig : this.tableConfig[stepName];
-  
-        for (let rowConfig of stepTableCOnfig) {
+        for (let stagedRecord of stagedOrGroupedRecordItems) {
+
+          const imports: any = {};
           
-          const template = _.template(rowConfig.template, templateData);
-          const templateRes = template();
-          record[rowConfig.variable] = templateRes;
+          _.forEach(columnMappings, (value, key) => {
+            _.set(imports, key, _.get(stagedRecord, value));
+          });
+    
+          _.set(imports, 'branding',this.branding);
+          _.set(imports, 'rootContext', this.rootContext);
+          _.set(imports, 'portal', this.portal);
+          _.set(imports, 'translationService', this.translationService);
+    
+          const templateData = {
+            imports: imports
+          };
+          let record: any = {};
+          let stepTableCOnfig = _.isEmpty(this.tableConfig[stepName]) ? this.defaultTableConfig : this.tableConfig[stepName];
+    
+          for (let rowConfig of stepTableCOnfig) {
+            
+            const template = _.template(rowConfig.template, templateData);
+            const templateRes = template();
+            record[rowConfig.variable] = templateRes;
+          }
+          recordRows.push(record);
         }
-        recordRows.push(record);
       }
     }
 
