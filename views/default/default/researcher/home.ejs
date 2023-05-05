@@ -96,12 +96,18 @@
 <!-- simple jquery script to make all the panels equal height -->
 <script>
   $( document ).ready(function() {
-    panels = $('.homepanel .panel-default .panel-body');
-    maxHeight = Math.max.apply(
-      Math, panels.map(function() {
-        return $(this).height();
-        }).get());
-    panels.maxHeight(maxHeight);
+   const panels = document.querySelectorAll('.homepanel .panel-default .panel-body');
+   let maxHeight = 0;
+   for (let i = 0; i < panels.length; i++) {
+      const panel = panels[i];
+      const panelHeight = panel.offsetHeight;
+      if (maxHeight < panelHeight) {
+        maxHeight = panelHeight;
+      }
+    }
+    for (let panel of panels) {
+      panel.style.minHeight = `${maxHeight}px`;
+    }
   });
 </script>
 </div>
