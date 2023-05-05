@@ -139,7 +139,8 @@ export class ManageUsersComponent extends BaseComponent {
       let ret: Role = {      
         id: '',
         name: '',
-        users: []
+        users: [],
+        hasRole: true
       };
       ret.id = r.key;
       ret.name = r.value;
