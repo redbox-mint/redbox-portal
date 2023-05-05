@@ -41,6 +41,18 @@ module.exports = function(grunt) {
       cwd: './node_modules/jquery/dist/' ,
       src: ['jquery.min.js'],
       dest: '.tmp/public/default/default/js'
+    },
+    {
+      expand: true,
+      cwd: './angular-legacy/node_modules/bootstrap-datepicker/js/' ,
+      src: ['bootstrap-datepicker.js'],
+      dest: '.tmp/public/default/default/js'
+    },
+    {
+      expand: true,
+      cwd: './angular-legacy/node_modules/bootstrap-timepicker/js/' ,
+      src: ['bootstrap-timepicker.js'],
+      dest: '.tmp/public/default/default/js'
     }
   ];
   var apiFilesConfig = [
