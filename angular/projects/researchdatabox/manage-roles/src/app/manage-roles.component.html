@@ -58,8 +58,8 @@
     </div>
   </div>
   <!-- Modal -->
-  <div id="myModal" class="modal fade" role="dialog">
-    <div class="modal-dialog">
+  <div *ngIf="isDetailsModalShown" [config]="{backdrop: 'static', show: true}" (onHidden)="onDetailsModalHidden()" bsModal #roleDetailsModal="bs-modal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="detailsform" >
+    <div class="modal-dialog modal-md">
       <!-- Modal content-->
       <div class="modal-content">
         <div class="modal-header">
@@ -98,7 +98,7 @@
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-primary" (click)="saveCurrentUser($event)">{{ 'manage-roles-save' | i18next }}</button>
-          <button type="button" class="btn btn-default" data-dismiss="modal">{{ 'manage-roles-cancel' | i18next }}</button>
+          <button type="button" class="btn btn-default" (click)="hideDetailsModal()">{{ 'manage-roles-cancel' | i18next }}</button>
         </div>
       </div>
     </div>

@@ -1,9 +1,8 @@
-import { Component, Inject } from '@angular/core';
+import { Component, Inject, ViewChild } from '@angular/core';
+import { ModalDirective } from 'ngx-bootstrap/modal';
 import { LoggerService, TranslationService, UserService, BaseComponent } from '@researchdatabox/portal-ng-common';
 import { Role, User } from '@researchdatabox/portal-ng-common';
 import * as _ from 'lodash';
-
-declare var jQuery: any;
 
 @Component({
   selector: 'manage-roles',
@@ -32,6 +31,9 @@ export class ManageRolesComponent extends BaseComponent {
   currentUser: User = {username:'', name:'', email:'', roles:[]} as any;
   saveMsg = "";
   saveMsgType ="info";
+
+  isDetailsModalShown: boolean = false;
+  @ViewChild('roleDetailsModal', { static: false }) roleDetailsModal?: ModalDirective;
 
   
   constructor(
@@ -76,10 +78,23 @@ export class ManageRolesComponent extends BaseComponent {
       this.currentUser.newRoles = _.map(this.roles, (r:any) => {
         return {name: r.name, id:r.id, users: [], hasRole: _.includes(this.currentUser.roles, r.name)};
       });
-      try {
-        jQuery('#myModal').modal('show');
-      } catch(e) {}
+      this.showDetailsModal();
     }
+  }
+
+  showDetailsModal(): void {
+    this.isDetailsModalShown = true;
+    this.roleDetailsModal?.show();
+  }
+
+  hideDetailsModal(): void {
+    if(!_.isUndefined(this.roleDetailsModal)) {
+      this.roleDetailsModal.hide();
+    }
+  }
+
+  onDetailsModalHidden(): void {
+    this.isDetailsModalShown = false;
   }
 
   async saveCurrentUser($event:any) {
@@ -100,9 +115,7 @@ export class ManageRolesComponent extends BaseComponent {
       this.currentUser.roles = newRoles;
       this.currentUser.roleStr =  _.join(this.currentUser.roles);
       this.setSaveMessage();
-      try {
-        jQuery('#myModal').modal('hide');
-      } catch(e) {}
+      this.hideDetailsModal();
     } else {
       this.setSaveMessage(saveRes.message, "danger");
     }
