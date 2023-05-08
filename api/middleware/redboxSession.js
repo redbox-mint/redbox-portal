@@ -1,4 +1,5 @@
 const _ = require('lodash')
+const MongoStore = require('connect-mongo');
 
 module.exports = function redboxSession(sessionConfig) {
     let defaultSessionConfig = {
@@ -12,6 +13,10 @@ module.exports = function redboxSession(sessionConfig) {
     };
 
     sessionConfig = _.extend(defaultSessionConfig, sessionConfig);
+
+    if(sessionConfig.adapter == "mongo") {
+      sessionConfig.store = MongoStore.create(sessionConfig)
+    }
     
     // configure express-session using the sessionConfig object
     return require('express-session')(sessionConfig);
