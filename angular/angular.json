@@ -610,7 +610,7 @@
               "zone.js",
               "zone.js/testing"
             ],
-            "karmaConfig": "projects/researchdatabox/portal-ng-common/karma.conf.js",
+            "karmaConfig": "projects/researchdatabox/manage-roles/karma.conf.js",
             "tsConfig": "projects/researchdatabox/manage-roles/tsconfig.spec.json",
             "inlineStyleLanguage": "scss",
             "assets": [
