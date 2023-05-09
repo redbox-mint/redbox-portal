@@ -1,6 +1,6 @@
 import { Component, Inject, OnInit, ElementRef } from '@angular/core';
 import { PageChangedEvent } from 'ngx-bootstrap/pagination';
-import { BaseComponent, UtilityService, LoggerService, TranslationService, RecordService, PlanTable, Plan, RecordResponseTable, UserService} from '@researchdatabox/portal-ng-common';
+import { BaseComponent, UtilityService, LoggerService, TranslationService, RecordService, PlanTable, Plan, RecordResponseTable, UserService, ConfigService} from '@researchdatabox/portal-ng-common';
 import * as _ from 'lodash';
 
 @Component({
@@ -12,6 +12,7 @@ export class DashboardComponent extends BaseComponent {
   branding: string = '';
   portal: string = '';
   rootContext: string = '';
+  baseUrl:string = '';
   workflowSteps: any = [];
   typeLabel: string = '';
   recordType: string;
@@ -112,6 +113,7 @@ export class DashboardComponent extends BaseComponent {
     @Inject(TranslationService) private translationService: TranslationService,
     @Inject(RecordService) private recordService: RecordService,
     @Inject(UserService) private userService: UserService,
+    @Inject(ConfigService) private configService: ConfigService,
     elementRef: ElementRef
   ) {
     super();
@@ -137,7 +139,8 @@ export class DashboardComponent extends BaseComponent {
       this.loggerService.debug(`Dashboard waiting for deps to init...`); 
       this.loggerService.debug(`Dashboard initialised.`); 
       this.config = this.recordService.getConfig();
-      this.rootContext = _.get(this.config, 'baseUrl');
+      this.baseUrl = _.get(this.config, 'baseUrl');
+      this.rootContext = this.configService.rootContext;
       this.branding = _.get(this.config, 'branding');
       this.portal = _.get(this.config, 'portal');
       this.typeLabel = `${this.translationService.t(`${this.recordType}-name-plural`)}` || 'Records';
@@ -410,6 +413,7 @@ export class DashboardComponent extends BaseComponent {
 
           _.set(imports, 'branding',this.branding);
           _.set(imports, 'rootContext', this.rootContext);
+          _.set(imports, 'baseUrl', this.baseUrl);
           _.set(imports, 'portal', this.portal);
           _.set(imports, 'translationService', this.translationService);
           _.set(imports, 'rulesService', this.rulesService);

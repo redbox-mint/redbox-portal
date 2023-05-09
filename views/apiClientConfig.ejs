@@ -1,6 +1,6 @@
 <% 
 let defaultConfig = {
-  baseUrl: `${sails.config.appUrl}${BrandingService.getRootContext()}`,
+  baseUrl: sails.config.appUrl,
   branding: req.session.branding,
   portal: req.session.portal,
   defaultForm: sails.config.form.defaultForm,
