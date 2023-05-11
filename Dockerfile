@@ -1,4 +1,4 @@
-FROM node:20.0.0-buster
+FROM node:20.1.0-buster
 ENV node_env production
 ENV NPM_CONFIG_PREFIX=/home/node/.npm-global
 ENV PATH=$PATH:/home/node/.npm-global/bin
