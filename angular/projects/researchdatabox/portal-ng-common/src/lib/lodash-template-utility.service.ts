@@ -20,14 +20,14 @@
 
 import { Injectable } from '@angular/core';
 import { DateTime } from 'luxon';
-import { get as _get, isEmpty as _isEmpty, isUndefined as _isUndefined, set as _set, isArray as _isArray, clone as _clone, each as _each, isEqual as _isEqual, isNull as _isNull, first as _first, join as  _join,  extend as _extend, template as _template, concat as _concat, find as _find } from 'lodash-es';
+import { get as _get, isEmpty as _isEmpty, isUndefined as _isUndefined, set as _set, isArray as _isArray, clone as _clone, each as _each, isEqual as _isEqual, isNull as _isNull, first as _first, join as _join, extend as _extend, template as _template, concat as _concat, find as _find, merge as _merge } from 'lodash-es';
 
 /**
  * Utility functions to run and render loadash templates
  *
  *
  */
- @Injectable({
+@Injectable({
   providedIn: 'platform'
 })
 export class LoDashTemplateUtilityService {
@@ -56,30 +56,36 @@ export class LoDashTemplateUtilityService {
   };
 
 
-  public formatDate(date: Date, format:string): string {
+  public formatDate(date: Date, format: string): string {
     let dateTime = DateTime.fromJSDate(date);
     return dateTime.toFormat(format);
-   }
- 
-   public formatDateLocale(date: Date, presetName?: string, locale?: string): string {
-     let dateTime = DateTime.fromJSDate(date);
-     if (locale != undefined) {
-       dateTime = dateTime.setLocale(locale);
-     }
-     if (presetName != undefined) {
-       const preset: Intl.DateTimeFormatOptions = this.presetMap[presetName]
- 
-       return dateTime.toLocaleString(preset);
-     }
-     return dateTime.toLocaleString();
-   }
+  }
 
-   public parseDateString(dateString: string, format?: string): Date {
+  public formatDateLocale(date: Date, presetName?: string, locale?: string): string {
+    let dateTime = DateTime.fromJSDate(date);
     
+    if (locale != undefined) {
+      dateTime = dateTime.setLocale(locale);
+    } else {
+      dateTime = dateTime.setLocale(navigator.language);
+    }
+
+    if (presetName != undefined) {
+      const preset: Intl.DateTimeFormatOptions = this.presetMap[presetName]
+      return dateTime.toLocaleString(preset);
+    }
+    return dateTime.toLocaleString();
+  }
+
+  public parseDateString(dateString: string, format?: string): Date {
+    if (format != undefined) {
+      const dt = DateTime.fromFormat(dateString, format);
+      return dt.toJSDate();
+    }
     return new Date(Date.parse(dateString));
   }
 
-   public numberFormat(number: number, locale:string = '', options: any = undefined ): string {
+  public numberFormat(number: number, locale: string = '', options: any = undefined): string {
     if (_isEmpty(locale)) {
       return new Intl.NumberFormat().format(number);
     } else {
@@ -87,10 +93,11 @@ export class LoDashTemplateUtilityService {
     }
   }
 
-   public runTemplate(data: any, config: any, field: any = undefined) {
+  public runTemplate(data: any, config: any, additionalImports: any = {}, field: any = undefined) {
     // TO-DO: deprecate numberFormat as it can be accessed via util
-    const imports = _extend({data: data, config: config, DateTime: DateTime, numberFormat:this.numberFormat, field: field, util:this}, this);
-    const templateData = {imports: imports};
+    let imports = _extend({ data: data, config: config, DateTime: DateTime, numberFormat: this.numberFormat, field: field, util: this }, this);
+    imports = _merge(imports, additionalImports);
+    const templateData = { imports: imports };
     const template = _template(config.template, templateData);
     const templateRes = template();
     // added ability to parse the string template result into JSON
