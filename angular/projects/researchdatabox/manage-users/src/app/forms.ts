@@ -17,12 +17,12 @@ export function matchingValuesValidator(control1: string, control2: string): Val
         let val1 = group.get(control1);
         let val2 = group.get(control2);
 
-        if (!val1 || !val2) {
-          return null;
-        }
-
-        if (val1.value !== val2.value) {
-          return { mismatched: true };
+        if(!_.isUndefined(val1) && !_.isNull(val1) && !_.isUndefined(val2) && !_.isNull(val2)) {
+          if (val1.value !== val2.value) {
+            return { mismatched: true };
+          } else {
+            return null;
+          }
         } else {
           return null;
         }
@@ -43,13 +43,13 @@ export function passwordStrengthValidator(control1: string): ValidatorFn  {
     
     let password = group.get(control1);
 
-    if(!password){
-      return null;
-    }
-
-    if (!_.isEmpty(password)) {
-      const result = owasp.test(password.value);
-      return result.errors.length == 0 ? null : { passwordStrength: true, passwordStrengthDetails: result };
+    if(!_.isUndefined(password) && !_.isNull(password)) {
+      if (!_.isEmpty(password.value)) {
+        const result = owasp.test(password.value);
+        return result.errors.length == 0 ? null : { passwordStrength: true, passwordStrengthDetails: result };
+      } else {
+        return null;
+      }
     } else {
       return null;
     }
