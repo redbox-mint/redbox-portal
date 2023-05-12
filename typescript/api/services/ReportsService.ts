@@ -18,8 +18,8 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 import {
-  Observable
-} from 'rxjs/Rx';
+  Observable, last, flatMap, from, of
+} from 'rxjs';
 import {SearchService, Services as services}   from '@researchdatabox/redbox-core-types';
 
 import {
@@ -56,7 +56,7 @@ export module Services {
     public bootstrap = (defBrand) => {
       return super.getObservable(Report.find({
         branding: defBrand.id
-      })).flatMap(reports => {
+      })).pipe(flatMap(reports => {
         if (_.isEmpty(reports)) {
           var rTypes = [];
           sails.log.verbose("Bootstrapping report definitions... ");
@@ -65,19 +65,18 @@ export module Services {
             obs.subscribe(repProcessed => { })
             rTypes.push(obs);
           });
-          return Observable.from(rTypes);
+          return from(rTypes);
 
         } else {
 
           var rTypes = [];
           _.each(reports, function (report) {
-            rTypes.push(Observable.of(report));
+            rTypes.push(of(report));
           });
           sails.log.verbose("Default reports definition(s) exist.");
-          return Observable.from(rTypes);
+          return from(rTypes);
         }
-      })
-        .last();
+      }),last());
     }
 
     public findAllReportsForBrand(brand) {
@@ -142,12 +141,12 @@ export module Services {
         key: brand.id + "_" + name
       }));
 
-      return reportObs.flatMap(report => {
+      return reportObs.pipe(flatMap(report => {
         report = this.convertLegacyReport(report);
 
         var url = this.buildSolrParams(brand, req, report, start, rows, 'json');
-        return Observable.fromPromise(this.getSearchService().searchAdvanced(url));
-      });
+        return from(this.getSearchService().searchAdvanced(url));
+      }));
     }
 
     private getSearchService() {
@@ -171,14 +170,14 @@ export module Services {
         key: brand.id + "_" + name
       }));
 
-      return reportObs.flatMap(report => {
+      return reportObs.pipe(flatMap(report => {
         report = this.convertLegacyReport(report);
         sails.log.debug(report)
         // TODO: Ensure we get all results in a tidier way
         //       Stream the resultset rather than load it in-memory
         var url = this.buildSolrParams(brand, req, report, start, rows, 'csv');
-        return Observable.fromPromise(this.getSearchService().searchAdvanced(url));
-      });
+        return from(this.getSearchService().searchAdvanced(url));
+      }));
     }
 
     protected getQueryValue(report) {

@@ -20,7 +20,7 @@
 //<reference path='./../../typings/loader.d.ts'/>
 declare var module;
 declare var sails;
-import { Observable } from 'rxjs/Rx';
+import { Observable,of,flatMap } from 'rxjs';
 declare var BrandingService, RolesService, DashboardService, ReportsService;
 declare var _;
 /**
@@ -94,10 +94,11 @@ export module Controllers {
         }
 
         response["records"] = items;
-        return Observable.of(response);
-      }).flatMap(results => {
-          return results;
-        }).subscribe(response => {
+        return of(response);
+      }).pipe(flatMap(results => {
+        let results2:any = results;
+          return results2;
+        })).subscribe(response => {
           if (response && response.code == "200") {
             response.success = true;
             this.ajaxOk(req, res, null, response);

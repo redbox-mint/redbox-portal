@@ -17,9 +17,9 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { Observable } from 'rxjs/Rx';
-import {Services as services}   from '@researchdatabox/redbox-core-types';
-import {Sails, Model} from "sails";
+import { zip, of, flatMap } from 'rxjs';
+import { Services as services } from '@researchdatabox/redbox-core-types';
+import { Sails, Model } from "sails";
 
 declare var sails: Sails;
 declare var WorkspaceType: Model;
@@ -43,7 +43,7 @@ export module Services {
     ];
 
     public bootstrap = (defBrand) => {
-      return super.getObservable(WorkspaceType.destroy({branding: defBrand.id})).flatMap(whatever => {
+      return super.getObservable(WorkspaceType.destroy({ branding: defBrand.id })).pipe(flatMap(whatever => {
         const obsArr = [];
         sails.log.debug('WorkspaceTypes::Bootstrap');
         sails.log.debug(sails.config.workspacetype);
@@ -65,10 +65,10 @@ export module Services {
         if (_.isEmpty(obsArr)) {
           sails.log.verbose("Default or no workspaceTypes definition(s).");
         } else {
-          return Observable.zip(...obsArr);
+          return zip(...obsArr);
         }
-        return Observable.of(obsArr);
-      });
+        return of(obsArr);
+      }));
     }
 
     public create(brand, workspaceType) {
@@ -86,11 +86,11 @@ export module Services {
     }
 
     public get(brand) {
-      return super.getObservable(WorkspaceType.find({branding: brand.id}));
+      return super.getObservable(WorkspaceType.find({ branding: brand.id }));
     }
 
     public getOne(brand, name) {
-      return super.getObservable(WorkspaceType.findOne({branding: brand.id, name: name}));
+      return super.getObservable(WorkspaceType.findOne({ branding: brand.id, name: name }));
     }
   }
 }

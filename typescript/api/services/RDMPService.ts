@@ -18,8 +18,8 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 import {
-  Observable
-} from 'rxjs/Rx';
+  Observable, of, from, zip, throwError, flatMap
+} from 'rxjs';
 import {
   QueueService,
   Services as services,
@@ -383,7 +383,7 @@ export module Services {
       sails.log.debug(`${this.logHeader} Queueing up trigger using job name ${jobName}`);
       sails.log.verbose(queueMessage);
       this.queueService.now(jobName, queueMessage);
-      return Observable.of(record);
+      return of(record);
     }
 
     public queuedTriggerSubscriptionHandler(job: any) {
@@ -442,7 +442,7 @@ export module Services {
       if (isObservable(hookResponse)) {
         return hookResponse;
       } else {
-        response = Observable.fromPromise(hookResponse);
+        response = from(hookResponse);
       }
       return response;
     }
@@ -478,7 +478,7 @@ export module Services {
       }
       // when both are empty, simpy return the record
       if (_.isEmpty(editContributorEmails) && _.isEmpty(viewContributorEmails)) {
-        return Observable.of(record);
+        return of(record);
       }
       _.each(editContributorEmails, editorEmail => {
         editContributorObs.push(this.getObservable(User.findOne({
@@ -492,10 +492,10 @@ export module Services {
       });
       let zippedViewContributorUsers = null;
       if (editContributorObs.length == 0) {
-        zippedViewContributorUsers = Observable.zip(...viewContributorObs);
+        zippedViewContributorUsers = zip(...viewContributorObs);
       } else {
-        zippedViewContributorUsers = Observable.zip(...editContributorObs)
-          .flatMap(editContributorUsers => {
+        zippedViewContributorUsers = zip(...editContributorObs)
+          .pipe(flatMap(editContributorUsers => {
             let newEditList = [];
             this.filterPending(editContributorUsers, editContributorEmails, newEditList);
             if (recordCreatorPermissions == "edit" || recordCreatorPermissions == "view&edit") {
@@ -503,13 +503,13 @@ export module Services {
             }
             record.authorization.edit = newEditList;
             record.authorization.editPending = editContributorEmails;
-            return Observable.zip(...viewContributorObs);
-          })
+            return zip(...viewContributorObs);
+          }))
       }
       if (zippedViewContributorUsers.length == 0) {
-        return Observable.of(record);
+        return of(record);
       } else {
-        return zippedViewContributorUsers.flatMap(viewContributorUsers => {
+        return zippedViewContributorUsers.pipe(flatMap(viewContributorUsers => {
           let newviewList = [];
           this.filterPending(viewContributorUsers, viewContributorEmails, newviewList);
           if (recordCreatorPermissions == "view" || recordCreatorPermissions == "view&edit") {
@@ -517,8 +517,8 @@ export module Services {
           }
           record.authorization.view = newviewList;
           record.authorization.viewPending = viewContributorEmails;
-          return Observable.of(record);
-        });
+          return of(record);
+        }));
       }
     }
 
@@ -551,7 +551,7 @@ export module Services {
       }
       // when both are empty, simpy return the record
       if (_.isEmpty(editContributorEmails) && _.isEmpty(viewContributorEmails)) {
-        return Observable.of(record);
+        return of(record);
       }
       _.each(editContributorEmails, editorEmail => {
         editContributorObs.push(this.getObservable(User.findOne({
@@ -565,10 +565,10 @@ export module Services {
       });
       let zippedViewContributorUsers = null;
       if (editContributorObs.length == 0) {
-        zippedViewContributorUsers = Observable.zip(...viewContributorObs);
+        zippedViewContributorUsers = zip(...viewContributorObs);
       } else {
-        zippedViewContributorUsers = Observable.zip(...editContributorObs)
-          .flatMap(editContributorUsers => {
+        zippedViewContributorUsers = zip(...editContributorObs)
+          .pipe(flatMap(editContributorUsers => {
             let newEditList = [];
             this.filterPending(editContributorUsers, editContributorEmails, newEditList);
             if (recordCreatorPermissions == "edit" || recordCreatorPermissions == "view&edit") {
@@ -576,13 +576,13 @@ export module Services {
             }
             record.authorization.edit = newEditList;
             record.authorization.editPending = editContributorEmails;
-            return Observable.zip(...viewContributorObs);
-          })
+            return zip(...viewContributorObs);
+          }))
       }
       if (zippedViewContributorUsers.length == 0) {
-        return Observable.of(record);
+        return of(record);
       } else {
-        return zippedViewContributorUsers.flatMap(viewContributorUsers => {
+        return zippedViewContributorUsers.pipe(flatMap(viewContributorUsers => {
           let newviewList = [];
           this.filterPending(viewContributorUsers, viewContributorEmails, newviewList);
           if (recordCreatorPermissions == "view" || recordCreatorPermissions == "view&edit") {
@@ -590,8 +590,8 @@ export module Services {
           }
           record.authorization.view = newviewList;
           record.authorization.viewPending = viewContributorEmails;
-          return Observable.of(record);
-        });
+          return of(record);
+        }));
       }
     }
 
@@ -634,7 +634,7 @@ export module Services {
           }
         }
       }
-      return Observable.of(record);
+      return of(record);
     }
 
     public restoreUserBasedPermissions(oid, record, options, user) {
@@ -651,7 +651,7 @@ export module Services {
           delete record.authorization.stored
         }
       }
-      return Observable.of(record);
+      return of(record);
     }
 
     public runTemplates(oid, record, options, user) {
@@ -682,9 +682,9 @@ export module Services {
         const errLog = `Failed to run one of the string templates: ${JSON.stringify(tmplConfig)}`
         sails.log.error(errLog);
         sails.log.error(e);
-        return Observable.throw(new Error(errLog));
+        return throwError(new Error(errLog));
       }
-      return Observable.of(record);
+      return of(record);
     }
 
     public async addWorkspaceToRecord(oid, workspaceData, options, user, response) {

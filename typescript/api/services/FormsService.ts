@@ -18,8 +18,8 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 import {
-  Observable
-} from 'rxjs/Rx';
+  Observable, of,from,bindCallback,flatMap,filter,last
+} from 'rxjs';
 import {Services as services}   from '@researchdatabox/redbox-core-types';
 import {
   Sails,
@@ -63,7 +63,7 @@ export module Services {
       }
       let formDefs = [];
       return super.getObservable(startQ)
-        .flatMap(form => {
+        .pipe(flatMap(form => {
           sails.log.verbose("Found : ");
           sails.log.verbose(form);
           if (!form || form.length == 0) {
@@ -76,37 +76,37 @@ export module Services {
             });
             formDefs = _.uniq(formDefs)
             sails.log.verbose(JSON.stringify(formDefs));
-            return Observable.from(formDefs);
+            return from(formDefs);
           } else {
             sails.log.verbose("Not Bootstrapping form definitions... ");
-            return Observable.of(null);
+            return of(null);
           }
         })
-        .flatMap(formName => {
+        ,flatMap(formName => {
           // check now if the form already exists, if it does, ignore...
           return this.getObservable(Form.find({
             name: formName
-          })).flatMap(existingFormDef => {
-            return Observable.of({
+          })).pipe(flatMap(existingFormDef => {
+            return of({
               formName: formName,
               existingFormDef: existingFormDef
             });
-          });
+          }));
         })
-        .flatMap(existCheck => {
+        ,flatMap(existCheck => {
           sails.log.verbose(`Existing form check: ${existCheck.formName}`);
           sails.log.verbose(JSON.stringify(existCheck));
           if (_.isUndefined(existCheck.existingFormDef) || _.isEmpty(existCheck.existingFormDef)) {
-            return Observable.of(existCheck.formName);
+            return of(existCheck.formName);
           } else {
             sails.log.verbose(`Existing form definition for form name: ${existCheck.existingFormDef.name}, ignoring bootstrap.`);
-            return Observable.of(null);
+            return of(null);
           }
         })
-        .flatMap(formName => {
+        ,flatMap(formName => {
           sails.log.verbose("FormName is:");
           sails.log.verbose(formName);
-          let observable = Observable.of(null);
+          let observable:any = of(null);
           if (!_.isNull(formName)) {
             sails.log.verbose(`Preparing to create form...`);
             const formObj = {
@@ -124,31 +124,33 @@ export module Services {
             };
 
             var q = Form.create(formObj);
-            observable = Observable.bindCallback(q["exec"].bind(q))();
-            // var obs = Observable.bindCallback(q["exec"].bind(q))();
+            observable = bindCallback(q["exec"].bind(q))();
+            // var obs = bindCallback(q["exec"].bind(q))();
           }
           return observable;
         })
-        .flatMap(result => {
+        ,flatMap(result => {
           if (result) {
+            let result2:any = result;
             sails.log.verbose("Created form record: ");
-            sails.log.verbose(result);
-            return Observable.from(result);
+            sails.log.verbose(result2);
+            return from(result2);
           }
-          return Observable.of(result);
-        }).flatMap(result => {
+          return of(result);
+        }),flatMap(result => {
           if (result) {
-            sails.log.verbose(`Updating workflowstep ${result.workflowStep} to: ${result.id}`);
+            let result2:any = result
+            sails.log.verbose(`Updating workflowstep ${result2.workflowStep} to: ${result2.id}`);
             // update the workflow step...
             const q = WorkflowStep.update({
-              id: result.workflowStep
+              id: result2.workflowStep
             }).set({
-              form: result.id
+              form: result2.id
             });
-            return Observable.bindCallback(q["exec"].bind(q))();
+            return bindCallback(q["exec"].bind(q))();
           }
-          return Observable.of(null);
-        });
+          return of(null);
+        }));
 
     }
 
@@ -160,13 +162,13 @@ export module Services {
     public getFormByName = (formName, editMode): Observable < any > => {
       return super.getObservable(Form.findOne({
         name: formName
-      })).flatMap(form => {
+      })).pipe(flatMap(form => {
         if (form) {
           this.setFormEditMode(form.fields, editMode);
-          return Observable.of(form);
+          return of(form);
         }
-        return Observable.of(null);
-      });
+        return of(null);
+      }));
     }
 
     public getForm = (branding, recordType, editMode, starting: boolean): Observable < any > => {
@@ -174,13 +176,14 @@ export module Services {
       return super.getObservable(RecordType.findOne({
           key: branding + "_" + recordType
         }))
-        .flatMap(recordType => {
+        .pipe(flatMap(recordType => {
 
           return super.getObservable(WorkflowStep.findOne({
             recordType: recordType.id,
             starting: starting
           }));
-        }).flatMap(workflowStep => {
+        })
+        ,flatMap(workflowStep => {
 
           if (workflowStep.starting == true) {
 
@@ -189,15 +192,18 @@ export module Services {
             }));
           }
 
-          return Observable.of(null);
-        }).flatMap(form => {
+          return of(null);
+        })
+        ,flatMap(form => {
 
           if (form) {
             this.setFormEditMode(form.fields, editMode);
-            return Observable.of(form);
+            return of(form);
           }
-          return Observable.of(null);
-        }).filter(result => result !== null).last();
+          return of(null);
+        })
+        ,filter(result => result !== null)
+        ,last());
     }
 
     protected setFormEditMode(fields, editMode) {

@@ -17,9 +17,9 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { Observable, Scheduler } from 'rxjs/Rx';
-import {Services as services}   from '@researchdatabox/redbox-core-types';
-import {Sails, Model} from "sails";
+import { Observable, Scheduler, of, from, flatMap, last, map,concat } from 'rxjs';
+import { Services as services } from '@researchdatabox/redbox-core-types';
+import { Sails, Model } from "sails";
 import * as request from "request-promise";
 
 
@@ -51,12 +51,12 @@ export module Services {
 
     public bootstrap() {
       return _.isEmpty(sails.config.vocab.bootStrapVocabs) ?
-      Observable.of(null)
-      : Observable.from(sails.config.vocab.bootStrapVocabs)
-      .flatMap(vocabId => {
-        return this.getVocab(vocabId);
-      })
-      .last();
+        of(null)
+        : from(sails.config.vocab.bootStrapVocabs)
+          .pipe(flatMap(vocabId => {
+            return this.getVocab(vocabId);
+          }),
+            last());
     }
 
     public findInMint(sourceType, queryString) {
@@ -70,7 +70,7 @@ export module Services {
       sails.log(mintUrl);
       const options = this.getMintOptions(mintUrl);
       sails.log.verbose(options);
-      return Observable.fromPromise(request[sails.config.record.api.search.method](options));
+      return from(request[sails.config.record.api.search.method](options));
     }
 
     public findInExternalService(providerName, params) {
@@ -86,19 +86,19 @@ export module Services {
       options['json'] = true;
       sails.log.verbose(options);
 
-      if(method == 'post') {
+      if (method == 'post') {
         options['body'] = params.postBody;
       }
-      return Observable.fromPromise(request[sails.config.record.api.search.method](options));
+      return from(request[sails.config.record.api.search.method](options));
     }
 
     private getTemplateStringFunction(template) {
       var sanitized = template
-          .replace(/\$\{([\s]*[^;\s\{]+[\s]*)\}/g, function(_, match){
-              return `\$\{map.${match.trim()}\}`;
-              })
-          // Afterwards, replace anything that's not ${map.expressions}' (etc) with a blank string.
-          .replace(/(\$\{(?!map\.)[^}]+\})/g, '');
+        .replace(/\$\{([\s]*[^;\s\{]+[\s]*)\}/g, function (_, match) {
+          return `\$\{map.${match.trim()}\}`;
+        })
+        // Afterwards, replace anything that's not ${map.expressions}' (etc) with a blank string.
+        .replace(/(\$\{(?!map\.)[^}]+\})/g, '');
 
       return Function('map', `return \`${sanitized}\``);
     }
@@ -109,7 +109,7 @@ export module Services {
       return CacheService.get(vocabId).flatMap(data => {
         if (data) {
           sails.log.verbose(`Returning cached vocab: ${vocabId}`);
-          return Observable.of(data);
+          return of(data);
         }
         if (sails.config.vocab.nonAnds && sails.config.vocab.nonAnds[vocabId]) {
           return this.getNonAndsVocab(vocabId);
@@ -120,10 +120,10 @@ export module Services {
         return this.getConcepts(url, rawItems).flatMap(allRawItems => {
           //   // we only are interested in notation, label and the uri
           items = _.map(allRawItems, rawItem => {
-            return {uri: rawItem._about, notation: rawItem.notation, label: rawItem.prefLabel._value};
+            return { uri: rawItem._about, notation: rawItem.notation, label: rawItem.prefLabel._value };
           });
           CacheService.set(vocabId, items);
-          return Observable.of(items);
+          return of(items);
         });
       });
     }
@@ -131,75 +131,74 @@ export module Services {
     // have to do this since ANDS endpoint ignores _pageSize
     protected getConcepts(url, rawItems) {
       console.log(`Getting concepts....${url}`);
-      const options = {url:url, json: true};
-      return Observable.fromPromise(request.get(options))
-      .flatMap((resp) => {
-        let response:any = resp;
-        rawItems = rawItems.concat(response.result.items);
-        if (response.result && response.result.next) {
-          return this.getConcepts(response.result.next, rawItems);
-        }
-        return Observable.of(rawItems);
-      });
+      const options = { url: url, json: true };
+      return from(request.get(options)).pipe(
+        flatMap((resp) => {
+          let response: any = resp;
+          rawItems = rawItems.concat(response.result.items);
+          if (response.result && response.result.next) {
+            return this.getConcepts(response.result.next, rawItems);
+          }
+          return of(rawItems);
+        }));
     }
 
     protected getNonAndsVocab(vocabId) {
       const url = sails.config.vocab.nonAnds[vocabId].url;
-      const options = {url: url, json:true};
-      return Observable.fromPromise(request.get(options)).flatMap(response => {
+      const options = { url: url, json: true };
+      return from(request.get(options)).pipe(flatMap(response => {
         CacheService.set(vocabId, response);
-        return Observable.of(response);
-      });
+        return of(response);
+      }));
     }
 
-    loadCollection(collectionId, progressId, force=false) {
+    loadCollection(collectionId, progressId, force = false) {
       const getMethod = sails.config.vocab.collection[collectionId].getMethod;
       const bufferCount = sails.config.vocab.collection[collectionId].processingBuffer;
       const processWindow = sails.config.vocab.collection[collectionId].processingTime;
       let collectionData = null;
-      return this[getMethod](collectionId).flatMap(data => {
+      return this[getMethod](collectionId).pipe(flatMap(data => {
         if (_.isEmpty(data) || force) {
           // return a receipt and then start the process of loading...
           const url = sails.config.vocab.collection[collectionId].url;
           sails.log.verbose(`Loading collection: ${collectionId}, using url: ${url}`);
           const methodName = sails.config.vocab.collection[collectionId].saveMethod;
-          const options = {url: url, json:true};
-          return Observable.fromPromise(request.get(options))
-          .flatMap(resp => {
-            let response:any = resp;
-            sails.log.verbose(`Got response retrieving data for collection: ${collectionId}, saving...`);
-            sails.log.verbose(`Number of items: ${response.length}`);
-            const itemsToSave = _.chunk(response, bufferCount);
-            collectionData = itemsToSave;
-            // sails.log.verbose(collectionData);
-            const updateObj = { currentIdx: 0, targetIdx: collectionData.length };
-            return AsynchsService.update({id:progressId}, updateObj);
-          })
-          .flatMap(updateResp => {
-            sails.log.verbose(`Updated asynch progress...`);
-            return Observable.from(collectionData);
-          })
-          .map((buffer, i) => {
-            setTimeout(()=> {
-              sails.log.verbose(`Processing chunk: ${i}`);
-              return this.saveCollectionChunk(methodName, buffer, i)
-              .flatMap(saveResp => {
-                sails.log.verbose(`Updating chunk progress...${i}`);
-                if (i == collectionData.length) {
-                  sails.log.verbose(`Asynch completed.`);
-                  return AsynchsService.finish(progressId);
-                } else {
-                  return AsynchsService.update({id: progressId}, {currentIdx: i+1, status: 'processing'});
-                }
-              });
-            }, i * processWindow);
-          })
-          .concat()
+          const options = { url: url, json: true };
+          return from(request.get(options)).pipe(
+            flatMap(resp => {
+              let response: any = resp;
+              sails.log.verbose(`Got response retrieving data for collection: ${collectionId}, saving...`);
+              sails.log.verbose(`Number of items: ${response.length}`);
+              const itemsToSave = _.chunk(response, bufferCount);
+              collectionData = itemsToSave;
+              // sails.log.verbose(collectionData);
+              const updateObj = { currentIdx: 0, targetIdx: collectionData.length };
+              return AsynchsService.update({ id: progressId }, updateObj);
+            })
+            , flatMap(updateResp => {
+              sails.log.verbose(`Updated asynch progress...`);
+              return from(collectionData);
+            })
+            , map((buffer, i) => {
+              setTimeout(() => {
+                sails.log.verbose(`Processing chunk: ${i}`);
+                return this.saveCollectionChunk(methodName, buffer, i)
+                  .flatMap(saveResp => {
+                    sails.log.verbose(`Updating chunk progress...${i}`);
+                    if (i == collectionData.length) {
+                      sails.log.verbose(`Asynch completed.`);
+                      return AsynchsService.finish(progressId);
+                    } else {
+                      return AsynchsService.update({ id: progressId }, { currentIdx: i + 1, status: 'processing' });
+                    }
+                  });
+              }, i * processWindow);
+            }))
         } else {
           sails.log.verbose(`Collection already loaded: ${collectionId}`);
-          return Observable.of(null);
+          return of(null);
         }
-      });
+      }));
     }
 
     protected saveCollectionChunk(methodName, buffer, i) {
@@ -210,18 +209,18 @@ export module Services {
       return this[sails.config.vocab.collection[collectionId].searchMethod](searchString);
     }
 
-    public rvaGetResourceDetails(uri,vocab) {
-      const url = sails.config.vocab.rootUrl+`${vocab}/resource.json?uri=${uri}`;
-      const options = {url: url, json:true};
+    public rvaGetResourceDetails(uri, vocab) {
+      const url = sails.config.vocab.rootUrl + `${vocab}/resource.json?uri=${uri}`;
+      const options = { url: url, json: true };
 
-      return Observable.fromPromise(request.get(options)).flatMap(response => {
+      return from(request.get(options)).pipe(flatMap(response => {
         CacheService.set(vocab, response);
-        return Observable.of(response);
-      });
+        return of(response);
+      }));
     }
 
     protected getMintOptions(url) {
-      return {url:url, json:true, headers: {'Authorization': `Bearer ${sails.config.mint.apiKey}`, 'Content-Type': 'application/json; charset=utf-8'}};
+      return { url: url, json: true, headers: { 'Authorization': `Bearer ${sails.config.mint.apiKey}`, 'Content-Type': 'application/json; charset=utf-8' } };
     }
   }
 }

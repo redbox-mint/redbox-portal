@@ -17,11 +17,12 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-//<reference path='./../../typings/loader.d.ts'/>
+
 declare var module;
 declare var sails;
 declare var _;
-import { Observable } from 'rxjs/Rx';
+import { of,flatMap } from 'rxjs';
+
 import { v4 as uuidv4 } from 'uuid';
 declare var BrandingService, RolesService, UsersService;
 
@@ -73,7 +74,7 @@ export module Controllers {
 
     public getUsers(req, res) {
       var pageData:any = {};
-      var users = UsersService.getUsers().flatMap(users => {
+      var users = UsersService.getUsers().pipe(flatMap(users => {
         _.map(users, (user) => {
           if (_.isEmpty(_.find(sails.config.auth.hiddenUsers, (hideUser) => { return hideUser == user.name }))) {
             // not hidden, adding to view data...
@@ -87,8 +88,8 @@ export module Controllers {
             pageData.users.push(user);
           }
         });
-        return Observable.of(pageData);
-      })
+        return of(pageData);
+      }))
       .subscribe(pageData => {
         this.ajaxOk(req, res, null, pageData.users);
       });
@@ -98,7 +99,7 @@ export module Controllers {
       // basic roles page: view all users and their roles
       var pageData:any = {};
       var brand = BrandingService.getBrand(req.session.branding);
-      var roles = RolesService.getRolesWithBrand(brand).flatMap(roles => {
+      var roles = RolesService.getRolesWithBrand(brand).pipe(flatMap(roles => {
         _.map(roles, (role) => {
           if (_.isEmpty(_.find(sails.config.auth.hiddenRoles, (hideRole) => { return hideRole == role.name }))) {
             // not hidden, adding to view data...
@@ -108,8 +109,8 @@ export module Controllers {
             pageData.roles.push(role);
           }
         });
-        return Observable.of(pageData);
-      })
+        return of(pageData);
+      }))
       .subscribe(pageData => {
         this.ajaxOk(req, res, null, pageData.roles);
       });

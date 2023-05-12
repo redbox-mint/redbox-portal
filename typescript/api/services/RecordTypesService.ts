@@ -17,9 +17,9 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { Observable } from 'rxjs/Rx';
-import {Services as services}   from '@researchdatabox/redbox-core-types';
-import {Sails, Model} from "sails";
+import { Observable, of, zip, flatMap } from 'rxjs';
+import { Services as services } from '@researchdatabox/redbox-core-types';
+import { Sails, Model } from "sails";
 
 declare var sails: Sails;
 declare var RecordType: Model;
@@ -46,11 +46,11 @@ export module Services {
     protected recordTypes;
 
     public bootstrap = (defBrand) => {
-      let startQ = RecordType.find({branding:defBrand.id});
+      let startQ = RecordType.find({ branding: defBrand.id });
       if (sails.config.appmode.bootstrapAlways) {
-        startQ = RecordType.destroy({branding:defBrand.id});
+        startQ = RecordType.destroy({ branding: defBrand.id });
       }
-      return super.getObservable(startQ).flatMap(recordTypes => {
+      return super.getObservable(startQ).pipe(flatMap(recordTypes => {
         if (_.isUndefined(recordTypes)) {
           recordTypes = [];
         }
@@ -64,14 +64,14 @@ export module Services {
             rTypes.push(obs);
           });
           this.recordTypes = recordTypes;
-          return Observable.zip(...rTypes);
+          return zip(...rTypes);
         } else {
           sails.log.verbose("Default recordTypes definition(s) exist.");
           sails.log.verbose(JSON.stringify(recordTypes));
           this.recordTypes = recordTypes;
-          return Observable.of(recordTypes);
+          return of(recordTypes);
         }
-      });
+      }));
     }
 
     public create(brand, name, config) {
@@ -87,16 +87,16 @@ export module Services {
       }));
     }
 
-    public get(brand, name, fields:any[]=null) {
-      const criteria:any = {where: {branding: brand.id, name: name}};
+    public get(brand, name, fields: any[] = null) {
+      const criteria: any = { where: { branding: brand.id, name: name } };
       if (fields) {
         criteria.select = fields;
       }
       return super.getObservable(RecordType.findOne(criteria));
     }
 
-    public getAll(brand, fields:any[] = null) {
-      const criteria:any = {where: {branding: brand.id}};
+    public getAll(brand, fields: any[] = null) {
+      const criteria: any = { where: { branding: brand.id } };
       if (fields) {
         criteria.select = fields;
       }

@@ -17,8 +17,8 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { Observable } from 'rxjs/Rx';
-import {Services as services}   from '@researchdatabox/redbox-core-types';
+import { Observable, flatMap, zip, from, of } from 'rxjs';
+import { Services as services } from '@researchdatabox/redbox-core-types';
 import { Sails, Model } from "sails";
 
 declare var sails: Sails;
@@ -51,7 +51,7 @@ export module Services {
         startQ = WorkflowStep.destroy({});
       }
       return super.getObservable(startQ)
-        .flatMap(workflows => {
+        .pipe(flatMap(workflows => {
           sails.log.debug(`WorkflowSteps found: ${workflows} and boostrapAlways set to: ${sails.config.appmode.bootstrapAlways}`);
           if (_.isEmpty(workflows)) {
             sails.log.verbose("Bootstrapping workflow definitions... ");
@@ -66,16 +66,16 @@ export module Services {
                 }
               });
             });
-            return Observable.of(wfSteps);
+            return of(wfSteps);
           } else {
-            return Observable.of(workflows);
+            return of(workflows);
           }
-        }).flatMap(wfSteps => {
+        }), flatMap(wfSteps => {
           sails.log.verbose(`wfSteps: `);
           sails.log.verbose(JSON.stringify(wfSteps));
           if (_.isArray(wfSteps) && wfSteps[0]["config"] != null) {
             sails.log.verbose(`return as Observable of`);
-            return Observable.from(wfSteps);
+            return from(wfSteps);
           } else {
             var workflowSteps = [];
             _.forOwn(wfSteps, (workflowStepsObject, recordTypeName) => {
@@ -85,14 +85,14 @@ export module Services {
                 workflowSteps.push(obs);
               });
             });
-            return Observable.zip(...workflowSteps);
+            return zip(...workflowSteps);
           }
-        });
+        }));
     }
 
 
 
-    public create(recordType, name, workflowConf, starting, hidden:boolean = false) {
+    public create(recordType, name, workflowConf, starting, hidden: boolean = false) {
       return super.getObservable(WorkflowStep.create({
         name: name,
         config: workflowConf,
@@ -103,15 +103,15 @@ export module Services {
     }
 
     public get(recordType, name) {
-      return super.getObservable(WorkflowStep.findOne({recordType: recordType.id, name: name }));
+      return super.getObservable(WorkflowStep.findOne({ recordType: recordType.id, name: name }));
     }
 
     public getAllForRecordType(recordType) {
-      return super.getObservable(WorkflowStep.find({recordType: recordType.id, hidden: { '!=': true } }));
+      return super.getObservable(WorkflowStep.find({ recordType: recordType.id, hidden: { '!=': true } }));
     }
 
     public getFirst(recordType) {
-      return super.getObservable(WorkflowStep.findOne({recordType: recordType.id, starting: true }));
+      return super.getObservable(WorkflowStep.findOne({ recordType: recordType.id, starting: true }));
     }
   }
 }

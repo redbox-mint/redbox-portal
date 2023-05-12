@@ -21,8 +21,8 @@
 declare var module;
 declare var sails;
 import {
-  Observable
-} from 'rxjs/Rx';
+  Observable,of,from,throwError,flatMap,map
+} from 'rxjs';
 import {
   StorageServiceResponse,
   RecordTypeResponseModel,
@@ -112,7 +112,7 @@ export module Controllers {
     public getMeta(req, res) {
       const brand = BrandingService.getBrand(req.session.branding);
       const oid = req.param('oid') ? req.param('oid') : '';
-      var obs = Observable.fromPromise(this.recordsService.getMeta(oid));
+      var obs = from(this.recordsService.getMeta(oid));
       return obs.subscribe(record => {
         this.hasViewAccess(brand, req.user, record).subscribe(hasViewAccess => {
           if (hasViewAccess) {
@@ -176,10 +176,10 @@ export module Controllers {
           return res.serverError();
         });
       } else {
-        Observable.fromPromise(this.recordsService.getMeta(oid)).flatMap(record => {
+        from(this.recordsService.getMeta(oid)).pipe(flatMap(record => {
           const formName = record.metaMetadata.form;
           return FormsService.getFormByName(formName, true);
-        }).subscribe(form => {
+        })).subscribe(form => {
           sails.log.debug(form);
           if (form['customAngularApp'] != null) {
             appSelector = form['customAngularApp']['appSelector'];
@@ -210,13 +210,13 @@ export module Controllers {
     protected hasEditAccess(brand, user, currentRec): Observable<boolean> {
       sails.log.verbose("Current Record: ");
       sails.log.verbose(currentRec);
-      return Observable.of(this.recordsService.hasEditAccess(brand, user, user.roles, currentRec));
+      return of(this.recordsService.hasEditAccess(brand, user, user.roles, currentRec));
     }
 
     protected hasViewAccess(brand, user, currentRec) {
       sails.log.verbose("Current Record: ");
       sails.log.verbose(currentRec);
-      return Observable.of(this.recordsService.hasViewAccess(brand, user, user.roles, currentRec));
+      return of(this.recordsService.hasViewAccess(brand, user, user.roles, currentRec));
     }
 
     public getTransferResponsibilityConfig(req, res) {
@@ -309,10 +309,10 @@ export module Controllers {
                   const oid = relationshipObject.redboxOid;
                   let record = null;
                   this.getRecord(oid)
-                    .flatMap((rec) => {
+                    .pipe(flatMap((rec) => {
                       record = rec;
                       return RecordTypesService.get(brand, record.metaMetadata.type);
-                    })
+                    }))
                     .subscribe(recordTypeObj => {
 
                       const transferConfig = recordTypeObj['transferResponsibility'];
@@ -321,7 +321,7 @@ export module Controllers {
 
                         sails.log.verbose(`Updating record ${oid}`);
                         sails.log.verbose(JSON.stringify(record));
-                        Observable.fromPromise(this.recordsService.updateMeta(brand, oid, record)).subscribe(response => {
+                        from(this.recordsService.updateMeta(brand, oid, record)).subscribe(response => {
                           relationshipObjectCount++;
                           if (response && response.isSuccessful()) {
                             if (oid == rec.oid) {
@@ -434,62 +434,68 @@ export module Controllers {
       const formParam = req.param('formName');
       let obs = null;
       if (_.isEmpty(oid)) {
-        obs = FormsService.getForm(brand.id, name, editMode, true).flatMap(form => {
+        obs = FormsService.getForm(brand.id, name, editMode, true).pipe(flatMap(formObject => {
+          let form:any = formObject;
           let mergedForm = this.mergeFields(req, res, form.fields, form.requiredFieldIndicator, name, {}).then(fields => {
             form.fields = fields;
             return form;
           });
           return mergedForm;
-        });
+        }));
       } else {
         // defaults to retrive the form of the current workflow state...
-        obs = Observable.fromPromise(this.recordsService.getMeta(oid)).flatMap(currentRec => {
+        obs = from(this.recordsService.getMeta(oid)).pipe(flatMap(currentRec => {
           if (_.isEmpty(currentRec)) {
-            return Observable.throw(new Error(`Error, empty metadata for OID: ${oid}`));
+            return throwError(new Error(`Error, empty metadata for OID: ${oid}`));
           }
           // allow client to set the form name to use
           const formName = _.isUndefined(formParam) || _.isEmpty(formParam) ? currentRec.metaMetadata.form : formParam;
           if (editMode) {
             return this.hasEditAccess(brand, req.user, currentRec)
-              .flatMap(hasEditAccess => {
+              .pipe(flatMap(hasEditAccess => {
                 if (!hasEditAccess) {
-                  return Observable.throw(new Error(TranslationService.t('edit-error-no-permissions')));
+                  return throwError(new Error(TranslationService.t('edit-error-no-permissions')));
                 }
-                return FormsService.getFormByName(formName, editMode).flatMap(form => {
+                return FormsService.getFormByName(formName, editMode).pipe(flatMap(formObject => {
+                  let form:any = formObject;
                   if (_.isEmpty(form)) {
-                    return Observable.throw(new Error(`Error, getting form ${formName} for OID: ${oid}`));
+                    return throwError(new Error(`Error, getting form ${formName} for OID: ${oid}`));
                   }
-                  let mergedForm = this.mergeFields(req, res, form.fields, form.requiredFieldIndicator, currentRec.metaMetadata.type, currentRec).then(fields => {
+                  let mergedForm = this.mergeFields(req, res, form.fields, form.requiredFieldIndicator, currentRec.metaMetadata.type, currentRec).then(formFields => {
+                    let fields= formFields;
                     form.fields = fields;
 
                     return form;
                   });
                   return mergedForm;
-                });
-              });
+                }));
+              }));
           } else {
             return this.hasViewAccess(brand, req.user, currentRec)
-              .flatMap(hasViewAccess => {
+              .pipe(flatMap(hasViewAccess => {
                 if (!hasViewAccess) {
-                  return Observable.throw(new Error(TranslationService.t('view-error-no-permissions')));
+                  return throwError(new Error(TranslationService.t('view-error-no-permissions')));
                 }
                 return this.hasEditAccess(brand, req.user, currentRec)
               })
-              .flatMap(hasEditAccess => {
-                return FormsService.getFormByName(formName, editMode).flatMap(form => {
+              ,flatMap(hasEditAccess => {
+                return FormsService.getFormByName(formName, editMode).pipe(flatMap(formObject => {
+                  let form:any = formObject
                   if (_.isEmpty(form)) {
-                    return Observable.throw(new Error(`Error, getting form ${formName} for OID: ${oid}`));
+                    return throwError(new Error(`Error, getting form ${formName} for OID: ${oid}`));
                   }
+                  
                   FormsService.filterFieldsHasEditAccess(form.fields, hasEditAccess);
                   return this.mergeFields(req, res, form.fields, form.requiredFieldIndicator, currentRec.metaMetadata.type, currentRec).then(fields => {
-                    form.fields = fields;
+                    let formFields:any = fields;
+                    form.fields = formFields;
 
                     return form;
                   });
-                });
-              });
+                }));
+              }));
           }
-        });
+        }));
       }
       obs.subscribe(form => {
         if (!_.isEmpty(form)) {
@@ -628,17 +634,18 @@ export module Controllers {
       const user = req.user;
       let currentRec = null;
       let message = null;
-      this.getRecord(oid).flatMap(cr => {
+      this.getRecord(oid)
+      .pipe(flatMap(cr => {
         currentRec = cr;
         return this.hasEditAccess(brand, user, currentRec);
       })
-        .flatMap(hasEditAccess => {
+        ,flatMap(hasEditAccess => {
           if (hasEditAccess) {
-            return Observable.fromPromise(this.recordsService.delete(oid));
+            return from(this.recordsService.delete(oid));
           }
           message = TranslationService.t('edit-error-no-permissions');
-          return Observable.throw(new Error(TranslationService.t('edit-error-no-permissions')));
-        })
+          return throwError(new Error(TranslationService.t('edit-error-no-permissions')));
+        }))
         .subscribe(response => {
           if (response && response.isSuccessful()) {
             const resp = {
@@ -835,10 +842,10 @@ export module Controllers {
         .concatMap(reqs => {
           if (reqs) {
             sails.log.verbose(`Updating data streams...`);
-            return Observable.from(reqs);
+            return from(reqs);
           } else {
             sails.log.verbose(`No datastreams to update...`);
-            return Observable.of(null);
+            return of(null);
           }
         })
         .concatMap((promise) => {
@@ -848,10 +855,10 @@ export module Controllers {
             return promise.catch(e => {
               sails.log.verbose(`Error in updating stream::::`);
               sails.log.verbose(JSON.stringify(e));
-              return Observable.throwError(new Error(TranslationService.t('attachment-upload-error')));
+              return throwError(new Error(TranslationService.t('attachment-upload-error')));
             });
           } else {
-            return Observable.of(null);
+            return of(null);
           }
         })
         .concatMap(updateResp => {
@@ -859,7 +866,7 @@ export module Controllers {
             sails.log.verbose(`Got response from update datastream request...`);
             sails.log.verbose(JSON.stringify(updateResp));
           }
-          return Observable.of(updateResp);
+          return of(updateResp);
         })
         .last();
     }
@@ -872,7 +879,7 @@ export module Controllers {
     protected saveAuthorization(brand, oid, currentRec, authorization, user): Observable<any> {
       let editAccessResp: Observable<boolean> = this.hasEditAccess(brand, user, currentRec);
       return editAccessResp
-        .map(hasEditAccess => {
+        .pipe(map(hasEditAccess => {
           if (hasEditAccess) {
             currentRec.authorization = authorization;
             return this.updateAuthorization(brand, oid, currentRec, user);
@@ -882,48 +889,48 @@ export module Controllers {
               message: "Not authorized to edit"
             };
           }
-        });
+        }));
     }
 
 
 
     protected getRecord(oid) {
-      return Observable.fromPromise(this.recordsService.getMeta(oid)).flatMap(currentRec => {
+      return from(this.recordsService.getMeta(oid)).pipe(flatMap(currentRec => {
         if (_.isEmpty(currentRec)) {
-          return Observable.throw(new Error(`Failed to update meta, cannot find existing record with oid: ${oid}`));
+          return throwError(new Error(`Failed to update meta, cannot find existing record with oid: ${oid}`));
         }
-        return Observable.of(currentRec);
-      });
+        return of(currentRec);
+      }));
     }
 
     protected updateMetadata(brand, oid, currentRec, user) {
       if (currentRec.metaMetadata.brandId != brand.id) {
-        return Observable.throw(new Error(`Failed to update meta, brand's don't match: ${currentRec.metaMetadata.brandId} != ${brand.id}, with oid: ${oid}`));
+        return throwError(new Error(`Failed to update meta, brand's don't match: ${currentRec.metaMetadata.brandId} != ${brand.id}, with oid: ${oid}`));
       }
       currentRec.metaMetadata.lastSavedBy = user.username;
       currentRec.metaMetadata.lastSaveDate = moment().format();
       sails.log.verbose(`Calling record service...`);
       sails.log.verbose(currentRec);
-      return Observable.fromPromise(this.recordsService.updateMeta(brand, oid, currentRec, user));
+      return from(this.recordsService.updateMeta(brand, oid, currentRec, user));
     }
 
     protected updateMetadataWithTriggerSelector(brand, oid, currentRec, user, triggerPreSaveTriggers, triggerPostSaveTriggers) {
       if (currentRec.metaMetadata.brandId != brand.id) {
-        return Observable.throw(new Error(`RecordController - updateMetadataWithTriggerSelector - Failed to update meta, brand's don't match: ${currentRec.metaMetadata.brandId} != ${brand.id}, with oid: ${oid}`));
+        return throwError(new Error(`RecordController - updateMetadataWithTriggerSelector - Failed to update meta, brand's don't match: ${currentRec.metaMetadata.brandId} != ${brand.id}, with oid: ${oid}`));
       }
       currentRec.metaMetadata.lastSavedBy = user.username;
       currentRec.metaMetadata.lastSaveDate = moment().format();
       sails.log.verbose(`RecordController - updateMetadataWithTriggerSelector - Calling record service...`);
       sails.log.verbose(`RecordController - updateMetadataWithTriggerSelector - triggerPreSaveTriggers ${triggerPreSaveTriggers}`);
       sails.log.verbose(`RecordController - updateMetadataWithTriggerSelector - triggerPostSaveTriggers ${triggerPostSaveTriggers}`);
-      return Observable.fromPromise(this.recordsService.updateMeta(brand, oid, currentRec, user, triggerPreSaveTriggers, triggerPostSaveTriggers));
+      return from(this.recordsService.updateMeta(brand, oid, currentRec, user, triggerPreSaveTriggers, triggerPostSaveTriggers));
     }
 
     protected updateAuthorization(brand, oid, currentRec, user) {
       if (currentRec.metaMetadata.brandId != brand.id) {
-        return Observable.throw(new Error(`Failed to update meta, brand's don't match: ${currentRec.metaMetadata.brandId} != ${brand.id}, with oid: ${oid}`));
+        return throwError(new Error(`Failed to update meta, brand's don't match: ${currentRec.metaMetadata.brandId} != ${brand.id}, with oid: ${oid}`));
       }
-      return Observable.fromPromise(this.recordsService.updateMeta(brand, oid, currentRec, user));
+      return from(this.recordsService.updateMeta(brand, oid, currentRec, user));
     }
 
     public stepTo(req, res) {
@@ -932,16 +939,16 @@ export module Controllers {
       const oid = req.param('oid');
       const targetStep = req.param('targetStep');
       let origRecord = null;
-      return this.getRecord(oid).flatMap(currentRec => {
+      return this.getRecord(oid).pipe(flatMap(currentRec => {
         origRecord = _.cloneDeep(currentRec);
         return this.hasEditAccess(brand, req.user, currentRec)
-          .flatMap(hasEditAccess => {
+          .pipe(flatMap(hasEditAccess => {
             if (!hasEditAccess) {
-              return Observable.throw(new Error(TranslationService.t('edit-error-no-permissions')));
+              return throwError(new Error(TranslationService.t('edit-error-no-permissions')));
             }
             return RecordTypesService.get(brand, origRecord.metaMetadata.type);
           })
-          .flatMap(recType => {
+          ,flatMap(recType => {
             return WorkflowStepsService.get(recType, targetStep)
               .flatMap(nextStep => {
                 currentRec.metadata = metadata;
@@ -952,10 +959,10 @@ export module Controllers {
                 this.recordsService.updateWorkflowStep(currentRec, nextStep);
                 return this.updateMetadata(brand, oid, currentRec, req.user);
               });
-          })
-      })
+          }))
+      }))
         .subscribe(response => {
-          let responseValue: Observable<any> = response;
+          let responseValue: any= response;
           return responseValue.subscribe(response => {
             sails.log.error(response);
             if (response && response.isSuccessful()) {
@@ -1337,7 +1344,7 @@ export module Controllers {
 
         if (!hasViewAccess) {
           sails.log.error("Error: edit error no permissions in do attachment.");
-          return Observable.throwError(new Error(TranslationService.t('edit-error-no-permissions')));
+          return throwError(new Error(TranslationService.t('edit-error-no-permissions')));
         }
         // check if this attachId exists in the record
         let found = null;
@@ -1354,7 +1361,7 @@ export module Controllers {
         });
         if (!found) {
           sails.log.verbose("Error: Attachment not found in do attachment.");
-          return Observable.throwError(new Error(TranslationService.t('attachment-not-found')));
+          return throwError(new Error(TranslationService.t('attachment-not-found')));
         }
         let mimeType = found.mimeType;
         if (_.isEmpty(mimeType)) {
@@ -1372,7 +1379,7 @@ export module Controllers {
           } else {
             res.end(Buffer.from(response.body), 'binary');
           }
-          return Observable.of(oid);
+          return of(oid);
         } catch (error) {
           if (this.isAjax(req)) {
             this.ajaxFail(req, res, error.message);
@@ -1390,7 +1397,7 @@ export module Controllers {
         const hasEditAccess = await this.hasEditAccess(brand, req.user, currentRec).toPromise();
         if (!hasEditAccess) {
           sails.log.error("Error: edit error no permissions in do attachment.");
-          return Observable.throwError(new Error(TranslationService.t('edit-error-no-permissions')));
+          return throwError(new Error(TranslationService.t('edit-error-no-permissions')));
         }
         sails.log.verbose(req.headers);
         let uploadFileSize = req.headers['Upload-Length'];
@@ -1403,12 +1410,12 @@ export module Controllers {
           if(diskSpace.free <= thresholdAppliedFileSize){
             let errorMessage = TranslationService.t('not-enough-disk-space');
             sails.log.error(errorMessage + ' Total File Size '+thresholdAppliedFileSize+' Total Free Space '+diskSpace.free);
-            return Observable.throwError(new Error(errorMessage));
+            return throwError(new Error(errorMessage));
           }
         }
         // process the upload...
         this.tusServer.handle(req, res);
-        return Observable.of(oid);
+        return of(oid);
       }
     }
 
@@ -1497,7 +1504,7 @@ export module Controllers {
     public getAttachments(req, res) {
       sails.log.verbose('getting attachments....');
       const oid = req.param('oid');
-      Observable.fromPromise(this.recordsService.getAttachments(oid)).subscribe((attachments: any[]) => {
+      from(this.recordsService.getAttachments(oid)).subscribe((attachments: any[]) => {
         return this.ajaxOk(req, res, null, attachments);
       });
     }
@@ -1510,7 +1517,7 @@ export module Controllers {
 
       const hasViewAccess = await this.hasViewAccess(brand, req.user, currentRec).toPromise();
       if (!hasViewAccess) {
-        return Observable.throwError(new Error(TranslationService.t('edit-error-no-permissions')));
+        return throwError(new Error(TranslationService.t('edit-error-no-permissions')));
       } else {
         const fileName = req.param('fileName') ? req.param('fileName') : datastreamId;
         res.set('Content-Type', 'application/octet-stream');
@@ -1524,7 +1531,7 @@ export module Controllers {
           } else {
             res.end(Buffer.from(response.body), 'binary');
           }
-          return Observable.of(oid);
+          return of(oid);
         } catch (error) {
           if (this.isAjax(req)) {
             this.ajaxFail(req, res, error.message);

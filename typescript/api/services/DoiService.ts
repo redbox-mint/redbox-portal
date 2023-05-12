@@ -18,8 +18,8 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 import {
-  Observable
-} from 'rxjs/Rx';
+  Observable,of
+} from 'rxjs';
 import {
   Services as services,
   RBValidationError
@@ -512,7 +512,7 @@ export module Services {
         }
       }
 
-      return Observable.of(null);
+      return of(null);
     }
 
     public async publishDoiTriggerSync(oid, record, options): Promise<any> {

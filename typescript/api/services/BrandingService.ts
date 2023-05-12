@@ -17,7 +17,7 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { Observable } from 'rxjs/Rx';
+import { Observable,flatMap,of,throwError } from 'rxjs';
 import {Services as services}   from '@researchdatabox/redbox-core-types';
 import { Sails, Model } from "sails";
 
@@ -52,16 +52,16 @@ export module Services {
 
     public bootstrap = (): Observable<any> => {
       return super.getObservable(BrandingConfig.findOne(this.dBrand))
-        .flatMap(defaultBrand => {
+        .pipe(flatMap(defaultBrand => {
           if (_.isEmpty(defaultBrand)) {
             // create default brand
             sails.log.verbose("Default brand doesn't exist, creating...");
             return super.getObservable(BrandingConfig.create(this.dBrand))
           }
           sails.log.verbose("Default brand already exists...");
-          return Observable.of(defaultBrand);
+          return of(defaultBrand);
         })
-        .flatMap(this.loadAvailableBrands);
+        ,flatMap(this.loadAvailableBrands));
     }
 
     public loadAvailableBrands = (defBrand): Observable<any> => {
@@ -69,16 +69,16 @@ export module Services {
       // Find all the BrandingConfig we have and add them to the availableBrandings array.
       // A policy is configured to reject any branding values not present in this array.
       return super.getObservable(BrandingConfig.find({}).populate('roles'))
-        .flatMap(brands => {
+        .pipe(flatMap(brands => {
           this.brandings = brands;
           this.availableBrandings = _.map(this.brandings, 'name');
           var defBrandEntry = this.getDefault();
           if (defBrandEntry == null) {
             sails.log.error("Failed to load default brand!");
-            return Observable.throw(new Error("Failed to load default brand!"));
+            return throwError(new Error("Failed to load default brand!"));
           }
-          return Observable.of(defBrandEntry);
-        });
+          return of(defBrandEntry);
+        }));
     }
 
     public getDefault = (): any => {

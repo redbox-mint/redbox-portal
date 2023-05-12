@@ -18,8 +18,8 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 import {
-  Observable
-} from 'rxjs/Rx';
+  Observable,from,of,throwError,flatMap
+} from 'rxjs';
 import { Services as services } from '@researchdatabox/redbox-core-types';
 import {
   Sails,
@@ -63,7 +63,7 @@ export module Services {
       cc: string = _.get(sails.config.emailnotification.defaults, 'cc', ''),
       bcc: string = ''): Observable<any> {
 
-      return Observable.fromPromise(this.sendMessageAsync(msgTo, msgBody, msgSubject, msgFrom, msgFormat, cc, bcc));
+      return from(this.sendMessageAsync(msgTo, msgBody, msgSubject, msgFrom, msgFormat, cc, bcc));
 
     }
 
@@ -151,7 +151,7 @@ export module Services {
     }
 
     public buildFromTemplate(template: string, data: any = {}): Observable<any> {
-      return Observable.fromPromise(this.buildFromTemplateAsync(template, data));      
+      return from(this.buildFromTemplateAsync(template, data));      
     }
 
     /**
@@ -189,7 +189,7 @@ export module Services {
       const isSailsEmailConfigDisabled = (_.get(sails.config, 'services.email.disabled', false) == "true");
       if (isSailsEmailConfigDisabled) {
         sails.log.verbose(`Not sending notification log for: ${oid}, config: services.email.disabled is ${isSailsEmailConfigDisabled}`);
-        return Observable.of(null);
+        return of(null);
       } else if (this.metTriggerCondition(oid, record, options) == "true") {
         const variables = {
           imports: {
@@ -203,7 +203,7 @@ export module Services {
         const to = this.runTemplate(_.get(options, "to", null), variables);
         if (!to) {
           sails.log.error(`Error sending notification for oid: ${oid}, invalid 'To' address: ${to}. Please check your configuration 'to' option: ${_.get(options, 'to')}`);
-          return Observable.of(null);
+          return of(null);
         }
         const subject = this.runTemplate(_.get(options, "subject", null), variables);
         const templateName = _.get(options, "template", "");
@@ -215,15 +215,15 @@ export module Services {
         data['record'] = record;
         data['oid'] = oid;
         return this.buildFromTemplate(templateName, data)
-          .flatMap(buildResult => {
+          .pipe(flatMap(buildResult => {
             if (buildResult['status'] != 200) {
               sails.log.error(`Failed to build email result:`);
               sails.log.error(buildResult);
-              return Observable.throw(new Error('Failed to build email body.'));
+              return throwError(new Error('Failed to build email body.'));
             }
             return this.sendMessage(to, buildResult['body'], subject, from, msgFormat, cc);
           })
-          .flatMap(sendResult => {
+          ,flatMap(sendResult => {
             if (sendResult['code'] == '200') {
               // perform additional processing on success...
               const postSendHooks = _.get(options, "onNotifySuccess", null);
@@ -241,19 +241,19 @@ export module Services {
               }
             }
             if (!_.isEmpty(response)) {
-              return Observable.of(response);
+              return of(response);
             } else {
-              return Observable.of(record);
+              return of(record);
             }
-          });
+          }));
       } else {
         sails.log.verbose(`Not sending notification log for: ${oid}, condition not met: ${_.get(options, "triggerCondition", "")}`)
         sails.log.verbose(JSON.stringify(record));
       }
       if (!_.isEmpty(response)) {
-        return Observable.of(response);
+        return of(response);
       } else {
-        return Observable.of(record);
+        return of(record);
       }
     }
   }
