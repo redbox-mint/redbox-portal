@@ -1,8 +1,6 @@
-import { Component, Inject, OnInit, ElementRef } from '@angular/core';
+import { Component, Inject, ElementRef } from '@angular/core';
 import { PageChangedEvent } from 'ngx-bootstrap/pagination';
-import { BaseComponent, UtilityService, LoggerService, TranslationService, RecordService, PlanTable, Plan, RecordResponseTable, UserService, ConfigService } from '@researchdatabox/portal-ng-common';
-//TODO: Need this for the lodash import but its not ideal due to not being a ES module
-import * as _ from 'lodash';
+import { BaseComponent, UtilityService, LoggerService, TranslationService, RecordService, PlanTable, UserService, ConfigService } from '@researchdatabox/portal-ng-common';
 import { get as _get, set as _set, isEmpty as _isEmpty, isUndefined as _isUndefined, trim as _trim, isNull as _isNull, orderBy as _orderBy, map as _map, find as _find, indexOf as _indexOf, isArray as _isArray, forEach as _forEach, join as _join, first as _first } from 'lodash-es';
 
 import { LoDashTemplateUtilityService } from 'projects/researchdatabox/portal-ng-common/src/lib/lodash-template-utility.service';
@@ -430,16 +428,13 @@ export class DashboardComponent extends BaseComponent {
 
           let record: any = {};
 
-          const templateData = {
-            imports: imports
-          };
 
           let stepTableConfig = _isEmpty(this.tableConfig[stepName]) ? this.defaultTableConfig : this.tableConfig[stepName];
 
           for (let rowConfig of stepTableConfig) {
 
 
-            const templateRes = this.runTemplate(rowConfig.template, templateData)
+            const templateRes = this.runTemplate(rowConfig.template, imports)
             record[rowConfig.variable] = templateRes;
           }
           recordRows.push(record);
@@ -448,14 +443,10 @@ export class DashboardComponent extends BaseComponent {
         //Don't evaluate group rules if no records were retrieved meaning recordsRows array has length 0
         if (!_isUndefined(groupRowConfig) && !_isEmpty(groupRowConfig) && recordRows.length > 0 && !_isEmpty(imports)) {
 
-          const groupTemplateData = {
-            imports: imports
-          };
-
           let groupRecord: any = {};
           for (let groupRow of groupRowConfig) {
 
-            const groupTemplateRes = this.runTemplate(groupRow.template, groupTemplateData);
+            const groupTemplateRes = this.runTemplate(groupRow.template, imports);
             groupRecord[groupRow.variable] = groupTemplateRes;
           }
           recordRows.push(groupRecord);
@@ -479,17 +470,15 @@ export class DashboardComponent extends BaseComponent {
           _set(imports, 'rootContext', this.rootContext);
           _set(imports, 'portal', this.portal);
           _set(imports, 'translationService', this.translationService);
-          _set(imports, '_', _);
 
-          const templateData = {
-            imports: imports
-          };
+
+
           let record: any = {};
           let stepTableCOnfig = _isEmpty(this.tableConfig[stepName]) ? this.defaultTableConfig : this.tableConfig[stepName];
 
           for (let rowConfig of stepTableCOnfig) {
 
-            const templateRes = this.runTemplate(rowConfig.template, templateData);
+            const templateRes = this.runTemplate(rowConfig.template, imports);
             record[rowConfig.variable] = templateRes;
           }
           recordRows.push(record);
@@ -501,6 +490,7 @@ export class DashboardComponent extends BaseComponent {
 
     return planTable;
   }
+
 
 
 
@@ -534,20 +524,17 @@ export class DashboardComponent extends BaseComponent {
           let evaluateRulesTemplate = _get(rule, 'evaluateRulesTemplate');
           _set(imports, 'name', name);
 
-          const templateData = {
-            imports: imports
-          };
 
           let evaluatedAction = '';
           let action = _get(rule, 'action');
 
-          const result = this.runTemplate(evaluateRulesTemplate, templateData)
+          const result = this.runTemplate(evaluateRulesTemplate, imports)
           if (result == 'true') {
             evaluatedAction = action;
           }
 
           if (evaluatedAction == 'show') {
-            const templateRes = this.runTemplate(renderItemTemplate, templateData);
+            const templateRes = this.runTemplate(renderItemTemplate, imports);
             resArray.push(templateRes);
           }
         }
@@ -598,17 +585,14 @@ export class DashboardComponent extends BaseComponent {
             _set(imports, 'rootContext', this.rootContext);
             _set(imports, 'portal', this.portal);
             _set(imports, 'translationService', this.translationService);
-            _set(imports, '_', _); //import lodash
+
             let oid = _get(item, 'oid');
             _set(imports, 'oid', oid);
             _set(imports, 'name', name);
 
-            const templateData = {
-              imports: imports
-            };
 
 
-            const result = this.runTemplate(evaluateRulesTemplate, templateData)
+            const result = this.runTemplate(evaluateRulesTemplate, imports)
             if (result == 'true') {
               results.push(result);
             } else if (mode == 'all') {
@@ -620,11 +604,9 @@ export class DashboardComponent extends BaseComponent {
             evaluatedAction = action;
           }
 
-          const groupTemplateData = {
-            imports: imports
-          };
+
           if (evaluatedAction == 'show') {
-            const templateRes = this.runTemplate(renderItemTemplate, groupTemplateData);
+            const templateRes = this.runTemplate(renderItemTemplate, imports);
             resArray.push(templateRes);
           }
         }
@@ -695,8 +677,7 @@ export class DashboardComponent extends BaseComponent {
     }
   }
 
-  private runTemplate(templateString: string, configObject: any): any {
-    let imports = configObject.imports;
+  private runTemplate(templateString: string, imports: object): any {
     let config: any = {
       template: templateString
     }

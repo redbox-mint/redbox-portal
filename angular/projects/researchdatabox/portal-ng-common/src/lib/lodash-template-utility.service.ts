@@ -20,7 +20,7 @@
 
 import { Injectable } from '@angular/core';
 import { DateTime } from 'luxon';
-import { get as _get, isEmpty as _isEmpty, isUndefined as _isUndefined, set as _set, isArray as _isArray, clone as _clone, each as _each, isEqual as _isEqual, isNull as _isNull, first as _first, join as _join, extend as _extend, template as _template, concat as _concat, find as _find, merge as _merge } from 'lodash-es';
+import { get as _get, set as _set, extend as _extend, isEmpty as _isEmpty, isUndefined as _isUndefined, merge as _merge, trim as _trim, isNull as _isNull, orderBy as _orderBy, map as _map, find as _find, indexOf as _indexOf, isArray as _isArray, forEach as _forEach, join as _join, first as _first, template as _template } from 'lodash-es';
 
 /**
  * Utility functions to run and render loadash templates
@@ -55,6 +55,25 @@ export class LoDashTemplateUtilityService {
     DATETIME_HUGE_WITH_SECONDS: DateTime.DATETIME_HUGE_WITH_SECONDS
   };
 
+  lodashWrapper: object = {
+    get: _get,
+    set: _set,
+    isEmpty: _isEmpty,
+    isUndefined: _isUndefined,
+    trim: _trim,
+    isNull: _isNull,
+    orderBy: _orderBy,
+    map: _map,
+    find: _find,
+    indexOf: _indexOf,
+    isArray: _isArray,
+    forEach: _forEach,
+    join: _join,
+    first: _first,
+    merge: _merge,
+    extend: _extend,
+    template: _template
+  }
 
   public formatDate(date: Date, format: string): string {
     let dateTime = DateTime.fromJSDate(date);
@@ -95,7 +114,7 @@ export class LoDashTemplateUtilityService {
 
   public runTemplate(data: any, config: any, additionalImports: any = {}, field: any = undefined) {
     // TO-DO: deprecate numberFormat as it can be accessed via util
-    let imports = _extend({ data: data, config: config, DateTime: DateTime, numberFormat: this.numberFormat, field: field, util: this }, this);
+    let imports = _extend({ data: data, config: config, DateTime: DateTime, numberFormat: this.numberFormat, field: field, util: this, _: this.lodashWrapper }, this);
     imports = _merge(imports, additionalImports);
     const templateData = { imports: imports };
     const template = _template(config.template, templateData);
