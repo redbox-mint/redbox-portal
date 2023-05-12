@@ -26,7 +26,7 @@ declare var _;
 /**
  * Package that contains all Controllers.
  */
-import { Controllers as controllers} from '@researchdatabox/redbox-core-types';
+import { Controllers as controllers } from '@researchdatabox/redbox-core-types';
 export module Controllers {
   /**
    * Responsible for all things related to the Dashboard
@@ -69,11 +69,11 @@ export module Controllers {
 
     public getResults(req, res) {
       const brand = BrandingService.getBrand(req.session.branding);
-      var response = ReportsService.getResults(brand, req.param('name'),  req, req.param('start'), req.param('rows'));
+      var response = ReportsService.getResults(brand, req.param('name'), req, req.param('start'), req.param('rows'));
       return response.map(results => {
         var totalItems = results["response"]["numFound"];
         var startIndex = results["response"]["start"];
-        var noItems = _.isUndefined(req.param('rows')) ? 10  : req.param('rows');
+        var noItems = _.isUndefined(req.param('rows')) ? 10 : req.param('rows');
         var pageNumber = (startIndex / noItems) + 1;
 
         var response = {};
@@ -87,7 +87,7 @@ export module Controllers {
         for (var i = 0; i < docs.length; i++) {
           var doc = docs[i];
           var item = {};
-          for(var key in doc) {
+          for (var key in doc) {
             item[key] = doc[key];
           }
           items.push(item);
@@ -96,33 +96,36 @@ export module Controllers {
         response["records"] = items;
         return Observable.of(response);
       }).flatMap(results => {
-          return results;
-        }).subscribe(response => {
-          if (response && response.code == "200") {
-            response.success = true;
-            this.ajaxOk(req, res, null, response);
-          } else {
-            this.ajaxFail(req, res, null, response);
-          }
-        }, error => {
-          sails.log.error("Error updating meta:");
-          sails.log.error(error);
-          this.ajaxFail(req, res, error.message);
-        });;
+        return results;
+      }).subscribe(response => {
+        if (response && response.code == "200") {
+          response.success = true;
+          this.ajaxOk(req, res, null, response);
+        } else {
+          this.ajaxFail(req, res, null, response);
+        }
+      }, error => {
+        sails.log.error("Error updating meta:");
+        sails.log.error(error);
+        this.ajaxFail(req, res, error.message);
+      });;
     }
 
-    public downloadCSV(req, res) {
-      const brand = BrandingService.getBrand(req.session.branding);
+    public async downloadCSV(req, res) {
+      try {
+        const brand = BrandingService.getBrand(req.session.branding);
 
-      var response = ReportsService.getCSVResult(brand, req.param('name'), req);
-      response.subscribe(results => {
-        let fileName = req.param('name')+'.csv';
-        sails.log.verbose("fileName "+fileName);
+        var results = await ReportsService.getCSVResult(brand, req.param('name'), req);
+        let fileName = req.param('name') + '.csv';
+        sails.log.verbose("fileName " + fileName);
         res.attachment(fileName);
         res.set('Content-Type', 'text/csv');
         res.status(200).send(results);
         return res
-      });
+      } catch (error) {
+        sails.log.error(error);
+        this.ajaxFail(req, res, error.message);
+      }
     }
 
     /**
