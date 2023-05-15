@@ -17,7 +17,7 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { Observable } from 'rxjs/Rx';
+import { Observable, of, from, concatMap, last } from 'rxjs';
 import {
   Services as services,
   RBValidationError
@@ -75,7 +75,7 @@ export module Services {
         _.set(record, "metaMetadata.form", _.get(options, "targetForm", record.metaMetadata.form));
       }
 
-      return Observable.of(record);
+      return of(record);
     }
 
     /**
@@ -116,14 +116,14 @@ export module Services {
       });
       if (!_.isEmpty(hookFnDefArray)) {
         sails.log.debug(`runHooksSync, running..`);
-        return Observable.from(hookFnDefArray)
-          .concatMap(hookDef => {
+        return from(hookFnDefArray)
+          .pipe(concatMap(hookDef => {
             return hookDef.hookFn(oid, record, hookDef.hookOpt, user);
           })
-          .last();
+          ,last());
       } else {
         sails.log.debug(`runHooksSync, no observables to run`);
-        return Observable.of(record);
+        return of(record);
       }
     }
 
@@ -232,7 +232,7 @@ export module Services {
         }
       }
 
-      return Observable.of(record);
+      return of(record);
     }
 
   }

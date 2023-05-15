@@ -17,7 +17,7 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { Observable } from 'rxjs/Rx';
+import { of,from,flatMap } from 'rxjs';
 import {Services as services}   from '@researchdatabox/redbox-core-types';
 import { Sails, Model } from "sails";
 import * as request from "request-promise";
@@ -50,9 +50,9 @@ export module Services {
       var start = (page - 1) * rows;
       var url = sails.config.orcid.url + '/v1.2/search/orcid-bio/?q=family-name:"' + familyName + '"%20AND%20given-names:"' + givenNames + '"&start=' + start + '&rows=' + rows;
       var options = this.getOptions(url);
-      var orcidRes = Observable.fromPromise(request[sails.config.record.api.search.method](options));
+      var orcidRes = from(request[sails.config.record.api.search.method](options));
 
-      return orcidRes.flatMap(orcidResult => {
+      return orcidRes.pipe(flatMap(orcidResult => {
         var results = {};
         results["numFound"] = orcidResult["orcid-search-results"]["num-found"];
         results["items"] = [];
@@ -62,8 +62,8 @@ export module Services {
           var item = this.mapToPeopleSearchResult(orcidSearchResult);
           results["items"].push(item);
         }
-        return Observable.of(results);
-      });
+        return of(results);
+      }));
     }
 
     protected mapToPeopleSearchResult(orcidSearchResult) {

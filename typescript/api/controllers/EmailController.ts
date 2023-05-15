@@ -22,7 +22,7 @@ declare var module;
 declare var sails;
 declare var EmailService;
 declare var _;
-import { Observable } from 'rxjs/Rx';
+import { Observable } from 'rxjs';
 import { Controllers as controllers} from '@researchdatabox/redbox-core-types';
 
 export module Controllers {

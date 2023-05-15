@@ -33,7 +33,7 @@ declare var User;
 /**
  * Package that contains all Controllers.
  */
-import { Observable } from 'rxjs/Rx';
+import { Observable,from,throwError,of,flatMap } from 'rxjs';
 import * as path from "path";
 import { APIErrorResponse, APIHarvestResponse, Controllers as controllers, Datastream, DatastreamService, DatastreamServiceResponse, RecordsService, SearchService } from '@researchdatabox/redbox-core-types';
 import { ListAPIResponse } from '@researchdatabox/redbox-core-types';
@@ -106,7 +106,7 @@ export module Controllers {
       const brand = BrandingService.getBrand(req.session.branding);
       var oid = req.param('oid');
 
-      Observable.fromPromise(this.RecordsService.getMeta(oid)).subscribe(record => {
+      from(this.RecordsService.getMeta(oid)).subscribe(record => {
         return res.json(record["authorization"]);
       });
 
@@ -120,7 +120,7 @@ export module Controllers {
       var body = req.body;
       var users = body["users"];
       var pendingUsers = body["pendingUsers"];
-      Observable.fromPromise(this.RecordsService.getMeta(oid)).subscribe(record => {
+      from(this.RecordsService.getMeta(oid)).subscribe(record => {
 
         if (users != null && users.length > 0) {
           record["authorization"]["edit"] = _.union(record["authorization"]["edit"], users);
@@ -130,10 +130,10 @@ export module Controllers {
           record["authorization"]["editPending"] = _.union(record["authorization"]["editPending"], pendingUsers);
         }
 
-        var obs = Observable.fromPromise(this.RecordsService.updateMeta(brand, oid, record, req.user));
+        var obs = from(this.RecordsService.updateMeta(brand, oid, record, req.user));
         obs.subscribe(result => {
           if (result.isSuccessful()) {
-            Observable.fromPromise(this.RecordsService.getMeta(result.oid)).subscribe(record => {
+            from(this.RecordsService.getMeta(result.oid)).subscribe(record => {
               return res.json(record["authorization"]);
             }, error => {
               sails.log.error(error);
@@ -157,7 +157,7 @@ export module Controllers {
       var body = req.body;
       var users = body["users"];
       var pendingUsers = body["pendingUsers"];
-      Observable.fromPromise(this.RecordsService.getMeta(oid)).subscribe(record => {
+      from(this.RecordsService.getMeta(oid)).subscribe(record => {
 
         if (users != null && users.length > 0) {
           record["authorization"]["view"] = _.union(record["authorization"]["view"], users);
@@ -167,10 +167,10 @@ export module Controllers {
           record["authorization"]["viewPending"] = _.union(record["authorization"]["viewPending"], pendingUsers);
         }
 
-        var obs = Observable.fromPromise(this.RecordsService.updateMeta(brand, oid, record, req.user));
+        var obs = from(this.RecordsService.updateMeta(brand, oid, record, req.user));
         obs.subscribe(result => {
           if (result.isSuccessful()) {
-            Observable.fromPromise(this.RecordsService.getMeta(result["oid"])).subscribe(record => {
+            from(this.RecordsService.getMeta(result["oid"])).subscribe(record => {
               return res.json(record["authorization"]);
             });
           } else {
@@ -187,7 +187,7 @@ export module Controllers {
       var body = req.body;
       var users = body["users"];
       var pendingUsers = body["pendingUsers"];
-      Observable.fromPromise(this.RecordsService.getMeta(oid)).subscribe(record => {
+      from(this.RecordsService.getMeta(oid)).subscribe(record => {
 
         if (users != null && users.length > 0) {
           record["authorization"]["edit"] = _.difference(record["authorization"]["edit"], users);
@@ -197,10 +197,10 @@ export module Controllers {
           record["authorization"]["editPending"] = _.difference(record["authorization"]["editPending"], pendingUsers);
         }
 
-        var obs = Observable.fromPromise(this.RecordsService.updateMeta(brand, oid, record, req.user));
+        var obs = from(this.RecordsService.updateMeta(brand, oid, record, req.user));
         obs.subscribe(result => {
           if (result.isSuccessful()) {
-            Observable.fromPromise(this.RecordsService.getMeta(result["oid"])).subscribe(record => {
+            from(this.RecordsService.getMeta(result["oid"])).subscribe(record => {
               return res.json(record["authorization"]);
             });
           } else {
@@ -217,7 +217,7 @@ export module Controllers {
       var body = req.body;
       var users = body["users"];
       var pendingUsers = body["pendingUsers"];
-      Observable.fromPromise(this.RecordsService.getMeta(oid)).subscribe(record => {
+      from(this.RecordsService.getMeta(oid)).subscribe(record => {
 
         if (users != null && users.length > 0) {
           record["authorization"]["view"] = _.difference(record["authorization"]["view"], users);
@@ -227,10 +227,10 @@ export module Controllers {
           record["authorization"]["viewPending"] = _.difference(record["authorization"]["viewPending"], pendingUsers);
         }
 
-        var obs = Observable.fromPromise(this.RecordsService.updateMeta(brand, oid, record, req.user));
+        var obs = from(this.RecordsService.updateMeta(brand, oid, record, req.user));
         obs.subscribe(result => {
           if (result.isSuccessful()) {
-            Observable.fromPromise(this.RecordsService.getMeta(result["oid"])).subscribe(record => {
+            from(this.RecordsService.getMeta(result["oid"])).subscribe(record => {
               return res.json(record["authorization"]);
             });
           } else {
@@ -245,9 +245,9 @@ export module Controllers {
       const brand = BrandingService.getBrand(req.session.branding);
       var oid = req.param('oid');
 
-      Observable.fromPromise(this.RecordsService.getMeta(oid)).subscribe(record => {
+      from(this.RecordsService.getMeta(oid)).subscribe(record => {
         if (_.isEmpty(record)) {
-          return Observable.throw(new Error(`Failed to get meta, cannot find existing record with oid: ${oid}`));
+          return throwError(new Error(`Failed to get meta, cannot find existing record with oid: ${oid}`));
         }
         return res.json(record["metadata"]);
       },
@@ -292,7 +292,7 @@ export module Controllers {
       sails.log.debug(brand);
       var oid = req.param('oid');
 
-      Observable.fromPromise(this.RecordsService.getMeta(oid)).subscribe(record => {
+      from(this.RecordsService.getMeta(oid)).subscribe(record => {
         return res.json(record["metaMetadata"]);
       });
     }
@@ -303,9 +303,9 @@ export module Controllers {
       const shouldMerge = req.param('merge', false);
       const shouldProcessDatastreams = req.param('datastreams', false);
 
-      Observable.fromPromise(this.RecordsService.getMeta(oid)).subscribe(record => {
+      from(this.RecordsService.getMeta(oid)).subscribe(record => {
         if (_.isEmpty(record)) {
-          return Observable.throw(new Error(`Failed to update meta, cannot find existing record with oid: ${oid}`));
+          return throwError(new Error(`Failed to update meta, cannot find existing record with oid: ${oid}`));
         }
         if (shouldMerge) {
           // behavior modified from replacing arrays to appending to arrays:
@@ -317,7 +317,7 @@ export module Controllers {
         } else {
           record["metadata"] = req.body;
         }
-        var obs = Observable.fromPromise(this.RecordsService.updateMeta(brand, oid, record, req.user));
+        var obs = from(this.RecordsService.updateMeta(brand, oid, record, req.user));
         obs.subscribe(async (result) => {
           // check if we need to process data streams
           if (shouldProcessDatastreams) {
@@ -346,9 +346,9 @@ export module Controllers {
       const brand = BrandingService.getBrand(req.session.branding);
       var oid = req.param('oid');
 
-      Observable.fromPromise(this.RecordsService.getMeta(oid)).subscribe(record => {
+      from(this.RecordsService.getMeta(oid)).subscribe(record => {
         record["metaMetadata"] = req.body;
-        var obs = Observable.fromPromise(this.RecordsService.updateMeta(brand, oid, record, req.user));
+        var obs = from(this.RecordsService.updateMeta(brand, oid, record, req.user));
         obs.subscribe(result => {
           return res.json(result);
         });
@@ -434,7 +434,7 @@ export module Controllers {
 
               });
               let createPromise = this.RecordsService.create(brand, request, recordTypeModel, user)
-              var obs = Observable.fromPromise(createPromise);
+              var obs = from(createPromise);
               obs.subscribe(response => {
                 if (response.isSuccessful()) {
                   res.set('Location', sails.config.appUrl + BrandingService.getBrandAndPortalPath(req) + "/api/records/metadata/" + response.oid);
@@ -462,7 +462,7 @@ export module Controllers {
       const oid = req.param('oid');
       const datastreamId = req.param('datastreamId');
       sails.log.info(`getDataStream ${oid} ${datastreamId}`);
-      return Observable.fromPromise(this.RecordsService.getMeta(oid)).flatMap(async (currentRec) => {
+      return from(this.RecordsService.getMeta(oid)).pipe(flatMap(async (currentRec) => {
         const fileName = req.param('fileName') ? req.param('fileName') : datastreamId;
         res.set('Content-Type', 'application/octet-stream');
         sails.log.verbose("fileName " + fileName);
@@ -475,11 +475,11 @@ export module Controllers {
           } else {
             res.end(Buffer.from(response.body), 'binary');
           }
-          return Observable.of(oid);
+          return of(oid);
         } catch (error) {
           return this.customErrorMessageHandlingOnUpstreamResult(error, res);
         }
-      }).subscribe(whatever => {
+      })).subscribe(whatever => {
         // ignore...
         sails.log.verbose(`Done with updating streams and returning response...`);
       }, error => {
@@ -765,16 +765,16 @@ export module Controllers {
       var oid = req.param('oid');
       var body = req.body;
       var roles = body["roles"];
-      Observable.fromPromise(this.RecordsService.getMeta(oid)).subscribe(record => {
+      from(this.RecordsService.getMeta(oid)).subscribe(record => {
 
         if (roles != null && roles.length > 0) {
           record["authorization"]["editRoles"] = _.union(record["authorization"]["editRoles"], roles);
         }
 
-        var obs = Observable.fromPromise(this.RecordsService.updateMeta(brand, oid, record, req.user));
+        var obs = from(this.RecordsService.updateMeta(brand, oid, record, req.user));
         obs.subscribe(result => {
           if (result.isSuccessful()) {
-            Observable.fromPromise(this.RecordsService.getMeta(result.oid)).subscribe(record => {
+            from(this.RecordsService.getMeta(result.oid)).subscribe(record => {
               return res.json(record["authorization"]);
             }, error => {
               sails.log.error(error);
@@ -797,16 +797,16 @@ export module Controllers {
       var oid = req.param('oid');
       var body = req.body;
       var roles = body["roles"];
-      Observable.fromPromise(this.RecordsService.getMeta(oid)).subscribe(record => {
+      from(this.RecordsService.getMeta(oid)).subscribe(record => {
 
         if (roles != null && roles.length > 0) {
           record["authorization"]["viewRoles"] = _.union(record["authorization"]["viewRoles"], roles);
         }
 
-        var obs = Observable.fromPromise(this.RecordsService.updateMeta(brand, oid, record, req.user));
+        var obs = from(this.RecordsService.updateMeta(brand, oid, record, req.user));
         obs.subscribe(result => {
           if (result.isSuccessful()) {
-            Observable.fromPromise(this.RecordsService.getMeta(result["oid"])).subscribe(record => {
+            from(this.RecordsService.getMeta(result["oid"])).subscribe(record => {
               return res.json(record["authorization"]);
             });
           } else {
@@ -822,16 +822,16 @@ export module Controllers {
 
       var body = req.body;
       var roles = body["roles"];
-      Observable.fromPromise(this.RecordsService.getMeta(oid)).subscribe(record => {
+      from(this.RecordsService.getMeta(oid)).subscribe(record => {
 
         if (roles != null && roles.length > 0) {
           record["authorization"]["editRoles"] = _.difference(record["authorization"]["editRoles"], roles);
         }
 
-        var obs = Observable.fromPromise(this.RecordsService.updateMeta(brand, oid, record, req.user));
+        var obs = from(this.RecordsService.updateMeta(brand, oid, record, req.user));
         obs.subscribe(result => {
           if (result.isSuccessful()) {
-            Observable.fromPromise(this.RecordsService.getMeta(result["oid"])).subscribe(record => {
+            from(this.RecordsService.getMeta(result["oid"])).subscribe(record => {
               return res.json(record["authorization"]);
             });
           } else {
@@ -847,16 +847,16 @@ export module Controllers {
 
       var body = req.body;
       var users = body["roles"];
-      Observable.fromPromise(this.RecordsService.getMeta(oid)).subscribe(record => {
+      from(this.RecordsService.getMeta(oid)).subscribe(record => {
 
         if (users != null && users.length > 0) {
           record["authorization"]["viewRoles"] = _.difference(record["authorization"]["viewRoles"], users);
         }
 
-        var obs = Observable.fromPromise(this.RecordsService.updateMeta(brand, oid, record, req.user));
+        var obs = from(this.RecordsService.updateMeta(brand, oid, record, req.user));
         obs.subscribe(result => {
           if (result.isSuccessful()) {
-            Observable.fromPromise(this.RecordsService.getMeta(result["oid"])).subscribe(record => {
+            from(this.RecordsService.getMeta(result["oid"])).subscribe(record => {
               return res.json(record["authorization"]);
             });
           } else {

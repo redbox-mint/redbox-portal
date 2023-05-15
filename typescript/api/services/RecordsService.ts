@@ -18,8 +18,8 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 import {
-  Observable
-} from 'rxjs/Rx';
+  Observable, of, from, flatMap
+} from 'rxjs';
 
 import {
   DatastreamService,
@@ -551,8 +551,8 @@ export module Services {
       url = this.addAuthFilter(url, username, roles, brand, false)
       sails.log.debug(`Searching fuzzy using: ${url}`);
       const options = this.getOptions(url);
-      return Observable.fromPromise(request[sails.config.record.api.search.method](options))
-        .flatMap(resp => {
+      return from(request[sails.config.record.api.search.method](options))
+        .pipe(flatMap(resp => {
           let response: any = resp;
           const customResp = {
             records: []
@@ -587,8 +587,8 @@ export module Services {
               });
             });
           }
-          return Observable.of(customResp);
-        }).toPromise();
+          return of(customResp);
+        })).toPromise();
     }
 
     protected addAuthFilter(url, username, roles, brand, editAccessOnly = undefined) {

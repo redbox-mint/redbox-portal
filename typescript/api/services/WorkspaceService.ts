@@ -1,4 +1,4 @@
-import { Observable } from 'rxjs/Rx';
+import { Observable, from } from 'rxjs';
 import {Services as services}   from '@researchdatabox/redbox-core-types';
 import { Sails, Model } from "sails";
 import * as request from "request-promise";
@@ -124,7 +124,7 @@ export module Services {
         json: true,
         headers: config.redboxHeaders
       });
-      return Observable.fromPromise(post);
+      return from(post);
     }
 
     getRecordMeta(config: any, rdmp: string) {
@@ -133,7 +133,7 @@ export module Services {
         json: true,
         headers: config.redboxHeaders
       });
-      return Observable.fromPromise(get);
+      return from(get);
     }
 
     updateRecordMeta(config: any, record: any, id: string) {
@@ -144,7 +144,7 @@ export module Services {
         json: true,
         headers: config.redboxHeaders
       });
-      return Observable.fromPromise(post);
+      return from(post);
     }
 
     userInfo(userId: string) {

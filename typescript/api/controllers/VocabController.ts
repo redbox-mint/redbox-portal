@@ -21,7 +21,7 @@
 declare var module;
 declare var sails;
 declare var _;
-import { Observable } from 'rxjs/Rx';
+import { Observable } from 'rxjs';
 import * as flat from 'flat';
 declare var VocabService;
 /**

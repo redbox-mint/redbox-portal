@@ -17,7 +17,7 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { Observable } from 'rxjs/Rx';
+import { Observable,zip,of,flatMap } from 'rxjs';
 import {Services as services}   from '@researchdatabox/redbox-core-types';
 import {Sails, Model} from "sails";
 
@@ -46,7 +46,7 @@ export module Services {
       if (sails.config.appmode.bootstrapAlways) {
         startQ = DashboardType.destroy({branding:defBrand.id});
       }
-      return super.getObservable(startQ).flatMap(dashboardTypes => {
+      return super.getObservable(startQ).pipe(flatMap(dashboardTypes => {
         if (_.isUndefined(dashboardTypes)) {
           dashboardTypes = [];
         }
@@ -60,14 +60,14 @@ export module Services {
             dashTypes.push(obs);
           });
           this.dashboardTypes = dashboardTypes;
-          return Observable.zip(...dashTypes);
+          return zip(...dashTypes);
         } else {
           sails.log.verbose("Default DashboardTypes definition(s) exist.");
           sails.log.verbose(JSON.stringify(dashboardTypes));
           this.dashboardTypes = dashboardTypes;
-          return Observable.of(dashboardTypes);
+          return of(dashboardTypes);
         }
-      });
+      }));
     }
 
     public create(brand, name, config) {
