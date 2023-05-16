@@ -20,13 +20,12 @@
 import {
   Observable
 } from 'rxjs/Rx';
-import {SearchService, Services as services}   from '@researchdatabox/redbox-core-types';
+import { SearchService, Services as services } from '@researchdatabox/redbox-core-types';
 
 import {
   Sails,
   Model
 } from "sails";
-import * as request from "request-promise";
 
 declare var sails: Sails;
 declare var Report: Model;
