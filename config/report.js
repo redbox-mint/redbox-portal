@@ -30,22 +30,24 @@ module.exports.reports = {
       {
         "label": "Title",
         "property": "title",
-        "template": "<a href='${ data.optTemplateData.brandingAndPortalUrl }/record/view/${ data.id }'>${ data.title }</a>"
+        "template": "<a href='${ data.optTemplateData.brandingAndPortalUrl }/record/view/${ data.id }'>${ data.title }</a>",
+        "exportTemplate": "${data.title}"
       },
       {
         "label": "External URL",
         "property": "reportExternalURL",
+        "exportTemplate": "${ data.optTemplateData.brandingAndPortalUrl }/record/view/${ data.id }",
         "hide": true
       },
       {
         "label": "Date Modified",
         "property": "date_object_modified",
-        "template" : "${ DateTime.fromISO(data.date_object_modified).toFormat('dd/MM/yyyy') }"
+        "template" : "${ DateTime.fromISO(data.date_object_modified).toFormat('dd/MM/yyyy hh:mm a') }"
       },
       {
         "label": "Date Created",
         "property": "date_object_created",
-        "template" : "${ DateTime.fromISO(data.date_object_created).toFormat('dd/MM/yyyy') }"
+        "template" : "${ DateTime.fromISO(data.date_object_created).toFormat('dd/MM/yyyy hh:mm a') }"
       },
       {
         "label": "Chief Investigator",
@@ -85,22 +87,24 @@ module.exports.reports = {
       {
         "label": "Title",
         "property": "title",
-        "template": "<a href='${ data.optTemplateData.brandingAndPortalUrl }/record/view/${ data.id }'>${ data.title }</a>"
+        "template": "<a href='${ data.optTemplateData.brandingAndPortalUrl }/record/view/${ data.id }'>${ data.title }</a>",
+        "exportTemplate": "${data.title}"
       },
       {
         "label": "External URL",
         "property": "reportExternalURL",
+        "exportTemplate": "${ data.optTemplateData.brandingAndPortalUrl }/record/view/${ data.id }",
         "hide": true
       },
       {
         "label": "Date Modified",
         "property": "date_object_modified",
-        "template" : "${ DateTime.fromISO(data.date_object_modified).toFormat('dd/MM/yyyy') }"
+        "template" : "${ DateTime.fromISO(data.date_object_modified).toFormat('dd/MM/yyyy hh:mm a') }"
       },
       {
         "label": "Date Created",
         "property": "date_object_created",
-        "template" : "${ DateTime.fromISO(data.date_object_created).toFormat('dd/MM/yyyy') }"
+        "template" : "${ DateTime.fromISO(data.date_object_created).toFormat('dd/MM/yyyy hh:mm a') }"
       },
       {
         "label": "Chief Investigator",
@@ -140,22 +144,24 @@ module.exports.reports = {
       {
         "label": "Title",
         "property": "title",
-        "template": "<a href='${ data.optTemplateData.brandingAndPortalUrl }/record/view/${ data.id }'>${ data.title }</a>"
+        "template": "<a href='${ data.optTemplateData.brandingAndPortalUrl }/record/view/${ data.id }'>${ data.title }</a>",
+        "exportTemplate": "${data.title}"
       },
       {
         "label": "External URL",
         "property": "reportExternalURL",
+        "exportTemplate": "${ data.optTemplateData.brandingAndPortalUrl }/record/view/${ data.id }",
         "hide": true
       },
       {
         "label": "Date Modified",
         "property": "date_object_modified",
-        "template" : "${ DateTime.fromISO(data.date_object_modified).toFormat('dd/MM/yyyy') }"
+        "template" : "${ DateTime.fromISO(data.date_object_modified).toFormat('dd/MM/yyyy hh:mm a') }"
       },
       {
         "label": "Date Created",
         "property": "date_object_created",
-        "template" : "${ DateTime.fromISO(data.date_object_created).toFormat('dd/MM/yyyy') }"
+        "template" : "${ DateTime.fromISO(data.date_object_created).toFormat('dd/MM/yyyy hh:mm a') }"
       },
       {
         "label": "Chief Investigator",
@@ -201,11 +207,13 @@ module.exports.reports = {
       {
         "label": "Title",
         "property": "title",
-        "template": "<a href='${ data.optTemplateData.brandingAndPortalUrl }/record/view/${ data.id }'>${ data.title }</a>"
+        "template": "<a href='${ data.optTemplateData.brandingAndPortalUrl }/record/view/${ data.id }'>${ data.title }</a>",
+        "exportTemplate": "${data.title}"
       },
       {
         "label": "External URL",
         "property": "reportExternalURL",
+        "exportTemplate": "${ data.optTemplateData.brandingAndPortalUrl }/record/view/${ data.id }",
         "hide": true
       },
       {
@@ -215,12 +223,12 @@ module.exports.reports = {
       {
         "label": "Date Modified",
         "property": "date_object_modified",
-        "template" : "${ DateTime.fromISO(data.date_object_modified).toFormat('dd/MM/yyyy') }"
+        "template" : "${ DateTime.fromISO(data.date_object_modified).toFormat('dd/MM/yyyy hh:mm a') }"
       },
       {
         "label": "Date Created",
         "property": "date_object_created",
-        "template" : "${ DateTime.fromISO(data.date_object_created).toFormat('dd/MM/yyyy') }"
+        "template" : "${ DateTime.fromISO(data.date_object_created).toFormat('dd/MM/yyyy hh:mm a') }"
       },
       {
         "label": "Chief Investigator",
@@ -248,22 +256,24 @@ module.exports.reports = {
       {
         "label": "Title",
         "property": "title",
-        "template": "<a href='${ data.optTemplateData.brandingAndPortalUrl }/record/view/${ data.id }'>${ data.title }</a>"
+        "template": "<a href='${ data.optTemplateData.brandingAndPortalUrl }/record/view/${ data.id }'>${ data.title }</a>",
+        "exportTemplate": "${data.title}"
       },
       {
         "label": "External URL",
         "property": "reportExternalURL",
+        "exportTemplate": "${ data.optTemplateData.brandingAndPortalUrl }/record/view/${ data.id }",
         "hide": true
       },
       {
         "label": "Date Modified",
         "property": "date_object_modified",
-        "template" : "${ DateTime.fromISO(data.date_object_modified).toFormat('dd/MM/yyyy') }"
+        "template" : "${ DateTime.fromISO(data.date_object_modified).toFormat('dd/MM/yyyy hh:mm a') }"
       },
       {
         "label": "Date Created",
         "property": "date_object_created",
-        "template" : "${ DateTime.fromISO(data.date_object_created).toFormat('dd/MM/yyyy') }"
+        "template" : "${ DateTime.fromISO(data.date_object_created).toFormat('dd/MM/yyyy hh:mm a') }"
       }
     ]
   },
