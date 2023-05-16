@@ -38,7 +38,7 @@ declare var BrandingService;
 
 export module Services {
   /**
-   * WorkflowSteps related functions...
+   * Reporting related functions...
    *
    * Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a>
    *
@@ -54,6 +54,10 @@ export module Services {
       'get',
       'getResults',
       'getCSVResult',
+
+      //exported only for unit testing
+      'getDataRows',
+      'getCSVHeaderRow'
     ];
 
     public bootstrap = (defBrand) => {
@@ -140,7 +144,7 @@ export module Services {
       return params;
     }
 
-    public getResults(brand, name = '', req, start = 0, rows = 10) {
+    private getResults(brand, name = '', req, start = 0, rows = 10) {
       var reportObs = super.getObservable(Report.findOne({
         key: brand.id + "_" + name
       }));
@@ -190,6 +194,7 @@ export module Services {
       return csvString;
 
     }
+
     buildOptTemplateData(req: any) {
       let templateData = {
         'brandingAndPortalUrl': BrandingService.getFullPath(req)
@@ -197,7 +202,8 @@ export module Services {
       return templateData;
     }
 
-    getDataRows(report: any, data: any[],optTemplateData:any): string[][] {
+    //TODO: It's public only because we need it at the moment to unit test it
+    public getDataRows(report: any, data: any[],optTemplateData:any): string[][] {
       let dataRows:string[][] = [];
 
       for(let row of data) {
@@ -271,7 +277,7 @@ export module Services {
     return templateRes;
   }
 
-    getCSVHeaderRow(report: any):string[] {
+    public getCSVHeaderRow(report: any):string[] {
       let headerRow:string[] = [];
       for (let column of report.columns) {
         headerRow.push(column.label)
