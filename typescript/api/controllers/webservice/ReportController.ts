@@ -71,7 +71,8 @@ export module Controllers {
       try {
         const brand = BrandingService.getBrand(req.session.branding);
         let queryName = req.param('queryName');
-        if (_.isEmpty(sails.config.namedQuery[queryName])) {
+        let namedQuery = await NamedQueryService.getNamedQueryConfig(brand,queryName);
+        if (_.isEmpty(namedQuery)) {
           return this.apiFail(req, res, 400, new APIErrorResponse("Named query not found"));
         }
 

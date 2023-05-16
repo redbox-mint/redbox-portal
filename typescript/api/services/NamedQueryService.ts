@@ -26,32 +26,82 @@ import {
 
 declare var sails: Sails;
 declare var Record: Model;
+declare var NamedQuery: Model;
 const moment = require('moment');
 declare var _this;
 declare var _;
 
 import { ListAPIResponse } from '@researchdatabox/redbox-core-types';
+import { Observable } from 'rxjs';
 
 export module Services {
   /**
    * Named Query related functions...
    * 
    */
-  export class NamedQuery extends services.Core.Service {
+  export class NamedQueryService extends services.Core.Service {
 
   
 
     protected _exportedMethods: any = [
-      "performNamedQuery"
+      "bootstrap",
+      "performNamedQuery",
+      "getNamedQueryConfig"
     ];
+
+    public bootstrap = (defBrand) => {
+      return super.getObservable(NamedQuery.find({
+        branding: defBrand.id
+      })).flatMap(namedQueries => {
+        if (_.isEmpty(namedQueries)) {
+          var rTypes = [];
+          sails.log.verbose("Bootstrapping report definitions... ");
+          _.forOwn(sails.config.namedQuery, (config, namedQuery) => {
+            var obs = this.create(defBrand, namedQuery, config);
+            obs.subscribe(repProcessed => { })
+            rTypes.push(obs);
+          });
+          return Observable.from(rTypes);
+
+        } else {
+
+          var rTypes = [];
+          _.each( namedQueries, function (namedQuery) {
+            rTypes.push(Observable.of(namedQuery));
+          });
+          sails.log.verbose("Default reports definition(s) exist.");
+          return Observable.from(rTypes);
+        }
+      })
+        .last();
+    }
+
+    public create(brand, name, config) {
+      return super.getObservable(NamedQuery.create({
+        name: name,
+        branding: brand.id,
+        solr_query: config.solr_query,
+        databaseQuery: config.databaseQuery,
+        reportSource: config.reportSource,
+        title: config.title,
+        mongoQuery: JSON.stringify(config.mongoQuery),
+        queryParams: JSON.stringify(config.queryParams)
+      }));
+    }
+
+
+    async getNamedQueryConfig(brand, namedQuery) {
+      let nQDBEntry = await NamedQuery.findOne({
+        key: brand.id + "_" + namedQuery
+      });
+      return new NamedQueryConfig(nQDBEntry)
+    }
 
     async performNamedQuery(mongoQuery, queryParams, paramMap, brand, start, rows, user=undefined):Promise<ListAPIResponse<NamedQueryResponseRecord>> {
       
       this.setParamsInQuery(mongoQuery, queryParams, paramMap) 
       mongoQuery['metaMetadata.brandId'] = brand.id;
 
-      sails.log.error("Mongo query params")
-      sails.log.error(mongoQuery)
       let totalItems = await Record.count(mongoQuery).meta({
         enableExperimentalDeepTargets: true
       });
@@ -65,6 +115,7 @@ export module Services {
           enableExperimentalDeepTargets: true
         })
       }
+      
       let responseRecords:NamedQueryResponseRecord[] = []
       for (let record of results) {
 
@@ -93,12 +144,11 @@ export module Services {
     }
 
     setParamsInQuery(mongoQuery: any, queryParams: Map<string, QueryParameterDefinition>, paramMap:any) {
-
       for (let queryParamKey in queryParams) {
         
         let value = paramMap[queryParamKey];
         let queryParam:QueryParameterDefinition = queryParams[queryParamKey];
-        sails.log.error(`${queryParamKey} has value ${value}`);
+        sails.log.debug(`${queryParamKey} has value ${value}`);
         if (value == undefined && queryParam.required === true) {
           throw Error(`${queryParamKey} is a required parameter`);
         }
@@ -169,7 +219,7 @@ export module Services {
 
   }
 }
-module.exports = new Services.NamedQuery().exports();
+module.exports = new Services.NamedQueryService().exports();
 
 enum DataType {
   Date = 'date',
@@ -197,7 +247,29 @@ class QueryParameterDefinition {
   path: string;
 }
 
-class NamedQueryResponseRecord {
+export class NamedQueryConfig {
+  name: string;
+  branding: string;
+  metadata: any;
+  createdAt: string;
+  updatedAt: string;
+  key: string;
+  queryParams: Map<string,QueryParameterDefinition>;
+  mongoQuery: object;
+
+  constructor(values:any) {
+      this.name = values.name
+      this.branding = values.branding
+      this.metadata = values.metadata
+      this.createdAt = values.createdAt
+      this.updatedAt = values.updatedAt
+      this.key = values.key
+      this.queryParams = JSON.parse(values.queryParams)
+      this.mongoQuery = JSON.parse(values.mongoQuery)
+  }
+}
+
+export class NamedQueryResponseRecord {
   oid: string;
   title: string;
   metadata: any;

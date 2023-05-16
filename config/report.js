@@ -1,4 +1,62 @@
 module.exports.reports = {
+  "dbRdmpRecords": {
+    "title": "List DB RDMP records",
+    "reportSource": "database",
+    "databaseQuery": {
+      queryName: "listRDMPRecords"
+    },
+    "filter": [
+      {
+        "paramName": "dateObjectCreatedRange",
+        "type": "date-range",
+        "message": "Filter by date created",
+        "database":{
+          "fromProperty": "dateCreatedAfter",
+          "toProperty": "dateCreatedBefore",
+        }
+      },
+      {
+        "paramName": "title",
+        "type": "text",
+        "property": "title",
+        "message": "Filter by title"
+      }
+    ],
+    "columns": [
+      {
+        "label": "Id",
+        "property": "oid",
+        "hide": true
+      },
+      {
+        "label": "Title",
+        "property": "title",
+        "template": "<a href='${ data.optTemplateData.brandingAndPortalUrl }/record/view/${ data.oid }'>${ data.title }</a>",
+        "exportTemplate": "${data.title}"
+      },
+      {
+        "label": "External URL",
+        "property": "reportExternalURL",
+        "exportTemplate": "${ data.optTemplateData.brandingAndPortalUrl }/record/view/${ data.id }",
+        "hide": true
+      },
+      {
+        "label": "Date Modified",
+        "property": "lastSaveDate",
+        "template" : "${ DateTime.fromISO(data.lastSaveDate).toFormat('dd/MM/yyyy hh:mm a') }"
+      },
+      {
+        "label": "Date Created",
+        "property": "dateCreated",
+        "template" : "${ DateTime.fromISO(data.dateCreated).toFormat('dd/MM/yyyy hh:mm a') }"
+      },
+      {
+        "label": "Chief Investigator",
+        "property": "metadata.contributor_ci.text_full_name",
+        "template" : "${ data.metadata.contributor_ci.text_full_name }"
+      }
+    ]
+  },
   "rdmpRecords": {
     "title": "List RDMP records",
     "solr_query": "metaMetadata_type:rdmp",
