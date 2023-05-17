@@ -105,7 +105,7 @@ export module Services {
       return super.getObservable(Report.create({
         name: name,
         branding: brand.id,
-        solr_query: config.solr_query,
+        solrQuery: config.solrQuery,
         databaseQuery: config.databaseQuery,
         reportSource: config.reportSource,
         title: config.title,
@@ -295,11 +295,6 @@ export module Services {
         result = this.getTranslateSolrResultToReportResult(solrResults, rows);
       }
 
-     
-      // var url = this.buildSolrParams(brand, req, report, start, rows, 'json');
-      // let solrResult = await this.getSearchService().searchAdvanced(url)
-      // let result: ReportResult = this.getTranslateSolrResultToReportResult(solrResult, rows);
-
       const headerRow: string[] = this.getCSVHeaderRow(report)
       let optTemplateData = this.buildOptTemplateData(req)
       let dataRows: string[][] = this.getDataRows(report, result.records, optTemplateData);
@@ -399,8 +394,8 @@ export module Services {
       return headerRow;
     }
 
-    protected getQueryValue(report) {
-      let query = `${report.solr_query}&sort=date_object_modified desc&version=2.2&fl=`
+    protected getQueryValue(report:ReportConfig) {
+      let query = `${report.solrQuery.baseQuery}&sort=date_object_modified desc&version=2.2&fl=`
       for (var i = 0; i < report.columns.length; i++) {
         var column = report.columns[i];
         query = query + column.property;
@@ -434,12 +429,16 @@ class ReportDatabaseQueryConfig {
   queryName: string
 }
 
+class ReportSolrQueryConfig {
+  baseQuery: string
+}
+
 
 class ReportConfig {
   title: string
   reportSource: ReportSource = ReportSource.solr
   databaseQuery: ReportDatabaseQueryConfig
-  solr_query: string
+  solrQuery: ReportSolrQueryConfig
   filter: ReportFilterConfig[]
   columns: ReportColumnConfig[]
 }

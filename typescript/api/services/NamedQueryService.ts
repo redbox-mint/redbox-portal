@@ -76,14 +76,10 @@ export module Services {
         .last();
     }
 
-    public create(brand, name, config) {
+    public create(brand, name, config: NamedQueryConfig) {
       return super.getObservable(NamedQuery.create({
         name: name,
         branding: brand.id,
-        solr_query: config.solr_query,
-        databaseQuery: config.databaseQuery,
-        reportSource: config.reportSource,
-        title: config.title,
         mongoQuery: JSON.stringify(config.mongoQuery),
         queryParams: JSON.stringify(config.queryParams)
       }));

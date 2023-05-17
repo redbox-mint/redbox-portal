@@ -27,8 +27,8 @@ module.exports = {
     reportSource:{
       type: 'string',
     },
-    solr_query: {
-      type: 'string',
+    solrQuery: {
+      type: 'json'
     },
     databaseQuery: {
       type: 'json'
