@@ -24,9 +24,14 @@ module.exports = {
       model: 'brandingconfig',
       required: true
     },
-    solr_query: {
+    reportSource:{
       type: 'string',
-      required: true
+    },
+    solrQuery: {
+      type: 'json'
+    },
+    databaseQuery: {
+      type: 'json'
     },
     filter: {
       type: 'json',

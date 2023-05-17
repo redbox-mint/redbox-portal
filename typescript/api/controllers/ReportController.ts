@@ -69,40 +69,14 @@ export module Controllers {
 
     public getResults(req, res) {
       const brand = BrandingService.getBrand(req.session.branding);
-      var response = ReportsService.getResults(brand, req.param('name'), req, req.param('start'), req.param('rows'));
-      return response.map(results => {
-        var totalItems = results["response"]["numFound"];
-        var startIndex = results["response"]["start"];
-        var noItems = _.isUndefined(req.param('rows')) ? 10 : req.param('rows');
-        var pageNumber = (startIndex / noItems) + 1;
-
-        var response = {};
-        response["total"] = totalItems;
-        response["pageNum"] = pageNumber;
-        response["recordPerPage"] = _.toNumber(noItems);
-
-        var items = [];
-        var docs = results["response"]["docs"];
-
-        for (var i = 0; i < docs.length; i++) {
-          var doc = docs[i];
-          var item = {};
-          for (var key in doc) {
-            item[key] = doc[key];
-          }
-          items.push(item);
-        }
-
-        response["records"] = items;
-        return Observable.of(response);
-      }).flatMap(results => {
-        return results;
-      }).subscribe(response => {
-        if (response && response.code == "200") {
+      var response = Observable.fromPromise(ReportsService.getResults(brand, req.param('name'), req, req.param('start'), req.param('rows')));
+      return response.subscribe(responseObject => {
+        if (responseObject) {
+          let response:any = responseObject;
           response.success = true;
           this.ajaxOk(req, res, null, response);
         } else {
-          this.ajaxFail(req, res, null, response);
+          this.ajaxFail(req, res, null, responseObject);
         }
       }, error => {
         sails.log.error("Error updating meta:");
