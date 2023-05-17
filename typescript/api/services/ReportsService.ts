@@ -20,22 +20,25 @@
 import {
   Observable
 } from 'rxjs/Rx';
-import {SearchService, Services as services}   from '@researchdatabox/redbox-core-types';
-
+import { SearchService, Services as services } from '@researchdatabox/redbox-core-types';
+import { DateTime } from 'luxon';
 import {
   Sails,
   Model
 } from "sails";
-import * as request from "request-promise";
+
+import { stringify } from 'csv-stringify/sync';
+
 
 declare var sails: Sails;
 declare var Report: Model;
 declare var _this;
 declare var _;
+declare var BrandingService;
 
 export module Services {
   /**
-   * WorkflowSteps related functions...
+   * Reporting related functions...
    *
    * Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a>
    *
@@ -51,6 +54,10 @@ export module Services {
       'get',
       'getResults',
       'getCSVResult',
+
+      //exported only for unit testing
+      'getDataRows',
+      'getCSVHeaderRow'
     ];
 
     public bootstrap = (defBrand) => {
@@ -103,7 +110,7 @@ export module Services {
       }));
     }
 
-    private buildSolrParams(brand, req, report, start, rows, format) {
+    private buildSolrParams(brand, req, report, start, rows, format = 'json') {
       var params = this.getQueryValue(report);
       params = this.addPaginationParams(params, start, rows);
       params = params + `&fq=metaMetadata_brandId:${brand.id}&wt=${format}`;
@@ -137,7 +144,7 @@ export module Services {
       return params;
     }
 
-    public getResults(brand, name = '', req, start = 0, rows = 10) {
+    private getResults(brand, name = '', req, start = 0, rows = 10) {
       var reportObs = super.getObservable(Report.findOne({
         key: brand.id + "_" + name
       }));
@@ -165,20 +172,117 @@ export module Services {
       }
       return report;
     }
-    public getCSVResult(brand, name = '', req, start = 0, rows = 1000000000) {
+    public async getCSVResult(brand, name = '', req, start = 0, rows = 1000000000) {
 
-      var reportObs = super.getObservable(Report.findOne({
+      var report = await super.getObservable(Report.findOne({
         key: brand.id + "_" + name
-      }));
+      })).toPromise();
 
-      return reportObs.flatMap(report => {
-        report = this.convertLegacyReport(report);
-        sails.log.debug(report)
-        // TODO: Ensure we get all results in a tidier way
-        //       Stream the resultset rather than load it in-memory
-        var url = this.buildSolrParams(brand, req, report, start, rows, 'csv');
-        return Observable.fromPromise(this.getSearchService().searchAdvanced(url));
-      });
+
+      report = this.convertLegacyReport(report);
+    
+      // TODO: Ensure we get all results in a tidier way
+      //       Stream the resultset rather than load it in-memory
+      var url = this.buildSolrParams(brand, req, report, start, rows, 'json');
+      let result = await this.getSearchService().searchAdvanced(url)
+      
+      const headerRow:string[] = this.getCSVHeaderRow(report)
+      let optTemplateData = this.buildOptTemplateData(req)
+      let dataRows:string[][] = this.getDataRows(report,result?.response?.docs, optTemplateData);
+      dataRows.unshift(headerRow);
+      let csvString = stringify(dataRows);
+      return csvString;
+
+    }
+
+    buildOptTemplateData(req: any) {
+      let templateData = {
+        'brandingAndPortalUrl': BrandingService.getFullPath(req)
+      }
+      return templateData;
+    }
+
+    //TODO: It's public only because we need it at the moment to unit test it
+    public getDataRows(report: any, data: any[],optTemplateData:any): string[][] {
+      let dataRows:string[][] = [];
+
+      for(let row of data) {
+        dataRows.push(this.getDataRow(row, report.columns, optTemplateData));
+      }
+
+      return dataRows;
+    }
+
+    getDataRow(row: any, columns: any, optTemplateData:any): string[] {
+      let dataRow:string[] = [];
+      for(let column of columns) {
+        dataRow.push(this.getColValue(row,column,optTemplateData))
+      }
+      return dataRow;
+    }
+
+    getColValue(row: any, col: any, optTemplateData:any):string {
+      if (col.multivalue) {
+        let retVal = [];
+        for (let val of _.get(row, col.property)) {
+          retVal.push(this.getEntryValue(row, col, val, optTemplateData));
+        }
+        return retVal.join('');
+      } else {
+        return this.getEntryValue(row, col, _.get(row, col.property), optTemplateData);
+      }
+    }
+
+    getEntryValue(row: any, col: any, val: any = undefined, optTemplateData:any = {}) {
+      let retVal = '';
+      let template = this.getExportTemplate(col);
+      if (template != null) {
+        const data = _.merge({}, row, {
+          recordTableMeta: { 
+            col: col, 
+            val: val
+          },
+          optTemplateData: optTemplateData
+        });
+        
+        retVal = this.runTemplate(data, {template: template});
+      } else {
+        retVal = _.get(row, col.property, val);
+      }
+      return retVal;
+    }
+
+    getExportTemplate(col: any) {
+      if(!_.isEmpty(col.exportTemplate)) {
+        return col.exportTemplate;
+      }
+      if(!_.isEmpty(col.template)) {
+        return col.template;
+      }
+      return null;
+    }
+
+    runTemplate(data: any, config: any, additionalImports: any = {}, field: any = undefined) {
+    // TO-DO: deprecate numberFormat as it can be accessed via util
+    let imports = _.extend({ data: data, config: config, DateTime: DateTime, field: field, util: this, _: _ }, this);
+    imports = _.merge(imports, additionalImports);
+    const templateData = { imports: imports };
+    const template = _.template(config.template, templateData);
+    const templateRes = template();
+    // added ability to parse the string template result into JSON
+    // requirement: template must return a valid JSON string object
+    if (config.json == true && !_.isEmpty(templateRes)) {
+      return JSON.parse(templateRes);
+    }
+    return templateRes;
+  }
+
+    public getCSVHeaderRow(report: any):string[] {
+      let headerRow:string[] = [];
+      for (let column of report.columns) {
+        headerRow.push(column.label)
+      }
+      return headerRow;
     }
 
     protected getQueryValue(report) {

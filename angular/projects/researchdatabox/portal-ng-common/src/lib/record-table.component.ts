@@ -24,6 +24,7 @@ import { UtilityService } from './utility.service';
 import { isEmpty as _isEmpty, get as _get, merge as _merge, template as _template } from 'lodash-es';
 import { RecordPropViewMeta, RecordSource, RecordPage } from './record.model';
 import { DateTime } from 'luxon';
+import { LoDashTemplateUtilityService } from './lodash-template-utility.service';
 /**
  * This component displays records in a table. 
  * 
@@ -60,6 +61,7 @@ export class RecordTableComponent extends BaseComponent {
   constructor(
     @Inject(LoggerService) private loggerService: LoggerService,
     @Inject(UtilityService) private utilService: UtilityService,
+    @Inject(LoDashTemplateUtilityService) private lodashTemplateUtilityService: LoDashTemplateUtilityService,
     ) {
     super();
     // no deps
@@ -95,7 +97,7 @@ export class RecordTableComponent extends BaseComponent {
         },
         optTemplateData: this.optTemplateData
       });
-      retVal = this.utilService.runTemplate(data, {template: col.template}, null);
+      retVal = this.lodashTemplateUtilityService.runTemplate(data, {template: col.template});
     } else {
       retVal = _get(row, col.property, val);
     }
