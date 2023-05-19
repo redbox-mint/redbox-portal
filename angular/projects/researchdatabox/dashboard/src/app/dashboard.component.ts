@@ -10,6 +10,7 @@ import { LoDashTemplateUtilityService } from 'projects/researchdatabox/portal-ng
   templateUrl: './dashboard.component.html'
 })
 export class DashboardComponent extends BaseComponent {
+  //TODO: Not sure if this should be typed
   config: any = {};
   branding: string = '';
   portal: string = '';
@@ -19,14 +20,13 @@ export class DashboardComponent extends BaseComponent {
   typeLabel: string = '';
   recordType: string;
   packageType: string;
-  records: any = {};
+  records: Map<string,PlanTable> = new Map<string,PlanTable>();
   //TODO: the typing of this might need revisiting
   sortMap: Map<string, Map<string, Map<string,string|null>>> = new Map<string, Map<string, Map<string,string|null>>>();
-  tableConfig: any = {};
-  dashboardTypeOptions: any = ['standard', 'workspace', 'consolidated'];
-  defaultDashboardTypeSelected: string = this.dashboardTypeOptions[0];
+  tableConfig: Map<string,DashboardTableRowConfig[]> = new Map<string,DashboardTableRowConfig[]>();
+  
+  defaultDashboardTypeSelected: string = DashboardTypeOptions.standard;
   dashboardTypeSelected: string;
-  rulesService: object;
   currentUser: object = {};
 
   defaultTableConfig:DashboardTableRowConfig[] = [
@@ -97,8 +97,8 @@ export class DashboardComponent extends BaseComponent {
   groupRowConfig:DashboardTableRowConfig|object = {};
 
   //Per group rules like show/hide buttons/activities(links) that apply to one group
-  defaultGroupRowRules: any = {};
-  groupRowRules: any = {};
+  defaultGroupRowRules: DashboardTableRowRulesConfig[] = [];
+  groupRowRules: DashboardTableRowRulesConfig[] = [];
 
   //Per each row rules show/hide fields or buttons/activities(links) that apply to one row
   defaultRowLevelRules: any = {};
@@ -129,11 +129,11 @@ export class DashboardComponent extends BaseComponent {
 
     this.initDependencies = [this.translationService, this.recordService, this.userService];
     this.loggerService.debug(`constructor dashboardTypeSelected ${this.dashboardTypeSelected} ${this.packageType}`);
-    this.rulesService = this;
+
   }
 
   protected override async initComponent(): Promise<void> {
-    if (_indexOf(this.dashboardTypeOptions, this.dashboardTypeSelected) >= 0) {
+    if ( Object.values(DashboardTypeOptions).includes(this.dashboardTypeSelected as DashboardTypeOptions)) {
       this.loggerService.debug(`Dashboard waiting for deps to init...`);
       this.loggerService.debug(`Dashboard initialised.`);
       this.config = this.recordService.getConfig();
@@ -219,16 +219,16 @@ export class DashboardComponent extends BaseComponent {
           this.groupRowConfig = _get(step, 'config.dashboard.table.groupRowConfig',this.defaultGroupRowConfig);
         }
 
-        if (!_isUndefined(step?.config?.dashboard?.table?.groupRowRulesConfig)) {
-          this.groupRowRules = _get(step, 'config.dashboard.table.groupRowRulesConfig');
-        }
+       
+        this.groupRowRules = step?.config?.dashboard?.table?.groupRowRulesConfig ?? this.defaultGroupRowRules ;
+        
 
         //formatRules override at step level from workflow.js config
         if (!_isUndefined(_get(step, 'config.dashboard.table.formatRules'))) {
           this.formatRules = _get(step, 'config.dashboard.table.formatRules', this.defaultFormatRules);
         }
       }
-      this.tableConfig[step.name] = stepTableConfig;
+      this.tableConfig.set(step.name, stepTableConfig);
 
       let stepNameSortMap = new Map<string,Map<string,string>>();
       for (let rowConfig of stepTableConfig) {
@@ -405,13 +405,13 @@ export class DashboardComponent extends BaseComponent {
 
     } else {
 
-      planTable = this.evaluatePlanTableColumns({}, {}, {}, evaluateStepName, stagedRecords);
+      planTable = this.evaluatePlanTableColumns({}, [], {}, evaluateStepName, stagedRecords);
     }
 
-    this.records[evaluateStepName] = planTable;
+    this.records.set(evaluateStepName,planTable);
   }
 
-  public evaluatePlanTableColumns(groupRowConfig: any, groupRowRules: any, rowLevelRulesConfig: any, stepName: string, stagedOrGroupedRecords: any): PlanTable {
+  public evaluatePlanTableColumns(groupRowConfig: any, groupRowRules: DashboardTableRowRulesConfig[], rowLevelRulesConfig: any, stepName: string, stagedOrGroupedRecords: any): PlanTable {
 
     let recordRows: any = [];
     let planTable: PlanTable = {
@@ -443,9 +443,9 @@ export class DashboardComponent extends BaseComponent {
           _set(imports, 'baseUrl', this.baseUrl);
           _set(imports, 'portal', this.portal);
           _set(imports, 'translationService', this.translationService);
-          _set(imports, 'rulesService', this.rulesService);
+          _set(imports, 'rulesService', this);
           _set(imports, 'rulesConfig', rowLevelRulesConfig);
-          if (!_isUndefined(groupRowRules) && !_isEmpty(groupRowRules)) {
+          if (!_isEmpty(groupRowRules)) {
             _set(imports, 'groupRulesConfig', groupRowRules);
             _set(imports, 'groupedItems', groupedItems);
           }
@@ -453,11 +453,9 @@ export class DashboardComponent extends BaseComponent {
           let record: any = {};
 
 
-          let stepTableConfig = _isEmpty(this.tableConfig[stepName]) ? this.defaultTableConfig : this.tableConfig[stepName];
+          let stepTableConfig = this.tableConfig.get(stepName) ?? this.defaultTableConfig;
 
           for (let rowConfig of stepTableConfig) {
-
-
             const templateRes = this.runTemplate(rowConfig.template, imports)
             record[rowConfig.variable] = templateRes;
           }
@@ -498,10 +496,9 @@ export class DashboardComponent extends BaseComponent {
 
 
           let record: any = {};
-          let stepTableCOnfig = _isEmpty(this.tableConfig[stepName]) ? this.defaultTableConfig : this.tableConfig[stepName];
+          let stepTableCOnfig = this.tableConfig.get(stepName) ?? this.defaultTableConfig;
 
           for (let rowConfig of stepTableCOnfig) {
-
             const templateRes = this.runTemplate(rowConfig.template, imports);
             record[rowConfig.variable] = templateRes;
           }
@@ -663,16 +660,16 @@ export class DashboardComponent extends BaseComponent {
         stagedRecords = await this.recordService.getRecords(this.recordType, data.step, 1, '', sortString);
       }
 
-      let planTable: PlanTable = this.evaluatePlanTableColumns({}, {}, {}, data.step, stagedRecords);
+      let planTable: PlanTable = this.evaluatePlanTableColumns({}, [], {}, data.step, stagedRecords);
 
-      this.records[data.step] = planTable;
+      this.records.set(data.step,planTable);
 
       this.updateSortMap(data);
     }
   }
 
   private updateSortMap(sortData: any) {
-    let stepTableConfig = this.tableConfig[sortData.step];
+    let stepTableConfig = this.tableConfig.get(sortData.step)?? this.defaultTableConfig;
     for (let rowConfig of stepTableConfig) {
       let stepSortMap = this.sortMap.get(sortData.step) ?? new Map<string, Map<string,string|null>>();
       let sort = stepSortMap.get(rowConfig.variable) ?? new Map<string, string|null>();
@@ -686,17 +683,17 @@ export class DashboardComponent extends BaseComponent {
   }
 
   public async pageChanged(event: PageChangedEvent, step: string) {
-
-    let sortDetails = this.sortMap.get(step);
-
+    
+    let sortDetails = this.sortMap.get(step)?? new Map();
+    
     if (this.dashboardTypeSelected == 'standard') {
       let stagedRecords = await this.recordService.getRecords(this.recordType, step, event.page, '', this.getSortString(sortDetails));
-      let planTable: PlanTable = this.evaluatePlanTableColumns({}, {}, {}, step, stagedRecords);
-      this.records[step] = planTable;
+      let planTable: PlanTable = this.evaluatePlanTableColumns({}, [], {}, step, stagedRecords);
+      this.records.set(step, planTable);
     } else if (this.dashboardTypeSelected == 'workspace') {
       let stagedRecords = await this.recordService.getRecords('', '', event.page, this.packageType, this.getSortString(sortDetails));
-      let planTable: PlanTable = this.evaluatePlanTableColumns({}, {}, {}, this.packageType, stagedRecords);
-      this.records[this.packageType] = planTable;
+      let planTable: PlanTable = this.evaluatePlanTableColumns({}, [], {}, this.packageType, stagedRecords);
+      this.records.set(this.packageType, planTable);
     } else if (this.dashboardTypeSelected == 'consolidated') {
       let packageType = '';
       let stepName = '';
@@ -714,16 +711,16 @@ export class DashboardComponent extends BaseComponent {
     return this.lodashTemplateUtilityService.runTemplate(data, config, imports)
   }
 
-  private getSortString(sortDetails: any) {
+  private getSortString(sortDetails: Map<string,Map<string,string>>) {
 
     let fields = this.sortFields;
 
     for (let i = 0; i < fields.length; i++) {
       let sortField = fields[i];
       let sortString = `${sortField}:`;
-
-      if (sortDetails[sortField].sort != null) {
-        if (sortDetails[sortField].sort == 'desc') {
+     
+      if (sortDetails.get(sortField)?.get('sort') != null) {
+        if (sortDetails.get(sortField)?.get('sort') == 'desc') {
           sortString = sortString + "-1";
         } else {
           sortString = sortString + "1";
@@ -878,8 +875,6 @@ class WorkflowStep {
   config: WorkflowStepConfig;
   form: any;
   name: string;
-  
-  
 
   constructor(data:any) {
     this.name = data.name
@@ -891,4 +886,8 @@ class WorkflowStep {
   }
 }
 
-
+enum DashboardTypeOptions{
+  standard = 'standard', 
+  workspace = 'workspace', 
+  consolidated = 'consolidated'
+}

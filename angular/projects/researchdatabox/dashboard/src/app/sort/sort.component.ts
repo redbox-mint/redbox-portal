@@ -7,10 +7,10 @@ import { Component, Input, Output, EventEmitter } from '@angular/core';
 })
 export class SortComponent {
 
-  @Input() sort: string | null | undefined = '';
-  @Input() title: string = '';
-  @Input() step: string = '';
-  @Input() variable: string = '';
+  @Input() sort: string | undefined | null = '';
+  @Input() title: string | undefined = '';
+  @Input() step: string | undefined  = '';
+  @Input() variable: string | undefined  = '';
   @Output() sortChanged = new EventEmitter();
 
   sortClicked() {

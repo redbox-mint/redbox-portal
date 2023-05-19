@@ -8,7 +8,7 @@ import { getStubConfigService, getStubTranslationService, getStubRecordService, 
 
 const username = 'testUser';
 const password = 'some-password';
-const dashboardTypeOptions: any = ['standard', 'workspace', 'consolidated'];
+
 let recordDataStandard = { 
   dashboardType: 
   { 
@@ -118,11 +118,11 @@ describe('DashboardComponent standard', () => {
     expect(dashboardComponent).toBeTruthy();
   });
 
-  it(`should have a set a pre defined dashboard type options`, () => {
-    const fixture = TestBed.createComponent(DashboardComponent);
-    const dashboardComponent = fixture.componentInstance;
-    expect(dashboardComponent.dashboardTypeOptions).toEqual(dashboardTypeOptions);
-  });
+  // it(`should have a set a pre defined dashboard type options`, () => {
+  //   const fixture = TestBed.createComponent(DashboardComponent);
+  //   const dashboardComponent = fixture.componentInstance;
+  //   expect(dashboardComponent.dashboardTypeOptions).toEqual(dashboardTypeOptions);
+  // });
   
   it(`should have a default dashboard type`, () => {
     const fixture = TestBed.createComponent(DashboardComponent);
@@ -138,13 +138,13 @@ describe('DashboardComponent standard', () => {
     expect(dashboardComponent.defaultTableConfig.length).toBeGreaterThan(0);
     expect(dashboardComponent.dashboardTypeSelected).toEqual('standard');
     await dashboardComponent.initStep('draft','draft','rdmp','',1);
-    let planTable = dashboardComponent.evaluatePlanTableColumns({}, {}, {}, 'draft', recordDataStandard['records']);
+    let planTable = dashboardComponent.evaluatePlanTableColumns({}, [], {}, 'draft', recordDataStandard['records']);
     expect(planTable.items.length).toBeGreaterThan(0);
     dashboardComponent.sortChanged(recordDataStandard['sortData']);
-    expect(dashboardComponent.sortMap['draft']['metadata.title'].sort).toEqual('desc');
+    expect(dashboardComponent?.sortMap?.get('draft')?.get('metadata.title')?.get('sort')).toEqual('desc');
     dashboardComponent.pageChanged(recordDataStandard['paginationData'], recordDataStandard['paginationData'].step);
-    expect(dashboardComponent.records['draft'].currentPage).toEqual(1);
-    expect(dashboardComponent.records['draft'].items.length).toBeGreaterThan(0);
+    expect(dashboardComponent.records.get('draft')?.currentPage).toEqual(1);
+    expect(dashboardComponent.records.get('draft')?.items.length).toBeGreaterThan(0);
   });
 });
 
@@ -259,11 +259,11 @@ describe('DashboardComponent workspace', () => {
     expect(dashboardComponent).toBeTruthy();
   });
 
-  it(`should have a set a pre defined dashboard type options`, () => {
-    const fixture = TestBed.createComponent(DashboardComponent);
-    const dashboardComponent = fixture.componentInstance;
-    expect(dashboardComponent.dashboardTypeOptions).toEqual(dashboardTypeOptions);
-  });
+  // it(`should have a set a pre defined dashboard type options`, () => {
+  //   const fixture = TestBed.createComponent(DashboardComponent);
+  //   const dashboardComponent = fixture.componentInstance;
+  //   expect(dashboardComponent.dashboardTypeOptions).toEqual(dashboardTypeOptions);
+  // });
   
   it(`should have a default dashboard type`, () => {
     const fixture = TestBed.createComponent(DashboardComponent);
@@ -281,13 +281,13 @@ describe('DashboardComponent workspace', () => {
     expect(dashboardComponent.defaultTableConfig.length).toBeGreaterThan(0);
     expect(dashboardComponent.dashboardTypeSelected).toEqual('workspace');
     await dashboardComponent.initStep('','existing-locations-draft','','workspace',1);
-    let planTable = dashboardComponent.evaluatePlanTableColumns({}, {}, {}, 'existing-locations-draft', recordDataWorkspace['records']);
+    let planTable = dashboardComponent.evaluatePlanTableColumns({}, [], {}, 'existing-locations-draft', recordDataWorkspace['records']);
     expect(planTable.items.length).toBeGreaterThan(0);
     dashboardComponent.sortChanged(recordDataWorkspace['sortData']);
-    expect(dashboardComponent.sortMap['existing-locations-draft']['metadata.title'].sort).toEqual('desc');
+    expect(dashboardComponent.sortMap?.get('existing-locations-draft')?.get('metadata.title')?.get('sort')).toEqual('desc');
     dashboardComponent.pageChanged(recordDataWorkspace['paginationData'], recordDataWorkspace['paginationData'].step);
-    expect(dashboardComponent.records['existing-locations-draft'].currentPage).toEqual(1);
-    expect(dashboardComponent.records['existing-locations-draft'].items.length).toBeGreaterThan(0);
+    expect(dashboardComponent.records?.get('existing-locations-draft')?.currentPage).toEqual(1);
+    expect(dashboardComponent.records.get('existing-locations-draft')?.items.length).toBeGreaterThan(0);
   });
 });
 
@@ -459,11 +459,11 @@ describe('DashboardComponent consolidated group by record type', () => {
     expect(dashboardComponent).toBeTruthy();
   });
 
-  it(`should have a set a pre defined dashboard type options`, () => {
-    const fixture = TestBed.createComponent(DashboardComponent);
-    const dashboardComponent = fixture.componentInstance;
-    expect(dashboardComponent.dashboardTypeOptions).toEqual(dashboardTypeOptions);
-  });
+  // it(`should have a set a pre defined dashboard type options`, () => {
+  //   const fixture = TestBed.createComponent(DashboardComponent);
+  //   const dashboardComponent = fixture.componentInstance;
+  //   expect(dashboardComponent.dashboardTypeOptions).toEqual(dashboardTypeOptions);
+  // });
   
   it(`should have a default dashboard type`, () => {
     const fixture = TestBed.createComponent(DashboardComponent);
@@ -496,8 +496,8 @@ describe('DashboardComponent consolidated group by record type', () => {
                                              'dashboardActionsPerRow');
     dashboardComponent.evaluateGroupRowRules(dashboardComponent.groupRowRules,groupedRecords['groupedItems'][0].items, 'dashboardActionsPerGroupRow');
     dashboardComponent.pageChanged(recordDataConsolidated['paginationData'], recordDataConsolidated['paginationData'].step);
-    expect(dashboardComponent.records['consolidated'].currentPage).toEqual(1);
-    expect(dashboardComponent.records['consolidated'].items.length).toBeGreaterThan(0);
+    expect(dashboardComponent.records.get('consolidated')?.currentPage).toEqual(1);
+    expect(dashboardComponent.records.get('consolidated')?.items.length).toBeGreaterThan(0);
   });
 });
 
@@ -686,11 +686,11 @@ describe('DashboardComponent consolidated group by relationships', () => {
     expect(dashboardComponent).toBeTruthy();
   });
 
-  it(`should have a set a pre defined dashboard type options`, () => {
-    const fixture = TestBed.createComponent(DashboardComponent);
-    const dashboardComponent = fixture.componentInstance;
-    expect(dashboardComponent.dashboardTypeOptions).toEqual(dashboardTypeOptions);
-  });
+  // it(`should have a set a pre defined dashboard type options`, () => {
+  //   const fixture = TestBed.createComponent(DashboardComponent);
+  //   const dashboardComponent = fixture.componentInstance;
+  //   expect(dashboardComponent.dashboardTypeOptions).toEqual(dashboardTypeOptions);
+  // });
   
   it(`should have a default dashboard type`, () => {
     const fixture = TestBed.createComponent(DashboardComponent);
@@ -723,7 +723,7 @@ describe('DashboardComponent consolidated group by relationships', () => {
                                              'dashboardActionsPerRow');
     dashboardComponent.evaluateGroupRowRules(dashboardComponent.groupRowRules,groupedRecords['groupedItems'][0].items, 'dashboardActionsPerGroupRow');
     dashboardComponent.pageChanged(recordDataConsolidatedRelationships['paginationData'], recordDataConsolidatedRelationships['paginationData'].step);
-    expect(dashboardComponent.records['consolidated'].currentPage).toEqual(1);
-    expect(dashboardComponent.records['consolidated'].items.length).toBeGreaterThan(0);
+    expect(dashboardComponent.records.get('consolidated')?.currentPage).toEqual(1);
+    expect(dashboardComponent.records.get('consolidated')?.items.length).toBeGreaterThan(0);
   });
 });

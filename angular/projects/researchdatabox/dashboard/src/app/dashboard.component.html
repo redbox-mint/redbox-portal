@@ -7,26 +7,36 @@
             </h2>
             <h2 *ngIf="workflowSteps.length == 1 && (dashboardTypeSelected == 'standard' || dashboardTypeSelected == 'consolidated')" [innerHTML]="'dashboard-heading-one-step' | i18next: {recordTypeName: typeLabel}">
             </h2>
-            <div *ngIf="records[workflowStage] != null">
-                <div *ngIf="records[workflowStage].totalItems <= 0" class="padding-bottom-10" [innerHTML]="'no-records' | i18next: {stage: workflowStageLabel.toLowerCase(), recordTypeName: typeLabel.toLowerCase()}">
+            <div *ngIf="records.get(workflowStage) as workflowStageRecords; true">
+                <div *ngIf="workflowStageRecords.totalItems <= 0" class="padding-bottom-10" [innerHTML]="'no-records' | i18next: {stage: workflowStageLabel.toLowerCase(), recordTypeName: typeLabel.toLowerCase()}">
                 </div>
-                <div *ngIf="records[workflowStage]?.totalItems > 0">
+                <div *ngIf="workflowStageRecords.totalItems > 0">
                 <table class="table">
                     <thead>
                     <tr>
-                    <th *ngFor="let rowConfig of tableConfig[workflowStage]"> 
-                            <sort [title]="rowConfig?.title | i18next" [variable]="rowConfig?.variable" [step]="workflowStage" [sort]="sortMap.get(workflowStage)?.get(rowConfig?.variable)?.get('sort')" (sortChanged)="sortChanged($event)"> </sort>
+                    <th *ngFor="let rowConfig of tableConfig.get(workflowStage)"> 
+                            <ng-container *ngIf="rowConfig?.variable as columnVariable; true">
+                                <sort [title]="rowConfig.title | i18next" [variable]="columnVariable" [step]="workflowStage" [sort]="sortMap.get(workflowStage)?.get(columnVariable)?.get('sort')" (sortChanged)="sortChanged($event)"> </sort>
+                            </ng-container>
                     </th>
                     </tr>
                     </thead>
-                    <tbody *ngFor="let plan of records[workflowStage].items">
-                    <tr><td *ngFor="let rowConfig of tableConfig[workflowStage]" [innerHtml]="plan[rowConfig?.variable]"></td></tr>
+         
+                    <tbody *ngFor="let plan of workflowStageRecords.items">
+                    <tr>
+                        <ng-container *ngFor="let rowConfig of tableConfig.get(workflowStage)">
+                        <ng-container *ngIf="rowConfig?.variable as columnVariable; true">
+                            <td  [innerHtml]="plan[columnVariable]"></td>
+                        </ng-container>
+                    </ng-container>
+                    </tr>
                     </tbody>
+                    
                 </table>
                 
-                 <pagination *ngIf="records[workflowStage].totalItems > 0" [directionLinks]="false" [boundaryLinks]="true" [totalItems]="records[workflowStage].totalItems"
-                            [(ngModel)]="records[workflowStage].currentPage" (pageChanged)="pageChanged($event,workflowStage)" class="pagination-sm" [maxSize]="10"></pagination>
-                
+                 <pagination *ngIf="workflowStageRecords.totalItems > 0" [directionLinks]="false" [boundaryLinks]="true" [totalItems]="workflowStageRecords.totalItems"
+                            [(ngModel)]="workflowStageRecords.currentPage" (pageChanged)="pageChanged($event,workflowStage)" class="pagination-sm" [maxSize]="10"></pagination>
+                        
                 </div>
 
             </div>
