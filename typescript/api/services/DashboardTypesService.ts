@@ -77,7 +77,6 @@ export module Services {
       return super.getObservable(DashboardType.create({
         name: name,
         branding: brand.id,
-        searchFilters: config.searchFilters,
         formatRules: config.formatRules,
         searchable: config.searchable
       }));

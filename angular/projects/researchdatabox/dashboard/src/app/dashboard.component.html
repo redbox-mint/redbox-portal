@@ -1,31 +1,37 @@
 <div *ngIf="isReady">
     <ng-container>
         <div *ngFor="let workflowStep of workflowSteps">
-            <h2 *ngIf="workflowSteps.length > 1 && (dashboardTypeSelected == 'standard' || dashboardTypeSelected == 'consolidated')" [innerHTML]="'dashboard-heading' | i18next: {stage: workflowStep.config.workflow.stageLabel, recordTypeName: typeLabel}">
+            <ng-container *ngIf="workflowStep?.config?.workflow?.stage as workflowStage;  true">
+                <ng-container *ngIf="workflowStep?.config?.workflow?.stageLabel as workflowStageLabel; true">
+            <h2 *ngIf="workflowSteps.length > 1 && (dashboardTypeSelected == 'standard' || dashboardTypeSelected == 'consolidated')" [innerHTML]="'dashboard-heading' | i18next: {stage: workflowStageLabel, recordTypeName: typeLabel}">
             </h2>
             <h2 *ngIf="workflowSteps.length == 1 && (dashboardTypeSelected == 'standard' || dashboardTypeSelected == 'consolidated')" [innerHTML]="'dashboard-heading-one-step' | i18next: {recordTypeName: typeLabel}">
             </h2>
-            <div *ngIf="records[workflowStep.config.workflow.stage] != null">
-                <div *ngIf="records[workflowStep.config.workflow.stage].totalItems <= 0" class="padding-bottom-10" [innerHTML]="'no-records' | i18next: {stage: workflowStep.config.workflow.stageLabel.toLowerCase(), recordTypeName: typeLabel.toLowerCase()}">
+            <div *ngIf="records[workflowStage] != null">
+                <div *ngIf="records[workflowStage].totalItems <= 0" class="padding-bottom-10" [innerHTML]="'no-records' | i18next: {stage: workflowStageLabel.toLowerCase(), recordTypeName: typeLabel.toLowerCase()}">
                 </div>
-                <div *ngIf="records[workflowStep.config.workflow.stage].totalItems > 0">
+                <div *ngIf="records[workflowStage]?.totalItems > 0">
                 <table class="table">
                     <thead>
                     <tr>
-                    <th *ngFor="let rowConfig of tableConfig[workflowStep.config.workflow.stage]"> 
-                        <sort [title]="rowConfig.title | i18next" [variable]="rowConfig.variable" [step]="workflowStep.config.workflow.stage" [sort]="sortMap[workflowStep.config.workflow.stage][rowConfig.variable]['sort']" (sortChanged)="sortChanged($event)"> </sort>
+                    <th *ngFor="let rowConfig of tableConfig[workflowStage]"> 
+                            <sort [title]="rowConfig?.title | i18next" [variable]="rowConfig?.variable" [step]="workflowStage" [sort]="sortMap.get(workflowStage)?.get(rowConfig?.variable)?.get('sort')" (sortChanged)="sortChanged($event)"> </sort>
                     </th>
                     </tr>
                     </thead>
-                    <tbody *ngFor="let plan of records[workflowStep.config.workflow.stage].items">
-                    <tr><td *ngFor="let rowConfig of tableConfig[workflowStep.config.workflow.stage]" [innerHtml]="plan[rowConfig.variable]"></td></tr>
+                    <tbody *ngFor="let plan of records[workflowStage].items">
+                    <tr><td *ngFor="let rowConfig of tableConfig[workflowStage]" [innerHtml]="plan[rowConfig?.variable]"></td></tr>
                     </tbody>
                 </table>
-
-                 <pagination *ngIf="records[workflowStep.config.workflow.stage].totalItems > 0" [directionLinks]="false" [boundaryLinks]="true" [totalItems]="records[workflowStep.config.workflow.stage].totalItems"
-                            [(ngModel)]="records[workflowStep.config.workflow.stage].currentPage" (pageChanged)="pageChanged($event,workflowStep.config.workflow.stage)" class="pagination-sm" [maxSize]="10"></pagination>
+                
+                 <pagination *ngIf="records[workflowStage].totalItems > 0" [directionLinks]="false" [boundaryLinks]="true" [totalItems]="records[workflowStage].totalItems"
+                            [(ngModel)]="records[workflowStage].currentPage" (pageChanged)="pageChanged($event,workflowStage)" class="pagination-sm" [maxSize]="10"></pagination>
+                
                 </div>
+
             </div>
+        </ng-container>
+    </ng-container>
         </div>
     </ng-container>
 </div>

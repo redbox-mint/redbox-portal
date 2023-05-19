@@ -7,7 +7,7 @@ import { Component, Input, Output, EventEmitter } from '@angular/core';
 })
 export class SortComponent {
 
-  @Input() sort: string = '';
+  @Input() sort: string | null | undefined = '';
   @Input() title: string = '';
   @Input() step: string = '';
   @Input() variable: string = '';
