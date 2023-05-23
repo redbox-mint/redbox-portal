@@ -24,7 +24,7 @@ declare var _;
 declare var BrandingService, UsersService, ConfigService;
 import * as uuidv4 from 'uuid/v4';
 
-import { Controllers as controllers, RequestDetails} from '@researchdatabox/redbox-core-types';
+import { Controllers as controllers, RequestDetails } from '@researchdatabox/redbox-core-types';
 
 
 export module Controllers {
@@ -132,7 +132,7 @@ export module Controllers {
       });
       // instead of destroying the session, as per M$ directions, we only unset the user, so branding, etc. is retained in the session
       _.unset(req.session, 'user');
-      res.redirect(redirUrl); 
+      res.redirect(redirUrl);
     }
 
     public info(req, res) {
@@ -258,8 +258,8 @@ export module Controllers {
 
     public openidConnectLogin(req, res) {
       let passportIdentifier = 'oidc'
-      if(!_.isEmpty(req.param('id'))) {
-        passportIdentifier= `oidc-${req.param('id')}`
+      if (!_.isEmpty(req.param('id'))) {
+        passportIdentifier = `oidc-${req.param('id')}`
       }
       sails.config.passport.authenticate(passportIdentifier, function (err, user, info) {
         sails.log.verbose("At openIdConnectAuth Controller, verify...");
@@ -287,7 +287,7 @@ export module Controllers {
           if (_.startsWith(err, "Error: did not find expected authorization request details in session")) {
             // letting the user try again seems to 'refresh' the session
             req.session['data'] = `oidc-login-session-destroyed`;
-            return res.serverError();  
+            return res.serverError();
           }
 
           if (_.isEmpty(err)) {
@@ -298,15 +298,15 @@ export module Controllers {
           // "The specified data will be excluded from the JSON response and view locals if the app is running in the "production" environment (i.e. process.env.NODE_ENV === 'production')."
           // so storing the data in session
           if (_.isEmpty(req.session.data)) {
-            req.session['data'] = { 
+            req.session['data'] = {
               "message": 'error-auth',
               "detailedMessager": `${err}${info}`
             };
           }
 
           const url = `${BrandingService.getFullPath(req)}/home`;
-          return res.redirect(url); 
-        }       
+          return res.redirect(url);
+        }
         let requestDetails = new RequestDetails(req);
         UsersService.addUserAuditEvent(user, "login", requestDetails).then(response => {
           sails.log.debug(`User login audit event created for OIDC login: ${_.isEmpty(user) ? '' : user.id}`)
@@ -326,8 +326,8 @@ export module Controllers {
     public beginOidc(req, res) {
       sails.log.verbose(`At OIDC begin flow, redirecting...`);
       let passportIdentifier = 'oidc'
-      if(!_.isEmpty(req.param('id'))) {
-        passportIdentifier= `oidc-${req.param('id')}`
+      if (!_.isEmpty(req.param('id'))) {
+        passportIdentifier = `oidc-${req.param('id')}`
       }
       sails.config.passport.authenticate(passportIdentifier)(req, res);
     }
@@ -344,17 +344,17 @@ export module Controllers {
         sails.log.verbose(user);
         if ((err) || (!user)) {
           sails.log.error(err)
-            // means the provider has authenticated the user, but has been rejected, redirect to catch-all
-            // from https://sailsjs.com/documentation/reference/response-res/res-server-error
-            // "The specified data will be excluded from the JSON response and view locals if the app is running in the "production" environment (i.e. process.env.NODE_ENV === 'production')."
-            // so storing the data in session
-            if (_.isEmpty(req.session.data)) {
-              req.session['data'] = { 
-                "message": 'error-auth',
-                "detailedMessager": `${err}${info}`
-              };
-            }
-            return res.serverError();
+          // means the provider has authenticated the user, but has been rejected, redirect to catch-all
+          // from https://sailsjs.com/documentation/reference/response-res/res-server-error
+          // "The specified data will be excluded from the JSON response and view locals if the app is running in the "production" environment (i.e. process.env.NODE_ENV === 'production')."
+          // so storing the data in session
+          if (_.isEmpty(req.session.data)) {
+            req.session['data'] = {
+              "message": 'error-auth',
+              "detailedMessager": `${err}${info}`
+            };
+          }
+          return res.serverError();
         }
 
         let requestDetails = new RequestDetails(req);
