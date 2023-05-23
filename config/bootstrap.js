@@ -33,6 +33,8 @@
    sails.log.verbose("Workflowsteps service, bootstrapped.");
    let dashboardTypes = await sails.services.dashboardtypesservice.bootstrap(sails.services.brandingservice.getDefault()).toPromise();
    sails.log.verbose("DashboardTypes service, bootstrapped.");
+   let dashboardConfigs = await sails.services.dashboardconfigservice.bootstrap(sails.services.brandingservice.getDefault()).toPromise();
+   sails.log.verbose("DashboardTypes service, bootstrapped.");
    let workflowSteps = await sails.services.workflowstepsservice.bootstrap(recordsTypes).toPromise();
    sails.log.verbose("Workflowsteps service, bootstrapped.");
    if (_.isArray(workflowSteps)) {

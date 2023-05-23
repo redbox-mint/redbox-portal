@@ -241,12 +241,12 @@ export class DashboardComponent extends BaseComponent {
       let packageType = '';
       let stepName = '';
       let evaluateStepName = '';
-      if (this.dashboardTypeSelected == 'consolidated') {
+      if (this.dashboardTypeSelected == DashboardTypeOptions.consolidated) {
         packageType = '';
         stepName = '';
         evaluateStepName = step.name;
         recordType = step.config.baseRecordType;
-      } else if (this.dashboardTypeSelected == 'workspace') {
+      } else if (this.dashboardTypeSelected == DashboardTypeOptions.workspace) {
         stepName = '';
         packageType = this.packageType;
         evaluateStepName = _get(step, 'name');
@@ -781,12 +781,10 @@ class DashboardType {
   name: string|undefined;
 
   formatRules: DashboardTypeFormatRules = new DashboardTypeFormatRules();
-  searchable: any
 
   constructor(data: any) {
     this.name = _get(data, 'name', this.name)
     this.formatRules = _get(data, 'formatRules', this.formatRules)
-    this.searchable = _get(data, 'searchable', this.searchable)
   }
 }
 
@@ -798,6 +796,7 @@ class WorkflowStepConfigStepInfo {
     this.stageLabel = data.stageLabel;
   }
 }
+
 class DashboardTableRowConfig {
   title:string;
   variable:string;

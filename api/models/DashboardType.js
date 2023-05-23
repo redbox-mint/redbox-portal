@@ -25,11 +25,6 @@ module.exports = {
     formatRules: {
       type: 'json',
       required: true
-    },
-    searchable: {
-      type: 'boolean',
-      required: false,
-      defaultsTo: true
     }
   },
     beforeCreate: function(dashboardType, cb) {
