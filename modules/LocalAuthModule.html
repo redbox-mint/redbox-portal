@@ -14,7 +14,7 @@
     </head>
     <body>
 
-        <div class="navbar navbar-default navbar-fixed-top visible-xs">
+        <div class="navbar navbar-default navbar-fixed-top d-block d-sm-none">
             <a href="../" class="navbar-brand">ReDBox Portal - NG2 Apps</a>
             <button type="button" class="btn btn-default btn-menu ion-ios-menu" id="btn-menu"></button>
         </div>
@@ -35,8 +35,8 @@
 
 
 <ol class="breadcrumb">
-    <li>Modules</li>
-    <li >LocalAuthModule</li>
+    <li class="breadcrumb-item">Modules</li>
+    <li class="breadcrumb-item" >LocalAuthModule</li>
 </ol>
 
 <div class="text-center module-graph-container">
@@ -67,23 +67,23 @@
 <title>cluster_LocalAuthModule</title>
 <polygon fill="none" stroke="black" stroke-dasharray="1,5" points="100,-70 100,-268 396,-268 396,-70 100,-70"/>
 </g>
-<g id="clust2" class="cluster">
-<title>cluster_LocalAuthModule_declarations</title>
-<polygon fill="none" stroke="black" points="230,-78 230,-130 388,-130 388,-78 230,-78"/>
-</g>
-<g id="clust4" class="cluster">
-<title>cluster_LocalAuthModule_imports</title>
-<polygon fill="none" stroke="black" points="108,-78 108,-130 222,-130 222,-78 108,-78"/>
-</g>
 <g id="clust6" class="cluster">
 <title>cluster_LocalAuthModule_bootstrap</title>
 <polygon fill="none" stroke="black" points="168,-208 168,-260 328,-260 328,-208 168,-208"/>
 </g>
+<g id="clust4" class="cluster">
+<title>cluster_LocalAuthModule_imports</title>
+<polygon fill="none" stroke="black" points="274,-78 274,-130 388,-130 388,-78 274,-78"/>
+</g>
+<g id="clust2" class="cluster">
+<title>cluster_LocalAuthModule_declarations</title>
+<polygon fill="none" stroke="black" points="108,-78 108,-130 266,-130 266,-78 108,-78"/>
+</g>
 <!-- LocalAuthComponent -->
 <g id="node1" class="node">
 <title>LocalAuthComponent</title>
-<polygon fill="#ffffb3" stroke="black" points="379.7,-122 238.3,-122 238.3,-86 379.7,-86 379.7,-122"/>
-<text text-anchor="middle" x="309" y="-99.8" font-family="Times,serif" font-size="14.00">LocalAuthComponent</text>
+<polygon fill="#ffffb3" stroke="black" points="257.7,-122 116.3,-122 116.3,-86 257.7,-86 257.7,-122"/>
+<text text-anchor="middle" x="187" y="-99.8" font-family="Times,serif" font-size="14.00">LocalAuthComponent</text>
 </g>
 <!-- LocalAuthModule -->
 <g id="node2" class="node">
@@ -94,8 +94,8 @@
 <!-- LocalAuthComponent&#45;&gt;LocalAuthModule -->
 <g id="edge1" class="edge">
 <title>LocalAuthComponent&#45;&gt;LocalAuthModule</title>
-<path fill="none" stroke="black" d="M273.05,-122.11C273.05,-122.11 273.05,-140.99 273.05,-140.99"/>
-<polygon fill="black" stroke="black" points="269.55,-140.99 273.05,-150.99 276.55,-140.99 269.55,-140.99"/>
+<path fill="none" stroke="black" d="M222.95,-122.11C222.95,-122.11 222.95,-140.99 222.95,-140.99"/>
+<polygon fill="black" stroke="black" points="219.45,-140.99 222.95,-150.99 226.45,-140.99 219.45,-140.99"/>
 </g>
 <!-- LocalAuthComponent  -->
 <g id="node4" class="node">
@@ -112,14 +112,14 @@
 <!-- SharedModule -->
 <g id="node3" class="node">
 <title>SharedModule</title>
-<polygon fill="#8dd3c7" stroke="black" points="214.42,-122 211.42,-126 190.42,-126 187.42,-122 115.58,-122 115.58,-86 214.42,-86 214.42,-122"/>
-<text text-anchor="middle" x="165" y="-99.8" font-family="Times,serif" font-size="14.00">SharedModule</text>
+<polygon fill="#8dd3c7" stroke="black" points="380.42,-122 377.42,-126 356.42,-126 353.42,-122 281.58,-122 281.58,-86 380.42,-86 380.42,-122"/>
+<text text-anchor="middle" x="331" y="-99.8" font-family="Times,serif" font-size="14.00">SharedModule</text>
 </g>
 <!-- SharedModule&#45;&gt;LocalAuthModule -->
 <g id="edge2" class="edge">
 <title>SharedModule&#45;&gt;LocalAuthModule</title>
-<path fill="none" stroke="black" d="M201.25,-122.11C201.25,-122.11 201.25,-140.99 201.25,-140.99"/>
-<polygon fill="black" stroke="black" points="197.75,-140.99 201.25,-150.99 204.75,-140.99 197.75,-140.99"/>
+<path fill="none" stroke="black" d="M294.75,-122.11C294.75,-122.11 294.75,-140.99 294.75,-140.99"/>
+<polygon fill="black" stroke="black" points="291.25,-140.99 294.75,-150.99 298.25,-140.99 291.25,-140.99"/>
 </g>
 </g>
 </svg>
@@ -136,16 +136,22 @@
 <script src="../js/svg-pan-zoom.controls.js"></script>
 
 <ul class="nav nav-tabs" role="tablist">
-    <li  class="active" >
-        <a href="#info" role="tab" id="info-tab" data-toggle="tab" data-link="info">Info</a>
+    <li class="nav-item">
+        <a href="#info" 
+            class="nav-link"
+            class="nav-link active"
+            role="tab" id="info-tab" data-bs-toggle="tab" data-link="info">Info</a>
     </li>
-    <li >
-        <a href="#source" role="tab" id="source-tab" data-toggle="tab" data-link="source">Source</a>
+    <li class="nav-item">
+        <a href="#source" 
+            class="nav-link"
+            
+            role="tab" id="source-tab" data-bs-toggle="tab" data-link="source">Source</a>
     </li>
 </ul>
 
 <div class="tab-content">
-    <div class="tab-pane fade active in" id="c-info">
+    <div class="tab-pane fade active in" id="info">
 
         <p class="comment">
             <h3>File</h3>
@@ -161,7 +167,7 @@
         <div class="container-fluid module">
             <div class="row">
                 <div class="col-sm-3">
-                    <h3>Declarations<a href="https://angular.io/api/core/NgModule#declarations" target="_blank"
+                    <h3>Declarations<a href="https://angular.io/api/core/NgModule#declarations" target="_blank" rel="noopener noreferrer"
                             title="Official documentation about module declarations"><span class="icon ion-ios-information-circle-outline"></span></a></h3>
                     <ul class="list-group">
                         <li class="list-group-item">
@@ -170,7 +176,8 @@
                     </ul>
                 </div>
                 <div class="col-sm-3">
-                    <h3>Imports<a href="https://angular.io/api/core/NgModule#imports" target="_blank" title="Official documentation about module imports"><span
+                    <h3>Imports<a href="https://angular.io/api/core/NgModule#imports" target="_blank" rel="noopener noreferrer"
+                            title="Official documentation about module imports"><span
                                 class="icon ion-ios-information-circle-outline"></a></h3>
                     <ul class="list-group">
                         <li class="list-group-item">
@@ -179,7 +186,7 @@
                     </ul>
                 </div>
                 <div class="col-sm-3">
-                    <h3>Bootstrap<a href="https://angular.io/api/core/NgModule#bootstrap" target="_blank"
+                    <h3>Bootstrap<a href="https://angular.io/api/core/NgModule#bootstrap" target="_blank" rel="noopener noreferrer"
                             title="Official documentation about module bootstrap"><span class="icon ion-ios-information-circle-outline"></a></h3>
                     <ul class="list-group">
                         <li class="list-group-item">
@@ -194,7 +201,7 @@
     </div>
 
 
-    <div class="tab-pane fade  tab-source-code" id="c-source">
+    <div class="tab-pane fade  tab-source-code" id="source">
         <pre class="line-numbers compodoc-sourcecode"><code class="language-typescript">import { NgModule }      from &#x27;@angular/core&#x27;;
 import { BrowserModule } from &#x27;@angular/platform-browser&#x27;;
 import {ReactiveFormsModule} from &quot;@angular/forms&quot;;

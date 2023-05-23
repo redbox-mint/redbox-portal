@@ -1,0 +1,1047 @@
+<!doctype html>
+<html class="no-js" lang="">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="x-ua-compatible" content="ie=edge">
+        <title>ReDBox Portal - NG2 Apps</title>
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+
+        <link rel="icon" type="image/x-icon" href="../images/favicon.ico">
+	   <link rel="stylesheet" href="../styles/style.css">
+        <link rel="stylesheet" href="../styles/dark.css">
+        <link rel="stylesheet" href="../styles/postmark.css">
+    </head>
+    <body>
+
+        <div class="navbar navbar-default navbar-fixed-top d-block d-sm-none">
+            <a href="../" class="navbar-brand">ReDBox Portal - NG2 Apps</a>
+            <button type="button" class="btn btn-default btn-menu ion-ios-menu" id="btn-menu"></button>
+        </div>
+
+        <div class="xs-menu menu" id="mobile-menu">
+                <div id="book-search-input" role="search"><input type="text" placeholder="Type to search"></div>            <compodoc-menu></compodoc-menu>
+        </div>
+
+        <div class="container-fluid main">
+           <div class="row main">
+               <div class="hidden-xs menu">
+                   <compodoc-menu mode="normal"></compodoc-menu>
+               </div>
+               <!-- START CONTENT -->
+               <div class="content component">
+                   <div class="content-data">
+
+
+
+
+<ol class="breadcrumb">
+  <li class="breadcrumb-item">Components</li>
+  <li class="breadcrumb-item"
+  >
+  WorkspaceFieldComponent</li>
+</ol>
+
+<ul class="nav nav-tabs" role="tablist">
+        <li class="nav-item">
+            <a href="#info" class="nav-link active"
+                role="tab" id="info-tab" data-bs-toggle="tab" data-link="info">Info</a>
+        </li>
+        <li class="nav-item">
+            <a href="#source" class="nav-link"
+                role="tab" id="source-tab" data-bs-toggle="tab" data-link="source">Source</a>
+        </li>
+        <li class="nav-item">
+            <a href="#tree" class="nav-link"
+                role="tab" id="tree-tab" data-bs-toggle="tab" data-link="dom-tree">DOM Tree</a>
+        </li>
+</ul>
+
+<div class="tab-content">
+    <div class="tab-pane fade active in" id="info"><p class="comment">
+    <h3>File</h3>
+</p>
+<p class="comment">
+    <code>angular/dmp/app/shared/form/workspace-field.component.ts</code>
+</p>
+
+
+    <p class="comment">
+        <h3>Description</h3>
+    </p>
+    <p class="comment">
+        <p>Base component for a Workspace field.</p>
+<p>Author: <a href='https://github.com/moisbo' target='_blank'>moisbo</a></p>
+
+    </p>
+
+
+
+
+<section data-compodoc="block-metadata">
+    <h3>Metadata</h3>
+    <table class="table table-sm table-hover metadata">
+        <tbody>
+
+
+
+
+
+
+
+
+
+
+
+
+            <tr>
+                <td class="col-md-3">selector</td>
+                <td class="col-md-9"><code>ws-field</code></td>
+            </tr>
+
+
+
+
+
+            <tr>
+                <td class="col-md-3">template</td>
+                <td class="col-md-9"><pre class="line-numbers"><code class="language-html">&lt;span [attr.disabled]&#x3D;&quot;isDisabled()&quot; #field&gt;&lt;/span&gt;</code></pre></td>
+            </tr>
+
+
+
+
+
+
+
+
+
+        </tbody>
+    </table>
+</section>
+
+    <section data-compodoc="block-index">
+    <h3 id="index">Index</h3>
+    <table class="table table-sm table-bordered index-table">
+        <tbody>
+                <tr>
+                    <td class="col-md-4">
+                        <h6><b>Properties</b></h6>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <ul class="index-list">
+                            <li>
+                                    <span class="modifier">Private</span>
+                                <a href="#disabledElements" >disabledElements</a>
+                            </li>
+                            <li>
+                                <a href="#disabledExpression" >disabledExpression</a>
+                            </li>
+                            <li>
+                                    <span class="modifier"></span>
+                                <a href="#fieldAnchor" >fieldAnchor</a>
+                            </li>
+                            <li>
+                                    <span class="modifier"></span>
+                                <a href="#fieldElement" >fieldElement</a>
+                            </li>
+                        </ul>
+                    </td>
+                </tr>
+
+                <tr>
+                    <td class="col-md-4">
+                        <h6><b>Methods</b></h6>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <ul class="index-list">
+                            <li>
+                                    <span class="modifier">Public</span>
+                                <a href="#isDisabled" >isDisabled</a>
+                            </li>
+                            <li>
+                                <a href="#ngOnChanges" >ngOnChanges</a>
+                            </li>
+                        </ul>
+                    </td>
+                </tr>
+
+                <tr>
+                    <td class="col-md-4">
+                        <h6><b>Inputs</b></h6>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <ul class="index-list">
+                            <li>
+                                <a href="#field" >field</a>
+                            </li>
+                            <li>
+                                <a href="#fieldMap" >fieldMap</a>
+                            </li>
+                            <li>
+                                <a href="#form" >form</a>
+                            </li>
+                            <li>
+                                <a href="#parentId" >parentId</a>
+                            </li>
+                            <li>
+                                <a href="#value" >value</a>
+                            </li>
+                        </ul>
+                    </td>
+                </tr>
+
+
+
+
+                    <tr>
+                        <td class="col-md-4">
+                            <h6><b>Accessors</b></h6>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="col-md-4">
+                            <ul class="index-list">
+                                <li>
+                                    <a href="#isValid" >isValid</a>
+                                </li>
+                            </ul>
+                        </td>
+                    </tr>
+        </tbody>
+    </table>
+</section>
+
+    <section data-compodoc="block-constructor">
+    <h3 id="constructor">Constructor</h3>
+        <table class="table table-sm table-bordered">
+            <tbody>
+                <tr>
+                    <td class="col-md-4">
+<code>constructor(componentFactoryResolver: ComponentFactoryResolver, app: ApplicationRef)</code>
+                    </td>
+                </tr>
+                        <tr>
+                            <td class="col-md-4">
+                                <div class="io-line">Defined in <a href="" data-line="61" class="link-to-prism">angular/dmp/app/shared/form/workspace-field.component.ts:61</a></div>
+                            </td>
+                        </tr>
+
+                <tr>
+                    <td class="col-md-4">
+                            <div class="io-description"><p>For DI&#39;ing...</p>
+</div>
+                            <div>
+                                    <b>Parameters :</b>
+                                    <table class="params">
+                                        <thead>
+                                            <tr>
+                                                <td>Name</td>
+                                                    <td>Type</td>
+                                                <td>Optional</td>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                                <tr>
+                                                        <td>componentFactoryResolver</td>
+                                                  
+                                                        <td>
+                                                                    <code>ComponentFactoryResolver</code>
+                                                        </td>
+                                                  
+                                                    <td>
+                                                            No
+                                                    </td>
+                                                    
+                                                </tr>
+                                                <tr>
+                                                        <td>app</td>
+                                                  
+                                                        <td>
+                                                                    <code>ApplicationRef</code>
+                                                        </td>
+                                                  
+                                                    <td>
+                                                            No
+                                                    </td>
+                                                    
+                                                </tr>
+                                        </tbody>
+                                    </table>
+                            </div>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+</section>
+
+    <section data-compodoc="block-inputs">
+    <h3 id="inputs">Inputs</h3>
+        <table class="table table-sm table-bordered">
+            <tbody>
+                <tr>
+                    <td class="col-md-4">
+                        <a name="field"></a>
+                        <b>field</b>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Type : </i>    <code>FieldBase&lt;any&gt;</code>
+
+                    </td>
+                </tr>
+                        <tr>
+                            <td class="col-md-2" colspan="2">
+                                    <div class="io-line">Defined in <a href="" data-line="27" class="link-to-prism">angular/dmp/app/shared/form/workspace-field.component.ts:27</a></div>
+                            </td>
+                        </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <div class="io-description"><p>The model for this field.</p>
+</div>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+        <table class="table table-sm table-bordered">
+            <tbody>
+                <tr>
+                    <td class="col-md-4">
+                        <a name="fieldMap"></a>
+                        <b>fieldMap</b>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Type : </i>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+
+                    </td>
+                </tr>
+                        <tr>
+                            <td class="col-md-2" colspan="2">
+                                    <div class="io-line">Defined in <a href="" data-line="40" class="link-to-prism">angular/dmp/app/shared/form/workspace-field.component.ts:40</a></div>
+                            </td>
+                        </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <div class="io-description"><p>Field map</p>
+</div>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+        <table class="table table-sm table-bordered">
+            <tbody>
+                <tr>
+                    <td class="col-md-4">
+                        <a name="form"></a>
+                        <b>form</b>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Type : </i>    <code>FormGroup</code>
+
+                    </td>
+                </tr>
+                        <tr>
+                            <td class="col-md-2" colspan="2">
+                                    <div class="io-line">Defined in <a href="" data-line="32" class="link-to-prism">angular/dmp/app/shared/form/workspace-field.component.ts:32</a></div>
+                            </td>
+                        </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <div class="io-description"><p>Form group</p>
+</div>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+        <table class="table table-sm table-bordered">
+            <tbody>
+                <tr>
+                    <td class="col-md-4">
+                        <a name="parentId"></a>
+                        <b>parentId</b>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Type : </i>        <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank" >string</a></code>
+
+                    </td>
+                </tr>
+                        <tr>
+                            <td class="col-md-2" colspan="2">
+                                    <div class="io-line">Defined in <a href="" data-line="49" class="link-to-prism">angular/dmp/app/shared/form/workspace-field.component.ts:49</a></div>
+                            </td>
+                        </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <div class="io-description"><p>The parentId of this field</p>
+</div>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+        <table class="table table-sm table-bordered">
+            <tbody>
+                <tr>
+                    <td class="col-md-4">
+                        <a name="value"></a>
+                        <b>value</b>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Type : </i>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+
+                    </td>
+                </tr>
+                        <tr>
+                            <td class="col-md-2" colspan="2">
+                                    <div class="io-line">Defined in <a href="" data-line="36" class="link-to-prism">angular/dmp/app/shared/form/workspace-field.component.ts:36</a></div>
+                            </td>
+                        </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <div class="io-description"><p>The value of this field.</p>
+</div>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+</section>
+
+
+
+    <section data-compodoc="block-methods">
+    
+    <h3 id="methods">
+        Methods
+    </h3>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="isDisabled"></a>
+                    <span class="name">
+                        <span class="modifier">Public</span>
+                        <span ><b>isDisabled</b></span>
+                        <a href="#isDisabled"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                    <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>isDisabled()</code>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-line">Defined in <a href="" data-line="82"
+                            class="link-to-prism">angular/dmp/app/shared/form/workspace-field.component.ts:82</a></div>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+
+                    <div class="io-description">
+                        <b>Returns : </b>        <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank" >string</a></code>
+
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="ngOnChanges"></a>
+                    <span class="name">
+                        <span ><b>ngOnChanges</b></span>
+                        <a href="#ngOnChanges"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+<code>ngOnChanges()</code>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-line">Defined in <a href="" data-line="113"
+                            class="link-to-prism">angular/dmp/app/shared/form/workspace-field.component.ts:113</a></div>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-description"><p>Change handler, instantiates the field component.</p>
+</div>
+
+                    <div class="io-description">
+                        <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >void</a></code>
+
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+</section>
+    <section data-compodoc="block-properties">
+    
+    <h3 id="inputs">
+        Properties
+    </h3>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="disabledElements"></a>
+                    <span class="name">
+                            <span class="modifier">Private</span>
+                        <span ><b>disabledElements</b></span>
+                        <a href="#disabledElements"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Type : </i>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+
+                    </td>
+                </tr>
+                    <tr>
+                        <td class="col-md-4">
+                                <div class="io-line">Defined in <a href="" data-line="61" class="link-to-prism">angular/dmp/app/shared/form/workspace-field.component.ts:61</a></div>
+                        </td>
+                    </tr>
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-description"><p>Elements that were already disabled before we ran isDisabled (so they can be restored disabled)</p>
+</div>
+                </td>
+            </tr>
+
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="disabledExpression"></a>
+                    <span class="name">
+                        <span ><b>disabledExpression</b></span>
+                        <a href="#disabledExpression"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Type : </i>        <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank" >string</a></code>
+
+                    </td>
+                </tr>
+                    <tr>
+                        <td class="col-md-4">
+                                <div class="io-line">Defined in <a href="" data-line="51" class="link-to-prism">angular/dmp/app/shared/form/workspace-field.component.ts:51</a></div>
+                        </td>
+                    </tr>
+
+
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="fieldAnchor"></a>
+                    <span class="name">
+                            <span class="modifier"></span>
+                        <span ><b>fieldAnchor</b></span>
+                        <a href="#fieldAnchor"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Type : </i>    <code>ViewContainerRef</code>
+
+                    </td>
+                </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <b>Decorators : </b>
+                        <br />
+                        <code>
+                            @ViewChild(&#x27;field&#x27;, {read: ViewContainerRef})<br />
+                        </code>
+                    </td>
+                </tr>
+                    <tr>
+                        <td class="col-md-4">
+                                <div class="io-line">Defined in <a href="" data-line="44" class="link-to-prism">angular/dmp/app/shared/form/workspace-field.component.ts:44</a></div>
+                        </td>
+                    </tr>
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-description"><p>The DOM node for this field.</p>
+</div>
+                </td>
+            </tr>
+
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="fieldElement"></a>
+                    <span class="name">
+                            <span class="modifier"></span>
+                        <span ><b>fieldElement</b></span>
+                        <a href="#fieldElement"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <b>Decorators : </b>
+                        <br />
+                        <code>
+                            @ViewChild(&#x27;field&#x27;)<br />
+                        </code>
+                    </td>
+                </tr>
+                    <tr>
+                        <td class="col-md-4">
+                                <div class="io-line">Defined in <a href="" data-line="53" class="link-to-prism">angular/dmp/app/shared/form/workspace-field.component.ts:53</a></div>
+                        </td>
+                    </tr>
+
+
+        </tbody>
+    </table>
+</section>
+
+    <section data-compodoc="block-accessors">
+    <h3 id="accessors">
+        Accessors
+    </h3>
+        <table class="table table-sm table-bordered">
+            <tbody>
+                <tr>
+                    <td class="col-md-4">
+                        <a name="isValid"></a>
+                        <span class="name"><b>isValid</b><a href="#isValid"><span class="icon ion-ios-link"></span></a></span>
+                    </td>
+                </tr>
+
+                <tr>
+                    <td class="col-md-4">
+                        <span class="accessor"><b>get</b><code>isValid()</code></span>
+                    </td>
+                </tr>
+                            <tr>
+                                <td class="col-md-4">
+                                    <div class="io-line">Defined in <a href="" data-line="72" class="link-to-prism">angular/dmp/app/shared/form/workspace-field.component.ts:72</a></div>
+                                </td>
+                            </tr>
+                    <tr>
+                        <td class="col-md-4">
+                                <div class="io-description"><p>If the form is valid.</p>
+</div>
+
+                        </td>
+                    </tr>
+
+            </tbody>
+        </table>
+</section>
+</div>
+
+
+    <div class="tab-pane fade  tab-source-code" id="source">
+        <pre class="line-numbers compodoc-sourcecode"><code class="language-typescript">import { Component, Input, Inject, ViewChild, ViewContainerRef, ComponentFactoryResolver, ComponentRef, ApplicationRef, ElementRef } from &#x27;@angular/core&#x27;;
+import { FieldBase } from &#x27;./field-base&#x27;;
+import { FormControl, FormGroup, FormArray } from &#x27;@angular/forms&#x27;;
+import { SimpleComponent } from &#x27;./field-simple.component&#x27;;
+import * as _ from &quot;lodash&quot;;
+import { WorkspaceTypeService } from &#x27;../workspace-service&#x27;;
+import * as moment from &#x27;moment&#x27;;
+import * as numeral from &#x27;numeral&#x27;;
+
+declare var jQuery: any;
+declare var $: any;
+
+/**
+ * Base component for a Workspace field.
+ *
+ * Author: &lt;a href&#x3D;&#x27;https://github.com/moisbo&#x27; target&#x3D;&#x27;_blank&#x27;&gt;moisbo&lt;/a&gt;
+ *
+ */
+@Component({
+  selector: &#x27;ws-field&#x27;,
+  template: &#x27;&lt;span [attr.disabled]&#x3D;&quot;isDisabled()&quot; #field&gt;&lt;/span&gt;&#x27;
+})
+export class WorkspaceFieldComponent {
+  /**
+   * The model for this field.
+   */
+  @Input() field: FieldBase&lt;any&gt;;
+
+  /**
+   * Form group
+   */
+  @Input() form: FormGroup;
+  /**
+   * The value of this field.
+   */
+  @Input() value: any;
+  /**
+   * Field map
+   */
+  @Input() fieldMap: any;
+  /**
+   * The DOM node for this field.
+   */
+  @ViewChild(&#x27;field&#x27;, {read: ViewContainerRef}) fieldAnchor: ViewContainerRef;
+
+  /**
+   * The parentId of this field
+   */
+  @Input() parentId: string;
+
+  disabledExpression: string;
+
+  @ViewChild(&#x27;field&#x27;) fieldElement;
+
+
+
+
+  /**
+  * Elements that were already disabled before we ran isDisabled (so they can be restored disabled)
+  */
+  private disabledElements: any;
+
+  /**
+   * For DI&#x27;ing...
+   */
+  constructor(@Inject(ComponentFactoryResolver) private componentFactoryResolver: ComponentFactoryResolver, protected app: ApplicationRef){
+    this.disabledElements &#x3D; [];
+  }
+  /**
+   * If the form is valid.
+   */
+  get isValid() {
+    if (this.form &amp;&amp; this.form.controls) {
+      return this.form.controls[this.field.name].valid;
+    }
+    return false;
+  }
+
+  /**
+   *
+   */
+  public isDisabled() {
+
+    var disabledExpression &#x3D; this.field.options[&#x27;disabledExpression&#x27;];
+    if(disabledExpression !&#x3D; null) {
+
+      var imports &#x3D; this.fieldAnchor;
+      var variables&#x3D; {};
+      variables[&#x27;imports&#x27;] &#x3D; this.fieldMap._rootComp;
+      var compiled &#x3D; _.template(disabledExpression, variables);
+      var parentElement &#x3D; jQuery(this.fieldElement.nativeElement.parentElement);
+      if(compiled() &#x3D;&#x3D; &quot;true&quot;) {
+        //take note of which elements where already disabled as we dont want to enable them if whole component becomes enabled again
+        this.disabledElements &#x3D; parentElement.find(&#x27;*:disabled&#x27;);
+        parentElement.find(&#x27;input&#x27;).prop( &quot;disabled&quot;, true );
+        return &#x27;disabled&#x27;;
+      } else {
+        if(jQuery(this.fieldElement.nativeElement).prop(&#x27;disabled&#x27;) &#x3D;&#x3D; &#x27;disabled&#x27;) {
+          //previously disabled so lets re-enable
+          parentElement.find(&#x27;input&#x27;).prop( &quot;disabled&quot;, false );
+          _.each(this.disabledElements, disabledElement &#x3D;&gt; disabledElement.prop(&quot;disabled&quot;,true));
+        }
+        return null;
+      }
+
+    }
+    return null;
+  }
+
+  /**
+   * Change handler, instantiates the field component.
+   */
+  ngOnChanges() {
+    if (!this.field || !this.componentFactoryResolver) {
+      return;
+    }
+    this.fieldAnchor.clear();
+
+    let compFactory &#x3D; this.componentFactoryResolver.resolveComponentFactory(this.field.compClass);
+    let fieldCompRef:ComponentRef&lt;SimpleComponent&gt; &#x3D; &lt;ComponentRef&lt;SimpleComponent&gt;&gt; this.fieldAnchor.createComponent(compFactory, undefined, this.app[&#x27;_injector&#x27;]);
+    fieldCompRef.instance.injector &#x3D; this.app[&#x27;_injector&#x27;];
+    fieldCompRef.instance.field &#x3D; this.field;
+    fieldCompRef.instance.form &#x3D; this.form;
+    fieldCompRef.instance.fieldMap &#x3D; this.fieldMap;
+    fieldCompRef.instance.parentId &#x3D; this.parentId;
+    this.fieldMap[this.field.name].instance &#x3D; fieldCompRef.instance;
+  }
+}
+
+export class WorkspaceSelectorField extends FieldBase&lt;any&gt;  {
+  workspaceApps: any[] &#x3D; [];
+  open: string;
+  saveFirst: string;
+  rdmp: string;
+  workspaceTypeService: WorkspaceTypeService;
+  workspaceApp: any;
+  appLink: string;
+  // will show up as list
+  displayAsList: boolean;
+  shouldSaveForm: boolean;
+  allowAdd: boolean;
+  // template to execute to enable editing of this
+  allowAddTemplate: string;
+
+
+  constructor(options: any, injector: any) {
+    super(options, injector);
+    this.workspaceTypeService &#x3D; this.getFromInjector(WorkspaceTypeService);
+    this.open &#x3D; this.getTranslated(options[&#x27;open&#x27;], options[&#x27;open&#x27;]);
+    this.saveFirst &#x3D; this.getTranslated(options[&#x27;saveFirst&#x27;], options[&#x27;saveFirst&#x27;]);
+    this.rdmp &#x3D; undefined;
+    this.displayAsList &#x3D; _.isUndefined(options[&#x27;displayAsList&#x27;]) ? false : options[&#x27;displayAsList&#x27;];
+    this.shouldSaveForm &#x3D; _.isUndefined(options[&#x27;shouldSaveForm&#x27;]) ? true: options[&#x27;shouldSaveForm&#x27;];
+    this.allowAddTemplate &#x3D; options[&#x27;allowAddTemplate&#x27;];
+    // this.options &#x3D; options[&#x27;options&#x27;] || [];
+    this.workspaceApps &#x3D; _.map(options[&#x27;defaultSelection&#x27;] || [], (option) &#x3D;&gt; {
+      _.forOwn(option, (val, key) &#x3D;&gt; {
+        option[key] &#x3D; this.getTranslated(val, val);
+      });
+      return option;
+    });
+    this.appLink &#x3D; this.workspaceTypeService.getBrand() + &#x27;/record/&#x27;;
+    this.workspaceTypeService.getWorkspaceTypes().then(response &#x3D;&gt; {
+      if(response[&#x27;status&#x27;]) {
+        //append / merge results from database into workspaceApps
+        _.each(response[&#x27;workspaceTypes&#x27;], (wType) &#x3D;&gt; {
+          _.forOwn(wType, (val, key) &#x3D;&gt; {
+            // all keys will go through the translation file by default
+            wType[key] &#x3D; this.getTranslated(val, val);
+          });
+          const existingWtype &#x3D; _.find(this.workspaceApps, (w) &#x3D;&gt; { return w[&#x27;name&#x27;] &#x3D;&#x3D; wType[&#x27;name&#x27;]} );
+          if (!_.isUndefined(existingWtype)) {
+            _.assign(existingWtype, wType);
+            this.workspaceApp &#x3D; existingWtype;
+          } else {
+            this.workspaceApps.push(wType);
+          }
+        });
+      } else {
+        throw new Error(&#x27;cannot get workspaces&#x27;);
+      }
+    }).catch(error &#x3D;&gt; {
+      console.log(error);
+    });
+  }
+
+  init() {
+    this.rdmp &#x3D; this.fieldMap._rootComp.oid || undefined;
+    this.triggerAllowAdd();
+  }
+
+  registerEvents() {
+    this.fieldMap._rootComp.recordCreated.subscribe(this.setOid.bind(this));
+    this.fieldMap._rootComp.recordSaved.subscribe(this.setOid.bind(this));
+  }
+
+  setOid(o) {
+    this.rdmp &#x3D; o.oid;
+    this.triggerAllowAdd();
+  }
+
+  triggerAllowAdd(data:any &#x3D; undefined) {
+    if (!_.isEmpty(this.allowAddTemplate)) {
+      const imports &#x3D; _.extend({data: data, moment: moment, numeral:numeral}, this);
+      const templateData &#x3D; {imports: imports};
+      const template &#x3D; _.template(this.allowAddTemplate, templateData);
+      const templateRes &#x3D; template();
+      // bake in the RDMP check
+      this.allowAdd &#x3D; !_.isEmpty(this.rdmp) &amp;&amp; templateRes &#x3D;&#x3D; &quot;true&quot;;
+    } else {
+      this.allowAdd &#x3D; !_.isEmpty(this.rdmp);
+    }
+  }
+
+  loadWorkspaceDetails(value: string) {
+    //GET me the value from the database
+    if(!value){
+      this.workspaceApp &#x3D; null
+    }else {
+      this.workspaceApp &#x3D; _.find(this.workspaceApps,
+        function(w) {
+          return w[&#x27;name&#x27;] &#x3D;&#x3D; value;
+        }
+      );
+    }
+  }
+
+  createFormModel() {
+    if (this.controlType &#x3D;&#x3D; &#x27;checkbox&#x27;) {
+      const fgDef &#x3D; [];
+
+      _.map(this.options, (opt:any)&#x3D;&gt;{
+        const hasValue &#x3D; _.find(this.value, (val:any) &#x3D;&gt; {
+          return val &#x3D;&#x3D; opt.value;
+        });
+        if (hasValue) {
+          fgDef.push(new FormControl(opt.value));
+        }
+      });
+      // const fg &#x3D; new FormArray(fgDef);
+      // return fg;
+      return new FormArray(fgDef);
+    } else {
+      // const model &#x3D; super.createFormModel();
+      // console.log(&#x60;Created form model:&#x60;);
+      // console.log(model);
+      // return model;
+      return super.createFormModel();
+    }
+  }
+}
+</code></pre>
+    </div>
+
+
+
+    <div class="tab-pane fade " id="tree">
+        <div id="tree-container"></div>
+        <div class="tree-legend">
+            <div class="title">
+                <b>Legend</b>
+            </div>
+            <div>
+                <div class="color htmlelement"></div><span>Html element</span>
+            </div>
+            <div>
+                <div class="color component"></div><span>Component</span>
+            </div>
+            <div>
+                <div class="color directive"></div><span>Html element with directive</span>
+            </div>
+        </div>
+    </div>
+
+    
+</div>
+
+<script src="../js/libs/vis.min.js"></script>
+<script src="../js/libs/htmlparser.js"></script>
+<script src="../js/libs/deep-iterator.js"></script>
+<script>
+        var COMPONENT_TEMPLATE = '<div><span [attr.disabled]="isDisabled()" #field></span></div>'
+    var COMPONENTS = [{'name': 'ActionButtonComponent', 'selector': 'action-button'},{'name': 'ActionButtonComponent', 'selector': 'action-button'},{'name': 'ActionButtonComponent', 'selector': 'action-button'},{'name': 'ActionButtonComponent', 'selector': 'action-button'},{'name': 'ActionButtonComponent', 'selector': 'action-button'},{'name': 'ActionButtonComponent', 'selector': 'action-button'},{'name': 'ActionButtonComponent', 'selector': 'action-button'},{'name': 'ActionButtonComponent', 'selector': 'action-button'},{'name': 'ActionButtonComponent', 'selector': 'action-button'},{'name': 'ActionButtonComponent', 'selector': 'action-button'},{'name': 'ActionButtonComponent', 'selector': 'action-button'},{'name': 'ActionButtonComponent', 'selector': 'action-button'},{'name': 'AnchorOrButtonComponent', 'selector': 'anchor-button'},{'name': 'AnchorOrButtonComponent', 'selector': 'anchor-button'},{'name': 'AnchorOrButtonComponent', 'selector': 'anchor-button'},{'name': 'AnchorOrButtonComponent', 'selector': 'anchor-button'},{'name': 'AnchorOrButtonComponent', 'selector': 'anchor-button'},{'name': 'AnchorOrButtonComponent', 'selector': 'anchor-button'},{'name': 'AnchorOrButtonComponent', 'selector': 'anchor-button'},{'name': 'AnchorOrButtonComponent', 'selector': 'anchor-button'},{'name': 'AnchorOrButtonComponent', 'selector': 'anchor-button'},{'name': 'AnchorOrButtonComponent', 'selector': 'anchor-button'},{'name': 'AnchorOrButtonComponent', 'selector': 'anchor-button'},{'name': 'AnchorOrButtonComponent', 'selector': 'anchor-button'},{'name': 'ANDSVocabComponent', 'selector': 'ands-vocab-selector'},{'name': 'ANDSVocabComponent', 'selector': 'ands-vocab-selector'},{'name': 'ANDSVocabComponent', 'selector': 'ands-vocab-selector'},{'name': 'ANDSVocabComponent', 'selector': 'ands-vocab-selector'},{'name': 'ANDSVocabComponent', 'selector': 'ands-vocab-selector'},{'name': 'ANDSVocabComponent', 'selector': 'ands-vocab-selector'},{'name': 'ANDSVocabComponent', 'selector': 'ands-vocab-selector'},{'name': 'ANDSVocabComponent', 'selector': 'ands-vocab-selector'},{'name': 'ANDSVocabComponent', 'selector': 'ands-vocab-selector'},{'name': 'ANDSVocabComponent', 'selector': 'ands-vocab-selector'},{'name': 'ANDSVocabComponent', 'selector': 'ands-vocab-selector'},{'name': 'ANDSVocabComponent', 'selector': 'ands-vocab-selector'},{'name': 'AsynchComponent', 'selector': 'asynch-component'},{'name': 'AsynchComponent', 'selector': 'asynch-component'},{'name': 'AsynchComponent', 'selector': 'asynch-component'},{'name': 'AsynchComponent', 'selector': 'asynch-component'},{'name': 'AsynchComponent', 'selector': 'asynch-component'},{'name': 'AsynchComponent', 'selector': 'asynch-component'},{'name': 'AsynchComponent', 'selector': 'asynch-component'},{'name': 'AsynchComponent', 'selector': 'asynch-component'},{'name': 'AsynchComponent', 'selector': 'asynch-component'},{'name': 'AsynchComponent', 'selector': 'asynch-component'},{'name': 'AsynchComponent', 'selector': 'asynch-component'},{'name': 'AsynchComponent', 'selector': 'asynch-component'},{'name': 'ButtonBarContainerComponent', 'selector': 'buttonbarcontainer'},{'name': 'ButtonBarContainerComponent', 'selector': 'buttonbarcontainer'},{'name': 'ButtonBarContainerComponent', 'selector': 'buttonbarcontainer'},{'name': 'ButtonBarContainerComponent', 'selector': 'buttonbarcontainer'},{'name': 'ButtonBarContainerComponent', 'selector': 'buttonbarcontainer'},{'name': 'ButtonBarContainerComponent', 'selector': 'buttonbarcontainer'},{'name': 'ButtonBarContainerComponent', 'selector': 'buttonbarcontainer'},{'name': 'ButtonBarContainerComponent', 'selector': 'buttonbarcontainer'},{'name': 'ButtonBarContainerComponent', 'selector': 'buttonbarcontainer'},{'name': 'ButtonBarContainerComponent', 'selector': 'buttonbarcontainer'},{'name': 'ButtonBarContainerComponent', 'selector': 'buttonbarcontainer'},{'name': 'ButtonBarContainerComponent', 'selector': 'buttonbarcontainer'},{'name': 'CancelButtonComponent', 'selector': 'cancel-button'},{'name': 'CancelButtonComponent', 'selector': 'cancel-button'},{'name': 'CancelButtonComponent', 'selector': 'cancel-button'},{'name': 'CancelButtonComponent', 'selector': 'cancel-button'},{'name': 'CancelButtonComponent', 'selector': 'cancel-button'},{'name': 'CancelButtonComponent', 'selector': 'cancel-button'},{'name': 'CancelButtonComponent', 'selector': 'cancel-button'},{'name': 'CancelButtonComponent', 'selector': 'cancel-button'},{'name': 'CancelButtonComponent', 'selector': 'cancel-button'},{'name': 'CancelButtonComponent', 'selector': 'cancel-button'},{'name': 'CancelButtonComponent', 'selector': 'cancel-button'},{'name': 'CancelButtonComponent', 'selector': 'cancel-button'},{'name': 'ContributorComponent', 'selector': 'rb-contributor'},{'name': 'ContributorComponent', 'selector': 'rb-contributor'},{'name': 'ContributorComponent', 'selector': 'rb-contributor'},{'name': 'ContributorComponent', 'selector': 'rb-contributor'},{'name': 'ContributorComponent', 'selector': 'rb-contributor'},{'name': 'ContributorComponent', 'selector': 'rb-contributor'},{'name': 'ContributorComponent', 'selector': 'rb-contributor'},{'name': 'ContributorComponent', 'selector': 'rb-contributor'},{'name': 'ContributorComponent', 'selector': 'rb-contributor'},{'name': 'ContributorComponent', 'selector': 'rb-contributor'},{'name': 'ContributorComponent', 'selector': 'rb-contributor'},{'name': 'ContributorComponent', 'selector': 'rb-contributor'},{'name': 'DashboardComponent', 'selector': 'dashboard'},{'name': 'DataLocationComponent', 'selector': 'data-location-selector'},{'name': 'DataLocationComponent', 'selector': 'data-location-selector'},{'name': 'DataLocationComponent', 'selector': 'data-location-selector'},{'name': 'DataLocationComponent', 'selector': 'data-location-selector'},{'name': 'DataLocationComponent', 'selector': 'data-location-selector'},{'name': 'DataLocationComponent', 'selector': 'data-location-selector'},{'name': 'DataLocationComponent', 'selector': 'data-location-selector'},{'name': 'DataLocationComponent', 'selector': 'data-location-selector'},{'name': 'DataLocationComponent', 'selector': 'data-location-selector'},{'name': 'DataLocationComponent', 'selector': 'data-location-selector'},{'name': 'DataLocationComponent', 'selector': 'data-location-selector'},{'name': 'DataLocationComponent', 'selector': 'data-location-selector'},{'name': 'DateTimeComponent', 'selector': 'date-time'},{'name': 'DateTimeComponent', 'selector': 'date-time'},{'name': 'DateTimeComponent', 'selector': 'date-time'},{'name': 'DateTimeComponent', 'selector': 'date-time'},{'name': 'DateTimeComponent', 'selector': 'date-time'},{'name': 'DateTimeComponent', 'selector': 'date-time'},{'name': 'DateTimeComponent', 'selector': 'date-time'},{'name': 'DateTimeComponent', 'selector': 'date-time'},{'name': 'DateTimeComponent', 'selector': 'date-time'},{'name': 'DateTimeComponent', 'selector': 'date-time'},{'name': 'DateTimeComponent', 'selector': 'date-time'},{'name': 'DateTimeComponent', 'selector': 'date-time'},{'name': 'DmpFieldComponent', 'selector': 'dmp-field'},{'name': 'DmpFieldComponent', 'selector': 'dmp-field'},{'name': 'DmpFieldComponent', 'selector': 'dmp-field'},{'name': 'DmpFieldComponent', 'selector': 'dmp-field'},{'name': 'DmpFieldComponent', 'selector': 'dmp-field'},{'name': 'DmpFieldComponent', 'selector': 'dmp-field'},{'name': 'DmpFieldComponent', 'selector': 'dmp-field'},{'name': 'DmpFieldComponent', 'selector': 'dmp-field'},{'name': 'DmpFieldComponent', 'selector': 'dmp-field'},{'name': 'DmpFieldComponent', 'selector': 'dmp-field'},{'name': 'DmpFieldComponent', 'selector': 'dmp-field'},{'name': 'DmpFieldComponent', 'selector': 'dmp-field'},{'name': 'DmpFormComponent', 'selector': 'dmp-form'},{'name': 'DropdownFieldComponent', 'selector': 'dropdownfield'},{'name': 'DropdownFieldComponent', 'selector': 'dropdownfield'},{'name': 'DropdownFieldComponent', 'selector': 'dropdownfield'},{'name': 'DropdownFieldComponent', 'selector': 'dropdownfield'},{'name': 'DropdownFieldComponent', 'selector': 'dropdownfield'},{'name': 'DropdownFieldComponent', 'selector': 'dropdownfield'},{'name': 'DropdownFieldComponent', 'selector': 'dropdownfield'},{'name': 'DropdownFieldComponent', 'selector': 'dropdownfield'},{'name': 'DropdownFieldComponent', 'selector': 'dropdownfield'},{'name': 'DropdownFieldComponent', 'selector': 'dropdownfield'},{'name': 'DropdownFieldComponent', 'selector': 'dropdownfield'},{'name': 'DropdownFieldComponent', 'selector': 'dropdownfield'},{'name': 'EventHandlerComponent', 'selector': 'event-handler'},{'name': 'EventHandlerComponent', 'selector': 'event-handler'},{'name': 'EventHandlerComponent', 'selector': 'event-handler'},{'name': 'EventHandlerComponent', 'selector': 'event-handler'},{'name': 'EventHandlerComponent', 'selector': 'event-handler'},{'name': 'EventHandlerComponent', 'selector': 'event-handler'},{'name': 'EventHandlerComponent', 'selector': 'event-handler'},{'name': 'EventHandlerComponent', 'selector': 'event-handler'},{'name': 'EventHandlerComponent', 'selector': 'event-handler'},{'name': 'EventHandlerComponent', 'selector': 'event-handler'},{'name': 'EventHandlerComponent', 'selector': 'event-handler'},{'name': 'EventHandlerComponent', 'selector': 'event-handler'},{'name': 'ExportFormComponent', 'selector': 'export-form'},{'name': 'GenericGroupComponent', 'selector': 'generic-group-field'},{'name': 'GenericGroupComponent', 'selector': 'generic-group-field'},{'name': 'GenericGroupComponent', 'selector': 'generic-group-field'},{'name': 'GenericGroupComponent', 'selector': 'generic-group-field'},{'name': 'GenericGroupComponent', 'selector': 'generic-group-field'},{'name': 'GenericGroupComponent', 'selector': 'generic-group-field'},{'name': 'GenericGroupComponent', 'selector': 'generic-group-field'},{'name': 'GenericGroupComponent', 'selector': 'generic-group-field'},{'name': 'GenericGroupComponent', 'selector': 'generic-group-field'},{'name': 'GenericGroupComponent', 'selector': 'generic-group-field'},{'name': 'GenericGroupComponent', 'selector': 'generic-group-field'},{'name': 'GenericGroupComponent', 'selector': 'generic-group-field'},{'name': 'HiddenValueComponent', 'selector': 'hidden-field'},{'name': 'HiddenValueComponent', 'selector': 'hidden-field'},{'name': 'HiddenValueComponent', 'selector': 'hidden-field'},{'name': 'HiddenValueComponent', 'selector': 'hidden-field'},{'name': 'HiddenValueComponent', 'selector': 'hidden-field'},{'name': 'HiddenValueComponent', 'selector': 'hidden-field'},{'name': 'HiddenValueComponent', 'selector': 'hidden-field'},{'name': 'HiddenValueComponent', 'selector': 'hidden-field'},{'name': 'HiddenValueComponent', 'selector': 'hidden-field'},{'name': 'HiddenValueComponent', 'selector': 'hidden-field'},{'name': 'HiddenValueComponent', 'selector': 'hidden-field'},{'name': 'HiddenValueComponent', 'selector': 'hidden-field'},{'name': 'HtmlRawComponent', 'selector': 'htmlraw'},{'name': 'HtmlRawComponent', 'selector': 'htmlraw'},{'name': 'HtmlRawComponent', 'selector': 'htmlraw'},{'name': 'HtmlRawComponent', 'selector': 'htmlraw'},{'name': 'HtmlRawComponent', 'selector': 'htmlraw'},{'name': 'HtmlRawComponent', 'selector': 'htmlraw'},{'name': 'HtmlRawComponent', 'selector': 'htmlraw'},{'name': 'HtmlRawComponent', 'selector': 'htmlraw'},{'name': 'HtmlRawComponent', 'selector': 'htmlraw'},{'name': 'HtmlRawComponent', 'selector': 'htmlraw'},{'name': 'HtmlRawComponent', 'selector': 'htmlraw'},{'name': 'HtmlRawComponent', 'selector': 'htmlraw'},{'name': 'LinkValueComponent', 'selector': 'link-value'},{'name': 'LinkValueComponent', 'selector': 'link-value'},{'name': 'LinkValueComponent', 'selector': 'link-value'},{'name': 'LinkValueComponent', 'selector': 'link-value'},{'name': 'LinkValueComponent', 'selector': 'link-value'},{'name': 'LinkValueComponent', 'selector': 'link-value'},{'name': 'LinkValueComponent', 'selector': 'link-value'},{'name': 'LinkValueComponent', 'selector': 'link-value'},{'name': 'LinkValueComponent', 'selector': 'link-value'},{'name': 'LinkValueComponent', 'selector': 'link-value'},{'name': 'LinkValueComponent', 'selector': 'link-value'},{'name': 'LinkValueComponent', 'selector': 'link-value'},{'name': 'LocalAuthComponent', 'selector': 'local-auth'},{'name': 'ManageRolesComponent', 'selector': 'manage-roles'},{'name': 'ManageUsersComponent', 'selector': 'manage-users'},{'name': 'MapComponent', 'selector': 'rb-mapdata'},{'name': 'MapComponent', 'selector': 'rb-mapdata'},{'name': 'MapComponent', 'selector': 'rb-mapdata'},{'name': 'MapComponent', 'selector': 'rb-mapdata'},{'name': 'MapComponent', 'selector': 'rb-mapdata'},{'name': 'MapComponent', 'selector': 'rb-mapdata'},{'name': 'MapComponent', 'selector': 'rb-mapdata'},{'name': 'MapComponent', 'selector': 'rb-mapdata'},{'name': 'MapComponent', 'selector': 'rb-mapdata'},{'name': 'MapComponent', 'selector': 'rb-mapdata'},{'name': 'MapComponent', 'selector': 'rb-mapdata'},{'name': 'MapComponent', 'selector': 'rb-mapdata'},{'name': 'MarkdownTextAreaComponent', 'selector': 'markdown-text-area'},{'name': 'MarkdownTextAreaComponent', 'selector': 'markdown-text-area'},{'name': 'MarkdownTextAreaComponent', 'selector': 'markdown-text-area'},{'name': 'MarkdownTextAreaComponent', 'selector': 'markdown-text-area'},{'name': 'MarkdownTextAreaComponent', 'selector': 'markdown-text-area'},{'name': 'MarkdownTextAreaComponent', 'selector': 'markdown-text-area'},{'name': 'MarkdownTextAreaComponent', 'selector': 'markdown-text-area'},{'name': 'MarkdownTextAreaComponent', 'selector': 'markdown-text-area'},{'name': 'MarkdownTextAreaComponent', 'selector': 'markdown-text-area'},{'name': 'MarkdownTextAreaComponent', 'selector': 'markdown-text-area'},{'name': 'MarkdownTextAreaComponent', 'selector': 'markdown-text-area'},{'name': 'MarkdownTextAreaComponent', 'selector': 'markdown-text-area'},{'name': 'PageTitleComponent', 'selector': 'page-title'},{'name': 'PageTitleComponent', 'selector': 'page-title'},{'name': 'PageTitleComponent', 'selector': 'page-title'},{'name': 'PageTitleComponent', 'selector': 'page-title'},{'name': 'PageTitleComponent', 'selector': 'page-title'},{'name': 'PageTitleComponent', 'selector': 'page-title'},{'name': 'PageTitleComponent', 'selector': 'page-title'},{'name': 'PageTitleComponent', 'selector': 'page-title'},{'name': 'PageTitleComponent', 'selector': 'page-title'},{'name': 'PageTitleComponent', 'selector': 'page-title'},{'name': 'PageTitleComponent', 'selector': 'page-title'},{'name': 'PageTitleComponent', 'selector': 'page-title'},{'name': 'ParameterRetrieverComponent', 'selector': 'parameter-retriever'},{'name': 'ParameterRetrieverComponent', 'selector': 'parameter-retriever'},{'name': 'ParameterRetrieverComponent', 'selector': 'parameter-retriever'},{'name': 'ParameterRetrieverComponent', 'selector': 'parameter-retriever'},{'name': 'ParameterRetrieverComponent', 'selector': 'parameter-retriever'},{'name': 'ParameterRetrieverComponent', 'selector': 'parameter-retriever'},{'name': 'ParameterRetrieverComponent', 'selector': 'parameter-retriever'},{'name': 'ParameterRetrieverComponent', 'selector': 'parameter-retriever'},{'name': 'ParameterRetrieverComponent', 'selector': 'parameter-retriever'},{'name': 'ParameterRetrieverComponent', 'selector': 'parameter-retriever'},{'name': 'ParameterRetrieverComponent', 'selector': 'parameter-retriever'},{'name': 'ParameterRetrieverComponent', 'selector': 'parameter-retriever'},{'name': 'PDFListComponent', 'selector': 'rb-pdf-list'},{'name': 'PDFListComponent', 'selector': 'rb-pdf-list'},{'name': 'PDFListComponent', 'selector': 'rb-pdf-list'},{'name': 'PDFListComponent', 'selector': 'rb-pdf-list'},{'name': 'PDFListComponent', 'selector': 'rb-pdf-list'},{'name': 'PDFListComponent', 'selector': 'rb-pdf-list'},{'name': 'PDFListComponent', 'selector': 'rb-pdf-list'},{'name': 'PDFListComponent', 'selector': 'rb-pdf-list'},{'name': 'PDFListComponent', 'selector': 'rb-pdf-list'},{'name': 'PDFListComponent', 'selector': 'rb-pdf-list'},{'name': 'PDFListComponent', 'selector': 'rb-pdf-list'},{'name': 'PDFListComponent', 'selector': 'rb-pdf-list'},{'name': 'PublishDataLocationRefreshComponent', 'selector': 'publish-data-location-refresh'},{'name': 'PublishDataLocationRefreshComponent', 'selector': 'publish-data-location-refresh'},{'name': 'PublishDataLocationRefreshComponent', 'selector': 'publish-data-location-refresh'},{'name': 'PublishDataLocationRefreshComponent', 'selector': 'publish-data-location-refresh'},{'name': 'PublishDataLocationRefreshComponent', 'selector': 'publish-data-location-refresh'},{'name': 'PublishDataLocationRefreshComponent', 'selector': 'publish-data-location-refresh'},{'name': 'PublishDataLocationRefreshComponent', 'selector': 'publish-data-location-refresh'},{'name': 'PublishDataLocationRefreshComponent', 'selector': 'publish-data-location-refresh'},{'name': 'PublishDataLocationRefreshComponent', 'selector': 'publish-data-location-refresh'},{'name': 'PublishDataLocationRefreshComponent', 'selector': 'publish-data-location-refresh'},{'name': 'PublishDataLocationRefreshComponent', 'selector': 'publish-data-location-refresh'},{'name': 'PublishDataLocationRefreshComponent', 'selector': 'publish-data-location-refresh'},{'name': 'PublishDataLocationSelectorComponent', 'selector': 'publish-data-location-selector'},{'name': 'PublishDataLocationSelectorComponent', 'selector': 'publish-data-location-selector'},{'name': 'PublishDataLocationSelectorComponent', 'selector': 'publish-data-location-selector'},{'name': 'PublishDataLocationSelectorComponent', 'selector': 'publish-data-location-selector'},{'name': 'PublishDataLocationSelectorComponent', 'selector': 'publish-data-location-selector'},{'name': 'PublishDataLocationSelectorComponent', 'selector': 'publish-data-location-selector'},{'name': 'PublishDataLocationSelectorComponent', 'selector': 'publish-data-location-selector'},{'name': 'PublishDataLocationSelectorComponent', 'selector': 'publish-data-location-selector'},{'name': 'PublishDataLocationSelectorComponent', 'selector': 'publish-data-location-selector'},{'name': 'PublishDataLocationSelectorComponent', 'selector': 'publish-data-location-selector'},{'name': 'PublishDataLocationSelectorComponent', 'selector': 'publish-data-location-selector'},{'name': 'PublishDataLocationSelectorComponent', 'selector': 'publish-data-location-selector'},{'name': 'RecordMetadataRetrieverComponent', 'selector': 'record-metadata-retriever'},{'name': 'RecordMetadataRetrieverComponent', 'selector': 'record-metadata-retriever'},{'name': 'RecordMetadataRetrieverComponent', 'selector': 'record-metadata-retriever'},{'name': 'RecordMetadataRetrieverComponent', 'selector': 'record-metadata-retriever'},{'name': 'RecordMetadataRetrieverComponent', 'selector': 'record-metadata-retriever'},{'name': 'RecordMetadataRetrieverComponent', 'selector': 'record-metadata-retriever'},{'name': 'RecordMetadataRetrieverComponent', 'selector': 'record-metadata-retriever'},{'name': 'RecordMetadataRetrieverComponent', 'selector': 'record-metadata-retriever'},{'name': 'RecordMetadataRetrieverComponent', 'selector': 'record-metadata-retriever'},{'name': 'RecordMetadataRetrieverComponent', 'selector': 'record-metadata-retriever'},{'name': 'RecordMetadataRetrieverComponent', 'selector': 'record-metadata-retriever'},{'name': 'RecordMetadataRetrieverComponent', 'selector': 'record-metadata-retriever'},{'name': 'RecordPermissionsComponent', 'selector': 'rb-recordpermissions'},{'name': 'RecordPermissionsComponent', 'selector': 'rb-recordpermissions'},{'name': 'RecordPermissionsComponent', 'selector': 'rb-recordpermissions'},{'name': 'RecordPermissionsComponent', 'selector': 'rb-recordpermissions'},{'name': 'RecordPermissionsComponent', 'selector': 'rb-recordpermissions'},{'name': 'RecordPermissionsComponent', 'selector': 'rb-recordpermissions'},{'name': 'RecordPermissionsComponent', 'selector': 'rb-recordpermissions'},{'name': 'RecordPermissionsComponent', 'selector': 'rb-recordpermissions'},{'name': 'RecordPermissionsComponent', 'selector': 'rb-recordpermissions'},{'name': 'RecordPermissionsComponent', 'selector': 'rb-recordpermissions'},{'name': 'RecordPermissionsComponent', 'selector': 'rb-recordpermissions'},{'name': 'RecordPermissionsComponent', 'selector': 'rb-recordpermissions'},{'name': 'RecordSearchComponent', 'selector': 'record-search'},{'name': 'RecordSearchRefinerComponent', 'selector': 'record-search-refiner'},{'name': 'RelatedFileUploadComponent', 'selector': 'related-fileupload-selector'},{'name': 'RelatedFileUploadComponent', 'selector': 'related-fileupload-selector'},{'name': 'RelatedFileUploadComponent', 'selector': 'related-fileupload-selector'},{'name': 'RelatedFileUploadComponent', 'selector': 'related-fileupload-selector'},{'name': 'RelatedFileUploadComponent', 'selector': 'related-fileupload-selector'},{'name': 'RelatedFileUploadComponent', 'selector': 'related-fileupload-selector'},{'name': 'RelatedFileUploadComponent', 'selector': 'related-fileupload-selector'},{'name': 'RelatedFileUploadComponent', 'selector': 'related-fileupload-selector'},{'name': 'RelatedFileUploadComponent', 'selector': 'related-fileupload-selector'},{'name': 'RelatedFileUploadComponent', 'selector': 'related-fileupload-selector'},{'name': 'RelatedFileUploadComponent', 'selector': 'related-fileupload-selector'},{'name': 'RelatedFileUploadComponent', 'selector': 'related-fileupload-selector'},{'name': 'RelatedObjectDataComponent', 'selector': 'rb-relatedobjectdata'},{'name': 'RelatedObjectDataComponent', 'selector': 'rb-relatedobjectdata'},{'name': 'RelatedObjectDataComponent', 'selector': 'rb-relatedobjectdata'},{'name': 'RelatedObjectDataComponent', 'selector': 'rb-relatedobjectdata'},{'name': 'RelatedObjectDataComponent', 'selector': 'rb-relatedobjectdata'},{'name': 'RelatedObjectDataComponent', 'selector': 'rb-relatedobjectdata'},{'name': 'RelatedObjectDataComponent', 'selector': 'rb-relatedobjectdata'},{'name': 'RelatedObjectDataComponent', 'selector': 'rb-relatedobjectdata'},{'name': 'RelatedObjectDataComponent', 'selector': 'rb-relatedobjectdata'},{'name': 'RelatedObjectDataComponent', 'selector': 'rb-relatedobjectdata'},{'name': 'RelatedObjectDataComponent', 'selector': 'rb-relatedobjectdata'},{'name': 'RelatedObjectDataComponent', 'selector': 'rb-relatedobjectdata'},{'name': 'RelatedObjectSelectorComponent', 'selector': 'rb-RelatedObjectSelector'},{'name': 'RelatedObjectSelectorComponent', 'selector': 'rb-RelatedObjectSelector'},{'name': 'RelatedObjectSelectorComponent', 'selector': 'rb-RelatedObjectSelector'},{'name': 'RelatedObjectSelectorComponent', 'selector': 'rb-RelatedObjectSelector'},{'name': 'RelatedObjectSelectorComponent', 'selector': 'rb-RelatedObjectSelector'},{'name': 'RelatedObjectSelectorComponent', 'selector': 'rb-RelatedObjectSelector'},{'name': 'RelatedObjectSelectorComponent', 'selector': 'rb-RelatedObjectSelector'},{'name': 'RelatedObjectSelectorComponent', 'selector': 'rb-RelatedObjectSelector'},{'name': 'RelatedObjectSelectorComponent', 'selector': 'rb-RelatedObjectSelector'},{'name': 'RelatedObjectSelectorComponent', 'selector': 'rb-RelatedObjectSelector'},{'name': 'RelatedObjectSelectorComponent', 'selector': 'rb-RelatedObjectSelector'},{'name': 'RelatedObjectSelectorComponent', 'selector': 'rb-RelatedObjectSelector'},{'name': 'RepeatableContributorComponent', 'selector': 'repeatable-contributor'},{'name': 'RepeatableContributorComponent', 'selector': 'repeatable-contributor'},{'name': 'RepeatableContributorComponent', 'selector': 'repeatable-contributor'},{'name': 'RepeatableContributorComponent', 'selector': 'repeatable-contributor'},{'name': 'RepeatableContributorComponent', 'selector': 'repeatable-contributor'},{'name': 'RepeatableContributorComponent', 'selector': 'repeatable-contributor'},{'name': 'RepeatableContributorComponent', 'selector': 'repeatable-contributor'},{'name': 'RepeatableContributorComponent', 'selector': 'repeatable-contributor'},{'name': 'RepeatableContributorComponent', 'selector': 'repeatable-contributor'},{'name': 'RepeatableContributorComponent', 'selector': 'repeatable-contributor'},{'name': 'RepeatableContributorComponent', 'selector': 'repeatable-contributor'},{'name': 'RepeatableContributorComponent', 'selector': 'repeatable-contributor'},{'name': 'RepeatableGroupComponent', 'selector': 'repeatable-group'},{'name': 'RepeatableGroupComponent', 'selector': 'repeatable-group'},{'name': 'RepeatableGroupComponent', 'selector': 'repeatable-group'},{'name': 'RepeatableGroupComponent', 'selector': 'repeatable-group'},{'name': 'RepeatableGroupComponent', 'selector': 'repeatable-group'},{'name': 'RepeatableGroupComponent', 'selector': 'repeatable-group'},{'name': 'RepeatableGroupComponent', 'selector': 'repeatable-group'},{'name': 'RepeatableGroupComponent', 'selector': 'repeatable-group'},{'name': 'RepeatableGroupComponent', 'selector': 'repeatable-group'},{'name': 'RepeatableGroupComponent', 'selector': 'repeatable-group'},{'name': 'RepeatableGroupComponent', 'selector': 'repeatable-group'},{'name': 'RepeatableGroupComponent', 'selector': 'repeatable-group'},{'name': 'RepeatableTextfieldComponent', 'selector': 'repeatable-textfield'},{'name': 'RepeatableTextfieldComponent', 'selector': 'repeatable-textfield'},{'name': 'RepeatableTextfieldComponent', 'selector': 'repeatable-textfield'},{'name': 'RepeatableTextfieldComponent', 'selector': 'repeatable-textfield'},{'name': 'RepeatableTextfieldComponent', 'selector': 'repeatable-textfield'},{'name': 'RepeatableTextfieldComponent', 'selector': 'repeatable-textfield'},{'name': 'RepeatableTextfieldComponent', 'selector': 'repeatable-textfield'},{'name': 'RepeatableTextfieldComponent', 'selector': 'repeatable-textfield'},{'name': 'RepeatableTextfieldComponent', 'selector': 'repeatable-textfield'},{'name': 'RepeatableTextfieldComponent', 'selector': 'repeatable-textfield'},{'name': 'RepeatableTextfieldComponent', 'selector': 'repeatable-textfield'},{'name': 'RepeatableTextfieldComponent', 'selector': 'repeatable-textfield'},{'name': 'RepeatableVocabComponent', 'selector': 'repeatable-vocab'},{'name': 'RepeatableVocabComponent', 'selector': 'repeatable-vocab'},{'name': 'RepeatableVocabComponent', 'selector': 'repeatable-vocab'},{'name': 'RepeatableVocabComponent', 'selector': 'repeatable-vocab'},{'name': 'RepeatableVocabComponent', 'selector': 'repeatable-vocab'},{'name': 'RepeatableVocabComponent', 'selector': 'repeatable-vocab'},{'name': 'RepeatableVocabComponent', 'selector': 'repeatable-vocab'},{'name': 'RepeatableVocabComponent', 'selector': 'repeatable-vocab'},{'name': 'RepeatableVocabComponent', 'selector': 'repeatable-vocab'},{'name': 'RepeatableVocabComponent', 'selector': 'repeatable-vocab'},{'name': 'RepeatableVocabComponent', 'selector': 'repeatable-vocab'},{'name': 'RepeatableVocabComponent', 'selector': 'repeatable-vocab'},{'name': 'ReportComponent', 'selector': 'report'},{'name': 'SaveButtonComponent', 'selector': 'save-button'},{'name': 'SaveButtonComponent', 'selector': 'save-button'},{'name': 'SaveButtonComponent', 'selector': 'save-button'},{'name': 'SaveButtonComponent', 'selector': 'save-button'},{'name': 'SaveButtonComponent', 'selector': 'save-button'},{'name': 'SaveButtonComponent', 'selector': 'save-button'},{'name': 'SaveButtonComponent', 'selector': 'save-button'},{'name': 'SaveButtonComponent', 'selector': 'save-button'},{'name': 'SaveButtonComponent', 'selector': 'save-button'},{'name': 'SaveButtonComponent', 'selector': 'save-button'},{'name': 'SaveButtonComponent', 'selector': 'save-button'},{'name': 'SaveButtonComponent', 'selector': 'save-button'},{'name': 'SelectionFieldComponent', 'selector': 'selectionfield'},{'name': 'SelectionFieldComponent', 'selector': 'selectionfield'},{'name': 'SelectionFieldComponent', 'selector': 'selectionfield'},{'name': 'SelectionFieldComponent', 'selector': 'selectionfield'},{'name': 'SelectionFieldComponent', 'selector': 'selectionfield'},{'name': 'SelectionFieldComponent', 'selector': 'selectionfield'},{'name': 'SelectionFieldComponent', 'selector': 'selectionfield'},{'name': 'SelectionFieldComponent', 'selector': 'selectionfield'},{'name': 'SelectionFieldComponent', 'selector': 'selectionfield'},{'name': 'SelectionFieldComponent', 'selector': 'selectionfield'},{'name': 'SelectionFieldComponent', 'selector': 'selectionfield'},{'name': 'SelectionFieldComponent', 'selector': 'selectionfield'},{'name': 'SortComponent', 'selector': 'sort'},{'name': 'SpacerComponent', 'selector': 'spacer'},{'name': 'SpacerComponent', 'selector': 'spacer'},{'name': 'SpacerComponent', 'selector': 'spacer'},{'name': 'SpacerComponent', 'selector': 'spacer'},{'name': 'SpacerComponent', 'selector': 'spacer'},{'name': 'SpacerComponent', 'selector': 'spacer'},{'name': 'SpacerComponent', 'selector': 'spacer'},{'name': 'SpacerComponent', 'selector': 'spacer'},{'name': 'SpacerComponent', 'selector': 'spacer'},{'name': 'SpacerComponent', 'selector': 'spacer'},{'name': 'SpacerComponent', 'selector': 'spacer'},{'name': 'SpacerComponent', 'selector': 'spacer'},{'name': 'TabNavButtonComponent', 'selector': 'tab-nav-button'},{'name': 'TabNavButtonComponent', 'selector': 'tab-nav-button'},{'name': 'TabNavButtonComponent', 'selector': 'tab-nav-button'},{'name': 'TabNavButtonComponent', 'selector': 'tab-nav-button'},{'name': 'TabNavButtonComponent', 'selector': 'tab-nav-button'},{'name': 'TabNavButtonComponent', 'selector': 'tab-nav-button'},{'name': 'TabNavButtonComponent', 'selector': 'tab-nav-button'},{'name': 'TabNavButtonComponent', 'selector': 'tab-nav-button'},{'name': 'TabNavButtonComponent', 'selector': 'tab-nav-button'},{'name': 'TabNavButtonComponent', 'selector': 'tab-nav-button'},{'name': 'TabNavButtonComponent', 'selector': 'tab-nav-button'},{'name': 'TabNavButtonComponent', 'selector': 'tab-nav-button'},{'name': 'TabOrAccordionContainerComponent', 'selector': 'tabcontainer'},{'name': 'TabOrAccordionContainerComponent', 'selector': 'tabcontainer'},{'name': 'TabOrAccordionContainerComponent', 'selector': 'tabcontainer'},{'name': 'TabOrAccordionContainerComponent', 'selector': 'tabcontainer'},{'name': 'TabOrAccordionContainerComponent', 'selector': 'tabcontainer'},{'name': 'TabOrAccordionContainerComponent', 'selector': 'tabcontainer'},{'name': 'TabOrAccordionContainerComponent', 'selector': 'tabcontainer'},{'name': 'TabOrAccordionContainerComponent', 'selector': 'tabcontainer'},{'name': 'TabOrAccordionContainerComponent', 'selector': 'tabcontainer'},{'name': 'TabOrAccordionContainerComponent', 'selector': 'tabcontainer'},{'name': 'TabOrAccordionContainerComponent', 'selector': 'tabcontainer'},{'name': 'TabOrAccordionContainerComponent', 'selector': 'tabcontainer'},{'name': 'TextAreaComponent', 'selector': 'text-area'},{'name': 'TextAreaComponent', 'selector': 'text-area'},{'name': 'TextAreaComponent', 'selector': 'text-area'},{'name': 'TextAreaComponent', 'selector': 'text-area'},{'name': 'TextAreaComponent', 'selector': 'text-area'},{'name': 'TextAreaComponent', 'selector': 'text-area'},{'name': 'TextAreaComponent', 'selector': 'text-area'},{'name': 'TextAreaComponent', 'selector': 'text-area'},{'name': 'TextAreaComponent', 'selector': 'text-area'},{'name': 'TextAreaComponent', 'selector': 'text-area'},{'name': 'TextAreaComponent', 'selector': 'text-area'},{'name': 'TextAreaComponent', 'selector': 'text-area'},{'name': 'TextBlockComponent', 'selector': 'text-block'},{'name': 'TextBlockComponent', 'selector': 'text-block'},{'name': 'TextBlockComponent', 'selector': 'text-block'},{'name': 'TextBlockComponent', 'selector': 'text-block'},{'name': 'TextBlockComponent', 'selector': 'text-block'},{'name': 'TextBlockComponent', 'selector': 'text-block'},{'name': 'TextBlockComponent', 'selector': 'text-block'},{'name': 'TextBlockComponent', 'selector': 'text-block'},{'name': 'TextBlockComponent', 'selector': 'text-block'},{'name': 'TextBlockComponent', 'selector': 'text-block'},{'name': 'TextBlockComponent', 'selector': 'text-block'},{'name': 'TextBlockComponent', 'selector': 'text-block'},{'name': 'TextFieldComponent', 'selector': 'textfield'},{'name': 'TextFieldComponent', 'selector': 'textfield'},{'name': 'TextFieldComponent', 'selector': 'textfield'},{'name': 'TextFieldComponent', 'selector': 'textfield'},{'name': 'TextFieldComponent', 'selector': 'textfield'},{'name': 'TextFieldComponent', 'selector': 'textfield'},{'name': 'TextFieldComponent', 'selector': 'textfield'},{'name': 'TextFieldComponent', 'selector': 'textfield'},{'name': 'TextFieldComponent', 'selector': 'textfield'},{'name': 'TextFieldComponent', 'selector': 'textfield'},{'name': 'TextFieldComponent', 'selector': 'textfield'},{'name': 'TextFieldComponent', 'selector': 'textfield'},{'name': 'ToggleComponent', 'selector': 'toggle'},{'name': 'ToggleComponent', 'selector': 'toggle'},{'name': 'ToggleComponent', 'selector': 'toggle'},{'name': 'ToggleComponent', 'selector': 'toggle'},{'name': 'ToggleComponent', 'selector': 'toggle'},{'name': 'ToggleComponent', 'selector': 'toggle'},{'name': 'ToggleComponent', 'selector': 'toggle'},{'name': 'ToggleComponent', 'selector': 'toggle'},{'name': 'ToggleComponent', 'selector': 'toggle'},{'name': 'ToggleComponent', 'selector': 'toggle'},{'name': 'ToggleComponent', 'selector': 'toggle'},{'name': 'ToggleComponent', 'selector': 'toggle'},{'name': 'TransferOwnerComponent', 'selector': 'transfer-owner'},{'name': 'TreeNodeCheckboxComponent', 'selector': 'rb-tree-node-checkbox'},{'name': 'TreeNodeCheckboxComponent', 'selector': 'rb-tree-node-checkbox'},{'name': 'TreeNodeCheckboxComponent', 'selector': 'rb-tree-node-checkbox'},{'name': 'TreeNodeCheckboxComponent', 'selector': 'rb-tree-node-checkbox'},{'name': 'TreeNodeCheckboxComponent', 'selector': 'rb-tree-node-checkbox'},{'name': 'TreeNodeCheckboxComponent', 'selector': 'rb-tree-node-checkbox'},{'name': 'TreeNodeCheckboxComponent', 'selector': 'rb-tree-node-checkbox'},{'name': 'TreeNodeCheckboxComponent', 'selector': 'rb-tree-node-checkbox'},{'name': 'TreeNodeCheckboxComponent', 'selector': 'rb-tree-node-checkbox'},{'name': 'TreeNodeCheckboxComponent', 'selector': 'rb-tree-node-checkbox'},{'name': 'TreeNodeCheckboxComponent', 'selector': 'rb-tree-node-checkbox'},{'name': 'TreeNodeCheckboxComponent', 'selector': 'rb-tree-node-checkbox'},{'name': 'UserProfileComponent', 'selector': 'user-profile'},{'name': 'VocabFieldComponent', 'selector': 'rb-vocab'},{'name': 'VocabFieldComponent', 'selector': 'rb-vocab'},{'name': 'VocabFieldComponent', 'selector': 'rb-vocab'},{'name': 'VocabFieldComponent', 'selector': 'rb-vocab'},{'name': 'VocabFieldComponent', 'selector': 'rb-vocab'},{'name': 'VocabFieldComponent', 'selector': 'rb-vocab'},{'name': 'VocabFieldComponent', 'selector': 'rb-vocab'},{'name': 'VocabFieldComponent', 'selector': 'rb-vocab'},{'name': 'VocabFieldComponent', 'selector': 'rb-vocab'},{'name': 'VocabFieldComponent', 'selector': 'rb-vocab'},{'name': 'VocabFieldComponent', 'selector': 'rb-vocab'},{'name': 'VocabFieldComponent', 'selector': 'rb-vocab'},{'name': 'WorkflowStepButtonComponent', 'selector': 'workflowstep-button'},{'name': 'WorkflowStepButtonComponent', 'selector': 'workflowstep-button'},{'name': 'WorkflowStepButtonComponent', 'selector': 'workflowstep-button'},{'name': 'WorkflowStepButtonComponent', 'selector': 'workflowstep-button'},{'name': 'WorkflowStepButtonComponent', 'selector': 'workflowstep-button'},{'name': 'WorkflowStepButtonComponent', 'selector': 'workflowstep-button'},{'name': 'WorkflowStepButtonComponent', 'selector': 'workflowstep-button'},{'name': 'WorkflowStepButtonComponent', 'selector': 'workflowstep-button'},{'name': 'WorkflowStepButtonComponent', 'selector': 'workflowstep-button'},{'name': 'WorkflowStepButtonComponent', 'selector': 'workflowstep-button'},{'name': 'WorkflowStepButtonComponent', 'selector': 'workflowstep-button'},{'name': 'WorkflowStepButtonComponent', 'selector': 'workflowstep-button'},{'name': 'WorkspaceFieldComponent', 'selector': 'ws-field'},{'name': 'WorkspaceFieldComponent', 'selector': 'ws-field'},{'name': 'WorkspaceFieldComponent', 'selector': 'ws-field'},{'name': 'WorkspaceFieldComponent', 'selector': 'ws-field'},{'name': 'WorkspaceFieldComponent', 'selector': 'ws-field'},{'name': 'WorkspaceFieldComponent', 'selector': 'ws-field'},{'name': 'WorkspaceFieldComponent', 'selector': 'ws-field'},{'name': 'WorkspaceFieldComponent', 'selector': 'ws-field'},{'name': 'WorkspaceFieldComponent', 'selector': 'ws-field'},{'name': 'WorkspaceFieldComponent', 'selector': 'ws-field'},{'name': 'WorkspaceFieldComponent', 'selector': 'ws-field'},{'name': 'WorkspaceFieldComponent', 'selector': 'ws-field'},{'name': 'WorkspaceListComponent', 'selector': 'workspace-list'},{'name': 'WorkspaceSelectorComponent', 'selector': 'workspace-selector-parent'},{'name': 'WorkspaceSelectorComponent', 'selector': 'workspace-selector-parent'},{'name': 'WorkspaceSelectorComponent', 'selector': 'workspace-selector-parent'},{'name': 'WorkspaceSelectorComponent', 'selector': 'workspace-selector-parent'},{'name': 'WorkspaceSelectorComponent', 'selector': 'workspace-selector-parent'},{'name': 'WorkspaceSelectorComponent', 'selector': 'workspace-selector-parent'},{'name': 'WorkspaceSelectorComponent', 'selector': 'workspace-selector-parent'},{'name': 'WorkspaceSelectorComponent', 'selector': 'workspace-selector-parent'},{'name': 'WorkspaceSelectorComponent', 'selector': 'workspace-selector-parent'},{'name': 'WorkspaceSelectorComponent', 'selector': 'workspace-selector-parent'},{'name': 'WorkspaceSelectorComponent', 'selector': 'workspace-selector-parent'},{'name': 'WorkspaceSelectorComponent', 'selector': 'workspace-selector-parent'},{'name': 'WorkspaceSelectorFieldComponent', 'selector': 'workspace-selector'},{'name': 'WorkspaceSelectorFieldComponent', 'selector': 'workspace-selector'},{'name': 'WorkspaceSelectorFieldComponent', 'selector': 'workspace-selector'},{'name': 'WorkspaceSelectorFieldComponent', 'selector': 'workspace-selector'},{'name': 'WorkspaceSelectorFieldComponent', 'selector': 'workspace-selector'},{'name': 'WorkspaceSelectorFieldComponent', 'selector': 'workspace-selector'},{'name': 'WorkspaceSelectorFieldComponent', 'selector': 'workspace-selector'},{'name': 'WorkspaceSelectorFieldComponent', 'selector': 'workspace-selector'},{'name': 'WorkspaceSelectorFieldComponent', 'selector': 'workspace-selector'},{'name': 'WorkspaceSelectorFieldComponent', 'selector': 'workspace-selector'},{'name': 'WorkspaceSelectorFieldComponent', 'selector': 'workspace-selector'},{'name': 'WorkspaceSelectorFieldComponent', 'selector': 'workspace-selector'}];
+    var DIRECTIVES = [];
+    var ACTUAL_COMPONENT = {'name': 'WorkspaceFieldComponent-2'};
+</script>
+<script src="../js/tree.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                   </div><div class="search-results">
+    <div class="has-results">
+        <h1 class="search-results-title"><span class='search-results-count'></span> results matching "<span class='search-query'></span>"</h1>
+        <ul class="search-results-list"></ul>
+    </div>
+    <div class="no-results">
+        <h1 class="search-results-title">No results matching "<span class='search-query'></span>"</h1>
+    </div>
+</div>
+</div>
+               <!-- END CONTENT -->
+           </div>
+       </div>
+
+          <label class="dark-mode-switch">
+               <input type="checkbox">
+               <span class="slider">
+                    <svg class="slider-icon" viewBox="0 0 24 24" fill="none" height="20" stroke="#000" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" width="20" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"></path>
+                    </svg>
+               </span>
+          </label>
+
+       <script>
+            var COMPODOC_CURRENT_PAGE_DEPTH = 1;
+            var COMPODOC_CURRENT_PAGE_CONTEXT = 'component';
+            var COMPODOC_CURRENT_PAGE_URL = 'WorkspaceFieldComponent-2.html';
+            var MAX_SEARCH_RESULTS = 15;
+       </script>
+
+       <script src="../js/libs/custom-elements.min.js"></script>
+       <script src="../js/libs/lit-html.js"></script>
+
+       <script src="../js/menu-wc.js" defer></script>
+       <script nomodule src="../js/menu-wc_es5.js" defer></script>
+
+       <script src="../js/libs/bootstrap-native.js"></script>
+
+       <script src="../js/libs/es6-shim.min.js"></script>
+       <script src="../js/libs/EventDispatcher.js"></script>
+       <script src="../js/libs/promise.min.js"></script>
+       <script src="../js/libs/zepto.min.js"></script>
+
+       <script src="../js/compodoc.js"></script>
+
+       <script src="../js/tabs.js"></script>
+       <script src="../js/menu.js"></script>
+       <script src="../js/libs/clipboard.min.js"></script>
+       <script src="../js/libs/prism.js"></script>
+       <script src="../js/sourceCode.js"></script>
+          <script src="../js/search/search.js"></script>
+          <script src="../js/search/lunr.min.js"></script>
+          <script src="../js/search/search-lunr.js"></script>
+          <script src="../js/search/search_index.js"></script>
+       <script src="../js/lazy-load-graphs.js"></script>
+
+
+    </body>
+</html>

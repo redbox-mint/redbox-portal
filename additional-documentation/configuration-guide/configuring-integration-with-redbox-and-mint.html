@@ -14,7 +14,7 @@
     </head>
     <body>
 
-        <div class="navbar navbar-default navbar-fixed-top visible-xs">
+        <div class="navbar navbar-default navbar-fixed-top d-block d-sm-none">
             <a href="../../" class="navbar-brand">ReDBox Portal - NG2 Apps</a>
             <button type="button" class="btn btn-default btn-menu ion-ios-menu" id="btn-menu"></button>
         </div>
@@ -52,10 +52,10 @@
 
 
 
-<h1 id="configuring-integration-with-redbox-and-mint">Configuring integration with ReDBox and Mint</h1>
-<h2 id="introduction">Introduction</h2>
+<h1>Configuring integration with ReDBox and Mint</h1>
+<h2>Introduction</h2>
 <p>For record management, the ReDBox portal utilises the APIs provided by both the <a href="http://www.redboxresearchdata.com.au/">ReDBox and Mint applications</a>.</p>
-<h2 id="configuring-api-access">Configuring API access</h2>
+<h2>Configuring API access</h2>
 <p>The <code>config/record.js</code> file provides configuration properties to set the URLs the services can be accessed on as well as the API endpoints.</p>
 <div><pre class="line-numbers"><code class="language-none">baseUrl
 |
@@ -124,7 +124,7 @@ api
 </tr>
 </tbody>
 </table>
-<h4 id="example">Example</h4>
+<h4>Example</h4>
 <div><pre class="line-numbers"><code class="language-none">  baseUrl: {
     redbox: &quot;http://localhost:9000/redbox&quot;,
     mint: &quot;http://localhost:9001/mint&quot;

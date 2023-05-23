@@ -14,7 +14,7 @@
     </head>
     <body>
 
-        <div class="navbar navbar-default navbar-fixed-top visible-xs">
+        <div class="navbar navbar-default navbar-fixed-top d-block d-sm-none">
             <a href="../../" class="navbar-brand">ReDBox Portal - NG2 Apps</a>
             <button type="button" class="btn btn-default btn-menu ion-ios-menu" id="btn-menu"></button>
         </div>
@@ -52,10 +52,10 @@
 
 
 
-<h1 id="configuring-email-notifications">Configuring email notifications</h1>
-<h2 id="introduction">Introduction</h2>
+<h1>Configuring email notifications</h1>
+<h2>Introduction</h2>
 <p>The ReDBox portal has a flexible email notification system that can be customised to your needs.</p>
-<h2 id="configuring-email-settings">Configuring Email Settings</h2>
+<h2>Configuring Email Settings</h2>
 <p>The <code>config/emailnotification.js</code> file provides configuration properties relating to the sending of emails.</p>
 <div><pre class="line-numbers"><code class="language-none">api
 |
@@ -117,7 +117,7 @@ templates
 <td>settings/from</td>
 <td>The from address to use when sending emails</td>
 <td>Yes</td>
-<td><a href="mailto:&#x6e;&#111;&#x72;&#101;&#x70;&#108;&#121;&#x40;&#114;&#x65;&#100;&#98;&#x6f;&#x78;&#x72;&#101;&#x73;&#x65;&#x61;&#114;&#99;&#x68;&#x64;&#x61;&#116;&#x61;&#x2e;&#99;&#x6f;&#109;&#46;&#x61;&#x75;">&#x6e;&#111;&#x72;&#101;&#x70;&#108;&#121;&#x40;&#114;&#x65;&#100;&#98;&#x6f;&#x78;&#x72;&#101;&#x73;&#x65;&#x61;&#114;&#99;&#x68;&#x64;&#x61;&#116;&#x61;&#x2e;&#99;&#x6f;&#109;&#46;&#x61;&#x75;</a></td>
+<td><a href="mailto:noreply@redboxresearchdata.com.au">noreply@redboxresearchdata.com.au</a></td>
 </tr>
 <tr>
 <td>settings/templateDir</td>
@@ -135,7 +135,7 @@ templates
 <td>defaults/from</td>
 <td>The default from address</td>
 <td>Yes</td>
-<td><a href="mailto:&#x72;&#101;&#100;&#98;&#111;&#120;&#x40;&#x72;&#x65;&#100;&#x62;&#111;&#x78;&#x72;&#101;&#115;&#101;&#x61;&#x72;&#x63;&#x68;&#x64;&#97;&#116;&#97;&#46;&#99;&#x6f;&#x6d;&#x2e;&#97;&#x75;">&#x72;&#101;&#100;&#98;&#111;&#120;&#x40;&#x72;&#x65;&#100;&#x62;&#111;&#x78;&#x72;&#101;&#115;&#101;&#x61;&#x72;&#x63;&#x68;&#x64;&#97;&#116;&#97;&#46;&#99;&#x6f;&#x6d;&#x2e;&#97;&#x75;</a></td>
+<td><a href="mailto:redbox@redboxresearchdata.com.au">redbox@redboxresearchdata.com.au</a></td>
 </tr>
 <tr>
 <td>defaults/subject</td>
@@ -151,7 +151,7 @@ templates
 </tr>
 </tbody>
 </table>
-<h4 id="example">Example</h4>
+<h4>Example</h4>
 <div><pre class="line-numbers"><code class="language-none">api: {
   send: {method: &#39;post&#39;, url: &quot;/api/v1/messaging/emailnotification&quot;}
 },
@@ -164,9 +164,9 @@ defaults: {
   from: &quot;redbox&#64;dev&quot;,
   subject: &quot;ReDBox Notification&quot;,
   format: &quot;html&quot;
-},</code></pre></div><h2 id="customising-email-templates">Customising Email Templates</h2>
+},</code></pre></div><h2>Customising Email Templates</h2>
 <p>The both the subjects and the contents of email notifications can be customised via configuration and templates.</p>
-<h3 id="configuring-email-subjects-and-templates">Configuring email subjects and templates</h3>
+<h3>Configuring email subjects and templates</h3>
 <p>The templates section of the <code>config/emailnotification.js</code> file contains configuration to customise the subject and template for an email notification</p>
 <div><pre class="line-numbers"><code class="language-none">&lt;email-code&gt;
 |
@@ -203,12 +203,12 @@ defaults: {
 </tr>
 </tbody>
 </table>
-<h4 id="example-1">Example</h4>
+<h4>Example</h4>
 <div><pre class="line-numbers"><code class="language-none">templates: {
   transferOwnerTo: {subject: &#39;Ownership of DMP record/s has been transferred to you&#39;, template: &#39;transferOwnerTo&#39;}
-}</code></pre></div><h3 id="email-templates">Email Templates</h3>
+}</code></pre></div><h3>Email Templates</h3>
 <p>Email templates are located in the directory defined in the <code>settings/templateDir</code> property of the <code>config/emailnotification.js</code> files. They are written in the <a href="http://www.embeddedjs.com/">EJS templating language</a> which allows for rich and complex formatting.</p>
-<h4 id="example-2">Example</h4>
+<h4>Example</h4>
 <div><pre class="line-numbers"><code class="language-none">&lt;h1&gt;Hello!&lt;/h1&gt;
 &lt;p&gt;This is a test email from ReDBox Portal&lt;/p&gt;
 &lt;p&gt;Data: &lt;%= data %&gt;&lt;/p&gt;</code></pre></div>

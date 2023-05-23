@@ -1,0 +1,2433 @@
+<!doctype html>
+<html class="no-js" lang="">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="x-ua-compatible" content="ie=edge">
+        <title>ReDBox Portal - NG2 Apps</title>
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+
+        <link rel="icon" type="image/x-icon" href="../images/favicon.ico">
+	   <link rel="stylesheet" href="../styles/style.css">
+        <link rel="stylesheet" href="../styles/dark.css">
+        <link rel="stylesheet" href="../styles/postmark.css">
+    </head>
+    <body>
+
+        <div class="navbar navbar-default navbar-fixed-top d-block d-sm-none">
+            <a href="../" class="navbar-brand">ReDBox Portal - NG2 Apps</a>
+            <button type="button" class="btn btn-default btn-menu ion-ios-menu" id="btn-menu"></button>
+        </div>
+
+        <div class="xs-menu menu" id="mobile-menu">
+                <div id="book-search-input" role="search"><input type="text" placeholder="Type to search"></div>            <compodoc-menu></compodoc-menu>
+        </div>
+
+        <div class="container-fluid main">
+           <div class="row main">
+               <div class="hidden-xs menu">
+                   <compodoc-menu mode="normal"></compodoc-menu>
+               </div>
+               <!-- START CONTENT -->
+               <div class="content component">
+                   <div class="content-data">
+
+
+
+
+<ol class="breadcrumb">
+  <li class="breadcrumb-item">Components</li>
+  <li class="breadcrumb-item"
+  >
+  DataLocationComponent</li>
+</ol>
+
+<ul class="nav nav-tabs" role="tablist">
+        <li class="nav-item">
+            <a href="#info" class="nav-link active"
+                role="tab" id="info-tab" data-bs-toggle="tab" data-link="info">Info</a>
+        </li>
+        <li class="nav-item">
+            <a href="#source" class="nav-link"
+                role="tab" id="source-tab" data-bs-toggle="tab" data-link="source">Source</a>
+        </li>
+        <li class="nav-item">
+            <a href="#templateData" class="nav-link"
+                role="tab" id="templateData-tab" data-bs-toggle="tab" data-link="template">Template</a>
+        </li>
+        <li class="nav-item">
+            <a href="#tree" class="nav-link"
+                role="tab" id="tree-tab" data-bs-toggle="tab" data-link="dom-tree">DOM Tree</a>
+        </li>
+</ul>
+
+<div class="tab-content">
+    <div class="tab-pane fade active in" id="info"><p class="comment">
+    <h3>File</h3>
+</p>
+<p class="comment">
+    <code>angular/report/app/shared/form/field-datalocation.component.ts</code>
+</p>
+
+
+    <p class="comment">
+        <h3>Description</h3>
+    </p>
+    <p class="comment">
+        <p>Component to display information from related objects within ReDBox</p>
+
+    </p>
+
+    <p class="comment">
+        <h3>Extends</h3>
+    </p>
+    <p class="comment">
+                <code><a href="../classes/SimpleComponent.html" target="_self" >SimpleComponent</a></code>
+    </p>
+
+
+
+<section data-compodoc="block-metadata">
+    <h3>Metadata</h3>
+    <table class="table table-sm table-hover metadata">
+        <tbody>
+
+
+
+
+
+
+
+
+
+
+
+
+            <tr>
+                <td class="col-md-3">selector</td>
+                <td class="col-md-9"><code>data-location-selector</code></td>
+            </tr>
+
+
+
+
+
+
+            <tr>
+                <td class="col-md-3">templateUrl</td>
+                <td class="col-md-9"><code>./field-data-location.html</code></td>
+            </tr>
+
+
+
+
+
+
+
+
+        </tbody>
+    </table>
+</section>
+
+    <section data-compodoc="block-index">
+    <h3 id="index">Index</h3>
+    <table class="table table-sm table-bordered index-table">
+        <tbody>
+                <tr>
+                    <td class="col-md-4">
+                        <h6><b>Properties</b></h6>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <ul class="index-list">
+                            <li>
+                                <a href="#editingNotes" >editingNotes</a>
+                            </li>
+                            <li>
+                                <a href="#field" >field</a>
+                            </li>
+                            <li>
+                                <a href="#oid" >oid</a>
+                            </li>
+                            <li>
+                                <a href="#uppy" >uppy</a>
+                            </li>
+                            <li>
+                                <a href="#helpShow" >helpShow</a>
+                            </li>
+                            <li>
+                                    <span class="modifier">Public</span>
+                                <a href="#injector" >injector</a>
+                            </li>
+                            <li>
+                                <a href="#loaded" >loaded</a>
+                            </li>
+                            <li>
+                                <a href="#parentId" >parentId</a>
+                            </li>
+                        </ul>
+                    </td>
+                </tr>
+
+                <tr>
+                    <td class="col-md-4">
+                        <h6><b>Methods</b></h6>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <ul class="index-list">
+                            <li>
+                                    <span class="modifier">Public</span>
+                                <a href="#applyPendingChanges" >applyPendingChanges</a>
+                            </li>
+                            <li>
+                                    <span class="modifier">Public</span>
+                                <a href="#editNotes" >editNotes</a>
+                            </li>
+                            <li>
+                                    <span class="modifier">Public</span>
+                                <a href="#eventRecordCreate" >eventRecordCreate</a>
+                            </li>
+                            <li>
+                                    <span class="modifier">Public</span>
+                                <a href="#getAbsUrl" >getAbsUrl</a>
+                            </li>
+                            <li>
+                                    <span class="modifier">Public</span>
+                                <a href="#getDatalocations" >getDatalocations</a>
+                            </li>
+                            <li>
+                                    <span class="modifier">Public</span>
+                                <a href="#hideEditNotes" >hideEditNotes</a>
+                            </li>
+                            <li>
+                                    <span class="modifier">Public</span>
+                                <a href="#initUppy" >initUppy</a>
+                            </li>
+                            <li>
+                                    <span class="modifier">Public</span>
+                                <a href="#isAttachmentsDisabled" >isAttachmentsDisabled</a>
+                            </li>
+                            <li>
+                                    <span class="modifier">Public</span>
+                                <a href="#ngAfterViewInit" >ngAfterViewInit</a>
+                            </li>
+                            <li>
+                                    <span class="modifier">Public</span>
+                                <a href="#ngOnInit" >ngOnInit</a>
+                            </li>
+                            <li>
+                                    <span class="modifier">Public</span>
+                                <a href="#openModal" >openModal</a>
+                            </li>
+                            <li>
+                                    <span class="modifier">Public</span>
+                                <a href="#saveNotes" >saveNotes</a>
+                            </li>
+                            <li>
+                                    <span class="modifier">Public</span>
+                                <a href="#tempClearPending" >tempClearPending</a>
+                            </li>
+                            <li>
+                                    <span class="modifier">Public</span>
+                                <a href="#getFormControl" >getFormControl</a>
+                            </li>
+                            <li>
+                                <a href="#getFromInjector" >getFromInjector</a>
+                            </li>
+                            <li>
+                                    <span class="modifier">Public</span>
+                                <a href="#getGroupClass" >getGroupClass</a>
+                            </li>
+                            <li>
+                                <a href="#getRequiredLabelStr" >getRequiredLabelStr</a>
+                            </li>
+                            <li>
+                                    <span class="modifier">Public</span>
+                                <a href="#hasRequiredError" >hasRequiredError</a>
+                            </li>
+                            <li>
+                                    <span class="modifier">Public</span>
+                                <a href="#toggleHelp" >toggleHelp</a>
+                            </li>
+                        </ul>
+                    </td>
+                </tr>
+
+                <tr>
+                    <td class="col-md-4">
+                        <h6><b>Inputs</b></h6>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <ul class="index-list">
+                            <li>
+                                <a href="#field" >field</a>
+                            </li>
+                            <li>
+                                <a href="#fieldMap" >fieldMap</a>
+                            </li>
+                            <li>
+                                <a href="#form" >form</a>
+                            </li>
+                            <li>
+                                <a href="#index" >index</a>
+                            </li>
+                            <li>
+                                <a href="#isEmbedded" >isEmbedded</a>
+                            </li>
+                            <li>
+                                <a href="#name" >name</a>
+                            </li>
+                        </ul>
+                    </td>
+                </tr>
+
+
+
+
+        </tbody>
+    </table>
+</section>
+
+
+    <section data-compodoc="block-inputs">
+    <h3 id="inputs">Inputs</h3>
+        <table class="table table-sm table-bordered">
+            <tbody>
+                <tr>
+                    <td class="col-md-4">
+                        <a name="field"></a>
+                        <b>field</b>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Type : </i>    <code>FieldBase&lt;any&gt;</code>
+
+                    </td>
+                </tr>
+                            <tr>
+                                <td class="col-md-4" colspan="2">
+                                    <div class="io-line">Inherited from         <code><a href="../classes/SimpleComponent.html" target="_self" >SimpleComponent</a></code>
+</div>
+                                </td>
+                            </tr>
+                        <tr>
+                            <td class="col-md-2" colspan="2">
+                                    <div class="io-line">Defined in         <code><a href="../classes/SimpleComponent.html#source" target="_self" >SimpleComponent:68</a></code>
+</div>
+                            </td>
+                        </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <div class="io-description"><p>Field model</p>
+</div>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+        <table class="table table-sm table-bordered">
+            <tbody>
+                <tr>
+                    <td class="col-md-4">
+                        <a name="fieldMap"></a>
+                        <b>fieldMap</b>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Type : </i>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+
+                    </td>
+                </tr>
+                            <tr>
+                                <td class="col-md-4" colspan="2">
+                                    <div class="io-line">Inherited from         <code><a href="../classes/SimpleComponent.html" target="_self" >SimpleComponent</a></code>
+</div>
+                                </td>
+                            </tr>
+                        <tr>
+                            <td class="col-md-2" colspan="2">
+                                    <div class="io-line">Defined in         <code><a href="../classes/SimpleComponent.html#source" target="_self" >SimpleComponent:76</a></code>
+</div>
+                            </td>
+                        </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <div class="io-description"><p>The field mapping</p>
+</div>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+        <table class="table table-sm table-bordered">
+            <tbody>
+                <tr>
+                    <td class="col-md-4">
+                        <a name="form"></a>
+                        <b>form</b>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Type : </i>    <code>FormGroup</code>
+
+                    </td>
+                </tr>
+                            <tr>
+                                <td class="col-md-4" colspan="2">
+                                    <div class="io-line">Inherited from         <code><a href="../classes/SimpleComponent.html" target="_self" >SimpleComponent</a></code>
+</div>
+                                </td>
+                            </tr>
+                        <tr>
+                            <td class="col-md-2" colspan="2">
+                                    <div class="io-line">Defined in         <code><a href="../classes/SimpleComponent.html#source" target="_self" >SimpleComponent:72</a></code>
+</div>
+                            </td>
+                        </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <div class="io-description"><p>The form group</p>
+</div>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+        <table class="table table-sm table-bordered">
+            <tbody>
+                <tr>
+                    <td class="col-md-4">
+                        <a name="index"></a>
+                        <b>index</b>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Type : </i>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+
+                    </td>
+                </tr>
+                            <tr>
+                                <td class="col-md-4" colspan="2">
+                                    <div class="io-line">Inherited from         <code><a href="../classes/SimpleComponent.html" target="_self" >SimpleComponent</a></code>
+</div>
+                                </td>
+                            </tr>
+                        <tr>
+                            <td class="col-md-2" colspan="2">
+                                    <div class="io-line">Defined in         <code><a href="../classes/SimpleComponent.html#source" target="_self" >SimpleComponent:80</a></code>
+</div>
+                            </td>
+                        </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <div class="io-description"><p>The index of this field</p>
+</div>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+        <table class="table table-sm table-bordered">
+            <tbody>
+                <tr>
+                    <td class="col-md-4">
+                        <a name="isEmbedded"></a>
+                        <b>isEmbedded</b>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Type : </i>        <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/boolean" target="_blank" >boolean</a></code>
+
+                    </td>
+                </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Default value : </i><code>false</code>
+                    </td>
+                </tr>
+                            <tr>
+                                <td class="col-md-4" colspan="2">
+                                    <div class="io-line">Inherited from         <code><a href="../classes/SimpleComponent.html" target="_self" >SimpleComponent</a></code>
+</div>
+                                </td>
+                            </tr>
+                        <tr>
+                            <td class="col-md-2" colspan="2">
+                                    <div class="io-line">Defined in         <code><a href="../classes/SimpleComponent.html#source" target="_self" >SimpleComponent:86</a></code>
+</div>
+                            </td>
+                        </tr>
+            </tbody>
+        </table>
+        <table class="table table-sm table-bordered">
+            <tbody>
+                <tr>
+                    <td class="col-md-4">
+                        <a name="name"></a>
+                        <b>name</b>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Type : </i>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+
+                    </td>
+                </tr>
+                            <tr>
+                                <td class="col-md-4" colspan="2">
+                                    <div class="io-line">Inherited from         <code><a href="../classes/SimpleComponent.html" target="_self" >SimpleComponent</a></code>
+</div>
+                                </td>
+                            </tr>
+                        <tr>
+                            <td class="col-md-2" colspan="2">
+                                    <div class="io-line">Defined in         <code><a href="../classes/SimpleComponent.html#source" target="_self" >SimpleComponent:84</a></code>
+</div>
+                            </td>
+                        </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <div class="io-description"><p>The name of this field</p>
+</div>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+</section>
+
+
+
+    <section data-compodoc="block-methods">
+    
+    <h3 id="methods">
+        Methods
+    </h3>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="applyPendingChanges"></a>
+                    <span class="name">
+                        <span class="modifier">Public</span>
+                        <span ><b>applyPendingChanges</b></span>
+                        <a href="#applyPendingChanges"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                    <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>applyPendingChanges(savedInfo)</code>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-line">Defined in <a href="" data-line="213"
+                            class="link-to-prism">angular/report/app/shared/form/field-datalocation.component.ts:213</a></div>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+
+                    <div class="io-description">
+                        <b>Parameters :</b>
+                        
+                        <table class="params">
+                            <thead>
+                                <tr>
+                                    <td>Name</td>
+                                    <td>Optional</td>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>savedInfo</td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div>
+                    </div>
+                    <div class="io-description">
+                        <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >void</a></code>
+
+                    </div>
+                    <div class="io-description">
+                        
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="editNotes"></a>
+                    <span class="name">
+                        <span class="modifier">Public</span>
+                        <span ><b>editNotes</b></span>
+                        <a href="#editNotes"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                    <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>editNotes(dataLocation, i)</code>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-line">Defined in <a href="" data-line="324"
+                            class="link-to-prism">angular/report/app/shared/form/field-datalocation.component.ts:324</a></div>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+
+                    <div class="io-description">
+                        <b>Parameters :</b>
+                        
+                        <table class="params">
+                            <thead>
+                                <tr>
+                                    <td>Name</td>
+                                    <td>Optional</td>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>dataLocation</td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+
+                                </tr>
+                                <tr>
+                                    <td>i</td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div>
+                    </div>
+                    <div class="io-description">
+                        <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >void</a></code>
+
+                    </div>
+                    <div class="io-description">
+                        
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="eventRecordCreate"></a>
+                    <span class="name">
+                        <span class="modifier">Public</span>
+                        <span ><b>eventRecordCreate</b></span>
+                        <a href="#eventRecordCreate"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                    <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>eventRecordCreate(createdInfo)</code>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-line">Defined in <a href="" data-line="200"
+                            class="link-to-prism">angular/report/app/shared/form/field-datalocation.component.ts:200</a></div>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+
+                    <div class="io-description">
+                        <b>Parameters :</b>
+                        
+                        <table class="params">
+                            <thead>
+                                <tr>
+                                    <td>Name</td>
+                                    <td>Optional</td>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>createdInfo</td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div>
+                    </div>
+                    <div class="io-description">
+                        <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >void</a></code>
+
+                    </div>
+                    <div class="io-description">
+                        
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="getAbsUrl"></a>
+                    <span class="name">
+                        <span class="modifier">Public</span>
+                        <span ><b>getAbsUrl</b></span>
+                        <a href="#getAbsUrl"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                    <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>getAbsUrl(location: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank">string</a>)</code>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-line">Defined in <a href="" data-line="313"
+                            class="link-to-prism">angular/report/app/shared/form/field-datalocation.component.ts:313</a></div>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+
+                    <div class="io-description">
+                        <b>Parameters :</b>
+                        
+                        <table class="params">
+                            <thead>
+                                <tr>
+                                    <td>Name</td>
+                                    <td>Type</td>
+                                    <td>Optional</td>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>location</td>
+                                    <td>
+                                                <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank" >string</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div>
+                    </div>
+                    <div class="io-description">
+                        <b>Returns : </b>        <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank" >string</a></code>
+
+                    </div>
+                    <div class="io-description">
+                        
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="getDatalocations"></a>
+                    <span class="name">
+                        <span class="modifier">Public</span>
+                        <span ><b>getDatalocations</b></span>
+                        <a href="#getDatalocations"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                    <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>getDatalocations()</code>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-line">Defined in <a href="" data-line="196"
+                            class="link-to-prism">angular/report/app/shared/form/field-datalocation.component.ts:196</a></div>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+
+                    <div class="io-description">
+                        <b>Returns : </b>    <code>{}</code>
+
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="hideEditNotes"></a>
+                    <span class="name">
+                        <span class="modifier">Public</span>
+                        <span ><b>hideEditNotes</b></span>
+                        <a href="#hideEditNotes"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                    <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>hideEditNotes()</code>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-line">Defined in <a href="" data-line="329"
+                            class="link-to-prism">angular/report/app/shared/form/field-datalocation.component.ts:329</a></div>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+
+                    <div class="io-description">
+                        <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >void</a></code>
+
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="initUppy"></a>
+                    <span class="name">
+                        <span class="modifier">Public</span>
+                        <span ><b>initUppy</b></span>
+                        <a href="#initUppy"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                    <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>initUppy(oid: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank">string</a>)</code>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-line">Defined in <a href="" data-line="226"
+                            class="link-to-prism">angular/report/app/shared/form/field-datalocation.component.ts:226</a></div>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+
+                    <div class="io-description">
+                        <b>Parameters :</b>
+                        
+                        <table class="params">
+                            <thead>
+                                <tr>
+                                    <td>Name</td>
+                                    <td>Type</td>
+                                    <td>Optional</td>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>oid</td>
+                                    <td>
+                                                <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank" >string</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div>
+                    </div>
+                    <div class="io-description">
+                        <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >void</a></code>
+
+                    </div>
+                    <div class="io-description">
+                        
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="isAttachmentsDisabled"></a>
+                    <span class="name">
+                        <span class="modifier">Public</span>
+                        <span ><b>isAttachmentsDisabled</b></span>
+                        <a href="#isAttachmentsDisabled"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                    <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>isAttachmentsDisabled()</code>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-line">Defined in <a href="" data-line="303"
+                            class="link-to-prism">angular/report/app/shared/form/field-datalocation.component.ts:303</a></div>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+
+                    <div class="io-description">
+                        <b>Returns : </b>        <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/boolean" target="_blank" >boolean</a></code>
+
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="ngAfterViewInit"></a>
+                    <span class="name">
+                        <span class="modifier">Public</span>
+                        <span ><b>ngAfterViewInit</b></span>
+                        <a href="#ngAfterViewInit"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                    <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>ngAfterViewInit()</code>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-line">Defined in <a href="" data-line="190"
+                            class="link-to-prism">angular/report/app/shared/form/field-datalocation.component.ts:190</a></div>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+
+                    <div class="io-description">
+                        <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >void</a></code>
+
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="ngOnInit"></a>
+                    <span class="name">
+                        <span class="modifier">Public</span>
+                        <span ><b>ngOnInit</b></span>
+                        <a href="#ngOnInit"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                    <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>ngOnInit()</code>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-line">Defined in <a href="" data-line="175"
+                            class="link-to-prism">angular/report/app/shared/form/field-datalocation.component.ts:175</a></div>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+
+                    <div class="io-description">
+                        <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >void</a></code>
+
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="openModal"></a>
+                    <span class="name">
+                        <span class="modifier">Public</span>
+                        <span ><b>openModal</b></span>
+                        <a href="#openModal"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                    <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>openModal()</code>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-line">Defined in <a href="" data-line="320"
+                            class="link-to-prism">angular/report/app/shared/form/field-datalocation.component.ts:320</a></div>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+
+                    <div class="io-description">
+                        <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >void</a></code>
+
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="saveNotes"></a>
+                    <span class="name">
+                        <span class="modifier">Public</span>
+                        <span ><b>saveNotes</b></span>
+                        <a href="#saveNotes"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                    <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>saveNotes()</code>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-line">Defined in <a href="" data-line="333"
+                            class="link-to-prism">angular/report/app/shared/form/field-datalocation.component.ts:333</a></div>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+
+                    <div class="io-description">
+                        <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >void</a></code>
+
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="tempClearPending"></a>
+                    <span class="name">
+                        <span class="modifier">Public</span>
+                        <span ><b>tempClearPending</b></span>
+                        <a href="#tempClearPending"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                    <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>tempClearPending()</code>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-line">Defined in <a href="" data-line="206"
+                            class="link-to-prism">angular/report/app/shared/form/field-datalocation.component.ts:206</a></div>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+
+                    <div class="io-description">
+                        <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >void</a></code>
+
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="getFormControl"></a>
+                    <span class="name">
+                        <span class="modifier">Public</span>
+                        <span ><b>getFormControl</b></span>
+                        <a href="#getFormControl"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                    <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>getFormControl(name: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank">string</a>, ctrlIndex: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/number" target="_blank">number</a>)</code>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-line">Inherited from         <code><a href="../classes/SimpleComponent.html" target="_self" >SimpleComponent</a></code>
+</div>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                        <div class="io-line">Defined in         <code><a href="../classes/SimpleComponent.html#source" target="_self" >SimpleComponent:111</a></code>
+</div>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-description"><p>Return the NG2 FormControl or subclass thereof</p>
+</div>
+
+                    <div class="io-description">
+                        <b>Parameters :</b>
+                        
+                        <table class="params">
+                            <thead>
+                                <tr>
+                                    <td>Name</td>
+                                    <td>Type</td>
+                                    <td>Optional</td>
+                                    <td>Default value</td>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>name</td>
+                                    <td>
+                                                <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank" >string</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+                                    <td>
+                                        <code>null</code>
+                                    </td>
+
+                                </tr>
+                                <tr>
+                                    <td>ctrlIndex</td>
+                                    <td>
+                                                <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/number" target="_blank" >number</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+                                    <td>
+                                        <code>null</code>
+                                    </td>
+
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div>
+                    </div>
+                    <div class="io-description">
+                        <b>Returns : </b>    <code>FormControl</code>
+
+                    </div>
+                    <div class="io-description">
+                        
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="getFromInjector"></a>
+                    <span class="name">
+                        <span ><b>getFromInjector</b></span>
+                        <a href="#getFromInjector"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+<code>getFromInjector(token: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>)</code>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-line">Inherited from         <code><a href="../classes/SimpleComponent.html" target="_self" >SimpleComponent</a></code>
+</div>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                        <div class="io-line">Defined in         <code><a href="../classes/SimpleComponent.html#source" target="_self" >SimpleComponent:194</a></code>
+</div>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-description"><p>Returns the NG2 root injector</p>
+</div>
+
+                    <div class="io-description">
+                        <b>Parameters :</b>
+                        
+                        <table class="params">
+                            <thead>
+                                <tr>
+                                    <td>Name</td>
+                                    <td>Type</td>
+                                    <td>Optional</td>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>token</td>
+                                    <td>
+                                                <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div>
+                    </div>
+                    <div class="io-description">
+                        <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+
+                    </div>
+                    <div class="io-description">
+                        
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="getGroupClass"></a>
+                    <span class="name">
+                        <span class="modifier">Public</span>
+                        <span ><b>getGroupClass</b></span>
+                        <a href="#getGroupClass"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                    <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>getGroupClass(fldName: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank">string</a>)</code>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-line">Inherited from         <code><a href="../classes/SimpleComponent.html" target="_self" >SimpleComponent</a></code>
+</div>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                        <div class="io-line">Defined in         <code><a href="../classes/SimpleComponent.html#source" target="_self" >SimpleComponent:164</a></code>
+</div>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-description"><p>Returns the CSS class</p>
+</div>
+
+                    <div class="io-description">
+                        <b>Parameters :</b>
+                        
+                        <table class="params">
+                            <thead>
+                                <tr>
+                                    <td>Name</td>
+                                    <td>Type</td>
+                                    <td>Optional</td>
+                                    <td>Default value</td>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>fldName</td>
+                                    <td>
+                                                <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank" >string</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+                                    <td>
+                                        <code>null</code>
+                                    </td>
+
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div>
+                    </div>
+                    <div class="io-description">
+                        <b>Returns : </b>        <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank" >string</a></code>
+
+                    </div>
+                    <div class="io-description">
+                        
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="getRequiredLabelStr"></a>
+                    <span class="name">
+                        <span ><b>getRequiredLabelStr</b></span>
+                        <a href="#getRequiredLabelStr"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+<code>getRequiredLabelStr()</code>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-line">Inherited from         <code><a href="../classes/SimpleComponent.html" target="_self" >SimpleComponent</a></code>
+</div>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                        <div class="io-line">Defined in         <code><a href="../classes/SimpleComponent.html#source" target="_self" >SimpleComponent:186</a></code>
+</div>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-description"><p>Returns label</p>
+</div>
+
+                    <div>
+                    </div>
+                    <div class="io-description">
+                        <b>Returns : </b>        <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank" >string</a></code>
+
+                    </div>
+                    <div class="io-description">
+                        
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="hasRequiredError"></a>
+                    <span class="name">
+                        <span class="modifier">Public</span>
+                        <span ><b>hasRequiredError</b></span>
+                        <a href="#hasRequiredError"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                    <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>hasRequiredError()</code>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-line">Inherited from         <code><a href="../classes/SimpleComponent.html" target="_self" >SimpleComponent</a></code>
+</div>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                        <div class="io-line">Defined in         <code><a href="../classes/SimpleComponent.html#source" target="_self" >SimpleComponent:172</a></code>
+</div>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-description"><p>If this field has a &#39;required&#39; error.
+Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a></p>
+</div>
+
+                    <div>
+                    </div>
+                    <div class="io-description">
+                        <b>Returns : </b>        <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/boolean" target="_blank" >boolean</a></code>
+
+                    </div>
+                    <div class="io-description">
+                        
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="toggleHelp"></a>
+                    <span class="name">
+                        <span class="modifier">Public</span>
+                        <span ><b>toggleHelp</b></span>
+                        <a href="#toggleHelp"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                    <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>toggleHelp()</code>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-line">Inherited from         <code><a href="../classes/SimpleComponent.html" target="_self" >SimpleComponent</a></code>
+</div>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                        <div class="io-line">Defined in         <code><a href="../classes/SimpleComponent.html#source" target="_self" >SimpleComponent:179</a></code>
+</div>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-description"><p>Convenience method to toggle help mode.</p>
+</div>
+
+                    <div>
+                    </div>
+                    <div class="io-description">
+                        <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >void</a></code>
+
+                    </div>
+                    <div class="io-description">
+                        
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+</section>
+    <section data-compodoc="block-properties">
+    
+    <h3 id="inputs">
+        Properties
+    </h3>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="editingNotes"></a>
+                    <span class="name">
+                        <span ><b>editingNotes</b></span>
+                        <a href="#editingNotes"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Type : </i>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+
+                    </td>
+                </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Default value : </i><code>{notes: &#x27;&#x27;, index:-1}</code>
+                    </td>
+                </tr>
+                    <tr>
+                        <td class="col-md-4">
+                                <div class="io-line">Defined in <a href="" data-line="173" class="link-to-prism">angular/report/app/shared/form/field-datalocation.component.ts:173</a></div>
+                        </td>
+                    </tr>
+
+
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="field"></a>
+                    <span class="name">
+                        <span ><b>field</b></span>
+                        <a href="#field"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Type : </i>        <code><a href="../classes/DataLocationField.html" target="_self" >DataLocationField</a></code>
+
+                    </td>
+                </tr>
+                    <tr>
+                        <td class="col-md-4">
+                                <div class="io-line">Defined in <a href="" data-line="170" class="link-to-prism">angular/report/app/shared/form/field-datalocation.component.ts:170</a></div>
+                        </td>
+                    </tr>
+
+
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="oid"></a>
+                    <span class="name">
+                        <span ><b>oid</b></span>
+                        <a href="#oid"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Type : </i>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+
+                    </td>
+                </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Default value : </i><code>null</code>
+                    </td>
+                </tr>
+                    <tr>
+                        <td class="col-md-4">
+                                <div class="io-line">Defined in <a href="" data-line="172" class="link-to-prism">angular/report/app/shared/form/field-datalocation.component.ts:172</a></div>
+                        </td>
+                    </tr>
+
+
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="uppy"></a>
+                    <span class="name">
+                        <span ><b>uppy</b></span>
+                        <a href="#uppy"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Type : </i>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+
+                    </td>
+                </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Default value : </i><code>null</code>
+                    </td>
+                </tr>
+                    <tr>
+                        <td class="col-md-4">
+                                <div class="io-line">Defined in <a href="" data-line="171" class="link-to-prism">angular/report/app/shared/form/field-datalocation.component.ts:171</a></div>
+                        </td>
+                    </tr>
+
+
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="helpShow"></a>
+                    <span class="name">
+                        <span ><b>helpShow</b></span>
+                        <a href="#helpShow"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Type : </i>        <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/boolean" target="_blank" >boolean</a></code>
+
+                    </td>
+                </tr>
+                        <tr>
+                            <td class="col-md-4">
+                                <div class="io-line">Inherited from         <code><a href="../classes/SimpleComponent.html" target="_self" >SimpleComponent</a></code>
+</div>
+                            </td>
+                        </tr>
+                    <tr>
+                        <td class="col-md-4">
+                                <div class="io-line">Defined in         <code><a href="../classes/SimpleComponent.html#source" target="_self" >SimpleComponent:94</a></code>
+</div>
+                        </td>
+                    </tr>
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-description"><p>Toggles help display</p>
+</div>
+                </td>
+            </tr>
+
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="injector"></a>
+                    <span class="name">
+                            <span class="modifier">Public</span>
+                        <span ><b>injector</b></span>
+                        <a href="#injector"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Type : </i>    <code>Injector</code>
+
+                    </td>
+                </tr>
+                        <tr>
+                            <td class="col-md-4">
+                                <div class="io-line">Inherited from         <code><a href="../classes/SimpleComponent.html" target="_self" >SimpleComponent</a></code>
+</div>
+                            </td>
+                        </tr>
+                    <tr>
+                        <td class="col-md-4">
+                                <div class="io-line">Defined in         <code><a href="../classes/SimpleComponent.html#source" target="_self" >SimpleComponent:90</a></code>
+</div>
+                        </td>
+                    </tr>
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-description"><p>The NG2 root injector</p>
+</div>
+                </td>
+            </tr>
+
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="loaded"></a>
+                    <span class="name">
+                        <span ><b>loaded</b></span>
+                        <a href="#loaded"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Type : </i>        <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/boolean" target="_blank" >boolean</a></code>
+
+                    </td>
+                </tr>
+                        <tr>
+                            <td class="col-md-4">
+                                <div class="io-line">Inherited from         <code><a href="../classes/SimpleComponent.html" target="_self" >SimpleComponent</a></code>
+</div>
+                            </td>
+                        </tr>
+                    <tr>
+                        <td class="col-md-4">
+                                <div class="io-line">Defined in         <code><a href="../classes/SimpleComponent.html#source" target="_self" >SimpleComponent:104</a></code>
+</div>
+                        </td>
+                    </tr>
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-description"><p>Loaded flag</p>
+</div>
+                </td>
+            </tr>
+
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="parentId"></a>
+                    <span class="name">
+                        <span ><b>parentId</b></span>
+                        <a href="#parentId"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Type : </i>        <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank" >string</a></code>
+
+                    </td>
+                </tr>
+                        <tr>
+                            <td class="col-md-4">
+                                <div class="io-line">Inherited from         <code><a href="../classes/SimpleComponent.html" target="_self" >SimpleComponent</a></code>
+</div>
+                            </td>
+                        </tr>
+                    <tr>
+                        <td class="col-md-4">
+                                <div class="io-line">Defined in         <code><a href="../classes/SimpleComponent.html#source" target="_self" >SimpleComponent:99</a></code>
+</div>
+                        </td>
+                    </tr>
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-description"><p>Optional parentId of this component</p>
+</div>
+                </td>
+            </tr>
+
+        </tbody>
+    </table>
+</section>
+
+</div>
+
+
+    <div class="tab-pane fade  tab-source-code" id="source">
+        <pre class="line-numbers compodoc-sourcecode"><code class="language-typescript">import { Input, Component, OnInit, Inject, Injector } from &#x27;@angular/core&#x27;;
+import { SimpleComponent } from &#x27;./field-simple.component&#x27;;
+import { FieldBase } from &#x27;./field-base&#x27;;
+import { FormGroup, FormControl, Validators } from &#x27;@angular/forms&#x27;;
+import * as _ from &quot;lodash&quot;;
+import { RecordsService } from &#x27;./records.service&#x27;;
+import * as Uppy from &#x27;uppy&#x27;;
+
+declare var jQuery: any;
+/**
+ * Contributor Model
+ *
+ *
+ * @author &lt;a target&#x3D;&#x27;_&#x27; href&#x3D;&#x27;https://github.com/shilob&#x27;&gt;Shilo Banihit&lt;/a&gt;
+ *
+ */
+export class DataLocationField extends FieldBase&lt;any&gt; {
+
+  showHeader: boolean;
+  validators: any;
+  enabledValidators: boolean;
+  value: any[];
+  accessDeniedObjects: object[];
+  failedObjects: object[];
+  recordsService: RecordsService;
+  columns: object[];
+  newLocation: any &#x3D; { type: &quot;url&quot;, location: &quot;&quot;, notes: &quot;&quot; };
+  attachmentText: string&#x3D;&quot;Add attachment(s)&quot;;
+  dataTypes: object[] &#x3D; [{
+    &#x27;label&#x27;: &#x27;URL&#x27;,
+    &#x27;value&#x27;: &#x27;url&#x27;,
+  },
+  {
+    &#x27;label&#x27;: &#x27;Physical location&#x27;,
+    &#x27;value&#x27;: &#x27;physical&#x27;,
+  },
+  {
+    &#x27;label&#x27;: &#x27;File path&#x27;,
+    &#x27;value&#x27;: &#x27;file&#x27;,
+  },
+  {
+    &#x27;label&#x27;: &#x27;Attachment&#x27;,
+    &#x27;value&#x27;: &#x27;attachment&#x27;
+  }
+  ];
+
+  dataTypeLookup: any &#x3D; {
+    &#x27;url&#x27;: &quot;URL&quot;,
+    &#x27;physical&#x27;: &quot;Physical location&quot;,
+    &#x27;attachment&#x27;: &quot;Attachment&quot;,
+    &#x27;file&#x27;: &quot;File path&quot;
+  }
+
+  maxFileSize: number; // in bytes
+  maxNumberOfFiles: number;
+  allowedFileTypes: any[];
+  restrictions: any;
+  locationAddText: string;
+  editNotesButtonText: string;
+  editNotesTitle: string;
+  cancelEditNotesButtonText: string;
+  applyEditNotesButtonText: string;
+  editNotesCssClasses: any;
+  typeHeader: string;
+  locationHeader: string;
+  notesHeader: string;
+  uppyDashboardNote: string;
+  allowUploadWithoutSave: boolean;
+
+  constructor(options: any, injector: any) {
+    super(options, injector);
+    this.accessDeniedObjects &#x3D; [];
+    this.locationAddText &#x3D; this.getTranslated(options[&#x27;locationAddText&#x27;], null);
+    this.editNotesButtonText &#x3D; this.getTranslated(options[&#x27;editNotesButtonText&#x27;], &#x27;Edit&#x27;);
+    this.editNotesTitle &#x3D; this.getTranslated(options[&#x27;editNotesTitle&#x27;], &#x27;Edit Notes&#x27;);
+    this.cancelEditNotesButtonText &#x3D; this.getTranslated(options[&#x27;cancelEditNotesButtonText&#x27;], &#x27;Cancel&#x27;);
+    this.applyEditNotesButtonText &#x3D; this.getTranslated(options[&#x27;applyEditNotesButtonText&#x27;], &#x27;Apply&#x27;);
+    this.editNotesCssClasses &#x3D; options[&#x27;editNotesCssClasses&#x27;] || &#x27;form-control&#x27;;
+    this.typeHeader &#x3D;  this.getTranslated(options[&#x27;typeHeader&#x27;], &#x27;Type&#x27;);
+    this.locationHeader &#x3D;  this.getTranslated(options[&#x27;locationHeader&#x27;], &#x27;Location&#x27;);
+    this.notesHeader &#x3D;  this.getTranslated(options[&#x27;notesHeader&#x27;], &#x27;Notes&#x27;);
+    this.uppyDashboardNote &#x3D; this.getTranslated(options[&#x27;uppyDashboardNote&#x27;], &#x27;Maximum upload size: 1 Gb per file&#x27;);
+    this.columns &#x3D; options[&#x27;columns&#x27;] || [];
+    if(!_.isEmpty(options[&#x27;dataTypeLookup&#x27;])) {
+      this.dataTypeLookup &#x3D; options[&#x27;dataTypeLookup&#x27;];
+      console.log(this.dataTypeLookup);
+    }
+    if(!_.isEmpty(options[&#x27;dataTypes&#x27;])) {
+      this.dataTypes &#x3D; options[&#x27;dataTypes&#x27;];
+      console.log(this.dataTypes);
+    }
+
+    this.restrictions &#x3D; options[&#x27;restrictions&#x27;] || null;
+
+    this.value &#x3D; options[&#x27;value&#x27;] || this.setEmptyValue();
+    this.recordsService &#x3D; this.getFromInjector(RecordsService);
+    this.allowUploadWithoutSave &#x3D; _.isUndefined(options[&#x27;allowUploadWithoutSave&#x27;]) ? false : options[&#x27;allowUploadWithoutSave&#x27;];
+  }
+
+  setValue(value: any, emitEvent: boolean &#x3D; true) {
+    this.formModel.setValue(value, { emitEvent: emitEvent, emitModelToViewChange: true });
+    this.formModel.markAsTouched();
+    this.formModel.markAsDirty();
+  }
+
+  setEmptyValue() {
+    this.value &#x3D; [];
+    return this.value;
+  }
+
+  addLocation() {
+    this.value.push(this.newLocation);
+    this.setValue(this.value);
+    this.newLocation &#x3D; { type: &quot;url&quot;, location: &quot;&quot;, notes: &quot;&quot; };
+  }
+
+  appendLocation(newLoc: any) {
+    this.value.push(newLoc);
+    this.setValue(this.value, true);
+  }
+
+  clearPendingAtt(value) {
+    _.each(value, (val: any) &#x3D;&gt; {
+      if (val.type &#x3D;&#x3D; &#x27;attachment&#x27;) {
+        _.unset(val, &#x27;pending&#x27;);
+      }
+    });
+  }
+
+  removeLocation(loc: any) {
+    _.remove(this.value, (val: any) &#x3D;&gt; {
+      return val.type &#x3D;&#x3D; loc.type &amp;&amp; val.name &#x3D;&#x3D; loc.name &amp;&amp; val.location &#x3D;&#x3D; loc.location;
+    });
+    this.setValue(this.value);
+  }
+
+
+
+}
+/**
+* Component to display information from related objects within ReDBox
+*
+*
+*
+*
+*/
+@Component({
+  selector: &#x27;data-location-selector&#x27;,
+  templateUrl: &#x27;./field-data-location.html&#x27;
+})
+export class DataLocationComponent extends SimpleComponent {
+  field: DataLocationField;
+  uppy: any &#x3D; null;
+  oid: any &#x3D; null;
+  editingNotes: any &#x3D; {notes: &#x27;&#x27;, index:-1};
+
+  public ngOnInit() {
+    let oid &#x3D; this.field.fieldMap._rootComp.oid;
+    if (this.field.editMode) {
+      if (_.isNull(oid) || _.isUndefined(oid) || _.isEmpty(oid)) {
+        // wait for the OID to be set when record is created
+        if (!this.field.fieldMap._rootComp.getSubscription(&#x27;recordCreated&#x27;)) {
+          console.log(&#x60;Subscribing to record creation..... ${this.field.name}&#x60;);
+          this.field.fieldMap._rootComp.subscribe(&#x27;recordCreated&#x27;, this.field.name, this.eventRecordCreate.bind(this));
+          this.initUppy(oid);
+        }
+      }
+      this.initUppy(oid);
+    }
+  }
+
+  public ngAfterViewInit() {
+    if (this.field.editMode) {
+      jQuery(&#x60;.uppy-Dashboard-input&#x60;).attr(&#x27;aria-label&#x27;, this.field.label);
+    }
+  }
+
+  public getDatalocations() {
+    return this.field.value;
+  }
+
+  public eventRecordCreate(createdInfo) {
+    console.log(&#x60;Created record triggered: &#x60;);
+    console.log(createdInfo);
+    this.field.fieldMap[this.field.name].instance.initUppy(createdInfo.oid);
+  }
+
+  public tempClearPending() {
+    // temporarily clearing pending values
+    const fieldVal &#x3D; _.cloneDeep(this.field.fieldMap._rootComp.form.value[this.field.name]);
+    this.field.clearPendingAtt(fieldVal);
+    this.field.fieldMap._rootComp.form.controls[this.field.name].setValue(fieldVal, { emitEvent: true });
+  }
+
+  public applyPendingChanges(savedInfo) {
+    if (savedInfo.success) {
+      // this.field.value &#x3D; this.field.fieldMap._rootComp.form.value[this.field.name];
+      const finalVal &#x3D; this.field.fieldMap._rootComp.form.controls[this.field.name].value;
+      this.field.fieldMap[this.field.name].field.value &#x3D; finalVal;
+    } else {
+      // reverse the value
+      console.log(&#x60;Resetting....&#x60;);
+      this.field.fieldMap._rootComp.form.controls[this.field.name].setValue(this.field.fieldMap[this.field.name].field.value);
+    }
+  }
+
+
+  public initUppy(oid: string) {
+    if (_.isEmpty(oid) &amp;&amp; this.field.allowUploadWithoutSave) {
+      oid &#x3D; &quot;pending-oid&quot;;
+    }
+    this.field.fieldMap[this.field.name].instance.oid &#x3D; oid;
+    if (this.uppy) {
+      console.log(&#x60;Uppy already created... setting oid to: ${oid}&#x60;);
+      this.field.fieldMap[this.field.name].instance.uppy.getPlugin(&#x27;Tus&#x27;).opts.endpoint &#x3D; &#x60;${this.field.recordsService.getBrandingAndPortalUrl}/record/${oid}/attach&#x60;;
+      return;
+    }
+    const appConfig &#x3D; this.field.recordsService.getConfig();
+    const uppyConfig &#x3D; {
+      debug: true,
+      autoProceed: false,
+      restrictions: this.field.restrictions
+    };
+    const uppyDashboardNote &#x3D; this.field.uppyDashboardNote;
+    console.debug(&#x60;Using Uppy config:&#x60;);
+    console.debug(JSON.stringify(uppyConfig));
+
+    const tusConfig &#x3D; {
+      // added to prevent issues when re-uploading a file that has already been deleted from staging
+      removeFingerprintOnSuccess: true,
+      endpoint: &#x60;${this.field.recordsService.getBrandingAndPortalUrl}/record/${oid}/attach&#x60;,
+      headers: {
+        &#x27;X-CSRF-Token&#x27;: appConfig.csrfToken
+      }
+    };
+    console.debug(&#x60;Using TUS config:::&#x60;);
+    console.debug(JSON.stringify(tusConfig));
+    this.uppy &#x3D; Uppy.Core(uppyConfig);
+    this.uppy.use(Uppy.Dashboard, {
+      // trigger: &#x27;.UppyModalOpenerBtn&#x27;,
+      inline: false,
+      hideProgressAfterFinish: true,
+      note: uppyDashboardNote,
+      metaFields: [
+        { id: &#x27;notes&#x27;, name: &#x27;Notes&#x27;, placeholder: &#x27;Notes about this file.&#x27; }
+      ]
+    })
+      .use(Uppy.Tus, tusConfig)
+      .run();
+    console.log(this.uppy);
+    let fieldVal: any &#x3D; null;
+    // attach event handers...
+    let that &#x3D; this;
+    this.uppy.on(&#x27;upload-success&#x27;, (file, resp, uploadURL) &#x3D;&gt; {
+      console.debug(&quot;File info:&quot;);
+      console.debug(file);
+      console.debug(&quot;Response:&quot;);
+      console.debug(resp);
+      console.debug(&#x60;Upload URL:${uploadURL}&#x60;);
+      // add to form control on each upload...
+      const urlParts &#x3D; uploadURL.split(&#x27;/&#x27;);
+      const fileId &#x3D; urlParts[urlParts.length - 1];
+      let oidGlobal &#x3D; that.field.fieldMap[that.field.name].instance.oid;
+      console.debug(&#x60;oid:${oidGlobal}&#x60;);
+      const oidUrlPosition &#x3D; _.indexOf(urlParts, oidGlobal);
+      const choppedUrl &#x3D; urlParts.slice(oidUrlPosition, urlParts.length).join(&#x27;/&#x27;);
+      const newLoc &#x3D; { type: &quot;attachment&quot;, pending: true, location: choppedUrl, notes: file.meta.notes, mimeType: file.type, name: file.meta.name, fileId: fileId, uploadUrl: uploadURL, size: file.size };
+      console.debug(&#x60;Adding new location:&#x60;);
+      console.debug(newLoc);
+      this.field.appendLocation(newLoc);
+    });
+    // clearing all pending attachments...
+    this.field.fieldMap._rootComp.subscribe(&#x27;onBeforeSave&#x27;, this.field.name, (savedInfo: any) &#x3D;&gt; {
+      console.log(&#x60;Before saving record triggered.. &#x60;);
+      this.field.fieldMap[this.field.name].instance.tempClearPending();
+    });
+
+    // attach event handling for saving the record
+    this.field.fieldMap._rootComp.subscribe(&#x27;recordSaved&#x27;, this.field.name, (savedInfo: any) &#x3D;&gt; {
+      console.log(&#x60;Saved record triggered.. &#x60;);
+      this.field.fieldMap[this.field.name].instance.applyPendingChanges(savedInfo);
+    });
+  }
+
+  public isAttachmentsDisabled() {
+    if (_.isEmpty(this.oid) &amp;&amp; !this.field.allowUploadWithoutSave) {
+      this.field.attachmentText&#x3D;&quot;Save your record to attach files&quot;;
+      return true;
+    } else {
+      this.field.attachmentText&#x3D;&quot;Add attachment(s)&quot;;
+      return false;
+    }
+  }
+
+  public getAbsUrl(location: string) {
+    if (!_.startsWith(location, &#x27;record&#x27;)) {
+      location &#x3D; &#x60;record/${location}&#x60;;
+    }
+    return &#x60;${this.field.recordsService.getBrandingAndPortalUrl}/${location}&#x60;;
+  }
+
+  public openModal() {
+    this.uppy &amp;&amp; this.uppy.getPlugin(&#x27;Dashboard&#x27;) &amp;&amp; this.uppy.getPlugin(&#x27;Dashboard&#x27;).openModal();
+  }
+
+  public editNotes(dataLocation, i) {
+    this.editingNotes &#x3D; {notes: dataLocation.notes, index:i};
+    jQuery(&#x60;#${this.field.name}_editnotes&#x60;).modal(&#x27;show&#x27;);
+  }
+
+  public hideEditNotes() {
+    jQuery(&#x60;#${this.field.name}_editnotes&#x60;).modal(&#x27;hide&#x27;);
+  }
+
+  public saveNotes() {
+    jQuery(&#x60;#${this.field.name}_editnotes&#x60;).modal(&#x27;hide&#x27;);
+    this.field.value[this.editingNotes.index].notes &#x3D; this.editingNotes.notes;
+    this.field.setValue(this.field.value);
+  }
+}
+</code></pre>
+    </div>
+
+    <div class="tab-pane fade " id="templateData">
+        <pre class="line-numbers"><code class="language-html">&lt;!-- Basic Uppy styles --&gt;
+&lt;ng-container *ngIf&#x3D;&quot;field.visible&quot;&gt;
+&lt;div class&#x3D;&#x27;padding-bottom-10&#x27;&gt;
+  &lt;span class&#x3D;&quot;label-font&quot;&gt;
+    {{field.label}} {{ getRequiredLabelStr()}}
+  &lt;/span&gt;&lt;br/&gt;
+  &lt;div&gt;
+      &lt;div class&#x3D;&quot;table-responsive&quot; *ngIf&#x3D;&quot;getDatalocations() &amp;&amp; getDatalocations().length &gt; 0&quot;&gt;
+      &lt;table class&#x3D;&quot;table table-bordered table-striped table-hover&quot;&gt;
+        &lt;thead&gt;
+          &lt;tr&gt;
+            &lt;th width&#x3D;&quot;15%&quot;&gt;{{ field.typeHeader }}&lt;/th&gt;
+            &lt;th width&#x3D;&quot;40%&quot;&gt;{{ field.locationHeader }}&lt;/th&gt;
+            &lt;th width&#x3D;&quot;40%&quot;&gt;{{ field.notesHeader }}&lt;/th&gt;
+            &lt;th width&#x3D;&quot;5%&quot; *ngIf&#x3D;&quot;field.editMode&quot;&gt;&lt;span [hidden]&#x3D;&quot;true&quot;&gt;Action&lt;/span&gt;&lt;/th&gt;
+          &lt;/tr&gt;
+        &lt;/thead&gt;
+        &lt;tbody&gt;
+          &lt;tr *ngFor&#x3D;&quot;let dataLocation of getDatalocations(); let i &#x3D; index;&quot;&gt;
+            &lt;td&gt;{{ field.dataTypeLookup[dataLocation.type] }}&lt;/td&gt;
+            &lt;td&gt;
+              &lt;ng-container *ngIf&#x3D;&quot;dataLocation &amp;&amp; dataLocation.type !&#x3D; &#x27;attachment&#x27; &amp;&amp; dataLocation.type !&#x3D; &#x27;url&#x27;&quot;&gt;
+              {{ dataLocation.location }}
+              &lt;/ng-container&gt;
+              &lt;ng-container *ngIf&#x3D;&quot;dataLocation.type &#x3D;&#x3D; &#x27;url&#x27;&quot;&gt;
+                &lt;a *ngIf&#x3D;&quot;!dataLocation.pending&quot; [href]&#x3D;&quot;dataLocation.location&quot; target&#x3D;&quot;_blank&quot;&gt;
+                  {{ dataLocation.location }}
+                &lt;/a&gt;
+              &lt;/ng-container&gt;
+              &lt;ng-container *ngIf&#x3D;&quot;dataLocation.type &#x3D;&#x3D; &#x27;attachment&#x27;&quot;&gt;
+                &lt;ng-container *ngIf&#x3D;&quot;dataLocation.pending&quot;&gt;
+                  {{ dataLocation.name }}
+                &lt;/ng-container&gt;
+                &lt;a *ngIf&#x3D;&quot;!dataLocation.pending&quot; href&#x3D;&quot;{{ getAbsUrl(dataLocation.location) }}&quot; target&#x3D;&quot;_blank&quot;&gt;
+                  {{ dataLocation.name }}
+                &lt;/a&gt;
+              &lt;/ng-container&gt;
+            &lt;/td&gt;
+            &lt;td&gt;
+              {{ dataLocation.notes }}
+              &lt;button *ngIf&#x3D;&quot;field.editMode&quot; type&#x3D;&#x27;button&#x27; class&#x3D;&quot;btn btn-primary pull-right&quot; (click)&#x3D;&quot;editNotes(dataLocation, i)&quot;&gt;{{ field.editNotesButtonText }}&lt;/button&gt;
+            &lt;/td&gt;
+            &lt;td *ngIf&#x3D;&quot;field.editMode&quot;&gt;
+              &lt;a class&#x3D;&quot;fa fa-minus-circle btn text-20 btn-danger&quot; (click)&#x3D;&quot;field.removeLocation(dataLocation)&quot;&gt;&lt;/a&gt;
+            &lt;/td&gt;
+          &lt;/tr&gt;
+        &lt;/tbody&gt;
+      &lt;/table&gt;
+    &lt;/div&gt;
+    &lt;div class&#x3D;&quot;row padding-bottom-10&quot; *ngIf&#x3D;&quot;field.editMode&quot;&gt;
+      &lt;div class&#x3D;&quot;col-xs-3&quot;&gt;
+        &lt;span class&#x3D;&quot;label-font&quot;&gt;{{ field.typeHeader }}&lt;/span&gt;
+      &lt;/div&gt;
+      &lt;div class&#x3D;&quot;col-xs-4&quot;&gt;
+        &lt;span class&#x3D;&quot;label-font&quot;&gt;{{ field.locationHeader }}&lt;/span&gt;
+      &lt;/div&gt;
+      &lt;div class&#x3D;&quot;col-xs-4&quot;&gt;
+        &lt;span class&#x3D;&quot;label-font&quot; *ngIf&#x3D;&quot;field.newLocation.type !&#x3D; &#x27;attachment&#x27;&quot;&gt;{{ field.notesHeader }}&lt;/span&gt;
+      &lt;/div&gt;
+      &lt;div class&#x3D;&quot;col-xs-1&quot;&gt;
+        &lt;button type&#x3D;&quot;button&quot; class&#x3D;&quot;btn btn-default&quot; *ngIf&#x3D;&quot;field.help&quot; (click)&#x3D;&quot;toggleHelp()&quot; [attr.aria-label]&#x3D;&quot;&#x27;help&#x27; | translate &quot;&gt;&lt;span class&#x3D;&quot;glyphicon glyphicon-question-sign&quot; aria-hidden&#x3D;&quot;true&quot;&gt;&lt;/span&gt;&lt;/button&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+    &lt;div *ngIf&#x3D;&quot;this.helpShow&quot;&gt;
+      &lt;span id&#x3D;&quot;{{ &#x27;helpBlock_&#x27; + field.name }}&quot; class&#x3D;&quot;help-block&quot; [innerHtml]&#x3D;&quot;field.help&quot;&gt;&lt;/span&gt;
+    &lt;/div&gt;
+    &lt;ng-container *ngIf&#x3D;&quot;field.editMode&quot;&gt;
+      &lt;div class&#x3D;&quot;row&quot;&gt;
+        &lt;div class&#x3D;&quot;col-xs-3&quot;&gt;
+          &lt;select [(ngModel)]&#x3D;&quot;field.newLocation.type&quot; [id]&#x3D;&quot;field.newLocation.type&quot; class&#x3D;&quot;form-control&quot; [attr.aria-label]&#x3D;&quot;field.typeHeader&quot;&gt;
+             &lt;option *ngFor&#x3D;&quot;let opt of field.dataTypes&quot; [value]&#x3D;&quot;opt.value&quot;&gt;{{opt.label}}&lt;/option&gt;
+          &lt;/select&gt;
+        &lt;/div&gt;
+
+        &lt;div class&#x3D;&quot;col-xs-4&quot;&gt;
+          &lt;input [(ngModel)]&#x3D;&quot;field.newLocation.location&quot; *ngIf&#x3D;&quot;field.newLocation.type !&#x3D; &#x27;attachment&#x27;&quot; type&#x3D;&quot;text&quot; class&#x3D;&quot;form-control&quot; [attr.aria-label]&#x3D;&quot;field.locationHeader&quot; /&gt;
+          &lt;a [class.disabled]&#x3D;&quot;isAttachmentsDisabled()&quot;
+          class&#x3D;&quot;btn btn-info UppyModalOpenerBtn&quot;
+          [style.display]&#x3D;&quot;field.newLocation.type &#x3D;&#x3D; &#x27;attachment&#x27; ? &#x27;inherit&#x27; : &#x27;none&#x27;&quot; (click)&#x3D;&quot;openModal()&quot;&gt;{{ field.attachmentText }}&lt;/a&gt;
+        &lt;/div&gt;
+        &lt;div class&#x3D;&quot;col-xs-4&quot;&gt;
+          &lt;input [(ngModel)]&#x3D;&quot;field.newLocation.notes&quot;  *ngIf&#x3D;&quot;field.newLocation.type !&#x3D; &#x27;attachment&#x27;&quot; type&#x3D;&quot;text&quot; class&#x3D;&quot;form-control&quot; [attr.aria-label]&#x3D;&quot;field.notesHeader&quot; /&gt;
+        &lt;/div&gt;
+        &lt;div class&#x3D;&quot;col-xs-1&quot;&gt;
+          &lt;a  *ngIf&#x3D;&quot;field.newLocation.type !&#x3D; &#x27;attachment&#x27; &amp;&amp; !field.locationAddText&quot; class&#x3D;&quot;fa fa-plus-circle btn text-20 pull-right btn-success&quot; (click)&#x3D;&quot;field.addLocation()&quot;&gt;&lt;/a&gt;
+          &lt;button *ngIf&#x3D;&quot;field.newLocation.type !&#x3D; &#x27;attachment&#x27; &amp;&amp; field.locationAddText&quot; class&#x3D;&quot;btn btn-success&quot; type&#x3D;&#x27;button&#x27; (click)&#x3D;&quot;field.addLocation()&quot;&gt;Enter&lt;/button&gt;
+        &lt;/div&gt;
+        &lt;!--- Edit notes modal --&gt;
+        &lt;div class&#x3D;&quot;modal fade&quot; id&#x3D;&quot;{{ field.name }}_editnotes&quot; tabindex&#x3D;&quot;-1&quot; role&#x3D;&quot;dialog&quot; &gt;
+          &lt;div class&#x3D;&quot;modal-dialog&quot; role&#x3D;&quot;document&quot;&gt;
+            &lt;div class&#x3D;&quot;modal-content&quot;&gt;
+              &lt;div class&#x3D;&quot;modal-header&quot;&gt;
+                &lt;button type&#x3D;&quot;button&quot; class&#x3D;&quot;close&quot; data-dismiss&#x3D;&quot;modal&quot; aria-label&#x3D;&quot;Close&quot;&gt;&lt;span aria-hidden&#x3D;&quot;true&quot;&gt;&amp;times;&lt;/span&gt;&lt;/button&gt;
+                &lt;span class&#x3D;&quot;modal-title&quot; [innerHtml]&#x3D;&quot;field.editNotesTitle&quot;&gt;&lt;/span&gt;
+              &lt;/div&gt;
+              &lt;div class&#x3D;&quot;modal-body&quot;&gt;
+                &lt;input type&#x3D;&#x27;text&#x27; [ngClass]&#x3D;&quot;field.editNotesCssClasses&quot; [(ngModel)]&#x3D;&quot;editingNotes.notes&quot; [attr.aria-label]&#x3D;&quot;field.notesHeader&quot;/&gt;
+              &lt;/div&gt;
+              &lt;div class&#x3D;&quot;modal-footer&quot;&gt;
+                &lt;button (click)&#x3D;&quot;hideEditNotes()&quot; type&#x3D;&quot;button&quot; class&#x3D;&quot;btn btn-default&quot; data-dismiss&#x3D;&quot;modal&quot; [innerHtml]&#x3D;&quot;field.cancelEditNotesButtonText&quot;&gt;&lt;/button&gt;
+                &lt;button (click)&#x3D;&quot;saveNotes()&quot; type&#x3D;&quot;button&quot; class&#x3D;&quot;btn btn-primary&quot; [innerHtml]&#x3D;&quot;field.applyEditNotesButtonText&quot;&gt;&lt;/button&gt;
+              &lt;/div&gt;
+            &lt;/div&gt;
+          &lt;/div&gt;
+        &lt;/div&gt;
+      &lt;/div&gt;
+      &lt;div class&#x3D;&quot;row justify-content-md-center&quot;&gt;
+        &lt;div class&#x3D;&quot;col-xs-3&quot;&gt;
+
+        &lt;/div&gt;
+        &lt;div class&#x3D;&quot;col-xs-4&quot;&gt;
+          &lt;div *ngIf&#x3D;&quot;field.newLocation.location !&#x3D; null &amp;&amp; field.newLocation.location.trim() !&#x3D; &#x27;&#x27;&quot; class&#x3D;&quot;text-warning&quot;&gt;{{ &#x27;@dataLocations-enter-assistance-text&#x27; | translate }}&lt;/div&gt;
+        &lt;/div&gt;
+      &lt;/div&gt;
+      &lt;div class&#x3D;&quot;row&quot; *ngIf&#x3D;&quot;field.required &amp;&amp; (field.label || (field.validationMessages &amp;&amp; field.validationMessages.required))&quot; [style.visibility]&#x3D;&quot;getFormControl() &amp;&amp; getFormControl().hasError(&#x27;required&#x27;) &amp;&amp; getFormControl().touched ? &#x27;inherit&#x27;:&#x27;hidden&#x27;&quot;&gt;
+        &lt;div class&#x3D;&quot;col-xs-12&quot;&gt;
+          &lt;div class&#x3D;&quot;text-danger&quot; *ngIf&#x3D;&quot;!field.validationMessages?.required&quot;&gt;{{field.label}} is required&lt;/div&gt;
+          &lt;div class&#x3D;&quot;text-danger&quot; *ngIf&#x3D;&quot;field.validationMessages?.required&quot;&gt;{{field.validationMessages.required}}&lt;/div&gt;
+        &lt;/div&gt;
+      &lt;/div&gt;
+    &lt;/ng-container&gt;
+  &lt;/div&gt;
+&lt;/div&gt;
+&lt;/ng-container&gt;</code></pre>
+    </div>
+
+
+    <div class="tab-pane fade " id="tree">
+        <div id="tree-container"></div>
+        <div class="tree-legend">
+            <div class="title">
+                <b>Legend</b>
+            </div>
+            <div>
+                <div class="color htmlelement"></div><span>Html element</span>
+            </div>
+            <div>
+                <div class="color component"></div><span>Component</span>
+            </div>
+            <div>
+                <div class="color directive"></div><span>Html element with directive</span>
+            </div>
+        </div>
+    </div>
+
+    
+</div>
+
+<script src="../js/libs/vis.min.js"></script>
+<script src="../js/libs/htmlparser.js"></script>
+<script src="../js/libs/deep-iterator.js"></script>
+<script>
+        var COMPONENT_TEMPLATE = '<div><!-- Basic Uppy styles --><ng-container *ngIf="field.visible"><div class=\'padding-bottom-10\'>  <span class="label-font">    {{field.label}} {{ getRequiredLabelStr()}}  </span><br/>  <div>      <div class="table-responsive" *ngIf="getDatalocations() && getDatalocations().length > 0">      <table class="table table-bordered table-striped table-hover">        <thead>          <tr>            <th width="15%">{{ field.typeHeader }}</th>            <th width="40%">{{ field.locationHeader }}</th>            <th width="40%">{{ field.notesHeader }}</th>            <th width="5%" *ngIf="field.editMode"><span [hidden]="true">Action</span></th>          </tr>        </thead>        <tbody>          <tr *ngFor="let dataLocation of getDatalocations(); let i = index;">            <td>{{ field.dataTypeLookup[dataLocation.type] }}</td>            <td>              <ng-container *ngIf="dataLocation && dataLocation.type != \'attachment\' && dataLocation.type != \'url\'">              {{ dataLocation.location }}              </ng-container>              <ng-container *ngIf="dataLocation.type == \'url\'">                <a *ngIf="!dataLocation.pending" [href]="dataLocation.location" target="_blank">                  {{ dataLocation.location }}                </a>              </ng-container>              <ng-container *ngIf="dataLocation.type == \'attachment\'">                <ng-container *ngIf="dataLocation.pending">                  {{ dataLocation.name }}                </ng-container>                <a *ngIf="!dataLocation.pending" href="{{ getAbsUrl(dataLocation.location) }}" target="_blank">                  {{ dataLocation.name }}                </a>              </ng-container>            </td>            <td>              {{ dataLocation.notes }}              <button *ngIf="field.editMode" type=\'button\' class="btn btn-primary pull-right" (click)="editNotes(dataLocation, i)">{{ field.editNotesButtonText }}</button>            </td>            <td *ngIf="field.editMode">              <a class="fa fa-minus-circle btn text-20 btn-danger" (click)="field.removeLocation(dataLocation)"></a>            </td>          </tr>        </tbody>      </table>    </div>    <div class="row padding-bottom-10" *ngIf="field.editMode">      <div class="col-xs-3">        <span class="label-font">{{ field.typeHeader }}</span>      </div>      <div class="col-xs-4">        <span class="label-font">{{ field.locationHeader }}</span>      </div>      <div class="col-xs-4">        <span class="label-font" *ngIf="field.newLocation.type != \'attachment\'">{{ field.notesHeader }}</span>      </div>      <div class="col-xs-1">        <button type="button" class="btn btn-default" *ngIf="field.help" (click)="toggleHelp()" [attr.aria-label]="\'help\' | translate "><span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span></button>      </div>    </div>    <div *ngIf="this.helpShow">      <span id="{{ \'helpBlock_\' + field.name }}" class="help-block" [innerHtml]="field.help"></span>    </div>    <ng-container *ngIf="field.editMode">      <div class="row">        <div class="col-xs-3">          <select [(ngModel)]="field.newLocation.type" [id]="field.newLocation.type" class="form-control" [attr.aria-label]="field.typeHeader">             <option *ngFor="let opt of field.dataTypes" [value]="opt.value">{{opt.label}}</option>          </select>        </div>        <div class="col-xs-4">          <input [(ngModel)]="field.newLocation.location" *ngIf="field.newLocation.type != \'attachment\'" type="text" class="form-control" [attr.aria-label]="field.locationHeader" />          <a [class.disabled]="isAttachmentsDisabled()"          class="btn btn-info UppyModalOpenerBtn"          [style.display]="field.newLocation.type == \'attachment\' ? \'inherit\' : \'none\'" (click)="openModal()">{{ field.attachmentText }}</a>        </div>        <div class="col-xs-4">          <input [(ngModel)]="field.newLocation.notes"  *ngIf="field.newLocation.type != \'attachment\'" type="text" class="form-control" [attr.aria-label]="field.notesHeader" />        </div>        <div class="col-xs-1">          <a  *ngIf="field.newLocation.type != \'attachment\' && !field.locationAddText" class="fa fa-plus-circle btn text-20 pull-right btn-success" (click)="field.addLocation()"></a>          <button *ngIf="field.newLocation.type != \'attachment\' && field.locationAddText" class="btn btn-success" type=\'button\' (click)="field.addLocation()">Enter</button>        </div>        <!--- Edit notes modal -->        <div class="modal fade" id="{{ field.name }}_editnotes" tabindex="-1" role="dialog" >          <div class="modal-dialog" role="document">            <div class="modal-content">              <div class="modal-header">                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>                <span class="modal-title" [innerHtml]="field.editNotesTitle"></span>              </div>              <div class="modal-body">                <input type=\'text\' [ngClass]="field.editNotesCssClasses" [(ngModel)]="editingNotes.notes" [attr.aria-label]="field.notesHeader"/>              </div>              <div class="modal-footer">                <button (click)="hideEditNotes()" type="button" class="btn btn-default" data-dismiss="modal" [innerHtml]="field.cancelEditNotesButtonText"></button>                <button (click)="saveNotes()" type="button" class="btn btn-primary" [innerHtml]="field.applyEditNotesButtonText"></button>              </div>            </div>          </div>        </div>      </div>      <div class="row justify-content-md-center">        <div class="col-xs-3">        </div>        <div class="col-xs-4">          <div *ngIf="field.newLocation.location != null && field.newLocation.location.trim() != \'\'" class="text-warning">{{ \'@dataLocations-enter-assistance-text\' | translate }}</div>        </div>      </div>      <div class="row" *ngIf="field.required && (field.label || (field.validationMessages && field.validationMessages.required))" [style.visibility]="getFormControl() && getFormControl().hasError(\'required\') && getFormControl().touched ? \'inherit\':\'hidden\'">        <div class="col-xs-12">          <div class="text-danger" *ngIf="!field.validationMessages?.required">{{field.label}} is required</div>          <div class="text-danger" *ngIf="field.validationMessages?.required">{{field.validationMessages.required}}</div>        </div>      </div>    </ng-container>  </div></div></ng-container></div>'
+    var COMPONENTS = [{'name': 'ActionButtonComponent', 'selector': 'action-button'},{'name': 'ActionButtonComponent', 'selector': 'action-button'},{'name': 'ActionButtonComponent', 'selector': 'action-button'},{'name': 'ActionButtonComponent', 'selector': 'action-button'},{'name': 'ActionButtonComponent', 'selector': 'action-button'},{'name': 'ActionButtonComponent', 'selector': 'action-button'},{'name': 'ActionButtonComponent', 'selector': 'action-button'},{'name': 'ActionButtonComponent', 'selector': 'action-button'},{'name': 'ActionButtonComponent', 'selector': 'action-button'},{'name': 'ActionButtonComponent', 'selector': 'action-button'},{'name': 'ActionButtonComponent', 'selector': 'action-button'},{'name': 'ActionButtonComponent', 'selector': 'action-button'},{'name': 'AnchorOrButtonComponent', 'selector': 'anchor-button'},{'name': 'AnchorOrButtonComponent', 'selector': 'anchor-button'},{'name': 'AnchorOrButtonComponent', 'selector': 'anchor-button'},{'name': 'AnchorOrButtonComponent', 'selector': 'anchor-button'},{'name': 'AnchorOrButtonComponent', 'selector': 'anchor-button'},{'name': 'AnchorOrButtonComponent', 'selector': 'anchor-button'},{'name': 'AnchorOrButtonComponent', 'selector': 'anchor-button'},{'name': 'AnchorOrButtonComponent', 'selector': 'anchor-button'},{'name': 'AnchorOrButtonComponent', 'selector': 'anchor-button'},{'name': 'AnchorOrButtonComponent', 'selector': 'anchor-button'},{'name': 'AnchorOrButtonComponent', 'selector': 'anchor-button'},{'name': 'AnchorOrButtonComponent', 'selector': 'anchor-button'},{'name': 'ANDSVocabComponent', 'selector': 'ands-vocab-selector'},{'name': 'ANDSVocabComponent', 'selector': 'ands-vocab-selector'},{'name': 'ANDSVocabComponent', 'selector': 'ands-vocab-selector'},{'name': 'ANDSVocabComponent', 'selector': 'ands-vocab-selector'},{'name': 'ANDSVocabComponent', 'selector': 'ands-vocab-selector'},{'name': 'ANDSVocabComponent', 'selector': 'ands-vocab-selector'},{'name': 'ANDSVocabComponent', 'selector': 'ands-vocab-selector'},{'name': 'ANDSVocabComponent', 'selector': 'ands-vocab-selector'},{'name': 'ANDSVocabComponent', 'selector': 'ands-vocab-selector'},{'name': 'ANDSVocabComponent', 'selector': 'ands-vocab-selector'},{'name': 'ANDSVocabComponent', 'selector': 'ands-vocab-selector'},{'name': 'ANDSVocabComponent', 'selector': 'ands-vocab-selector'},{'name': 'AsynchComponent', 'selector': 'asynch-component'},{'name': 'AsynchComponent', 'selector': 'asynch-component'},{'name': 'AsynchComponent', 'selector': 'asynch-component'},{'name': 'AsynchComponent', 'selector': 'asynch-component'},{'name': 'AsynchComponent', 'selector': 'asynch-component'},{'name': 'AsynchComponent', 'selector': 'asynch-component'},{'name': 'AsynchComponent', 'selector': 'asynch-component'},{'name': 'AsynchComponent', 'selector': 'asynch-component'},{'name': 'AsynchComponent', 'selector': 'asynch-component'},{'name': 'AsynchComponent', 'selector': 'asynch-component'},{'name': 'AsynchComponent', 'selector': 'asynch-component'},{'name': 'AsynchComponent', 'selector': 'asynch-component'},{'name': 'ButtonBarContainerComponent', 'selector': 'buttonbarcontainer'},{'name': 'ButtonBarContainerComponent', 'selector': 'buttonbarcontainer'},{'name': 'ButtonBarContainerComponent', 'selector': 'buttonbarcontainer'},{'name': 'ButtonBarContainerComponent', 'selector': 'buttonbarcontainer'},{'name': 'ButtonBarContainerComponent', 'selector': 'buttonbarcontainer'},{'name': 'ButtonBarContainerComponent', 'selector': 'buttonbarcontainer'},{'name': 'ButtonBarContainerComponent', 'selector': 'buttonbarcontainer'},{'name': 'ButtonBarContainerComponent', 'selector': 'buttonbarcontainer'},{'name': 'ButtonBarContainerComponent', 'selector': 'buttonbarcontainer'},{'name': 'ButtonBarContainerComponent', 'selector': 'buttonbarcontainer'},{'name': 'ButtonBarContainerComponent', 'selector': 'buttonbarcontainer'},{'name': 'ButtonBarContainerComponent', 'selector': 'buttonbarcontainer'},{'name': 'CancelButtonComponent', 'selector': 'cancel-button'},{'name': 'CancelButtonComponent', 'selector': 'cancel-button'},{'name': 'CancelButtonComponent', 'selector': 'cancel-button'},{'name': 'CancelButtonComponent', 'selector': 'cancel-button'},{'name': 'CancelButtonComponent', 'selector': 'cancel-button'},{'name': 'CancelButtonComponent', 'selector': 'cancel-button'},{'name': 'CancelButtonComponent', 'selector': 'cancel-button'},{'name': 'CancelButtonComponent', 'selector': 'cancel-button'},{'name': 'CancelButtonComponent', 'selector': 'cancel-button'},{'name': 'CancelButtonComponent', 'selector': 'cancel-button'},{'name': 'CancelButtonComponent', 'selector': 'cancel-button'},{'name': 'CancelButtonComponent', 'selector': 'cancel-button'},{'name': 'ContributorComponent', 'selector': 'rb-contributor'},{'name': 'ContributorComponent', 'selector': 'rb-contributor'},{'name': 'ContributorComponent', 'selector': 'rb-contributor'},{'name': 'ContributorComponent', 'selector': 'rb-contributor'},{'name': 'ContributorComponent', 'selector': 'rb-contributor'},{'name': 'ContributorComponent', 'selector': 'rb-contributor'},{'name': 'ContributorComponent', 'selector': 'rb-contributor'},{'name': 'ContributorComponent', 'selector': 'rb-contributor'},{'name': 'ContributorComponent', 'selector': 'rb-contributor'},{'name': 'ContributorComponent', 'selector': 'rb-contributor'},{'name': 'ContributorComponent', 'selector': 'rb-contributor'},{'name': 'ContributorComponent', 'selector': 'rb-contributor'},{'name': 'DashboardComponent', 'selector': 'dashboard'},{'name': 'DataLocationComponent', 'selector': 'data-location-selector'},{'name': 'DataLocationComponent', 'selector': 'data-location-selector'},{'name': 'DataLocationComponent', 'selector': 'data-location-selector'},{'name': 'DataLocationComponent', 'selector': 'data-location-selector'},{'name': 'DataLocationComponent', 'selector': 'data-location-selector'},{'name': 'DataLocationComponent', 'selector': 'data-location-selector'},{'name': 'DataLocationComponent', 'selector': 'data-location-selector'},{'name': 'DataLocationComponent', 'selector': 'data-location-selector'},{'name': 'DataLocationComponent', 'selector': 'data-location-selector'},{'name': 'DataLocationComponent', 'selector': 'data-location-selector'},{'name': 'DataLocationComponent', 'selector': 'data-location-selector'},{'name': 'DataLocationComponent', 'selector': 'data-location-selector'},{'name': 'DateTimeComponent', 'selector': 'date-time'},{'name': 'DateTimeComponent', 'selector': 'date-time'},{'name': 'DateTimeComponent', 'selector': 'date-time'},{'name': 'DateTimeComponent', 'selector': 'date-time'},{'name': 'DateTimeComponent', 'selector': 'date-time'},{'name': 'DateTimeComponent', 'selector': 'date-time'},{'name': 'DateTimeComponent', 'selector': 'date-time'},{'name': 'DateTimeComponent', 'selector': 'date-time'},{'name': 'DateTimeComponent', 'selector': 'date-time'},{'name': 'DateTimeComponent', 'selector': 'date-time'},{'name': 'DateTimeComponent', 'selector': 'date-time'},{'name': 'DateTimeComponent', 'selector': 'date-time'},{'name': 'DmpFieldComponent', 'selector': 'dmp-field'},{'name': 'DmpFieldComponent', 'selector': 'dmp-field'},{'name': 'DmpFieldComponent', 'selector': 'dmp-field'},{'name': 'DmpFieldComponent', 'selector': 'dmp-field'},{'name': 'DmpFieldComponent', 'selector': 'dmp-field'},{'name': 'DmpFieldComponent', 'selector': 'dmp-field'},{'name': 'DmpFieldComponent', 'selector': 'dmp-field'},{'name': 'DmpFieldComponent', 'selector': 'dmp-field'},{'name': 'DmpFieldComponent', 'selector': 'dmp-field'},{'name': 'DmpFieldComponent', 'selector': 'dmp-field'},{'name': 'DmpFieldComponent', 'selector': 'dmp-field'},{'name': 'DmpFieldComponent', 'selector': 'dmp-field'},{'name': 'DmpFormComponent', 'selector': 'dmp-form'},{'name': 'DropdownFieldComponent', 'selector': 'dropdownfield'},{'name': 'DropdownFieldComponent', 'selector': 'dropdownfield'},{'name': 'DropdownFieldComponent', 'selector': 'dropdownfield'},{'name': 'DropdownFieldComponent', 'selector': 'dropdownfield'},{'name': 'DropdownFieldComponent', 'selector': 'dropdownfield'},{'name': 'DropdownFieldComponent', 'selector': 'dropdownfield'},{'name': 'DropdownFieldComponent', 'selector': 'dropdownfield'},{'name': 'DropdownFieldComponent', 'selector': 'dropdownfield'},{'name': 'DropdownFieldComponent', 'selector': 'dropdownfield'},{'name': 'DropdownFieldComponent', 'selector': 'dropdownfield'},{'name': 'DropdownFieldComponent', 'selector': 'dropdownfield'},{'name': 'DropdownFieldComponent', 'selector': 'dropdownfield'},{'name': 'EventHandlerComponent', 'selector': 'event-handler'},{'name': 'EventHandlerComponent', 'selector': 'event-handler'},{'name': 'EventHandlerComponent', 'selector': 'event-handler'},{'name': 'EventHandlerComponent', 'selector': 'event-handler'},{'name': 'EventHandlerComponent', 'selector': 'event-handler'},{'name': 'EventHandlerComponent', 'selector': 'event-handler'},{'name': 'EventHandlerComponent', 'selector': 'event-handler'},{'name': 'EventHandlerComponent', 'selector': 'event-handler'},{'name': 'EventHandlerComponent', 'selector': 'event-handler'},{'name': 'EventHandlerComponent', 'selector': 'event-handler'},{'name': 'EventHandlerComponent', 'selector': 'event-handler'},{'name': 'EventHandlerComponent', 'selector': 'event-handler'},{'name': 'ExportFormComponent', 'selector': 'export-form'},{'name': 'GenericGroupComponent', 'selector': 'generic-group-field'},{'name': 'GenericGroupComponent', 'selector': 'generic-group-field'},{'name': 'GenericGroupComponent', 'selector': 'generic-group-field'},{'name': 'GenericGroupComponent', 'selector': 'generic-group-field'},{'name': 'GenericGroupComponent', 'selector': 'generic-group-field'},{'name': 'GenericGroupComponent', 'selector': 'generic-group-field'},{'name': 'GenericGroupComponent', 'selector': 'generic-group-field'},{'name': 'GenericGroupComponent', 'selector': 'generic-group-field'},{'name': 'GenericGroupComponent', 'selector': 'generic-group-field'},{'name': 'GenericGroupComponent', 'selector': 'generic-group-field'},{'name': 'GenericGroupComponent', 'selector': 'generic-group-field'},{'name': 'GenericGroupComponent', 'selector': 'generic-group-field'},{'name': 'HiddenValueComponent', 'selector': 'hidden-field'},{'name': 'HiddenValueComponent', 'selector': 'hidden-field'},{'name': 'HiddenValueComponent', 'selector': 'hidden-field'},{'name': 'HiddenValueComponent', 'selector': 'hidden-field'},{'name': 'HiddenValueComponent', 'selector': 'hidden-field'},{'name': 'HiddenValueComponent', 'selector': 'hidden-field'},{'name': 'HiddenValueComponent', 'selector': 'hidden-field'},{'name': 'HiddenValueComponent', 'selector': 'hidden-field'},{'name': 'HiddenValueComponent', 'selector': 'hidden-field'},{'name': 'HiddenValueComponent', 'selector': 'hidden-field'},{'name': 'HiddenValueComponent', 'selector': 'hidden-field'},{'name': 'HiddenValueComponent', 'selector': 'hidden-field'},{'name': 'HtmlRawComponent', 'selector': 'htmlraw'},{'name': 'HtmlRawComponent', 'selector': 'htmlraw'},{'name': 'HtmlRawComponent', 'selector': 'htmlraw'},{'name': 'HtmlRawComponent', 'selector': 'htmlraw'},{'name': 'HtmlRawComponent', 'selector': 'htmlraw'},{'name': 'HtmlRawComponent', 'selector': 'htmlraw'},{'name': 'HtmlRawComponent', 'selector': 'htmlraw'},{'name': 'HtmlRawComponent', 'selector': 'htmlraw'},{'name': 'HtmlRawComponent', 'selector': 'htmlraw'},{'name': 'HtmlRawComponent', 'selector': 'htmlraw'},{'name': 'HtmlRawComponent', 'selector': 'htmlraw'},{'name': 'HtmlRawComponent', 'selector': 'htmlraw'},{'name': 'LinkValueComponent', 'selector': 'link-value'},{'name': 'LinkValueComponent', 'selector': 'link-value'},{'name': 'LinkValueComponent', 'selector': 'link-value'},{'name': 'LinkValueComponent', 'selector': 'link-value'},{'name': 'LinkValueComponent', 'selector': 'link-value'},{'name': 'LinkValueComponent', 'selector': 'link-value'},{'name': 'LinkValueComponent', 'selector': 'link-value'},{'name': 'LinkValueComponent', 'selector': 'link-value'},{'name': 'LinkValueComponent', 'selector': 'link-value'},{'name': 'LinkValueComponent', 'selector': 'link-value'},{'name': 'LinkValueComponent', 'selector': 'link-value'},{'name': 'LinkValueComponent', 'selector': 'link-value'},{'name': 'LocalAuthComponent', 'selector': 'local-auth'},{'name': 'ManageRolesComponent', 'selector': 'manage-roles'},{'name': 'ManageUsersComponent', 'selector': 'manage-users'},{'name': 'MapComponent', 'selector': 'rb-mapdata'},{'name': 'MapComponent', 'selector': 'rb-mapdata'},{'name': 'MapComponent', 'selector': 'rb-mapdata'},{'name': 'MapComponent', 'selector': 'rb-mapdata'},{'name': 'MapComponent', 'selector': 'rb-mapdata'},{'name': 'MapComponent', 'selector': 'rb-mapdata'},{'name': 'MapComponent', 'selector': 'rb-mapdata'},{'name': 'MapComponent', 'selector': 'rb-mapdata'},{'name': 'MapComponent', 'selector': 'rb-mapdata'},{'name': 'MapComponent', 'selector': 'rb-mapdata'},{'name': 'MapComponent', 'selector': 'rb-mapdata'},{'name': 'MapComponent', 'selector': 'rb-mapdata'},{'name': 'MarkdownTextAreaComponent', 'selector': 'markdown-text-area'},{'name': 'MarkdownTextAreaComponent', 'selector': 'markdown-text-area'},{'name': 'MarkdownTextAreaComponent', 'selector': 'markdown-text-area'},{'name': 'MarkdownTextAreaComponent', 'selector': 'markdown-text-area'},{'name': 'MarkdownTextAreaComponent', 'selector': 'markdown-text-area'},{'name': 'MarkdownTextAreaComponent', 'selector': 'markdown-text-area'},{'name': 'MarkdownTextAreaComponent', 'selector': 'markdown-text-area'},{'name': 'MarkdownTextAreaComponent', 'selector': 'markdown-text-area'},{'name': 'MarkdownTextAreaComponent', 'selector': 'markdown-text-area'},{'name': 'MarkdownTextAreaComponent', 'selector': 'markdown-text-area'},{'name': 'MarkdownTextAreaComponent', 'selector': 'markdown-text-area'},{'name': 'MarkdownTextAreaComponent', 'selector': 'markdown-text-area'},{'name': 'PageTitleComponent', 'selector': 'page-title'},{'name': 'PageTitleComponent', 'selector': 'page-title'},{'name': 'PageTitleComponent', 'selector': 'page-title'},{'name': 'PageTitleComponent', 'selector': 'page-title'},{'name': 'PageTitleComponent', 'selector': 'page-title'},{'name': 'PageTitleComponent', 'selector': 'page-title'},{'name': 'PageTitleComponent', 'selector': 'page-title'},{'name': 'PageTitleComponent', 'selector': 'page-title'},{'name': 'PageTitleComponent', 'selector': 'page-title'},{'name': 'PageTitleComponent', 'selector': 'page-title'},{'name': 'PageTitleComponent', 'selector': 'page-title'},{'name': 'PageTitleComponent', 'selector': 'page-title'},{'name': 'ParameterRetrieverComponent', 'selector': 'parameter-retriever'},{'name': 'ParameterRetrieverComponent', 'selector': 'parameter-retriever'},{'name': 'ParameterRetrieverComponent', 'selector': 'parameter-retriever'},{'name': 'ParameterRetrieverComponent', 'selector': 'parameter-retriever'},{'name': 'ParameterRetrieverComponent', 'selector': 'parameter-retriever'},{'name': 'ParameterRetrieverComponent', 'selector': 'parameter-retriever'},{'name': 'ParameterRetrieverComponent', 'selector': 'parameter-retriever'},{'name': 'ParameterRetrieverComponent', 'selector': 'parameter-retriever'},{'name': 'ParameterRetrieverComponent', 'selector': 'parameter-retriever'},{'name': 'ParameterRetrieverComponent', 'selector': 'parameter-retriever'},{'name': 'ParameterRetrieverComponent', 'selector': 'parameter-retriever'},{'name': 'ParameterRetrieverComponent', 'selector': 'parameter-retriever'},{'name': 'PDFListComponent', 'selector': 'rb-pdf-list'},{'name': 'PDFListComponent', 'selector': 'rb-pdf-list'},{'name': 'PDFListComponent', 'selector': 'rb-pdf-list'},{'name': 'PDFListComponent', 'selector': 'rb-pdf-list'},{'name': 'PDFListComponent', 'selector': 'rb-pdf-list'},{'name': 'PDFListComponent', 'selector': 'rb-pdf-list'},{'name': 'PDFListComponent', 'selector': 'rb-pdf-list'},{'name': 'PDFListComponent', 'selector': 'rb-pdf-list'},{'name': 'PDFListComponent', 'selector': 'rb-pdf-list'},{'name': 'PDFListComponent', 'selector': 'rb-pdf-list'},{'name': 'PDFListComponent', 'selector': 'rb-pdf-list'},{'name': 'PDFListComponent', 'selector': 'rb-pdf-list'},{'name': 'PublishDataLocationRefreshComponent', 'selector': 'publish-data-location-refresh'},{'name': 'PublishDataLocationRefreshComponent', 'selector': 'publish-data-location-refresh'},{'name': 'PublishDataLocationRefreshComponent', 'selector': 'publish-data-location-refresh'},{'name': 'PublishDataLocationRefreshComponent', 'selector': 'publish-data-location-refresh'},{'name': 'PublishDataLocationRefreshComponent', 'selector': 'publish-data-location-refresh'},{'name': 'PublishDataLocationRefreshComponent', 'selector': 'publish-data-location-refresh'},{'name': 'PublishDataLocationRefreshComponent', 'selector': 'publish-data-location-refresh'},{'name': 'PublishDataLocationRefreshComponent', 'selector': 'publish-data-location-refresh'},{'name': 'PublishDataLocationRefreshComponent', 'selector': 'publish-data-location-refresh'},{'name': 'PublishDataLocationRefreshComponent', 'selector': 'publish-data-location-refresh'},{'name': 'PublishDataLocationRefreshComponent', 'selector': 'publish-data-location-refresh'},{'name': 'PublishDataLocationRefreshComponent', 'selector': 'publish-data-location-refresh'},{'name': 'PublishDataLocationSelectorComponent', 'selector': 'publish-data-location-selector'},{'name': 'PublishDataLocationSelectorComponent', 'selector': 'publish-data-location-selector'},{'name': 'PublishDataLocationSelectorComponent', 'selector': 'publish-data-location-selector'},{'name': 'PublishDataLocationSelectorComponent', 'selector': 'publish-data-location-selector'},{'name': 'PublishDataLocationSelectorComponent', 'selector': 'publish-data-location-selector'},{'name': 'PublishDataLocationSelectorComponent', 'selector': 'publish-data-location-selector'},{'name': 'PublishDataLocationSelectorComponent', 'selector': 'publish-data-location-selector'},{'name': 'PublishDataLocationSelectorComponent', 'selector': 'publish-data-location-selector'},{'name': 'PublishDataLocationSelectorComponent', 'selector': 'publish-data-location-selector'},{'name': 'PublishDataLocationSelectorComponent', 'selector': 'publish-data-location-selector'},{'name': 'PublishDataLocationSelectorComponent', 'selector': 'publish-data-location-selector'},{'name': 'PublishDataLocationSelectorComponent', 'selector': 'publish-data-location-selector'},{'name': 'RecordMetadataRetrieverComponent', 'selector': 'record-metadata-retriever'},{'name': 'RecordMetadataRetrieverComponent', 'selector': 'record-metadata-retriever'},{'name': 'RecordMetadataRetrieverComponent', 'selector': 'record-metadata-retriever'},{'name': 'RecordMetadataRetrieverComponent', 'selector': 'record-metadata-retriever'},{'name': 'RecordMetadataRetrieverComponent', 'selector': 'record-metadata-retriever'},{'name': 'RecordMetadataRetrieverComponent', 'selector': 'record-metadata-retriever'},{'name': 'RecordMetadataRetrieverComponent', 'selector': 'record-metadata-retriever'},{'name': 'RecordMetadataRetrieverComponent', 'selector': 'record-metadata-retriever'},{'name': 'RecordMetadataRetrieverComponent', 'selector': 'record-metadata-retriever'},{'name': 'RecordMetadataRetrieverComponent', 'selector': 'record-metadata-retriever'},{'name': 'RecordMetadataRetrieverComponent', 'selector': 'record-metadata-retriever'},{'name': 'RecordMetadataRetrieverComponent', 'selector': 'record-metadata-retriever'},{'name': 'RecordPermissionsComponent', 'selector': 'rb-recordpermissions'},{'name': 'RecordPermissionsComponent', 'selector': 'rb-recordpermissions'},{'name': 'RecordPermissionsComponent', 'selector': 'rb-recordpermissions'},{'name': 'RecordPermissionsComponent', 'selector': 'rb-recordpermissions'},{'name': 'RecordPermissionsComponent', 'selector': 'rb-recordpermissions'},{'name': 'RecordPermissionsComponent', 'selector': 'rb-recordpermissions'},{'name': 'RecordPermissionsComponent', 'selector': 'rb-recordpermissions'},{'name': 'RecordPermissionsComponent', 'selector': 'rb-recordpermissions'},{'name': 'RecordPermissionsComponent', 'selector': 'rb-recordpermissions'},{'name': 'RecordPermissionsComponent', 'selector': 'rb-recordpermissions'},{'name': 'RecordPermissionsComponent', 'selector': 'rb-recordpermissions'},{'name': 'RecordPermissionsComponent', 'selector': 'rb-recordpermissions'},{'name': 'RecordSearchComponent', 'selector': 'record-search'},{'name': 'RecordSearchRefinerComponent', 'selector': 'record-search-refiner'},{'name': 'RelatedFileUploadComponent', 'selector': 'related-fileupload-selector'},{'name': 'RelatedFileUploadComponent', 'selector': 'related-fileupload-selector'},{'name': 'RelatedFileUploadComponent', 'selector': 'related-fileupload-selector'},{'name': 'RelatedFileUploadComponent', 'selector': 'related-fileupload-selector'},{'name': 'RelatedFileUploadComponent', 'selector': 'related-fileupload-selector'},{'name': 'RelatedFileUploadComponent', 'selector': 'related-fileupload-selector'},{'name': 'RelatedFileUploadComponent', 'selector': 'related-fileupload-selector'},{'name': 'RelatedFileUploadComponent', 'selector': 'related-fileupload-selector'},{'name': 'RelatedFileUploadComponent', 'selector': 'related-fileupload-selector'},{'name': 'RelatedFileUploadComponent', 'selector': 'related-fileupload-selector'},{'name': 'RelatedFileUploadComponent', 'selector': 'related-fileupload-selector'},{'name': 'RelatedFileUploadComponent', 'selector': 'related-fileupload-selector'},{'name': 'RelatedObjectDataComponent', 'selector': 'rb-relatedobjectdata'},{'name': 'RelatedObjectDataComponent', 'selector': 'rb-relatedobjectdata'},{'name': 'RelatedObjectDataComponent', 'selector': 'rb-relatedobjectdata'},{'name': 'RelatedObjectDataComponent', 'selector': 'rb-relatedobjectdata'},{'name': 'RelatedObjectDataComponent', 'selector': 'rb-relatedobjectdata'},{'name': 'RelatedObjectDataComponent', 'selector': 'rb-relatedobjectdata'},{'name': 'RelatedObjectDataComponent', 'selector': 'rb-relatedobjectdata'},{'name': 'RelatedObjectDataComponent', 'selector': 'rb-relatedobjectdata'},{'name': 'RelatedObjectDataComponent', 'selector': 'rb-relatedobjectdata'},{'name': 'RelatedObjectDataComponent', 'selector': 'rb-relatedobjectdata'},{'name': 'RelatedObjectDataComponent', 'selector': 'rb-relatedobjectdata'},{'name': 'RelatedObjectDataComponent', 'selector': 'rb-relatedobjectdata'},{'name': 'RelatedObjectSelectorComponent', 'selector': 'rb-RelatedObjectSelector'},{'name': 'RelatedObjectSelectorComponent', 'selector': 'rb-RelatedObjectSelector'},{'name': 'RelatedObjectSelectorComponent', 'selector': 'rb-RelatedObjectSelector'},{'name': 'RelatedObjectSelectorComponent', 'selector': 'rb-RelatedObjectSelector'},{'name': 'RelatedObjectSelectorComponent', 'selector': 'rb-RelatedObjectSelector'},{'name': 'RelatedObjectSelectorComponent', 'selector': 'rb-RelatedObjectSelector'},{'name': 'RelatedObjectSelectorComponent', 'selector': 'rb-RelatedObjectSelector'},{'name': 'RelatedObjectSelectorComponent', 'selector': 'rb-RelatedObjectSelector'},{'name': 'RelatedObjectSelectorComponent', 'selector': 'rb-RelatedObjectSelector'},{'name': 'RelatedObjectSelectorComponent', 'selector': 'rb-RelatedObjectSelector'},{'name': 'RelatedObjectSelectorComponent', 'selector': 'rb-RelatedObjectSelector'},{'name': 'RelatedObjectSelectorComponent', 'selector': 'rb-RelatedObjectSelector'},{'name': 'RepeatableContributorComponent', 'selector': 'repeatable-contributor'},{'name': 'RepeatableContributorComponent', 'selector': 'repeatable-contributor'},{'name': 'RepeatableContributorComponent', 'selector': 'repeatable-contributor'},{'name': 'RepeatableContributorComponent', 'selector': 'repeatable-contributor'},{'name': 'RepeatableContributorComponent', 'selector': 'repeatable-contributor'},{'name': 'RepeatableContributorComponent', 'selector': 'repeatable-contributor'},{'name': 'RepeatableContributorComponent', 'selector': 'repeatable-contributor'},{'name': 'RepeatableContributorComponent', 'selector': 'repeatable-contributor'},{'name': 'RepeatableContributorComponent', 'selector': 'repeatable-contributor'},{'name': 'RepeatableContributorComponent', 'selector': 'repeatable-contributor'},{'name': 'RepeatableContributorComponent', 'selector': 'repeatable-contributor'},{'name': 'RepeatableContributorComponent', 'selector': 'repeatable-contributor'},{'name': 'RepeatableGroupComponent', 'selector': 'repeatable-group'},{'name': 'RepeatableGroupComponent', 'selector': 'repeatable-group'},{'name': 'RepeatableGroupComponent', 'selector': 'repeatable-group'},{'name': 'RepeatableGroupComponent', 'selector': 'repeatable-group'},{'name': 'RepeatableGroupComponent', 'selector': 'repeatable-group'},{'name': 'RepeatableGroupComponent', 'selector': 'repeatable-group'},{'name': 'RepeatableGroupComponent', 'selector': 'repeatable-group'},{'name': 'RepeatableGroupComponent', 'selector': 'repeatable-group'},{'name': 'RepeatableGroupComponent', 'selector': 'repeatable-group'},{'name': 'RepeatableGroupComponent', 'selector': 'repeatable-group'},{'name': 'RepeatableGroupComponent', 'selector': 'repeatable-group'},{'name': 'RepeatableGroupComponent', 'selector': 'repeatable-group'},{'name': 'RepeatableTextfieldComponent', 'selector': 'repeatable-textfield'},{'name': 'RepeatableTextfieldComponent', 'selector': 'repeatable-textfield'},{'name': 'RepeatableTextfieldComponent', 'selector': 'repeatable-textfield'},{'name': 'RepeatableTextfieldComponent', 'selector': 'repeatable-textfield'},{'name': 'RepeatableTextfieldComponent', 'selector': 'repeatable-textfield'},{'name': 'RepeatableTextfieldComponent', 'selector': 'repeatable-textfield'},{'name': 'RepeatableTextfieldComponent', 'selector': 'repeatable-textfield'},{'name': 'RepeatableTextfieldComponent', 'selector': 'repeatable-textfield'},{'name': 'RepeatableTextfieldComponent', 'selector': 'repeatable-textfield'},{'name': 'RepeatableTextfieldComponent', 'selector': 'repeatable-textfield'},{'name': 'RepeatableTextfieldComponent', 'selector': 'repeatable-textfield'},{'name': 'RepeatableTextfieldComponent', 'selector': 'repeatable-textfield'},{'name': 'RepeatableVocabComponent', 'selector': 'repeatable-vocab'},{'name': 'RepeatableVocabComponent', 'selector': 'repeatable-vocab'},{'name': 'RepeatableVocabComponent', 'selector': 'repeatable-vocab'},{'name': 'RepeatableVocabComponent', 'selector': 'repeatable-vocab'},{'name': 'RepeatableVocabComponent', 'selector': 'repeatable-vocab'},{'name': 'RepeatableVocabComponent', 'selector': 'repeatable-vocab'},{'name': 'RepeatableVocabComponent', 'selector': 'repeatable-vocab'},{'name': 'RepeatableVocabComponent', 'selector': 'repeatable-vocab'},{'name': 'RepeatableVocabComponent', 'selector': 'repeatable-vocab'},{'name': 'RepeatableVocabComponent', 'selector': 'repeatable-vocab'},{'name': 'RepeatableVocabComponent', 'selector': 'repeatable-vocab'},{'name': 'RepeatableVocabComponent', 'selector': 'repeatable-vocab'},{'name': 'ReportComponent', 'selector': 'report'},{'name': 'SaveButtonComponent', 'selector': 'save-button'},{'name': 'SaveButtonComponent', 'selector': 'save-button'},{'name': 'SaveButtonComponent', 'selector': 'save-button'},{'name': 'SaveButtonComponent', 'selector': 'save-button'},{'name': 'SaveButtonComponent', 'selector': 'save-button'},{'name': 'SaveButtonComponent', 'selector': 'save-button'},{'name': 'SaveButtonComponent', 'selector': 'save-button'},{'name': 'SaveButtonComponent', 'selector': 'save-button'},{'name': 'SaveButtonComponent', 'selector': 'save-button'},{'name': 'SaveButtonComponent', 'selector': 'save-button'},{'name': 'SaveButtonComponent', 'selector': 'save-button'},{'name': 'SaveButtonComponent', 'selector': 'save-button'},{'name': 'SelectionFieldComponent', 'selector': 'selectionfield'},{'name': 'SelectionFieldComponent', 'selector': 'selectionfield'},{'name': 'SelectionFieldComponent', 'selector': 'selectionfield'},{'name': 'SelectionFieldComponent', 'selector': 'selectionfield'},{'name': 'SelectionFieldComponent', 'selector': 'selectionfield'},{'name': 'SelectionFieldComponent', 'selector': 'selectionfield'},{'name': 'SelectionFieldComponent', 'selector': 'selectionfield'},{'name': 'SelectionFieldComponent', 'selector': 'selectionfield'},{'name': 'SelectionFieldComponent', 'selector': 'selectionfield'},{'name': 'SelectionFieldComponent', 'selector': 'selectionfield'},{'name': 'SelectionFieldComponent', 'selector': 'selectionfield'},{'name': 'SelectionFieldComponent', 'selector': 'selectionfield'},{'name': 'SortComponent', 'selector': 'sort'},{'name': 'SpacerComponent', 'selector': 'spacer'},{'name': 'SpacerComponent', 'selector': 'spacer'},{'name': 'SpacerComponent', 'selector': 'spacer'},{'name': 'SpacerComponent', 'selector': 'spacer'},{'name': 'SpacerComponent', 'selector': 'spacer'},{'name': 'SpacerComponent', 'selector': 'spacer'},{'name': 'SpacerComponent', 'selector': 'spacer'},{'name': 'SpacerComponent', 'selector': 'spacer'},{'name': 'SpacerComponent', 'selector': 'spacer'},{'name': 'SpacerComponent', 'selector': 'spacer'},{'name': 'SpacerComponent', 'selector': 'spacer'},{'name': 'SpacerComponent', 'selector': 'spacer'},{'name': 'TabNavButtonComponent', 'selector': 'tab-nav-button'},{'name': 'TabNavButtonComponent', 'selector': 'tab-nav-button'},{'name': 'TabNavButtonComponent', 'selector': 'tab-nav-button'},{'name': 'TabNavButtonComponent', 'selector': 'tab-nav-button'},{'name': 'TabNavButtonComponent', 'selector': 'tab-nav-button'},{'name': 'TabNavButtonComponent', 'selector': 'tab-nav-button'},{'name': 'TabNavButtonComponent', 'selector': 'tab-nav-button'},{'name': 'TabNavButtonComponent', 'selector': 'tab-nav-button'},{'name': 'TabNavButtonComponent', 'selector': 'tab-nav-button'},{'name': 'TabNavButtonComponent', 'selector': 'tab-nav-button'},{'name': 'TabNavButtonComponent', 'selector': 'tab-nav-button'},{'name': 'TabNavButtonComponent', 'selector': 'tab-nav-button'},{'name': 'TabOrAccordionContainerComponent', 'selector': 'tabcontainer'},{'name': 'TabOrAccordionContainerComponent', 'selector': 'tabcontainer'},{'name': 'TabOrAccordionContainerComponent', 'selector': 'tabcontainer'},{'name': 'TabOrAccordionContainerComponent', 'selector': 'tabcontainer'},{'name': 'TabOrAccordionContainerComponent', 'selector': 'tabcontainer'},{'name': 'TabOrAccordionContainerComponent', 'selector': 'tabcontainer'},{'name': 'TabOrAccordionContainerComponent', 'selector': 'tabcontainer'},{'name': 'TabOrAccordionContainerComponent', 'selector': 'tabcontainer'},{'name': 'TabOrAccordionContainerComponent', 'selector': 'tabcontainer'},{'name': 'TabOrAccordionContainerComponent', 'selector': 'tabcontainer'},{'name': 'TabOrAccordionContainerComponent', 'selector': 'tabcontainer'},{'name': 'TabOrAccordionContainerComponent', 'selector': 'tabcontainer'},{'name': 'TextAreaComponent', 'selector': 'text-area'},{'name': 'TextAreaComponent', 'selector': 'text-area'},{'name': 'TextAreaComponent', 'selector': 'text-area'},{'name': 'TextAreaComponent', 'selector': 'text-area'},{'name': 'TextAreaComponent', 'selector': 'text-area'},{'name': 'TextAreaComponent', 'selector': 'text-area'},{'name': 'TextAreaComponent', 'selector': 'text-area'},{'name': 'TextAreaComponent', 'selector': 'text-area'},{'name': 'TextAreaComponent', 'selector': 'text-area'},{'name': 'TextAreaComponent', 'selector': 'text-area'},{'name': 'TextAreaComponent', 'selector': 'text-area'},{'name': 'TextAreaComponent', 'selector': 'text-area'},{'name': 'TextBlockComponent', 'selector': 'text-block'},{'name': 'TextBlockComponent', 'selector': 'text-block'},{'name': 'TextBlockComponent', 'selector': 'text-block'},{'name': 'TextBlockComponent', 'selector': 'text-block'},{'name': 'TextBlockComponent', 'selector': 'text-block'},{'name': 'TextBlockComponent', 'selector': 'text-block'},{'name': 'TextBlockComponent', 'selector': 'text-block'},{'name': 'TextBlockComponent', 'selector': 'text-block'},{'name': 'TextBlockComponent', 'selector': 'text-block'},{'name': 'TextBlockComponent', 'selector': 'text-block'},{'name': 'TextBlockComponent', 'selector': 'text-block'},{'name': 'TextBlockComponent', 'selector': 'text-block'},{'name': 'TextFieldComponent', 'selector': 'textfield'},{'name': 'TextFieldComponent', 'selector': 'textfield'},{'name': 'TextFieldComponent', 'selector': 'textfield'},{'name': 'TextFieldComponent', 'selector': 'textfield'},{'name': 'TextFieldComponent', 'selector': 'textfield'},{'name': 'TextFieldComponent', 'selector': 'textfield'},{'name': 'TextFieldComponent', 'selector': 'textfield'},{'name': 'TextFieldComponent', 'selector': 'textfield'},{'name': 'TextFieldComponent', 'selector': 'textfield'},{'name': 'TextFieldComponent', 'selector': 'textfield'},{'name': 'TextFieldComponent', 'selector': 'textfield'},{'name': 'TextFieldComponent', 'selector': 'textfield'},{'name': 'ToggleComponent', 'selector': 'toggle'},{'name': 'ToggleComponent', 'selector': 'toggle'},{'name': 'ToggleComponent', 'selector': 'toggle'},{'name': 'ToggleComponent', 'selector': 'toggle'},{'name': 'ToggleComponent', 'selector': 'toggle'},{'name': 'ToggleComponent', 'selector': 'toggle'},{'name': 'ToggleComponent', 'selector': 'toggle'},{'name': 'ToggleComponent', 'selector': 'toggle'},{'name': 'ToggleComponent', 'selector': 'toggle'},{'name': 'ToggleComponent', 'selector': 'toggle'},{'name': 'ToggleComponent', 'selector': 'toggle'},{'name': 'ToggleComponent', 'selector': 'toggle'},{'name': 'TransferOwnerComponent', 'selector': 'transfer-owner'},{'name': 'TreeNodeCheckboxComponent', 'selector': 'rb-tree-node-checkbox'},{'name': 'TreeNodeCheckboxComponent', 'selector': 'rb-tree-node-checkbox'},{'name': 'TreeNodeCheckboxComponent', 'selector': 'rb-tree-node-checkbox'},{'name': 'TreeNodeCheckboxComponent', 'selector': 'rb-tree-node-checkbox'},{'name': 'TreeNodeCheckboxComponent', 'selector': 'rb-tree-node-checkbox'},{'name': 'TreeNodeCheckboxComponent', 'selector': 'rb-tree-node-checkbox'},{'name': 'TreeNodeCheckboxComponent', 'selector': 'rb-tree-node-checkbox'},{'name': 'TreeNodeCheckboxComponent', 'selector': 'rb-tree-node-checkbox'},{'name': 'TreeNodeCheckboxComponent', 'selector': 'rb-tree-node-checkbox'},{'name': 'TreeNodeCheckboxComponent', 'selector': 'rb-tree-node-checkbox'},{'name': 'TreeNodeCheckboxComponent', 'selector': 'rb-tree-node-checkbox'},{'name': 'TreeNodeCheckboxComponent', 'selector': 'rb-tree-node-checkbox'},{'name': 'UserProfileComponent', 'selector': 'user-profile'},{'name': 'VocabFieldComponent', 'selector': 'rb-vocab'},{'name': 'VocabFieldComponent', 'selector': 'rb-vocab'},{'name': 'VocabFieldComponent', 'selector': 'rb-vocab'},{'name': 'VocabFieldComponent', 'selector': 'rb-vocab'},{'name': 'VocabFieldComponent', 'selector': 'rb-vocab'},{'name': 'VocabFieldComponent', 'selector': 'rb-vocab'},{'name': 'VocabFieldComponent', 'selector': 'rb-vocab'},{'name': 'VocabFieldComponent', 'selector': 'rb-vocab'},{'name': 'VocabFieldComponent', 'selector': 'rb-vocab'},{'name': 'VocabFieldComponent', 'selector': 'rb-vocab'},{'name': 'VocabFieldComponent', 'selector': 'rb-vocab'},{'name': 'VocabFieldComponent', 'selector': 'rb-vocab'},{'name': 'WorkflowStepButtonComponent', 'selector': 'workflowstep-button'},{'name': 'WorkflowStepButtonComponent', 'selector': 'workflowstep-button'},{'name': 'WorkflowStepButtonComponent', 'selector': 'workflowstep-button'},{'name': 'WorkflowStepButtonComponent', 'selector': 'workflowstep-button'},{'name': 'WorkflowStepButtonComponent', 'selector': 'workflowstep-button'},{'name': 'WorkflowStepButtonComponent', 'selector': 'workflowstep-button'},{'name': 'WorkflowStepButtonComponent', 'selector': 'workflowstep-button'},{'name': 'WorkflowStepButtonComponent', 'selector': 'workflowstep-button'},{'name': 'WorkflowStepButtonComponent', 'selector': 'workflowstep-button'},{'name': 'WorkflowStepButtonComponent', 'selector': 'workflowstep-button'},{'name': 'WorkflowStepButtonComponent', 'selector': 'workflowstep-button'},{'name': 'WorkflowStepButtonComponent', 'selector': 'workflowstep-button'},{'name': 'WorkspaceFieldComponent', 'selector': 'ws-field'},{'name': 'WorkspaceFieldComponent', 'selector': 'ws-field'},{'name': 'WorkspaceFieldComponent', 'selector': 'ws-field'},{'name': 'WorkspaceFieldComponent', 'selector': 'ws-field'},{'name': 'WorkspaceFieldComponent', 'selector': 'ws-field'},{'name': 'WorkspaceFieldComponent', 'selector': 'ws-field'},{'name': 'WorkspaceFieldComponent', 'selector': 'ws-field'},{'name': 'WorkspaceFieldComponent', 'selector': 'ws-field'},{'name': 'WorkspaceFieldComponent', 'selector': 'ws-field'},{'name': 'WorkspaceFieldComponent', 'selector': 'ws-field'},{'name': 'WorkspaceFieldComponent', 'selector': 'ws-field'},{'name': 'WorkspaceFieldComponent', 'selector': 'ws-field'},{'name': 'WorkspaceListComponent', 'selector': 'workspace-list'},{'name': 'WorkspaceSelectorComponent', 'selector': 'workspace-selector-parent'},{'name': 'WorkspaceSelectorComponent', 'selector': 'workspace-selector-parent'},{'name': 'WorkspaceSelectorComponent', 'selector': 'workspace-selector-parent'},{'name': 'WorkspaceSelectorComponent', 'selector': 'workspace-selector-parent'},{'name': 'WorkspaceSelectorComponent', 'selector': 'workspace-selector-parent'},{'name': 'WorkspaceSelectorComponent', 'selector': 'workspace-selector-parent'},{'name': 'WorkspaceSelectorComponent', 'selector': 'workspace-selector-parent'},{'name': 'WorkspaceSelectorComponent', 'selector': 'workspace-selector-parent'},{'name': 'WorkspaceSelectorComponent', 'selector': 'workspace-selector-parent'},{'name': 'WorkspaceSelectorComponent', 'selector': 'workspace-selector-parent'},{'name': 'WorkspaceSelectorComponent', 'selector': 'workspace-selector-parent'},{'name': 'WorkspaceSelectorComponent', 'selector': 'workspace-selector-parent'},{'name': 'WorkspaceSelectorFieldComponent', 'selector': 'workspace-selector'},{'name': 'WorkspaceSelectorFieldComponent', 'selector': 'workspace-selector'},{'name': 'WorkspaceSelectorFieldComponent', 'selector': 'workspace-selector'},{'name': 'WorkspaceSelectorFieldComponent', 'selector': 'workspace-selector'},{'name': 'WorkspaceSelectorFieldComponent', 'selector': 'workspace-selector'},{'name': 'WorkspaceSelectorFieldComponent', 'selector': 'workspace-selector'},{'name': 'WorkspaceSelectorFieldComponent', 'selector': 'workspace-selector'},{'name': 'WorkspaceSelectorFieldComponent', 'selector': 'workspace-selector'},{'name': 'WorkspaceSelectorFieldComponent', 'selector': 'workspace-selector'},{'name': 'WorkspaceSelectorFieldComponent', 'selector': 'workspace-selector'},{'name': 'WorkspaceSelectorFieldComponent', 'selector': 'workspace-selector'},{'name': 'WorkspaceSelectorFieldComponent', 'selector': 'workspace-selector'}];
+    var DIRECTIVES = [];
+    var ACTUAL_COMPONENT = {'name': 'DataLocationComponent-8'};
+</script>
+<script src="../js/tree.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                   </div><div class="search-results">
+    <div class="has-results">
+        <h1 class="search-results-title"><span class='search-results-count'></span> results matching "<span class='search-query'></span>"</h1>
+        <ul class="search-results-list"></ul>
+    </div>
+    <div class="no-results">
+        <h1 class="search-results-title">No results matching "<span class='search-query'></span>"</h1>
+    </div>
+</div>
+</div>
+               <!-- END CONTENT -->
+           </div>
+       </div>
+
+          <label class="dark-mode-switch">
+               <input type="checkbox">
+               <span class="slider">
+                    <svg class="slider-icon" viewBox="0 0 24 24" fill="none" height="20" stroke="#000" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" width="20" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"></path>
+                    </svg>
+               </span>
+          </label>
+
+       <script>
+            var COMPODOC_CURRENT_PAGE_DEPTH = 1;
+            var COMPODOC_CURRENT_PAGE_CONTEXT = 'component';
+            var COMPODOC_CURRENT_PAGE_URL = 'DataLocationComponent-8.html';
+            var MAX_SEARCH_RESULTS = 15;
+       </script>
+
+       <script src="../js/libs/custom-elements.min.js"></script>
+       <script src="../js/libs/lit-html.js"></script>
+
+       <script src="../js/menu-wc.js" defer></script>
+       <script nomodule src="../js/menu-wc_es5.js" defer></script>
+
+       <script src="../js/libs/bootstrap-native.js"></script>
+
+       <script src="../js/libs/es6-shim.min.js"></script>
+       <script src="../js/libs/EventDispatcher.js"></script>
+       <script src="../js/libs/promise.min.js"></script>
+       <script src="../js/libs/zepto.min.js"></script>
+
+       <script src="../js/compodoc.js"></script>
+
+       <script src="../js/tabs.js"></script>
+       <script src="../js/menu.js"></script>
+       <script src="../js/libs/clipboard.min.js"></script>
+       <script src="../js/libs/prism.js"></script>
+       <script src="../js/sourceCode.js"></script>
+          <script src="../js/search/search.js"></script>
+          <script src="../js/search/lunr.min.js"></script>
+          <script src="../js/search/search-lunr.js"></script>
+          <script src="../js/search/search_index.js"></script>
+       <script src="../js/lazy-load-graphs.js"></script>
+
+
+    </body>
+</html>

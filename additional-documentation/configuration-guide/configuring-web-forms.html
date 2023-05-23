@@ -14,7 +14,7 @@
     </head>
     <body>
 
-        <div class="navbar navbar-default navbar-fixed-top visible-xs">
+        <div class="navbar navbar-default navbar-fixed-top d-block d-sm-none">
             <a href="../../" class="navbar-brand">ReDBox Portal - NG2 Apps</a>
             <button type="button" class="btn btn-default btn-menu ion-ios-menu" id="btn-menu"></button>
         </div>
@@ -52,12 +52,12 @@
 
 
 
-<h1 id="configuring-web-forms">Configuring web forms</h1>
-<h2 id="introduction">Introduction</h2>
+<h1>Configuring web forms</h1>
+<h2>Introduction</h2>
 <p>ReDBox has a flexible and configurable framework that allows you to capture as metadata for a variety different purposes such as data management plans, provisioned workspaces and data collections. Metadata is stored in the <a href="https://json-ld.org/">JSON-LD</a> format and has a very loose schema to support this flexibility.</p>
 <p>For each type of metadata record stored, it is also possible to configure a workflow that the record may pass through to map to the business processes within your organisation.</p>
 <p>There is also a configurable form system that allows you to design a form to meet your needs without having the need to understand code. It is possible to attach different form structures to each workflow stage to suit the requirements for the user of the form.</p>
-<h2 id="record-type-configuration">Record Type Configuration</h2>
+<h2>Record Type Configuration</h2>
 <p>Record Types are configured in the <code>config/recordtype.js</code> file.</p>
 <p>The record type configuration defines the record type (e.g. a research data managment plan record) and what fields in the record should be displayed on the search interface for the purposes of filtering and faceting.</p>
 <p>Record&#39;s are configured via the config/workflow.js file and specifies the workflow stages a record can transition through and the roles that are permitted to view and edit a record for each workflow stage.</p>
@@ -110,7 +110,7 @@
 </tr>
 </tbody>
 </table>
-<h4 id="example">Example</h4>
+<h4>Example</h4>
 <div><pre class="line-numbers"><code class="language-none">&quot;rdmp&quot;: {
   searchFilters: [
     {
@@ -147,7 +147,7 @@
       alwaysActive: true
     }
   ]
-}</code></pre></div><h2 id="workflow-configuration">Workflow Configuration</h2>
+}</code></pre></div><h2>Workflow Configuration</h2>
 <p>The structure of the configuration is as follows</p>
 <div><pre class="line-numbers"><code class="language-none">&lt;record-type&gt;
 |
@@ -232,7 +232,7 @@
 </tr>
 </tbody>
 </table>
-<h4 id="example-1">Example</h4>
+<h4>Example</h4>
 <div><pre class="line-numbers"><code class="language-none">&quot;rdmp&quot;: {
     &quot;draft&quot;: {
       config: {
@@ -248,7 +248,7 @@
         form: &#39;rdmp-1.0-draft&#39;
       },
       starting: true
-    },</code></pre></div><h2 id="formview-configuration">Form/view configuration</h2>
+    },</code></pre></div><h2>Form/view configuration</h2>
 <p>The form and view layout is configured via config/form.js file.</p>
 <p>The structure of the configuration file is as follows</p>
 <div><pre class="line-numbers"><code class="language-none">defaultForm
@@ -274,7 +274,7 @@
             |- definition
                 |
                 |- &lt;component specific properties&gt;
-</code></pre></div><h3 id="form-wide-configuration">Form-wide configuration</h3>
+</code></pre></div><h3>Form-wide configuration</h3>
 <p>The settings in this section control the behaviour of the entire form.</p>
 <table class="table table-bordered compodoc-table">
 <thead>
@@ -324,7 +324,7 @@
 </tr>
 </tbody>
 </table>
-<h3 id="field-configuration">Field configuration</h3>
+<h3>Field configuration</h3>
 <p>The fields section lays out the components to appear in the form.</p>
 <table class="table table-bordered compodoc-table">
 <thead>
@@ -368,7 +368,7 @@
 </tr>
 </tbody>
 </table>
-<h3 id="example-2">Example</h3>
+<h3>Example</h3>
 <div><pre class="line-numbers"><code class="language-none">fields: [
   {
     class: &#39;Container&#39;,
@@ -378,7 +378,7 @@
       name: &#39;title&#39;,
       type: &#39;h1&#39;
     }
-  },</code></pre></div><h2 id="language-configuration">Language Configuration</h2>
+  },</code></pre></div><h2>Language Configuration</h2>
 <p>Messages in the system can be configured using Language files. This allows for internationalisation of the portal as well as editing in a translation management system such as <a href="https://locize.com">Locize</a>.</p>
 <p>The application uses <a href="https://www.i18next.com/">i18next</a> to render the messages and the language files are kept in the assests/locales/<language> directories.</p>
 <p>Please see the <a href="https://www.i18next.com/essentials.html">i18next documentation</a> for more information on how the language file is structured and it&#39;s features.</p>

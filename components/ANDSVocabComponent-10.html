@@ -1,0 +1,3407 @@
+<!doctype html>
+<html class="no-js" lang="">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="x-ua-compatible" content="ie=edge">
+        <title>ReDBox Portal - NG2 Apps</title>
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+
+        <link rel="icon" type="image/x-icon" href="../images/favicon.ico">
+	   <link rel="stylesheet" href="../styles/style.css">
+        <link rel="stylesheet" href="../styles/dark.css">
+        <link rel="stylesheet" href="../styles/postmark.css">
+    </head>
+    <body>
+
+        <div class="navbar navbar-default navbar-fixed-top d-block d-sm-none">
+            <a href="../" class="navbar-brand">ReDBox Portal - NG2 Apps</a>
+            <button type="button" class="btn btn-default btn-menu ion-ios-menu" id="btn-menu"></button>
+        </div>
+
+        <div class="xs-menu menu" id="mobile-menu">
+                <div id="book-search-input" role="search"><input type="text" placeholder="Type to search"></div>            <compodoc-menu></compodoc-menu>
+        </div>
+
+        <div class="container-fluid main">
+           <div class="row main">
+               <div class="hidden-xs menu">
+                   <compodoc-menu mode="normal"></compodoc-menu>
+               </div>
+               <!-- START CONTENT -->
+               <div class="content component">
+                   <div class="content-data">
+
+
+
+
+<ol class="breadcrumb">
+  <li class="breadcrumb-item">Components</li>
+  <li class="breadcrumb-item"
+  >
+  ANDSVocabComponent</li>
+</ol>
+
+<ul class="nav nav-tabs" role="tablist">
+        <li class="nav-item">
+            <a href="#info" class="nav-link active"
+                role="tab" id="info-tab" data-bs-toggle="tab" data-link="info">Info</a>
+        </li>
+        <li class="nav-item">
+            <a href="#source" class="nav-link"
+                role="tab" id="source-tab" data-bs-toggle="tab" data-link="source">Source</a>
+        </li>
+        <li class="nav-item">
+            <a href="#templateData" class="nav-link"
+                role="tab" id="templateData-tab" data-bs-toggle="tab" data-link="template">Template</a>
+        </li>
+        <li class="nav-item">
+            <a href="#styleData" class="nav-link"
+                role="tab" id="styleData-tab" data-bs-toggle="tab" data-link="style">Styles</a>
+        </li>
+        <li class="nav-item">
+            <a href="#tree" class="nav-link"
+                role="tab" id="tree-tab" data-bs-toggle="tab" data-link="dom-tree">DOM Tree</a>
+        </li>
+</ul>
+
+<div class="tab-content">
+    <div class="tab-pane fade active in" id="info"><p class="comment">
+    <h3>File</h3>
+</p>
+<p class="comment">
+    <code>angular/userProfile/app/shared/form/field-andsvocab.component.ts</code>
+</p>
+
+
+    <p class="comment">
+        <h3>Description</h3>
+    </p>
+    <p class="comment">
+        <p>Component utilising the ANDS Vocabb selector widget</p>
+
+    </p>
+
+    <p class="comment">
+        <h3>Extends</h3>
+    </p>
+    <p class="comment">
+                <code><a href="../classes/SimpleComponent.html" target="_self" >SimpleComponent</a></code>
+    </p>
+
+
+
+<section data-compodoc="block-metadata">
+    <h3>Metadata</h3>
+    <table class="table table-sm table-hover metadata">
+        <tbody>
+
+
+
+
+
+
+
+
+
+
+
+
+            <tr>
+                <td class="col-md-3">selector</td>
+                <td class="col-md-9"><code>ands-vocab-selector</code></td>
+            </tr>
+
+
+
+
+            <tr>
+                <td class="col-md-3">styles</td>
+                <td class="col-md-9"><code>span.node-name { font-size: 300%; }</code></td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-3">templateUrl</td>
+                <td class="col-md-9"><code>./field-andsvocab.html</code></td>
+            </tr>
+
+
+
+
+
+
+
+
+        </tbody>
+    </table>
+</section>
+
+    <section data-compodoc="block-index">
+    <h3 id="index">Index</h3>
+    <table class="table table-sm table-bordered index-table">
+        <tbody>
+                <tr>
+                    <td class="col-md-4">
+                        <h6><b>Properties</b></h6>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <ul class="index-list">
+                            <li>
+                                    <span class="modifier"></span>
+                                    <span class="modifier">Public</span>
+                                <a href="#andsTree" >andsTree</a>
+                            </li>
+                            <li>
+                                <a href="#elementRef" >elementRef</a>
+                            </li>
+                            <li>
+                                <a href="#expandNodeIds" >expandNodeIds</a>
+                            </li>
+                            <li>
+                                <a href="#field" >field</a>
+                            </li>
+                            <li>
+                                <a href="#loadState" >loadState</a>
+                            </li>
+                            <li>
+                                <a href="#nodeEventSubject" >nodeEventSubject</a>
+                            </li>
+                            <li>
+                                <a href="#options" >options</a>
+                            </li>
+                            <li>
+                                    <span class="modifier">Readonly</span>
+                                <a href="#STATUS_EXPANDED" >STATUS_EXPANDED</a>
+                            </li>
+                            <li>
+                                    <span class="modifier">Readonly</span>
+                                <a href="#STATUS_EXPANDING" >STATUS_EXPANDING</a>
+                            </li>
+                            <li>
+                                    <span class="modifier">Readonly</span>
+                                <a href="#STATUS_INIT" >STATUS_INIT</a>
+                            </li>
+                            <li>
+                                    <span class="modifier">Readonly</span>
+                                <a href="#STATUS_LOADED" >STATUS_LOADED</a>
+                            </li>
+                            <li>
+                                    <span class="modifier">Readonly</span>
+                                <a href="#STATUS_LOADING" >STATUS_LOADING</a>
+                            </li>
+                            <li>
+                                <a href="#treeData" >treeData</a>
+                            </li>
+                            <li>
+                                <a href="#treeInitListener" >treeInitListener</a>
+                            </li>
+                            <li>
+                                <a href="#helpShow" >helpShow</a>
+                            </li>
+                            <li>
+                                    <span class="modifier">Public</span>
+                                <a href="#injector" >injector</a>
+                            </li>
+                            <li>
+                                <a href="#loaded" >loaded</a>
+                            </li>
+                            <li>
+                                <a href="#parentId" >parentId</a>
+                            </li>
+                        </ul>
+                    </td>
+                </tr>
+
+                <tr>
+                    <td class="col-md-4">
+                        <h6><b>Methods</b></h6>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <ul class="index-list">
+                            <li>
+                                    <span class="modifier">Protected</span>
+                                <a href="#clearSelectedNodes" >clearSelectedNodes</a>
+                            </li>
+                            <li>
+                                    <span class="modifier">Protected</span>
+                                <a href="#collapseNodes" >collapseNodes</a>
+                            </li>
+                            <li>
+                                    <span class="modifier">Protected</span>
+                                <a href="#expandNodes" >expandNodes</a>
+                            </li>
+                            <li>
+                                    <span class="modifier">Public</span>
+                                <a href="#getChildren" >getChildren</a>
+                            </li>
+                            <li>
+                                    <span class="modifier">Protected</span>
+                                <a href="#getNodeSelected" >getNodeSelected</a>
+                            </li>
+                            <li>
+                                    <span class="modifier">Public</span>
+                                <a href="#getValueFromChildData" >getValueFromChildData</a>
+                            </li>
+                            <li>
+                                    <span class="modifier">Protected</span>
+                                <a href="#handleNodeEvent" >handleNodeEvent</a>
+                            </li>
+                            <li>
+                                    <span class="modifier">Public</span>
+                                <a href="#isSelectionValid" >isSelectionValid</a>
+                            </li>
+                            <li>
+                                    <span class="modifier">Public</span>
+                                <a href="#mapItemsToChildren" >mapItemsToChildren</a>
+                            </li>
+                            <li>
+                                    <span class="modifier">Public</span>
+                                <a href="#ngAfterViewInit" >ngAfterViewInit</a>
+                            </li>
+                            <li>
+                                    <span class="modifier">Public</span>
+                                <a href="#ngOnInit" >ngOnInit</a>
+                            </li>
+                            <li>
+                                    <span class="modifier">Public</span>
+                                <a href="#onEvent" >onEvent</a>
+                            </li>
+                            <li>
+                                    <span class="modifier">Public</span>
+                                <a href="#onNodeActivate" >onNodeActivate</a>
+                            </li>
+                            <li>
+                                    <span class="modifier">Public</span>
+                                <a href="#onNodeDeactivate" >onNodeDeactivate</a>
+                            </li>
+                            <li>
+                                    <span class="modifier">Public</span>
+                                <a href="#reactEvent" >reactEvent</a>
+                            </li>
+                            <li>
+                                    <span class="modifier">Protected</span>
+                                <a href="#setNodeSelected" >setNodeSelected</a>
+                            </li>
+                            <li>
+                                    <span class="modifier">Public</span>
+                                <a href="#setParentTree" >setParentTree</a>
+                            </li>
+                            <li>
+                                    <span class="modifier">Protected</span>
+                                <a href="#startTreeInit" >startTreeInit</a>
+                            </li>
+                            <li>
+                                    <span class="modifier">Protected</span>
+                                <a href="#updateSingleNodeSelectedState" >updateSingleNodeSelectedState</a>
+                            </li>
+                            <li>
+                                    <span class="modifier">Public</span>
+                                <a href="#updateTreeView" >updateTreeView</a>
+                            </li>
+                            <li>
+                                    <span class="modifier">Public</span>
+                                <a href="#getFormControl" >getFormControl</a>
+                            </li>
+                            <li>
+                                <a href="#getFromInjector" >getFromInjector</a>
+                            </li>
+                            <li>
+                                    <span class="modifier">Public</span>
+                                <a href="#getGroupClass" >getGroupClass</a>
+                            </li>
+                            <li>
+                                <a href="#getRequiredLabelStr" >getRequiredLabelStr</a>
+                            </li>
+                            <li>
+                                    <span class="modifier">Public</span>
+                                <a href="#hasRequiredError" >hasRequiredError</a>
+                            </li>
+                            <li>
+                                    <span class="modifier">Public</span>
+                                <a href="#toggleHelp" >toggleHelp</a>
+                            </li>
+                        </ul>
+                    </td>
+                </tr>
+
+                <tr>
+                    <td class="col-md-4">
+                        <h6><b>Inputs</b></h6>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <ul class="index-list">
+                            <li>
+                                <a href="#field" >field</a>
+                            </li>
+                            <li>
+                                <a href="#fieldMap" >fieldMap</a>
+                            </li>
+                            <li>
+                                <a href="#form" >form</a>
+                            </li>
+                            <li>
+                                <a href="#index" >index</a>
+                            </li>
+                            <li>
+                                <a href="#isEmbedded" >isEmbedded</a>
+                            </li>
+                            <li>
+                                <a href="#name" >name</a>
+                            </li>
+                        </ul>
+                    </td>
+                </tr>
+
+
+
+
+        </tbody>
+    </table>
+</section>
+
+    <section data-compodoc="block-constructor">
+    <h3 id="constructor">Constructor</h3>
+        <table class="table table-sm table-bordered">
+            <tbody>
+                <tr>
+                    <td class="col-md-4">
+<code>constructor(elementRef: ElementRef)</code>
+                    </td>
+                </tr>
+                        <tr>
+                            <td class="col-md-4">
+                                <div class="io-line">Defined in <a href="" data-line="112" class="link-to-prism">angular/userProfile/app/shared/form/field-andsvocab.component.ts:112</a></div>
+                            </td>
+                        </tr>
+
+                <tr>
+                    <td class="col-md-4">
+                            <div>
+                                    <b>Parameters :</b>
+                                    <table class="params">
+                                        <thead>
+                                            <tr>
+                                                <td>Name</td>
+                                                    <td>Type</td>
+                                                <td>Optional</td>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                                <tr>
+                                                        <td>elementRef</td>
+                                                  
+                                                        <td>
+                                                                    <code>ElementRef</code>
+                                                        </td>
+                                                  
+                                                    <td>
+                                                            No
+                                                    </td>
+                                                    
+                                                </tr>
+                                        </tbody>
+                                    </table>
+                            </div>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+</section>
+
+    <section data-compodoc="block-inputs">
+    <h3 id="inputs">Inputs</h3>
+        <table class="table table-sm table-bordered">
+            <tbody>
+                <tr>
+                    <td class="col-md-4">
+                        <a name="field"></a>
+                        <b>field</b>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Type : </i>    <code>FieldBase&lt;any&gt;</code>
+
+                    </td>
+                </tr>
+                            <tr>
+                                <td class="col-md-4" colspan="2">
+                                    <div class="io-line">Inherited from         <code><a href="../classes/SimpleComponent.html" target="_self" >SimpleComponent</a></code>
+</div>
+                                </td>
+                            </tr>
+                        <tr>
+                            <td class="col-md-2" colspan="2">
+                                    <div class="io-line">Defined in         <code><a href="../classes/SimpleComponent.html#source" target="_self" >SimpleComponent:68</a></code>
+</div>
+                            </td>
+                        </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <div class="io-description"><p>Field model</p>
+</div>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+        <table class="table table-sm table-bordered">
+            <tbody>
+                <tr>
+                    <td class="col-md-4">
+                        <a name="fieldMap"></a>
+                        <b>fieldMap</b>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Type : </i>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+
+                    </td>
+                </tr>
+                            <tr>
+                                <td class="col-md-4" colspan="2">
+                                    <div class="io-line">Inherited from         <code><a href="../classes/SimpleComponent.html" target="_self" >SimpleComponent</a></code>
+</div>
+                                </td>
+                            </tr>
+                        <tr>
+                            <td class="col-md-2" colspan="2">
+                                    <div class="io-line">Defined in         <code><a href="../classes/SimpleComponent.html#source" target="_self" >SimpleComponent:76</a></code>
+</div>
+                            </td>
+                        </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <div class="io-description"><p>The field mapping</p>
+</div>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+        <table class="table table-sm table-bordered">
+            <tbody>
+                <tr>
+                    <td class="col-md-4">
+                        <a name="form"></a>
+                        <b>form</b>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Type : </i>    <code>FormGroup</code>
+
+                    </td>
+                </tr>
+                            <tr>
+                                <td class="col-md-4" colspan="2">
+                                    <div class="io-line">Inherited from         <code><a href="../classes/SimpleComponent.html" target="_self" >SimpleComponent</a></code>
+</div>
+                                </td>
+                            </tr>
+                        <tr>
+                            <td class="col-md-2" colspan="2">
+                                    <div class="io-line">Defined in         <code><a href="../classes/SimpleComponent.html#source" target="_self" >SimpleComponent:72</a></code>
+</div>
+                            </td>
+                        </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <div class="io-description"><p>The form group</p>
+</div>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+        <table class="table table-sm table-bordered">
+            <tbody>
+                <tr>
+                    <td class="col-md-4">
+                        <a name="index"></a>
+                        <b>index</b>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Type : </i>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+
+                    </td>
+                </tr>
+                            <tr>
+                                <td class="col-md-4" colspan="2">
+                                    <div class="io-line">Inherited from         <code><a href="../classes/SimpleComponent.html" target="_self" >SimpleComponent</a></code>
+</div>
+                                </td>
+                            </tr>
+                        <tr>
+                            <td class="col-md-2" colspan="2">
+                                    <div class="io-line">Defined in         <code><a href="../classes/SimpleComponent.html#source" target="_self" >SimpleComponent:80</a></code>
+</div>
+                            </td>
+                        </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <div class="io-description"><p>The index of this field</p>
+</div>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+        <table class="table table-sm table-bordered">
+            <tbody>
+                <tr>
+                    <td class="col-md-4">
+                        <a name="isEmbedded"></a>
+                        <b>isEmbedded</b>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Type : </i>        <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/boolean" target="_blank" >boolean</a></code>
+
+                    </td>
+                </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Default value : </i><code>false</code>
+                    </td>
+                </tr>
+                            <tr>
+                                <td class="col-md-4" colspan="2">
+                                    <div class="io-line">Inherited from         <code><a href="../classes/SimpleComponent.html" target="_self" >SimpleComponent</a></code>
+</div>
+                                </td>
+                            </tr>
+                        <tr>
+                            <td class="col-md-2" colspan="2">
+                                    <div class="io-line">Defined in         <code><a href="../classes/SimpleComponent.html#source" target="_self" >SimpleComponent:86</a></code>
+</div>
+                            </td>
+                        </tr>
+            </tbody>
+        </table>
+        <table class="table table-sm table-bordered">
+            <tbody>
+                <tr>
+                    <td class="col-md-4">
+                        <a name="name"></a>
+                        <b>name</b>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Type : </i>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+
+                    </td>
+                </tr>
+                            <tr>
+                                <td class="col-md-4" colspan="2">
+                                    <div class="io-line">Inherited from         <code><a href="../classes/SimpleComponent.html" target="_self" >SimpleComponent</a></code>
+</div>
+                                </td>
+                            </tr>
+                        <tr>
+                            <td class="col-md-2" colspan="2">
+                                    <div class="io-line">Defined in         <code><a href="../classes/SimpleComponent.html#source" target="_self" >SimpleComponent:84</a></code>
+</div>
+                            </td>
+                        </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <div class="io-description"><p>The name of this field</p>
+</div>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+</section>
+
+
+
+    <section data-compodoc="block-methods">
+    
+    <h3 id="methods">
+        Methods
+    </h3>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="clearSelectedNodes"></a>
+                    <span class="name">
+                        <span class="modifier">Protected</span>
+                        <span ><b>clearSelectedNodes</b></span>
+                        <a href="#clearSelectedNodes"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                    <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>clearSelectedNodes()</code>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-line">Defined in <a href="" data-line="281"
+                            class="link-to-prism">angular/userProfile/app/shared/form/field-andsvocab.component.ts:281</a></div>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+
+                    <div class="io-description">
+                        <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >void</a></code>
+
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="collapseNodes"></a>
+                    <span class="name">
+                        <span class="modifier">Protected</span>
+                        <span ><b>collapseNodes</b></span>
+                        <a href="#collapseNodes"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                    <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>collapseNodes()</code>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-line">Defined in <a href="" data-line="265"
+                            class="link-to-prism">angular/userProfile/app/shared/form/field-andsvocab.component.ts:265</a></div>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+
+                    <div class="io-description">
+                        <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >void</a></code>
+
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="expandNodes"></a>
+                    <span class="name">
+                        <span class="modifier">Protected</span>
+                        <span ><b>expandNodes</b></span>
+                        <a href="#expandNodes"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                    <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>expandNodes()</code>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-line">Defined in <a href="" data-line="254"
+                            class="link-to-prism">angular/userProfile/app/shared/form/field-andsvocab.component.ts:254</a></div>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+
+                    <div class="io-description">
+                        <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >void</a></code>
+
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="getChildren"></a>
+                    <span class="name">
+                        <span class="modifier">Public</span>
+                        <span ><b>getChildren</b></span>
+                        <a href="#getChildren"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                    <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>getChildren(node: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>)</code>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-line">Defined in <a href="" data-line="287"
+                            class="link-to-prism">angular/userProfile/app/shared/form/field-andsvocab.component.ts:287</a></div>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+
+                    <div class="io-description">
+                        <b>Parameters :</b>
+                        
+                        <table class="params">
+                            <thead>
+                                <tr>
+                                    <td>Name</td>
+                                    <td>Type</td>
+                                    <td>Optional</td>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>node</td>
+                                    <td>
+                                                <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div>
+                    </div>
+                    <div class="io-description">
+                        <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+
+                    </div>
+                    <div class="io-description">
+                        
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="getNodeSelected"></a>
+                    <span class="name">
+                        <span class="modifier">Protected</span>
+                        <span ><b>getNodeSelected</b></span>
+                        <a href="#getNodeSelected"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                    <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>getNodeSelected(nodeId)</code>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-line">Defined in <a href="" data-line="277"
+                            class="link-to-prism">angular/userProfile/app/shared/form/field-andsvocab.component.ts:277</a></div>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+
+                    <div class="io-description">
+                        <b>Parameters :</b>
+                        
+                        <table class="params">
+                            <thead>
+                                <tr>
+                                    <td>Name</td>
+                                    <td>Optional</td>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>nodeId</td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div>
+                    </div>
+                    <div class="io-description">
+                        <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+
+                    </div>
+                    <div class="io-description">
+                        
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="getValueFromChildData"></a>
+                    <span class="name">
+                        <span class="modifier">Public</span>
+                        <span ><b>getValueFromChildData</b></span>
+                        <a href="#getValueFromChildData"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                    <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>getValueFromChildData(childNode: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>)</code>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-line">Defined in <a href="" data-line="304"
+                            class="link-to-prism">angular/userProfile/app/shared/form/field-andsvocab.component.ts:304</a></div>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+
+                    <div class="io-description">
+                        <b>Parameters :</b>
+                        
+                        <table class="params">
+                            <thead>
+                                <tr>
+                                    <td>Name</td>
+                                    <td>Type</td>
+                                    <td>Optional</td>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>childNode</td>
+                                    <td>
+                                                <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div>
+                    </div>
+                    <div class="io-description">
+                        <b>Returns : </b>    <code>{ name: string; label: any; notation: any; }</code>
+
+                    </div>
+                    <div class="io-description">
+                        
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="handleNodeEvent"></a>
+                    <span class="name">
+                        <span class="modifier">Protected</span>
+                        <span ><b>handleNodeEvent</b></span>
+                        <a href="#handleNodeEvent"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                    <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>handleNodeEvent(eventArr)</code>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-line">Defined in <a href="" data-line="196"
+                            class="link-to-prism">angular/userProfile/app/shared/form/field-andsvocab.component.ts:196</a></div>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+
+                    <div class="io-description">
+                        <b>Parameters :</b>
+                        
+                        <table class="params">
+                            <thead>
+                                <tr>
+                                    <td>Name</td>
+                                    <td>Optional</td>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>eventArr</td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div>
+                    </div>
+                    <div class="io-description">
+                        <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >void</a></code>
+
+                    </div>
+                    <div class="io-description">
+                        
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="isSelectionValid"></a>
+                    <span class="name">
+                        <span class="modifier">Public</span>
+                        <span ><b>isSelectionValid</b></span>
+                        <a href="#isSelectionValid"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                    <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>isSelectionValid(childNode: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>)</code>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-line">Defined in <a href="" data-line="311"
+                            class="link-to-prism">angular/userProfile/app/shared/form/field-andsvocab.component.ts:311</a></div>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+
+                    <div class="io-description">
+                        <b>Parameters :</b>
+                        
+                        <table class="params">
+                            <thead>
+                                <tr>
+                                    <td>Name</td>
+                                    <td>Type</td>
+                                    <td>Optional</td>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>childNode</td>
+                                    <td>
+                                                <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div>
+                    </div>
+                    <div class="io-description">
+                        <b>Returns : </b>        <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/boolean" target="_blank" >boolean</a></code>
+
+                    </div>
+                    <div class="io-description">
+                        
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="mapItemsToChildren"></a>
+                    <span class="name">
+                        <span class="modifier">Public</span>
+                        <span ><b>mapItemsToChildren</b></span>
+                        <a href="#mapItemsToChildren"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                    <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>mapItemsToChildren(items: any[])</code>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-line">Defined in <a href="" data-line="298"
+                            class="link-to-prism">angular/userProfile/app/shared/form/field-andsvocab.component.ts:298</a></div>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+
+                    <div class="io-description">
+                        <b>Parameters :</b>
+                        
+                        <table class="params">
+                            <thead>
+                                <tr>
+                                    <td>Name</td>
+                                    <td>Type</td>
+                                    <td>Optional</td>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>items</td>
+                                    <td>
+                                            <code>any[]</code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div>
+                    </div>
+                    <div class="io-description">
+                        <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+
+                    </div>
+                    <div class="io-description">
+                        
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="ngAfterViewInit"></a>
+                    <span class="name">
+                        <span class="modifier">Public</span>
+                        <span ><b>ngAfterViewInit</b></span>
+                        <a href="#ngAfterViewInit"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                    <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>ngAfterViewInit()</code>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-line">Defined in <a href="" data-line="141"
+                            class="link-to-prism">angular/userProfile/app/shared/form/field-andsvocab.component.ts:141</a></div>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+
+                    <div class="io-description">
+                        <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >void</a></code>
+
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="ngOnInit"></a>
+                    <span class="name">
+                        <span class="modifier">Public</span>
+                        <span ><b>ngOnInit</b></span>
+                        <a href="#ngOnInit"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                    <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>ngOnInit()</code>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-line">Defined in <a href="" data-line="129"
+                            class="link-to-prism">angular/userProfile/app/shared/form/field-andsvocab.component.ts:129</a></div>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+
+                    <div class="io-description">
+                        <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >void</a></code>
+
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="onEvent"></a>
+                    <span class="name">
+                        <span class="modifier">Public</span>
+                        <span ><b>onEvent</b></span>
+                        <a href="#onEvent"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                    <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>onEvent(event)</code>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-line">Defined in <a href="" data-line="182"
+                            class="link-to-prism">angular/userProfile/app/shared/form/field-andsvocab.component.ts:182</a></div>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+
+                    <div class="io-description">
+                        <b>Parameters :</b>
+                        
+                        <table class="params">
+                            <thead>
+                                <tr>
+                                    <td>Name</td>
+                                    <td>Optional</td>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>event</td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div>
+                    </div>
+                    <div class="io-description">
+                        <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >void</a></code>
+
+                    </div>
+                    <div class="io-description">
+                        
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="onNodeActivate"></a>
+                    <span class="name">
+                        <span class="modifier">Public</span>
+                        <span ><b>onNodeActivate</b></span>
+                        <a href="#onNodeActivate"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                    <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>onNodeActivate(event: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>)</code>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-line">Defined in <a href="" data-line="230"
+                            class="link-to-prism">angular/userProfile/app/shared/form/field-andsvocab.component.ts:230</a></div>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+
+                    <div class="io-description">
+                        <b>Parameters :</b>
+                        
+                        <table class="params">
+                            <thead>
+                                <tr>
+                                    <td>Name</td>
+                                    <td>Type</td>
+                                    <td>Optional</td>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>event</td>
+                                    <td>
+                                                <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div>
+                    </div>
+                    <div class="io-description">
+                        <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >void</a></code>
+
+                    </div>
+                    <div class="io-description">
+                        
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="onNodeDeactivate"></a>
+                    <span class="name">
+                        <span class="modifier">Public</span>
+                        <span ><b>onNodeDeactivate</b></span>
+                        <a href="#onNodeDeactivate"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                    <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>onNodeDeactivate(event: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>)</code>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-line">Defined in <a href="" data-line="234"
+                            class="link-to-prism">angular/userProfile/app/shared/form/field-andsvocab.component.ts:234</a></div>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+
+                    <div class="io-description">
+                        <b>Parameters :</b>
+                        
+                        <table class="params">
+                            <thead>
+                                <tr>
+                                    <td>Name</td>
+                                    <td>Type</td>
+                                    <td>Optional</td>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>event</td>
+                                    <td>
+                                                <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div>
+                    </div>
+                    <div class="io-description">
+                        <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >void</a></code>
+
+                    </div>
+                    <div class="io-description">
+                        
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="reactEvent"></a>
+                    <span class="name">
+                        <span class="modifier">Public</span>
+                        <span ><b>reactEvent</b></span>
+                        <a href="#reactEvent"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                    <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>reactEvent(eventName: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank">string</a>, eventData: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>, origData: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>, elem: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>)</code>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-line">Defined in <a href="" data-line="348"
+                            class="link-to-prism">angular/userProfile/app/shared/form/field-andsvocab.component.ts:348</a></div>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+
+                    <div class="io-description">
+                        <b>Parameters :</b>
+                        
+                        <table class="params">
+                            <thead>
+                                <tr>
+                                    <td>Name</td>
+                                    <td>Type</td>
+                                    <td>Optional</td>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>eventName</td>
+                                    <td>
+                                                <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank" >string</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+
+                                </tr>
+                                <tr>
+                                    <td>eventData</td>
+                                    <td>
+                                                <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+
+                                </tr>
+                                <tr>
+                                    <td>origData</td>
+                                    <td>
+                                                <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+
+                                </tr>
+                                <tr>
+                                    <td>elem</td>
+                                    <td>
+                                                <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div>
+                    </div>
+                    <div class="io-description">
+                        <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >void</a></code>
+
+                    </div>
+                    <div class="io-description">
+                        
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="setNodeSelected"></a>
+                    <span class="name">
+                        <span class="modifier">Protected</span>
+                        <span ><b>setNodeSelected</b></span>
+                        <a href="#setNodeSelected"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                    <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>setNodeSelected(state, nodeId, flag)</code>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-line">Defined in <a href="" data-line="269"
+                            class="link-to-prism">angular/userProfile/app/shared/form/field-andsvocab.component.ts:269</a></div>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+
+                    <div class="io-description">
+                        <b>Parameters :</b>
+                        
+                        <table class="params">
+                            <thead>
+                                <tr>
+                                    <td>Name</td>
+                                    <td>Optional</td>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>state</td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+
+                                </tr>
+                                <tr>
+                                    <td>nodeId</td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+
+                                </tr>
+                                <tr>
+                                    <td>flag</td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div>
+                    </div>
+                    <div class="io-description">
+                        <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >void</a></code>
+
+                    </div>
+                    <div class="io-description">
+                        
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="setParentTree"></a>
+                    <span class="name">
+                        <span class="modifier">Public</span>
+                        <span ><b>setParentTree</b></span>
+                        <a href="#setParentTree"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                    <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>setParentTree(val: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>, childNode: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>)</code>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-line">Defined in <a href="" data-line="333"
+                            class="link-to-prism">angular/userProfile/app/shared/form/field-andsvocab.component.ts:333</a></div>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+
+                    <div class="io-description">
+                        <b>Parameters :</b>
+                        
+                        <table class="params">
+                            <thead>
+                                <tr>
+                                    <td>Name</td>
+                                    <td>Type</td>
+                                    <td>Optional</td>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>val</td>
+                                    <td>
+                                                <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+
+                                </tr>
+                                <tr>
+                                    <td>childNode</td>
+                                    <td>
+                                                <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div>
+                    </div>
+                    <div class="io-description">
+                        <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >void</a></code>
+
+                    </div>
+                    <div class="io-description">
+                        
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="startTreeInit"></a>
+                    <span class="name">
+                        <span class="modifier">Protected</span>
+                        <span ><b>startTreeInit</b></span>
+                        <a href="#startTreeInit"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                    <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>startTreeInit()</code>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-line">Defined in <a href="" data-line="167"
+                            class="link-to-prism">angular/userProfile/app/shared/form/field-andsvocab.component.ts:167</a></div>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+
+                    <div class="io-description">
+                        <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >void</a></code>
+
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="updateSingleNodeSelectedState"></a>
+                    <span class="name">
+                        <span class="modifier">Protected</span>
+                        <span ><b>updateSingleNodeSelectedState</b></span>
+                        <a href="#updateSingleNodeSelectedState"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                    <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>updateSingleNodeSelectedState(node, state)</code>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-line">Defined in <a href="" data-line="221"
+                            class="link-to-prism">angular/userProfile/app/shared/form/field-andsvocab.component.ts:221</a></div>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+
+                    <div class="io-description">
+                        <b>Parameters :</b>
+                        
+                        <table class="params">
+                            <thead>
+                                <tr>
+                                    <td>Name</td>
+                                    <td>Optional</td>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>node</td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+
+                                </tr>
+                                <tr>
+                                    <td>state</td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div>
+                    </div>
+                    <div class="io-description">
+                        <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >void</a></code>
+
+                    </div>
+                    <div class="io-description">
+                        
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="updateTreeView"></a>
+                    <span class="name">
+                        <span class="modifier">Public</span>
+                        <span ><b>updateTreeView</b></span>
+                        <a href="#updateTreeView"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                    <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>updateTreeView(that)</code>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-line">Defined in <a href="" data-line="238"
+                            class="link-to-prism">angular/userProfile/app/shared/form/field-andsvocab.component.ts:238</a></div>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+
+                    <div class="io-description">
+                        <b>Parameters :</b>
+                        
+                        <table class="params">
+                            <thead>
+                                <tr>
+                                    <td>Name</td>
+                                    <td>Optional</td>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>that</td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div>
+                    </div>
+                    <div class="io-description">
+                        <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >void</a></code>
+
+                    </div>
+                    <div class="io-description">
+                        
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="getFormControl"></a>
+                    <span class="name">
+                        <span class="modifier">Public</span>
+                        <span ><b>getFormControl</b></span>
+                        <a href="#getFormControl"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                    <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>getFormControl(name: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank">string</a>, ctrlIndex: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/number" target="_blank">number</a>)</code>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-line">Inherited from         <code><a href="../classes/SimpleComponent.html" target="_self" >SimpleComponent</a></code>
+</div>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                        <div class="io-line">Defined in         <code><a href="../classes/SimpleComponent.html#source" target="_self" >SimpleComponent:111</a></code>
+</div>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-description"><p>Return the NG2 FormControl or subclass thereof</p>
+</div>
+
+                    <div class="io-description">
+                        <b>Parameters :</b>
+                        
+                        <table class="params">
+                            <thead>
+                                <tr>
+                                    <td>Name</td>
+                                    <td>Type</td>
+                                    <td>Optional</td>
+                                    <td>Default value</td>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>name</td>
+                                    <td>
+                                                <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank" >string</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+                                    <td>
+                                        <code>null</code>
+                                    </td>
+
+                                </tr>
+                                <tr>
+                                    <td>ctrlIndex</td>
+                                    <td>
+                                                <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/number" target="_blank" >number</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+                                    <td>
+                                        <code>null</code>
+                                    </td>
+
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div>
+                    </div>
+                    <div class="io-description">
+                        <b>Returns : </b>    <code>FormControl</code>
+
+                    </div>
+                    <div class="io-description">
+                        
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="getFromInjector"></a>
+                    <span class="name">
+                        <span ><b>getFromInjector</b></span>
+                        <a href="#getFromInjector"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+<code>getFromInjector(token: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>)</code>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-line">Inherited from         <code><a href="../classes/SimpleComponent.html" target="_self" >SimpleComponent</a></code>
+</div>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                        <div class="io-line">Defined in         <code><a href="../classes/SimpleComponent.html#source" target="_self" >SimpleComponent:194</a></code>
+</div>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-description"><p>Returns the NG2 root injector</p>
+</div>
+
+                    <div class="io-description">
+                        <b>Parameters :</b>
+                        
+                        <table class="params">
+                            <thead>
+                                <tr>
+                                    <td>Name</td>
+                                    <td>Type</td>
+                                    <td>Optional</td>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>token</td>
+                                    <td>
+                                                <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div>
+                    </div>
+                    <div class="io-description">
+                        <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+
+                    </div>
+                    <div class="io-description">
+                        
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="getGroupClass"></a>
+                    <span class="name">
+                        <span class="modifier">Public</span>
+                        <span ><b>getGroupClass</b></span>
+                        <a href="#getGroupClass"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                    <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>getGroupClass(fldName: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank">string</a>)</code>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-line">Inherited from         <code><a href="../classes/SimpleComponent.html" target="_self" >SimpleComponent</a></code>
+</div>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                        <div class="io-line">Defined in         <code><a href="../classes/SimpleComponent.html#source" target="_self" >SimpleComponent:164</a></code>
+</div>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-description"><p>Returns the CSS class</p>
+</div>
+
+                    <div class="io-description">
+                        <b>Parameters :</b>
+                        
+                        <table class="params">
+                            <thead>
+                                <tr>
+                                    <td>Name</td>
+                                    <td>Type</td>
+                                    <td>Optional</td>
+                                    <td>Default value</td>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>fldName</td>
+                                    <td>
+                                                <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank" >string</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+                                    <td>
+                                        <code>null</code>
+                                    </td>
+
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div>
+                    </div>
+                    <div class="io-description">
+                        <b>Returns : </b>        <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank" >string</a></code>
+
+                    </div>
+                    <div class="io-description">
+                        
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="getRequiredLabelStr"></a>
+                    <span class="name">
+                        <span ><b>getRequiredLabelStr</b></span>
+                        <a href="#getRequiredLabelStr"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+<code>getRequiredLabelStr()</code>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-line">Inherited from         <code><a href="../classes/SimpleComponent.html" target="_self" >SimpleComponent</a></code>
+</div>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                        <div class="io-line">Defined in         <code><a href="../classes/SimpleComponent.html#source" target="_self" >SimpleComponent:186</a></code>
+</div>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-description"><p>Returns label</p>
+</div>
+
+                    <div>
+                    </div>
+                    <div class="io-description">
+                        <b>Returns : </b>        <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank" >string</a></code>
+
+                    </div>
+                    <div class="io-description">
+                        
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="hasRequiredError"></a>
+                    <span class="name">
+                        <span class="modifier">Public</span>
+                        <span ><b>hasRequiredError</b></span>
+                        <a href="#hasRequiredError"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                    <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>hasRequiredError()</code>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-line">Inherited from         <code><a href="../classes/SimpleComponent.html" target="_self" >SimpleComponent</a></code>
+</div>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                        <div class="io-line">Defined in         <code><a href="../classes/SimpleComponent.html#source" target="_self" >SimpleComponent:172</a></code>
+</div>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-description"><p>If this field has a &#39;required&#39; error.
+Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a></p>
+</div>
+
+                    <div>
+                    </div>
+                    <div class="io-description">
+                        <b>Returns : </b>        <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/boolean" target="_blank" >boolean</a></code>
+
+                    </div>
+                    <div class="io-description">
+                        
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="toggleHelp"></a>
+                    <span class="name">
+                        <span class="modifier">Public</span>
+                        <span ><b>toggleHelp</b></span>
+                        <a href="#toggleHelp"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                    <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>toggleHelp()</code>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-line">Inherited from         <code><a href="../classes/SimpleComponent.html" target="_self" >SimpleComponent</a></code>
+</div>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                        <div class="io-line">Defined in         <code><a href="../classes/SimpleComponent.html#source" target="_self" >SimpleComponent:179</a></code>
+</div>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-description"><p>Convenience method to toggle help mode.</p>
+</div>
+
+                    <div>
+                    </div>
+                    <div class="io-description">
+                        <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >void</a></code>
+
+                    </div>
+                    <div class="io-description">
+                        
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+</section>
+    <section data-compodoc="block-properties">
+    
+    <h3 id="inputs">
+        Properties
+    </h3>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="andsTree"></a>
+                    <span class="name">
+                            <span class="modifier"></span>
+                            <span class="modifier">Public</span>
+                        <span ><b>andsTree</b></span>
+                        <a href="#andsTree"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Type : </i>    <code>TreeComponent</code>
+
+                    </td>
+                </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <b>Decorators : </b>
+                        <br />
+                        <code>
+                            @ViewChild(&#x27;andsTree&#x27;)<br />
+                        </code>
+                    </td>
+                </tr>
+                    <tr>
+                        <td class="col-md-4">
+                                <div class="io-line">Defined in <a href="" data-line="102" class="link-to-prism">angular/userProfile/app/shared/form/field-andsvocab.component.ts:102</a></div>
+                        </td>
+                    </tr>
+
+
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="elementRef"></a>
+                    <span class="name">
+                        <span ><b>elementRef</b></span>
+                        <a href="#elementRef"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Type : </i>    <code>ElementRef</code>
+
+                    </td>
+                </tr>
+                    <tr>
+                        <td class="col-md-4">
+                                <div class="io-line">Defined in <a href="" data-line="100" class="link-to-prism">angular/userProfile/app/shared/form/field-andsvocab.component.ts:100</a></div>
+                        </td>
+                    </tr>
+
+
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="expandNodeIds"></a>
+                    <span class="name">
+                        <span ><b>expandNodeIds</b></span>
+                        <a href="#expandNodeIds"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Type : </i>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+
+                    </td>
+                </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Default value : </i><code>[]</code>
+                    </td>
+                </tr>
+                    <tr>
+                        <td class="col-md-4">
+                                <div class="io-line">Defined in <a href="" data-line="106" class="link-to-prism">angular/userProfile/app/shared/form/field-andsvocab.component.ts:106</a></div>
+                        </td>
+                    </tr>
+
+
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="field"></a>
+                    <span class="name">
+                        <span ><b>field</b></span>
+                        <a href="#field"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Type : </i>        <code><a href="../classes/ANDSVocabField.html" target="_self" >ANDSVocabField</a></code>
+
+                    </td>
+                </tr>
+                    <tr>
+                        <td class="col-md-4">
+                                <div class="io-line">Defined in <a href="" data-line="99" class="link-to-prism">angular/userProfile/app/shared/form/field-andsvocab.component.ts:99</a></div>
+                        </td>
+                    </tr>
+
+
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="loadState"></a>
+                    <span class="name">
+                        <span ><b>loadState</b></span>
+                        <a href="#loadState"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Type : </i>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+
+                    </td>
+                </tr>
+                    <tr>
+                        <td class="col-md-4">
+                                <div class="io-line">Defined in <a href="" data-line="112" class="link-to-prism">angular/userProfile/app/shared/form/field-andsvocab.component.ts:112</a></div>
+                        </td>
+                    </tr>
+
+
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="nodeEventSubject"></a>
+                    <span class="name">
+                        <span ><b>nodeEventSubject</b></span>
+                        <a href="#nodeEventSubject"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Type : </i>    <code>Subject&lt;any&gt;</code>
+
+                    </td>
+                </tr>
+                    <tr>
+                        <td class="col-md-4">
+                                <div class="io-line">Defined in <a href="" data-line="104" class="link-to-prism">angular/userProfile/app/shared/form/field-andsvocab.component.ts:104</a></div>
+                        </td>
+                    </tr>
+
+
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="options"></a>
+                    <span class="name">
+                        <span ><b>options</b></span>
+                        <a href="#options"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Type : </i>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+
+                    </td>
+                </tr>
+                    <tr>
+                        <td class="col-md-4">
+                                <div class="io-line">Defined in <a href="" data-line="103" class="link-to-prism">angular/userProfile/app/shared/form/field-andsvocab.component.ts:103</a></div>
+                        </td>
+                    </tr>
+
+
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="STATUS_EXPANDED"></a>
+                    <span class="name">
+                            <span class="modifier">Readonly</span>
+                        <span ><b>STATUS_EXPANDED</b></span>
+                        <a href="#STATUS_EXPANDED"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Type : </i>        <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/number" target="_blank" >number</a></code>
+
+                    </td>
+                </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Default value : </i><code>4</code>
+                    </td>
+                </tr>
+                    <tr>
+                        <td class="col-md-4">
+                                <div class="io-line">Defined in <a href="" data-line="111" class="link-to-prism">angular/userProfile/app/shared/form/field-andsvocab.component.ts:111</a></div>
+                        </td>
+                    </tr>
+
+
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="STATUS_EXPANDING"></a>
+                    <span class="name">
+                            <span class="modifier">Readonly</span>
+                        <span ><b>STATUS_EXPANDING</b></span>
+                        <a href="#STATUS_EXPANDING"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Type : </i>        <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/number" target="_blank" >number</a></code>
+
+                    </td>
+                </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Default value : </i><code>3</code>
+                    </td>
+                </tr>
+                    <tr>
+                        <td class="col-md-4">
+                                <div class="io-line">Defined in <a href="" data-line="110" class="link-to-prism">angular/userProfile/app/shared/form/field-andsvocab.component.ts:110</a></div>
+                        </td>
+                    </tr>
+
+
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="STATUS_INIT"></a>
+                    <span class="name">
+                            <span class="modifier">Readonly</span>
+                        <span ><b>STATUS_INIT</b></span>
+                        <a href="#STATUS_INIT"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Type : </i>        <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/number" target="_blank" >number</a></code>
+
+                    </td>
+                </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Default value : </i><code>0</code>
+                    </td>
+                </tr>
+                    <tr>
+                        <td class="col-md-4">
+                                <div class="io-line">Defined in <a href="" data-line="107" class="link-to-prism">angular/userProfile/app/shared/form/field-andsvocab.component.ts:107</a></div>
+                        </td>
+                    </tr>
+
+
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="STATUS_LOADED"></a>
+                    <span class="name">
+                            <span class="modifier">Readonly</span>
+                        <span ><b>STATUS_LOADED</b></span>
+                        <a href="#STATUS_LOADED"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Type : </i>        <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/number" target="_blank" >number</a></code>
+
+                    </td>
+                </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Default value : </i><code>2</code>
+                    </td>
+                </tr>
+                    <tr>
+                        <td class="col-md-4">
+                                <div class="io-line">Defined in <a href="" data-line="109" class="link-to-prism">angular/userProfile/app/shared/form/field-andsvocab.component.ts:109</a></div>
+                        </td>
+                    </tr>
+
+
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="STATUS_LOADING"></a>
+                    <span class="name">
+                            <span class="modifier">Readonly</span>
+                        <span ><b>STATUS_LOADING</b></span>
+                        <a href="#STATUS_LOADING"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Type : </i>        <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/number" target="_blank" >number</a></code>
+
+                    </td>
+                </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Default value : </i><code>1</code>
+                    </td>
+                </tr>
+                    <tr>
+                        <td class="col-md-4">
+                                <div class="io-line">Defined in <a href="" data-line="108" class="link-to-prism">angular/userProfile/app/shared/form/field-andsvocab.component.ts:108</a></div>
+                        </td>
+                    </tr>
+
+
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="treeData"></a>
+                    <span class="name">
+                        <span ><b>treeData</b></span>
+                        <a href="#treeData"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Type : </i>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+
+                    </td>
+                </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Default value : </i><code>[]</code>
+                    </td>
+                </tr>
+                    <tr>
+                        <td class="col-md-4">
+                                <div class="io-line">Defined in <a href="" data-line="101" class="link-to-prism">angular/userProfile/app/shared/form/field-andsvocab.component.ts:101</a></div>
+                        </td>
+                    </tr>
+
+
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="treeInitListener"></a>
+                    <span class="name">
+                        <span ><b>treeInitListener</b></span>
+                        <a href="#treeInitListener"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Type : </i>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+
+                    </td>
+                </tr>
+                    <tr>
+                        <td class="col-md-4">
+                                <div class="io-line">Defined in <a href="" data-line="105" class="link-to-prism">angular/userProfile/app/shared/form/field-andsvocab.component.ts:105</a></div>
+                        </td>
+                    </tr>
+
+
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="helpShow"></a>
+                    <span class="name">
+                        <span ><b>helpShow</b></span>
+                        <a href="#helpShow"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Type : </i>        <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/boolean" target="_blank" >boolean</a></code>
+
+                    </td>
+                </tr>
+                        <tr>
+                            <td class="col-md-4">
+                                <div class="io-line">Inherited from         <code><a href="../classes/SimpleComponent.html" target="_self" >SimpleComponent</a></code>
+</div>
+                            </td>
+                        </tr>
+                    <tr>
+                        <td class="col-md-4">
+                                <div class="io-line">Defined in         <code><a href="../classes/SimpleComponent.html#source" target="_self" >SimpleComponent:94</a></code>
+</div>
+                        </td>
+                    </tr>
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-description"><p>Toggles help display</p>
+</div>
+                </td>
+            </tr>
+
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="injector"></a>
+                    <span class="name">
+                            <span class="modifier">Public</span>
+                        <span ><b>injector</b></span>
+                        <a href="#injector"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Type : </i>    <code>Injector</code>
+
+                    </td>
+                </tr>
+                        <tr>
+                            <td class="col-md-4">
+                                <div class="io-line">Inherited from         <code><a href="../classes/SimpleComponent.html" target="_self" >SimpleComponent</a></code>
+</div>
+                            </td>
+                        </tr>
+                    <tr>
+                        <td class="col-md-4">
+                                <div class="io-line">Defined in         <code><a href="../classes/SimpleComponent.html#source" target="_self" >SimpleComponent:90</a></code>
+</div>
+                        </td>
+                    </tr>
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-description"><p>The NG2 root injector</p>
+</div>
+                </td>
+            </tr>
+
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="loaded"></a>
+                    <span class="name">
+                        <span ><b>loaded</b></span>
+                        <a href="#loaded"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Type : </i>        <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/boolean" target="_blank" >boolean</a></code>
+
+                    </td>
+                </tr>
+                        <tr>
+                            <td class="col-md-4">
+                                <div class="io-line">Inherited from         <code><a href="../classes/SimpleComponent.html" target="_self" >SimpleComponent</a></code>
+</div>
+                            </td>
+                        </tr>
+                    <tr>
+                        <td class="col-md-4">
+                                <div class="io-line">Defined in         <code><a href="../classes/SimpleComponent.html#source" target="_self" >SimpleComponent:104</a></code>
+</div>
+                        </td>
+                    </tr>
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-description"><p>Loaded flag</p>
+</div>
+                </td>
+            </tr>
+
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="parentId"></a>
+                    <span class="name">
+                        <span ><b>parentId</b></span>
+                        <a href="#parentId"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Type : </i>        <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank" >string</a></code>
+
+                    </td>
+                </tr>
+                        <tr>
+                            <td class="col-md-4">
+                                <div class="io-line">Inherited from         <code><a href="../classes/SimpleComponent.html" target="_self" >SimpleComponent</a></code>
+</div>
+                            </td>
+                        </tr>
+                    <tr>
+                        <td class="col-md-4">
+                                <div class="io-line">Defined in         <code><a href="../classes/SimpleComponent.html#source" target="_self" >SimpleComponent:99</a></code>
+</div>
+                        </td>
+                    </tr>
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-description"><p>Optional parentId of this component</p>
+</div>
+                </td>
+            </tr>
+
+        </tbody>
+    </table>
+</section>
+
+</div>
+
+
+    <div class="tab-pane fade  tab-source-code" id="source">
+        <pre class="line-numbers compodoc-sourcecode"><code class="language-typescript">import { Input, Component, OnInit, Inject, Injector, ElementRef, ViewChild, AfterViewInit } from &#x27;@angular/core&#x27;;
+import { SimpleComponent } from &#x27;./field-simple.component&#x27;;
+import { FieldBase } from &#x27;./field-base&#x27;;
+import { FormGroup, FormControl, Validators } from &#x27;@angular/forms&#x27;;
+import { ANDSService } from &#x27;../ands-service&#x27;;
+import { TreeComponent, TreeNode, ITreeOptions, ITreeState } from &#x27;angular-tree-component&#x27;;
+import * as _ from &quot;lodash&quot;;
+import { Observable } from &#x27;rxjs/Observable&#x27;;
+import { Subject } from &#x27;rxjs/Subject&#x27;;
+import &#x27;rxjs/add/operator/bufferTime&#x27;;
+import &#x27;rxjs/add/operator/filter&#x27;;
+
+declare var jQuery: any;
+
+
+/**
+ *  Vocab Model
+ *
+ *
+ * @author &lt;a target&#x3D;&#x27;_&#x27; href&#x3D;&#x27;https://github.com/shilob&#x27;&gt;Shilo Banihit&lt;/a&gt;
+ *
+ */
+export class ANDSVocabField extends FieldBase&lt;any&gt; {
+
+  public andsService:ANDSService;
+  public vocabId:string;
+  public disableCheckboxRegexEnabled:boolean;
+  public disableCheckboxRegexPattern:string;
+  public disableCheckboxRegexTestValue:string;
+  public disableCheckboxRegexCaseSensitive: boolean;
+
+  constructor(options: any, injector: any) {
+    super(options, injector);
+    this.value &#x3D; options[&#x27;value&#x27;] || this.setEmptyValue();
+    this.vocabId  &#x3D; options[&#x27;vocabId&#x27;] || &#x27;anzsrc-for&#x27;;
+    this.disableCheckboxRegexEnabled &#x3D; options[&#x27;disableCheckboxRegexEnabled&#x27;] || false;
+    this.disableCheckboxRegexPattern &#x3D; options[&#x27;disableCheckboxRegexPattern&#x27;] || &quot;&quot;;
+    this.disableCheckboxRegexTestValue &#x3D; options[&#x27;disableCheckboxRegexTestValue&#x27;] || &quot;&quot;;
+    this.disableCheckboxRegexCaseSensitive &#x3D; options[&#x27;disableCheckboxRegexCaseSensitive&#x27;] || true;
+
+    this.andsService &#x3D; this.getFromInjector(ANDSService);
+  }
+
+  setValue(value: any, emitEvent: boolean &#x3D; true) {
+    this.formModel.setValue(value, { emitEvent: emitEvent, emitModelToViewChange: true });
+    this.formModel.markAsTouched();
+    this.formModel.markAsDirty();
+  }
+
+  setEmptyValue() {
+    this.value &#x3D; [];
+    return this.value;
+  }
+
+  setSelected(item:any, flag) {
+    const curVal &#x3D; this.formModel.value;
+    if (flag) {
+      curVal.push(item);
+    } else {
+      _.remove(curVal, (entry:any) &#x3D;&gt; {
+        return entry.notation &#x3D;&#x3D; item.notation;
+      });
+    }
+    this.setValue(curVal);
+  }
+
+}
+/**
+* Component utilising the ANDS Vocabb selector widget
+*
+*
+*
+*
+*/
+@Component({
+  selector: &#x27;ands-vocab-selector&#x27;,
+  templateUrl: &#x27;./field-andsvocab.html&#x27;,
+  styles: [&#x27;span.node-name { font-size: 300%; }&#x27;]
+})
+export class ANDSVocabComponent extends SimpleComponent {
+  field: ANDSVocabField;
+  elementRef: ElementRef;
+  treeData: any &#x3D; [];
+  @ViewChild(&#x27;andsTree&#x27;) public andsTree : TreeComponent;
+  options: any;
+  nodeEventSubject: Subject&lt;any&gt;;
+  treeInitListener: any;
+  expandNodeIds: any &#x3D; [];
+  readonly STATUS_INIT &#x3D; 0;
+  readonly STATUS_LOADING &#x3D; 1;
+  readonly STATUS_LOADED &#x3D; 2;
+  readonly STATUS_EXPANDING &#x3D; 3;
+  readonly STATUS_EXPANDED &#x3D; 4;
+  loadState: any;
+
+  constructor(@Inject(ElementRef) elementRef: ElementRef) {
+    super();
+    this.elementRef &#x3D; elementRef;
+    this.treeData &#x3D; [];
+
+    this.options &#x3D; {
+      useCheckbox: true,
+      useTriState: false,
+      getChildren: this.getChildren.bind(this),
+      scrollContainer: document.body.parentElement
+    };
+    this.nodeEventSubject &#x3D; new Subject&lt;any&gt;();
+    this.loadState &#x3D; this.STATUS_INIT;
+  }
+
+  public ngOnInit() {
+    if (this.field.editMode) {
+      jQuery(this.elementRef.nativeElement)[&#x27;vocab_widget&#x27;]({
+        repository: this.field.vocabId,
+        endpoint: &#x27;https://vocabs.ardc.edu.au/apps/vocab_widget/proxy/&#x27;,
+        fields:[&quot;label&quot;, &quot;notation&quot;, &quot;about&quot;],
+        cache: false
+      });
+      this.field.componentReactors.push(this);
+    }
+  }
+
+  public ngAfterViewInit() {
+    if (this.field.editMode) {
+      const that &#x3D; this;
+      if (this.loadState &#x3D;&#x3D; this.STATUS_INIT) {
+        this.loadState &#x3D; this.STATUS_LOADING;
+        jQuery(this.elementRef.nativeElement).on(&#x27;top.vocab.ands&#x27;, function(event, data) {
+          if (_.isEmpty(that.treeData)) {
+            that.treeData &#x3D; that.mapItemsToChildren(data.items);
+            that.loadState &#x3D; that.STATUS_LOADED;
+          }
+        });
+        jQuery(this.elementRef.nativeElement)[&#x27;vocab_widget&#x27;](&#x27;top&#x27;);
+
+        this.nodeEventSubject.bufferTime(1000)
+        .filter(eventArr &#x3D;&gt; {
+          return eventArr.length &gt; 0
+        })
+        .subscribe(eventArr &#x3D;&gt; {
+          this.handleNodeEvent(eventArr);
+        });
+
+        this.startTreeInit();
+      }
+    }
+  }
+
+  protected startTreeInit() {
+    this.treeInitListener &#x3D; Observable.interval(1000).subscribe(()&#x3D;&gt; {
+      if (!_.isEmpty(this.expandNodeIds)) {
+        this.expandNodes();
+      } else if (!_.isEmpty(this.andsTree.treeModel.getVisibleRoots()) &amp;&amp; this.loadState &#x3D;&#x3D; this.STATUS_LOADED) {
+        this.loadState &#x3D; this.STATUS_EXPANDING;
+        this.updateTreeView(this);
+        this.expandNodes();
+      } else if (this.loadState &#x3D;&#x3D; this.STATUS_EXPANDING) {
+        this.treeInitListener.unsubscribe();
+        this.loadState &#x3D; this.STATUS_EXPANDED;
+      }
+    });
+  }
+
+  public onEvent(event) {
+    switch(event.eventName) {
+      case &quot;select&quot;:
+        if(!this.isSelectionValid(event.node)){
+          break;
+        }
+        this.field.setSelected(this.getValueFromChildData(event.node), true);
+        break;
+      case &quot;deselect&quot;:
+        this.field.setSelected(this.getValueFromChildData(event.node), false);
+        break;
+    }
+  }
+
+  protected handleNodeEvent(eventArr) {
+    let event &#x3D; eventArr[0];
+    if (eventArr.length &gt;&#x3D; 2) {
+      event &#x3D; eventArr[1];
+    }
+    let currentState &#x3D; this.getNodeSelected(event.node.id);
+    switch(event.eventName) {
+      case &quot;nodeActivate&quot;:
+        if (currentState &#x3D;&#x3D; undefined) {
+          if(!this.isSelectionValid(event.node)){
+            currentState &#x3D; false;
+          } else {
+            currentState &#x3D; true;
+          }
+        } else {
+          currentState &#x3D; false;
+        }
+        this.updateSingleNodeSelectedState(event.node, currentState);
+        break;
+      case &quot;nodeDeactivate&quot;:
+        this.updateSingleNodeSelectedState(event.node, false);
+        break;
+    }
+  }
+
+  protected updateSingleNodeSelectedState(node, state) {
+    const nodeId &#x3D; node.id;
+    const curState &#x3D; this.andsTree.treeModel.getState();
+    this.setNodeSelected(curState, nodeId, state);
+    this.andsTree.treeModel.setState(curState);
+    this.andsTree.treeModel.update();
+    this.field.setSelected(this.getValueFromChildData(node), state);
+  }
+
+  public onNodeActivate(event: any) {
+    this.nodeEventSubject.next(event);
+  }
+
+  public onNodeDeactivate(event: any) {
+    this.nodeEventSubject.next(event);
+  }
+
+  public updateTreeView(that) {
+    const state &#x3D; that.andsTree.treeModel.getState();
+    that.expandNodeIds &#x3D; [];
+    _.each(that.field.value, (val) &#x3D;&gt; {
+      this.setNodeSelected(state, val.notation, true);
+      _.each(val.geneaology, (parentId) &#x3D;&gt; {
+        if (!_.includes(that.expandNodeIds, parentId)) {
+          that.expandNodeIds.push(parentId);
+        }
+      });
+    });
+    that.andsTree.treeModel.setState(state);
+    that.andsTree.treeModel.update();
+    that.expandNodeIds &#x3D; _.sortBy(that.expandNodeIds, (o) &#x3D;&gt; { return _.isString(o) ? o.length : 0 });
+  }
+
+  protected expandNodes() {
+    if (!_.isEmpty(this.expandNodeIds)) {
+      const parentId &#x3D; this.expandNodeIds[0];
+      const node &#x3D; this.andsTree.treeModel.getNodeById(parentId);
+      if (node) {
+        node.expand();
+        _.remove(this.expandNodeIds, (id) &#x3D;&gt; { return id &#x3D;&#x3D; parentId });
+      }
+    }
+  }
+
+  protected collapseNodes() {
+    this.andsTree.treeModel.collapseAll();
+  }
+
+  protected setNodeSelected(state, nodeId, flag) {
+    if (flag) {
+      state.selectedLeafNodeIds[nodeId] &#x3D; flag;
+    } else {
+      _.unset(state.selectedLeafNodeIds, nodeId);
+    }
+  }
+
+  protected getNodeSelected(nodeId) {
+    return this.andsTree.treeModel.getState().selectedLeafNodeIds[nodeId];
+  }
+
+  protected clearSelectedNodes() {
+    const state &#x3D; this.andsTree.treeModel.getState();
+    state.selectedLeafNodeIds &#x3D; {};
+    this.andsTree.treeModel.setState(state);
+  }
+
+  public getChildren(node: any) {
+    const that &#x3D; this;
+    const promise &#x3D; new Promise((resolve, reject)&#x3D;&gt; {
+      jQuery(this.elementRef.nativeElement).on(&#x27;narrow.vocab.ands&#x27;, function(event, data) {
+        return resolve(that.mapItemsToChildren(data.items));
+      });
+    });
+    jQuery(this.elementRef.nativeElement)[&#x27;vocab_widget&#x27;](&#x27;narrow&#x27;, {uri: node.data.about});
+    return promise;
+  }
+
+  public mapItemsToChildren(items: any[]) {
+    return _.map(items, (item:any) &#x3D;&gt; {
+      return { id: item.notation, name: &#x60;${item.notation} - ${item.label}&#x60;, hasChildren:item.narrower &amp;&amp; item.narrower.length &gt; 0,  ...item }
+    });
+  }
+
+  public getValueFromChildData(childNode: any) {
+    const data &#x3D; childNode.data;
+    const val &#x3D; { name: &#x60;${data.notation} - ${data.label}&#x60;,  label: data.label, notation: data.notation };
+    this.setParentTree(val, childNode);
+    return val;
+  }
+
+  public isSelectionValid(childNode: any) {
+    let valid &#x3D; true;
+    if(this.field.disableCheckboxRegexEnabled) {
+      const data &#x3D; childNode.data;
+      let nodeId &#x3D; _.get(data,this.field.disableCheckboxRegexTestValue);
+      let re; 
+      if(this.field.disableCheckboxRegexCaseSensitive) {
+        re &#x3D; new RegExp(this.field.disableCheckboxRegexPattern);
+      } else {
+        re &#x3D; new RegExp(this.field.disableCheckboxRegexPattern,&#x27;i&#x27;);
+      }
+      if(!_.isUndefined(nodeId)) {
+        let regexTest &#x3D; re.test(nodeId.toString());
+        console.log(&#x27;nodeId &#x27; + nodeId + &#x27; testValue &#x27; + this.field.disableCheckboxRegexTestValue + &#x27; regexTest &#x27; + regexTest);
+        if(!regexTest) {
+          valid &#x3D; false;
+        } 
+      }
+    }
+    return valid;
+  }
+
+  public setParentTree(val:any, childNode: any) {
+    const parentNotation &#x3D; _.get(childNode, &#x27;parent.data.notation&#x27;);
+    if (!_.isUndefined(parentNotation)) {
+      if (_.isUndefined(val[&#x27;geneaology&#x27;])) {
+        val[&#x27;geneaology&#x27;] &#x3D; [];
+      }
+      val[&#x27;geneaology&#x27;].push(parentNotation);
+      if (childNode.parent.parent) {
+        this.setParentTree(val, childNode.parent);
+      }
+    } else if (!_.isUndefined(val[&#x27;geneaology&#x27;])) {
+      val[&#x27;geneaology&#x27;] &#x3D; _.sortBy(val[&#x27;geneaology&#x27;]);
+    }
+  }
+
+  public reactEvent(eventName: string, eventData: any, origData: any, elem:any) {
+    this.collapseNodes();
+    this.clearSelectedNodes();
+    this.loadState &#x3D; this.STATUS_LOADED;
+    this.startTreeInit();
+  }
+}
+</code></pre>
+    </div>
+
+    <div class="tab-pane fade " id="templateData">
+        <pre class="line-numbers"><code class="language-html">&lt;ng-container *ngIf&#x3D;&quot;field.visible&quot;&gt;
+&lt;div *ngIf&#x3D;&quot;!field.editMode&quot; class&#x3D;&quot;key-value-pair&quot;&gt;
+  &lt;span *ngIf&#x3D;&quot;field.label&quot; class&#x3D;&quot;key&quot;&gt;{{field.label}}&lt;/span&gt;
+  &lt;ul&gt;
+    &lt;li *ngFor&#x3D;&quot;let value of field.value&quot;&gt;{{ value.notation }} - {{ value.label }}&lt;/li&gt;
+  &lt;/ul&gt;
+&lt;/div&gt;
+&lt;div *ngIf&#x3D;&quot;field.editMode&quot; [formGroup]&#x3D;&#x27;form&#x27; [ngClass]&#x3D;&quot;getGroupClass()&quot;&gt;
+  &lt;span class&#x3D;&quot;label-font&quot;&gt;
+   &lt;span [outerHTML]&#x3D;&quot;field.label&quot;&gt;&lt;/span&gt;&lt;span class&#x3D;&quot;form-field-required-indicator&quot; [innerHTML]&#x3D;&quot;getRequiredLabelStr()&quot;&gt;&lt;/span&gt;
+    &lt;button type&#x3D;&quot;button&quot; class&#x3D;&quot;btn btn-default&quot; *ngIf&#x3D;&quot;field.help&quot; (click)&#x3D;&quot;toggleHelp()&quot; [attr.aria-label]&#x3D;&quot;&#x27;help&#x27; | translate &quot;&gt;&lt;span class&#x3D;&quot;glyphicon glyphicon-question-sign&quot; aria-hidden&#x3D;&quot;true&quot;&gt;&lt;/span&gt;&lt;/button&gt;
+  &lt;/span&gt;
+  &lt;span id&#x3D;&quot;{{ &#x27;helpBlock_&#x27; + field.name }}&quot; class&#x3D;&quot;help-block&quot; *ngIf&#x3D;&quot;this.helpShow&quot; [innerHtml]&#x3D;&quot;field.help&quot;&gt;{{field.help}}&lt;/span&gt;
+  &lt;tree-root *ngIf&#x3D;&quot;field.editMode&quot;
+      #andsTree
+      class&#x3D;&quot;reverse&quot;
+      id&#x3D;&quot;andsTree&quot;
+      [nodes]&#x3D;&quot;treeData&quot;
+      [options]&#x3D;&quot;options&quot;
+      (nodeActivate)&#x3D;&quot;onNodeActivate($event)&quot;
+      (nodeDeactivate)&#x3D;&quot;onNodeDeactivate($event)&quot;
+      (event)&#x3D;&quot;onEvent($event)&quot;
+      &gt;
+      &lt;ng-template #treeNodeWrapperTemplate let-node let-index&#x3D;&quot;index&quot;&gt;
+        &lt;div class&#x3D;&quot;node-wrapper&quot; [style.padding-left]&#x3D;&quot;node.getNodePadding()&quot;&gt;
+          &lt;tree-node-expander [node]&#x3D;&quot;node&quot;&gt;&lt;/tree-node-expander&gt;
+          &lt;rb-tree-node-checkbox *ngIf&#x3D;&quot;node.options.useCheckbox&quot; [node]&#x3D;&quot;node&quot; [ariaLabel]&#x3D;&quot;node.data.name&quot;&gt;&lt;/rb-tree-node-checkbox&gt;
+          &lt;div class&#x3D;&quot;node-content-wrapper&quot;
+            [class.node-content-wrapper-active]&#x3D;&quot;node.isActive&quot;
+            [class.node-content-wrapper-focused]&#x3D;&quot;node.isFocused&quot;
+            (click)&#x3D;&quot;node.mouseAction(&#x27;click&#x27;, $event)&quot;
+            (dblclick)&#x3D;&quot;node.mouseAction(&#x27;dblClick&#x27;, $event)&quot;
+            (contextmenu)&#x3D;&quot;node.mouseAction(&#x27;contextMenu&#x27;, $event)&quot;
+            (treeDrop)&#x3D;&quot;node.onDrop($event)&quot;
+            [treeAllowDrop]&#x3D;&quot;node.allowDrop&quot;
+            [treeDrag]&#x3D;&quot;node&quot;
+            [treeDragEnabled]&#x3D;&quot;node.allowDrag()&quot;&gt;
+
+            &lt;tree-node-content [node]&#x3D;&quot;node&quot; [index]&#x3D;&quot;index&quot;&gt;&lt;/tree-node-content&gt;
+          &lt;/div&gt;
+        &lt;/div&gt;
+      &lt;/ng-template&gt;
+  &lt;/tree-root&gt;
+  &lt;div class&#x3D;&quot;text-danger&quot; *ngIf&#x3D;&quot;hasRequiredError()&quot;&gt;{{field.validationMessages.required}}&lt;/div&gt;
+&lt;/div&gt;
+&lt;/ng-container&gt;</code></pre>
+    </div>
+
+    <div class="tab-pane fade " id="styleData">
+            <pre class="line-numbers"><code class="language-scss">span.node-name { font-size: 300%; }
+</code></pre>
+    </div>
+
+    <div class="tab-pane fade " id="tree">
+        <div id="tree-container"></div>
+        <div class="tree-legend">
+            <div class="title">
+                <b>Legend</b>
+            </div>
+            <div>
+                <div class="color htmlelement"></div><span>Html element</span>
+            </div>
+            <div>
+                <div class="color component"></div><span>Component</span>
+            </div>
+            <div>
+                <div class="color directive"></div><span>Html element with directive</span>
+            </div>
+        </div>
+    </div>
+
+    
+</div>
+
+<script src="../js/libs/vis.min.js"></script>
+<script src="../js/libs/htmlparser.js"></script>
+<script src="../js/libs/deep-iterator.js"></script>
+<script>
+        var COMPONENT_TEMPLATE = '<div><ng-container *ngIf="field.visible"><div *ngIf="!field.editMode" class="key-value-pair">  <span *ngIf="field.label" class="key">{{field.label}}</span>  <ul>    <li *ngFor="let value of field.value">{{ value.notation }} - {{ value.label }}</li>  </ul></div><div *ngIf="field.editMode" [formGroup]=\'form\' [ngClass]="getGroupClass()">  <span class="label-font">   <span [outerHTML]="field.label"></span><span class="form-field-required-indicator" [innerHTML]="getRequiredLabelStr()"></span>    <button type="button" class="btn btn-default" *ngIf="field.help" (click)="toggleHelp()" [attr.aria-label]="\'help\' | translate "><span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span></button>  </span>  <span id="{{ \'helpBlock_\' + field.name }}" class="help-block" *ngIf="this.helpShow" [innerHtml]="field.help">{{field.help}}</span>  <tree-root *ngIf="field.editMode"      #andsTree      class="reverse"      id="andsTree"      [nodes]="treeData"      [options]="options"      (nodeActivate)="onNodeActivate($event)"      (nodeDeactivate)="onNodeDeactivate($event)"      (event)="onEvent($event)"      >      <ng-template #treeNodeWrapperTemplate let-node let-index="index">        <div class="node-wrapper" [style.padding-left]="node.getNodePadding()">          <tree-node-expander [node]="node"></tree-node-expander>          <rb-tree-node-checkbox *ngIf="node.options.useCheckbox" [node]="node" [ariaLabel]="node.data.name"></rb-tree-node-checkbox>          <div class="node-content-wrapper"            [class.node-content-wrapper-active]="node.isActive"            [class.node-content-wrapper-focused]="node.isFocused"            (click)="node.mouseAction(\'click\', $event)"            (dblclick)="node.mouseAction(\'dblClick\', $event)"            (contextmenu)="node.mouseAction(\'contextMenu\', $event)"            (treeDrop)="node.onDrop($event)"            [treeAllowDrop]="node.allowDrop"            [treeDrag]="node"            [treeDragEnabled]="node.allowDrag()">            <tree-node-content [node]="node" [index]="index"></tree-node-content>          </div>        </div>      </ng-template>  </tree-root>  <div class="text-danger" *ngIf="hasRequiredError()">{{field.validationMessages.required}}</div></div></ng-container></div>'
+    var COMPONENTS = [{'name': 'ActionButtonComponent', 'selector': 'action-button'},{'name': 'ActionButtonComponent', 'selector': 'action-button'},{'name': 'ActionButtonComponent', 'selector': 'action-button'},{'name': 'ActionButtonComponent', 'selector': 'action-button'},{'name': 'ActionButtonComponent', 'selector': 'action-button'},{'name': 'ActionButtonComponent', 'selector': 'action-button'},{'name': 'ActionButtonComponent', 'selector': 'action-button'},{'name': 'ActionButtonComponent', 'selector': 'action-button'},{'name': 'ActionButtonComponent', 'selector': 'action-button'},{'name': 'ActionButtonComponent', 'selector': 'action-button'},{'name': 'ActionButtonComponent', 'selector': 'action-button'},{'name': 'ActionButtonComponent', 'selector': 'action-button'},{'name': 'AnchorOrButtonComponent', 'selector': 'anchor-button'},{'name': 'AnchorOrButtonComponent', 'selector': 'anchor-button'},{'name': 'AnchorOrButtonComponent', 'selector': 'anchor-button'},{'name': 'AnchorOrButtonComponent', 'selector': 'anchor-button'},{'name': 'AnchorOrButtonComponent', 'selector': 'anchor-button'},{'name': 'AnchorOrButtonComponent', 'selector': 'anchor-button'},{'name': 'AnchorOrButtonComponent', 'selector': 'anchor-button'},{'name': 'AnchorOrButtonComponent', 'selector': 'anchor-button'},{'name': 'AnchorOrButtonComponent', 'selector': 'anchor-button'},{'name': 'AnchorOrButtonComponent', 'selector': 'anchor-button'},{'name': 'AnchorOrButtonComponent', 'selector': 'anchor-button'},{'name': 'AnchorOrButtonComponent', 'selector': 'anchor-button'},{'name': 'ANDSVocabComponent', 'selector': 'ands-vocab-selector'},{'name': 'ANDSVocabComponent', 'selector': 'ands-vocab-selector'},{'name': 'ANDSVocabComponent', 'selector': 'ands-vocab-selector'},{'name': 'ANDSVocabComponent', 'selector': 'ands-vocab-selector'},{'name': 'ANDSVocabComponent', 'selector': 'ands-vocab-selector'},{'name': 'ANDSVocabComponent', 'selector': 'ands-vocab-selector'},{'name': 'ANDSVocabComponent', 'selector': 'ands-vocab-selector'},{'name': 'ANDSVocabComponent', 'selector': 'ands-vocab-selector'},{'name': 'ANDSVocabComponent', 'selector': 'ands-vocab-selector'},{'name': 'ANDSVocabComponent', 'selector': 'ands-vocab-selector'},{'name': 'ANDSVocabComponent', 'selector': 'ands-vocab-selector'},{'name': 'ANDSVocabComponent', 'selector': 'ands-vocab-selector'},{'name': 'AsynchComponent', 'selector': 'asynch-component'},{'name': 'AsynchComponent', 'selector': 'asynch-component'},{'name': 'AsynchComponent', 'selector': 'asynch-component'},{'name': 'AsynchComponent', 'selector': 'asynch-component'},{'name': 'AsynchComponent', 'selector': 'asynch-component'},{'name': 'AsynchComponent', 'selector': 'asynch-component'},{'name': 'AsynchComponent', 'selector': 'asynch-component'},{'name': 'AsynchComponent', 'selector': 'asynch-component'},{'name': 'AsynchComponent', 'selector': 'asynch-component'},{'name': 'AsynchComponent', 'selector': 'asynch-component'},{'name': 'AsynchComponent', 'selector': 'asynch-component'},{'name': 'AsynchComponent', 'selector': 'asynch-component'},{'name': 'ButtonBarContainerComponent', 'selector': 'buttonbarcontainer'},{'name': 'ButtonBarContainerComponent', 'selector': 'buttonbarcontainer'},{'name': 'ButtonBarContainerComponent', 'selector': 'buttonbarcontainer'},{'name': 'ButtonBarContainerComponent', 'selector': 'buttonbarcontainer'},{'name': 'ButtonBarContainerComponent', 'selector': 'buttonbarcontainer'},{'name': 'ButtonBarContainerComponent', 'selector': 'buttonbarcontainer'},{'name': 'ButtonBarContainerComponent', 'selector': 'buttonbarcontainer'},{'name': 'ButtonBarContainerComponent', 'selector': 'buttonbarcontainer'},{'name': 'ButtonBarContainerComponent', 'selector': 'buttonbarcontainer'},{'name': 'ButtonBarContainerComponent', 'selector': 'buttonbarcontainer'},{'name': 'ButtonBarContainerComponent', 'selector': 'buttonbarcontainer'},{'name': 'ButtonBarContainerComponent', 'selector': 'buttonbarcontainer'},{'name': 'CancelButtonComponent', 'selector': 'cancel-button'},{'name': 'CancelButtonComponent', 'selector': 'cancel-button'},{'name': 'CancelButtonComponent', 'selector': 'cancel-button'},{'name': 'CancelButtonComponent', 'selector': 'cancel-button'},{'name': 'CancelButtonComponent', 'selector': 'cancel-button'},{'name': 'CancelButtonComponent', 'selector': 'cancel-button'},{'name': 'CancelButtonComponent', 'selector': 'cancel-button'},{'name': 'CancelButtonComponent', 'selector': 'cancel-button'},{'name': 'CancelButtonComponent', 'selector': 'cancel-button'},{'name': 'CancelButtonComponent', 'selector': 'cancel-button'},{'name': 'CancelButtonComponent', 'selector': 'cancel-button'},{'name': 'CancelButtonComponent', 'selector': 'cancel-button'},{'name': 'ContributorComponent', 'selector': 'rb-contributor'},{'name': 'ContributorComponent', 'selector': 'rb-contributor'},{'name': 'ContributorComponent', 'selector': 'rb-contributor'},{'name': 'ContributorComponent', 'selector': 'rb-contributor'},{'name': 'ContributorComponent', 'selector': 'rb-contributor'},{'name': 'ContributorComponent', 'selector': 'rb-contributor'},{'name': 'ContributorComponent', 'selector': 'rb-contributor'},{'name': 'ContributorComponent', 'selector': 'rb-contributor'},{'name': 'ContributorComponent', 'selector': 'rb-contributor'},{'name': 'ContributorComponent', 'selector': 'rb-contributor'},{'name': 'ContributorComponent', 'selector': 'rb-contributor'},{'name': 'ContributorComponent', 'selector': 'rb-contributor'},{'name': 'DashboardComponent', 'selector': 'dashboard'},{'name': 'DataLocationComponent', 'selector': 'data-location-selector'},{'name': 'DataLocationComponent', 'selector': 'data-location-selector'},{'name': 'DataLocationComponent', 'selector': 'data-location-selector'},{'name': 'DataLocationComponent', 'selector': 'data-location-selector'},{'name': 'DataLocationComponent', 'selector': 'data-location-selector'},{'name': 'DataLocationComponent', 'selector': 'data-location-selector'},{'name': 'DataLocationComponent', 'selector': 'data-location-selector'},{'name': 'DataLocationComponent', 'selector': 'data-location-selector'},{'name': 'DataLocationComponent', 'selector': 'data-location-selector'},{'name': 'DataLocationComponent', 'selector': 'data-location-selector'},{'name': 'DataLocationComponent', 'selector': 'data-location-selector'},{'name': 'DataLocationComponent', 'selector': 'data-location-selector'},{'name': 'DateTimeComponent', 'selector': 'date-time'},{'name': 'DateTimeComponent', 'selector': 'date-time'},{'name': 'DateTimeComponent', 'selector': 'date-time'},{'name': 'DateTimeComponent', 'selector': 'date-time'},{'name': 'DateTimeComponent', 'selector': 'date-time'},{'name': 'DateTimeComponent', 'selector': 'date-time'},{'name': 'DateTimeComponent', 'selector': 'date-time'},{'name': 'DateTimeComponent', 'selector': 'date-time'},{'name': 'DateTimeComponent', 'selector': 'date-time'},{'name': 'DateTimeComponent', 'selector': 'date-time'},{'name': 'DateTimeComponent', 'selector': 'date-time'},{'name': 'DateTimeComponent', 'selector': 'date-time'},{'name': 'DmpFieldComponent', 'selector': 'dmp-field'},{'name': 'DmpFieldComponent', 'selector': 'dmp-field'},{'name': 'DmpFieldComponent', 'selector': 'dmp-field'},{'name': 'DmpFieldComponent', 'selector': 'dmp-field'},{'name': 'DmpFieldComponent', 'selector': 'dmp-field'},{'name': 'DmpFieldComponent', 'selector': 'dmp-field'},{'name': 'DmpFieldComponent', 'selector': 'dmp-field'},{'name': 'DmpFieldComponent', 'selector': 'dmp-field'},{'name': 'DmpFieldComponent', 'selector': 'dmp-field'},{'name': 'DmpFieldComponent', 'selector': 'dmp-field'},{'name': 'DmpFieldComponent', 'selector': 'dmp-field'},{'name': 'DmpFieldComponent', 'selector': 'dmp-field'},{'name': 'DmpFormComponent', 'selector': 'dmp-form'},{'name': 'DropdownFieldComponent', 'selector': 'dropdownfield'},{'name': 'DropdownFieldComponent', 'selector': 'dropdownfield'},{'name': 'DropdownFieldComponent', 'selector': 'dropdownfield'},{'name': 'DropdownFieldComponent', 'selector': 'dropdownfield'},{'name': 'DropdownFieldComponent', 'selector': 'dropdownfield'},{'name': 'DropdownFieldComponent', 'selector': 'dropdownfield'},{'name': 'DropdownFieldComponent', 'selector': 'dropdownfield'},{'name': 'DropdownFieldComponent', 'selector': 'dropdownfield'},{'name': 'DropdownFieldComponent', 'selector': 'dropdownfield'},{'name': 'DropdownFieldComponent', 'selector': 'dropdownfield'},{'name': 'DropdownFieldComponent', 'selector': 'dropdownfield'},{'name': 'DropdownFieldComponent', 'selector': 'dropdownfield'},{'name': 'EventHandlerComponent', 'selector': 'event-handler'},{'name': 'EventHandlerComponent', 'selector': 'event-handler'},{'name': 'EventHandlerComponent', 'selector': 'event-handler'},{'name': 'EventHandlerComponent', 'selector': 'event-handler'},{'name': 'EventHandlerComponent', 'selector': 'event-handler'},{'name': 'EventHandlerComponent', 'selector': 'event-handler'},{'name': 'EventHandlerComponent', 'selector': 'event-handler'},{'name': 'EventHandlerComponent', 'selector': 'event-handler'},{'name': 'EventHandlerComponent', 'selector': 'event-handler'},{'name': 'EventHandlerComponent', 'selector': 'event-handler'},{'name': 'EventHandlerComponent', 'selector': 'event-handler'},{'name': 'EventHandlerComponent', 'selector': 'event-handler'},{'name': 'ExportFormComponent', 'selector': 'export-form'},{'name': 'GenericGroupComponent', 'selector': 'generic-group-field'},{'name': 'GenericGroupComponent', 'selector': 'generic-group-field'},{'name': 'GenericGroupComponent', 'selector': 'generic-group-field'},{'name': 'GenericGroupComponent', 'selector': 'generic-group-field'},{'name': 'GenericGroupComponent', 'selector': 'generic-group-field'},{'name': 'GenericGroupComponent', 'selector': 'generic-group-field'},{'name': 'GenericGroupComponent', 'selector': 'generic-group-field'},{'name': 'GenericGroupComponent', 'selector': 'generic-group-field'},{'name': 'GenericGroupComponent', 'selector': 'generic-group-field'},{'name': 'GenericGroupComponent', 'selector': 'generic-group-field'},{'name': 'GenericGroupComponent', 'selector': 'generic-group-field'},{'name': 'GenericGroupComponent', 'selector': 'generic-group-field'},{'name': 'HiddenValueComponent', 'selector': 'hidden-field'},{'name': 'HiddenValueComponent', 'selector': 'hidden-field'},{'name': 'HiddenValueComponent', 'selector': 'hidden-field'},{'name': 'HiddenValueComponent', 'selector': 'hidden-field'},{'name': 'HiddenValueComponent', 'selector': 'hidden-field'},{'name': 'HiddenValueComponent', 'selector': 'hidden-field'},{'name': 'HiddenValueComponent', 'selector': 'hidden-field'},{'name': 'HiddenValueComponent', 'selector': 'hidden-field'},{'name': 'HiddenValueComponent', 'selector': 'hidden-field'},{'name': 'HiddenValueComponent', 'selector': 'hidden-field'},{'name': 'HiddenValueComponent', 'selector': 'hidden-field'},{'name': 'HiddenValueComponent', 'selector': 'hidden-field'},{'name': 'HtmlRawComponent', 'selector': 'htmlraw'},{'name': 'HtmlRawComponent', 'selector': 'htmlraw'},{'name': 'HtmlRawComponent', 'selector': 'htmlraw'},{'name': 'HtmlRawComponent', 'selector': 'htmlraw'},{'name': 'HtmlRawComponent', 'selector': 'htmlraw'},{'name': 'HtmlRawComponent', 'selector': 'htmlraw'},{'name': 'HtmlRawComponent', 'selector': 'htmlraw'},{'name': 'HtmlRawComponent', 'selector': 'htmlraw'},{'name': 'HtmlRawComponent', 'selector': 'htmlraw'},{'name': 'HtmlRawComponent', 'selector': 'htmlraw'},{'name': 'HtmlRawComponent', 'selector': 'htmlraw'},{'name': 'HtmlRawComponent', 'selector': 'htmlraw'},{'name': 'LinkValueComponent', 'selector': 'link-value'},{'name': 'LinkValueComponent', 'selector': 'link-value'},{'name': 'LinkValueComponent', 'selector': 'link-value'},{'name': 'LinkValueComponent', 'selector': 'link-value'},{'name': 'LinkValueComponent', 'selector': 'link-value'},{'name': 'LinkValueComponent', 'selector': 'link-value'},{'name': 'LinkValueComponent', 'selector': 'link-value'},{'name': 'LinkValueComponent', 'selector': 'link-value'},{'name': 'LinkValueComponent', 'selector': 'link-value'},{'name': 'LinkValueComponent', 'selector': 'link-value'},{'name': 'LinkValueComponent', 'selector': 'link-value'},{'name': 'LinkValueComponent', 'selector': 'link-value'},{'name': 'LocalAuthComponent', 'selector': 'local-auth'},{'name': 'ManageRolesComponent', 'selector': 'manage-roles'},{'name': 'ManageUsersComponent', 'selector': 'manage-users'},{'name': 'MapComponent', 'selector': 'rb-mapdata'},{'name': 'MapComponent', 'selector': 'rb-mapdata'},{'name': 'MapComponent', 'selector': 'rb-mapdata'},{'name': 'MapComponent', 'selector': 'rb-mapdata'},{'name': 'MapComponent', 'selector': 'rb-mapdata'},{'name': 'MapComponent', 'selector': 'rb-mapdata'},{'name': 'MapComponent', 'selector': 'rb-mapdata'},{'name': 'MapComponent', 'selector': 'rb-mapdata'},{'name': 'MapComponent', 'selector': 'rb-mapdata'},{'name': 'MapComponent', 'selector': 'rb-mapdata'},{'name': 'MapComponent', 'selector': 'rb-mapdata'},{'name': 'MapComponent', 'selector': 'rb-mapdata'},{'name': 'MarkdownTextAreaComponent', 'selector': 'markdown-text-area'},{'name': 'MarkdownTextAreaComponent', 'selector': 'markdown-text-area'},{'name': 'MarkdownTextAreaComponent', 'selector': 'markdown-text-area'},{'name': 'MarkdownTextAreaComponent', 'selector': 'markdown-text-area'},{'name': 'MarkdownTextAreaComponent', 'selector': 'markdown-text-area'},{'name': 'MarkdownTextAreaComponent', 'selector': 'markdown-text-area'},{'name': 'MarkdownTextAreaComponent', 'selector': 'markdown-text-area'},{'name': 'MarkdownTextAreaComponent', 'selector': 'markdown-text-area'},{'name': 'MarkdownTextAreaComponent', 'selector': 'markdown-text-area'},{'name': 'MarkdownTextAreaComponent', 'selector': 'markdown-text-area'},{'name': 'MarkdownTextAreaComponent', 'selector': 'markdown-text-area'},{'name': 'MarkdownTextAreaComponent', 'selector': 'markdown-text-area'},{'name': 'PageTitleComponent', 'selector': 'page-title'},{'name': 'PageTitleComponent', 'selector': 'page-title'},{'name': 'PageTitleComponent', 'selector': 'page-title'},{'name': 'PageTitleComponent', 'selector': 'page-title'},{'name': 'PageTitleComponent', 'selector': 'page-title'},{'name': 'PageTitleComponent', 'selector': 'page-title'},{'name': 'PageTitleComponent', 'selector': 'page-title'},{'name': 'PageTitleComponent', 'selector': 'page-title'},{'name': 'PageTitleComponent', 'selector': 'page-title'},{'name': 'PageTitleComponent', 'selector': 'page-title'},{'name': 'PageTitleComponent', 'selector': 'page-title'},{'name': 'PageTitleComponent', 'selector': 'page-title'},{'name': 'ParameterRetrieverComponent', 'selector': 'parameter-retriever'},{'name': 'ParameterRetrieverComponent', 'selector': 'parameter-retriever'},{'name': 'ParameterRetrieverComponent', 'selector': 'parameter-retriever'},{'name': 'ParameterRetrieverComponent', 'selector': 'parameter-retriever'},{'name': 'ParameterRetrieverComponent', 'selector': 'parameter-retriever'},{'name': 'ParameterRetrieverComponent', 'selector': 'parameter-retriever'},{'name': 'ParameterRetrieverComponent', 'selector': 'parameter-retriever'},{'name': 'ParameterRetrieverComponent', 'selector': 'parameter-retriever'},{'name': 'ParameterRetrieverComponent', 'selector': 'parameter-retriever'},{'name': 'ParameterRetrieverComponent', 'selector': 'parameter-retriever'},{'name': 'ParameterRetrieverComponent', 'selector': 'parameter-retriever'},{'name': 'ParameterRetrieverComponent', 'selector': 'parameter-retriever'},{'name': 'PDFListComponent', 'selector': 'rb-pdf-list'},{'name': 'PDFListComponent', 'selector': 'rb-pdf-list'},{'name': 'PDFListComponent', 'selector': 'rb-pdf-list'},{'name': 'PDFListComponent', 'selector': 'rb-pdf-list'},{'name': 'PDFListComponent', 'selector': 'rb-pdf-list'},{'name': 'PDFListComponent', 'selector': 'rb-pdf-list'},{'name': 'PDFListComponent', 'selector': 'rb-pdf-list'},{'name': 'PDFListComponent', 'selector': 'rb-pdf-list'},{'name': 'PDFListComponent', 'selector': 'rb-pdf-list'},{'name': 'PDFListComponent', 'selector': 'rb-pdf-list'},{'name': 'PDFListComponent', 'selector': 'rb-pdf-list'},{'name': 'PDFListComponent', 'selector': 'rb-pdf-list'},{'name': 'PublishDataLocationRefreshComponent', 'selector': 'publish-data-location-refresh'},{'name': 'PublishDataLocationRefreshComponent', 'selector': 'publish-data-location-refresh'},{'name': 'PublishDataLocationRefreshComponent', 'selector': 'publish-data-location-refresh'},{'name': 'PublishDataLocationRefreshComponent', 'selector': 'publish-data-location-refresh'},{'name': 'PublishDataLocationRefreshComponent', 'selector': 'publish-data-location-refresh'},{'name': 'PublishDataLocationRefreshComponent', 'selector': 'publish-data-location-refresh'},{'name': 'PublishDataLocationRefreshComponent', 'selector': 'publish-data-location-refresh'},{'name': 'PublishDataLocationRefreshComponent', 'selector': 'publish-data-location-refresh'},{'name': 'PublishDataLocationRefreshComponent', 'selector': 'publish-data-location-refresh'},{'name': 'PublishDataLocationRefreshComponent', 'selector': 'publish-data-location-refresh'},{'name': 'PublishDataLocationRefreshComponent', 'selector': 'publish-data-location-refresh'},{'name': 'PublishDataLocationRefreshComponent', 'selector': 'publish-data-location-refresh'},{'name': 'PublishDataLocationSelectorComponent', 'selector': 'publish-data-location-selector'},{'name': 'PublishDataLocationSelectorComponent', 'selector': 'publish-data-location-selector'},{'name': 'PublishDataLocationSelectorComponent', 'selector': 'publish-data-location-selector'},{'name': 'PublishDataLocationSelectorComponent', 'selector': 'publish-data-location-selector'},{'name': 'PublishDataLocationSelectorComponent', 'selector': 'publish-data-location-selector'},{'name': 'PublishDataLocationSelectorComponent', 'selector': 'publish-data-location-selector'},{'name': 'PublishDataLocationSelectorComponent', 'selector': 'publish-data-location-selector'},{'name': 'PublishDataLocationSelectorComponent', 'selector': 'publish-data-location-selector'},{'name': 'PublishDataLocationSelectorComponent', 'selector': 'publish-data-location-selector'},{'name': 'PublishDataLocationSelectorComponent', 'selector': 'publish-data-location-selector'},{'name': 'PublishDataLocationSelectorComponent', 'selector': 'publish-data-location-selector'},{'name': 'PublishDataLocationSelectorComponent', 'selector': 'publish-data-location-selector'},{'name': 'RecordMetadataRetrieverComponent', 'selector': 'record-metadata-retriever'},{'name': 'RecordMetadataRetrieverComponent', 'selector': 'record-metadata-retriever'},{'name': 'RecordMetadataRetrieverComponent', 'selector': 'record-metadata-retriever'},{'name': 'RecordMetadataRetrieverComponent', 'selector': 'record-metadata-retriever'},{'name': 'RecordMetadataRetrieverComponent', 'selector': 'record-metadata-retriever'},{'name': 'RecordMetadataRetrieverComponent', 'selector': 'record-metadata-retriever'},{'name': 'RecordMetadataRetrieverComponent', 'selector': 'record-metadata-retriever'},{'name': 'RecordMetadataRetrieverComponent', 'selector': 'record-metadata-retriever'},{'name': 'RecordMetadataRetrieverComponent', 'selector': 'record-metadata-retriever'},{'name': 'RecordMetadataRetrieverComponent', 'selector': 'record-metadata-retriever'},{'name': 'RecordMetadataRetrieverComponent', 'selector': 'record-metadata-retriever'},{'name': 'RecordMetadataRetrieverComponent', 'selector': 'record-metadata-retriever'},{'name': 'RecordPermissionsComponent', 'selector': 'rb-recordpermissions'},{'name': 'RecordPermissionsComponent', 'selector': 'rb-recordpermissions'},{'name': 'RecordPermissionsComponent', 'selector': 'rb-recordpermissions'},{'name': 'RecordPermissionsComponent', 'selector': 'rb-recordpermissions'},{'name': 'RecordPermissionsComponent', 'selector': 'rb-recordpermissions'},{'name': 'RecordPermissionsComponent', 'selector': 'rb-recordpermissions'},{'name': 'RecordPermissionsComponent', 'selector': 'rb-recordpermissions'},{'name': 'RecordPermissionsComponent', 'selector': 'rb-recordpermissions'},{'name': 'RecordPermissionsComponent', 'selector': 'rb-recordpermissions'},{'name': 'RecordPermissionsComponent', 'selector': 'rb-recordpermissions'},{'name': 'RecordPermissionsComponent', 'selector': 'rb-recordpermissions'},{'name': 'RecordPermissionsComponent', 'selector': 'rb-recordpermissions'},{'name': 'RecordSearchComponent', 'selector': 'record-search'},{'name': 'RecordSearchRefinerComponent', 'selector': 'record-search-refiner'},{'name': 'RelatedFileUploadComponent', 'selector': 'related-fileupload-selector'},{'name': 'RelatedFileUploadComponent', 'selector': 'related-fileupload-selector'},{'name': 'RelatedFileUploadComponent', 'selector': 'related-fileupload-selector'},{'name': 'RelatedFileUploadComponent', 'selector': 'related-fileupload-selector'},{'name': 'RelatedFileUploadComponent', 'selector': 'related-fileupload-selector'},{'name': 'RelatedFileUploadComponent', 'selector': 'related-fileupload-selector'},{'name': 'RelatedFileUploadComponent', 'selector': 'related-fileupload-selector'},{'name': 'RelatedFileUploadComponent', 'selector': 'related-fileupload-selector'},{'name': 'RelatedFileUploadComponent', 'selector': 'related-fileupload-selector'},{'name': 'RelatedFileUploadComponent', 'selector': 'related-fileupload-selector'},{'name': 'RelatedFileUploadComponent', 'selector': 'related-fileupload-selector'},{'name': 'RelatedFileUploadComponent', 'selector': 'related-fileupload-selector'},{'name': 'RelatedObjectDataComponent', 'selector': 'rb-relatedobjectdata'},{'name': 'RelatedObjectDataComponent', 'selector': 'rb-relatedobjectdata'},{'name': 'RelatedObjectDataComponent', 'selector': 'rb-relatedobjectdata'},{'name': 'RelatedObjectDataComponent', 'selector': 'rb-relatedobjectdata'},{'name': 'RelatedObjectDataComponent', 'selector': 'rb-relatedobjectdata'},{'name': 'RelatedObjectDataComponent', 'selector': 'rb-relatedobjectdata'},{'name': 'RelatedObjectDataComponent', 'selector': 'rb-relatedobjectdata'},{'name': 'RelatedObjectDataComponent', 'selector': 'rb-relatedobjectdata'},{'name': 'RelatedObjectDataComponent', 'selector': 'rb-relatedobjectdata'},{'name': 'RelatedObjectDataComponent', 'selector': 'rb-relatedobjectdata'},{'name': 'RelatedObjectDataComponent', 'selector': 'rb-relatedobjectdata'},{'name': 'RelatedObjectDataComponent', 'selector': 'rb-relatedobjectdata'},{'name': 'RelatedObjectSelectorComponent', 'selector': 'rb-RelatedObjectSelector'},{'name': 'RelatedObjectSelectorComponent', 'selector': 'rb-RelatedObjectSelector'},{'name': 'RelatedObjectSelectorComponent', 'selector': 'rb-RelatedObjectSelector'},{'name': 'RelatedObjectSelectorComponent', 'selector': 'rb-RelatedObjectSelector'},{'name': 'RelatedObjectSelectorComponent', 'selector': 'rb-RelatedObjectSelector'},{'name': 'RelatedObjectSelectorComponent', 'selector': 'rb-RelatedObjectSelector'},{'name': 'RelatedObjectSelectorComponent', 'selector': 'rb-RelatedObjectSelector'},{'name': 'RelatedObjectSelectorComponent', 'selector': 'rb-RelatedObjectSelector'},{'name': 'RelatedObjectSelectorComponent', 'selector': 'rb-RelatedObjectSelector'},{'name': 'RelatedObjectSelectorComponent', 'selector': 'rb-RelatedObjectSelector'},{'name': 'RelatedObjectSelectorComponent', 'selector': 'rb-RelatedObjectSelector'},{'name': 'RelatedObjectSelectorComponent', 'selector': 'rb-RelatedObjectSelector'},{'name': 'RepeatableContributorComponent', 'selector': 'repeatable-contributor'},{'name': 'RepeatableContributorComponent', 'selector': 'repeatable-contributor'},{'name': 'RepeatableContributorComponent', 'selector': 'repeatable-contributor'},{'name': 'RepeatableContributorComponent', 'selector': 'repeatable-contributor'},{'name': 'RepeatableContributorComponent', 'selector': 'repeatable-contributor'},{'name': 'RepeatableContributorComponent', 'selector': 'repeatable-contributor'},{'name': 'RepeatableContributorComponent', 'selector': 'repeatable-contributor'},{'name': 'RepeatableContributorComponent', 'selector': 'repeatable-contributor'},{'name': 'RepeatableContributorComponent', 'selector': 'repeatable-contributor'},{'name': 'RepeatableContributorComponent', 'selector': 'repeatable-contributor'},{'name': 'RepeatableContributorComponent', 'selector': 'repeatable-contributor'},{'name': 'RepeatableContributorComponent', 'selector': 'repeatable-contributor'},{'name': 'RepeatableGroupComponent', 'selector': 'repeatable-group'},{'name': 'RepeatableGroupComponent', 'selector': 'repeatable-group'},{'name': 'RepeatableGroupComponent', 'selector': 'repeatable-group'},{'name': 'RepeatableGroupComponent', 'selector': 'repeatable-group'},{'name': 'RepeatableGroupComponent', 'selector': 'repeatable-group'},{'name': 'RepeatableGroupComponent', 'selector': 'repeatable-group'},{'name': 'RepeatableGroupComponent', 'selector': 'repeatable-group'},{'name': 'RepeatableGroupComponent', 'selector': 'repeatable-group'},{'name': 'RepeatableGroupComponent', 'selector': 'repeatable-group'},{'name': 'RepeatableGroupComponent', 'selector': 'repeatable-group'},{'name': 'RepeatableGroupComponent', 'selector': 'repeatable-group'},{'name': 'RepeatableGroupComponent', 'selector': 'repeatable-group'},{'name': 'RepeatableTextfieldComponent', 'selector': 'repeatable-textfield'},{'name': 'RepeatableTextfieldComponent', 'selector': 'repeatable-textfield'},{'name': 'RepeatableTextfieldComponent', 'selector': 'repeatable-textfield'},{'name': 'RepeatableTextfieldComponent', 'selector': 'repeatable-textfield'},{'name': 'RepeatableTextfieldComponent', 'selector': 'repeatable-textfield'},{'name': 'RepeatableTextfieldComponent', 'selector': 'repeatable-textfield'},{'name': 'RepeatableTextfieldComponent', 'selector': 'repeatable-textfield'},{'name': 'RepeatableTextfieldComponent', 'selector': 'repeatable-textfield'},{'name': 'RepeatableTextfieldComponent', 'selector': 'repeatable-textfield'},{'name': 'RepeatableTextfieldComponent', 'selector': 'repeatable-textfield'},{'name': 'RepeatableTextfieldComponent', 'selector': 'repeatable-textfield'},{'name': 'RepeatableTextfieldComponent', 'selector': 'repeatable-textfield'},{'name': 'RepeatableVocabComponent', 'selector': 'repeatable-vocab'},{'name': 'RepeatableVocabComponent', 'selector': 'repeatable-vocab'},{'name': 'RepeatableVocabComponent', 'selector': 'repeatable-vocab'},{'name': 'RepeatableVocabComponent', 'selector': 'repeatable-vocab'},{'name': 'RepeatableVocabComponent', 'selector': 'repeatable-vocab'},{'name': 'RepeatableVocabComponent', 'selector': 'repeatable-vocab'},{'name': 'RepeatableVocabComponent', 'selector': 'repeatable-vocab'},{'name': 'RepeatableVocabComponent', 'selector': 'repeatable-vocab'},{'name': 'RepeatableVocabComponent', 'selector': 'repeatable-vocab'},{'name': 'RepeatableVocabComponent', 'selector': 'repeatable-vocab'},{'name': 'RepeatableVocabComponent', 'selector': 'repeatable-vocab'},{'name': 'RepeatableVocabComponent', 'selector': 'repeatable-vocab'},{'name': 'ReportComponent', 'selector': 'report'},{'name': 'SaveButtonComponent', 'selector': 'save-button'},{'name': 'SaveButtonComponent', 'selector': 'save-button'},{'name': 'SaveButtonComponent', 'selector': 'save-button'},{'name': 'SaveButtonComponent', 'selector': 'save-button'},{'name': 'SaveButtonComponent', 'selector': 'save-button'},{'name': 'SaveButtonComponent', 'selector': 'save-button'},{'name': 'SaveButtonComponent', 'selector': 'save-button'},{'name': 'SaveButtonComponent', 'selector': 'save-button'},{'name': 'SaveButtonComponent', 'selector': 'save-button'},{'name': 'SaveButtonComponent', 'selector': 'save-button'},{'name': 'SaveButtonComponent', 'selector': 'save-button'},{'name': 'SaveButtonComponent', 'selector': 'save-button'},{'name': 'SelectionFieldComponent', 'selector': 'selectionfield'},{'name': 'SelectionFieldComponent', 'selector': 'selectionfield'},{'name': 'SelectionFieldComponent', 'selector': 'selectionfield'},{'name': 'SelectionFieldComponent', 'selector': 'selectionfield'},{'name': 'SelectionFieldComponent', 'selector': 'selectionfield'},{'name': 'SelectionFieldComponent', 'selector': 'selectionfield'},{'name': 'SelectionFieldComponent', 'selector': 'selectionfield'},{'name': 'SelectionFieldComponent', 'selector': 'selectionfield'},{'name': 'SelectionFieldComponent', 'selector': 'selectionfield'},{'name': 'SelectionFieldComponent', 'selector': 'selectionfield'},{'name': 'SelectionFieldComponent', 'selector': 'selectionfield'},{'name': 'SelectionFieldComponent', 'selector': 'selectionfield'},{'name': 'SortComponent', 'selector': 'sort'},{'name': 'SpacerComponent', 'selector': 'spacer'},{'name': 'SpacerComponent', 'selector': 'spacer'},{'name': 'SpacerComponent', 'selector': 'spacer'},{'name': 'SpacerComponent', 'selector': 'spacer'},{'name': 'SpacerComponent', 'selector': 'spacer'},{'name': 'SpacerComponent', 'selector': 'spacer'},{'name': 'SpacerComponent', 'selector': 'spacer'},{'name': 'SpacerComponent', 'selector': 'spacer'},{'name': 'SpacerComponent', 'selector': 'spacer'},{'name': 'SpacerComponent', 'selector': 'spacer'},{'name': 'SpacerComponent', 'selector': 'spacer'},{'name': 'SpacerComponent', 'selector': 'spacer'},{'name': 'TabNavButtonComponent', 'selector': 'tab-nav-button'},{'name': 'TabNavButtonComponent', 'selector': 'tab-nav-button'},{'name': 'TabNavButtonComponent', 'selector': 'tab-nav-button'},{'name': 'TabNavButtonComponent', 'selector': 'tab-nav-button'},{'name': 'TabNavButtonComponent', 'selector': 'tab-nav-button'},{'name': 'TabNavButtonComponent', 'selector': 'tab-nav-button'},{'name': 'TabNavButtonComponent', 'selector': 'tab-nav-button'},{'name': 'TabNavButtonComponent', 'selector': 'tab-nav-button'},{'name': 'TabNavButtonComponent', 'selector': 'tab-nav-button'},{'name': 'TabNavButtonComponent', 'selector': 'tab-nav-button'},{'name': 'TabNavButtonComponent', 'selector': 'tab-nav-button'},{'name': 'TabNavButtonComponent', 'selector': 'tab-nav-button'},{'name': 'TabOrAccordionContainerComponent', 'selector': 'tabcontainer'},{'name': 'TabOrAccordionContainerComponent', 'selector': 'tabcontainer'},{'name': 'TabOrAccordionContainerComponent', 'selector': 'tabcontainer'},{'name': 'TabOrAccordionContainerComponent', 'selector': 'tabcontainer'},{'name': 'TabOrAccordionContainerComponent', 'selector': 'tabcontainer'},{'name': 'TabOrAccordionContainerComponent', 'selector': 'tabcontainer'},{'name': 'TabOrAccordionContainerComponent', 'selector': 'tabcontainer'},{'name': 'TabOrAccordionContainerComponent', 'selector': 'tabcontainer'},{'name': 'TabOrAccordionContainerComponent', 'selector': 'tabcontainer'},{'name': 'TabOrAccordionContainerComponent', 'selector': 'tabcontainer'},{'name': 'TabOrAccordionContainerComponent', 'selector': 'tabcontainer'},{'name': 'TabOrAccordionContainerComponent', 'selector': 'tabcontainer'},{'name': 'TextAreaComponent', 'selector': 'text-area'},{'name': 'TextAreaComponent', 'selector': 'text-area'},{'name': 'TextAreaComponent', 'selector': 'text-area'},{'name': 'TextAreaComponent', 'selector': 'text-area'},{'name': 'TextAreaComponent', 'selector': 'text-area'},{'name': 'TextAreaComponent', 'selector': 'text-area'},{'name': 'TextAreaComponent', 'selector': 'text-area'},{'name': 'TextAreaComponent', 'selector': 'text-area'},{'name': 'TextAreaComponent', 'selector': 'text-area'},{'name': 'TextAreaComponent', 'selector': 'text-area'},{'name': 'TextAreaComponent', 'selector': 'text-area'},{'name': 'TextAreaComponent', 'selector': 'text-area'},{'name': 'TextBlockComponent', 'selector': 'text-block'},{'name': 'TextBlockComponent', 'selector': 'text-block'},{'name': 'TextBlockComponent', 'selector': 'text-block'},{'name': 'TextBlockComponent', 'selector': 'text-block'},{'name': 'TextBlockComponent', 'selector': 'text-block'},{'name': 'TextBlockComponent', 'selector': 'text-block'},{'name': 'TextBlockComponent', 'selector': 'text-block'},{'name': 'TextBlockComponent', 'selector': 'text-block'},{'name': 'TextBlockComponent', 'selector': 'text-block'},{'name': 'TextBlockComponent', 'selector': 'text-block'},{'name': 'TextBlockComponent', 'selector': 'text-block'},{'name': 'TextBlockComponent', 'selector': 'text-block'},{'name': 'TextFieldComponent', 'selector': 'textfield'},{'name': 'TextFieldComponent', 'selector': 'textfield'},{'name': 'TextFieldComponent', 'selector': 'textfield'},{'name': 'TextFieldComponent', 'selector': 'textfield'},{'name': 'TextFieldComponent', 'selector': 'textfield'},{'name': 'TextFieldComponent', 'selector': 'textfield'},{'name': 'TextFieldComponent', 'selector': 'textfield'},{'name': 'TextFieldComponent', 'selector': 'textfield'},{'name': 'TextFieldComponent', 'selector': 'textfield'},{'name': 'TextFieldComponent', 'selector': 'textfield'},{'name': 'TextFieldComponent', 'selector': 'textfield'},{'name': 'TextFieldComponent', 'selector': 'textfield'},{'name': 'ToggleComponent', 'selector': 'toggle'},{'name': 'ToggleComponent', 'selector': 'toggle'},{'name': 'ToggleComponent', 'selector': 'toggle'},{'name': 'ToggleComponent', 'selector': 'toggle'},{'name': 'ToggleComponent', 'selector': 'toggle'},{'name': 'ToggleComponent', 'selector': 'toggle'},{'name': 'ToggleComponent', 'selector': 'toggle'},{'name': 'ToggleComponent', 'selector': 'toggle'},{'name': 'ToggleComponent', 'selector': 'toggle'},{'name': 'ToggleComponent', 'selector': 'toggle'},{'name': 'ToggleComponent', 'selector': 'toggle'},{'name': 'ToggleComponent', 'selector': 'toggle'},{'name': 'TransferOwnerComponent', 'selector': 'transfer-owner'},{'name': 'TreeNodeCheckboxComponent', 'selector': 'rb-tree-node-checkbox'},{'name': 'TreeNodeCheckboxComponent', 'selector': 'rb-tree-node-checkbox'},{'name': 'TreeNodeCheckboxComponent', 'selector': 'rb-tree-node-checkbox'},{'name': 'TreeNodeCheckboxComponent', 'selector': 'rb-tree-node-checkbox'},{'name': 'TreeNodeCheckboxComponent', 'selector': 'rb-tree-node-checkbox'},{'name': 'TreeNodeCheckboxComponent', 'selector': 'rb-tree-node-checkbox'},{'name': 'TreeNodeCheckboxComponent', 'selector': 'rb-tree-node-checkbox'},{'name': 'TreeNodeCheckboxComponent', 'selector': 'rb-tree-node-checkbox'},{'name': 'TreeNodeCheckboxComponent', 'selector': 'rb-tree-node-checkbox'},{'name': 'TreeNodeCheckboxComponent', 'selector': 'rb-tree-node-checkbox'},{'name': 'TreeNodeCheckboxComponent', 'selector': 'rb-tree-node-checkbox'},{'name': 'TreeNodeCheckboxComponent', 'selector': 'rb-tree-node-checkbox'},{'name': 'UserProfileComponent', 'selector': 'user-profile'},{'name': 'VocabFieldComponent', 'selector': 'rb-vocab'},{'name': 'VocabFieldComponent', 'selector': 'rb-vocab'},{'name': 'VocabFieldComponent', 'selector': 'rb-vocab'},{'name': 'VocabFieldComponent', 'selector': 'rb-vocab'},{'name': 'VocabFieldComponent', 'selector': 'rb-vocab'},{'name': 'VocabFieldComponent', 'selector': 'rb-vocab'},{'name': 'VocabFieldComponent', 'selector': 'rb-vocab'},{'name': 'VocabFieldComponent', 'selector': 'rb-vocab'},{'name': 'VocabFieldComponent', 'selector': 'rb-vocab'},{'name': 'VocabFieldComponent', 'selector': 'rb-vocab'},{'name': 'VocabFieldComponent', 'selector': 'rb-vocab'},{'name': 'VocabFieldComponent', 'selector': 'rb-vocab'},{'name': 'WorkflowStepButtonComponent', 'selector': 'workflowstep-button'},{'name': 'WorkflowStepButtonComponent', 'selector': 'workflowstep-button'},{'name': 'WorkflowStepButtonComponent', 'selector': 'workflowstep-button'},{'name': 'WorkflowStepButtonComponent', 'selector': 'workflowstep-button'},{'name': 'WorkflowStepButtonComponent', 'selector': 'workflowstep-button'},{'name': 'WorkflowStepButtonComponent', 'selector': 'workflowstep-button'},{'name': 'WorkflowStepButtonComponent', 'selector': 'workflowstep-button'},{'name': 'WorkflowStepButtonComponent', 'selector': 'workflowstep-button'},{'name': 'WorkflowStepButtonComponent', 'selector': 'workflowstep-button'},{'name': 'WorkflowStepButtonComponent', 'selector': 'workflowstep-button'},{'name': 'WorkflowStepButtonComponent', 'selector': 'workflowstep-button'},{'name': 'WorkflowStepButtonComponent', 'selector': 'workflowstep-button'},{'name': 'WorkspaceFieldComponent', 'selector': 'ws-field'},{'name': 'WorkspaceFieldComponent', 'selector': 'ws-field'},{'name': 'WorkspaceFieldComponent', 'selector': 'ws-field'},{'name': 'WorkspaceFieldComponent', 'selector': 'ws-field'},{'name': 'WorkspaceFieldComponent', 'selector': 'ws-field'},{'name': 'WorkspaceFieldComponent', 'selector': 'ws-field'},{'name': 'WorkspaceFieldComponent', 'selector': 'ws-field'},{'name': 'WorkspaceFieldComponent', 'selector': 'ws-field'},{'name': 'WorkspaceFieldComponent', 'selector': 'ws-field'},{'name': 'WorkspaceFieldComponent', 'selector': 'ws-field'},{'name': 'WorkspaceFieldComponent', 'selector': 'ws-field'},{'name': 'WorkspaceFieldComponent', 'selector': 'ws-field'},{'name': 'WorkspaceListComponent', 'selector': 'workspace-list'},{'name': 'WorkspaceSelectorComponent', 'selector': 'workspace-selector-parent'},{'name': 'WorkspaceSelectorComponent', 'selector': 'workspace-selector-parent'},{'name': 'WorkspaceSelectorComponent', 'selector': 'workspace-selector-parent'},{'name': 'WorkspaceSelectorComponent', 'selector': 'workspace-selector-parent'},{'name': 'WorkspaceSelectorComponent', 'selector': 'workspace-selector-parent'},{'name': 'WorkspaceSelectorComponent', 'selector': 'workspace-selector-parent'},{'name': 'WorkspaceSelectorComponent', 'selector': 'workspace-selector-parent'},{'name': 'WorkspaceSelectorComponent', 'selector': 'workspace-selector-parent'},{'name': 'WorkspaceSelectorComponent', 'selector': 'workspace-selector-parent'},{'name': 'WorkspaceSelectorComponent', 'selector': 'workspace-selector-parent'},{'name': 'WorkspaceSelectorComponent', 'selector': 'workspace-selector-parent'},{'name': 'WorkspaceSelectorComponent', 'selector': 'workspace-selector-parent'},{'name': 'WorkspaceSelectorFieldComponent', 'selector': 'workspace-selector'},{'name': 'WorkspaceSelectorFieldComponent', 'selector': 'workspace-selector'},{'name': 'WorkspaceSelectorFieldComponent', 'selector': 'workspace-selector'},{'name': 'WorkspaceSelectorFieldComponent', 'selector': 'workspace-selector'},{'name': 'WorkspaceSelectorFieldComponent', 'selector': 'workspace-selector'},{'name': 'WorkspaceSelectorFieldComponent', 'selector': 'workspace-selector'},{'name': 'WorkspaceSelectorFieldComponent', 'selector': 'workspace-selector'},{'name': 'WorkspaceSelectorFieldComponent', 'selector': 'workspace-selector'},{'name': 'WorkspaceSelectorFieldComponent', 'selector': 'workspace-selector'},{'name': 'WorkspaceSelectorFieldComponent', 'selector': 'workspace-selector'},{'name': 'WorkspaceSelectorFieldComponent', 'selector': 'workspace-selector'},{'name': 'WorkspaceSelectorFieldComponent', 'selector': 'workspace-selector'}];
+    var DIRECTIVES = [];
+    var ACTUAL_COMPONENT = {'name': 'ANDSVocabComponent-10'};
+</script>
+<script src="../js/tree.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                   </div><div class="search-results">
+    <div class="has-results">
+        <h1 class="search-results-title"><span class='search-results-count'></span> results matching "<span class='search-query'></span>"</h1>
+        <ul class="search-results-list"></ul>
+    </div>
+    <div class="no-results">
+        <h1 class="search-results-title">No results matching "<span class='search-query'></span>"</h1>
+    </div>
+</div>
+</div>
+               <!-- END CONTENT -->
+           </div>
+       </div>
+
+          <label class="dark-mode-switch">
+               <input type="checkbox">
+               <span class="slider">
+                    <svg class="slider-icon" viewBox="0 0 24 24" fill="none" height="20" stroke="#000" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" width="20" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"></path>
+                    </svg>
+               </span>
+          </label>
+
+       <script>
+            var COMPODOC_CURRENT_PAGE_DEPTH = 1;
+            var COMPODOC_CURRENT_PAGE_CONTEXT = 'component';
+            var COMPODOC_CURRENT_PAGE_URL = 'ANDSVocabComponent-10.html';
+            var MAX_SEARCH_RESULTS = 15;
+       </script>
+
+       <script src="../js/libs/custom-elements.min.js"></script>
+       <script src="../js/libs/lit-html.js"></script>
+
+       <script src="../js/menu-wc.js" defer></script>
+       <script nomodule src="../js/menu-wc_es5.js" defer></script>
+
+       <script src="../js/libs/bootstrap-native.js"></script>
+
+       <script src="../js/libs/es6-shim.min.js"></script>
+       <script src="../js/libs/EventDispatcher.js"></script>
+       <script src="../js/libs/promise.min.js"></script>
+       <script src="../js/libs/zepto.min.js"></script>
+
+       <script src="../js/compodoc.js"></script>
+
+       <script src="../js/tabs.js"></script>
+       <script src="../js/menu.js"></script>
+       <script src="../js/libs/clipboard.min.js"></script>
+       <script src="../js/libs/prism.js"></script>
+       <script src="../js/sourceCode.js"></script>
+          <script src="../js/search/search.js"></script>
+          <script src="../js/search/lunr.min.js"></script>
+          <script src="../js/search/search-lunr.js"></script>
+          <script src="../js/search/search_index.js"></script>
+       <script src="../js/lazy-load-graphs.js"></script>
+
+
+    </body>
+</html>

@@ -1,0 +1,2336 @@
+<!doctype html>
+<html class="no-js" lang="">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="x-ua-compatible" content="ie=edge">
+        <title>ReDBox Portal - NG2 Apps</title>
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+
+        <link rel="icon" type="image/x-icon" href="../images/favicon.ico">
+	   <link rel="stylesheet" href="../styles/style.css">
+        <link rel="stylesheet" href="../styles/dark.css">
+        <link rel="stylesheet" href="../styles/postmark.css">
+    </head>
+    <body>
+
+        <div class="navbar navbar-default navbar-fixed-top d-block d-sm-none">
+            <a href="../" class="navbar-brand">ReDBox Portal - NG2 Apps</a>
+            <button type="button" class="btn btn-default btn-menu ion-ios-menu" id="btn-menu"></button>
+        </div>
+
+        <div class="xs-menu menu" id="mobile-menu">
+                <div id="book-search-input" role="search"><input type="text" placeholder="Type to search"></div>            <compodoc-menu></compodoc-menu>
+        </div>
+
+        <div class="container-fluid main">
+           <div class="row main">
+               <div class="hidden-xs menu">
+                   <compodoc-menu mode="normal"></compodoc-menu>
+               </div>
+               <!-- START CONTENT -->
+               <div class="content injectable">
+                   <div class="content-data">
+
+
+
+
+
+
+
+
+<ol class="breadcrumb">
+  <li class="breadcrumb-item">Injectables</li>
+  <li class="breadcrumb-item" >UtilityService</li>
+</ol>
+
+<ul class="nav nav-tabs" role="tablist">
+        <li class="nav-item">
+            <a href="#info" 
+                class="nav-link"
+                class="nav-link active"
+                role="tab" id="info-tab" data-bs-toggle="tab" data-link="info">Info</a>
+        </li>
+        <li class="nav-item">
+            <a href="#source" 
+                class="nav-link"
+                
+                role="tab" id="source-tab" data-bs-toggle="tab" data-link="source">Source</a>
+        </li>
+</ul>
+
+<div class="tab-content">
+    <div class="tab-pane fade active in" id="info">
+        <p class="comment">
+            <h3>File</h3>
+        </p>
+        <p class="comment">
+            <code>angular/export/app/shared/util-service.ts</code>
+        </p>
+
+
+            <p class="comment">
+                <h3>Description</h3>
+            </p>
+            <p class="comment">
+                <p>Utility service...</p>
+<p>Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a></p>
+
+            </p>
+
+
+
+            <section data-compodoc="block-index">
+    <h3 id="index">Index</h3>
+    <table class="table table-sm table-bordered index-table">
+        <tbody>
+
+                <tr>
+                    <td class="col-md-4">
+                        <h6><b>Methods</b></h6>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <ul class="index-list">
+                            <li>
+                                    <span class="modifier">Private</span>
+                                <a href="#checkConcatReq" >checkConcatReq</a>
+                            </li>
+                            <li>
+                                    <span class="modifier">Private</span>
+                                <a href="#checkData" >checkData</a>
+                            </li>
+                            <li>
+                                    <span class="modifier">Public</span>
+                                <a href="#concatenate" >concatenate</a>
+                            </li>
+                            <li>
+                                    <span class="modifier">Public</span>
+                                <a href="#convertToDateFormat" >convertToDateFormat</a>
+                            </li>
+                            <li>
+                                    <span class="modifier">Public</span>
+                                <a href="#getFirstofArray" >getFirstofArray</a>
+                            </li>
+                            <li>
+                                    <span class="modifier">Public</span>
+                                <a href="#getMergedObjectArrayAsArray" >getMergedObjectArrayAsArray</a>
+                            </li>
+                            <li>
+                                    <span class="modifier">Public</span>
+                                <a href="#getMergedObjectAsArray" >getMergedObjectAsArray</a>
+                            </li>
+                            <li>
+                                    <span class="modifier">Public</span>
+                                <a href="#getPropertyAsArrayFromObject" >getPropertyAsArrayFromObject</a>
+                            </li>
+                            <li>
+                                    <span class="modifier">Public</span>
+                                <a href="#getPropertyFromObject" >getPropertyFromObject</a>
+                            </li>
+                            <li>
+                                    <span class="modifier">Public</span>
+                                <a href="#getPropertyFromObjectConcat" >getPropertyFromObjectConcat</a>
+                            </li>
+                            <li>
+                                    <span class="modifier">Public</span>
+                                <a href="#getPropertyFromObjectMapping" >getPropertyFromObjectMapping</a>
+                            </li>
+                            <li>
+                                    <span class="modifier">Public</span>
+                                <a href="#hasValue" >hasValue</a>
+                            </li>
+                            <li>
+                                    <span class="modifier">Public</span>
+                                <a href="#joinArray" >joinArray</a>
+                            </li>
+                            <li>
+                                    <span class="modifier">Public</span>
+                                <a href="#logSubscribeDebugToConsole" >logSubscribeDebugToConsole</a>
+                            </li>
+                            <li>
+                                    <span class="modifier">Private</span>
+                                <a href="#mergeObjectIntoArray" >mergeObjectIntoArray</a>
+                            </li>
+                            <li>
+                                    <span class="modifier">Public</span>
+                                <a href="#runTemplate" >runTemplate</a>
+                            </li>
+                            <li>
+                                    <span class="modifier">Public</span>
+                                <a href="#splitArrayStringsToArray" >splitArrayStringsToArray</a>
+                            </li>
+                            <li>
+                                    <span class="modifier">Public</span>
+                                <a href="#splitStringToArray" >splitStringToArray</a>
+                            </li>
+                        </ul>
+                    </td>
+                </tr>
+
+
+
+
+
+        </tbody>
+    </table>
+</section>
+
+
+            <section data-compodoc="block-methods">
+    
+    <h3 id="methods">
+        Methods
+    </h3>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="checkConcatReq"></a>
+                    <span class="name">
+                        <span class="modifier">Private</span>
+                        <span ><b>checkConcatReq</b></span>
+                        <a href="#checkConcatReq"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                    <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>checkConcatReq(valueObject: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>, fieldsToMatch: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>, fieldValues: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>)</code>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-line">Defined in <a href="" data-line="92"
+                            class="link-to-prism">angular/export/app/shared/util-service.ts:92</a></div>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-description"><p>check a given object is not already present in the container list</p>
+<p>Author: <a href='https://github.com/andrewbrazzatti' target='_blank'>Andrew Brazzatti</a></p>
+</div>
+
+                    <div class="io-description">
+                        <b>Parameters :</b>
+                        
+                        <table class="params">
+                            <thead>
+                                <tr>
+                                    <td>Name</td>
+                                    <td>Type</td>
+                                    <td>Optional</td>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>valueObject</td>
+                                    <td>
+                                                <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+
+                                </tr>
+                                <tr>
+                                    <td>fieldsToMatch</td>
+                                    <td>
+                                                <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+
+                                </tr>
+                                <tr>
+                                    <td>fieldValues</td>
+                                    <td>
+                                                <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div>
+                    </div>
+                    <div class="io-description">
+                        <b>Returns : </b>        <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/boolean" target="_blank" >boolean</a></code>
+
+                    </div>
+                    <div class="io-description">
+                        
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="checkData"></a>
+                    <span class="name">
+                        <span class="modifier">Private</span>
+                        <span ><b>checkData</b></span>
+                        <a href="#checkData"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                    <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>checkData(valueObject: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>, fieldsToMatch: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>)</code>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-line">Defined in <a href="" data-line="72"
+                            class="link-to-prism">angular/export/app/shared/util-service.ts:72</a></div>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-description"><p>check that all the values to match have values for a given object</p>
+<p>Author: <a href='https://github.com/andrewbrazzatti' target='_blank'>Andrew Brazzatti</a></p>
+</div>
+
+                    <div class="io-description">
+                        <b>Parameters :</b>
+                        
+                        <table class="params">
+                            <thead>
+                                <tr>
+                                    <td>Name</td>
+                                    <td>Type</td>
+                                    <td>Optional</td>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>valueObject</td>
+                                    <td>
+                                                <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+
+                                </tr>
+                                <tr>
+                                    <td>fieldsToMatch</td>
+                                    <td>
+                                                <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div>
+                    </div>
+                    <div class="io-description">
+                        <b>Returns : </b>        <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/boolean" target="_blank" >boolean</a></code>
+
+                    </div>
+                    <div class="io-description">
+                        
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="concatenate"></a>
+                    <span class="name">
+                        <span class="modifier">Public</span>
+                        <span ><b>concatenate</b></span>
+                        <a href="#concatenate"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                    <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>concatenate(data: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>, config: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>)</code>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-line">Defined in <a href="" data-line="40"
+                            class="link-to-prism">angular/export/app/shared/util-service.ts:40</a></div>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-description"><p>returns concatenated string</p>
+<p>Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a></p>
+</div>
+
+                    <div class="io-description">
+                        <b>Parameters :</b>
+                        
+                        <table class="params">
+                            <thead>
+                                <tr>
+                                    <td>Name</td>
+                                    <td>Type</td>
+                                    <td>Optional</td>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>data</td>
+                                    <td>
+                                                <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+
+                                </tr>
+                                <tr>
+                                    <td>config</td>
+                                    <td>
+                                                <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div>
+                    </div>
+                    <div class="io-description">
+                        <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+
+                    </div>
+                    <div class="io-description">
+                        
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="convertToDateFormat"></a>
+                    <span class="name">
+                        <span class="modifier">Public</span>
+                        <span ><b>convertToDateFormat</b></span>
+                        <a href="#convertToDateFormat"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                    <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>convertToDateFormat(data: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>, config: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>)</code>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-line">Defined in <a href="" data-line="340"
+                            class="link-to-prism">angular/export/app/shared/util-service.ts:340</a></div>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-description"><p>Format date with moment from origin to target</p>
+<p>Author: <a href='https://github.com/moisbo' target='_blank'>Moises Sacal Bonequi</a></p>
+</div>
+
+                    <div class="io-description">
+                        <b>Parameters :</b>
+                        
+                        <table class="params">
+                            <thead>
+                                <tr>
+                                    <td>Name</td>
+                                    <td>Type</td>
+                                    <td>Optional</td>
+                                    <td>Description</td>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>data</td>
+                                    <td>
+                                                <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+
+                                    <td>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>config</td>
+                                    <td>
+                                                <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+
+                                    <td>
+                                        <ul>
+<li>field, formatOrigin, formatTarget</li>
+</ul>
+
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div>
+                    </div>
+                    <div class="io-description">
+                        <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+
+                    </div>
+                    <div class="io-description">
+                        
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="getFirstofArray"></a>
+                    <span class="name">
+                        <span class="modifier">Public</span>
+                        <span ><b>getFirstofArray</b></span>
+                        <a href="#getFirstofArray"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                    <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>getFirstofArray(data: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>, config: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>)</code>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-line">Defined in <a href="" data-line="322"
+                            class="link-to-prism">angular/export/app/shared/util-service.ts:322</a></div>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-description"><p>Splits a string of arrays into an array by it&#39;s delimiter</p>
+<p>Author: <a href='https://github.com/moisbo' target='_blank'>Moises Sacal Bonequi</a></p>
+</div>
+
+                    <div class="io-description">
+                        <b>Parameters :</b>
+                        
+                        <table class="params">
+                            <thead>
+                                <tr>
+                                    <td>Name</td>
+                                    <td>Type</td>
+                                    <td>Optional</td>
+                                    <td>Description</td>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>data</td>
+                                    <td>
+                                                <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+
+                                    <td>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>config</td>
+                                    <td>
+                                                <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+
+                                    <td>
+                                        <ul>
+<li>The delimiter</li>
+</ul>
+
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div>
+                    </div>
+                    <div class="io-description">
+                        <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+
+                    </div>
+                    <div class="io-description">
+                        
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="getMergedObjectArrayAsArray"></a>
+                    <span class="name">
+                        <span class="modifier">Public</span>
+                        <span ><b>getMergedObjectArrayAsArray</b></span>
+                        <a href="#getMergedObjectArrayAsArray"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                    <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>getMergedObjectArrayAsArray(data: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>, config: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>, field: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>)</code>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-line">Defined in <a href="" data-line="145"
+                            class="link-to-prism">angular/export/app/shared/util-service.ts:145</a></div>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-description"><p>Merges emitted array of object into the subscriber&#39;s array of objects if the emitted object is not present.</p>
+</div>
+
+                    <div class="io-description">
+                        <b>Parameters :</b>
+                        
+                        <table class="params">
+                            <thead>
+                                <tr>
+                                    <td>Name</td>
+                                    <td>Type</td>
+                                    <td>Optional</td>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>data</td>
+                                    <td>
+                                                <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+
+                                </tr>
+                                <tr>
+                                    <td>config</td>
+                                    <td>
+                                                <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+
+                                </tr>
+                                <tr>
+                                    <td>field</td>
+                                    <td>
+                                                <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div>
+                    </div>
+                    <div class="io-description">
+                        <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+
+                    </div>
+                    <div class="io-description">
+                        
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="getMergedObjectAsArray"></a>
+                    <span class="name">
+                        <span class="modifier">Public</span>
+                        <span ><b>getMergedObjectAsArray</b></span>
+                        <a href="#getMergedObjectAsArray"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                    <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>getMergedObjectAsArray(data: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>, config: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>, field: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>)</code>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-line">Defined in <a href="" data-line="115"
+                            class="link-to-prism">angular/export/app/shared/util-service.ts:115</a></div>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-description"><p>Merges emitted object into the subscriber&#39;s array of objects if the emitted object is not present.</p>
+<p>Author: <a href='https://github.com/andrewbrazzatti' target='_blank'>Andrew Brazzatti</a></p>
+</div>
+
+                    <div class="io-description">
+                        <b>Parameters :</b>
+                        
+                        <table class="params">
+                            <thead>
+                                <tr>
+                                    <td>Name</td>
+                                    <td>Type</td>
+                                    <td>Optional</td>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>data</td>
+                                    <td>
+                                                <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+
+                                </tr>
+                                <tr>
+                                    <td>config</td>
+                                    <td>
+                                                <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+
+                                </tr>
+                                <tr>
+                                    <td>field</td>
+                                    <td>
+                                                <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div>
+                    </div>
+                    <div class="io-description">
+                        <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+
+                    </div>
+                    <div class="io-description">
+                        
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="getPropertyAsArrayFromObject"></a>
+                    <span class="name">
+                        <span class="modifier">Public</span>
+                        <span ><b>getPropertyAsArrayFromObject</b></span>
+                        <a href="#getPropertyAsArrayFromObject"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                    <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>getPropertyAsArrayFromObject(data: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>, config: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>)</code>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-line">Defined in <a href="" data-line="216"
+                            class="link-to-prism">angular/export/app/shared/util-service.ts:216</a></div>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-description"><p>returns a property as Array of 1 item from the provided object.</p>
+<p>Author: <a href='https://github.com/mattRedBox' target='_blank'>Matt Mulholland</a></p>
+</div>
+
+                    <div class="io-description">
+                        <b>Parameters :</b>
+                        
+                        <table class="params">
+                            <thead>
+                                <tr>
+                                    <td>Name</td>
+                                    <td>Type</td>
+                                    <td>Optional</td>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>data</td>
+                                    <td>
+                                                <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+
+                                </tr>
+                                <tr>
+                                    <td>config</td>
+                                    <td>
+                                                <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div>
+                    </div>
+                    <div class="io-description">
+                        <b>Returns : </b>    <code>{}</code>
+
+                    </div>
+                    <div class="io-description">
+                        
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="getPropertyFromObject"></a>
+                    <span class="name">
+                        <span class="modifier">Public</span>
+                        <span ><b>getPropertyFromObject</b></span>
+                        <a href="#getPropertyFromObject"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                    <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>getPropertyFromObject(data: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>, config: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>)</code>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-line">Defined in <a href="" data-line="204"
+                            class="link-to-prism">angular/export/app/shared/util-service.ts:204</a></div>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-description"><p>returns a property from the provided object.</p>
+<p>Author: <a href='https://github.com/andrewbrazzatti' target='_blank'>Andrew Brazzatti</a></p>
+</div>
+
+                    <div class="io-description">
+                        <b>Parameters :</b>
+                        
+                        <table class="params">
+                            <thead>
+                                <tr>
+                                    <td>Name</td>
+                                    <td>Type</td>
+                                    <td>Optional</td>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>data</td>
+                                    <td>
+                                                <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+
+                                </tr>
+                                <tr>
+                                    <td>config</td>
+                                    <td>
+                                                <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div>
+                    </div>
+                    <div class="io-description">
+                        <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+
+                    </div>
+                    <div class="io-description">
+                        
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="getPropertyFromObjectConcat"></a>
+                    <span class="name">
+                        <span class="modifier">Public</span>
+                        <span ><b>getPropertyFromObjectConcat</b></span>
+                        <a href="#getPropertyFromObjectConcat"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                    <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>getPropertyFromObjectConcat(data: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>, config: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>)</code>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-line">Defined in <a href="" data-line="257"
+                            class="link-to-prism">angular/export/app/shared/util-service.ts:257</a></div>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-description"><p>returns an array of concatenated values</p>
+<p>Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a></p>
+</div>
+
+                    <div class="io-description">
+                        <b>Parameters :</b>
+                        
+                        <table class="params">
+                            <thead>
+                                <tr>
+                                    <td>Name</td>
+                                    <td>Type</td>
+                                    <td>Optional</td>
+                                    <td>Description</td>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>data</td>
+                                    <td>
+                                                <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+
+                                    <td>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>config</td>
+                                    <td>
+                                                <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+
+                                    <td>
+                                        <ul>
+<li>dict of field: array of field paths to concat</li>
+</ul>
+
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div>
+                    </div>
+                    <div class="io-description">
+                        <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+
+                    </div>
+                    <div class="io-description">
+                        
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="getPropertyFromObjectMapping"></a>
+                    <span class="name">
+                        <span class="modifier">Public</span>
+                        <span ><b>getPropertyFromObjectMapping</b></span>
+                        <a href="#getPropertyFromObjectMapping"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                    <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>getPropertyFromObjectMapping(data: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>, config: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>)</code>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-line">Defined in <a href="" data-line="228"
+                            class="link-to-prism">angular/export/app/shared/util-service.ts:228</a></div>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-description"><p>returns value based on mapping</p>
+<p>Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a></p>
+</div>
+
+                    <div class="io-description">
+                        <b>Parameters :</b>
+                        
+                        <table class="params">
+                            <thead>
+                                <tr>
+                                    <td>Name</td>
+                                    <td>Type</td>
+                                    <td>Optional</td>
+                                    <td>Description</td>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>data</td>
+                                    <td>
+                                                <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+
+                                    <td>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>config</td>
+                                    <td>
+                                                <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+
+                                    <td>
+                                        <ul>
+<li>dict of field: field path of data, mapping - array of dict with &#39;key&#39;, the value and the actual mapping value &#39;val&#39;, &#39;default&#39; - the value if there&#39;s no match</li>
+</ul>
+
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div>
+                    </div>
+                    <div class="io-description">
+                        <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+
+                    </div>
+                    <div class="io-description">
+                        
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="hasValue"></a>
+                    <span class="name">
+                        <span class="modifier">Public</span>
+                        <span ><b>hasValue</b></span>
+                        <a href="#hasValue"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                    <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>hasValue(data: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>, config: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>)</code>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-line">Defined in <a href="" data-line="245"
+                            class="link-to-prism">angular/export/app/shared/util-service.ts:245</a></div>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-description"><p>returns true if value is not null, undefined, empty</p>
+<p>Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a></p>
+</div>
+
+                    <div class="io-description">
+                        <b>Parameters :</b>
+                        
+                        <table class="params">
+                            <thead>
+                                <tr>
+                                    <td>Name</td>
+                                    <td>Type</td>
+                                    <td>Optional</td>
+                                    <td>Default value</td>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>data</td>
+                                    <td>
+                                                <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+                                    <td>
+                                    </td>
+
+                                </tr>
+                                <tr>
+                                    <td>config</td>
+                                    <td>
+                                                <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+                                    <td>
+                                        <code>null</code>
+                                    </td>
+
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div>
+                    </div>
+                    <div class="io-description">
+                        <b>Returns : </b>        <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/boolean" target="_blank" >boolean</a></code>
+
+                    </div>
+                    <div class="io-description">
+                        
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="joinArray"></a>
+                    <span class="name">
+                        <span class="modifier">Public</span>
+                        <span ><b>joinArray</b></span>
+                        <a href="#joinArray"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                    <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>joinArray(data: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>, config: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>, fieldName: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank">string</a>, fieldSeparator: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank">string</a>)</code>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-line">Defined in <a href="" data-line="354"
+                            class="link-to-prism">angular/export/app/shared/util-service.ts:354</a></div>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+
+                    <div class="io-description">
+                        <b>Parameters :</b>
+                        
+                        <table class="params">
+                            <thead>
+                                <tr>
+                                    <td>Name</td>
+                                    <td>Type</td>
+                                    <td>Optional</td>
+                                    <td>Default value</td>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>data</td>
+                                    <td>
+                                                <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+                                    <td>
+                                    </td>
+
+                                </tr>
+                                <tr>
+                                    <td>config</td>
+                                    <td>
+                                                <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+                                    <td>
+                                    </td>
+
+                                </tr>
+                                <tr>
+                                    <td>fieldName</td>
+                                    <td>
+                                                <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank" >string</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+                                    <td>
+                                        <code>null</code>
+                                    </td>
+
+                                </tr>
+                                <tr>
+                                    <td>fieldSeparator</td>
+                                    <td>
+                                                <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank" >string</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+                                    <td>
+                                        <code>null</code>
+                                    </td>
+
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div>
+                    </div>
+                    <div class="io-description">
+                        <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+
+                    </div>
+                    <div class="io-description">
+                        
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="logSubscribeDebugToConsole"></a>
+                    <span class="name">
+                        <span class="modifier">Public</span>
+                        <span ><b>logSubscribeDebugToConsole</b></span>
+                        <a href="#logSubscribeDebugToConsole"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                    <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>logSubscribeDebugToConsole(data: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>, config: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>, field: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>)</code>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-line">Defined in <a href="" data-line="126"
+                            class="link-to-prism">angular/export/app/shared/util-service.ts:126</a></div>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+
+                    <div class="io-description">
+                        <b>Parameters :</b>
+                        
+                        <table class="params">
+                            <thead>
+                                <tr>
+                                    <td>Name</td>
+                                    <td>Type</td>
+                                    <td>Optional</td>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>data</td>
+                                    <td>
+                                                <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+
+                                </tr>
+                                <tr>
+                                    <td>config</td>
+                                    <td>
+                                                <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+
+                                </tr>
+                                <tr>
+                                    <td>field</td>
+                                    <td>
+                                                <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div>
+                    </div>
+                    <div class="io-description">
+                        <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+
+                    </div>
+                    <div class="io-description">
+                        
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="mergeObjectIntoArray"></a>
+                    <span class="name">
+                        <span class="modifier">Private</span>
+                        <span ><b>mergeObjectIntoArray</b></span>
+                        <a href="#mergeObjectIntoArray"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                    <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>mergeObjectIntoArray(data, fieldValues, fieldsToMatch, fieldsToSet, templateObject)</code>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-line">Defined in <a href="" data-line="157"
+                            class="link-to-prism">angular/export/app/shared/util-service.ts:157</a></div>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+
+                    <div class="io-description">
+                        <b>Parameters :</b>
+                        
+                        <table class="params">
+                            <thead>
+                                <tr>
+                                    <td>Name</td>
+                                    <td>Optional</td>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>data</td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+
+                                </tr>
+                                <tr>
+                                    <td>fieldValues</td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+
+                                </tr>
+                                <tr>
+                                    <td>fieldsToMatch</td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+
+                                </tr>
+                                <tr>
+                                    <td>fieldsToSet</td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+
+                                </tr>
+                                <tr>
+                                    <td>templateObject</td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div>
+                    </div>
+                    <div class="io-description">
+                        <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+
+                    </div>
+                    <div class="io-description">
+                        
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="runTemplate"></a>
+                    <span class="name">
+                        <span class="modifier">Public</span>
+                        <span ><b>runTemplate</b></span>
+                        <a href="#runTemplate"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                    <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>runTemplate(data: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>, config: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>, field: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>)</code>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-line">Defined in <a href="" data-line="358"
+                            class="link-to-prism">angular/export/app/shared/util-service.ts:358</a></div>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+
+                    <div class="io-description">
+                        <b>Parameters :</b>
+                        
+                        <table class="params">
+                            <thead>
+                                <tr>
+                                    <td>Name</td>
+                                    <td>Type</td>
+                                    <td>Optional</td>
+                                    <td>Default value</td>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>data</td>
+                                    <td>
+                                                <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+                                    <td>
+                                    </td>
+
+                                </tr>
+                                <tr>
+                                    <td>config</td>
+                                    <td>
+                                                <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+                                    <td>
+                                    </td>
+
+                                </tr>
+                                <tr>
+                                    <td>field</td>
+                                    <td>
+                                                <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+                                    <td>
+                                        <code>undefined</code>
+                                    </td>
+
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div>
+                    </div>
+                    <div class="io-description">
+                        <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+
+                    </div>
+                    <div class="io-description">
+                        
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="splitArrayStringsToArray"></a>
+                    <span class="name">
+                        <span class="modifier">Public</span>
+                        <span ><b>splitArrayStringsToArray</b></span>
+                        <a href="#splitArrayStringsToArray"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                    <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>splitArrayStringsToArray(data: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>, config: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>)</code>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-line">Defined in <a href="" data-line="292"
+                            class="link-to-prism">angular/export/app/shared/util-service.ts:292</a></div>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-description"><p>Splits a string of arrays into an array by it&#39;s delimiter</p>
+<p>Author: <a href='https://github.com/moisbo' target='_blank'>Moises Sacal Bonequi</a></p>
+</div>
+
+                    <div class="io-description">
+                        <b>Parameters :</b>
+                        
+                        <table class="params">
+                            <thead>
+                                <tr>
+                                    <td>Name</td>
+                                    <td>Type</td>
+                                    <td>Optional</td>
+                                    <td>Description</td>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>data</td>
+                                    <td>
+                                                <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+
+                                    <td>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>config</td>
+                                    <td>
+                                                <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+
+                                    <td>
+                                        <ul>
+<li>The delimiter</li>
+</ul>
+
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div>
+                    </div>
+                    <div class="io-description">
+                        <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+
+                    </div>
+                    <div class="io-description">
+                        
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="splitStringToArray"></a>
+                    <span class="name">
+                        <span class="modifier">Public</span>
+                        <span ><b>splitStringToArray</b></span>
+                        <a href="#splitStringToArray"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                    <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>splitStringToArray(data: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>, config: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>)</code>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-line">Defined in <a href="" data-line="274"
+                            class="link-to-prism">angular/export/app/shared/util-service.ts:274</a></div>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-description"><p>Splits a string into an array by it&#39;s delimiter</p>
+<p>Author: <a href='https://github.com/andrewbrazzatti' target='_blank'>Andrew Brazzatti</a></p>
+</div>
+
+                    <div class="io-description">
+                        <b>Parameters :</b>
+                        
+                        <table class="params">
+                            <thead>
+                                <tr>
+                                    <td>Name</td>
+                                    <td>Type</td>
+                                    <td>Optional</td>
+                                    <td>Description</td>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>data</td>
+                                    <td>
+                                                <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+
+                                    <td>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>config</td>
+                                    <td>
+                                                <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+
+                                    <td>
+                                        <ul>
+<li>The delimiter</li>
+</ul>
+
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div>
+                    </div>
+                    <div class="io-description">
+                        <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+
+                    </div>
+                    <div class="io-description">
+                        
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+</section>
+
+    </div>
+
+
+    <div class="tab-pane fade  tab-source-code" id="source">
+        <pre class="line-numbers compodoc-sourcecode"><code class="language-typescript">import {Injectable} from &#x27;@angular/core&#x27;;
+import * as _ from &quot;lodash&quot;;
+import * as moment from &#x27;moment&#x27;;
+import * as numeral from &#x27;numeral&#x27;;
+/**
+ * Utility service...
+ *
+ * Author: &lt;a href&#x3D;&#x27;https://github.com/shilob&#x27; target&#x3D;&#x27;_blank&#x27;&gt;Shilo Banihit&lt;/a&gt;
+ *
+ */
+@Injectable()
+export class UtilityService {
+
+  /**
+   * returns concatenated string
+   *
+   * Author: &lt;a href&#x3D;&#x27;https://github.com/shilob&#x27; target&#x3D;&#x27;_blank&#x27;&gt;Shilo Banihit&lt;/a&gt;
+   * @param  {any} config
+   * @return {string}
+   */
+  public concatenate(data: any, config: any) {
+    let result: any &#x3D; &#x27;&#x27;;
+    _.each(config.fields, (f: any) &#x3D;&gt; {
+      if (_.isArray(data)) {
+        result &#x3D; [];
+        let itemResult &#x3D; &#x27;&#x27;;
+        _.each(data, (d: any) &#x3D;&gt; {
+          const fldData &#x3D; _.get(d, f);
+          // checking if field has data, otherwise will be skipping concat
+          if (fldData) {
+            itemResult &#x3D; &#x60;${itemResult}${_.isEmpty(itemResult) ? &#x27;&#x27; : config.delim}${fldData}&#x60;;
+          }
+        });
+        result.push(itemResult);
+      } else {
+        const fldData &#x3D; _.get(data, f);
+        if (fldData) {
+          result &#x3D; &#x60;${result}${_.isEmpty(result) ? &#x27;&#x27; : config.delim}${fldData}&#x60;;
+        }
+      }
+    });
+    return result;
+  }
+
+  /**
+   * check that all the values to match have values for a given object
+   * 
+   * Author: &lt;a href&#x3D;&#x27;https://github.com/andrewbrazzatti&#x27; target&#x3D;&#x27;_blank&#x27;&gt;Andrew Brazzatti&lt;/a&gt;
+   * @param  {any} valueObject
+   * @param  {any} fieldsToMatch
+   * @return {boolean}
+   */
+  private checkData(valueObject: any, fieldsToMatch: any) {
+    let dataOk &#x3D; true;
+    for (let fieldToMatch of fieldsToMatch) {
+      let emittedValueToMatch &#x3D; _.get(valueObject, fieldToMatch);
+      if(emittedValueToMatch &#x3D;&#x3D;&#x3D; undefined || emittedValueToMatch &#x3D;&#x3D;&#x3D; null || _.isUndefined(emittedValueToMatch)){
+        dataOk &#x3D; false;
+      }
+    }
+    return dataOk;
+  }
+
+  /**
+   * check a given object is not already present in the container list
+   * 
+   * Author: &lt;a href&#x3D;&#x27;https://github.com/andrewbrazzatti&#x27; target&#x3D;&#x27;_blank&#x27;&gt;Andrew Brazzatti&lt;/a&gt;
+   * @param  {any} valueObject
+   * @param  {any} fieldsToMatch
+   * @param  {any} fieldValues
+   * @return {boolean}
+   */
+  private checkConcatReq(valueObject: any, fieldsToMatch: any, fieldValues: any) {
+    let concatReq &#x3D; true;
+    for (let fieldValue of fieldValues) {
+      for (let fieldToMatch of fieldsToMatch) {
+        let fieldValueToMatch &#x3D; _.get(fieldValue, fieldToMatch); 
+        let emittedValueToMatch &#x3D; _.get(valueObject, fieldToMatch);
+        if(_.isEqual(fieldValueToMatch,emittedValueToMatch)) {
+          concatReq &#x3D; false;
+        }
+      }
+    }
+    return concatReq;
+  }
+
+  /**
+   * Merges emitted object into the subscriber&#x27;s array of objects if the emitted object is not present.
+   *
+   * Author: &lt;a href&#x3D;&#x27;https://github.com/andrewbrazzatti&#x27; target&#x3D;&#x27;_blank&#x27;&gt;Andrew Brazzatti&lt;/a&gt;
+   * @param  {any} data
+   * @param  {any} config
+   * @param  {any} field
+   * @return {array}
+   */
+  public getMergedObjectAsArray(data: any, config: any, field: any) {
+    const fieldsToMatch &#x3D; config.fieldsToMatch;
+    const fieldsToSet &#x3D; config.fieldsToSet;
+    const templateObject &#x3D; config.templateObject;
+    let fieldValues &#x3D; _.clone(field.formModel.value);
+    fieldValues &#x3D; this.mergeObjectIntoArray(data,fieldValues, fieldsToMatch, fieldsToSet, templateObject);
+
+    return fieldValues;
+  }
+
+
+  public logSubscribeDebugToConsole(data: any, config: any, field: any) {
+    console.log(&quot;Logging subscription information&quot; )
+    console.log(&quot;The data is:&quot; )
+    console.log(JSON.stringify(data))
+    console.log(&quot;Config is:&quot; )
+    console.log(JSON.stringify(config))
+    console.log(&quot;Field is:&quot; )
+    console.log(JSON.stringify(field))
+    return data;
+  }
+
+  /**
+   * Merges emitted array of object into the subscriber&#x27;s array of objects if the emitted object is not present.
+   *
+   * @param  {any} data
+   * @param  {any} config
+   * @param  {any} field
+   * @return {array}
+   */
+   public getMergedObjectArrayAsArray(data: any, config: any, field: any) {
+    const fieldsToMatch &#x3D; config.fieldsToMatch;
+    const fieldsToSet &#x3D; config.fieldsToSet;
+    const templateObject &#x3D; config.templateObject;
+    let fieldValues &#x3D; _.clone(field.formModel.value);
+
+    for(let dataObject of data) {
+      fieldValues &#x3D; this.mergeObjectIntoArray(dataObject, fieldValues, fieldsToMatch, fieldsToSet, templateObject);
+    }
+    return fieldValues;
+  }
+
+  private mergeObjectIntoArray(data, fieldValues, fieldsToMatch, fieldsToSet, templateObject){
+    let wrappedData &#x3D; data;
+    if(!_.isArray(data)) {
+      wrappedData &#x3D; [data];
+    }
+    
+    for (let emittedDataValue of wrappedData) {
+      //There are cases where the emitter may send null values just after the field  
+      //gets cleared therefore need to checkDataOk if any of the fields to match are  
+      //undefined not enter the if block and the same value will be sent back to the 
+      //subscriber field 
+      let checkDataOk &#x3D; this.checkData(emittedDataValue,fieldsToMatch);
+      if(checkDataOk){
+        let concatReq &#x3D; this.checkConcatReq(emittedDataValue,fieldsToMatch,fieldValues);
+        if(concatReq) {
+          let value &#x3D; _.clone(templateObject);
+          for (let fieldToSet of fieldsToSet) {
+              let val &#x3D; _.get(emittedDataValue, fieldToSet); 
+              _.set(value, fieldToSet, val);
+          }
+          //If there is only one item in fieldValues array it may be empty and must be re-used 
+          //if there is more than one item in the array it&#x27;s too cumbersome to manage all  
+          //scenarios and edge cases therefore it&#x27;s better to add a new item to the array 
+          if(fieldValues.length &#x3D;&#x3D; 1) {
+            let checkFieldValuesDataOk &#x3D; this.checkData(fieldValues[0],fieldsToMatch);
+            if(checkFieldValuesDataOk) {
+              fieldValues.push(value);
+            } else {
+              fieldValues &#x3D; [value];
+            }
+          } else {
+            fieldValues.push(value);
+          }
+          console.log(fieldValues);
+        }
+      }
+    }
+    return fieldValues;
+  }
+
+  /**
+   * returns a property from the provided object.
+   *
+   * Author: &lt;a href&#x3D;&#x27;https://github.com/andrewbrazzatti&#x27; target&#x3D;&#x27;_blank&#x27;&gt;Andrew Brazzatti&lt;/a&gt;
+   * @param  {any} config
+   * @return {string}
+   */
+  public getPropertyFromObject(data: any, config: any) {
+    const fieldPath &#x3D; config.field;
+    return _.get(data, fieldPath);
+  }
+
+  /**
+   * returns a property as Array of 1 item from the provided object.
+   *
+   * Author: &lt;a href&#x3D;&#x27;https://github.com/mattRedBox&#x27; target&#x3D;&#x27;_blank&#x27;&gt;Matt Mulholland&lt;/a&gt;
+   * @param data
+   * @param config
+   */
+  public getPropertyAsArrayFromObject(data: any, config: any) {
+    return [this.getPropertyFromObject(data, config)];
+  }
+
+  /**
+   * returns value based on mapping
+   *
+   * Author: &lt;a href&#x3D;&#x27;https://github.com/shilob&#x27; target&#x3D;&#x27;_blank&#x27;&gt;Shilo Banihit&lt;/a&gt;
+   * @param {any} data
+   * @param  {any} config - dict of field: field path of data, mapping - array of dict with &#x27;key&#x27;, the value and the actual mapping value &#x27;val&#x27;, &#x27;default&#x27; - the value if there&#x27;s no match
+   * @return {any}
+   */
+  public getPropertyFromObjectMapping(data: any, config: any) {
+    const fieldPath &#x3D; config.field;
+    const val &#x3D; _.isUndefined(fieldPath) ? data : _.get(data, fieldPath);
+    const foundMapping &#x3D; _.find(config.mapping, (mapEntry) &#x3D;&gt; {
+      return &#x60;${mapEntry.key}&#x60; &#x3D;&#x3D; &#x60;${val}&#x60;;
+    });
+    return foundMapping ? foundMapping.value : config.default;
+  }
+
+  /**
+   * returns true if value is not null, undefined, empty
+   *
+   * Author: &lt;a href&#x3D;&#x27;https://github.com/shilob&#x27; target&#x3D;&#x27;_blank&#x27;&gt;Shilo Banihit&lt;/a&gt;
+   * @param {any} data
+   * @param  {any} config
+   * @return {string}
+   */
+  public hasValue(data: any, config: any &#x3D; null) {
+    return !_.isEmpty(data) &amp;&amp; !_.isUndefined(data) &amp;&amp; !_.isNull(data);
+  }
+
+  /**
+   * returns an array of concatenated values
+   *
+   * Author: &lt;a href&#x3D;&#x27;https://github.com/shilob&#x27; target&#x3D;&#x27;_blank&#x27;&gt;Shilo Banihit&lt;/a&gt;
+   * @param {any} data
+   * @param  {any} config - dict of field: array of field paths to concat
+   * @return {string}
+   */
+  public getPropertyFromObjectConcat(data: any, config: any) {
+    let values &#x3D; [];
+    _.each(config.field, (f) &#x3D;&gt; {
+      values.push(_.get(data, f));
+    });
+    return _.concat([], ...values);
+  }
+
+
+  /**
+   * Splits a string into an array by it&#x27;s delimiter
+   *
+   * Author: &lt;a href&#x3D;&#x27;https://github.com/andrewbrazzatti&#x27; target&#x3D;&#x27;_blank&#x27;&gt;Andrew Brazzatti&lt;/a&gt;
+   * @param {any} data
+   * @param  {any} config - The delimiter
+   * @return {string}
+   */
+  public splitStringToArray(data: any, config: any) {
+    let delim &#x3D; config.delim;
+    let field &#x3D; config.field;
+    let value &#x3D; data;
+    if (field) {
+      value &#x3D; _.get(data, field);
+    }
+    return value.split(delim);
+  }
+
+  /**
+   * Splits a string of arrays into an array by it&#x27;s delimiter
+   *
+   * Author: &lt;a href&#x3D;&#x27;https://github.com/moisbo&#x27; target&#x3D;&#x27;_blank&#x27;&gt;Moises Sacal Bonequi&lt;/a&gt;
+   * @param {any} data
+   * @param  {any} config - The delimiter
+   * @return {array}
+   */
+  public splitArrayStringsToArray(data: any, config: any) {
+    let regex &#x3D; config.regex || &#x27;,&#x27;;
+    let flags &#x3D; config.flags || &#x27;g&#x27;;
+    const reg &#x3D; new RegExp(regex, flags);
+    let regexTrail &#x3D; config.regexTrail || &#x27;(^,)|(,$)&#x27;;
+    let flagsTrail &#x3D; config.flagsTrail || &#x27;g&#x27;;
+    const regTrail &#x3D; new RegExp(regexTrail, flagsTrail);
+    let field &#x3D; config.field;
+    let value &#x3D; data;
+    if (field) {
+      value &#x3D; _.get(data, field);
+    }
+    const values &#x3D; [];
+    _.each(value, (v) &#x3D;&gt; {
+      if (v) {
+        v &#x3D; v.replace(regTrail, &#x27;&#x27;);
+      }
+      values.push(v.split(reg).map(item &#x3D;&gt; item.trim()));
+    });
+    return _.concat([], ...values);
+  }
+
+  /**
+   * Splits a string of arrays into an array by it&#x27;s delimiter
+   *
+   * Author: &lt;a href&#x3D;&#x27;https://github.com/moisbo&#x27; target&#x3D;&#x27;_blank&#x27;&gt;Moises Sacal Bonequi&lt;/a&gt;
+   * @param {any} data
+   * @param  {any} config - The delimiter
+   * @return {array}
+   */
+  public getFirstofArray(data: any, config: any) {
+    let delim &#x3D; config.delim;
+    let field &#x3D; config.field;
+    let value &#x3D; data;
+    if (field) {
+      value &#x3D; _.get(data, field);
+    }
+    return _.first(value);
+  }
+
+  /**
+   * Format date with moment from origin to target
+   *
+   * Author: &lt;a href&#x3D;&#x27;https://github.com/moisbo&#x27; target&#x3D;&#x27;_blank&#x27;&gt;Moises Sacal Bonequi&lt;/a&gt;
+   * @param {any} data
+   * @param  {any} config - field, formatOrigin, formatTarget
+   * @return {array}
+   */
+  public convertToDateFormat(data:any, config:any) {
+    let field &#x3D; config.field;
+    let formatOrigin &#x3D; config.formatOrigin || &#x27;DD-MMM-YY&#x27;;
+    let formatTarget &#x3D; config.formatTarget || &#x27;YYYY-MM-DD&#x27;;
+    let value &#x3D; data;
+
+    if(field) {
+      value &#x3D; _.get(data,field);
+    }
+    const converted &#x3D; moment(value, formatOrigin).format(formatTarget);
+    console.log(&#x60;convertToDateFormat ${converted}&#x60;);
+    return converted;
+  }
+
+  public joinArray(data: any, config: any, fieldName: string &#x3D; null, fieldSeparator: string &#x3D; null) {
+    return _.join(_.get(data, fieldName ? fieldName : config.field), fieldSeparator ? fieldSeparator : config.separator);
+  }
+
+  public runTemplate(data: any, config: any, field: any &#x3D; undefined) {
+    const imports &#x3D; _.extend({data: data, config: config, moment: moment, numeral:numeral, field: field}, this);
+    const templateData &#x3D; {imports: imports};
+    const template &#x3D; _.template(config.template, templateData);
+    const templateRes &#x3D; template();
+    // added ability to parse the string template result into JSON
+    // requirement: template must return a valid JSON string object
+    if (config.json &#x3D;&#x3D; true &amp;&amp; !_.isEmpty(templateRes)) {
+      return JSON.parse(templateRes);
+    }
+    return templateRes;
+  }
+}
+</code></pre>
+    </div>
+
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+                   </div><div class="search-results">
+    <div class="has-results">
+        <h1 class="search-results-title"><span class='search-results-count'></span> results matching "<span class='search-query'></span>"</h1>
+        <ul class="search-results-list"></ul>
+    </div>
+    <div class="no-results">
+        <h1 class="search-results-title">No results matching "<span class='search-query'></span>"</h1>
+    </div>
+</div>
+</div>
+               <!-- END CONTENT -->
+           </div>
+       </div>
+
+          <label class="dark-mode-switch">
+               <input type="checkbox">
+               <span class="slider">
+                    <svg class="slider-icon" viewBox="0 0 24 24" fill="none" height="20" stroke="#000" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" width="20" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"></path>
+                    </svg>
+               </span>
+          </label>
+
+       <script>
+            var COMPODOC_CURRENT_PAGE_DEPTH = 1;
+            var COMPODOC_CURRENT_PAGE_CONTEXT = 'injectable';
+            var COMPODOC_CURRENT_PAGE_URL = 'UtilityService-3.html';
+            var MAX_SEARCH_RESULTS = 15;
+       </script>
+
+       <script src="../js/libs/custom-elements.min.js"></script>
+       <script src="../js/libs/lit-html.js"></script>
+
+       <script src="../js/menu-wc.js" defer></script>
+       <script nomodule src="../js/menu-wc_es5.js" defer></script>
+
+       <script src="../js/libs/bootstrap-native.js"></script>
+
+       <script src="../js/libs/es6-shim.min.js"></script>
+       <script src="../js/libs/EventDispatcher.js"></script>
+       <script src="../js/libs/promise.min.js"></script>
+       <script src="../js/libs/zepto.min.js"></script>
+
+       <script src="../js/compodoc.js"></script>
+
+       <script src="../js/tabs.js"></script>
+       <script src="../js/menu.js"></script>
+       <script src="../js/libs/clipboard.min.js"></script>
+       <script src="../js/libs/prism.js"></script>
+       <script src="../js/sourceCode.js"></script>
+          <script src="../js/search/search.js"></script>
+          <script src="../js/search/lunr.min.js"></script>
+          <script src="../js/search/search-lunr.js"></script>
+          <script src="../js/search/search_index.js"></script>
+       <script src="../js/lazy-load-graphs.js"></script>
+
+
+    </body>
+</html>

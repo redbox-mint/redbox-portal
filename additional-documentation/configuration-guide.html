@@ -14,7 +14,7 @@
     </head>
     <body>
 
-        <div class="navbar navbar-default navbar-fixed-top visible-xs">
+        <div class="navbar navbar-default navbar-fixed-top d-block d-sm-none">
             <a href="../" class="navbar-brand">ReDBox Portal - NG2 Apps</a>
             <button type="button" class="btn btn-default btn-menu ion-ios-menu" id="btn-menu"></button>
         </div>
@@ -52,11 +52,11 @@
 
 
 
-<h1 id="configuration-and-customisation-guide">Configuration and Customisation Guide</h1>
-<h2 id="managing-your-customisations">Managing your customisations</h2>
+<h1>Configuration and Customisation Guide</h1>
+<h2>Managing your customisations</h2>
 <p>Much like in ReDBox 1.8+, it is recommended that you keep your configuration changes in it&#39;s own repository and overlay them as part of the deployment process.</p>
 <p>See the <a href="">sample customisation repository</a> for an example.</p>
-<h2 id="managing-portal-configuration">Managing portal configuration</h2>
+<h2>Managing portal configuration</h2>
 <p>The ReDBox Portal is built on the <a href="https://sailsjs.com/">SailsJS framework</a> and therefore takes advantage of the highly extensible configration framework provided.
 Please see the <a href="https://sailsjs.com/documentation/reference/configuration">SailsJS documentation</a> for more information on it&#39;s structure and configuration options.</p>
 <p>There are several configuration items that are specific to the ReDBox Portal:</p>
@@ -66,9 +66,9 @@ Please see the <a href="https://sailsjs.com/documentation/reference/configuratio
 <li><a href="./configuration-guide/configuring-email-notifications.html">emailnotification.js</a> manages configuration of email notifications</li>
 <li><a href="./configuration-guide/configuring-web-forms.html">form.js</a> manages form configuration</li>
 </ol>
-<h2 id="environment-variables">Environment variables</h2>
+<h2>Environment variables</h2>
 <p>It is possible to use environment variables to modify configuration, this is particularly useful when running the portal in a containerised environment such as docker. Please see <a href="https://sailsjs.com/documentation/concepts/configuration#?setting-sailsconfig-values-directly-using-environment-variables">Sails configuration document for more information</a></p>
-<h3 id="environment-specific-files">Environment specific files</h3>
+<h3>Environment specific files</h3>
 <p>You may override standard configuration item for a particular environment (e.g development, test and production) by creating or modifying the a environment specif config file in the location <code>config/env/&lt;environment-name&gt;.js</code>. You can specify the environment by setting the <code>NODE_ENV</code> environment variable.</p>
 <p>Please see the <a href="https://sailsjs.com/documentation/concepts/configuration#?environmentspecific-files-config-env">Sails configuration documentation</a> for more information.</p>
 
