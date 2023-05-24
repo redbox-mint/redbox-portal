@@ -262,13 +262,13 @@ export module Controllers {
       var oid = req.param('oid');
       var dateFrom = req.param('dateFrom');
       var dateTo = req.param('dateTo');
-      let params = {'oid': oid, 'dateFrom': null, 'dateTo': null};
-      if(!_.isEmpty(dateFrom)) {
-        params['dateFrom'] =  new Date(dateFrom);
+      let params = { 'oid': oid, 'dateFrom': null, 'dateTo': null };
+      if (!_.isEmpty(dateFrom)) {
+        params['dateFrom'] = new Date(dateFrom);
       }
 
-      if(!_.isEmpty(dateTo)) {
-        params['dateTo'] =  new Date(dateTo);
+      if (!_.isEmpty(dateTo)) {
+        params['dateTo'] = new Date(dateTo);
       }
 
       try {
@@ -457,12 +457,32 @@ export module Controllers {
       }
     }
 
-    public getDataStream(req, res) {
+    public async getDataStream(req, res) {
       const brand = BrandingService.getBrand(req.session.branding);
       const oid = req.param('oid');
       const datastreamId = req.param('datastreamId');
-      sails.log.info(`getDataStream ${oid} ${datastreamId}`);
-      return Observable.fromPromise(this.RecordsService.getMeta(oid)).flatMap(async (currentRec) => {
+      sails.log.debug(`getDataStream ${oid} ${datastreamId}`);
+      try {
+        let found: any = null;
+        let currentRec = await this.RecordsService.getMeta(oid)
+        for(let attachmentField of currentRec.metaMetadata.attachmentFields) {
+          if(found == null) {
+            const attFieldVal = currentRec.metadata[attachmentField];
+            found = _.find(attFieldVal, (attVal) => {
+              return attVal.fileId == datastreamId
+            });
+          } else {
+            break;
+          }
+        }
+        if (!found) {
+          return res.notFound()
+        }
+        let mimeType = found.mimeType;
+        if (_.isEmpty(mimeType)) {
+          // Set octet stream as a default
+          mimeType = 'application/octet-stream'
+        }
         const fileName = req.param('fileName') ? req.param('fileName') : datastreamId;
         res.set('Content-Type', 'application/octet-stream');
         sails.log.verbose("fileName " + fileName);
@@ -471,21 +491,28 @@ export module Controllers {
         try {
           const response = await this.DatastreamService.getDatastream(oid, datastreamId);
           if (response.readstream) {
+
+            response.readstream.on('error', (error) => {
+              // Handle the error here
+              sails.log.error('Error reading stream:', error);
+              return
+            });
             response.readstream.pipe(res);
           } else {
             res.end(Buffer.from(response.body), 'binary');
           }
-          return Observable.of(oid);
+          return
         } catch (error) {
+          sails.log.error(error)
           return this.customErrorMessageHandlingOnUpstreamResult(error, res);
         }
-      }).subscribe(whatever => {
-        // ignore...
-        sails.log.verbose(`Done with updating streams and returning response...`);
-      }, error => {
+
+
+
+      } catch (error) {
         return this.customErrorMessageHandlingOnUpstreamResult(error, res);
       }
-      );
+
     }
 
     public async addDataStreams(req, res) {
