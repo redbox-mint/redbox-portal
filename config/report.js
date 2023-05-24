@@ -268,6 +268,15 @@ module.exports.reports = {
     },
     "filter": [
       {
+        "paramName": "dateEmbargoedRange",
+        "type": "date-range",
+        "message": "Filter by date embargoed",
+        "database":{
+          "fromProperty": "dateEmbargoedAfter",
+          "toProperty": "dateEmbargoedBefore",
+        }
+      },
+      {
         "paramName": "dateObjectModifiedRange",
         "type": "date-range",
         "message": "Filter by date modified",
