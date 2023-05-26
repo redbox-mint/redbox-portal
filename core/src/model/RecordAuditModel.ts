@@ -1,5 +1,3 @@
-import moment = require("moment");
-
 declare var _:any;
 export class RecordAuditModel {
     redboxOid: string;
