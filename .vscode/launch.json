@@ -3,7 +3,7 @@
     "configurations": [
       {
         "localRoot": "${workspaceFolder}",
-        "name": "Attach to Remote",
+        "name": "Debug RedBox Portal",
         "port": 9876,
         "remoteRoot": "/opt/redbox-portal",
         "request": "attach",
