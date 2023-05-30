@@ -95,10 +95,10 @@ export class SelectionField extends FieldBase<any>  {
     }
     this.disableOptionLabelsFor = options['disableOptionLabelsFor'];
     this.useFormGroup = options['useFormGroup'];
-    this.controlGroupCssClasses = options['controlGroupCssClasses']?? this.controlGroupCssClasses;
-    this.fieldSetCssClasses = options['fieldSetCssClasses']?? this.fieldSetCssClasses;
-    this.controlInputCssClasses = options['controlInputCssClasses']?? this.controlInputCssClasses;
-    this.controlLabelCssClasses = options['controlLabelCssClasses']?? this.controlLabelCssClasses;
+    this.controlGroupCssClasses = options['controlGroupCssClasses'] == undefined ? this.controlGroupCssClasses : options['controlGroupCssClasses'];
+    this.fieldSetCssClasses = options['fieldSetCssClasses'] == undefined ? this.fieldSetCssClasses : options['fieldSetCssClasses'];
+    this.controlInputCssClasses = options['controlInputCssClasses'] == undefined ? this.controlInputCssClasses : options['controlInputCssClasses'];
+    this.controlLabelCssClasses = options['controlLabelCssClasses'] == undefined ? this.controlLabelCssClasses : options['controlLabelCssClasses'];
   }
 
 
