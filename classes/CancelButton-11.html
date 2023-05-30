@@ -384,7 +384,7 @@
                 </tr>
                         <tr>
                             <td class="col-md-4">
-                                <div class="io-line">Defined in <a href="" data-line="426" class="link-to-prism">angular/workspace_list/app/shared/form/field-simple.ts:426</a></div>
+                                <div class="io-line">Defined in <a href="" data-line="434" class="link-to-prism">angular/workspace_list/app/shared/form/field-simple.ts:434</a></div>
                             </td>
                         </tr>
 
@@ -458,7 +458,7 @@
                 </tr>
                     <tr>
                         <td class="col-md-4">
-                                <div class="io-line">Defined in <a href="" data-line="425" class="link-to-prism">angular/workspace_list/app/shared/form/field-simple.ts:425</a></div>
+                                <div class="io-line">Defined in <a href="" data-line="433" class="link-to-prism">angular/workspace_list/app/shared/form/field-simple.ts:433</a></div>
                         </td>
                     </tr>
 
@@ -484,7 +484,7 @@
                 </tr>
                     <tr>
                         <td class="col-md-4">
-                                <div class="io-line">Defined in <a href="" data-line="423" class="link-to-prism">angular/workspace_list/app/shared/form/field-simple.ts:423</a></div>
+                                <div class="io-line">Defined in <a href="" data-line="431" class="link-to-prism">angular/workspace_list/app/shared/form/field-simple.ts:431</a></div>
                         </td>
                     </tr>
 
@@ -510,7 +510,7 @@
                 </tr>
                     <tr>
                         <td class="col-md-4">
-                                <div class="io-line">Defined in <a href="" data-line="424" class="link-to-prism">angular/workspace_list/app/shared/form/field-simple.ts:424</a></div>
+                                <div class="io-line">Defined in <a href="" data-line="432" class="link-to-prism">angular/workspace_list/app/shared/form/field-simple.ts:432</a></div>
                         </td>
                     </tr>
 
@@ -536,7 +536,7 @@
                 </tr>
                     <tr>
                         <td class="col-md-4">
-                                <div class="io-line">Defined in <a href="" data-line="426" class="link-to-prism">angular/workspace_list/app/shared/form/field-simple.ts:426</a></div>
+                                <div class="io-line">Defined in <a href="" data-line="434" class="link-to-prism">angular/workspace_list/app/shared/form/field-simple.ts:434</a></div>
                         </td>
                     </tr>
 
@@ -568,7 +568,7 @@
                         </tr>
                     <tr>
                         <td class="col-md-4">
-                                <div class="io-line">Defined in         <code><a href="../classes/FieldBase.html#source" target="_self" >FieldBase:422</a></code>
+                                <div class="io-line">Defined in         <code><a href="../classes/FieldBase.html#source" target="_self" >FieldBase:430</a></code>
 </div>
                         </td>
                     </tr>
@@ -4412,6 +4412,10 @@ export class SelectionField extends FieldBase&lt;any&gt;  {
   compare: any;
   disableOptionLabelsFor: boolean &#x3D; false;
   useFormGroup: string;
+  controlGroupCssClasses: string &#x3D; &#x27;selection-control-group&#x27;;
+  fieldSetCssClasses: string &#x3D; &#x27;selection-field-set&#x27;;
+  controlInputCssClasses:string &#x3D; &#x27;selection-control-input&#x27;;
+  controlLabelCssClasses:string &#x3D; &#x27;selection-control-label&#x27;;
   
   constructor(options: any, injector: any) {
     super(options, injector);
@@ -4454,6 +4458,10 @@ export class SelectionField extends FieldBase&lt;any&gt;  {
     }
     this.disableOptionLabelsFor &#x3D; options[&#x27;disableOptionLabelsFor&#x27;];
     this.useFormGroup &#x3D; options[&#x27;useFormGroup&#x27;];
+    this.controlGroupCssClasses &#x3D; options[&#x27;controlGroupCssClasses&#x27;] &#x3D;&#x3D; undefined ? this.controlGroupCssClasses : options[&#x27;controlGroupCssClasses&#x27;];
+    this.fieldSetCssClasses &#x3D; options[&#x27;fieldSetCssClasses&#x27;] &#x3D;&#x3D; undefined ? this.fieldSetCssClasses : options[&#x27;fieldSetCssClasses&#x27;];
+    this.controlInputCssClasses &#x3D; options[&#x27;controlInputCssClasses&#x27;] &#x3D;&#x3D; undefined ? this.controlInputCssClasses : options[&#x27;controlInputCssClasses&#x27;];
+    this.controlLabelCssClasses &#x3D; options[&#x27;controlLabelCssClasses&#x27;] &#x3D;&#x3D; undefined ? this.controlLabelCssClasses : options[&#x27;controlLabelCssClasses&#x27;];
   }
 
 

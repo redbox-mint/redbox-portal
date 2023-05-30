@@ -1507,16 +1507,16 @@ export class DropdownFieldComponent extends SelectionComponent {
       &lt;button type&#x3D;&quot;button&quot; class&#x3D;&quot;btn btn-default&quot; *ngIf&#x3D;&quot;field.help&quot; (click)&#x3D;&quot;toggleHelp()&quot; [attr.aria-label]&#x3D;&quot;&#x27;help&#x27; | translate &quot;&gt;&lt;span class&#x3D;&quot;glyphicon glyphicon-question-sign&quot; aria-hidden&#x3D;&quot;true&quot;&gt;&lt;/span&gt;&lt;/button&gt;
      &lt;/span&gt;&lt;br/&gt;
      &lt;span id&#x3D;&quot;{{ &#x27;helpBlock_&#x27; + field.name }}&quot; class&#x3D;&quot;help-block&quot; *ngIf&#x3D;&quot;this.helpShow&quot; [innerHtml]&#x3D;&quot;field.help&quot;&gt;&lt;/span&gt;
-     &lt;fieldset&gt;
-      &lt;legend [hidden]&#x3D;&quot;true&quot;&gt;&lt;span&gt;&lt;/span&gt;&lt;/legend&gt;
-        &lt;span *ngFor&#x3D;&quot;let opt of findAvailableOptions(field.value)&quot;&gt;
+     &lt;fieldset [ngClass]&#x3D;&quot;field.fieldSetCssClasses&quot;&gt;
+      
+        &lt;div *ngFor&#x3D;&quot;let opt of findAvailableOptions(field.value)&quot; [ngClass]&#x3D;&quot;field.controlGroupCssClasses&quot;&gt;
           &lt;!-- radio type hard-coded otherwise accessor directive will not work! --&gt;
           &lt;!-- the ID and associated label-&gt;for property is now delegated to a Fn rather than inline-templated here, to make it optional, e.g. if it is nested --&gt;
-          &lt;input *ngIf&#x3D;&quot;isRadio()&quot; type&#x3D;&quot;radio&quot; [id]&#x3D;&quot;getInputId(opt)&quot; [formControlName]&#x3D;&quot;field.name&quot; [value]&#x3D;&quot;opt.value&quot; [attr.disabled]&#x3D;&quot;field.readOnly ? &#x27;&#x27; : null &quot;&gt;
-          &lt;input *ngIf&#x3D;&quot;!isRadio()&quot; type&#x3D;&quot;{{field.controlType}}&quot; name&#x3D;&quot;{{field.name}}&quot; [id]&#x3D;&quot;getInputId(opt)&quot; [value]&#x3D;&quot;opt.value&quot; (change)&#x3D;&quot;onChange(opt, $event)&quot; [attr.selected]&#x3D;&quot;getCheckedFromOption(opt)&quot; [checked]&#x3D;&quot;getCheckedFromOption(opt)&quot; [attr.disabled]&#x3D;&quot;field.readOnly ? &#x27;&#x27; : null &quot;&gt;
-          &lt;label [attr.for]&#x3D;&quot;getInputId(opt)&quot; class&#x3D;&quot;radio-label&quot;  [innerHtml]&#x3D;&quot;opt.label&quot;&gt;&lt;/label&gt;
-          &lt;br/&gt;
-        &lt;/span&gt;
+          &lt;input *ngIf&#x3D;&quot;isRadio()&quot; type&#x3D;&quot;radio&quot; [id]&#x3D;&quot;getInputId(opt)&quot; [formControlName]&#x3D;&quot;field.name&quot; [value]&#x3D;&quot;opt.value&quot; [attr.disabled]&#x3D;&quot;field.readOnly ? &#x27;&#x27; : null &quot; [ngClass]&#x3D;&quot;field.controlInputCssClasses&quot;&gt;
+          &lt;input *ngIf&#x3D;&quot;!isRadio()&quot; type&#x3D;&quot;{{field.controlType}}&quot; name&#x3D;&quot;{{field.name}}&quot; [id]&#x3D;&quot;getInputId(opt)&quot; [value]&#x3D;&quot;opt.value&quot; (change)&#x3D;&quot;onChange(opt, $event)&quot; [ngClass]&#x3D;&quot;field.controlInputCssClasses&quot; [attr.selected]&#x3D;&quot;getCheckedFromOption(opt)&quot; [checked]&#x3D;&quot;getCheckedFromOption(opt)&quot; [attr.disabled]&#x3D;&quot;field.readOnly ? &#x27;&#x27; : null &quot;&gt;
+          &lt;label [attr.for]&#x3D;&quot;getInputId(opt)&quot; class&#x3D;&quot;radio-label&quot; [ngClass]&#x3D;&quot;field.controlLabelCssClasses&quot; [innerHtml]&#x3D;&quot;opt.label&quot;&gt;&lt;/label&gt;
+          
+        &lt;/div&gt;
      &lt;/fieldset&gt;
      &lt;div class&#x3D;&quot;text-danger&quot; *ngIf&#x3D;&quot;hasRequiredError() &amp;&amp; !field.validationMessages?.required&quot;&gt;{{field.label}} is required&lt;/div&gt;
      &lt;div class&#x3D;&quot;text-danger&quot; *ngIf&#x3D;&quot;hasRequiredError() &amp;&amp; field.validationMessages?.required&quot;&gt;{{field.validationMessages.required}}&lt;/div&gt;

@@ -28,13 +28,13 @@
 <title>cluster_SharedModule_declarations</title>
 <polygon fill="none" stroke="black" points="2477,-78 2477,-130 11421,-130 11421,-78 2477,-78"/>
 </g>
-<g id="clust54" class="cluster">
-<title>cluster_SharedModule_providers</title>
-<polygon fill="none" stroke="black" points="16,-78 16,-130 2469,-130 2469,-78 16,-78"/>
-</g>
 <g id="clust52" class="cluster">
 <title>cluster_SharedModule_exports</title>
 <polygon fill="none" stroke="black" points="1350,-208 1350,-260 9700,-260 9700,-208 1350,-208"/>
+</g>
+<g id="clust54" class="cluster">
+<title>cluster_SharedModule_providers</title>
+<polygon fill="none" stroke="black" points="16,-78 16,-130 2469,-130 2469,-78 16,-78"/>
 </g>
 <!-- ANDSVocabComponent -->
 <g id="node1" class="node">
