@@ -24,23 +24,23 @@
 <title>cluster_UserProfileModule</title>
 <polygon fill="none" stroke="black" stroke-dasharray="1,5" points="98,-70 98,-268 398,-268 398,-70 98,-70"/>
 </g>
+<g id="clust4" class="cluster">
+<title>cluster_UserProfileModule_imports</title>
+<polygon fill="none" stroke="black" points="276,-78 276,-130 390,-130 390,-78 276,-78"/>
+</g>
+<g id="clust2" class="cluster">
+<title>cluster_UserProfileModule_declarations</title>
+<polygon fill="none" stroke="black" points="106,-78 106,-130 268,-130 268,-78 106,-78"/>
+</g>
 <g id="clust6" class="cluster">
 <title>cluster_UserProfileModule_bootstrap</title>
 <polygon fill="none" stroke="black" points="165,-208 165,-260 331,-260 331,-208 165,-208"/>
 </g>
-<g id="clust2" class="cluster">
-<title>cluster_UserProfileModule_declarations</title>
-<polygon fill="none" stroke="black" points="228,-78 228,-130 390,-130 390,-78 228,-78"/>
-</g>
-<g id="clust4" class="cluster">
-<title>cluster_UserProfileModule_imports</title>
-<polygon fill="none" stroke="black" points="106,-78 106,-130 220,-130 220,-78 106,-78"/>
-</g>
 <!-- UserProfileComponent -->
 <g id="node1" class="node">
 <title>UserProfileComponent</title>
-<polygon fill="#ffffb3" stroke="black" points="381.86,-122 236.14,-122 236.14,-86 381.86,-86 381.86,-122"/>
-<text text-anchor="middle" x="309" y="-99.8" font-family="Times,serif" font-size="14.00">UserProfileComponent</text>
+<polygon fill="#ffffb3" stroke="black" points="259.86,-122 114.14,-122 114.14,-86 259.86,-86 259.86,-122"/>
+<text text-anchor="middle" x="187" y="-99.8" font-family="Times,serif" font-size="14.00">UserProfileComponent</text>
 </g>
 <!-- UserProfileModule -->
 <g id="node2" class="node">
@@ -51,8 +51,8 @@
 <!-- UserProfileComponent&#45;&gt;UserProfileModule -->
 <g id="edge1" class="edge">
 <title>UserProfileComponent&#45;&gt;UserProfileModule</title>
-<path fill="none" stroke="black" d="M273.05,-122.11C273.05,-122.11 273.05,-140.99 273.05,-140.99"/>
-<polygon fill="black" stroke="black" points="269.55,-140.99 273.05,-150.99 276.55,-140.99 269.55,-140.99"/>
+<path fill="none" stroke="black" d="M222.95,-122.11C222.95,-122.11 222.95,-140.99 222.95,-140.99"/>
+<polygon fill="black" stroke="black" points="219.45,-140.99 222.95,-150.99 226.45,-140.99 219.45,-140.99"/>
 </g>
 <!-- UserProfileComponent  -->
 <g id="node4" class="node">
@@ -69,14 +69,14 @@
 <!-- SharedModule -->
 <g id="node3" class="node">
 <title>SharedModule</title>
-<polygon fill="#8dd3c7" stroke="black" points="212.42,-122 209.42,-126 188.42,-126 185.42,-122 113.58,-122 113.58,-86 212.42,-86 212.42,-122"/>
-<text text-anchor="middle" x="163" y="-99.8" font-family="Times,serif" font-size="14.00">SharedModule</text>
+<polygon fill="#8dd3c7" stroke="black" points="382.42,-122 379.42,-126 358.42,-126 355.42,-122 283.58,-122 283.58,-86 382.42,-86 382.42,-122"/>
+<text text-anchor="middle" x="333" y="-99.8" font-family="Times,serif" font-size="14.00">SharedModule</text>
 </g>
 <!-- SharedModule&#45;&gt;UserProfileModule -->
 <g id="edge2" class="edge">
 <title>SharedModule&#45;&gt;UserProfileModule</title>
-<path fill="none" stroke="black" d="M199.09,-122.11C199.09,-122.11 199.09,-140.99 199.09,-140.99"/>
-<polygon fill="black" stroke="black" points="195.59,-140.99 199.09,-150.99 202.59,-140.99 195.59,-140.99"/>
+<path fill="none" stroke="black" d="M296.91,-122.11C296.91,-122.11 296.91,-140.99 296.91,-140.99"/>
+<polygon fill="black" stroke="black" points="293.41,-140.99 296.91,-150.99 300.41,-140.99 293.41,-140.99"/>
 </g>
 </g>
 </svg>
