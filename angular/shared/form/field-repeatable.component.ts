@@ -462,6 +462,7 @@ export class RepeatableContributor extends RepeatableContainer {
 @Component({
   selector: 'repeatable-contributor',
   template: `
+  <ng-container *ngIf="field.visible">
   <div *ngIf="field.editMode">
     <div class="row" *ngIf="field.fields[0].label">
       <div class="col-xs-12">
@@ -512,6 +513,7 @@ export class RepeatableContributor extends RepeatableContainer {
         <div *ngIf="field.fields[0].showOrcid" class="col-xs-2">{{fieldElem.value.orcid}}</div>
       </div>
     </div>
+  </ng-container>
   </ng-container>
   `,
 })
