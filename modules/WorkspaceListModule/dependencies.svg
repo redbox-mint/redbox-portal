@@ -24,13 +24,13 @@
 <title>cluster_WorkspaceListModule</title>
 <polygon fill="none" stroke="black" stroke-dasharray="1,5" points="88,-70 88,-268 408,-268 408,-70 88,-70"/>
 </g>
-<g id="clust4" class="cluster">
-<title>cluster_WorkspaceListModule_imports</title>
-<polygon fill="none" stroke="black" points="286,-78 286,-130 400,-130 400,-78 286,-78"/>
-</g>
 <g id="clust6" class="cluster">
 <title>cluster_WorkspaceListModule_bootstrap</title>
 <polygon fill="none" stroke="black" points="155,-208 155,-260 341,-260 341,-208 155,-208"/>
+</g>
+<g id="clust4" class="cluster">
+<title>cluster_WorkspaceListModule_imports</title>
+<polygon fill="none" stroke="black" points="286,-78 286,-130 400,-130 400,-78 286,-78"/>
 </g>
 <g id="clust2" class="cluster">
 <title>cluster_WorkspaceListModule_declarations</title>

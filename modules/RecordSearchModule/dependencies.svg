@@ -28,13 +28,13 @@
 <title>cluster_RecordSearchModule_declarations</title>
 <polygon fill="none" stroke="black" points="73,-143 73,-195 469,-195 469,-143 73,-143"/>
 </g>
-<g id="clust7" class="cluster">
-<title>cluster_RecordSearchModule_bootstrap</title>
-<polygon fill="none" stroke="black" points="291,-273 291,-325 471,-325 471,-273 291,-273"/>
-</g>
 <g id="clust5" class="cluster">
 <title>cluster_RecordSearchModule_imports</title>
 <polygon fill="none" stroke="black" points="477,-143 477,-195 591,-195 591,-143 477,-143"/>
+</g>
+<g id="clust7" class="cluster">
+<title>cluster_RecordSearchModule_bootstrap</title>
+<polygon fill="none" stroke="black" points="291,-273 291,-325 471,-325 471,-273 291,-273"/>
 </g>
 <g id="clust3" class="cluster">
 <title>cluster_RecordSearchModule_RecordSearchComponent_providers</title>

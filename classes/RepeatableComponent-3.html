@@ -1366,6 +1366,7 @@ export class RepeatableContributor extends RepeatableContainer {
 @Component({
   selector: &#x27;repeatable-contributor&#x27;,
   template: &#x60;
+  &lt;ng-container *ngIf&#x3D;&quot;field.visible&quot;&gt;
   &lt;div *ngIf&#x3D;&quot;field.editMode&quot;&gt;
     &lt;div class&#x3D;&quot;row&quot; *ngIf&#x3D;&quot;field.fields[0].label&quot;&gt;
       &lt;div class&#x3D;&quot;col-xs-12&quot;&gt;
@@ -1416,6 +1417,7 @@ export class RepeatableContributor extends RepeatableContainer {
         &lt;div *ngIf&#x3D;&quot;field.fields[0].showOrcid&quot; class&#x3D;&quot;col-xs-2&quot;&gt;{{fieldElem.value.orcid}}&lt;/div&gt;
       &lt;/div&gt;
     &lt;/div&gt;
+  &lt;/ng-container&gt;
   &lt;/ng-container&gt;
   &#x60;,
 })
