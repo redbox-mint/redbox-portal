@@ -8,6 +8,8 @@ services:
     image: qcifengineering/redbox-portal:develop
     ports:
       - "1500:1500"
+      # Debugging port
+      - "9876:9876"
     user: node
     volumes:
       - "../..:/opt/redbox-portal:delegated"
@@ -16,6 +18,8 @@ services:
       - "./.dev/hooks:/opt/hooks:delegated"
     expose:
       - "1500"
+      # Debugging port
+      - "9876"
     environment:
       - NODE_ENV=docker
       - PORT=1500
@@ -33,7 +37,7 @@ services:
       main:
         aliases:
           - rbportal
-    entrypoint: /bin/bash -c "cd /opt/redbox-portal && node app.js"
+    entrypoint: /bin/bash -c "cd /opt/redbox-portal && node --inspect=0.0.0.0:9876 app.js"
   mongodb:
     image: mvertes/alpine-mongo:latest
     volumes:

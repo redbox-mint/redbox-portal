@@ -268,6 +268,15 @@ module.exports.reports = {
     },
     "filter": [
       {
+        "paramName": "dateEmbargoedRange",
+        "type": "date-range",
+        "message": "Filter by date embargoed",
+        "database":{
+          "fromProperty": "dateEmbargoedAfter",
+          "toProperty": "dateEmbargoedBefore",
+        }
+      },
+      {
         "paramName": "dateObjectModifiedRange",
         "type": "date-range",
         "message": "Filter by date modified",
@@ -307,7 +316,7 @@ module.exports.reports = {
       {
         "label": "External URL",
         "property": "reportExternalURL",
-        "exportTemplate": "${ data.optTemplateData.brandingAndPortalUrl }/record/view/${ data.id }",
+        "exportTemplate": "${ data.optTemplateData.brandingAndPortalUrl }/record/view/${ data.oid }",
         "hide": true
       },
       {
@@ -316,9 +325,9 @@ module.exports.reports = {
         "template" : "${ DateTime.fromISO(data.lastSaveDate).toFormat('dd/MM/yyyy hh:mm a') }"
       },
       {
-        "label": "Date Created",
-        "property": "dateCreated",
-        "template" : "${ DateTime.fromISO(data.dateCreated).toFormat('dd/MM/yyyy hh:mm a') }"
+        "label": "Embargoed Until",
+        "property": "metadata.embargoUntil",
+        "template" : "${ DateTime.fromISO(data.metadata.embargoUntil).toFormat('dd/MM/yyyy') }"
       },
       {
         "label": "Chief Investigator",

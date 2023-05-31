@@ -97,7 +97,9 @@ export module Services {
       
       this.setParamsInQuery(mongoQuery, queryParams, paramMap) 
       mongoQuery['metaMetadata.brandId'] = brand.id;
-
+      sails.log.debug("Mongo query to be executed")
+      sails.log.debug(mongoQuery)
+      
       let totalItems = await Record.count(mongoQuery).meta({
         enableExperimentalDeepTargets: true
       });
@@ -162,6 +164,7 @@ export module Services {
               }
             }
             if (value != undefined || (value == undefined && queryParam.whenUndefined != NamedQueryWhenUndefinedOptions.ignore)) {
+              
               query[queryParam.queryType] = value;
               value = query;
             }
@@ -169,7 +172,7 @@ export module Services {
         }
 
         if(queryParam.type == DataType.Date) {
-          if (!_.isEmpty(queryParam.queryType)) {
+          if (!_.isEmpty(queryParam.queryType)) { 
             let query = {};
             if (_.isUndefined(value)) {
               if (queryParam.whenUndefined == NamedQueryWhenUndefinedOptions.defaultValue) {

@@ -134,8 +134,9 @@ module.exports.namedQuery = {
   'listEmbargoedDPRecords': {
     mongoQuery: {
       'metaMetadata.type': "dataPublication",
-      'workflow_stage': "embargoed",
+      'workflow.stage': "embargoed",
       'metadata.title': null,
+      'metadata.embargoUntil': null,
       'dateCreated': null
     },
     queryParams: {
@@ -170,6 +171,20 @@ module.exports.namedQuery = {
       'dateModifiedAfter': {
         type: 'string',
         path: 'lastSaveDate',
+        queryType: '>=',
+        whenUndefined: 'defaultValue',
+        defaultValue: '1900-01-01T00:00:00.000Z'
+      },
+      'dateEmbargoedBefore': {
+        type: 'string',
+        path: 'metadata.embargoUntil',
+        queryType: '<=',
+        whenUndefined: 'defaultValue',
+        defaultValue: '3000-01-01T00:00:00.000Z'
+      },
+      'dateEmbargoedAfter': {
+        type: 'string',
+        path: 'metadata.embargoUntil',
         queryType: '>=',
         whenUndefined: 'defaultValue',
         defaultValue: '1900-01-01T00:00:00.000Z'
