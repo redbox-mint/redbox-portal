@@ -1224,7 +1224,7 @@ export module Controllers {
       const recordType = req.param('recordType');
       const brand = BrandingService.getBrand(req.session.branding);
       RecordTypesService.get(brand, recordType).subscribe(recordType => {
-        let recordTypeModel = new RecordTypeResponseModel(_.get(recordType, 'name'), _.get(recordType, 'packageType'),  _.get(recordType, 'searchFilters'));
+        let recordTypeModel = new RecordTypeResponseModel(_.get(recordType, 'name'), _.get(recordType, 'packageType'),  _.get(recordType, 'searchFilters'),  _.get(recordType, 'searchable'));
         this.ajaxOk(req, res, null, recordTypeModel);
       }, error => {
         this.ajaxFail(req, res, error.message);
@@ -1240,7 +1240,7 @@ export module Controllers {
       RecordTypesService.getAll(brand).subscribe(recordTypes => {
         let recordTypeModels = [];
         for (let recType of recordTypes) {
-          let recordTypeModel = new RecordTypeResponseModel(_.get(recType, 'name'), _.get(recType, 'packageType'),_.get(recType, 'searchFilters'));
+          let recordTypeModel = new RecordTypeResponseModel(_.get(recType, 'name'), _.get(recType, 'packageType'),_.get(recType, 'searchFilters'),  _.get(recType, 'searchable'));
           recordTypeModels.push(recordTypeModel);
         }
         this.ajaxOk(req, res, null, recordTypeModels);
