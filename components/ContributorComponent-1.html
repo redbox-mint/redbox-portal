@@ -684,8 +684,8 @@
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="649"
-                            class="link-to-prism">angular/dashboard/app/shared/form/field-contributor.component.ts:649</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="676"
+                            class="link-to-prism">angular/dashboard/app/shared/form/field-contributor.component.ts:676</a></div>
                 </td>
             </tr>
 
@@ -723,8 +723,8 @@
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="614"
-                            class="link-to-prism">angular/dashboard/app/shared/form/field-contributor.component.ts:614</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="641"
+                            class="link-to-prism">angular/dashboard/app/shared/form/field-contributor.component.ts:641</a></div>
                 </td>
             </tr>
 
@@ -790,8 +790,8 @@
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="637"
-                            class="link-to-prism">angular/dashboard/app/shared/form/field-contributor.component.ts:637</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="664"
+                            class="link-to-prism">angular/dashboard/app/shared/form/field-contributor.component.ts:664</a></div>
                 </td>
             </tr>
 
@@ -857,8 +857,8 @@
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="655"
-                            class="link-to-prism">angular/dashboard/app/shared/form/field-contributor.component.ts:655</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="682"
+                            class="link-to-prism">angular/dashboard/app/shared/form/field-contributor.component.ts:682</a></div>
                 </td>
             </tr>
 
@@ -1030,8 +1030,8 @@
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="601"
-                            class="link-to-prism">angular/dashboard/app/shared/form/field-contributor.component.ts:601</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="628"
+                            class="link-to-prism">angular/dashboard/app/shared/form/field-contributor.component.ts:628</a></div>
                 </td>
             </tr>
 
@@ -1137,8 +1137,8 @@
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="607"
-                            class="link-to-prism">angular/dashboard/app/shared/form/field-contributor.component.ts:607</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="634"
+                            class="link-to-prism">angular/dashboard/app/shared/form/field-contributor.component.ts:634</a></div>
                 </td>
             </tr>
 
@@ -2332,17 +2332,44 @@ export class ContributorComponent extends SimpleComponent {
 
 
   onSelect(selected: any, emitEvent:boolean&#x3D;true, updateTitle:boolean&#x3D;false) {
+
     if (selected) {
-      if ( (_.isEmpty(selected.title) || _.isUndefined(selected.title)) &amp;&amp; (_.isEmpty(selected.text_full_name) || _.isUndefined(selected.text_full_name))) {
-        console.log(&#x60;Same or empty selection, returning...&#x60;);
-        this.lastSelected &#x3D; null;
-        return;
+      if(this.field.splitNames) {
+        let selectedFamilyName &#x3D; _.get(selected, &#x27;family_name&#x27;);
+        let selectedGivenName &#x3D; _.get(selected, &#x27;given_name&#x27;);
+        if ( (_.isEmpty(selectedFamilyName) || _.isUndefined(selectedFamilyName)) &amp;&amp; (_.isEmpty(selectedGivenName) || _.isUndefined(selectedGivenName))) {
+          console.log(&#x60;Same or empty selection for split names, returning...&#x60;);
+            this.lastSelected &#x3D; null;
+            return;
+        } else {
+          let selectedFamilyName &#x3D; _.get(selected, &#x27;family_name&#x27;);
+          let selectedGivenName &#x3D; _.get(selected, &#x27;given_name&#x27;);
+          let fmFamilyName &#x3D; _.get(this.field.formModel.value, &#x27;family_name&#x27;);
+          let fmGivenName &#x3D; _.get(this.field.formModel.value, &#x27;given_name&#x27;);
+          let selectedEmail &#x3D; _.get(selected, &#x27;email&#x27;);
+          let selectedOrcid &#x3D; _.get(selected, &#x27;email&#x27;);
+          let fmEmail &#x3D; _.get(this.field.formModel.value, &#x27;email&#x27;);
+          let fmOrcid &#x3D; _.get(this.field.formModel.value, &#x27;orcid&#x27;);
+          if (selectedFamilyName &amp;&amp; selectedFamilyName &#x3D;&#x3D; fmFamilyName  &amp;&amp; selectedGivenName &amp;&amp; selectedGivenName &#x3D;&#x3D; fmGivenName 
+              &amp;&amp; selectedEmail &amp;&amp; selectedEmail &#x3D;&#x3D; fmEmail &amp;&amp; selectedOrcid &#x3D;&#x3D; fmOrcid) {
+            console.log(&#x60;Same or empty selection for split names, returning...&#x60;);
+            return;
+          }
+        }
+
       } else {
-        if (selected.title &amp;&amp; selected.title &#x3D;&#x3D; this.field.formModel.value.text_full_name &amp;&amp; selected.email &amp;&amp; selected.email &#x3D;&#x3D; this.field.formModel.value.email &amp;&amp; selected.orcid &#x3D;&#x3D; this.field.formModel.value.orcid) {
+        if ( (_.isEmpty(selected.title) || _.isUndefined(selected.title)) &amp;&amp; (_.isEmpty(selected.text_full_name) || _.isUndefined(selected.text_full_name))) {
           console.log(&#x60;Same or empty selection, returning...&#x60;);
+          this.lastSelected &#x3D; null;
           return;
+        } else {
+          if (selected.title &amp;&amp; selected.title &#x3D;&#x3D; this.field.formModel.value.text_full_name &amp;&amp; selected.email &amp;&amp; selected.email &#x3D;&#x3D; this.field.formModel.value.email &amp;&amp; selected.orcid &#x3D;&#x3D; this.field.formModel.value.orcid) {
+            console.log(&#x60;Same or empty selection, returning...&#x60;);
+            return;
+          }
         }
       }
+
       this.lastSelected &#x3D; selected;
       let val:any;
       if (!this.field.freeText) {
