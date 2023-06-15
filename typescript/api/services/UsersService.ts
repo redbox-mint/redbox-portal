@@ -20,6 +20,11 @@
 import {
   Observable
 } from 'rxjs/Rx';
+
+import {
+  isObservable
+} from 'rxjs';
+
 import {
   SearchService,
   Services as services
@@ -31,10 +36,12 @@ import {
 } from "sails";
 import * as request from "request-promise";
 import * as crypto from 'crypto';
+import * as flat from 'flat';
 
 declare var sails: Sails;
 declare var User, Role, UserAudit, Record: Model;
 declare var BrandingService, RolesService, ConfigService, RecordsService;
+declare var VocabService;
 declare const Buffer;
 declare var _;
 
@@ -67,7 +74,7 @@ export module Services {
 
     searchService: SearchService;
 
-    protected localAuthInit = () => {
+    protected localAuthInit () {
       // users the default brand's configuration on startup
       // TODO: consider moving late initializing this if possible
       const defAuthConfig = ConfigService.getBrand(BrandingService.getDefault().name, 'auth');
@@ -94,6 +101,9 @@ export module Services {
           done(err, user);
         });
       });
+
+      let that = this;
+
       //
       //  Local Strategy
       //
@@ -125,33 +135,155 @@ export module Services {
 
               // foundUser.lastLogin = new Date();
 
-              User.update({
-                username: username
-                }).set({lastLogin: new Date()}).exec(function (err, user) {
-                  if (err) {
-                    sails.log.error("Error updating user:");
-                    sails.log.error(err);
-                    return;
+              let configLocal = _.get(defAuthConfig, 'local');
+              if(that.hasPreTriggerConfigured(configLocal, 'onUpdate')) {
+                that.triggerPreSaveTriggers(foundUser, configLocal).then((userAdditionalInfo) => {
+
+                  let success = that.checkAllTriggersSuccessOrFailure(userAdditionalInfo);
+                  if(success) {
+
+                    User.update({
+                      username: username
+                      }).set(
+                        {
+                          lastLogin: new Date(),
+                          additionalAttributes: _.get(userAdditionalInfo, 'additionalAttributes')
+                        }).exec(function (err, user) {
+                          if (err) {
+                            sails.log.error("Error updating user:");
+                            sails.log.error(err);
+                            return;
+                          }
+                          if (_.isEmpty(user)) {
+                            sails.log.error("No user found");
+                            return;
+                          }
+                          sails.log.verbose("Done, returning updated user:");
+                          sails.log.verbose(user);
+                          return;
+                      });
+                      
+                      return done(null, userAdditionalInfo, {
+                        message: 'Logged In Successfully'
+                      });
+
+                  } else {
+
+                    return done(null, false, {
+                      message: 'All required conditions for login not met'
+                    });
                   }
-                  if (_.isEmpty(user)) {
-                    sails.log.error("No user found");
+
+                });
+
+              } else {
+
+                User.update({
+                  username: username
+                  }).set({lastLogin: new Date()}).exec(function (err, user) {
+                    if (err) {
+                      sails.log.error("Error updating user:");
+                      sails.log.error(err);
+                      return;
+                    }
+                    if (_.isEmpty(user)) {
+                      sails.log.error("No user found");
+                      return;
+                    }
+            
+                    sails.log.verbose("Done, returning updated user:");
+                    sails.log.verbose(user);
                     return;
-                  }
-          
-                  sails.log.verbose("Done, returning updated user:");
-                  sails.log.verbose(user);
-                  return;
-              });
+                });
 
-              return done(null, foundUser, {
-                message: 'Logged In Successfully'
-              });
-
-
+                return done(null, foundUser, {
+                  message: 'Logged In Successfully'
+                });
+              }
             });
           });
         }
       ));
+    }
+
+    private hasPreTriggerConfigured(config: string, mode: string) {
+      let hasPreTrigger = false;
+      let preSaveHooks = _.get(config, `hooks.${mode}.pre`, null);
+      if (_.isArray(preSaveHooks)) {
+        for (let preSaveHook of preSaveHooks) {
+          if(_.has(preSaveHook, 'function') && _.has(preSaveHook, 'options')) {
+            hasPreTrigger = true;
+          }
+        }
+      }
+      return hasPreTrigger;
+    }
+
+    private checkAllTriggersSuccessOrFailure(user: object) {
+      let preTriggersSuccessOrFailure = true;
+      let preSaveHooksSuccessOrFailure =_.get(user, 'additionalInfoFound');
+      if (_.isArray(preSaveHooksSuccessOrFailure)) {
+        for (let preSaveHook of preSaveHooksSuccessOrFailure) {
+          let success = _.get(preSaveHook, 'isSuccess');
+          if(!success) {
+            preTriggersSuccessOrFailure = false;
+          }
+        }
+      }
+      return preTriggersSuccessOrFailure;
+    }
+    
+    private async triggerPreSaveTriggers(user: object, config: object, mode: string = 'onUpdate') {
+      sails.log.verbose("Triggering pre save triggers for user login: ");
+      sails.log.verbose(`hooks.${mode}.pre`);
+      sails.log.verbose(JSON.stringify(config));
+      let preSaveUpdateHooks = _.get(config, `hooks.${mode}.pre`, null);
+      let failureMode = _.get(preSaveUpdateHooks, 'failureMode');
+      if(_.isUndefined(failureMode) || (failureMode != 'continue' && failureMode != 'stop')) {
+        failureMode = 'continue';
+      }
+      sails.log.verbose(`hooks.${mode}.pre failureMode ${failureMode}`);
+      sails.log.debug(preSaveUpdateHooks);
+
+      if (_.isArray(preSaveUpdateHooks)) {
+
+        for (var i = 0; i < preSaveUpdateHooks.length; i++) {
+          let preSaveUpdateHook = preSaveUpdateHooks[i];
+          let preSaveUpdateHookFunctionString = _.get(preSaveUpdateHook, 'function', null);
+          if (preSaveUpdateHookFunctionString != null) {
+            try {
+              let preSaveUpdateHookFunction = eval(preSaveUpdateHookFunctionString);
+              let options = _.get(preSaveUpdateHook, 'options', {});
+              sails.log.verbose(`Triggering pre save triggers: ${preSaveUpdateHookFunctionString}`);
+              let hookResponse = preSaveUpdateHookFunction(user, options, failureMode);
+              user = await this.resolveHookResponse(hookResponse);
+              sails.log.debug(`${preSaveUpdateHookFunctionString} response now is:`);
+              try {
+                sails.log.verbose(JSON.stringify(user));
+              } catch(error){
+                sails.log.verbose(user);
+              }
+              sails.log.debug(`pre-save sync trigger ${preSaveUpdateHookFunctionString} completed for ${_.get(user,'username')}`);
+            } catch (err) {
+              sails.log.error(`pre-save sync trigger ${preSaveUpdateHookFunctionString} failed to complete`);
+              sails.log.error(err)
+              throw err;
+            }
+
+          }
+        }
+      }
+      return user;
+    }
+
+    private resolveHookResponse(hookResponse) {
+      let response = hookResponse;
+      if (isObservable(hookResponse)) {
+        response = hookResponse.toPromise();
+      } else {
+        response = Promise.resolve(hookResponse);
+      }
+      return response;
     }
 
     protected aafAuthInit = () => {

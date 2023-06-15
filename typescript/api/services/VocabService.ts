@@ -46,7 +46,8 @@ export module Services {
       'findCollection',
       'findInMint',
       'findInExternalService',
-      'rvaGetResourceDetails'
+      'rvaGetResourceDetails',
+      'findInMintTriggerWrapper'
     ];
 
     public bootstrap() {
@@ -57,6 +58,65 @@ export module Services {
         return this.getVocab(vocabId);
       })
       .last();
+    }
+
+    public async findInMintTriggerWrapper(user: object, options: object, failureMode: string) {
+      let additionalInfoFound = _.get(user, 'additionalInfoFound');
+      if(!_.isArray(additionalInfoFound)) {
+        additionalInfoFound = [];
+      }
+      try {
+        let sourceType = _.get(options, 'sourceType');
+        let queryStringTmp = _.get(options, 'queryString');
+        let userAttribute = _.get(options, 'userAttribute');
+        let placeholderLeftSeparator = _.get(options, 'placeholderLeftSeparator');
+        let placeholderRightSeparator = _.get(options, 'placeholderRightSeparator');
+        let fieldsToMap = _.get(options, 'fieldsToMap');
+        let placeholder = placeholderLeftSeparator + userAttribute + placeholderRightSeparator;
+        let attributeValue = _.get(user, userAttribute);
+        let queryString = queryStringTmp.replaceAll(placeholder,attributeValue);
+        let mintResponse = await this.findInMint(sourceType, queryString).toPromise();
+        let responseDocs = _.get(mintResponse, 'response.docs');
+        let successResponse = { 
+          message: `Additional info for user ${_.get(user, 'name')} found`,
+          isSuccess: true
+        };
+        additionalInfoFound.push(successResponse);
+        _.set(user, 'additionalInfoFound', additionalInfoFound);
+        if(_.isArray(responseDocs)) {
+          for(let fieldName of fieldsToMap) {
+            let sourceField = _.get(responseDocs[0], fieldName);
+            if(!_.isUndefined(sourceField) && !_.isEmpty(sourceField) && !_.isNull(sourceField)) {
+              _.set(user, 'additionalAttributes.'+fieldName, sourceField);
+            }
+          }
+        }
+        return user;
+
+      } catch (err) {
+        sails.log.error(`findInMintTriggerWrapper failed to complete. Additional info for user ${_.get(user, 'name')} not found`);
+        sails.log.error(err);
+        sails.log.error(options);
+        if(failureMode == 'continue'){
+          
+          let successResponse = { 
+            message: `Additional info for user ${_.get(user, 'name')} not found. Ignore because failure mode is set to ${failureMode}`,
+            isSuccess: true
+          };
+          additionalInfoFound.push(successResponse);
+          _.set(user, 'additionalInfoFound', additionalInfoFound);
+
+        } else {
+          let errorResponse = { 
+            message: `Additional info for user ${_.get(user, 'name')} not found`,
+            isSuccess: false
+          };
+          additionalInfoFound.push(errorResponse);
+          _.set(user, 'additionalInfoFound', additionalInfoFound);
+        }
+
+        return user; 
+      }
     }
 
     public findInMint(sourceType, queryString) {

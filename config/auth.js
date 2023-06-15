@@ -200,6 +200,29 @@ module.exports.auth = {
       },
       templatePath: 'local.ejs',
       postLoginRedir: 'researcher/home',
+      hooks: {
+        onCreate: {
+          pre: [],
+          post: []
+        },
+        onUpdate: {
+          pre: [
+          {
+            function: 'sails.services.vocabservice.findInMintTriggerWrapper',
+            failureMode: 'continue', //options continue or stop processing
+            options: {
+              sourceType: 'Parties AND repository_name:People',
+              queryString: 'autocomplete_given_name:{{{name}}}* OR autocomplete_family_name:{{{name}}}* OR autocomplete_full_name:{{{name}}}*',
+              userAttribute: 'name',
+              placeholderLeftSeparator: '{{{',
+              placeholderRightSeparator: '}}}',
+              fieldsToMap: ['text_full_name', 'dc_identifier']
+            }
+          }
+        ],
+        post: []
+      }
+      }
     },
     aaf: {
       defaultRole: 'Researcher',
