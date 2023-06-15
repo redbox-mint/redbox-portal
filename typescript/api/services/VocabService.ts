@@ -77,45 +77,59 @@ export module Services {
         let queryString = queryStringTmp.replaceAll(placeholder,attributeValue);
         let mintResponse = await this.findInMint(sourceType, queryString).toPromise();
         let responseDocs = _.get(mintResponse, 'response.docs');
-        let successResponse = { 
-          message: `Additional info for user ${_.get(user, 'name')} found`,
-          isSuccess: true
-        };
-        additionalInfoFound.push(successResponse);
-        _.set(user, 'additionalInfoFound', additionalInfoFound);
-        if(_.isArray(responseDocs)) {
+        if(_.isArray(responseDocs) && responseDocs.length > 0) {
+
           for(let fieldName of fieldsToMap) {
             let sourceField = _.get(responseDocs[0], fieldName);
             if(!_.isUndefined(sourceField) && !_.isEmpty(sourceField) && !_.isNull(sourceField)) {
               _.set(user, 'additionalAttributes.'+fieldName, sourceField);
             }
           }
+          this.setSuccessOrFailure(user, additionalInfoFound, failureMode, true);
+
+        } else {
+          
+          this.setSuccessOrFailure(user, additionalInfoFound, failureMode);
         }
+
         return user;
 
       } catch (err) {
         sails.log.error(`findInMintTriggerWrapper failed to complete. Additional info for user ${_.get(user, 'name')} not found`);
         sails.log.error(err);
         sails.log.error(options);
-        if(failureMode == 'continue'){
-          
-          let successResponse = { 
-            message: `Additional info for user ${_.get(user, 'name')} not found. Ignore because failure mode is set to ${failureMode}`,
-            isSuccess: true
-          };
-          additionalInfoFound.push(successResponse);
-          _.set(user, 'additionalInfoFound', additionalInfoFound);
-
-        } else {
-          let errorResponse = { 
-            message: `Additional info for user ${_.get(user, 'name')} not found`,
-            isSuccess: false
-          };
-          additionalInfoFound.push(errorResponse);
-          _.set(user, 'additionalInfoFound', additionalInfoFound);
-        }
-
+        this.setSuccessOrFailure(user, additionalInfoFound, failureMode);
         return user; 
+      }
+    }
+
+    private setSuccessOrFailure( user: object, additionalInfoFound: any, failureMode: string, forceSuccess: boolean = false) {
+      
+      if (forceSuccess) {
+
+        let successResponse = {
+          message: `Additional info for user ${_.get(user, 'name')} found.`,
+          isSuccess: true
+        };
+        additionalInfoFound.push(successResponse);
+        _.set(user, 'additionalInfoFound', additionalInfoFound);
+
+      } else if (failureMode == 'continue') {
+
+        let successResponse = {
+          message: `Additional info for user ${_.get(user, 'name')} not found. Ignore because failure mode is set to ${failureMode}`,
+          isSuccess: true
+        };
+        additionalInfoFound.push(successResponse);
+        _.set(user, 'additionalInfoFound', additionalInfoFound);
+
+      } else {
+        let errorResponse = {
+          message: `Additional info for user ${_.get(user, 'name')} not found`,
+          isSuccess: false
+        };
+        additionalInfoFound.push(errorResponse);
+        _.set(user, 'additionalInfoFound', additionalInfoFound);
       }
     }
 

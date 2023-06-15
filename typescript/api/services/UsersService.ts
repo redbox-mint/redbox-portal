@@ -238,11 +238,6 @@ export module Services {
       sails.log.verbose(`hooks.${mode}.pre`);
       sails.log.verbose(JSON.stringify(config));
       let preSaveUpdateHooks = _.get(config, `hooks.${mode}.pre`, null);
-      let failureMode = _.get(preSaveUpdateHooks, 'failureMode');
-      if(_.isUndefined(failureMode) || (failureMode != 'continue' && failureMode != 'stop')) {
-        failureMode = 'continue';
-      }
-      sails.log.verbose(`hooks.${mode}.pre failureMode ${failureMode}`);
       sails.log.debug(preSaveUpdateHooks);
 
       if (_.isArray(preSaveUpdateHooks)) {
@@ -254,7 +249,11 @@ export module Services {
             try {
               let preSaveUpdateHookFunction = eval(preSaveUpdateHookFunctionString);
               let options = _.get(preSaveUpdateHook, 'options', {});
-              sails.log.verbose(`Triggering pre save triggers: ${preSaveUpdateHookFunctionString}`);
+              let failureMode = _.get(preSaveUpdateHook, 'failureMode');
+              if(_.isUndefined(failureMode) || (failureMode != 'continue' && failureMode != 'stop')) {
+                failureMode = 'continue';
+              }
+              sails.log.verbose(`Triggering pre save triggers: ${preSaveUpdateHookFunctionString} failureMode ${failureMode}`);
               let hookResponse = preSaveUpdateHookFunction(user, options, failureMode);
               user = await this.resolveHookResponse(hookResponse);
               sails.log.debug(`${preSaveUpdateHookFunctionString} response now is:`);
