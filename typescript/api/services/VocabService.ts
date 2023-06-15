@@ -85,7 +85,7 @@ export module Services {
               _.set(user, 'additionalAttributes.'+fieldName, sourceField);
             }
           }
-          this.setSuccessOrFailure(user, additionalInfoFound, failureMode, true);
+          this.setSuccessOrFailure(user, additionalInfoFound, '', true);
 
         } else {
           
