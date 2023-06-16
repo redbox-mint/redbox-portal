@@ -468,7 +468,7 @@ export module Services {
                   if(success) {
                     
                     User.update({
-                      username: userAdditionalInfo.username
+                      username: _.get(userAdditionalInfo, 'username')
                       }).set(userAdditionalInfo).exec(function (err, user) {
                       if (err) {
                         sails.log.error("Error updating user:");
@@ -487,7 +487,7 @@ export module Services {
                       if(that.hasPostSaveSyncTriggerConfigured(configAAF, 'onUpdate')){
                         that.triggerPostSaveSyncTriggers(user, configAAF);
                       }
-                      
+
                       sails.log.verbose("Done, returning updated user:");
                       sails.log.verbose(user);
                       return done(null, user[0],{
@@ -783,24 +783,55 @@ export module Services {
           user.givenname = _.get(userinfo, claimsMappings['givenname']);
           user.surname = _.get(userinfo, claimsMappings['surname']);
 
+          if(that.hasPreSaveTriggerConfigured(oidcConfig, 'onUpdate')) {
+            that.triggerPreSaveTriggers(user, oidcConfig).then((userAdditionalInfo) => {
 
-          User.update({
-            username: user.username
-            }).set(user).exec(function (err, user) {
-            if (err) {
-              sails.log.error("Error updating user:");
-              sails.log.error(err);
-              return done(err, false);
-            }
-            if (_.isEmpty(user)) {
-              sails.log.error("No user found");
-              return done("No user found", false);
-            }
-    
-            sails.log.verbose("Done, returning updated user:");
-            sails.log.verbose(user);
-            return done(null, user[0]);
-          });
+              let success = that.checkAllTriggersSuccessOrFailure(userAdditionalInfo);
+              if(success) {
+                User.update({
+                  username: _.get(userAdditionalInfo, 'username')
+                  }).set(userAdditionalInfo).exec(function (err, user) {
+                  if (err) {
+                    sails.log.error("Error updating user:");
+                    sails.log.error(err);
+                    return done(err, false);
+                  }
+                  if (_.isEmpty(user)) {
+                    sails.log.error("No user found");
+                    return done("No user found", false);
+                  }
+          
+                  sails.log.verbose("Done, returning updated user:");
+                  sails.log.verbose(user);
+                  return done(null, user[0]);
+                });
+              } else {
+                return done('All required conditions for login not met', false);
+              }
+
+            });
+
+          } else {
+
+            User.update({
+              username: user.username
+              }).set(user).exec(function (err, user) {
+              if (err) {
+                sails.log.error("Error updating user:");
+                sails.log.error(err);
+                return done(err, false);
+              }
+              if (_.isEmpty(user)) {
+                sails.log.error("No user found");
+                return done("No user found", false);
+              }
+      
+              sails.log.verbose("Done, returning updated user:");
+              sails.log.verbose(user);
+              return done(null, user[0]);
+            });
+
+          }
 
         } else {
           sails.log.verbose("At OIDC Strategy verify, creating new user...");
@@ -827,17 +858,45 @@ export module Services {
           }
           sails.log.verbose(`Creating user: `);
           sails.log.verbose(userToCreate);
-          User.create(userToCreate).exec(function (err, newUser) {
-            if (err) {
-              sails.log.error("Error creating new user:");
-              sails.log.error(err);
-              return done(err, false);
-            }
 
-            sails.log.verbose("Done, returning new user:");
-            sails.log.verbose(newUser);
-            return done(null, newUser);
-          });
+          if(that.hasPreSaveTriggerConfigured(oidcConfig, 'onCreate')) {
+            that.triggerPreSaveTriggers(userToCreate, oidcConfig).then((userAdditionalInfo) => {
+              
+              let success = that.checkAllTriggersSuccessOrFailure(userAdditionalInfo);
+              if(success) {
+                
+                User.create(userAdditionalInfo).exec(function (err, newUser) {
+                  if (err) {
+                    sails.log.error("Error creating new user:");
+                    sails.log.error(err);
+                    return done(err, false);
+                  }
+      
+                  sails.log.verbose("Done, returning new user:");
+                  sails.log.verbose(newUser);
+                  return done(null, newUser);
+                });
+                
+              } else {
+                return done('All required conditions for login not met', false);
+              } 
+            });
+
+          } else {
+
+            User.create(userToCreate).exec(function (err, newUser) {
+              if (err) {
+                sails.log.error("Error creating new user:");
+                sails.log.error(err);
+                return done(err, false);
+              }
+  
+              sails.log.verbose("Done, returning new user:");
+              sails.log.verbose(newUser);
+              return done(null, newUser);
+            });
+
+          }
         }
       });
     }
