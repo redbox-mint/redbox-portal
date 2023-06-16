@@ -162,6 +162,14 @@ export module Services {
                           sails.log.verbose(user);
                           return;
                       });
+
+                      if(that.hasPostSaveTriggerConfigured(configLocal, 'onUpdate')){
+                        that.triggerPostSaveTriggers(foundUser, configLocal);
+                      }
+
+                      if(that.hasPostSaveSyncTriggerConfigured(configLocal, 'onUpdate')){
+                        that.triggerPostSaveSyncTriggers(foundUser, configLocal);
+                      }
                       
                       return done(null, userAdditionalInfo, {
                         message: 'Logged In Successfully'
@@ -195,18 +203,18 @@ export module Services {
                     sails.log.verbose(user);
                     return;
                 });
+                
+                if(that.hasPostSaveTriggerConfigured(configLocal, 'onUpdate')){
+                  that.triggerPostSaveTriggers(foundUser, configLocal);
+                }
+
+                if(that.hasPostSaveSyncTriggerConfigured(configLocal, 'onUpdate')){
+                  that.triggerPostSaveSyncTriggers(foundUser, configLocal);
+                }
 
                 return done(null, foundUser, {
                   message: 'Logged In Successfully'
                 });
-              }
-
-              if(that.hasPostSaveTriggerConfigured(configLocal, 'onUpdate')){
-                that.triggerPostSaveTriggers(foundUser, configLocal);
-              }
-
-              if(that.hasPostSaveSyncTriggerConfigured(configLocal, 'onUpdate')){
-                that.triggerPostSaveSyncTriggers(foundUser, configLocal);
               }
 
             });
@@ -472,6 +480,14 @@ export module Services {
                         return done("No user found", false, {message: "No user found"});
                       }
               
+                      if(that.hasPostSaveTriggerConfigured(configAAF, 'onUpdate')){
+                        that.triggerPostSaveTriggers(user, configAAF);
+                      }
+        
+                      if(that.hasPostSaveSyncTriggerConfigured(configAAF, 'onUpdate')){
+                        that.triggerPostSaveSyncTriggers(user, configAAF);
+                      }
+                      
                       sails.log.verbose("Done, returning updated user:");
                       sails.log.verbose(user);
                       return done(null, user[0],{
@@ -500,6 +516,14 @@ export module Services {
                     return done("No user found", false, {message: "No user found"});
                   }
           
+                  if(that.hasPostSaveTriggerConfigured(configAAF, 'onUpdate')){
+                    that.triggerPostSaveTriggers(user, configAAF);
+                  }
+    
+                  if(that.hasPostSaveSyncTriggerConfigured(configAAF, 'onUpdate')){
+                    that.triggerPostSaveSyncTriggers(user, configAAF);
+                  }
+
                   sails.log.verbose("Done, returning updated user:");
                   sails.log.verbose(user);
                   return done(null, user[0],{
@@ -551,13 +575,22 @@ export module Services {
                   
                   let success = that.checkAllTriggersSuccessOrFailure(userAdditionalInfo);
                   if(success) {
-                    User.create(userAdditionalInfo).exec(function (err, newUser) {
+                    userToCreate = userAdditionalInfo;
+                    User.create(userToCreate).exec(function (err, newUser) {
                       if (err) {
                         sails.log.error("Error creating new user:");
                         sails.log.error(err);
                         return done(err, false);
                       }
       
+                      if(that.hasPostSaveTriggerConfigured(configAAF, 'onCreate')){
+                        that.triggerPostSaveTriggers(newUser, configAAF);
+                      }
+    
+                      if(that.hasPostSaveSyncTriggerConfigured(configAAF, 'onCreate')){
+                        that.triggerPostSaveSyncTriggers(newUser, configAAF);
+                      }
+
                       sails.log.verbose("Done, returning new user:");
                       sails.log.verbose(newUser);
                       return done(null, newUser);
@@ -566,6 +599,7 @@ export module Services {
                     return done(`All required conditions for login not met ${userAdditionalInfo.email}`, false);
                   }
                 });
+
 
               } else {
 
@@ -576,6 +610,14 @@ export module Services {
                     return done(err, false);
                   }
   
+                  if(that.hasPostSaveTriggerConfigured(configAAF, 'onCreate')){
+                    that.triggerPostSaveTriggers(newUser, configAAF);
+                  }
+
+                  if(that.hasPostSaveSyncTriggerConfigured(configAAF, 'onCreate')){
+                    that.triggerPostSaveSyncTriggers(newUser, configAAF);
+                  }
+
                   sails.log.verbose("Done, returning new user:");
                   sails.log.verbose(newUser);
                   return done(null, newUser);
