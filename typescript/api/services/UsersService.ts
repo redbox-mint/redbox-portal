@@ -800,6 +800,14 @@ export module Services {
                     sails.log.error("No user found");
                     return done("No user found", false);
                   }
+
+                  if(that.hasPostSaveTriggerConfigured(oidcConfig, 'onUpdate')){
+                    that.triggerPostSaveTriggers(user, oidcConfig);
+                  }
+    
+                  if(that.hasPostSaveSyncTriggerConfigured(oidcConfig, 'onUpdate')){
+                    that.triggerPostSaveSyncTriggers(user, oidcConfig);
+                  }
           
                   sails.log.verbose("Done, returning updated user:");
                   sails.log.verbose(user);
@@ -824,6 +832,14 @@ export module Services {
               if (_.isEmpty(user)) {
                 sails.log.error("No user found");
                 return done("No user found", false);
+              }
+
+              if(that.hasPostSaveTriggerConfigured(oidcConfig, 'onUpdate')){
+                that.triggerPostSaveTriggers(user, oidcConfig);
+              }
+
+              if(that.hasPostSaveSyncTriggerConfigured(oidcConfig, 'onUpdate')){
+                that.triggerPostSaveSyncTriggers(user, oidcConfig);
               }
       
               sails.log.verbose("Done, returning updated user:");
@@ -871,12 +887,20 @@ export module Services {
                     sails.log.error(err);
                     return done(err, false);
                   }
+
+                  if(that.hasPostSaveTriggerConfigured(oidcConfig, 'onCreate')){
+                    that.triggerPostSaveTriggers(newUser, oidcConfig);
+                  }
+
+                  if(that.hasPostSaveSyncTriggerConfigured(oidcConfig, 'onCreate')){
+                    that.triggerPostSaveSyncTriggers(newUser, oidcConfig);
+                  }
       
                   sails.log.verbose("Done, returning new user:");
                   sails.log.verbose(newUser);
                   return done(null, newUser);
                 });
-                
+
               } else {
                 return done('All required conditions for login not met', false);
               } 
@@ -889,6 +913,14 @@ export module Services {
                 sails.log.error("Error creating new user:");
                 sails.log.error(err);
                 return done(err, false);
+              }
+
+              if(that.hasPostSaveTriggerConfigured(oidcConfig, 'onCreate')){
+                that.triggerPostSaveTriggers(newUser, oidcConfig);
+              }
+
+              if(that.hasPostSaveSyncTriggerConfigured(oidcConfig, 'onCreate')){
+                that.triggerPostSaveSyncTriggers(newUser, oidcConfig);
               }
   
               sails.log.verbose("Done, returning new user:");
