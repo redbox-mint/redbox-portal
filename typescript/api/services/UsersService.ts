@@ -362,7 +362,7 @@ export module Services {
             let postSaveCreateHookFunction = eval(postSaveCreateHookFunctionString);
             let options = _.get(postSaveCreateHook, "options", {});
             if (_.isFunction(postSaveCreateHookFunction)) {
-              let hookResponse = postSaveCreateHookFunction(user, options,);
+              let hookResponse = postSaveCreateHookFunction(user, options);
               this.resolveHookResponse(hookResponse).then(result => {
                 sails.log.debug(`post-save trigger ${postSaveCreateHookFunctionString} completed for user: ${_.get(user,'username')}`)
               }).catch(error => {
@@ -403,6 +403,8 @@ export module Services {
         aafOpts.jwtFromRequest = ExtractJwt.fromBodyField('assertion');
         sails.config.passport.use('aaf-jwt', new JwtStrategy(aafOpts, function (req, jwt_payload, done) {
           let brand = BrandingService.getBrandFromReq(req);
+          
+          let that = this;
 
           if (_.isString(brand)) {
             brand = BrandingService.getBrand(brand);
@@ -450,25 +452,63 @@ export module Services {
               user.givenname = jwt_payload[aafAttributes].givenname;
               user.surname = jwt_payload[aafAttributes].surname;
 
-              User.update({
-                username: user.username
-                }).set(user).exec(function (err, user) {
-                if (err) {
-                  sails.log.error("Error updating user:");
-                  sails.log.error(err);
-                  return done(err, false, {message: "Error updating file"});
-                }
-                if (_.isEmpty(user)) {
-                  sails.log.error("No user found");
-                  return done("No user found", false, {message: "No user found"});
-                }
-        
-                sails.log.verbose("Done, returning updated user:");
-                sails.log.verbose(user);
-                return done(null, user[0],{
-                  message: 'Logged In Successfully'
+              let configAAF = _.get(defAuthConfig, 'aaf');
+              if(that.hasPreSaveTriggerConfigured(configAAF, 'onUpdate')) {
+                that.triggerPreSaveTriggers(user, configAAF).then((userAdditionalInfo) => {
+
+                  let success = that.checkAllTriggersSuccessOrFailure(userAdditionalInfo);
+                  if(success) {
+                    
+                    User.update({
+                      username: userAdditionalInfo.username
+                      }).set(userAdditionalInfo).exec(function (err, user) {
+                      if (err) {
+                        sails.log.error("Error updating user:");
+                        sails.log.error(err);
+                        return done(err, false, {message: "Error updating file"});
+                      }
+                      if (_.isEmpty(user)) {
+                        sails.log.error("No user found");
+                        return done("No user found", false, {message: "No user found"});
+                      }
+              
+                      sails.log.verbose("Done, returning updated user:");
+                      sails.log.verbose(user);
+                      return done(null, user[0],{
+                        message: 'Logged In Successfully'
+                      });
+                    });
+
+                  } else {
+                    return done('All required conditions for login not met', false, {message: 'All required conditions for login not met'});
+                  }
+
                 });
-              });
+
+              } else {
+
+                User.update({
+                  username: user.username
+                  }).set(user).exec(function (err, user) {
+                  if (err) {
+                    sails.log.error("Error updating user:");
+                    sails.log.error(err);
+                    return done(err, false, {message: "Error updating file"});
+                  }
+                  if (_.isEmpty(user)) {
+                    sails.log.error("No user found");
+                    return done("No user found", false, {message: "No user found"});
+                  }
+          
+                  sails.log.verbose("Done, returning updated user:");
+                  sails.log.verbose(user);
+                  return done(null, user[0],{
+                    message: 'Logged In Successfully'
+                  });
+                });
+
+              }
+
             } else {
               sails.log.verbose("At AAF Strategy verify, creating new user...");
               // first time login, create with default role
@@ -503,18 +543,47 @@ export module Services {
                   }
                 }
               }
-              User.create(userToCreate).exec(function (err, newUser) {
-                if (err) {
-                  sails.log.error("Error creating new user:");
-                  sails.log.error(err);
-                  return done(err, false);
-                }
 
-                sails.log.verbose("Done, returning new user:");
-                sails.log.verbose(newUser);
-                return done(null, newUser);
-              });
+
+              let configAAF = _.get(defAuthConfig, 'aaf');
+              if(that.hasPreSaveTriggerConfigured(configAAF, 'onCreate')) {
+                that.triggerPreSaveTriggers(userToCreate, configAAF).then((userAdditionalInfo) => {
+                  
+                  let success = that.checkAllTriggersSuccessOrFailure(userAdditionalInfo);
+                  if(success) {
+                    User.create(userAdditionalInfo).exec(function (err, newUser) {
+                      if (err) {
+                        sails.log.error("Error creating new user:");
+                        sails.log.error(err);
+                        return done(err, false);
+                      }
+      
+                      sails.log.verbose("Done, returning new user:");
+                      sails.log.verbose(newUser);
+                      return done(null, newUser);
+                    });
+                  } else {
+                    return done(`All required conditions for login not met ${userAdditionalInfo.email}`, false);
+                  }
+                });
+
+              } else {
+
+                User.create(userToCreate).exec(function (err, newUser) {
+                  if (err) {
+                    sails.log.error("Error creating new user:");
+                    sails.log.error(err);
+                    return done(err, false);
+                  }
+  
+                  sails.log.verbose("Done, returning new user:");
+                  sails.log.verbose(newUser);
+                  return done(null, newUser);
+                });
+                
+              }
             }
+
           });
         }));
       } else {
