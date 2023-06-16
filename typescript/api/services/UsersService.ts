@@ -136,7 +136,7 @@ export module Services {
               // foundUser.lastLogin = new Date();
 
               let configLocal = _.get(defAuthConfig, 'local');
-              if(that.hasPreTriggerConfigured(configLocal, 'onUpdate')) {
+              if(that.hasPreSaveTriggerConfigured(configLocal, 'onUpdate')) {
                 that.triggerPreSaveTriggers(foundUser, configLocal).then((userAdditionalInfo) => {
 
                   let success = that.checkAllTriggersSuccessOrFailure(userAdditionalInfo);
@@ -200,15 +200,50 @@ export module Services {
                   message: 'Logged In Successfully'
                 });
               }
+
+              if(that.hasPostSaveTriggerConfigured(configLocal, 'onUpdate')){
+                that.triggerPostSaveTriggers(foundUser, configLocal);
+              }
+
+              if(that.hasPostSaveSyncTriggerConfigured(configLocal, 'onUpdate')){
+                that.triggerPostSaveSyncTriggers(foundUser, configLocal);
+              }
+
             });
           });
         }
       ));
     }
 
-    private hasPreTriggerConfigured(config: string, mode: string) {
+    private hasPreSaveTriggerConfigured(config: string, mode: string) {
       let hasPreTrigger = false;
       let preSaveHooks = _.get(config, `hooks.${mode}.pre`, null);
+      if (_.isArray(preSaveHooks)) {
+        for (let preSaveHook of preSaveHooks) {
+          if(_.has(preSaveHook, 'function') && _.has(preSaveHook, 'options')) {
+            hasPreTrigger = true;
+          }
+        }
+      }
+      return hasPreTrigger;
+    }
+
+    private hasPostSaveTriggerConfigured(config: string, mode: string) {
+      let hasPreTrigger = false;
+      let preSaveHooks = _.get(config, `hooks.${mode}.post`, null);
+      if (_.isArray(preSaveHooks)) {
+        for (let preSaveHook of preSaveHooks) {
+          if(_.has(preSaveHook, 'function') && _.has(preSaveHook, 'options')) {
+            hasPreTrigger = true;
+          }
+        }
+      }
+      return hasPreTrigger;
+    }
+
+    private hasPostSaveSyncTriggerConfigured(config: string, mode: string) {
+      let hasPreTrigger = false;
+      let preSaveHooks = _.get(config, `hooks.${mode}.postSync`, null);
       if (_.isArray(preSaveHooks)) {
         for (let preSaveHook of preSaveHooks) {
           if(_.has(preSaveHook, 'function') && _.has(preSaveHook, 'options')) {
@@ -233,6 +268,7 @@ export module Services {
       return preTriggersSuccessOrFailure;
     }
     
+    //Post login and pre update/create user
     private async triggerPreSaveTriggers(user: object, config: object, mode: string = 'onUpdate') {
       sails.log.verbose("Triggering pre save triggers for user login: ");
       sails.log.verbose(`hooks.${mode}.pre`);
@@ -262,7 +298,7 @@ export module Services {
               } catch(error){
                 sails.log.verbose(user);
               }
-              sails.log.debug(`pre-save sync trigger ${preSaveUpdateHookFunctionString} completed for ${_.get(user,'username')}`);
+              sails.log.debug(`pre-save sync trigger ${preSaveUpdateHookFunctionString} completed for user: ${_.get(user,'username')}`);
             } catch (err) {
               sails.log.error(`pre-save sync trigger ${preSaveUpdateHookFunctionString} failed to complete`);
               sails.log.error(err)
@@ -273,6 +309,73 @@ export module Services {
         }
       }
       return user;
+    }
+
+    //Post login and post update/create user sync
+    public async triggerPostSaveSyncTriggers(user: object, config: object, mode: string = 'onUpdate', response: any = {}) {
+      sails.log.verbose("Triggering post save sync triggers ");
+      sails.log.verbose(`hooks.${mode}.postSync`);
+      sails.log.verbose(JSON.stringify(config));
+      let postSaveSyncHooks = _.get(config, `hooks.${mode}.postSync`, null);
+      if (_.isArray(postSaveSyncHooks)) {
+        for (var i = 0; i < postSaveSyncHooks.length; i++) {
+          let postSaveSyncHook = postSaveSyncHooks[i];
+          sails.log.debug(postSaveSyncHooks);
+          let postSaveSyncHooksFunctionString = _.get(postSaveSyncHook, "function", null);
+          if (postSaveSyncHooksFunctionString != null) {
+            let postSaveSyncHookFunction = eval(postSaveSyncHooksFunctionString);
+            let options = _.get(postSaveSyncHook, "options", {});
+            if (_.isFunction(postSaveSyncHookFunction)) {
+              try {
+                sails.log.debug(`Triggering post-save sync trigger: ${postSaveSyncHooksFunctionString}`)
+                let hookResponse = postSaveSyncHookFunction(user, options, response);
+                response = await this.resolveHookResponse(hookResponse);
+                sails.log.debug(`${postSaveSyncHooksFunctionString} response now is:`);
+                sails.log.verbose(JSON.stringify(response));
+                sails.log.debug(`post-save sync trigger ${postSaveSyncHooksFunctionString} completed for user: ${_.get(user,'username')}`)
+              } catch (err) {
+                sails.log.error(`post-save async trigger ${postSaveSyncHooksFunctionString} failed to complete`)
+                sails.log.error(err)
+                throw err;
+              }
+            } else {
+              sails.log.error(`Post save function: '${postSaveSyncHooksFunctionString}' did not resolve to a valid function, what I got:`);
+              sails.log.error(postSaveSyncHookFunction);
+            }
+          }
+        }
+      }
+      return response;
+    }
+
+    //Post login and post update/create user
+    public triggerPostSaveTriggers(user: object, config: object, mode: string = 'onUpdate'): void {
+      sails.log.verbose("Triggering post save triggers ");
+      sails.log.verbose(`hooks.${mode}.post`);
+      sails.log.verbose(JSON.stringify(config));
+      let postSaveCreateHooks = _.get(config, `hooks.${mode}.post`, null);
+      if (_.isArray(postSaveCreateHooks)) {
+        _.each(postSaveCreateHooks, postSaveCreateHook => {
+          sails.log.debug(postSaveCreateHook);
+          let postSaveCreateHookFunctionString = _.get(postSaveCreateHook, "function", null);
+          if (postSaveCreateHookFunctionString != null) {
+            let postSaveCreateHookFunction = eval(postSaveCreateHookFunctionString);
+            let options = _.get(postSaveCreateHook, "options", {});
+            if (_.isFunction(postSaveCreateHookFunction)) {
+              let hookResponse = postSaveCreateHookFunction(user, options,);
+              this.resolveHookResponse(hookResponse).then(result => {
+                sails.log.debug(`post-save trigger ${postSaveCreateHookFunctionString} completed for user: ${_.get(user,'username')}`)
+              }).catch(error => {
+                sails.log.error(`post-save trigger ${postSaveCreateHookFunctionString} failed to complete`)
+                sails.log.error(error)
+              });
+            } else {
+              sails.log.error(`Post save function: '${postSaveCreateHookFunctionString}' did not resolve to a valid function, what I got:`);
+              sails.log.error(postSaveCreateHookFunction);
+            }
+          }
+        });
+      }
     }
 
     private resolveHookResponse(hookResponse) {
