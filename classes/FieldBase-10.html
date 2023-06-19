@@ -1677,8 +1677,8 @@
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="686"
-                            class="link-to-prism">angular/userProfile/app/shared/form/field-base.ts:686</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="690"
+                            class="link-to-prism">angular/userProfile/app/shared/form/field-base.ts:690</a></div>
                 </td>
             </tr>
 
@@ -1962,8 +1962,8 @@
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="537"
-                            class="link-to-prism">angular/userProfile/app/shared/form/field-base.ts:537</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="541"
+                            class="link-to-prism">angular/userProfile/app/shared/form/field-base.ts:541</a></div>
                 </td>
             </tr>
 
@@ -2510,8 +2510,8 @@ fieldMap[name].field = the Field model (this)</p>
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="580"
-                            class="link-to-prism">angular/userProfile/app/shared/form/field-base.ts:580</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="584"
+                            class="link-to-prism">angular/userProfile/app/shared/form/field-base.ts:584</a></div>
                 </td>
             </tr>
 
@@ -2601,8 +2601,8 @@ e.g.</p>
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="628"
-                            class="link-to-prism">angular/userProfile/app/shared/form/field-base.ts:628</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="632"
+                            class="link-to-prism">angular/userProfile/app/shared/form/field-base.ts:632</a></div>
                 </td>
             </tr>
 
@@ -2692,8 +2692,8 @@ e.g.</p>
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="556"
-                            class="link-to-prism">angular/userProfile/app/shared/form/field-base.ts:556</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="560"
+                            class="link-to-prism">angular/userProfile/app/shared/form/field-base.ts:560</a></div>
                 </td>
             </tr>
 
@@ -2777,8 +2777,8 @@ e.g. to emit the form value when the form loads</p>
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="604"
-                            class="link-to-prism">angular/userProfile/app/shared/form/field-base.ts:604</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="608"
+                            class="link-to-prism">angular/userProfile/app/shared/form/field-base.ts:608</a></div>
                 </td>
             </tr>
 
@@ -2959,8 +2959,8 @@ e.g.</p>
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="530"
-                            class="link-to-prism">angular/userProfile/app/shared/form/field-base.ts:530</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="534"
+                            class="link-to-prism">angular/userProfile/app/shared/form/field-base.ts:534</a></div>
                 </td>
             </tr>
 
@@ -3024,8 +3024,8 @@ e.g.</p>
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="698"
-                            class="link-to-prism">angular/userProfile/app/shared/form/field-base.ts:698</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="702"
+                            class="link-to-prism">angular/userProfile/app/shared/form/field-base.ts:702</a></div>
                 </td>
             </tr>
 
@@ -3262,8 +3262,8 @@ e.g.</p>
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="650"
-                            class="link-to-prism">angular/userProfile/app/shared/form/field-base.ts:650</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="654"
+                            class="link-to-prism">angular/userProfile/app/shared/form/field-base.ts:654</a></div>
                 </td>
             </tr>
 
@@ -3327,8 +3327,8 @@ e.g.</p>
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="635"
-                            class="link-to-prism">angular/userProfile/app/shared/form/field-base.ts:635</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="639"
+                            class="link-to-prism">angular/userProfile/app/shared/form/field-base.ts:639</a></div>
                 </td>
             </tr>
 
@@ -3392,8 +3392,8 @@ e.g.</p>
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="670"
-                            class="link-to-prism">angular/userProfile/app/shared/form/field-base.ts:670</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="674"
+                            class="link-to-prism">angular/userProfile/app/shared/form/field-base.ts:674</a></div>
                 </td>
             </tr>
 
@@ -4362,7 +4362,11 @@ export class FieldBase&lt;T&gt; {
         if (that.visible) {
           // remove validators
           if (that.formModel) {
-            that.formModel.clearValidators();
+            if(that[&#x27;disableValidators&#x27;] !&#x3D; null &amp;&amp; typeof(that[&#x27;disableValidators&#x27;]) &#x3D;&#x3D; &#x27;function&#x27;) {
+              that[&#x27;disableValidators&#x27;]();
+            } else {
+              that.formModel.clearValidators();
+            }
             that.formModel.updateValueAndValidity();
           }
         }
