@@ -46,7 +46,7 @@ module.exports.reports = {
       {
         "label": "External URL",
         "property": "reportExternalURL",
-        "exportTemplate": "${ data.optTemplateData.brandingAndPortalUrl }/record/view/${ data.id }",
+        "exportTemplate": "${ data.optTemplateData.brandingAndPortalUrl }/record/view/${ data.oid }",
         "hide": true
       },
       {
@@ -178,7 +178,7 @@ module.exports.reports = {
       {
         "label": "External URL",
         "property": "reportExternalURL",
-        "exportTemplate": "${ data.optTemplateData.brandingAndPortalUrl }/record/view/${ data.id }",
+        "exportTemplate": "${ data.optTemplateData.brandingAndPortalUrl }/record/view/${ data.oid }",
         "hide": true
       },
       {
@@ -250,7 +250,7 @@ module.exports.reports = {
       {
         "label": "External URL",
         "property": "reportExternalURL",
-        "exportTemplate": "${ data.optTemplateData.brandingAndPortalUrl }/record/view/${ data.id }",
+        "exportTemplate": "${ data.optTemplateData.brandingAndPortalUrl }/record/view/${ data.oid }",
         "hide": true
       },
       {
@@ -403,7 +403,7 @@ module.exports.reports = {
       {
         "label": "External URL",
         "property": "reportExternalURL",
-        "exportTemplate": "${ data.optTemplateData.brandingAndPortalUrl }/record/view/${ data.id }",
+        "exportTemplate": "${ data.optTemplateData.brandingAndPortalUrl }/record/view/${ data.oid }",
         "hide": true
       },
       {
