@@ -93,7 +93,7 @@ export module Controllers {
         let mongoQuery = _.clone(configMongoQuery);
         let queryParams = namedQueryConfig.queryParams;
         let paramMap = _.clone(req.query);
-        let response = await NamedQueryService.performNamedQuery(mongoQuery,queryParams,brand,paramMap,start,rows)
+        let response = await NamedQueryService.performNamedQuery(mongoQuery,queryParams,paramMap,brand,start,rows)
         sails.log.error("NamedQueryService response")
         sails.log.error(response)
         return this.apiRespond(req, res, response, 200)
