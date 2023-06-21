@@ -62,12 +62,12 @@ module.exports.reports = {
       {
         "label": "Chief Investigator",
         "property": "metadata.contributor_ci.text_full_name",
-        "template" : "${ data.metadata.contributor_ci.text_full_name }"
+        "template" : "${ _.get(data, 'metadata.contributor_ci.text_full_name', '')}"
       },
       {
         "label": "Data Manager",
         "property": "metadata.contributor_data_manager.text_full_name",
-        "template" : "${ data.metadata.contributor_data_manager.text_full_name }"
+        "template" : "${ _.get(data, 'metadata.contributor_data_manager.text_full_name', '') }"
       }
     ]
   },
@@ -194,12 +194,12 @@ module.exports.reports = {
       {
         "label": "Chief Investigator",
         "property": "metadata.contributor_ci.text_full_name",
-        "template" : "${ data.metadata.contributor_ci.text_full_name }"
+        "template" : "${ _.get(data, 'metadata.contributor_ci.text_full_name', '')}"
       },
       {
         "label": "Data Manager",
         "property": "metadata.contributor_data_manager.text_full_name",
-        "template" : "${ data.metadata.contributor_data_manager.text_full_name }"
+        "template" : "${ _.get(data, 'metadata.contributor_data_manager.text_full_name', '') }"
       }
     ]
   },
@@ -266,12 +266,12 @@ module.exports.reports = {
       {
         "label": "Chief Investigator",
         "property": "metadata.contributor_ci.text_full_name",
-        "template" : "${ data.metadata.contributor_ci.text_full_name }"
+        "template" : "${ _.get(data, 'metadata.contributor_ci.text_full_name', '')}"
       },
       {
         "label": "Data Manager",
         "property": "metadata.contributor_data_manager.text_full_name",
-        "template" : "${ data.metadata.contributor_data_manager.text_full_name }"
+        "template" : "${ _.get(data, 'metadata.contributor_data_manager.text_full_name', '') }"
       }
     ]
   },
@@ -347,12 +347,12 @@ module.exports.reports = {
       {
         "label": "Chief Investigator",
         "property": "metadata.contributor_ci.text_full_name",
-        "template" : "${ data.metadata.contributor_ci.text_full_name }"
+        "template" : "${ _.get(data, 'metadata.contributor_ci.text_full_name', '')}"
       },
       {
         "label": "Data Manager",
         "property": "metadata.contributor_data_manager.text_full_name",
-        "template" : "${ data.metadata.contributor_data_manager.text_full_name }"
+        "template" : "${ _.get(data, 'metadata.contributor_data_manager.text_full_name', '') }"
       }
     ]
   },
@@ -419,12 +419,12 @@ module.exports.reports = {
       {
         "label": "Chief Investigator",
         "property": "metadata.contributor_ci.text_full_name",
-        "template" : "${ data.metadata.contributor_ci.text_full_name }"
+        "template" : "${ _.get(data, 'metadata.contributor_ci.text_full_name', '')}"
       },
       {
         "label": "Data Manager",
         "property": "metadata.contributor_data_manager.text_full_name",
-        "template" : "${ data.metadata.contributor_data_manager.text_full_name }"
+        "template" : "${ _.get(data, 'metadata.contributor_data_manager.text_full_name', '') }"
       }
     ]
   }
