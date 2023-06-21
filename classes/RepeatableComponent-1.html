@@ -187,7 +187,7 @@
                 </tr>
                     <tr>
                         <td class="col-md-4">
-                                <div class="io-line">Defined in <a href="" data-line="358" class="link-to-prism">angular/dashboard/app/shared/form/field-repeatable.component.ts:358</a></div>
+                                <div class="io-line">Defined in <a href="" data-line="374" class="link-to-prism">angular/dashboard/app/shared/form/field-repeatable.component.ts:374</a></div>
                         </td>
                     </tr>
 
@@ -378,8 +378,8 @@
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="360"
-                            class="link-to-prism">angular/dashboard/app/shared/form/field-repeatable.component.ts:360</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="376"
+                            class="link-to-prism">angular/dashboard/app/shared/form/field-repeatable.component.ts:376</a></div>
                 </td>
             </tr>
 
@@ -453,7 +453,7 @@
             </tr>
             <tr>
                 <td class="col-md-4">
-                        <div class="io-line">Defined in         <code><a href="../classes/SimpleComponent.html#source" target="_self" >SimpleComponent:368</a></code>
+                        <div class="io-line">Defined in         <code><a href="../classes/SimpleComponent.html#source" target="_self" >SimpleComponent:384</a></code>
 </div>
                 </td>
             </tr>
@@ -490,8 +490,8 @@
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="364"
-                            class="link-to-prism">angular/dashboard/app/shared/form/field-repeatable.component.ts:364</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="380"
+                            class="link-to-prism">angular/dashboard/app/shared/form/field-repeatable.component.ts:380</a></div>
                 </td>
             </tr>
 
@@ -1204,12 +1204,20 @@ export class RepeatableContainer extends Container {
         if (that.visible) {
           // remove validators
           if (that.formModel) {
-            that.formModel.clearValidators();
+            if(that[&#x27;disableValidators&#x27;] !&#x3D; null &amp;&amp; typeof(that[&#x27;disableValidators&#x27;]) &#x3D;&#x3D; &#x27;function&#x27;) {
+              that[&#x27;disableValidators&#x27;]();
+            } else {
+              that.formModel.clearValidators();
+            }
             that.formModel.updateValueAndValidity();
           }
           for(let field of that.fields) {
             if(field.formModel) {
-              field.formModel.clearValidators();
+              if(field[&#x27;disableValidators&#x27;] !&#x3D; null &amp;&amp; typeof(field[&#x27;disableValidators&#x27;]) &#x3D;&#x3D; &#x27;function&#x27;) {
+                field[&#x27;disableValidators&#x27;]();
+              } else {
+                field.formModel.clearValidators();
+              }
               field.formModel.updateValueAndValidity();
             }
           }
@@ -1218,12 +1226,20 @@ export class RepeatableContainer extends Container {
         if (!that.visible) {
           // restore validators
           if (that.formModel) {
-            that.formModel.setValidators(that.validators);
+            if(that[&#x27;enableValidators&#x27;] !&#x3D; null &amp;&amp; typeof(that[&#x27;enableValidators&#x27;]) &#x3D;&#x3D; &#x27;function&#x27;) {
+              that[&#x27;enableValidators&#x27;]();
+            } else {
+              that.formModel.setValidators(that.validators);
+            }
             that.formModel.updateValueAndValidity();
           }
           for(let field of that.fields) {
             if(field.formModel) {
-              field.formModel.setValidators(field.validators);
+              if(field[&#x27;enableValidators&#x27;] !&#x3D; null &amp;&amp; typeof(field[&#x27;enableValidators&#x27;]) &#x3D;&#x3D; &#x27;function&#x27;) {
+                field[&#x27;enableValidators&#x27;]();
+              } else {
+                field.formModel.setValidators(field.validators);
+              }
               field.formModel.updateValueAndValidity();
             }
           }

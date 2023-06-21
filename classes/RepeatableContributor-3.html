@@ -463,7 +463,7 @@
                 </tr>
                         <tr>
                             <td class="col-md-4">
-                                <div class="io-line">Defined in <a href="" data-line="445" class="link-to-prism">angular/export/app/shared/form/field-repeatable.component.ts:445</a></div>
+                                <div class="io-line">Defined in <a href="" data-line="461" class="link-to-prism">angular/export/app/shared/form/field-repeatable.component.ts:461</a></div>
                             </td>
                         </tr>
 
@@ -537,7 +537,7 @@
                 </tr>
                     <tr>
                         <td class="col-md-4">
-                                <div class="io-line">Defined in <a href="" data-line="445" class="link-to-prism">angular/export/app/shared/form/field-repeatable.component.ts:445</a></div>
+                                <div class="io-line">Defined in <a href="" data-line="461" class="link-to-prism">angular/export/app/shared/form/field-repeatable.component.ts:461</a></div>
                         </td>
                     </tr>
 
@@ -569,7 +569,7 @@
                         </tr>
                     <tr>
                         <td class="col-md-4">
-                                <div class="io-line">Defined in         <code><a href="../classes/Container.html#source" target="_self" >Container:444</a></code>
+                                <div class="io-line">Defined in         <code><a href="../classes/Container.html#source" target="_self" >Container:460</a></code>
 </div>
                         </td>
                     </tr>
@@ -2764,7 +2764,7 @@ and that maximumEntries &gt;= minimumEntries. If not set defaults to a minimum v
             </tr>
             <tr>
                 <td class="col-md-4">
-                        <div class="io-line">Defined in         <code><a href="../classes/RepeatableContainer.html#source" target="_self" >RepeatableContainer:456</a></code>
+                        <div class="io-line">Defined in         <code><a href="../classes/RepeatableContainer.html#source" target="_self" >RepeatableContainer:472</a></code>
 </div>
                 </td>
             </tr>
@@ -2843,7 +2843,7 @@ and that maximumEntries &gt;= minimumEntries. If not set defaults to a minimum v
             </tr>
             <tr>
                 <td class="col-md-4">
-                        <div class="io-line">Defined in         <code><a href="../classes/RepeatableContainer.html#source" target="_self" >RepeatableContainer:452</a></code>
+                        <div class="io-line">Defined in         <code><a href="../classes/RepeatableContainer.html#source" target="_self" >RepeatableContainer:468</a></code>
 </div>
                 </td>
             </tr>
@@ -6009,12 +6009,20 @@ export class RepeatableContainer extends Container {
         if (that.visible) {
           // remove validators
           if (that.formModel) {
-            that.formModel.clearValidators();
+            if(that[&#x27;disableValidators&#x27;] !&#x3D; null &amp;&amp; typeof(that[&#x27;disableValidators&#x27;]) &#x3D;&#x3D; &#x27;function&#x27;) {
+              that[&#x27;disableValidators&#x27;]();
+            } else {
+              that.formModel.clearValidators();
+            }
             that.formModel.updateValueAndValidity();
           }
           for(let field of that.fields) {
             if(field.formModel) {
-              field.formModel.clearValidators();
+              if(field[&#x27;disableValidators&#x27;] !&#x3D; null &amp;&amp; typeof(field[&#x27;disableValidators&#x27;]) &#x3D;&#x3D; &#x27;function&#x27;) {
+                field[&#x27;disableValidators&#x27;]();
+              } else {
+                field.formModel.clearValidators();
+              }
               field.formModel.updateValueAndValidity();
             }
           }
@@ -6023,12 +6031,20 @@ export class RepeatableContainer extends Container {
         if (!that.visible) {
           // restore validators
           if (that.formModel) {
-            that.formModel.setValidators(that.validators);
+            if(that[&#x27;enableValidators&#x27;] !&#x3D; null &amp;&amp; typeof(that[&#x27;enableValidators&#x27;]) &#x3D;&#x3D; &#x27;function&#x27;) {
+              that[&#x27;enableValidators&#x27;]();
+            } else {
+              that.formModel.setValidators(that.validators);
+            }
             that.formModel.updateValueAndValidity();
           }
           for(let field of that.fields) {
             if(field.formModel) {
-              field.formModel.setValidators(field.validators);
+              if(field[&#x27;enableValidators&#x27;] !&#x3D; null &amp;&amp; typeof(field[&#x27;enableValidators&#x27;]) &#x3D;&#x3D; &#x27;function&#x27;) {
+                field[&#x27;enableValidators&#x27;]();
+              } else {
+                field.formModel.setValidators(field.validators);
+              }
               field.formModel.updateValueAndValidity();
             }
           }

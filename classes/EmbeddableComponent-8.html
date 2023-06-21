@@ -392,7 +392,7 @@
             </tr>
             <tr>
                 <td class="col-md-4">
-                        <div class="io-line">Defined in         <code><a href="../classes/SimpleComponent.html#source" target="_self" >SimpleComponent:347</a></code>
+                        <div class="io-line">Defined in         <code><a href="../classes/SimpleComponent.html#source" target="_self" >SimpleComponent:363</a></code>
 </div>
                 </td>
             </tr>
@@ -465,8 +465,8 @@
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="343"
-                            class="link-to-prism">angular/report/app/shared/form/field-repeatable.component.ts:343</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="359"
+                            class="link-to-prism">angular/report/app/shared/form/field-repeatable.component.ts:359</a></div>
                 </td>
             </tr>
 
@@ -869,7 +869,7 @@ Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a></p
                 </tr>
                         <tr>
                             <td class="col-md-2" colspan="2">
-                                    <div class="io-line">Defined in <a href="" data-line="337" class="link-to-prism">angular/report/app/shared/form/field-repeatable.component.ts:337</a></div>
+                                    <div class="io-line">Defined in <a href="" data-line="353" class="link-to-prism">angular/report/app/shared/form/field-repeatable.component.ts:353</a></div>
                             </td>
                         </tr>
             </tbody>
@@ -890,7 +890,7 @@ Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a></p
                 </tr>
                         <tr>
                             <td class="col-md-2" colspan="2">
-                                    <div class="io-line">Defined in <a href="" data-line="340" class="link-to-prism">angular/report/app/shared/form/field-repeatable.component.ts:340</a></div>
+                                    <div class="io-line">Defined in <a href="" data-line="356" class="link-to-prism">angular/report/app/shared/form/field-repeatable.component.ts:356</a></div>
                             </td>
                         </tr>
             </tbody>
@@ -916,7 +916,7 @@ Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a></p
                 </tr>
                         <tr>
                             <td class="col-md-2" colspan="2">
-                                    <div class="io-line">Defined in <a href="" data-line="339" class="link-to-prism">angular/report/app/shared/form/field-repeatable.component.ts:339</a></div>
+                                    <div class="io-line">Defined in <a href="" data-line="355" class="link-to-prism">angular/report/app/shared/form/field-repeatable.component.ts:355</a></div>
                             </td>
                         </tr>
             </tbody>
@@ -942,7 +942,7 @@ Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a></p
                 </tr>
                         <tr>
                             <td class="col-md-2" colspan="2">
-                                    <div class="io-line">Defined in <a href="" data-line="338" class="link-to-prism">angular/report/app/shared/form/field-repeatable.component.ts:338</a></div>
+                                    <div class="io-line">Defined in <a href="" data-line="354" class="link-to-prism">angular/report/app/shared/form/field-repeatable.component.ts:354</a></div>
                             </td>
                         </tr>
             </tbody>
@@ -966,7 +966,7 @@ Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a></p
                 </tr>
                         <tr>
                             <td class="col-md-2" colspan="2">
-                                    <div class="io-line">Defined in <a href="" data-line="341" class="link-to-prism">angular/report/app/shared/form/field-repeatable.component.ts:341</a></div>
+                                    <div class="io-line">Defined in <a href="" data-line="357" class="link-to-prism">angular/report/app/shared/form/field-repeatable.component.ts:357</a></div>
                             </td>
                         </tr>
             </tbody>
@@ -1261,12 +1261,20 @@ export class RepeatableContainer extends Container {
         if (that.visible) {
           // remove validators
           if (that.formModel) {
-            that.formModel.clearValidators();
+            if(that[&#x27;disableValidators&#x27;] !&#x3D; null &amp;&amp; typeof(that[&#x27;disableValidators&#x27;]) &#x3D;&#x3D; &#x27;function&#x27;) {
+              that[&#x27;disableValidators&#x27;]();
+            } else {
+              that.formModel.clearValidators();
+            }
             that.formModel.updateValueAndValidity();
           }
           for(let field of that.fields) {
             if(field.formModel) {
-              field.formModel.clearValidators();
+              if(field[&#x27;disableValidators&#x27;] !&#x3D; null &amp;&amp; typeof(field[&#x27;disableValidators&#x27;]) &#x3D;&#x3D; &#x27;function&#x27;) {
+                field[&#x27;disableValidators&#x27;]();
+              } else {
+                field.formModel.clearValidators();
+              }
               field.formModel.updateValueAndValidity();
             }
           }
@@ -1275,12 +1283,20 @@ export class RepeatableContainer extends Container {
         if (!that.visible) {
           // restore validators
           if (that.formModel) {
-            that.formModel.setValidators(that.validators);
+            if(that[&#x27;enableValidators&#x27;] !&#x3D; null &amp;&amp; typeof(that[&#x27;enableValidators&#x27;]) &#x3D;&#x3D; &#x27;function&#x27;) {
+              that[&#x27;enableValidators&#x27;]();
+            } else {
+              that.formModel.setValidators(that.validators);
+            }
             that.formModel.updateValueAndValidity();
           }
           for(let field of that.fields) {
             if(field.formModel) {
-              field.formModel.setValidators(field.validators);
+              if(field[&#x27;enableValidators&#x27;] !&#x3D; null &amp;&amp; typeof(field[&#x27;enableValidators&#x27;]) &#x3D;&#x3D; &#x27;function&#x27;) {
+                field[&#x27;enableValidators&#x27;]();
+              } else {
+                field.formModel.setValidators(field.validators);
+              }
               field.formModel.updateValueAndValidity();
             }
           }
