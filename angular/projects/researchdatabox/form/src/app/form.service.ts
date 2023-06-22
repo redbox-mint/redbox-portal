@@ -20,7 +20,8 @@
 import { Injectable, Inject } from '@angular/core';
 import { isEmpty as _isEmpty, toLower as _toLower, merge as _merge } from 'lodash-es';
 import { ComponentFieldMap, StaticComponentFieldMap } from './static-comp-field.dictionary';
-import { FormCustomService } from '@researchdatabox/portal-ng-form-custom';
+import { LoggerService } from '@researchdatabox/portal-ng-common';
+import { PortalNgFormCustomService } from '@researchdatabox/portal-ng-form-custom';
 /**
  *
  * FormService
@@ -39,7 +40,8 @@ export class FormService {
   protected formFieldTypeMap:ComponentFieldMap = {};
 
   constructor(
-    @Inject(FormCustomService) private customModuleResolverService: FormCustomService
+    @Inject(PortalNgFormCustomService) private customModuleFormCmpResolverService: PortalNgFormCustomService,
+    @Inject(LoggerService) private loggerService: LoggerService,
     ) {
     // start with the static version
     _merge(this.formFieldTypeMap, StaticComponentFieldMap);
@@ -106,19 +108,25 @@ export class FormService {
         // 1. for statically imported (e.g. modules) class doesn't have to be resolved here
         // 2. deal with genuine lazy-loading enabled components
         if (field.module == 'custom') {
-          componentInfo = await this.customModuleResolverService.getComponentClass(field.component);
-          console.log(componentInfo);
-          this.formFieldTypeMap[field.component] = componentInfo;
+          try {
+            componentInfo = await this.customModuleFormCmpResolverService.getComponentClass(field.component);
+            console.log(componentInfo);
+            this.formFieldTypeMap[field.component] = componentInfo;
+          } catch (e) {
+            this.loggerService.error(`Failed to resolve component: ${field.component}`);
+          }
         }
       } else {
         // should be resolved already
         componentInfo = this.formFieldTypeMap[field.class];
       }
       // TODO: handle missing field types
-      fieldArr.push({
-        componentInfo: componentInfo,
-        data: field
-      });
+      if (!_isEmpty(componentInfo)) {
+        fieldArr.push({
+          componentInfo: componentInfo,
+          data: field
+        });
+      }
     }
     return fieldArr;
   }
