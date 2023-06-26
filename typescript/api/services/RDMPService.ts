@@ -660,12 +660,7 @@ export module Services {
       sails.log.verbose(`runTemplates oid: ${oid} with user: ${JSON.stringify(user)}`);
       sails.log.verbose(JSON.stringify(record));
 
-      let parseObject = false;
-      let tmpParseObject = _.get(options, 'parseObject');
-      if(!_.isUndefined(tmpParseObject)){
-        parseObject = tmpParseObject;
-      }
-
+      let parseObject = _.get(options, 'parseObject', false);
       let tmplConfig = null;
       try {
         _.each(options.templates, (templateConfig) => {
