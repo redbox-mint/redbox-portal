@@ -68,13 +68,10 @@ export module Services {
       try {
         let sourceType = _.get(options, 'sourceType');
         let queryStringTmp = _.get(options, 'queryString');
-        let userAttribute = _.get(options, 'userAttribute');
-        let placeholderLeftSeparator = _.get(options, 'placeholderLeftSeparator');
-        let placeholderRightSeparator = _.get(options, 'placeholderRightSeparator');
+        let compiledTemplate = _.template(queryStringTmp, {});
         let fieldsToMap = _.get(options, 'fieldsToMap');
-        let placeholder = placeholderLeftSeparator + userAttribute + placeholderRightSeparator;
-        let attributeValue = _.get(user, userAttribute);
-        let queryString = queryStringTmp.replaceAll(placeholder,attributeValue);
+        
+        let queryString = compiledTemplate({user: user});
         let mintResponse = await this.findInMint(sourceType, queryString).toPromise();
         let responseDocs = _.get(mintResponse, 'response.docs');
         if(_.isArray(responseDocs) && responseDocs.length > 0) {
