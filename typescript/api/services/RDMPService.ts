@@ -660,6 +660,12 @@ export module Services {
       sails.log.verbose(`runTemplates oid: ${oid} with user: ${JSON.stringify(user)}`);
       sails.log.verbose(JSON.stringify(record));
 
+      let parseObject = false;
+      let tmpParseObject = _.get(options, 'parseObject');
+      if(!_.isUndefined(tmpParseObject)){
+        parseObject = tmpParseObject;
+      }
+
       let tmplConfig = null;
       try {
         _.each(options.templates, (templateConfig) => {
@@ -676,7 +682,12 @@ export module Services {
             imports: imports
           };
           const data = _.template(templateConfig.template, templateData)();
-          _.set(record, templateConfig.field, data);
+          if(parseObject) {
+            let obj = JSON.parse(data);
+            _.set(record, templateConfig.field, obj);
+          } else {
+            _.set(record, templateConfig.field, data);
+          }
         });
       } catch (e) {
         const errLog = `Failed to run one of the string templates: ${JSON.stringify(tmplConfig)}`
