@@ -453,6 +453,11 @@ module.exports.routes = {
     action: 'executeNamedQuery',
     csrf: false
   },
+  'get /:branding/:portal/api/export/record/download/:format': {
+    controller: 'webservice/ExportController',
+    action: 'downloadRecs',
+    csrf: false
+  },
   'get /:branding/:portal/workspaces/types/:name': 'WorkspaceTypesController.getOne',
   'get /:branding/:portal/workspaces/types': 'WorkspaceTypesController.get'
 };
