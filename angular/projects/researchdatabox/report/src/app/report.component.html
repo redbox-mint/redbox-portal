@@ -1,0 +1,101 @@
+<ng-container *ngIf="isReady">
+  <!-- The report title -->
+  <div class="row">
+    <div class="col-xs-12">
+      <h1 class="text-center" *ngIf="report && report.title">
+        {{ report.title }}
+      </h1>
+    </div>
+  </div>
+  <!-- Render the report's filter UI elements -->
+  <div class="row" *ngIf="report && report.filter != null">
+    <div class="panel panel-default">
+      <div class="panel-body">
+        <div class="row">
+          <div class="text-center h4-header mb-2">
+            {{ 'report-filters-heading' | i18next }}
+          </div>
+        </div>
+        <ng-container *ngFor="let filter of report.filter">
+          
+          <!-- Text filter -->
+          <div *ngIf="filter.type == 'text'" class="row">
+            <div class="col-md-2"></div>
+            <div class="col-xs-2">
+              <label [for]="filter.paramName">{{filter.message}}</label>
+            </div>
+            <div class="col-xs-6">
+              <input [id]="filter.paramName" type="text" class="form-control" [(ngModel)]="filterParams[ filter['paramName']]">
+            </div>
+            <div class="col-md-2"></div>
+          </div>
+          <!-- Date filter -->
+          
+          <div *ngIf="filter.type == 'date-range'" class="row">
+            <div class="col-md-2"></div>
+            <div class="col-12 col-sm-2 col-md-2">
+              <label [for]="filter.paramName" class="report-filter-date-range-label">{{filter.message}}</label>
+            </div>
+            <div class="col-12 col-sm-3 col-md-3">
+             
+                <div class="form-group">
+                  <label class="control-label mr-2">{{ 'report-filter-date-from' | i18next }}</label>
+
+                    <input type="text" [id]="filter.paramName + '_fromDate'"
+                      [bsConfig] = "datePickerOpts"
+                      [placeholder] = "datePickerPlaceHolder"
+                      [(ngModel)]="filterParams[ filter['paramName'] + '_fromDate']"
+                      bsDatepicker />
+             
+              </div>
+            </div>
+            <div class="col-12 col-sm-3 col-md-3">
+              
+                <div class="form-group">
+                  <label class="control-label mr-2">{{ 'report-filter-date-to' | i18next }}</label>    
+                    <input type="text" [id]="filter.paramName + '_toDate'"
+                    [bsConfig] = "datePickerOpts"
+                    [placeholder] = "datePickerPlaceHolder"
+                    [(ngModel)]="filterParams[ filter['paramName'] + '_toDate']"
+                    bsDatepicker />
+                  </div>
+            </div>
+            <div class="col-md-2"></div>
+          </div>
+          
+        </ng-container>
+        <div class="row">
+          <div class="col-xs-2"></div>
+          <div class="col-xs-8" style="text-align:right; padding-top:15px;">
+            <a class="btn btn-large btn-primary" (click)="filter()">
+              <span class="glyphicon glyphicon-search"></span>
+              {{ 'report-filter-button' | i18next }}
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- Result overview  -->
+  <div class="row" *ngIf="initTracker && initTracker.resultsReturned">
+    <div class="col-xs-2">
+      <span *ngIf="initTracker.resultsReturned == false">
+        <span class="fa fa-spinner fa-spin fa-fw"></span>
+          {{ 'report-retrieving-results' | i18next }}
+      </span>
+      <span *ngIf="initTracker.resultsReturned == true"
+        [innerHTML]='"report-results-returned" | i18next: {count: reportResult.total }'>
+      </span>
+    </div>
+    <div class="col-xs-8"></div>
+    <div class="col-xs-2">
+      <a class="btn btn-large btn-primary" [attr.href]='getDownloadCSVUrl()'>
+        <span class="glyphicon glyphicon-download"></span>
+        {{ 'report-csv-download' | i18next }}
+      </a>
+    </div>
+  </div>
+  <!-- Result details -->
+  <record-table [columnConfig]="tableHeaders" [dataSource]="this" [optTemplateData]="optTemplateData" [paginationItemsPerPage]="recordsPerPage" [paginationMaxSize]="paginationMaxSize">
+  </record-table>
+</ng-container>

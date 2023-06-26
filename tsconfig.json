@@ -13,10 +13,11 @@
         "removeComments": true,
         "noLib": false,
         "preserveConstEnums": true,
-        "suppressImplicitAnyIndexErrors": true,
         "sourceMap": false,
+        "inlineSourceMap": true,
         "outDir": "./",
-        "rootDir": "./typescript"
+        "rootDir": "./typescript",
+        "types": ["node"]
     },
     "exclude": [
         "node_modules/**",

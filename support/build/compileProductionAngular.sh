@@ -1,24 +1,26 @@
 #! /bin/bash
 set -e
 function buildAngularApp() {
-    (cd angular && node_modules/.bin/ng build --app=${1} --prod --build-optimizer --output-hashing=none --extract-css true)
+  (node_modules/.bin/ng b @researchdatabox/${1} --configuration production)
 }
+export NVM_DIR="$HOME/.nvm"
+[ -s "$HOME/.nvm/nvm.sh" ] && . "$HOME/.nvm/nvm.sh"
+cd angular
+nvm i < .nvmrc && npm install
 
 if [ $# -ne 0 ]
   then
     echo "Bundling ${1}"
     buildAngularApp "$1"
 else 
-  ng2apps=( `find angular -maxdepth 1 -mindepth 1 -type d -printf '%f '` )
+  echo "Building core..."
+  buildAngularApp "portal-ng-common"
+  ng2apps=( `find ./projects/researchdatabox -maxdepth 1 -mindepth 1 -type d -printf '%f '` )
   for ng2app in "${ng2apps[@]}"
   do
-    if [ "$ng2app" != "shared" ]; then
-      if [ "$ng2app" != "e2e" ]; then
-        if [ "$ng2app" != "node_modules" ]; then
-          echo "Bundling ${ng2app}"
-          buildAngularApp "${ng2app}"
-        fi
-      fi
+    if [ "$ng2app" != "portal-ng-common" ]; then
+      echo "Building ${ng2app}"
+      buildAngularApp "${ng2app}"
     fi
   done
 fi

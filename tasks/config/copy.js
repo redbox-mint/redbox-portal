@@ -29,6 +29,30 @@ module.exports = function(grunt) {
       cwd: './assets',
       src: ['**/*.!(coffee|less|scss|sass)'],
       dest: '.tmp/public'
+    },
+    {
+      expand: true,
+      cwd: './node_modules/bootstrap/dist/js/' ,
+      src: ['bootstrap.bundle.min.js'],
+      dest: '.tmp/public/default/default/js'
+    },
+    {
+      expand: true,
+      cwd: './node_modules/jquery/dist/' ,
+      src: ['jquery.min.js'],
+      dest: '.tmp/public/default/default/js'
+    },
+    {
+      expand: true,
+      cwd: './angular-legacy/node_modules/bootstrap-datepicker/js/' ,
+      src: ['bootstrap-datepicker.js'],
+      dest: '.tmp/public/default/default/js'
+    },
+    {
+      expand: true,
+      cwd: './angular-legacy/node_modules/bootstrap-timepicker/js/' ,
+      src: ['bootstrap-timepicker.js'],
+      dest: '.tmp/public/default/default/js'
     }
   ];
   var apiFilesConfig = [
@@ -53,6 +77,9 @@ module.exports = function(grunt) {
         dest: '.tmp/public/node_modules/' + moduleName
       });
   });
+
+
+
   // copy all JS in typescript/api directory
   grunt.config.set('copy', {
     dev: {

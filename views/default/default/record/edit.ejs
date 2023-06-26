@@ -7,10 +7,10 @@
   <div class="col-xs-1">
   </div>
 </div>
-<<%= appSelector %> oid="<%= oid %>" rdmp="<%= rdmp %>" editMode="true" recordType="<%= recordType %>" ></<%= appSelector %>>
+<<%= appSelector %> oid="<%= oid %>" rdmp="<%= rdmp %>" editMode="true" recordType="<%= recordType %>" branding="<%= typeof branding == 'undefined'? data.branding : branding %>" portal="<%= typeof portal == 'undefined'? data.portal : portal %>" formName="<%= formName %>" ></<%= appSelector %>>
 <!-- DateTime Picker Deps -->
-<script src="<%= BrandingService.getRootContext() %>/node_modules/bootstrap-datepicker/dist/js/bootstrap-datepicker.min.js"></script>
-<script src="<%= BrandingService.getRootContext() %>/node_modules/bootstrap-timepicker/js/bootstrap-timepicker.js"></script>
+<script src="<%= BrandingService.getBrandAndPortalPath(req) %>/js/bootstrap-datepicker.js"></script>
+<script src="<%= BrandingService.getBrandAndPortalPath(req) %>/js/bootstrap-timepicker.js"></script>
 <script src="<%= BrandingService.getBrandAndPortalPath(req) %>/js/vocab_widget_v2.js"></script>
 <script src='<%= BrandingService.getBrandAndPortalPath(req) %>/js/v0_3_1-leaflet-omnivore.min.js'></script>
 <%
