@@ -9,6 +9,7 @@
         "emitDecoratorMetadata": true,
         "declaration": false,
         "noImplicitAny": false,
+        "skipLibCheck": true,
         "noImplicitUseStrict": false,
         "removeComments": true,
         "noLib": false,
