@@ -29,7 +29,8 @@ import {
   DashboardTypeResponseModel
 } from '@researchdatabox/redbox-core-types';
 import moment = require('moment');
-import * as tus from 'tus-node-server';
+import {Server,EVENTS} from '@tus/server';
+import {FileStore} from '@tus/file-store';
 import * as fs from 'fs';
 import * as url from 'url';
 const checkDiskSpace = require('check-disk-space').default;
@@ -1280,24 +1281,31 @@ export module Controllers {
 
     protected initTusServer() {
       if (!this.tusServer) {
-        let tusServerOptions = {
-        path: sails.config.record.attachments.path
-      }
-        this.tusServer = new tus.Server(tusServerOptions);
+        
+        
+        
+        
         
         const targetDir = sails.config.record.attachments.stageDir;
         if (!fs.existsSync(targetDir)) {
           fs.mkdirSync(targetDir);
         }
-        // path below is appended to the 'Location' header, so it must match the routes for this controller if you want to keep your sanity
-        this.tusServer.datastore = new tus.FileStore({
+        const datastore = new FileStore({
           directory: targetDir
         });
-        this.tusServer.on(tus.EVENTS.EVENT_UPLOAD_COMPLETE, (event) => {
+
+        let tusServerOptions = {
+          path: sails.config.record.attachments.path,
+          datastore: datastore
+        }
+        this.tusServer = new Server(tusServerOptions);
+        // path below is appended to the 'Location' header, so it must match the routes for this controller if you want to keep your sanity
+        
+        this.tusServer.on(EVENTS.POST_CREATE, (event) => {
           sails.log.verbose(`::: File uploaded to staging:`);
           sails.log.verbose(JSON.stringify(event));
         });
-        this.tusServer.on(tus.EVENTS.EVENT_FILE_CREATED, (event) => {
+        this.tusServer.on(EVENTS.POST_FINISH, (event) => {
           sails.log.verbose(`::: File created:`);
           sails.log.verbose(JSON.stringify(event));
         });

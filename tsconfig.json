@@ -8,6 +8,7 @@
         "experimentalDecorators": true,
         "emitDecoratorMetadata": true,
         "declaration": false,
+        "skipLibCheck": true,
         "noImplicitAny": false,
         "noImplicitUseStrict": false,
         "removeComments": true,
