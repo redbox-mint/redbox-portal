@@ -1,0 +1,348 @@
+<!doctype html>
+<html class="no-js" lang="">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="x-ua-compatible" content="ie=edge">
+        <title>ReDBox Portal - NG2 Apps</title>
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+
+        <link rel="icon" type="image/x-icon" href="../images/favicon.ico">
+	   <link rel="stylesheet" href="../styles/style.css">
+        <link rel="stylesheet" href="../styles/dark.css">
+        <link rel="stylesheet" href="../styles/postmark.css">
+    </head>
+    <body>
+
+        <div class="navbar navbar-default navbar-fixed-top d-block d-sm-none">
+            <a href="../" class="navbar-brand">ReDBox Portal - NG2 Apps</a>
+            <button type="button" class="btn btn-default btn-menu ion-ios-menu" id="btn-menu"></button>
+        </div>
+
+        <div class="xs-menu menu" id="mobile-menu">
+                <div id="book-search-input" role="search"><input type="text" placeholder="Type to search"></div>            <compodoc-menu></compodoc-menu>
+        </div>
+
+        <div class="container-fluid main">
+           <div class="row main">
+               <div class="hidden-xs menu">
+                   <compodoc-menu mode="normal"></compodoc-menu>
+               </div>
+               <!-- START CONTENT -->
+               <div class="content interface">
+                   <div class="content-data">
+
+
+
+
+
+
+
+
+
+
+
+
+
+<ol class="breadcrumb">
+  <li class="breadcrumb-item">Interfaces</li>
+  <li class="breadcrumb-item"
+  >
+  RecordTypeConf</li>
+</ol>
+
+<ul class="nav nav-tabs" role="tablist">
+        <li class="nav-item">
+            <a href="#info" 
+                class="nav-link"
+                class="nav-link active"
+                role="tab" id="info-tab" data-bs-toggle="tab" data-link="info">Info</a>
+        </li>
+        <li class="nav-item">
+            <a href="#source" 
+                class="nav-link"
+                
+                role="tab" id="source-tab" data-bs-toggle="tab" data-link="source">Source</a>
+        </li>
+</ul>
+
+<div class="tab-content">
+    <div class="tab-pane fade active in" id="info">
+        <p class="comment">
+            <h3>File</h3>
+        </p>
+        <p class="comment">
+            <code>angular/projects/researchdatabox/portal-ng-common/src/lib/record.service.ts</code>
+        </p>
+
+
+
+
+        <section data-compodoc="block-index">
+            <h3 id="index">Index</h3>
+            <table class="table table-sm table-bordered index-table">
+                <tbody>
+                    <tr>
+                        <td class="col-md-4">
+                            <h6><b>Properties</b></h6>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="col-md-4">
+                            <ul class="index-list">
+                                <li>
+                                        <a href="#name" 
+>
+                                            name
+                                        </a>
+                                </li>
+                            </ul>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+
+
+            <section data-compodoc="block-properties">
+                <h3 id="inputs">Properties</h3>
+                    <table class="table table-sm table-bordered">
+                        <tbody>
+                                <tr>
+                                    <td class="col-md-4">
+                                        <a name="name"></a>
+                                        <span class="name "><b>name</b>
+                                            <a href="#name">
+                                                <span class="icon ion-ios-link"></span>
+                                            </a>
+                                        </span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="col-md-4">
+                                        <code>name:         <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank" >string</a></code>
+</code>
+                                    </td>
+                                </tr>
+
+
+                                    <tr>
+                                        <td class="col-md-4">
+                                            <i>Type : </i>        <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank" >string</a></code>
+
+                                        </td>
+                                    </tr>
+
+
+
+
+
+                        </tbody>
+                    </table>
+            </section>
+    </div>
+
+
+    <div class="tab-pane fade  tab-source-code" id="source">
+        <pre class="line-numbers compodoc-sourcecode"><code class="language-typescript">import { map, firstValueFrom } from &#x27;rxjs&#x27;;
+import { Injectable, Inject } from &#x27;@angular/core&#x27;;
+import { APP_BASE_HREF } from &#x27;@angular/common&#x27;;
+import { HttpClient } from &#x27;@angular/common/http&#x27;;
+import { ConfigService } from &#x27;./config.service&#x27;;
+import { UtilityService } from &#x27;./utility.service&#x27;;
+import { LoggerService } from &#x27;./logger.service&#x27;;
+import { HttpClientService } from &#x27;./httpClient.service&#x27;;
+import { merge as _merge, isUndefined as _isUndefined, isEmpty as _isEmpty, get as _get, isArray as _isArray } from &#x27;lodash-es&#x27;;
+
+export interface RecordTypeConf {
+  name: string;
+}
+/**
+ * Record Service
+ * 
+ * Author: &lt;a href&#x3D;&#x27;https://github.com/shilob&#x27; target&#x3D;&#x27;_blank&#x27;&gt;Shilo Banihit&lt;/a&gt;
+ */
+@Injectable()
+export class RecordService extends HttpClientService {
+  private requestOptions:any &#x3D; null as any;
+
+  constructor( 
+    @Inject(HttpClient) protected override http: HttpClient, 
+    @Inject(APP_BASE_HREF) public override rootContext: string,
+    @Inject(UtilityService) protected override utilService: UtilityService,
+    @Inject(ConfigService) protected override configService: ConfigService,
+    @Inject(LoggerService) private loggerService: LoggerService
+  ) {
+    super(http, rootContext, utilService, configService);
+    this.requestOptions &#x3D; {responseType: &#x27;json&#x27;, observe: &#x27;body&#x27;};
+  }
+
+  public override async waitForInit(): Promise&lt;any&gt; {
+    await super.waitForInit();
+    this.enableCsrfHeader();
+    this.loggerService.debug(&#x27;waitForInit RecordService&#x27;);
+    _merge(this.requestOptions, {context: this.httpContext});
+    return this;
+  }
+
+  public async getWorkflowSteps(name: string) {
+    let url &#x3D; &#x60;${this.brandingAndPortalUrl}/record/wfSteps/${name}&#x60;;
+    const result$ &#x3D; this.http.get(url).pipe(map(res &#x3D;&gt; res));
+    let result &#x3D; await firstValueFrom(result$);
+    return result; 
+  }
+
+  private getDocMetadata(doc: any) {
+    let metadata: any &#x3D; {};
+    for(var key in doc){
+      if(key.indexOf(&#x27;authorization_&#x27;) !&#x3D; 0 &amp;&amp; key.indexOf(&#x27;metaMetadata_&#x27;) !&#x3D; 0) {
+        metadata[key] &#x3D; doc[key];
+      }
+      if(key &#x3D;&#x3D; &#x27;authorization_editRoles&#x27;) {
+        metadata[key] &#x3D; doc[key];
+      }
+    }
+    return metadata;
+  }
+
+  public async getRelatedRecords(oid: string) {
+    
+    let url &#x3D; &#x60;${this.brandingAndPortalUrl}/record/${oid}/relatedRecords&#x60;;
+    const result$ &#x3D; this.http.get(url).pipe(map(res &#x3D;&gt; res));
+    let relatedRecords &#x3D; await firstValueFrom(result$);
+    
+    let response: any &#x3D; {};
+    let items &#x3D; [];
+    let childOrTreeLevel2: any &#x3D; _get(relatedRecords, &#x27;processedRelationships&#x27;);
+
+    for(let childNameStr of childOrTreeLevel2) {
+      let childArr &#x3D; _get(relatedRecords,&#x27;relatedObjects.&#x27;+childNameStr);
+      
+      if(!_isUndefined(childArr) &amp;&amp; _isArray(childArr)) {
+        for (let child of childArr) {
+          let item: any &#x3D; {};
+          item[&quot;oid&quot;] &#x3D; child[&quot;redboxOid&quot;];
+          item[&quot;title&quot;] &#x3D; child[&quot;metadata&quot;][&quot;title&quot;];
+          item[&quot;metadata&quot;]&#x3D; this.getDocMetadata(child);
+          item[&quot;dateCreated&quot;] &#x3D;  child[&quot;dateCreated&quot;];
+          item[&quot;dateModified&quot;] &#x3D; child[&quot;lastSaveDate&quot;];
+          //TODO double check that this is needed or not
+          // item[&quot;hasEditAccess&quot;] &#x3D; RecordsService.hasEditAccess(brand, user, roles, doc);
+          items.push(item);
+        }
+      }
+    }
+
+    response[&quot;items&quot;] &#x3D; items;
+    return response;
+  }
+
+  public async getRecords(recordType:string,state:string,pageNumber:number,packageType:string&#x3D;&#x27;&#x27;, sort:string&#x3D;&#x27;&#x27;, filterFields:string&#x3D;&#x27;&#x27;, filterString:string&#x3D;&#x27;&#x27;, filterMode:string&#x3D;&#x27;&#x27;) {
+    let rows &#x3D; 10;
+    let start &#x3D; (pageNumber-1) * rows;
+    recordType &#x3D; (!_isEmpty(recordType) &amp;&amp; !_isUndefined(recordType)) ? &#x60;recordType&#x3D;${recordType}&#x60; : &#x27;&#x27;;
+    packageType &#x3D; (!_isEmpty(packageType) &amp;&amp; !_isUndefined(packageType)) ? &#x60;packageType&#x3D;${packageType}&#x60; : &#x27;&#x27;;
+    sort &#x3D; (!_isEmpty(sort) &amp;&amp; !_isUndefined(sort)) ? &#x60;&amp;sort&#x3D;${sort}&#x60; : &#x27;&#x27;;
+    state &#x3D; (!_isEmpty(state) &amp;&amp; !_isUndefined(state)) ? &#x60;&amp;state&#x3D;${state}&#x60; : &#x27;&#x27;;
+    filterFields &#x3D; (!_isEmpty(filterFields) &amp;&amp; !_isUndefined(filterFields)) ? &#x60;&amp;filterFields&#x3D;${filterFields}&#x60; : &#x27;&#x27;;
+    filterString &#x3D; (!_isEmpty(filterString) &amp;&amp; !_isUndefined(filterString)) ? &#x60;&amp;filter&#x3D;${filterString}&#x60; : &#x27;&#x27;;
+    filterMode &#x3D; (!_isEmpty(filterMode) &amp;&amp; !_isUndefined(filterMode)) ? &#x60;&amp;filterMode&#x3D;${filterMode}&#x60; : &#x27;&#x27;;
+    let url &#x3D; &#x60;${this.brandingAndPortalUrl}/listRecords?${recordType}${packageType}${state}${sort}${filterFields}${filterString}${filterMode}&amp;start&#x3D;${start}&amp;rows&#x3D;${rows}&#x60;;
+    const result$ &#x3D; this.http.get(url).pipe(map(res &#x3D;&gt; res));
+    let result &#x3D; await firstValueFrom(result$);
+    return result;
+  }
+
+  public async getAllTypes() {
+    let url &#x3D; &#x60;${this.brandingAndPortalUrl}/record/type&#x60;;
+    const result$ &#x3D; this.http.get(url).pipe(map(res &#x3D;&gt; res));
+    let result &#x3D; await firstValueFrom(result$);
+    return result;
+  }
+
+  public async getDashboardType(dashboardType:string) {
+    let url &#x3D; &#x60;${this.brandingAndPortalUrl}/dashboard/type/${dashboardType}&#x60;;
+    const result$ &#x3D; this.http.get(url).pipe(map(res &#x3D;&gt; res));
+    let result &#x3D; await firstValueFrom(result$);
+    return result;
+  }
+
+  public async getAllDashboardTypes() {
+    let url &#x3D; &#x60;${this.brandingAndPortalUrl}/dashboard/type&#x60;;
+    const result$ &#x3D; this.http.get(url).pipe(map(res &#x3D;&gt; res));
+    let result &#x3D; await firstValueFrom(result$);
+    return result;
+  }
+
+}
+</code></pre>
+    </div>
+</div>
+
+
+
+
+
+
+
+
+                   </div><div class="search-results">
+    <div class="has-results">
+        <h1 class="search-results-title"><span class='search-results-count'></span> results matching "<span class='search-query'></span>"</h1>
+        <ul class="search-results-list"></ul>
+    </div>
+    <div class="no-results">
+        <h1 class="search-results-title">No results matching "<span class='search-query'></span>"</h1>
+    </div>
+</div>
+</div>
+               <!-- END CONTENT -->
+           </div>
+       </div>
+
+          <label class="dark-mode-switch">
+               <input type="checkbox">
+               <span class="slider">
+                    <svg class="slider-icon" viewBox="0 0 24 24" fill="none" height="20" stroke="#000" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" width="20" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"></path>
+                    </svg>
+               </span>
+          </label>
+
+       <script>
+            var COMPODOC_CURRENT_PAGE_DEPTH = 1;
+            var COMPODOC_CURRENT_PAGE_CONTEXT = 'interface';
+            var COMPODOC_CURRENT_PAGE_URL = 'RecordTypeConf.html';
+            var MAX_SEARCH_RESULTS = 15;
+       </script>
+
+       <script src="../js/libs/custom-elements.min.js"></script>
+       <script src="../js/libs/lit-html.js"></script>
+
+       <script src="../js/menu-wc.js" defer></script>
+       <script nomodule src="../js/menu-wc_es5.js" defer></script>
+
+       <script src="../js/libs/bootstrap-native.js"></script>
+
+       <script src="../js/libs/es6-shim.min.js"></script>
+       <script src="../js/libs/EventDispatcher.js"></script>
+       <script src="../js/libs/promise.min.js"></script>
+       <script src="../js/libs/zepto.min.js"></script>
+
+       <script src="../js/compodoc.js"></script>
+
+       <script src="../js/tabs.js"></script>
+       <script src="../js/menu.js"></script>
+       <script src="../js/libs/clipboard.min.js"></script>
+       <script src="../js/libs/prism.js"></script>
+       <script src="../js/sourceCode.js"></script>
+          <script src="../js/search/search.js"></script>
+          <script src="../js/search/lunr.min.js"></script>
+          <script src="../js/search/search-lunr.js"></script>
+          <script src="../js/search/search_index.js"></script>
+       <script src="../js/lazy-load-graphs.js"></script>
+
+
+    </body>
+</html>

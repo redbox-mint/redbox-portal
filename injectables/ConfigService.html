@@ -65,7 +65,7 @@
             <h3>File</h3>
         </p>
         <p class="comment">
-            <code>angular/shared/config-service.ts</code>
+            <code>angular/projects/researchdatabox/portal-ng-common/src/lib/config.service.ts</code>
         </p>
 
 
@@ -73,7 +73,7 @@
                 <h3>Description</h3>
             </p>
             <p class="comment">
-                <p>Handles client-side global configuration</p>
+                <p>Loads Global client-side configuration.</p>
 <p>Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a></p>
 
             </p>
@@ -98,15 +98,24 @@
                             </li>
                             <li>
                                     <span class="modifier">Public</span>
+                                <a href="#configUrl" >configUrl</a>
+                            </li>
+                            <li>
+                                    <span class="modifier">Public</span>
                                 <a href="#csrfToken" >csrfToken</a>
                             </li>
                             <li>
                                     <span class="modifier">Public</span>
-                                <a href="#rootContext" >rootContext</a>
+                                <a href="#csrfTokenUrl" >csrfTokenUrl</a>
                             </li>
                             <li>
                                     <span class="modifier">Protected</span>
-                                <a href="#subjects" >subjects</a>
+                                <a href="#initSubject" >initSubject</a>
+                            </li>
+                            <li>
+                                    <span class="modifier"></span>
+                                    <span class="modifier">Public</span>
+                                <a href="#rootContext" >rootContext</a>
                             </li>
                         </ul>
                     </td>
@@ -121,17 +130,36 @@
                     <td class="col-md-4">
                         <ul class="index-list">
                             <li>
+                                    <span class="modifier">Static</span>
+                                <a href="#_getAppConfig" >_getAppConfig</a>
+                            </li>
+                            <li>
+                                    <span class="modifier">Static</span>
+                                <a href="#_getAppConfigProperty" >_getAppConfigProperty</a>
+                            </li>
+                            <li>
                                 <a href="#emitConfig" >emitConfig</a>
                             </li>
                             <li>
-                                    <span class="modifier">Protected</span>
-                                <a href="#extractData" >extractData</a>
-                            </li>
-                            <li>
+                                    <span class="modifier">Public</span>
+                                    <span class="modifier">Async</span>
                                 <a href="#getConfig" >getConfig</a>
                             </li>
                             <li>
+                                    <span class="modifier">Public</span>
+                                <a href="#getInitSubject" >getInitSubject</a>
+                            </li>
+                            <li>
                                 <a href="#initConfig" >initConfig</a>
+                            </li>
+                            <li>
+                                    <span class="modifier">Public</span>
+                                <a href="#isInitializing" >isInitializing</a>
+                            </li>
+                            <li>
+                                    <span class="modifier">Public</span>
+                                    <span class="modifier">Async</span>
+                                <a href="#waitForInit" >waitForInit</a>
                             </li>
                         </ul>
                     </td>
@@ -151,12 +179,12 @@
             <tbody>
                 <tr>
                     <td class="col-md-4">
-<code>constructor(http: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>)</code>
+<code>constructor(http: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>, rootContext: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank">string</a>)</code>
                     </td>
                 </tr>
                         <tr>
                             <td class="col-md-4">
-                                <div class="io-line">Defined in <a href="" data-line="40" class="link-to-prism">angular/shared/config-service.ts:40</a></div>
+                                <div class="io-line">Defined in <a href="" data-line="41" class="link-to-prism">angular/projects/researchdatabox/portal-ng-common/src/lib/config.service.ts:41</a></div>
                             </td>
                         </tr>
 
@@ -185,6 +213,18 @@
                                                     </td>
                                                     
                                                 </tr>
+                                                <tr>
+                                                        <td>rootContext</td>
+                                                  
+                                                        <td>
+                                                                        <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank" >string</a></code>
+                                                        </td>
+                                                  
+                                                    <td>
+                                                            No
+                                                    </td>
+                                                    
+                                                </tr>
                                         </tbody>
                                     </table>
                             </div>
@@ -199,6 +239,201 @@
     <h3 id="methods">
         Methods
     </h3>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="_getAppConfig"></a>
+                    <span class="name">
+                        <span class="modifier">Static</span>
+                        <span ><b>_getAppConfig</b></span>
+                        <a href="#_getAppConfig"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                    <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>_getAppConfig(config: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>, appName: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank">string</a>)</code>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-line">Defined in <a href="" data-line="105"
+                            class="link-to-prism">angular/projects/researchdatabox/portal-ng-common/src/lib/config.service.ts:105</a></div>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-description"><p>Static method for returning an app-specific config. Making it static removes the need to wait for the config block to be present.</p>
+</div>
+
+                    <div class="io-description">
+                        <b>Parameters :</b>
+                        
+                        <table class="params">
+                            <thead>
+                                <tr>
+                                    <td>Name</td>
+                                    <td>Type</td>
+                                    <td>Optional</td>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>config</td>
+                                    <td>
+                                                <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+
+                                </tr>
+                                <tr>
+                                    <td>appName</td>
+                                    <td>
+                                                <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank" >string</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div>
+                    </div>
+                    <div class="io-description">
+                        <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+
+                    </div>
+                    <div class="io-description">
+                        <p>Application-specific configuration or undefined (failing fast and avoids accidentally returning a top-level property, if further processing is done)</p>
+
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="_getAppConfigProperty"></a>
+                    <span class="name">
+                        <span class="modifier">Static</span>
+                        <span ><b>_getAppConfigProperty</b></span>
+                        <a href="#_getAppConfigProperty"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                    <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>_getAppConfigProperty(config: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>, appName: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank">string</a>, propertyPath: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank">string</a>, defaultVal: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>)</code>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-line">Defined in <a href="" data-line="118"
+                            class="link-to-prism">angular/projects/researchdatabox/portal-ng-common/src/lib/config.service.ts:118</a></div>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-description"><p>Static convenience method for getting an app-specific property from the config with fallback support, intentionally static so there is no need to &#39;await&#39;.</p>
+</div>
+
+                    <div class="io-description">
+                        <b>Parameters :</b>
+                        
+                        <table class="params">
+                            <thead>
+                                <tr>
+                                    <td>Name</td>
+                                    <td>Type</td>
+                                    <td>Optional</td>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>config</td>
+                                    <td>
+                                                <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+
+                                </tr>
+                                <tr>
+                                    <td>appName</td>
+                                    <td>
+                                                <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank" >string</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+
+                                </tr>
+                                <tr>
+                                    <td>propertyPath</td>
+                                    <td>
+                                                <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank" >string</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+
+                                </tr>
+                                <tr>
+                                    <td>defaultVal</td>
+                                    <td>
+                                                <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+                                    </td>
+
+                                    <td>
+                                        No
+                                    </td>
+
+
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div>
+                    </div>
+                    <div class="io-description">
+                        <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+
+                    </div>
+                    <div class="io-description">
+                        
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
     <table class="table table-sm table-bordered">
         <tbody>
             <tr>
@@ -219,8 +454,8 @@
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="57"
-                            class="link-to-prism">angular/shared/config-service.ts:57</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="65"
+                            class="link-to-prism">angular/projects/researchdatabox/portal-ng-common/src/lib/config.service.ts:65</a></div>
                 </td>
             </tr>
 
@@ -240,86 +475,39 @@
         <tbody>
             <tr>
                 <td class="col-md-4">
-                    <a name="extractData"></a>
+                    <a name="getConfig"></a>
                     <span class="name">
-                        <span class="modifier">Protected</span>
-                        <span ><b>extractData</b></span>
-                        <a href="#extractData"><span class="icon ion-ios-link"></span></a>
+                        <span class="modifier">Public</span>
+                        <span class="modifier">Async</span>
+                        <span ><b>getConfig</b></span>
+                        <a href="#getConfig"><span class="icon ion-ios-link"></span></a>
                     </span>
                 </td>
             </tr>
             <tr>
                 <td class="col-md-4">
                     <span class="modifier-icon icon ion-ios-reset"></span>
-                    <code>extractData(res: Response, parentField: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>)</code>
+                    <code>getConfig()</code>
                 </td>
             </tr>
 
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="77"
-                            class="link-to-prism">angular/shared/config-service.ts:77</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="58"
+                            class="link-to-prism">angular/projects/researchdatabox/portal-ng-common/src/lib/config.service.ts:58</a></div>
                 </td>
             </tr>
 
 
             <tr>
                 <td class="col-md-4">
+                    <div class="io-description"><p>Returns the configuration block.</p>
+</div>
 
                     <div class="io-description">
-                        <b>Parameters :</b>
-                        
-                        <table class="params">
-                            <thead>
-                                <tr>
-                                    <td>Name</td>
-                                    <td>Type</td>
-                                    <td>Optional</td>
-                                    <td>Default value</td>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td>res</td>
-                                    <td>
-                                            <code>Response</code>
-                                    </td>
+                        <b>Returns : </b>    <code>Promise&lt;any&gt;</code>
 
-                                    <td>
-                                        No
-                                    </td>
-
-                                    <td>
-                                    </td>
-
-                                </tr>
-                                <tr>
-                                    <td>parentField</td>
-                                    <td>
-                                                <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
-                                    </td>
-
-                                    <td>
-                                        No
-                                    </td>
-
-                                    <td>
-                                        <code>null</code>
-                                    </td>
-
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                    <div>
-                    </div>
-                    <div class="io-description">
-                        <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
-
-                    </div>
-                    <div class="io-description">
-                        
                     </div>
                 </td>
             </tr>
@@ -329,24 +517,26 @@
         <tbody>
             <tr>
                 <td class="col-md-4">
-                    <a name="getConfig"></a>
+                    <a name="getInitSubject"></a>
                     <span class="name">
-                        <span ><b>getConfig</b></span>
-                        <a href="#getConfig"><span class="icon ion-ios-link"></span></a>
+                        <span class="modifier">Public</span>
+                        <span ><b>getInitSubject</b></span>
+                        <a href="#getInitSubject"><span class="icon ion-ios-link"></span></a>
                     </span>
                 </td>
             </tr>
             <tr>
                 <td class="col-md-4">
-<code>getConfig(handler: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>)</code>
+                    <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>getInitSubject()</code>
                 </td>
             </tr>
 
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="51"
-                            class="link-to-prism">angular/shared/config-service.ts:51</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="87"
+                            class="link-to-prism">angular/projects/researchdatabox/portal-ng-common/src/lib/config.service.ts:87</a></div>
                 </td>
             </tr>
 
@@ -355,40 +545,8 @@
                 <td class="col-md-4">
 
                     <div class="io-description">
-                        <b>Parameters :</b>
-                        
-                        <table class="params">
-                            <thead>
-                                <tr>
-                                    <td>Name</td>
-                                    <td>Type</td>
-                                    <td>Optional</td>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td>handler</td>
-                                    <td>
-                                                <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
-                                    </td>
+                        <b>Returns : </b>    <code>Subject&lt;any&gt;</code>
 
-                                    <td>
-                                        No
-                                    </td>
-
-
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                    <div>
-                    </div>
-                    <div class="io-description">
-                        <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
-
-                    </div>
-                    <div class="io-description">
-                        
                     </div>
                 </td>
             </tr>
@@ -414,8 +572,8 @@
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="64"
-                            class="link-to-prism">angular/shared/config-service.ts:64</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="72"
+                            class="link-to-prism">angular/projects/researchdatabox/portal-ng-common/src/lib/config.service.ts:72</a></div>
                 </td>
             </tr>
 
@@ -425,6 +583,85 @@
 
                     <div class="io-description">
                         <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >void</a></code>
+
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="isInitializing"></a>
+                    <span class="name">
+                        <span class="modifier">Public</span>
+                        <span ><b>isInitializing</b></span>
+                        <a href="#isInitializing"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                    <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>isInitializing()</code>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-line">Defined in <a href="" data-line="95"
+                            class="link-to-prism">angular/projects/researchdatabox/portal-ng-common/src/lib/config.service.ts:95</a></div>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+
+                    <div class="io-description">
+                        <b>Returns : </b>        <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/boolean" target="_blank" >boolean</a></code>
+
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="waitForInit"></a>
+                    <span class="name">
+                        <span class="modifier">Public</span>
+                        <span class="modifier">Async</span>
+                        <span ><b>waitForInit</b></span>
+                        <a href="#waitForInit"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                    <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>waitForInit()</code>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-line">Defined in <a href="" data-line="91"
+                            class="link-to-prism">angular/projects/researchdatabox/portal-ng-common/src/lib/config.service.ts:91</a></div>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+
+                    <div class="io-description">
+                        <b>Returns : </b>    <code>Promise&lt;any&gt;</code>
 
                     </div>
                 </td>
@@ -457,7 +694,39 @@
                 </tr>
                     <tr>
                         <td class="col-md-4">
-                                <div class="io-line">Defined in <a href="" data-line="37" class="link-to-prism">angular/shared/config-service.ts:37</a></div>
+                                <div class="io-line">Defined in <a href="" data-line="37" class="link-to-prism">angular/projects/researchdatabox/portal-ng-common/src/lib/config.service.ts:37</a></div>
+                        </td>
+                    </tr>
+
+
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="configUrl"></a>
+                    <span class="name">
+                            <span class="modifier">Public</span>
+                        <span ><b>configUrl</b></span>
+                        <a href="#configUrl"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Type : </i>        <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank" >string</a></code>
+
+                    </td>
+                </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Default value : </i><code>&#x27;&#x27;</code>
+                    </td>
+                </tr>
+                    <tr>
+                        <td class="col-md-4">
+                                <div class="io-line">Defined in <a href="" data-line="40" class="link-to-prism">angular/projects/researchdatabox/portal-ng-common/src/lib/config.service.ts:40</a></div>
                         </td>
                     </tr>
 
@@ -484,7 +753,66 @@
                 </tr>
                     <tr>
                         <td class="col-md-4">
-                                <div class="io-line">Defined in <a href="" data-line="39" class="link-to-prism">angular/shared/config-service.ts:39</a></div>
+                                <div class="io-line">Defined in <a href="" data-line="39" class="link-to-prism">angular/projects/researchdatabox/portal-ng-common/src/lib/config.service.ts:39</a></div>
+                        </td>
+                    </tr>
+
+
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="csrfTokenUrl"></a>
+                    <span class="name">
+                            <span class="modifier">Public</span>
+                        <span ><b>csrfTokenUrl</b></span>
+                        <a href="#csrfTokenUrl"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Type : </i>        <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank" >string</a></code>
+
+                    </td>
+                </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Default value : </i><code>&#x27;&#x27;</code>
+                    </td>
+                </tr>
+                    <tr>
+                        <td class="col-md-4">
+                                <div class="io-line">Defined in <a href="" data-line="41" class="link-to-prism">angular/projects/researchdatabox/portal-ng-common/src/lib/config.service.ts:41</a></div>
+                        </td>
+                    </tr>
+
+
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="initSubject"></a>
+                    <span class="name">
+                            <span class="modifier">Protected</span>
+                        <span ><b>initSubject</b></span>
+                        <a href="#initSubject"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Type : </i>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+
+                    </td>
+                </tr>
+                    <tr>
+                        <td class="col-md-4">
+                                <div class="io-line">Defined in <a href="" data-line="38" class="link-to-prism">angular/projects/researchdatabox/portal-ng-common/src/lib/config.service.ts:38</a></div>
                         </td>
                     </tr>
 
@@ -497,6 +825,7 @@
                 <td class="col-md-4">
                     <a name="rootContext"></a>
                     <span class="name">
+                            <span class="modifier"></span>
                             <span class="modifier">Public</span>
                         <span ><b>rootContext</b></span>
                         <a href="#rootContext"><span class="icon ion-ios-link"></span></a>
@@ -511,39 +840,16 @@
                 </tr>
                 <tr>
                     <td class="col-md-4">
-                        <i>Default value : </i><code>&quot;/&quot;</code>
+                        <b>Decorators : </b>
+                        <br />
+                        <code>
+                            @Inject(APP_BASE_HREF)<br />
+                        </code>
                     </td>
                 </tr>
                     <tr>
                         <td class="col-md-4">
-                                <div class="io-line">Defined in <a href="" data-line="40" class="link-to-prism">angular/shared/config-service.ts:40</a></div>
-                        </td>
-                    </tr>
-
-
-        </tbody>
-    </table>
-    <table class="table table-sm table-bordered">
-        <tbody>
-            <tr>
-                <td class="col-md-4">
-                    <a name="subjects"></a>
-                    <span class="name">
-                            <span class="modifier">Protected</span>
-                        <span ><b>subjects</b></span>
-                        <a href="#subjects"><span class="icon ion-ios-link"></span></a>
-                    </span>
-                </td>
-            </tr>
-                <tr>
-                    <td class="col-md-4">
-                        <i>Type : </i>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
-
-                    </td>
-                </tr>
-                    <tr>
-                        <td class="col-md-4">
-                                <div class="io-line">Defined in <a href="" data-line="38" class="link-to-prism">angular/shared/config-service.ts:38</a></div>
+                                <div class="io-line">Defined in <a href="" data-line="43" class="link-to-prism">angular/projects/researchdatabox/portal-ng-common/src/lib/config.service.ts:43</a></div>
                         </td>
                     </tr>
 
@@ -557,69 +863,105 @@
 
     <div class="tab-pane fade  tab-source-code" id="source">
         <pre class="line-numbers compodoc-sourcecode"><code class="language-typescript">import { Injectable, Inject} from &#x27;@angular/core&#x27;;
-import { Http, Response, RequestOptions, Headers } from &#x27;@angular/http&#x27;;
-import { Observable } from &#x27;rxjs/Observable&#x27;;
-import { Subject } from &#x27;rxjs/Subject&#x27;;
-import &#x27;rxjs/add/observable/interval&#x27;;
-import &#x27;rxjs/add/observable/of&#x27;;
-import &#x27;rxjs/add/operator/mergeMap&#x27;;
-import * as _ from &quot;lodash&quot;;
-
+import { HttpClient } from &#x27;@angular/common/http&#x27;;
+import { Subject, firstValueFrom } from &#x27;rxjs&#x27;;
+import { mergeMap } from &#x27;rxjs/operators&#x27;;
+import { get as _get, isEmpty as _isEmpty, isUndefined as _isUndefined } from &#x27;lodash-es&#x27;;
+import { APP_BASE_HREF } from &#x27;@angular/common&#x27;;
+import { Service } from &#x27;./service.interface&#x27;;
 /**
- * Handles client-side global configuration
+ * Loads Global client-side configuration.
  *
  * Author: &lt;a href&#x3D;&#x27;https://github.com/shilob&#x27; target&#x3D;&#x27;_blank&#x27;&gt;Shilo Banihit&lt;/a&gt;
  *
  */
-@Injectable()
-export class ConfigService {
+ @Injectable({
+  providedIn: &#x27;platform&#x27;
+})
+export class ConfigService implements Service {
   protected config: any;
-  protected subjects: any;
+  protected initSubject: any;
   public csrfToken: any;
-  public rootContext:string &#x3D; &quot;/&quot;
-  constructor (@Inject(Http) protected http: any) {
-    this.subjects &#x3D; {};
-    this.subjects[&#x27;get&#x27;] &#x3D; new Subject();
-    let bootstrapElement:any &#x3D; document.getElementsByTagName(&quot;angular-bootstrap&quot;)
-    if(bootstrapElement.length &gt; 0) {
-     this.rootContext &#x3D; $(bootstrapElement[0]).attr(&#x27;rootContext&#x27;);
+  public configUrl: string &#x3D; &#x27;&#x27;;
+  public csrfTokenUrl: string &#x3D; &#x27;&#x27;;
+
+  constructor (@Inject(HttpClient) protected http: any, @Inject(APP_BASE_HREF) public rootContext: string) {
+    this.initSubject &#x3D; new Subject();
+    if (_isEmpty(this.rootContext)) {
+      this.rootContext &#x3D; &quot;&quot;
     }
+    this.configUrl &#x3D; &#x60;${this.rootContext}/dynamic/apiClientConfig?v&#x3D;${new Date().getTime()}&#x60;;
+    this.csrfTokenUrl &#x3D; &#x60;${this.rootContext}/csrfToken&#x60;;
+    // start the async init of this service
     this.initConfig();
   }
 
-  getConfig(handler: any): any {
-    const subs &#x3D; this.subjects[&#x27;get&#x27;].subscribe(handler);
-    this.emitConfig();
-    return subs;
+  /**
+   * Returns the configuration block.
+   * 
+   */
+  public async getConfig(): Promise&lt;any&gt; {
+    if (this.config) {
+      return this.config;
+    }
+    return firstValueFrom(this.getInitSubject());
   }
 
-  emitConfig() {
+  emitConfig(): void {
     if (this.config) {
       this.config.rootContext &#x3D; this.rootContext;
-      this.subjects[&#x27;get&#x27;].next(this.config);
+      this.getInitSubject().next(this.config);
     }
   }
 
-  initConfig() {
-    this.http.get(&#x60;${this.rootContext}/csrfToken&#x60;).mergeMap((csrfRes:any) &#x3D;&gt; {
-      this.csrfToken &#x3D; csrfRes.json()[&#x27;_csrf&#x27;];
-      return this.http.get(&#x60;${this.rootContext}/dynamic/apiClientConfig?v&#x3D;${new Date().getTime()}&#x60;);
-    })
-    .subscribe((res:any) &#x3D;&gt; {
-      this.config &#x3D; this.extractData(res);
+  initConfig(): void {
+    this.http.get(this.csrfTokenUrl)
+    .pipe(
+      mergeMap((csrfRes:any) &#x3D;&gt; {
+        this.csrfToken &#x3D; _get(csrfRes, &#x27;_csrf&#x27;);
+        return this.http.get(this.configUrl);
+      })
+    ).subscribe((config:any) &#x3D;&gt; {
+      this.config &#x3D; config;
       this.config[&#x27;csrfToken&#x27;] &#x3D; this.csrfToken;
-      console.log(&#x60;ConfigService, initialized. &#x60;);
+      this.config[&#x27;rootContext&#x27;] &#x3D; this.rootContext;
       this.emitConfig();
     });
   }
 
-  protected extractData(res: Response, parentField: any &#x3D; null) {
-    let body &#x3D; res.json();
-    if (parentField) {
-        return body[parentField] || {};
-    } else {
-        return body || {};
-    }
+  public getInitSubject(): Subject&lt;any&gt; {
+    return this.initSubject;
+  }
+
+  public async waitForInit(): Promise&lt;any&gt; {
+    return this.getConfig();
+  }
+
+  public isInitializing():boolean {
+    return _isUndefined(this.config) || _isEmpty(this.config);
+  }
+
+  /**
+   * Static method for returning an app-specific config. Making it static removes the need to wait for the config block to be present.
+   * @param config 
+   * @param appName 
+   * @returns Application-specific configuration or undefined (failing fast and avoids accidentally returning a top-level property, if further processing is done)
+   */
+  public static _getAppConfig(config: any, appName: string) {
+    return _get(config, &#x60;app.${appName}&#x60;);
+  }
+
+  /**
+   * Static convenience method for getting an app-specific property from the config with fallback support, intentionally static so there is no need to &#x27;await&#x27;.
+   * 
+   * @param config 
+   * @param appName 
+   * @param propertyPath 
+   * @param defaultVal 
+   * @returns 
+   */
+  public static _getAppConfigProperty(config: any, appName:string, propertyPath:string, defaultVal: any): any {
+    return _get(ConfigService._getAppConfig(config, appName), propertyPath, defaultVal);
   }
 }
 </code></pre>

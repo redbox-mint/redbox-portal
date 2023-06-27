@@ -72,7 +72,7 @@
             <h3>File</h3>
         </p>
         <p class="comment">
-            <code>angular/manageUsers/app/forms.ts</code>
+            <code>angular/projects/researchdatabox/manage-users/src/app/forms.ts</code>
         </p>
 
 
@@ -340,8 +340,8 @@
 
 
     <div class="tab-pane fade  tab-source-code" id="source">
-        <pre class="line-numbers compodoc-sourcecode"><code class="language-typescript">import { Role } from &#x27;./shared/user-models&#x27;;
-import { FormGroup, FormControl } from &#x27;@angular/forms&#x27;;
+        <pre class="line-numbers compodoc-sourcecode"><code class="language-typescript">import { Role } from &#x27;@researchdatabox/portal-ng-common&#x27;;
+import { FormGroup, FormControl, ValidatorFn, AbstractControl  } from &#x27;@angular/forms&#x27;;
 import * as owasp from &#x27;owasp-password-strength-test&#x27;;
 import * as _ from &#x27;lodash&#x27;;
 
@@ -354,34 +354,46 @@ export interface UserForm {
     roles: any[]
 }
 
-export function matchingValuesValidator(control1: string, control2: string) {
-    return (group: FormGroup): {[key: string]: any} &#x3D;&gt; {
-        let val1 &#x3D; group.controls[control1];
-        let val2 &#x3D; group.controls[control2];
+export function matchingValuesValidator(control1: string, control2: string): ValidatorFn {
+    return (group: AbstractControl):{ [key: string]: any } | null &#x3D;&gt; {
+        let val1 &#x3D; group.get(control1);
+        let val2 &#x3D; group.get(control2);
 
-        if (val1.value !&#x3D;&#x3D; val2.value) {
-        return {
-            mismatched: true
-        };
+        if(!_.isUndefined(val1) &amp;&amp; !_.isNull(val1) &amp;&amp; !_.isUndefined(val2) &amp;&amp; !_.isNull(val2)) {
+          if (val1.value !&#x3D;&#x3D; val2.value) {
+            return { mismatched: true };
+          } else {
+            return null;
+          }
+        } else {
+          return null;
         }
     }
 }
 
 // needed as Validators.email returns validation error when value is null
 // (i.e combines Validators.required functionality)
-export function optionalEmailValidator(control: FormControl): {[key: string]: any} {
+export function optionalEmailValidator(control: FormControl): any { //{[key: string]: any}
     var emailRegexp &#x3D; /^[a-z0-9!#$%&amp;&#x27;*+\/&#x3D;?^_&#x60;{|}~.-]+@[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*$/i;
     if (control.value &amp;&amp; !emailRegexp.test(control.value)) {
         return { invalidEmail: true };
     }
 }
 
-export function passwordStrengthValidator(control1: string) {
-  return (group: FormGroup): {[key: string]: any} &#x3D;&gt; {
-    let password &#x3D; group.controls[control1].value;
-    if (!_.isEmpty(password)) {
-      const result &#x3D; owasp.test(password);
-      return result.errors.length &#x3D;&#x3D; 0 ? undefined : { passwordStrength: true, passwordStrengthDetails: result };
+export function passwordStrengthValidator(control1: string): ValidatorFn  {
+  return (group: AbstractControl):{ [key: string]: any } | null &#x3D;&gt; {
+    
+    let password &#x3D; group.get(control1);
+
+    if(!_.isUndefined(password) &amp;&amp; !_.isNull(password)) {
+      if (!_.isEmpty(password.value)) {
+        const result &#x3D; owasp.test(password.value);
+        return result.errors.length &#x3D;&#x3D; 0 ? null : { passwordStrength: true, passwordStrengthDetails: result };
+      } else {
+        return null;
+      }
+    } else {
+      return null;
     }
   }
 }

@@ -56,6 +56,10 @@
                 role="tab" id="templateData-tab" data-bs-toggle="tab" data-link="template">Template</a>
         </li>
         <li class="nav-item">
+            <a href="#styleData" class="nav-link"
+                role="tab" id="styleData-tab" data-bs-toggle="tab" data-link="style">Styles</a>
+        </li>
+        <li class="nav-item">
             <a href="#tree" class="nav-link"
                 role="tab" id="tree-tab" data-bs-toggle="tab" data-link="dom-tree">DOM Tree</a>
         </li>
@@ -66,24 +70,16 @@
     <h3>File</h3>
 </p>
 <p class="comment">
-    <code>angular/manageRoles/app/manage_roles.component.ts</code>
+    <code>angular/projects/researchdatabox/manage-roles/src/app/manage-roles.component.ts</code>
 </p>
 
 
-    <p class="comment">
-        <h3>Description</h3>
-    </p>
-    <p class="comment">
-        <p>Manage Roles component</p>
-<p>Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a></p>
-
-    </p>
 
     <p class="comment">
         <h3>Extends</h3>
     </p>
     <p class="comment">
-                <code><a href="../classes/LoadableComponent.html" target="_self" >LoadableComponent</a></code>
+                <code><a href="../components/BaseComponent.html" target="_self" >BaseComponent</a></code>
     </p>
 
 
@@ -100,10 +96,6 @@
 
 
 
-            <tr>
-                <td class="col-md-3">moduleId</td>
-                <td class="col-md-9"><code>module.id</code></td>
-            </tr>
 
 
 
@@ -115,12 +107,16 @@
 
 
 
+            <tr>
+                <td class="col-md-3">styleUrls</td>
+                <td class="col-md-9"><code>./manage-roles.component.scss</code></td>
+            </tr>
 
 
 
             <tr>
                 <td class="col-md-3">templateUrl</td>
-                <td class="col-md-9"><code>./manageRoles.html</code></td>
+                <td class="col-md-9"><code>./manage-roles.component.html</code></td>
             </tr>
 
 
@@ -156,7 +152,12 @@
                                 <a href="#hiddenUsers" >hiddenUsers</a>
                             </li>
                             <li>
-                                <a href="#initSubs" >initSubs</a>
+                                <a href="#isDetailsModalShown" >isDetailsModalShown</a>
+                            </li>
+                            <li>
+                                    <span class="modifier"></span>
+                                    <span class="modifier">Optional</span>
+                                <a href="#roleDetailsModal" >roleDetailsModal</a>
                             </li>
                             <li>
                                 <a href="#roles" >roles</a>
@@ -171,19 +172,30 @@
                                 <a href="#searchFilter" >searchFilter</a>
                             </li>
                             <li>
+                                <a href="#title" >title</a>
+                            </li>
+                            <li>
                                 <a href="#users" >users</a>
                             </li>
                             <li>
-                                <a href="#isLoading" >isLoading</a>
+                                    <span class="modifier">Protected</span>
+                                <a href="#brandingAndPortalUrl" >brandingAndPortalUrl</a>
                             </li>
                             <li>
-                                <a href="#spinnerElem" >spinnerElem</a>
+                                    <span class="modifier">Private</span>
+                                <a href="#filterFn" >filterFn</a>
                             </li>
                             <li>
-                                <a href="#translationService" >translationService</a>
+                                    <span class="modifier">Protected</span>
+                                <a href="#initDependencies" >initDependencies</a>
                             </li>
                             <li>
-                                <a href="#translatorReady" >translatorReady</a>
+                                    <span class="modifier">Protected</span>
+                                <a href="#initSubject" >initSubject</a>
+                            </li>
+                            <li>
+                                    <span class="modifier">Protected</span>
+                                <a href="#isReady" >isReady</a>
                             </li>
                         </ul>
                     </td>
@@ -201,40 +213,48 @@
                                 <a href="#editUser" >editUser</a>
                             </li>
                             <li>
+                                <a href="#hideDetailsModal" >hideDetailsModal</a>
+                            </li>
+                            <li>
+                                    <span class="modifier">Protected</span>
+                                    <span class="modifier"></span>
+                                    <span class="modifier">Async</span>
+                                <a href="#initComponent" >initComponent</a>
+                            </li>
+                            <li>
+                                <a href="#onDetailsModalHidden" >onDetailsModalHidden</a>
+                            </li>
+                            <li>
                                 <a href="#onFilterChange" >onFilterChange</a>
                             </li>
                             <li>
                                 <a href="#resetFilter" >resetFilter</a>
                             </li>
                             <li>
+                                    <span class="modifier">Async</span>
                                 <a href="#saveCurrentUser" >saveCurrentUser</a>
                             </li>
                             <li>
                                 <a href="#setSaveMessage" >setSaveMessage</a>
                             </li>
                             <li>
-                                    <span class="modifier">Public</span>
-                                <a href="#checkIfHasLoaded" >checkIfHasLoaded</a>
+                                <a href="#showDetailsModal" >showDetailsModal</a>
                             </li>
                             <li>
-                                <a href="#getTranslated" >getTranslated</a>
+                                <a href="#getInitSubject" >getInitSubject</a>
                             </li>
                             <li>
-                                <a href="#hasLoaded" >hasLoaded</a>
+                                <a href="#isInitializing" >isInitializing</a>
                             </li>
                             <li>
-                                <a href="#initTranslator" >initTranslator</a>
+                                <a href="#ngOnInit" >ngOnInit</a>
                             </li>
                             <li>
-                                <a href="#setLoading" >setLoading</a>
+                                    <span class="modifier">Async</span>
+                                <a href="#waitForDeps" >waitForDeps</a>
                             </li>
                             <li>
-                                <a href="#synchLoading" >synchLoading</a>
-                            </li>
-                            <li>
-                                <a href="#translatorLoaded" >translatorLoaded</a>
-                            </li>
-                            <li>
+                                    <span class="modifier">Async</span>
                                 <a href="#waitForInit" >waitForInit</a>
                             </li>
                         </ul>
@@ -255,12 +275,12 @@
             <tbody>
                 <tr>
                     <td class="col-md-4">
-<code>constructor(rolesService: <a href="../injectables/RolesService.html" target="_self">RolesService</a>, fb: FormBuilder, document: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>, translationService: <a href="../injectables/TranslationService.html" target="_self">TranslationService</a>)</code>
+<code>constructor(loggerService: <a href="../injectables/LoggerService.html" target="_self">LoggerService</a>, translationService: <a href="../injectables/TranslationService.html" target="_self">TranslationService</a>, userService: <a href="../injectables/UserService.html" target="_self">UserService</a>)</code>
                     </td>
                 </tr>
                         <tr>
                             <td class="col-md-4">
-                                <div class="io-line">Defined in <a href="" data-line="55" class="link-to-prism">angular/manageRoles/app/manage_roles.component.ts:55</a></div>
+                                <div class="io-line">Defined in <a href="" data-line="36" class="link-to-prism">angular/projects/researchdatabox/manage-roles/src/app/manage-roles.component.ts:36</a></div>
                             </td>
                         </tr>
 
@@ -278,34 +298,10 @@
                                         </thead>
                                         <tbody>
                                                 <tr>
-                                                        <td>rolesService</td>
+                                                        <td>loggerService</td>
                                                   
                                                         <td>
-                                                                        <code><a href="../injectables/RolesService.html" target="_self" >RolesService</a></code>
-                                                        </td>
-                                                  
-                                                    <td>
-                                                            No
-                                                    </td>
-                                                    
-                                                </tr>
-                                                <tr>
-                                                        <td>fb</td>
-                                                  
-                                                        <td>
-                                                                    <code>FormBuilder</code>
-                                                        </td>
-                                                  
-                                                    <td>
-                                                            No
-                                                    </td>
-                                                    
-                                                </tr>
-                                                <tr>
-                                                        <td>document</td>
-                                                  
-                                                        <td>
-                                                                        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+                                                                        <code><a href="../injectables/LoggerService.html" target="_self" >LoggerService</a></code>
                                                         </td>
                                                   
                                                     <td>
@@ -318,6 +314,18 @@
                                                   
                                                         <td>
                                                                         <code><a href="../injectables/TranslationService.html" target="_self" >TranslationService</a></code>
+                                                        </td>
+                                                  
+                                                    <td>
+                                                            No
+                                                    </td>
+                                                    
+                                                </tr>
+                                                <tr>
+                                                        <td>userService</td>
+                                                  
+                                                        <td>
+                                                                        <code><a href="../injectables/UserService.html" target="_self" >UserService</a></code>
                                                         </td>
                                                   
                                                     <td>
@@ -363,8 +371,8 @@
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="89"
-                            class="link-to-prism">angular/manageRoles/app/manage_roles.component.ts:89</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="73"
+                            class="link-to-prism">angular/projects/researchdatabox/manage-roles/src/app/manage-roles.component.ts:73</a></div>
                 </td>
             </tr>
 
@@ -416,6 +424,127 @@
         <tbody>
             <tr>
                 <td class="col-md-4">
+                    <a name="hideDetailsModal"></a>
+                    <span class="name">
+                        <span ><b>hideDetailsModal</b></span>
+                        <a href="#hideDetailsModal"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+<code>hideDetailsModal()</code>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-line">Defined in <a href="" data-line="90"
+                            class="link-to-prism">angular/projects/researchdatabox/manage-roles/src/app/manage-roles.component.ts:90</a></div>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+
+                    <div class="io-description">
+                        <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >void</a></code>
+
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="initComponent"></a>
+                    <span class="name">
+                        <span class="modifier">Protected</span>
+                        <span class="modifier"></span>
+                        <span class="modifier">Async</span>
+                        <span ><b>initComponent</b></span>
+                        <a href="#initComponent"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                    <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>initComponent()</code>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-line">Inherited from         <code><a href="../components/BaseComponent.html" target="_self" >BaseComponent</a></code>
+</div>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                        <div class="io-line">Defined in         <code><a href="../components/BaseComponent.html#source" target="_self" >BaseComponent:49</a></code>
+</div>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+
+                    <div class="io-description">
+                        <b>Returns : </b>    <code>Promise&lt;void&gt;</code>
+
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="onDetailsModalHidden"></a>
+                    <span class="name">
+                        <span ><b>onDetailsModalHidden</b></span>
+                        <a href="#onDetailsModalHidden"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+<code>onDetailsModalHidden()</code>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-line">Defined in <a href="" data-line="96"
+                            class="link-to-prism">angular/projects/researchdatabox/manage-roles/src/app/manage-roles.component.ts:96</a></div>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+
+                    <div class="io-description">
+                        <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >void</a></code>
+
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
                     <a name="onFilterChange"></a>
                     <span class="name">
                         <span ><b>onFilterChange</b></span>
@@ -432,8 +561,8 @@
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="127"
-                            class="link-to-prism">angular/manageRoles/app/manage_roles.component.ts:127</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="129"
+                            class="link-to-prism">angular/projects/researchdatabox/manage-roles/src/app/manage-roles.component.ts:129</a></div>
                 </td>
             </tr>
 
@@ -505,8 +634,8 @@
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="146"
-                            class="link-to-prism">angular/manageRoles/app/manage_roles.component.ts:146</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="148"
+                            class="link-to-prism">angular/projects/researchdatabox/manage-roles/src/app/manage-roles.component.ts:148</a></div>
                 </td>
             </tr>
 
@@ -528,6 +657,7 @@
                 <td class="col-md-4">
                     <a name="saveCurrentUser"></a>
                     <span class="name">
+                        <span class="modifier">Async</span>
                         <span ><b>saveCurrentUser</b></span>
                         <a href="#saveCurrentUser"><span class="icon ion-ios-link"></span></a>
                     </span>
@@ -535,15 +665,16 @@
             </tr>
             <tr>
                 <td class="col-md-4">
-<code>saveCurrentUser($event: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>)</code>
+                    <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>saveCurrentUser($event: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>)</code>
                 </td>
             </tr>
 
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="97"
-                            class="link-to-prism">angular/manageRoles/app/manage_roles.component.ts:97</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="100"
+                            class="link-to-prism">angular/projects/researchdatabox/manage-roles/src/app/manage-roles.component.ts:100</a></div>
                 </td>
             </tr>
 
@@ -581,7 +712,7 @@
                     <div>
                     </div>
                     <div class="io-description">
-                        <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >void</a></code>
+                        <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
 
                     </div>
                     <div class="io-description">
@@ -611,8 +742,8 @@
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="122"
-                            class="link-to-prism">angular/manageRoles/app/manage_roles.component.ts:122</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="124"
+                            class="link-to-prism">angular/projects/researchdatabox/manage-roles/src/app/manage-roles.component.ts:124</a></div>
                 </td>
             </tr>
 
@@ -683,32 +814,24 @@
         <tbody>
             <tr>
                 <td class="col-md-4">
-                    <a name="checkIfHasLoaded"></a>
+                    <a name="showDetailsModal"></a>
                     <span class="name">
-                        <span class="modifier">Public</span>
-                        <span ><b>checkIfHasLoaded</b></span>
-                        <a href="#checkIfHasLoaded"><span class="icon ion-ios-link"></span></a>
+                        <span ><b>showDetailsModal</b></span>
+                        <a href="#showDetailsModal"><span class="icon ion-ios-link"></span></a>
                     </span>
                 </td>
             </tr>
             <tr>
                 <td class="col-md-4">
-                    <span class="modifier-icon icon ion-ios-reset"></span>
-                    <code>checkIfHasLoaded()</code>
+<code>showDetailsModal()</code>
                 </td>
             </tr>
 
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Inherited from         <code><a href="../classes/LoadableComponent.html" target="_self" >LoadableComponent</a></code>
-</div>
-                </td>
-            </tr>
-            <tr>
-                <td class="col-md-4">
-                        <div class="io-line">Defined in         <code><a href="../classes/LoadableComponent.html#source" target="_self" >LoadableComponent:53</a></code>
-</div>
+                    <div class="io-line">Defined in <a href="" data-line="85"
+                            class="link-to-prism">angular/projects/researchdatabox/manage-roles/src/app/manage-roles.component.ts:85</a></div>
                 </td>
             </tr>
 
@@ -728,29 +851,29 @@
         <tbody>
             <tr>
                 <td class="col-md-4">
-                    <a name="getTranslated"></a>
+                    <a name="getInitSubject"></a>
                     <span class="name">
-                        <span ><b>getTranslated</b></span>
-                        <a href="#getTranslated"><span class="icon ion-ios-link"></span></a>
+                        <span ><b>getInitSubject</b></span>
+                        <a href="#getInitSubject"><span class="icon ion-ios-link"></span></a>
                     </span>
                 </td>
             </tr>
             <tr>
                 <td class="col-md-4">
-<code>getTranslated(key, defValue)</code>
+<code>getInitSubject()</code>
                 </td>
             </tr>
 
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Inherited from         <code><a href="../classes/LoadableComponent.html" target="_self" >LoadableComponent</a></code>
+                    <div class="io-line">Inherited from         <code><a href="../components/BaseComponent.html" target="_self" >BaseComponent</a></code>
 </div>
                 </td>
             </tr>
             <tr>
                 <td class="col-md-4">
-                        <div class="io-line">Defined in         <code><a href="../classes/LoadableComponent.html#source" target="_self" >LoadableComponent:76</a></code>
+                        <div class="io-line">Defined in         <code><a href="../components/BaseComponent.html#source" target="_self" >BaseComponent:71</a></code>
 </div>
                 </td>
             </tr>
@@ -758,47 +881,13 @@
 
             <tr>
                 <td class="col-md-4">
+                    <div class="io-description"><p>For those interested in the init from RXJS-land.</p>
+<p>Note that it returns a BehaviorSubject instance, and will have an initial value of false, so process the return value as needed.</p>
+</div>
 
                     <div class="io-description">
-                        <b>Parameters :</b>
-                        
-                        <table class="params">
-                            <thead>
-                                <tr>
-                                    <td>Name</td>
-                                    <td>Optional</td>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td>key</td>
+                        <b>Returns : </b>    <code>Subject&lt;any&gt;</code>
 
-                                    <td>
-                                        No
-                                    </td>
-
-
-                                </tr>
-                                <tr>
-                                    <td>defValue</td>
-
-                                    <td>
-                                        No
-                                    </td>
-
-
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                    <div>
-                    </div>
-                    <div class="io-description">
-                        <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
-
-                    </div>
-                    <div class="io-description">
-                        
                     </div>
                 </td>
             </tr>
@@ -808,29 +897,29 @@
         <tbody>
             <tr>
                 <td class="col-md-4">
-                    <a name="hasLoaded"></a>
+                    <a name="isInitializing"></a>
                     <span class="name">
-                        <span ><b>hasLoaded</b></span>
-                        <a href="#hasLoaded"><span class="icon ion-ios-link"></span></a>
+                        <span ><b>isInitializing</b></span>
+                        <a href="#isInitializing"><span class="icon ion-ios-link"></span></a>
                     </span>
                 </td>
             </tr>
             <tr>
                 <td class="col-md-4">
-<code>hasLoaded()</code>
+<code>isInitializing()</code>
                 </td>
             </tr>
 
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Inherited from         <code><a href="../classes/LoadableComponent.html" target="_self" >LoadableComponent</a></code>
+                    <div class="io-line">Inherited from         <code><a href="../components/BaseComponent.html" target="_self" >BaseComponent</a></code>
 </div>
                 </td>
             </tr>
             <tr>
                 <td class="col-md-4">
-                        <div class="io-line">Defined in         <code><a href="../classes/LoadableComponent.html#source" target="_self" >LoadableComponent:59</a></code>
+                        <div class="io-line">Defined in         <code><a href="../components/BaseComponent.html#source" target="_self" >BaseComponent:95</a></code>
 </div>
                 </td>
             </tr>
@@ -838,6 +927,8 @@
 
             <tr>
                 <td class="col-md-4">
+                    <div class="io-description"><p>Main flag to indicate the init status</p>
+</div>
 
                     <div class="io-description">
                         <b>Returns : </b>        <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/boolean" target="_blank" >boolean</a></code>
@@ -851,104 +942,29 @@
         <tbody>
             <tr>
                 <td class="col-md-4">
-                    <a name="initTranslator"></a>
+                    <a name="ngOnInit"></a>
                     <span class="name">
-                        <span ><b>initTranslator</b></span>
-                        <a href="#initTranslator"><span class="icon ion-ios-link"></span></a>
+                        <span ><b>ngOnInit</b></span>
+                        <a href="#ngOnInit"><span class="icon ion-ios-link"></span></a>
                     </span>
                 </td>
             </tr>
             <tr>
                 <td class="col-md-4">
-<code>initTranslator(translationService: <a href="../injectables/TranslationService.html" target="_self">TranslationService</a>)</code>
+<code>ngOnInit()</code>
                 </td>
             </tr>
 
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Inherited from         <code><a href="../classes/LoadableComponent.html" target="_self" >LoadableComponent</a></code>
+                    <div class="io-line">Inherited from         <code><a href="../components/BaseComponent.html" target="_self" >BaseComponent</a></code>
 </div>
                 </td>
             </tr>
             <tr>
                 <td class="col-md-4">
-                        <div class="io-line">Defined in         <code><a href="../classes/LoadableComponent.html#source" target="_self" >LoadableComponent:41</a></code>
-</div>
-                </td>
-            </tr>
-
-
-            <tr>
-                <td class="col-md-4">
-
-                    <div class="io-description">
-                        <b>Parameters :</b>
-                        
-                        <table class="params">
-                            <thead>
-                                <tr>
-                                    <td>Name</td>
-                                    <td>Type</td>
-                                    <td>Optional</td>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td>translationService</td>
-                                    <td>
-                                                <code><a href="../injectables/TranslationService.html" target="_self" >TranslationService</a></code>
-                                    </td>
-
-                                    <td>
-                                        No
-                                    </td>
-
-
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                    <div>
-                    </div>
-                    <div class="io-description">
-                        <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >void</a></code>
-
-                    </div>
-                    <div class="io-description">
-                        
-                    </div>
-                </td>
-            </tr>
-        </tbody>
-    </table>
-    <table class="table table-sm table-bordered">
-        <tbody>
-            <tr>
-                <td class="col-md-4">
-                    <a name="setLoading"></a>
-                    <span class="name">
-                        <span ><b>setLoading</b></span>
-                        <a href="#setLoading"><span class="icon ion-ios-link"></span></a>
-                    </span>
-                </td>
-            </tr>
-            <tr>
-                <td class="col-md-4">
-<code>setLoading(loading: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/boolean" target="_blank">boolean</a>)</code>
-                </td>
-            </tr>
-
-
-            <tr>
-                <td class="col-md-4">
-                    <div class="io-line">Inherited from         <code><a href="../classes/LoadableComponent.html" target="_self" >LoadableComponent</a></code>
-</div>
-                </td>
-            </tr>
-            <tr>
-                <td class="col-md-4">
-                        <div class="io-line">Defined in         <code><a href="../classes/LoadableComponent.html#source" target="_self" >LoadableComponent:63</a></code>
+                        <div class="io-line">Defined in         <code><a href="../components/BaseComponent.html#source" target="_self" >BaseComponent:50</a></code>
 </div>
                 </td>
             </tr>
@@ -956,85 +972,8 @@
 
             <tr>
                 <td class="col-md-4">
-
-                    <div class="io-description">
-                        <b>Parameters :</b>
-                        
-                        <table class="params">
-                            <thead>
-                                <tr>
-                                    <td>Name</td>
-                                    <td>Type</td>
-                                    <td>Optional</td>
-                                    <td>Default value</td>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td>loading</td>
-                                    <td>
-                                                <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/boolean" target="_blank" >boolean</a></code>
-                                    </td>
-
-                                    <td>
-                                        No
-                                    </td>
-
-                                    <td>
-                                        <code>true</code>
-                                    </td>
-
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                    <div>
-                    </div>
-                    <div class="io-description">
-                        <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >void</a></code>
-
-                    </div>
-                    <div class="io-description">
-                        
-                    </div>
-                </td>
-            </tr>
-        </tbody>
-    </table>
-    <table class="table table-sm table-bordered">
-        <tbody>
-            <tr>
-                <td class="col-md-4">
-                    <a name="synchLoading"></a>
-                    <span class="name">
-                        <span ><b>synchLoading</b></span>
-                        <a href="#synchLoading"><span class="icon ion-ios-link"></span></a>
-                    </span>
-                </td>
-            </tr>
-            <tr>
-                <td class="col-md-4">
-<code>synchLoading()</code>
-                </td>
-            </tr>
-
-
-            <tr>
-                <td class="col-md-4">
-                    <div class="io-line">Inherited from         <code><a href="../classes/LoadableComponent.html" target="_self" >LoadableComponent</a></code>
+                    <div class="io-description"><p>See <a href="https://angular.io/api/core/OnInit">https://angular.io/api/core/OnInit</a></p>
 </div>
-                </td>
-            </tr>
-            <tr>
-                <td class="col-md-4">
-                        <div class="io-line">Defined in         <code><a href="../classes/LoadableComponent.html#source" target="_self" >LoadableComponent:68</a></code>
-</div>
-                </td>
-            </tr>
-
-
-            <tr>
-                <td class="col-md-4">
 
                     <div class="io-description">
                         <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >void</a></code>
@@ -1048,29 +987,31 @@
         <tbody>
             <tr>
                 <td class="col-md-4">
-                    <a name="translatorLoaded"></a>
+                    <a name="waitForDeps"></a>
                     <span class="name">
-                        <span ><b>translatorLoaded</b></span>
-                        <a href="#translatorLoaded"><span class="icon ion-ios-link"></span></a>
+                        <span class="modifier">Async</span>
+                        <span ><b>waitForDeps</b></span>
+                        <a href="#waitForDeps"><span class="icon ion-ios-link"></span></a>
                     </span>
                 </td>
             </tr>
             <tr>
                 <td class="col-md-4">
-<code>translatorLoaded()</code>
+                    <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>waitForDeps()</code>
                 </td>
             </tr>
 
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Inherited from         <code><a href="../classes/LoadableComponent.html" target="_self" >LoadableComponent</a></code>
+                    <div class="io-line">Inherited from         <code><a href="../components/BaseComponent.html" target="_self" >BaseComponent</a></code>
 </div>
                 </td>
             </tr>
             <tr>
                 <td class="col-md-4">
-                        <div class="io-line">Defined in         <code><a href="../classes/LoadableComponent.html#source" target="_self" >LoadableComponent:48</a></code>
+                        <div class="io-line">Defined in         <code><a href="../components/BaseComponent.html#source" target="_self" >BaseComponent:78</a></code>
 </div>
                 </td>
             </tr>
@@ -1078,9 +1019,11 @@
 
             <tr>
                 <td class="col-md-4">
+                    <div class="io-description"><p>Wait for dependencies to initialise</p>
+</div>
 
                     <div class="io-description">
-                        <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >void</a></code>
+                        <b>Returns : </b>    <code>Promise&lt;any&gt;</code>
 
                     </div>
                 </td>
@@ -1093,6 +1036,7 @@
                 <td class="col-md-4">
                     <a name="waitForInit"></a>
                     <span class="name">
+                        <span class="modifier">Async</span>
                         <span ><b>waitForInit</b></span>
                         <a href="#waitForInit"><span class="icon ion-ios-link"></span></a>
                     </span>
@@ -1100,20 +1044,21 @@
             </tr>
             <tr>
                 <td class="col-md-4">
-<code>waitForInit(serviceArr: any[], handler: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>)</code>
+                    <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>waitForInit()</code>
                 </td>
             </tr>
 
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Inherited from         <code><a href="../classes/LoadableComponent.html" target="_self" >LoadableComponent</a></code>
+                    <div class="io-line">Inherited from         <code><a href="../components/BaseComponent.html" target="_self" >BaseComponent</a></code>
 </div>
                 </td>
             </tr>
             <tr>
                 <td class="col-md-4">
-                        <div class="io-line">Defined in         <code><a href="../classes/LoadableComponent.html#source" target="_self" >LoadableComponent:89</a></code>
+                        <div class="io-line">Defined in         <code><a href="../components/BaseComponent.html#source" target="_self" >BaseComponent:89</a></code>
 </div>
                 </td>
             </tr>
@@ -1121,54 +1066,12 @@
 
             <tr>
                 <td class="col-md-4">
+                    <div class="io-description"><p>For those interested in the init from the Promise-land</p>
+</div>
 
                     <div class="io-description">
-                        <b>Parameters :</b>
-                        
-                        <table class="params">
-                            <thead>
-                                <tr>
-                                    <td>Name</td>
-                                    <td>Type</td>
-                                    <td>Optional</td>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td>serviceArr</td>
-                                    <td>
-                                            <code>any[]</code>
-                                    </td>
+                        <b>Returns : </b>    <code>Promise&lt;any&gt;</code>
 
-                                    <td>
-                                        No
-                                    </td>
-
-
-                                </tr>
-                                <tr>
-                                    <td>handler</td>
-                                    <td>
-                                                <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
-                                    </td>
-
-                                    <td>
-                                        No
-                                    </td>
-
-
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                    <div>
-                    </div>
-                    <div class="io-description">
-                        <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >void</a></code>
-
-                    </div>
-                    <div class="io-description">
-                        
                     </div>
                 </td>
             </tr>
@@ -1193,18 +1096,18 @@
             </tr>
                 <tr>
                     <td class="col-md-4">
-                        <i>Type : </i>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+                        <i>Type : </i>        <code><a href="../interfaces/User.html" target="_self" >User</a></code>
 
                     </td>
                 </tr>
                 <tr>
                     <td class="col-md-4">
-                        <i>Default value : </i><code>{username:&#x27;&#x27;, name:&#x27;&#x27;, email:&#x27;&#x27;, roles:[]}</code>
+                        <i>Default value : </i><code>{username:&#x27;&#x27;, name:&#x27;&#x27;, email:&#x27;&#x27;, roles:[]} as any</code>
                     </td>
                 </tr>
                     <tr>
                         <td class="col-md-4">
-                                <div class="io-line">Defined in <a href="" data-line="52" class="link-to-prism">angular/manageRoles/app/manage_roles.component.ts:52</a></div>
+                                <div class="io-line">Defined in <a href="" data-line="31" class="link-to-prism">angular/projects/researchdatabox/manage-roles/src/app/manage-roles.component.ts:31</a></div>
                         </td>
                     </tr>
 
@@ -1228,9 +1131,14 @@
 
                     </td>
                 </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Default value : </i><code>[]</code>
+                    </td>
+                </tr>
                     <tr>
                         <td class="col-md-4">
-                                <div class="io-line">Defined in <a href="" data-line="48" class="link-to-prism">angular/manageRoles/app/manage_roles.component.ts:48</a></div>
+                                <div class="io-line">Defined in <a href="" data-line="16" class="link-to-prism">angular/projects/researchdatabox/manage-roles/src/app/manage-roles.component.ts:16</a></div>
                         </td>
                     </tr>
 
@@ -1261,7 +1169,7 @@
                 </tr>
                     <tr>
                         <td class="col-md-4">
-                                <div class="io-line">Defined in <a href="" data-line="51" class="link-to-prism">angular/manageRoles/app/manage_roles.component.ts:51</a></div>
+                                <div class="io-line">Defined in <a href="" data-line="30" class="link-to-prism">angular/projects/researchdatabox/manage-roles/src/app/manage-roles.component.ts:30</a></div>
                         </td>
                     </tr>
 
@@ -1272,22 +1180,64 @@
         <tbody>
             <tr>
                 <td class="col-md-4">
-                    <a name="initSubs"></a>
+                    <a name="isDetailsModalShown"></a>
                     <span class="name">
-                        <span ><b>initSubs</b></span>
-                        <a href="#initSubs"><span class="icon ion-ios-link"></span></a>
+                        <span ><b>isDetailsModalShown</b></span>
+                        <a href="#isDetailsModalShown"><span class="icon ion-ios-link"></span></a>
                     </span>
                 </td>
             </tr>
                 <tr>
                     <td class="col-md-4">
-                        <i>Type : </i>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+                        <i>Type : </i>        <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/boolean" target="_blank" >boolean</a></code>
 
+                    </td>
+                </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Default value : </i><code>false</code>
                     </td>
                 </tr>
                     <tr>
                         <td class="col-md-4">
-                                <div class="io-line">Defined in <a href="" data-line="55" class="link-to-prism">angular/manageRoles/app/manage_roles.component.ts:55</a></div>
+                                <div class="io-line">Defined in <a href="" data-line="35" class="link-to-prism">angular/projects/researchdatabox/manage-roles/src/app/manage-roles.component.ts:35</a></div>
+                        </td>
+                    </tr>
+
+
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="roleDetailsModal"></a>
+                    <span class="name">
+                            <span class="modifier"></span>
+                            <span class="modifier">Optional</span>
+                        <span ><b>roleDetailsModal</b></span>
+                        <a href="#roleDetailsModal"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Type : </i>    <code>ModalDirective</code>
+
+                    </td>
+                </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <b>Decorators : </b>
+                        <br />
+                        <code>
+                            @ViewChild(&#x27;roleDetailsModal&#x27;, {static: false})<br />
+                        </code>
+                    </td>
+                </tr>
+                    <tr>
+                        <td class="col-md-4">
+                                <div class="io-line">Defined in <a href="" data-line="36" class="link-to-prism">angular/projects/researchdatabox/manage-roles/src/app/manage-roles.component.ts:36</a></div>
                         </td>
                     </tr>
 
@@ -1307,13 +1257,18 @@
             </tr>
                 <tr>
                     <td class="col-md-4">
-                        <i>Type : </i>    <code>Role[]</code>
+                        <i>Type : </i>        <code><a href="../interfaces/Role.html" target="_self" >Role[]</a></code>
 
+                    </td>
+                </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Default value : </i><code>[]</code>
                     </td>
                 </tr>
                     <tr>
                         <td class="col-md-4">
-                                <div class="io-line">Defined in <a href="" data-line="50" class="link-to-prism">angular/manageRoles/app/manage_roles.component.ts:50</a></div>
+                                <div class="io-line">Defined in <a href="" data-line="29" class="link-to-prism">angular/projects/researchdatabox/manage-roles/src/app/manage-roles.component.ts:29</a></div>
                         </td>
                     </tr>
 
@@ -1344,7 +1299,7 @@
                 </tr>
                     <tr>
                         <td class="col-md-4">
-                                <div class="io-line">Defined in <a href="" data-line="53" class="link-to-prism">angular/manageRoles/app/manage_roles.component.ts:53</a></div>
+                                <div class="io-line">Defined in <a href="" data-line="32" class="link-to-prism">angular/projects/researchdatabox/manage-roles/src/app/manage-roles.component.ts:32</a></div>
                         </td>
                     </tr>
 
@@ -1375,7 +1330,7 @@
                 </tr>
                     <tr>
                         <td class="col-md-4">
-                                <div class="io-line">Defined in <a href="" data-line="54" class="link-to-prism">angular/manageRoles/app/manage_roles.component.ts:54</a></div>
+                                <div class="io-line">Defined in <a href="" data-line="33" class="link-to-prism">angular/projects/researchdatabox/manage-roles/src/app/manage-roles.component.ts:33</a></div>
                         </td>
                     </tr>
 
@@ -1401,12 +1356,49 @@
                 </tr>
                 <tr>
                     <td class="col-md-4">
-                        <i>Default value : </i><code>{ name: null, role: null, prevName: null, prevRole:null, roles: [ {value: null, label:&#x27;Any&#x27;, checked:true}]}</code>
+                        <i>Default value : </i><code>{ 
+                                     name: &#x27;&#x27;, 
+                                     role: null, 
+                                     prevName: &#x27;&#x27;, 
+                                     prevRole:null, 
+                                     roles: [ {value: null, label:&#x27;Any&#x27;, checked:true}]
+                                    }</code>
                     </td>
                 </tr>
                     <tr>
                         <td class="col-md-4">
-                                <div class="io-line">Defined in <a href="" data-line="49" class="link-to-prism">angular/manageRoles/app/manage_roles.component.ts:49</a></div>
+                                <div class="io-line">Defined in <a href="" data-line="17" class="link-to-prism">angular/projects/researchdatabox/manage-roles/src/app/manage-roles.component.ts:17</a></div>
+                        </td>
+                    </tr>
+
+
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="title"></a>
+                    <span class="name">
+                        <span ><b>title</b></span>
+                        <a href="#title"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Type : </i>        <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank" >string</a></code>
+
+                    </td>
+                </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Default value : </i><code>&#x27;@researchdatabox/manage-roles&#x27;</code>
+                    </td>
+                </tr>
+                    <tr>
+                        <td class="col-md-4">
+                                <div class="io-line">Defined in <a href="" data-line="13" class="link-to-prism">angular/projects/researchdatabox/manage-roles/src/app/manage-roles.component.ts:13</a></div>
                         </td>
                     </tr>
 
@@ -1426,7 +1418,7 @@
             </tr>
                 <tr>
                     <td class="col-md-4">
-                        <i>Type : </i>    <code>any[]</code>
+                        <i>Type : </i>        <code><a href="../interfaces/User.html" target="_self" >User[]</a></code>
 
                     </td>
                 </tr>
@@ -1437,7 +1429,7 @@
                 </tr>
                     <tr>
                         <td class="col-md-4">
-                                <div class="io-line">Defined in <a href="" data-line="47" class="link-to-prism">angular/manageRoles/app/manage_roles.component.ts:47</a></div>
+                                <div class="io-line">Defined in <a href="" data-line="15" class="link-to-prism">angular/projects/researchdatabox/manage-roles/src/app/manage-roles.component.ts:15</a></div>
                         </td>
                     </tr>
 
@@ -1448,43 +1440,11 @@
         <tbody>
             <tr>
                 <td class="col-md-4">
-                    <a name="isLoading"></a>
+                    <a name="brandingAndPortalUrl"></a>
                     <span class="name">
-                        <span ><b>isLoading</b></span>
-                        <a href="#isLoading"><span class="icon ion-ios-link"></span></a>
-                    </span>
-                </td>
-            </tr>
-                <tr>
-                    <td class="col-md-4">
-                        <i>Type : </i>        <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/boolean" target="_blank" >boolean</a></code>
-
-                    </td>
-                </tr>
-                        <tr>
-                            <td class="col-md-4">
-                                <div class="io-line">Inherited from         <code><a href="../classes/LoadableComponent.html" target="_self" >LoadableComponent</a></code>
-</div>
-                            </td>
-                        </tr>
-                    <tr>
-                        <td class="col-md-4">
-                                <div class="io-line">Defined in         <code><a href="../classes/LoadableComponent.html#source" target="_self" >LoadableComponent:30</a></code>
-</div>
-                        </td>
-                    </tr>
-
-
-        </tbody>
-    </table>
-    <table class="table table-sm table-bordered">
-        <tbody>
-            <tr>
-                <td class="col-md-4">
-                    <a name="spinnerElem"></a>
-                    <span class="name">
-                        <span ><b>spinnerElem</b></span>
-                        <a href="#spinnerElem"><span class="icon ion-ios-link"></span></a>
+                            <span class="modifier">Protected</span>
+                        <span ><b>brandingAndPortalUrl</b></span>
+                        <a href="#brandingAndPortalUrl"><span class="icon ion-ios-link"></span></a>
                     </span>
                 </td>
             </tr>
@@ -1496,18 +1456,18 @@
                 </tr>
                 <tr>
                     <td class="col-md-4">
-                        <i>Default value : </i><code>&#x60;&lt;i class&#x3D;&quot;fa fa-spinner fa-pulse fa-1x fa-fw&quot;&gt;&lt;/i&gt;&#x60;</code>
+                        <i>Default value : </i><code>&#x27;&#x27;</code>
                     </td>
                 </tr>
                         <tr>
                             <td class="col-md-4">
-                                <div class="io-line">Inherited from         <code><a href="../classes/LoadableComponent.html" target="_self" >LoadableComponent</a></code>
+                                <div class="io-line">Inherited from         <code><a href="../components/BaseComponent.html" target="_self" >BaseComponent</a></code>
 </div>
                             </td>
                         </tr>
                     <tr>
                         <td class="col-md-4">
-                                <div class="io-line">Defined in         <code><a href="../classes/LoadableComponent.html#source" target="_self" >LoadableComponent:33</a></code>
+                                <div class="io-line">Defined in         <code><a href="../components/BaseComponent.html#source" target="_self" >BaseComponent:42</a></code>
 </div>
                         </td>
                     </tr>
@@ -1519,28 +1479,28 @@
         <tbody>
             <tr>
                 <td class="col-md-4">
-                    <a name="translationService"></a>
+                    <a name="filterFn"></a>
                     <span class="name">
-                        <span ><b>translationService</b></span>
-                        <a href="#translationService"><span class="icon ion-ios-link"></span></a>
+                            <span class="modifier">Private</span>
+                        <span ><b>filterFn</b></span>
+                        <a href="#filterFn"><span class="icon ion-ios-link"></span></a>
                     </span>
                 </td>
             </tr>
                 <tr>
                     <td class="col-md-4">
-                        <i>Type : </i>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
-
+                        <i>Default value : </i><code>function(initStat: boolean) { return initStat; }</code>
                     </td>
                 </tr>
                         <tr>
                             <td class="col-md-4">
-                                <div class="io-line">Inherited from         <code><a href="../classes/LoadableComponent.html" target="_self" >LoadableComponent</a></code>
+                                <div class="io-line">Inherited from         <code><a href="../components/BaseComponent.html" target="_self" >BaseComponent</a></code>
 </div>
                             </td>
                         </tr>
                     <tr>
                         <td class="col-md-4">
-                                <div class="io-line">Defined in         <code><a href="../classes/LoadableComponent.html#source" target="_self" >LoadableComponent:32</a></code>
+                                <div class="io-line">Defined in         <code><a href="../components/BaseComponent.html#source" target="_self" >BaseComponent:40</a></code>
 </div>
                         </td>
                     </tr>
@@ -1552,10 +1512,89 @@
         <tbody>
             <tr>
                 <td class="col-md-4">
-                    <a name="translatorReady"></a>
+                    <a name="initDependencies"></a>
                     <span class="name">
-                        <span ><b>translatorReady</b></span>
-                        <a href="#translatorReady"><span class="icon ion-ios-link"></span></a>
+                            <span class="modifier">Protected</span>
+                        <span ><b>initDependencies</b></span>
+                        <a href="#initDependencies"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Type : </i>        <code><a href="../interfaces/Initable.html" target="_self" >Initable[]</a></code>
+
+                    </td>
+                </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Default value : </i><code>[]</code>
+                    </td>
+                </tr>
+                        <tr>
+                            <td class="col-md-4">
+                                <div class="io-line">Inherited from         <code><a href="../components/BaseComponent.html" target="_self" >BaseComponent</a></code>
+</div>
+                            </td>
+                        </tr>
+                    <tr>
+                        <td class="col-md-4">
+                                <div class="io-line">Defined in         <code><a href="../components/BaseComponent.html#source" target="_self" >BaseComponent:39</a></code>
+</div>
+                        </td>
+                    </tr>
+
+
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="initSubject"></a>
+                    <span class="name">
+                            <span class="modifier">Protected</span>
+                        <span ><b>initSubject</b></span>
+                        <a href="#initSubject"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Type : </i>    <code>BehaviorSubject&lt;any&gt;</code>
+
+                    </td>
+                </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Default value : </i><code>new BehaviorSubject(false)</code>
+                    </td>
+                </tr>
+                        <tr>
+                            <td class="col-md-4">
+                                <div class="io-line">Inherited from         <code><a href="../components/BaseComponent.html" target="_self" >BaseComponent</a></code>
+</div>
+                            </td>
+                        </tr>
+                    <tr>
+                        <td class="col-md-4">
+                                <div class="io-line">Defined in         <code><a href="../components/BaseComponent.html#source" target="_self" >BaseComponent:38</a></code>
+</div>
+                        </td>
+                    </tr>
+
+
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="isReady"></a>
+                    <span class="name">
+                            <span class="modifier">Protected</span>
+                        <span ><b>isReady</b></span>
+                        <a href="#isReady"><span class="icon ion-ios-link"></span></a>
                     </span>
                 </td>
             </tr>
@@ -1565,15 +1604,20 @@
 
                     </td>
                 </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Default value : </i><code>false</code>
+                    </td>
+                </tr>
                         <tr>
                             <td class="col-md-4">
-                                <div class="io-line">Inherited from         <code><a href="../classes/LoadableComponent.html" target="_self" >LoadableComponent</a></code>
+                                <div class="io-line">Inherited from         <code><a href="../components/BaseComponent.html" target="_self" >BaseComponent</a></code>
 </div>
                             </td>
                         </tr>
                     <tr>
                         <td class="col-md-4">
-                                <div class="io-line">Defined in         <code><a href="../classes/LoadableComponent.html#source" target="_self" >LoadableComponent:31</a></code>
+                                <div class="io-line">Defined in         <code><a href="../components/BaseComponent.html#source" target="_self" >BaseComponent:37</a></code>
 </div>
                         </td>
                     </tr>
@@ -1587,84 +1631,106 @@
 
 
     <div class="tab-pane fade  tab-source-code" id="source">
-        <pre class="line-numbers compodoc-sourcecode"><code class="language-typescript">import { Component, Injectable, Inject } from &#x27;@angular/core&#x27;;
-import { DOCUMENT } from &#x27;@angular/platform-browser&#x27;;
-import { FormArray, FormGroup, FormControl, Validators, FormBuilder } from &#x27;@angular/forms&#x27;;
-import { UserSimpleService } from &#x27;./shared/user.service-simple&#x27;;
-import { RolesService } from &#x27;./shared/roles-service&#x27;;
-import { Role, User, LoginResult, SaveResult } from &#x27;./shared/user-models&#x27;;
-import * as _ from &quot;lodash&quot;;
-import { LoadableComponent } from &#x27;./shared/loadable.component&#x27;;
-import { TranslationService } from &#x27;./shared/translation-service&#x27;;
+        <pre class="line-numbers compodoc-sourcecode"><code class="language-typescript">import { Component, Inject, ViewChild } from &#x27;@angular/core&#x27;;
+import { ModalDirective } from &#x27;ngx-bootstrap/modal&#x27;;
+import { LoggerService, TranslationService, UserService, BaseComponent } from &#x27;@researchdatabox/portal-ng-common&#x27;;
+import { Role, User } from &#x27;@researchdatabox/portal-ng-common&#x27;;
+import * as _ from &#x27;lodash&#x27;;
 
-declare var pageData :any;
-declare var jQuery: any;
-/**
- * Manage Roles component
- *
- *
- * Author: &lt;a href&#x3D;&#x27;https://github.com/shilob&#x27; target&#x3D;&#x27;_blank&#x27;&gt;Shilo Banihit&lt;/a&gt;
- */
 @Component({
-  moduleId: module.id,
   selector: &#x27;manage-roles&#x27;,
-  templateUrl: &#x27;./manageRoles.html&#x27;
+  templateUrl: &#x27;./manage-roles.component.html&#x27;,
+  styleUrls: [&#x27;./manage-roles.component.scss&#x27;]
 })
+export class ManageRolesComponent extends BaseComponent {
+  title &#x3D; &#x27;@researchdatabox/manage-roles&#x27;;
 
-// TODO: find a way to remove jQuery dependency
-@Injectable()
-export class ManageRolesComponent extends LoadableComponent {
-  users: any[] &#x3D; [];
-  filteredUsers: any[];
-  searchFilter: { name: string, role: any, prevName: string, prevRole: any, roles: any[] } &#x3D; { name: null, role: null, prevName: null, prevRole:null, roles: [ {value: null, label:&#x27;Any&#x27;, checked:true}]};
-  roles: Role[];
+  users: User[] &#x3D; [];
+  filteredUsers: any[] &#x3D; [];
+  searchFilter: { 
+                  name: string, 
+                  role: any, 
+                  prevName: string, 
+                  prevRole: any, 
+                  roles: any[] } &#x3D; { 
+                                     name: &#x27;&#x27;, 
+                                     role: null, 
+                                     prevName: &#x27;&#x27;, 
+                                     prevRole:null, 
+                                     roles: [ {value: null, label:&#x27;Any&#x27;, checked:true}]
+                                    };
+  roles: Role[] &#x3D; [];
   hiddenUsers &#x3D; [&#x27;admin&#x27;];
-  currentUser: any &#x3D; {username:&#x27;&#x27;, name:&#x27;&#x27;, email:&#x27;&#x27;, roles:[]};
+  currentUser: User &#x3D; {username:&#x27;&#x27;, name:&#x27;&#x27;, email:&#x27;&#x27;, roles:[]} as any;
   saveMsg &#x3D; &quot;&quot;;
   saveMsgType &#x3D;&quot;info&quot;;
-  initSubs: any;
 
-  constructor (@Inject(RolesService) protected rolesService: RolesService, @Inject(FormBuilder) fb: FormBuilder, @Inject(DOCUMENT) protected document:any, translationService:TranslationService) {
+  isDetailsModalShown: boolean &#x3D; false;
+  @ViewChild(&#x27;roleDetailsModal&#x27;, { static: false }) roleDetailsModal?: ModalDirective;
+
+  
+  constructor(
+    @Inject(LoggerService) private loggerService: LoggerService,
+    @Inject(TranslationService) private translationService: TranslationService,
+    @Inject(UserService) private userService: UserService
+  ) {
     super();
-    this.initTranslator(translationService);
-    this.initSubs &#x3D; rolesService.waitForInit((initStat:any) &#x3D;&gt; {
-      this.initSubs.unsubscribe();
-      translationService.isReady(tService &#x3D;&gt; {
-        rolesService.getBrandRoles().then((roles:any) &#x3D;&gt; {
-          this.roles &#x3D; roles;
-          _.forEach(roles, (role:any) &#x3D;&gt; {
-            this.searchFilter.roles.push({value:role.name, label:role.name, checked:false});
-            _.forEach(role.users, (user:any) &#x3D;&gt; {
-              if (!_.includes(this.hiddenUsers, user.username)) {
-                // flattening the tree, match by username
-                let existingUser: any &#x3D; _.find(this.users, (existingUser:any) &#x3D;&gt; { return existingUser.username &#x3D;&#x3D; user.username});
-                if (_.isEmpty(existingUser)) {
-                  existingUser &#x3D; user;
-                  existingUser.roles &#x3D; [role.name];
-                  this.users.push(existingUser);
-                } else {
-                  existingUser.roles.push(role.name);
-                }
-              }
-            });
-          });
-          _.map(this.users, (user:any)&#x3D;&gt; {user.roleStr &#x3D; _.join(user.roles, &#x27;, &#x27;)});
-          this.filteredUsers &#x3D; this.users;
-          this.checkIfHasLoaded();
-        });
+    this.loggerService.debug(&#x60;Manage Roles waiting for deps to init...&#x60;); 
+    this.initDependencies &#x3D; [this.translationService, this.userService];
+  }
+
+  protected override async initComponent():Promise&lt;void&gt; {
+    let roles: any &#x3D; await this.userService.getBrandRoles();
+    this.roles &#x3D; roles;
+    _.forEach(roles, (role:any) &#x3D;&gt; {
+      this.searchFilter.roles.push({value:role.name, label:role.name, checked:false});
+      _.forEach(role.users, (user:any) &#x3D;&gt; {
+        if (!_.includes(this.hiddenUsers, user.username)) {
+          // flattening the tree, match by username
+          let existingUser: any &#x3D; _.find(this.users, (existingUser:any) &#x3D;&gt; { return existingUser.username &#x3D;&#x3D; user.username});
+          if (_.isEmpty(existingUser)) {
+            existingUser &#x3D; user;
+            existingUser.roles &#x3D; [role.name];
+            this.users.push(existingUser);
+          } else {
+            existingUser.roles.push(role.name);
+          }
+        }
       });
     });
+    _.map(this.users, (user:any)&#x3D;&gt; {user.roleStr &#x3D; _.join(user.roles, &#x27;, &#x27;)});
+    this.filteredUsers &#x3D; this.users;
+    this.loggerService.debug(&#x60;Manage Roles initComponent done&#x60;);
   }
 
   editUser(username:string) {
     this.setSaveMessage();
-    this.currentUser &#x3D; _.find(this.users, (user:any)&#x3D;&gt;{return user.username &#x3D;&#x3D; username});
-    this.currentUser.newRoles &#x3D; _.map(this.roles, (r:any) &#x3D;&gt; {
-      return {name: r.name, id:r.id, hasRole: _.includes(this.currentUser.roles, r.name)};
-    });
+    let currUser &#x3D; _.find(this.users, (user:any)&#x3D;&gt;{return user.username &#x3D;&#x3D; username});
+    if(!_.isUndefined(currUser)) {
+      this.currentUser &#x3D; currUser;
+      this.currentUser.newRoles &#x3D; _.map(this.roles, (r:any) &#x3D;&gt; {
+        return {name: r.name, id:r.id, users: [], hasRole: _.includes(this.currentUser.roles, r.name)};
+      });
+      this.showDetailsModal();
+    }
   }
 
-  saveCurrentUser($event:any) {
+  showDetailsModal(): void {
+    this.isDetailsModalShown &#x3D; true;
+    this.roleDetailsModal?.show();
+  }
+
+  hideDetailsModal(): void {
+    if(!_.isUndefined(this.roleDetailsModal)) {
+      this.roleDetailsModal.hide();
+    }
+  }
+
+  onDetailsModalHidden(): void {
+    this.isDetailsModalShown &#x3D; false;
+  }
+
+  async saveCurrentUser($event:any) {
     let hasRole:boolean &#x3D; false;
     let newRoles:any[] &#x3D; [];
     _.forEach(this.currentUser.newRoles, (role:any) &#x3D;&gt; {
@@ -1677,16 +1743,15 @@ export class ManageRolesComponent extends LoadableComponent {
       return;
     }
     this.setSaveMessage(&quot;Saving...&quot;, &quot;primary&quot;);
-    this.rolesService.updateUserRoles(this.currentUser.id, newRoles).then((saveRes:SaveResult) &#x3D;&gt; {
-      if (saveRes.status) {
-        this.currentUser.roles &#x3D; newRoles;
-        this.currentUser.roleStr &#x3D;  _.join(this.currentUser.roles);
-        this.setSaveMessage();
-        jQuery(&#x27;#myModal&#x27;).modal(&#x27;hide&#x27;);
-      } else {
-        this.setSaveMessage(saveRes.message, &quot;danger&quot;);
-      }
-    });
+    let saveRes:any &#x3D; await this.userService.updateUserRoles(this.currentUser.id, newRoles); //SaveResult
+    if (saveRes.status) {
+      this.currentUser.roles &#x3D; newRoles;
+      this.currentUser.roleStr &#x3D;  _.join(this.currentUser.roles);
+      this.setSaveMessage();
+      this.hideDetailsModal();
+    } else {
+      this.setSaveMessage(saveRes.message, &quot;danger&quot;);
+    }
   }
 
   setSaveMessage(msg:string&#x3D;&quot;&quot;, type:string&#x3D;&quot;primary&quot;) {
@@ -1714,124 +1779,130 @@ export class ManageRolesComponent extends LoadableComponent {
   }
 
   resetFilter() {
-    this.searchFilter.name &#x3D; null;
+    this.searchFilter.name &#x3D; &#x27;&#x27;;
     this.searchFilter.role &#x3D; null;
     _.map(this.searchFilter.roles, (role:any)&#x3D;&gt; role.checked &#x3D; role.value &#x3D;&#x3D; null);
     this.onFilterChange();
   }
+
 }
 </code></pre>
     </div>
 
     <div class="tab-pane fade " id="templateData">
-        <pre class="line-numbers"><code class="language-html">&lt;div class&#x3D;&quot;col-md-offset-2 col-md-8&quot; *ngIf&#x3D;&quot;!isLoading&quot;&gt;
-  &lt;div class&#x3D;&quot;panel panel-default&quot;&gt;
-    &lt;div class&#x3D;&quot;panel-heading&quot;&gt;
-      &lt;span class&#x3D;&quot;panel-title&quot;&gt;
-        {{ &#x27;manage-roles-title&#x27; | translate }}
-      &lt;/span&gt;
-    &lt;/div&gt;
-    &lt;div class&#x3D;&quot;panel-body&quot; style&#x3D;&quot;overflow:scroll&quot; &gt;
-      &lt;div class&#x3D;&quot;input-group&quot;&gt;
-        &lt;span class&#x3D;&quot;input-group-addon&quot; id&#x3D;&quot;name-addon&quot;&gt;{{ &#x27;manage-roles-filter-name&#x27; | translate }}&lt;/span&gt;
-        &lt;input type&#x3D;&quot;text&quot; (keyup)&#x3D;&quot;onFilterChange(null)&quot; [(ngModel)]&#x3D;&quot;searchFilter.name&quot; class&#x3D;&quot;form-control&quot; placeholder&#x3D;&quot;{{ &#x27;manage-roles-filter-name-placeholder&#x27; | translate }}&quot; [attr.aria-label]&#x3D;&quot;&#x27;manage-roles-filter-name&#x27; | translate &quot;&gt;
-        &lt;span (click)&#x3D;&quot;resetFilter()&quot; class&#x3D;&quot;input-group-btn&quot;&gt;&lt;button class&#x3D;&quot;btn btn-primary&quot; type&#x3D;&#x27;button&#x27;&gt;Reset&lt;/button&gt;&lt;/span&gt;
+        <pre class="line-numbers"><code class="language-html">&lt;div class&#x3D;&quot;col-md-offset-2 col-md-8&quot; *ngIf&#x3D;&quot;isReady&quot;&gt;
+    &lt;div class&#x3D;&quot;panel panel-default&quot;&gt;
+      &lt;div class&#x3D;&quot;panel-heading&quot;&gt;
+        &lt;span class&#x3D;&quot;panel-title&quot;&gt;
+          {{ &#x27;manage-roles-title&#x27; | i18next }}
+        &lt;/span&gt;
       &lt;/div&gt;
-      &lt;div&gt;
-        &lt;br/&gt;
-      &lt;/div&gt;
-      &lt;div class&#x3D;&quot;row&quot;&gt;
-        &lt;div class&#x3D;&quot;col-xs-3&quot;&gt;
-          {{ &#x27;manage-roles-filter-label&#x27; | translate }}
+      &lt;div class&#x3D;&quot;panel-body&quot; style&#x3D;&quot;overflow:scroll&quot; &gt;
+        &lt;div class&#x3D;&quot;input-group&quot;&gt;
+          &lt;span class&#x3D;&quot;input-group-addon&quot; id&#x3D;&quot;name-addon&quot;&gt;{{ &#x27;manage-roles-filter-name&#x27; | i18next }}&lt;/span&gt;
+          &lt;input type&#x3D;&quot;text&quot; (keyup)&#x3D;&quot;onFilterChange(null)&quot; [(ngModel)]&#x3D;&quot;searchFilter.name&quot; class&#x3D;&quot;form-control&quot; placeholder&#x3D;&quot;{{ &#x27;manage-roles-filter-name-placeholder&#x27; | i18next }}&quot; [attr.aria-label]&#x3D;&quot;&#x27;manage-roles-filter-name&#x27; | i18next &quot;&gt;
+          &lt;span (click)&#x3D;&quot;resetFilter()&quot; class&#x3D;&quot;input-group-btn&quot;&gt;&lt;button class&#x3D;&quot;btn btn-primary&quot; type&#x3D;&#x27;button&#x27;&gt;Reset&lt;/button&gt;&lt;/span&gt;
         &lt;/div&gt;
-        &lt;div class&#x3D;&quot;col-xs-4&quot; &gt;
-          &lt;fieldset&gt;
-            &lt;legend [hidden]&#x3D;&quot;true&quot;&gt;&lt;span&gt;&lt;/span&gt;&lt;/legend&gt;
-            &lt;div *ngFor&#x3D;&quot;let roleFilter of searchFilter.roles&quot;  &gt;
-              &lt;input [checked]&#x3D;&quot;roleFilter.checked&quot; (change)&#x3D;&quot;onFilterChange(roleFilter)&quot; id&#x3D;&quot;role-{{roleFilter.value}}&quot; name&#x3D;&quot;role-filter&quot; type&#x3D;&quot;radio&quot; &gt;
-              &lt;label for&#x3D;&quot;role-{{roleFilter.value}}&quot; &gt;&amp;nbsp;{{roleFilter.label}}&lt;/label&gt;
-            &lt;/div&gt;
-          &lt;/fieldset&gt;
+        &lt;div&gt;
+          &lt;br/&gt;
         &lt;/div&gt;
-        &lt;div class&#x3D;&quot;col-xs-4&quot; &gt;&lt;/div&gt;
-      &lt;/div&gt;
-      &lt;div&gt;
-        &lt;br/&gt;
-      &lt;/div&gt;
-      &lt;div class&#x3D;&quot;table-responsive&quot;&gt;
-        &lt;table class&#x3D;&quot;table table-bordered table-striped table-hover&quot;&gt;
-          &lt;thead&gt;
-            &lt;tr&gt;
-              &lt;th&gt;{{ &#x27;manage-roles-name&#x27; | translate }}&lt;/th&gt;
-              &lt;th&gt;{{ &#x27;manage-roles-email&#x27; | translate }}&lt;/th&gt;
-              &lt;th&gt;{{ &#x27;manage-roles-role&#x27; | translate }}&lt;/th&gt;
-              &lt;th&gt;{{ &#x27;manage-roles-action&#x27; | translate }}&lt;/th&gt;
-            &lt;/tr&gt;
-          &lt;/thead&gt;
-          &lt;tbody&gt;
-            &lt;tr *ngFor&#x3D;&quot;let user of filteredUsers&quot;&gt;
-              &lt;td&gt;{{user.name}}&lt;/td&gt;
-              &lt;td&gt;{{user.email}}&lt;/td&gt;
-              &lt;td&gt;{{user.roleStr}}&lt;/td&gt;
-              &lt;td&gt;
-                &lt;a href&#x3D;&quot;#&quot; (click)&#x3D;&quot;editUser(user.username)&quot; data-toggle&#x3D;&quot;modal&quot; data-target&#x3D;&quot;#myModal&quot; &gt;Edit&lt;/a&gt;
-              &lt;/td&gt;
-            &lt;/tr&gt;
-          &lt;/tbody&gt;
-        &lt;/table&gt;
-      &lt;/div&gt;
-    &lt;/div&gt;
-  &lt;/div&gt;
-&lt;/div&gt;
-&lt;!-- Modal --&gt;
-&lt;div id&#x3D;&quot;myModal&quot; class&#x3D;&quot;modal fade&quot; role&#x3D;&quot;dialog&quot;&gt;
-  &lt;div class&#x3D;&quot;modal-dialog&quot;&gt;
-    &lt;!-- Modal content--&gt;
-    &lt;div class&#x3D;&quot;modal-content&quot;&gt;
-      &lt;div class&#x3D;&quot;modal-header&quot;&gt;
-        &lt;button type&#x3D;&quot;button&quot; class&#x3D;&quot;close&quot; data-dismiss&#x3D;&quot;modal&quot;&gt;&amp;times;&lt;/button&gt;
-        &lt;span class&#x3D;&quot;modal-title h4-header&quot;&gt;{{ &#x27;manage-roles-edit&#x27; | translate }}&lt;/span&gt;
-      &lt;/div&gt;
-      &lt;div class&#x3D;&quot;modal-body&quot;&gt;
-        &lt;form &gt;
-          &lt;div class&#x3D;&quot;table-responsive&quot;&gt;
-            &lt;table class&#x3D;&quot;table&quot;&gt;
-              &lt;tbody&gt;
-                &lt;tr&gt;
-                  &lt;td&gt;{{ &#x27;manage-roles-name&#x27; | translate }}&lt;/td&gt;
-                  &lt;td&gt;{{currentUser.name}}&lt;/td&gt;
-                &lt;/tr&gt;
-                &lt;tr&gt;
-                  &lt;td&gt;{{ &#x27;manage-roles-email&#x27; | translate }}&lt;/td&gt;
-                  &lt;td&gt;{{currentUser.email}}&lt;/td&gt;
-                &lt;/tr&gt;
-                &lt;tr&gt;
-                  &lt;td&gt;{{ &#x27;manage-roles-role&#x27; | translate }}&lt;/td&gt;
-                  &lt;td&gt;
-                    &lt;div *ngFor&#x3D;&quot;let role of currentUser.newRoles&quot;&gt;
-                      &lt;label class&#x3D;&quot;checkbox-inline&quot; for&#x3D;&quot;cb_{{role.id}}&quot;&gt;
-                        &lt;input  id&#x3D;&quot;cb_{{role.id}}&quot; type&#x3D;&quot;checkbox&quot; value&#x3D;&quot;{{role.id}}&quot; [(ngModel)]&#x3D;&quot;role.hasRole&quot; [ngModelOptions]&#x3D;&quot;{standalone: true}&quot;&gt;
-                        {{role.name}}
-                      &lt;/label&gt;
-                    &lt;/div&gt;
-                  &lt;/td&gt;
-                &lt;/tr&gt;
-              &lt;/tbody&gt;
-            &lt;/table&gt;
+        &lt;div class&#x3D;&quot;row&quot;&gt;
+          &lt;div class&#x3D;&quot;col-xs-3&quot;&gt;
+            {{ &#x27;manage-roles-filter-label&#x27; | i18next }}
           &lt;/div&gt;
-        &lt;/form&gt;
-        &lt;div class&#x3D;&quot;bg-{{saveMsgType}} center-block&quot;&gt;{{saveMsg}}&lt;/div&gt;
-      &lt;/div&gt;
-      &lt;div class&#x3D;&quot;modal-footer&quot;&gt;
-        &lt;button type&#x3D;&quot;button&quot; class&#x3D;&quot;btn btn-primary&quot; (click)&#x3D;&quot;saveCurrentUser($event)&quot;&gt;{{ &#x27;manage-roles-save&#x27; | translate }}&lt;/button&gt;
-        &lt;button type&#x3D;&quot;button&quot; class&#x3D;&quot;btn btn-default&quot; data-dismiss&#x3D;&quot;modal&quot;&gt;{{ &#x27;manage-roles-cancel&#x27; | translate }}&lt;/button&gt;
+          &lt;div class&#x3D;&quot;col-xs-4&quot; &gt;
+            &lt;fieldset&gt;
+              &lt;legend [hidden]&#x3D;&quot;true&quot;&gt;&lt;span&gt;&lt;/span&gt;&lt;/legend&gt;
+              &lt;div *ngFor&#x3D;&quot;let roleFilter of searchFilter.roles&quot;  &gt;
+                &lt;input [checked]&#x3D;&quot;roleFilter.checked&quot; (change)&#x3D;&quot;onFilterChange(roleFilter)&quot; id&#x3D;&quot;role-{{roleFilter.value}}&quot; name&#x3D;&quot;role-filter&quot; type&#x3D;&quot;radio&quot; &gt;
+                &lt;label for&#x3D;&quot;role-{{roleFilter.value}}&quot; &gt;&amp;nbsp;{{roleFilter.label}}&lt;/label&gt;
+              &lt;/div&gt;
+            &lt;/fieldset&gt;
+          &lt;/div&gt;
+          &lt;div class&#x3D;&quot;col-xs-4&quot; &gt;&lt;/div&gt;
+        &lt;/div&gt;
+        &lt;div&gt;
+          &lt;br/&gt;
+        &lt;/div&gt;
+        &lt;div class&#x3D;&quot;table-responsive&quot;&gt;
+          &lt;table class&#x3D;&quot;table table-bordered table-striped table-hover&quot;&gt;
+            &lt;thead&gt;
+              &lt;tr&gt;
+                &lt;th&gt;{{ &#x27;manage-roles-name&#x27; | i18next }}&lt;/th&gt;
+                &lt;th&gt;{{ &#x27;manage-roles-email&#x27; | i18next }}&lt;/th&gt;
+                &lt;th&gt;{{ &#x27;manage-roles-role&#x27; | i18next }}&lt;/th&gt;
+                &lt;th&gt;{{ &#x27;manage-roles-action&#x27; | i18next }}&lt;/th&gt;
+              &lt;/tr&gt;
+            &lt;/thead&gt;
+            &lt;tbody&gt;
+              &lt;tr *ngFor&#x3D;&quot;let user of filteredUsers&quot;&gt;
+                &lt;td&gt;{{user.name}}&lt;/td&gt;
+                &lt;td&gt;{{user.email}}&lt;/td&gt;
+                &lt;td&gt;{{user.roleStr}}&lt;/td&gt;
+                &lt;td&gt;
+                  &lt;a style&#x3D;&quot;cursor:pointer&quot; (click)&#x3D;&quot;editUser(user.username)&quot; &gt;Edit&lt;/a&gt;
+                &lt;/td&gt;
+              &lt;/tr&gt;
+            &lt;/tbody&gt;
+          &lt;/table&gt;
+        &lt;/div&gt;
       &lt;/div&gt;
     &lt;/div&gt;
   &lt;/div&gt;
-&lt;/div&gt;
-</code></pre>
+  &lt;!-- Modal --&gt;
+  &lt;div *ngIf&#x3D;&quot;isDetailsModalShown&quot; [config]&#x3D;&quot;{backdrop: &#x27;static&#x27;, show: true}&quot; (onHidden)&#x3D;&quot;onDetailsModalHidden()&quot; bsModal #roleDetailsModal&#x3D;&quot;bs-modal&quot; class&#x3D;&quot;modal fade&quot; tabindex&#x3D;&quot;-1&quot; role&#x3D;&quot;dialog&quot; aria-labelledby&#x3D;&quot;detailsform&quot; &gt;
+    &lt;div class&#x3D;&quot;modal-dialog modal-md&quot;&gt;
+      &lt;!-- Modal content--&gt;
+      &lt;div class&#x3D;&quot;modal-content&quot;&gt;
+        &lt;div class&#x3D;&quot;modal-header&quot;&gt;
+          &lt;span class&#x3D;&quot;modal-title h4-header&quot;&gt;{{ &#x27;manage-roles-edit&#x27; | i18next }}&lt;/span&gt;
+        &lt;/div&gt;
+        &lt;div class&#x3D;&quot;modal-body&quot;&gt;
+          &lt;form &gt;
+            &lt;div class&#x3D;&quot;table-responsive&quot;&gt;
+              &lt;table class&#x3D;&quot;table&quot;&gt;
+                &lt;tbody&gt;
+                  &lt;tr&gt;
+                    &lt;td&gt;{{ &#x27;manage-roles-name&#x27; | i18next }}&lt;/td&gt;
+                    &lt;td&gt;{{currentUser.name}}&lt;/td&gt;
+                  &lt;/tr&gt;
+                  &lt;tr&gt;
+                    &lt;td&gt;{{ &#x27;manage-roles-email&#x27; | i18next }}&lt;/td&gt;
+                    &lt;td&gt;{{currentUser.email}}&lt;/td&gt;
+                  &lt;/tr&gt;
+                  &lt;tr&gt;
+                    &lt;td&gt;{{ &#x27;manage-roles-role&#x27; | i18next }}&lt;/td&gt;
+                    &lt;td&gt;
+                      &lt;div *ngFor&#x3D;&quot;let role of currentUser.newRoles&quot;&gt;
+                        &lt;label class&#x3D;&quot;checkbox-inline&quot; for&#x3D;&quot;cb_{{role.id}}&quot;&gt;
+                          &lt;input  id&#x3D;&quot;cb_{{role.id}}&quot; type&#x3D;&quot;checkbox&quot; value&#x3D;&quot;{{role.id}}&quot; [(ngModel)]&#x3D;&quot;role.hasRole&quot; [ngModelOptions]&#x3D;&quot;{standalone: true}&quot;&gt;
+                          {{role.name}}
+                        &lt;/label&gt;
+                      &lt;/div&gt;
+                    &lt;/td&gt;
+                  &lt;/tr&gt;
+                &lt;/tbody&gt;
+              &lt;/table&gt;
+            &lt;/div&gt;
+          &lt;/form&gt;
+          &lt;div class&#x3D;&quot;bg-{{saveMsgType}} center-block&quot;&gt;{{saveMsg}}&lt;/div&gt;
+        &lt;/div&gt;
+        &lt;div class&#x3D;&quot;modal-footer&quot;&gt;
+          &lt;button type&#x3D;&quot;button&quot; class&#x3D;&quot;btn btn-primary&quot; (click)&#x3D;&quot;saveCurrentUser($event)&quot;&gt;{{ &#x27;manage-roles-save&#x27; | i18next }}&lt;/button&gt;
+          &lt;button type&#x3D;&quot;button&quot; class&#x3D;&quot;btn btn-default&quot; (click)&#x3D;&quot;hideDetailsModal()&quot;&gt;{{ &#x27;manage-roles-cancel&#x27; | i18next }}&lt;/button&gt;
+        &lt;/div&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+  </code></pre>
     </div>
 
+    <div class="tab-pane fade " id="styleData">
+                <p class="comment">
+                    <code>./manage-roles.component.scss</code>
+                </p>
+                <pre class="line-numbers"><code class="language-scss"></code></pre>
+    </div>
 
     <div class="tab-pane fade " id="tree">
         <div id="tree-container"></div>
@@ -1858,8 +1929,8 @@ export class ManageRolesComponent extends LoadableComponent {
 <script src="../js/libs/htmlparser.js"></script>
 <script src="../js/libs/deep-iterator.js"></script>
 <script>
-        var COMPONENT_TEMPLATE = '<div><div class="col-md-offset-2 col-md-8" *ngIf="!isLoading">  <div class="panel panel-default">    <div class="panel-heading">      <span class="panel-title">        {{ \'manage-roles-title\' | translate }}      </span>    </div>    <div class="panel-body" style="overflow:scroll" >      <div class="input-group">        <span class="input-group-addon" id="name-addon">{{ \'manage-roles-filter-name\' | translate }}</span>        <input type="text" (keyup)="onFilterChange(null)" [(ngModel)]="searchFilter.name" class="form-control" placeholder="{{ \'manage-roles-filter-name-placeholder\' | translate }}" [attr.aria-label]="\'manage-roles-filter-name\' | translate ">        <span (click)="resetFilter()" class="input-group-btn"><button class="btn btn-primary" type=\'button\'>Reset</button></span>      </div>      <div>        <br/>      </div>      <div class="row">        <div class="col-xs-3">          {{ \'manage-roles-filter-label\' | translate }}        </div>        <div class="col-xs-4" >          <fieldset>            <legend [hidden]="true"><span></span></legend>            <div *ngFor="let roleFilter of searchFilter.roles"  >              <input [checked]="roleFilter.checked" (change)="onFilterChange(roleFilter)" id="role-{{roleFilter.value}}" name="role-filter" type="radio" >              <label for="role-{{roleFilter.value}}" >&nbsp;{{roleFilter.label}}</label>            </div>          </fieldset>        </div>        <div class="col-xs-4" ></div>      </div>      <div>        <br/>      </div>      <div class="table-responsive">        <table class="table table-bordered table-striped table-hover">          <thead>            <tr>              <th>{{ \'manage-roles-name\' | translate }}</th>              <th>{{ \'manage-roles-email\' | translate }}</th>              <th>{{ \'manage-roles-role\' | translate }}</th>              <th>{{ \'manage-roles-action\' | translate }}</th>            </tr>          </thead>          <tbody>            <tr *ngFor="let user of filteredUsers">              <td>{{user.name}}</td>              <td>{{user.email}}</td>              <td>{{user.roleStr}}</td>              <td>                <a href="#" (click)="editUser(user.username)" data-toggle="modal" data-target="#myModal" >Edit</a>              </td>            </tr>          </tbody>        </table>      </div>    </div>  </div></div><!-- Modal --><div id="myModal" class="modal fade" role="dialog">  <div class="modal-dialog">    <!-- Modal content-->    <div class="modal-content">      <div class="modal-header">        <button type="button" class="close" data-dismiss="modal">&times;</button>        <span class="modal-title h4-header">{{ \'manage-roles-edit\' | translate }}</span>      </div>      <div class="modal-body">        <form >          <div class="table-responsive">            <table class="table">              <tbody>                <tr>                  <td>{{ \'manage-roles-name\' | translate }}</td>                  <td>{{currentUser.name}}</td>                </tr>                <tr>                  <td>{{ \'manage-roles-email\' | translate }}</td>                  <td>{{currentUser.email}}</td>                </tr>                <tr>                  <td>{{ \'manage-roles-role\' | translate }}</td>                  <td>                    <div *ngFor="let role of currentUser.newRoles">                      <label class="checkbox-inline" for="cb_{{role.id}}">                        <input  id="cb_{{role.id}}" type="checkbox" value="{{role.id}}" [(ngModel)]="role.hasRole" [ngModelOptions]="{standalone: true}">                        {{role.name}}                      </label>                    </div>                  </td>                </tr>              </tbody>            </table>          </div>        </form>        <div class="bg-{{saveMsgType}} center-block">{{saveMsg}}</div>      </div>      <div class="modal-footer">        <button type="button" class="btn btn-primary" (click)="saveCurrentUser($event)">{{ \'manage-roles-save\' | translate }}</button>        <button type="button" class="btn btn-default" data-dismiss="modal">{{ \'manage-roles-cancel\' | translate }}</button>      </div>    </div>  </div></div></div>'
-    var COMPONENTS = [{'name': 'ActionButtonComponent', 'selector': 'action-button'},{'name': 'ActionButtonComponent', 'selector': 'action-button'},{'name': 'ActionButtonComponent', 'selector': 'action-button'},{'name': 'ActionButtonComponent', 'selector': 'action-button'},{'name': 'ActionButtonComponent', 'selector': 'action-button'},{'name': 'ActionButtonComponent', 'selector': 'action-button'},{'name': 'ActionButtonComponent', 'selector': 'action-button'},{'name': 'ActionButtonComponent', 'selector': 'action-button'},{'name': 'ActionButtonComponent', 'selector': 'action-button'},{'name': 'ActionButtonComponent', 'selector': 'action-button'},{'name': 'ActionButtonComponent', 'selector': 'action-button'},{'name': 'ActionButtonComponent', 'selector': 'action-button'},{'name': 'AnchorOrButtonComponent', 'selector': 'anchor-button'},{'name': 'AnchorOrButtonComponent', 'selector': 'anchor-button'},{'name': 'AnchorOrButtonComponent', 'selector': 'anchor-button'},{'name': 'AnchorOrButtonComponent', 'selector': 'anchor-button'},{'name': 'AnchorOrButtonComponent', 'selector': 'anchor-button'},{'name': 'AnchorOrButtonComponent', 'selector': 'anchor-button'},{'name': 'AnchorOrButtonComponent', 'selector': 'anchor-button'},{'name': 'AnchorOrButtonComponent', 'selector': 'anchor-button'},{'name': 'AnchorOrButtonComponent', 'selector': 'anchor-button'},{'name': 'AnchorOrButtonComponent', 'selector': 'anchor-button'},{'name': 'AnchorOrButtonComponent', 'selector': 'anchor-button'},{'name': 'AnchorOrButtonComponent', 'selector': 'anchor-button'},{'name': 'ANDSVocabComponent', 'selector': 'ands-vocab-selector'},{'name': 'ANDSVocabComponent', 'selector': 'ands-vocab-selector'},{'name': 'ANDSVocabComponent', 'selector': 'ands-vocab-selector'},{'name': 'ANDSVocabComponent', 'selector': 'ands-vocab-selector'},{'name': 'ANDSVocabComponent', 'selector': 'ands-vocab-selector'},{'name': 'ANDSVocabComponent', 'selector': 'ands-vocab-selector'},{'name': 'ANDSVocabComponent', 'selector': 'ands-vocab-selector'},{'name': 'ANDSVocabComponent', 'selector': 'ands-vocab-selector'},{'name': 'ANDSVocabComponent', 'selector': 'ands-vocab-selector'},{'name': 'ANDSVocabComponent', 'selector': 'ands-vocab-selector'},{'name': 'ANDSVocabComponent', 'selector': 'ands-vocab-selector'},{'name': 'ANDSVocabComponent', 'selector': 'ands-vocab-selector'},{'name': 'AsynchComponent', 'selector': 'asynch-component'},{'name': 'AsynchComponent', 'selector': 'asynch-component'},{'name': 'AsynchComponent', 'selector': 'asynch-component'},{'name': 'AsynchComponent', 'selector': 'asynch-component'},{'name': 'AsynchComponent', 'selector': 'asynch-component'},{'name': 'AsynchComponent', 'selector': 'asynch-component'},{'name': 'AsynchComponent', 'selector': 'asynch-component'},{'name': 'AsynchComponent', 'selector': 'asynch-component'},{'name': 'AsynchComponent', 'selector': 'asynch-component'},{'name': 'AsynchComponent', 'selector': 'asynch-component'},{'name': 'AsynchComponent', 'selector': 'asynch-component'},{'name': 'AsynchComponent', 'selector': 'asynch-component'},{'name': 'ButtonBarContainerComponent', 'selector': 'buttonbarcontainer'},{'name': 'ButtonBarContainerComponent', 'selector': 'buttonbarcontainer'},{'name': 'ButtonBarContainerComponent', 'selector': 'buttonbarcontainer'},{'name': 'ButtonBarContainerComponent', 'selector': 'buttonbarcontainer'},{'name': 'ButtonBarContainerComponent', 'selector': 'buttonbarcontainer'},{'name': 'ButtonBarContainerComponent', 'selector': 'buttonbarcontainer'},{'name': 'ButtonBarContainerComponent', 'selector': 'buttonbarcontainer'},{'name': 'ButtonBarContainerComponent', 'selector': 'buttonbarcontainer'},{'name': 'ButtonBarContainerComponent', 'selector': 'buttonbarcontainer'},{'name': 'ButtonBarContainerComponent', 'selector': 'buttonbarcontainer'},{'name': 'ButtonBarContainerComponent', 'selector': 'buttonbarcontainer'},{'name': 'ButtonBarContainerComponent', 'selector': 'buttonbarcontainer'},{'name': 'CancelButtonComponent', 'selector': 'cancel-button'},{'name': 'CancelButtonComponent', 'selector': 'cancel-button'},{'name': 'CancelButtonComponent', 'selector': 'cancel-button'},{'name': 'CancelButtonComponent', 'selector': 'cancel-button'},{'name': 'CancelButtonComponent', 'selector': 'cancel-button'},{'name': 'CancelButtonComponent', 'selector': 'cancel-button'},{'name': 'CancelButtonComponent', 'selector': 'cancel-button'},{'name': 'CancelButtonComponent', 'selector': 'cancel-button'},{'name': 'CancelButtonComponent', 'selector': 'cancel-button'},{'name': 'CancelButtonComponent', 'selector': 'cancel-button'},{'name': 'CancelButtonComponent', 'selector': 'cancel-button'},{'name': 'CancelButtonComponent', 'selector': 'cancel-button'},{'name': 'ContributorComponent', 'selector': 'rb-contributor'},{'name': 'ContributorComponent', 'selector': 'rb-contributor'},{'name': 'ContributorComponent', 'selector': 'rb-contributor'},{'name': 'ContributorComponent', 'selector': 'rb-contributor'},{'name': 'ContributorComponent', 'selector': 'rb-contributor'},{'name': 'ContributorComponent', 'selector': 'rb-contributor'},{'name': 'ContributorComponent', 'selector': 'rb-contributor'},{'name': 'ContributorComponent', 'selector': 'rb-contributor'},{'name': 'ContributorComponent', 'selector': 'rb-contributor'},{'name': 'ContributorComponent', 'selector': 'rb-contributor'},{'name': 'ContributorComponent', 'selector': 'rb-contributor'},{'name': 'ContributorComponent', 'selector': 'rb-contributor'},{'name': 'DashboardComponent', 'selector': 'dashboard'},{'name': 'DataLocationComponent', 'selector': 'data-location-selector'},{'name': 'DataLocationComponent', 'selector': 'data-location-selector'},{'name': 'DataLocationComponent', 'selector': 'data-location-selector'},{'name': 'DataLocationComponent', 'selector': 'data-location-selector'},{'name': 'DataLocationComponent', 'selector': 'data-location-selector'},{'name': 'DataLocationComponent', 'selector': 'data-location-selector'},{'name': 'DataLocationComponent', 'selector': 'data-location-selector'},{'name': 'DataLocationComponent', 'selector': 'data-location-selector'},{'name': 'DataLocationComponent', 'selector': 'data-location-selector'},{'name': 'DataLocationComponent', 'selector': 'data-location-selector'},{'name': 'DataLocationComponent', 'selector': 'data-location-selector'},{'name': 'DataLocationComponent', 'selector': 'data-location-selector'},{'name': 'DateTimeComponent', 'selector': 'date-time'},{'name': 'DateTimeComponent', 'selector': 'date-time'},{'name': 'DateTimeComponent', 'selector': 'date-time'},{'name': 'DateTimeComponent', 'selector': 'date-time'},{'name': 'DateTimeComponent', 'selector': 'date-time'},{'name': 'DateTimeComponent', 'selector': 'date-time'},{'name': 'DateTimeComponent', 'selector': 'date-time'},{'name': 'DateTimeComponent', 'selector': 'date-time'},{'name': 'DateTimeComponent', 'selector': 'date-time'},{'name': 'DateTimeComponent', 'selector': 'date-time'},{'name': 'DateTimeComponent', 'selector': 'date-time'},{'name': 'DateTimeComponent', 'selector': 'date-time'},{'name': 'DmpFieldComponent', 'selector': 'dmp-field'},{'name': 'DmpFieldComponent', 'selector': 'dmp-field'},{'name': 'DmpFieldComponent', 'selector': 'dmp-field'},{'name': 'DmpFieldComponent', 'selector': 'dmp-field'},{'name': 'DmpFieldComponent', 'selector': 'dmp-field'},{'name': 'DmpFieldComponent', 'selector': 'dmp-field'},{'name': 'DmpFieldComponent', 'selector': 'dmp-field'},{'name': 'DmpFieldComponent', 'selector': 'dmp-field'},{'name': 'DmpFieldComponent', 'selector': 'dmp-field'},{'name': 'DmpFieldComponent', 'selector': 'dmp-field'},{'name': 'DmpFieldComponent', 'selector': 'dmp-field'},{'name': 'DmpFieldComponent', 'selector': 'dmp-field'},{'name': 'DmpFormComponent', 'selector': 'dmp-form'},{'name': 'DropdownFieldComponent', 'selector': 'dropdownfield'},{'name': 'DropdownFieldComponent', 'selector': 'dropdownfield'},{'name': 'DropdownFieldComponent', 'selector': 'dropdownfield'},{'name': 'DropdownFieldComponent', 'selector': 'dropdownfield'},{'name': 'DropdownFieldComponent', 'selector': 'dropdownfield'},{'name': 'DropdownFieldComponent', 'selector': 'dropdownfield'},{'name': 'DropdownFieldComponent', 'selector': 'dropdownfield'},{'name': 'DropdownFieldComponent', 'selector': 'dropdownfield'},{'name': 'DropdownFieldComponent', 'selector': 'dropdownfield'},{'name': 'DropdownFieldComponent', 'selector': 'dropdownfield'},{'name': 'DropdownFieldComponent', 'selector': 'dropdownfield'},{'name': 'DropdownFieldComponent', 'selector': 'dropdownfield'},{'name': 'EventHandlerComponent', 'selector': 'event-handler'},{'name': 'EventHandlerComponent', 'selector': 'event-handler'},{'name': 'EventHandlerComponent', 'selector': 'event-handler'},{'name': 'EventHandlerComponent', 'selector': 'event-handler'},{'name': 'EventHandlerComponent', 'selector': 'event-handler'},{'name': 'EventHandlerComponent', 'selector': 'event-handler'},{'name': 'EventHandlerComponent', 'selector': 'event-handler'},{'name': 'EventHandlerComponent', 'selector': 'event-handler'},{'name': 'EventHandlerComponent', 'selector': 'event-handler'},{'name': 'EventHandlerComponent', 'selector': 'event-handler'},{'name': 'EventHandlerComponent', 'selector': 'event-handler'},{'name': 'EventHandlerComponent', 'selector': 'event-handler'},{'name': 'ExportFormComponent', 'selector': 'export-form'},{'name': 'GenericGroupComponent', 'selector': 'generic-group-field'},{'name': 'GenericGroupComponent', 'selector': 'generic-group-field'},{'name': 'GenericGroupComponent', 'selector': 'generic-group-field'},{'name': 'GenericGroupComponent', 'selector': 'generic-group-field'},{'name': 'GenericGroupComponent', 'selector': 'generic-group-field'},{'name': 'GenericGroupComponent', 'selector': 'generic-group-field'},{'name': 'GenericGroupComponent', 'selector': 'generic-group-field'},{'name': 'GenericGroupComponent', 'selector': 'generic-group-field'},{'name': 'GenericGroupComponent', 'selector': 'generic-group-field'},{'name': 'GenericGroupComponent', 'selector': 'generic-group-field'},{'name': 'GenericGroupComponent', 'selector': 'generic-group-field'},{'name': 'GenericGroupComponent', 'selector': 'generic-group-field'},{'name': 'HiddenValueComponent', 'selector': 'hidden-field'},{'name': 'HiddenValueComponent', 'selector': 'hidden-field'},{'name': 'HiddenValueComponent', 'selector': 'hidden-field'},{'name': 'HiddenValueComponent', 'selector': 'hidden-field'},{'name': 'HiddenValueComponent', 'selector': 'hidden-field'},{'name': 'HiddenValueComponent', 'selector': 'hidden-field'},{'name': 'HiddenValueComponent', 'selector': 'hidden-field'},{'name': 'HiddenValueComponent', 'selector': 'hidden-field'},{'name': 'HiddenValueComponent', 'selector': 'hidden-field'},{'name': 'HiddenValueComponent', 'selector': 'hidden-field'},{'name': 'HiddenValueComponent', 'selector': 'hidden-field'},{'name': 'HiddenValueComponent', 'selector': 'hidden-field'},{'name': 'HtmlRawComponent', 'selector': 'htmlraw'},{'name': 'HtmlRawComponent', 'selector': 'htmlraw'},{'name': 'HtmlRawComponent', 'selector': 'htmlraw'},{'name': 'HtmlRawComponent', 'selector': 'htmlraw'},{'name': 'HtmlRawComponent', 'selector': 'htmlraw'},{'name': 'HtmlRawComponent', 'selector': 'htmlraw'},{'name': 'HtmlRawComponent', 'selector': 'htmlraw'},{'name': 'HtmlRawComponent', 'selector': 'htmlraw'},{'name': 'HtmlRawComponent', 'selector': 'htmlraw'},{'name': 'HtmlRawComponent', 'selector': 'htmlraw'},{'name': 'HtmlRawComponent', 'selector': 'htmlraw'},{'name': 'HtmlRawComponent', 'selector': 'htmlraw'},{'name': 'LinkValueComponent', 'selector': 'link-value'},{'name': 'LinkValueComponent', 'selector': 'link-value'},{'name': 'LinkValueComponent', 'selector': 'link-value'},{'name': 'LinkValueComponent', 'selector': 'link-value'},{'name': 'LinkValueComponent', 'selector': 'link-value'},{'name': 'LinkValueComponent', 'selector': 'link-value'},{'name': 'LinkValueComponent', 'selector': 'link-value'},{'name': 'LinkValueComponent', 'selector': 'link-value'},{'name': 'LinkValueComponent', 'selector': 'link-value'},{'name': 'LinkValueComponent', 'selector': 'link-value'},{'name': 'LinkValueComponent', 'selector': 'link-value'},{'name': 'LinkValueComponent', 'selector': 'link-value'},{'name': 'LocalAuthComponent', 'selector': 'local-auth'},{'name': 'ManageRolesComponent', 'selector': 'manage-roles'},{'name': 'ManageUsersComponent', 'selector': 'manage-users'},{'name': 'MapComponent', 'selector': 'rb-mapdata'},{'name': 'MapComponent', 'selector': 'rb-mapdata'},{'name': 'MapComponent', 'selector': 'rb-mapdata'},{'name': 'MapComponent', 'selector': 'rb-mapdata'},{'name': 'MapComponent', 'selector': 'rb-mapdata'},{'name': 'MapComponent', 'selector': 'rb-mapdata'},{'name': 'MapComponent', 'selector': 'rb-mapdata'},{'name': 'MapComponent', 'selector': 'rb-mapdata'},{'name': 'MapComponent', 'selector': 'rb-mapdata'},{'name': 'MapComponent', 'selector': 'rb-mapdata'},{'name': 'MapComponent', 'selector': 'rb-mapdata'},{'name': 'MapComponent', 'selector': 'rb-mapdata'},{'name': 'MarkdownTextAreaComponent', 'selector': 'markdown-text-area'},{'name': 'MarkdownTextAreaComponent', 'selector': 'markdown-text-area'},{'name': 'MarkdownTextAreaComponent', 'selector': 'markdown-text-area'},{'name': 'MarkdownTextAreaComponent', 'selector': 'markdown-text-area'},{'name': 'MarkdownTextAreaComponent', 'selector': 'markdown-text-area'},{'name': 'MarkdownTextAreaComponent', 'selector': 'markdown-text-area'},{'name': 'MarkdownTextAreaComponent', 'selector': 'markdown-text-area'},{'name': 'MarkdownTextAreaComponent', 'selector': 'markdown-text-area'},{'name': 'MarkdownTextAreaComponent', 'selector': 'markdown-text-area'},{'name': 'MarkdownTextAreaComponent', 'selector': 'markdown-text-area'},{'name': 'MarkdownTextAreaComponent', 'selector': 'markdown-text-area'},{'name': 'MarkdownTextAreaComponent', 'selector': 'markdown-text-area'},{'name': 'PageTitleComponent', 'selector': 'page-title'},{'name': 'PageTitleComponent', 'selector': 'page-title'},{'name': 'PageTitleComponent', 'selector': 'page-title'},{'name': 'PageTitleComponent', 'selector': 'page-title'},{'name': 'PageTitleComponent', 'selector': 'page-title'},{'name': 'PageTitleComponent', 'selector': 'page-title'},{'name': 'PageTitleComponent', 'selector': 'page-title'},{'name': 'PageTitleComponent', 'selector': 'page-title'},{'name': 'PageTitleComponent', 'selector': 'page-title'},{'name': 'PageTitleComponent', 'selector': 'page-title'},{'name': 'PageTitleComponent', 'selector': 'page-title'},{'name': 'PageTitleComponent', 'selector': 'page-title'},{'name': 'ParameterRetrieverComponent', 'selector': 'parameter-retriever'},{'name': 'ParameterRetrieverComponent', 'selector': 'parameter-retriever'},{'name': 'ParameterRetrieverComponent', 'selector': 'parameter-retriever'},{'name': 'ParameterRetrieverComponent', 'selector': 'parameter-retriever'},{'name': 'ParameterRetrieverComponent', 'selector': 'parameter-retriever'},{'name': 'ParameterRetrieverComponent', 'selector': 'parameter-retriever'},{'name': 'ParameterRetrieverComponent', 'selector': 'parameter-retriever'},{'name': 'ParameterRetrieverComponent', 'selector': 'parameter-retriever'},{'name': 'ParameterRetrieverComponent', 'selector': 'parameter-retriever'},{'name': 'ParameterRetrieverComponent', 'selector': 'parameter-retriever'},{'name': 'ParameterRetrieverComponent', 'selector': 'parameter-retriever'},{'name': 'ParameterRetrieverComponent', 'selector': 'parameter-retriever'},{'name': 'PDFListComponent', 'selector': 'rb-pdf-list'},{'name': 'PDFListComponent', 'selector': 'rb-pdf-list'},{'name': 'PDFListComponent', 'selector': 'rb-pdf-list'},{'name': 'PDFListComponent', 'selector': 'rb-pdf-list'},{'name': 'PDFListComponent', 'selector': 'rb-pdf-list'},{'name': 'PDFListComponent', 'selector': 'rb-pdf-list'},{'name': 'PDFListComponent', 'selector': 'rb-pdf-list'},{'name': 'PDFListComponent', 'selector': 'rb-pdf-list'},{'name': 'PDFListComponent', 'selector': 'rb-pdf-list'},{'name': 'PDFListComponent', 'selector': 'rb-pdf-list'},{'name': 'PDFListComponent', 'selector': 'rb-pdf-list'},{'name': 'PDFListComponent', 'selector': 'rb-pdf-list'},{'name': 'PublishDataLocationRefreshComponent', 'selector': 'publish-data-location-refresh'},{'name': 'PublishDataLocationRefreshComponent', 'selector': 'publish-data-location-refresh'},{'name': 'PublishDataLocationRefreshComponent', 'selector': 'publish-data-location-refresh'},{'name': 'PublishDataLocationRefreshComponent', 'selector': 'publish-data-location-refresh'},{'name': 'PublishDataLocationRefreshComponent', 'selector': 'publish-data-location-refresh'},{'name': 'PublishDataLocationRefreshComponent', 'selector': 'publish-data-location-refresh'},{'name': 'PublishDataLocationRefreshComponent', 'selector': 'publish-data-location-refresh'},{'name': 'PublishDataLocationRefreshComponent', 'selector': 'publish-data-location-refresh'},{'name': 'PublishDataLocationRefreshComponent', 'selector': 'publish-data-location-refresh'},{'name': 'PublishDataLocationRefreshComponent', 'selector': 'publish-data-location-refresh'},{'name': 'PublishDataLocationRefreshComponent', 'selector': 'publish-data-location-refresh'},{'name': 'PublishDataLocationRefreshComponent', 'selector': 'publish-data-location-refresh'},{'name': 'PublishDataLocationSelectorComponent', 'selector': 'publish-data-location-selector'},{'name': 'PublishDataLocationSelectorComponent', 'selector': 'publish-data-location-selector'},{'name': 'PublishDataLocationSelectorComponent', 'selector': 'publish-data-location-selector'},{'name': 'PublishDataLocationSelectorComponent', 'selector': 'publish-data-location-selector'},{'name': 'PublishDataLocationSelectorComponent', 'selector': 'publish-data-location-selector'},{'name': 'PublishDataLocationSelectorComponent', 'selector': 'publish-data-location-selector'},{'name': 'PublishDataLocationSelectorComponent', 'selector': 'publish-data-location-selector'},{'name': 'PublishDataLocationSelectorComponent', 'selector': 'publish-data-location-selector'},{'name': 'PublishDataLocationSelectorComponent', 'selector': 'publish-data-location-selector'},{'name': 'PublishDataLocationSelectorComponent', 'selector': 'publish-data-location-selector'},{'name': 'PublishDataLocationSelectorComponent', 'selector': 'publish-data-location-selector'},{'name': 'PublishDataLocationSelectorComponent', 'selector': 'publish-data-location-selector'},{'name': 'RecordMetadataRetrieverComponent', 'selector': 'record-metadata-retriever'},{'name': 'RecordMetadataRetrieverComponent', 'selector': 'record-metadata-retriever'},{'name': 'RecordMetadataRetrieverComponent', 'selector': 'record-metadata-retriever'},{'name': 'RecordMetadataRetrieverComponent', 'selector': 'record-metadata-retriever'},{'name': 'RecordMetadataRetrieverComponent', 'selector': 'record-metadata-retriever'},{'name': 'RecordMetadataRetrieverComponent', 'selector': 'record-metadata-retriever'},{'name': 'RecordMetadataRetrieverComponent', 'selector': 'record-metadata-retriever'},{'name': 'RecordMetadataRetrieverComponent', 'selector': 'record-metadata-retriever'},{'name': 'RecordMetadataRetrieverComponent', 'selector': 'record-metadata-retriever'},{'name': 'RecordMetadataRetrieverComponent', 'selector': 'record-metadata-retriever'},{'name': 'RecordMetadataRetrieverComponent', 'selector': 'record-metadata-retriever'},{'name': 'RecordMetadataRetrieverComponent', 'selector': 'record-metadata-retriever'},{'name': 'RecordPermissionsComponent', 'selector': 'rb-recordpermissions'},{'name': 'RecordPermissionsComponent', 'selector': 'rb-recordpermissions'},{'name': 'RecordPermissionsComponent', 'selector': 'rb-recordpermissions'},{'name': 'RecordPermissionsComponent', 'selector': 'rb-recordpermissions'},{'name': 'RecordPermissionsComponent', 'selector': 'rb-recordpermissions'},{'name': 'RecordPermissionsComponent', 'selector': 'rb-recordpermissions'},{'name': 'RecordPermissionsComponent', 'selector': 'rb-recordpermissions'},{'name': 'RecordPermissionsComponent', 'selector': 'rb-recordpermissions'},{'name': 'RecordPermissionsComponent', 'selector': 'rb-recordpermissions'},{'name': 'RecordPermissionsComponent', 'selector': 'rb-recordpermissions'},{'name': 'RecordPermissionsComponent', 'selector': 'rb-recordpermissions'},{'name': 'RecordPermissionsComponent', 'selector': 'rb-recordpermissions'},{'name': 'RecordSearchComponent', 'selector': 'record-search'},{'name': 'RecordSearchRefinerComponent', 'selector': 'record-search-refiner'},{'name': 'RelatedFileUploadComponent', 'selector': 'related-fileupload-selector'},{'name': 'RelatedFileUploadComponent', 'selector': 'related-fileupload-selector'},{'name': 'RelatedFileUploadComponent', 'selector': 'related-fileupload-selector'},{'name': 'RelatedFileUploadComponent', 'selector': 'related-fileupload-selector'},{'name': 'RelatedFileUploadComponent', 'selector': 'related-fileupload-selector'},{'name': 'RelatedFileUploadComponent', 'selector': 'related-fileupload-selector'},{'name': 'RelatedFileUploadComponent', 'selector': 'related-fileupload-selector'},{'name': 'RelatedFileUploadComponent', 'selector': 'related-fileupload-selector'},{'name': 'RelatedFileUploadComponent', 'selector': 'related-fileupload-selector'},{'name': 'RelatedFileUploadComponent', 'selector': 'related-fileupload-selector'},{'name': 'RelatedFileUploadComponent', 'selector': 'related-fileupload-selector'},{'name': 'RelatedFileUploadComponent', 'selector': 'related-fileupload-selector'},{'name': 'RelatedObjectDataComponent', 'selector': 'rb-relatedobjectdata'},{'name': 'RelatedObjectDataComponent', 'selector': 'rb-relatedobjectdata'},{'name': 'RelatedObjectDataComponent', 'selector': 'rb-relatedobjectdata'},{'name': 'RelatedObjectDataComponent', 'selector': 'rb-relatedobjectdata'},{'name': 'RelatedObjectDataComponent', 'selector': 'rb-relatedobjectdata'},{'name': 'RelatedObjectDataComponent', 'selector': 'rb-relatedobjectdata'},{'name': 'RelatedObjectDataComponent', 'selector': 'rb-relatedobjectdata'},{'name': 'RelatedObjectDataComponent', 'selector': 'rb-relatedobjectdata'},{'name': 'RelatedObjectDataComponent', 'selector': 'rb-relatedobjectdata'},{'name': 'RelatedObjectDataComponent', 'selector': 'rb-relatedobjectdata'},{'name': 'RelatedObjectDataComponent', 'selector': 'rb-relatedobjectdata'},{'name': 'RelatedObjectDataComponent', 'selector': 'rb-relatedobjectdata'},{'name': 'RelatedObjectSelectorComponent', 'selector': 'rb-RelatedObjectSelector'},{'name': 'RelatedObjectSelectorComponent', 'selector': 'rb-RelatedObjectSelector'},{'name': 'RelatedObjectSelectorComponent', 'selector': 'rb-RelatedObjectSelector'},{'name': 'RelatedObjectSelectorComponent', 'selector': 'rb-RelatedObjectSelector'},{'name': 'RelatedObjectSelectorComponent', 'selector': 'rb-RelatedObjectSelector'},{'name': 'RelatedObjectSelectorComponent', 'selector': 'rb-RelatedObjectSelector'},{'name': 'RelatedObjectSelectorComponent', 'selector': 'rb-RelatedObjectSelector'},{'name': 'RelatedObjectSelectorComponent', 'selector': 'rb-RelatedObjectSelector'},{'name': 'RelatedObjectSelectorComponent', 'selector': 'rb-RelatedObjectSelector'},{'name': 'RelatedObjectSelectorComponent', 'selector': 'rb-RelatedObjectSelector'},{'name': 'RelatedObjectSelectorComponent', 'selector': 'rb-RelatedObjectSelector'},{'name': 'RelatedObjectSelectorComponent', 'selector': 'rb-RelatedObjectSelector'},{'name': 'RepeatableContributorComponent', 'selector': 'repeatable-contributor'},{'name': 'RepeatableContributorComponent', 'selector': 'repeatable-contributor'},{'name': 'RepeatableContributorComponent', 'selector': 'repeatable-contributor'},{'name': 'RepeatableContributorComponent', 'selector': 'repeatable-contributor'},{'name': 'RepeatableContributorComponent', 'selector': 'repeatable-contributor'},{'name': 'RepeatableContributorComponent', 'selector': 'repeatable-contributor'},{'name': 'RepeatableContributorComponent', 'selector': 'repeatable-contributor'},{'name': 'RepeatableContributorComponent', 'selector': 'repeatable-contributor'},{'name': 'RepeatableContributorComponent', 'selector': 'repeatable-contributor'},{'name': 'RepeatableContributorComponent', 'selector': 'repeatable-contributor'},{'name': 'RepeatableContributorComponent', 'selector': 'repeatable-contributor'},{'name': 'RepeatableContributorComponent', 'selector': 'repeatable-contributor'},{'name': 'RepeatableGroupComponent', 'selector': 'repeatable-group'},{'name': 'RepeatableGroupComponent', 'selector': 'repeatable-group'},{'name': 'RepeatableGroupComponent', 'selector': 'repeatable-group'},{'name': 'RepeatableGroupComponent', 'selector': 'repeatable-group'},{'name': 'RepeatableGroupComponent', 'selector': 'repeatable-group'},{'name': 'RepeatableGroupComponent', 'selector': 'repeatable-group'},{'name': 'RepeatableGroupComponent', 'selector': 'repeatable-group'},{'name': 'RepeatableGroupComponent', 'selector': 'repeatable-group'},{'name': 'RepeatableGroupComponent', 'selector': 'repeatable-group'},{'name': 'RepeatableGroupComponent', 'selector': 'repeatable-group'},{'name': 'RepeatableGroupComponent', 'selector': 'repeatable-group'},{'name': 'RepeatableGroupComponent', 'selector': 'repeatable-group'},{'name': 'RepeatableTextfieldComponent', 'selector': 'repeatable-textfield'},{'name': 'RepeatableTextfieldComponent', 'selector': 'repeatable-textfield'},{'name': 'RepeatableTextfieldComponent', 'selector': 'repeatable-textfield'},{'name': 'RepeatableTextfieldComponent', 'selector': 'repeatable-textfield'},{'name': 'RepeatableTextfieldComponent', 'selector': 'repeatable-textfield'},{'name': 'RepeatableTextfieldComponent', 'selector': 'repeatable-textfield'},{'name': 'RepeatableTextfieldComponent', 'selector': 'repeatable-textfield'},{'name': 'RepeatableTextfieldComponent', 'selector': 'repeatable-textfield'},{'name': 'RepeatableTextfieldComponent', 'selector': 'repeatable-textfield'},{'name': 'RepeatableTextfieldComponent', 'selector': 'repeatable-textfield'},{'name': 'RepeatableTextfieldComponent', 'selector': 'repeatable-textfield'},{'name': 'RepeatableTextfieldComponent', 'selector': 'repeatable-textfield'},{'name': 'RepeatableVocabComponent', 'selector': 'repeatable-vocab'},{'name': 'RepeatableVocabComponent', 'selector': 'repeatable-vocab'},{'name': 'RepeatableVocabComponent', 'selector': 'repeatable-vocab'},{'name': 'RepeatableVocabComponent', 'selector': 'repeatable-vocab'},{'name': 'RepeatableVocabComponent', 'selector': 'repeatable-vocab'},{'name': 'RepeatableVocabComponent', 'selector': 'repeatable-vocab'},{'name': 'RepeatableVocabComponent', 'selector': 'repeatable-vocab'},{'name': 'RepeatableVocabComponent', 'selector': 'repeatable-vocab'},{'name': 'RepeatableVocabComponent', 'selector': 'repeatable-vocab'},{'name': 'RepeatableVocabComponent', 'selector': 'repeatable-vocab'},{'name': 'RepeatableVocabComponent', 'selector': 'repeatable-vocab'},{'name': 'RepeatableVocabComponent', 'selector': 'repeatable-vocab'},{'name': 'ReportComponent', 'selector': 'report'},{'name': 'SaveButtonComponent', 'selector': 'save-button'},{'name': 'SaveButtonComponent', 'selector': 'save-button'},{'name': 'SaveButtonComponent', 'selector': 'save-button'},{'name': 'SaveButtonComponent', 'selector': 'save-button'},{'name': 'SaveButtonComponent', 'selector': 'save-button'},{'name': 'SaveButtonComponent', 'selector': 'save-button'},{'name': 'SaveButtonComponent', 'selector': 'save-button'},{'name': 'SaveButtonComponent', 'selector': 'save-button'},{'name': 'SaveButtonComponent', 'selector': 'save-button'},{'name': 'SaveButtonComponent', 'selector': 'save-button'},{'name': 'SaveButtonComponent', 'selector': 'save-button'},{'name': 'SaveButtonComponent', 'selector': 'save-button'},{'name': 'SelectionFieldComponent', 'selector': 'selectionfield'},{'name': 'SelectionFieldComponent', 'selector': 'selectionfield'},{'name': 'SelectionFieldComponent', 'selector': 'selectionfield'},{'name': 'SelectionFieldComponent', 'selector': 'selectionfield'},{'name': 'SelectionFieldComponent', 'selector': 'selectionfield'},{'name': 'SelectionFieldComponent', 'selector': 'selectionfield'},{'name': 'SelectionFieldComponent', 'selector': 'selectionfield'},{'name': 'SelectionFieldComponent', 'selector': 'selectionfield'},{'name': 'SelectionFieldComponent', 'selector': 'selectionfield'},{'name': 'SelectionFieldComponent', 'selector': 'selectionfield'},{'name': 'SelectionFieldComponent', 'selector': 'selectionfield'},{'name': 'SelectionFieldComponent', 'selector': 'selectionfield'},{'name': 'SortComponent', 'selector': 'sort'},{'name': 'SpacerComponent', 'selector': 'spacer'},{'name': 'SpacerComponent', 'selector': 'spacer'},{'name': 'SpacerComponent', 'selector': 'spacer'},{'name': 'SpacerComponent', 'selector': 'spacer'},{'name': 'SpacerComponent', 'selector': 'spacer'},{'name': 'SpacerComponent', 'selector': 'spacer'},{'name': 'SpacerComponent', 'selector': 'spacer'},{'name': 'SpacerComponent', 'selector': 'spacer'},{'name': 'SpacerComponent', 'selector': 'spacer'},{'name': 'SpacerComponent', 'selector': 'spacer'},{'name': 'SpacerComponent', 'selector': 'spacer'},{'name': 'SpacerComponent', 'selector': 'spacer'},{'name': 'TabNavButtonComponent', 'selector': 'tab-nav-button'},{'name': 'TabNavButtonComponent', 'selector': 'tab-nav-button'},{'name': 'TabNavButtonComponent', 'selector': 'tab-nav-button'},{'name': 'TabNavButtonComponent', 'selector': 'tab-nav-button'},{'name': 'TabNavButtonComponent', 'selector': 'tab-nav-button'},{'name': 'TabNavButtonComponent', 'selector': 'tab-nav-button'},{'name': 'TabNavButtonComponent', 'selector': 'tab-nav-button'},{'name': 'TabNavButtonComponent', 'selector': 'tab-nav-button'},{'name': 'TabNavButtonComponent', 'selector': 'tab-nav-button'},{'name': 'TabNavButtonComponent', 'selector': 'tab-nav-button'},{'name': 'TabNavButtonComponent', 'selector': 'tab-nav-button'},{'name': 'TabNavButtonComponent', 'selector': 'tab-nav-button'},{'name': 'TabOrAccordionContainerComponent', 'selector': 'tabcontainer'},{'name': 'TabOrAccordionContainerComponent', 'selector': 'tabcontainer'},{'name': 'TabOrAccordionContainerComponent', 'selector': 'tabcontainer'},{'name': 'TabOrAccordionContainerComponent', 'selector': 'tabcontainer'},{'name': 'TabOrAccordionContainerComponent', 'selector': 'tabcontainer'},{'name': 'TabOrAccordionContainerComponent', 'selector': 'tabcontainer'},{'name': 'TabOrAccordionContainerComponent', 'selector': 'tabcontainer'},{'name': 'TabOrAccordionContainerComponent', 'selector': 'tabcontainer'},{'name': 'TabOrAccordionContainerComponent', 'selector': 'tabcontainer'},{'name': 'TabOrAccordionContainerComponent', 'selector': 'tabcontainer'},{'name': 'TabOrAccordionContainerComponent', 'selector': 'tabcontainer'},{'name': 'TabOrAccordionContainerComponent', 'selector': 'tabcontainer'},{'name': 'TextAreaComponent', 'selector': 'text-area'},{'name': 'TextAreaComponent', 'selector': 'text-area'},{'name': 'TextAreaComponent', 'selector': 'text-area'},{'name': 'TextAreaComponent', 'selector': 'text-area'},{'name': 'TextAreaComponent', 'selector': 'text-area'},{'name': 'TextAreaComponent', 'selector': 'text-area'},{'name': 'TextAreaComponent', 'selector': 'text-area'},{'name': 'TextAreaComponent', 'selector': 'text-area'},{'name': 'TextAreaComponent', 'selector': 'text-area'},{'name': 'TextAreaComponent', 'selector': 'text-area'},{'name': 'TextAreaComponent', 'selector': 'text-area'},{'name': 'TextAreaComponent', 'selector': 'text-area'},{'name': 'TextBlockComponent', 'selector': 'text-block'},{'name': 'TextBlockComponent', 'selector': 'text-block'},{'name': 'TextBlockComponent', 'selector': 'text-block'},{'name': 'TextBlockComponent', 'selector': 'text-block'},{'name': 'TextBlockComponent', 'selector': 'text-block'},{'name': 'TextBlockComponent', 'selector': 'text-block'},{'name': 'TextBlockComponent', 'selector': 'text-block'},{'name': 'TextBlockComponent', 'selector': 'text-block'},{'name': 'TextBlockComponent', 'selector': 'text-block'},{'name': 'TextBlockComponent', 'selector': 'text-block'},{'name': 'TextBlockComponent', 'selector': 'text-block'},{'name': 'TextBlockComponent', 'selector': 'text-block'},{'name': 'TextFieldComponent', 'selector': 'textfield'},{'name': 'TextFieldComponent', 'selector': 'textfield'},{'name': 'TextFieldComponent', 'selector': 'textfield'},{'name': 'TextFieldComponent', 'selector': 'textfield'},{'name': 'TextFieldComponent', 'selector': 'textfield'},{'name': 'TextFieldComponent', 'selector': 'textfield'},{'name': 'TextFieldComponent', 'selector': 'textfield'},{'name': 'TextFieldComponent', 'selector': 'textfield'},{'name': 'TextFieldComponent', 'selector': 'textfield'},{'name': 'TextFieldComponent', 'selector': 'textfield'},{'name': 'TextFieldComponent', 'selector': 'textfield'},{'name': 'TextFieldComponent', 'selector': 'textfield'},{'name': 'ToggleComponent', 'selector': 'toggle'},{'name': 'ToggleComponent', 'selector': 'toggle'},{'name': 'ToggleComponent', 'selector': 'toggle'},{'name': 'ToggleComponent', 'selector': 'toggle'},{'name': 'ToggleComponent', 'selector': 'toggle'},{'name': 'ToggleComponent', 'selector': 'toggle'},{'name': 'ToggleComponent', 'selector': 'toggle'},{'name': 'ToggleComponent', 'selector': 'toggle'},{'name': 'ToggleComponent', 'selector': 'toggle'},{'name': 'ToggleComponent', 'selector': 'toggle'},{'name': 'ToggleComponent', 'selector': 'toggle'},{'name': 'ToggleComponent', 'selector': 'toggle'},{'name': 'TransferOwnerComponent', 'selector': 'transfer-owner'},{'name': 'TreeNodeCheckboxComponent', 'selector': 'rb-tree-node-checkbox'},{'name': 'TreeNodeCheckboxComponent', 'selector': 'rb-tree-node-checkbox'},{'name': 'TreeNodeCheckboxComponent', 'selector': 'rb-tree-node-checkbox'},{'name': 'TreeNodeCheckboxComponent', 'selector': 'rb-tree-node-checkbox'},{'name': 'TreeNodeCheckboxComponent', 'selector': 'rb-tree-node-checkbox'},{'name': 'TreeNodeCheckboxComponent', 'selector': 'rb-tree-node-checkbox'},{'name': 'TreeNodeCheckboxComponent', 'selector': 'rb-tree-node-checkbox'},{'name': 'TreeNodeCheckboxComponent', 'selector': 'rb-tree-node-checkbox'},{'name': 'TreeNodeCheckboxComponent', 'selector': 'rb-tree-node-checkbox'},{'name': 'TreeNodeCheckboxComponent', 'selector': 'rb-tree-node-checkbox'},{'name': 'TreeNodeCheckboxComponent', 'selector': 'rb-tree-node-checkbox'},{'name': 'TreeNodeCheckboxComponent', 'selector': 'rb-tree-node-checkbox'},{'name': 'UserProfileComponent', 'selector': 'user-profile'},{'name': 'VocabFieldComponent', 'selector': 'rb-vocab'},{'name': 'VocabFieldComponent', 'selector': 'rb-vocab'},{'name': 'VocabFieldComponent', 'selector': 'rb-vocab'},{'name': 'VocabFieldComponent', 'selector': 'rb-vocab'},{'name': 'VocabFieldComponent', 'selector': 'rb-vocab'},{'name': 'VocabFieldComponent', 'selector': 'rb-vocab'},{'name': 'VocabFieldComponent', 'selector': 'rb-vocab'},{'name': 'VocabFieldComponent', 'selector': 'rb-vocab'},{'name': 'VocabFieldComponent', 'selector': 'rb-vocab'},{'name': 'VocabFieldComponent', 'selector': 'rb-vocab'},{'name': 'VocabFieldComponent', 'selector': 'rb-vocab'},{'name': 'VocabFieldComponent', 'selector': 'rb-vocab'},{'name': 'WorkflowStepButtonComponent', 'selector': 'workflowstep-button'},{'name': 'WorkflowStepButtonComponent', 'selector': 'workflowstep-button'},{'name': 'WorkflowStepButtonComponent', 'selector': 'workflowstep-button'},{'name': 'WorkflowStepButtonComponent', 'selector': 'workflowstep-button'},{'name': 'WorkflowStepButtonComponent', 'selector': 'workflowstep-button'},{'name': 'WorkflowStepButtonComponent', 'selector': 'workflowstep-button'},{'name': 'WorkflowStepButtonComponent', 'selector': 'workflowstep-button'},{'name': 'WorkflowStepButtonComponent', 'selector': 'workflowstep-button'},{'name': 'WorkflowStepButtonComponent', 'selector': 'workflowstep-button'},{'name': 'WorkflowStepButtonComponent', 'selector': 'workflowstep-button'},{'name': 'WorkflowStepButtonComponent', 'selector': 'workflowstep-button'},{'name': 'WorkflowStepButtonComponent', 'selector': 'workflowstep-button'},{'name': 'WorkspaceFieldComponent', 'selector': 'ws-field'},{'name': 'WorkspaceFieldComponent', 'selector': 'ws-field'},{'name': 'WorkspaceFieldComponent', 'selector': 'ws-field'},{'name': 'WorkspaceFieldComponent', 'selector': 'ws-field'},{'name': 'WorkspaceFieldComponent', 'selector': 'ws-field'},{'name': 'WorkspaceFieldComponent', 'selector': 'ws-field'},{'name': 'WorkspaceFieldComponent', 'selector': 'ws-field'},{'name': 'WorkspaceFieldComponent', 'selector': 'ws-field'},{'name': 'WorkspaceFieldComponent', 'selector': 'ws-field'},{'name': 'WorkspaceFieldComponent', 'selector': 'ws-field'},{'name': 'WorkspaceFieldComponent', 'selector': 'ws-field'},{'name': 'WorkspaceFieldComponent', 'selector': 'ws-field'},{'name': 'WorkspaceListComponent', 'selector': 'workspace-list'},{'name': 'WorkspaceSelectorComponent', 'selector': 'workspace-selector-parent'},{'name': 'WorkspaceSelectorComponent', 'selector': 'workspace-selector-parent'},{'name': 'WorkspaceSelectorComponent', 'selector': 'workspace-selector-parent'},{'name': 'WorkspaceSelectorComponent', 'selector': 'workspace-selector-parent'},{'name': 'WorkspaceSelectorComponent', 'selector': 'workspace-selector-parent'},{'name': 'WorkspaceSelectorComponent', 'selector': 'workspace-selector-parent'},{'name': 'WorkspaceSelectorComponent', 'selector': 'workspace-selector-parent'},{'name': 'WorkspaceSelectorComponent', 'selector': 'workspace-selector-parent'},{'name': 'WorkspaceSelectorComponent', 'selector': 'workspace-selector-parent'},{'name': 'WorkspaceSelectorComponent', 'selector': 'workspace-selector-parent'},{'name': 'WorkspaceSelectorComponent', 'selector': 'workspace-selector-parent'},{'name': 'WorkspaceSelectorComponent', 'selector': 'workspace-selector-parent'},{'name': 'WorkspaceSelectorFieldComponent', 'selector': 'workspace-selector'},{'name': 'WorkspaceSelectorFieldComponent', 'selector': 'workspace-selector'},{'name': 'WorkspaceSelectorFieldComponent', 'selector': 'workspace-selector'},{'name': 'WorkspaceSelectorFieldComponent', 'selector': 'workspace-selector'},{'name': 'WorkspaceSelectorFieldComponent', 'selector': 'workspace-selector'},{'name': 'WorkspaceSelectorFieldComponent', 'selector': 'workspace-selector'},{'name': 'WorkspaceSelectorFieldComponent', 'selector': 'workspace-selector'},{'name': 'WorkspaceSelectorFieldComponent', 'selector': 'workspace-selector'},{'name': 'WorkspaceSelectorFieldComponent', 'selector': 'workspace-selector'},{'name': 'WorkspaceSelectorFieldComponent', 'selector': 'workspace-selector'},{'name': 'WorkspaceSelectorFieldComponent', 'selector': 'workspace-selector'},{'name': 'WorkspaceSelectorFieldComponent', 'selector': 'workspace-selector'}];
+        var COMPONENT_TEMPLATE = '<div><div class="col-md-offset-2 col-md-8" *ngIf="isReady">    <div class="panel panel-default">      <div class="panel-heading">        <span class="panel-title">          {{ \'manage-roles-title\' | i18next }}        </span>      </div>      <div class="panel-body" style="overflow:scroll" >        <div class="input-group">          <span class="input-group-addon" id="name-addon">{{ \'manage-roles-filter-name\' | i18next }}</span>          <input type="text" (keyup)="onFilterChange(null)" [(ngModel)]="searchFilter.name" class="form-control" placeholder="{{ \'manage-roles-filter-name-placeholder\' | i18next }}" [attr.aria-label]="\'manage-roles-filter-name\' | i18next ">          <span (click)="resetFilter()" class="input-group-btn"><button class="btn btn-primary" type=\'button\'>Reset</button></span>        </div>        <div>          <br/>        </div>        <div class="row">          <div class="col-xs-3">            {{ \'manage-roles-filter-label\' | i18next }}          </div>          <div class="col-xs-4" >            <fieldset>              <legend [hidden]="true"><span></span></legend>              <div *ngFor="let roleFilter of searchFilter.roles"  >                <input [checked]="roleFilter.checked" (change)="onFilterChange(roleFilter)" id="role-{{roleFilter.value}}" name="role-filter" type="radio" >                <label for="role-{{roleFilter.value}}" >&nbsp;{{roleFilter.label}}</label>              </div>            </fieldset>          </div>          <div class="col-xs-4" ></div>        </div>        <div>          <br/>        </div>        <div class="table-responsive">          <table class="table table-bordered table-striped table-hover">            <thead>              <tr>                <th>{{ \'manage-roles-name\' | i18next }}</th>                <th>{{ \'manage-roles-email\' | i18next }}</th>                <th>{{ \'manage-roles-role\' | i18next }}</th>                <th>{{ \'manage-roles-action\' | i18next }}</th>              </tr>            </thead>            <tbody>              <tr *ngFor="let user of filteredUsers">                <td>{{user.name}}</td>                <td>{{user.email}}</td>                <td>{{user.roleStr}}</td>                <td>                  <a style="cursor:pointer" (click)="editUser(user.username)" >Edit</a>                </td>              </tr>            </tbody>          </table>        </div>      </div>    </div>  </div>  <!-- Modal -->  <div *ngIf="isDetailsModalShown" [config]="{backdrop: \'static\', show: true}" (onHidden)="onDetailsModalHidden()" bsModal #roleDetailsModal="bs-modal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="detailsform" >    <div class="modal-dialog modal-md">      <!-- Modal content-->      <div class="modal-content">        <div class="modal-header">          <span class="modal-title h4-header">{{ \'manage-roles-edit\' | i18next }}</span>        </div>        <div class="modal-body">          <form >            <div class="table-responsive">              <table class="table">                <tbody>                  <tr>                    <td>{{ \'manage-roles-name\' | i18next }}</td>                    <td>{{currentUser.name}}</td>                  </tr>                  <tr>                    <td>{{ \'manage-roles-email\' | i18next }}</td>                    <td>{{currentUser.email}}</td>                  </tr>                  <tr>                    <td>{{ \'manage-roles-role\' | i18next }}</td>                    <td>                      <div *ngFor="let role of currentUser.newRoles">                        <label class="checkbox-inline" for="cb_{{role.id}}">                          <input  id="cb_{{role.id}}" type="checkbox" value="{{role.id}}" [(ngModel)]="role.hasRole" [ngModelOptions]="{standalone: true}">                          {{role.name}}                        </label>                      </div>                    </td>                  </tr>                </tbody>              </table>            </div>          </form>          <div class="bg-{{saveMsgType}} center-block">{{saveMsg}}</div>        </div>        <div class="modal-footer">          <button type="button" class="btn btn-primary" (click)="saveCurrentUser($event)">{{ \'manage-roles-save\' | i18next }}</button>          <button type="button" class="btn btn-default" (click)="hideDetailsModal()">{{ \'manage-roles-cancel\' | i18next }}</button>        </div>      </div>    </div>  </div>  </div>'
+    var COMPONENTS = [{'name': 'BaseComponent', 'selector': ''},{'name': 'DashboardComponent', 'selector': 'dashboard'},{'name': 'ExportComponent', 'selector': 'export'},{'name': 'LocalAuthComponent', 'selector': 'local-auth'},{'name': 'ManageRolesComponent', 'selector': 'manage-roles'},{'name': 'ManageUsersComponent', 'selector': 'manage-users'},{'name': 'RecordTableComponent', 'selector': 'record-table'},{'name': 'ReportComponent', 'selector': 'report'},{'name': 'SortComponent', 'selector': 'sort'}];
     var DIRECTIVES = [];
     var ACTUAL_COMPONENT = {'name': 'ManageRolesComponent'};
 </script>

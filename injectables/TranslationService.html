@@ -65,7 +65,7 @@
             <h3>File</h3>
         </p>
         <p class="comment">
-            <code>angular/shared/translation-service.ts</code>
+            <code>angular/projects/researchdatabox/portal-ng-common/src/lib/translation.service.ts</code>
         </p>
 
 
@@ -73,7 +73,7 @@
                 <h3>Description</h3>
             </p>
             <p class="comment">
-                <p>Translation service...</p>
+                <p>Translation related functions. Uses i18next library to support translation source for both frontend and backend.</p>
 <p>Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a></p>
 
             </p>
@@ -98,11 +98,32 @@
                             </li>
                             <li>
                                     <span class="modifier">Protected</span>
+                                <a href="#i18NextOpts" >i18NextOpts</a>
+                            </li>
+                            <li>
+                                    <span class="modifier">Protected</span>
+                                <a href="#i18NextOptsDefault" >i18NextOptsDefault</a>
+                            </li>
+                            <li>
+                                    <span class="modifier">Public</span>
+                                <a href="#loadPath" >loadPath</a>
+                            </li>
+                            <li>
+                                    <span class="modifier"></span>
+                                    <span class="modifier">Public</span>
+                                <a href="#rootContext" >rootContext</a>
+                            </li>
+                            <li>
+                                    <span class="modifier">Protected</span>
                                 <a href="#subjects" >subjects</a>
                             </li>
                             <li>
                                     <span class="modifier">Protected</span>
                                 <a href="#translatorReady" >translatorReady</a>
+                            </li>
+                            <li>
+                                    <span class="modifier">Public</span>
+                                <a href="#ts" >ts</a>
                             </li>
                         </ul>
                     </td>
@@ -117,16 +138,30 @@
                     <td class="col-md-4">
                         <ul class="index-list">
                             <li>
+                                    <span class="modifier">Public</span>
+                                <a href="#getConfig" >getConfig</a>
+                            </li>
+                            <li>
+                                    <span class="modifier">Public</span>
+                                <a href="#getInitSubject" >getInitSubject</a>
+                            </li>
+                            <li>
+                                    <span class="modifier">Async</span>
                                 <a href="#initTranslator" >initTranslator</a>
                             </li>
                             <li>
-                                <a href="#isReady" >isReady</a>
+                                    <span class="modifier">Public</span>
+                                <a href="#isInitializing" >isInitializing</a>
                             </li>
                             <li>
                                 <a href="#t" >t</a>
                             </li>
                             <li>
                                 <a href="#translatorLoaded" >translatorLoaded</a>
+                            </li>
+                            <li>
+                                    <span class="modifier">Async</span>
+                                <a href="#waitForInit" >waitForInit</a>
                             </li>
                         </ul>
                     </td>
@@ -146,12 +181,12 @@
             <tbody>
                 <tr>
                     <td class="col-md-4">
-<code>constructor(translateI18Next: TranslateI18Next, configService: <a href="../injectables/ConfigService.html" target="_self">ConfigService</a>)</code>
+<code>constructor(rootContext: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank">string</a>, i18NextService: <a href="../injectables/TranslationService.html" target="_self">ITranslationService</a>, utilService: <a href="../injectables/UtilityService.html" target="_self">UtilityService</a>, configService: <a href="../injectables/ConfigService.html" target="_self">ConfigService</a>, loggerService: <a href="../injectables/LoggerService.html" target="_self">LoggerService</a>)</code>
                     </td>
                 </tr>
                         <tr>
                             <td class="col-md-4">
-                                <div class="io-line">Defined in <a href="" data-line="35" class="link-to-prism">angular/shared/translation-service.ts:35</a></div>
+                                <div class="io-line">Defined in <a href="" data-line="71" class="link-to-prism">angular/projects/researchdatabox/portal-ng-common/src/lib/translation.service.ts:71</a></div>
                             </td>
                         </tr>
 
@@ -169,10 +204,34 @@
                                         </thead>
                                         <tbody>
                                                 <tr>
-                                                        <td>translateI18Next</td>
+                                                        <td>rootContext</td>
                                                   
                                                         <td>
-                                                                    <code>TranslateI18Next</code>
+                                                                        <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank" >string</a></code>
+                                                        </td>
+                                                  
+                                                    <td>
+                                                            No
+                                                    </td>
+                                                    
+                                                </tr>
+                                                <tr>
+                                                        <td>i18NextService</td>
+                                                  
+                                                        <td>
+                                                                        <code><a href="../injectables/TranslationService.html" target="_self" >ITranslationService</a></code>
+                                                        </td>
+                                                  
+                                                    <td>
+                                                            No
+                                                    </td>
+                                                    
+                                                </tr>
+                                                <tr>
+                                                        <td>utilService</td>
+                                                  
+                                                        <td>
+                                                                        <code><a href="../injectables/UtilityService.html" target="_self" >UtilityService</a></code>
                                                         </td>
                                                   
                                                     <td>
@@ -185,6 +244,18 @@
                                                   
                                                         <td>
                                                                         <code><a href="../injectables/ConfigService.html" target="_self" >ConfigService</a></code>
+                                                        </td>
+                                                  
+                                                    <td>
+                                                            No
+                                                    </td>
+                                                    
+                                                </tr>
+                                                <tr>
+                                                        <td>loggerService</td>
+                                                  
+                                                        <td>
+                                                                        <code><a href="../injectables/LoggerService.html" target="_self" >LoggerService</a></code>
                                                         </td>
                                                   
                                                     <td>
@@ -210,61 +281,26 @@
         <tbody>
             <tr>
                 <td class="col-md-4">
-                    <a name="initTranslator"></a>
+                    <a name="getConfig"></a>
                     <span class="name">
-                        <span ><b>initTranslator</b></span>
-                        <a href="#initTranslator"><span class="icon ion-ios-link"></span></a>
+                        <span class="modifier">Public</span>
+                        <span ><b>getConfig</b></span>
+                        <a href="#getConfig"><span class="icon ion-ios-link"></span></a>
                     </span>
                 </td>
             </tr>
             <tr>
                 <td class="col-md-4">
-<code>initTranslator()</code>
+                    <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>getConfig(appName?: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank">string</a>)</code>
                 </td>
             </tr>
 
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="43"
-                            class="link-to-prism">angular/shared/translation-service.ts:43</a></div>
-                </td>
-            </tr>
-
-
-            <tr>
-                <td class="col-md-4">
-
-                    <div class="io-description">
-                        <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >void</a></code>
-
-                    </div>
-                </td>
-            </tr>
-        </tbody>
-    </table>
-    <table class="table table-sm table-bordered">
-        <tbody>
-            <tr>
-                <td class="col-md-4">
-                    <a name="isReady"></a>
-                    <span class="name">
-                        <span ><b>isReady</b></span>
-                        <a href="#isReady"><span class="icon ion-ios-link"></span></a>
-                    </span>
-                </td>
-            </tr>
-            <tr>
-                <td class="col-md-4">
-<code>isReady(handler: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>)</code>
-                </td>
-            </tr>
-
-
-            <tr>
-                <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="82"
-                            class="link-to-prism">angular/shared/translation-service.ts:82</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="147"
+                            class="link-to-prism">angular/projects/researchdatabox/portal-ng-common/src/lib/translation.service.ts:147</a></div>
                 </td>
             </tr>
 
@@ -285,13 +321,13 @@
                             </thead>
                             <tbody>
                                 <tr>
-                                    <td>handler</td>
+                                    <td>appName</td>
                                     <td>
-                                                <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+                                                <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank" >string</a></code>
                                     </td>
 
                                     <td>
-                                        No
+                                        Yes
                                     </td>
 
 
@@ -307,6 +343,123 @@
                     </div>
                     <div class="io-description">
                         
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="getInitSubject"></a>
+                    <span class="name">
+                        <span class="modifier">Public</span>
+                        <span ><b>getInitSubject</b></span>
+                        <a href="#getInitSubject"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                    <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>getInitSubject()</code>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-line">Defined in <a href="" data-line="129"
+                            class="link-to-prism">angular/projects/researchdatabox/portal-ng-common/src/lib/translation.service.ts:129</a></div>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+
+                    <div class="io-description">
+                        <b>Returns : </b>    <code>Subject&lt;any&gt;</code>
+
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="initTranslator"></a>
+                    <span class="name">
+                        <span class="modifier">Async</span>
+                        <span ><b>initTranslator</b></span>
+                        <a href="#initTranslator"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                    <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>initTranslator()</code>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-line">Defined in <a href="" data-line="87"
+                            class="link-to-prism">angular/projects/researchdatabox/portal-ng-common/src/lib/translation.service.ts:87</a></div>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+
+                    <div class="io-description">
+                        <b>Returns : </b>    <code>Promise&lt;any&gt;</code>
+
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="isInitializing"></a>
+                    <span class="name">
+                        <span class="modifier">Public</span>
+                        <span ><b>isInitializing</b></span>
+                        <a href="#isInitializing"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                    <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>isInitializing()</code>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-line">Defined in <a href="" data-line="143"
+                            class="link-to-prism">angular/projects/researchdatabox/portal-ng-common/src/lib/translation.service.ts:143</a></div>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+
+                    <div class="io-description">
+                        <b>Returns : </b>        <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/boolean" target="_blank" >boolean</a></code>
+
                     </div>
                 </td>
             </tr>
@@ -332,8 +485,8 @@
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="88"
-                            class="link-to-prism">angular/shared/translation-service.ts:88</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="125"
+                            class="link-to-prism">angular/projects/researchdatabox/portal-ng-common/src/lib/translation.service.ts:125</a></div>
                 </td>
             </tr>
 
@@ -401,8 +554,8 @@
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="76"
-                            class="link-to-prism">angular/shared/translation-service.ts:76</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="119"
+                            class="link-to-prism">angular/projects/researchdatabox/portal-ng-common/src/lib/translation.service.ts:119</a></div>
                 </td>
             </tr>
 
@@ -412,6 +565,45 @@
 
                     <div class="io-description">
                         <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >void</a></code>
+
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="waitForInit"></a>
+                    <span class="name">
+                        <span class="modifier">Async</span>
+                        <span ><b>waitForInit</b></span>
+                        <a href="#waitForInit"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                    <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>waitForInit()</code>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-line">Defined in <a href="" data-line="133"
+                            class="link-to-prism">angular/projects/researchdatabox/portal-ng-common/src/lib/translation.service.ts:133</a></div>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+
+                    <div class="io-description">
+                        <b>Returns : </b>    <code>Promise&lt;any&gt;</code>
 
                     </div>
                 </td>
@@ -444,7 +636,159 @@
                 </tr>
                     <tr>
                         <td class="col-md-4">
-                                <div class="io-line">Defined in <a href="" data-line="35" class="link-to-prism">angular/shared/translation-service.ts:35</a></div>
+                                <div class="io-line">Defined in <a href="" data-line="41" class="link-to-prism">angular/projects/researchdatabox/portal-ng-common/src/lib/translation.service.ts:41</a></div>
+                        </td>
+                    </tr>
+
+
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="i18NextOpts"></a>
+                    <span class="name">
+                            <span class="modifier">Protected</span>
+                        <span ><b>i18NextOpts</b></span>
+                        <a href="#i18NextOpts"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Type : </i>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+
+                    </td>
+                </tr>
+                    <tr>
+                        <td class="col-md-4">
+                                <div class="io-line">Defined in <a href="" data-line="46" class="link-to-prism">angular/projects/researchdatabox/portal-ng-common/src/lib/translation.service.ts:46</a></div>
+                        </td>
+                    </tr>
+
+
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="i18NextOptsDefault"></a>
+                    <span class="name">
+                            <span class="modifier">Protected</span>
+                        <span ><b>i18NextOptsDefault</b></span>
+                        <a href="#i18NextOptsDefault"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Type : </i>        <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/object" target="_blank" >object</a></code>
+
+                    </td>
+                </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Default value : </i><code>{
+    load: &#x27;languageOnly&#x27;,
+    supportedLngs: [&#x27;en&#x27;],
+    fallbackLng: &#x27;en&#x27;,
+    debug: true,
+    returnEmptyString: false,
+    ns: [
+      &#x27;translation&#x27;
+    ],
+    interpolation: {
+      format: I18NextModule.interpolationFormat(defaultInterpolationFormat)
+    },
+    // lang detection plugin options
+    detection: {
+      // order and from where user language should be detected
+      order: [&#x27;cookie&#x27;],
+      // keys or params to lookup language from
+      lookupCookie: &#x27;lang&#x27;,
+      // cache user language on
+      caches: [&#x27;cookie&#x27;],
+      // optional expire and domain for set cookie
+      cookieMinutes: 10080, // 7 days
+      // cookieDomain: I18NEXT_LANG_COOKIE_DOMAIN
+    }
+  }</code>
+                    </td>
+                </tr>
+                    <tr>
+                        <td class="col-md-4">
+                                <div class="io-line">Defined in <a href="" data-line="47" class="link-to-prism">angular/projects/researchdatabox/portal-ng-common/src/lib/translation.service.ts:47</a></div>
+                        </td>
+                    </tr>
+
+
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="loadPath"></a>
+                    <span class="name">
+                            <span class="modifier">Public</span>
+                        <span ><b>loadPath</b></span>
+                        <a href="#loadPath"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Type : </i>        <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank" >string</a></code>
+
+                    </td>
+                </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Default value : </i><code>&#x27;&#x27;</code>
+                    </td>
+                </tr>
+                    <tr>
+                        <td class="col-md-4">
+                                <div class="io-line">Defined in <a href="" data-line="44" class="link-to-prism">angular/projects/researchdatabox/portal-ng-common/src/lib/translation.service.ts:44</a></div>
+                        </td>
+                    </tr>
+
+
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="rootContext"></a>
+                    <span class="name">
+                            <span class="modifier"></span>
+                            <span class="modifier">Public</span>
+                        <span ><b>rootContext</b></span>
+                        <a href="#rootContext"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Type : </i>        <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank" >string</a></code>
+
+                    </td>
+                </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <b>Decorators : </b>
+                        <br />
+                        <code>
+                            @Inject(APP_BASE_HREF)<br />
+                        </code>
+                    </td>
+                </tr>
+                    <tr>
+                        <td class="col-md-4">
+                                <div class="io-line">Defined in <a href="" data-line="74" class="link-to-prism">angular/projects/researchdatabox/portal-ng-common/src/lib/translation.service.ts:74</a></div>
                         </td>
                     </tr>
 
@@ -471,7 +815,7 @@
                 </tr>
                     <tr>
                         <td class="col-md-4">
-                                <div class="io-line">Defined in <a href="" data-line="33" class="link-to-prism">angular/shared/translation-service.ts:33</a></div>
+                                <div class="io-line">Defined in <a href="" data-line="42" class="link-to-prism">angular/projects/researchdatabox/portal-ng-common/src/lib/translation.service.ts:42</a></div>
                         </td>
                     </tr>
 
@@ -496,9 +840,41 @@
 
                     </td>
                 </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Default value : </i><code>false</code>
+                    </td>
+                </tr>
                     <tr>
                         <td class="col-md-4">
-                                <div class="io-line">Defined in <a href="" data-line="34" class="link-to-prism">angular/shared/translation-service.ts:34</a></div>
+                                <div class="io-line">Defined in <a href="" data-line="43" class="link-to-prism">angular/projects/researchdatabox/portal-ng-common/src/lib/translation.service.ts:43</a></div>
+                        </td>
+                    </tr>
+
+
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="ts"></a>
+                    <span class="name">
+                            <span class="modifier">Public</span>
+                        <span ><b>ts</b></span>
+                        <a href="#ts"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Type : </i>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+
+                    </td>
+                </tr>
+                    <tr>
+                        <td class="col-md-4">
+                                <div class="io-line">Defined in <a href="" data-line="45" class="link-to-prism">angular/projects/researchdatabox/portal-ng-common/src/lib/translation.service.ts:45</a></div>
                         </td>
                     </tr>
 
@@ -511,60 +887,103 @@
 
 
     <div class="tab-pane fade  tab-source-code" id="source">
-        <pre class="line-numbers compodoc-sourcecode"><code class="language-typescript">import { Injectable, Inject, ElementRef} from &#x27;@angular/core&#x27;;
-import { TranslateI18Next } from &#x27;ngx-i18next&#x27;;
-import { Subject } from &#x27;rxjs/Subject&#x27;;
-import { ConfigService } from &#x27;./config-service&#x27;;
+        <pre class="line-numbers compodoc-sourcecode"><code class="language-typescript">import { Injectable, Inject } from &#x27;@angular/core&#x27;;
+import { Subject, firstValueFrom } from &#x27;rxjs&#x27;;
+import { APP_BASE_HREF } from &#x27;@angular/common&#x27;;
+import { get as _get, isEmpty as _isEmpty, isUndefined as _isUndefined, set as _set } from &#x27;lodash-es&#x27;;
 
+import { Service } from &#x27;./service.interface&#x27;;
+
+import { I18NEXT_SERVICE, ITranslationService, defaultInterpolationFormat, I18NextModule } from &#x27;angular-i18next&#x27;;
+import HttpApi from &#x27;i18next-http-backend&#x27;;
+import { ConfigService } from &#x27;./config.service&#x27;;
+import { UtilityService } from &#x27;./utility.service&#x27;;
+import { LoggerService  } from &#x27;./logger.service&#x27;;
 /**
- * Translation service...
+ * Translation related functions. Uses i18next library to support translation source for both frontend and backend.
  *
  * Author: &lt;a href&#x3D;&#x27;https://github.com/shilob&#x27; target&#x3D;&#x27;_blank&#x27;&gt;Shilo Banihit&lt;/a&gt;
  *
+ * 
  */
 @Injectable()
-export class TranslationService {
-  protected subjects: any;
-  protected translatorReady: boolean;
+export class TranslationService implements Service {
   protected config: any;
+  protected subjects: any;
+  protected translatorReady: boolean &#x3D; false;
+  public loadPath: string &#x3D; &#x27;&#x27;;
+  public ts: any;
+  protected i18NextOpts: any;
+  protected i18NextOptsDefault &#x3D; {
+    load: &#x27;languageOnly&#x27;,
+    supportedLngs: [&#x27;en&#x27;],
+    fallbackLng: &#x27;en&#x27;,
+    debug: true,
+    returnEmptyString: false,
+    ns: [
+      &#x27;translation&#x27;
+    ],
+    interpolation: {
+      format: I18NextModule.interpolationFormat(defaultInterpolationFormat)
+    },
+    // lang detection plugin options
+    detection: {
+      // order and from where user language should be detected
+      order: [&#x27;cookie&#x27;],
+      // keys or params to lookup language from
+      lookupCookie: &#x27;lang&#x27;,
+      // cache user language on
+      caches: [&#x27;cookie&#x27;],
+      // optional expire and domain for set cookie
+      cookieMinutes: 10080, // 7 days
+      // cookieDomain: I18NEXT_LANG_COOKIE_DOMAIN
+    }
+  };
   
-
-  constructor (protected translateI18Next: TranslateI18Next, protected configService: ConfigService) {
+  constructor (
+    @Inject(APP_BASE_HREF) public rootContext: string, 
+    @Inject(I18NEXT_SERVICE) private i18NextService: ITranslationService,
+    @Inject(UtilityService) private utilService: UtilityService,
+    @Inject(ConfigService) private configService: ConfigService,
+    @Inject(LoggerService) private loggerService: LoggerService
+    ) {
     this.subjects &#x3D; {};
-    this.initTranslator();
+    this.subjects[&#x27;init&#x27;] &#x3D; new Subject&lt;any&gt;();
+    this.ts &#x3D; new Date().getTime();
+    // default loadPath
+    this.loadPath &#x3D; &#x60;${this.rootContext}/locales/{{lng}}/{{ns}}.json&#x60;;
   }
 
-  initTranslator() {
-    this.subjects[&#x27;init&#x27;] &#x3D; new Subject();
-    const ts &#x3D; new Date().getTime();
-    
-    //TODO: Ideally the root context is already in the config service so we should use that value instead, 
-    // however there is a timing issue if we wait for the config service to resolve.
-    let rootContext &#x3D; &#x27;/&#x27;;
-    let bootstrapElement:any &#x3D; document.getElementsByTagName(&quot;angular-bootstrap&quot;)
-    if(bootstrapElement.length &gt; 0) {
-     rootContext &#x3D; $(bootstrapElement[0]).attr(&#x27;rootContext&#x27;);
+  async initTranslator(): Promise&lt;any&gt; {
+    await this.utilService.waitForDependencies([this.configService]);
+    this.config &#x3D; this.configService.getConfig();
+    if (!_isEmpty(_get(this.config, &#x27;i18NextOpts&#x27;))) {
+      this.i18NextOpts &#x3D; _get(this.config, &#x27;i18NextOpts&#x27;);
+      if (_isUndefined(_get(this.i18NextOpts, &#x27;backend.loadPath&#x27;))) {
+        _set(this.i18NextOpts, &#x27;backend.loadPath&#x27;, this.loadPath);
+      }
+      if (_isUndefined(_get(this.i18NextOpts, &#x27;interpolation&#x27;))) {
+        _set(this.i18NextOpts, &#x27;interpolation&#x27;, this.i18NextOptsDefault.interpolation);
+      }
+    } else {
+      // default value...
+      this.i18NextOpts &#x3D; this.i18NextOptsDefault;
+      _set(this.i18NextOpts, &#x27;backend.loadPath&#x27;, this.loadPath);
     }
-    this.translateI18Next.init({
-        debug: true,                                                        // optional
-        returnNull: false,
-        returnEmptyString: true,                                           // optional	- but.. it&#x27;s important, please see http://i18next.com/docs/options/!
-        // mapping: {&quot;specific_backend_message&quot;: &quot;message_for_translate&quot;},     // optional
-        // browserLanguageDetector: injectableCustomLanguageDetectorService,   // optional - the specific application language detector (allows you to return the language of the user.
-        //                                                                     //            If it is absent, the service uses default &quot;angular2 locale detector&quot; behaviour using LOCALE_ID.
-        // // supportedLanguages: [&#x27;en&#x27;, &#x27;pt&#x27;],                                //            Therefore you can pass the optional supportedLanguages parameter which indicates your supported languages.
-        //                                                                     //            For example, LOCALE_ID &#x3D; &#x27;en-AU&#x27; or &#x27;en-US&#x27; or &#x27;en&#x27;, you can pass only [&#x27;en&#x27;] -&gt; locales/en/translation.json
-        //                                                                     //                         LOCALE_ID &#x3D; &#x27;pt-BR&#x27; or &#x27;pt&#x27;, you can pass only [&#x27;pt&#x27;] -&gt; locales/pt/translation.json
-        // backend: injectableBackendConfigFactory                             // optional - allows to change &quot;loadPath&quot; i18next parameter
-        lng: &#x27;en&#x27;,
-        fallbackLng: &#x27;en&#x27;,
-        backend: { loadPath: &#x60;${rootContext}/locales/{{lng}}/{{ns}}.json?ts&#x3D;${ts}&#x60; }
-    }).then(() &#x3D;&gt; {
-      console.log(&#x60;Translator loaded...&#x60;);
-      this.translatorReady &#x3D; true;
-      this.translatorLoaded();
-    });
-  
+    this.loggerService.log(&#x60;Using language loadpath: ${this.loadPath}&#x60;);
+    try {
+    	await this.i18NextService
+	              .use(HttpApi)
+	              .init(this.i18NextOpts);
+      this.loggerService.info(&#x60;Language service ready&#x60;);
+	    this.translatorReady &#x3D; true;
+	    this.translatorLoaded();
+    } catch (error) {
+      this.loggerService.error(&#x60;Failed to initialise language service:&#x60;) ;
+      this.loggerService.error(JSON.stringify(error));
+      throw error;
+    }
+    return this;
   }
 
   translatorLoaded() {
@@ -573,14 +992,30 @@ export class TranslationService {
     }
   }
 
-  isReady(handler: any) {
-    const subs &#x3D; this.subjects[&#x27;init&#x27;].subscribe(handler);
-    this.translatorLoaded();
-    return subs;
+  t(key: string) {
+    return this.i18NextService.t(key);
   }
 
-  t(key: string) {
-    return this.translateI18Next.translate(key);
+  public getInitSubject(): Subject&lt;any&gt; {
+    return this.subjects[&#x27;init&#x27;];
+  } 
+
+  async waitForInit(): Promise&lt;any&gt; {
+    if (this.translatorReady) {
+      return this;
+    } 
+    if (_isUndefined(this.i18NextOpts)) {
+      this.initTranslator();
+    }
+    return firstValueFrom(this.getInitSubject());
+  }
+
+  public isInitializing(): boolean {
+    return !this.translatorReady;
+  }
+
+  public getConfig(appName?:string) {
+    return this.config;
   }
 }
 </code></pre>

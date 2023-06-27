@@ -69,7 +69,7 @@
             <h3>File</h3>
         </p>
         <p class="comment">
-            <code>angular/shared/dashboard-models.ts</code>
+            <code>angular/projects/researchdatabox/portal-ng-common/src/lib/dashboard-models.ts</code>
         </p>
 
 
@@ -146,9 +146,14 @@
 
                     </td>
                 </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Default value : </i><code>&#x27;&#x27;</code>
+                    </td>
+                </tr>
                     <tr>
                         <td class="col-md-4">
-                                <div class="io-line">Defined in <a href="" data-line="24" class="link-to-prism">angular/shared/dashboard-models.ts:24</a></div>
+                                <div class="io-line">Defined in <a href="" data-line="22" class="link-to-prism">angular/projects/researchdatabox/portal-ng-common/src/lib/dashboard-models.ts:22</a></div>
                         </td>
                     </tr>
 
@@ -172,9 +177,14 @@
 
                     </td>
                 </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Default value : </i><code>&#x27;&#x27;</code>
+                    </td>
+                </tr>
                     <tr>
                         <td class="col-md-4">
-                                <div class="io-line">Defined in <a href="" data-line="20" class="link-to-prism">angular/shared/dashboard-models.ts:20</a></div>
+                                <div class="io-line">Defined in <a href="" data-line="18" class="link-to-prism">angular/projects/researchdatabox/portal-ng-common/src/lib/dashboard-models.ts:18</a></div>
                         </td>
                     </tr>
 
@@ -198,9 +208,14 @@
 
                     </td>
                 </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Default value : </i><code>&#x27;&#x27;</code>
+                    </td>
+                </tr>
                     <tr>
                         <td class="col-md-4">
-                                <div class="io-line">Defined in <a href="" data-line="21" class="link-to-prism">angular/shared/dashboard-models.ts:21</a></div>
+                                <div class="io-line">Defined in <a href="" data-line="19" class="link-to-prism">angular/projects/researchdatabox/portal-ng-common/src/lib/dashboard-models.ts:19</a></div>
                         </td>
                     </tr>
 
@@ -224,9 +239,14 @@
 
                     </td>
                 </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Default value : </i><code>false</code>
+                    </td>
+                </tr>
                     <tr>
                         <td class="col-md-4">
-                                <div class="io-line">Defined in <a href="" data-line="22" class="link-to-prism">angular/shared/dashboard-models.ts:22</a></div>
+                                <div class="io-line">Defined in <a href="" data-line="20" class="link-to-prism">angular/projects/researchdatabox/portal-ng-common/src/lib/dashboard-models.ts:20</a></div>
                         </td>
                     </tr>
 
@@ -250,9 +270,14 @@
 
                     </td>
                 </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Default value : </i><code>{}</code>
+                    </td>
+                </tr>
                     <tr>
                         <td class="col-md-4">
-                                <div class="io-line">Defined in <a href="" data-line="23" class="link-to-prism">angular/shared/dashboard-models.ts:23</a></div>
+                                <div class="io-line">Defined in <a href="" data-line="21" class="link-to-prism">angular/projects/researchdatabox/portal-ng-common/src/lib/dashboard-models.ts:21</a></div>
                         </td>
                     </tr>
 
@@ -276,9 +301,14 @@
 
                     </td>
                 </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Default value : </i><code>&#x27;&#x27;</code>
+                    </td>
+                </tr>
                     <tr>
                         <td class="col-md-4">
-                                <div class="io-line">Defined in <a href="" data-line="18" class="link-to-prism">angular/shared/dashboard-models.ts:18</a></div>
+                                <div class="io-line">Defined in <a href="" data-line="16" class="link-to-prism">angular/projects/researchdatabox/portal-ng-common/src/lib/dashboard-models.ts:16</a></div>
                         </td>
                     </tr>
 
@@ -302,9 +332,14 @@
 
                     </td>
                 </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Default value : </i><code>&#x27;&#x27;</code>
+                    </td>
+                </tr>
                     <tr>
                         <td class="col-md-4">
-                                <div class="io-line">Defined in <a href="" data-line="19" class="link-to-prism">angular/shared/dashboard-models.ts:19</a></div>
+                                <div class="io-line">Defined in <a href="" data-line="17" class="link-to-prism">angular/projects/researchdatabox/portal-ng-common/src/lib/dashboard-models.ts:17</a></div>
                         </td>
                     </tr>
 
@@ -324,29 +359,27 @@
 
     <div class="tab-pane fade  tab-source-code" id="source">
         <pre class="line-numbers compodoc-sourcecode"><code class="language-typescript">export class PlanTable {
-
-  totalItems: number
-  currentPage: number
-  noItems: number
-  items: any[]
+  totalItems: number &#x3D; 0;
+  currentPage: number &#x3D; 0;
+  noItems: number &#x3D; 0;
+  items: any[] &#x3D; [];
 }
 
 export class RecordResponseTable {
-
-  totalItems: number
-  currentPage: number
-  noItems: number
-  items: any[]
+  totalItems: number &#x3D; 0;
+  currentPage: number &#x3D; 0;
+  noItems: number &#x3D; 0;
+  items: any[] &#x3D; [];
 }
 
 export class Plan {
-  oid: string
-  title: string
-  dateCreated: string
-  dateModified: string
-  hasEditAccess:boolean
-  metadata: object
-  dashboardTitle: string;
+  oid: string &#x3D; &#x27;&#x27;;
+  title: string &#x3D; &#x27;&#x27;;
+  dateCreated: string &#x3D; &#x27;&#x27;;
+  dateModified: string &#x3D; &#x27;&#x27;;
+  hasEditAccess:boolean &#x3D; false;
+  metadata: object &#x3D; {};
+  dashboardTitle: string &#x3D; &#x27;&#x27;;
 }
 </code></pre>
     </div>

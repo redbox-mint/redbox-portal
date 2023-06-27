@@ -8,27 +8,1003 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
 
         <link rel="icon" type="image/x-icon" href="../images/favicon.ico">
-	   <link rel="stylesheet" href="../styles/style.css">
-        <link rel="stylesheet" href="../styles/dark.css">
-        <link rel="stylesheet" href="../styles/postmark.css">
+	    <link rel="stylesheet" href="../styles/style.css">
+                 <link rel="stylesheet" href="../styles/postmark.css">
     </head>
     <body>
 
-        <div class="navbar navbar-default navbar-fixed-top d-block d-sm-none">
+        <div class="navbar navbar-default navbar-fixed-top visible-xs">
             <a href="../" class="navbar-brand">ReDBox Portal - NG2 Apps</a>
-            <button type="button" class="btn btn-default btn-menu ion-ios-menu" id="btn-menu"></button>
+            <button type="button" class="btn btn-default btn-menu fa fa-bars" id="btn-menu"></button>
         </div>
 
         <div class="xs-menu menu" id="mobile-menu">
-                <div id="book-search-input" role="search"><input type="text" placeholder="Type to search"></div>            <compodoc-menu></compodoc-menu>
+            <div id="book-search-input" role="search">
+                <input type="text" placeholder="Type to search">
+            </div>
+            <nav>
+            
+                <ul class="list">
+            
+                    <li class="title">
+                        <a href="../index.html">ReDBox Portal - NG2 Apps</a>
+                    </li>
+            
+                    <li class="divider"></li>
+            
+            
+                    <li class="chapter">
+                        <a data-type="chapter-link" href="../index.html"><span class="fa fa-home"></span>Getting started</a>
+                        <ul class="links">
+                                <li class="link">
+                                    <a 
+                                        
+                                         href="../overview.html" 
+                                         href="../overview.html" 
+                                        >
+                                        <span class="fa fa-th"></span>Overview
+                                    </a>
+                                </li>
+                                <li class="link">
+                                  <a href="../index.html" ><span class="fa fa-file-text-o"></span>README</a>
+                                </li>
+                                <li class="link">
+                                        <a href="../license.html"
+                                    >
+                                        <span class="fa fa-file-text-o"></span>LICENSE
+                                    </a>
+                                </li>
+                        </ul>
+                    </li>
+            
+                    <li class="chapter">
+                        <div class="simple menu-toggler" data-toggle="collapse"
+                                data-target="#xs-additional-pages"
+                            >
+                            <span class="fa fa-book"></span>
+                            <span>Additional documentation</span>
+                            <span class="fa fa-angle-down"></span>
+                        </div>
+                        <ul class="links collapse "
+                                id="xs-additional-pages"
+                            >
+                                <li class="link ">
+                                    <a href="../additional-documentation/installation-guide.html" >Installation guide</a>
+                                </li>
+                                <li class="link ">
+                                    <a href="../additional-documentation/configuration-guide.html" >Configuration guide</a>
+                                </li>
+                                <li class="link for-chapter">
+                                    <a href="../additional-documentation/configuration-guide/configuring-web-forms.html" >Configuring web forms</a>
+                                </li>
+                                <li class="link for-chapter">
+                                    <a href="../additional-documentation/configuration-guide/configuring-email-notifications.html" >Configuring email notifications</a>
+                                </li>
+                                <li class="link for-chapter">
+                                    <a href="../additional-documentation/configuration-guide/configuring-integration-with-redbox-and-mint.html" >Configuring integration with RedBox and Mint</a>
+                                </li>
+                        </ul>
+                    </li>
+            
+                    <li class="chapter">
+                        <a data-type="chapter-link" href="../modules.html" >
+                            <div class="menu-toggler linked" data-toggle="collapse"
+                                    data-target="#xs-modules-links"
+                            >
+                                <span class="fa fa-archive"></span>
+                                <span class="link-name">Modules</span>
+                                <span class="fa fa-angle-down"></span>
+                            </div>
+                        </a>
+                        <ul class="links collapse "
+                                id="xs-modules-links"
+                            >
+                                <li class="link">
+                                    <a href="../modules/DashboardModule.html" >DashboardModule</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../modules/DmpModule.html" >DmpModule</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../modules/ExportModule.html" >ExportModule</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../modules/LocalAuthModule.html" >LocalAuthModule</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../modules/ManageRolesModule.html" >ManageRolesModule</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../modules/ManageUsersModule.html" >ManageUsersModule</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../modules/RecordSearchModule.html" >RecordSearchModule</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../modules/ReportModule.html" >ReportModule</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../modules/SharedModule.html" >SharedModule</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../modules/TransferOwnerModule.html" >TransferOwnerModule</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../modules/UserProfileModule.html" >UserProfileModule</a>
+                                </li>
+                        </ul>
+                    </li>
+            
+                    <li class="chapter">
+                        <div class="simple menu-toggler" data-toggle="collapse"
+                                data-target="#xs-components-links"
+                            >
+                            <span class="fa fa-cogs"></span>
+                            <span>Components</span>
+                            <span class="fa fa-angle-down"></span>
+                        </div>
+                        <ul class="links collapse "
+                                id="xs-components-links"
+                            >
+                                <li class="link">
+                                    <a href="../components/AnchorOrButtonComponent.html" >AnchorOrButtonComponent</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../components/ContributorComponent.html" >ContributorComponent</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../components/DashboardComponent.html" >DashboardComponent</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../components/DateTimeComponent.html" >DateTimeComponent</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../components/DmpFieldComponent.html" >DmpFieldComponent</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../components/DmpFormComponent.html" >DmpFormComponent</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../components/DropdownFieldComponent.html" >DropdownFieldComponent</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../components/ExportFormComponent.html" >ExportFormComponent</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../components/HiddenValueComponent.html" >HiddenValueComponent</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../components/HtmlRawComponent.html" >HtmlRawComponent</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../components/LinkValueComponent.html" >LinkValueComponent</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../components/LocalAuthComponent.html" >LocalAuthComponent</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../components/ManageRolesComponent.html" >ManageRolesComponent</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../components/ManageUsersComponent.html" >ManageUsersComponent</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../components/RecordSearchComponent.html" >RecordSearchComponent</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../components/RecordSearchRefinerComponent.html" >RecordSearchRefinerComponent</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../components/RelatedObjectDataComponent.html" >RelatedObjectDataComponent</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../components/RepeatableContributorComponent.html" >RepeatableContributorComponent</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../components/RepeatableTextfieldComponent.html" >RepeatableTextfieldComponent</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../components/RepeatableVocabComponent.html" >RepeatableVocabComponent</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../components/ReportComponent.html" >ReportComponent</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../components/SelectionFieldComponent.html" >SelectionFieldComponent</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../components/TabOrAccordionContainerComponent.html" >TabOrAccordionContainerComponent</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../components/TextAreaComponent.html" >TextAreaComponent</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../components/TextBlockComponent.html" >TextBlockComponent</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../components/TextFieldComponent.html" >TextFieldComponent</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../components/TransferOwnerComponent.html" >TransferOwnerComponent</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../components/UserProfileComponent.html" >UserProfileComponent</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../components/VocabFieldComponent.html" >VocabFieldComponent</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../components/WorkflowStepButtonComponent.html" >WorkflowStepButtonComponent</a>
+                                </li>
+                        </ul>
+                    </li>
+            
+            
+                    <li class="chapter">
+                        <div class="simple menu-toggler" data-toggle="collapse"
+                                data-target="#xs-classes-links"
+                            >
+                            <span class="fa fa-file-code-o"></span>
+                            <span>Classes</span>
+                            <span class="fa fa-angle-down"></span>
+                        </div>
+                        <ul class="links collapse "
+                                id="xs-classes-links"
+                            >
+                                <li class="link">
+                                    <a href="../classes/AnchorOrButton.html" >AnchorOrButton</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/AppModuleInjector.html" >AppModuleInjector</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/AppModuleInjector.html" >AppModuleInjector</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/AppModuleInjector.html" >AppModuleInjector</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/AppModuleInjector.html" >AppModuleInjector</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/BaseService.html" >BaseService</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/Container.html" >Container</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/ContributorField.html" >ContributorField</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/DateTime.html" >DateTime</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/DmpModuleInjector.html" >DmpModuleInjector</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/EmbeddableComponent.html" >EmbeddableComponent</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/ExportModuleInjector.html" >ExportModuleInjector</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/FieldBase.html" >FieldBase</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/HiddenValue.html" >HiddenValue</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/LinkValue.html" >LinkValue</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/LoadableComponent.html" >LoadableComponent</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/LoginResult.html" >LoginResult</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/MintLookupDataService.html" >MintLookupDataService</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/Plan.html" >Plan</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/PlanTable.html" >PlanTable</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/RbValidator.html" >RbValidator</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/RecordActionResult.html" >RecordActionResult</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/RecordSearchModuleInjector.html" >RecordSearchModuleInjector</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/RecordSearchParams.html" >RecordSearchParams</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/RecordSearchRefiner.html" >RecordSearchRefiner</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/RelatedObjectDataField.html" >RelatedObjectDataField</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/RepeatableComponent.html" >RepeatableComponent</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/RepeatableContainer.html" >RepeatableContainer</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/RepeatableContributor.html" >RepeatableContributor</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/Report.html" >Report</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/ReportResults.html" >ReportResults</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/Role.html" >Role</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/SaveResult.html" >SaveResult</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/SelectionComponent.html" >SelectionComponent</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/SelectionField.html" >SelectionField</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/SharedModuleInjector.html" >SharedModuleInjector</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/SimpleComponent.html" >SimpleComponent</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/TabOrAccordionContainer.html" >TabOrAccordionContainer</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/TextArea.html" >TextArea</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/TextField.html" >TextField</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/TransferOwnerModuleInjector.html" >TransferOwnerModuleInjector</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/User.html" >User</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/VocabField.html" >VocabField</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../classes/WorkflowStepButton.html" >WorkflowStepButton</a>
+                                </li>
+                        </ul>
+                    </li>
+            
+                    <li class="chapter">
+                        <div class="simple menu-toggler" data-toggle="collapse"
+                                data-target="#xs-injectables-links"
+                            >
+                            <span class="fa fa-long-arrow-down"></span>
+                            <span>Injectables</span>
+                            <span class="fa fa-angle-down"></span>
+                        </div>
+                        <ul class="links collapse "
+                                id="xs-injectables-links"
+                            >
+                                <li class="link">
+                                    <a href="../injectables/ConfigService.html" >ConfigService</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../injectables/DashboardService.html"  data-type="entity-link" class="active" >DashboardService</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../injectables/EmailNotificationService.html" >EmailNotificationService</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../injectables/FieldControlService.html" >FieldControlService</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../injectables/RecordsService.html" >RecordsService</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../injectables/ReportService.html" >ReportService</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../injectables/RolesService.html" >RolesService</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../injectables/TranslationService.html" >TranslationService</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../injectables/UserSimpleService.html" >UserSimpleService</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../injectables/UtilityService.html" >UtilityService</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../injectables/VocabFieldLookupService.html" >VocabFieldLookupService</a>
+                                </li>
+                        </ul>
+                    </li>
+            
+            
+                    <li class="chapter">
+                        <div class="simple menu-toggler" data-toggle="collapse"
+                                data-target="#xs-interfaces-links"
+                            >
+                            <span class="fa fa-info"></span>
+                            <span>Interfaces</span>
+                            <span class="fa fa-angle-down"></span>
+                        </div>
+                        <ul class="links collapse "
+                                id="xs-interfaces-links"
+                            >
+                                <li class="link">
+                                    <a href="../interfaces/UserForm.html" >UserForm</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../interfaces/UserForm.html" >UserForm</a>
+                                </li>
+                        </ul>
+                    </li>
+            
+                    <li class="chapter">
+                        <div class="simple menu-toggler" data-toggle="collapse"
+                                data-target="#xs-pipes-links"
+                            >
+                            <span class="fa fa-plus"></span>
+                            <span>Pipes</span>
+                            <span class="fa fa-angle-down"></span>
+                        </div>
+                        <ul class="links collapse "
+                                id="xs-pipes-links"
+                            >
+                                <li class="link">
+                                    <a href="../pipes/MultivalueFieldPipe.html" >MultivalueFieldPipe</a>
+                                </li>
+                                <li class="link">
+                                    <a href="../pipes/StringTemplatePipe.html" >StringTemplatePipe</a>
+                                </li>
+                        </ul>
+                    </li>
+            
+                    <li class="chapter">
+                        <div class="simple menu-toggler" data-toggle="collapse"
+                                data-target="#xs-miscellaneous-links"
+                            >
+                            <span class="fa fa-cubes"></span>
+                            <span>Miscellaneous</span>
+                            <span class="fa fa-angle-down"></span>
+                        </div>
+                        <ul class="links collapse "
+                                id="xs-miscellaneous-links"
+                            >
+                                <li class="link">
+                                  <a href="../miscellaneous/functions.html" data-type="entity-link" >Functions</a>
+                                </li>
+                                <li class="link">
+                                  <a href="../miscellaneous/variables.html" data-type="entity-link" >Variables</a>
+                                </li>
+                        </ul>
+                    </li>
+            
+            
+                    <li class="chapter">
+                        <a data-type="chapter-link" href="../coverage.html" ><span class="fa fa-tasks"></span>Documentation coverage</a>
+                    </li>
+            
+                    <li class="divider"></li>
+                    <li class="copyright">
+                            Documentation generated using <a href="https://compodoc.github.io/website/" target="_blank">
+                                        <img src="..//images/compodoc-vectorise-inverted.svg" class="img-responsive">
+                            </a>
+                    </li>
+            
+                </ul>
+            
+            </nav>
         </div>
 
         <div class="container-fluid main">
            <div class="row main">
                <div class="hidden-xs menu">
-                   <compodoc-menu mode="normal"></compodoc-menu>
+                   <nav>
+                   
+                       <ul class="list">
+                   
+                           <li class="title">
+                               <a href="../index.html">ReDBox Portal - NG2 Apps</a>
+                           </li>
+                   
+                           <li class="divider"></li>
+                   
+                               <div id="book-search-input" role="search">
+                                   <input type="text" placeholder="Type to search">
+                               </div>
+                   
+                           <li class="chapter">
+                               <a data-type="chapter-link" href="../index.html"><span class="fa fa-home"></span>Getting started</a>
+                               <ul class="links">
+                                       <li class="link">
+                                           <a 
+                                               
+                                                href="../overview.html" 
+                                                href="../overview.html" 
+                                               >
+                                               <span class="fa fa-th"></span>Overview
+                                           </a>
+                                       </li>
+                                       <li class="link">
+                                         <a href="../index.html" ><span class="fa fa-file-text-o"></span>README</a>
+                                       </li>
+                                       <li class="link">
+                                               <a href="../license.html"
+                                           >
+                                               <span class="fa fa-file-text-o"></span>LICENSE
+                                           </a>
+                                       </li>
+                               </ul>
+                           </li>
+                   
+                           <li class="chapter">
+                               <div class="simple menu-toggler" data-toggle="collapse"
+                                       data-target="#additional-pages"
+                   >
+                                   <span class="fa fa-book"></span>
+                                   <span>Additional documentation</span>
+                                   <span class="fa fa-angle-down"></span>
+                               </div>
+                               <ul class="links collapse "
+                                       id="additional-pages"
+                   >
+                                       <li class="link ">
+                                           <a href="../additional-documentation/installation-guide.html" >Installation guide</a>
+                                       </li>
+                                       <li class="link ">
+                                           <a href="../additional-documentation/configuration-guide.html" >Configuration guide</a>
+                                       </li>
+                                       <li class="link for-chapter">
+                                           <a href="../additional-documentation/configuration-guide/configuring-web-forms.html" >Configuring web forms</a>
+                                       </li>
+                                       <li class="link for-chapter">
+                                           <a href="../additional-documentation/configuration-guide/configuring-email-notifications.html" >Configuring email notifications</a>
+                                       </li>
+                                       <li class="link for-chapter">
+                                           <a href="../additional-documentation/configuration-guide/configuring-integration-with-redbox-and-mint.html" >Configuring integration with RedBox and Mint</a>
+                                       </li>
+                               </ul>
+                           </li>
+                   
+                           <li class="chapter">
+                               <a data-type="chapter-link" href="../modules.html" >
+                                   <div class="menu-toggler linked" data-toggle="collapse"
+                                           data-target="#modules-links"
+                                   >
+                                       <span class="fa fa-archive"></span>
+                                       <span class="link-name">Modules</span>
+                                       <span class="fa fa-angle-down"></span>
+                                   </div>
+                               </a>
+                               <ul class="links collapse "
+                                       id="modules-links"
+                   >
+                                       <li class="link">
+                                           <a href="../modules/DashboardModule.html" >DashboardModule</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../modules/DmpModule.html" >DmpModule</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../modules/ExportModule.html" >ExportModule</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../modules/LocalAuthModule.html" >LocalAuthModule</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../modules/ManageRolesModule.html" >ManageRolesModule</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../modules/ManageUsersModule.html" >ManageUsersModule</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../modules/RecordSearchModule.html" >RecordSearchModule</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../modules/ReportModule.html" >ReportModule</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../modules/SharedModule.html" >SharedModule</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../modules/TransferOwnerModule.html" >TransferOwnerModule</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../modules/UserProfileModule.html" >UserProfileModule</a>
+                                       </li>
+                               </ul>
+                           </li>
+                   
+                           <li class="chapter">
+                               <div class="simple menu-toggler" data-toggle="collapse"
+                                       data-target="#components-links"
+                   >
+                                   <span class="fa fa-cogs"></span>
+                                   <span>Components</span>
+                                   <span class="fa fa-angle-down"></span>
+                               </div>
+                               <ul class="links collapse "
+                                       id="components-links"
+                   >
+                                       <li class="link">
+                                           <a href="../components/AnchorOrButtonComponent.html" >AnchorOrButtonComponent</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../components/ContributorComponent.html" >ContributorComponent</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../components/DashboardComponent.html" >DashboardComponent</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../components/DateTimeComponent.html" >DateTimeComponent</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../components/DmpFieldComponent.html" >DmpFieldComponent</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../components/DmpFormComponent.html" >DmpFormComponent</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../components/DropdownFieldComponent.html" >DropdownFieldComponent</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../components/ExportFormComponent.html" >ExportFormComponent</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../components/HiddenValueComponent.html" >HiddenValueComponent</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../components/HtmlRawComponent.html" >HtmlRawComponent</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../components/LinkValueComponent.html" >LinkValueComponent</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../components/LocalAuthComponent.html" >LocalAuthComponent</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../components/ManageRolesComponent.html" >ManageRolesComponent</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../components/ManageUsersComponent.html" >ManageUsersComponent</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../components/RecordSearchComponent.html" >RecordSearchComponent</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../components/RecordSearchRefinerComponent.html" >RecordSearchRefinerComponent</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../components/RelatedObjectDataComponent.html" >RelatedObjectDataComponent</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../components/RepeatableContributorComponent.html" >RepeatableContributorComponent</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../components/RepeatableTextfieldComponent.html" >RepeatableTextfieldComponent</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../components/RepeatableVocabComponent.html" >RepeatableVocabComponent</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../components/ReportComponent.html" >ReportComponent</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../components/SelectionFieldComponent.html" >SelectionFieldComponent</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../components/TabOrAccordionContainerComponent.html" >TabOrAccordionContainerComponent</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../components/TextAreaComponent.html" >TextAreaComponent</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../components/TextBlockComponent.html" >TextBlockComponent</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../components/TextFieldComponent.html" >TextFieldComponent</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../components/TransferOwnerComponent.html" >TransferOwnerComponent</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../components/UserProfileComponent.html" >UserProfileComponent</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../components/VocabFieldComponent.html" >VocabFieldComponent</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../components/WorkflowStepButtonComponent.html" >WorkflowStepButtonComponent</a>
+                                       </li>
+                               </ul>
+                           </li>
+                   
+                   
+                           <li class="chapter">
+                               <div class="simple menu-toggler" data-toggle="collapse"
+                                       data-target="#classes-links"
+                   >
+                                   <span class="fa fa-file-code-o"></span>
+                                   <span>Classes</span>
+                                   <span class="fa fa-angle-down"></span>
+                               </div>
+                               <ul class="links collapse "
+                                       id="classes-links"
+                   >
+                                       <li class="link">
+                                           <a href="../classes/AnchorOrButton.html" >AnchorOrButton</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/AppModuleInjector.html" >AppModuleInjector</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/AppModuleInjector.html" >AppModuleInjector</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/AppModuleInjector.html" >AppModuleInjector</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/AppModuleInjector.html" >AppModuleInjector</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/BaseService.html" >BaseService</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/Container.html" >Container</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/ContributorField.html" >ContributorField</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/DateTime.html" >DateTime</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/DmpModuleInjector.html" >DmpModuleInjector</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/EmbeddableComponent.html" >EmbeddableComponent</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/ExportModuleInjector.html" >ExportModuleInjector</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/FieldBase.html" >FieldBase</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/HiddenValue.html" >HiddenValue</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/LinkValue.html" >LinkValue</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/LoadableComponent.html" >LoadableComponent</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/LoginResult.html" >LoginResult</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/MintLookupDataService.html" >MintLookupDataService</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/Plan.html" >Plan</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/PlanTable.html" >PlanTable</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/RbValidator.html" >RbValidator</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/RecordActionResult.html" >RecordActionResult</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/RecordSearchModuleInjector.html" >RecordSearchModuleInjector</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/RecordSearchParams.html" >RecordSearchParams</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/RecordSearchRefiner.html" >RecordSearchRefiner</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/RelatedObjectDataField.html" >RelatedObjectDataField</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/RepeatableComponent.html" >RepeatableComponent</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/RepeatableContainer.html" >RepeatableContainer</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/RepeatableContributor.html" >RepeatableContributor</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/Report.html" >Report</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/ReportResults.html" >ReportResults</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/Role.html" >Role</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/SaveResult.html" >SaveResult</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/SelectionComponent.html" >SelectionComponent</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/SelectionField.html" >SelectionField</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/SharedModuleInjector.html" >SharedModuleInjector</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/SimpleComponent.html" >SimpleComponent</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/TabOrAccordionContainer.html" >TabOrAccordionContainer</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/TextArea.html" >TextArea</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/TextField.html" >TextField</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/TransferOwnerModuleInjector.html" >TransferOwnerModuleInjector</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/User.html" >User</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/VocabField.html" >VocabField</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../classes/WorkflowStepButton.html" >WorkflowStepButton</a>
+                                       </li>
+                               </ul>
+                           </li>
+                   
+                           <li class="chapter">
+                               <div class="simple menu-toggler" data-toggle="collapse"
+                                       data-target="#injectables-links"
+                   >
+                                   <span class="fa fa-long-arrow-down"></span>
+                                   <span>Injectables</span>
+                                   <span class="fa fa-angle-down"></span>
+                               </div>
+                               <ul class="links collapse "
+                                       id="injectables-links"
+                   >
+                                       <li class="link">
+                                           <a href="../injectables/ConfigService.html" >ConfigService</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../injectables/DashboardService.html"  data-type="entity-link" class="active" >DashboardService</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../injectables/EmailNotificationService.html" >EmailNotificationService</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../injectables/FieldControlService.html" >FieldControlService</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../injectables/RecordsService.html" >RecordsService</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../injectables/ReportService.html" >ReportService</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../injectables/RolesService.html" >RolesService</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../injectables/TranslationService.html" >TranslationService</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../injectables/UserSimpleService.html" >UserSimpleService</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../injectables/UtilityService.html" >UtilityService</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../injectables/VocabFieldLookupService.html" >VocabFieldLookupService</a>
+                                       </li>
+                               </ul>
+                           </li>
+                   
+                   
+                           <li class="chapter">
+                               <div class="simple menu-toggler" data-toggle="collapse"
+                                       data-target="#interfaces-links"
+                   >
+                                   <span class="fa fa-info"></span>
+                                   <span>Interfaces</span>
+                                   <span class="fa fa-angle-down"></span>
+                               </div>
+                               <ul class="links collapse "
+                                       id="interfaces-links"
+                   >
+                                       <li class="link">
+                                           <a href="../interfaces/UserForm.html" >UserForm</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../interfaces/UserForm.html" >UserForm</a>
+                                       </li>
+                               </ul>
+                           </li>
+                   
+                           <li class="chapter">
+                               <div class="simple menu-toggler" data-toggle="collapse"
+                                       data-target="#pipes-links"
+                   >
+                                   <span class="fa fa-plus"></span>
+                                   <span>Pipes</span>
+                                   <span class="fa fa-angle-down"></span>
+                               </div>
+                               <ul class="links collapse "
+                                       id="pipes-links"
+                   >
+                                       <li class="link">
+                                           <a href="../pipes/MultivalueFieldPipe.html" >MultivalueFieldPipe</a>
+                                       </li>
+                                       <li class="link">
+                                           <a href="../pipes/StringTemplatePipe.html" >StringTemplatePipe</a>
+                                       </li>
+                               </ul>
+                           </li>
+                   
+                           <li class="chapter">
+                               <div class="simple menu-toggler" data-toggle="collapse"
+                                       data-target="#miscellaneous-links"
+                   >
+                                   <span class="fa fa-cubes"></span>
+                                   <span>Miscellaneous</span>
+                                   <span class="fa fa-angle-down"></span>
+                               </div>
+                               <ul class="links collapse "
+                                       id="miscellaneous-links"
+                   >
+                                       <li class="link">
+                                         <a href="../miscellaneous/functions.html" data-type="entity-link" >Functions</a>
+                                       </li>
+                                       <li class="link">
+                                         <a href="../miscellaneous/variables.html" data-type="entity-link" >Variables</a>
+                                       </li>
+                               </ul>
+                           </li>
+                   
+                   
+                           <li class="chapter">
+                               <a data-type="chapter-link" href="../coverage.html" ><span class="fa fa-tasks"></span>Documentation coverage</a>
+                           </li>
+                   
+                           <li class="divider"></li>
+                           <li class="copyright">
+                                   Documentation generated using <a href="https://compodoc.github.io/website/" target="_blank">
+                                               <img src="..//images/compodoc-vectorise-inverted.svg" class="img-responsive">
+                                   </a>
+                           </li>
+                   
+                       </ul>
+                   
+                   </nav>
                </div>
-               <!-- START CONTENT -->
                <div class="content injectable">
                    <div class="content-data">
 
@@ -37,26 +1013,20 @@
 
 
 
-
-
 <ol class="breadcrumb">
-  <li class="breadcrumb-item">Injectables</li>
-  <li class="breadcrumb-item" >DashboardService</li>
+  <li>Injectables</li>
+  <li>DashboardService</li>
 </ol>
 
 <ul class="nav nav-tabs" role="tablist">
-        <li class="nav-item">
-            <a href="#info" 
-                class="nav-link"
-                class="nav-link active"
-                role="tab" id="info-tab" data-bs-toggle="tab" data-link="info">Info</a>
-        </li>
-        <li class="nav-item">
-            <a href="#source" 
-                class="nav-link"
-                
-                role="tab" id="source-tab" data-bs-toggle="tab" data-link="source">Source</a>
-        </li>
+    <li class="active">
+        <a href="#info" id="info-tab" role="tab" data-toggle="tab" data-link="info">Info</a>
+    </li>
+
+
+    <li>
+        <a href="#source" role="tab" id="source-tab" data-toggle="tab" data-link="source">Source</a>
+    </li>
 </ul>
 
 <div class="tab-content">
@@ -65,1771 +1035,501 @@
             <h3>File</h3>
         </p>
         <p class="comment">
-            <code>angular/shared/dashboard-service.ts</code>
+            <code>assets/angular/shared/dashboard-service.ts</code>
         </p>
 
 
 
-            <p class="comment">
-                <h3>Extends</h3>
-            </p>
-            <p class="comment">
-                        <code><a href="../classes/BaseService.html" target="_self" >BaseService</a></code>
-            </p>
-
-
-            <section data-compodoc="block-index">
-    <h3 id="index">Index</h3>
-    <table class="table table-sm table-bordered index-table">
-        <tbody>
-                <tr>
-                    <td class="col-md-4">
-                        <h6><b>Properties</b></h6>
-                    </td>
-                </tr>
-                <tr>
-                    <td class="col-md-4">
-                        <ul class="index-list">
-                            <li>
-                                    <span class="modifier">Protected</span>
-                                    <span class="modifier">Static</span>
-                                <a href="#__config" >__config</a>
-                            </li>
-                            <li>
-                                    <span class="modifier">Protected</span>
-                                <a href="#baseUrl" >baseUrl</a>
-                            </li>
-                            <li>
-                                    <span class="modifier">Protected</span>
-                                <a href="#brandingAndPortalUrl" >brandingAndPortalUrl</a>
-                            </li>
-                            <li>
-                                    <span class="modifier">Protected</span>
-                                <a href="#config" >config</a>
-                            </li>
-                            <li>
-                                    <span class="modifier">Protected</span>
-                                <a href="#configService" >configService</a>
-                            </li>
-                            <li>
-                                    <span class="modifier">Protected</span>
-                                <a href="#http" >http</a>
-                            </li>
-                            <li>
-                                    <span class="modifier">Protected</span>
-                                <a href="#initSubject" >initSubject</a>
-                            </li>
-                            <li>
-                                    <span class="modifier">Protected</span>
-                                <a href="#options" >options</a>
-                            </li>
-                        </ul>
-                    </td>
-                </tr>
-
-                <tr>
-                    <td class="col-md-4">
-                        <h6><b>Methods</b></h6>
-                    </td>
-                </tr>
-                <tr>
-                    <td class="col-md-4">
-                        <ul class="index-list">
-                            <li>
-                                <a href="#formatDates" >formatDates</a>
-                            </li>
-                            <li>
-                                <a href="#getActivePlans" >getActivePlans</a>
-                            </li>
-                            <li>
-                                <a href="#getAllDraftPlansCanEdit" >getAllDraftPlansCanEdit</a>
-                            </li>
-                            <li>
-                                <a href="#getAllRecordsCanEdit" >getAllRecordsCanEdit</a>
-                            </li>
-                            <li>
-                                <a href="#getDraftPlans" >getDraftPlans</a>
-                            </li>
-                            <li>
-                                <a href="#getRecords" >getRecords</a>
-                            </li>
-                            <li>
-                                <a href="#getRecordsByFilter" >getRecordsByFilter</a>
-                            </li>
-                            <li>
-                                    <span class="modifier">Public</span>
-                                <a href="#searchRecords" >searchRecords</a>
-                            </li>
-                            <li>
-                                    <span class="modifier">Public</span>
-                                <a href="#setDashboardTitle" >setDashboardTitle</a>
-                            </li>
-                            <li>
-                                    <span class="modifier">Public</span>
-                                <a href="#emitInit" >emitInit</a>
-                            </li>
-                            <li>
-                                    <span class="modifier">Protected</span>
-                                <a href="#extractData" >extractData</a>
-                            </li>
-                            <li>
-                                <a href="#getConfig" >getConfig</a>
-                            </li>
-                            <li>
-                                    <span class="modifier">Public</span>
-                                <a href="#getInitSubject" >getInitSubject</a>
-                            </li>
-                            <li>
-                                    <span class="modifier">Protected</span>
-                                <a href="#getOptions" >getOptions</a>
-                            </li>
-                            <li>
-                                    <span class="modifier">Protected</span>
-                                <a href="#getOptionsClient" >getOptionsClient</a>
-                            </li>
-                            <li>
-                                    <span class="modifier">Public</span>
-                                <a href="#waitForInit" >waitForInit</a>
-                            </li>
-                        </ul>
-                    </td>
-                </tr>
-
-
-
-
-
-        </tbody>
-    </table>
-</section>
-
-            <section data-compodoc="block-constructor">
-    <h3 id="constructor">Constructor</h3>
-        <table class="table table-sm table-bordered">
-            <tbody>
-                <tr>
-                    <td class="col-md-4">
-<code>constructor(http: Http, configService: <a href="../injectables/ConfigService.html" target="_self">ConfigService</a>, translator: <a href="../injectables/TranslationService.html" target="_self">TranslationService</a>)</code>
-                    </td>
-                </tr>
+            <section>
+                <h3 id="index">Index</h3>
+                <table class="table table-sm table-bordered index-table">
+                    <tbody>
                         <tr>
                             <td class="col-md-4">
-                                <div class="io-line">Defined in <a href="" data-line="13" class="link-to-prism">angular/shared/dashboard-service.ts:13</a></div>
+                                <h6><b>Methods</b></h6>
                             </td>
                         </tr>
+                        <tr>
+                            <td class="col-md-4">
+                                <ul class="index-list">
+                                    <li>
+                                         <a href="#formatDates">formatDates</a>
+                                    </li>
+                                    <li>
+                                         <a href="#getActivePlans">getActivePlans</a>
+                                    </li>
+                                    <li>
+                                         <a href="#getAlllDraftPlansCanEdit">getAlllDraftPlansCanEdit</a>
+                                    </li>
+                                    <li>
+                                         <a href="#getDraftPlans">getDraftPlans</a>
+                                    </li>
+                                    <li>
+                                        <span class="modifier">Public</span> <a href="#searchRecords">searchRecords</a>
+                                    </li>
+                                    <li>
+                                        <span class="modifier">Public</span> <a href="#setDashboardTitle">setDashboardTitle</a>
+                                    </li>
+                                </ul>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </section>
 
-                <tr>
-                    <td class="col-md-4">
-                            <div>
-                                    <b>Parameters :</b>
-                                    <table class="params">
-                                        <thead>
-                                            <tr>
-                                                <td>Name</td>
-                                                    <td>Type</td>
-                                                <td>Optional</td>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                                <tr>
-                                                        <td>http</td>
-                                                  
-                                                        <td>
-                                                                    <code>Http</code>
-                                                        </td>
-                                                  
-                                                    <td>
-                                                            No
-                                                    </td>
-                                                    
-                                                </tr>
-                                                <tr>
-                                                        <td>configService</td>
-                                                  
-                                                        <td>
+            <section>
+                <h3 id="constructor">Constructor</h3>
+                    <table class="table table-sm table-bordered">
+                        <tbody>
+                            <tr>
+                                <td class="col-md-4">
+                                    <code>constructor(http: <a href="https://angular.io/docs/ts/latest/api/api/http/Http" target="_blank">Http</a>, configService: <a href="../injectables/ConfigService.html">ConfigService</a>, translator: <a href="../injectables/TranslationService.html">TranslationService</a>)</code>
+                                </td>
+                            </tr>
+                                    <tr>
+                                        <td class="col-md-4">
+                                            <div class="io-line">Defined in <a href="" data-line="13" class="link-to-prism">assets/angular/shared/dashboard-service.ts:13</a></div>
+                                        </td>
+                                    </tr>
+            
+                            <tr>
+                                <td class="col-md-4">
+                                        <div>
+                                                <b>Parameters :</b>
+                                                <table class="params">
+                                                    <thead>
+                                                        <tr>
+                                                            <td>Name</td>
+                                                            <td>Type</td>
+                                                            <td>Optional</td>
+                                                            <td>Description</td>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                            <tr>
+                                                              <td>http</td>
+                                                              <td>
+                                                                        <code><a href="https://angular.io/docs/ts/latest/api/api/http/Http" target="_blank" >Http</a></code>
+                                                              </td>
+                                                              <td>
+                                                              </td>
+                                                              <td></td>
+                                                            </tr>
+                                                            <tr>
+                                                              <td>configService</td>
+                                                              <td>
                                                                         <code><a href="../injectables/ConfigService.html" target="_self" >ConfigService</a></code>
-                                                        </td>
-                                                  
-                                                    <td>
-                                                            No
-                                                    </td>
-                                                    
-                                                </tr>
-                                                <tr>
-                                                        <td>translator</td>
-                                                  
-                                                        <td>
+                                                              </td>
+                                                              <td>
+                                                              </td>
+                                                              <td></td>
+                                                            </tr>
+                                                            <tr>
+                                                              <td>translator</td>
+                                                              <td>
                                                                         <code><a href="../injectables/TranslationService.html" target="_self" >TranslationService</a></code>
-                                                        </td>
-                                                  
-                                                    <td>
-                                                            No
-                                                    </td>
-                                                    
-                                                </tr>
-                                        </tbody>
-                                    </table>
-                            </div>
-                    </td>
-                </tr>
-            </tbody>
-        </table>
-</section>
+                                                              </td>
+                                                              <td>
+                                                              </td>
+                                                              <td></td>
+                                                            </tr>
+                                                    </tbody>
+                                                </table>
+                                        </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+            </section>
+
+            <section>
+                
+                    <h3 id="methods">
+                        Methods
+                    </h3>
+                    <table class="table table-sm table-bordered">
+                        <tbody>
+                            <tr>
+                                <td class="col-md-4">
+                                    <a name="formatDates"></a>
+                                    <span class="name"><b> formatDates</b><a href="#formatDates"><span class="fa fa-link"></span></a></span>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="col-md-4">
+            <code>formatDates(response: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/object" target="_blank">object</a>)</code>
+                                </td>
+                            </tr>
+            
+            
+                                    <tr>
+                                        <td class="col-md-4">
+                                            <div class="io-line">Defined in <a href="" data-line="46" class="link-to-prism">assets/angular/shared/dashboard-service.ts:46</a></div>
+                                        </td>
+                                    </tr>
+            
+                            <tr>
+                                <td class="col-md-4">
+            
+                                        <div class="io-description">
+                                                <b>Parameters :</b>
+                                                <table class="params">
+                                                    <thead>
+                                                        <tr>
+                                                            <td>Name</td>
+                                                            <td>Type</td>
+                                                            <td>Optional</td>
+                                                            <td>Description</td>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                            <tr>
+                                                              <td>response</td>
+                                                              <td>
+                                                                      <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/object" target="_blank" >object</a></code>
+                                                              </td>
+                                                              <td>
+                                                              </td>
+                                                              <td></td>
+                                                            </tr>
+                                                    </tbody>
+                                                </table>
+                                        </div>
+                                        <div>
+                                        </div>
+                                        <div class="io-description">
+                                            <b>Returns : </b>    <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/object" target="_blank" >object</a></code>
+            
+                                        </div>
+                                            <div class="io-description">
+                                                
+                                            </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <table class="table table-sm table-bordered">
+                        <tbody>
+                            <tr>
+                                <td class="col-md-4">
+                                    <a name="getActivePlans"></a>
+                                    <span class="name"><b> getActivePlans</b><a href="#getActivePlans"><span class="fa fa-link"></span></a></span>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="col-md-4">
+            <code>getActivePlans(pageNumber: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/number" target="_blank">number</a>)</code>
+                                </td>
+                            </tr>
+            
+            
+                                    <tr>
+                                        <td class="col-md-4">
+                                            <div class="io-line">Defined in <a href="" data-line="30" class="link-to-prism">assets/angular/shared/dashboard-service.ts:30</a></div>
+                                        </td>
+                                    </tr>
+            
+                            <tr>
+                                <td class="col-md-4">
+            
+                                        <div class="io-description">
+                                                <b>Parameters :</b>
+                                                <table class="params">
+                                                    <thead>
+                                                        <tr>
+                                                            <td>Name</td>
+                                                            <td>Type</td>
+                                                            <td>Optional</td>
+                                                            <td>Description</td>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                            <tr>
+                                                              <td>pageNumber</td>
+                                                              <td>
+                                                                      <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/number" target="_blank" >number</a></code>
+                                                              </td>
+                                                              <td>
+                                                              </td>
+                                                              <td></td>
+                                                            </tr>
+                                                    </tbody>
+                                                </table>
+                                        </div>
+                                        <div>
+                                        </div>
+                                        <div class="io-description">
+                                            <b>Returns : </b>    <code><a href="../classes/PlanTable.html" target="_self" >Promise&lt;PlanTable&gt;</a></code>
+            
+                                        </div>
+                                            <div class="io-description">
+                                                
+                                            </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <table class="table table-sm table-bordered">
+                        <tbody>
+                            <tr>
+                                <td class="col-md-4">
+                                    <a name="getAlllDraftPlansCanEdit"></a>
+                                    <span class="name"><b> getAlllDraftPlansCanEdit</b><a href="#getAlllDraftPlansCanEdit"><span class="fa fa-link"></span></a></span>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="col-md-4">
+            <code>getAlllDraftPlansCanEdit()</code>
+                                </td>
+                            </tr>
+            
+            
+                                    <tr>
+                                        <td class="col-md-4">
+                                            <div class="io-line">Defined in <a href="" data-line="22" class="link-to-prism">assets/angular/shared/dashboard-service.ts:22</a></div>
+                                        </td>
+                                    </tr>
+            
+                            <tr>
+                                <td class="col-md-4">
+            
+                                        <div class="io-description">
+                                            <b>Returns : </b>    <code><a href="../classes/PlanTable.html" target="_self" >Promise&lt;PlanTable&gt;</a></code>
+            
+                                        </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <table class="table table-sm table-bordered">
+                        <tbody>
+                            <tr>
+                                <td class="col-md-4">
+                                    <a name="getDraftPlans"></a>
+                                    <span class="name"><b> getDraftPlans</b><a href="#getDraftPlans"><span class="fa fa-link"></span></a></span>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="col-md-4">
+            <code>getDraftPlans(pageNumber: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/number" target="_blank">number</a>)</code>
+                                </td>
+                            </tr>
+            
+            
+                                    <tr>
+                                        <td class="col-md-4">
+                                            <div class="io-line">Defined in <a href="" data-line="38" class="link-to-prism">assets/angular/shared/dashboard-service.ts:38</a></div>
+                                        </td>
+                                    </tr>
+            
+                            <tr>
+                                <td class="col-md-4">
+            
+                                        <div class="io-description">
+                                                <b>Parameters :</b>
+                                                <table class="params">
+                                                    <thead>
+                                                        <tr>
+                                                            <td>Name</td>
+                                                            <td>Type</td>
+                                                            <td>Optional</td>
+                                                            <td>Description</td>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                            <tr>
+                                                              <td>pageNumber</td>
+                                                              <td>
+                                                                      <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/number" target="_blank" >number</a></code>
+                                                              </td>
+                                                              <td>
+                                                              </td>
+                                                              <td></td>
+                                                            </tr>
+                                                    </tbody>
+                                                </table>
+                                        </div>
+                                        <div>
+                                        </div>
+                                        <div class="io-description">
+                                            <b>Returns : </b>    <code><a href="../classes/PlanTable.html" target="_self" >Promise&lt;PlanTable&gt;</a></code>
+            
+                                        </div>
+                                            <div class="io-description">
+                                                
+                                            </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <table class="table table-sm table-bordered">
+                        <tbody>
+                            <tr>
+                                <td class="col-md-4">
+                                    <a name="searchRecords"></a>
+                                    <span class="name"><b><span class="modifier">Public</span> searchRecords</b><a href="#searchRecords"><span class="fa fa-link"></span></a></span>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="col-md-4">
+                                        <span class="modifier-icon fa fa-reset"></span>
+                                    <code>searchRecords(pageNumber: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/number" target="_blank">number</a>, basicSearch: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank">string</a>, facets: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>)</code>
+                                </td>
+                            </tr>
+            
+            
+                                    <tr>
+                                        <td class="col-md-4">
+                                            <div class="io-line">Defined in <a href="" data-line="61" class="link-to-prism">assets/angular/shared/dashboard-service.ts:61</a></div>
+                                        </td>
+                                    </tr>
+            
+                            <tr>
+                                <td class="col-md-4">
+            
+                                        <div class="io-description">
+                                                <b>Parameters :</b>
+                                                <table class="params">
+                                                    <thead>
+                                                        <tr>
+                                                            <td>Name</td>
+                                                            <td>Type</td>
+                                                            <td>Optional</td>
+                                                            <td>Description</td>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                            <tr>
+                                                              <td>pageNumber</td>
+                                                              <td>
+                                                                      <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/number" target="_blank" >number</a></code>
+                                                              </td>
+                                                              <td>
+                                                              </td>
+                                                              <td></td>
+                                                            </tr>
+                                                            <tr>
+                                                              <td>basicSearch</td>
+                                                              <td>
+                                                                      <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank" >string</a></code>
+                                                              </td>
+                                                              <td>
+                                                              </td>
+                                                              <td></td>
+                                                            </tr>
+                                                            <tr>
+                                                              <td>facets</td>
+                                                              <td>
+                                                                      <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+                                                              </td>
+                                                              <td>
+                                                              </td>
+                                                              <td></td>
+                                                            </tr>
+                                                    </tbody>
+                                                </table>
+                                        </div>
+                                        <div>
+                                        </div>
+                                        <div class="io-description">
+                                            <b>Returns : </b>    <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+            
+                                        </div>
+                                            <div class="io-description">
+                                                
+                                            </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <table class="table table-sm table-bordered">
+                        <tbody>
+                            <tr>
+                                <td class="col-md-4">
+                                    <a name="setDashboardTitle"></a>
+                                    <span class="name"><b><span class="modifier">Public</span> setDashboardTitle</b><a href="#setDashboardTitle"><span class="fa fa-link"></span></a></span>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="col-md-4">
+                                        <span class="modifier-icon fa fa-reset"></span>
+                                    <code>setDashboardTitle(planTable: <a href="../classes/PlanTable.html">PlanTable</a>, plans: any[])</code>
+                                </td>
+                            </tr>
+            
+            
+                                    <tr>
+                                        <td class="col-md-4">
+                                            <div class="io-line">Defined in <a href="" data-line="55" class="link-to-prism">assets/angular/shared/dashboard-service.ts:55</a></div>
+                                        </td>
+                                    </tr>
+            
+                            <tr>
+                                <td class="col-md-4">
+            
+                                        <div class="io-description">
+                                                <b>Parameters :</b>
+                                                <table class="params">
+                                                    <thead>
+                                                        <tr>
+                                                            <td>Name</td>
+                                                            <td>Type</td>
+                                                            <td>Optional</td>
+                                                            <td>Description</td>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                            <tr>
+                                                              <td>planTable</td>
+                                                              <td>
+                                                                      <code><a href="../classes/PlanTable.html" target="_self" >PlanTable</a></code>
+                                                              </td>
+                                                              <td>
+                                                              </td>
+                                                              <td></td>
+                                                            </tr>
+                                                            <tr>
+                                                              <td>plans</td>
+                                                              <td>
+                                                                      <code>any[]</code>
+                                                              </td>
+                                                              <td>
+                                                              </td>
+                                                              <td></td>
+                                                            </tr>
+                                                    </tbody>
+                                                </table>
+                                        </div>
+                                        <div>
+                                        </div>
+                                        <div class="io-description">
+                                            <b>Returns : </b>    <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >void</a></code>
+            
+                                        </div>
+                                            <div class="io-description">
+                                                
+                                            </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+            </section>
 
-            <section data-compodoc="block-methods">
-    
-    <h3 id="methods">
-        Methods
-    </h3>
-    <table class="table table-sm table-bordered">
-        <tbody>
-            <tr>
-                <td class="col-md-4">
-                    <a name="formatDates"></a>
-                    <span class="name">
-                        <span ><b>formatDates</b></span>
-                        <a href="#formatDates"><span class="icon ion-ios-link"></span></a>
-                    </span>
-                </td>
-            </tr>
-            <tr>
-                <td class="col-md-4">
-<code>formatDates(response: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/object" target="_blank">object</a>)</code>
-                </td>
-            </tr>
-
-
-            <tr>
-                <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="84"
-                            class="link-to-prism">angular/shared/dashboard-service.ts:84</a></div>
-                </td>
-            </tr>
-
-
-            <tr>
-                <td class="col-md-4">
-
-                    <div class="io-description">
-                        <b>Parameters :</b>
-                        
-                        <table class="params">
-                            <thead>
-                                <tr>
-                                    <td>Name</td>
-                                    <td>Type</td>
-                                    <td>Optional</td>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td>response</td>
-                                    <td>
-                                                <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/object" target="_blank" >object</a></code>
-                                    </td>
-
-                                    <td>
-                                        No
-                                    </td>
-
-
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                    <div>
-                    </div>
-                    <div class="io-description">
-                        <b>Returns : </b>        <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/object" target="_blank" >object</a></code>
-
-                    </div>
-                    <div class="io-description">
-                        
-                    </div>
-                </td>
-            </tr>
-        </tbody>
-    </table>
-    <table class="table table-sm table-bordered">
-        <tbody>
-            <tr>
-                <td class="col-md-4">
-                    <a name="getActivePlans"></a>
-                    <span class="name">
-                        <span ><b>getActivePlans</b></span>
-                        <a href="#getActivePlans"><span class="icon ion-ios-link"></span></a>
-                    </span>
-                </td>
-            </tr>
-            <tr>
-                <td class="col-md-4">
-<code>getActivePlans(pageNumber: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/number" target="_blank">number</a>)</code>
-                </td>
-            </tr>
-
-
-            <tr>
-                <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="56"
-                            class="link-to-prism">angular/shared/dashboard-service.ts:56</a></div>
-                </td>
-            </tr>
-
-
-            <tr>
-                <td class="col-md-4">
-
-                    <div class="io-description">
-                        <b>Parameters :</b>
-                        
-                        <table class="params">
-                            <thead>
-                                <tr>
-                                    <td>Name</td>
-                                    <td>Type</td>
-                                    <td>Optional</td>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td>pageNumber</td>
-                                    <td>
-                                                <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/number" target="_blank" >number</a></code>
-                                    </td>
-
-                                    <td>
-                                        No
-                                    </td>
-
-
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                    <div>
-                    </div>
-                    <div class="io-description">
-                        <b>Returns : </b>    <code>Promise&lt;PlanTable&gt;</code>
-
-                    </div>
-                    <div class="io-description">
-                        
-                    </div>
-                </td>
-            </tr>
-        </tbody>
-    </table>
-    <table class="table table-sm table-bordered">
-        <tbody>
-            <tr>
-                <td class="col-md-4">
-                    <a name="getAllDraftPlansCanEdit"></a>
-                    <span class="name">
-                        <span ><b>getAllDraftPlansCanEdit</b></span>
-                        <a href="#getAllDraftPlansCanEdit"><span class="icon ion-ios-link"></span></a>
-                    </span>
-                </td>
-            </tr>
-            <tr>
-                <td class="col-md-4">
-<code>getAllDraftPlansCanEdit()</code>
-                </td>
-            </tr>
-
-
-            <tr>
-                <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="22"
-                            class="link-to-prism">angular/shared/dashboard-service.ts:22</a></div>
-                </td>
-            </tr>
-
-
-            <tr>
-                <td class="col-md-4">
-
-                    <div class="io-description">
-                        <b>Returns : </b>    <code>Promise&lt;PlanTable&gt;</code>
-
-                    </div>
-                </td>
-            </tr>
-        </tbody>
-    </table>
-    <table class="table table-sm table-bordered">
-        <tbody>
-            <tr>
-                <td class="col-md-4">
-                    <a name="getAllRecordsCanEdit"></a>
-                    <span class="name">
-                        <span ><b>getAllRecordsCanEdit</b></span>
-                        <a href="#getAllRecordsCanEdit"><span class="icon ion-ios-link"></span></a>
-                    </span>
-                </td>
-            </tr>
-            <tr>
-                <td class="col-md-4">
-<code>getAllRecordsCanEdit(recordType: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank">string</a>, state: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank">string</a>)</code>
-                </td>
-            </tr>
-
-
-            <tr>
-                <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="30"
-                            class="link-to-prism">angular/shared/dashboard-service.ts:30</a></div>
-                </td>
-            </tr>
-
-
-            <tr>
-                <td class="col-md-4">
-
-                    <div class="io-description">
-                        <b>Parameters :</b>
-                        
-                        <table class="params">
-                            <thead>
-                                <tr>
-                                    <td>Name</td>
-                                    <td>Type</td>
-                                    <td>Optional</td>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td>recordType</td>
-                                    <td>
-                                                <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank" >string</a></code>
-                                    </td>
-
-                                    <td>
-                                        No
-                                    </td>
-
-
-                                </tr>
-                                <tr>
-                                    <td>state</td>
-                                    <td>
-                                                <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank" >string</a></code>
-                                    </td>
-
-                                    <td>
-                                        No
-                                    </td>
-
-
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                    <div>
-                    </div>
-                    <div class="io-description">
-                        <b>Returns : </b>    <code>Promise&lt;PlanTable&gt;</code>
-
-                    </div>
-                    <div class="io-description">
-                        
-                    </div>
-                </td>
-            </tr>
-        </tbody>
-    </table>
-    <table class="table table-sm table-bordered">
-        <tbody>
-            <tr>
-                <td class="col-md-4">
-                    <a name="getDraftPlans"></a>
-                    <span class="name">
-                        <span ><b>getDraftPlans</b></span>
-                        <a href="#getDraftPlans"><span class="icon ion-ios-link"></span></a>
-                    </span>
-                </td>
-            </tr>
-            <tr>
-                <td class="col-md-4">
-<code>getDraftPlans(pageNumber: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/number" target="_blank">number</a>)</code>
-                </td>
-            </tr>
-
-
-            <tr>
-                <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="64"
-                            class="link-to-prism">angular/shared/dashboard-service.ts:64</a></div>
-                </td>
-            </tr>
-
-
-            <tr>
-                <td class="col-md-4">
-
-                    <div class="io-description">
-                        <b>Parameters :</b>
-                        
-                        <table class="params">
-                            <thead>
-                                <tr>
-                                    <td>Name</td>
-                                    <td>Type</td>
-                                    <td>Optional</td>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td>pageNumber</td>
-                                    <td>
-                                                <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/number" target="_blank" >number</a></code>
-                                    </td>
-
-                                    <td>
-                                        No
-                                    </td>
-
-
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                    <div>
-                    </div>
-                    <div class="io-description">
-                        <b>Returns : </b>    <code>Promise&lt;PlanTable&gt;</code>
-
-                    </div>
-                    <div class="io-description">
-                        
-                    </div>
-                </td>
-            </tr>
-        </tbody>
-    </table>
-    <table class="table table-sm table-bordered">
-        <tbody>
-            <tr>
-                <td class="col-md-4">
-                    <a name="getRecords"></a>
-                    <span class="name">
-                        <span ><b>getRecords</b></span>
-                        <a href="#getRecords"><span class="icon ion-ios-link"></span></a>
-                    </span>
-                </td>
-            </tr>
-            <tr>
-                <td class="col-md-4">
-<code>getRecords(recordType: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank">string</a>, state: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank">string</a>, pageNumber: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/number" target="_blank">number</a>, packageType: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank">string</a>, sort: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank">string</a>)</code>
-                </td>
-            </tr>
-
-
-            <tr>
-                <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="72"
-                            class="link-to-prism">angular/shared/dashboard-service.ts:72</a></div>
-                </td>
-            </tr>
-
-
-            <tr>
-                <td class="col-md-4">
-
-                    <div class="io-description">
-                        <b>Parameters :</b>
-                        
-                        <table class="params">
-                            <thead>
-                                <tr>
-                                    <td>Name</td>
-                                    <td>Type</td>
-                                    <td>Optional</td>
-                                    <td>Default value</td>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td>recordType</td>
-                                    <td>
-                                                <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank" >string</a></code>
-                                    </td>
-
-                                    <td>
-                                        No
-                                    </td>
-
-                                    <td>
-                                    </td>
-
-                                </tr>
-                                <tr>
-                                    <td>state</td>
-                                    <td>
-                                                <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank" >string</a></code>
-                                    </td>
-
-                                    <td>
-                                        No
-                                    </td>
-
-                                    <td>
-                                    </td>
-
-                                </tr>
-                                <tr>
-                                    <td>pageNumber</td>
-                                    <td>
-                                                <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/number" target="_blank" >number</a></code>
-                                    </td>
-
-                                    <td>
-                                        No
-                                    </td>
-
-                                    <td>
-                                    </td>
-
-                                </tr>
-                                <tr>
-                                    <td>packageType</td>
-                                    <td>
-                                                <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank" >string</a></code>
-                                    </td>
-
-                                    <td>
-                                        No
-                                    </td>
-
-                                    <td>
-                                        <code>undefined</code>
-                                    </td>
-
-                                </tr>
-                                <tr>
-                                    <td>sort</td>
-                                    <td>
-                                                <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank" >string</a></code>
-                                    </td>
-
-                                    <td>
-                                        No
-                                    </td>
-
-                                    <td>
-                                        <code>undefined</code>
-                                    </td>
-
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                    <div>
-                    </div>
-                    <div class="io-description">
-                        <b>Returns : </b>    <code>Promise&lt;RecordResponseTable&gt;</code>
-
-                    </div>
-                    <div class="io-description">
-                        
-                    </div>
-                </td>
-            </tr>
-        </tbody>
-    </table>
-    <table class="table table-sm table-bordered">
-        <tbody>
-            <tr>
-                <td class="col-md-4">
-                    <a name="getRecordsByFilter"></a>
-                    <span class="name">
-                        <span ><b>getRecordsByFilter</b></span>
-                        <a href="#getRecordsByFilter"><span class="icon ion-ios-link"></span></a>
-                    </span>
-                </td>
-            </tr>
-            <tr>
-                <td class="col-md-4">
-<code>getRecordsByFilter(recordType: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank">string</a>, state: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank">string</a>, filterFields: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank">string</a>, filterString: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank">string</a>, start: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/number" target="_blank">number</a>, rows: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/number" target="_blank">number</a>)</code>
-                </td>
-            </tr>
-
-
-            <tr>
-                <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="43"
-                            class="link-to-prism">angular/shared/dashboard-service.ts:43</a></div>
-                </td>
-            </tr>
-
-
-            <tr>
-                <td class="col-md-4">
-
-                    <div class="io-description">
-                        <b>Parameters :</b>
-                        
-                        <table class="params">
-                            <thead>
-                                <tr>
-                                    <td>Name</td>
-                                    <td>Type</td>
-                                    <td>Optional</td>
-                                    <td>Default value</td>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td>recordType</td>
-                                    <td>
-                                                <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank" >string</a></code>
-                                    </td>
-
-                                    <td>
-                                        No
-                                    </td>
-
-                                    <td>
-                                    </td>
-
-                                </tr>
-                                <tr>
-                                    <td>state</td>
-                                    <td>
-                                                <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank" >string</a></code>
-                                    </td>
-
-                                    <td>
-                                        No
-                                    </td>
-
-                                    <td>
-                                    </td>
-
-                                </tr>
-                                <tr>
-                                    <td>filterFields</td>
-                                    <td>
-                                                <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank" >string</a></code>
-                                    </td>
-
-                                    <td>
-                                        No
-                                    </td>
-
-                                    <td>
-                                    </td>
-
-                                </tr>
-                                <tr>
-                                    <td>filterString</td>
-                                    <td>
-                                                <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank" >string</a></code>
-                                    </td>
-
-                                    <td>
-                                        No
-                                    </td>
-
-                                    <td>
-                                    </td>
-
-                                </tr>
-                                <tr>
-                                    <td>start</td>
-                                    <td>
-                                                <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/number" target="_blank" >number</a></code>
-                                    </td>
-
-                                    <td>
-                                        No
-                                    </td>
-
-                                    <td>
-                                        <code>0</code>
-                                    </td>
-
-                                </tr>
-                                <tr>
-                                    <td>rows</td>
-                                    <td>
-                                                <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/number" target="_blank" >number</a></code>
-                                    </td>
-
-                                    <td>
-                                        No
-                                    </td>
-
-                                    <td>
-                                        <code>10</code>
-                                    </td>
-
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                    <div>
-                    </div>
-                    <div class="io-description">
-                        <b>Returns : </b>    <code>Promise&lt;PlanTable&gt;</code>
-
-                    </div>
-                    <div class="io-description">
-                        
-                    </div>
-                </td>
-            </tr>
-        </tbody>
-    </table>
-    <table class="table table-sm table-bordered">
-        <tbody>
-            <tr>
-                <td class="col-md-4">
-                    <a name="searchRecords"></a>
-                    <span class="name">
-                        <span class="modifier">Public</span>
-                        <span ><b>searchRecords</b></span>
-                        <a href="#searchRecords"><span class="icon ion-ios-link"></span></a>
-                    </span>
-                </td>
-            </tr>
-            <tr>
-                <td class="col-md-4">
-                    <span class="modifier-icon icon ion-ios-reset"></span>
-                    <code>searchRecords(pageNumber: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/number" target="_blank">number</a>, basicSearch: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank">string</a>, facets: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>)</code>
-                </td>
-            </tr>
-
-
-            <tr>
-                <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="99"
-                            class="link-to-prism">angular/shared/dashboard-service.ts:99</a></div>
-                </td>
-            </tr>
-
-
-            <tr>
-                <td class="col-md-4">
-
-                    <div class="io-description">
-                        <b>Parameters :</b>
-                        
-                        <table class="params">
-                            <thead>
-                                <tr>
-                                    <td>Name</td>
-                                    <td>Type</td>
-                                    <td>Optional</td>
-                                    <td>Default value</td>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td>pageNumber</td>
-                                    <td>
-                                                <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/number" target="_blank" >number</a></code>
-                                    </td>
-
-                                    <td>
-                                        No
-                                    </td>
-
-                                    <td>
-                                    </td>
-
-                                </tr>
-                                <tr>
-                                    <td>basicSearch</td>
-                                    <td>
-                                                <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank" >string</a></code>
-                                    </td>
-
-                                    <td>
-                                        No
-                                    </td>
-
-                                    <td>
-                                    </td>
-
-                                </tr>
-                                <tr>
-                                    <td>facets</td>
-                                    <td>
-                                                <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
-                                    </td>
-
-                                    <td>
-                                        No
-                                    </td>
-
-                                    <td>
-                                        <code>null</code>
-                                    </td>
-
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                    <div>
-                    </div>
-                    <div class="io-description">
-                        <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
-
-                    </div>
-                    <div class="io-description">
-                        
-                    </div>
-                </td>
-            </tr>
-        </tbody>
-    </table>
-    <table class="table table-sm table-bordered">
-        <tbody>
-            <tr>
-                <td class="col-md-4">
-                    <a name="setDashboardTitle"></a>
-                    <span class="name">
-                        <span class="modifier">Public</span>
-                        <span ><b>setDashboardTitle</b></span>
-                        <a href="#setDashboardTitle"><span class="icon ion-ios-link"></span></a>
-                    </span>
-                </td>
-            </tr>
-            <tr>
-                <td class="col-md-4">
-                    <span class="modifier-icon icon ion-ios-reset"></span>
-                    <code>setDashboardTitle(planTable: <a href="../classes/PlanTable.html" target="_self">PlanTable</a>, plans: any[])</code>
-                </td>
-            </tr>
-
-
-            <tr>
-                <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="93"
-                            class="link-to-prism">angular/shared/dashboard-service.ts:93</a></div>
-                </td>
-            </tr>
-
-
-            <tr>
-                <td class="col-md-4">
-
-                    <div class="io-description">
-                        <b>Parameters :</b>
-                        
-                        <table class="params">
-                            <thead>
-                                <tr>
-                                    <td>Name</td>
-                                    <td>Type</td>
-                                    <td>Optional</td>
-                                    <td>Default value</td>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td>planTable</td>
-                                    <td>
-                                                <code><a href="../classes/PlanTable.html" target="_self" >PlanTable</a></code>
-                                    </td>
-
-                                    <td>
-                                        No
-                                    </td>
-
-                                    <td>
-                                    </td>
-
-                                </tr>
-                                <tr>
-                                    <td>plans</td>
-                                    <td>
-                                            <code>any[]</code>
-                                    </td>
-
-                                    <td>
-                                        No
-                                    </td>
-
-                                    <td>
-                                        <code>null</code>
-                                    </td>
-
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                    <div>
-                    </div>
-                    <div class="io-description">
-                        <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >void</a></code>
-
-                    </div>
-                    <div class="io-description">
-                        
-                    </div>
-                </td>
-            </tr>
-        </tbody>
-    </table>
-    <table class="table table-sm table-bordered">
-        <tbody>
-            <tr>
-                <td class="col-md-4">
-                    <a name="emitInit"></a>
-                    <span class="name">
-                        <span class="modifier">Public</span>
-                        <span ><b>emitInit</b></span>
-                        <a href="#emitInit"><span class="icon ion-ios-link"></span></a>
-                    </span>
-                </td>
-            </tr>
-            <tr>
-                <td class="col-md-4">
-                    <span class="modifier-icon icon ion-ios-reset"></span>
-                    <code>emitInit()</code>
-                </td>
-            </tr>
-
-
-            <tr>
-                <td class="col-md-4">
-                    <div class="io-line">Inherited from         <code><a href="../classes/BaseService.html" target="_self" >BaseService</a></code>
-</div>
-                </td>
-            </tr>
-            <tr>
-                <td class="col-md-4">
-                        <div class="io-line">Defined in         <code><a href="../classes/BaseService.html#source" target="_self" >BaseService:76</a></code>
-</div>
-                </td>
-            </tr>
-
-
-            <tr>
-                <td class="col-md-4">
-
-                    <div class="io-description">
-                        <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >void</a></code>
-
-                    </div>
-                </td>
-            </tr>
-        </tbody>
-    </table>
-    <table class="table table-sm table-bordered">
-        <tbody>
-            <tr>
-                <td class="col-md-4">
-                    <a name="extractData"></a>
-                    <span class="name">
-                        <span class="modifier">Protected</span>
-                        <span ><b>extractData</b></span>
-                        <a href="#extractData"><span class="icon ion-ios-link"></span></a>
-                    </span>
-                </td>
-            </tr>
-            <tr>
-                <td class="col-md-4">
-                    <span class="modifier-icon icon ion-ios-reset"></span>
-                    <code>extractData(res: Response, parentField: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>)</code>
-                </td>
-            </tr>
-
-
-            <tr>
-                <td class="col-md-4">
-                    <div class="io-line">Inherited from         <code><a href="../classes/BaseService.html" target="_self" >BaseService</a></code>
-</div>
-                </td>
-            </tr>
-            <tr>
-                <td class="col-md-4">
-                        <div class="io-line">Defined in         <code><a href="../classes/BaseService.html#source" target="_self" >BaseService:86</a></code>
-</div>
-                </td>
-            </tr>
-
-
-            <tr>
-                <td class="col-md-4">
-
-                    <div class="io-description">
-                        <b>Parameters :</b>
-                        
-                        <table class="params">
-                            <thead>
-                                <tr>
-                                    <td>Name</td>
-                                    <td>Type</td>
-                                    <td>Optional</td>
-                                    <td>Default value</td>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td>res</td>
-                                    <td>
-                                            <code>Response</code>
-                                    </td>
-
-                                    <td>
-                                        No
-                                    </td>
-
-                                    <td>
-                                    </td>
-
-                                </tr>
-                                <tr>
-                                    <td>parentField</td>
-                                    <td>
-                                                <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
-                                    </td>
-
-                                    <td>
-                                        No
-                                    </td>
-
-                                    <td>
-                                        <code>null</code>
-                                    </td>
-
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                    <div>
-                    </div>
-                    <div class="io-description">
-                        <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
-
-                    </div>
-                    <div class="io-description">
-                        
-                    </div>
-                </td>
-            </tr>
-        </tbody>
-    </table>
-    <table class="table table-sm table-bordered">
-        <tbody>
-            <tr>
-                <td class="col-md-4">
-                    <a name="getConfig"></a>
-                    <span class="name">
-                        <span ><b>getConfig</b></span>
-                        <a href="#getConfig"><span class="icon ion-ios-link"></span></a>
-                    </span>
-                </td>
-            </tr>
-            <tr>
-                <td class="col-md-4">
-<code>getConfig()</code>
-                </td>
-            </tr>
-
-
-            <tr>
-                <td class="col-md-4">
-                    <div class="io-line">Inherited from         <code><a href="../classes/BaseService.html" target="_self" >BaseService</a></code>
-</div>
-                </td>
-            </tr>
-            <tr>
-                <td class="col-md-4">
-                        <div class="io-line">Defined in         <code><a href="../classes/BaseService.html#source" target="_self" >BaseService:82</a></code>
-</div>
-                </td>
-            </tr>
-
-
-            <tr>
-                <td class="col-md-4">
-
-                    <div class="io-description">
-                        <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
-
-                    </div>
-                </td>
-            </tr>
-        </tbody>
-    </table>
-    <table class="table table-sm table-bordered">
-        <tbody>
-            <tr>
-                <td class="col-md-4">
-                    <a name="getInitSubject"></a>
-                    <span class="name">
-                        <span class="modifier">Public</span>
-                        <span ><b>getInitSubject</b></span>
-                        <a href="#getInitSubject"><span class="icon ion-ios-link"></span></a>
-                    </span>
-                </td>
-            </tr>
-            <tr>
-                <td class="col-md-4">
-                    <span class="modifier-icon icon ion-ios-reset"></span>
-                    <code>getInitSubject()</code>
-                </td>
-            </tr>
-
-
-            <tr>
-                <td class="col-md-4">
-                    <div class="io-line">Inherited from         <code><a href="../classes/BaseService.html" target="_self" >BaseService</a></code>
-</div>
-                </td>
-            </tr>
-            <tr>
-                <td class="col-md-4">
-                        <div class="io-line">Defined in         <code><a href="../classes/BaseService.html#source" target="_self" >BaseService:72</a></code>
-</div>
-                </td>
-            </tr>
-
-
-            <tr>
-                <td class="col-md-4">
-
-                    <div class="io-description">
-                        <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
-
-                    </div>
-                </td>
-            </tr>
-        </tbody>
-    </table>
-    <table class="table table-sm table-bordered">
-        <tbody>
-            <tr>
-                <td class="col-md-4">
-                    <a name="getOptions"></a>
-                    <span class="name">
-                        <span class="modifier">Protected</span>
-                        <span ><b>getOptions</b></span>
-                        <a href="#getOptions"><span class="icon ion-ios-link"></span></a>
-                    </span>
-                </td>
-            </tr>
-            <tr>
-                <td class="col-md-4">
-                    <span class="modifier-icon icon ion-ios-reset"></span>
-                    <code>getOptions(headersObj: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>)</code>
-                </td>
-            </tr>
-
-
-            <tr>
-                <td class="col-md-4">
-                    <div class="io-line">Inherited from         <code><a href="../classes/BaseService.html" target="_self" >BaseService</a></code>
-</div>
-                </td>
-            </tr>
-            <tr>
-                <td class="col-md-4">
-                        <div class="io-line">Defined in         <code><a href="../classes/BaseService.html#source" target="_self" >BaseService:95</a></code>
-</div>
-                </td>
-            </tr>
-
-
-            <tr>
-                <td class="col-md-4">
-
-                    <div class="io-description">
-                        <b>Parameters :</b>
-                        
-                        <table class="params">
-                            <thead>
-                                <tr>
-                                    <td>Name</td>
-                                    <td>Type</td>
-                                    <td>Optional</td>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td>headersObj</td>
-                                    <td>
-                                                <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
-                                    </td>
-
-                                    <td>
-                                        No
-                                    </td>
-
-
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                    <div>
-                    </div>
-                    <div class="io-description">
-                        <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
-
-                    </div>
-                    <div class="io-description">
-                        
-                    </div>
-                </td>
-            </tr>
-        </tbody>
-    </table>
-    <table class="table table-sm table-bordered">
-        <tbody>
-            <tr>
-                <td class="col-md-4">
-                    <a name="getOptionsClient"></a>
-                    <span class="name">
-                        <span class="modifier">Protected</span>
-                        <span ><b>getOptionsClient</b></span>
-                        <a href="#getOptionsClient"><span class="icon ion-ios-link"></span></a>
-                    </span>
-                </td>
-            </tr>
-            <tr>
-                <td class="col-md-4">
-                    <span class="modifier-icon icon ion-ios-reset"></span>
-                    <code>getOptionsClient(headersObj: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>)</code>
-                </td>
-            </tr>
-
-
-            <tr>
-                <td class="col-md-4">
-                    <div class="io-line">Inherited from         <code><a href="../classes/BaseService.html" target="_self" >BaseService</a></code>
-</div>
-                </td>
-            </tr>
-            <tr>
-                <td class="col-md-4">
-                        <div class="io-line">Defined in         <code><a href="../classes/BaseService.html#source" target="_self" >BaseService:100</a></code>
-</div>
-                </td>
-            </tr>
-
-
-            <tr>
-                <td class="col-md-4">
-
-                    <div class="io-description">
-                        <b>Parameters :</b>
-                        
-                        <table class="params">
-                            <thead>
-                                <tr>
-                                    <td>Name</td>
-                                    <td>Type</td>
-                                    <td>Optional</td>
-                                    <td>Default value</td>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td>headersObj</td>
-                                    <td>
-                                                <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
-                                    </td>
-
-                                    <td>
-                                        No
-                                    </td>
-
-                                    <td>
-                                        <code>{}</code>
-                                    </td>
-
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                    <div>
-                    </div>
-                    <div class="io-description">
-                        <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
-
-                    </div>
-                    <div class="io-description">
-                        
-                    </div>
-                </td>
-            </tr>
-        </tbody>
-    </table>
-    <table class="table table-sm table-bordered">
-        <tbody>
-            <tr>
-                <td class="col-md-4">
-                    <a name="waitForInit"></a>
-                    <span class="name">
-                        <span class="modifier">Public</span>
-                        <span ><b>waitForInit</b></span>
-                        <a href="#waitForInit"><span class="icon ion-ios-link"></span></a>
-                    </span>
-                </td>
-            </tr>
-            <tr>
-                <td class="col-md-4">
-                    <span class="modifier-icon icon ion-ios-reset"></span>
-                    <code>waitForInit(handler: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>)</code>
-                </td>
-            </tr>
-
-
-            <tr>
-                <td class="col-md-4">
-                    <div class="io-line">Inherited from         <code><a href="../classes/BaseService.html" target="_self" >BaseService</a></code>
-</div>
-                </td>
-            </tr>
-            <tr>
-                <td class="col-md-4">
-                        <div class="io-line">Defined in         <code><a href="../classes/BaseService.html#source" target="_self" >BaseService:66</a></code>
-</div>
-                </td>
-            </tr>
-
-
-            <tr>
-                <td class="col-md-4">
-
-                    <div class="io-description">
-                        <b>Parameters :</b>
-                        
-                        <table class="params">
-                            <thead>
-                                <tr>
-                                    <td>Name</td>
-                                    <td>Type</td>
-                                    <td>Optional</td>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td>handler</td>
-                                    <td>
-                                                <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
-                                    </td>
-
-                                    <td>
-                                        No
-                                    </td>
-
-
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                    <div>
-                    </div>
-                    <div class="io-description">
-                        <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
-
-                    </div>
-                    <div class="io-description">
-                        
-                    </div>
-                </td>
-            </tr>
-        </tbody>
-    </table>
-</section>
-            <section data-compodoc="block-properties">
-    
-    <h3 id="inputs">
-        Properties
-    </h3>
-    <table class="table table-sm table-bordered">
-        <tbody>
-            <tr>
-                <td class="col-md-4">
-                    <a name="__config"></a>
-                    <span class="name">
-                            <span class="modifier">Protected</span>
-                            <span class="modifier">Static</span>
-                        <span ><b>__config</b></span>
-                        <a href="#__config"><span class="icon ion-ios-link"></span></a>
-                    </span>
-                </td>
-            </tr>
-                <tr>
-                    <td class="col-md-4">
-                        <i>Type : </i>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
-
-                    </td>
-                </tr>
-                        <tr>
-                            <td class="col-md-4">
-                                <div class="io-line">Inherited from         <code><a href="../classes/BaseService.html" target="_self" >BaseService</a></code>
-</div>
-                            </td>
-                        </tr>
-                    <tr>
-                        <td class="col-md-4">
-                                <div class="io-line">Defined in         <code><a href="../classes/BaseService.html#source" target="_self" >BaseService:42</a></code>
-</div>
-                        </td>
-                    </tr>
-
-
-        </tbody>
-    </table>
-    <table class="table table-sm table-bordered">
-        <tbody>
-            <tr>
-                <td class="col-md-4">
-                    <a name="baseUrl"></a>
-                    <span class="name">
-                            <span class="modifier">Protected</span>
-                        <span ><b>baseUrl</b></span>
-                        <a href="#baseUrl"><span class="icon ion-ios-link"></span></a>
-                    </span>
-                </td>
-            </tr>
-                <tr>
-                    <td class="col-md-4">
-                        <i>Type : </i>        <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank" >string</a></code>
-
-                    </td>
-                </tr>
-                        <tr>
-                            <td class="col-md-4">
-                                <div class="io-line">Inherited from         <code><a href="../classes/BaseService.html" target="_self" >BaseService</a></code>
-</div>
-                            </td>
-                        </tr>
-                    <tr>
-                        <td class="col-md-4">
-                                <div class="io-line">Defined in         <code><a href="../classes/BaseService.html#source" target="_self" >BaseService:39</a></code>
-</div>
-                        </td>
-                    </tr>
-
-
-        </tbody>
-    </table>
-    <table class="table table-sm table-bordered">
-        <tbody>
-            <tr>
-                <td class="col-md-4">
-                    <a name="brandingAndPortalUrl"></a>
-                    <span class="name">
-                            <span class="modifier">Protected</span>
-                        <span ><b>brandingAndPortalUrl</b></span>
-                        <a href="#brandingAndPortalUrl"><span class="icon ion-ios-link"></span></a>
-                    </span>
-                </td>
-            </tr>
-                <tr>
-                    <td class="col-md-4">
-                        <i>Type : </i>        <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank" >string</a></code>
-
-                    </td>
-                </tr>
-                        <tr>
-                            <td class="col-md-4">
-                                <div class="io-line">Inherited from         <code><a href="../classes/BaseService.html" target="_self" >BaseService</a></code>
-</div>
-                            </td>
-                        </tr>
-                    <tr>
-                        <td class="col-md-4">
-                                <div class="io-line">Defined in         <code><a href="../classes/BaseService.html#source" target="_self" >BaseService:40</a></code>
-</div>
-                        </td>
-                    </tr>
-
-
-        </tbody>
-    </table>
-    <table class="table table-sm table-bordered">
-        <tbody>
-            <tr>
-                <td class="col-md-4">
-                    <a name="config"></a>
-                    <span class="name">
-                            <span class="modifier">Protected</span>
-                        <span ><b>config</b></span>
-                        <a href="#config"><span class="icon ion-ios-link"></span></a>
-                    </span>
-                </td>
-            </tr>
-                <tr>
-                    <td class="col-md-4">
-                        <i>Type : </i>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
-
-                    </td>
-                </tr>
-                        <tr>
-                            <td class="col-md-4">
-                                <div class="io-line">Inherited from         <code><a href="../classes/BaseService.html" target="_self" >BaseService</a></code>
-</div>
-                            </td>
-                        </tr>
-                    <tr>
-                        <td class="col-md-4">
-                                <div class="io-line">Defined in         <code><a href="../classes/BaseService.html#source" target="_self" >BaseService:37</a></code>
-</div>
-                        </td>
-                    </tr>
-
-
-        </tbody>
-    </table>
-    <table class="table table-sm table-bordered">
-        <tbody>
-            <tr>
-                <td class="col-md-4">
-                    <a name="configService"></a>
-                    <span class="name">
-                            <span class="modifier">Protected</span>
-                        <span ><b>configService</b></span>
-                        <a href="#configService"><span class="icon ion-ios-link"></span></a>
-                    </span>
-                </td>
-            </tr>
-                <tr>
-                    <td class="col-md-4">
-                        <i>Type : </i>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
-
-                    </td>
-                </tr>
-                        <tr>
-                            <td class="col-md-4">
-                                <div class="io-line">Inherited from         <code><a href="../classes/BaseService.html" target="_self" >BaseService</a></code>
-</div>
-                            </td>
-                        </tr>
-                    <tr>
-                        <td class="col-md-4">
-                                <div class="io-line">Defined in         <code><a href="../classes/BaseService.html#source" target="_self" >BaseService:38</a></code>
-</div>
-                        </td>
-                    </tr>
-
-
-        </tbody>
-    </table>
-    <table class="table table-sm table-bordered">
-        <tbody>
-            <tr>
-                <td class="col-md-4">
-                    <a name="http"></a>
-                    <span class="name">
-                            <span class="modifier">Protected</span>
-                        <span ><b>http</b></span>
-                        <a href="#http"><span class="icon ion-ios-link"></span></a>
-                    </span>
-                </td>
-            </tr>
-                <tr>
-                    <td class="col-md-4">
-                        <i>Type : </i>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
-
-                    </td>
-                </tr>
-                        <tr>
-                            <td class="col-md-4">
-                                <div class="io-line">Inherited from         <code><a href="../classes/BaseService.html" target="_self" >BaseService</a></code>
-</div>
-                            </td>
-                        </tr>
-                    <tr>
-                        <td class="col-md-4">
-                                <div class="io-line">Defined in         <code><a href="../classes/BaseService.html#source" target="_self" >BaseService:36</a></code>
-</div>
-                        </td>
-                    </tr>
-
-
-        </tbody>
-    </table>
-    <table class="table table-sm table-bordered">
-        <tbody>
-            <tr>
-                <td class="col-md-4">
-                    <a name="initSubject"></a>
-                    <span class="name">
-                            <span class="modifier">Protected</span>
-                        <span ><b>initSubject</b></span>
-                        <a href="#initSubject"><span class="icon ion-ios-link"></span></a>
-                    </span>
-                </td>
-            </tr>
-                <tr>
-                    <td class="col-md-4">
-                        <i>Type : </i>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
-
-                    </td>
-                </tr>
-                        <tr>
-                            <td class="col-md-4">
-                                <div class="io-line">Inherited from         <code><a href="../classes/BaseService.html" target="_self" >BaseService</a></code>
-</div>
-                            </td>
-                        </tr>
-                    <tr>
-                        <td class="col-md-4">
-                                <div class="io-line">Defined in         <code><a href="../classes/BaseService.html#source" target="_self" >BaseService:43</a></code>
-</div>
-                        </td>
-                    </tr>
-
-
-        </tbody>
-    </table>
-    <table class="table table-sm table-bordered">
-        <tbody>
-            <tr>
-                <td class="col-md-4">
-                    <a name="options"></a>
-                    <span class="name">
-                            <span class="modifier">Protected</span>
-                        <span ><b>options</b></span>
-                        <a href="#options"><span class="icon ion-ios-link"></span></a>
-                    </span>
-                </td>
-            </tr>
-                <tr>
-                    <td class="col-md-4">
-                        <i>Type : </i>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
-
-                    </td>
-                </tr>
-                        <tr>
-                            <td class="col-md-4">
-                                <div class="io-line">Inherited from         <code><a href="../classes/BaseService.html" target="_self" >BaseService</a></code>
-</div>
-                            </td>
-                        </tr>
-                    <tr>
-                        <td class="col-md-4">
-                                <div class="io-line">Defined in         <code><a href="../classes/BaseService.html#source" target="_self" >BaseService:41</a></code>
-</div>
-                        </td>
-                    </tr>
-
-
-        </tbody>
-    </table>
-</section>
 
     </div>
 
 
-    <div class="tab-pane fade  tab-source-code" id="source">
-        <pre class="line-numbers compodoc-sourcecode"><code class="language-typescript">import { Injectable, Inject} from &#x27;@angular/core&#x27;;
+    <div class="tab-pane fade tab-source-code" id="source">
+        <pre class="line-numbers"><code class="language-typescript">import { Injectable, Inject} from &#x27;@angular/core&#x27;;
 import { Http } from &#x27;@angular/http&#x27;;
 import &#x27;rxjs/add/operator/map&#x27;;
 import &#x27;rxjs/add/operator/toPromise&#x27;;
-import * as moment from &#x27;moment&#x27;;
+import moment from &#x27;moment-es6&#x27;;
 import { BaseService } from &#x27;../shared/base-service&#x27;
-import { PlanTable, Plan, RecordResponseTable } from &#x27;./dashboard-models&#x27;
+import { PlanTable, Plan } from &#x27;./dashboard-models&#x27;
 import { ConfigService } from &#x27;./config-service&#x27;;
 import { TranslationService } from &#x27;./translation-service&#x27;;
-import * as _ from &quot;lodash&quot;;
+import * as _ from &quot;lodash-lib&quot;;
 
 @Injectable()
 export class DashboardService extends BaseService {
@@ -1841,44 +1541,18 @@ export class DashboardService extends BaseService {
     super(http, configService);
   }
 
-  getAllDraftPlansCanEdit(): Promise&lt;PlanTable&gt; {
+  getAlllDraftPlansCanEdit(): Promise&lt;PlanTable&gt; {
     const rows &#x3D; this.config.maxTransferRowsPerPage;
     const start &#x3D; 0;
-    return this.http.get(&#x60;${this.brandingAndPortalUrl}/listRecords?recordType&#x3D;rdmp&amp;state&#x3D;draft&amp;editOnly&#x3D;true&amp;start&#x3D;${start}&amp;rows&#x3D;${rows}&amp;ts&#x3D;${moment().unix()}&#x60;, this.options)
+    return this.http.get(&#x60;${this.brandingAndPortalUrl}/listPlans?state&#x3D;draft&amp;editOnly&#x3D;true&amp;start&#x3D;&#x60;+start+&#x60;&amp;rows&#x3D;&#x60;+rows, this.options)
       .toPromise()
       .then((res: any) &#x3D;&gt; this.formatDates(this.extractData(res))as PlanTable);
   }
-
-  getAllRecordsCanEdit(recordType:string, state:string): Promise&lt;PlanTable&gt; {
-    const rows &#x3D; this.config.maxTransferRowsPerPage;
-    const start &#x3D; 0;
-
-    let url &#x3D; &#x60;${this.brandingAndPortalUrl}/listRecords?recordType&#x3D;${recordType}&amp;editOnly&#x3D;true&amp;start&#x3D;${start}&amp;rows&#x3D;${rows}&amp;ts&#x3D;${moment().unix()}&#x60;;
-    if(state !&#x3D; &#x27;&#x27;) {
-      url +&#x3D; &#x60;&amp;state&#x3D;${state}&#x60;;
-    }
-    return this.http.get(url, this.options)
-      .toPromise()
-      .then((res: any) &#x3D;&gt; this.formatDates(this.extractData(res))as PlanTable);
-  }
-
-  getRecordsByFilter(recordType:string, state:string, filterFields:string,filterString:string, start:number&#x3D;0, rows:number&#x3D;10): Promise&lt;PlanTable&gt; {
-
-
-    let url &#x3D; &#x60;${this.brandingAndPortalUrl}/listRecords?recordType&#x3D;${recordType}&amp;editOnly&#x3D;true&amp;start&#x3D;${start}&amp;rows&#x3D;${rows}&amp;filterFields&#x3D;${filterFields}&amp;filter&#x3D;${filterString}&amp;ts&#x3D;${moment().unix()}&#x60;;
-    if(state !&#x3D; &#x27;&#x27;) {
-      url +&#x3D; &#x60;&amp;state&#x3D;${state}&#x60;;
-    }
-    return this.http.get(url, this.options)
-      .toPromise()
-      .then((res: any) &#x3D;&gt; this.formatDates(this.extractData(res))as PlanTable);
-  }
-
 
   getActivePlans(pageNumber:number): Promise&lt;PlanTable&gt; {
     var rows &#x3D; 10;
     var start &#x3D; (pageNumber-1) * rows;
-    return this.http.get(&#x60;${this.brandingAndPortalUrl}/listRecords?state&#x3D;active&amp;start&#x3D;${start}&amp;rows&#x3D;${rows}&amp;ts&#x3D;${moment().unix()}&#x60;, this.options)
+    return this.http.get(&#x60;${this.brandingAndPortalUrl}/listPlans?state&#x3D;active&amp;start&#x3D;&#x60;+start+&#x60;&amp;rows&#x3D;&#x60;+rows, this.options)
       .toPromise()
       .then((res: any) &#x3D;&gt; this.formatDates(this.extractData(res))as PlanTable);
   }
@@ -1886,21 +1560,9 @@ export class DashboardService extends BaseService {
   getDraftPlans(pageNumber:number): Promise&lt;PlanTable&gt; {
     var rows &#x3D; 10;
     var start &#x3D; (pageNumber-1) * rows;
-    return this.http.get(&#x60;${this.brandingAndPortalUrl}/listRecords?recordType&#x3D;rdmp&amp;state&#x3D;draft&amp;start&#x3D;${start}&amp;rows&#x3D;${rows}&amp;ts&#x3D;${moment().unix()}&#x60;, this.options)
+    return this.http.get(&#x60;${this.brandingAndPortalUrl}/listPlans?state&#x3D;draft&amp;start&#x3D;&#x60;+start+&#x60;&amp;rows&#x3D;&#x60;+rows, this.options)
       .toPromise()
       .then((res: any) &#x3D;&gt; this.formatDates(this.extractData(res)) as PlanTable);
-  }
-
-  getRecords(recordType:string,state:string,pageNumber:number,packageType:string&#x3D;undefined, sort:string&#x3D;undefined): Promise&lt;RecordResponseTable&gt; {
-    var rows &#x3D; 10;
-    var start &#x3D; (pageNumber-1) * rows;
-    recordType &#x3D; (!_.isEmpty(recordType) &amp;&amp; !_.isUndefined(recordType)) ? &#x60;recordType&#x3D;${recordType}&#x60; : &#x27;&#x27;;
-    packageType &#x3D; (!_.isEmpty(packageType) &amp;&amp; !_.isUndefined(packageType)) ? &#x60;packageType&#x3D;${packageType}&#x60; : &#x27;&#x27;;
-    sort &#x3D; (!_.isEmpty(sort) &amp;&amp; !_.isUndefined(sort)) ? &#x60;&amp;sort&#x3D;${sort}&#x60; : &#x27;&#x27;;
-    state &#x3D; (!_.isEmpty(state) &amp;&amp; !_.isUndefined(state)) ? &#x60;&amp;state&#x3D;${state}&#x60; : &#x27;&#x27;;
-    return this.http.get(&#x60;${this.brandingAndPortalUrl}/listRecords?${recordType}${packageType}${state}${sort}&amp;start&#x3D;${start}&amp;rows&#x3D;${rows}&amp;ts&#x3D;${moment().unix()}&#x60;, this.options)
-      .toPromise()
-      .then((res: any) &#x3D;&gt; this.formatDates(this.extractData(res)) as RecordResponseTable);
   }
 
   formatDates(response:object){
@@ -1921,7 +1583,7 @@ export class DashboardService extends BaseService {
   public searchRecords(pageNumber:number, basicSearch: string, facets: any &#x3D; null) {
     const rows &#x3D; this.config.maxSearchRowsPerPage;
     const start &#x3D; (pageNumber-1) * rows;
-    return this.http.get(&#x60;${this.brandingAndPortalUrl}/searchPlans?start&#x3D;${start}&amp;rows&#x3D;${rows}&amp;query&#x3D;${basicSearch}&amp;facets&#x3D;${facets}&amp;ts&#x3D;${moment().unix()}&#x60;, this.options)
+    return this.http.get(&#x60;${this.brandingAndPortalUrl}/searchPlans??start&#x3D;${start}&amp;rows&#x3D;${rows}&amp;query&#x3D;${basicSearch}&amp;facets&#x3D;${facets}&#x60;, this.options)
       .toPromise()
       .then((res:any) &#x3D;&gt; this.formatDates(this.extractData(res))as PlanTable);
   }
@@ -1929,13 +1591,7 @@ export class DashboardService extends BaseService {
 }
 </code></pre>
     </div>
-
 </div>
-
-
-
-
-
 
 
 
@@ -1954,31 +1610,8 @@ export class DashboardService extends BaseService {
     </div>
 </div>
 </div>
-               <!-- END CONTENT -->
            </div>
        </div>
-
-          <label class="dark-mode-switch">
-               <input type="checkbox">
-               <span class="slider">
-                    <svg class="slider-icon" viewBox="0 0 24 24" fill="none" height="20" stroke="#000" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" width="20" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"></path>
-                    </svg>
-               </span>
-          </label>
-
-       <script>
-            var COMPODOC_CURRENT_PAGE_DEPTH = 1;
-            var COMPODOC_CURRENT_PAGE_CONTEXT = 'injectable';
-            var COMPODOC_CURRENT_PAGE_URL = 'DashboardService.html';
-            var MAX_SEARCH_RESULTS = 15;
-       </script>
-
-       <script src="../js/libs/custom-elements.min.js"></script>
-       <script src="../js/libs/lit-html.js"></script>
-
-       <script src="../js/menu-wc.js" defer></script>
-       <script nomodule src="../js/menu-wc_es5.js" defer></script>
 
        <script src="../js/libs/bootstrap-native.js"></script>
 
@@ -1989,17 +1622,17 @@ export class DashboardService extends BaseService {
 
        <script src="../js/compodoc.js"></script>
 
+       <script>var COMPODOC_CURRENT_PAGE_DEPTH = 1;</script>
+
+       <script src="../js/search/search.js"></script>
+       <script src="../js/search/lunr.min.js"></script>
+       <script src="../js/search/search-lunr.js"></script>
+
        <script src="../js/tabs.js"></script>
        <script src="../js/menu.js"></script>
-       <script src="../js/libs/clipboard.min.js"></script>
        <script src="../js/libs/prism.js"></script>
        <script src="../js/sourceCode.js"></script>
-          <script src="../js/search/search.js"></script>
-          <script src="../js/search/lunr.min.js"></script>
-          <script src="../js/search/search-lunr.js"></script>
-          <script src="../js/search/search_index.js"></script>
-       <script src="../js/lazy-load-graphs.js"></script>
-
+       <script src="../js/search/search_index.js"></script>
 
     </body>
 </html>

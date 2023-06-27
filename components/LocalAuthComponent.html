@@ -66,7 +66,7 @@
     <h3>File</h3>
 </p>
 <p class="comment">
-    <code>angular/localAuth/app/local_auth.component.ts</code>
+    <code>angular/projects/researchdatabox/local-auth/src/app/local-auth.component.ts</code>
 </p>
 
 
@@ -83,7 +83,7 @@
         <h3>Extends</h3>
     </p>
     <p class="comment">
-                <code><a href="../classes/LoadableComponent.html" target="_self" >LoadableComponent</a></code>
+                <code><a href="../components/BaseComponent.html" target="_self" >BaseComponent</a></code>
     </p>
 
 
@@ -100,10 +100,6 @@
 
 
 
-            <tr>
-                <td class="col-md-3">moduleId</td>
-                <td class="col-md-9"><code>module.id</code></td>
-            </tr>
 
 
 
@@ -120,7 +116,7 @@
 
             <tr>
                 <td class="col-md-3">templateUrl</td>
-                <td class="col-md-9"><code>./localAuth.html</code></td>
+                <td class="col-md-9"><code>./local-auth.component.html</code></td>
             </tr>
 
 
@@ -156,16 +152,30 @@
                                 <a href="#loginMessage" >loginMessage</a>
                             </li>
                             <li>
-                                <a href="#isLoading" >isLoading</a>
+                                <a href="#loginResult" >loginResult</a>
                             </li>
                             <li>
-                                <a href="#spinnerElem" >spinnerElem</a>
+                                <a href="#window" >window</a>
                             </li>
                             <li>
-                                <a href="#translationService" >translationService</a>
+                                    <span class="modifier">Protected</span>
+                                <a href="#brandingAndPortalUrl" >brandingAndPortalUrl</a>
                             </li>
                             <li>
-                                <a href="#translatorReady" >translatorReady</a>
+                                    <span class="modifier">Private</span>
+                                <a href="#filterFn" >filterFn</a>
+                            </li>
+                            <li>
+                                    <span class="modifier">Protected</span>
+                                <a href="#initDependencies" >initDependencies</a>
+                            </li>
+                            <li>
+                                    <span class="modifier">Protected</span>
+                                <a href="#initSubject" >initSubject</a>
+                            </li>
+                            <li>
+                                    <span class="modifier">Protected</span>
+                                <a href="#isReady" >isReady</a>
                             </li>
                         </ul>
                     </td>
@@ -180,34 +190,34 @@
                     <td class="col-md-4">
                         <ul class="index-list">
                             <li>
+                                    <span class="modifier">Private</span>
                                 <a href="#getErrors" >getErrors</a>
                             </li>
                             <li>
+                                    <span class="modifier">Protected</span>
+                                    <span class="modifier"></span>
+                                    <span class="modifier">Async</span>
+                                <a href="#initComponent" >initComponent</a>
+                            </li>
+                            <li>
+                                    <span class="modifier">Async</span>
                                 <a href="#onLogin" >onLogin</a>
                             </li>
                             <li>
-                                    <span class="modifier">Public</span>
-                                <a href="#checkIfHasLoaded" >checkIfHasLoaded</a>
+                                <a href="#getInitSubject" >getInitSubject</a>
                             </li>
                             <li>
-                                <a href="#getTranslated" >getTranslated</a>
+                                <a href="#isInitializing" >isInitializing</a>
                             </li>
                             <li>
-                                <a href="#hasLoaded" >hasLoaded</a>
+                                <a href="#ngOnInit" >ngOnInit</a>
                             </li>
                             <li>
-                                <a href="#initTranslator" >initTranslator</a>
+                                    <span class="modifier">Async</span>
+                                <a href="#waitForDeps" >waitForDeps</a>
                             </li>
                             <li>
-                                <a href="#setLoading" >setLoading</a>
-                            </li>
-                            <li>
-                                <a href="#synchLoading" >synchLoading</a>
-                            </li>
-                            <li>
-                                <a href="#translatorLoaded" >translatorLoaded</a>
-                            </li>
-                            <li>
+                                    <span class="modifier">Async</span>
                                 <a href="#waitForInit" >waitForInit</a>
                             </li>
                         </ul>
@@ -228,12 +238,12 @@
             <tbody>
                 <tr>
                     <td class="col-md-4">
-<code>constructor(userService: <a href="../injectables/UserSimpleService.html" target="_self">UserSimpleService</a>, fb: FormBuilder, document: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>, translationService: <a href="../injectables/TranslationService.html" target="_self">TranslationService</a>)</code>
+<code>constructor(loggerService: <a href="../injectables/LoggerService.html" target="_self">LoggerService</a>, userService: <a href="../injectables/UserService.html" target="_self">UserService</a>, utilService: <a href="../injectables/UtilityService.html" target="_self">UtilityService</a>, fb: FormBuilder, document: Document, translationService: <a href="../injectables/TranslationService.html" target="_self">TranslationService</a>)</code>
                     </td>
                 </tr>
                         <tr>
                             <td class="col-md-4">
-                                <div class="io-line">Defined in <a href="" data-line="44" class="link-to-prism">angular/localAuth/app/local_auth.component.ts:44</a></div>
+                                <div class="io-line">Defined in <a href="" data-line="39" class="link-to-prism">angular/projects/researchdatabox/local-auth/src/app/local-auth.component.ts:39</a></div>
                             </td>
                         </tr>
 
@@ -251,10 +261,34 @@
                                         </thead>
                                         <tbody>
                                                 <tr>
+                                                        <td>loggerService</td>
+                                                  
+                                                        <td>
+                                                                        <code><a href="../injectables/LoggerService.html" target="_self" >LoggerService</a></code>
+                                                        </td>
+                                                  
+                                                    <td>
+                                                            No
+                                                    </td>
+                                                    
+                                                </tr>
+                                                <tr>
                                                         <td>userService</td>
                                                   
                                                         <td>
-                                                                        <code><a href="../injectables/UserSimpleService.html" target="_self" >UserSimpleService</a></code>
+                                                                        <code><a href="../injectables/UserService.html" target="_self" >UserService</a></code>
+                                                        </td>
+                                                  
+                                                    <td>
+                                                            No
+                                                    </td>
+                                                    
+                                                </tr>
+                                                <tr>
+                                                        <td>utilService</td>
+                                                  
+                                                        <td>
+                                                                        <code><a href="../injectables/UtilityService.html" target="_self" >UtilityService</a></code>
                                                         </td>
                                                   
                                                     <td>
@@ -278,7 +312,7 @@
                                                         <td>document</td>
                                                   
                                                         <td>
-                                                                        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+                                                                    <code>Document</code>
                                                         </td>
                                                   
                                                     <td>
@@ -322,6 +356,7 @@
                 <td class="col-md-4">
                     <a name="getErrors"></a>
                     <span class="name">
+                        <span class="modifier">Private</span>
                         <span ><b>getErrors</b></span>
                         <a href="#getErrors"><span class="icon ion-ios-link"></span></a>
                     </span>
@@ -329,15 +364,16 @@
             </tr>
             <tr>
                 <td class="col-md-4">
-<code>getErrors()</code>
+                    <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>getErrors()</code>
                 </td>
             </tr>
 
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="85"
-                            class="link-to-prism">angular/localAuth/app/local_auth.component.ts:85</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="88"
+                            class="link-to-prism">angular/projects/researchdatabox/local-auth/src/app/local-auth.component.ts:88</a></div>
                 </td>
             </tr>
 
@@ -357,8 +393,56 @@
         <tbody>
             <tr>
                 <td class="col-md-4">
+                    <a name="initComponent"></a>
+                    <span class="name">
+                        <span class="modifier">Protected</span>
+                        <span class="modifier"></span>
+                        <span class="modifier">Async</span>
+                        <span ><b>initComponent</b></span>
+                        <a href="#initComponent"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                    <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>initComponent()</code>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-line">Inherited from         <code><a href="../components/BaseComponent.html" target="_self" >BaseComponent</a></code>
+</div>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                        <div class="io-line">Defined in         <code><a href="../components/BaseComponent.html#source" target="_self" >BaseComponent:56</a></code>
+</div>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+
+                    <div class="io-description">
+                        <b>Returns : </b>    <code>Promise&lt;void&gt;</code>
+
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
                     <a name="onLogin"></a>
                     <span class="name">
+                        <span class="modifier">Async</span>
                         <span ><b>onLogin</b></span>
                         <a href="#onLogin"><span class="icon ion-ios-link"></span></a>
                     </span>
@@ -366,15 +450,16 @@
             </tr>
             <tr>
                 <td class="col-md-4">
-<code>onLogin(event: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>)</code>
+                    <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>onLogin(event: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>)</code>
                 </td>
             </tr>
 
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="65"
-                            class="link-to-prism">angular/localAuth/app/local_auth.component.ts:65</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="70"
+                            class="link-to-prism">angular/projects/researchdatabox/local-auth/src/app/local-auth.component.ts:70</a></div>
                 </td>
             </tr>
 
@@ -412,131 +497,6 @@
                     <div>
                     </div>
                     <div class="io-description">
-                        <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >void</a></code>
-
-                    </div>
-                    <div class="io-description">
-                        
-                    </div>
-                </td>
-            </tr>
-        </tbody>
-    </table>
-    <table class="table table-sm table-bordered">
-        <tbody>
-            <tr>
-                <td class="col-md-4">
-                    <a name="checkIfHasLoaded"></a>
-                    <span class="name">
-                        <span class="modifier">Public</span>
-                        <span ><b>checkIfHasLoaded</b></span>
-                        <a href="#checkIfHasLoaded"><span class="icon ion-ios-link"></span></a>
-                    </span>
-                </td>
-            </tr>
-            <tr>
-                <td class="col-md-4">
-                    <span class="modifier-icon icon ion-ios-reset"></span>
-                    <code>checkIfHasLoaded()</code>
-                </td>
-            </tr>
-
-
-            <tr>
-                <td class="col-md-4">
-                    <div class="io-line">Inherited from         <code><a href="../classes/LoadableComponent.html" target="_self" >LoadableComponent</a></code>
-</div>
-                </td>
-            </tr>
-            <tr>
-                <td class="col-md-4">
-                        <div class="io-line">Defined in         <code><a href="../classes/LoadableComponent.html#source" target="_self" >LoadableComponent:53</a></code>
-</div>
-                </td>
-            </tr>
-
-
-            <tr>
-                <td class="col-md-4">
-
-                    <div class="io-description">
-                        <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >void</a></code>
-
-                    </div>
-                </td>
-            </tr>
-        </tbody>
-    </table>
-    <table class="table table-sm table-bordered">
-        <tbody>
-            <tr>
-                <td class="col-md-4">
-                    <a name="getTranslated"></a>
-                    <span class="name">
-                        <span ><b>getTranslated</b></span>
-                        <a href="#getTranslated"><span class="icon ion-ios-link"></span></a>
-                    </span>
-                </td>
-            </tr>
-            <tr>
-                <td class="col-md-4">
-<code>getTranslated(key, defValue)</code>
-                </td>
-            </tr>
-
-
-            <tr>
-                <td class="col-md-4">
-                    <div class="io-line">Inherited from         <code><a href="../classes/LoadableComponent.html" target="_self" >LoadableComponent</a></code>
-</div>
-                </td>
-            </tr>
-            <tr>
-                <td class="col-md-4">
-                        <div class="io-line">Defined in         <code><a href="../classes/LoadableComponent.html#source" target="_self" >LoadableComponent:76</a></code>
-</div>
-                </td>
-            </tr>
-
-
-            <tr>
-                <td class="col-md-4">
-
-                    <div class="io-description">
-                        <b>Parameters :</b>
-                        
-                        <table class="params">
-                            <thead>
-                                <tr>
-                                    <td>Name</td>
-                                    <td>Optional</td>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td>key</td>
-
-                                    <td>
-                                        No
-                                    </td>
-
-
-                                </tr>
-                                <tr>
-                                    <td>defValue</td>
-
-                                    <td>
-                                        No
-                                    </td>
-
-
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                    <div>
-                    </div>
-                    <div class="io-description">
                         <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
 
                     </div>
@@ -551,29 +511,29 @@
         <tbody>
             <tr>
                 <td class="col-md-4">
-                    <a name="hasLoaded"></a>
+                    <a name="getInitSubject"></a>
                     <span class="name">
-                        <span ><b>hasLoaded</b></span>
-                        <a href="#hasLoaded"><span class="icon ion-ios-link"></span></a>
+                        <span ><b>getInitSubject</b></span>
+                        <a href="#getInitSubject"><span class="icon ion-ios-link"></span></a>
                     </span>
                 </td>
             </tr>
             <tr>
                 <td class="col-md-4">
-<code>hasLoaded()</code>
+<code>getInitSubject()</code>
                 </td>
             </tr>
 
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Inherited from         <code><a href="../classes/LoadableComponent.html" target="_self" >LoadableComponent</a></code>
+                    <div class="io-line">Inherited from         <code><a href="../components/BaseComponent.html" target="_self" >BaseComponent</a></code>
 </div>
                 </td>
             </tr>
             <tr>
                 <td class="col-md-4">
-                        <div class="io-line">Defined in         <code><a href="../classes/LoadableComponent.html#source" target="_self" >LoadableComponent:59</a></code>
+                        <div class="io-line">Defined in         <code><a href="../components/BaseComponent.html#source" target="_self" >BaseComponent:71</a></code>
 </div>
                 </td>
             </tr>
@@ -581,6 +541,54 @@
 
             <tr>
                 <td class="col-md-4">
+                    <div class="io-description"><p>For those interested in the init from RXJS-land.</p>
+<p>Note that it returns a BehaviorSubject instance, and will have an initial value of false, so process the return value as needed.</p>
+</div>
+
+                    <div class="io-description">
+                        <b>Returns : </b>    <code>Subject&lt;any&gt;</code>
+
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="isInitializing"></a>
+                    <span class="name">
+                        <span ><b>isInitializing</b></span>
+                        <a href="#isInitializing"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+<code>isInitializing()</code>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-line">Inherited from         <code><a href="../components/BaseComponent.html" target="_self" >BaseComponent</a></code>
+</div>
+                </td>
+            </tr>
+            <tr>
+                <td class="col-md-4">
+                        <div class="io-line">Defined in         <code><a href="../components/BaseComponent.html#source" target="_self" >BaseComponent:95</a></code>
+</div>
+                </td>
+            </tr>
+
+
+            <tr>
+                <td class="col-md-4">
+                    <div class="io-description"><p>Main flag to indicate the init status</p>
+</div>
 
                     <div class="io-description">
                         <b>Returns : </b>        <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/boolean" target="_blank" >boolean</a></code>
@@ -594,104 +602,29 @@
         <tbody>
             <tr>
                 <td class="col-md-4">
-                    <a name="initTranslator"></a>
+                    <a name="ngOnInit"></a>
                     <span class="name">
-                        <span ><b>initTranslator</b></span>
-                        <a href="#initTranslator"><span class="icon ion-ios-link"></span></a>
+                        <span ><b>ngOnInit</b></span>
+                        <a href="#ngOnInit"><span class="icon ion-ios-link"></span></a>
                     </span>
                 </td>
             </tr>
             <tr>
                 <td class="col-md-4">
-<code>initTranslator(translationService: <a href="../injectables/TranslationService.html" target="_self">TranslationService</a>)</code>
+<code>ngOnInit()</code>
                 </td>
             </tr>
 
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Inherited from         <code><a href="../classes/LoadableComponent.html" target="_self" >LoadableComponent</a></code>
+                    <div class="io-line">Inherited from         <code><a href="../components/BaseComponent.html" target="_self" >BaseComponent</a></code>
 </div>
                 </td>
             </tr>
             <tr>
                 <td class="col-md-4">
-                        <div class="io-line">Defined in         <code><a href="../classes/LoadableComponent.html#source" target="_self" >LoadableComponent:41</a></code>
-</div>
-                </td>
-            </tr>
-
-
-            <tr>
-                <td class="col-md-4">
-
-                    <div class="io-description">
-                        <b>Parameters :</b>
-                        
-                        <table class="params">
-                            <thead>
-                                <tr>
-                                    <td>Name</td>
-                                    <td>Type</td>
-                                    <td>Optional</td>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td>translationService</td>
-                                    <td>
-                                                <code><a href="../injectables/TranslationService.html" target="_self" >TranslationService</a></code>
-                                    </td>
-
-                                    <td>
-                                        No
-                                    </td>
-
-
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                    <div>
-                    </div>
-                    <div class="io-description">
-                        <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >void</a></code>
-
-                    </div>
-                    <div class="io-description">
-                        
-                    </div>
-                </td>
-            </tr>
-        </tbody>
-    </table>
-    <table class="table table-sm table-bordered">
-        <tbody>
-            <tr>
-                <td class="col-md-4">
-                    <a name="setLoading"></a>
-                    <span class="name">
-                        <span ><b>setLoading</b></span>
-                        <a href="#setLoading"><span class="icon ion-ios-link"></span></a>
-                    </span>
-                </td>
-            </tr>
-            <tr>
-                <td class="col-md-4">
-<code>setLoading(loading: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/boolean" target="_blank">boolean</a>)</code>
-                </td>
-            </tr>
-
-
-            <tr>
-                <td class="col-md-4">
-                    <div class="io-line">Inherited from         <code><a href="../classes/LoadableComponent.html" target="_self" >LoadableComponent</a></code>
-</div>
-                </td>
-            </tr>
-            <tr>
-                <td class="col-md-4">
-                        <div class="io-line">Defined in         <code><a href="../classes/LoadableComponent.html#source" target="_self" >LoadableComponent:63</a></code>
+                        <div class="io-line">Defined in         <code><a href="../components/BaseComponent.html#source" target="_self" >BaseComponent:50</a></code>
 </div>
                 </td>
             </tr>
@@ -699,85 +632,8 @@
 
             <tr>
                 <td class="col-md-4">
-
-                    <div class="io-description">
-                        <b>Parameters :</b>
-                        
-                        <table class="params">
-                            <thead>
-                                <tr>
-                                    <td>Name</td>
-                                    <td>Type</td>
-                                    <td>Optional</td>
-                                    <td>Default value</td>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td>loading</td>
-                                    <td>
-                                                <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/boolean" target="_blank" >boolean</a></code>
-                                    </td>
-
-                                    <td>
-                                        No
-                                    </td>
-
-                                    <td>
-                                        <code>true</code>
-                                    </td>
-
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                    <div>
-                    </div>
-                    <div class="io-description">
-                        <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >void</a></code>
-
-                    </div>
-                    <div class="io-description">
-                        
-                    </div>
-                </td>
-            </tr>
-        </tbody>
-    </table>
-    <table class="table table-sm table-bordered">
-        <tbody>
-            <tr>
-                <td class="col-md-4">
-                    <a name="synchLoading"></a>
-                    <span class="name">
-                        <span ><b>synchLoading</b></span>
-                        <a href="#synchLoading"><span class="icon ion-ios-link"></span></a>
-                    </span>
-                </td>
-            </tr>
-            <tr>
-                <td class="col-md-4">
-<code>synchLoading()</code>
-                </td>
-            </tr>
-
-
-            <tr>
-                <td class="col-md-4">
-                    <div class="io-line">Inherited from         <code><a href="../classes/LoadableComponent.html" target="_self" >LoadableComponent</a></code>
+                    <div class="io-description"><p>See <a href="https://angular.io/api/core/OnInit">https://angular.io/api/core/OnInit</a></p>
 </div>
-                </td>
-            </tr>
-            <tr>
-                <td class="col-md-4">
-                        <div class="io-line">Defined in         <code><a href="../classes/LoadableComponent.html#source" target="_self" >LoadableComponent:68</a></code>
-</div>
-                </td>
-            </tr>
-
-
-            <tr>
-                <td class="col-md-4">
 
                     <div class="io-description">
                         <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >void</a></code>
@@ -791,29 +647,31 @@
         <tbody>
             <tr>
                 <td class="col-md-4">
-                    <a name="translatorLoaded"></a>
+                    <a name="waitForDeps"></a>
                     <span class="name">
-                        <span ><b>translatorLoaded</b></span>
-                        <a href="#translatorLoaded"><span class="icon ion-ios-link"></span></a>
+                        <span class="modifier">Async</span>
+                        <span ><b>waitForDeps</b></span>
+                        <a href="#waitForDeps"><span class="icon ion-ios-link"></span></a>
                     </span>
                 </td>
             </tr>
             <tr>
                 <td class="col-md-4">
-<code>translatorLoaded()</code>
+                    <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>waitForDeps()</code>
                 </td>
             </tr>
 
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Inherited from         <code><a href="../classes/LoadableComponent.html" target="_self" >LoadableComponent</a></code>
+                    <div class="io-line">Inherited from         <code><a href="../components/BaseComponent.html" target="_self" >BaseComponent</a></code>
 </div>
                 </td>
             </tr>
             <tr>
                 <td class="col-md-4">
-                        <div class="io-line">Defined in         <code><a href="../classes/LoadableComponent.html#source" target="_self" >LoadableComponent:48</a></code>
+                        <div class="io-line">Defined in         <code><a href="../components/BaseComponent.html#source" target="_self" >BaseComponent:78</a></code>
 </div>
                 </td>
             </tr>
@@ -821,9 +679,11 @@
 
             <tr>
                 <td class="col-md-4">
+                    <div class="io-description"><p>Wait for dependencies to initialise</p>
+</div>
 
                     <div class="io-description">
-                        <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >void</a></code>
+                        <b>Returns : </b>    <code>Promise&lt;any&gt;</code>
 
                     </div>
                 </td>
@@ -836,6 +696,7 @@
                 <td class="col-md-4">
                     <a name="waitForInit"></a>
                     <span class="name">
+                        <span class="modifier">Async</span>
                         <span ><b>waitForInit</b></span>
                         <a href="#waitForInit"><span class="icon ion-ios-link"></span></a>
                     </span>
@@ -843,20 +704,21 @@
             </tr>
             <tr>
                 <td class="col-md-4">
-<code>waitForInit(serviceArr: any[], handler: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>)</code>
+                    <span class="modifier-icon icon ion-ios-reset"></span>
+                    <code>waitForInit()</code>
                 </td>
             </tr>
 
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Inherited from         <code><a href="../classes/LoadableComponent.html" target="_self" >LoadableComponent</a></code>
+                    <div class="io-line">Inherited from         <code><a href="../components/BaseComponent.html" target="_self" >BaseComponent</a></code>
 </div>
                 </td>
             </tr>
             <tr>
                 <td class="col-md-4">
-                        <div class="io-line">Defined in         <code><a href="../classes/LoadableComponent.html#source" target="_self" >LoadableComponent:89</a></code>
+                        <div class="io-line">Defined in         <code><a href="../components/BaseComponent.html#source" target="_self" >BaseComponent:89</a></code>
 </div>
                 </td>
             </tr>
@@ -864,54 +726,12 @@
 
             <tr>
                 <td class="col-md-4">
+                    <div class="io-description"><p>For those interested in the init from the Promise-land</p>
+</div>
 
                     <div class="io-description">
-                        <b>Parameters :</b>
-                        
-                        <table class="params">
-                            <thead>
-                                <tr>
-                                    <td>Name</td>
-                                    <td>Type</td>
-                                    <td>Optional</td>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td>serviceArr</td>
-                                    <td>
-                                            <code>any[]</code>
-                                    </td>
+                        <b>Returns : </b>    <code>Promise&lt;any&gt;</code>
 
-                                    <td>
-                                        No
-                                    </td>
-
-
-                                </tr>
-                                <tr>
-                                    <td>handler</td>
-                                    <td>
-                                                <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
-                                    </td>
-
-                                    <td>
-                                        No
-                                    </td>
-
-
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                    <div>
-                    </div>
-                    <div class="io-description">
-                        <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >void</a></code>
-
-                    </div>
-                    <div class="io-description">
-                        
                     </div>
                 </td>
             </tr>
@@ -940,9 +760,14 @@
 
                     </td>
                 </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Default value : </i><code>null as any</code>
+                    </td>
+                </tr>
                     <tr>
                         <td class="col-md-4">
-                                <div class="io-line">Defined in <a href="" data-line="42" class="link-to-prism">angular/localAuth/app/local_auth.component.ts:42</a></div>
+                                <div class="io-line">Defined in <a href="" data-line="35" class="link-to-prism">angular/projects/researchdatabox/local-auth/src/app/local-auth.component.ts:35</a></div>
                         </td>
                     </tr>
 
@@ -966,9 +791,14 @@
 
                     </td>
                 </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Default value : </i><code>false</code>
+                    </td>
+                </tr>
                     <tr>
                         <td class="col-md-4">
-                                <div class="io-line">Defined in <a href="" data-line="44" class="link-to-prism">angular/localAuth/app/local_auth.component.ts:44</a></div>
+                                <div class="io-line">Defined in <a href="" data-line="37" class="link-to-prism">angular/projects/researchdatabox/local-auth/src/app/local-auth.component.ts:37</a></div>
                         </td>
                     </tr>
 
@@ -992,9 +822,14 @@
 
                     </td>
                 </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Default value : </i><code>null as any</code>
+                    </td>
+                </tr>
                     <tr>
                         <td class="col-md-4">
-                                <div class="io-line">Defined in <a href="" data-line="43" class="link-to-prism">angular/localAuth/app/local_auth.component.ts:43</a></div>
+                                <div class="io-line">Defined in <a href="" data-line="36" class="link-to-prism">angular/projects/researchdatabox/local-auth/src/app/local-auth.component.ts:36</a></div>
                         </td>
                     </tr>
 
@@ -1005,29 +840,27 @@
         <tbody>
             <tr>
                 <td class="col-md-4">
-                    <a name="isLoading"></a>
+                    <a name="loginResult"></a>
                     <span class="name">
-                        <span ><b>isLoading</b></span>
-                        <a href="#isLoading"><span class="icon ion-ios-link"></span></a>
+                        <span ><b>loginResult</b></span>
+                        <a href="#loginResult"><span class="icon ion-ios-link"></span></a>
                     </span>
                 </td>
             </tr>
                 <tr>
                     <td class="col-md-4">
-                        <i>Type : </i>        <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/boolean" target="_blank" >boolean</a></code>
+                        <i>Type : </i>        <code><a href="../interfaces/UserLoginResult.html" target="_self" >UserLoginResult</a></code>
 
                     </td>
                 </tr>
-                        <tr>
-                            <td class="col-md-4">
-                                <div class="io-line">Inherited from         <code><a href="../classes/LoadableComponent.html" target="_self" >LoadableComponent</a></code>
-</div>
-                            </td>
-                        </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Default value : </i><code>null as any</code>
+                    </td>
+                </tr>
                     <tr>
                         <td class="col-md-4">
-                                <div class="io-line">Defined in         <code><a href="../classes/LoadableComponent.html#source" target="_self" >LoadableComponent:30</a></code>
-</div>
+                                <div class="io-line">Defined in <a href="" data-line="38" class="link-to-prism">angular/projects/researchdatabox/local-auth/src/app/local-auth.component.ts:38</a></div>
                         </td>
                     </tr>
 
@@ -1038,10 +871,37 @@
         <tbody>
             <tr>
                 <td class="col-md-4">
-                    <a name="spinnerElem"></a>
+                    <a name="window"></a>
                     <span class="name">
-                        <span ><b>spinnerElem</b></span>
-                        <a href="#spinnerElem"><span class="icon ion-ios-link"></span></a>
+                        <span ><b>window</b></span>
+                        <a href="#window"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Type : </i>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+
+                    </td>
+                </tr>
+                    <tr>
+                        <td class="col-md-4">
+                                <div class="io-line">Defined in <a href="" data-line="39" class="link-to-prism">angular/projects/researchdatabox/local-auth/src/app/local-auth.component.ts:39</a></div>
+                        </td>
+                    </tr>
+
+
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="brandingAndPortalUrl"></a>
+                    <span class="name">
+                            <span class="modifier">Protected</span>
+                        <span ><b>brandingAndPortalUrl</b></span>
+                        <a href="#brandingAndPortalUrl"><span class="icon ion-ios-link"></span></a>
                     </span>
                 </td>
             </tr>
@@ -1053,18 +913,18 @@
                 </tr>
                 <tr>
                     <td class="col-md-4">
-                        <i>Default value : </i><code>&#x60;&lt;i class&#x3D;&quot;fa fa-spinner fa-pulse fa-1x fa-fw&quot;&gt;&lt;/i&gt;&#x60;</code>
+                        <i>Default value : </i><code>&#x27;&#x27;</code>
                     </td>
                 </tr>
                         <tr>
                             <td class="col-md-4">
-                                <div class="io-line">Inherited from         <code><a href="../classes/LoadableComponent.html" target="_self" >LoadableComponent</a></code>
+                                <div class="io-line">Inherited from         <code><a href="../components/BaseComponent.html" target="_self" >BaseComponent</a></code>
 </div>
                             </td>
                         </tr>
                     <tr>
                         <td class="col-md-4">
-                                <div class="io-line">Defined in         <code><a href="../classes/LoadableComponent.html#source" target="_self" >LoadableComponent:33</a></code>
+                                <div class="io-line">Defined in         <code><a href="../components/BaseComponent.html#source" target="_self" >BaseComponent:42</a></code>
 </div>
                         </td>
                     </tr>
@@ -1076,28 +936,28 @@
         <tbody>
             <tr>
                 <td class="col-md-4">
-                    <a name="translationService"></a>
+                    <a name="filterFn"></a>
                     <span class="name">
-                        <span ><b>translationService</b></span>
-                        <a href="#translationService"><span class="icon ion-ios-link"></span></a>
+                            <span class="modifier">Private</span>
+                        <span ><b>filterFn</b></span>
+                        <a href="#filterFn"><span class="icon ion-ios-link"></span></a>
                     </span>
                 </td>
             </tr>
                 <tr>
                     <td class="col-md-4">
-                        <i>Type : </i>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
-
+                        <i>Default value : </i><code>function(initStat: boolean) { return initStat; }</code>
                     </td>
                 </tr>
                         <tr>
                             <td class="col-md-4">
-                                <div class="io-line">Inherited from         <code><a href="../classes/LoadableComponent.html" target="_self" >LoadableComponent</a></code>
+                                <div class="io-line">Inherited from         <code><a href="../components/BaseComponent.html" target="_self" >BaseComponent</a></code>
 </div>
                             </td>
                         </tr>
                     <tr>
                         <td class="col-md-4">
-                                <div class="io-line">Defined in         <code><a href="../classes/LoadableComponent.html#source" target="_self" >LoadableComponent:32</a></code>
+                                <div class="io-line">Defined in         <code><a href="../components/BaseComponent.html#source" target="_self" >BaseComponent:40</a></code>
 </div>
                         </td>
                     </tr>
@@ -1109,10 +969,89 @@
         <tbody>
             <tr>
                 <td class="col-md-4">
-                    <a name="translatorReady"></a>
+                    <a name="initDependencies"></a>
                     <span class="name">
-                        <span ><b>translatorReady</b></span>
-                        <a href="#translatorReady"><span class="icon ion-ios-link"></span></a>
+                            <span class="modifier">Protected</span>
+                        <span ><b>initDependencies</b></span>
+                        <a href="#initDependencies"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Type : </i>        <code><a href="../interfaces/Initable.html" target="_self" >Initable[]</a></code>
+
+                    </td>
+                </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Default value : </i><code>[]</code>
+                    </td>
+                </tr>
+                        <tr>
+                            <td class="col-md-4">
+                                <div class="io-line">Inherited from         <code><a href="../components/BaseComponent.html" target="_self" >BaseComponent</a></code>
+</div>
+                            </td>
+                        </tr>
+                    <tr>
+                        <td class="col-md-4">
+                                <div class="io-line">Defined in         <code><a href="../components/BaseComponent.html#source" target="_self" >BaseComponent:39</a></code>
+</div>
+                        </td>
+                    </tr>
+
+
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="initSubject"></a>
+                    <span class="name">
+                            <span class="modifier">Protected</span>
+                        <span ><b>initSubject</b></span>
+                        <a href="#initSubject"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Type : </i>    <code>BehaviorSubject&lt;any&gt;</code>
+
+                    </td>
+                </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Default value : </i><code>new BehaviorSubject(false)</code>
+                    </td>
+                </tr>
+                        <tr>
+                            <td class="col-md-4">
+                                <div class="io-line">Inherited from         <code><a href="../components/BaseComponent.html" target="_self" >BaseComponent</a></code>
+</div>
+                            </td>
+                        </tr>
+                    <tr>
+                        <td class="col-md-4">
+                                <div class="io-line">Defined in         <code><a href="../components/BaseComponent.html#source" target="_self" >BaseComponent:38</a></code>
+</div>
+                        </td>
+                    </tr>
+
+
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="isReady"></a>
+                    <span class="name">
+                            <span class="modifier">Protected</span>
+                        <span ><b>isReady</b></span>
+                        <a href="#isReady"><span class="icon ion-ios-link"></span></a>
                     </span>
                 </td>
             </tr>
@@ -1122,15 +1061,20 @@
 
                     </td>
                 </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Default value : </i><code>false</code>
+                    </td>
+                </tr>
                         <tr>
                             <td class="col-md-4">
-                                <div class="io-line">Inherited from         <code><a href="../classes/LoadableComponent.html" target="_self" >LoadableComponent</a></code>
+                                <div class="io-line">Inherited from         <code><a href="../components/BaseComponent.html" target="_self" >BaseComponent</a></code>
 </div>
                             </td>
                         </tr>
                     <tr>
                         <td class="col-md-4">
-                                <div class="io-line">Defined in         <code><a href="../classes/LoadableComponent.html#source" target="_self" >LoadableComponent:31</a></code>
+                                <div class="io-line">Defined in         <code><a href="../components/BaseComponent.html#source" target="_self" >BaseComponent:37</a></code>
 </div>
                         </td>
                     </tr>
@@ -1144,14 +1088,10 @@
 
 
     <div class="tab-pane fade  tab-source-code" id="source">
-        <pre class="line-numbers compodoc-sourcecode"><code class="language-typescript">import { Component, Injectable, Inject } from &#x27;@angular/core&#x27;;
-import { DOCUMENT } from &#x27;@angular/platform-browser&#x27;;
-import { FormGroup, FormControl, Validators, FormBuilder } from &#x27;@angular/forms&#x27;;
-import { UserSimpleService } from &#x27;./shared/user.service-simple&#x27;;
-import { LoginResult } from &#x27;./shared/user-models&#x27;
-import { LoadableComponent } from &#x27;./shared/loadable.component&#x27;;
-import { TranslationService } from &#x27;./shared/translation-service&#x27;;
-
+        <pre class="line-numbers compodoc-sourcecode"><code class="language-typescript">import { Component, Inject } from &#x27;@angular/core&#x27;;
+import { FormGroup, Validators, FormBuilder } from &#x27;@angular/forms&#x27;;
+import { DOCUMENT } from &quot;@angular/common&quot;
+import { BaseComponent, UserService, UserLoginResult, UtilityService, LoggerService, TranslationService } from &#x27;@researchdatabox/portal-ng-common&#x27;;
 /**
  * Local Authentication  Component
  *
@@ -1159,57 +1099,64 @@ import { TranslationService } from &#x27;./shared/translation-service&#x27;;
  *
  */
 @Component({
-  moduleId: module.id,
   selector: &#x27;local-auth&#x27;,
-  templateUrl: &#x27;./localAuth.html&#x27;
+  templateUrl: &#x27;./local-auth.component.html&#x27;
 })
+export class LocalAuthComponent extends BaseComponent {
+  form: FormGroup &#x3D; null as any;
+  loginMessage: string &#x3D; null as any;
+  isLoginDisabled: boolean &#x3D; false;
+  loginResult:  UserLoginResult &#x3D; null as any;
+  window: any;
 
-@Injectable()
-export class LocalAuthComponent extends LoadableComponent {
-  form: FormGroup;
-  loginMessage: string;
-  isLoginDisabled: boolean;
-  constructor (@Inject(UserSimpleService) protected userService: UserSimpleService, @Inject(FormBuilder) protected fb: FormBuilder, @Inject(DOCUMENT) protected document:any, translationService: TranslationService) {
+  constructor(
+    @Inject(LoggerService) private loggerService: LoggerService,
+    @Inject(UserService) private userService: UserService,
+    @Inject(UtilityService) protected utilService: UtilityService,
+    @Inject(FormBuilder) private fb: FormBuilder,
+    @Inject(DOCUMENT) private document: Document,
+    @Inject(TranslationService) private translationService: TranslationService
+  ) {
     super();
-    this.initTranslator(translationService);
-    translationService.isReady(tService &#x3D;&gt; {
-      userService.waitForInit((whatever:any)&#x3D;&gt; {
-        this.form &#x3D; this.fb.group({
-            &quot;username&quot;: [&quot;&quot;, Validators.required],
-            &quot;password&quot;:[&quot;&quot;, Validators.required]
-        });
-        this.form.valueChanges.subscribe(data &#x3D;&gt; {
-          this.isLoginDisabled &#x3D; this.form.status &#x3D;&#x3D; &#x27;INVALID&#x27;;
-          if (this.isLoginDisabled) {
-            this.getErrors();
-          }
-        });
-        this.checkIfHasLoaded();
-      });
-    });
+    this.loggerService.debug(&#x60;LocalAuth waiting for deps to init...&#x60;); 
+    this.window &#x3D; this.document.defaultView;
+    // set this component&#x27;s dependencies
+    this.initDependencies &#x3D; [translationService, userService];
   }
 
-  onLogin(event:any) {
+  protected override async initComponent():Promise&lt;void&gt; {
+    this.form &#x3D; this.fb.group({
+      &quot;username&quot;: [&quot;&quot;, Validators.required],
+      &quot;password&quot;:[&quot;&quot;, Validators.required]
+    });
+    this.form.valueChanges.subscribe((data:any) &#x3D;&gt; {
+      this.isLoginDisabled &#x3D; this.form.status &#x3D;&#x3D; &#x27;INVALID&#x27;;
+      if (this.isLoginDisabled) {
+        this.getErrors();
+      }
+    });
+    this.loggerService.debug(&#x60;LocalAuth initialised.&#x60;); 
+  }
+
+  async onLogin(event:any) {
     if (this.isLoginDisabled || this.form.status &#x3D;&#x3D; &#x27;INVALID&#x27;) {
       this.getErrors();
       return;
     }
     event.preventDefault();
     this.isLoginDisabled &#x3D; true;
-    this.userService.loginLocal(this.form.value.username, this.form.value.password)
-    .then((res:LoginResult) &#x3D;&gt; {
-      console.log(res);
-      if (res.user) {
-        console.log(&quot;Login success, redirecting...&quot;);
-        this.document.location.href &#x3D; res.url;
-      } else {
-        this.loginMessage &#x3D; res.message;
-        this.isLoginDisabled &#x3D; false;
-      }
-    });
+    this.loginResult &#x3D; await this.userService.loginLocal(this.form.value.username, this.form.value.password);
+    this.loggerService.debug(&#x60;LocalAuth, login result: &#x60;, this.loginResult);
+    if (this.loginResult.user) {
+      this.loggerService.debug(&#x60;LocalAuth, login success, redirecting...${this.loginResult.url}&#x60;);
+      this.window.location.href &#x3D; this.loginResult.url;
+    } else {
+      this.loginMessage &#x3D; this.loginResult.message;
+      this.isLoginDisabled &#x3D; false;
+    }
   }
 
-  getErrors() {
+  private getErrors():void {
     if (this.form.controls[&#x27;username&#x27;].hasError(&#x27;required&#x27;)) {
       this.loginMessage &#x3D; &quot;Please provide a username.&quot;;
     } else {
@@ -1221,33 +1168,35 @@ export class LocalAuthComponent extends LoadableComponent {
     </div>
 
     <div class="tab-pane fade " id="templateData">
-        <pre class="line-numbers"><code class="language-html">&lt;div *ngIf&#x3D;&quot;form &amp;&amp; !isLoading&quot; class&#x3D;&quot;col-md-offset-5 col-md-3&quot; &gt;
-  &lt;div class&#x3D;&quot;panel panel-default&quot;&gt;
-    &lt;div class&#x3D;&quot;panel-heading&quot;&gt;
-      &lt;span class&#x3D;&quot;panel-title&quot;&gt;{{ &#x27;local-creds-header&#x27; | translate }}&lt;/span&gt;
-    &lt;/div&gt;
-    &lt;div class&#x3D;&quot;panel-body&quot;&gt;
-      &lt;div class&#x3D;&quot;form-login&quot;&gt;
-      &lt;form [formGroup]&#x3D;&quot;form&quot; (ngSubmit)&#x3D;&#x27;onLogin($event)&#x27;&gt;
-        &lt;input type&#x3D;&quot;text&quot; id&#x3D;&quot;username&quot; class&#x3D;&quot;form-control input-sm chat-input&quot; placeholder&#x3D;&quot;Username&quot; formControlName&#x3D;&quot;username&quot; [attr.aria-label]&#x3D;&quot;&#x27;local-creds-input-username-label&#x27; | translate &quot;/&gt;
-        &lt;br/&gt;
-        &lt;input type&#x3D;&quot;password&quot; id&#x3D;&quot;password&quot; class&#x3D;&quot;form-control input-sm chat-input&quot; placeholder&#x3D;&quot;Password&quot; formControlName&#x3D;&quot;password&quot; [attr.aria-label]&#x3D;&quot;&#x27;local-creds-input-password-label&#x27; | translate &quot;/&gt;
-        &lt;br/&gt;
-        &lt;div class&#x3D;&quot;wrapper&quot;&gt;
-          &lt;span class&#x3D;&quot;group-btn&quot;&gt;
-              &lt;button type&#x3D;&#x27;submit&#x27; class&#x3D;&quot;btn btn-primary btn-md {{isLoginDisabled ? &#x27;disabled&#x27; : &#x27;&#x27;}}&quot; (click)&#x3D;&quot;onLogin($event)&quot;&gt;Login &lt;i class&#x3D;&quot;fa fa-sign-in&quot;&gt;&lt;/i&gt;&lt;/button&gt;
-          &lt;/span&gt;
-        &lt;/div&gt;
-        &lt;br/&gt;
-        &lt;div class&#x3D;&quot;alert alert-danger&quot; *ngIf&#x3D;&quot;loginMessage !&#x3D; null&quot;&gt;
-          {{loginMessage}}
-        &lt;/div&gt;
-      &lt;/form&gt;
-    &lt;/div&gt;
+        <pre class="line-numbers"><code class="language-html">&lt;!-- ngIf is needed so init completes and view has all the information it needs --&gt;
+&lt;ng-container *ngIf&#x3D;&quot;isReady&quot;&gt; 
+  &lt;div class&#x3D;&quot;col-md-offset-5 col-md-3&quot; &gt;
+    &lt;div class&#x3D;&quot;panel panel-default&quot;&gt;
+      &lt;div class&#x3D;&quot;panel-heading&quot;&gt;
+        &lt;span class&#x3D;&quot;panel-title&quot;&gt;{{ &#x27;local-creds-header&#x27; | i18next }}&lt;/span&gt;
+      &lt;/div&gt;
+      &lt;div class&#x3D;&quot;panel-body&quot;&gt;
+        &lt;div class&#x3D;&quot;form-login&quot;&gt;
+        &lt;form [formGroup]&#x3D;&quot;form&quot; (ngSubmit)&#x3D;&#x27;onLogin($event)&#x27;&gt;
+          &lt;input type&#x3D;&quot;text&quot; id&#x3D;&quot;username&quot; class&#x3D;&quot;form-control input-sm chat-input&quot; [placeholder]&#x3D;&quot;&#x27;local-creds-input-username-label&#x27; | i18next&quot; formControlName&#x3D;&quot;username&quot; [attr.aria-label]&#x3D;&quot;&#x27;local-creds-input-username-label&#x27; | i18next &quot; autocomplete&#x3D;&quot;off&quot;/&gt;
+          &lt;br/&gt;
+          &lt;input type&#x3D;&quot;password&quot; id&#x3D;&quot;password&quot; class&#x3D;&quot;form-control input-sm chat-input&quot; [placeholder]&#x3D;&quot;&#x27;local-creds-input-password-label&#x27; | i18next&quot; formControlName&#x3D;&quot;password&quot; [attr.aria-label]&#x3D;&quot;&#x27;local-creds-input-password-label&#x27; | i18next &quot; autocomplete&#x3D;&quot;off&quot;/&gt;
+          &lt;br/&gt;
+          &lt;div class&#x3D;&quot;wrapper&quot;&gt;
+            &lt;span class&#x3D;&quot;group-btn&quot;&gt;
+                &lt;button type&#x3D;&#x27;submit&#x27; class&#x3D;&quot;btn btn-primary btn-md {{isLoginDisabled ? &#x27;disabled&#x27; : &#x27;&#x27;}}&quot; (click)&#x3D;&quot;onLogin($event)&quot;&gt;{{ &#x27;local-auth-login&#x27; | i18next }} &lt;i class&#x3D;&quot;fa fa-sign-in&quot;&gt;&lt;/i&gt;&lt;/button&gt;
+            &lt;/span&gt;
+          &lt;/div&gt;
+          &lt;br/&gt;
+          &lt;div class&#x3D;&quot;alert alert-danger&quot; *ngIf&#x3D;&quot;loginMessage !&#x3D; null&quot;&gt;
+            {{loginMessage}}
+          &lt;/div&gt;
+        &lt;/form&gt;
+      &lt;/div&gt;
+      &lt;/div&gt;
     &lt;/div&gt;
   &lt;/div&gt;
-&lt;/div&gt;
-</code></pre>
+&lt;/ng-container&gt;</code></pre>
     </div>
 
 
@@ -1276,8 +1225,8 @@ export class LocalAuthComponent extends LoadableComponent {
 <script src="../js/libs/htmlparser.js"></script>
 <script src="../js/libs/deep-iterator.js"></script>
 <script>
-        var COMPONENT_TEMPLATE = '<div><div *ngIf="form && !isLoading" class="col-md-offset-5 col-md-3" >  <div class="panel panel-default">    <div class="panel-heading">      <span class="panel-title">{{ \'local-creds-header\' | translate }}</span>    </div>    <div class="panel-body">      <div class="form-login">      <form [formGroup]="form" (ngSubmit)=\'onLogin($event)\'>        <input type="text" id="username" class="form-control input-sm chat-input" placeholder="Username" formControlName="username" [attr.aria-label]="\'local-creds-input-username-label\' | translate "/>        <br/>        <input type="password" id="password" class="form-control input-sm chat-input" placeholder="Password" formControlName="password" [attr.aria-label]="\'local-creds-input-password-label\' | translate "/>        <br/>        <div class="wrapper">          <span class="group-btn">              <button type=\'submit\' class="btn btn-primary btn-md {{isLoginDisabled ? \'disabled\' : \'\'}}" (click)="onLogin($event)">Login <i class="fa fa-sign-in"></i></button>          </span>        </div>        <br/>        <div class="alert alert-danger" *ngIf="loginMessage != null">          {{loginMessage}}        </div>      </form>    </div>    </div>  </div></div></div>'
-    var COMPONENTS = [{'name': 'ActionButtonComponent', 'selector': 'action-button'},{'name': 'ActionButtonComponent', 'selector': 'action-button'},{'name': 'ActionButtonComponent', 'selector': 'action-button'},{'name': 'ActionButtonComponent', 'selector': 'action-button'},{'name': 'ActionButtonComponent', 'selector': 'action-button'},{'name': 'ActionButtonComponent', 'selector': 'action-button'},{'name': 'ActionButtonComponent', 'selector': 'action-button'},{'name': 'ActionButtonComponent', 'selector': 'action-button'},{'name': 'ActionButtonComponent', 'selector': 'action-button'},{'name': 'ActionButtonComponent', 'selector': 'action-button'},{'name': 'ActionButtonComponent', 'selector': 'action-button'},{'name': 'ActionButtonComponent', 'selector': 'action-button'},{'name': 'AnchorOrButtonComponent', 'selector': 'anchor-button'},{'name': 'AnchorOrButtonComponent', 'selector': 'anchor-button'},{'name': 'AnchorOrButtonComponent', 'selector': 'anchor-button'},{'name': 'AnchorOrButtonComponent', 'selector': 'anchor-button'},{'name': 'AnchorOrButtonComponent', 'selector': 'anchor-button'},{'name': 'AnchorOrButtonComponent', 'selector': 'anchor-button'},{'name': 'AnchorOrButtonComponent', 'selector': 'anchor-button'},{'name': 'AnchorOrButtonComponent', 'selector': 'anchor-button'},{'name': 'AnchorOrButtonComponent', 'selector': 'anchor-button'},{'name': 'AnchorOrButtonComponent', 'selector': 'anchor-button'},{'name': 'AnchorOrButtonComponent', 'selector': 'anchor-button'},{'name': 'AnchorOrButtonComponent', 'selector': 'anchor-button'},{'name': 'ANDSVocabComponent', 'selector': 'ands-vocab-selector'},{'name': 'ANDSVocabComponent', 'selector': 'ands-vocab-selector'},{'name': 'ANDSVocabComponent', 'selector': 'ands-vocab-selector'},{'name': 'ANDSVocabComponent', 'selector': 'ands-vocab-selector'},{'name': 'ANDSVocabComponent', 'selector': 'ands-vocab-selector'},{'name': 'ANDSVocabComponent', 'selector': 'ands-vocab-selector'},{'name': 'ANDSVocabComponent', 'selector': 'ands-vocab-selector'},{'name': 'ANDSVocabComponent', 'selector': 'ands-vocab-selector'},{'name': 'ANDSVocabComponent', 'selector': 'ands-vocab-selector'},{'name': 'ANDSVocabComponent', 'selector': 'ands-vocab-selector'},{'name': 'ANDSVocabComponent', 'selector': 'ands-vocab-selector'},{'name': 'ANDSVocabComponent', 'selector': 'ands-vocab-selector'},{'name': 'AsynchComponent', 'selector': 'asynch-component'},{'name': 'AsynchComponent', 'selector': 'asynch-component'},{'name': 'AsynchComponent', 'selector': 'asynch-component'},{'name': 'AsynchComponent', 'selector': 'asynch-component'},{'name': 'AsynchComponent', 'selector': 'asynch-component'},{'name': 'AsynchComponent', 'selector': 'asynch-component'},{'name': 'AsynchComponent', 'selector': 'asynch-component'},{'name': 'AsynchComponent', 'selector': 'asynch-component'},{'name': 'AsynchComponent', 'selector': 'asynch-component'},{'name': 'AsynchComponent', 'selector': 'asynch-component'},{'name': 'AsynchComponent', 'selector': 'asynch-component'},{'name': 'AsynchComponent', 'selector': 'asynch-component'},{'name': 'ButtonBarContainerComponent', 'selector': 'buttonbarcontainer'},{'name': 'ButtonBarContainerComponent', 'selector': 'buttonbarcontainer'},{'name': 'ButtonBarContainerComponent', 'selector': 'buttonbarcontainer'},{'name': 'ButtonBarContainerComponent', 'selector': 'buttonbarcontainer'},{'name': 'ButtonBarContainerComponent', 'selector': 'buttonbarcontainer'},{'name': 'ButtonBarContainerComponent', 'selector': 'buttonbarcontainer'},{'name': 'ButtonBarContainerComponent', 'selector': 'buttonbarcontainer'},{'name': 'ButtonBarContainerComponent', 'selector': 'buttonbarcontainer'},{'name': 'ButtonBarContainerComponent', 'selector': 'buttonbarcontainer'},{'name': 'ButtonBarContainerComponent', 'selector': 'buttonbarcontainer'},{'name': 'ButtonBarContainerComponent', 'selector': 'buttonbarcontainer'},{'name': 'ButtonBarContainerComponent', 'selector': 'buttonbarcontainer'},{'name': 'CancelButtonComponent', 'selector': 'cancel-button'},{'name': 'CancelButtonComponent', 'selector': 'cancel-button'},{'name': 'CancelButtonComponent', 'selector': 'cancel-button'},{'name': 'CancelButtonComponent', 'selector': 'cancel-button'},{'name': 'CancelButtonComponent', 'selector': 'cancel-button'},{'name': 'CancelButtonComponent', 'selector': 'cancel-button'},{'name': 'CancelButtonComponent', 'selector': 'cancel-button'},{'name': 'CancelButtonComponent', 'selector': 'cancel-button'},{'name': 'CancelButtonComponent', 'selector': 'cancel-button'},{'name': 'CancelButtonComponent', 'selector': 'cancel-button'},{'name': 'CancelButtonComponent', 'selector': 'cancel-button'},{'name': 'CancelButtonComponent', 'selector': 'cancel-button'},{'name': 'ContributorComponent', 'selector': 'rb-contributor'},{'name': 'ContributorComponent', 'selector': 'rb-contributor'},{'name': 'ContributorComponent', 'selector': 'rb-contributor'},{'name': 'ContributorComponent', 'selector': 'rb-contributor'},{'name': 'ContributorComponent', 'selector': 'rb-contributor'},{'name': 'ContributorComponent', 'selector': 'rb-contributor'},{'name': 'ContributorComponent', 'selector': 'rb-contributor'},{'name': 'ContributorComponent', 'selector': 'rb-contributor'},{'name': 'ContributorComponent', 'selector': 'rb-contributor'},{'name': 'ContributorComponent', 'selector': 'rb-contributor'},{'name': 'ContributorComponent', 'selector': 'rb-contributor'},{'name': 'ContributorComponent', 'selector': 'rb-contributor'},{'name': 'DashboardComponent', 'selector': 'dashboard'},{'name': 'DataLocationComponent', 'selector': 'data-location-selector'},{'name': 'DataLocationComponent', 'selector': 'data-location-selector'},{'name': 'DataLocationComponent', 'selector': 'data-location-selector'},{'name': 'DataLocationComponent', 'selector': 'data-location-selector'},{'name': 'DataLocationComponent', 'selector': 'data-location-selector'},{'name': 'DataLocationComponent', 'selector': 'data-location-selector'},{'name': 'DataLocationComponent', 'selector': 'data-location-selector'},{'name': 'DataLocationComponent', 'selector': 'data-location-selector'},{'name': 'DataLocationComponent', 'selector': 'data-location-selector'},{'name': 'DataLocationComponent', 'selector': 'data-location-selector'},{'name': 'DataLocationComponent', 'selector': 'data-location-selector'},{'name': 'DataLocationComponent', 'selector': 'data-location-selector'},{'name': 'DateTimeComponent', 'selector': 'date-time'},{'name': 'DateTimeComponent', 'selector': 'date-time'},{'name': 'DateTimeComponent', 'selector': 'date-time'},{'name': 'DateTimeComponent', 'selector': 'date-time'},{'name': 'DateTimeComponent', 'selector': 'date-time'},{'name': 'DateTimeComponent', 'selector': 'date-time'},{'name': 'DateTimeComponent', 'selector': 'date-time'},{'name': 'DateTimeComponent', 'selector': 'date-time'},{'name': 'DateTimeComponent', 'selector': 'date-time'},{'name': 'DateTimeComponent', 'selector': 'date-time'},{'name': 'DateTimeComponent', 'selector': 'date-time'},{'name': 'DateTimeComponent', 'selector': 'date-time'},{'name': 'DmpFieldComponent', 'selector': 'dmp-field'},{'name': 'DmpFieldComponent', 'selector': 'dmp-field'},{'name': 'DmpFieldComponent', 'selector': 'dmp-field'},{'name': 'DmpFieldComponent', 'selector': 'dmp-field'},{'name': 'DmpFieldComponent', 'selector': 'dmp-field'},{'name': 'DmpFieldComponent', 'selector': 'dmp-field'},{'name': 'DmpFieldComponent', 'selector': 'dmp-field'},{'name': 'DmpFieldComponent', 'selector': 'dmp-field'},{'name': 'DmpFieldComponent', 'selector': 'dmp-field'},{'name': 'DmpFieldComponent', 'selector': 'dmp-field'},{'name': 'DmpFieldComponent', 'selector': 'dmp-field'},{'name': 'DmpFieldComponent', 'selector': 'dmp-field'},{'name': 'DmpFormComponent', 'selector': 'dmp-form'},{'name': 'DropdownFieldComponent', 'selector': 'dropdownfield'},{'name': 'DropdownFieldComponent', 'selector': 'dropdownfield'},{'name': 'DropdownFieldComponent', 'selector': 'dropdownfield'},{'name': 'DropdownFieldComponent', 'selector': 'dropdownfield'},{'name': 'DropdownFieldComponent', 'selector': 'dropdownfield'},{'name': 'DropdownFieldComponent', 'selector': 'dropdownfield'},{'name': 'DropdownFieldComponent', 'selector': 'dropdownfield'},{'name': 'DropdownFieldComponent', 'selector': 'dropdownfield'},{'name': 'DropdownFieldComponent', 'selector': 'dropdownfield'},{'name': 'DropdownFieldComponent', 'selector': 'dropdownfield'},{'name': 'DropdownFieldComponent', 'selector': 'dropdownfield'},{'name': 'DropdownFieldComponent', 'selector': 'dropdownfield'},{'name': 'EventHandlerComponent', 'selector': 'event-handler'},{'name': 'EventHandlerComponent', 'selector': 'event-handler'},{'name': 'EventHandlerComponent', 'selector': 'event-handler'},{'name': 'EventHandlerComponent', 'selector': 'event-handler'},{'name': 'EventHandlerComponent', 'selector': 'event-handler'},{'name': 'EventHandlerComponent', 'selector': 'event-handler'},{'name': 'EventHandlerComponent', 'selector': 'event-handler'},{'name': 'EventHandlerComponent', 'selector': 'event-handler'},{'name': 'EventHandlerComponent', 'selector': 'event-handler'},{'name': 'EventHandlerComponent', 'selector': 'event-handler'},{'name': 'EventHandlerComponent', 'selector': 'event-handler'},{'name': 'EventHandlerComponent', 'selector': 'event-handler'},{'name': 'ExportFormComponent', 'selector': 'export-form'},{'name': 'GenericGroupComponent', 'selector': 'generic-group-field'},{'name': 'GenericGroupComponent', 'selector': 'generic-group-field'},{'name': 'GenericGroupComponent', 'selector': 'generic-group-field'},{'name': 'GenericGroupComponent', 'selector': 'generic-group-field'},{'name': 'GenericGroupComponent', 'selector': 'generic-group-field'},{'name': 'GenericGroupComponent', 'selector': 'generic-group-field'},{'name': 'GenericGroupComponent', 'selector': 'generic-group-field'},{'name': 'GenericGroupComponent', 'selector': 'generic-group-field'},{'name': 'GenericGroupComponent', 'selector': 'generic-group-field'},{'name': 'GenericGroupComponent', 'selector': 'generic-group-field'},{'name': 'GenericGroupComponent', 'selector': 'generic-group-field'},{'name': 'GenericGroupComponent', 'selector': 'generic-group-field'},{'name': 'HiddenValueComponent', 'selector': 'hidden-field'},{'name': 'HiddenValueComponent', 'selector': 'hidden-field'},{'name': 'HiddenValueComponent', 'selector': 'hidden-field'},{'name': 'HiddenValueComponent', 'selector': 'hidden-field'},{'name': 'HiddenValueComponent', 'selector': 'hidden-field'},{'name': 'HiddenValueComponent', 'selector': 'hidden-field'},{'name': 'HiddenValueComponent', 'selector': 'hidden-field'},{'name': 'HiddenValueComponent', 'selector': 'hidden-field'},{'name': 'HiddenValueComponent', 'selector': 'hidden-field'},{'name': 'HiddenValueComponent', 'selector': 'hidden-field'},{'name': 'HiddenValueComponent', 'selector': 'hidden-field'},{'name': 'HiddenValueComponent', 'selector': 'hidden-field'},{'name': 'HtmlRawComponent', 'selector': 'htmlraw'},{'name': 'HtmlRawComponent', 'selector': 'htmlraw'},{'name': 'HtmlRawComponent', 'selector': 'htmlraw'},{'name': 'HtmlRawComponent', 'selector': 'htmlraw'},{'name': 'HtmlRawComponent', 'selector': 'htmlraw'},{'name': 'HtmlRawComponent', 'selector': 'htmlraw'},{'name': 'HtmlRawComponent', 'selector': 'htmlraw'},{'name': 'HtmlRawComponent', 'selector': 'htmlraw'},{'name': 'HtmlRawComponent', 'selector': 'htmlraw'},{'name': 'HtmlRawComponent', 'selector': 'htmlraw'},{'name': 'HtmlRawComponent', 'selector': 'htmlraw'},{'name': 'HtmlRawComponent', 'selector': 'htmlraw'},{'name': 'LinkValueComponent', 'selector': 'link-value'},{'name': 'LinkValueComponent', 'selector': 'link-value'},{'name': 'LinkValueComponent', 'selector': 'link-value'},{'name': 'LinkValueComponent', 'selector': 'link-value'},{'name': 'LinkValueComponent', 'selector': 'link-value'},{'name': 'LinkValueComponent', 'selector': 'link-value'},{'name': 'LinkValueComponent', 'selector': 'link-value'},{'name': 'LinkValueComponent', 'selector': 'link-value'},{'name': 'LinkValueComponent', 'selector': 'link-value'},{'name': 'LinkValueComponent', 'selector': 'link-value'},{'name': 'LinkValueComponent', 'selector': 'link-value'},{'name': 'LinkValueComponent', 'selector': 'link-value'},{'name': 'LocalAuthComponent', 'selector': 'local-auth'},{'name': 'ManageRolesComponent', 'selector': 'manage-roles'},{'name': 'ManageUsersComponent', 'selector': 'manage-users'},{'name': 'MapComponent', 'selector': 'rb-mapdata'},{'name': 'MapComponent', 'selector': 'rb-mapdata'},{'name': 'MapComponent', 'selector': 'rb-mapdata'},{'name': 'MapComponent', 'selector': 'rb-mapdata'},{'name': 'MapComponent', 'selector': 'rb-mapdata'},{'name': 'MapComponent', 'selector': 'rb-mapdata'},{'name': 'MapComponent', 'selector': 'rb-mapdata'},{'name': 'MapComponent', 'selector': 'rb-mapdata'},{'name': 'MapComponent', 'selector': 'rb-mapdata'},{'name': 'MapComponent', 'selector': 'rb-mapdata'},{'name': 'MapComponent', 'selector': 'rb-mapdata'},{'name': 'MapComponent', 'selector': 'rb-mapdata'},{'name': 'MarkdownTextAreaComponent', 'selector': 'markdown-text-area'},{'name': 'MarkdownTextAreaComponent', 'selector': 'markdown-text-area'},{'name': 'MarkdownTextAreaComponent', 'selector': 'markdown-text-area'},{'name': 'MarkdownTextAreaComponent', 'selector': 'markdown-text-area'},{'name': 'MarkdownTextAreaComponent', 'selector': 'markdown-text-area'},{'name': 'MarkdownTextAreaComponent', 'selector': 'markdown-text-area'},{'name': 'MarkdownTextAreaComponent', 'selector': 'markdown-text-area'},{'name': 'MarkdownTextAreaComponent', 'selector': 'markdown-text-area'},{'name': 'MarkdownTextAreaComponent', 'selector': 'markdown-text-area'},{'name': 'MarkdownTextAreaComponent', 'selector': 'markdown-text-area'},{'name': 'MarkdownTextAreaComponent', 'selector': 'markdown-text-area'},{'name': 'MarkdownTextAreaComponent', 'selector': 'markdown-text-area'},{'name': 'PageTitleComponent', 'selector': 'page-title'},{'name': 'PageTitleComponent', 'selector': 'page-title'},{'name': 'PageTitleComponent', 'selector': 'page-title'},{'name': 'PageTitleComponent', 'selector': 'page-title'},{'name': 'PageTitleComponent', 'selector': 'page-title'},{'name': 'PageTitleComponent', 'selector': 'page-title'},{'name': 'PageTitleComponent', 'selector': 'page-title'},{'name': 'PageTitleComponent', 'selector': 'page-title'},{'name': 'PageTitleComponent', 'selector': 'page-title'},{'name': 'PageTitleComponent', 'selector': 'page-title'},{'name': 'PageTitleComponent', 'selector': 'page-title'},{'name': 'PageTitleComponent', 'selector': 'page-title'},{'name': 'ParameterRetrieverComponent', 'selector': 'parameter-retriever'},{'name': 'ParameterRetrieverComponent', 'selector': 'parameter-retriever'},{'name': 'ParameterRetrieverComponent', 'selector': 'parameter-retriever'},{'name': 'ParameterRetrieverComponent', 'selector': 'parameter-retriever'},{'name': 'ParameterRetrieverComponent', 'selector': 'parameter-retriever'},{'name': 'ParameterRetrieverComponent', 'selector': 'parameter-retriever'},{'name': 'ParameterRetrieverComponent', 'selector': 'parameter-retriever'},{'name': 'ParameterRetrieverComponent', 'selector': 'parameter-retriever'},{'name': 'ParameterRetrieverComponent', 'selector': 'parameter-retriever'},{'name': 'ParameterRetrieverComponent', 'selector': 'parameter-retriever'},{'name': 'ParameterRetrieverComponent', 'selector': 'parameter-retriever'},{'name': 'ParameterRetrieverComponent', 'selector': 'parameter-retriever'},{'name': 'PDFListComponent', 'selector': 'rb-pdf-list'},{'name': 'PDFListComponent', 'selector': 'rb-pdf-list'},{'name': 'PDFListComponent', 'selector': 'rb-pdf-list'},{'name': 'PDFListComponent', 'selector': 'rb-pdf-list'},{'name': 'PDFListComponent', 'selector': 'rb-pdf-list'},{'name': 'PDFListComponent', 'selector': 'rb-pdf-list'},{'name': 'PDFListComponent', 'selector': 'rb-pdf-list'},{'name': 'PDFListComponent', 'selector': 'rb-pdf-list'},{'name': 'PDFListComponent', 'selector': 'rb-pdf-list'},{'name': 'PDFListComponent', 'selector': 'rb-pdf-list'},{'name': 'PDFListComponent', 'selector': 'rb-pdf-list'},{'name': 'PDFListComponent', 'selector': 'rb-pdf-list'},{'name': 'PublishDataLocationRefreshComponent', 'selector': 'publish-data-location-refresh'},{'name': 'PublishDataLocationRefreshComponent', 'selector': 'publish-data-location-refresh'},{'name': 'PublishDataLocationRefreshComponent', 'selector': 'publish-data-location-refresh'},{'name': 'PublishDataLocationRefreshComponent', 'selector': 'publish-data-location-refresh'},{'name': 'PublishDataLocationRefreshComponent', 'selector': 'publish-data-location-refresh'},{'name': 'PublishDataLocationRefreshComponent', 'selector': 'publish-data-location-refresh'},{'name': 'PublishDataLocationRefreshComponent', 'selector': 'publish-data-location-refresh'},{'name': 'PublishDataLocationRefreshComponent', 'selector': 'publish-data-location-refresh'},{'name': 'PublishDataLocationRefreshComponent', 'selector': 'publish-data-location-refresh'},{'name': 'PublishDataLocationRefreshComponent', 'selector': 'publish-data-location-refresh'},{'name': 'PublishDataLocationRefreshComponent', 'selector': 'publish-data-location-refresh'},{'name': 'PublishDataLocationRefreshComponent', 'selector': 'publish-data-location-refresh'},{'name': 'PublishDataLocationSelectorComponent', 'selector': 'publish-data-location-selector'},{'name': 'PublishDataLocationSelectorComponent', 'selector': 'publish-data-location-selector'},{'name': 'PublishDataLocationSelectorComponent', 'selector': 'publish-data-location-selector'},{'name': 'PublishDataLocationSelectorComponent', 'selector': 'publish-data-location-selector'},{'name': 'PublishDataLocationSelectorComponent', 'selector': 'publish-data-location-selector'},{'name': 'PublishDataLocationSelectorComponent', 'selector': 'publish-data-location-selector'},{'name': 'PublishDataLocationSelectorComponent', 'selector': 'publish-data-location-selector'},{'name': 'PublishDataLocationSelectorComponent', 'selector': 'publish-data-location-selector'},{'name': 'PublishDataLocationSelectorComponent', 'selector': 'publish-data-location-selector'},{'name': 'PublishDataLocationSelectorComponent', 'selector': 'publish-data-location-selector'},{'name': 'PublishDataLocationSelectorComponent', 'selector': 'publish-data-location-selector'},{'name': 'PublishDataLocationSelectorComponent', 'selector': 'publish-data-location-selector'},{'name': 'RecordMetadataRetrieverComponent', 'selector': 'record-metadata-retriever'},{'name': 'RecordMetadataRetrieverComponent', 'selector': 'record-metadata-retriever'},{'name': 'RecordMetadataRetrieverComponent', 'selector': 'record-metadata-retriever'},{'name': 'RecordMetadataRetrieverComponent', 'selector': 'record-metadata-retriever'},{'name': 'RecordMetadataRetrieverComponent', 'selector': 'record-metadata-retriever'},{'name': 'RecordMetadataRetrieverComponent', 'selector': 'record-metadata-retriever'},{'name': 'RecordMetadataRetrieverComponent', 'selector': 'record-metadata-retriever'},{'name': 'RecordMetadataRetrieverComponent', 'selector': 'record-metadata-retriever'},{'name': 'RecordMetadataRetrieverComponent', 'selector': 'record-metadata-retriever'},{'name': 'RecordMetadataRetrieverComponent', 'selector': 'record-metadata-retriever'},{'name': 'RecordMetadataRetrieverComponent', 'selector': 'record-metadata-retriever'},{'name': 'RecordMetadataRetrieverComponent', 'selector': 'record-metadata-retriever'},{'name': 'RecordPermissionsComponent', 'selector': 'rb-recordpermissions'},{'name': 'RecordPermissionsComponent', 'selector': 'rb-recordpermissions'},{'name': 'RecordPermissionsComponent', 'selector': 'rb-recordpermissions'},{'name': 'RecordPermissionsComponent', 'selector': 'rb-recordpermissions'},{'name': 'RecordPermissionsComponent', 'selector': 'rb-recordpermissions'},{'name': 'RecordPermissionsComponent', 'selector': 'rb-recordpermissions'},{'name': 'RecordPermissionsComponent', 'selector': 'rb-recordpermissions'},{'name': 'RecordPermissionsComponent', 'selector': 'rb-recordpermissions'},{'name': 'RecordPermissionsComponent', 'selector': 'rb-recordpermissions'},{'name': 'RecordPermissionsComponent', 'selector': 'rb-recordpermissions'},{'name': 'RecordPermissionsComponent', 'selector': 'rb-recordpermissions'},{'name': 'RecordPermissionsComponent', 'selector': 'rb-recordpermissions'},{'name': 'RecordSearchComponent', 'selector': 'record-search'},{'name': 'RecordSearchRefinerComponent', 'selector': 'record-search-refiner'},{'name': 'RelatedFileUploadComponent', 'selector': 'related-fileupload-selector'},{'name': 'RelatedFileUploadComponent', 'selector': 'related-fileupload-selector'},{'name': 'RelatedFileUploadComponent', 'selector': 'related-fileupload-selector'},{'name': 'RelatedFileUploadComponent', 'selector': 'related-fileupload-selector'},{'name': 'RelatedFileUploadComponent', 'selector': 'related-fileupload-selector'},{'name': 'RelatedFileUploadComponent', 'selector': 'related-fileupload-selector'},{'name': 'RelatedFileUploadComponent', 'selector': 'related-fileupload-selector'},{'name': 'RelatedFileUploadComponent', 'selector': 'related-fileupload-selector'},{'name': 'RelatedFileUploadComponent', 'selector': 'related-fileupload-selector'},{'name': 'RelatedFileUploadComponent', 'selector': 'related-fileupload-selector'},{'name': 'RelatedFileUploadComponent', 'selector': 'related-fileupload-selector'},{'name': 'RelatedFileUploadComponent', 'selector': 'related-fileupload-selector'},{'name': 'RelatedObjectDataComponent', 'selector': 'rb-relatedobjectdata'},{'name': 'RelatedObjectDataComponent', 'selector': 'rb-relatedobjectdata'},{'name': 'RelatedObjectDataComponent', 'selector': 'rb-relatedobjectdata'},{'name': 'RelatedObjectDataComponent', 'selector': 'rb-relatedobjectdata'},{'name': 'RelatedObjectDataComponent', 'selector': 'rb-relatedobjectdata'},{'name': 'RelatedObjectDataComponent', 'selector': 'rb-relatedobjectdata'},{'name': 'RelatedObjectDataComponent', 'selector': 'rb-relatedobjectdata'},{'name': 'RelatedObjectDataComponent', 'selector': 'rb-relatedobjectdata'},{'name': 'RelatedObjectDataComponent', 'selector': 'rb-relatedobjectdata'},{'name': 'RelatedObjectDataComponent', 'selector': 'rb-relatedobjectdata'},{'name': 'RelatedObjectDataComponent', 'selector': 'rb-relatedobjectdata'},{'name': 'RelatedObjectDataComponent', 'selector': 'rb-relatedobjectdata'},{'name': 'RelatedObjectSelectorComponent', 'selector': 'rb-RelatedObjectSelector'},{'name': 'RelatedObjectSelectorComponent', 'selector': 'rb-RelatedObjectSelector'},{'name': 'RelatedObjectSelectorComponent', 'selector': 'rb-RelatedObjectSelector'},{'name': 'RelatedObjectSelectorComponent', 'selector': 'rb-RelatedObjectSelector'},{'name': 'RelatedObjectSelectorComponent', 'selector': 'rb-RelatedObjectSelector'},{'name': 'RelatedObjectSelectorComponent', 'selector': 'rb-RelatedObjectSelector'},{'name': 'RelatedObjectSelectorComponent', 'selector': 'rb-RelatedObjectSelector'},{'name': 'RelatedObjectSelectorComponent', 'selector': 'rb-RelatedObjectSelector'},{'name': 'RelatedObjectSelectorComponent', 'selector': 'rb-RelatedObjectSelector'},{'name': 'RelatedObjectSelectorComponent', 'selector': 'rb-RelatedObjectSelector'},{'name': 'RelatedObjectSelectorComponent', 'selector': 'rb-RelatedObjectSelector'},{'name': 'RelatedObjectSelectorComponent', 'selector': 'rb-RelatedObjectSelector'},{'name': 'RepeatableContributorComponent', 'selector': 'repeatable-contributor'},{'name': 'RepeatableContributorComponent', 'selector': 'repeatable-contributor'},{'name': 'RepeatableContributorComponent', 'selector': 'repeatable-contributor'},{'name': 'RepeatableContributorComponent', 'selector': 'repeatable-contributor'},{'name': 'RepeatableContributorComponent', 'selector': 'repeatable-contributor'},{'name': 'RepeatableContributorComponent', 'selector': 'repeatable-contributor'},{'name': 'RepeatableContributorComponent', 'selector': 'repeatable-contributor'},{'name': 'RepeatableContributorComponent', 'selector': 'repeatable-contributor'},{'name': 'RepeatableContributorComponent', 'selector': 'repeatable-contributor'},{'name': 'RepeatableContributorComponent', 'selector': 'repeatable-contributor'},{'name': 'RepeatableContributorComponent', 'selector': 'repeatable-contributor'},{'name': 'RepeatableContributorComponent', 'selector': 'repeatable-contributor'},{'name': 'RepeatableGroupComponent', 'selector': 'repeatable-group'},{'name': 'RepeatableGroupComponent', 'selector': 'repeatable-group'},{'name': 'RepeatableGroupComponent', 'selector': 'repeatable-group'},{'name': 'RepeatableGroupComponent', 'selector': 'repeatable-group'},{'name': 'RepeatableGroupComponent', 'selector': 'repeatable-group'},{'name': 'RepeatableGroupComponent', 'selector': 'repeatable-group'},{'name': 'RepeatableGroupComponent', 'selector': 'repeatable-group'},{'name': 'RepeatableGroupComponent', 'selector': 'repeatable-group'},{'name': 'RepeatableGroupComponent', 'selector': 'repeatable-group'},{'name': 'RepeatableGroupComponent', 'selector': 'repeatable-group'},{'name': 'RepeatableGroupComponent', 'selector': 'repeatable-group'},{'name': 'RepeatableGroupComponent', 'selector': 'repeatable-group'},{'name': 'RepeatableTextfieldComponent', 'selector': 'repeatable-textfield'},{'name': 'RepeatableTextfieldComponent', 'selector': 'repeatable-textfield'},{'name': 'RepeatableTextfieldComponent', 'selector': 'repeatable-textfield'},{'name': 'RepeatableTextfieldComponent', 'selector': 'repeatable-textfield'},{'name': 'RepeatableTextfieldComponent', 'selector': 'repeatable-textfield'},{'name': 'RepeatableTextfieldComponent', 'selector': 'repeatable-textfield'},{'name': 'RepeatableTextfieldComponent', 'selector': 'repeatable-textfield'},{'name': 'RepeatableTextfieldComponent', 'selector': 'repeatable-textfield'},{'name': 'RepeatableTextfieldComponent', 'selector': 'repeatable-textfield'},{'name': 'RepeatableTextfieldComponent', 'selector': 'repeatable-textfield'},{'name': 'RepeatableTextfieldComponent', 'selector': 'repeatable-textfield'},{'name': 'RepeatableTextfieldComponent', 'selector': 'repeatable-textfield'},{'name': 'RepeatableVocabComponent', 'selector': 'repeatable-vocab'},{'name': 'RepeatableVocabComponent', 'selector': 'repeatable-vocab'},{'name': 'RepeatableVocabComponent', 'selector': 'repeatable-vocab'},{'name': 'RepeatableVocabComponent', 'selector': 'repeatable-vocab'},{'name': 'RepeatableVocabComponent', 'selector': 'repeatable-vocab'},{'name': 'RepeatableVocabComponent', 'selector': 'repeatable-vocab'},{'name': 'RepeatableVocabComponent', 'selector': 'repeatable-vocab'},{'name': 'RepeatableVocabComponent', 'selector': 'repeatable-vocab'},{'name': 'RepeatableVocabComponent', 'selector': 'repeatable-vocab'},{'name': 'RepeatableVocabComponent', 'selector': 'repeatable-vocab'},{'name': 'RepeatableVocabComponent', 'selector': 'repeatable-vocab'},{'name': 'RepeatableVocabComponent', 'selector': 'repeatable-vocab'},{'name': 'ReportComponent', 'selector': 'report'},{'name': 'SaveButtonComponent', 'selector': 'save-button'},{'name': 'SaveButtonComponent', 'selector': 'save-button'},{'name': 'SaveButtonComponent', 'selector': 'save-button'},{'name': 'SaveButtonComponent', 'selector': 'save-button'},{'name': 'SaveButtonComponent', 'selector': 'save-button'},{'name': 'SaveButtonComponent', 'selector': 'save-button'},{'name': 'SaveButtonComponent', 'selector': 'save-button'},{'name': 'SaveButtonComponent', 'selector': 'save-button'},{'name': 'SaveButtonComponent', 'selector': 'save-button'},{'name': 'SaveButtonComponent', 'selector': 'save-button'},{'name': 'SaveButtonComponent', 'selector': 'save-button'},{'name': 'SaveButtonComponent', 'selector': 'save-button'},{'name': 'SelectionFieldComponent', 'selector': 'selectionfield'},{'name': 'SelectionFieldComponent', 'selector': 'selectionfield'},{'name': 'SelectionFieldComponent', 'selector': 'selectionfield'},{'name': 'SelectionFieldComponent', 'selector': 'selectionfield'},{'name': 'SelectionFieldComponent', 'selector': 'selectionfield'},{'name': 'SelectionFieldComponent', 'selector': 'selectionfield'},{'name': 'SelectionFieldComponent', 'selector': 'selectionfield'},{'name': 'SelectionFieldComponent', 'selector': 'selectionfield'},{'name': 'SelectionFieldComponent', 'selector': 'selectionfield'},{'name': 'SelectionFieldComponent', 'selector': 'selectionfield'},{'name': 'SelectionFieldComponent', 'selector': 'selectionfield'},{'name': 'SelectionFieldComponent', 'selector': 'selectionfield'},{'name': 'SortComponent', 'selector': 'sort'},{'name': 'SpacerComponent', 'selector': 'spacer'},{'name': 'SpacerComponent', 'selector': 'spacer'},{'name': 'SpacerComponent', 'selector': 'spacer'},{'name': 'SpacerComponent', 'selector': 'spacer'},{'name': 'SpacerComponent', 'selector': 'spacer'},{'name': 'SpacerComponent', 'selector': 'spacer'},{'name': 'SpacerComponent', 'selector': 'spacer'},{'name': 'SpacerComponent', 'selector': 'spacer'},{'name': 'SpacerComponent', 'selector': 'spacer'},{'name': 'SpacerComponent', 'selector': 'spacer'},{'name': 'SpacerComponent', 'selector': 'spacer'},{'name': 'SpacerComponent', 'selector': 'spacer'},{'name': 'TabNavButtonComponent', 'selector': 'tab-nav-button'},{'name': 'TabNavButtonComponent', 'selector': 'tab-nav-button'},{'name': 'TabNavButtonComponent', 'selector': 'tab-nav-button'},{'name': 'TabNavButtonComponent', 'selector': 'tab-nav-button'},{'name': 'TabNavButtonComponent', 'selector': 'tab-nav-button'},{'name': 'TabNavButtonComponent', 'selector': 'tab-nav-button'},{'name': 'TabNavButtonComponent', 'selector': 'tab-nav-button'},{'name': 'TabNavButtonComponent', 'selector': 'tab-nav-button'},{'name': 'TabNavButtonComponent', 'selector': 'tab-nav-button'},{'name': 'TabNavButtonComponent', 'selector': 'tab-nav-button'},{'name': 'TabNavButtonComponent', 'selector': 'tab-nav-button'},{'name': 'TabNavButtonComponent', 'selector': 'tab-nav-button'},{'name': 'TabOrAccordionContainerComponent', 'selector': 'tabcontainer'},{'name': 'TabOrAccordionContainerComponent', 'selector': 'tabcontainer'},{'name': 'TabOrAccordionContainerComponent', 'selector': 'tabcontainer'},{'name': 'TabOrAccordionContainerComponent', 'selector': 'tabcontainer'},{'name': 'TabOrAccordionContainerComponent', 'selector': 'tabcontainer'},{'name': 'TabOrAccordionContainerComponent', 'selector': 'tabcontainer'},{'name': 'TabOrAccordionContainerComponent', 'selector': 'tabcontainer'},{'name': 'TabOrAccordionContainerComponent', 'selector': 'tabcontainer'},{'name': 'TabOrAccordionContainerComponent', 'selector': 'tabcontainer'},{'name': 'TabOrAccordionContainerComponent', 'selector': 'tabcontainer'},{'name': 'TabOrAccordionContainerComponent', 'selector': 'tabcontainer'},{'name': 'TabOrAccordionContainerComponent', 'selector': 'tabcontainer'},{'name': 'TextAreaComponent', 'selector': 'text-area'},{'name': 'TextAreaComponent', 'selector': 'text-area'},{'name': 'TextAreaComponent', 'selector': 'text-area'},{'name': 'TextAreaComponent', 'selector': 'text-area'},{'name': 'TextAreaComponent', 'selector': 'text-area'},{'name': 'TextAreaComponent', 'selector': 'text-area'},{'name': 'TextAreaComponent', 'selector': 'text-area'},{'name': 'TextAreaComponent', 'selector': 'text-area'},{'name': 'TextAreaComponent', 'selector': 'text-area'},{'name': 'TextAreaComponent', 'selector': 'text-area'},{'name': 'TextAreaComponent', 'selector': 'text-area'},{'name': 'TextAreaComponent', 'selector': 'text-area'},{'name': 'TextBlockComponent', 'selector': 'text-block'},{'name': 'TextBlockComponent', 'selector': 'text-block'},{'name': 'TextBlockComponent', 'selector': 'text-block'},{'name': 'TextBlockComponent', 'selector': 'text-block'},{'name': 'TextBlockComponent', 'selector': 'text-block'},{'name': 'TextBlockComponent', 'selector': 'text-block'},{'name': 'TextBlockComponent', 'selector': 'text-block'},{'name': 'TextBlockComponent', 'selector': 'text-block'},{'name': 'TextBlockComponent', 'selector': 'text-block'},{'name': 'TextBlockComponent', 'selector': 'text-block'},{'name': 'TextBlockComponent', 'selector': 'text-block'},{'name': 'TextBlockComponent', 'selector': 'text-block'},{'name': 'TextFieldComponent', 'selector': 'textfield'},{'name': 'TextFieldComponent', 'selector': 'textfield'},{'name': 'TextFieldComponent', 'selector': 'textfield'},{'name': 'TextFieldComponent', 'selector': 'textfield'},{'name': 'TextFieldComponent', 'selector': 'textfield'},{'name': 'TextFieldComponent', 'selector': 'textfield'},{'name': 'TextFieldComponent', 'selector': 'textfield'},{'name': 'TextFieldComponent', 'selector': 'textfield'},{'name': 'TextFieldComponent', 'selector': 'textfield'},{'name': 'TextFieldComponent', 'selector': 'textfield'},{'name': 'TextFieldComponent', 'selector': 'textfield'},{'name': 'TextFieldComponent', 'selector': 'textfield'},{'name': 'ToggleComponent', 'selector': 'toggle'},{'name': 'ToggleComponent', 'selector': 'toggle'},{'name': 'ToggleComponent', 'selector': 'toggle'},{'name': 'ToggleComponent', 'selector': 'toggle'},{'name': 'ToggleComponent', 'selector': 'toggle'},{'name': 'ToggleComponent', 'selector': 'toggle'},{'name': 'ToggleComponent', 'selector': 'toggle'},{'name': 'ToggleComponent', 'selector': 'toggle'},{'name': 'ToggleComponent', 'selector': 'toggle'},{'name': 'ToggleComponent', 'selector': 'toggle'},{'name': 'ToggleComponent', 'selector': 'toggle'},{'name': 'ToggleComponent', 'selector': 'toggle'},{'name': 'TransferOwnerComponent', 'selector': 'transfer-owner'},{'name': 'TreeNodeCheckboxComponent', 'selector': 'rb-tree-node-checkbox'},{'name': 'TreeNodeCheckboxComponent', 'selector': 'rb-tree-node-checkbox'},{'name': 'TreeNodeCheckboxComponent', 'selector': 'rb-tree-node-checkbox'},{'name': 'TreeNodeCheckboxComponent', 'selector': 'rb-tree-node-checkbox'},{'name': 'TreeNodeCheckboxComponent', 'selector': 'rb-tree-node-checkbox'},{'name': 'TreeNodeCheckboxComponent', 'selector': 'rb-tree-node-checkbox'},{'name': 'TreeNodeCheckboxComponent', 'selector': 'rb-tree-node-checkbox'},{'name': 'TreeNodeCheckboxComponent', 'selector': 'rb-tree-node-checkbox'},{'name': 'TreeNodeCheckboxComponent', 'selector': 'rb-tree-node-checkbox'},{'name': 'TreeNodeCheckboxComponent', 'selector': 'rb-tree-node-checkbox'},{'name': 'TreeNodeCheckboxComponent', 'selector': 'rb-tree-node-checkbox'},{'name': 'TreeNodeCheckboxComponent', 'selector': 'rb-tree-node-checkbox'},{'name': 'UserProfileComponent', 'selector': 'user-profile'},{'name': 'VocabFieldComponent', 'selector': 'rb-vocab'},{'name': 'VocabFieldComponent', 'selector': 'rb-vocab'},{'name': 'VocabFieldComponent', 'selector': 'rb-vocab'},{'name': 'VocabFieldComponent', 'selector': 'rb-vocab'},{'name': 'VocabFieldComponent', 'selector': 'rb-vocab'},{'name': 'VocabFieldComponent', 'selector': 'rb-vocab'},{'name': 'VocabFieldComponent', 'selector': 'rb-vocab'},{'name': 'VocabFieldComponent', 'selector': 'rb-vocab'},{'name': 'VocabFieldComponent', 'selector': 'rb-vocab'},{'name': 'VocabFieldComponent', 'selector': 'rb-vocab'},{'name': 'VocabFieldComponent', 'selector': 'rb-vocab'},{'name': 'VocabFieldComponent', 'selector': 'rb-vocab'},{'name': 'WorkflowStepButtonComponent', 'selector': 'workflowstep-button'},{'name': 'WorkflowStepButtonComponent', 'selector': 'workflowstep-button'},{'name': 'WorkflowStepButtonComponent', 'selector': 'workflowstep-button'},{'name': 'WorkflowStepButtonComponent', 'selector': 'workflowstep-button'},{'name': 'WorkflowStepButtonComponent', 'selector': 'workflowstep-button'},{'name': 'WorkflowStepButtonComponent', 'selector': 'workflowstep-button'},{'name': 'WorkflowStepButtonComponent', 'selector': 'workflowstep-button'},{'name': 'WorkflowStepButtonComponent', 'selector': 'workflowstep-button'},{'name': 'WorkflowStepButtonComponent', 'selector': 'workflowstep-button'},{'name': 'WorkflowStepButtonComponent', 'selector': 'workflowstep-button'},{'name': 'WorkflowStepButtonComponent', 'selector': 'workflowstep-button'},{'name': 'WorkflowStepButtonComponent', 'selector': 'workflowstep-button'},{'name': 'WorkspaceFieldComponent', 'selector': 'ws-field'},{'name': 'WorkspaceFieldComponent', 'selector': 'ws-field'},{'name': 'WorkspaceFieldComponent', 'selector': 'ws-field'},{'name': 'WorkspaceFieldComponent', 'selector': 'ws-field'},{'name': 'WorkspaceFieldComponent', 'selector': 'ws-field'},{'name': 'WorkspaceFieldComponent', 'selector': 'ws-field'},{'name': 'WorkspaceFieldComponent', 'selector': 'ws-field'},{'name': 'WorkspaceFieldComponent', 'selector': 'ws-field'},{'name': 'WorkspaceFieldComponent', 'selector': 'ws-field'},{'name': 'WorkspaceFieldComponent', 'selector': 'ws-field'},{'name': 'WorkspaceFieldComponent', 'selector': 'ws-field'},{'name': 'WorkspaceFieldComponent', 'selector': 'ws-field'},{'name': 'WorkspaceListComponent', 'selector': 'workspace-list'},{'name': 'WorkspaceSelectorComponent', 'selector': 'workspace-selector-parent'},{'name': 'WorkspaceSelectorComponent', 'selector': 'workspace-selector-parent'},{'name': 'WorkspaceSelectorComponent', 'selector': 'workspace-selector-parent'},{'name': 'WorkspaceSelectorComponent', 'selector': 'workspace-selector-parent'},{'name': 'WorkspaceSelectorComponent', 'selector': 'workspace-selector-parent'},{'name': 'WorkspaceSelectorComponent', 'selector': 'workspace-selector-parent'},{'name': 'WorkspaceSelectorComponent', 'selector': 'workspace-selector-parent'},{'name': 'WorkspaceSelectorComponent', 'selector': 'workspace-selector-parent'},{'name': 'WorkspaceSelectorComponent', 'selector': 'workspace-selector-parent'},{'name': 'WorkspaceSelectorComponent', 'selector': 'workspace-selector-parent'},{'name': 'WorkspaceSelectorComponent', 'selector': 'workspace-selector-parent'},{'name': 'WorkspaceSelectorComponent', 'selector': 'workspace-selector-parent'},{'name': 'WorkspaceSelectorFieldComponent', 'selector': 'workspace-selector'},{'name': 'WorkspaceSelectorFieldComponent', 'selector': 'workspace-selector'},{'name': 'WorkspaceSelectorFieldComponent', 'selector': 'workspace-selector'},{'name': 'WorkspaceSelectorFieldComponent', 'selector': 'workspace-selector'},{'name': 'WorkspaceSelectorFieldComponent', 'selector': 'workspace-selector'},{'name': 'WorkspaceSelectorFieldComponent', 'selector': 'workspace-selector'},{'name': 'WorkspaceSelectorFieldComponent', 'selector': 'workspace-selector'},{'name': 'WorkspaceSelectorFieldComponent', 'selector': 'workspace-selector'},{'name': 'WorkspaceSelectorFieldComponent', 'selector': 'workspace-selector'},{'name': 'WorkspaceSelectorFieldComponent', 'selector': 'workspace-selector'},{'name': 'WorkspaceSelectorFieldComponent', 'selector': 'workspace-selector'},{'name': 'WorkspaceSelectorFieldComponent', 'selector': 'workspace-selector'}];
+        var COMPONENT_TEMPLATE = '<div><!-- ngIf is needed so init completes and view has all the information it needs --><ng-container *ngIf="isReady">   <div class="col-md-offset-5 col-md-3" >    <div class="panel panel-default">      <div class="panel-heading">        <span class="panel-title">{{ \'local-creds-header\' | i18next }}</span>      </div>      <div class="panel-body">        <div class="form-login">        <form [formGroup]="form" (ngSubmit)=\'onLogin($event)\'>          <input type="text" id="username" class="form-control input-sm chat-input" [placeholder]="\'local-creds-input-username-label\' | i18next" formControlName="username" [attr.aria-label]="\'local-creds-input-username-label\' | i18next " autocomplete="off"/>          <br/>          <input type="password" id="password" class="form-control input-sm chat-input" [placeholder]="\'local-creds-input-password-label\' | i18next" formControlName="password" [attr.aria-label]="\'local-creds-input-password-label\' | i18next " autocomplete="off"/>          <br/>          <div class="wrapper">            <span class="group-btn">                <button type=\'submit\' class="btn btn-primary btn-md {{isLoginDisabled ? \'disabled\' : \'\'}}" (click)="onLogin($event)">{{ \'local-auth-login\' | i18next }} <i class="fa fa-sign-in"></i></button>            </span>          </div>          <br/>          <div class="alert alert-danger" *ngIf="loginMessage != null">            {{loginMessage}}          </div>        </form>      </div>      </div>    </div>  </div></ng-container></div>'
+    var COMPONENTS = [{'name': 'BaseComponent', 'selector': ''},{'name': 'DashboardComponent', 'selector': 'dashboard'},{'name': 'ExportComponent', 'selector': 'export'},{'name': 'LocalAuthComponent', 'selector': 'local-auth'},{'name': 'ManageRolesComponent', 'selector': 'manage-roles'},{'name': 'ManageUsersComponent', 'selector': 'manage-users'},{'name': 'RecordTableComponent', 'selector': 'record-table'},{'name': 'ReportComponent', 'selector': 'report'},{'name': 'SortComponent', 'selector': 'sort'}];
     var DIRECTIVES = [];
     var ACTUAL_COMPONENT = {'name': 'LocalAuthComponent'};
 </script>
