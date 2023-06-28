@@ -28,11 +28,11 @@ import {
   RecordTypeResponseModel,
   DashboardTypeResponseModel
 } from '@researchdatabox/redbox-core-types';
-import moment = require('moment');
+import { default as moment } from 'moment';
 import * as tus from 'tus-node-server';
 import * as fs from 'fs';
 import * as url from 'url';
-const checkDiskSpace = require('check-disk-space').default;
+import { default as checkDiskSpace } from 'check-disk-space';
 declare var _;
 
 declare var FormsService, WorkflowStepsService, BrandingService, RecordsService, RecordTypesService, TranslationService, User, UsersService, EmailService, RolesService;
@@ -1224,7 +1224,7 @@ export module Controllers {
       const recordType = req.param('recordType');
       const brand = BrandingService.getBrand(req.session.branding);
       RecordTypesService.get(brand, recordType).subscribe(recordType => {
-        let recordTypeModel = new RecordTypeResponseModel(_.get(recordType, 'name'), _.get(recordType, 'packageType'));
+        let recordTypeModel = new RecordTypeResponseModel(_.get(recordType, 'name'), _.get(recordType, 'packageType'),  _.get(recordType, 'searchFilters'),  _.get(recordType, 'searchable'));
         this.ajaxOk(req, res, null, recordTypeModel);
       }, error => {
         this.ajaxFail(req, res, error.message);
@@ -1240,7 +1240,7 @@ export module Controllers {
       RecordTypesService.getAll(brand).subscribe(recordTypes => {
         let recordTypeModels = [];
         for (let recType of recordTypes) {
-          let recordTypeModel = new RecordTypeResponseModel(_.get(recType, 'name'), _.get(recType, 'packageType'));
+          let recordTypeModel = new RecordTypeResponseModel(_.get(recType, 'name'), _.get(recType, 'packageType'),_.get(recType, 'searchFilters'),  _.get(recType, 'searchable'));
           recordTypeModels.push(recordTypeModel);
         }
         this.ajaxOk(req, res, null, recordTypeModels);

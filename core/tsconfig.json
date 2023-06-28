@@ -5,6 +5,7 @@
     "declarationMap": true,
     "outDir": "./dist",
     "strict": false,
+    "inlineSourceMap": true,
     "lib": [
       "es2023",
       "dom"

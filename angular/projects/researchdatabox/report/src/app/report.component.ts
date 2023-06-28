@@ -30,7 +30,8 @@ import { DateTime } from 'luxon';
  */
 @Component({
   selector: 'report',
-  templateUrl: './report.component.html'
+  templateUrl: './report.component.html',
+  styleUrls: ['./report.component.scss']
 })
 export class ReportComponent extends BaseComponent implements RecordSource {
   datePickerPlaceHolder: string = '';

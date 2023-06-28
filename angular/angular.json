@@ -431,6 +431,200 @@
         }
       }
     },
+    "@researchdatabox/manage-users": {
+      "projectType": "application",
+      "schematics": {
+        "@schematics/angular:component": {
+          "style": "scss"
+        }
+      },
+      "root": "projects/researchdatabox/manage-users",
+      "sourceRoot": "projects/researchdatabox/manage-users/src",
+      "prefix": "manage-users",
+      "architect": {
+        "build": {
+          "builder": "@angular-devkit/build-angular:browser",
+          "options": {
+            "outputPath": "../assets/angular/manage-users",
+            "index": "projects/researchdatabox/manage-users/src/index.html",
+            "main": "projects/researchdatabox/manage-users/src/main.ts",
+            "polyfills": [
+              "zone.js"
+            ],
+            "tsConfig": "projects/researchdatabox/manage-users/tsconfig.app.json",
+            "assets": [
+              "projects/researchdatabox/manage-users/src/favicon.ico",
+              "projects/researchdatabox/manage-users/src/assets"
+            ],
+            "styles": [
+              "projects/researchdatabox/manage-users/src/styles.scss"
+            ],
+            "scripts": []
+          },
+          "configurations": {
+            "production": {
+              "budgets": [
+                {
+                  "type": "initial",
+                  "maximumWarning": "500kb",
+                  "maximumError": "1mb"
+                },
+                {
+                  "type": "anyComponentStyle",
+                  "maximumWarning": "2kb",
+                  "maximumError": "4kb"
+                }
+              ],
+              "outputHashing": "all"
+            },
+            "development": {
+              "buildOptimizer": false,
+              "optimization": false,
+              "vendorChunk": true,
+              "extractLicenses": false,
+              "sourceMap": true,
+              "namedChunks": true
+            }
+          },
+          "defaultConfiguration": "production"
+        },
+        "serve": {
+          "builder": "@angular-devkit/build-angular:dev-server",
+          "configurations": {
+            "production": {
+              "browserTarget": "@researchdatabox/manage-users:build:production"
+            },
+            "development": {
+              "browserTarget": "@researchdatabox/manage-users:build:development"
+            }
+          },
+          "defaultConfiguration": "development"
+        },
+        "extract-i18n": {
+          "builder": "@angular-devkit/build-angular:extract-i18n",
+          "options": {
+            "browserTarget": "@researchdatabox/manage-users:build"
+          }
+        },
+        "test": {
+          "builder": "@angular-devkit/build-angular:karma",
+          "options": {
+            "polyfills": [
+              "zone.js",
+              "zone.js/testing"
+            ],
+            "karmaConfig": "projects/researchdatabox/manage-users/karma.conf.js",
+            "tsConfig": "projects/researchdatabox/manage-users/tsconfig.spec.json",
+            "assets": [
+              "projects/researchdatabox/manage-users/src/favicon.ico",
+              "projects/researchdatabox/manage-users/src/assets"
+            ],
+            "styles": [
+              "projects/researchdatabox/manage-users/src/styles.scss"
+            ],
+            "scripts": []
+          }
+        }
+      }
+    },
+    "@researchdatabox/manage-roles": {
+      "projectType": "application",
+      "schematics": {
+        "@schematics/angular:component": {
+          "style": "scss"
+        }
+      },
+      "root": "projects/researchdatabox/manage-roles",
+      "sourceRoot": "projects/researchdatabox/manage-roles/src",
+      "prefix": "manage-roles",
+      "architect": {
+        "build": {
+          "builder": "@angular-devkit/build-angular:browser",
+          "options": {
+            "outputPath": "../assets/angular/manage-roles",
+            "index": "projects/researchdatabox/manage-roles/src/index.html",
+            "main": "projects/researchdatabox/manage-roles/src/main.ts",
+            "polyfills": [
+              "zone.js"
+            ],
+            "tsConfig": "projects/researchdatabox/manage-roles/tsconfig.app.json",
+            "inlineStyleLanguage": "scss",
+            "assets": [
+              "projects/researchdatabox/manage-roles/src/favicon.ico",
+              "projects/researchdatabox/manage-roles/src/assets"
+            ],
+            "styles": [
+              "projects/researchdatabox/manage-roles/src/styles.scss"
+            ],
+            "scripts": []
+          },
+          "configurations": {
+            "production": {
+              "budgets": [
+                {
+                  "type": "initial",
+                  "maximumWarning": "500kb",
+                  "maximumError": "1mb"
+                },
+                {
+                  "type": "anyComponentStyle",
+                  "maximumWarning": "2kb",
+                  "maximumError": "4kb"
+                }
+              ],
+              "outputHashing": "all"
+            },
+            "development": {
+              "buildOptimizer": false,
+              "optimization": false,
+              "vendorChunk": true,
+              "extractLicenses": false,
+              "sourceMap": true,
+              "namedChunks": true
+            }
+          },
+          "defaultConfiguration": "production"
+        },
+        "serve": {
+          "builder": "@angular-devkit/build-angular:dev-server",
+          "configurations": {
+            "production": {
+              "browserTarget": "@researchdatabox/manage-roles:build:production"
+            },
+            "development": {
+              "browserTarget": "@researchdatabox/manage-roles:build:development"
+            }
+          },
+          "defaultConfiguration": "development"
+        },
+        "extract-i18n": {
+          "builder": "@angular-devkit/build-angular:extract-i18n",
+          "options": {
+            "browserTarget": "@researchdatabox/manage-roles:build"
+          }
+        },
+        "test": {
+          "builder": "@angular-devkit/build-angular:karma",
+          "options": {
+            "polyfills": [
+              "zone.js",
+              "zone.js/testing"
+            ],
+            "karmaConfig": "projects/researchdatabox/manage-roles/karma.conf.js",
+            "tsConfig": "projects/researchdatabox/manage-roles/tsconfig.spec.json",
+            "inlineStyleLanguage": "scss",
+            "assets": [
+              "projects/researchdatabox/manage-roles/src/favicon.ico",
+              "projects/researchdatabox/manage-roles/src/assets"
+            ],
+            "styles": [
+              "projects/researchdatabox/manage-roles/src/styles.scss"
+            ],
+            "scripts": []
+          }
+        }
+      }
+    },
     "@researchdatabox/form": {
       "projectType": "application",
       "schematics": {

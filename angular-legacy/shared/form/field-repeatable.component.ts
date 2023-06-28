@@ -300,12 +300,20 @@ export class RepeatableContainer extends Container {
         if (that.visible) {
           // remove validators
           if (that.formModel) {
-            that.formModel.clearValidators();
+            if(that['disableValidators'] != null && typeof(that['disableValidators']) == 'function') {
+              that['disableValidators']();
+            } else {
+              that.formModel.clearValidators();
+            }
             that.formModel.updateValueAndValidity();
           }
           for(let field of that.fields) {
             if(field.formModel) {
-              field.formModel.clearValidators();
+              if(field['disableValidators'] != null && typeof(field['disableValidators']) == 'function') {
+                field['disableValidators']();
+              } else {
+                field.formModel.clearValidators();
+              }
               field.formModel.updateValueAndValidity();
             }
           }
@@ -314,12 +322,20 @@ export class RepeatableContainer extends Container {
         if (!that.visible) {
           // restore validators
           if (that.formModel) {
-            that.formModel.setValidators(that.validators);
+            if(that['enableValidators'] != null && typeof(that['enableValidators']) == 'function') {
+              that['enableValidators']();
+            } else {
+              that.formModel.setValidators(that.validators);
+            }
             that.formModel.updateValueAndValidity();
           }
           for(let field of that.fields) {
             if(field.formModel) {
-              field.formModel.setValidators(field.validators);
+              if(field['enableValidators'] != null && typeof(field['enableValidators']) == 'function') {
+                field['enableValidators']();
+              } else {
+                field.formModel.setValidators(field.validators);
+              }
               field.formModel.updateValueAndValidity();
             }
           }
@@ -462,6 +478,7 @@ export class RepeatableContributor extends RepeatableContainer {
 @Component({
   selector: 'repeatable-contributor',
   template: `
+  <ng-container *ngIf="field.visible">
   <div *ngIf="field.editMode">
     <div class="row" *ngIf="field.fields[0].label">
       <div class="col-xs-12">
@@ -512,6 +529,7 @@ export class RepeatableContributor extends RepeatableContainer {
         <div *ngIf="field.fields[0].showOrcid" class="col-xs-2">{{fieldElem.value.orcid}}</div>
       </div>
     </div>
+  </ng-container>
   </ng-container>
   `,
 })

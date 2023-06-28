@@ -29,7 +29,7 @@ import {
   Sails,
   Model
 } from "sails";
-import moment = require('moment');
+import { default as moment } from 'moment';
 import * as numeral from 'numeral';
 
 import {

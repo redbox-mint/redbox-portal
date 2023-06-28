@@ -41,7 +41,7 @@ import {
 import * as request from "request-promise";
 import * as luceneEscapeQuery from "lucene-escape-query";
 import * as fs from 'fs';
-import moment = require('moment');
+import { default as moment } from 'moment';
 
 import {
   isObservable

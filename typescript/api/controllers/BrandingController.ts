@@ -1,5 +1,5 @@
 import { Controllers as controllers} from '@researchdatabox/redbox-core-types';
-import skipperGridFs = require('skipper-gridfs');
+import skipperGridFs from "skipper-gridfs";
 import {Model} from "sails";
 import {Sails} from "sails";
 import {Observable} from 'rxjs/Rx';
@@ -7,7 +7,7 @@ import 'rxjs/add/operator/toPromise';
 import * as request from "request-promise";
 import * as ejs from 'ejs';
 import * as fs from 'graceful-fs';
-import path = require('path');
+import path from "path";
 
 
 declare var sails: Sails;

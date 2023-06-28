@@ -21,7 +21,7 @@ import { Observable } from 'rxjs/Rx';
 import {Services as services}   from '@researchdatabox/redbox-core-types';
 import {Sails, Model} from "sails";
 import { default as NodeCache } from "node-cache";
-import moment = require('moment');
+import { default as moment } from 'moment';
 import { readdir } from 'node:fs/promises';
 declare var sails: Sails;
 declare var _;
