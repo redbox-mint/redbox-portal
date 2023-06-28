@@ -24,6 +24,11 @@ else
   echo "Building core..."
   buildAngularApp "portal-ng-common"
   echo "Building form-custom..."
+  if [ -d "../../project" ]; then
+    cd "../../"
+    ln -s project redbox-portal
+    cd -
+  fi
   cd "${PORTAL_NG_FORM_CUSTOM_DIR}/projects/researchdatabox/portal-ng-form-custom"
   npm i
   cd -
