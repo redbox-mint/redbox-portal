@@ -68,7 +68,7 @@ describe('Lodash Template Utility Service testing', () => {
   )
 
   it('Should format 2023-05-11T00:00:00.000Z using DATETIME_MED', function (done: any) {
-    const dateString = "2023-05-11T00:00:00.000+10:00";
+    const dateString = "2023-05-11T00:00:00.000Z";
     const sourceDate: Date = new Date(Date.parse(dateString));
 
     const formattedString = loDashTemplateUtilityService.formatDateLocale(sourceDate, "DATETIME_MED")
