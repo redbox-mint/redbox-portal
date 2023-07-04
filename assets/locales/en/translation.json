@@ -748,5 +748,7 @@
   "invalid-format": "Submission format is invalid",
   "server-error": "Server error",
   "unknown-error": "Unknown error",
-  "local-auth-login": "Login"
+  "local-auth-login": "Login",
+  "oidc-default-unknown-error": "Login unsuccessful contact your system administrator",
+  "oidc-user-doesnt-exist-in-tenant": "User account from identity provider does not exist in tenant. The account needs to be added as an external user in the tenant first."
 }
