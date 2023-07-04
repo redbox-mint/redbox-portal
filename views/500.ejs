@@ -46,7 +46,11 @@
          <%= TranslationService.t(req.session.data.message) %>
        </p>
        <p>
-         <%= TranslationService.t(req.session.data.detailedMessager) %>
+        <% if( req.session.data.interpolation == true) { %>
+          <%= TranslationService.tInter(req.session.data.detailedMessager, req.session.data.interpolationObj) %>
+         <% }  else { %>
+           <%= TranslationService.t(req.session.data.detailedMessager) %>
+         <% } %>
 
        <% }  else { %>
          <%= TranslationService.t(req.session.data) %>

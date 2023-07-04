@@ -287,7 +287,7 @@ export module Controllers {
           let oidcConfig = _.get(sails.config, 'auth.default.oidc');
           let errorMessage = _.get(err, 'message');
           let errorMessageDecoded = that.decodeErrorMappings(oidcConfig, errorMessage);
-          if(errorMessageDecoded.length > 0 ) {
+          if(!_.isEmpty(errorMessageDecoded)) {
             req.session['data'] = errorMessageDecoded;
             return res.serverError();
           }
@@ -340,34 +340,72 @@ export module Controllers {
       sails.log.verbose('decodeErrorMappings - options: ' + JSON.stringify(options));
       let errorMessageDecoded = 'oidc-default-unknown-error';
       let errorMappingList = _.get(options, 'errorMappings', []);
+      let errorMessageDecodedAsObject = {};
 
       if(!_.isUndefined(errorMessage) && !_.isNull(errorMessage)) {
 
         sails.log.verbose('decodeErrorMappings - errorMappingList: ' + JSON.stringify(errorMappingList));
         for(let errorMappingDetails of errorMappingList) {
 
-          let fieldLanguageCode = _.get(errorMappingDetails, 'altErrorRedboxCode');
+          let fieldLanguageCode = _.get(errorMappingDetails, 'altErrorRedboxCodeMessage');
+          let fieldLanguageCode2 = _.get(errorMappingDetails, 'altErrorRedboxCodeDetails', '');
           let matchRegex = _.get(errorMappingDetails, 'matchRegex', true);
           let matchString = _.get(errorMappingDetails, 'matchString', false);
+          let asObject = _.get(errorMappingDetails, 'altErrorAsObject', false);
 
           if (matchRegex) {
             let regexPattern = _.get(errorMappingDetails, 'errorDescOrRefOrExp');
+            let matchRegexWithGroups = _.get(errorMappingDetails, 'matchRegexWithGroups', false);
+            let regexGroupsPattern = _.get(errorMappingDetails, 'regexGroupsPattern', '');
+            let messageInterpolationGroups = _.get(errorMappingDetails, 'messageInterpolationGroups', {});
             sails.log.verbose('decodeErrorMappings - regexPattern ' + regexPattern);
             if(this.validateRegex(errorMessage, regexPattern)) {
-              errorMessageDecoded = fieldLanguageCode;
-              break;
+              if(asObject) {
+                errorMessageDecodedAsObject = { 
+                  message: fieldLanguageCode, 
+                  detailedMessager: fieldLanguageCode2
+                }
+                break;
+              } else if(matchRegexWithGroups && !_.isEmpty(messageInterpolationGroups) && !_.isEmpty(regexGroupsPattern)) {
+                let matchRegexGroupsDecoded = this.validateRegexWithGroups(errorMessage, regexGroupsPattern, messageInterpolationGroups);
+                if(!_.isEmpty(matchRegexGroupsDecoded)) {
+                  errorMessageDecodedAsObject = { 
+                    message: fieldLanguageCode, 
+                    detailedMessager: fieldLanguageCode2,
+                    interpolation: true,
+                    interpolationObj: matchRegexGroupsDecoded 
+                  }
+                  break;
+                }
+              } else {
+                errorMessageDecoded = fieldLanguageCode;
+                break;
+              }
             }
+            
           } else if (matchString) {
             let errorRefDesc = _.get(errorMappingDetails, 'errorDescOrRefOrExp');
             if(errorMessage.includes(errorRefDesc)){
-              errorMessageDecoded = fieldLanguageCode;
+              if(asObject) {
+                errorMessageDecodedAsObject = { 
+                  message: fieldLanguageCode, 
+                  detailedMessager: fieldLanguageCode2
+                }
+              } else {
+                errorMessageDecoded = fieldLanguageCode;
+              }
               break;
             }
           }
+        
         }
       }
 
-      return errorMessageDecoded;
+      if(!_.isEmpty(errorMessageDecodedAsObject)) {
+        return errorMessageDecodedAsObject;
+      } else {
+        return errorMessageDecoded;
+      }
     }
 
     private validateRegex(errorMessage, regexPattern) {
@@ -376,6 +414,20 @@ export module Controllers {
       let reTestResult = re.test(errorMessage.toString());
       sails.log.verbose('decodeErrorMappings reTestResult ' + reTestResult);
       return reTestResult;
+    }
+
+    private validateRegexWithGroups(errorMessage, regexPattern, groups) {
+      let decodedGroups = _.clone(groups);
+      let re = new RegExp(regexPattern, 'gi');
+      const matches = errorMessage.matchAll(re);
+      const keys = _.keys(groups);
+      let index = 0;
+      for (const match of matches) {
+        let key = keys[index];
+        _.set(decodedGroups, key, match[index+1]);
+        index++;
+      }
+      return decodedGroups;
     }
 
     public aafLogin(req, res) {
