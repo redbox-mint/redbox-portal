@@ -1355,11 +1355,13 @@ export module Controllers {
       for (let i = 0; i < editUsers.length; i++) {
         let editUsername = editUsers[i];
         let user = await UsersService.getUserWithUsername(editUsername).toPromise();
-        editUserResponse.push({
-          username: editUsername,
-          name: user.name,
-          email: user.email
-        });
+          editUserResponse.push({
+            username: editUsername,
+            name: _.get(user,"name",""),
+            email: _.get(user,"email","")
+          });
+        
+        
       }
 
       let viewUsers = authorization['view']
@@ -1367,11 +1369,13 @@ export module Controllers {
       for (let i = 0; i < viewUsers.length; i++) {
         let viewUsername = viewUsers[i];
         let user = await UsersService.getUserWithUsername(viewUsername).toPromise();
-        viewUserResponse.push({
-          username: viewUsername,
-          name: user.name,
-          email: user.email
-        });
+
+          viewUserResponse.push({
+            username: viewUsername,
+            name: _.get(user,"name",""),
+            email: _.get(user,"email","")
+          });
+        
       }
 
       let editPendingUsers = authorization['editPending'];
