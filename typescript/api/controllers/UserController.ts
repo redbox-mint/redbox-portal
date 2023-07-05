@@ -287,6 +287,7 @@ export module Controllers {
           let oidcConfig = _.get(sails.config, 'auth.default.oidc');
           let errorMessage = _.get(err, 'message');
           let errorMessageDecoded = that.decodeErrorMappings(oidcConfig, errorMessage);
+          sails.log.verbose('After decodeErrorMappings - errorMessageDecoded: ' + JSON.stringify(errorMessageDecoded));
           if(!_.isEmpty(errorMessageDecoded)) {
             req.session['data'] = errorMessageDecoded;
             return res.serverError();
@@ -421,11 +422,47 @@ export module Controllers {
       let re = new RegExp(regexPattern, 'gi');
       const matches = errorMessage.matchAll(re);
       const keys = _.keys(groups);
-      let index = 0;
+      let matchesObj = {};
       for (const match of matches) {
+        matchesObj = match;
+      }
+      let matchesKeys = _.keys(matchesObj);
+      for (let index = 0; index < keys.length; index++) {
         let key = keys[index];
-        _.set(decodedGroups, key, match[index+1]);
-        index++;
+        let matchKey = _.get(matchesKeys,''+(index+1), '');
+        let groupVal = _.get(matchesObj, matchKey, '');
+        if(!_.isEmpty(matchKey) && !_.isEmpty(groupVal)) {
+          let tmpStringVal1 = groupVal.toString();
+          tmpStringVal1 = groupVal.replace(/{/g,'');
+          groupVal = tmpStringVal1;
+          tmpStringVal1 = groupVal.replace(/}/g,'');
+          groupVal = tmpStringVal1;
+          tmpStringVal1 = groupVal.replace(/'/g,'');
+          groupVal = tmpStringVal1;
+          tmpStringVal1 = groupVal.replace(/,/g,'');
+          groupVal = tmpStringVal1;
+          tmpStringVal1 = groupVal.replace(/\(/g,'');
+          groupVal = tmpStringVal1;
+          tmpStringVal1 = groupVal.replace(/\)/g,'');
+          groupVal = tmpStringVal1;
+          tmpStringVal1 = groupVal.replace(/"/g,'');
+          groupVal = tmpStringVal1;
+          tmpStringVal1 = groupVal.replace(/\\/g,'');
+          groupVal = tmpStringVal1;
+          tmpStringVal1 = groupVal.replace(/\//g,'');
+          groupVal = tmpStringVal1;
+          tmpStringVal1 = groupVal.replace(/:/g,'');
+          groupVal = tmpStringVal1;
+          tmpStringVal1 = groupVal.replace(/&/g,'');
+          groupVal = tmpStringVal1;
+          tmpStringVal1 = groupVal.replace(/#/g,'');
+          groupVal = tmpStringVal1;
+          tmpStringVal1 = groupVal.replace(/$/g,'');
+          groupVal = tmpStringVal1;
+          tmpStringVal1 = _.trim(groupVal);
+          groupVal = tmpStringVal1;
+          _.set(decodedGroups, key, groupVal);
+        }
       }
       return decodedGroups;
     }
