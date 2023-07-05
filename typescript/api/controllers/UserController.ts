@@ -303,7 +303,7 @@ export module Controllers {
           if (_.isEmpty(req.session.data)) {
             req.session['data'] = {
               "message": 'error-auth',
-              "detailedMessager": `${err}${info}`
+              "detailedMessage": `${err}${info}`
             };
           }
 
@@ -364,7 +364,7 @@ export module Controllers {
               if(asObject) {
                 errorMessageDecodedAsObject = { 
                   message: fieldLanguageCode, 
-                  detailedMessager: fieldLanguageCode2
+                  detailedMessage: fieldLanguageCode2
                 }
                 break;
               } else if(matchRegexWithGroups && !_.isEmpty(messageInterpolationGroups) && !_.isEmpty(regexGroupsPattern)) {
@@ -372,7 +372,7 @@ export module Controllers {
                 if(!_.isEmpty(matchRegexGroupsDecoded)) {
                   errorMessageDecodedAsObject = { 
                     message: fieldLanguageCode, 
-                    detailedMessager: fieldLanguageCode2,
+                    detailedMessage: fieldLanguageCode2,
                     interpolation: true,
                     interpolationObj: matchRegexGroupsDecoded 
                   }
@@ -390,7 +390,7 @@ export module Controllers {
               if(asObject) {
                 errorMessageDecodedAsObject = { 
                   message: fieldLanguageCode, 
-                  detailedMessager: fieldLanguageCode2
+                  detailedMessage: fieldLanguageCode2
                 }
               } else {
                 errorMessageDecoded = fieldLanguageCode;
@@ -485,7 +485,7 @@ export module Controllers {
           if (_.isEmpty(req.session.data)) {
             req.session['data'] = {
               "message": 'error-auth',
-              "detailedMessager": `${err}${info}`
+              "detailedMessage": `${err}${info}`
             };
           }
           return res.serverError();
