@@ -772,13 +772,23 @@ export module Services {
             let postSaveCreateHookFunction = eval(postSaveCreateHookFunctionString);
             let options = _.get(postSaveCreateHook, "options", {});
             if (_.isFunction(postSaveCreateHookFunction)) {
-              let hookResponse = postSaveCreateHookFunction(oid, record, options, user);
-              this.resolveHookResponse(hookResponse).then(result => {
-                sails.log.debug(`post-save trigger ${postSaveCreateHookFunctionString} completed for ${oid}`)
-              }).catch(error => {
-                sails.log.error(`post-save trigger ${postSaveCreateHookFunctionString} failed to complete`)
-                sails.log.error(error)
-              });
+              //add try/catch just as an extra safety measure in case the function called 
+              //by the trigger is not correctly implemented (or old). In example: An old 
+              //function that is not async and retruns and Observable.of instead of a promise 
+              //and then throws an error. In this case the error is not caught by chained 
+              //.then().catch() and propagates to the front end and this has to be prevented
+              try {
+                let hookResponse = postSaveCreateHookFunction(oid, record, options, user);
+                this.resolveHookResponse(hookResponse).then(result => {
+                  sails.log.debug(`post-save trigger ${postSaveCreateHookFunctionString} completed for ${oid}`);
+                }).catch(error => {
+                  sails.log.error(`post-save trigger ${postSaveCreateHookFunctionString} failed to complete`);
+                  sails.log.error(error);
+                });
+              } catch(err) {
+                sails.log.error(`post-save trigger external catch ${postSaveCreateHookFunctionString} failed to complete`);
+                sails.log.error(err);
+              }
             } else {
               sails.log.error(`Post save function: '${postSaveCreateHookFunctionString}' did not resolve to a valid function, what I got:`);
               sails.log.error(postSaveCreateHookFunction);
