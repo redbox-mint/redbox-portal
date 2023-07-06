@@ -233,6 +233,7 @@ export class DmpFormComponent extends LoadableComponent {
         this.clearSaving();
         console.log("Create Response:");
         console.log(res);
+        let postSaveSyncWarning = _.get(res, 'metadata.postSaveSyncWarning', false);
         if (res.success) {
           this.oid = res.oid;
           this.recordCreated.emit({oid: this.oid});
@@ -240,6 +241,12 @@ export class DmpFormComponent extends LoadableComponent {
           this.setSuccess(this.getMessage(this.formDef.messages.saveSuccess));
           this.form.markAsPristine();
           return Observable.of(true);
+        } else if(!res.success && postSaveSyncWarning) {
+          this.oid = res.oid;
+          this.recordCreated.emit({oid: this.oid});
+          this.LocationService.go(`record/edit/${this.oid}`);
+          this.setError(`${this.getMessage(this.formDef.messages.saveError)} ${res.message}`);
+          return Observable.of(false);
         } else {
           this.setError(`${this.getMessage(this.formDef.messages.saveError)} ${res.message}`);
           return Observable.of(false);
