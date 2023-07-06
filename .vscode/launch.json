@@ -1,0 +1,17 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+      {
+        "localRoot": "${workspaceFolder}",
+        "name": "Debug RedBox Portal",
+        "port": 9876,
+        "remoteRoot": "/opt/redbox-portal",
+        "request": "attach",
+        "skipFiles": [
+          "<node_internals>/**"
+        ],
+        "type": "node"
+      }
+      
+    ]
+  }
