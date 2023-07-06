@@ -3,7 +3,7 @@ const CopyPlugin = require('copy-webpack-plugin');
 const path = require('path');
 const CssMinimizerPlugin = require("css-minimizer-webpack-plugin");
 
-
+const cssFilePath = '../default/default/styles/style.min.css';
 module.exports.webpack = {
   config: [
     {
@@ -22,7 +22,7 @@ module.exports.webpack = {
       plugins: [
         new MiniCssExtractPlugin({
           // Relative to 'output.path' above!
-          filename: '../default/default/styles/style.min.css'
+          filename: cssFilePath
         }),
         new CopyPlugin({
           patterns: [
@@ -58,6 +58,7 @@ module.exports.webpack = {
         rules: [
           {
             test: /\.scss$/i,
+            exclude: /\.\.\/angular/,
             use: [
               MiniCssExtractPlugin.loader,
               "css-loader",
@@ -69,10 +70,12 @@ module.exports.webpack = {
           },
           {
             test: /\.(woff2?|ttf|otf|eot|svg)$/,
-            type: 'asset/inline'
+            type: 'asset/inline',
+            exclude: /\.\.\/angular/
           },
           {
             test: /\.css$/,
+            exclude: /\.\.\/angular/,
             use: [MiniCssExtractPlugin.loader, "css-loader"],
             include: [
               path.resolve(__dirname, '../.tmp/public/default/default/styles')

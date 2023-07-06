@@ -23,8 +23,8 @@ module.exports = function defineWebpackHook(sails) {
     return {};
   }
 
-  if (process.env.NODE_ENV === 'production') {
-    sails.log.warn(`sails-hook-webpack: Running in production environment, skipping webpack run.`);
+  if (process.env.NODE_ENV != 'docker') {
+    sails.log.warn(`sails-hook-webpack: Running in non-dev environment, skipping webpack run.`);
     return {};
   }
 
@@ -36,12 +36,7 @@ module.exports = function defineWebpackHook(sails) {
     initialize: async function(done) {
 
       sails.log.info('Initializing custom hook (`webpack`)');
-
-      // TODO: don't run if its is a `sails run foofoofoo`?
-      // TODO: don't watch for rebuilds if we're in test environment?
       const isSailsScriptEnv = () => global.isSailsScriptEnv;
-      const isTestEnv = () => sails.config.port !== 1500;
-
       if (isSailsScriptEnv()) void done();
 
       const compiler = webpack(sails.config.webpack.config);
@@ -63,14 +58,8 @@ module.exports = function defineWebpackHook(sails) {
         logCompileInfo(...args);
         triggerDoneOnce(...args);
       };
-
-      if (sails.config.environment === 'production' || isTestEnv()) {
-        compiler.run(compileCallback);
-      } else {
-        sails.log.info('sails-hook-webpack: Watching for changes...');
-        compiler.watch(sails.config.webpack.watchOptions, compileCallback);
-      }
-
+      
+      compiler.run(compileCallback);
     }
 
   };

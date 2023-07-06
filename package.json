@@ -75,7 +75,8 @@
     "compile:sails": "npm install && ./node_modules/.bin/tsc --project tsconfig.json",
     "compile:ng": "./support/development/compileDevAngularAll.sh",
     "dev:run": "docker-compose -f ./support/development/docker-compose.yml up",
-    "dev:all": "npm run compile:sails && npm run compile:ng && npm run dev:run"
+    "dev:all": "npm run compile:sails && npm run compile:ng && npm run dev:run",
+    "webpack": "NODE_ENV=docker node support/build/wrapper-webpack.js"
   },
   "main": "app.js",
   "repository": {
