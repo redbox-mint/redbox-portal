@@ -59,7 +59,7 @@
     "passport-http-bearer": "^1.0.1",
     "passport-jwt": "^4.0.1",
     "passport-local": "^1.0.0",
-    "postcss": "^8.4.24",
+    "postcss": "^8.4.25",
     "rc": "1.2.8",
     "redux": "4.2.1",
     "request-promise": "^4.2.6",
