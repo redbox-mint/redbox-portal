@@ -579,8 +579,7 @@ export module Controllers {
           this.ajaxOk(req, res, null, updateResponse);
         }
       } else {
-        sails.log.error(`createRecord - createRecord - Failed to save record:`);
-        sails.log.error(JSON.stringify(updateResponse));
+        sails.log.error('RecordController - createRecord - createRecord - Failed to save record: '+JSON.stringify(updateResponse));
         this.ajaxFail(req, res, null, updateResponse);
       }
     }
