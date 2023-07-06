@@ -15,6 +15,7 @@
         "preserveConstEnums": true,
         "suppressImplicitAnyIndexErrors": true,
         "sourceMap": false,
+        "inlineSourceMap": true,
         "outDir": "./",
         "rootDir": "./typescript"
     },
