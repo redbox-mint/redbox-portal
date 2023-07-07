@@ -16,7 +16,7 @@
     "chokidar": "~3.5.2",
     "connect-mongo": "^4.6.0",
     "copy-webpack-plugin": "^11.0.0",
-    "core-js": "^3.31.0",
+    "core-js": "^3.31.1",
     "css-loader": "^6.8.1",
     "css-minimizer-webpack-plugin": "^5.0.1",
     "csv-parser": "^3.0.0",
