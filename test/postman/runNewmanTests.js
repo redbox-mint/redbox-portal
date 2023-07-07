@@ -7,7 +7,7 @@ sails.lift({
     level: 'info'
   },
   hooks: {
-    grunt: true
+    grunt: false
   },
   models: {
     datastore: 'mongodb',
