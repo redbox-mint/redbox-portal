@@ -17,6 +17,7 @@ export module Services.Core {
     private _defaultExportedMethods: string[] = [
       // Sails controller custom config.
       '_config',
+      'convertToType'
     ];
 
     protected logHeader: string;
@@ -102,6 +103,35 @@ export module Services.Core {
       return new Promise(resolve => {
         setTimeout(resolve, ms)
       });
+    }
+    /**
+     * Convenience method to quickly assign properties of one type to another. Note type-safety isn't fully guaranteed.
+     * 
+     * Usually used to convert to/from DTOs. Destination object constructing is left to the callee.
+     * 
+     * TODO: source and dest can be made more type safe
+     * 
+     * @param source 
+     * @param dest 
+     * @param mapping 
+     * @param appendMappingToSource 
+     * @returns 
+     */
+    public convertToType<Type>(source:any, dest:any, mapping:{[key: string]: string} | undefined, appendMappingToSource: boolean = false): Type {
+      let fields = _.mapValues(dest, (val, key) => {
+        return key;
+      });
+      if (appendMappingToSource) {
+        fields = _.merge(fields, mapping);
+      } else {
+        // make the mapping optional
+        fields = _.isUndefined(mapping) ? fields : mapping;
+      }
+      // force to enumerable string keyed only, transforming at the root level 
+      _.forOwn(fields, (destKey, srcKey) => {
+        _.set(dest, destKey, source[srcKey]);
+      });
+      return dest as Type;
     }
   }
 }

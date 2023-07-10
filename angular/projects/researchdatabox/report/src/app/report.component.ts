@@ -18,8 +18,9 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 import { Component, Inject, ElementRef } from '@angular/core';
-import { ConfigService, LoggerService, TranslationService, ReportService, BaseComponent, RecordPage, ReportFilter } from '@researchdatabox/portal-ng-common';
-import { RecordSource, RecordPropViewMeta, Report, ReportResult } from '@researchdatabox/portal-ng-common';
+import { ConfigService, LoggerService, TranslationService, ReportService, BaseComponent } from '@researchdatabox/portal-ng-common';
+import { RecordSource } from '@researchdatabox/portal-ng-common';
+import {  RecordPropViewMetaDto, ReportDto, ReportResultDto, RecordPageDto } from '@researchdatabox/sails-ng-common';
 import { isEmpty as _isEmpty, set as _set, map as _map } from 'lodash-es';
 import { DateTime } from 'luxon';
 /**
@@ -37,9 +38,9 @@ export class ReportComponent extends BaseComponent implements RecordSource {
   datePickerOpts: any;
   filterParams: any = {};
   initTracker: any = { reportLoaded: false, resultsReturned: false };
-  report: Report = null as any;
-  reportResult: ReportResult = null as any;
-  tableHeaders: RecordPropViewMeta[] = null as any;
+  report: ReportDto = null as any;
+  reportResult: ReportResultDto = null as any;
+  tableHeaders: RecordPropViewMetaDto[] = null as any;
   appName:string = 'report';
   optTemplateData:any = {};
   reportName: string = '';
@@ -66,7 +67,7 @@ export class ReportComponent extends BaseComponent implements RecordSource {
     return this.reportResult;
   }
 
-  async gotoPage(pageNum: number): Promise<RecordPage> {
+  async gotoPage(pageNum: number): Promise<RecordPageDto> {
     this.initTracker.resultsReturned = false;
     this.reportResult =  await this.reportService.getReportResult(this.reportName, pageNum, this.getParams(), this.recordsPerPage);
     this.initTracker.resultsReturned = true;

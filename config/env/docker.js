@@ -18,10 +18,8 @@ module.exports = {
    * Set the default database connection for models in the development       *
    * environment (see config/connections.js and config/models.js )           *
    ***************************************************************************/
-
-  // models: {
-  //   connection: 'someMongodbServer'
-  // }
+  // Toggle to enable new form app
+  enableNewForm: false,
   bootstrapTimeout: 480000,
   pubsub: {
     _hookTimeout: 480000,
