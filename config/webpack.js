@@ -89,7 +89,8 @@ module.exports.webpack = {
           // `...`,
           new CssMinimizerPlugin(),
         ],
-        minimize: true,
+        // disabled by default for local development
+        minimize: false,
       }
     }
   ],

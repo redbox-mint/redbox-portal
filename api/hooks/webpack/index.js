@@ -39,6 +39,11 @@ module.exports = function defineWebpackHook(sails) {
       const isSailsScriptEnv = () => global.isSailsScriptEnv;
       if (isSailsScriptEnv()) void done();
 
+      // enable minimization of CSS when explicitly told so
+      if (process.env.WEBPACK_CSS_MINI === 'true') {
+        sails.config.webpack.config[0].optimization.minimize = true;
+        sails.log.info(`Webpack hook is configured for CSS minimization.`);
+      }
       const compiler = webpack(sails.config.webpack.config);
 
 
