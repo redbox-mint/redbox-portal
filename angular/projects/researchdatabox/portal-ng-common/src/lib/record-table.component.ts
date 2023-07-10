@@ -22,7 +22,8 @@ import { BaseComponent } from './base.component';
 import { LoggerService } from './logger.service';
 import { UtilityService } from './utility.service';
 import { isEmpty as _isEmpty, get as _get, merge as _merge, template as _template } from 'lodash-es';
-import { RecordPropViewMeta, RecordSource, RecordPage } from './record.model';
+import { RecordSource } from './record.model';
+import { RecordPageDto, RecordPropViewMetaDto } from '@researchdatabox/sails-ng-common';
 import { DateTime } from 'luxon';
 import { LoDashTemplateUtilityService } from './lodash-template-utility.service';
 /**
@@ -45,7 +46,7 @@ import { LoDashTemplateUtilityService } from './lodash-template-utility.service'
 })
 export class RecordTableComponent extends BaseComponent {
   // row/column config
-  @Input() columnConfig: RecordPropViewMeta[] = null as any;
+  @Input() columnConfig: RecordPropViewMetaDto[] = null as any;
   // the data source
   @Input() dataSource: RecordSource = null as any;
   // additional binding data for templates
@@ -75,7 +76,7 @@ export class RecordTableComponent extends BaseComponent {
     }
   }
 
-  getColValue(row: any, col: RecordPropViewMeta) {
+  getColValue(row: any, col: RecordPropViewMetaDto) {
     if (col.multivalue) {
       let retVal = [];
       for (let val of _get(row, col.property)) {
@@ -87,7 +88,7 @@ export class RecordTableComponent extends BaseComponent {
     }
   }
 
-  getEntryValue(row: any, col: RecordPropViewMeta, val: any = undefined) {
+  getEntryValue(row: any, col: RecordPropViewMetaDto, val: any = undefined) {
     let retVal = '';
     if (!_isEmpty(col.template)) {
       const data = _merge({}, row, {

@@ -624,6 +624,136 @@
           }
         }
       }
+    },
+    "@researchdatabox/form": {
+      "projectType": "application",
+      "schematics": {
+        "@schematics/angular:component": {
+          "style": "scss"
+        }
+      },
+      "root": "projects/researchdatabox/form",
+      "sourceRoot": "projects/researchdatabox/form/src",
+      "prefix": "app",
+      "architect": {
+        "build": {
+          "builder": "@angular-devkit/build-angular:browser",
+          "options": {
+            "outputPath": "../assets/angular/form",
+            "index": "projects/researchdatabox/form/src/index.html",
+            "main": "projects/researchdatabox/form/src/main.ts",
+            "polyfills": [
+              "zone.js"
+            ],
+            "tsConfig": "projects/researchdatabox/form/tsconfig.app.json",
+            "inlineStyleLanguage": "scss",
+            "assets": [
+              "projects/researchdatabox/form/src/favicon.ico",
+              "projects/researchdatabox/form/src/assets"
+            ],
+            "styles": [
+              "projects/researchdatabox/form/src/styles.scss"
+            ],
+            "scripts": []
+          },
+          "configurations": {
+            "production": {
+              "budgets": [
+                {
+                  "type": "initial",
+                  "maximumWarning": "500kb",
+                  "maximumError": "1mb"
+                },
+                {
+                  "type": "anyComponentStyle",
+                  "maximumWarning": "2kb",
+                  "maximumError": "4kb"
+                }
+              ],
+              "outputHashing": "all"
+            },
+            "development": {
+              "buildOptimizer": false,
+              "optimization": false,
+              "vendorChunk": true,
+              "extractLicenses": false,
+              "sourceMap": true,
+              "namedChunks": true
+            }
+          },
+          "defaultConfiguration": "production"
+        },
+        "serve": {
+          "builder": "@angular-devkit/build-angular:dev-server",
+          "configurations": {
+            "production": {
+              "browserTarget": "@researchdatabox/form:build:production"
+            },
+            "development": {
+              "browserTarget": "@researchdatabox/form:build:development"
+            }
+          },
+          "defaultConfiguration": "development"
+        },
+        "extract-i18n": {
+          "builder": "@angular-devkit/build-angular:extract-i18n",
+          "options": {
+            "browserTarget": "@researchdatabox/form:build"
+          }
+        },
+        "test": {
+          "builder": "@angular-devkit/build-angular:karma",
+          "options": {
+            "polyfills": [
+              "zone.js",
+              "zone.js/testing"
+            ],
+            "tsConfig": "projects/researchdatabox/form/tsconfig.spec.json",
+            "inlineStyleLanguage": "scss",
+            "assets": [
+              "projects/researchdatabox/form/src/favicon.ico",
+              "projects/researchdatabox/form/src/assets"
+            ],
+            "styles": [
+              "projects/researchdatabox/form/src/styles.scss"
+            ],
+            "scripts": []
+          }
+        }
+      }
+    },
+    "@researchdatabox/portal-ng-form-custom": {
+      "projectType": "library",
+      "root": "../../portal-ng-form-custom/projects/researchdatabox/portal-ng-form-custom",
+      "sourceRoot": "../../portal-ng-form-custom/projects/researchdatabox/portal-ng-form-custom/src",
+      "prefix": "lib",
+      "architect": {
+        "build": {
+          "builder": "@angular-devkit/build-angular:ng-packagr",
+          "options": {
+            "project": "../../portal-ng-form-custom/projects/researchdatabox/portal-ng-form-custom/ng-package.json"
+          },
+          "configurations": {
+            "production": {
+              "tsConfig": "../../portal-ng-form-custom/projects/researchdatabox/portal-ng-form-custom/tsconfig.lib.prod.json"
+            },
+            "development": {
+              "tsConfig": "../../portal-ng-form-custom/projects/researchdatabox/portal-ng-form-custom/tsconfig.lib.json"
+            }
+          },
+          "defaultConfiguration": "production"
+        },
+        "test": {
+          "builder": "@angular-devkit/build-angular:karma",
+          "options": {
+            "tsConfig": "../../portal-ng-form-custom/projects/researchdatabox/portal-ng-form-custom/tsconfig.spec.json",
+            "polyfills": [
+              "zone.js",
+              "zone.js/testing"
+            ]
+          }
+        }
+      }
     }
   },
   "cli": {

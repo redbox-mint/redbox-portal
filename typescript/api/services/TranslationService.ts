@@ -21,8 +21,8 @@ import { Observable } from 'rxjs/Rx';
 import {Services as services}   from '@researchdatabox/redbox-core-types';
 import { Sails, Model } from "sails";
 import * as i18next from "i18next"
-// import  Backend from 'i18next-sync-fs-backend';
-import  * as Backend from 'i18next-node-fs-backend';
+import Backend from 'i18next-fs-backend';
+
 declare var sails: Sails;
 
 export module Services {

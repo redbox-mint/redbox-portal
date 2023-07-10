@@ -28,11 +28,11 @@ import {
   RecordTypeResponseModel,
   DashboardTypeResponseModel
 } from '@researchdatabox/redbox-core-types';
-import moment = require('moment');
+import { default as moment } from 'moment';
 import * as tus from 'tus-node-server';
 import * as fs from 'fs';
 import * as url from 'url';
-const checkDiskSpace = require('check-disk-space').default;
+import { default as checkDiskSpace } from 'check-disk-space';
 declare var _;
 
 declare var FormsService, WorkflowStepsService, BrandingService, RecordsService, RecordTypesService, TranslationService, User, UsersService, EmailService, RolesService;

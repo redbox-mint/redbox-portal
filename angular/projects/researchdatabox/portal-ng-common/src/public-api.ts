@@ -15,4 +15,7 @@ export * from './lib/helper.spec';
 export * from './lib/report.service';
 export * from './lib/record.model';
 export * from './lib/record-table.component';
+export * from './lib/form/form-base.model';
+export * from './lib/form/form-base.component';
+export * from './lib/form/form-component-resolver.interface';
 export * from './lib/portal-ng-common.module';

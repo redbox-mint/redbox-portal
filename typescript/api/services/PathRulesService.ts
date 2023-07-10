@@ -20,7 +20,7 @@
 import { Observable } from 'rxjs/Rx';
 import {Services as services}   from '@researchdatabox/redbox-core-types';
 import {Sails, Model} from "sails";
-import UrlPattern = require('url-pattern');
+import { default as UrlPattern } from 'url-pattern';
 
 declare var sails: Sails;
 declare var PathRule: Model;
