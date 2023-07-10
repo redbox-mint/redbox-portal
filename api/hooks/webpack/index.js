@@ -23,8 +23,8 @@ module.exports = function defineWebpackHook(sails) {
     return {};
   }
 
-  if (process.env.NODE_ENV != 'docker') {
-    sails.log.warn(`sails-hook-webpack: Running in non-dev environment, skipping webpack run.`);
+  if (process.env.NODE_ENV != 'docker' || process.env.WEBPACK_SKIP === 'true') {
+    sails.log.warn(`sails-hook-webpack: Configured to skip webpack.`);
     return {};
   }
 
