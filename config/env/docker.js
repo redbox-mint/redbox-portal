@@ -24,6 +24,9 @@ module.exports = {
   pubsub: {
     _hookTimeout: 480000,
   },
+  webpack: {
+    _hookTimeout: 480000
+  },
   log: {
     level: 'verbose'
   },

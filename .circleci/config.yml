@@ -10,6 +10,7 @@ jobs:
       - run: curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.2/install.sh | bash
       - run: (chmod +x support/build/compileProductionAngular.sh && support/build/compileProductionAngular.sh)
       - run: (chmod +x support/build/compileProductionAngularLegacy.sh && support/build/compileProductionAngularLegacy.sh)
+      - run: npm run webpack
       - persist_to_workspace:
           root: .
           paths:
@@ -22,6 +23,7 @@ jobs:
       - run: (cd core && npm install && node_modules/.bin/tsc)
       - run: npm install --production
       - run: node_modules/.bin/tsc
+      - run: npm run webpack
       - persist_to_workspace:
           root: .
           paths:
