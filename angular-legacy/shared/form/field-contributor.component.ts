@@ -545,17 +545,44 @@ export class ContributorComponent extends SimpleComponent {
 
 
   onSelect(selected: any, emitEvent:boolean=true, updateTitle:boolean=false) {
+
     if (selected) {
-      if ( (_.isEmpty(selected.title) || _.isUndefined(selected.title)) && (_.isEmpty(selected.text_full_name) || _.isUndefined(selected.text_full_name))) {
-        console.log(`Same or empty selection, returning...`);
-        this.lastSelected = null;
-        return;
+      if(this.field.splitNames) {
+        let selectedFamilyName = _.get(selected, 'family_name');
+        let selectedGivenName = _.get(selected, 'given_name');
+        if ( (_.isEmpty(selectedFamilyName) || _.isUndefined(selectedFamilyName)) && (_.isEmpty(selectedGivenName) || _.isUndefined(selectedGivenName))) {
+          console.log(`Same or empty selection for split names, returning...`);
+            this.lastSelected = null;
+            return;
+        } else {
+          let selectedFamilyName = _.get(selected, 'family_name');
+          let selectedGivenName = _.get(selected, 'given_name');
+          let fmFamilyName = _.get(this.field.formModel.value, 'family_name');
+          let fmGivenName = _.get(this.field.formModel.value, 'given_name');
+          let selectedEmail = _.get(selected, 'email');
+          let selectedOrcid = _.get(selected, 'email');
+          let fmEmail = _.get(this.field.formModel.value, 'email');
+          let fmOrcid = _.get(this.field.formModel.value, 'orcid');
+          if (selectedFamilyName && selectedFamilyName == fmFamilyName  && selectedGivenName && selectedGivenName == fmGivenName 
+              && selectedEmail && selectedEmail == fmEmail && selectedOrcid == fmOrcid) {
+            console.log(`Same or empty selection for split names, returning...`);
+            return;
+          }
+        }
+
       } else {
-        if (selected.title && selected.title == this.field.formModel.value.text_full_name && selected.email && selected.email == this.field.formModel.value.email && selected.orcid == this.field.formModel.value.orcid) {
+        if ( (_.isEmpty(selected.title) || _.isUndefined(selected.title)) && (_.isEmpty(selected.text_full_name) || _.isUndefined(selected.text_full_name))) {
           console.log(`Same or empty selection, returning...`);
+          this.lastSelected = null;
           return;
+        } else {
+          if (selected.title && selected.title == this.field.formModel.value.text_full_name && selected.email && selected.email == this.field.formModel.value.email && selected.orcid == this.field.formModel.value.orcid) {
+            console.log(`Same or empty selection, returning...`);
+            return;
+          }
         }
       }
+
       this.lastSelected = selected;
       let val:any;
       if (!this.field.freeText) {

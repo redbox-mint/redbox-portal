@@ -20,7 +20,7 @@
 declare var module;
 import {QueueService, SearchService, Services as services}   from '@researchdatabox/redbox-core-types';
 
-import solr = require('solr-client');
+import { default as solr } from 'solr-client';
 const axios = require('axios');
 const util = require('util');
 const querystring = require('querystring');

@@ -502,7 +502,11 @@ export class FieldBase<T> {
         if (that.visible) {
           // remove validators
           if (that.formModel) {
-            that.formModel.clearValidators();
+            if(that['disableValidators'] != null && typeof(that['disableValidators']) == 'function') {
+              that['disableValidators']();
+            } else {
+              that.formModel.clearValidators();
+            }
             that.formModel.updateValueAndValidity();
           }
         }

@@ -321,16 +321,16 @@ export class DropdownFieldComponent extends SelectionComponent {
       <button type="button" class="btn btn-default" *ngIf="field.help" (click)="toggleHelp()" [attr.aria-label]="'help' | translate "><span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span></button>
      </span><br/>
      <span id="{{ 'helpBlock_' + field.name }}" class="help-block" *ngIf="this.helpShow" [innerHtml]="field.help"></span>
-     <fieldset>
-      <legend [hidden]="true"><span></span></legend>
-        <span *ngFor="let opt of findAvailableOptions(field.value)">
+     <fieldset [ngClass]="field.fieldSetCssClasses">
+      
+        <div *ngFor="let opt of findAvailableOptions(field.value)" [ngClass]="field.controlGroupCssClasses">
           <!-- radio type hard-coded otherwise accessor directive will not work! -->
           <!-- the ID and associated label->for property is now delegated to a Fn rather than inline-templated here, to make it optional, e.g. if it is nested -->
-          <input *ngIf="isRadio()" type="radio" [id]="getInputId(opt)" [formControlName]="field.name" [value]="opt.value" [attr.disabled]="field.readOnly ? '' : null ">
-          <input *ngIf="!isRadio()" type="{{field.controlType}}" name="{{field.name}}" [id]="getInputId(opt)" [value]="opt.value" (change)="onChange(opt, $event)" [attr.selected]="getCheckedFromOption(opt)" [checked]="getCheckedFromOption(opt)" [attr.disabled]="field.readOnly ? '' : null ">
-          <label [attr.for]="getInputId(opt)" class="radio-label"  [innerHtml]="opt.label"></label>
-          <br/>
-        </span>
+          <input *ngIf="isRadio()" type="radio" [id]="getInputId(opt)" [formControlName]="field.name" [value]="opt.value" [attr.disabled]="field.readOnly ? '' : null " [ngClass]="field.controlInputCssClasses">
+          <input *ngIf="!isRadio()" type="{{field.controlType}}" name="{{field.name}}" [id]="getInputId(opt)" [value]="opt.value" (change)="onChange(opt, $event)" [ngClass]="field.controlInputCssClasses" [attr.selected]="getCheckedFromOption(opt)" [checked]="getCheckedFromOption(opt)" [attr.disabled]="field.readOnly ? '' : null ">
+          <label [attr.for]="getInputId(opt)" class="radio-label" [ngClass]="field.controlLabelCssClasses" [innerHtml]="opt.label"></label>
+          
+        </div>
      </fieldset>
      <div class="text-danger" *ngIf="hasRequiredError() && !field.validationMessages?.required">{{field.label}} is required</div>
      <div class="text-danger" *ngIf="hasRequiredError() && field.validationMessages?.required">{{field.validationMessages.required}}</div>
