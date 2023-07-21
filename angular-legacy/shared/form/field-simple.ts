@@ -53,6 +53,8 @@ export class SelectionField extends FieldBase<any>  {
   fieldSetCssClasses: string = 'selection-field-set';
   controlInputCssClasses:string = 'selection-control-input';
   controlLabelCssClasses:string = 'selection-control-label';
+  controlTableInputCssClasses:string = 'selection-table-control-input';
+  controlTableLabelCssClasses:string = 'selection-table-control-label';
   
   constructor(options: any, injector: any) {
     super(options, injector);
@@ -99,6 +101,8 @@ export class SelectionField extends FieldBase<any>  {
     this.fieldSetCssClasses = options['fieldSetCssClasses'] == undefined ? this.fieldSetCssClasses : options['fieldSetCssClasses'];
     this.controlInputCssClasses = options['controlInputCssClasses'] == undefined ? this.controlInputCssClasses : options['controlInputCssClasses'];
     this.controlLabelCssClasses = options['controlLabelCssClasses'] == undefined ? this.controlLabelCssClasses : options['controlLabelCssClasses'];
+    this.controlTableInputCssClasses = options['controlTableInputCssClasses'] == undefined ? this.controlTableInputCssClasses : options['controlTableInputCssClasses'];
+    this.controlTableLabelCssClasses = options['controlTableLabelCssClasses'] == undefined ? this.controlTableLabelCssClasses : options['controlTableLabelCssClasses'];
   }
 
 
