@@ -27,6 +27,7 @@ export class DashboardComponent extends BaseComponent {
   dashboardTypeSelected: string;
   rulesService: object;
   currentUser: object = {};
+  enableSort: boolean = true;
 
   defaultTableConfig = [
     {
@@ -236,6 +237,12 @@ export class DashboardComponent extends BaseComponent {
         this.sortMap[step.name][rowConfig.variable] = {
           sort: rowConfig.initialSort
         };
+      }
+
+      if(this.dashboardTypeSelected == 'consolidated') {
+        this.enableSort = false;
+      } else {
+        this.enableSort = true;
       }
 
       let packageType = '';
