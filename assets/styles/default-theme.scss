@@ -169,16 +169,6 @@ z-index: 999;
   color: #fff
 }
 
-
-a {color: #428bca}
-
-.footer-bottom-area {
-  background: none repeat scroll 0 0 $footer-bottom-area-branding-background-color;
-  color: #fff;
-  padding-bottom: 40px;
-}
-
-
 .footer-card-icon {
   font-size: 30px;
   text-align: right;
@@ -1937,18 +1927,20 @@ button,input,select,textarea {
 }
 
 a {
-    color: #337ab7;
+    color: $anchor-color;
     text-decoration: none
 }
 
-a:focus,a:hover {
-    color: #23527c;
-    text-decoration: underline
+a:hover {
+    color: $anchor-color-hover;
+    text-decoration: underline;
 }
 
 a:focus {
+    color: $anchor-color-focus;
     outline: 5px auto -webkit-focus-ring-color;
-    outline-offset: -2px
+    outline-offset: -2px;
+    text-decoration: underline
 }
 
 figure {
