@@ -46,6 +46,7 @@ export class ANDSVocabField extends FieldBase<any> {
   public disableCheckboxRegexPattern:string;
   public disableCheckboxRegexTestValue:string;
   public disableCheckboxRegexCaseSensitive: boolean;
+  control:any;
 
   constructor(options: any, injector: any) {
     super(options, injector);
@@ -82,6 +83,20 @@ export class ANDSVocabField extends FieldBase<any> {
     this.setValue(curVal);
   }
 
+  public toggleVisibility() {
+    this.visible = !this.visible;
+    if(this.visible) {
+      this.control.initialiseControl();
+    }
+  }
+
+  public setVisibility(data, eventConf:any = {}) {
+    super.setVisibility(data,eventConf)
+    if(this.visible) {
+      this.control.initialiseControl();
+    }
+  }
+
 }
 /**
 * Component utilising the ANDS Vocabb selector widget
@@ -110,6 +125,7 @@ export class ANDSVocabComponent extends SimpleComponent {
   readonly STATUS_EXPANDING = 3;
   readonly STATUS_EXPANDED = 4;
   loadState: any;
+  initialised:boolean = false;
 
   constructor(@Inject(ElementRef) elementRef: ElementRef) {
     super();
@@ -124,10 +140,12 @@ export class ANDSVocabComponent extends SimpleComponent {
     };
     this.nodeEventSubject = new Subject<any>();
     this.loadState = this.STATUS_INIT;
+    
   }
 
   public ngOnInit() {
     if (this.field.editMode) {
+      this.field.control = this;
       jQuery(this.elementRef.nativeElement)['vocab_widget']({
         repository: this.field.vocabId,
         endpoint: 'https://vocabs.ardc.edu.au/apps/vocab_widget/proxy/',
@@ -139,7 +157,11 @@ export class ANDSVocabComponent extends SimpleComponent {
   }
 
   public ngAfterViewInit() {
-    if (this.field.editMode) {
+    this.initialiseControl();
+  }
+  
+  initialiseControl() {
+    if (!this.initialised && this.field.editMode && this.field.visible) {
       const that = this;
       if (this.loadState == this.STATUS_INIT) {
         this.loadState = this.STATUS_LOADING;
@@ -160,6 +182,7 @@ export class ANDSVocabComponent extends SimpleComponent {
         });
 
         this.startTreeInit();
+        this.initialised = true;
       }
     }
   }
@@ -351,4 +374,6 @@ export class ANDSVocabComponent extends SimpleComponent {
     this.loadState = this.STATUS_LOADED;
     this.startTreeInit();
   }
+
+  
 }
