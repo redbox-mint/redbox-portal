@@ -46,7 +46,7 @@ export class ANDSVocabField extends FieldBase<any> {
   public disableCheckboxRegexPattern:string;
   public disableCheckboxRegexTestValue:string;
   public disableCheckboxRegexCaseSensitive: boolean;
-  control:any;
+  public component:any;
 
   constructor(options: any, injector: any) {
     super(options, injector);
@@ -86,14 +86,14 @@ export class ANDSVocabField extends FieldBase<any> {
   public toggleVisibility() {
     this.visible = !this.visible;
     if(this.visible) {
-      this.control.initialiseControl();
+      this.component.initialiseControl();
     }
   }
 
   public setVisibility(data, eventConf:any = {}) {
     super.setVisibility(data,eventConf)
     if(this.visible) {
-      this.control.initialiseControl();
+      this.component.initialiseControl();
     }
   }
 
@@ -145,7 +145,7 @@ export class ANDSVocabComponent extends SimpleComponent {
 
   public ngOnInit() {
     if (this.field.editMode) {
-      this.field.control = this;
+      this.field.component = this;
       jQuery(this.elementRef.nativeElement)['vocab_widget']({
         repository: this.field.vocabId,
         endpoint: 'https://vocabs.ardc.edu.au/apps/vocab_widget/proxy/',
