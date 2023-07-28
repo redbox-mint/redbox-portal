@@ -348,17 +348,26 @@ export module Controllers {
         sails.log.verbose('decodeErrorMappings - errorMappingList: ' + JSON.stringify(errorMappingList));
         for(let errorMappingDetails of errorMappingList) {
 
+          let matchRegex =  false;
+          let matchString = false;
+          let matchRegexWithGroups =  _.get(errorMappingDetails, 'matchRegexWithGroups', false);
           let fieldLanguageCode = _.get(errorMappingDetails, 'altErrorRedboxCodeMessage');
           let fieldLanguageCode2 = _.get(errorMappingDetails, 'altErrorRedboxCodeDetails', '');
-          let matchRegex = _.get(errorMappingDetails, 'matchRegex', true);
-          let matchString = _.get(errorMappingDetails, 'matchString', false);
           let asObject = _.get(errorMappingDetails, 'altErrorAsObject', false);
+          let regexPattern = _.get(errorMappingDetails, 'errorDescPattern');
+          
+          if(!_.isUndefined(regexPattern) && _.isRegExp(regexPattern)) {
+            matchRegex =  true;
+            matchString = false;
+          } else if(!_.isUndefined(regexPattern) && !_.isRegExp(regexPattern) && _.isString(regexPattern) && !_.isEmpty(regexPattern)) {
+            matchRegex =  false;
+            matchString = true;
+          } else {
+            errorMessageDecoded = fieldLanguageCode;
+            break;
+          }
 
           if (matchRegex) {
-            let regexPattern = _.get(errorMappingDetails, 'errorDescOrRefOrExp');
-            let matchRegexWithGroups = _.get(errorMappingDetails, 'matchRegexWithGroups', false);
-            let regexGroupsPattern = _.get(errorMappingDetails, 'regexGroupsPattern', '');
-            let messageInterpolationGroups = _.get(errorMappingDetails, 'messageInterpolationGroups', {});
             sails.log.verbose('decodeErrorMappings - regexPattern ' + regexPattern);
             if(this.validateRegex(errorMessage, regexPattern)) {
               if(asObject) {
@@ -367,9 +376,11 @@ export module Controllers {
                   detailedMessage: fieldLanguageCode2
                 }
                 break;
-              } else if(matchRegexWithGroups && !_.isEmpty(messageInterpolationGroups) && !_.isEmpty(regexGroupsPattern)) {
-                let matchRegexGroupsDecoded = this.validateRegexWithGroups(errorMessage, regexGroupsPattern, messageInterpolationGroups);
+              } else if(matchRegexWithGroups && _.isRegExp(regexPattern)) {
+                let matchRegexGroupsDecoded = this.validateRegexWithGroups(errorMessage, regexPattern);
                 if(!_.isEmpty(matchRegexGroupsDecoded)) {
+                  sails.log.verbose('decodeErrorMappings - interpolationObj ' + JSON.stringify(matchRegexGroupsDecoded));
+                  sails.log.verbose('decodeErrorMappings - detailedMessage ' + fieldLanguageCode2);
                   errorMessageDecodedAsObject = { 
                     message: fieldLanguageCode, 
                     detailedMessage: fieldLanguageCode2,
@@ -385,7 +396,7 @@ export module Controllers {
             }
             
           } else if (matchString) {
-            let errorRefDesc = _.get(errorMappingDetails, 'errorDescOrRefOrExp');
+            let errorRefDesc = _.get(errorMappingDetails, 'errorDescPattern');
             if(errorMessage.includes(errorRefDesc)){
               if(asObject) {
                 errorMessageDecodedAsObject = { 
@@ -410,61 +421,29 @@ export module Controllers {
     }
 
     private validateRegex(errorMessage, regexPattern) {
-      let re = new RegExp(regexPattern, 'i');
-      sails.log.verbose('decodeErrorMappings errorMessage.toString() ' + errorMessage.toString());
-      let reTestResult = re.test(errorMessage.toString());
-      sails.log.verbose('decodeErrorMappings reTestResult ' + reTestResult);
-      return reTestResult;
+      if(_.isRegExp(regexPattern)) {
+        let re = new RegExp(regexPattern);
+        sails.log.verbose('decodeErrorMappings errorMessage.toString() ' + errorMessage.toString());
+        let reTestResult = re.test(errorMessage.toString());
+        sails.log.verbose('decodeErrorMappings reTestResult ' + reTestResult);
+        return reTestResult;
+      } else {
+        return false;
+      }
     }
 
-    private validateRegexWithGroups(errorMessage, regexPattern, groups) {
-      let decodedGroups = _.clone(groups);
-      let re = new RegExp(regexPattern, 'gi');
-      const matches = errorMessage.matchAll(re);
-      const keys = _.keys(groups);
-      let matchesObj = {};
-      for (const match of matches) {
-        matchesObj = match;
+    private validateRegexWithGroups(errorMessage, regexPattern) {
+      // let decodedGroups = _.clone(groups);
+      let re = new RegExp(regexPattern);
+      const matches = re.exec(errorMessage);
+
+      let interpolationMap = {}
+      let groups = _.get(matches, 'groups');
+      if(!_.isUndefined(groups)) {
+        interpolationMap = groups;
       }
-      let matchesKeys = _.keys(matchesObj);
-      for (let index = 0; index < keys.length; index++) {
-        let key = keys[index];
-        let matchKey = _.get(matchesKeys,''+(index+1), '');
-        let groupVal = _.get(matchesObj, matchKey, '');
-        if(!_.isEmpty(matchKey) && !_.isEmpty(groupVal)) {
-          let tmpStringVal1 = groupVal.toString();
-          tmpStringVal1 = groupVal.replace(/{/g,'');
-          groupVal = tmpStringVal1;
-          tmpStringVal1 = groupVal.replace(/}/g,'');
-          groupVal = tmpStringVal1;
-          tmpStringVal1 = groupVal.replace(/'/g,'');
-          groupVal = tmpStringVal1;
-          tmpStringVal1 = groupVal.replace(/,/g,'');
-          groupVal = tmpStringVal1;
-          tmpStringVal1 = groupVal.replace(/\(/g,'');
-          groupVal = tmpStringVal1;
-          tmpStringVal1 = groupVal.replace(/\)/g,'');
-          groupVal = tmpStringVal1;
-          tmpStringVal1 = groupVal.replace(/"/g,'');
-          groupVal = tmpStringVal1;
-          tmpStringVal1 = groupVal.replace(/\\/g,'');
-          groupVal = tmpStringVal1;
-          tmpStringVal1 = groupVal.replace(/\//g,'');
-          groupVal = tmpStringVal1;
-          tmpStringVal1 = groupVal.replace(/:/g,'');
-          groupVal = tmpStringVal1;
-          tmpStringVal1 = groupVal.replace(/&/g,'');
-          groupVal = tmpStringVal1;
-          tmpStringVal1 = groupVal.replace(/#/g,'');
-          groupVal = tmpStringVal1;
-          tmpStringVal1 = groupVal.replace(/$/g,'');
-          groupVal = tmpStringVal1;
-          tmpStringVal1 = _.trim(groupVal);
-          groupVal = tmpStringVal1;
-          _.set(decodedGroups, key, groupVal);
-        }
-      }
-      return decodedGroups;
+
+      return interpolationMap;
     }
 
     public aafLogin(req, res) {
