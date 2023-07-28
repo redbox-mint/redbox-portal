@@ -263,6 +263,7 @@ export module Controllers {
       if (!_.isEmpty(req.param('id'))) {
         passportIdentifier = `oidc-${req.param('id')}`
       }
+      let that = this;
       sails.config.passport.authenticate(passportIdentifier, function (err, user, info) {
         sails.log.verbose("At openIdConnectAuth Controller, verify...");
         sails.log.verbose("Error:");
@@ -272,10 +273,8 @@ export module Controllers {
         sails.log.verbose("User:");
         sails.log.verbose(user);
 
-
-
         if (!_.isEmpty(err) || _.isUndefined(user) || _.isEmpty(user) || user == false) {
-          sails.log.error(`OpenId Connect Login failed!`)
+          sails.log.error(`OpenId Connect Login failed!`);
           // means the provider has authenticated the user, but has been rejected, redirect to catch-all
           if (!_.isEmpty(info) && !_.isString(info) && _.isObject(info)) {
             info = JSON.stringify(info);
@@ -285,10 +284,12 @@ export module Controllers {
             }
           }
 
-          // check if the issue is some obscure session destruction bug
-          if (_.startsWith(err, "Error: did not find expected authorization request details in session")) {
-            // letting the user try again seems to 'refresh' the session
-            req.session['data'] = `oidc-login-session-destroyed`;
+          let oidcConfig = _.get(sails.config, 'auth.default.oidc');
+          let errorMessage = _.get(err, 'message');
+          let errorMessageDecoded = that.decodeErrorMappings(oidcConfig, errorMessage);
+          sails.log.verbose('After decodeErrorMappings - errorMessageDecoded: ' + JSON.stringify(errorMessageDecoded));
+          if(!_.isEmpty(errorMessageDecoded)) {
+            req.session['data'] = errorMessageDecoded;
             return res.serverError();
           }
 
@@ -302,7 +303,7 @@ export module Controllers {
           if (_.isEmpty(req.session.data)) {
             req.session['data'] = {
               "message": 'error-auth',
-              "detailedMessager": `${err}${info}`
+              "detailedMessage": `${err}${info}`
             };
           }
 
@@ -334,6 +335,116 @@ export module Controllers {
       sails.config.passport.authenticate(passportIdentifier)(req, res);
     }
 
+    private decodeErrorMappings(options, errorMessage) {
+
+      sails.log.verbose('decodeErrorMappings - errorMessage: ' + errorMessage);
+      sails.log.verbose('decodeErrorMappings - options: ' + JSON.stringify(options));
+      let errorMessageDecoded = 'oidc-default-unknown-error';
+      let errorMappingList = _.get(options, 'errorMappings', []);
+      let errorMessageDecodedAsObject = {};
+
+      if(!_.isUndefined(errorMessage) && !_.isNull(errorMessage)) {
+
+        sails.log.verbose('decodeErrorMappings - errorMappingList: ' + JSON.stringify(errorMappingList));
+        for(let errorMappingDetails of errorMappingList) {
+
+          let matchRegex =  false;
+          let matchString = false;
+          let matchRegexWithGroups =  _.get(errorMappingDetails, 'matchRegexWithGroups', false);
+          let fieldLanguageCode = _.get(errorMappingDetails, 'altErrorRedboxCodeMessage');
+          let fieldLanguageCode2 = _.get(errorMappingDetails, 'altErrorRedboxCodeDetails', '');
+          let asObject = _.get(errorMappingDetails, 'altErrorAsObject', false);
+          let regexPattern = _.get(errorMappingDetails, 'errorDescPattern');
+          
+          if(!_.isUndefined(regexPattern) && _.isRegExp(regexPattern)) {
+            matchRegex =  true;
+            matchString = false;
+          } else if(!_.isUndefined(regexPattern) && !_.isRegExp(regexPattern) && _.isString(regexPattern) && !_.isEmpty(regexPattern)) {
+            matchRegex =  false;
+            matchString = true;
+          } else {
+            errorMessageDecoded = fieldLanguageCode;
+            break;
+          }
+
+          if (matchRegex) {
+            sails.log.verbose('decodeErrorMappings - regexPattern ' + regexPattern);
+            if(this.validateRegex(errorMessage, regexPattern)) {
+              if(asObject) {
+                errorMessageDecodedAsObject = { 
+                  message: fieldLanguageCode, 
+                  detailedMessage: fieldLanguageCode2
+                }
+                break;
+              } else if(matchRegexWithGroups && _.isRegExp(regexPattern)) {
+                let matchRegexGroupsDecoded = this.validateRegexWithGroups(errorMessage, regexPattern);
+                if(!_.isEmpty(matchRegexGroupsDecoded)) {
+                  sails.log.verbose('decodeErrorMappings - interpolationObj ' + JSON.stringify(matchRegexGroupsDecoded));
+                  sails.log.verbose('decodeErrorMappings - detailedMessage ' + fieldLanguageCode2);
+                  errorMessageDecodedAsObject = { 
+                    message: fieldLanguageCode, 
+                    detailedMessage: fieldLanguageCode2,
+                    interpolation: true,
+                    interpolationObj: matchRegexGroupsDecoded 
+                  }
+                  break;
+                }
+              } else {
+                errorMessageDecoded = fieldLanguageCode;
+                break;
+              }
+            }
+            
+          } else if (matchString) {
+            let errorRefDesc = _.get(errorMappingDetails, 'errorDescPattern');
+            if(errorMessage.includes(errorRefDesc)){
+              if(asObject) {
+                errorMessageDecodedAsObject = { 
+                  message: fieldLanguageCode, 
+                  detailedMessage: fieldLanguageCode2
+                }
+              } else {
+                errorMessageDecoded = fieldLanguageCode;
+              }
+              break;
+            }
+          }
+        
+        }
+      }
+
+      if(!_.isEmpty(errorMessageDecodedAsObject)) {
+        return errorMessageDecodedAsObject;
+      } else {
+        return errorMessageDecoded;
+      }
+    }
+
+    private validateRegex(errorMessage, regexPattern) {
+      if(_.isRegExp(regexPattern)) {
+        let re = new RegExp(regexPattern);
+        sails.log.verbose('decodeErrorMappings errorMessage.toString() ' + errorMessage.toString());
+        let reTestResult = re.test(errorMessage.toString());
+        sails.log.verbose('decodeErrorMappings reTestResult ' + reTestResult);
+        return reTestResult;
+      } else {
+        return false;
+      }
+    }
+
+    private validateRegexWithGroups(errorMessage, regexPattern) {
+      // let decodedGroups = _.clone(groups);
+      let re = new RegExp(regexPattern);
+      const matches = re.exec(errorMessage);
+
+      let interpolationMap = {}
+      let groups = _.get(matches, 'groups');
+      if(!_.isUndefined(groups)) {
+        interpolationMap = groups;
+      }
+
+      return interpolationMap;
+    }
 
     public aafLogin(req, res) {
       sails.config.passport.authenticate('aaf-jwt', function (err, user, info) {
@@ -353,7 +464,7 @@ export module Controllers {
           if (_.isEmpty(req.session.data)) {
             req.session['data'] = {
               "message": 'error-auth',
-              "detailedMessager": `${err}${info}`
+              "detailedMessage": `${err}${info}`
             };
           }
           return res.serverError();
