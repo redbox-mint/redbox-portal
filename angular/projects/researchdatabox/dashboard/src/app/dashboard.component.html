@@ -13,7 +13,8 @@
                     <thead>
                     <tr>
                     <th *ngFor="let rowConfig of tableConfig[workflowStep.config.workflow.stage]"> 
-                        <sort [title]="rowConfig.title | i18next" [variable]="rowConfig.variable" [step]="workflowStep.config.workflow.stage" [sort]="sortMap[workflowStep.config.workflow.stage][rowConfig.variable]['sort']" (sortChanged)="sortChanged($event)"> </sort>
+                        <sort *ngIf="enableSort" [title]="rowConfig.title | i18next" [variable]="rowConfig.variable" [step]="workflowStep.config.workflow.stage" [sort]="sortMap[workflowStep.config.workflow.stage][rowConfig.variable]['sort']" (sortChanged)="sortChanged($event)"> </sort>
+                        <span *ngIf="!enableSort" class="dashboard-heading-no-sort">{{rowConfig.title | i18next}}</span>
                     </th>
                     </tr>
                     </thead>

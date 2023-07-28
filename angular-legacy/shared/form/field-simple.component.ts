@@ -299,8 +299,8 @@ export class SelectionComponent extends SimpleComponent {
   <div *ngIf="!field.editMode && field.visible" class="key-value-pair">
     <span class="key" *ngIf="field.label">{{field.label}}</span>
     <ng-template [ngIf]="!field.storeValueAndLabel">
-    <span *ngIf="!field.valueIsLink" target="_blank" class="value">{{getLabel(field.value)}}</span>
-    <a *ngIf="field.valueIsLink" href="{{field.value}}" class="value">{{getLabel(field.value)}}</a>
+    <span *ngIf="!field.valueIsLink" class="value">{{getLabel(field.value)}}</span>
+    <a *ngIf="field.valueIsLink" href="{{field.value}}" target="_blank" rel="noopener noreferrer" class="value">{{getLabel(field.value)}}</a>
     </ng-template>
     <ng-template [ngIf]="field.storeValueAndLabel && field.value.value != ''">
     <span class="value">{{getLabel(field.value.value)}}</span>

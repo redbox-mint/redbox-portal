@@ -59,7 +59,7 @@ export class ActionButton extends FieldBase<string>  {
   template: `
   <ng-container *ngIf="field.editMode && field.visible">
     <div *ngIf="field.value">
-      {{ field.valueLabelPrefix }}<a *ngIf="field.valueIsUrl" target="_blank" [attr.href]="field.value">{{ field.value }}</a>{{ field.valueLabelSuffix }}
+      {{ field.valueLabelPrefix }}<a *ngIf="field.valueIsUrl" target="_blank" rel="noopener noreferrer" [attr.href]="field.value">{{ field.value }}</a>{{ field.valueLabelSuffix }}
     </div>
     <div *ngIf="!field.value">
       <button *ngIf="!field.submitting" type="{{field.type}}" [ngClass]="field.cssClasses" (click)="executeAction($event)" [disabled]="isDisabled()">
@@ -73,7 +73,7 @@ export class ActionButton extends FieldBase<string>  {
   </ng-container>
   <div *ngIf="!field.editMode && field.visible">
     <div *ngIf="field.value">
-    {{ field.valueLabelPrefix }}<a *ngIf="field.valueIsUrl" target="_blank" [attr.href]="field.value">{{ field.value }}</a>{{ field.valueLabelSuffix }}
+    {{ field.valueLabelPrefix }}<a *ngIf="field.valueIsUrl" target="_blank" rel="noopener noreferrer" [attr.href]="field.value">{{ field.value }}</a>{{ field.valueLabelSuffix }}
     </div>
     <div *ngIf="!field.value && field.unsubmittedLabel">{{ field.unsubmittedLabel }}</div>
   </div>

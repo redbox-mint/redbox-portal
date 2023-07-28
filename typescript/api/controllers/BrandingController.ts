@@ -4,7 +4,6 @@ import {Model} from "sails";
 import {Sails} from "sails";
 import {Observable} from 'rxjs/Rx';
 import 'rxjs/add/operator/toPromise';
-import * as request from "request-promise";
 import * as ejs from 'ejs';
 import * as fs from 'graceful-fs';
 import path from "path";
