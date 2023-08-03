@@ -1,3 +1,4 @@
+import { existsSync } from 'node:fs';
 /**
  * HTTP Server Settings
  * (sails.config.http)
@@ -59,19 +60,19 @@ module.exports.http = {
         var pathExists = require("path-exists");
         var resolvedPath = null;
         var locationToTest = sails.config.appPath + "/.tmp/public/" + branding + "/" + portal + "/" + resourceLocation;
-        if (pathExists.sync(locationToTest)) {
+        if (existsSync(locationToTest)) {
           resolvedPath = "/" + branding + "/" + portal + "/" + resourceLocation;
         }
 
         if (resolvedPath == null) {
           locationToTest = sails.config.appPath + "/.tmp/public/default/" + portal + "/" + resourceLocation;
-          if (pathExists.sync(locationToTest)) {
+          if (existsSync(locationToTest)) {
             resolvedPath = "/default/" + portal + "/" + resourceLocation;
           }
         }
         if (resolvedPath == null) {
           locationToTest = sails.config.appPath + "/.tmp/public/default/default/" + resourceLocation;
-          if (pathExists.sync(locationToTest)) {
+          if (existsSync(locationToTest)) {
             resolvedPath = "/default/default/" + resourceLocation;
           }
         }

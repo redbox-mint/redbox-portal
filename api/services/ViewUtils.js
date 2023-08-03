@@ -1,3 +1,4 @@
+import { existsSync } from 'node:fs';
 module.exports = {
   displayValue: function(value, req, defaultValue = "") {
     keyArray = value.split('.');
@@ -18,18 +19,17 @@ module.exports = {
     var splitUrl = masterTemplateLocation.split('/');
     if (splitUrl.length > 2) {
 
-
-      var pathExists = require("path-exists");
+      
       var locationToTest = sails.config.appPath + "/views/" + branding + "/" + portal + "/" + value;
       sails.log.debug("testing :" + locationToTest);
-      if (pathExists.sync(locationToTest)) {
+      if (existsSync(locationToTest)) {
         partialLocation = branding + "/" + portal + "/" + value;
       }
 
       if (partialLocation == value) {
         var locationToTest = sails.config.appPath + "/views/default/" + portal + "/" + value;
         sails.log.debug("testing :" + locationToTest);
-        if (pathExists.sync(locationToTest)) {
+        if (existsSync(locationToTest)) {
           partialLocation = "default/" + portal + "/" + value;
         }
       }
@@ -37,7 +37,7 @@ module.exports = {
       if (partialLocation == value) {
         var locationToTest = sails.config.appPath + "/views/default/default/" + value;
         sails.log.debug("testing :" + locationToTest);
-        if (pathExists.sync(locationToTest)) {
+        if (existsSync(locationToTest)) {
           partialLocation = "default/default/" + value;
         }
       }
