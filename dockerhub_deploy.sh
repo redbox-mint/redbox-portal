@@ -13,9 +13,9 @@ docker run --privileged --rm tonistiigi/binfmt --install arm64
 docker buildx create --name multibuilder --driver docker-container --bootstrap --use
 docker buildx inspect
 docker buildx build -f Dockerfile -t $REPO:$DEPLOY_TAG  --platform linux/amd64,linux/arm64 --push .
-docker tag $REPO:$DEPLOY_TAG $REPO:$CIRCLE_SHA1
-docker tag $REPO:$CIRCLE_SHA1 $REPO:circleci-$CIRCLE_BUILD_NUM
-docker push $REPO:$DEPLOY_TAG
-docker push $REPO:$CIRCLE_SHA1
-docker push $REPO:circleci-$CIRCLE_BUILD_NUM
+# commenting out for now, because of https://github.com/docker/buildx/issues/166#issuecomment-544827163
+#docker tag $REPO:$DEPLOY_TAG $REPO:$CIRCLE_SHA1
+#docker tag $REPO:$CIRCLE_SHA1 $REPO:circleci-$CIRCLE_BUILD_NUM
+#docker push $REPO:$CIRCLE_SHA1
+#docker push $REPO:circleci-$CIRCLE_BUILD_NUM
 
