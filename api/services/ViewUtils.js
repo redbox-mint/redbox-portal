@@ -1,4 +1,3 @@
-import { existsSync } from 'node:fs';
 module.exports = {
   displayValue: function(value, req, defaultValue = "") {
     keyArray = value.split('.');
@@ -12,7 +11,7 @@ module.exports = {
     return returnValue;
   },
   resolvePartialPath: function(value, branding, portal, templatePath, fromTemplate = false) {
-
+    const existsSync = require('fs').existsSync;
     var partialLocation = value;
     var viewsDir = sails.config.appPath + "/views";
     masterTemplateLocation = templatePath.substring(viewsDir.length, templatePath.length);

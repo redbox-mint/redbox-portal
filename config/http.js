@@ -1,4 +1,3 @@
-import { existsSync } from 'node:fs';
 /**
  * HTTP Server Settings
  * (sails.config.http)
@@ -35,6 +34,7 @@ module.exports.http = {
     passportInit: require('passport').initialize(),
     passportSession: require('passport').session(),
     brandingAndPortalAwareStaticRouter: function(req, res, next) {
+      const existsSync = require('fs').existsSync;
       // Checks the branding and portal parameters if the resource isn't overidden for the required portal and branding,
       // it routes the request to the default location
       var url = req.url;
@@ -57,7 +57,6 @@ module.exports.http = {
         if(resourceLocation.lastIndexOf('?') != -1) {
           resourceLocation = resourceLocation.substring(0, resourceLocation.lastIndexOf('?'));
         }
-        var pathExists = require("path-exists");
         var resolvedPath = null;
         var locationToTest = sails.config.appPath + "/.tmp/public/" + branding + "/" + portal + "/" + resourceLocation;
         if (existsSync(locationToTest)) {
