@@ -46,6 +46,7 @@ export class ANDSVocabField extends FieldBase<any> {
   public disableCheckboxRegexPattern:string;
   public disableCheckboxRegexTestValue:string;
   public disableCheckboxRegexCaseSensitive: boolean;
+  public component:any;
 
   constructor(options: any, injector: any) {
     super(options, injector);
@@ -82,6 +83,71 @@ export class ANDSVocabField extends FieldBase<any> {
     this.setValue(curVal);
   }
 
+  public toggleVisibility() {
+    this.visible = !this.visible;
+    if(this.visible) {
+      this.component.initialiseControl();
+    }
+  }
+
+  public setVisibility(data, eventConf:any = {}) {
+    let newVisible = this.visible;
+    if (_.isArray(this.visibilityCriteria)) {
+      // save the value of this data in a map, so we can run complex conditional logic that depends on one or more fields
+      if (!_.isEmpty(eventConf) && !_.isEmpty(eventConf.srcName)) {
+        this.subscriptionData[eventConf.srcName] = data;
+      }
+      // only run the function set if we have all the data...
+      if (_.size(this.subscriptionData) == _.size(this.visibilityCriteria)) {
+        newVisible = true;
+        _.each(this.visibilityCriteria, (visibilityCriteria) => {
+          const dataEntry = this.subscriptionData[visibilityCriteria.fieldName];
+          newVisible = newVisible && this.execVisibilityFn(dataEntry, visibilityCriteria);
+        });
+
+      }
+    } else
+    if (_.isObject(this.visibilityCriteria) && _.get(this.visibilityCriteria, 'type') == 'function') {
+      newVisible = this.execVisibilityFn(data, this.visibilityCriteria);
+    } else {
+      newVisible = _.isEqual(data, this.visibilityCriteria);
+    }
+    const that = this;
+    setTimeout(() => {
+      if (!newVisible) {
+        if (that.visible) {
+          // remove validators
+          if (that.formModel) {
+            if(that['disableValidators'] != null && typeof(that['disableValidators']) == 'function') {
+              that['disableValidators']();
+            } else {
+              that.formModel.clearValidators();
+            }
+            that.formModel.updateValueAndValidity();
+          }
+        }
+      } else {
+        if (!that.visible) {
+          // restore validators
+          if (that.formModel) {       
+              if(that['enableValidators'] != null && typeof(that['enableValidators']) == 'function') {
+                that['enableValidators']();
+              } else {
+                that.formModel.setValidators(that.validators);
+              }
+              that.formModel.updateValueAndValidity();
+          }
+        }
+      }
+      that.visible = newVisible;
+      if(that.visible) {
+        that.component.initialiseControl();
+      }
+    });
+    if(eventConf.returnData == true) {
+      return data;
+    }
+  }
 }
 /**
 * Component utilising the ANDS Vocabb selector widget
@@ -110,6 +176,7 @@ export class ANDSVocabComponent extends SimpleComponent {
   readonly STATUS_EXPANDING = 3;
   readonly STATUS_EXPANDED = 4;
   loadState: any;
+  initialised:boolean = false;
 
   constructor(@Inject(ElementRef) elementRef: ElementRef) {
     super();
@@ -124,10 +191,12 @@ export class ANDSVocabComponent extends SimpleComponent {
     };
     this.nodeEventSubject = new Subject<any>();
     this.loadState = this.STATUS_INIT;
+    
   }
 
   public ngOnInit() {
     if (this.field.editMode) {
+      this.field.component = this;
       jQuery(this.elementRef.nativeElement)['vocab_widget']({
         repository: this.field.vocabId,
         endpoint: 'https://vocabs.ardc.edu.au/apps/vocab_widget/proxy/',
@@ -139,7 +208,11 @@ export class ANDSVocabComponent extends SimpleComponent {
   }
 
   public ngAfterViewInit() {
-    if (this.field.editMode) {
+    this.initialiseControl();
+  }
+  
+  initialiseControl() {
+    if (!this.initialised && this.field.editMode && this.field.visible) {
       const that = this;
       if (this.loadState == this.STATUS_INIT) {
         this.loadState = this.STATUS_LOADING;
@@ -160,12 +233,15 @@ export class ANDSVocabComponent extends SimpleComponent {
         });
 
         this.startTreeInit();
+        
       }
     }
   }
 
   protected startTreeInit() {
     this.treeInitListener = Observable.interval(1000).subscribe(()=> {
+      
+      try {
       if (!_.isEmpty(this.expandNodeIds)) {
         this.expandNodes();
       } else if (!_.isEmpty(this.andsTree.treeModel.getVisibleRoots()) && this.loadState == this.STATUS_LOADED) {
@@ -176,6 +252,10 @@ export class ANDSVocabComponent extends SimpleComponent {
         this.treeInitListener.unsubscribe();
         this.loadState = this.STATUS_EXPANDED;
       }
+      this.initialised = true;
+    } catch (err) {
+      //TODO: Visibility is set asynchronously so there's no guarantee that everything required is in the DOM when this code is run onInit (when using onFormLoaded setVisibility)
+    }
     });
   }
 
@@ -351,4 +431,6 @@ export class ANDSVocabComponent extends SimpleComponent {
     this.loadState = this.STATUS_LOADED;
     this.startTreeInit();
   }
+
+  
 }
