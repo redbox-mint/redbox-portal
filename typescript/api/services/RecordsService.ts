@@ -169,10 +169,17 @@ export module Services {
           try {
             createResponse = await this.triggerPostSaveSyncTriggers(createResponse['oid'], record, recordType, 'onCreate', user, createResponse);
           } catch (err) {
+            if(err.name == this.nameRBValidationError) {
+              createResponse.message = err.message;
+            } else {
+              createResponse.message = failedMessage;
+            }
             sails.log.error(`${this.logHeader} Exception while running post save sync hooks when creating: ${createResponse['oid']}`);
             sails.log.error(JSON.stringify(err));
             createResponse.success = false;
-            createResponse.message = failedMessage;
+            let metadata = { postSaveSyncWarning: 'true' };
+            createResponse.metadata = metadata;
+            sails.log.error('RecordsService create - error - createResponse '+JSON.stringify(createResponse));
             return createResponse;
           }
           // Fire Post-save hooks async ...
@@ -245,10 +252,17 @@ export module Services {
             sails.log.verbose('RecordService - updateMeta - calling triggerPostSaveSyncTriggers');
             updateResponse = await this.triggerPostSaveSyncTriggers(updateResponse['oid'], record, recordType, 'onUpdate', user, updateResponse);
           } catch (err) {
+            if(err.name == this.nameRBValidationError) {
+              updateResponse.message = err.message;
+            } else {
+              updateResponse.message = failedMessage;
+            }
             sails.log.error(`${this.logHeader} Exception while running post save sync hooks when updating:`);
             sails.log.error(JSON.stringify(err));
             updateResponse.success = false;
-            updateResponse.message = failedMessage;
+            let metadata = { postSaveSyncWarning: 'true' };
+            updateResponse.metadata = metadata;
+            sails.log.error('RecordsService - updateMeta - error - updateResponse '+JSON.stringify(updateResponse));
             return updateResponse;
           }
           sails.log.verbose('RecordService - updateMeta - calling triggerPostSaveTriggers');
@@ -709,21 +723,17 @@ export module Services {
             try {
               let preSaveUpdateHookFunction = eval(preSaveUpdateHookFunctionString);
               let options = _.get(preSaveUpdateHook, "options", {});
-
-
               sails.log.verbose(`Triggering pre save triggers: ${preSaveUpdateHookFunctionString}`);
               let hookResponse = preSaveUpdateHookFunction(oid, record, options, user);
               record = await this.resolveHookResponse(hookResponse);
               sails.log.debug(`${preSaveUpdateHookFunctionString} response now is:`);
               sails.log.verbose(JSON.stringify(record));
-              sails.log.debug(`post-save sync trigger ${preSaveUpdateHookFunctionString} completed for ${oid}`)
-
+              sails.log.debug(`post-save sync trigger ${preSaveUpdateHookFunctionString} completed for ${oid}`);
             } catch (err) {
-              sails.log.error(`pre-save trigger ${preSaveUpdateHookFunctionString} failed to complete`)
+              sails.log.error(`pre-save trigger ${preSaveUpdateHookFunctionString} failed to complete`);
               sails.log.error(err)
               throw err;
             }
-
           }
         }
       }
@@ -745,15 +755,20 @@ export module Services {
             let options = _.get(postSaveSyncHook, "options", {});
             if (_.isFunction(postSaveSyncHookFunction)) {
               try {
-                sails.log.debug(`Triggering post-save sync trigger: ${postSaveSyncHooksFunctionString}`)
+                sails.log.debug(`Triggering post-save sync trigger: ${postSaveSyncHooksFunctionString}`);
                 let hookResponse = postSaveSyncHookFunction(oid, record, options, user, response);
                 response = await this.resolveHookResponse(hookResponse);
                 sails.log.debug(`${postSaveSyncHooksFunctionString} response now is:`);
                 sails.log.verbose(JSON.stringify(response));
-                sails.log.debug(`post-save sync trigger ${postSaveSyncHooksFunctionString} completed for ${oid}`)
+                sails.log.debug(`post-save sync trigger ${postSaveSyncHooksFunctionString} completed for ${oid}`);
               } catch (err) {
-                sails.log.error(`post-save async trigger ${postSaveSyncHooksFunctionString} failed to complete`)
-                sails.log.error(err)
+                if(err.name == this.nameRBValidationError) {
+                  sails.log.error(`post-save async trigger ${postSaveSyncHooksFunctionString} failed to complete. See custom message:`);
+                  sails.log.error(`post-save async trigger RBValidationError custom message ${err.message}`);
+                } else {
+                  sails.log.error(`post-save async trigger ${postSaveSyncHooksFunctionString} failed to complete`);
+                  sails.log.error(err);
+                }
                 throw err;
               }
             } else {
@@ -780,13 +795,23 @@ export module Services {
             let postSaveCreateHookFunction = eval(postSaveCreateHookFunctionString);
             let options = _.get(postSaveCreateHook, "options", {});
             if (_.isFunction(postSaveCreateHookFunction)) {
-              let hookResponse = postSaveCreateHookFunction(oid, record, options, user);
-              this.resolveHookResponse(hookResponse).then(result => {
-                sails.log.debug(`post-save trigger ${postSaveCreateHookFunctionString} completed for ${oid}`)
-              }).catch(error => {
-                sails.log.error(`post-save trigger ${postSaveCreateHookFunctionString} failed to complete`)
-                sails.log.error(error)
-              });
+              //add try/catch just as an extra safety measure in case the function called 
+              //by the trigger is not correctly implemented (or old). In example: An old 
+              //function that is not async and retruns and Observable.of instead of a promise 
+              //and then throws an error. In this case the error is not caught by chained 
+              //.then().catch() and propagates to the front end and this has to be prevented
+              try {
+                let hookResponse = postSaveCreateHookFunction(oid, record, options, user);
+                this.resolveHookResponse(hookResponse).then(result => {
+                  sails.log.debug(`post-save trigger ${postSaveCreateHookFunctionString} completed for ${oid}`);
+                }).catch(error => {
+                  sails.log.error(`post-save trigger ${postSaveCreateHookFunctionString} failed to complete`);
+                  sails.log.error(error);
+                });
+              } catch(err) {
+                sails.log.error(`post-save trigger external catch ${postSaveCreateHookFunctionString} failed to complete`);
+                sails.log.error(err);
+              }
             } else {
               sails.log.error(`Post save function: '${postSaveCreateHookFunctionString}' did not resolve to a valid function, what I got:`);
               sails.log.error(postSaveCreateHookFunction);
