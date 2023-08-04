@@ -184,7 +184,7 @@ export module Services {
       return false;
     }
 
-    public validateFieldUsingRegex(oid, record, options) {
+    public async validateFieldUsingRegex(oid, record, options) {
       //mandatory
       let fieldDBName = _.get(options, 'fieldDBName');
       let errorMessageCode = _.get(options, 'errorLanguageCode');
@@ -232,7 +232,7 @@ export module Services {
         }
       }
 
-      return Observable.of(record);
+      return record;
     }
 
   }
