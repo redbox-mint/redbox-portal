@@ -39,7 +39,8 @@ services:
           - rbportal
     entrypoint: /bin/bash -c "cd /opt/redbox-portal && node --inspect=0.0.0.0:9876 app.js"
   mongodb:
-    image: mvertes/alpine-mongo:latest
+    #image: mvertes/alpine-mongo:latest
+    image: mongo:latest
     volumes:
       - "./devdata:/devdata:delegated"
       - "./.dev/mongo/data/db:/data/db:delegated"
