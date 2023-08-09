@@ -527,7 +527,7 @@ export module Services {
       const uname = user.username;
 
       const isInUserEdit = _.find(editArr, username => {
-        sails.log.verbose(`Username: ${uname} == ${username}`);
+        // sails.log.verbose(`Username: ${uname} == ${username}`);
         return uname == username;
       });
       // sails.log.verbose(`isInUserEdit: ${isInUserEdit}`);
