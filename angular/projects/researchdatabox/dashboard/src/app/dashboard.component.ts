@@ -246,6 +246,12 @@ export class DashboardComponent extends BaseComponent {
         this.enableSort = true;
       }
 
+      if(this.dashboardTypeSelected == 'consolidated') {
+        this.enableSort = false;
+      } else {
+        this.enableSort = true;
+      }
+
       let packageType = '';
       let stepName = '';
       let evaluateStepName = '';
