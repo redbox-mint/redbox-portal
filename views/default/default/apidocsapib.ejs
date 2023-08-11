@@ -528,11 +528,11 @@ The ReDBox Portal API provides authorized access to manage functions.
 
 ## User Management Actions [/<%= branding %>/<%= portal %>/api/users]
 
-### List users in the system [GET /<%= branding %>/<%= portal %>/api/users{?searchBy,query,start,rows}]
+### List users in the system [GET /<%= branding %>/<%= portal %>/api/users{?searchBy,query,page,pageSize}]
 + Parameters
-    + start: `0` (number, optional) - The index number for the first value to return from the result set.
-        + Default: 0
-    + rows: `10` (number,optional) - The number of records to return in the request
+    + page: `1` (number, optional) - The page index of the result set to show.
+        + Default: 1
+    + pageSize: `10` (number,optional) - The number of records to return in a page
         + Default: 10
     + searchBy: `type` (string, optional) - The attribute to search by. e.g. email
     + query: `local` (string, optional) - The value to query. Only exact matches.
