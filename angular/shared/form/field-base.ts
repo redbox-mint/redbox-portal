@@ -17,11 +17,11 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import {EventEmitter, Injector, Output} from '@angular/core';
-import {FormControl, FormGroup, Validators} from '@angular/forms';
-import {TranslationService} from '../translation-service';
-import {UtilityService} from '../util-service';
-import {Observable} from 'rxjs/Observable';
+import { EventEmitter, Injector, Output } from '@angular/core';
+import { FormControl, FormGroup, Validators } from '@angular/forms';
+import { TranslationService } from '../translation-service';
+import { UtilityService } from '../util-service';
+import { Observable } from 'rxjs/Observable';
 
 import * as _ from "lodash";
 
@@ -73,18 +73,18 @@ export class FieldBase<T> {
   selectFor: string;
   defaultSelect: string;
   parentField: any;
-  setParentField:boolean;
-  requiredFieldIndicator:string = `(*)`
+  setParentField: boolean;
+  requiredFieldIndicator: string = `(*)`
   /**
    * Flag to indicate there is a potential configuration issue for this field
    */
-   hasRuntimeConfigWarning: boolean;
-  
+  hasRuntimeConfigWarning: boolean;
+
   @Output() public onValueUpdate: EventEmitter<any> = new EventEmitter<any>();
   @Output() public onValueLoaded: EventEmitter<any> = new EventEmitter<any>();
 
 
-  subscriptionData:any = {};
+  subscriptionData: any = {};
 
   constructor(options = {}, injector) {
     this.injector = injector;
@@ -106,8 +106,9 @@ export class FieldBase<T> {
     order?: number,
     controlType?: string,
     cssClasses?: any,
-    groupName?: string,
+    groupName?: string | null,
     editMode?: boolean,
+    forceViewModeInEditMode?: boolean,
     readOnly?: boolean,
     help?: any,
     defaultValue?: any,
@@ -135,6 +136,9 @@ export class FieldBase<T> {
     this.groupClasses = options['groupClasses'] || '';
     this.groupName = options.groupName || null;
     this.editMode = _.isUndefined(options.editMode) ? false : options.editMode;
+    if (!_.isUndefined(options.forceViewModeInEditMode)) {
+      this.editMode = !options.forceViewModeInEditMode;
+    }
     this.readOnly = _.isUndefined(options.readOnly) ? false : options.readOnly;
     this.onChange = options['onChange'] || null;
     this.publish = options['publish'] || null;
@@ -150,7 +154,7 @@ export class FieldBase<T> {
     }
     this.options = options;
     this.hasControl = true;
-    if(options.requiredFieldIndicator) {
+    if (options.requiredFieldIndicator) {
       this.requiredFieldIndicator = options.requiredFieldIndicator;
     }
     this.validationMessages = {};
@@ -231,7 +235,7 @@ export class FieldBase<T> {
   public triggerValidation() {
     if (this.formModel) {
       this.formModel.markAsTouched();
-      this.formModel.updateValueAndValidity({onlySelf: false, emitEvent: false});
+      this.formModel.updateValueAndValidity({ onlySelf: false, emitEvent: false });
     }
   }
 
@@ -361,17 +365,17 @@ export class FieldBase<T> {
                   } else {
                     var objectName = eventConf.action.substring(0, eventConf.action.indexOf("."));
                     boundFunction = fn.bind(this[objectName]);
-                  } 
+                  }
                   // adding more properties to the config to support advanced templating
                   if (eventConf.includeFieldInFnCall) {
-                    curValue = boundFunction(curValue, eventConf, this);  
+                    curValue = boundFunction(curValue, eventConf, this);
                   } else {
                     curValue = boundFunction(curValue, eventConf);
                   }
                 }
               });
             }
-            
+
             if (!_.isUndefined(curValue)) {
               if (_.isEmpty(targetProperty)) {
                 // cascade the event instance wide if only there's a valid value
@@ -402,11 +406,11 @@ export class FieldBase<T> {
     } else {
       // defaults to using the field map to access the event emitter
       // note: not all components are accessible via the name of the field, i.e. repeatables, grouped components, etc.
-      let sourceField = _.get(this.fieldMap,srcName, null);
-      if(!_.isEmpty(sourceField)) {
+      let sourceField = _.get(this.fieldMap, srcName, null);
+      if (!_.isEmpty(sourceField)) {
         eventEmitter = _.get(sourceField.field, eventName);
       }
-    } 
+    }
     if (_.isEmpty(eventEmitter)) {
       console.warn(`Missing event emitter: '${srcName} -> ${eventName}' needed by '${this.name}'. Failing softly by creating an eventEmitter that will never fire. In some cases, this should be fine, however, if you're still on active development, verify your form configuration.`);
       eventEmitter = new EventEmitter<any>();
@@ -421,7 +425,7 @@ export class FieldBase<T> {
   public reactEvent(eventName: string, eventData: any, origData: any) {
     this.value = eventData;
     if (this.formModel) {
-      this.formModel.setValue(eventData, {onlySelf: true, emitEvent: false});
+      this.formModel.setValue(eventData, { onlySelf: true, emitEvent: false });
     }
     _.each(this.componentReactors, (compReact) => {
       compReact.reactEvent(eventName, eventData, origData, this);
@@ -447,7 +451,7 @@ export class FieldBase<T> {
 
   public setValue(value: any, emitEvent: boolean = true) {
     this.value = value;
-    this.formModel.setValue(value, {onlySelf: true, emitEvent: emitEvent});
+    this.formModel.setValue(value, { onlySelf: true, emitEvent: emitEvent });
   }
 
   public toggleVisibility() {
@@ -474,7 +478,7 @@ export class FieldBase<T> {
     return newVisible;
   }
 
-  public setVisibility(data, eventConf:any = {}) {
+  public setVisibility(data, eventConf: any = {}) {
     let newVisible = this.visible;
     if (_.isArray(this.visibilityCriteria)) {
       // save the value of this data in a map, so we can run complex conditional logic that depends on one or more fields
@@ -491,18 +495,18 @@ export class FieldBase<T> {
 
       }
     } else
-    if (_.isObject(this.visibilityCriteria) && _.get(this.visibilityCriteria, 'type') == 'function') {
-      newVisible = this.execVisibilityFn(data, this.visibilityCriteria);
-    } else {
-      newVisible = _.isEqual(data, this.visibilityCriteria);
-    }
+      if (_.isObject(this.visibilityCriteria) && _.get(this.visibilityCriteria, 'type') == 'function') {
+        newVisible = this.execVisibilityFn(data, this.visibilityCriteria);
+      } else {
+        newVisible = _.isEqual(data, this.visibilityCriteria);
+      }
     const that = this;
     setTimeout(() => {
       if (!newVisible) {
         if (that.visible) {
           // remove validators
           if (that.formModel) {
-            if(that['disableValidators'] != null && typeof(that['disableValidators']) == 'function') {
+            if (that['disableValidators'] != null && typeof (that['disableValidators']) == 'function') {
               that['disableValidators']();
             } else {
               that.formModel.clearValidators();
@@ -513,22 +517,22 @@ export class FieldBase<T> {
       } else {
         if (!that.visible) {
           // restore validators
-          if (that.formModel) {       
-              if(that['enableValidators'] != null && typeof(that['enableValidators']) == 'function') {
-                that['enableValidators']();
-              } else {
-                that.formModel.setValidators(that.validators);
-              }
-              that.formModel.updateValueAndValidity();
+          if (that.formModel) {
+            if (that['enableValidators'] != null && typeof (that['enableValidators']) == 'function') {
+              that['enableValidators']();
+            } else {
+              that.formModel.setValidators(that.validators);
+            }
+            that.formModel.updateValueAndValidity();
           }
         }
       }
       that.visible = newVisible;
     });
-    if(eventConf.returnData == true) {
+    if (eventConf.returnData == true) {
       return data;
     }
-    
+
   }
 
   public replaceValWithConfig(val) {
@@ -584,8 +588,8 @@ export class FieldBase<T> {
   public publishProcessedValueLoaded(curValue, config) {
     this.onValueLoaded.emit(curValue);
     // Default value (null) should be treated as true here
-    if(config == null || config.returnData != false) {
-       return curValue;
+    if (config == null || config.returnData != false) {
+      return curValue;
     }
   }
 
@@ -631,10 +635,10 @@ export class FieldBase<T> {
    */
   public publishProcessedValueUpdated(curValue, config) {
     this.onValueUpdate.emit(curValue);
-    if(config == null || config.returnData != false) {
+    if (config == null || config.returnData != false) {
       return curValue;
-   }
-  }  
+    }
+  }
 
   setRequiredAndClearValueOnFalse(flag) {
     this.required = flag;
@@ -702,7 +706,7 @@ export class FieldBase<T> {
   setAnotherProperty(curValue, config: any) {
     let propValue = curValue;
     if (!_.isEmpty(config.template)) {
-      propValue = this.utilityService.runTemplate({value: propValue, field: this}, config);
+      propValue = this.utilityService.runTemplate({ value: propValue, field: this }, config);
     }
     _.set(this, config.propertyPath, propValue);
     return config.dontChangeValue ? this.value : curValue;
