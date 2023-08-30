@@ -258,6 +258,13 @@ export class MapField extends FieldBase<any> {
     });
   }
 
+  public setVisibility(data, eventConf:any = {}) {
+    let that = this;
+    super.setVisibility(data,eventConf);
+    setTimeout(function() {
+      that.initMap(that.map,that);
+    })
+  }
 
   postInit(value: any) {
     if (!_.isEmpty(value)) {
