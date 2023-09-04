@@ -20,7 +20,7 @@
     "@angular/router": "^16.2.3",
     "@researchdatabox/sails-ng-common": "^0.1.0",
     "angular-i18next": "^16.0.0",
-    "i18next-http-backend": "^2.2.1",
+    "i18next-http-backend": "^2.2.2",
     "lodash-es": "^4.17.21",
     "luxon": "^3.4.2",
     "ngx-bootstrap": "^11.0.2",
