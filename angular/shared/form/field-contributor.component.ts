@@ -143,6 +143,7 @@ export class ContributorField extends FieldBase<any> implements CustomValidation
       this.validators['family_name'] = [Validators.required];
       this.validators['given_name'] = [Validators.required];
     }
+    
     // Resolves: #605
     // now that we've set the default validators... we read the config to override
     if (!_.isEmpty(this.activeValidators)) {
@@ -158,6 +159,7 @@ export class ContributorField extends FieldBase<any> implements CustomValidation
         }
       });
     }
+    
     this.findRelationshipFor = options['findRelationshipFor'] || '';
     this.findRelationship = options['findRelationship'] || null;
     this.relationshipFor = options['relationshipFor'] || '';
@@ -214,6 +216,8 @@ export class ContributorField extends FieldBase<any> implements CustomValidation
     if (this.required) {
       this.enableValidators();
     } else {
+      // disable the validators otherwise they'll get enabled on show/hide
+      this.validators = {};
       // if splitting names, attach handler to individual input form control
       if (this.splitNames) {
         const reqFields = ['family_name', 'given_name'];
