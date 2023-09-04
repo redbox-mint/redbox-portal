@@ -264,7 +264,6 @@ export class MapField extends FieldBase<any> {
       that.layers.push(layer);
     });
   }
-
   public setVisibility(data, eventConf: any = {}) {
     let that = this;
     super.setVisibility(data, eventConf);

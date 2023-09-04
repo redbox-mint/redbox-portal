@@ -579,7 +579,7 @@ export module Controllers {
           this.ajaxOk(req, res, null, updateResponse);
         }
       } else {
-        sails.log.error('RecordController - createRecord - createRecord - Failed to save record: '+JSON.stringify(updateResponse));
+        sails.log.error('RecordController - createRecord - createRecord - Failed to save record: ' + JSON.stringify(updateResponse));
         this.ajaxFail(req, res, null, updateResponse);
       }
     }
@@ -719,9 +719,9 @@ export module Controllers {
             preTriggerResponse.oid = oid;
             let recordType = await RecordTypesService.get(brand, currentRec.metaMetadata.type).toPromise();
             currentRec = await this.recordsService.triggerPreSaveTriggers(oid, currentRec, recordType, "onUpdate", user);
-          } catch(err) {
-            sails.log.verbose(`RecordController - updateInternal - triggerPreSaveTriggers err `+JSON.stringify(err));
-            if(err.name == this.nameRBValidationError) {
+          } catch (err) {
+            sails.log.verbose(`RecordController - updateInternal - triggerPreSaveTriggers err ` + JSON.stringify(err));
+            if (err.name == this.nameRBValidationError) {
               sails.log.error(err.message);
               preTriggerResponse.message = err.message;
             } else {
@@ -732,9 +732,9 @@ export module Controllers {
             return preTriggerResponse;
           }
         }
-        sails.log.verbose(`RecordController - updateInternal - metadata.dataLocations `+JSON.stringify(metadata.dataLocations));
-        sails.log.verbose(`RecordController - updateInternal - origRecord.metadata.dataLocations `+JSON.stringify(origRecord.metadata.dataLocations));
-        sails.log.verbose(`RecordController - updateInternal - currentRec.metadata.dataLocations `+JSON.stringify(currentRec.metadata.dataLocations));
+        sails.log.verbose(`RecordController - updateInternal - metadata.dataLocations ` + JSON.stringify(metadata.dataLocations));
+        sails.log.verbose(`RecordController - updateInternal - origRecord.metadata.dataLocations ` + JSON.stringify(origRecord.metadata.dataLocations));
+        sails.log.verbose(`RecordController - updateInternal - currentRec.metadata.dataLocations ` + JSON.stringify(currentRec.metadata.dataLocations));
         sails.log.verbose(`RecordController - updateInternal - before this.updateMetadata`);
         response = await this.handleUpdateDataStream(oid, origRecord, metadata).toPromise();
 
@@ -938,17 +938,17 @@ export module Controllers {
 
       let recordType = await RecordTypesService.get(BrandingService.getBrand(req.session.branding), type).toPromise();
       let workflowSteps = await WorkflowStepsService.getAllForRecordType(recordType).toPromise();
-      this.mergeFieldsSync(req, res, fields,requiredFieldIndicator, currentRec, workflowSteps);
+      this.mergeFieldsSync(req, res, fields, requiredFieldIndicator, currentRec, workflowSteps);
       return fields;
     }
 
-    protected mergeFieldsSync(req, res, fields,requiredFieldIndicator, currentRec, workflowSteps) {
+    protected mergeFieldsSync(req, res, fields, requiredFieldIndicator, currentRec, workflowSteps) {
       const fieldsToDelete = [];
       const metadata = currentRec.metadata;
       const metaMetadata = currentRec.metaMetadata;
-      _.forEach(fields, (field: any) => {   
+      _.forEach(fields, (field: any) => {
         if (!_.isUndefined(requiredFieldIndicator) && _.isEmpty(field.definition.requiredFieldIndicator) && _.isUndefined(field.definition.requiredFieldIndicator)) {
-          _.set(field,'definition.requiredFieldIndicator',requiredFieldIndicator)
+          _.set(field, 'definition.requiredFieldIndicator', requiredFieldIndicator)
         }
         if (!_.isEmpty(field.definition.name) && !_.isUndefined(field.definition.name)) {
           if (_.has(metaMetadata, field.definition.name)) {
@@ -1315,14 +1315,14 @@ export module Controllers {
         sails.log.verbose(req.headers);
         let uploadFileSize = req.headers['Upload-Length'];
         let diskSpaceThreshold = sails.config.record.diskSpaceThreshold;
-        if(!_.isUndefined(uploadFileSize) && !_.isUndefined(diskSpaceThreshold)) {
+        if (!_.isUndefined(uploadFileSize) && !_.isUndefined(diskSpaceThreshold)) {
           let diskSpace = await checkDiskSpace(sails.config.record.mongodbDisk);
           //set diskSpaceThreshold to a reasonable amount of space on disk that will be left free as a safety buffer 
           let thresholdAppliedFileSize = _.toInteger(uploadFileSize) + diskSpaceThreshold;
-          sails.log.verbose('Total File Size '+thresholdAppliedFileSize+' Total Free Space '+diskSpace.free);
-          if(diskSpace.free <= thresholdAppliedFileSize){
+          sails.log.verbose('Total File Size ' + thresholdAppliedFileSize + ' Total Free Space ' + diskSpace.free);
+          if (diskSpace.free <= thresholdAppliedFileSize) {
             let errorMessage = TranslationService.t('not-enough-disk-space');
-            sails.log.error(errorMessage + ' Total File Size '+thresholdAppliedFileSize+' Total Free Space '+diskSpace.free);
+            sails.log.error(errorMessage + ' Total File Size ' + thresholdAppliedFileSize + ' Total Free Space ' + diskSpace.free);
             return Observable.throwError(new Error(errorMessage));
           }
         }
@@ -1347,41 +1347,39 @@ export module Controllers {
       let record = await this.getRecord(oid).toPromise();
 
       let response = {};
-      let authorization = record['authorization'];
 
-      let editUsers = authorization['edit']
+      let editUsers = _.get(record, 'authorization.edit', [])
       let editUserResponse = [];
-      for (let i = 0; i < editUsers.length; i++) {
-        let editUsername = editUsers[i];
-        let user = await UsersService.getUserWithUsername(editUsername).toPromise();
+      if (editUsers != null && editUsers != undefined) {
+        for (let i = 0; i < editUsers.length; i++) {
+          let editUsername = editUsers[i];
+          let user = await UsersService.getUserWithUsername(editUsername).toPromise();
           editUserResponse.push({
             username: editUsername,
-            name: _.get(user,"name",""),
-            email: _.get(user,"email","")
+            name: _.get(user, "name", ""),
+            email: _.get(user, "email", "")
           });
-        
-        
+        }
       }
-
-      let viewUsers = authorization['view']
+      let viewUsers = _.get(record, 'authorization.view', [])
       let viewUserResponse = [];
-      for (let i = 0; i < viewUsers.length; i++) {
-        let viewUsername = viewUsers[i];
-        let user = await UsersService.getUserWithUsername(viewUsername).toPromise();
+      if (viewUsers != null && viewUsers != undefined) {
+        for (let i = 0; i < viewUsers.length; i++) {
+          let viewUsername = viewUsers[i];
+          let user = await UsersService.getUserWithUsername(viewUsername).toPromise();
 
           viewUserResponse.push({
             username: viewUsername,
-            name: _.get(user,"name",""),
-            email: _.get(user,"email","")
+            name: _.get(user, "name", ""),
+            email: _.get(user, "email", "")
           });
-        
+        }
       }
+      let editPendingUsers = _.get(record, 'authorization.editPending', [])
+      let viewPendingUsers = _.get(record, 'authorization.viewPending', [])
 
-      let editPendingUsers = authorization['editPending'];
-      let viewPendingUsers = authorization['viewPending'];
-
-      let editRoles = authorization['editRoles'];
-      let viewRoles = authorization['viewRoles'];
+      let editRoles = _.get(record, 'authorization.editRoles', [])
+      let viewRoles = _.get(record, 'authorization.viewRoles', [])
 
       return {
         edit: editUserResponse,
