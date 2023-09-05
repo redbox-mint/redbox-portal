@@ -54,4 +54,16 @@ module.exports.i18n = {
 
   // localesDirectory: '/config/locales'
 
+  // i18next specific config
+  next: {
+    init: {
+      supportedLngs: ['en', 'mri'],
+      preload: ['en', 'mri'],
+      debug: true,
+      lng: 'en',
+      fallbackLng: 'en',
+      initImmediate: false,
+      skipOnVariables: false
+    }
+  }
 };

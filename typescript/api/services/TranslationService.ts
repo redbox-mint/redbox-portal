@@ -23,6 +23,7 @@ import { Sails, Model } from "sails";
 import * as i18next from "i18next"
 import Backend from 'i18next-fs-backend';
 
+declare var _;
 declare var sails: Sails;
 
 export module Services {
@@ -41,38 +42,33 @@ export module Services {
       'reloadResources',
       'tInter'
     ];
+    protected tMethods = {};
     /** Warning this is synch... */
-    public bootstrap() {
+    public async bootstrap() {
+      sails.log.debug("TranslationService initialising...")
       sails.log.debug("#####################");
       sails.log.debug(Backend);
       sails.log.debug("#####################");
 
+      let initConfig = _.merge(sails.config.i18n.next.init, {
+        backend: {
+          loadPath: `${sails.config.appPath}/assets/locales/{{lng}}/{{ns}}.json`
+        }
+      });
+
       //@ts-ignore
-      i18next.use(Backend).init({
-          preload: ['en'],
-          debug: true,
-          lng: 'en',
-          fallbackLng: 'en',
-          initImmediate: false,
-          skipOnVariables: false,
-          backend: {
-            loadPath: `${sails.config.appPath}/assets/locales/{{lng}}/{{ns}}.json`
-          }
-        }).then(i18next => {
-          sails.log.debug("**************************");
-          sails.log.debug("i18next initialised");
-          sails.log.debug("**************************");
-          });
+      await i18next.use(Backend).init(initConfig);
+      sails.log.debug("**************************");
+      sails.log.debug(`i18next initialised, default: '${initConfig.lng}', supported: ${initConfig.supportedLngs} `);
+      sails.log.debug("**************************");
     }
 
-    public t(key, context = null) {
-      //@ts-ignore
-      return i18next.t(key);
+    public t(key, context = undefined, langCode:string = 'en') {
+      return i18next.getFixedT(langCode)(key, context);
     }
 
-    public tInter(key, context = null) {
-      //@ts-ignore
-      return i18next.t(key, context);
+    public tInter(key, context = null, langCode:string = 'en') {
+      return this.t(key, context, langCode);
     }
 
     public reloadResources() {
