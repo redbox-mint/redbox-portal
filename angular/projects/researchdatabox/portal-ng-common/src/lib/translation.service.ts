@@ -87,7 +87,7 @@ export class TranslationService implements Service {
 
   async initTranslator(): Promise<any> {
     await this.utilService.waitForDependencies([this.configService]);
-    this.config = await this.configService.getConfig();=
+    this.config = await this.configService.getConfig();
     if (!_isEmpty(_get(this.config, 'i18NextOpts'))) {
       this.i18NextOpts = _get(this.config, 'i18NextOpts');
       if (_isUndefined(_get(this.i18NextOpts, 'backend.loadPath'))) {

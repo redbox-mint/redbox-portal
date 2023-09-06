@@ -1,6 +1,7 @@
 #! /bin/bash
 set -e
 function buildAngularApp() {
+  NG_BUILD_PREFIX=""
   if [ ! -z "$NG_BUILD_TEMP_OUTPUT" ]  && [ "$2" == "" ]; then
     NG_BUILD_PREFIX="--output-path=../.tmp/public/angular/${1}"
   fi

@@ -1,10 +1,11 @@
 #! /bin/bash
 set -e
 function buildAngularApp() {
+  NG_BUILD_PREFIX=""
   if [ ! -z "$NG_BUILD_TEMP_OUTPUT" ]  && [ "$2" == "" ]; then
     NG_BUILD_PREFIX="--output-path=../.tmp/public/angular/${1}"
   fi
-  (node_modules/.bin/ng build --app=${1})
+  (node_modules/.bin/ng build $NG_BUILD_PREFIX --app=${1}) 
 }
 
 export NVM_DIR="$HOME/.nvm"
