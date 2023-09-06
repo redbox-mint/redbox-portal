@@ -12,6 +12,8 @@
  const schedule = require('node-schedule');
  
  const actualBootstrap = async function() {
+   await sails.services.translationservice.bootstrap();
+   sails.log.verbose("Translation service, bootstrapped.");
    let defaultBrand = await sails.services.brandingservice.bootstrap().toPromise()
    sails.log.verbose("Branding service, bootstrapped.");
    let rolesBootstrapResult = await sails.services.rolesservice.bootstrap(defaultBrand).toPromise();
@@ -113,8 +115,6 @@
    // sails.config.peopleSearch.orcid = sails.services.orcidservice.searchOrcid;
    sails.config.startupMinute = Math.floor(Date.now() / 60000);
    
-   sails.services.translationservice.bootstrap();
-   sails.log.verbose("Translation service, bootstrapped.");
    if (sails.config.environment == "production" || sails.config.ng2.force_bundle) {
      sails.config.ng2.use_bundled = true;
      console.log("Using NG2 Bundled files.......");

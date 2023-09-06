@@ -1,7 +1,11 @@
 #! /bin/bash
 set -e
 function buildAngularApp() {
-    (node_modules/.bin/ng build --configuration=development @researchdatabox/${1} )
+  NG_BUILD_PREFIX=""
+  if [ ! -z "$NG_BUILD_TEMP_OUTPUT" ]  && [ "$2" == "" ]; then
+    NG_BUILD_PREFIX="--output-path=../.tmp/public/angular/${1}"
+  fi
+  (node_modules/.bin/ng build --configuration=development $NG_BUILD_PREFIX @researchdatabox/${1} )
 }
 
 export NVM_DIR="$HOME/.nvm"
@@ -23,12 +27,12 @@ else
     git clone "https://github.com/redbox-mint/portal-ng-form-custom.git" "${PORTAL_NG_FORM_CUSTOM_DIR}"
   fi 
   echo "Building core..."
-  buildAngularApp "portal-ng-common"
+  buildAngularApp "portal-ng-common" "ignore-ouput"
   echo "Building form-custom..."
   cd "${PORTAL_NG_FORM_CUSTOM_DIR}/projects/researchdatabox/portal-ng-form-custom"
   npm i
   cd -
-  buildAngularApp "portal-ng-form-custom"
+  buildAngularApp "portal-ng-form-custom" "ignore-ouput"
   ng2apps=( `find ./projects/researchdatabox -maxdepth 1 -mindepth 1 -type d -printf '%f '` )
   for ng2app in "${ng2apps[@]}"
   do
