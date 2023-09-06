@@ -54,16 +54,33 @@ module.exports.i18n = {
 
   // localesDirectory: '/config/locales'
 
-  // i18next specific config
+  // i18next specific config, 'backend.loadPath' is intentionally not included as this configuration is shared with angular-i18next
   next: {
     init: {
       supportedLngs: ['en', 'mri'],
+      // preload is required in the server-side
       preload: ['en', 'mri'],
       debug: true,
-      lng: 'en',
       fallbackLng: 'en',
       initImmediate: false,
-      skipOnVariables: false
+      skipOnVariables: false,
+      returnEmptyString: false,
+      ns: [
+        'translation'
+      ],
+      detection: {
+        // order and from where user language should be detected
+        order: ['cookie'],
+        // keys or params to lookup language from
+        lookupCookie: 'lng',
+        // cache user language on
+        caches: ['cookie'],
+        // optional expire and domain for set cookie
+        cookieMinutes: 10080, // 7 days
+        // cookieDomain: I18NEXT_LANG_COOKIE_DOMAIN
+        lookupSession: 'lang',
+        // lookupQuerystring: 'lng'
+      }
     }
   }
 };
