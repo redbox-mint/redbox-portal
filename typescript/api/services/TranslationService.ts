@@ -43,7 +43,7 @@ export module Services {
       'tInter',
       'handle'
     ];
-    /** Warning this is synch... */
+    
     public async bootstrap() {
       sails.log.debug("TranslationService initialising...")
       sails.log.debug("#####################");
