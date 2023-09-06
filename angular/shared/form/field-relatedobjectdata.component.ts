@@ -69,6 +69,7 @@ export class RelatedObjectDataField extends FieldBase<any> {
     let getRecordMetaObs = [];
     var that = this;
     const portalPath = this.recordsService.getBrandingAndPortalUrl;
+
     _.forEach(this.value, (item: any) => {
       getRecordMetaObs.push(fromPromise(this.recordsService.getRecordMeta(item.id)).flatMap(meta => {
         const customFields = {oid: item.id, portalPath: portalPath};
@@ -93,6 +94,14 @@ export class RelatedObjectDataField extends FieldBase<any> {
     } else {
       return Observable.of(null);
     }
+  }
+
+  refreshRelatedObjectData() {
+    this.failedObjects = []
+    this.accessDeniedObjects  = []
+    this.relatedObjects  = []
+    let observables:Observable<any> = this.asyncLoadData();
+    observables.subscribe(result => { });
   }
 
   createFormModel(valueElem: any = undefined): any {
