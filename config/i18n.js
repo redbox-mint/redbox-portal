@@ -57,9 +57,9 @@ module.exports.i18n = {
   // i18next specific config, 'backend.loadPath' is intentionally not included as this configuration is shared with angular-i18next
   next: {
     init: {
-      supportedLngs: ['en', 'mri'],
+      supportedLngs: ['en'],
       // preload is required in the server-side
-      preload: ['en', 'mri'],
+      preload: ['en'],
       debug: true,
       fallbackLng: 'en',
       initImmediate: false,

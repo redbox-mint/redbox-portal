@@ -56,23 +56,33 @@
         <div class="col-md-4">
           <div class="mt-3" >
             <div class="dropdown pull-right">
-              <a class="dropdown-toggle" href="#" data-bs-toggle="dropdown" aria-expanded="false">
-                <%= TranslationService.t('lang-' + lang) %>
-              </a>
-              <ul class="dropdown-menu">
-                <% for (const langCode of sails.config.i18n.next.init.supportedLngs) {
-                    if (langCode != lang && langCode != "cimode") {
-                      const langUrl = new URL(`${req.protocol}://${req.get('host')}${req.originalUrl}`);
-                      const params = new URLSearchParams(langUrl.search);
-                      params.set('lng', langCode);
-                      langUrl.search = params;
-                      %>
-                      <li><a class="dropdown-item" href="<%= langUrl.toString() %>"><%= TranslationService.t('lang-' + langCode) %></a></li>
-                      <%
-                    }
-                  } 
+                <% 
+                  // remove the cimode
+                  const langCodes = _.filter(sails.config.i18n.next.init.supportedLngs, (lng) => {
+                    return lng != 'cimode';                    
+                  });
+                  if (langCodes.length > 1) { %>
+                  <a class="dropdown-toggle" href="#" data-bs-toggle="dropdown" aria-expanded="false">
+                    <%= TranslationService.t('lang-' + lang) %>
+                  </a>
+                  <ul class="dropdown-menu">
+                    <%
+                    for (const langCode of langCodes) {
+                      if (langCode != lang) {
+                        const langUrl = new URL(`${req.protocol}://${req.get('host')}${req.originalUrl}`);
+                        const params = new URLSearchParams(langUrl.search);
+                        params.set('lng', langCode);
+                        langUrl.search = params;
+                        %>
+                        <li><a class="dropdown-item" href="<%= langUrl.toString() %>"><%= TranslationService.t('lang-' + langCode) %></a></li>
+                        <%
+                      }
+                    } 
+                  %>
+                  </ul>
+                    <% 
+                  }
                 %>
-              </ul>
             </div>
           </div>
         </div>
