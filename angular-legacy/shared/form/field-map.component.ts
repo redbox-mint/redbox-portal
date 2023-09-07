@@ -22,11 +22,11 @@ import { FieldBase } from './field-base';
 import { FormGroup, FormControl, Validators } from '@angular/forms';
 import * as _ from "lodash";
 import { RecordsService } from './records.service';
-import {  Map,  GeoJSON,   } from 'leaflet';
+import { Map, GeoJSON, } from 'leaflet';
 declare var omnivore: any;
 declare var L: any;
 declare var jQuery: any;
-declare function require(name:string);
+declare function require(name: string);
 
 /**
  * Map Model
@@ -44,7 +44,7 @@ export class MapField extends FieldBase<any> {
 
   layerGeoJSON: any = {};
   map: Map;
-  importFailed:boolean = false;
+  importFailed: boolean = false;
   layers = [];
   drawnItems: any = new L.FeatureGroup();
   googleMaps = L.tileLayer('http://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
@@ -150,10 +150,10 @@ export class MapField extends FieldBase<any> {
 
     this.layerGeoJSON = options.value;
     this.mainTabId = options['mainTabId'] || null;
-    this.coordinatesHelp =  this.getTranslated(options.coordinatesHelp, undefined);
+    this.coordinatesHelp = this.getTranslated(options.coordinatesHelp, undefined);
     this.kmlGeoJsonLabel = this.getTranslated(options.kmlGeoJsonLabel, "Enter KML or GeoJSON");
-    this.importButtonLabel =  this.getTranslated(options.importButtonLabel, "Import");
-    this.invalidDataMessage =  this.getTranslated(options.invalidDataMessage, "Entered text is not valid KML or GeoJSON");
+    this.importButtonLabel = this.getTranslated(options.importButtonLabel, "Import");
+    this.invalidDataMessage = this.getTranslated(options.invalidDataMessage, "Entered text is not valid KML or GeoJSON");
   }
 
   onMapReady(map: Map) {
@@ -167,8 +167,15 @@ export class MapField extends FieldBase<any> {
 
 
     if (this.tabId === null) {
-      map.invalidateSize();
-      map.fitBounds(this.drawnItems.getBounds());
+      if (this.visible) {
+        map.invalidateSize();
+        try {
+          // if there are no layers present this will throw an error
+          map.fitBounds(this.drawnItems.getBounds());
+        } catch (e) {
+
+        }
+      }
     } else {
       if (this.editMode) {
         // Note: this assumes the tabId is unqiue in the page, which may not be when there are multiple tab layouts.
@@ -193,18 +200,18 @@ export class MapField extends FieldBase<any> {
   public initMap(map, that) {
     map.invalidateSize();
 
-      try {
-        // if there are no layers present this will throw an error
-        map.fitBounds(this.drawnItems.getBounds());
-      } catch (e) {
+    try {
+      // if there are no layers present this will throw an error
+      map.fitBounds(this.drawnItems.getBounds());
+    } catch (e) {
 
-      }
+    }
 
   }
 
   registerMapEventHandlers(map: Map) {
     let that = this;
-    map.on(L.Draw.Event.CREATED, function(e: any) {
+    map.on(L.Draw.Event.CREATED, function (e: any) {
       var type = e.layerType,
         layer = e.layer;
       that.layers.push(layer);
@@ -213,12 +220,12 @@ export class MapField extends FieldBase<any> {
       return false;
     });
 
-    map.on('draw:edited', function(e: any) {
+    map.on('draw:edited', function (e: any) {
       let layers = e.layers;
       let that2 = that;
-      layers.eachLayer(function(layer) {
-        let layerIndex = _.findIndex(that2.layers, function(o) { return o._leaflet_id == layer._leaflet_id; });
-        if(layerIndex == -1) {
+      layers.eachLayer(function (layer) {
+        let layerIndex = _.findIndex(that2.layers, function (o) { return o._leaflet_id == layer._leaflet_id; });
+        if (layerIndex == -1) {
           that2.layers.push(layer);
         } else {
           that2.layers[layerIndex] = layer;
@@ -227,21 +234,21 @@ export class MapField extends FieldBase<any> {
       });
     });
 
-    map.on('draw:editstop', function(e: any) {
+    map.on('draw:editstop', function (e: any) {
       that.layerGeoJSON = L.featureGroup(that.layers).toGeoJSON();
       that.setValue(that.layerGeoJSON);
     });
 
-    map.on('draw:deletestop', function(e: any) {
+    map.on('draw:deletestop', function (e: any) {
       that.layerGeoJSON = L.featureGroup(that.layers).toGeoJSON();
       that.setValue(that.layerGeoJSON);
     });
 
-    map.on('draw:deleted', function(e: any) {
+    map.on('draw:deleted', function (e: any) {
       let layers = e.layers;
       let that2 = that;
-      layers.eachLayer(function(layer) {
-        _.remove(that2.layers, function(o) { return o._leaflet_id == layer._leaflet_id; });
+      layers.eachLayer(function (layer) {
+        _.remove(that2.layers, function (o) { return o._leaflet_id == layer._leaflet_id; });
       });
     });
   }
@@ -257,7 +264,15 @@ export class MapField extends FieldBase<any> {
       that.layers.push(layer);
     });
   }
-
+  public setVisibility(data, eventConf: any = {}) {
+    let that = this;
+    super.setVisibility(data, eventConf);
+    setTimeout(function () {
+      if (that.visible) {
+        that.initMap(that.map, that);
+      }
+    }, 100)
+  }
 
   postInit(value: any) {
     if (!_.isEmpty(value)) {
@@ -283,6 +298,9 @@ export class MapField extends FieldBase<any> {
       this.formModel.patchValue(this.layerGeoJSON, { emitEvent: emitEvent, emitModelToViewChange: true });
       this.formModel.markAsTouched();
       this.formModel.markAsDirty();
+    } else {
+      this.setEmptyValue();
+      this.drawnItems.clearLayers();
     }
   }
 
@@ -292,7 +310,7 @@ export class MapField extends FieldBase<any> {
   }
 
   reactEvent(eventName: string, eventData: any, origData: any) {
-    super.reactEvent(eventName, eventData,origData);
+    super.reactEvent(eventName, eventData, origData);
     if (!_.isEmpty(this.formModel.value)) {
       this.layerGeoJSON = this.formModel.value;
       this.drawLayers();
@@ -303,43 +321,43 @@ export class MapField extends FieldBase<any> {
   }
 
   importData() {
-    if(this.importDataString.length > 0) {
+    if (this.importDataString.length > 0) {
       try {
-      if(this.importDataString.indexOf("<") == 0) {
-        //probably KML
-        let parsedLayers = omnivore.kml.parse(this.importDataString);
-        if(parsedLayers.getLayers().length == 0) {
-          this.importFailed = true;
-          return false;
+        if (this.importDataString.indexOf("<") == 0) {
+          //probably KML
+          let parsedLayers = omnivore.kml.parse(this.importDataString);
+          if (parsedLayers.getLayers().length == 0) {
+            this.importFailed = true;
+            return false;
+          }
+          let that = this;
+          parsedLayers.eachLayer(layer => {
+            layer.addTo(that.drawnItems);
+            that.layers.push(layer);
+            that.layerGeoJSON = L.featureGroup(that.layers).toGeoJSON();
+            this.drawLayers();
+            that.map.fitBounds(that.drawnItems.getBounds());
+          });
+          this.importDataString = "";
+          this.importFailed = false;
+        } else {
+          let parsedLayers = L.geoJSON(JSON.parse(this.importDataString));
+          let that = this;
+          parsedLayers.eachLayer(layer => {
+            layer.addTo(that.drawnItems);
+            that.layers.push(layer);
+            that.layerGeoJSON = L.featureGroup(that.layers).toGeoJSON();
+            this.drawLayers();
+            that.map.fitBounds(that.drawnItems.getBounds());
+          });
+          this.importDataString = "";
+          this.importFailed = false;
         }
-        let that = this;
-        parsedLayers.eachLayer(layer => {
-          layer.addTo(that.drawnItems);
-          that.layers.push(layer);
-          that.layerGeoJSON = L.featureGroup(that.layers).toGeoJSON();
-          this.drawLayers();
-          that.map.fitBounds(that.drawnItems.getBounds());
-        });
-        this.importDataString = "";
-        this.importFailed = false;
-      } else {
-        let parsedLayers = L.geoJSON(JSON.parse(this.importDataString));
-        let that = this;
-        parsedLayers.eachLayer(layer => {
-          layer.addTo(that.drawnItems);
-          that.layers.push(layer);
-          that.layerGeoJSON = L.featureGroup(that.layers).toGeoJSON();
-          this.drawLayers();
-          that.map.fitBounds(that.drawnItems.getBounds());
-        });
-        this.importDataString = "";
-        this.importFailed = false;
+        this.layerGeoJSON = L.featureGroup(this.layers).toGeoJSON();
+        this.setValue(this.layerGeoJSON);
+      } catch (e) {
+        this.importFailed = true;
       }
-      this.layerGeoJSON = L.featureGroup(this.layers).toGeoJSON();
-      this.setValue(this.layerGeoJSON);
-    } catch (e) {
-      this.importFailed = true;
-    }
 
     }
 

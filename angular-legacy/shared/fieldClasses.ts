@@ -19,6 +19,7 @@ import {
   HtmlRawComponent
 } from './form/field-simple.component';
 import { RecordMetadataRetrieverField, RecordMetadataRetrieverComponent } from './form/record-meta.component';
+import { TimerField, TimerComponent } from './form/timer.component';
 import { VocabField, VocabFieldComponent } from './form/field-vocab.component';
 import { RepeatableContainer, RepeatableVocab, RepeatableContributor, RepeatableVocabComponent, RepeatableContributorComponent } from './form/field-repeatable.component';
 import { ContributorField, ContributorComponent } from './form/field-contributor.component';
@@ -67,6 +68,7 @@ export const fieldClasses=  {
   'MapField': {'meta': MapField, 'comp': MapComponent, 'lookupService': 'vocabFieldLookupService'},
   'ParameterRetriever':{ 'meta': ParameterRetrieverField, 'comp': ParameterRetrieverComponent},
   'RecordMetadataRetriever':{ 'meta': RecordMetadataRetrieverField, 'comp': RecordMetadataRetrieverComponent},
+  'Timer':{ 'meta': TimerField, 'comp': TimerComponent},
   'RelatedObjectSelector':{ 'meta': RelatedObjectSelectorField, 'comp': RelatedObjectSelectorComponent},
   'RelatedFileUpload':{ 'meta': RelatedFileUploadField, 'comp': RelatedFileUploadComponent},
   'DataLocation':{ 'meta': DataLocationField, 'comp': DataLocationComponent},
