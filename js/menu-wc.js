@@ -325,9 +325,6 @@ customElements.define('compodoc-menu', class extends HTMLElement {
                         </div>
                         <ul class="links collapse " ${ isNormalMode ? ' id="interfaces-links"' : 'id="xs-interfaces-links"' }>
                             <li class="link">
-                                <a href="interfaces/CustomValidationHandlerField.html" data-type="entity-link" >CustomValidationHandlerField</a>
-                            </li>
-                            <li class="link">
                                 <a href="interfaces/Initable.html" data-type="entity-link" >Initable</a>
                             </li>
                             <li class="link">
