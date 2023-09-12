@@ -79,7 +79,7 @@ export module Services {
     public handle(req, res, next) {
       let langCode = req.param('lng');
       let sessLangCode = req.session.lang;
-      let defaultLang = sails.config.i18n.next.init.fallbackLng;
+      let defaultLang = _.isArray(sails.config.i18n.next.init.fallbackLng) ? sails.config.i18n.next.init.fallbackLng[0] : sails.config.i18n.next.init.fallbackLng;
       if (_.isEmpty(langCode) && _.isEmpty(sessLangCode)) {
         // use the default
         langCode = defaultLang;
