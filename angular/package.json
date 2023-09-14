@@ -16,7 +16,7 @@
     "@angular/core": "^16.2.4",
     "@angular/platform-browser": "^16.2.4",
     "@angular/forms": "^16.2.4",
-    "@angular/router": "^16.2.4",
+    "@angular/router": "^16.2.5",
     "@angular/platform-browser-dynamic": "^16.2.4",
     "@researchdatabox/sails-ng-common": "^0.1.0",
     "angular-i18next": "^16.0.0",
