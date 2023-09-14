@@ -53,7 +53,8 @@ export class TranslationService {
     }
     this.configService.getConfig((config:any) => {
       this.config = config;
-      this.translateI18Next.init({
+      if (!this.translatorReady) {
+        this.translateI18Next.init({
           debug: true,                                                        // optional
           returnNull: false,
           returnEmptyString: true,                                           // optional	- but.. it's important, please see http://i18next.com/docs/options/!
@@ -67,11 +68,12 @@ export class TranslationService {
           lng: this.config.lang,
           fallbackLng: 'en',
           backend: { loadPath: `${rootContext}/locales/{{lng}}/{{ns}}.json?ts=${ts}` }
-      }).then(() => {
-        console.log(`Translator loaded...`);
-        this.translatorReady = true;
-        this.translatorLoaded();
-      });
+        }).then(() => {
+          console.log(`Translator loaded...`);
+          this.translatorReady = true;
+          this.translatorLoaded();
+        });
+      }
     });
   
   }
