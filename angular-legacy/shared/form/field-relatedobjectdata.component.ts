@@ -119,6 +119,7 @@ export class RelatedObjectDataField extends FieldBase<any> {
   }
 
   setValue(value: any) {
+    this.value = value;
     this.formModel.patchValue(value, { emitEvent: false });
     this.formModel.markAsTouched();
   }

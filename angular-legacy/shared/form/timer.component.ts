@@ -31,7 +31,15 @@ export class TimerField extends FieldBase<string> {
 
   public startPolling(config:any = {}){
     this.subscription =this.timer.subscribe(pollingTick => {
-      this.onPollingTick.emit(new Date());
+      let oid = this.fieldMap._rootComp.oid;
+      let emitData = {
+        emitDate: new Date(),
+        numberOfTicks: pollingTick,
+        oid: oid
+      }
+      this.onPollingTick.emit(
+        emitData
+        );
       if(this.pollingTickLimit != 0 && pollingTick > this.pollingTickLimit) {
         this.subscription.unsubscribe();
       }

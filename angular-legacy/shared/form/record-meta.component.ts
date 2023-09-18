@@ -31,12 +31,14 @@ export class RecordMetadataRetrieverField extends FieldBase<string> {
   }
 
   public publishMetadata(oid: any, config: any) {
-    this.recordsService.getRecordMeta(oid).then(data => {
-      data.oid = oid;
-      this.onValueUpdate.emit(data);
-    });
+    // Only attempt to publish when there is an oid value
+    if (oid != undefined && oid != null && oid != "") {
+      this.recordsService.getRecordMeta(oid).then(data => {
+        data.oid = oid;
+        this.onValueUpdate.emit(data);
+      });
+    }
   }
-
 }
 
 @Component({
