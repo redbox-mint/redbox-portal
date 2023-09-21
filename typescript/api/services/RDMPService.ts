@@ -30,7 +30,7 @@ import {
   Model
 } from "sails";
 import { default as moment } from 'moment';
-import * as numeral from 'numeral';
+import numeral from 'numeral';
 
 import {
   isObservable
