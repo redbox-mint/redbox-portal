@@ -101,7 +101,7 @@
     "@compodoc/compodoc": "^1.1.21",
     "@types/jquery": "^3.5.19",
     "@types/lodash-es": "^4.17.9",
-    "@types/node": "^18.16.3",
+    "@types/node": "^20.7.0",
     "bower": "^1.8.14",
     "chai": "^4.3.8",
     "ejs-cli": "^2.2.3",
