@@ -626,7 +626,7 @@ export class ContributorComponent extends SimpleComponent {
           let fmFamilyName = _.get(this.field.formModel.value, 'family_name');
           let fmGivenName = _.get(this.field.formModel.value, 'given_name');
           let selectedEmail = _.get(selected, 'email');
-          let selectedOrcid = _.get(selected, 'email');
+          let selectedOrcid = _.get(selected, 'orcid');
           let fmEmail = _.get(this.field.formModel.value, 'email');
           let fmOrcid = _.get(this.field.formModel.value, 'orcid');
           if (selectedFamilyName && selectedFamilyName == fmFamilyName  && selectedGivenName && selectedGivenName == fmGivenName 
