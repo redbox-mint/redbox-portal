@@ -33,7 +33,7 @@
   "devDependencies": {
     "@angular-devkit/build-angular": "^16.2.1",
     "@angular/cli": "^16.2.1",
-    "@angular/compiler-cli": "^16.2.4",
+    "@angular/compiler-cli": "^16.2.7",
     "@schematics/angular": "^16.2.1",
     "@types/jasmine": "~4.3.5",
     "@types/lodash": "^4.14.198",
