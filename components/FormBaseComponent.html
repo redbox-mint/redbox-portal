@@ -39,7 +39,7 @@
   <li class="breadcrumb-item">Components</li>
   <li class="breadcrumb-item"
   >
-  TextFieldComponent</li>
+  FormBaseComponent</li>
 </ol>
 
 <ul class="nav nav-tabs" role="tablist">
@@ -62,63 +62,14 @@
     <h3>File</h3>
 </p>
 <p class="comment">
-    <code>angular/projects/researchdatabox/form/src/app/component/textfield.component.ts</code>
+    <code>angular/projects/researchdatabox/portal-ng-common/src/lib/form/form-base.component.ts</code>
 </p>
 
 
 
-    <p class="comment">
-        <h3>Extends</h3>
-    </p>
-    <p class="comment">
-                <code><a href="../components/FormBaseComponent.html" target="_self" >FormBaseComponent</a></code>
-    </p>
 
 
 
-<section data-compodoc="block-metadata">
-    <h3>Metadata</h3>
-    <table class="table table-sm table-hover metadata">
-        <tbody>
-
-
-
-
-
-
-
-
-
-
-
-
-            <tr>
-                <td class="col-md-3">selector</td>
-                <td class="col-md-9"><code>textfield</code></td>
-            </tr>
-
-
-
-
-
-            <tr>
-                <td class="col-md-3">template</td>
-                <td class="col-md-9"><pre class="line-numbers"><code class="language-html">&lt;span&gt;Text Label&lt;/span&gt;
-&lt;input type&#x3D;&#x27;text&#x27; value&#x3D;&#x27;hello!&#x27; /&gt;
-</code></pre></td>
-            </tr>
-
-
-
-
-
-
-
-
-
-        </tbody>
-    </table>
-</section>
 
 
 
@@ -133,25 +84,10 @@
 
     <div class="tab-pane fade  tab-source-code" id="source">
         <pre class="line-numbers compodoc-sourcecode"><code class="language-typescript">import { Component } from &#x27;@angular/core&#x27;;
-import { FormBaseComponent, ModelBase } from &quot;@researchdatabox/portal-ng-common&quot;;
-
-export class TextField extends ModelBase&lt;string&gt; {
-  type: string &#x3D; &#x27;text&#x27;
-  constructor(initJson: any) {
-    super(initJson);
-    
-  }
-}
-
 @Component({
-  selector: &#x27;textfield&#x27;,
-  template: &#x60;
-  &lt;span&gt;Text Label&lt;/span&gt;
-  &lt;input type&#x3D;&#x27;text&#x27; value&#x3D;&#x27;hello!&#x27; /&gt;
-  &#x60;,
+  template: &#x27;&#x27;
 })
-export class TextFieldComponent extends FormBaseComponent {
-
+export abstract class FormBaseComponent {
 }</code></pre>
     </div>
 
@@ -182,10 +118,10 @@ export class TextFieldComponent extends FormBaseComponent {
 <script src="../js/libs/htmlparser.js"></script>
 <script src="../js/libs/deep-iterator.js"></script>
 <script>
-        var COMPONENT_TEMPLATE = '<div><span>Text Label</span><input type=\'text\' value=\'hello!\' /></div>'
+        var COMPONENT_TEMPLATE = '<div></div>'
     var COMPONENTS = [{'name': 'BaseComponent', 'selector': ''},{'name': 'DashboardComponent', 'selector': 'dashboard'},{'name': 'ExportComponent', 'selector': 'export'},{'name': 'FormBaseComponent', 'selector': ''},{'name': 'FormComponent', 'selector': 'redbox-form'},{'name': 'FormFieldWrapperComponent', 'selector': 'redbox-form-field'},{'name': 'LocalAuthComponent', 'selector': 'local-auth'},{'name': 'ManageRolesComponent', 'selector': 'manage-roles'},{'name': 'ManageUsersComponent', 'selector': 'manage-users'},{'name': 'RecordTableComponent', 'selector': 'record-table'},{'name': 'ReportComponent', 'selector': 'report'},{'name': 'SortComponent', 'selector': 'sort'},{'name': 'TextFieldComponent', 'selector': 'textfield'}];
     var DIRECTIVES = [{'name': 'FormFieldWrapperDirective', 'selector': '[formFieldComp]'}];
-    var ACTUAL_COMPONENT = {'name': 'TextFieldComponent'};
+    var ACTUAL_COMPONENT = {'name': 'FormBaseComponent'};
 </script>
 <script src="../js/tree.js"></script>
 
@@ -231,7 +167,7 @@ export class TextFieldComponent extends FormBaseComponent {
        <script>
             var COMPODOC_CURRENT_PAGE_DEPTH = 1;
             var COMPODOC_CURRENT_PAGE_CONTEXT = 'component';
-            var COMPODOC_CURRENT_PAGE_URL = 'TextFieldComponent.html';
+            var COMPODOC_CURRENT_PAGE_URL = 'FormBaseComponent.html';
             var MAX_SEARCH_RESULTS = 15;
        </script>
 

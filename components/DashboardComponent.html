@@ -496,8 +496,8 @@
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="561"
-                            class="link-to-prism">angular/projects/researchdatabox/dashboard/src/app/dashboard.component.ts:561</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="568"
+                            class="link-to-prism">angular/projects/researchdatabox/dashboard/src/app/dashboard.component.ts:568</a></div>
                 </td>
             </tr>
 
@@ -591,8 +591,8 @@
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="397"
-                            class="link-to-prism">angular/projects/researchdatabox/dashboard/src/app/dashboard.component.ts:397</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="404"
+                            class="link-to-prism">angular/projects/researchdatabox/dashboard/src/app/dashboard.component.ts:404</a></div>
                 </td>
             </tr>
 
@@ -710,8 +710,8 @@
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="504"
-                            class="link-to-prism">angular/projects/researchdatabox/dashboard/src/app/dashboard.component.ts:504</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="511"
+                            class="link-to-prism">angular/projects/researchdatabox/dashboard/src/app/dashboard.component.ts:511</a></div>
                 </td>
             </tr>
 
@@ -841,8 +841,8 @@
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="695"
-                            class="link-to-prism">angular/projects/researchdatabox/dashboard/src/app/dashboard.component.ts:695</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="702"
+                            class="link-to-prism">angular/projects/researchdatabox/dashboard/src/app/dashboard.component.ts:702</a></div>
                 </td>
             </tr>
 
@@ -960,8 +960,8 @@
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="275"
-                            class="link-to-prism">angular/projects/researchdatabox/dashboard/src/app/dashboard.component.ts:275</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="282"
+                            class="link-to-prism">angular/projects/researchdatabox/dashboard/src/app/dashboard.component.ts:282</a></div>
                 </td>
             </tr>
 
@@ -1152,8 +1152,8 @@
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="666"
-                            class="link-to-prism">angular/projects/researchdatabox/dashboard/src/app/dashboard.component.ts:666</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="673"
+                            class="link-to-prism">angular/projects/researchdatabox/dashboard/src/app/dashboard.component.ts:673</a></div>
                 </td>
             </tr>
 
@@ -1235,8 +1235,8 @@
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="687"
-                            class="link-to-prism">angular/projects/researchdatabox/dashboard/src/app/dashboard.component.ts:687</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="694"
+                            class="link-to-prism">angular/projects/researchdatabox/dashboard/src/app/dashboard.component.ts:694</a></div>
                 </td>
             </tr>
 
@@ -1319,8 +1319,8 @@
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="633"
-                            class="link-to-prism">angular/projects/researchdatabox/dashboard/src/app/dashboard.component.ts:633</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="640"
+                            class="link-to-prism">angular/projects/researchdatabox/dashboard/src/app/dashboard.component.ts:640</a></div>
                 </td>
             </tr>
 
@@ -1390,8 +1390,8 @@
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="657"
-                            class="link-to-prism">angular/projects/researchdatabox/dashboard/src/app/dashboard.component.ts:657</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="664"
+                            class="link-to-prism">angular/projects/researchdatabox/dashboard/src/app/dashboard.component.ts:664</a></div>
                 </td>
             </tr>
 
@@ -3037,12 +3037,19 @@ export class DashboardComponent extends BaseComponent {
           this.formatRules &#x3D; _get(step, &#x27;config.dashboard.table.formatRules&#x27;);
         }
       }
+
       this.tableConfig[step.name] &#x3D; stepTableConfig;
       this.sortMap[step.name] &#x3D; {};
       for (let rowConfig of stepTableConfig) {
         this.sortMap[step.name][rowConfig.variable] &#x3D; {
           sort: rowConfig.initialSort
         };
+      }
+      
+      if(this.dashboardTypeSelected &#x3D;&#x3D; &#x27;consolidated&#x27;) {
+        this.enableSort &#x3D; false;
+      } else {
+        this.enableSort &#x3D; true;
       }
 
       if(this.dashboardTypeSelected &#x3D;&#x3D; &#x27;consolidated&#x27;) {
@@ -3587,8 +3594,8 @@ export class DashboardComponent extends BaseComponent {
 <script src="../js/libs/deep-iterator.js"></script>
 <script>
         var COMPONENT_TEMPLATE = '<div><div *ngIf="isReady">    <ng-container>        <div *ngFor="let workflowStep of workflowSteps">            <h2 *ngIf="workflowSteps.length > 1 && (dashboardTypeSelected == \'standard\' || dashboardTypeSelected == \'consolidated\')" [innerHTML]="\'dashboard-heading\' | i18next: {stage: workflowStep.config.workflow.stageLabel, recordTypeName: typeLabel}">            </h2>            <h2 *ngIf="workflowSteps.length == 1 && (dashboardTypeSelected == \'standard\' || dashboardTypeSelected == \'consolidated\')" [innerHTML]="\'dashboard-heading-one-step\' | i18next: {recordTypeName: typeLabel}">            </h2>            <div *ngIf="records[workflowStep.config.workflow.stage] != null">                <div *ngIf="records[workflowStep.config.workflow.stage].totalItems <= 0" class="padding-bottom-10" [innerHTML]="\'no-records\' | i18next: {stage: workflowStep.config.workflow.stageLabel.toLowerCase(), recordTypeName: typeLabel.toLowerCase()}">                </div>                <div *ngIf="records[workflowStep.config.workflow.stage].totalItems > 0">                <table class="table">                    <thead>                    <tr>                    <th *ngFor="let rowConfig of tableConfig[workflowStep.config.workflow.stage]">                         <sort *ngIf="enableSort" [title]="rowConfig.title | i18next" [variable]="rowConfig.variable" [step]="workflowStep.config.workflow.stage" [sort]="sortMap[workflowStep.config.workflow.stage][rowConfig.variable][\'sort\']" (sortChanged)="sortChanged($event)"> </sort>                        <span *ngIf="!enableSort" class="dashboard-heading-no-sort">{{rowConfig.title | i18next}}</span>                    </th>                    </tr>                    </thead>                    <tbody *ngFor="let plan of records[workflowStep.config.workflow.stage].items">                    <tr><td *ngFor="let rowConfig of tableConfig[workflowStep.config.workflow.stage]" [innerHtml]="plan[rowConfig.variable]"></td></tr>                    </tbody>                </table>                 <pagination *ngIf="records[workflowStep.config.workflow.stage].totalItems > 0" [directionLinks]="false" [boundaryLinks]="true" [totalItems]="records[workflowStep.config.workflow.stage].totalItems"                            [(ngModel)]="records[workflowStep.config.workflow.stage].currentPage" (pageChanged)="pageChanged($event,workflowStep.config.workflow.stage)" class="pagination-sm" [maxSize]="10"></pagination>                </div>            </div>        </div>    </ng-container></div></div>'
-    var COMPONENTS = [{'name': 'BaseComponent', 'selector': ''},{'name': 'DashboardComponent', 'selector': 'dashboard'},{'name': 'ExportComponent', 'selector': 'export'},{'name': 'LocalAuthComponent', 'selector': 'local-auth'},{'name': 'ManageRolesComponent', 'selector': 'manage-roles'},{'name': 'ManageUsersComponent', 'selector': 'manage-users'},{'name': 'RecordTableComponent', 'selector': 'record-table'},{'name': 'ReportComponent', 'selector': 'report'},{'name': 'SortComponent', 'selector': 'sort'}];
-    var DIRECTIVES = [];
+    var COMPONENTS = [{'name': 'BaseComponent', 'selector': ''},{'name': 'DashboardComponent', 'selector': 'dashboard'},{'name': 'ExportComponent', 'selector': 'export'},{'name': 'FormBaseComponent', 'selector': ''},{'name': 'FormComponent', 'selector': 'redbox-form'},{'name': 'FormFieldWrapperComponent', 'selector': 'redbox-form-field'},{'name': 'LocalAuthComponent', 'selector': 'local-auth'},{'name': 'ManageRolesComponent', 'selector': 'manage-roles'},{'name': 'ManageUsersComponent', 'selector': 'manage-users'},{'name': 'RecordTableComponent', 'selector': 'record-table'},{'name': 'ReportComponent', 'selector': 'report'},{'name': 'SortComponent', 'selector': 'sort'},{'name': 'TextFieldComponent', 'selector': 'textfield'}];
+    var DIRECTIVES = [{'name': 'FormFieldWrapperDirective', 'selector': '[formFieldComp]'}];
     var ACTUAL_COMPONENT = {'name': 'DashboardComponent'};
 </script>
 <script src="../js/tree.js"></script>

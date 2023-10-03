@@ -198,7 +198,7 @@
                 </tr>
                         <tr>
                             <td class="col-md-4">
-                                <div class="io-line">Defined in <a href="" data-line="59" class="link-to-prism">angular/projects/researchdatabox/portal-ng-common/src/lib/report.service.ts:59</a></div>
+                                <div class="io-line">Defined in <a href="" data-line="38" class="link-to-prism">angular/projects/researchdatabox/portal-ng-common/src/lib/report.service.ts:38</a></div>
                             </td>
                         </tr>
 
@@ -312,8 +312,8 @@
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="77"
-                            class="link-to-prism">angular/projects/researchdatabox/portal-ng-common/src/lib/report.service.ts:77</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="56"
+                            class="link-to-prism">angular/projects/researchdatabox/portal-ng-common/src/lib/report.service.ts:56</a></div>
                 </td>
             </tr>
 
@@ -387,8 +387,8 @@
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="94"
-                            class="link-to-prism">angular/projects/researchdatabox/portal-ng-common/src/lib/report.service.ts:94</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="73"
+                            class="link-to-prism">angular/projects/researchdatabox/portal-ng-common/src/lib/report.service.ts:73</a></div>
                 </td>
             </tr>
 
@@ -778,7 +778,7 @@
                         </tr>
                     <tr>
                         <td class="col-md-4">
-                                <div class="io-line">Defined in         <code><a href="../classes/HttpClientService.html#source" target="_self" >HttpClientService:62</a></code>
+                                <div class="io-line">Defined in         <code><a href="../classes/HttpClientService.html#source" target="_self" >HttpClientService:41</a></code>
 </div>
                         </td>
                     </tr>
@@ -1049,28 +1049,7 @@ import { HttpClientService } from &#x27;./httpClient.service&#x27;;
 import { ConfigService } from &#x27;./config.service&#x27;;
 import { UtilityService } from &#x27;./utility.service&#x27;;
 import { LoggerService } from &#x27;./logger.service&#x27;;
-import { RecordPropViewMeta, RecordPage } from &#x27;./record.model&#x27;;
-
-export interface ReportFilter {
-  type: string;
-  paramName: string;
-  message: string;
-  property:string;
-}
-
-export interface Report {
-  title: string;
-  name: string;
-  solrQuery: string;
-  filter: ReportFilter[];
-  columns: RecordPropViewMeta[];
-}
-/**
- * Users of Record Table must extend RecordPage model
- */
-export interface ReportResult extends RecordPage {
-  recordsPerPage: number;
-}
+import { ReportDto, ReportResultDto } from &#x27;@researchdatabox/sails-ng-common&#x27;;
 
 /**
  * Report Service
@@ -1104,7 +1083,7 @@ export class ReportService extends HttpClientService {
     const req &#x3D; this.http.get(&#x60;${this.brandingAndPortalUrl}/admin/getReport?name&#x3D;${name}&#x60;, this.reqOptsJsonBodyOnly);
     req.pipe(
       map((data:any) &#x3D;&gt; {
-        return data as Report
+        return data as ReportDto
       })
     );
     return firstValueFrom(req);
@@ -1126,7 +1105,7 @@ export class ReportService extends HttpClientService {
     const req &#x3D; this.http.get(url, this.reqOptsJsonBodyOnly);
     req.pipe(
       map((data:any) &#x3D;&gt; {
-        return data as ReportResult
+        return data as ReportResultDto
       })
     );
     return await firstValueFrom(req);

@@ -28,13 +28,13 @@
 <title>cluster_RedboxPortalCoreModule_providers</title>
 <polygon fill="none" stroke="black" points="194,-78 194,-130 1428,-130 1428,-78 194,-78"/>
 </g>
-<g id="clust5" class="cluster">
-<title>cluster_RedboxPortalCoreModule_exports</title>
-<polygon fill="none" stroke="black" points="649,-208 649,-260 823,-260 823,-208 649,-208"/>
-</g>
 <g id="clust2" class="cluster">
 <title>cluster_RedboxPortalCoreModule_declarations</title>
 <polygon fill="none" stroke="black" points="16,-78 16,-130 186,-130 186,-78 16,-78"/>
+</g>
+<g id="clust5" class="cluster">
+<title>cluster_RedboxPortalCoreModule_exports</title>
+<polygon fill="none" stroke="black" points="649,-208 649,-260 823,-260 823,-208 649,-208"/>
 </g>
 <!-- RecordTableComponent -->
 <g id="node1" class="node">

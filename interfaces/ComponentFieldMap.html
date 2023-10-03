@@ -29,174 +29,100 @@
                    <compodoc-menu mode="normal"></compodoc-menu>
                </div>
                <!-- START CONTENT -->
-               <div class="content component">
+               <div class="content interface">
                    <div class="content-data">
 
 
 
 
+
+
+
+
+
+
+
+
+
 <ol class="breadcrumb">
-  <li class="breadcrumb-item">Components</li>
+  <li class="breadcrumb-item">Interfaces</li>
   <li class="breadcrumb-item"
   >
-  TextFieldComponent</li>
+  ComponentFieldMap</li>
 </ol>
 
 <ul class="nav nav-tabs" role="tablist">
         <li class="nav-item">
-            <a href="#info" class="nav-link active"
+            <a href="#info" 
+                class="nav-link"
+                class="nav-link active"
                 role="tab" id="info-tab" data-bs-toggle="tab" data-link="info">Info</a>
         </li>
         <li class="nav-item">
-            <a href="#source" class="nav-link"
+            <a href="#source" 
+                class="nav-link"
+                
                 role="tab" id="source-tab" data-bs-toggle="tab" data-link="source">Source</a>
-        </li>
-        <li class="nav-item">
-            <a href="#tree" class="nav-link"
-                role="tab" id="tree-tab" data-bs-toggle="tab" data-link="dom-tree">DOM Tree</a>
         </li>
 </ul>
 
 <div class="tab-content">
-    <div class="tab-pane fade active in" id="info"><p class="comment">
-    <h3>File</h3>
-</p>
-<p class="comment">
-    <code>angular/projects/researchdatabox/form/src/app/component/textfield.component.ts</code>
-</p>
-
-
-
-    <p class="comment">
-        <h3>Extends</h3>
-    </p>
-    <p class="comment">
-                <code><a href="../components/FormBaseComponent.html" target="_self" >FormBaseComponent</a></code>
-    </p>
-
-
-
-<section data-compodoc="block-metadata">
-    <h3>Metadata</h3>
-    <table class="table table-sm table-hover metadata">
-        <tbody>
+    <div class="tab-pane fade active in" id="info">
+        <p class="comment">
+            <h3>File</h3>
+        </p>
+        <p class="comment">
+            <code>angular/projects/researchdatabox/form/src/app/static-comp-field.dictionary.ts</code>
+        </p>
 
 
 
 
 
 
-
-
-
-
-
-
-            <tr>
-                <td class="col-md-3">selector</td>
-                <td class="col-md-9"><code>textfield</code></td>
-            </tr>
-
-
-
-
-
-            <tr>
-                <td class="col-md-3">template</td>
-                <td class="col-md-9"><pre class="line-numbers"><code class="language-html">&lt;span&gt;Text Label&lt;/span&gt;
-&lt;input type&#x3D;&#x27;text&#x27; value&#x3D;&#x27;hello!&#x27; /&gt;
-</code></pre></td>
-            </tr>
-
-
-
-
-
-
-
-
-
-        </tbody>
-    </table>
+            <section data-compodoc="block-indexables">
+    <h3 id="inputs">Indexable</h3>
+        <table class="table table-sm table-bordered">
+            <tbody>
+                <tr>
+                    <td class="col-md-4">
+                        <code>[index: string]:        <code><a href="../components/FormBaseComponent.html" target="_self" >FormBaseComponent</a></code>
+</code>
+                    </td>
+                </tr>
+                        <tr>
+                            <td class="col-md-4">
+                                <div class="io-line">Defined in <a href="" data-line="12" class="link-to-prism">angular/projects/researchdatabox/form/src/app/static-comp-field.dictionary.ts:12</a></div>
+                            </td>
+                        </tr>
+            </tbody>
+        </table>
 </section>
 
-
-
-
-
-
-
-
-
-</div>
+    </div>
 
 
     <div class="tab-pane fade  tab-source-code" id="source">
-        <pre class="line-numbers compodoc-sourcecode"><code class="language-typescript">import { Component } from &#x27;@angular/core&#x27;;
-import { FormBaseComponent, ModelBase } from &quot;@researchdatabox/portal-ng-common&quot;;
+        <pre class="line-numbers compodoc-sourcecode"><code class="language-typescript">import { FormBaseComponent } from &quot;@researchdatabox/portal-ng-common&quot;;
+import { TextField, TextFieldComponent } from &quot;./component/textfield.component&quot;;
 
-export class TextField extends ModelBase&lt;string&gt; {
-  type: string &#x3D; &#x27;text&#x27;
-  constructor(initJson: any) {
-    super(initJson);
-    
-  }
+export interface ComponentFieldMapEntry {
+  // TODO: remove any
+  field?: any;
+  component?: any;
+  // END TODO
+  componentPath?: string;
 }
 
-@Component({
-  selector: &#x27;textfield&#x27;,
-  template: &#x60;
-  &lt;span&gt;Text Label&lt;/span&gt;
-  &lt;input type&#x3D;&#x27;text&#x27; value&#x3D;&#x27;hello!&#x27; /&gt;
-  &#x60;,
-})
-export class TextFieldComponent extends FormBaseComponent {
+export interface ComponentFieldMap {
+  [index: string]: FormBaseComponent;
+}
 
-}</code></pre>
+export const StaticComponentFieldMap: ComponentFieldMap &#x3D; {
+  &#x27;TextField&#x27;: TextFieldComponent
+};</code></pre>
     </div>
-
-
-
-    <div class="tab-pane fade " id="tree">
-        <div id="tree-container"></div>
-        <div class="tree-legend">
-            <div class="title">
-                <b>Legend</b>
-            </div>
-            <div>
-                <div class="color htmlelement"></div><span>Html element</span>
-            </div>
-            <div>
-                <div class="color component"></div><span>Component</span>
-            </div>
-            <div>
-                <div class="color directive"></div><span>Html element with directive</span>
-            </div>
-        </div>
-    </div>
-
-    
 </div>
-
-<script src="../js/libs/vis.min.js"></script>
-<script src="../js/libs/htmlparser.js"></script>
-<script src="../js/libs/deep-iterator.js"></script>
-<script>
-        var COMPONENT_TEMPLATE = '<div><span>Text Label</span><input type=\'text\' value=\'hello!\' /></div>'
-    var COMPONENTS = [{'name': 'BaseComponent', 'selector': ''},{'name': 'DashboardComponent', 'selector': 'dashboard'},{'name': 'ExportComponent', 'selector': 'export'},{'name': 'FormBaseComponent', 'selector': ''},{'name': 'FormComponent', 'selector': 'redbox-form'},{'name': 'FormFieldWrapperComponent', 'selector': 'redbox-form-field'},{'name': 'LocalAuthComponent', 'selector': 'local-auth'},{'name': 'ManageRolesComponent', 'selector': 'manage-roles'},{'name': 'ManageUsersComponent', 'selector': 'manage-users'},{'name': 'RecordTableComponent', 'selector': 'record-table'},{'name': 'ReportComponent', 'selector': 'report'},{'name': 'SortComponent', 'selector': 'sort'},{'name': 'TextFieldComponent', 'selector': 'textfield'}];
-    var DIRECTIVES = [{'name': 'FormFieldWrapperDirective', 'selector': '[formFieldComp]'}];
-    var ACTUAL_COMPONENT = {'name': 'TextFieldComponent'};
-</script>
-<script src="../js/tree.js"></script>
-
-
-
-
-
-
-
-
-
 
 
 
@@ -230,8 +156,8 @@ export class TextFieldComponent extends FormBaseComponent {
 
        <script>
             var COMPODOC_CURRENT_PAGE_DEPTH = 1;
-            var COMPODOC_CURRENT_PAGE_CONTEXT = 'component';
-            var COMPODOC_CURRENT_PAGE_URL = 'TextFieldComponent.html';
+            var COMPODOC_CURRENT_PAGE_CONTEXT = 'interface';
+            var COMPODOC_CURRENT_PAGE_URL = 'ComponentFieldMap.html';
             var MAX_SEARCH_RESULTS = 15;
        </script>
 

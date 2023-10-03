@@ -48,7 +48,7 @@
   <li class="breadcrumb-item">Interfaces</li>
   <li class="breadcrumb-item"
   >
-  RecordSource</li>
+  FormComponentResolver</li>
 </ol>
 
 <ul class="nav nav-tabs" role="tablist">
@@ -72,17 +72,10 @@
             <h3>File</h3>
         </p>
         <p class="comment">
-            <code>angular/projects/researchdatabox/portal-ng-common/src/lib/record.model.ts</code>
+            <code>angular/projects/researchdatabox/portal-ng-common/src/lib/form/form-component-resolver.interface.ts</code>
         </p>
 
 
-            <p class="comment">
-                <h3>Description</h3>
-            </p>
-            <p class="comment">
-                <p>The data source, decouples the renderer.</p>
-
-            </p>
 
 
         <section data-compodoc="block-index">
@@ -98,15 +91,9 @@
                         <td class="col-md-4">
                             <ul class="index-list">
                                 <li>
-                                    <a href="#getCurrentPage" 
+                                    <a href="#getComponentClass" 
 >
-                                        getCurrentPage
-                                    </a>
-                                </li>
-                                <li>
-                                    <a href="#gotoPage" 
->
-                                        gotoPage
+                                        getComponentClass
                                     </a>
                                 </li>
                             </ul>
@@ -125,61 +112,24 @@
         <tbody>
             <tr>
                 <td class="col-md-4">
-                    <a name="getCurrentPage"></a>
+                    <a name="getComponentClass"></a>
                     <span class="name">
-                        <span ><b>getCurrentPage</b></span>
-                        <a href="#getCurrentPage"><span class="icon ion-ios-link"></span></a>
+                        <span ><b>getComponentClass</b></span>
+                        <a href="#getComponentClass"><span class="icon ion-ios-link"></span></a>
                     </span>
                 </td>
             </tr>
             <tr>
                 <td class="col-md-4">
-<code>getCurrentPage()</code>
+<code>getComponentClass(componentName: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank">string</a>)</code>
                 </td>
             </tr>
 
 
             <tr>
                 <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="27"
-                            class="link-to-prism">angular/projects/researchdatabox/portal-ng-common/src/lib/record.model.ts:27</a></div>
-                </td>
-            </tr>
-
-
-            <tr>
-                <td class="col-md-4">
-
-                    <div class="io-description">
-                        <b>Returns : </b>    <code>RecordPageDto</code>
-
-                    </div>
-                </td>
-            </tr>
-        </tbody>
-    </table>
-    <table class="table table-sm table-bordered">
-        <tbody>
-            <tr>
-                <td class="col-md-4">
-                    <a name="gotoPage"></a>
-                    <span class="name">
-                        <span ><b>gotoPage</b></span>
-                        <a href="#gotoPage"><span class="icon ion-ios-link"></span></a>
-                    </span>
-                </td>
-            </tr>
-            <tr>
-                <td class="col-md-4">
-<code>gotoPage(pageNum: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/number" target="_blank">number</a>)</code>
-                </td>
-            </tr>
-
-
-            <tr>
-                <td class="col-md-4">
-                    <div class="io-line">Defined in <a href="" data-line="28"
-                            class="link-to-prism">angular/projects/researchdatabox/portal-ng-common/src/lib/record.model.ts:28</a></div>
+                    <div class="io-line">Defined in <a href="" data-line="4"
+                            class="link-to-prism">angular/projects/researchdatabox/portal-ng-common/src/lib/form/form-component-resolver.interface.ts:4</a></div>
                 </td>
             </tr>
 
@@ -200,9 +150,9 @@
                             </thead>
                             <tbody>
                                 <tr>
-                                    <td>pageNum</td>
+                                    <td>componentName</td>
                                     <td>
-                                                <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/number" target="_blank" >number</a></code>
+                                                <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank" >string</a></code>
                                     </td>
 
                                     <td>
@@ -217,7 +167,7 @@
                     <div>
                     </div>
                     <div class="io-description">
-                        <b>Returns : </b>    <code>Promise&lt;RecordPageDto&gt;</code>
+                        <b>Returns : </b>        <code><a href="../components/FormBaseComponent.html" target="_self" >FormBaseComponent</a></code>
 
                     </div>
                     <div class="io-description">
@@ -233,14 +183,10 @@
 
 
     <div class="tab-pane fade  tab-source-code" id="source">
-        <pre class="line-numbers compodoc-sourcecode"><code class="language-typescript">import { RecordPageDto } from &quot;@researchdatabox/sails-ng-common&quot;;
+        <pre class="line-numbers compodoc-sourcecode"><code class="language-typescript">import { FormBaseComponent } from &quot;./form-base.component&quot;;
 
-/**
- * The data source, decouples the renderer.
- */
-export interface RecordSource {
-  getCurrentPage(): RecordPageDto;
-  gotoPage(pageNum: number): Promise&lt;RecordPageDto&gt;;
+export interface FormComponentResolver {
+  getComponentClass(componentName: string): FormBaseComponent;
 }</code></pre>
     </div>
 </div>
@@ -278,7 +224,7 @@ export interface RecordSource {
        <script>
             var COMPODOC_CURRENT_PAGE_DEPTH = 1;
             var COMPODOC_CURRENT_PAGE_CONTEXT = 'interface';
-            var COMPODOC_CURRENT_PAGE_URL = 'RecordSource.html';
+            var COMPODOC_CURRENT_PAGE_URL = 'FormComponentResolver.html';
             var MAX_SEARCH_RESULTS = 15;
        </script>
 
