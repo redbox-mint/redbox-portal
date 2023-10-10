@@ -1,42 +1,11 @@
-$branding-primary: #b1101a;
-$branding-secondary: #500005;
 
-/* The branding areas colours */
-$site-branding-area-background: $branding-primary;
-$site-branding-area-heading-color: #fff;
-
-$panel-branding-background-color: $branding-primary;
-$panel-branding-color: #fff;
-
-$mainmenu-branding-background-color: $branding-secondary;
-
-$header-branding-link-color: #888;
-$header-branding-background-color: #f4f4f4;
-$logo-link-color-branding: #999;
-
-/* The text colour and background colour of focused main menu item */
-$main-menu-active-item-color: white;
-$main-menu-active-item-background-color: #222;
-
-/* The text colour and background colour of an unfocused main menu item*/
-$mainmenu-inactive-item-color: darkgray;
-$mainmenu-inactive-item-background-color:#222222;
-
-/* The text colour and background-color of a selected main menu item */
-$mainmenu-selected-item-color: #000;
-$mainmenu-selected-item-background-color: $main-menu-active-item-background-color;
-
-/* The text colour and background-color for the footer */
-$footer-bottom-area-branding-background-color: #000;
-$footer-bottom-area-branding-color: #fff;
-
-$maincontent-heading-text-branding-color:  #000;
-
-@import "../../node_modules/bootstrap-sass/assets/stylesheets/bootstrap";
-@import "../../node_modules/bootstrap-sass/assets/stylesheets/bootstrap/_glyphicons";
-@import "../../node_modules/font-awesome-sass/assets/stylesheets/_font-awesome";
-
-@import "theme";
-
-
-@import "responsive";
+@import "custom-colors";
+@import "default-colors";
+@import "default-variables";
+@import "custom-variables";
+@import "~bootstrap/scss/bootstrap";
+@import "default-theme";
+@import "custom-theme";
+@import "default-responsive";
+@import "custom-responsive";
+ 

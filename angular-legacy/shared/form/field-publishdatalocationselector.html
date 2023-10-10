@@ -23,7 +23,7 @@
             {{ dataLocation.location }}
             </ng-container>
             <ng-container *ngIf="dataLocation.type == 'url'">
-              <a *ngIf="!dataLocation.pending" [href]="dataLocation.location" target="_blank">
+              <a *ngIf="!dataLocation.pending" [href]="dataLocation.location" target="_blank" rel="noopener noreferrer">
                 {{ dataLocation.location }}
               </a>
             </ng-container>
@@ -31,7 +31,7 @@
               <ng-container *ngIf="dataLocation.pending">
                 {{ dataLocation.name }}
               </ng-container>
-              <a *ngIf="!dataLocation.pending" href="{{ getAbsUrl(dataLocation.location) }}" target="_blank">
+              <a *ngIf="!dataLocation.pending" href="{{ getAbsUrl(dataLocation.location) }}" target="_blank" rel="noopener noreferrer">
                 {{ dataLocation.name }}
               </a>
             </ng-container>
@@ -53,14 +53,14 @@
   <div class="modal-dialog" role="document">
     <div class="modal-content">
       <div class="modal-header">
-        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+        <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
         <span class="modal-title" [innerHtml]="field.editNotesTitle"></span>
       </div>
       <div class="modal-body">
         <input type='text' [ngClass]="field.editNotesCssClasses" [(ngModel)]="editingNotes.notes" [attr.aria-label]="field.notesHeader"/>
       </div>
       <div class="modal-footer">
-        <button (click)="hideEditNotes()" type="button" class="btn btn-default" data-dismiss="modal" [innerHtml]="field.cancelEditNotesButtonText"></button>
+        <button (click)="hideEditNotes()" type="button" class="btn btn-default" data-bs-dismiss="modal" [innerHtml]="field.cancelEditNotesButtonText"></button>
         <button (click)="saveNotes()" type="button" class="btn btn-primary" [innerHtml]="field.applyEditNotesButtonText"></button>
       </div>
     </div>

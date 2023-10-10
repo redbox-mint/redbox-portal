@@ -49,6 +49,10 @@ export class SelectionField extends FieldBase<any>  {
   compare: any;
   disableOptionLabelsFor: boolean = false;
   useFormGroup: string;
+  controlGroupCssClasses: string = 'selection-control-group';
+  fieldSetCssClasses: string = 'selection-field-set';
+  controlInputCssClasses:string = 'selection-control-input';
+  controlLabelCssClasses:string = 'selection-control-label';
   
   constructor(options: any, injector: any) {
     super(options, injector);
@@ -91,6 +95,10 @@ export class SelectionField extends FieldBase<any>  {
     }
     this.disableOptionLabelsFor = options['disableOptionLabelsFor'];
     this.useFormGroup = options['useFormGroup'];
+    this.controlGroupCssClasses = options['controlGroupCssClasses'] == undefined ? this.controlGroupCssClasses : options['controlGroupCssClasses'];
+    this.fieldSetCssClasses = options['fieldSetCssClasses'] == undefined ? this.fieldSetCssClasses : options['fieldSetCssClasses'];
+    this.controlInputCssClasses = options['controlInputCssClasses'] == undefined ? this.controlInputCssClasses : options['controlInputCssClasses'];
+    this.controlLabelCssClasses = options['controlLabelCssClasses'] == undefined ? this.controlLabelCssClasses : options['controlLabelCssClasses'];
   }
 
 

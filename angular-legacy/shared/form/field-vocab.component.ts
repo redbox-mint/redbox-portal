@@ -20,7 +20,7 @@
 import { Input, Component, Injectable, Inject, OnInit, Output, EventEmitter, ElementRef, ViewChild } from '@angular/core';
 import { SimpleComponent } from './field-simple.component';
 import { FieldBase } from './field-base';
-import { FormGroup, FormControl, Validators } from '@angular/forms';
+import { FormGroup, FormControl, Validators, ValidatorFn, AbstractControl, ValidationErrors } from '@angular/forms';
 import * as _ from "lodash";
 import { Observable } from 'rxjs';
 import { Subject } from "rxjs/Subject";
@@ -67,8 +67,10 @@ export class VocabField extends FieldBase<any> {
   public isEmbedded: boolean;
   public groupClass: string;
   public inputClass: string;
+  storedEventData: null;
 
   @Output() onItemSelect: EventEmitter<any> = new EventEmitter<any>();
+  
 
   constructor(options: any, injector: any) {
     super(options, injector);
@@ -127,13 +129,16 @@ export class VocabField extends FieldBase<any> {
     }
 
     if (this.required) {
-      this.formModel.setValidators([Validators.required]);
+      this.formModel.setValidators([objectRequired()]);
     }
     return this.formModel;
   }
 
   public reactEvent(eventName: string, eventData: any, origData: any) {
     let selected = {};
+    if (this.storeLabelOnly) {
+      selected['title'] = eventData; 
+    }
     selected['originalObject'] = eventData;
     this.component.onSelect(selected, false, true);
     super.reactEvent(eventName, eventData, origData);
@@ -212,6 +217,12 @@ export class VocabField extends FieldBase<any> {
 
   public getTitle(data: any): string {
     let title = '';
+    if(!data) {
+      if(this.storedEventData != null) {
+        data = _.clone(this.storedEventData);
+        this.storedEventData == null;
+      }
+    }
     if (data) {
       if (_.isString(data)) {
         return data;
@@ -280,7 +291,11 @@ export class VocabField extends FieldBase<any> {
   public setValue(value: any, emitEvent: boolean = true, updateTitle: boolean = true) {
     this.formModel.setValue(value, { emitEvent: emitEvent });
     if (updateTitle) {
-      this.component.ngCompleter.ctrInput.nativeElement.value = this.getTitle(value);
+      if(!_.isUndefined(this.component.ngCompleter)) {
+        this.component.ngCompleter.ctrInput.nativeElement.value = this.getTitle(value);
+      } else {
+        this.storedEventData = _.clone(value);
+      }
     }
   }
 
@@ -291,9 +306,116 @@ export class VocabField extends FieldBase<any> {
     return mlu.search(searchTerm, lowerTerm);
   }
 
+
+  setRequiredAndClearValueOnFalse(flag) {
+    this.required = flag;
+    if (flag) {
+      this.validators =objectRequired();
+      this.formModel.setValidators(this.validators);
+    } else {
+      if (_.isFunction(this.validators) && _.isEqual(this.validators,objectRequired())) {
+        this.validators = null;
+      }
+      this.formModel.clearValidators();
+      this.formModel.setValue(null);
+      this.value = null;
+    }
+  }
+
+  setRequired(flag) {
+    this.required = flag;
+    if (flag) {
+      this.validators = objectRequired();
+    } else {
+      if (_.isFunction(this.validators) && _.isEqual(this.validators,objectRequired())) {
+        this.validators = null;
+      } else {
+        _.remove(this.validators, (v) => {
+          return _.isEqual(v,objectRequired());
+        });
+      }
+    }
+    if (this.validators) {
+      this.formModel.setValidators(this.validators);
+    } else {
+      this.formModel.clearValidators();
+    }
+  }
+
+  public setVisibility(data, eventConf:any = {}) {
+    let newVisible = this.visible;
+    if (_.isArray(this.visibilityCriteria)) {
+      // save the value of this data in a map, so we can run complex conditional logic that depends on one or more fields
+      if (!_.isEmpty(eventConf) && !_.isEmpty(eventConf.srcName)) {
+        this.subscriptionData[eventConf.srcName] = data;
+      }
+      // only run the function set if we have all the data...
+      if (_.size(this.subscriptionData) == _.size(this.visibilityCriteria)) {
+        newVisible = true;
+        _.each(this.visibilityCriteria, (visibilityCriteria) => {
+          const dataEntry = this.subscriptionData[visibilityCriteria.fieldName];
+          newVisible = newVisible && this.execVisibilityFn(dataEntry, visibilityCriteria);
+        });
+
+      }
+    } else
+    if (_.isObject(this.visibilityCriteria) && _.get(this.visibilityCriteria, 'type') == 'function') {
+      newVisible = this.execVisibilityFn(data, this.visibilityCriteria);
+    } else {
+      newVisible = _.isEqual(data, this.visibilityCriteria);
+    }
+    const that = this;
+    setTimeout(() => {
+      if (!newVisible) {
+        if (that.visible) {
+          // remove validators
+          if (that.formModel) {
+            if(that['disableValidators'] != null && typeof(that['disableValidators']) == 'function') {
+              that['disableValidators']();
+            } else {
+              that.formModel.clearValidators();
+            }
+            that.formModel.updateValueAndValidity();
+          }
+        }
+      } else {
+        if (!that.visible) {
+          // restore validators
+          if (that.formModel) {       
+              if(that['enableValidators'] != null && typeof(that['enableValidators']) == 'function') {
+                that['enableValidators']();
+              } else {
+                that.formModel.setValidators(that.validators);
+              }
+              that.formModel.updateValueAndValidity();
+              setTimeout(() => {
+              that.component.ngCompleter.ctrInput.nativeElement.value = that.getTitle(null);
+              });
+          }
+        }
+      }
+      that.visible = newVisible;
+    });
+    if(eventConf.returnData == true) {
+      return data;
+    }
+    
+  }
+
 }
 
+export function objectRequired(): ValidationErrors|null {
+  
+  return (control: AbstractControl): { [key: string]: any } | null =>  
+  (_.isEqual(control.value, {}) || _.isEmpty(control.value)) 
+            ? {'required': true} : null;
+            
+  
+}
+
+
 class ExternalLookupDataService extends Subject<CompleterItem[]> implements CompleterData {
+  storedEventData:any = null;
 
   constructor(private url: string,
     private http: Http,
@@ -335,7 +457,14 @@ class ExternalLookupDataService extends Subject<CompleterItem[]> implements Comp
 
   getTitle(data: any): string {
     let title = '';
-    if (data) {
+    if (data == null) {
+      if(this.storedEventData != null) {
+          data = _.clone(this.storedEventData);
+      }
+      this.storedEventData = null;
+    }
+  
+  if(data){
       if (_.isString(this.titleFieldDelim)) {
         _.forEach(this.titleFieldArr, (titleFld: string) => {
           const titleVal = _.get(data, titleFld);
@@ -344,6 +473,7 @@ class ExternalLookupDataService extends Subject<CompleterItem[]> implements Comp
           }
         });
       } else {
+        
         // // expecting a delim pair array, 'prefix', 'suffix'
         // _.forEach(this.titleFieldArr, (titleFld: string, idx) => {
         //   const delimPair = this.titleFieldDelim[idx];

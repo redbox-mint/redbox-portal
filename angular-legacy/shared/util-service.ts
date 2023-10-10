@@ -20,7 +20,7 @@
 import {Injectable} from '@angular/core';
 import * as _ from "lodash";
 import * as moment from 'moment';
-import * as numeral from 'numeral';
+import numeral from 'numeral';
 /**
  * Utility service...
  *
@@ -69,12 +69,16 @@ export class UtilityService {
    * @param  {any} fieldsToMatch
    * @return {boolean}
    */
-  private checkData(valueObject: any, fieldsToMatch: any) {
+  private checkData(valueObject: any, fieldsToMatch: any, fieldsToMatchMustNotBeEmpty: boolean) {
     let dataOk = true;
     for (let fieldToMatch of fieldsToMatch) {
       let emittedValueToMatch = _.get(valueObject, fieldToMatch);
       if(emittedValueToMatch === undefined || emittedValueToMatch === null || _.isUndefined(emittedValueToMatch)){
         dataOk = false;
+      } else if(fieldsToMatchMustNotBeEmpty) {
+        if(emittedValueToMatch == '' || _.isEmpty(emittedValueToMatch)) {
+          dataOk = false;
+        }
       }
     }
     return dataOk;
@@ -117,7 +121,8 @@ export class UtilityService {
     const fieldsToSet = config.fieldsToSet;
     const templateObject = config.templateObject;
     let fieldValues = _.clone(field.formModel.value);
-    fieldValues = this.mergeObjectIntoArray(data,fieldValues, fieldsToMatch, fieldsToSet, templateObject);
+    const fieldsToMatchMustNotBeEmpty = _.get(config, 'fieldsToMatchMustNotBeEmpty', false);
+    fieldValues = this.mergeObjectIntoArray(data,fieldValues, fieldsToMatch, fieldsToSet, templateObject, fieldsToMatchMustNotBeEmpty);
 
     return fieldValues;
   }
@@ -146,15 +151,16 @@ export class UtilityService {
     const fieldsToMatch = config.fieldsToMatch;
     const fieldsToSet = config.fieldsToSet;
     const templateObject = config.templateObject;
+    const fieldsToMatchMustNotBeEmpty = _.get(config, 'fieldsToMatchMustNotBeEmpty', false);
     let fieldValues = _.clone(field.formModel.value);
 
     for(let dataObject of data) {
-      fieldValues = this.mergeObjectIntoArray(dataObject, fieldValues, fieldsToMatch, fieldsToSet, templateObject);
+      fieldValues = this.mergeObjectIntoArray(dataObject, fieldValues, fieldsToMatch, fieldsToSet, templateObject, fieldsToMatchMustNotBeEmpty);
     }
     return fieldValues;
   }
 
-  private mergeObjectIntoArray(data, fieldValues, fieldsToMatch, fieldsToSet, templateObject){
+  private mergeObjectIntoArray(data, fieldValues, fieldsToMatch, fieldsToSet, templateObject, fieldsToMatchMustNotBeEmpty){
     let wrappedData = data;
     if(!_.isArray(data)) {
       wrappedData = [data];
@@ -165,7 +171,7 @@ export class UtilityService {
       //gets cleared therefore need to checkDataOk if any of the fields to match are  
       //undefined not enter the if block and the same value will be sent back to the 
       //subscriber field 
-      let checkDataOk = this.checkData(emittedDataValue,fieldsToMatch);
+      let checkDataOk = this.checkData(emittedDataValue,fieldsToMatch, fieldsToMatchMustNotBeEmpty);
       if(checkDataOk){
         let concatReq = this.checkConcatReq(emittedDataValue,fieldsToMatch,fieldValues);
         if(concatReq) {
@@ -178,7 +184,7 @@ export class UtilityService {
           //if there is more than one item in the array it's too cumbersome to manage all  
           //scenarios and edge cases therefore it's better to add a new item to the array 
           if(fieldValues.length == 1) {
-            let checkFieldValuesDataOk = this.checkData(fieldValues[0],fieldsToMatch);
+            let checkFieldValuesDataOk = this.checkData(fieldValues[0],fieldsToMatch, fieldsToMatchMustNotBeEmpty);
             if(checkFieldValuesDataOk) {
               fieldValues.push(value);
             } else {

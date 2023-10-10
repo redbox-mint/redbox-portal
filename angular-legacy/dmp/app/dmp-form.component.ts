@@ -112,7 +112,7 @@ export class DmpFormComponent extends LoadableComponent {
   /**
     The form name to use, by default you don't need to specify this.
    */
-  formName: string;
+  @Input() formName: string;
 
   finishedRendering:boolean;
 
@@ -131,6 +131,8 @@ export class DmpFormComponent extends LoadableComponent {
   };
 
   relatedRecordId: any = null;
+  branding: string = "default";
+  portal: string = "rdmp";
   /**
    * Expects a number of DI'ed elements.
    */
@@ -152,11 +154,13 @@ export class DmpFormComponent extends LoadableComponent {
       translationService.isReady(tService => {
         this.fieldMap = {_rootComp:this};
         this.oid = elm.nativeElement.getAttribute('oid');
+        this.branding = elm.nativeElement.getAttribute('branding');
+        this.portal = elm.nativeElement.getAttribute('portal');
         this.editMode = elm.nativeElement.getAttribute('editMode') == "true";
         this.recordType = elm.nativeElement.getAttribute('recordType');
         this.needsSave = _.isUndefined(elm.nativeElement.getAttribute('needsSave')) ? false : elm.nativeElement.getAttribute('needsSave') == "true";
         this.formName = elm.nativeElement.getAttribute('formName') || "";
-        console.log(`Loading form with OID: ${this.oid}, on edit mode:${this.editMode}, Record Type: ${this.recordType}`);
+        console.log(`Loading form with OID: ${this.oid}, on edit mode:${this.editMode}, Record Type: ${this.recordType}, formName: ${this.formName}`);
         this.RecordsService.getForm(this.oid, this.recordType, this.editMode, this.formName).then((obs:any) => {
           obs.subscribe((form:any) => {
             this.formDef = form;
@@ -233,13 +237,20 @@ export class DmpFormComponent extends LoadableComponent {
         this.clearSaving();
         console.log("Create Response:");
         console.log(res);
+        let postSaveSyncWarning = _.get(res, 'metadata.postSaveSyncWarning', false);
         if (res.success) {
           this.oid = res.oid;
           this.recordCreated.emit({oid: this.oid});
-          this.LocationService.go(`record/edit/${this.oid}`);
+          this.LocationService.go(`${this.branding}/${this.portal}/record/edit/${this.oid}`);
           this.setSuccess(this.getMessage(this.formDef.messages.saveSuccess));
           this.form.markAsPristine();
           return Observable.of(true);
+        } else if(!res.success && postSaveSyncWarning) {
+          this.oid = res.oid;
+          this.recordCreated.emit({oid: this.oid});
+          this.LocationService.go(`record/edit/${this.oid}`);
+          this.setError(`${this.getMessage(this.formDef.messages.saveError)} ${res.message}`);
+          return Observable.of(false);
         } else {
           this.setError(`${this.getMessage(this.formDef.messages.saveError)} ${res.message}`);
           return Observable.of(false);

@@ -1,30 +1,59 @@
-<div class="row" id="loading" alt="<%= TranslationService.t('loading-alt-text') %>">
-  <div class="col-xs-1">
+<% if (sails.config.enableNewForm) { %>
+  <!-- Next Gen Form enabled -->
+  <!-- TODO: Restore use of `appSelector` -->
+  <% let appName = 'form' %>
+  <div class="row"></div>
+  <div class="row">
+    <div class="col-xs-2"></div>
+    <div class="col-xs-8">
+    <redbox-form oid="<%= oid %>" rdmp="<%= rdmp %>" editMode="true" recordType="<%= recordType %>" branding="<%= typeof branding == 'undefined'? data.branding : branding %>" portal="<%= typeof portal == 'undefined'? data.portal : portal %>" formName="<%= formName %>">
+      <img class="center-block" src="<%= BrandingService.getRootContext() %>/images/loading.svg" alt="<%= TranslationService.t('loading-alt-text') %>">
+    </redbox-form>
+    </div>
+    <div class="col-xs-2"></div>
   </div>
-  <div class="col-xs-10">
-    <img class="center-block" src="<%= BrandingService.getRootContext() %>/images/loading.svg" alt="<%= TranslationService.t('loading-alt-text') %>">
+  <script src="<%= BrandingService.getRootContext() %>/angular/<%=appName%>/runtime<%= CacheService.getNgAppFileHash(appName, 'runtime', '.') %>.js" type="module"></script>
+  <script src="<%= BrandingService.getRootContext() %>/angular/<%=appName%>/polyfills<%=CacheService.getNgAppFileHash(appName, 'polyfills', '.') %>.js" type="module"></script>
+  <% if (sails.config.angularDev) { %>
+  <script src="<%= BrandingService.getRootContext() %>/angular/<%=appName%>/vendor.js" type="module"></script>
+  <% } %>
+  <script src="<%= BrandingService.getRootContext() %>/angular/<%=appName%>/main<%=CacheService.getNgAppFileHash(appName, 'main', '.') %>.js" type="module"></script>
+  <link rel="stylesheet" href="<%= BrandingService.getRootContext() %>/angular/<%= appName %>/styles<%= CacheService.getNgAppFileHash(appName, 'styles', '.') %>.css">
+<% } else { %>
+  <!-- Legacy Form  -->
+  <div class="row" id="loading" alt="<%= TranslationService.t('loading-alt-text') %>">
+    <div class="col-xs-1">
+    </div>
+    <div class="col-xs-10">
+      <img class="center-block" src="<%= BrandingService.getRootContext() %>/images/loading.svg" alt="<%= TranslationService.t('loading-alt-text') %>">
+    </div>
+    <div class="col-xs-1">
+    </div>
   </div>
-  <div class="col-xs-1">
-  </div>
-</div>
-<<%= appSelector %> oid="<%= oid %>" rdmp="<%= rdmp %>" editMode="true" recordType="<%= recordType %>" ></<%= appSelector %>>
+  <<%= appSelector %> oid="<%= oid %>" rdmp="<%= rdmp %>" editMode="true" recordType="<%= recordType %>" branding="<%= typeof branding == 'undefined'? data.branding : branding %>" portal="<%= typeof portal == 'undefined'? data.portal : portal %>" formName="<%= formName %>" ></<%= appSelector %>>
+  <!-- DateTime Picker Deps -->
+  <script src="<%= BrandingService.getBrandAndPortalPath(req) %>/js/bootstrap-datepicker.js"></script>
+  <script src="<%= BrandingService.getBrandAndPortalPath(req) %>/js/bootstrap-timepicker.js"></script>
+  <script src="<%= BrandingService.getBrandAndPortalPath(req) %>/js/vocab_widget_v2.js"></script>
+  <script src='<%= BrandingService.getBrandAndPortalPath(req) %>/js/v0_3_1-leaflet-omnivore.min.js'></script>
+  <%
+  var currentMinute = sails.config.startupMinute;
+  %>
+  
+  <script type="text/javascript" src="<%= BrandingService.getRootContext() %>/angular/<%= appName %>/inline.bundle.js?ts=<%= currentMinute %>"></script>
+  <script type="text/javascript" src="<%= BrandingService.getRootContext() %>/angular/<%= appName %>/polyfills.bundle.js?ts=<%= currentMinute %>"></script>
+  <% if (sails.config.angularDev) { %>
+  <script type="text/javascript" src="<%= BrandingService.getRootContext() %>/angular/<%= appName %>/vendor.bundle.js?ts=<%= currentMinute %>"></script>
+  <% } %>
+  <script type="text/javascript" src="<%= BrandingService.getRootContext() %>/angular/<%= appName %>/main.bundle.js?ts=<%= currentMinute %>"></script>
+  <% if (sails.config.angularDev) { %>
+    <script type="text/javascript" src="<%= BrandingService.getRootContext() %>/angular/<%= appName %>/styles.bundle.js?ts=<%= currentMinute %>"></script>
+  <% } else { %>
+    <link rel="stylesheet" href="<%= BrandingService.getRootContext() %>/angular/<%= appName %>/styles.bundle.css?ts=<%= currentMinute %>">
+  <% } %>
+<% } %>  
 <!-- DateTime Picker Deps -->
-<script src="<%= BrandingService.getRootContext() %>/node_modules/bootstrap-datepicker/dist/js/bootstrap-datepicker.min.js"></script>
-<script src="<%= BrandingService.getRootContext() %>/node_modules/bootstrap-timepicker/js/bootstrap-timepicker.js"></script>
+<script src="<%= BrandingService.getBrandAndPortalPath(req) %>/js/bootstrap-datepicker.js"></script>
+<script src="<%= BrandingService.getBrandAndPortalPath(req) %>/js/bootstrap-timepicker.js"></script>
 <script src="<%= BrandingService.getBrandAndPortalPath(req) %>/js/vocab_widget_v2.js"></script>
 <script src='<%= BrandingService.getBrandAndPortalPath(req) %>/js/v0_3_1-leaflet-omnivore.min.js'></script>
-<%
-var currentMinute = sails.config.startupMinute;
-%>
-
-<script type="text/javascript" src="<%= BrandingService.getRootContext() %>/angular/<%= appName %>/inline.bundle.js?ts=<%= currentMinute %>"></script>
-<script type="text/javascript" src="<%= BrandingService.getRootContext() %>/angular/<%= appName %>/polyfills.bundle.js?ts=<%= currentMinute %>"></script>
-<% if (sails.config.angularDev) { %>
-<script type="text/javascript" src="<%= BrandingService.getRootContext() %>/angular/<%= appName %>/vendor.bundle.js?ts=<%= currentMinute %>"></script>
-<% } %>
-<script type="text/javascript" src="<%= BrandingService.getRootContext() %>/angular/<%= appName %>/main.bundle.js?ts=<%= currentMinute %>"></script>
-<% if (sails.config.angularDev) { %>
-  <script type="text/javascript" src="<%= BrandingService.getRootContext() %>/angular/<%= appName %>/styles.bundle.js?ts=<%= currentMinute %>"></script>
-<% } else { %>
-  <link rel="stylesheet" href="<%= BrandingService.getRootContext() %>/angular/<%= appName %>/styles.bundle.css?ts=<%= currentMinute %>">
-<% } %>

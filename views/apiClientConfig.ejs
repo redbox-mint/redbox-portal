@@ -1,4 +1,6 @@
 <% 
+let i18NextOpts = sails.config.i18n.next.init;
+i18NextOpts.backend = undefined;
 let defaultConfig = {
   baseUrl: sails.config.appUrl,
   branding: req.session.branding,
@@ -10,7 +12,9 @@ let defaultConfig = {
   userRootUri: sails.config.vocab.userRootUri,
   translationVersion: sails.config.startupMinute,
   maxTransferRowsPerPage: sails.config.record.transfer.maxRecordsPerPage,
-  maxSearchRowsPerPage: sails.config.record.search.maxRecordsPerPage
+  maxSearchRowsPerPage: sails.config.record.search.maxRecordsPerPage,
+  i18NextOpts: i18NextOpts,
+  lang: lang
 };
 if (!_.isUndefined(sails.config.api.additionalClientConfig)) {
   _.merge(defaultConfig, sails.config.api.additionalClientConfig);

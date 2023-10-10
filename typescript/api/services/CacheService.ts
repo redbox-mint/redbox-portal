@@ -20,8 +20,8 @@
 import { Observable } from 'rxjs/Rx';
 import {Services as services}   from '@researchdatabox/redbox-core-types';
 import {Sails, Model} from "sails";
-import * as NodeCache from "node-cache";
-import moment = require('moment');
+import { default as NodeCache } from "node-cache";
+import { default as moment } from 'moment';
 import { readdir } from 'node:fs/promises';
 declare var sails: Sails;
 declare var _;
@@ -112,7 +112,7 @@ export module Services {
       if (_.isEmpty(sails.config.angularDev) || sails.config.angularDev == 'false') {
         const ngRootPath = `${sails.config.appPath}/assets/angular/`;
         const ngAppDirs = await readdir(ngRootPath);
-        const targetFilesPrefix = ['runtime', 'polyfills', 'main'];
+        const targetFilesPrefix = ['runtime', 'polyfills', 'main', 'styles'];
         for (const appName of ngAppDirs) {
           let ngPath = `${sails.config.appPath}/assets/angular/${appName}`;
           const ngFiles = await readdir(ngPath);

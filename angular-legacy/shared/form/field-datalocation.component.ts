@@ -84,6 +84,7 @@ export class DataLocationField extends FieldBase<any> {
   notesHeader: string;
   uppyDashboardNote: string;
   allowUploadWithoutSave: boolean;
+  hideNotesForLocationTypes: string[];
 
   constructor(options: any, injector: any) {
     super(options, injector);
@@ -113,6 +114,7 @@ export class DataLocationField extends FieldBase<any> {
     this.value = options['value'] || this.setEmptyValue();
     this.recordsService = this.getFromInjector(RecordsService);
     this.allowUploadWithoutSave = _.isUndefined(options['allowUploadWithoutSave']) ? false : options['allowUploadWithoutSave'];
+    this.hideNotesForLocationTypes = options['hideNotesForLocationTypes'] || [];
   }
 
   setValue(value: any, emitEvent: boolean = true) {
@@ -152,7 +154,14 @@ export class DataLocationField extends FieldBase<any> {
     this.setValue(this.value);
   }
 
-
+  isNotesHiddenForLocationType(type) {
+    for(let hideType of this.hideNotesForLocationTypes) {
+      if(hideType == type) {
+        return true;
+      }
+    }
+    return false;
+  }
 
 }
 /**
@@ -279,13 +288,17 @@ export class DataLocationComponent extends SimpleComponent {
       const urlParts = uploadURL.split('/');
       const fileId = urlParts[urlParts.length - 1];
       let oidGlobal = that.field.fieldMap[that.field.name].instance.oid;
+      let passInNotes = that.field.newLocation.notes || file.meta.notes;
       console.debug(`oid:${oidGlobal}`);
       const oidUrlPosition = _.indexOf(urlParts, oidGlobal);
       const choppedUrl = urlParts.slice(oidUrlPosition, urlParts.length).join('/');
-      const newLoc = { type: "attachment", pending: true, location: choppedUrl, notes: file.meta.notes, mimeType: file.type, name: file.meta.name, fileId: fileId, uploadUrl: uploadURL, size: file.size };
+      const newLoc = { type: "attachment", pending: true, location: choppedUrl, notes: passInNotes, mimeType: file.type, name: file.meta.name, fileId: fileId, uploadUrl: uploadURL, size: file.size };
       console.debug(`Adding new location:`);
       console.debug(newLoc);
       this.field.appendLocation(newLoc);
+      if(!_.isUndefined(that.field.newLocation.notes)) {
+        that.field.newLocation.notes = '';
+      }
     });
     // clearing all pending attachments...
     this.field.fieldMap._rootComp.subscribe('onBeforeSave', this.field.name, (savedInfo: any) => {

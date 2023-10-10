@@ -26,6 +26,212 @@ module.exports.namedQuery = {
         queryType: '>=',
         whenUndefined: 'defaultValue',
         defaultValue: '1900-01-01T00:00:00.000Z'
+      },
+      'dateModifiedBefore': {
+        type: 'string',
+        path: 'lastSaveDate',
+        queryType: '<=',
+        whenUndefined: 'defaultValue',
+        defaultValue: '3000-01-01T00:00:00.000Z'
+      },
+      'dateModifiedAfter': {
+        type: 'string',
+        path: 'lastSaveDate',
+        queryType: '>=',
+        whenUndefined: 'defaultValue',
+        defaultValue: '1900-01-01T00:00:00.000Z'
+      }
+    }
+  },
+  'listDRRecords': {
+    mongoQuery: {
+      'metaMetadata.type': "dataRecord",
+      'metadata.title': null,
+      'dateCreated': null
+    },
+    queryParams: {
+      'title': {
+        type: 'string',
+        path: 'metadata.title',
+        queryType: 'contains',
+        whenUndefined: 'defaultValue',
+        defaultValue: ''
+      },
+      'dateCreatedBefore': {
+        type: 'string',
+        path: 'dateCreated',
+        queryType: '<=',
+        whenUndefined: 'defaultValue',
+        defaultValue: '3000-01-01T00:00:00.000Z'
+      },
+      'dateCreatedAfter': {
+        type: 'string',
+        path: 'dateCreated',
+        queryType: '>=',
+        whenUndefined: 'defaultValue',
+        defaultValue: '1900-01-01T00:00:00.000Z'
+      },
+      'dateModifiedBefore': {
+        type: 'string',
+        path: 'lastSaveDate',
+        queryType: '<=',
+        whenUndefined: 'defaultValue',
+        defaultValue: '3000-01-01T00:00:00.000Z'
+      },
+      'dateModifiedAfter': {
+        type: 'string',
+        path: 'lastSaveDate',
+        queryType: '>=',
+        whenUndefined: 'defaultValue',
+        defaultValue: '1900-01-01T00:00:00.000Z'
+      }
+    }
+  },
+  'listDPRecords': {
+    mongoQuery: {
+      'metaMetadata.type': "dataPublication",
+      'metadata.title': null,
+      'dateCreated': null
+    },
+    queryParams: {
+      'title': {
+        type: 'string',
+        path: 'metadata.title',
+        queryType: 'contains',
+        whenUndefined: 'defaultValue',
+        defaultValue: ''
+      },
+      'dateCreatedBefore': {
+        type: 'string',
+        path: 'dateCreated',
+        queryType: '<=',
+        whenUndefined: 'defaultValue',
+        defaultValue: '3000-01-01T00:00:00.000Z'
+      },
+      'dateCreatedAfter': {
+        type: 'string',
+        path: 'dateCreated',
+        queryType: '>=',
+        whenUndefined: 'defaultValue',
+        defaultValue: '1900-01-01T00:00:00.000Z'
+      },
+      'dateModifiedBefore': {
+        type: 'string',
+        path: 'lastSaveDate',
+        queryType: '<=',
+        whenUndefined: 'defaultValue',
+        defaultValue: '3000-01-01T00:00:00.000Z'
+      },
+      'dateModifiedAfter': {
+        type: 'string',
+        path: 'lastSaveDate',
+        queryType: '>=',
+        whenUndefined: 'defaultValue',
+        defaultValue: '1900-01-01T00:00:00.000Z'
+      }
+    }
+  },
+  'listEmbargoedDPRecords': {
+    mongoQuery: {
+      'metaMetadata.type': "dataPublication",
+      'workflow.stage': "embargoed",
+      'metadata.title': null,
+      'metadata.embargoUntil': null,
+      'dateCreated': null
+    },
+    queryParams: {
+      'title': {
+        type: 'string',
+        path: 'metadata.title',
+        queryType: 'contains',
+        whenUndefined: 'defaultValue',
+        defaultValue: ''
+      },
+      'dateCreatedBefore': {
+        type: 'string',
+        path: 'dateCreated',
+        queryType: '<=',
+        whenUndefined: 'defaultValue',
+        defaultValue: '3000-01-01T00:00:00.000Z'
+      },
+      'dateCreatedAfter': {
+        type: 'string',
+        path: 'dateCreated',
+        queryType: '>=',
+        whenUndefined: 'defaultValue',
+        defaultValue: '1900-01-01T00:00:00.000Z'
+      },
+      'dateModifiedBefore': {
+        type: 'string',
+        path: 'lastSaveDate',
+        queryType: '<=',
+        whenUndefined: 'defaultValue',
+        defaultValue: '3000-01-01T00:00:00.000Z'
+      },
+      'dateModifiedAfter': {
+        type: 'string',
+        path: 'lastSaveDate',
+        queryType: '>=',
+        whenUndefined: 'defaultValue',
+        defaultValue: '1900-01-01T00:00:00.000Z'
+      },
+      'dateEmbargoedBefore': {
+        type: 'string',
+        path: 'metadata.embargoUntil',
+        queryType: '<=',
+        whenUndefined: 'defaultValue',
+        defaultValue: '3000-01-01T00:00:00.000Z'
+      },
+      'dateEmbargoedAfter': {
+        type: 'string',
+        path: 'metadata.embargoUntil',
+        queryType: '>=',
+        whenUndefined: 'defaultValue',
+        defaultValue: '1900-01-01T00:00:00.000Z'
+      }
+    }
+  },
+  'listWorkspaceRecords': {
+    mongoQuery: {
+      'metaMetadata.packageType': "workspace",
+      'metadata.title': null,
+      'dateCreated': null
+    },
+    queryParams: {
+      'title': {
+        type: 'string',
+        path: 'metadata.title',
+        queryType: 'contains',
+        whenUndefined: 'defaultValue',
+        defaultValue: ''
+      },
+      'dateCreatedBefore': {
+        type: 'string',
+        path: 'dateCreated',
+        queryType: '<=',
+        whenUndefined: 'defaultValue',
+        defaultValue: '3000-01-01T00:00:00.000Z'
+      },
+      'dateCreatedAfter': {
+        type: 'string',
+        path: 'dateCreated',
+        queryType: '>=',
+        whenUndefined: 'defaultValue',
+        defaultValue: '1900-01-01T00:00:00.000Z'
+      },
+      'dateModifiedBefore': {
+        type: 'string',
+        path: 'lastSaveDate',
+        queryType: '<=',
+        whenUndefined: 'defaultValue',
+        defaultValue: '3000-01-01T00:00:00.000Z'
+      },
+      'dateModifiedAfter': {
+        type: 'string',
+        path: 'lastSaveDate',
+        queryType: '>=',
+        whenUndefined: 'defaultValue',
+        defaultValue: '1900-01-01T00:00:00.000Z'
       }
     }
   },

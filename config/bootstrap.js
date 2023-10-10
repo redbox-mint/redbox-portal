@@ -12,13 +12,16 @@
  const schedule = require('node-schedule');
  
  const actualBootstrap = async function() {
+   await sails.services.translationservice.bootstrap();
+   sails.log.verbose("Translation service, bootstrapped.");
    let defaultBrand = await sails.services.brandingservice.bootstrap().toPromise()
    sails.log.verbose("Branding service, bootstrapped.");
    let rolesBootstrapResult = await sails.services.rolesservice.bootstrap(defaultBrand).toPromise();
    sails.log.verbose("Roles service, bootstrapped.");
    let reportsBootstrapResult = await sails.services.reportsservice.bootstrap(sails.services.brandingservice.getDefault()).toPromise();
    sails.log.verbose("Reports service, bootstrapped.");
-
+   let namedQueriesBootstrapResult = await sails.services.namedqueryservice.bootstrap(sails.services.brandingservice.getDefault()).toPromise();
+   sails.log.verbose("Named Query service, bootstrapped.");
    // sails doesn't support 'populating' of nested associations
    // intentionally queried again because of nested 'users' population, couldn't be bothered with looping thru the results
    let defRoles = await sails.services.rolesservice.getRolesWithBrand(sails.services.brandingservice.getDefault()).toPromise();
@@ -30,6 +33,8 @@
    sails.log.verbose("Record types service, bootstrapped.");
    let recordsTypes = await sails.services.recordtypesservice.bootstrap(sails.services.brandingservice.getDefault()).toPromise();
    sails.log.verbose("Workflowsteps service, bootstrapped.");
+   let dashboardTypes = await sails.services.dashboardtypesservice.bootstrap(sails.services.brandingservice.getDefault()).toPromise();
+   sails.log.verbose("DashboardTypes service, bootstrapped.");
    let workflowSteps = await sails.services.workflowstepsservice.bootstrap(recordsTypes).toPromise();
    sails.log.verbose("Workflowsteps service, bootstrapped.");
    if (_.isArray(workflowSteps)) {
@@ -110,8 +115,6 @@
    // sails.config.peopleSearch.orcid = sails.services.orcidservice.searchOrcid;
    sails.config.startupMinute = Math.floor(Date.now() / 60000);
    
-   sails.services.translationservice.bootstrap();
-   sails.log.verbose("Translation service, bootstrapped.");
    if (sails.config.environment == "production" || sails.config.ng2.force_bundle) {
      sails.config.ng2.use_bundled = true;
      console.log("Using NG2 Bundled files.......");

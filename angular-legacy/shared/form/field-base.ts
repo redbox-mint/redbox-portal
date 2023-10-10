@@ -502,16 +502,24 @@ export class FieldBase<T> {
         if (that.visible) {
           // remove validators
           if (that.formModel) {
-            that.formModel.clearValidators();
+            if(that['disableValidators'] != null && typeof(that['disableValidators']) == 'function') {
+              that['disableValidators']();
+            } else {
+              that.formModel.clearValidators();
+            }
             that.formModel.updateValueAndValidity();
           }
         }
       } else {
         if (!that.visible) {
           // restore validators
-          if (that.formModel) {
-            that.formModel.setValidators(that.validators);
-            that.formModel.updateValueAndValidity();
+          if (that.formModel) {       
+              if(that['enableValidators'] != null && typeof(that['enableValidators']) == 'function') {
+                that['enableValidators']();
+              } else {
+                that.formModel.setValidators(that.validators);
+              }
+              that.formModel.updateValueAndValidity();
           }
         }
       }

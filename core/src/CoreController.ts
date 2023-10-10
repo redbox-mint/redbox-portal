@@ -1,7 +1,7 @@
 declare var _;
 declare var sails;
 
-import pathExists = require('path-exists');
+import {existsSync} from 'fs';
 import {APIErrorResponse } from './model/APIErrorResponse';
 export module Controllers.Core {
 
@@ -145,13 +145,13 @@ export module Controllers.Core {
 
       //Check if view exists for branding and portal
       var viewToTest: string = sails.config.appPath + "/views/" + branding + "/" + portal + "/" + view + ".ejs";
-      if (pathExists.sync(viewToTest)) {
+      if (existsSync(viewToTest)) {
         resolvedView = branding + "/" + portal + "/" + view;
       }
       // If view doesn't exist, next try for portal with default branding
       if (resolvedView == null) {
         viewToTest = sails.config.appPath + "/views/default/" + portal + "/" + view + ".ejs";
-        if (pathExists.sync(viewToTest)) {
+        if (existsSync(viewToTest)) {
           resolvedView = "default/" + portal + "/" + view;
         }
       }
@@ -159,7 +159,7 @@ export module Controllers.Core {
       // If view still doesn't exist, next try for default portal with default branding
       if (resolvedView == null) {
         viewToTest = sails.config.appPath + "/views/default/default/" + view + ".ejs";
-        if (pathExists.sync(viewToTest)) {
+        if (existsSync(viewToTest)) {
           resolvedView = "default/default/" + view;
         }
       }
@@ -172,13 +172,13 @@ export module Controllers.Core {
 
       //Check if view exists for branding and portal
       var layoutToTest: string = sails.config.appPath + "/views/" + branding + "/" + portal + "/layout/layout.ejs";
-      if (pathExists.sync(layoutToTest)) {
+      if (existsSync(layoutToTest)) {
         resolvedLayout = branding + "/" + portal + "/layout";
       }
       // If view doesn't exist, next try for portal with default branding
       if (resolvedLayout == null) {
         layoutToTest = sails.config.appPath + "/views/default/" + portal + "/layout.ejs";
-        if (pathExists.sync(layoutToTest)) {
+        if (existsSync(layoutToTest)) {
           resolvedLayout = "/default/" + portal + "/layout";
         }
       }
@@ -186,7 +186,7 @@ export module Controllers.Core {
       // If view still doesn't exist, next try for default portal with default branding
       if (resolvedLayout == null) {
         layoutToTest = sails.config.appPath + "/views/default/default/" + "layout.ejs";
-        if (pathExists.sync(layoutToTest)) {
+        if (existsSync(layoutToTest)) {
           resolvedLayout = "default/default/layout";
         }
       }

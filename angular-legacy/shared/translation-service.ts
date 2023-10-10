@@ -51,24 +51,29 @@ export class TranslationService {
     if(bootstrapElement.length > 0) {
      rootContext = $(bootstrapElement[0]).attr('rootContext');
     }
-    this.translateI18Next.init({
-        debug: true,                                                        // optional
-        returnNull: false,
-        returnEmptyString: true,                                           // optional	- but.. it's important, please see http://i18next.com/docs/options/!
-        // mapping: {"specific_backend_message": "message_for_translate"},     // optional
-        // browserLanguageDetector: injectableCustomLanguageDetectorService,   // optional - the specific application language detector (allows you to return the language of the user.
-        //                                                                     //            If it is absent, the service uses default "angular2 locale detector" behaviour using LOCALE_ID.
-        // // supportedLanguages: ['en', 'pt'],                                //            Therefore you can pass the optional supportedLanguages parameter which indicates your supported languages.
-        //                                                                     //            For example, LOCALE_ID = 'en-AU' or 'en-US' or 'en', you can pass only ['en'] -> locales/en/translation.json
-        //                                                                     //                         LOCALE_ID = 'pt-BR' or 'pt', you can pass only ['pt'] -> locales/pt/translation.json
-        // backend: injectableBackendConfigFactory                             // optional - allows to change "loadPath" i18next parameter
-        lng: 'en',
-        fallbackLng: 'en',
-        backend: { loadPath: `${rootContext}/locales/{{lng}}/{{ns}}.json?ts=${ts}` }
-    }).then(() => {
-      console.log(`Translator loaded...`);
-      this.translatorReady = true;
-      this.translatorLoaded();
+    this.configService.getConfig((config:any) => {
+      this.config = config;
+      if (!this.translatorReady) {
+        this.translateI18Next.init({
+          debug: true,                                                        // optional
+          returnNull: false,
+          returnEmptyString: true,                                           // optional	- but.. it's important, please see http://i18next.com/docs/options/!
+          // mapping: {"specific_backend_message": "message_for_translate"},     // optional
+          // browserLanguageDetector: injectableCustomLanguageDetectorService,   // optional - the specific application language detector (allows you to return the language of the user.
+          //                                                                     //            If it is absent, the service uses default "angular2 locale detector" behaviour using LOCALE_ID.
+          // // supportedLanguages: ['en', 'pt'],                                //            Therefore you can pass the optional supportedLanguages parameter which indicates your supported languages.
+          //                                                                     //            For example, LOCALE_ID = 'en-AU' or 'en-US' or 'en', you can pass only ['en'] -> locales/en/translation.json
+          //                                                                     //                         LOCALE_ID = 'pt-BR' or 'pt', you can pass only ['pt'] -> locales/pt/translation.json
+          // backend: injectableBackendConfigFactory                             // optional - allows to change "loadPath" i18next parameter
+          lng: this.config.lang,
+          fallbackLng: 'en',
+          backend: { loadPath: `${rootContext}/locales/{{lng}}/{{ns}}.json?ts=${ts}` }
+        }).then(() => {
+          console.log(`Translator loaded...`);
+          this.translatorReady = true;
+          this.translatorLoaded();
+        });
+      }
     });
   
   }

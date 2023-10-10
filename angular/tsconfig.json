@@ -3,8 +3,11 @@
   "compileOnSave": false,
   "compilerOptions": {
     "paths": {
-      "@researchdatabox/redbox-portal-core": [
-        "dist/researchdatabox/redbox-portal-core"
+      "@researchdatabox/portal-ng-common": [
+        "dist/researchdatabox/portal-ng-common"
+      ],
+      "@researchdatabox/portal-ng-form-custom": [
+        "dist/researchdatabox/portal-ng-form-custom"
       ]
     },
     "baseUrl": "./",

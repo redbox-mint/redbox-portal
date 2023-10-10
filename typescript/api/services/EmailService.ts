@@ -26,7 +26,6 @@ import {
   Model
 } from "sails";
 import 'rxjs/add/operator/toPromise';
-import * as request from "request-promise";
 import * as ejs from 'ejs';
 import * as fs from 'graceful-fs';
 import * as nodemailer from 'nodemailer';

@@ -14,9 +14,7 @@
             <button [disabled]="isSearching || !params.basicSearch" class="btn btn-primary" type='button' (click)="search()">
               {{ 'record-search-' + record_type + '-submit' | translate }}
             </button>
-            <button [disabled]="isSearching" class="btn btn-primary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-              <span class="caret"></span>
-            </button>
+            <button [disabled]="isSearching" class="btn btn-primary dropdown-toggle" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>
             <ul class="dropdown-menu dropdown-menu-right">
               <li *ngFor="let recTypeName of getRecordTypeNames()">
                 <a href="#" (click)="setRecordType(recTypeName, $event)">{{ 'record-search-' + recTypeName + '-submit' | translate }}</a>
@@ -56,6 +54,6 @@
       <pagination *ngIf="totalItems > 0" [directionLinks]="false" [boundaryLinks]="true" [totalItems]="totalItems"
         [(ngModel)]="params.currentPage" (pageChanged)="pageChanged($event)" class="pagination-sm" [maxSize]="10"></pagination>
     </div>
-  </div>  
-  
+  </div>
+
 </ng-container>
