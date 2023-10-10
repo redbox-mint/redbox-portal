@@ -339,6 +339,12 @@ export class ANDSVocabComponent extends SimpleComponent {
     //Populate a list of expanded node ids on first load based of expandNodeIds 
     for(let i = 0; i < that.expandNodeIds.length; i++) {
       let nodeId = that.expandNodeIds[i];
+
+      //Ignore child nodes with 6 digit codes
+      if(nodeId.length > 4) {
+        continue;
+      }
+
       that.treeNodeLiveStatusIDs.push({nodeId: nodeId, nodeStatus: 'exapanded'});
     }
   }
@@ -357,6 +363,12 @@ export class ANDSVocabComponent extends SimpleComponent {
 
   protected expandCollapseNode(nodeEvent: any) {
     const nodeId = _.get(nodeEvent,'id','');
+
+    //Ignore child nodes with 6 digit codes
+    if(nodeId.length > 4) {
+      return;
+    }
+
     let nodeStatusObject = _.find(this.treeNodeLiveStatusIDs, (o: any) => { return o.nodeId == nodeId });
     let nodeStatus = 'collapsed';
     if(!_.isUndefined(nodeStatusObject)) {
