@@ -46,6 +46,7 @@ export class ANDSVocabField extends FieldBase<any> {
   public disableCheckboxRegexPattern:string;
   public disableCheckboxRegexTestValue:string;
   public disableCheckboxRegexCaseSensitive: boolean;
+  public disableExpandCollapseToggleByName: boolean;
   public component:any;
 
   constructor(options: any, injector: any) {
@@ -56,6 +57,7 @@ export class ANDSVocabField extends FieldBase<any> {
     this.disableCheckboxRegexPattern = options['disableCheckboxRegexPattern'] || "";
     this.disableCheckboxRegexTestValue = options['disableCheckboxRegexTestValue'] || "";
     this.disableCheckboxRegexCaseSensitive = options['disableCheckboxRegexCaseSensitive'] || true;
+    this.disableExpandCollapseToggleByName = options['disableExpandCollapseToggleByName'] || false;
 
     this.andsService = this.getFromInjector(ANDSService);
   }
@@ -300,7 +302,9 @@ export class ANDSVocabComponent extends SimpleComponent {
         break;
     }
 
-    this.expandCollapseNode(event.node);
+    if(!this.field.disableExpandCollapseToggleByName) {
+      this.expandCollapseNode(event.node);
+    }
   }
 
   protected updateSingleNodeSelectedState(node, state) {
