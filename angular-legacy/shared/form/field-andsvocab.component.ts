@@ -177,6 +177,7 @@ export class ANDSVocabComponent extends SimpleComponent {
   readonly STATUS_EXPANDED = 4;
   loadState: any;
   initialised:boolean = false;
+  treeNodeLiveStatusIDs: any = []; 
 
   constructor(@Inject(ElementRef) elementRef: ElementRef) {
     super();
@@ -238,6 +239,7 @@ export class ANDSVocabComponent extends SimpleComponent {
     }
   }
 
+  //This method is called when the record edit view is first loaded and sets state and expand nodes that have checkboxes selected
   protected startTreeInit() {
     this.treeInitListener = Observable.interval(1000).subscribe(()=> {
       
@@ -279,6 +281,7 @@ export class ANDSVocabComponent extends SimpleComponent {
       event = eventArr[1];
     }
     let currentState = this.getNodeSelected(event.node.id);
+
     switch(event.eventName) {
       case "nodeActivate":
         if (currentState == undefined) {
@@ -296,6 +299,8 @@ export class ANDSVocabComponent extends SimpleComponent {
         this.updateSingleNodeSelectedState(event.node, false);
         break;
     }
+
+    this.expandCollapseNode(event.node);
   }
 
   protected updateSingleNodeSelectedState(node, state) {
@@ -315,6 +320,7 @@ export class ANDSVocabComponent extends SimpleComponent {
     this.nodeEventSubject.next(event);
   }
 
+  //This method is called when the record edit view is first loaded populates expandNodeIds list
   public updateTreeView(that) {
     const state = that.andsTree.treeModel.getState();
     that.expandNodeIds = [];
@@ -329,8 +335,15 @@ export class ANDSVocabComponent extends SimpleComponent {
     that.andsTree.treeModel.setState(state);
     that.andsTree.treeModel.update();
     that.expandNodeIds = _.sortBy(that.expandNodeIds, (o) => { return _.isString(o) ? o.length : 0 });
+
+    //Populate a list of expanded node ids on first load based of expandNodeIds 
+    for(let i = 0; i < that.expandNodeIds.length; i++) {
+      let nodeId = that.expandNodeIds[i];
+      that.treeNodeLiveStatusIDs.push({nodeId: nodeId, nodeStatus: 'exapanded'});
+    }
   }
 
+  //Takes the first entry in expandNodeIds list and expands the node and the removed the id from the list 
   protected expandNodes() {
     if (!_.isEmpty(this.expandNodeIds)) {
       const parentId = this.expandNodeIds[0];
@@ -338,6 +351,27 @@ export class ANDSVocabComponent extends SimpleComponent {
       if (node) {
         node.expand();
         _.remove(this.expandNodeIds, (id) => { return id == parentId });
+      }
+    }
+  }
+
+  protected expandCollapseNode(nodeEvent: any) {
+    const nodeId = _.get(nodeEvent,'id','');
+    let nodeStatusObject = _.find(this.treeNodeLiveStatusIDs, (o: any) => { return o.nodeId == nodeId });
+    let nodeStatus = 'collapsed';
+    if(!_.isUndefined(nodeStatusObject)) {
+      nodeStatus = _.get(nodeStatusObject, 'nodeStatus', 'collapsed');
+    }
+    const node = this.andsTree.treeModel.getNodeById(nodeId);
+    if (node) {
+      if(nodeStatus == 'collapsed') {
+        node.expand();
+        _.remove(this.treeNodeLiveStatusIDs, (o: any) => { return o.nodeId == nodeId });
+        this.treeNodeLiveStatusIDs.push({nodeId: nodeId, nodeStatus: 'exapanded'});
+      } else {
+        node.collapse();
+        _.remove(this.treeNodeLiveStatusIDs, (o: any) => { return o.nodeId == nodeId });
+        this.treeNodeLiveStatusIDs.push({nodeId: nodeId, nodeStatus: 'collapsed'});
       }
     }
   }
