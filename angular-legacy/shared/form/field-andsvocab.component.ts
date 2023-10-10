@@ -335,18 +335,6 @@ export class ANDSVocabComponent extends SimpleComponent {
     that.andsTree.treeModel.setState(state);
     that.andsTree.treeModel.update();
     that.expandNodeIds = _.sortBy(that.expandNodeIds, (o) => { return _.isString(o) ? o.length : 0 });
-
-    //Populate a list of expanded node ids on first load based of expandNodeIds 
-    for(let i = 0; i < that.expandNodeIds.length; i++) {
-      let nodeId = that.expandNodeIds[i];
-
-      //Ignore child nodes with 6 digit codes
-      if(nodeId.length > 4) {
-        continue;
-      }
-
-      that.treeNodeLiveStatusIDs.push({nodeId: nodeId, nodeStatus: 'exapanded'});
-    }
   }
 
   //Takes the first entry in expandNodeIds list and expands the node and the removed the id from the list 
@@ -365,25 +353,16 @@ export class ANDSVocabComponent extends SimpleComponent {
     const nodeId = _.get(nodeEvent,'id','');
 
     //Ignore child nodes with 6 digit codes
-    if(nodeId.length > 4) {
+    if(nodeId == '' || nodeId.length > 4) {
       return;
     }
 
-    let nodeStatusObject = _.find(this.treeNodeLiveStatusIDs, (o: any) => { return o.nodeId == nodeId });
-    let nodeStatus = 'collapsed';
-    if(!_.isUndefined(nodeStatusObject)) {
-      nodeStatus = _.get(nodeStatusObject, 'nodeStatus', 'collapsed');
-    }
     const node = this.andsTree.treeModel.getNodeById(nodeId);
     if (node) {
-      if(nodeStatus == 'collapsed') {
+      if(_.get(node, 'isCollapsed', false)) {
         node.expand();
-        _.remove(this.treeNodeLiveStatusIDs, (o: any) => { return o.nodeId == nodeId });
-        this.treeNodeLiveStatusIDs.push({nodeId: nodeId, nodeStatus: 'exapanded'});
       } else {
         node.collapse();
-        _.remove(this.treeNodeLiveStatusIDs, (o: any) => { return o.nodeId == nodeId });
-        this.treeNodeLiveStatusIDs.push({nodeId: nodeId, nodeStatus: 'collapsed'});
       }
     }
   }
