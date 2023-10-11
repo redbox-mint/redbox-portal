@@ -36,7 +36,7 @@ import {
 } from "sails";
 import * as request from "request-promise";
 import * as crypto from 'crypto';
-import * as flat from 'flat';
+
 
 declare var sails: Sails;
 declare var User, Role, UserAudit, Record: Model;

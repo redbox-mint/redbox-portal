@@ -22,7 +22,7 @@ declare var module;
 declare var sails;
 declare var _;
 import { Observable } from 'rxjs/Rx';
-import * as flat from 'flat';
+import { unflatten } from 'flat'
 declare var VocabService;
 /**
  * Package that contains all Controllers.
@@ -115,7 +115,7 @@ export module Controllers {
               if (_.startsWith(key, flattened_prefix)) {
                 const targetKey = key.substring(flattened_prefix.length);
                 const objVal = JSON.parse(val);
-                doc[targetKey] = flat.unflatten(objVal)[key];
+                doc[targetKey] = unflatten(objVal)[key];
               }
             });
           });
