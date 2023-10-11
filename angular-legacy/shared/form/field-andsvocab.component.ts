@@ -47,6 +47,7 @@ export class ANDSVocabField extends FieldBase<any> {
   public disableCheckboxRegexTestValue:string;
   public disableCheckboxRegexCaseSensitive: boolean;
   public disableExpandCollapseToggleByName: boolean;
+  public skipLeafNodeExpandCollapseProcessing: number;
   public component:any;
 
   constructor(options: any, injector: any) {
@@ -58,6 +59,7 @@ export class ANDSVocabField extends FieldBase<any> {
     this.disableCheckboxRegexTestValue = options['disableCheckboxRegexTestValue'] || "";
     this.disableCheckboxRegexCaseSensitive = options['disableCheckboxRegexCaseSensitive'] || true;
     this.disableExpandCollapseToggleByName = options['disableExpandCollapseToggleByName'] || false;
+    this.skipLeafNodeExpandCollapseProcessing = options['skipLeafNodeExpandCollapseProcessing'] || 4;
 
     this.andsService = this.getFromInjector(ANDSService);
   }
@@ -179,7 +181,6 @@ export class ANDSVocabComponent extends SimpleComponent {
   readonly STATUS_EXPANDED = 4;
   loadState: any;
   initialised:boolean = false;
-  treeNodeLiveStatusIDs: any = []; 
 
   constructor(@Inject(ElementRef) elementRef: ElementRef) {
     super();
@@ -356,8 +357,8 @@ export class ANDSVocabComponent extends SimpleComponent {
   protected expandCollapseNode(nodeEvent: any) {
     const nodeId = _.get(nodeEvent,'id','');
 
-    //Ignore child nodes with 6 digit codes
-    if(nodeId == '' || nodeId.length > 4) {
+    //Ignore expand collapse processing if id string value has length that exceeds default
+    if(nodeId == '' || nodeId.length > this.field.skipLeafNodeExpandCollapseProcessing) {
       return;
     }
 
