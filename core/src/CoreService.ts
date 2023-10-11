@@ -37,6 +37,16 @@ export module Services.Core {
     protected exec(q, successFn, errorFn) {
       this.getObservable(q).subscribe(successFn, errorFn);
     }
+
+    constructor() {
+      this.processDynamicImports().then(result => {
+        sails.log.verbose("Dynamic imports imported")
+      })
+    }
+    
+    protected async processDynamicImports() {
+      //Override in sub class as needed
+    }
     /**
      * Returns an object that contains all exported methods of the controller.
      * These methods must be defined in either the "_defaultExportedMethods" or "_exportedMethods" arrays.

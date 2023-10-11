@@ -30,7 +30,7 @@ import {
 declare var sails: Sails;
 declare var _;
 declare var _this;
-import { flatten } from 'flat'
+let flat;
 import * as luceneEscapeQuery from "lucene-escape-query";
 
 declare var RecordsService;
@@ -64,6 +64,10 @@ export module Services {
         that.initClient();
         await that.buildSchema();
       });
+    }
+
+    protected async processDynamicImports() {
+      flat = await import("flat");
     }
 
     protected initClient() {
@@ -327,7 +331,7 @@ export module Services {
       _.each(sails.config.solr.preIndex.flatten.special, (specialFlattenConfig:any) => {
         _.unset(processedData, specialFlattenConfig.field);
       });
-      processedData = flatten(processedData, sails.config.solr.preIndex.flatten.options);
+      processedData = flat.flatten(processedData, sails.config.solr.preIndex.flatten.options);
       _.each(sails.config.solr.preIndex.flatten.special, (specialFlattenConfig:any) => {
         const dataToFlatten:any = {};
         if (specialFlattenConfig.dest) {
@@ -335,7 +339,7 @@ export module Services {
         } else {
           _.set(dataToFlatten, specialFlattenConfig.source, _.get(data, specialFlattenConfig.source));
         }
-        let flattened:any = flatten(dataToFlatten, specialFlattenConfig.options);
+        let flattened:any = flat.flatten(dataToFlatten, specialFlattenConfig.options);
         _.merge(processedData, flattened);
       });
 

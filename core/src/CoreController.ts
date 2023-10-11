@@ -58,13 +58,23 @@ export module Controllers.Core {
       // Sails controller custom config.
       '_config',
     ];
+    
+    constructor() {
+      this.processDynamicImports().then(result => {
+        sails.log.verbose("Dynamic imports imported")
+      })
+    }
+    
+    protected async processDynamicImports() {
+      //Override in sub class as needed
+    }
 
     /**
      **************************************************************************************************
      **************************************** Public methods ******************************************
      **************************************************************************************************
      */
-
+     
     /**
      * Returns an object that contains all exported methods of the controller.
      * These methods must be defined in either the "_defaultExportedMethods" or "_exportedMethods" arrays.
