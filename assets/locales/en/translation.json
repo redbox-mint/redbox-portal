@@ -755,7 +755,7 @@
   "oidc-user-doesnt-exist-in-tenant-detail": "For email {{-email}} and url {{-url}} and tenant {{-name}}",
   "lang-en": "English",
   "lang-mri": "Māori",
-  "system-message-enabled": "true",
+  "system-message-enabled": "false",
   "system-message-title": "System Notification",
   "system-message-description": "ReDBox will be unavailable from 9am to 12pm on October 20 for system upgrades. Please contact support for any help"
   

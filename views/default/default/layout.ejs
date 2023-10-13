@@ -188,7 +188,7 @@
     const currentEpochMillis = Date.now();
 
     localStorage.setItem('systemMessageDismissalTime', currentEpochMillis.toString());
-    $//remove the system message area as it takes up space even when hidden
+    //remove the system message area as it takes up space even when hidden
     const systemMessageArea = document.getElementById('system-message-area');
       systemMessageArea.parentNode.removeChild(systemMessageArea)
   })
