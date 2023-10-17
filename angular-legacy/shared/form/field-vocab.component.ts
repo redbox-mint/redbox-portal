@@ -240,7 +240,7 @@ export class VocabField extends FieldBase<any> {
           const delimPair = this.titleFieldDelim[idx];
           const titleVal = data[titleFld];
           if (titleVal) {
-            title = `${title}${_.isEmpty(title) ? '' : delimPair.prefix}${titleVal}${_.isEmpty(title) ? '' : delimPair.suffix}`;
+            title = `${title}${_.isEmpty(titleVal) ? '' : delimPair.prefix}${titleVal}${_.isEmpty(titleVal) ? '' : delimPair.suffix}`;
           }
         });
       }
