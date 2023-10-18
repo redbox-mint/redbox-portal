@@ -100,7 +100,7 @@
   "devDependencies": {
     "@compodoc/compodoc": "^1.1.22",
     "@types/jquery": "^3.5.24",
-    "@types/lodash-es": "^4.17.9",
+    "@types/lodash-es": "^4.17.10",
     "@types/node": "^18.16.3",
     "bower": "^1.8.14",
     "chai": "^4.3.10",
