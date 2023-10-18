@@ -494,7 +494,7 @@ class MintLookupDataService extends Subject<CompleterItem[]> implements Complete
 
   constructor(private url: string,
     private http: Http,
-    private fields: string[],
+    private lookupResponseFields: string[],
     private compositeTitleName: string,
     private titleFieldArr: string[],
     private titleFieldDelim: any[],
@@ -532,7 +532,7 @@ class MintLookupDataService extends Subject<CompleterItem[]> implements Complete
       return null;
     }
     const item: any = {};
-    _.forEach(this.fields, (fieldName) => {
+    _.forEach(this.lookupResponseFields, (fieldName) => {
       if (_.isString(fieldName)) {
         item[fieldName] = data[fieldName];
       } else {
