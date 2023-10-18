@@ -98,7 +98,7 @@
   "author": "QCIF Engineering",
   "license": "GPL2",
   "devDependencies": {
-    "@compodoc/compodoc": "^1.1.21",
+    "@compodoc/compodoc": "^1.1.22",
     "@types/jquery": "^3.5.22",
     "@types/lodash-es": "^4.17.9",
     "@types/node": "^18.16.3",
