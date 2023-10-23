@@ -298,7 +298,7 @@ export module Services {
       return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
     }
 
-    protected addEmailToList(contributor, emailProperty, emailList) {
+    protected addEmailToList(contributor, emailProperty, emailList, lowerCaseEmailAddresses:boolean = true) {
       let contributorEmailAddress = _.get(contributor, emailProperty, null);
       if (!contributorEmailAddress) {
         if (!contributor) {
@@ -312,6 +312,9 @@ export module Services {
         }
         if (_.isString(contributorEmailAddress)) {
           sails.log.verbose(`Pushing contrib email address ${contributorEmailAddress}`);
+          if(lowerCaseEmailAddresses) {
+            contributorEmailAddress = contributorEmailAddress.toLowerCase()
+          }
           emailList.push(contributorEmailAddress);
         }
       }
