@@ -217,8 +217,6 @@ export class ContributorField extends FieldBase<any> implements CustomValidation
     if (this.required) {
       this.enableValidators();
     } else {
-      // disable the validators otherwise they'll get enabled on show/hide
-      this.validators = {};
       // if splitting names, attach handler to individual input form control
       if (this.splitNames) {
         const reqFields = ['family_name', 'given_name'];
@@ -532,15 +530,17 @@ export class ContributorField extends FieldBase<any> implements CustomValidation
         if (!that.visible) {
           // restore validators
           if (that.formModel) {       
+            if (that.required) {
               if(that['enableValidators'] != null && typeof(that['enableValidators']) == 'function') {
                 that['enableValidators']();
               } else {
                 that.formModel.setValidators(that.validators);
               }
-              setTimeout(() => {
-                that.setValue(that.formModel.value,false,true)
-              });
-              that.formModel.updateValueAndValidity();
+            }
+            setTimeout(() => {
+              that.setValue(that.formModel.value,false,true)
+            });
+            that.formModel.updateValueAndValidity();
           }
         }
       }
