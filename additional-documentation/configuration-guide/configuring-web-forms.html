@@ -61,7 +61,7 @@
 <p>Record Types are configured in the <code>config/recordtype.js</code> file.</p>
 <p>The record type configuration defines the record type (e.g. a research data managment plan record) and what fields in the record should be displayed on the search interface for the purposes of filtering and faceting.</p>
 <p>Record&#39;s are configured via the config/workflow.js file and specifies the workflow stages a record can transition through and the roles that are permitted to view and edit a record for each workflow stage.</p>
-<div><pre class="line-numbers"><code class="language-none">&lt;record-type&gt;
+<b>Example :</b><div><pre class="line-numbers"><code class="language-none">&lt;record-type&gt;
 |
 |- search-filters []
     |- name
@@ -111,7 +111,7 @@
 </tbody>
 </table>
 <h4>Example</h4>
-<div><pre class="line-numbers"><code class="language-none">&quot;rdmp&quot;: {
+<b>Example :</b><div><pre class="line-numbers"><code class="language-none">&quot;rdmp&quot;: {
   searchFilters: [
     {
       name: &quot;text_title&quot;,
@@ -149,7 +149,7 @@
   ]
 }</code></pre></div><h2>Workflow Configuration</h2>
 <p>The structure of the configuration is as follows</p>
-<div><pre class="line-numbers"><code class="language-none">&lt;record-type&gt;
+<b>Example :</b><div><pre class="line-numbers"><code class="language-none">&lt;record-type&gt;
 |
 |- &lt;workflow-stage&gt;
     |
@@ -233,7 +233,7 @@
 </tbody>
 </table>
 <h4>Example</h4>
-<div><pre class="line-numbers"><code class="language-none">&quot;rdmp&quot;: {
+<b>Example :</b><div><pre class="line-numbers"><code class="language-none">&quot;rdmp&quot;: {
     &quot;draft&quot;: {
       config: {
         workflow: {
@@ -251,7 +251,7 @@
     },</code></pre></div><h2>Form/view configuration</h2>
 <p>The form and view layout is configured via config/form.js file.</p>
 <p>The structure of the configuration file is as follows</p>
-<div><pre class="line-numbers"><code class="language-none">defaultForm
+<b>Example :</b><div><pre class="line-numbers"><code class="language-none">defaultForm
 |
 |- forms
     |
@@ -369,7 +369,7 @@
 </tbody>
 </table>
 <h3>Example</h3>
-<div><pre class="line-numbers"><code class="language-none">fields: [
+<b>Example :</b><div><pre class="line-numbers"><code class="language-none">fields: [
   {
     class: &#39;Container&#39;,
     compClass: &#39;TextBlockComponent&#39;,

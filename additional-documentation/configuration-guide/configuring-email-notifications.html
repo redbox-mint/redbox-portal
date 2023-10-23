@@ -57,7 +57,7 @@
 <p>The ReDBox portal has a flexible email notification system that can be customised to your needs.</p>
 <h2>Configuring Email Settings</h2>
 <p>The <code>config/emailnotification.js</code> file provides configuration properties relating to the sending of emails.</p>
-<div><pre class="line-numbers"><code class="language-none">api
+<b>Example :</b><div><pre class="line-numbers"><code class="language-none">api
 |
 |- send
 |
@@ -152,7 +152,7 @@ templates
 </tbody>
 </table>
 <h4>Example</h4>
-<div><pre class="line-numbers"><code class="language-none">api: {
+<b>Example :</b><div><pre class="line-numbers"><code class="language-none">api: {
   send: {method: &#39;post&#39;, url: &quot;/api/v1/messaging/emailnotification&quot;}
 },
 settings: {
@@ -168,7 +168,7 @@ defaults: {
 <p>The both the subjects and the contents of email notifications can be customised via configuration and templates.</p>
 <h3>Configuring email subjects and templates</h3>
 <p>The templates section of the <code>config/emailnotification.js</code> file contains configuration to customise the subject and template for an email notification</p>
-<div><pre class="line-numbers"><code class="language-none">&lt;email-code&gt;
+<b>Example :</b><div><pre class="line-numbers"><code class="language-none">&lt;email-code&gt;
 |
 |- subject
 |
@@ -204,12 +204,12 @@ defaults: {
 </tbody>
 </table>
 <h4>Example</h4>
-<div><pre class="line-numbers"><code class="language-none">templates: {
+<b>Example :</b><div><pre class="line-numbers"><code class="language-none">templates: {
   transferOwnerTo: {subject: &#39;Ownership of DMP record/s has been transferred to you&#39;, template: &#39;transferOwnerTo&#39;}
 }</code></pre></div><h3>Email Templates</h3>
 <p>Email templates are located in the directory defined in the <code>settings/templateDir</code> property of the <code>config/emailnotification.js</code> files. They are written in the <a href="http://www.embeddedjs.com/">EJS templating language</a> which allows for rich and complex formatting.</p>
 <h4>Example</h4>
-<div><pre class="line-numbers"><code class="language-none">&lt;h1&gt;Hello!&lt;/h1&gt;
+<b>Example :</b><div><pre class="line-numbers"><code class="language-none">&lt;h1&gt;Hello!&lt;/h1&gt;
 &lt;p&gt;This is a test email from ReDBox Portal&lt;/p&gt;
 &lt;p&gt;Data: &lt;%= data %&gt;&lt;/p&gt;</code></pre></div>
                    </div><div class="search-results">

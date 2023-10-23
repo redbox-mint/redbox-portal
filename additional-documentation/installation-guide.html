@@ -71,10 +71,10 @@
 <ol>
 <li>Checkou the ReDBox Portal to your location of choice (e.g. /opt/redbox-portal)</li>
 </ol>
-<div><pre class="line-numbers"><code class="language-none">git clone -b dev_build &quot;https://github.com/redbox-mint/redbox-portal&quot;</code></pre></div><ol start="2">
+<b>Example :</b><div><pre class="line-numbers"><code class="language-none">git clone -b dev_build &quot;https://github.com/redbox-mint/redbox-portal&quot;</code></pre></div><ol start="2">
 <li>Create a <a href="http://pm2.keymetrics.io/docs/usage/deployment/">ecosytem.json</a> file for PM2 as below. See the <a href="https://github.com/redbox-mint/redbox-portal/blob/master/support/docs/Configuring%20web%20forms.md">configuration guide</a> guide for information on how to configure the env section.</li>
 </ol>
-<div><pre class="line-numbers"><code class="language-none">{
+<b>Example :</b><div><pre class="line-numbers"><code class="language-none">{
   &quot;apps&quot; : [{
     // Application #1
     &quot;name&quot;        : &quot;rbportal&quot;,
@@ -95,10 +95,10 @@
 <li>Setup PM2 run on init (depending on your distro) e.g <code>pm2 startup systemd</code></li>
 <li>Start the application</li>
 </ol>
-<div><pre class="line-numbers"><code class="language-none">pm2 start ecosystem.json</code></pre></div><ol start="6">
+<b>Example :</b><div><pre class="line-numbers"><code class="language-none">pm2 start ecosystem.json</code></pre></div><ol start="6">
 <li>Save the PM2 configuration</li>
 </ol>
-<div><pre class="line-numbers"><code class="language-none">pm2 save</code></pre></div>
+<b>Example :</b><div><pre class="line-numbers"><code class="language-none">pm2 save</code></pre></div>
                    </div><div class="search-results">
     <div class="has-results">
         <h1 class="search-results-title"><span class='search-results-count'></span> results matching "<span class='search-query'></span>"</h1>
