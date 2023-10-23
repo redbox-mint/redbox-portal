@@ -376,6 +376,7 @@ export class VocabField extends FieldBase<any> {
               that.formModel.clearValidators();
             }
             that.formModel.updateValueAndValidity();
+            that.storedEventData = _.clone(that.formModel.value)
           }
         }
       } else {
