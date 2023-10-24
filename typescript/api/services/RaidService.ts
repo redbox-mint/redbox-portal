@@ -25,9 +25,7 @@ import {
   Sails,
   Model
 } from "sails";
-import { RaidoStableV1Api, RaidCreateRequest, Title, ModelDate, Description, Access, AlternateUrl, Contributor, ContributorPositionWithSchemaUri, ContributorRoleWithSchemaUri, Organisation } from '@researchdatabox/raido-openapi-generated-node';
-
-import { MintRaidoSchemaV1Request, BasicRaidExperimentalApi,  RaidoMetadataSchemaV1, MintRaidoSchemaV1RequestMintRequest, RaidoMetaschema, TitleBlock, DatesBlock, DescriptionBlock, AccessBlock, AlternateUrlBlock, ContributorBlock, OrganisationBlock, TitleType, DescriptionType, AccessType, ContributorIdentifierSchemeType, ContributorPositionRaidMetadataSchemaType, ContributorRoleCreditNisoOrgType, ContributorRole, ContributorPosition, OrganisationIdentifierSchemeType, OrganisationRoleSchemeType, OrganisationRoleType, ContributorPositionSchemeType, ContributorRoleSchemeType } from '@researchdatabox/raido-openapi-generated-node';
+import { RaidoStableV1Api, RaidCreateRequest, Title, ModelDate, Description, Access, AlternateUrl, Contributor, ContributorRoleCreditNisoOrgType, ContributorRoleSchemeType, Organisation } from '@researchdatabox/raido-openapi-generated-node';
 
 import moment = require('moment');
 import numeral from 'numeral';
