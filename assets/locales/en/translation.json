@@ -752,7 +752,7 @@
   "@dmpt-raid": "RAiD",
   "@dmpt-raid-help": "RAiD created when you first save your plan. See https://raid.org",
   "raid-mint-transform-validation-error": "There's an issue preparing your data for RAiD, please contact your administrator. ",
-  "raid-mint-server-error": "There's an issue minting you RAiD at the moment, we will try again later.",
+  "raid-mint-server-error": "There's an issue minting RAiD at the moment, we will try again later.",
   "raid-mint-transform-missing-contributorid-error": "The ORCID seems to be invalid for ",
   "local-auth-login": "Login",
   "oidc-default-unknown-error": "Login unsuccessful contact your system administrator",

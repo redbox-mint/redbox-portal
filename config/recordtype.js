@@ -28,85 +28,8 @@ module.exports.recordtype = {
               triggerCondition: '<%= _.isEmpty(record.metadata.raidUrl) %>',
               request: {
                 mint: {
-                  fields: {
-                    title: {
-                      src: 'metadata.title',
-                      dest: 'titles[0].title'
-                    },
-                    title_type: {
-                      src: '<%= types.TitleType.PrimaryTitle %>',
-                      dest: 'titles[0].type'
-                    },
-                    title_startDate: {
-                      src: 'metadata.dc:coverage_vivo:DateTimeInterval_vivo:start',
-                      dest: 'titles[0].startDate'
-                    },
-                    date_start: {
-                      src: 'metadata.dc:coverage_vivo:DateTimeInterval_vivo:start',
-                      dest: 'dates.startDate'
-                    },
-                    date_end: {
-                      src: 'metadata.dc:coverage_vivo:DateTimeInterval_vivo:end',
-                      dest: 'dates.endDate'
-                    },
-                    description_main: {
-                      src: 'metadata.description',
-                      dest: 'descriptions[0].description'
-                    },
-                    description_type: {
-                      src: '<%= types.DescriptionType.PrimaryDescription %>',
-                      dest: 'descriptions[0].type'
-                    }, 
-                    access_type: {
-                      src: '<%= _.startsWith(record.metadata["dc:accessRights"], "open") ? types.AccessType.Open : types.AccessType.Closed %>',
-                      dest: 'access.type'
-                    },
-                    // return the value/label when access rights isn't "open"
-                    access_statement: {
-                      src: '<%= _.startsWith(record.metadata["dc:accessRights"], "open") ? "" : record.metadata["dc:accessRights"] %>',
-                      dest: 'access.accessStatement'
-                    },
-                    contributors: {
-                      src: '<%= JSON.stringify(that.getContributors(record, options, fieldConfig, mappedData)) %>',
-                      dest: 'contributors',
-                      parseJson: true,
-                      contributorMap: {
-                        contributor_ci: {
-                          fieldMap: { id: 'orcid' },
-                          position: 'Leader',
-                          role: 'Investigation'        
-                        },
-                        contributor_data_manager: {
-                          fieldMap: { id: 'orcid' },
-                          position: 'ContactPerson',
-                          role: 'DataCuration'        
-                        },
-                        contributors: {
-                          fieldMap: { id: 'orcid' },
-                          position: 'CoInvestigator',
-                          role: 'Investigation'        
-                        },
-                        contributor_supervisor: {
-                          fieldMap: { id: 'orcid' },
-                          position: 'PrincipalInvestigator',
-                          role: 'Investigation'        
-                        }
-                      }
-                    },
-                    organisations_id: {
-                      src: "<%= 'https://ror.org/03sd43014' %>",
-                      dest: 'organisations[0].id'
-                    },
-                    organisations_identifierSchemeUri: {
-                      src: "<%= types.OrganisationIdentifierSchemeType.HttpsRorOrg %>",
-                      dest: 'organisations[0].identifierSchemeUri'
-                    },
-                    organisations_roles: {
-                      src: "<% const roles = [{ roleSchemeUri: types.OrganisationRoleSchemeType.HttpsRaidOrg, role:types.OrganisationRoleType.LeadResearchOrganisation }]; print(JSON.stringify(roles)) %>",
-                      parseJson: true,
-                      dest: 'organisations[0].roles'
-                    }
-                  }
+                  // to DRY, `fields` can either be the actual mapping or a string path of `sails.config` object where the field mapping config resides
+                  fields: 'raid.mapping.dmp'
                 }
               }
             }
@@ -166,85 +89,8 @@ module.exports.recordtype = {
               triggerCondition: '<%= _.isEmpty(record.metadata.raidUrl) %>',
               request: {
                 mint: {
-                  fields: {
-                    title: {
-                      src: 'metadata.title',
-                      dest: 'titles[0].title'
-                    },
-                    title_type: {
-                      src: '<%= types.TitleType.PrimaryTitle %>',
-                      dest: 'titles[0].type'
-                    },
-                    title_startDate: {
-                      src: 'metadata.dc:coverage_vivo:DateTimeInterval_vivo:start',
-                      dest: 'titles[0].startDate'
-                    },
-                    date_start: {
-                      src: 'metadata.dc:coverage_vivo:DateTimeInterval_vivo:start',
-                      dest: 'dates.startDate'
-                    },
-                    date_end: {
-                      src: 'metadata.dc:coverage_vivo:DateTimeInterval_vivo:end',
-                      dest: 'dates.endDate'
-                    },
-                    description_main: {
-                      src: 'metadata.description',
-                      dest: 'descriptions[0].description'
-                    },
-                    description_type: {
-                      src: '<%= types.DescriptionType.PrimaryDescription %>',
-                      dest: 'descriptions[0].type'
-                    }, 
-                    access_type: {
-                      src: '<%= _.startsWith(record.metadata["dc:accessRights"], "open") ? types.AccessType.Open : types.AccessType.Closed %>',
-                      dest: 'access.type'
-                    },
-                    // return the value/label when access rights isn't "open"
-                    access_statement: {
-                      src: '<%= _.startsWith(record.metadata["dc:accessRights"], "open") ? "" : record.metadata["dc:accessRights"] %>',
-                      dest: 'access.accessStatement'
-                    },
-                    contributors: {
-                      src: '<%= JSON.stringify(that.getContributors(record, options, fieldConfig, mappedData)) %>',
-                      dest: 'contributors',
-                      parseJson: true,
-                      contributorMap: {
-                        contributor_ci: {
-                          fieldMap: { id: 'orcid' },
-                          position: 'Leader',
-                          role: 'Investigation'        
-                        },
-                        contributor_data_manager: {
-                          fieldMap: { id: 'orcid' },
-                          position: 'ContactPerson',
-                          role: 'DataCuration'        
-                        },
-                        contributors: {
-                          fieldMap: { id: 'orcid' },
-                          position: 'CoInvestigator',
-                          role: 'Investigation'        
-                        },
-                        contributor_supervisor: {
-                          fieldMap: { id: 'orcid' },
-                          position: 'PrincipalInvestigator',
-                          role: 'Investigation'        
-                        }
-                      }
-                    },
-                    organisations_id: {
-                      src: "<%= 'https://ror.org/03sd43014' %>",
-                      dest: 'organisations[0].id'
-                    },
-                    organisations_identifierSchemeUri: {
-                      src: "<%= types.OrganisationIdentifierSchemeType.HttpsRorOrg %>",
-                      dest: 'organisations[0].identifierSchemeUri'
-                    },
-                    organisations_roles: {
-                      src: "<% const roles = [{ roleSchemeUri: types.OrganisationRoleSchemeType.HttpsRaidOrg, role:types.OrganisationRoleType.LeadResearchOrganisation }]; print(JSON.stringify(roles)) %>",
-                      parseJson: true,
-                      dest: 'organisations[0].roles'
-                    }
-                  }
+                  // to DRY, `fields` can either be the actual mapping or a string path of `sails.config` object where the field mapping config resides
+                  fields: 'raid.mapping.dmp'
                 }
               }
             }
