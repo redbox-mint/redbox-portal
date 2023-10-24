@@ -240,7 +240,7 @@ export class VocabField extends FieldBase<any> {
           const delimPair = this.titleFieldDelim[idx];
           const titleVal = data[titleFld];
           if (titleVal) {
-            title = `${title}${_.isEmpty(title) ? '' : delimPair.prefix}${titleVal}${_.isEmpty(title) ? '' : delimPair.suffix}`;
+            title = `${title}${_.isEmpty(titleVal) ? '' : delimPair.prefix}${titleVal}${_.isEmpty(titleVal) ? '' : delimPair.suffix}`;
           }
         });
       }
@@ -376,6 +376,7 @@ export class VocabField extends FieldBase<any> {
               that.formModel.clearValidators();
             }
             that.formModel.updateValueAndValidity();
+            that.storedEventData = _.clone(that.formModel.value)
           }
         }
       } else {
@@ -494,7 +495,7 @@ class MintLookupDataService extends Subject<CompleterItem[]> implements Complete
 
   constructor(private url: string,
     private http: Http,
-    private fields: string[],
+    private lookupResponseFields: string[],
     private compositeTitleName: string,
     private titleFieldArr: string[],
     private titleFieldDelim: any[],
@@ -532,7 +533,7 @@ class MintLookupDataService extends Subject<CompleterItem[]> implements Complete
       return null;
     }
     const item: any = {};
-    _.forEach(this.fields, (fieldName) => {
+    _.forEach(this.lookupResponseFields, (fieldName) => {
       if (_.isString(fieldName)) {
         item[fieldName] = data[fieldName];
       } else {

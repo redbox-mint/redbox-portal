@@ -30,7 +30,7 @@ import {
 declare var sails: Sails;
 declare var _;
 declare var _this;
-import * as flat from 'flat';
+let flat;
 import * as luceneEscapeQuery from "lucene-escape-query";
 
 declare var RecordsService;
@@ -64,6 +64,10 @@ export module Services {
         that.initClient();
         await that.buildSchema();
       });
+    }
+
+    protected async processDynamicImports() {
+      flat = await import("flat");
     }
 
     protected initClient() {

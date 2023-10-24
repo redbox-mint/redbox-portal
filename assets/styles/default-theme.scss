@@ -192,6 +192,11 @@ z-index: 999;
   padding: 80px 0 130px;
 }
 
+#system-message-area {
+    padding-top: 80px;
+    display: none;
+  }
+
 .site-branding-area {
   background-color: $site-branding-area-background;
 }
