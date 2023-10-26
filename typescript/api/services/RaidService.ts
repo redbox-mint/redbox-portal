@@ -162,8 +162,8 @@ export module Services {
         // swallow as this will be handled after this block
       }
       if (!_.isEmpty(raid)) {
-        // add raid to record
-        _.set(record.metadata, 'raidUrl', raid.id);
+        // add raid to record, defaults to 'raidUrl'
+        _.set(record.metadata, _.get(sails.config.raid, 'raidFieldName', 'raidUrl'), raid.id);
         if (sails.config.raid.saveBodyInMeta) {
           // don't save the response object as it contains the auth token
           _.set(record.metaMetadata, 'raid.response', metaMetadataInfo);
