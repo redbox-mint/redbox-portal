@@ -22,18 +22,18 @@ module.exports.recordtype = {
               "recordCreatorPermissions" : "view&edit"
             }
           },
-          {
-            function: 'sails.services.raidservice.mintTrigger',
-            options: {
-              triggerCondition: '<%= _.isEmpty(record.metadata.raidUrl) %>',
-              request: {
-                mint: {
-                  // to DRY, `fields` can either be the actual mapping or a string path of `sails.config` object where the field mapping config resides
-                  fields: 'raid.mapping.dmp'
-                }
-              }
-            }
-          }
+          // {
+          //   function: 'sails.services.raidservice.mintTrigger',
+          //   options: {
+          //     triggerCondition: '<%= _.isEmpty(record.metadata.raidUrl) %>',
+          //     request: {
+          //       mint: {
+          //         // to DRY, `fields` can either be the actual mapping or a string path of `sails.config` object where the field mapping config resides
+          //         fields: 'raid.mapping.dmp'
+          //       }
+          //     }
+          //   }
+          // }
         ],
         // Requires the PDF Gen hook to be installed https://www.npmjs.com/package/@researchdatabox/sails-hook-redbox-pdfgen
         // post: [{
@@ -47,12 +47,12 @@ module.exports.recordtype = {
         //   }
         // }]
         post: [
-          {
-            function: 'sails.services.raidservice.mintPostCreateRetryHandler',
-            options: {
-              // nothing here as the record-specific options are in the metaMetadata
-            }
-          }
+          // {
+          //   function: 'sails.services.raidservice.mintPostCreateRetryHandler',
+          //   options: {
+          //     // nothing here as the record-specific options are in the metaMetadata
+          //   }
+          // }
         ]
       },
       onUpdate: {
@@ -83,18 +83,18 @@ module.exports.recordtype = {
                 replaceOrAppend:'append'
                 }
           },
-          {
-            function: 'sails.services.raidservice.mintTrigger',
-            options: {
-              triggerCondition: '<%= _.isEmpty(record.metadata.raidUrl) %>',
-              request: {
-                mint: {
-                  // to DRY, `fields` can either be the actual mapping or a string path of `sails.config` object where the field mapping config resides
-                  fields: 'raid.mapping.dmp'
-                }
-              }
-            }
-          }  
+          // {
+          //   function: 'sails.services.raidservice.mintTrigger',
+          //   options: {
+          //     triggerCondition: '<%= _.isEmpty(record.metadata.raidUrl) %>',
+          //     request: {
+          //       mint: {
+          //         // to DRY, `fields` can either be the actual mapping or a string path of `sails.config` object where the field mapping config resides
+          //         fields: 'raid.mapping.dmp'
+          //       }
+          //     }
+          //   }
+          // }  
         ],
         // Requires the PDF Gen hook to be installed https://www.npmjs.com/package/@researchdatabox/sails-hook-redbox-pdfgen
         // post: [{

@@ -59,14 +59,10 @@ export module Services {
     }
 
     public async mintTrigger(oid, record, options): Promise<any> {
-      if (`${sails.config.raid.enabled}` === 'true') {
-        if (this.metTriggerCondition(oid, record, options) === "true") {
-          await this.mintRaid(oid, record, options);
-        } else {
-          sails.log.debug(`${this.logHeader} mintTrigger()-> RAiD URL already minted.`);
-        }
+      if (this.metTriggerCondition(oid, record, options) === "true") {
+        await this.mintRaid(oid, record, options);
       } else {
-        sails.log.debug(`${this.logHeader} mintTrigger()-> RAiD is currently disabled.`);
+        sails.log.debug(`${this.logHeader} mintTrigger()-> RAiD URL already minted.`);
       }
       return record;
     }

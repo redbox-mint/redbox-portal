@@ -1,5 +1,4 @@
 module.exports.raid = {
-  enabled: false,
   basePath: 'https://api.demo.raid.org.au',
   token: '',
   saveBodyInMeta: true,
