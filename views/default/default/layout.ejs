@@ -115,6 +115,16 @@
 <% if (typeof title!== 'undefined') { %>
 <% } %>
 
+<% if (TranslationService.t('system-message-enabled') == 'true') { %>
+  <div id="system-message-area" class="container">
+  <div id="system-message" class="alert alert-primary alert-dismissible fade show" role="alert">
+    <h4><%- TranslationService.t('system-message-title') %></h4>
+    <div><%- TranslationService.t('system-message-description') %></div>
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+  </div>
+</div>
+ <% } %>
+
   <div class="maincontent-body">
     <%- body %>
   </div>
@@ -155,6 +165,33 @@
         curHref.closest('li').addClass('active').closest('.dropdown').addClass('site-branding-area');
       }
     }
+
+    const storedsystemMessageDismissalTime = parseInt(localStorage.getItem('systemMessageDismissalTime'), 10);
+
+   if (storedsystemMessageDismissalTime) {
+    const currentsystemMessageDismissalTime = Date.now();
+    const eightHoursInMillis = 8 * 60 * 60 * 1000; // 8 hours in milliseconds
+    if (currentsystemMessageDismissalTime - storedsystemMessageDismissalTime > eightHoursInMillis) {
+     //Already been dismissed in the past 8 hours so close it
+      $('#system-message-area').show()
+    }  else {
+      //remove the system message area as it takes up space even when hidden
+      const systemMessageArea = document.getElementById('system-message-area');
+      systemMessageArea.parentNode.removeChild(systemMessageArea)
+    }
+  }  else {
+    $('#system-message-area').show()
+  }
+
+    $('#system-message').on('closed.bs.alert', function () {
+
+    const currentEpochMillis = Date.now();
+
+    localStorage.setItem('systemMessageDismissalTime', currentEpochMillis.toString());
+    //remove the system message area as it takes up space even when hidden
+    const systemMessageArea = document.getElementById('system-message-area');
+      systemMessageArea.parentNode.removeChild(systemMessageArea)
+  })
   });
   </script>
 </body>
