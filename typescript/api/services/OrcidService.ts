@@ -50,13 +50,9 @@ export module Services {
       var rows = 10;
       var start = (page - 1) * rows;
       var url = sails.config.orcid.url + '/v1.2/search/orcid-bio/?q=family-name:"' + familyName + '"%20AND%20given-names:"' + givenNames + '"&start=' + start + '&rows=' + rows;
-      var options = this.getOptions(url);
+      var options = this.getOptions(url, sails.config.record.api.search.method);
       //search: {method: 'get', url: "/api/v1/search"},
-      var orcidRes = Observable.fromPromise(axios({
-        method: sails.config.record.api.search.method,
-        url: options.url,
-        headers: options.headers
-      }));
+      var orcidRes = Observable.fromPromise(axios(options));
 
       return orcidRes.flatMap(orcidResult => {
         var results = {};
@@ -138,8 +134,13 @@ export module Services {
       return extendedAttributes;
     }
 
-    protected getOptions(url, contentType = 'application/json; charset=utf-8') {
-      return { url: url, json: true, headers: { 'Content-Type': contentType } };
+    protected getOptions(url, method, contentType = 'application/json; charset=utf-8') {
+       const opts = {
+          method: method,
+          url: url, 
+          headers: { 'Content-Type': contentType } 
+        };
+       return opts;
     }
 
 

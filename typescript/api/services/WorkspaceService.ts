@@ -1,7 +1,6 @@
 import { Observable } from 'rxjs/Rx';
 import {Services as services}   from '@researchdatabox/redbox-core-types';
 import { Sails, Model } from "sails";
-// import * as request from "request-promise";
 import axios from 'axios';
 
 declare var RecordsService, BrandingService;
@@ -21,9 +20,6 @@ export module Services {
       'registerUserApp',
       'userInfo',
       'provisionerUser',
-      // 'getCookies',
-      // 'getCookieValue',
-      // 'cookieJar',
       'infoFormUserId',
       'createWorkspaceInfo',
       'updateWorkspaceInfo',
@@ -37,31 +33,6 @@ export module Services {
     constructor() {
       super();
     }
-
-    // getCookies(cookies) {
-    //   const cookieJar = [];
-    //   cookies.forEach((rawcookies) => {
-    //     var cookie = request.cookie(rawcookies);
-    //     cookieJar.push({key: cookie.key, value: cookie.value, expires: cookie.expires});
-    //   });
-    //   return cookieJar;
-    // }
-
-    // getCookieValue(cookieJar, key) {
-    //   const cookie = _.findWhere(cookieJar, {key: key});
-    //   if(cookie) {
-    //     return cookie.value;
-    //   }else return '';
-    // }
-
-    // cookieJar(jar: any, config:any, key: string, value: string){
-    //   const keyvalue = key + '=' + value;
-    //   const cookie = request.cookie('' + keyvalue);
-    //   jar.setCookie(cookie, config.host, function(error, cookie) {
-    //     sails.log.debug(cookie);
-    //   });
-    //   return jar;
-    // }
 
     mapToRecord(obj: any, recordMap: any) {
       let newObj = {};
@@ -109,7 +80,7 @@ export module Services {
       // TODO: how to get the workflowStage??
       // TODO: Get the project metadata from the form, move this logic to the controller
       sails.log.debug(config);
-      const post = axios({
+      const post = {
         method: 'post',
         url: config.brandingAndPortalUrl + `/api/records/metadata/${recordType}`,
         data: {
@@ -123,27 +94,27 @@ export module Services {
           workflowStage: workflowStage
         },
         headers: config.redboxHeaders
-      });
-      return Observable.fromPromise(post);
+      };
+      return Observable.fromPromise(axios(post));
     }
 
     getRecordMeta(config: any, rdmp: string) {
-      const get = axios({
+      const get = {
         method: 'get',
         url: config.brandingAndPortalUrl + '/api/records/metadata/' + rdmp,
         headers: config.redboxHeaders
-      });
-      return Observable.fromPromise(get);
+      };
+      return Observable.fromPromise(axios(get));
     }
 
     updateRecordMeta(config: any, record: any, id: string) {
-      const post = axios({
+      const post = {
         method: 'put',
         url: config.brandingAndPortalUrl + '/api/records/metadata/' + id,
         data: record,
         headers: config.redboxHeaders
-      });
-      return Observable.fromPromise(post);
+      };
+      return Observable.fromPromise(axios(post));
     }
 
     userInfo(userId: string) {

@@ -20,7 +20,6 @@
 import { Observable, Scheduler } from 'rxjs/Rx';
 import {Services as services}   from '@researchdatabox/redbox-core-types';
 import {Sails, Model} from "sails";
-//import * as request from "request-promise";
 import axios from 'axios';
 
 
@@ -140,16 +139,10 @@ export module Services {
 
       const mintUrl = `${sails.config.record.baseUrl.mint}${sails.config.mint.api.search.url}?q=repository_type:${sourceType}${searchString}&version=2.2&wt=json&start=0`;
       sails.log(mintUrl);
-      const options = this.getMintOptions(mintUrl);
+      const options = this.getMintOptions(mintUrl, sails.config.record.api.search.method);
       sails.log.verbose(options);
-
       //search: {method: 'get', url: "/api/v1/search"},
-      //responseType: 'json', // default
-      return Observable.fromPromise(axios({
-        method: sails.config.record.api.search.method,
-        url: mintUrl,
-        headers: options.headers
-      }));
+      return Observable.fromPromise(axios(options).then(res => res.data));
     }
 
     public findInExternalService(providerName, params) {
@@ -161,23 +154,26 @@ export module Services {
 
       sails.log.info(url);
       let options = sails.config.vocab.providers[providerName].options;
-      options['url'] = url;
-      options['json'] = true;
-      sails.log.verbose(options);
 
       if(method == 'post') {
-        //TODO perhaps never used? remove?
-        return Observable.fromPromise(axios({
+        const post = {
           method: method,
-          url: options.url,
-          data: params.postBody
-        }));
+          url: url,
+          data: params.postBody,
+          params: options
+        };
+        sails.log.verbose(post);
+        
+        return Observable.fromPromise(axios(post).then(res => res.data));
       } else {
-        //search: {method: 'get', url: "/api/v1/search"},
-        return Observable.fromPromise(axios({
+        const getSearch = {
           method: sails.config.record.api.search.method,
-          url: options.url
-        }));
+          url: url,
+          params: options
+        };
+        sails.log.verbose(getSearch);
+        //search: {method: 'get', url: "/api/v1/search"},
+        return Observable.fromPromise(axios(getSearch).then(res => res.data));
       }
     }
 
@@ -220,8 +216,7 @@ export module Services {
     // have to do this since ANDS endpoint ignores _pageSize
     protected getConcepts(url, rawItems) {
       console.log(`Getting concepts....${url}`);
-      const options = {url:url, json: true};
-      return Observable.fromPromise(axios.get(options.url))
+      return Observable.fromPromise(axios.get(url))
       .flatMap((resp) => {
         let response:any = resp;
         rawItems = rawItems.concat(response.result.items);
@@ -234,8 +229,7 @@ export module Services {
 
     protected getNonAndsVocab(vocabId) {
       const url = sails.config.vocab.nonAnds[vocabId].url;
-      const options = {url: url, json:true};
-      return Observable.fromPromise(axios.get(options.url)).flatMap(response => {
+      return Observable.fromPromise(axios.get(url)).flatMap(response => {
         CacheService.set(vocabId, response);
         return Observable.of(response);
       });
@@ -252,8 +246,7 @@ export module Services {
           const url = sails.config.vocab.collection[collectionId].url;
           sails.log.verbose(`Loading collection: ${collectionId}, using url: ${url}`);
           const methodName = sails.config.vocab.collection[collectionId].saveMethod;
-          const options = {url: url, json:true};
-          return Observable.fromPromise(axios.get(options.url))
+          return Observable.fromPromise(axios.get(url))
           .flatMap(resp => {
             let response:any = resp;
             sails.log.verbose(`Got response retrieving data for collection: ${collectionId}, saving...`);
@@ -301,16 +294,24 @@ export module Services {
 
     public rvaGetResourceDetails(uri,vocab) {
       const url = sails.config.vocab.rootUrl+`${vocab}/resource.json?uri=${uri}`;
-      const options = {url: url, json:true};
-
-      return Observable.fromPromise(axios.get(options.url)).flatMap(response => {
+      return Observable.fromPromise(axios.get(url)).flatMap(response => {
         CacheService.set(vocab, response);
         return Observable.of(response);
       });
     }
 
-    protected getMintOptions(url) {
-      return {url:url, json:true, headers: {'Authorization': `Bearer ${sails.config.mint.apiKey}`, 'Content-Type': 'application/json; charset=utf-8'}};
+    protected getMintOptions(url, method, contentType = 'application/json; charset=utf-8') {
+
+      const opts =  {
+        method: method,
+        url: url,
+        headers: {
+          'Authorization': `Bearer ${sails.config.mint.apiKey}`, 
+          'Content-Type': contentType
+        }
+      };
+
+      return opts;
     }
   }
 }
