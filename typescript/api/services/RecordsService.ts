@@ -38,7 +38,8 @@ import {
   Sails,
   Model
 } from "sails";
-import * as request from "request-promise";
+// import * as request from "request-promise";
+import axios from 'axios';
 import * as luceneEscapeQuery from "lucene-escape-query";
 import * as fs from 'fs';
 import { default as moment } from 'moment';
@@ -416,7 +417,11 @@ export module Services {
     private info(): Promise < any > {
 
       const options = this.getOptions(sails.config.record.baseUrl.redbox + sails.config.record.api.info.url);
-      return request[sails.config.record.api.info.method](options)
+      //info: {method: 'get', url: "/api/v1/info"},
+      return axios({
+        method: sails.config.record.api.info.method,
+        url: options
+      });
     }
 
     protected getOptions(url, oid = null, packageType = null, isJson: boolean = true) {
@@ -565,7 +570,11 @@ export module Services {
       url = this.addAuthFilter(url, username, roles, brand, false)
       sails.log.debug(`Searching fuzzy using: ${url}`);
       const options = this.getOptions(url);
-      return Observable.fromPromise(request[sails.config.record.api.search.method](options))
+      //search: {method: 'get', url: "/api/v1/search"},
+      return Observable.fromPromise(axios({
+        method: sails.config.record.api.search.method,
+        url: options
+      }))
         .flatMap(resp => {
           let response: any = resp;
           const customResp = {

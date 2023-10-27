@@ -20,7 +20,8 @@
 import { Observable, Scheduler } from 'rxjs/Rx';
 import {Services as services}   from '@researchdatabox/redbox-core-types';
 import {Sails, Model} from "sails";
-import * as request from "request-promise";
+//import * as request from "request-promise";
+import axios from 'axios';
 
 
 declare var CacheService, RecordsService, AsynchsService;
@@ -141,7 +142,14 @@ export module Services {
       sails.log(mintUrl);
       const options = this.getMintOptions(mintUrl);
       sails.log.verbose(options);
-      return Observable.fromPromise(request[sails.config.record.api.search.method](options));
+
+      //search: {method: 'get', url: "/api/v1/search"},
+      //responseType: 'json', // default
+      return Observable.fromPromise(axios({
+        method: sails.config.record.api.search.method,
+        url: mintUrl,
+        headers: options.headers
+      }));
     }
 
     public findInExternalService(providerName, params) {
@@ -158,9 +166,19 @@ export module Services {
       sails.log.verbose(options);
 
       if(method == 'post') {
-        options['body'] = params.postBody;
+        //TODO perhaps never used? remove?
+        return Observable.fromPromise(axios({
+          method: method,
+          url: options.url,
+          data: params.postBody
+        }));
+      } else {
+        //search: {method: 'get', url: "/api/v1/search"},
+        return Observable.fromPromise(axios({
+          method: sails.config.record.api.search.method,
+          url: options.url
+        }));
       }
-      return Observable.fromPromise(request[sails.config.record.api.search.method](options));
     }
 
     private getTemplateStringFunction(template) {
@@ -203,7 +221,7 @@ export module Services {
     protected getConcepts(url, rawItems) {
       console.log(`Getting concepts....${url}`);
       const options = {url:url, json: true};
-      return Observable.fromPromise(request.get(options))
+      return Observable.fromPromise(axios.get(options.url))
       .flatMap((resp) => {
         let response:any = resp;
         rawItems = rawItems.concat(response.result.items);
@@ -217,7 +235,7 @@ export module Services {
     protected getNonAndsVocab(vocabId) {
       const url = sails.config.vocab.nonAnds[vocabId].url;
       const options = {url: url, json:true};
-      return Observable.fromPromise(request.get(options)).flatMap(response => {
+      return Observable.fromPromise(axios.get(options.url)).flatMap(response => {
         CacheService.set(vocabId, response);
         return Observable.of(response);
       });
@@ -235,7 +253,7 @@ export module Services {
           sails.log.verbose(`Loading collection: ${collectionId}, using url: ${url}`);
           const methodName = sails.config.vocab.collection[collectionId].saveMethod;
           const options = {url: url, json:true};
-          return Observable.fromPromise(request.get(options))
+          return Observable.fromPromise(axios.get(options.url))
           .flatMap(resp => {
             let response:any = resp;
             sails.log.verbose(`Got response retrieving data for collection: ${collectionId}, saving...`);
@@ -285,7 +303,7 @@ export module Services {
       const url = sails.config.vocab.rootUrl+`${vocab}/resource.json?uri=${uri}`;
       const options = {url: url, json:true};
 
-      return Observable.fromPromise(request.get(options)).flatMap(response => {
+      return Observable.fromPromise(axios.get(options.url)).flatMap(response => {
         CacheService.set(vocab, response);
         return Observable.of(response);
       });

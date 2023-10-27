@@ -20,7 +20,8 @@
 import { Observable } from 'rxjs/Rx';
 import {Services as services}   from '@researchdatabox/redbox-core-types';
 import { Sails, Model } from "sails";
-import * as request from "request-promise";
+// import * as request from "request-promise";
+import axios from 'axios';
 
 declare var sails: Sails;
 declare var Report: Model;
@@ -50,7 +51,12 @@ export module Services {
       var start = (page - 1) * rows;
       var url = sails.config.orcid.url + '/v1.2/search/orcid-bio/?q=family-name:"' + familyName + '"%20AND%20given-names:"' + givenNames + '"&start=' + start + '&rows=' + rows;
       var options = this.getOptions(url);
-      var orcidRes = Observable.fromPromise(request[sails.config.record.api.search.method](options));
+      //search: {method: 'get', url: "/api/v1/search"},
+      var orcidRes = Observable.fromPromise(axios({
+        method: sails.config.record.api.search.method,
+        url: options.url,
+        headers: options.headers
+      }));
 
       return orcidRes.flatMap(orcidResult => {
         var results = {};

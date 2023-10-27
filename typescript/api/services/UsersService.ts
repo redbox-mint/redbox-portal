@@ -34,7 +34,7 @@ import {
   Sails,
   Model
 } from "sails";
-import * as request from "request-promise";
+//import * as request from "request-promise";
 import * as crypto from 'crypto';
 
 
