@@ -20,7 +20,7 @@
     "@angular/platform-browser-dynamic": "^16.2.11",
     "@researchdatabox/sails-ng-common": "^0.1.0",
     "angular-i18next": "^16.0.0",
-    "i18next-http-backend": "^2.3.0",
+    "i18next-http-backend": "^2.3.1",
     "i18next-browser-languagedetector": "^7.1.0",
     "lodash-es": "^4.17.21",
     "luxon": "^3.4.3",
