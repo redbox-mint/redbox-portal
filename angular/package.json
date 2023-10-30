@@ -35,7 +35,7 @@
     "@angular/cli": "^16.2.8",
     "@angular/compiler-cli": "^16.2.11",
     "@schematics/angular": "^16.2.1",
-    "@types/jasmine": "~5.1.0",
+    "@types/jasmine": "~5.1.1",
     "@types/lodash": "^4.14.200",
     "@types/lodash-es": "^4.17.9",
     "@types/luxon": "^3.3.2",
