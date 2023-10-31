@@ -6,6 +6,7 @@ module.exports.raid = {
   retryJobSchedule: 'in 5 minutes', // https://github.com/matthewmueller/date#examples
   retryJobMaxAttempts: 5, // includes the initial attempt
   orcidBaseUrl: "https://orcid.org/",
+  raidFieldName: 'raidUrl', // the `record.metadata` field name where the raid will be stored
   types: {
     title: {
       'Primary': {

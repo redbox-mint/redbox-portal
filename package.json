@@ -11,7 +11,7 @@
     "@tsconfig/node18": "^18.2.2",
     "agenda": "^5.0.0",
     "async": "3.2.4",
-    "axios": "^1.5.1",
+    "axios": "^1.6.0",
     "bcryptjs": "^2.4.3",
     "bootstrap": "^5.3.2",
     "captains-log": "^2.0.4",
@@ -19,7 +19,7 @@
     "chokidar": "~3.5.2",
     "connect-mongo": "^5.1.0",
     "copy-webpack-plugin": "^11.0.0",
-    "core-js": "^3.33.0",
+    "core-js": "^3.33.2",
     "css-loader": "^6.8.1",
     "css-minimizer-webpack-plugin": "^5.0.1",
     "csv-parser": "^3.0.0",
@@ -63,7 +63,7 @@
     "sails-hook-orm": "^4.0.0",
     "sails-hook-sockets": "^2.0.4",
     "sails-mongo": "^2.0.0",
-    "sass": "^1.69.4",
+    "sass": "^1.69.5",
     "sass-loader": "^13.3.2",
     "skipper": "^0.9.4",
     "skipper-gridfs": "^1.0.2",
@@ -76,7 +76,7 @@
     "typescript-require": "~0.3.0",
     "url-pattern": "^1.0.3",
     "webpack": "^5.89.0",
-    "zone.js": "^0.14.0"
+    "zone.js": "^0.14.1"
   },
   "scripts": {
     "debug": "node debug app.js",
@@ -99,10 +99,9 @@
   "author": "QCIF Engineering",
   "license": "GPL2",
   "devDependencies": {
-    "@compodoc/compodoc": "^1.1.22",
     "@types/jquery": "^3.5.24",
     "@types/lodash-es": "^4.17.10",
-    "@types/node": "^18.16.3",
+    "@types/node": "^20.8.9",
     "bower": "^1.8.14",
     "chai": "^4.3.10",
     "ejs-cli": "^2.2.3",
