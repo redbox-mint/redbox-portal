@@ -3,7 +3,7 @@ networks:
   main:
 services:
   redboxportal:
-    image: qcifengineering/redbox-portal:feature-node20
+    image: qcifengineering/redbox-portal:develop
     ports:
        - "1500:1500"
     volumes:
@@ -29,7 +29,7 @@ services:
          - rbportal
     entrypoint: /bin/bash -c " cd /opt/redbox-portal && npm i nyc  -g && npm i newman --legacy-peer-deps && nyc --exclude-after-remap=false --reporter=lcov npm run api-test "
   mongodb:
-    image: mvertes/alpine-mongo:latest
+    image: mongo:latest
     networks:
       main:
         aliases:
