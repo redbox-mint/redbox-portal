@@ -20,7 +20,8 @@
 import { Observable } from 'rxjs/Rx';
 import {Services as services}   from '@researchdatabox/redbox-core-types';
 import { Sails, Model } from "sails";
-import * as request from "request-promise";
+// import * as request from "request-promise";
+import axios from 'axios';
 
 declare var sails: Sails;
 declare var Report: Model;
@@ -49,8 +50,9 @@ export module Services {
       var rows = 10;
       var start = (page - 1) * rows;
       var url = sails.config.orcid.url + '/v1.2/search/orcid-bio/?q=family-name:"' + familyName + '"%20AND%20given-names:"' + givenNames + '"&start=' + start + '&rows=' + rows;
-      var options = this.getOptions(url);
-      var orcidRes = Observable.fromPromise(request[sails.config.record.api.search.method](options));
+      var options = this.getOptions(url, sails.config.record.api.search.method);
+      
+      var orcidRes = Observable.fromPromise(axios(options));
 
       return orcidRes.flatMap(orcidResult => {
         var results = {};
@@ -132,8 +134,13 @@ export module Services {
       return extendedAttributes;
     }
 
-    protected getOptions(url, contentType = 'application/json; charset=utf-8') {
-      return { url: url, json: true, headers: { 'Content-Type': contentType } };
+    protected getOptions(url, method, contentType = 'application/json; charset=utf-8') {
+       const opts = {
+          method: method,
+          url: url, 
+          headers: { 'Content-Type': contentType } 
+        };
+       return opts;
     }
 
 
