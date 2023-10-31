@@ -416,7 +416,7 @@ export module Services {
     private info(): Promise < any > {
 
       const options = this.getOptions(sails.config.record.baseUrl.redbox + sails.config.record.api.info.url, sails.config.record.api.info.method);
-      //info: {method: 'get', url: "/api/v1/info"},
+      
       return axios(options);
     }
 
@@ -563,7 +563,7 @@ export module Services {
       url = this.addAuthFilter(url, username, roles, brand, false)
       sails.log.debug(`Searching fuzzy using: ${url}`);
       const options = this.getOptions(url, sails.config.record.api.search.method);
-      //search: {method: 'get', url: "/api/v1/search"},
+      
       return Observable.fromPromise(axios(options))
         .flatMap(resp => {
           let response: any = resp;

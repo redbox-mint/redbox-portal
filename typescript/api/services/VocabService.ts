@@ -141,7 +141,7 @@ export module Services {
       sails.log(mintUrl);
       const options = this.getMintOptions(mintUrl, sails.config.record.api.search.method);
       sails.log.verbose(options);
-      //search: {method: 'get', url: "/api/v1/search"},
+      
       return Observable.fromPromise(axios(options).then(res => res.data));
     }
 
@@ -164,7 +164,7 @@ export module Services {
         };
         sails.log.verbose(post);
         
-        return Observable.fromPromise(axios(post).then(res => res.data));
+        return Observable.fromPromise(axios(post));
       } else {
         const getSearch = {
           method: sails.config.record.api.search.method,
@@ -172,8 +172,8 @@ export module Services {
           params: options
         };
         sails.log.verbose(getSearch);
-        //search: {method: 'get', url: "/api/v1/search"},
-        return Observable.fromPromise(axios(getSearch).then(res => res.data));
+        
+        return Observable.fromPromise(axios(getSearch));
       }
     }
 

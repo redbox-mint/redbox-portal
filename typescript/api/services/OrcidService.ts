@@ -51,7 +51,7 @@ export module Services {
       var start = (page - 1) * rows;
       var url = sails.config.orcid.url + '/v1.2/search/orcid-bio/?q=family-name:"' + familyName + '"%20AND%20given-names:"' + givenNames + '"&start=' + start + '&rows=' + rows;
       var options = this.getOptions(url, sails.config.record.api.search.method);
-      //search: {method: 'get', url: "/api/v1/search"},
+      
       var orcidRes = Observable.fromPromise(axios(options));
 
       return orcidRes.flatMap(orcidResult => {
