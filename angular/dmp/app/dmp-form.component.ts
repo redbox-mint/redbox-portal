@@ -117,7 +117,11 @@ export class DmpFormComponent extends LoadableComponent {
   finishedRendering:boolean;
 
   @Output() recordCreated: EventEmitter<any> = new EventEmitter<any>();
+  @Output() recordUpdated: EventEmitter<any> = new EventEmitter<any>();
   @Output() recordSaved: EventEmitter<any> = new EventEmitter<any>();
+  @Output() recordUpdateFailed: EventEmitter<any> = new EventEmitter<any>();
+  @Output() recordSaveFailed: EventEmitter<any> = new EventEmitter<any>();
+  @Output() recordCreateFailed: EventEmitter<any> = new EventEmitter<any>();
   @Output() onBeforeSave: EventEmitter<any> = new EventEmitter<any>();
   @Output() onFormLoaded: EventEmitter<any> = new EventEmitter<any>();
   @Output() onValueChange: EventEmitter<any> = new EventEmitter<any>();
@@ -237,21 +241,25 @@ export class DmpFormComponent extends LoadableComponent {
         if (res.success) {
           this.oid = res.oid;
           this.recordCreated.emit({oid: this.oid});
+          this.recordSaved.emit({oid: this.oid, success:true});
           this.LocationService.go(`record/edit/${this.oid}`);
           this.setSuccess(this.getMessage(this.formDef.messages.saveSuccess));
           this.form.markAsPristine();
           return Observable.of(true);
         } else if(!res.success && postSaveSyncWarning) {
           this.oid = res.oid;
-          this.recordCreated.emit({oid: this.oid});
+          
+          this.recordCreateFailed.emit({oid: this.oid})
           this.LocationService.go(`record/edit/${this.oid}`);
           this.setError(`${this.getMessage(this.formDef.messages.saveError)} ${res.message}`);
           return Observable.of(false);
         } else {
+          this.recordCreateFailed.emit({oid: this.oid})
           this.setError(`${this.getMessage(this.formDef.messages.saveError)} ${res.message}`);
           return Observable.of(false);
         }
       }).catch((err:any)=>{
+        this.recordCreateFailed.emit({oid: this.oid})
         this.setError(`${this.getMessage(this.formDef.messages.saveError)} ${err.message}`);
         return Observable.of(false);
       });
@@ -262,16 +270,17 @@ export class DmpFormComponent extends LoadableComponent {
         console.log(res);
         if (res.success) {
           this.recordSaved.emit({oid: this.oid, success:true});
+          this.recordUpdated.emit({oid: this.oid, success:true});
           this.setSuccess(this.getMessage(this.formDef.messages.saveSuccess));
           this.form.markAsPristine();
           return Observable.of(true);
         } else {
-          this.recordSaved.emit({oid: this.oid, success:false});
+          this.recordUpdateFailed.emit({oid: this.oid, success:false});
           this.setError(`${this.getMessage(this.formDef.messages.saveError)} ${res.message}`);
           return Observable.of(false);
         }
       }).catch((err:any)=>{
-        this.recordSaved.emit({oid: this.oid, success:false});
+        this.recordUpdateFailed.emit({oid: this.oid, success:false});
         this.setError(`${this.getMessage(this.formDef.messages.saveError)} ${err}`);
         return Observable.of(false);
       });
