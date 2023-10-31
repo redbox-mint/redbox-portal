@@ -195,8 +195,4 @@
   });
   </script>
 </body>
-<% if (res.statusCode <= 400 && sails.config.ng2.use_bundled) { %>
-  <!-- NG2 bundled scripts section, expects a 'ng2_apps' local containing the list of apps to load for this view -->
-  <%- partial ('../../misc/ng2-apps.ejs', {apps: ng2_apps}) %>
-<% } %>
 </html>
