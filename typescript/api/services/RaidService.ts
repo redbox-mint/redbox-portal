@@ -157,6 +157,7 @@ export module Services {
           throw customError;
         }
       } catch (error) {
+        _.set(error, 'response.request.headers.Authorization', '-redacted-');
         // This is the generic handler for when the API call itself throws an exception
         sails.log.error(`${this.logHeader} mintRaid() ${oid} -> API error, Status Code: '${error.statusCode}'`);
         sails.log.error(`${this.logHeader} mintRaid() ${oid} -> Error: ${JSON.stringify(error)}`);
@@ -270,11 +271,14 @@ export module Services {
           this.setContributorFlags(contributors[id], contribConfig);
         }
       } else {
-        sails.log.verbose(`${this.logHeader} buildContribVal() -> Missing/invalid identifier for: ${contribVal}`);
-        // reject mint if we have missing ids
-        let errorMessage = TranslationService.t('raid-mint-transform-missing-contributorid-error');
-        let customError:RBValidationError = new RBValidationError(`${errorMessage} '${contribVal.text_full_name}'`);
-        throw customError;
+        sails.log.verbose(`${this.logHeader} buildContribVal() -> Missing/invalid identifier for: ${JSON.stringify(contribVal)}`);
+        // we ignore records that don't have a valid ORCID, otherwise we reject the RAiD creation
+        if (_.get(contribConfig, 'requireOrcid', false) == true) {
+          // reject mint as we have a missing ORCID
+          let errorMessage = TranslationService.t('raid-mint-transform-missing-contributorid-error');
+          let customError:RBValidationError = new RBValidationError(`${errorMessage} '${contribVal.text_full_name}'`);
+          throw customError;
+        }        
       }
     }
 

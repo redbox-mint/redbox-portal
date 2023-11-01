@@ -176,7 +176,8 @@ module.exports.raid = {
           contributor_ci: {
             fieldMap: { id: 'orcid' }, // allows for the orcid to be renamed or be sourced elsewhere
             position: 'Leader',
-            role: 'ProjectAdministration'        
+            role: 'ProjectAdministration',
+            requireOrcid: true // defaults to false, when set records will be skipped if orcid value is missing      
           },
           contributor_data_manager: {
             fieldMap: { id: 'orcid' },
