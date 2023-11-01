@@ -157,8 +157,13 @@ export module Services {
           throw customError;
         }
       } catch (error) {
+        // This is the generic handler for when the API call itself throws an exception
         sails.log.error(`${this.logHeader} mintRaid() ${oid} -> API error, Status Code: '${error.statusCode}'`);
-        sails.log.error(`${this.logHeader} mintRaid() ${oid} -> Error Body: ${JSON.stringify(error.body)}`);
+        sails.log.error(`${this.logHeader} mintRaid() ${oid} -> Error: ${JSON.stringify(error)}`);
+        // set response as the error so it can be saved in the retry block
+        response = error;
+        // saving as much info by setting the body to either the actual return value or the entire error object 
+        response.body = !_.isEmpty(response.body) ?  response.body : JSON.stringify(error);
         // swallow as this will be handled after this block
       }
       if (!_.isEmpty(raid)) {
@@ -180,7 +185,7 @@ export module Services {
             // set the flag for post-save processor to add the job
             _.set(record.metaMetadata, 'raid.attemptCount', attemptCount);
             _.set(record.metaMetadata, 'raid.options', options);
-            _.set(record.metaMetadata, 'raid.attemptResponse', { statusCode: response.statusCode})
+            _.set(record.metaMetadata, 'raid.attemptResponse', { statusCode: response.statusCode, body: response.body })
             if (!_.isEmpty(oid)) {
               // same as above but directly schedule as we know the oid
               this.scheduleMintRetry({oid: oid, options: options, attemptCount: attemptCount });
