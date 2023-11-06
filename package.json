@@ -10,7 +10,7 @@
     "@researchdatabox/sails-ng-common": "^0.1.0",
     "@tsconfig/node18": "^18.2.2",
     "agenda": "^5.0.0",
-    "async": "3.2.4",
+    "async": "3.2.5",
     "axios": "^1.6.0",
     "bcryptjs": "^2.4.3",
     "bootstrap": "^5.3.2",
