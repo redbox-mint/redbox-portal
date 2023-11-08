@@ -1,0 +1,85 @@
+
+ <!--<div class="row" id="loading">
+  <div class="col-xs-1">
+  </div>
+  <div class="col-xs-10">
+    <img class="center-block" src="<%= BrandingService.getRootContext() %>/images/loading.svg" alt="<%= TranslationService.t('loading-alt-text') %>">
+  </div>
+  <div class="col-xs-1">
+  </div>
+</div>-->
+<%
+var currentMinute = sails.config.startupMinute;
+%>
+
+<% if(!_.isEmpty(records)) {
+  
+  if(_.isArray(records)) { %>
+
+    <div class="row">
+      <div class="col-md-2"></div>
+      <div class="col-md-8">
+        <div class="panel panel-default">
+          <div class="panel-heading">
+              <span class="panel-title"><%= TranslationService.t('@view-record-audit-heading')%></span>
+          </div>
+          <div class="panel-body">
+            <div class="table-responsive">
+              <table class="table table-bordered table-striped table-hover" id="sortTable">
+              <thead>
+                <tr>
+                  <th><%= TranslationService.t('@view-record-audit-name')%></th>
+                  <th><%= TranslationService.t('@view-record-audit-email')%></th>
+                  <th><%= TranslationService.t('@view-record-audit-username')%></th>
+                  <th><%= TranslationService.t('@view-record-audit-roles')%></th>
+                  <th><%= TranslationService.t('@view-record-audit-updatedAt')%></th>
+                </tr>
+              </thead>
+              <tbody>
+                <% for(let auditRecord of records) {
+                  let user = _.get(auditRecord, 'user');
+                  let roles = _.get(user, 'roles');
+                %>
+                <tr>
+                  <td><%=_.get(user, 'name')%></td>
+                  <td><%=_.get(user, 'email')%></td>
+                  <td><%=_.get(user, 'username')%></td>
+                  <td>
+                    <% if(_.isArray(roles)) { 
+                        let roleNamesString = '';
+                        for(let role of roles) { 
+                          if(roleNamesString == ''){
+                            roleNamesString = _.get(role, 'name');
+                          } else {
+                            roleNamesString = ', '+_.get(role, 'name');
+                          }
+                          %>
+                          <%=roleNamesString%>
+                      <% } 
+                    } %>
+                  </td>
+                  <td><%=_.get(user, 'updatedAt')%></td>
+                </tr>
+                <% } %>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-2"></div>
+    </div>
+  </div>
+
+<%} else { 
+  
+  let print1 = JSON.stringify(records);
+  %> 
+
+  <%= print1 %>
+
+<% } 
+}  %>
+
+
+
+
