@@ -1,20 +1,11 @@
 
- <!--<div class="row" id="loading">
-  <div class="col-xs-1">
-  </div>
-  <div class="col-xs-10">
-    <img class="center-block" src="<%= BrandingService.getRootContext() %>/images/loading.svg" alt="<%= TranslationService.t('loading-alt-text') %>">
-  </div>
-  <div class="col-xs-1">
-  </div>
-</div>-->
-<%
-var currentMinute = sails.config.startupMinute;
-%>
-
-<% if(!_.isEmpty(records)) {
+<% if(!_.isUndefined(records) && !_.isNull(records) && !_.isEmpty(records)) {
   
-  if(_.isArray(records)) { %>
+  if(_.isArray(records)) { 
+    
+    let testRecords = sails.services.recordsservice;
+
+    %>
 
     <div class="row">
       <div class="col-md-2"></div>
@@ -25,42 +16,43 @@ var currentMinute = sails.config.startupMinute;
           </div>
           <div class="panel-body">
             <div class="table-responsive">
-              <table class="table table-bordered table-striped table-hover" id="sortTable">
+              <table class="table table-bordered table-striped table-hover">
               <thead>
                 <tr>
-                  <th><%= TranslationService.t('@view-record-audit-name')%></th>
+                  <th><%= TranslationService.t('@view-record-audit-updatedAt')%></th>
+                  <th><%= TranslationService.t('@view-record-audit-updatedBy')%></th>
                   <th><%= TranslationService.t('@view-record-audit-email')%></th>
                   <th><%= TranslationService.t('@view-record-audit-username')%></th>
                   <th><%= TranslationService.t('@view-record-audit-roles')%></th>
-                  <th><%= TranslationService.t('@view-record-audit-updatedAt')%></th>
                 </tr>
               </thead>
               <tbody>
                 <% for(let auditRecord of records) {
                   let user = _.get(auditRecord, 'user');
-                  let roles = _.get(user, 'roles');
-                %>
+                  if(!_.isUndefined(user) && !_.isNull(user)) {
+                    let roles = _.get(user, 'roles'); %>
                 <tr>
+                  <td><%=moment(_.get(auditRecord, 'updatedAt')).format('YYYY-MM-DDTHH:mm:ss')%></td>
                   <td><%=_.get(user, 'name')%></td>
                   <td><%=_.get(user, 'email')%></td>
                   <td><%=_.get(user, 'username')%></td>
                   <td>
-                    <% if(_.isArray(roles)) { 
-                        let roleNamesString = '';
-                        for(let role of roles) { 
-                          if(roleNamesString == ''){
-                            roleNamesString = _.get(role, 'name');
-                          } else {
-                            roleNamesString = ', '+_.get(role, 'name');
-                          }
-                          %>
-                          <%=roleNamesString%>
-                      <% } 
-                    } %>
+                  <% if(_.isArray(roles)) {
+                    let roleNamesString = '';
+                    for(let role of roles) { 
+                      if(roleNamesString == ''){
+                        roleNamesString = _.get(role, 'name');
+                      } else {
+                        roleNamesString = ', '+_.get(role, 'name');
+                      }
+                      %>
+                      <%=roleNamesString%>
+                    <% } 
+                  } %>
                   </td>
-                  <td><%=_.get(user, 'updatedAt')%></td>
                 </tr>
-                <% } %>
+                  <% } 
+                } %>
               </tbody>
             </table>
           </div>

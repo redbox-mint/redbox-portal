@@ -732,7 +732,7 @@
   "@dmp-associated-rdmp-link": "View Associated RDMP",
   "@view-record-audit-link": "View Record Audit",
   "@view-record-audit-heading": "Record Audit History",
-  "@view-record-audit-name": "Updated By",
+  "@view-record-audit-updatedBy": "Updated By",
   "@view-record-audit-email": "Email Address",
   "@view-record-audit-username": "Username",
   "@view-record-audit-roles": "Roles",
