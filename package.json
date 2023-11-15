@@ -11,7 +11,7 @@
     "@tsconfig/node18": "^18.2.2",
     "agenda": "^5.0.0",
     "async": "3.2.5",
-    "axios": "^1.6.1",
+    "axios": "^1.6.2",
     "bcryptjs": "^2.4.3",
     "bootstrap": "^5.3.2",
     "captains-log": "^2.0.4",
