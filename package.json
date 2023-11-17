@@ -100,7 +100,7 @@
   "devDependencies": {
     "@types/jquery": "^3.5.27",
     "@types/lodash-es": "^4.17.11",
-    "@types/node": "^20.9.0",
+    "@types/node": "^20.9.1",
     "bower": "^1.8.14",
     "chai": "^4.3.10",
     "ejs-cli": "^2.2.3",
