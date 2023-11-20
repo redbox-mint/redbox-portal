@@ -1,0 +1,76 @@
+
+<% if(!_.isUndefined(records) && !_.isNull(records) && !_.isEmpty(records)) {
+  
+  if(_.isArray(records)) {
+
+    %>
+
+    <div class="row">
+      <div class="col-md-2"></div>
+      <div class="col-md-8">
+        <div class="panel panel-default">
+          <div class="panel-heading">
+            <div class="row">
+              <div class="col-md-10">
+                <span class="panel-title">
+                  <%= TranslationService.t('@view-record-audit-heading')%>
+                </span>
+              </div>
+              <div class="col-md-2">
+                <span class="d-flex justify-content-end">
+                  <a href="<%='/'+branding+'/'+portal+'/api/records/audit/'+_.get(records[0],'redboxOid')%>" target="_blank" class="btn btn-primary btn-sm btn-margin-top">View All Metadata</a>
+                </span>
+              </div>
+            </div>
+          </div>
+          <div class="panel-body">
+            <div class="table-responsive">
+              <table class="table table-bordered table-striped table-hover">
+              <thead>
+                <tr>
+                  <th><%= TranslationService.t('@view-record-audit-updatedAt')%></th>
+                  <th><%= TranslationService.t('@view-record-audit-workflow-state')%></th>
+                  <th><%= TranslationService.t('@view-record-audit-updatedBy')%></th>
+                  <th><%= TranslationService.t('@view-record-audit-email')%></th>
+                  <th><%= TranslationService.t('@view-record-audit-username')%></th>
+                <!--  <th><%= TranslationService.t('@view-record-audit-raw-link')%></th> -->
+                </tr>
+              </thead>
+              <tbody>
+                <% for(let auditRecord of records) {
+                  let user = _.get(auditRecord, 'user');
+                  if(!_.isUndefined(user) && !_.isNull(user)) { 
+                    
+                    %>
+                <tr>
+                  <td><%=moment(_.get(auditRecord, 'updatedAt')).format('DD MMM YYYY, h:mm:ss a')%></td>
+                  <td><%=_.get(auditRecord, 'record.workflow.stageLabel')%></td>
+                  <td><%=_.get(user, 'name')%></td>
+                  <td><%=_.get(user, 'email')%></td>
+                  <td><%=_.get(user, 'username')%></td>
+                <!--  <td><a href="<%='/'+branding+'/'+portal+'/api/records/audit/'+_.get(auditRecord,'redboxOid')%>" target="_blank">View Metadata</a></td> -->
+                </tr>
+                  <% } 
+                } %>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-2"></div>
+    </div>
+  </div>
+
+<%} else { 
+  
+  let print1 = JSON.stringify(records);
+  %> 
+
+  <%= print1 %>
+
+<% } 
+}  %>
+
+
+
+

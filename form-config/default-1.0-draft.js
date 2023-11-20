@@ -48,7 +48,7 @@ module.exports = {
             viewOnly: true,
             definition: {
               label: '@view-record-audit-link',
-              value: '/@branding/@portal/api/records/audit/@oid',
+              value: '/@branding/@portal/record/viewAudit/@oid',
               cssClasses: 'btn btn-large btn-info margin-15',
               controlType: 'anchor'
             },

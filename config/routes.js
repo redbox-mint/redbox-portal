@@ -180,6 +180,7 @@ module.exports.routes = {
   'get /:branding/:portal/record/type/:recordType': 'RecordController.getType',
   'get /:branding/:portal/record/:recordType/edit': 'RecordController.edit',
   'get /:branding/:portal/record/edit/:oid': 'RecordController.edit',
+  'get /:branding/:portal/record/viewAudit/:oid': 'RecordAuditController.render', 
   'get /:branding/:portal/record/finalise/:recordType/edit/:oid': {
     controller: 'RecordController',
     action: 'edit',
