@@ -213,6 +213,7 @@ export module Services {
         const data = {};
         data['record'] = record;
         data['oid'] = oid;
+        data['sailsConfig'] = sails.config;
         return this.buildFromTemplate(templateName, data)
           .flatMap(buildResult => {
             if (buildResult['status'] != 200) {
