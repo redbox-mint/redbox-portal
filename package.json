@@ -55,7 +55,7 @@
     "passport-local": "^1.0.0",
     "postcss": "^8.4.32",
     "rc": "1.2.8",
-    "redux": "4.2.1",
+    "redux": "5.0.0",
     "rxjs": "6.6.2",
     "rxjs-compat": "6.6.7",
     "sails": "^1.5.8",
