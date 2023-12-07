@@ -32,7 +32,7 @@
     "fs-extra": "^11.2.0",
     "har-validator": "5.1.5",
     "i18next": "23.7.7",
-    "i18next-fs-backend": "^2.3.0",
+    "i18next-fs-backend": "^2.3.1",
     "include-all": "^4.0.3",
     "jquery": "^3.7.1",
     "less": "^4.2.0",
