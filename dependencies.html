@@ -13,6 +13,64 @@
         <link rel="stylesheet" href="./styles/postmark.css">
     </head>
     <body>
+          <script>
+               // Blocking script to avaoid flickering dark mode
+               // Dark mode toggle button
+               var useDark = window.matchMedia('(prefers-color-scheme: dark)');
+               var darkModeState = useDark.matches;
+               var $darkModeToggleSwitchers = document.querySelectorAll('.dark-mode-switch input');
+               var $darkModeToggles = document.querySelectorAll('.dark-mode-switch');
+               var darkModeStateLocal = localStorage.getItem('compodoc_darkmode-state');
+
+               function checkToggle(check) {
+                    for (var i = 0; i < $darkModeToggleSwitchers.length; i++) {
+                         $darkModeToggleSwitchers[i].checked = check;
+                    }
+               }
+
+               function toggleDarkMode(state) {
+                    if (window.localStorage) {
+                         localStorage.setItem('compodoc_darkmode-state', state);
+                    }
+
+                    checkToggle(state);
+
+                    const hasClass = document.body.classList.contains('dark');
+
+                    if (state) {
+                         for (var i = 0; i < $darkModeToggles.length; i++) {
+                              $darkModeToggles[i].classList.add('dark');
+                         }
+                         if (!hasClass) {
+                              document.body.classList.add('dark');
+                         }
+                    } else {
+                         for (var i = 0; i < $darkModeToggles.length; i++) {
+                              $darkModeToggles[i].classList.remove('dark');
+                         }
+                         if (hasClass) {
+                              document.body.classList.remove('dark');
+                         }
+                    }
+               }
+
+               useDark.addEventListener('change', function (evt) {
+                    toggleDarkMode(evt.matches);
+               });
+               if (darkModeStateLocal) {
+                    darkModeState = darkModeStateLocal === 'true';
+               }
+               toggleDarkMode(darkModeState);
+
+               if ($darkModeToggles.length > 0) {
+                    for (var i = 0; i < $darkModeToggleSwitchers.length; i++) {
+                         $darkModeToggleSwitchers[i].addEventListener('change', function (event) {
+                              darkModeState = !darkModeState;
+                              toggleDarkMode(darkModeState);
+                         });
+                    }
+               }
+          </script>
 
         <div class="navbar navbar-default navbar-fixed-top d-block d-sm-none">
             <a href="./" class="navbar-brand">ReDBox Portal - NG2 Apps</a>
@@ -51,9 +109,11 @@
     </ol>
     <ul class="dependencies-list">
         <li>
+            <b>@researchdatabox/raido-openapi-generated-node</b> : ^0.0.2</li>
+        <li>
             <b>@researchdatabox/redbox-core-types</b> : ^1.4.2</li>
         <li>
-            <b>@researchdatabox/sails-hook-redbox-storage-mongo</b> : ^1.3.1</li>
+            <b>@researchdatabox/sails-hook-redbox-storage-mongo</b> : ^1.4.0</li>
         <li>
             <b>@researchdatabox/sails-ng-common</b> : ^0.1.0</li>
         <li>
@@ -61,9 +121,9 @@
         <li>
             <b>agenda</b> : ^5.0.0</li>
         <li>
-            <b>async</b> : 3.2.4</li>
+            <b>async</b> : 3.2.5</li>
         <li>
-            <b>axios</b> : ^1.5.1</li>
+            <b>axios</b> : ^1.6.2</li>
         <li>
             <b>bcryptjs</b> : ^2.4.3</li>
         <li>
@@ -79,7 +139,7 @@
         <li>
             <b>copy-webpack-plugin</b> : ^11.0.0</li>
         <li>
-            <b>core-js</b> : ^3.33.0</li>
+            <b>core-js</b> : ^3.34.0</li>
         <li>
             <b>css-loader</b> : ^6.8.1</li>
         <li>
@@ -87,7 +147,7 @@
         <li>
             <b>csv-parser</b> : ^3.0.0</li>
         <li>
-            <b>csv-stringify</b> : ^6.4.4</li>
+            <b>csv-stringify</b> : ^6.4.5</li>
         <li>
             <b>dotenv</b> : ^16.3.1</li>
         <li>
@@ -99,13 +159,13 @@
         <li>
             <b>font-awesome-sass</b> : 4.7.0</li>
         <li>
-            <b>fs-extra</b> : ^11.1.1</li>
+            <b>fs-extra</b> : ^11.2.0</li>
         <li>
             <b>har-validator</b> : 5.1.5</li>
         <li>
-            <b>i18next</b> : 23.6.0</li>
+            <b>i18next</b> : 23.7.8</li>
         <li>
-            <b>i18next-fs-backend</b> : ^2.2.0</li>
+            <b>i18next-fs-backend</b> : ^2.3.1</li>
         <li>
             <b>include-all</b> : ^4.0.3</li>
         <li>
@@ -121,13 +181,13 @@
         <li>
             <b>lucene-escape-query</b> : ^1.0.1</li>
         <li>
-            <b>luxon</b> : ^3.4.3</li>
+            <b>luxon</b> : ^3.4.4</li>
         <li>
             <b>mini-css-extract-plugin</b> : ^2.7.6</li>
         <li>
             <b>moment</b> : ^2.29.4</li>
         <li>
-            <b>mongodb</b> : ^4.17.1</li>
+            <b>mongodb</b> : ^4.17.2</li>
         <li>
             <b>node-cache</b> : ^5.1.2</li>
         <li>
@@ -139,7 +199,7 @@
         <li>
             <b>openid-client</b> : ^5.6.1</li>
         <li>
-            <b>passport</b> : ^0.6.0</li>
+            <b>passport</b> : ^0.7.0</li>
         <li>
             <b>passport-http-bearer</b> : ^1.0.1</li>
         <li>
@@ -147,13 +207,11 @@
         <li>
             <b>passport-local</b> : ^1.0.0</li>
         <li>
-            <b>postcss</b> : ^8.4.31</li>
+            <b>postcss</b> : ^8.4.32</li>
         <li>
             <b>rc</b> : 1.2.8</li>
         <li>
-            <b>redux</b> : 4.2.1</li>
-        <li>
-            <b>request-promise</b> : ^4.2.6</li>
+            <b>redux</b> : 5.0.0</li>
         <li>
             <b>rxjs</b> : 6.6.2</li>
         <li>
@@ -163,11 +221,11 @@
         <li>
             <b>sails-hook-orm</b> : ^4.0.0</li>
         <li>
-            <b>sails-hook-sockets</b> : ^2.0.4</li>
+            <b>sails-hook-sockets</b> : ^3.0.0</li>
         <li>
             <b>sails-mongo</b> : ^2.0.0</li>
         <li>
-            <b>sass</b> : ^1.69.4</li>
+            <b>sass</b> : ^1.69.5</li>
         <li>
             <b>sass-loader</b> : ^13.3.2</li>
         <li>
@@ -185,7 +243,7 @@
         <li>
             <b>tus-node-server</b> : ^0.9.0</li>
         <li>
-            <b>typescript</b> : 5.2</li>
+            <b>typescript</b> : 5.3</li>
         <li>
             <b>typescript-require</b> : ~0.3.0</li>
         <li>
@@ -193,7 +251,7 @@
         <li>
             <b>webpack</b> : ^5.89.0</li>
         <li>
-            <b>zone.js</b> : ^0.14.0</li>
+            <b>zone.js</b> : ^0.14.2</li>
     </ul>
 
 
