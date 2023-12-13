@@ -84,7 +84,7 @@ export module Services {
      */
     public async mintPostCreateRetryHandler(oid, record, options) {
       const attemptCount = _.get(record.metaMetadata, 'raid.attemptCount');
-      if (!_.isEmpty(oid) && _.isEmpty(_.get(record.metadata, 'raidUrl')) && attemptCount > 0) {
+      if (!_.isEmpty(oid) && attemptCount > 0) {
         sails.log.verbose(`${this.logHeader} mintPostCreateRetryHandler() -> Scheduled for ${oid} `);
         this.scheduleMintRetry({oid: oid, options: _.get(record.metaMetadata, 'raid.options'), attemptCount: attemptCount });
       }
@@ -99,12 +99,29 @@ export module Services {
       api.accessToken = apiToken;
       const request = new RaidCreateRequest();
       try {
+        let srcRecord = record;
+        const srcRecField = _.get(options, 'request.sourceOidField');
+        if (!_.isEmpty(srcRecField)) {
+          let srcRecVal = null;
+          const srcRecOid = _.get(record, srcRecField);
+          if (!_.isEmpty(srcRecOid)) {
+             srcRecVal = await RecordsService.getMeta(srcRecOid);
+             if (!_.isEmpty(srcRecVal)) {
+               srcRecord = srcRecVal;
+             }
+          }
+          if (_.isEmpty(srcRecVal)) {
+            sails.log.error(`${this.logHeader} mintRaid() -> Failed to retrieve the source record: ${srcRecOid}, using path: ${srcRecField}, please check your recordtype configuration.`);
+            let errorMessage = TranslationService.t('raid-mint-transform-validation-error');
+            throw new RBValidationError(errorMessage);
+          }
+        }
         let mintRequestFields = _.get(options, 'request.mint.fields');
         if (_.isString(mintRequestFields)) {
           // allows to DRYer config
           mintRequestFields = _.get(sails.config, mintRequestFields);
         }
-        const mappedData = this.getMappedData(record, mintRequestFields, options);
+        const mappedData = this.getMappedData(srcRecord, mintRequestFields, options);
         request.title = _.get(mappedData, 'title') as Title[];
         request.date = _.get(mappedData, 'date') as ModelDate;
         request.description = _.get(mappedData, 'description') as Description[];
@@ -134,6 +151,7 @@ export module Services {
         sails.log.verbose(`${this.logHeader} mintRaid() ${oid} -> Sending data::`);
         sails.log.verbose(JSON.stringify(request));
         const apiResp = await api.createRaidV1(request);
+        _.set(apiResp, 'request.headers.Authorization', '-redacted-');
         response = apiResp.response;
         body = apiResp.body;
         sails.log.verbose(JSON.stringify(response));
@@ -147,9 +165,6 @@ export module Services {
         } else {
           sails.log.error(`${this.logHeader} mintRaid() ${oid} -> Failed to mint RAiD, statusCode: ${response?.statusCode}`);
           sails.log.error(JSON.stringify(response?.body));
-          if (response?.statusCode == 401) {
-            sails.log.error(`${this.logHeader} mintRaid() ${oid} -> Authentication failed, check if the auth token is properly configured.`);
-          }
           let errorMessage = TranslationService.t('raid-mint-server-error');
           // Note: if there's any 'notSet' validation errors, these will have to be hashed out during development, with the specific fields set to 'required' and not treat these as runtime errors
           let customError:RBValidationError = new RBValidationError(errorMessage);
@@ -158,6 +173,9 @@ export module Services {
         }
       } catch (error) {
         _.set(error, 'response.request.headers.Authorization', '-redacted-');
+        if (_.get(error, 'response.statusCode') == 401) {
+          sails.log.error(`${this.logHeader} mintRaid() ${oid} -> Authentication failed, check if the auth token is properly configured.`);
+        }
         // This is the generic handler for when the API call itself throws an exception
         sails.log.error(`${this.logHeader} mintRaid() ${oid} -> API error, Status Code: '${error.statusCode}'`);
         sails.log.error(`${this.logHeader} mintRaid() ${oid} -> Error: ${JSON.stringify(error)}`);
@@ -168,12 +186,7 @@ export module Services {
         // swallow as this will be handled after this block
       }
       if (!_.isEmpty(raid)) {
-        // add raid to record, defaults to 'raidUrl'
-        _.set(record.metadata, _.get(sails.config.raid, 'raidFieldName', 'raidUrl'), raid.id);
-        if (sails.config.raid.saveBodyInMeta) {
-          // don't save the response object as it contains the auth token
-          _.set(record.metaMetadata, 'raid.response', metaMetadataInfo);
-        }
+        await this.saveRaid(raid, record, options, metaMetadataInfo);
       } else {
         sails.log.error(`${this.logHeader} mintRaid() ${oid} -> Failed to mint raid!`);
         let errorMessage = TranslationService.t('raid-mint-server-error');
@@ -394,6 +407,29 @@ export module Services {
         sails.log.warn(`${this.logHeader} getSubject() -> Missing subject source data: ${fieldConfig.dest}`);
       }
       return subjects;
+    }
+
+    private async saveRaid(raid, record, options, metaMetadataInfo): Promise<void> {
+      // add raid to record, defaults to 'raidUrl'
+      _.set(record.metadata, _.get(sails.config.raid, 'raidFieldName', 'raidUrl'), raid.id);
+      if (sails.config.raid.saveBodyInMeta) {
+        // don't save the response object as it contains the auth token
+        _.set(record.metaMetadata, 'raid.response', metaMetadataInfo);
+      }
+      let alsoSaveRaidToOid = _.get(options, 'request.alsoSaveRaidToOid');
+      if (!_.isEmpty(alsoSaveRaidToOid)) {
+        sails.log.verbose(`${this.logHeader} saveRaid() -> Configured to save to associated records, config: ${JSON.stringify(alsoSaveRaidToOid)}`)
+        for (let saveOidConfig of alsoSaveRaidToOid) {
+          let optOid = _.get(record, saveOidConfig.oidPath);
+          if (!_.isEmpty(optOid)) {
+            sails.log.verbose(`${this.logHeader} saveRaid() -> Saving to associated record: ${optOid}`);
+            const updateResp = await RecordsService.appendToRecord(optOid, raid.id, saveOidConfig.raidPath);
+            if (!updateResp.isSuccessful()) {
+              sails.log.error(`${this.logHeader} saveRaid() -> Failed to save to record: ${optOid}, reason: ${updateResp.message}`);
+            }
+          }
+        }
+      }
     }
 
   }
