@@ -58,7 +58,7 @@
     "redux": "5.0.1",
     "rxjs": "6.6.2",
     "rxjs-compat": "6.6.7",
-    "sails": "^1.5.8",
+    "sails": "^1.5.9",
     "sails-hook-orm": "^4.0.0",
     "sails-hook-sockets": "^3.0.0",
     "sails-mongo": "^2.0.0",
