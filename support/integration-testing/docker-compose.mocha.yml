@@ -32,7 +32,7 @@ services:
          - rbportal
     entrypoint: /bin/bash -c "cd /opt/redbox-portal && node ./node_modules/mocha/bin/mocha --exit test/bootstrap.test.js test/unit/**/*.test.js"
   mongodb:
-    image: mongo:latest
+    image: mvertes/alpine-mongo:latest
     networks:
       main:
         aliases:
