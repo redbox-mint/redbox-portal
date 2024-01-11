@@ -1,7 +1,3 @@
-const {
-  expect
-} = require("chai");
-
 describe('The DOI Service', function () {
   before(function (done) {
     done();
