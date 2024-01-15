@@ -1,4 +1,3 @@
-const { expect } = require("chai");
 
 describe('The Agenda Queue Service', function () {
   before(function (done) {

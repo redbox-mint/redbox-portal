@@ -1,7 +1,3 @@
-const {
-  expect
-} = require("chai");
-
 describe('The Solr Indexing Service', function () {
   before(function (done) {
     done()
