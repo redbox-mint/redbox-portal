@@ -107,7 +107,7 @@
     "istanbul": "^0.4.5",
     "mocha": "^10.2.0",
     "newman": "^6.1.0",
-    "supertest": "^6.3.3",
+    "supertest": "^6.3.4",
     "uglify-es": "^3.3.10"
   },
   "nyc": {
