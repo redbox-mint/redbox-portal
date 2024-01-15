@@ -40,7 +40,7 @@
 import {QueueService, Services as services}   from '@researchdatabox/redbox-core-types';
 
 import {Sails, Model} from "sails";
-import { Agenda } from 'agenda/es';
+import { Agenda } from 'agenda';
 
 declare var module;
 declare var sails: Sails;
