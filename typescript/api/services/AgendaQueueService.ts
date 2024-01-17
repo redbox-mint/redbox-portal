@@ -159,7 +159,7 @@ export module Services {
             if (_.isEmpty(job.options)) {
               this.agenda.define(job.name, serviceFn);
             } else {
-              this.agenda.define(job.name, job.options, serviceFn);
+              this.agenda.define(job.name, serviceFn,  job.options);
             }
             sails.log.verbose(`AgendaQueue:: Defined job:`);
             sails.log.verbose(JSON.stringify(job));
