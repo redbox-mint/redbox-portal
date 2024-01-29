@@ -431,10 +431,10 @@ export class RepeatableVocab extends RepeatableContainer {
       <span class="col-xs-11">&nbsp;
       </span>
       <span class="col-xs-1">
-       <span *ngIf="field.addButtonShow" class="col-xs-12">
+       <ng-container *ngIf="field.addButtonShow">
          <button *ngIf="field.addButtonText" type='button' [disabled]="field.fields.length >= field.maximumEntries" (click)="addElem($event)" [ngClass]="field.addButtonTextClass" >{{field.addButtonText}}</button>
           <button *ngIf="!field.addButtonText" type='button' [disabled]="field.fields.length >= field.maximumEntries" (click)="addElem($event)" [ngClass]="field.addButtonClass" [attr.aria-label]="'add-button-label' | translate"></button>
-        </span>
+        </ng-container>
       </span>
     </div>
   </div>
