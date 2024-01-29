@@ -78,31 +78,39 @@ export class WorkspaceSelectorComponent extends SimpleComponent {
     </ng-container>
     <!-- When displayed as a list -->
     <ng-container *ngIf="field.displayAsList == true">
-      <div class="row" *ngFor="let workspaceType of field.workspaceApps">
-        <div class="panel panel-default">
-          <div class="panel-heading">
-            <h4 class="panel-title">{{ workspaceType.label | uppercase }}</h4>
-          </div>
-          <div class="panel-body">
-            <div class="row">
-              <div class="col-md-8 col-sm-8 col-xs-8 col-lg-8">
-                <h5>{{ workspaceType.subtitle }}</h5>
-                <span *ngIf="field.allowAdd">
-                  <p>{{ workspaceType.description }}</p>
-                  <button type='button' (click)="saveAndOpenWorkspace(workspaceType)"  class="btn btn-primary">{{ field.open }}</button>
-                </span>
-                <span *ngIf="!field.allowAdd">
-                  <p class="text-danger">
-                    <strong>{{ field.saveFirst }}</strong>
-                  </p>
-                </span>
+      <div class="row">
+        <!-- Begin conversion card-deck -->
+        <div class="card-deck">
+          <div class="card workspaces col-lg-4 col-md-5 col-sm-6 col-xs-12"  style="display: flex; flex-direction: column;width: 30rem;" *ngFor="let workspaceType of field.workspaceApps">
+          <div class="panel panel-default">
+            <div class="panel-heading">
+              <h5 class="panel-title card-title" style="margin-top: 1px">
+                <span>{{ workspaceType.label | uppercase }}</span>
+              </h5>
+            </div>
+            <div class="panel-body workspaces-panel-body">
+              <img class="card-img-top" src="{{ workspaceType.logo }}" alt="{{workspaceType.name}}">
+              <div class="card-body" style="margin-bottom: auto;">
+                <h5 class="card-title" style="margin-top: 2px">
+                  <span>{{ workspaceType.subtitle }}</span>
+                </h5>
+                <p class="card-text">{{ workspaceType.description }}</p>
               </div>
-              <div class="col-md-4 col-sm-4 col-xs-4 col-lg-4">
-                <img src="{{ workspaceType.logo }}" alt="{{workspaceType.name}}">
-              </div>
+            </div>
+            <div class="card-footer" style="margin-top: auto;">
+              <ng-container *ngIf="field.allowAdd">
+                <button type='button' (click)="saveAndOpenWorkspace(workspaceType)"  class="btn btn-block btn-primary">{{ field.open }}</button>
+              </ng-container>
+              <ng-container *ngIf="!field.allowAdd">
+                <p class="text-danger">
+                  <strong>{{ field.saveFirst }}</strong>
+                </p>
+              </ng-container>
             </div>
           </div>
         </div>
+        </div>
+        <!-- End conversion card-deck -> 
       </div>
     </ng-container>
   </div>

@@ -7646,3 +7646,16 @@ button.close {
     }
 }
 @import "glyphicon";
+
+.workspaces-panel-body .card-img-top {
+  max-width: 100px;
+  max-height: 100px;
+}
+
+.card.workspaces {
+  border: unset;
+}
+
+.card.workspaces .card-footer {
+  padding: unset;
+}
