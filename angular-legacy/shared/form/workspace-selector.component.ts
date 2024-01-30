@@ -27,6 +27,7 @@ export class WorkspaceSelectorComponent extends SimpleComponent {
 @Component({
   selector: 'workspace-selector',
   template: `
+  <ng-container *ngIf="field.visible">
   <div [formGroup]='form' *ngIf="field.editMode" [ngClass]="getGroupClass()">
     <label [attr.for]="field.name">
      <span [outerHTML]="field.label"></span><span class="form-field-required-indicator" [innerHTML]="getRequiredLabelStr()"></span>
@@ -114,6 +115,7 @@ export class WorkspaceSelectorComponent extends SimpleComponent {
       </div>
     </ng-container>
   </div>
+  </ng-container>
   `,
 })
 export class WorkspaceSelectorFieldComponent extends WorkspaceSelectorComponent {
