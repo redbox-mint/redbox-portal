@@ -74,7 +74,11 @@ export class FieldBase<T> {
   defaultSelect: string;
   parentField: any;
   setParentField:boolean;
-  requiredFieldIndicator:string = `(*)`
+  requiredFieldIndicator:string = `(*)`;
+  hasValueLabel: string;
+  confirmChangesLabel: string;
+  confirmChangesParagraphLabel: string;
+  
   /**
    * Flag to indicate there is a potential configuration issue for this field
    */
@@ -144,6 +148,9 @@ export class FieldBase<T> {
     this.visibilityCriteria = options['visibilityCriteria'];
     this.requiredIfHasValue = options['requiredIfHasValue'] || [];
     this.setParentField = options['setParentField'];
+    this.hasValueLabel = this.getTranslated(options['hasValueLabel'], 'Multiple Values');
+    this.confirmChangesLabel = this.getTranslated(options['confirmChangesLabel'], 'Confirm Changes');
+    this.confirmChangesParagraphLabel = this.getTranslated(options['confirmChangesParagraphLabel'], 'The following values will be cleared');
 
     if (this.groupName) {
       this.hasGroup = true;
@@ -706,5 +713,21 @@ export class FieldBase<T> {
     }
     _.set(this, config.propertyPath, propValue);
     return config.dontChangeValue ? this.value : curValue;
+  }
+
+  getFieldDisplay(f) {
+    let valueLabel = f.control.value;
+    const options = f.field.options.options;
+    if(options) {
+      if(Array.isArray(valueLabel)){
+        valueLabel = this.hasValueLabel;
+      }else {
+        valueLabel = options.find(o=>f.control.value===o.value).label;
+      }
+    }
+    return {
+      valueLabel: valueLabel === true ? '' : valueLabel,
+      label: f.field.label
+    }
   }
 }

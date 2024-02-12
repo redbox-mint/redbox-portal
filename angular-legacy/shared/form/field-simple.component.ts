@@ -350,11 +350,32 @@ export class DropdownFieldComponent extends SelectionComponent {
     </ng-container>
 
   </div>
+  <div *ngIf="field.editMode" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="selectionComponent" aria-hidden="true" id="{{ 'modal_' + field.name }}">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h4 class="modal-title">{{field.confirmChangesLabel}}</h4>
+          <p>{{field.confirmChangesParagraphLabel}}</p>
+          <p *ngFor="let f of defer.fields">
+            <strong>{{f.label}}</strong><br/>
+            {{f.valueLabel}}
+          </p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-default" (click)="confirmChange(true)">Yes</button>
+          <button type="button" class="btn btn-primary" (click)="confirmChange(false)">No</button>
+        </div>
+      </div>
+    </div>
+  </div>
   `,
 })
 export class SelectionFieldComponent extends SelectionComponent {
   static clName = 'SelectionFieldComponent';
   fg: any;
+  defer: any = {};
+  defered: boolean = false;
+  confirmChanges: boolean = true;
   /**
    * Allows radio buttons and checkboxes to use a custom form group. Useful when radio buttons are nested within repeatables.
    *
@@ -397,20 +418,85 @@ export class SelectionFieldComponent extends SelectionComponent {
     return checked;
   }
 
-  onChange(opt: any, event: any) {
+  onChange(opt: any, event: any, defered) {
+    defered = defered || !_.isUndefined(defered);
     let formcontrol: any = this.field.formModel;
     if (event.target.checked) {
-      formcontrol.push(new FormControl(opt.value));
-    } else {
-      let idx = null;
-      _.forEach(formcontrol.controls, (ctrl, i) => {
-        if (ctrl.value == opt.value) {
-          idx = i;
-          return false;
+      if(_.isObject(formcontrol.push)) {
+        formcontrol.push(new FormControl(opt.value));
+      } else if(this.isRadio()) {
+        // modifies defers the changes on radio
+        if(opt['modifies'] && !defered) {
+          this.modifies(opt, event, defered);
+        } else {
+          defered = true;
         }
-      });
-      formcontrol.removeAt(idx);
+      }
+    } else {
+      if(opt['modifies'] && !defered) {
+        this.modifies(opt, event, defered);
+      }
+      if(!defered) {
+        let idx = null;
+        _.forEach(formcontrol.controls, (ctrl, i) => {
+          if (ctrl.value == opt.value) {
+            idx = i;
+            return false;
+          }
+        });
+        formcontrol.removeAt(idx);
+      }
     }
+    if(this.field.publish && this.confirmChanges) {
+      if(this.field.publish.onItemSelect) {
+        this.field.onItemSelect.emit({value: opt['publishTag'], checked: event.target.checked, defered: defered});
+      }
+      if(this.field.publish.onValueUpdate) {
+        this.field.onValueUpdate.emit({value: opt['publishTag'], checked: event.target.checked, defered: defered});
+      }
+    }
+  }
+
+  modifies(opt, event, defered) {
+    this.confirmChanges = true;
+    const fieldName = this.field['name'];
+    let fields = this.fieldMap;
+    this.defer['fields'] = new Array();
+    _.each(opt['modifies'], e => {
+      const contval = this.fieldMap[e].control.value;
+      //this.fieldMap[e].control.getRawValue();
+      if(!_.isEmpty(contval) || contval === true) {
+        jQuery(`#modal_${fieldName}`).modal({backdrop: 'static', keyboard: false, show: true});
+        this.defer['opt'] = opt;
+        this.defer['event'] = event;
+        this.defer['fields'].push(this.field.getFieldDisplay(this.fieldMap[e]));
+        this.confirmChanges = false;
+      }
+    });
+    if(this.confirmChanges) {
+      this.defer = {};
+      this.onChange(opt, event, true);
+    }
+  }
+
+  confirmChange(doConfirm) {
+    const fieldName = this.field['name'];
+    jQuery(`#modal_${fieldName}`).modal('hide');
+    this.confirmChanges = doConfirm;
+    const defer = this.defer;
+    if(this.isRadio()) {
+      // modifies is not available for radio
+      defer.event.target.checked = doConfirm;
+      if(!doConfirm) {
+        const revert = this.defer['opt']['revert']
+        this.field.setValue(revert);
+        defer.opt = _.find(this.field.options.options, {value: revert});
+      }
+    } else {
+      defer.event.target.checked = !doConfirm;
+    }
+    this.defer = {};
+    this.onChange(defer.opt, defer.event, true);
   }
 
   getInputId(opt) {
@@ -420,6 +506,7 @@ export class SelectionFieldComponent extends SelectionComponent {
     }
     return id;
   }
+  
 }
 
 
