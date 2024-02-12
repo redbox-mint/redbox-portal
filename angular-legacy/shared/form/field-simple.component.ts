@@ -1054,5 +1054,44 @@ export class SpacerComponent extends SimpleComponent {
 })
 export class ToggleComponent extends SimpleComponent {
   field: Toggle;
+  /* BEGIN UTS IMPORT */
+  defer: any = {};
+  confirmChanges: boolean = true;
 
+  onChange(opt:any, event:any, defered) {
+    defered = defered || !_.isUndefined(defered);
+    console.log(`ToggleComponent, onChanged Checked: ${event.target.checked}`);
+    if(opt['modifies'] && !defered) {
+      const fieldName = this.field['name'];
+      let fields = this.fieldMap;
+      this.defer['fields'] = new Array();
+      opt['modifies'].some(e => {
+        const contval = this.fieldMap[e].control.value;
+        //this.fieldMap[e].control.getRawValue();
+        if(!_.isEmpty(contval) || contval === true) {
+          jQuery(`#modal_${fieldName}`).modal({backdrop: 'static', keyboard: false, show: true});
+          this.defer['opt'] = opt;
+          this.defer['event'] = event;
+          this.defer['fields'].push(this.field.getFieldDisplay(this.fieldMap[e]));
+          this.confirmChanges = false;
+        }
+      });
+    }
+    if(this.field.publish && this.confirmChanges) {
+      setTimeout(() => {
+        this.field.onItemSelect.emit({value: opt['publishTag'], checked: event.target.checked});
+      });
+    }
+  }
+
+  confirmChange(doConfirm) {
+    const fieldName = this.field['name'];
+    jQuery(`#modal_${fieldName}`).modal('hide');
+    this.confirmChanges = doConfirm;
+    const defer = this.defer;
+    this.defer = {};
+    defer.event.target.checked = !doConfirm;
+    this.onChange(defer.opt, defer.event, true);
+  }
+  /* END UTS IMPORT */
 }

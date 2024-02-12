@@ -714,7 +714,7 @@ export class FieldBase<T> {
     _.set(this, config.propertyPath, propValue);
     return config.dontChangeValue ? this.value : curValue;
   }
-
+  /* BEGIN UTS IMPORT */
   getFieldDisplay(f) {
     let valueLabel = f.control.value;
     const options = f.field.options.options;
@@ -730,4 +730,140 @@ export class FieldBase<T> {
       label: f.field.label
     }
   }
+
+  setProp(change: any, config: any) {
+    if(config['debug']) {
+      console.log('setProp: '+ config['debug']);
+    }
+    let defered = false;
+    let value;
+    let checked;
+    if (_.isObject(change)) {
+      value = change['value'];
+      defered = _.isUndefined(change['defered']) ? false : change['defered'];
+      checked = _.isUndefined(change['checked']) ? false : change['checked'];
+    } else {
+      value = change;
+      checked = true;
+    }
+    if(config['defer'] && !defered) {
+      return;
+    }
+    if(config['valueCase']) {
+      let caseSet;
+      _.each(config['valueCase'], (cases) => {
+        if(cases['val'] === value) {
+          value = cases['set'];
+          caseSet = checked;
+          return false;
+        }
+      });
+      if(caseSet) {
+        this.setValue(this.getTranslated(value, undefined));
+      }
+    } else if(config['valueSet']) {
+      if(this.formModel) {
+        this.setValue(this.getTranslated(value, undefined));
+      } else {
+        this.value = this.getTranslated(value, undefined);
+      }
+    } else if(config['valueTest']) {
+      if(_.includes(config['valueTest'], value)) {
+        _.each(config['props'], (prop) => {
+          this.setPropValue(prop, checked, config['debug']);
+        });
+      }
+      else if(_.includes(config['valueFalse'], value)) {
+        _.each(config['props'], (prop) => {
+          this.setPropValue(prop, false, config['debug']);
+        });
+      }
+    }
+  }
+
+  setPropValue(prop, checked, debug) {
+    if(debug) {
+      console.log('setPropValue: '+ debug);
+    }
+    if (prop.key === 'required') {
+      if(checked) {
+        this.setRequired(prop.val);
+      } else {
+        this.setRequired(!prop.val);
+      }
+    } else if (prop.key === 'value') {
+      if(prop.clear && !checked) {
+        if(this.formModel) {
+          this.setValue('');
+        } else {
+          if(Array.isArray(this.value)) {
+            // Since there is no formArray.clear(); in this version of angular:
+            this.getControl().controls = [];
+            this.getControl().setValue([]);
+          } else {
+            this.value = null;
+          }
+        }
+      } else if(checked){
+        if(this.formModel) {
+          this.setValue(this.getTranslated(prop.val, undefined));
+        } else {
+          this.value = this.getTranslated(prop.val, undefined);
+        }
+      }
+    } else if (prop.key === 'visible') {
+      if(checked) {
+        // this.setVisibility(prop.val);
+        this.updateVisible(prop.val);
+      } else if(!checked) {
+        this.updateVisible(!prop.val);
+        // this.setVisibility(!prop.val);
+      }
+    }
+  }
+
+  updateVisibility(visible, config) {
+    if(config['debug']){
+      console.log(config['debug']);
+    }
+    const fieldName = config['field'];
+    const fieldValue = config['fieldValue'];
+    let field;
+    if(this.fieldMap && this.fieldMap[fieldName]) {
+      field = this.fieldMap[fieldName]['field'];
+      if(field && _.includes(field['value'], fieldValue)) {
+        console.log(`updateVisibility to true: ${config['debug']}`);
+        return true;
+      } else {
+        return false
+      }
+    } else {
+      return false;
+    }
+  }
+
+  updateVisible(newVisible) {
+    const that = this;
+    setTimeout(() => {
+      if (!newVisible) {
+        if (that.visible) {
+          // remove validators
+          if (that.formModel) {
+            that.formModel.clearValidators();
+            that.formModel.updateValueAndValidity();
+          }
+        }
+      } else {
+        if (!that.visible) {
+          // restore validators
+          if (that.formModel) {
+            that.formModel.setValidators(that.validators);
+            that.formModel.updateValueAndValidity();
+          }
+        }
+      }
+      that.visible = newVisible;
+    });
+  }
+  /* END UTS IMPORT */
 }

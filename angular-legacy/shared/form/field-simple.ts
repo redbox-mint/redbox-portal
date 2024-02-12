@@ -53,8 +53,9 @@ export class SelectionField extends FieldBase<any>  {
   fieldSetCssClasses: string = 'selection-field-set';
   controlInputCssClasses:string = 'selection-control-input';
   controlLabelCssClasses:string = 'selection-control-label';
+  /* BEGIN UTS IMPORT */
   @Output() onItemSelect: EventEmitter<any> = new EventEmitter<any>();
-
+  /* END UTS IMPORT */
   constructor(options: any, injector: any) {
     super(options, injector);
     this.compare = this.compareFn.bind(this);
@@ -562,8 +563,9 @@ export class Spacer extends NotInFormField {
 
 export class Toggle extends FieldBase<boolean> {
   type: string;
+  /* BEGIN UTS IMPORT */
   @Output() onItemSelect: EventEmitter<any> = new EventEmitter<any>();
-  
+  /* END UTS IMPORT */
   constructor(options: any, injector: any) {
     super(options, injector);
     this.type = options['type'] || 'checkbox';
