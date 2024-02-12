@@ -1361,6 +1361,12 @@ export module Controllers {
           mimeType = 'application/octet-stream'
         }
         res.set('Content-Type', mimeType);
+        
+        let size = found.size;
+        if (!_.isEmpty(size)) {
+          res.set('Content-Length', size);
+        }
+        
         sails.log.verbose("found.name " + found.name);
         res.attachment(found.name);
         sails.log.verbose(`Returning datastream observable of ${oid}: ${found.name}, attachId: ${attachId}`);
