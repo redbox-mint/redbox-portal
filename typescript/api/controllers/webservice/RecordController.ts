@@ -487,7 +487,7 @@ export module Controllers {
         res.set('Content-Type', 'application/octet-stream');
 
         let size = found.size;
-        if (_.isEmpty(size)) {
+        if (!_.isEmpty(size)) {
           res.set('Content-Length', size);
         }
         
