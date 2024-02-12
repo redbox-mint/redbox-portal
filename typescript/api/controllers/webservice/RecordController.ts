@@ -485,6 +485,12 @@ export module Controllers {
         }
         const fileName = req.param('fileName') ? req.param('fileName') : datastreamId;
         res.set('Content-Type', 'application/octet-stream');
+
+        let size = found.size;
+        if (_.isEmpty(size)) {
+          res.set('Content-Length', size);
+        }
+        
         sails.log.verbose("fileName " + fileName);
         res.attachment(fileName);
         sails.log.info(`Returning datastream observable of ${oid}: ${fileName}, datastreamId: ${datastreamId}`);
