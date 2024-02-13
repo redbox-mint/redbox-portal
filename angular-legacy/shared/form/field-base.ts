@@ -473,7 +473,11 @@ export class FieldBase<T> {
         boundFunction = fn.bind(this[objectName]);
       }
       if (_.get(visibilityCriteria, 'passCriteria') == true) {
-        newVisible = boundFunction(data, visibilityCriteria) == "true";
+        if (_.get(visibilityCriteria, 'includeFieldInFnCall') == true) {
+          newVisible = boundFunction(data, visibilityCriteria, this) == "true";
+        } else {
+          newVisible = boundFunction(data, visibilityCriteria) == "true";
+        }
       } else {
         newVisible = boundFunction(data) == "true";
       }

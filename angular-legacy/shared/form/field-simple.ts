@@ -164,6 +164,13 @@ export class SelectionField extends FieldBase<any>  {
 
   public setValue(value: any, emitEvent: boolean = true) {
     if (this.controlType == "checkbox") {
+      if (_.isEmpty(value)) {
+        // clear all check boxes
+        if (this.formModel) {
+          this.formModel.reset([], {emitEvent: emitEvent});
+        }
+        return;
+      }
       if (!_.isArray(value) || value.length > this.selectOptions.length) {
         console.error(`The value is not an array or the array exceeds the available options.`);
         return;

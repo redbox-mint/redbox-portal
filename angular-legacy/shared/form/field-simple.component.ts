@@ -355,6 +355,8 @@ export class DropdownFieldComponent extends SelectionComponent {
       <div class="modal-content">
         <div class="modal-header">
           <h4 class="modal-title">{{field.confirmChangesLabel}}</h4>
+        </div>
+        <div class="modal-body">
           <p>{{field.confirmChangesParagraphLabel}}</p>
           <p *ngFor="let f of defer.fields">
             <strong>{{f.label}}</strong><br/>
@@ -417,13 +419,14 @@ export class SelectionFieldComponent extends SelectionComponent {
     const checked = !_.isUndefined(control);
     return checked;
   }
-
+  /* BEGIN UTS IMPORT */
   onChange(opt: any, event: any, defered) {
     defered = defered || !_.isUndefined(defered);
     let formcontrol: any = this.field.formModel;
     if (event.target.checked) {
       if(_.isObject(formcontrol.push)) {
-        formcontrol.push(new FormControl(opt.value));
+        // Commented out: No need to manually manage the binding
+        // formcontrol.push(new FormControl(opt.value));
       } else if(this.isRadio()) {
         // modifies defers the changes on radio
         if(opt['modifies'] && !defered) {
@@ -436,16 +439,17 @@ export class SelectionFieldComponent extends SelectionComponent {
       if(opt['modifies'] && !defered) {
         this.modifies(opt, event, defered);
       }
-      if(!defered) {
-        let idx = null;
-        _.forEach(formcontrol.controls, (ctrl, i) => {
-          if (ctrl.value == opt.value) {
-            idx = i;
-            return false;
-          }
-        });
-        formcontrol.removeAt(idx);
-      }
+      // Commented out: No need to manually manage the binding
+      // if(!defered) {
+        // let idx = null;
+        // _.forEach(formcontrol.controls, (ctrl, i) => {
+        //   if (ctrl.value == opt.value) {
+        //     idx = i;
+        //     return false;
+        //   }
+        // });
+        // formcontrol.removeAt(idx);
+      // }
     }
     if(this.field.publish && this.confirmChanges) {
       if(this.field.publish.onItemSelect) {
@@ -466,13 +470,16 @@ export class SelectionFieldComponent extends SelectionComponent {
       const contval = this.fieldMap[e].control.value;
       //this.fieldMap[e].control.getRawValue();
       if(!_.isEmpty(contval) || contval === true) {
-        jQuery(`#modal_${fieldName}`).modal({backdrop: 'static', keyboard: false, show: true});
         this.defer['opt'] = opt;
         this.defer['event'] = event;
         this.defer['fields'].push(this.field.getFieldDisplay(this.fieldMap[e]));
         this.confirmChanges = false;
       }
     });
+    if (_.size(this.defer['fields']) > 0) {
+      jQuery(`#modal_${fieldName}`).modal({backdrop: 'static', keyboard: false, show: true});
+      jQuery(`#modal_${fieldName}`).modal('show');
+    }
     if(this.confirmChanges) {
       this.defer = {};
       this.onChange(opt, event, true);
@@ -498,7 +505,7 @@ export class SelectionFieldComponent extends SelectionComponent {
     this.defer = {};
     this.onChange(defer.opt, defer.event, true);
   }
-
+  /* END UTS IMPORT */
   getInputId(opt) {
     let id = null;
     if (!this.field.disableOptionLabelsFor) {
