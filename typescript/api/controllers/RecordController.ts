@@ -633,7 +633,7 @@ export module Controllers {
       })
         .flatMap(hasEditAccess => {
           if (hasEditAccess) {
-            return Observable.fromPromise(this.recordsService.delete(oid, false));
+            return Observable.fromPromise(this.recordsService.delete(oid, false, user));
           }
           message = TranslationService.t('edit-error-no-permissions');
           return Observable.throw(new Error(TranslationService.t('edit-error-no-permissions')));
@@ -729,7 +729,7 @@ export module Controllers {
 
       try {
         if (metadata.delete) {
-          let response = await this.recordsService.delete(oid, false);
+          let response = await this.recordsService.delete(oid, false, user);
           if (response && response.isSuccessful()) {
             response.success = true;
             sails.log.verbose(`Successfully deleted: ${oid}`);
