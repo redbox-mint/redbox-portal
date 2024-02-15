@@ -50,6 +50,7 @@ import {
 import {
   Readable
 } from 'stream';
+import { RecordAuditActionType } from '@researchdatabox/redbox-core-types/dist/model/RecordAuditModel';
 
 
 const util = require('util');
@@ -200,7 +201,7 @@ export module Services {
           this.searchService.index(recordOid, record);
         }
 
-        this.auditRecord(createResponse['oid'], record, user, 'created')
+        this.auditRecord(createResponse['oid'], record, user, RecordAuditActionType.created)
 
       } else {
         sails.log.error(`${this.logHeader} Failed to create record, storage service response:`);
@@ -273,7 +274,7 @@ export module Services {
           this.triggerPostSaveTriggers(updateResponse['oid'], record, recordType, 'onUpdate', user);
         }
         this.searchService.index(oid, record);
-        this.auditRecord(updateResponse['oid'], record, user,'updated')
+        this.auditRecord(updateResponse['oid'], record, user, RecordAuditActionType.updated)
       } else {
         sails.log.error(`${this.logHeader} Failed to update record, storage service response:`);
         sails.log.error(JSON.stringify(updateResponse));
@@ -305,7 +306,7 @@ export module Services {
     async delete(oid: any, permanentlyDelete:boolean, user:any) {
       const response = await this.storageService.delete(oid, permanentlyDelete);
       if (response.isSuccessful()) {
-        let action = permanentlyDelete? 'perm_deleted' : 'deleted';
+        let action:RecordAuditActionType = permanentlyDelete? RecordAuditActionType.permanentlyDeleted : RecordAuditActionType.deleted;
         this.auditRecord(oid,{}, user, action)
         this.searchService.remove(oid);
       }
@@ -383,7 +384,7 @@ export module Services {
     }
 
 
-    public auditRecord(id: string, record: any, user: any, action:string = 'update') {
+    public auditRecord(id: string, record: any, user: any, action:RecordAuditActionType = RecordAuditActionType.updated) {
       if (this.queueService == null) {
         sails.log.verbose(`${this.logHeader} Queue service isn't defined. Skipping auditing`);
         return;
@@ -699,13 +700,13 @@ export module Services {
     async restoreRecord(oid: any, user:any): Promise<any> {
       let record = await this.storageService.restoreRecord(oid);
       this.searchService.index(oid, record);
-      this.auditRecord(oid, record, user, 'restored')
+      this.auditRecord(oid, record, user, RecordAuditActionType.restored)
       return record
     }
 
     async destroyDeletedRecord(oid: any, user:any): Promise<any> {
       let record = await this.storageService.destroyDeletedRecord(oid);
-      this.auditRecord(oid, record, user, 'perm_deleted')
+      this.auditRecord(oid, record, user, RecordAuditActionType.permanentlyDeleted)
       return record
     }
 

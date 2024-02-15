@@ -1,11 +1,11 @@
 declare var _:any;
 export class RecordAuditModel {
     redboxOid: string;
-    action:string;
+    action:RecordAuditActionType;
     user: any;
     record: any;
 
-    constructor(oid, record, user, action:string = 'update') {
+    constructor(oid, record, user, action:RecordAuditActionType = RecordAuditActionType.updated) {
         if (user!= null && !_.isEmpty(user.password)) {
             delete user.password;
         }
@@ -14,4 +14,12 @@ export class RecordAuditModel {
         this.user = user;
         this.action = action;
     }
+}
+
+export enum RecordAuditActionType {
+    created = 'created',
+    updated = 'updated',
+    deleted = 'deleted',
+    permanentlyDeleted = 'perm_deleted',
+    restored = 'restored'
 }
