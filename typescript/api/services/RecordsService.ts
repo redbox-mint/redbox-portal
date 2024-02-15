@@ -127,6 +127,9 @@ export module Services {
       'deleteFilesFromStageDir',
       'getRelatedRecords',
       'delete',
+      'restoreRecord',
+      'destroyDeletedRecord',
+      'getDeletedRecords',
       'updateNotificationLog',
       'updateWorkflowStep',
       'triggerPreSaveTriggers',
@@ -299,8 +302,8 @@ export module Services {
       return this.storageService.getRelatedRecords(oid, brand);
     }
 
-    async delete(oid: any) {
-      const response = await this.storageService.delete(oid);
+    async delete(oid: any, permanentlyDelete:boolean) {
+      const response = await this.storageService.delete(oid, permanentlyDelete);
       if (response.isSuccessful()) {
         this.searchService.remove(oid);
       }
@@ -688,6 +691,23 @@ export module Services {
       //   return Observable.of(record);
       // });
     }
+
+    async restoreRecord(oid: any): Promise<any> {
+      return await this.storageService.restoreRecord(oid);
+    }
+
+    async destroyDeletedRecord(oid: any): Promise<any> {
+      return await this.storageService.destroyDeletedRecord(oid);
+    }
+
+    async getDeletedRecords(workflowState: any, recordType: any, start: any, rows: any, username: any, roles: any, brand: any, editAccessOnly: any, packageType: any, sort: any, fieldNames?: any, filterString?: any, filterMode?: any): Promise<any> {
+      return await this.storageService.getDeletedRecords(workflowState,recordType,start,rows,username,roles,brand,editAccessOnly,packageType,sort,fieldNames,filterString,filterMode);
+    }
+
+    async createRecordAudit?(record: any): Promise<any> {
+      return await this.storageService.createRecordAudit(record);
+    }
+
 
     public updateWorkflowStep(currentRec, nextStep): void {
       if (!_.isEmpty(nextStep)) {

@@ -729,10 +729,12 @@ export module Controllers {
 
     public async deleteRecord(req, res) {
       const oid = req.param('oid');
+      const permanentlyDelete = _.isEmpty(req.param('permanent')) ? req.param('permanent') : false ;
       if (_.isEmpty(oid)) {
         return this.apiFail(req, res, 400, new APIErrorResponse("Missing ID of record."));
       }
-      const response = await this.RecordsService.delete(oid);
+
+      const response = await this.RecordsService.delete(oid, permanentlyDelete);
       if (response.isSuccessful()) {
         this.apiRespond(req, res, response);
       } else {
