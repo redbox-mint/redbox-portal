@@ -20,6 +20,6 @@ export enum RecordAuditActionType {
     created = 'created',
     updated = 'updated',
     deleted = 'deleted',
-    permanentlyDeleted = 'perm_deleted',
+    destroyed = 'destroyed',
     restored = 'restored'
 }
