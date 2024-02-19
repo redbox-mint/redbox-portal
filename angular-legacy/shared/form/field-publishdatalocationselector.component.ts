@@ -227,7 +227,6 @@ export class PublishDataLocationSelectorComponent extends SimpleComponent {
   public ngOnInit() {
     /* BEGIN UTS IMPORT */
     this.field.checkIfLocationsSelected();
-    /* END UTS IMPORT */
   }
 
   public selectAllLocations(checked){
@@ -240,7 +239,7 @@ export class PublishDataLocationSelectorComponent extends SimpleComponent {
     }
     this.field.checkIfLocationsSelected();
   }
-
+    /* END UTS IMPORT */
   public getDatalocations() {
     return this.field.value;
   }
