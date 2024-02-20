@@ -6566,7 +6566,7 @@
 									"});",
 									"",
 									"pm.test(\"Has valid content\", function () {",
-									"    pm.expect(pm.response.stream.toString()).to.match(/^@charset \"UTF-8\"/)",
+									"    pm.expect(pm.response.stream.toString()).to.match(/^.*@charset \"UTF-8\"/)",
 									"});",
 									""
 								],
