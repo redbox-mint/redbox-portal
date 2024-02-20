@@ -6,7 +6,7 @@
   "dependencies": {
     "@researchdatabox/raido-openapi-generated-node": "^0.0.2",
     "@researchdatabox/redbox-core-types": "^1.4.3",
-    "@researchdatabox/sails-hook-redbox-storage-mongo": "^1.4.3",
+    "@researchdatabox/sails-hook-redbox-storage-mongo": "^1.4.4",
     "@researchdatabox/sails-ng-common": "^0.1.0",
     "@tsconfig/node18": "^18.2.2",
     "agenda": "github:redbox-mint-contrib/agenda#dist",
