@@ -74,7 +74,7 @@
     "typescript": "5.3",
     "typescript-require": "~0.3.0",
     "url-pattern": "^1.0.3",
-    "webpack": "^5.90.2",
+    "webpack": "^5.90.3",
     "zone.js": "^0.14.4"
   },
   "scripts": {
