@@ -1,8 +1,9 @@
 {
 	"info": {
-		"_postman_id": "816374e1-fedf-4203-ad54-8bab7ab2a6fd",
+		"_postman_id": "e8c23941-c2d8-4537-810f-031a881dd33d",
 		"name": "Redbox Portal API - With tests",
-		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "6438809"
 	},
 	"item": [
 		{
@@ -728,6 +729,213 @@
 									]
 								},
 								"description": "Delete Record"
+							},
+							"response": []
+						},
+						{
+							"name": "List Deleted RDMPs",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test(\"There is more than 1 RDMP record in the records\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData.records.length).to.be.greaterThan(0);",
+											"});",
+											"",
+											"pm.test(\"Check record has oid and metadata properties\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData.records[0]).to.have.property(\"oid\")",
+											"    pm.expect(jsonData.records[0]).to.have.property(\"deletedRecord\")",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									},
+									{
+										"key": "",
+										"value": "",
+										"type": "text",
+										"disabled": true
+									}
+								],
+								"url": {
+									"raw": "{{host}}/default/rdmp/api/deletedrecords/list?recordType=rdmp",
+									"host": [
+										"{{host}}"
+									],
+									"path": [
+										"default",
+										"rdmp",
+										"api",
+										"deletedrecords",
+										"list"
+									],
+									"query": [
+										{
+											"key": "recordType",
+											"value": "rdmp"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Restore Deleted Record",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									},
+									{
+										"key": "",
+										"value": "",
+										"type": "text",
+										"disabled": true
+									}
+								],
+								"url": {
+									"raw": "{{host}}/default/rdmp/api/deletedrecords/{{dmpOidToDelete}}",
+									"host": [
+										"{{host}}"
+									],
+									"path": [
+										"default",
+										"rdmp",
+										"api",
+										"deletedrecords",
+										"{{dmpOidToDelete}}"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Delete Record Again",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test(\"Success is set and is true\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData).to.have.property('success');",
+											"    pm.expect(jsonData.success).to.eql(true);",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "DELETE",
+								"header": [],
+								"url": {
+									"raw": "{{host}}/default/rdmp/api/records/metadata/{{dmpOidToDelete}}",
+									"host": [
+										"{{host}}"
+									],
+									"path": [
+										"default",
+										"rdmp",
+										"api",
+										"records",
+										"metadata",
+										"{{dmpOidToDelete}}"
+									]
+								},
+								"description": "Delete Record"
+							},
+							"response": []
+						},
+						{
+							"name": "Destroy Deleted Record",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "DELETE",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									},
+									{
+										"key": "",
+										"value": "",
+										"type": "text",
+										"disabled": true
+									}
+								],
+								"url": {
+									"raw": "{{host}}/default/rdmp/api/deletedrecords/{{dmpOidToDelete}}",
+									"host": [
+										"{{host}}"
+									],
+									"path": [
+										"default",
+										"rdmp",
+										"api",
+										"deletedrecords",
+										"{{dmpOidToDelete}}"
+									]
+								}
 							},
 							"response": []
 						},
