@@ -40,7 +40,7 @@ import { ListAPIResponse } from '@researchdatabox/redbox-core-types';
 
 
 
-const UUIDGenerator = require('uuid/v4');
+import { v4 as UUIDGenerator } from 'uuid';
 export module Controllers {
   /**
    * RecordController API version
@@ -70,7 +70,10 @@ export module Controllers {
       'getDataStream',
       'addDataStreams',
       'listRecords',
+      'listDeletedRecords',
       'deleteRecord',
+      'destroyDeletedRecord',
+      'restoreRecord',
       'transitionWorkflow',
       'listDatastreams',
       'addRoleEdit',
@@ -83,7 +86,7 @@ export module Controllers {
     constructor() {
       super();
       let that = this;
-      sails.on('ready', function () {
+      sails.after(['hook:redbox:storage:ready', 'hook:redbox:datastream:ready', 'ready'], function () {
         let datastreamServiceName = sails.config.record.datastreamService;
         sails.log.verbose(`RecordController Webservice ready, using datastream service: ${datastreamServiceName}`);
         if (datastreamServiceName != undefined) {
@@ -262,13 +265,13 @@ export module Controllers {
       var oid = req.param('oid');
       var dateFrom = req.param('dateFrom');
       var dateTo = req.param('dateTo');
-      let params = {'oid': oid, 'dateFrom': null, 'dateTo': null};
-      if(!_.isEmpty(dateFrom)) {
-        params['dateFrom'] =  new Date(dateFrom);
+      let params = { 'oid': oid, 'dateFrom': null, 'dateTo': null };
+      if (!_.isEmpty(dateFrom)) {
+        params['dateFrom'] = new Date(dateFrom);
       }
 
-      if(!_.isEmpty(dateTo)) {
-        params['dateTo'] =  new Date(dateTo);
+      if (!_.isEmpty(dateTo)) {
+        params['dateTo'] = new Date(dateTo);
       }
 
       try {
@@ -457,32 +460,68 @@ export module Controllers {
       }
     }
 
-    public getDataStream(req, res) {
+    public async getDataStream(req, res) {
       const brand = BrandingService.getBrand(req.session.branding);
       const oid = req.param('oid');
       const datastreamId = req.param('datastreamId');
-      sails.log.info(`getDataStream ${oid} ${datastreamId}`);
-      return Observable.fromPromise(this.RecordsService.getMeta(oid)).flatMap(currentRec => {
+      sails.log.debug(`getDataStream ${oid} ${datastreamId}`);
+      try {
+        let found: any = null;
+        let currentRec = await this.RecordsService.getMeta(oid)
+        for(let attachmentField of currentRec.metaMetadata.attachmentFields) {
+          if(found == null) {
+            const attFieldVal = currentRec.metadata[attachmentField];
+            found = _.find(attFieldVal, (attVal) => {
+              return attVal.fileId == datastreamId
+            });
+          } else {
+            break;
+          }
+        }
+        if (!found) {
+          return res.notFound()
+        }
+        let mimeType = found.mimeType;
+        if (_.isEmpty(mimeType)) {
+          // Set octet stream as a default
+          mimeType = 'application/octet-stream'
+        }
         const fileName = req.param('fileName') ? req.param('fileName') : datastreamId;
         res.set('Content-Type', 'application/octet-stream');
+
+        let size = found.size;
+        if (!_.isEmpty(size)) {
+          res.set('Content-Length', size);
+        }
+        
         sails.log.verbose("fileName " + fileName);
         res.attachment(fileName);
         sails.log.info(`Returning datastream observable of ${oid}: ${fileName}, datastreamId: ${datastreamId}`);
-        return this.DatastreamService.getDatastream(oid, datastreamId).flatMap((response) => {
+        try {
+          const response = await this.DatastreamService.getDatastream(oid, datastreamId);
           if (response.readstream) {
+
+            response.readstream.on('error', (error) => {
+              // Handle the error here
+              sails.log.error('Error reading stream:', error);
+              return
+            });
             response.readstream.pipe(res);
           } else {
             res.end(Buffer.from(response.body), 'binary');
           }
-          return Observable.of(oid);
-        });
-      }).subscribe(whatever => {
-        // ignore...
-        sails.log.verbose(`Done with updating streams and returning response...`);
-      }, error => {
+          return
+        } catch (error) {
+          sails.log.error(error)
+          return this.customErrorMessageHandlingOnUpstreamResult(error, res);
+        }
+
+
+
+      } catch (error) {
         return this.customErrorMessageHandlingOnUpstreamResult(error, res);
       }
-      );
+
     }
 
     public async addDataStreams(req, res) {
@@ -632,6 +671,52 @@ export module Controllers {
 
     }
 
+    protected async getDeletedRecords(workflowState, recordType, start, rows, user, roles, brand, editAccessOnly = undefined, packageType = undefined, sort = undefined, fieldNames = undefined, filterString = undefined) {
+      const username = user.username;
+      if (!_.isUndefined(recordType) && !_.isEmpty(recordType)) {
+        recordType = recordType.split(',');
+      }
+      if (!_.isUndefined(packageType) && !_.isEmpty(packageType)) {
+        packageType = packageType.split(',');
+      }
+      if (start == null) {
+        start = 0;
+      }
+      if (rows == undefined) {
+        rows = 10;
+      }
+      var results = await this.RecordsService.getDeletedRecords(workflowState, recordType, start, rows, username, roles, brand, editAccessOnly, packageType, sort, fieldNames, filterString);
+      sails.log.debug(results);
+      let apiReponse: ListAPIResponse<any> = new ListAPIResponse();
+      var totalItems = results.totalItems
+      var startIndex = start;
+      var noItems = rows;
+      var pageNumber = Math.floor((startIndex / noItems) + 1);
+
+      apiReponse.summary.numFound = totalItems;
+      apiReponse.summary.start = startIndex;
+      apiReponse.summary.page = pageNumber;
+
+
+      var items = [];
+      var docs = results["items"];
+
+      for (var i = 0; i < docs.length; i++) {
+        var doc = docs[i];
+        var item = {};
+        item["oid"] = doc["redboxOid"];
+        item["title"] = doc["deletedRecordMetadata"]["metadata"]["title"];
+        item["deletedRecord"] = doc["deletedRecordMetadata"];
+        item["dateCreated"] = doc["dateCreated"];
+        item["dateModified"] = doc["lastSaveDate"];
+        item["dateDeleted"]  = doc["dateDeleted"];
+        items.push(item);
+      }
+      apiReponse.records = items;
+      return apiReponse;
+
+    }
+
     public listRecords(req, res) {
       //sails.log.debug('api-list-records');
       const brand = BrandingService.getBrand(req.session.branding);
@@ -691,16 +776,51 @@ export module Controllers {
       }
     }
 
-    public async deleteRecord(req, res) {
+    public async restoreRecord(req, res) {
       const oid = req.param('oid');
+      var user = req.user;
       if (_.isEmpty(oid)) {
         return this.apiFail(req, res, 400, new APIErrorResponse("Missing ID of record."));
       }
-      const response = await this.RecordsService.delete(oid);
+
+      const response = await this.RecordsService.restoreRecord(oid,user);
       if (response.isSuccessful()) {
         this.apiRespond(req, res, response);
       } else {
         sails.log.verbose(`Delete attempt failed for OID: ${oid}`);
+        sails.log.verbose(JSON.stringify(response));
+        this.apiFail(req, res, 500, new APIErrorResponse(response.message, response.details));
+      }
+    }
+
+    public async deleteRecord(req, res) {
+      const oid = req.param('oid');
+      const permanentlyDelete = req.param('permanent') === 'true' ? true : false ;
+      const user = req.user;
+      if (_.isEmpty(oid)) {
+        return this.apiFail(req, res, 400, new APIErrorResponse("Missing ID of record."));
+      }
+      const response = await this.RecordsService.delete(oid, permanentlyDelete, user);
+      if (response.isSuccessful()) {
+        this.apiRespond(req, res, response);
+      } else {
+        sails.log.verbose(`Delete attempt failed for OID: ${oid}`);
+        sails.log.verbose(JSON.stringify(response));
+        this.apiFail(req, res, 500, new APIErrorResponse(response.message, response.details));
+      }
+    }
+
+    public async destroyDeletedRecord(req, res) {
+      const oid = req.param('oid');
+      const user = req.user;
+      if (_.isEmpty(oid)) {
+        return this.apiFail(req, res, 400, new APIErrorResponse("Missing ID of record."));
+      }
+      const response = await this.RecordsService.destroyDeletedRecord(oid, user);
+      if (response.isSuccessful()) {
+        this.apiRespond(req, res, response);
+      } else {
+        sails.log.verbose(`Destroy attempt failed for OID: ${oid}`);
         sails.log.verbose(JSON.stringify(response));
         this.apiFail(req, res, 500, new APIErrorResponse(response.message, response.details));
       }
@@ -1054,6 +1174,66 @@ export module Controllers {
 
 
 
+    }
+
+
+    public listDeletedRecords(req, res) {
+      //sails.log.debug('api-list-records');
+      const brand = BrandingService.getBrand(req.session.branding);
+      const editAccessOnly = req.query.editOnly;
+
+      var roles = [];
+      var username = "guest";
+      let user = {};
+      if (req.isAuthenticated()) {
+        roles = req.user.roles;
+        user = req.user;
+        username = req.user.username;
+      } else {
+        // assign default role if needed...
+        user = { username: username };
+        roles = [];
+        roles.push(RolesService.getDefUnathenticatedRole(brand));
+      }
+      const recordType = req.param('recordType');
+      const workflowState = req.param('state');
+      const start = req.param('start');
+      const rows = req.param('rows');
+      const packageType = req.param('packageType');
+      const sort = req.param('sort');
+      const filterFieldString = req.param('filterFields');
+      let filterString = req.param('filter');
+      let filterFields = undefined;
+
+      if (!_.isEmpty(filterFieldString)) {
+        filterFields = filterString.split(',')
+      } else {
+        filterString = undefined;
+      }
+
+      if (rows > parseInt(sails.config.api.max_requests)) {
+        var error = {
+          "code": 400,
+          "contactEmail": null,
+          "description": "You have reached the maximum of request available; Max rows per request " + sails.config.api.max_requests,
+          "homeRef": "/",
+          "reasonPhrase": "Bad Request",
+          "uri": "http://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html#sec10.4.1"
+        };
+        res.status(400);
+        res.json(error);
+      } else {
+        // sails.log.debug(`getRecords: ${recordType} ${workflowState} ${start}`);
+        // sails.log.debug(`${rows} ${packageType} ${sort}`);
+        this.getDeletedRecords(workflowState, recordType, start, rows, user, roles, brand, editAccessOnly, packageType, sort, filterFields, filterString).then(response => {
+          res.json(response);
+        }).catch(error => {
+          sails.log.error("Error:");
+          sails.log.error(error);
+          var err = error['error'];
+          res.json(err);
+        });
+      }
     }
 
   }

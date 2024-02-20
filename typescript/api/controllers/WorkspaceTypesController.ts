@@ -20,7 +20,7 @@
 declare var module;
 declare var sails;
 import {Observable} from 'rxjs/Rx';
-import skipperGridFs = require('skipper-gridfs');
+import skipperGridFs from "skipper-gridfs";
 declare var _;
 
 declare var BrandingService, WorkspaceTypesService;

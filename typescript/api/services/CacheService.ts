@@ -20,8 +20,9 @@
 import { Observable } from 'rxjs/Rx';
 import {Services as services}   from '@researchdatabox/redbox-core-types';
 import {Sails, Model} from "sails";
-import * as NodeCache from "node-cache";
-import moment = require('moment');
+import { default as NodeCache } from "node-cache";
+import { default as moment } from 'moment';
+import { readdir } from 'node:fs/promises';
 declare var sails: Sails;
 declare var _;
 declare var CacheEntry: Model;
@@ -38,16 +39,19 @@ export module Services {
     protected _exportedMethods: any = [
       'bootstrap',
       'get',
-      'set'
+      'set',
+      'getNgAppFileHash'
     ];
 
     protected cache;
+    protected ngFileAppHash;
 
-    public bootstrap() {
+    public async bootstrap() {
       const cacheOpts = {stdTTL: sails.config.custom_cache.cacheExpiry, checkperiod: sails.config.custom_cache.checkPeriod ? sails.config.custom_cache.checkPeriod : 600};
       sails.log.verbose(`Using node cache options: `);
       sails.log.verbose(cacheOpts);
       this.cache = new NodeCache(cacheOpts);
+      await this.buildNgAppFileHash();
     }
 
     public get(name): Observable<any> {
@@ -103,6 +107,36 @@ export module Services {
       });
     }
 
+    public async buildNgAppFileHash() {
+      this.ngFileAppHash = {};
+      if (_.isEmpty(sails.config.angularDev) || sails.config.angularDev == 'false') {
+        const ngRootPath = `${sails.config.appPath}/assets/angular/`;
+        const ngAppDirs = await readdir(ngRootPath);
+        const targetFilesPrefix = ['runtime', 'polyfills', 'main', 'styles'];
+        for (const appName of ngAppDirs) {
+          let ngPath = `${sails.config.appPath}/assets/angular/${appName}`;
+          const ngFiles = await readdir(ngPath);
+          for (const fileNamePrefix of targetFilesPrefix) {
+            const fileName = _.find(ngFiles, (file) => { return _.startsWith(file, fileNamePrefix) });
+            const nameParts = _.split(fileName, '.');
+            let appHash = '';
+            if (nameParts && nameParts.length == 3) {
+              appHash = nameParts[1];
+            }   
+            _.set(this.ngFileAppHash, `${appName}.${fileNamePrefix}`, appHash);
+          }
+        }
+      }
+      sails.log.verbose(JSON.stringify(this.ngFileAppHash));
+    }
+
+    public getNgAppFileHash(appName: string, fileNamePrefix: string, namePrefix: string = '', nameSuffix: string = '', insertEvenOnEmpty:boolean = false): string {
+      let appHash = _.get(this.ngFileAppHash, `${appName}.${fileNamePrefix}`);
+      if (!_.isEmpty(appHash) || insertEvenOnEmpty) {
+        appHash = `${namePrefix}${appHash}${nameSuffix}`;
+      }
+      return appHash;
+    }
 
   }
 }

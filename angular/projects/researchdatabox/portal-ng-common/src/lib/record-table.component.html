@@ -1,0 +1,32 @@
+<ng-container *ngIf="isReady && dataSource">
+  <ng-container *ngIf="dataSource.getCurrentPage() as currentPage">
+    <div class="row">
+      <table class="table" *ngIf="columnConfig">
+        <thead>
+          <tr>
+            <!-- TODO: converted to sortable headers -->
+            <ng-container *ngFor="let col of columnConfig">
+              <th *ngIf="!col.hide">
+                  {{ col.label | i18next }}
+              </th>
+            </ng-container>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let row of currentPage.records">
+            <ng-container *ngFor="let col of columnConfig">
+              <td *ngIf="!col.hide" [innerHtml]="getColValue(row, col)">
+              </td>
+            </ng-container>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <!-- Pagination -->
+    <div *ngIf="currentPage.total > 0" class="row">
+      <pagination [directionLinks]="paginationDirectionLinks" [boundaryLinks]="paginationBoundaryLinks"
+        [totalItems]="currentPage.total" [itemsPerPage]="paginationItemsPerPage" [(ngModel)]="currentPage.pageNum"
+        (pageChanged)="gotoPage($event)" [class]="paginationClass" [maxSize]="paginationMaxSize" [rotate]="paginationRotate"></pagination>
+    </div>
+  </ng-container>
+</ng-container>

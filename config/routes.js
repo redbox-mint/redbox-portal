@@ -115,7 +115,7 @@ module.exports.routes = {
     }
   },
   '/:branding/:portal/workspaces/list': {
-    controller: 'DashboardController',
+    controller: 'RecordController',
     action: 'listWorkspaces'
   },
   '/:branding/:portal/getAdvice': {
@@ -175,9 +175,19 @@ module.exports.routes = {
   'get /:branding/:portal/record/form/:name/:oid': 'RecordController.getForm',
   'get /:branding/:portal/record/search/:type': 'RecordController.search',
   'get /:branding/:portal/record/type': 'RecordController.getAllTypes',
+  'get /:branding/:portal/dashboard/type/:dashboardType': 'RecordController.getDashboardType',
+  'get /:branding/:portal/dashboard/type': 'RecordController.getAllDashboardTypes',
   'get /:branding/:portal/record/type/:recordType': 'RecordController.getType',
   'get /:branding/:portal/record/:recordType/edit': 'RecordController.edit',
   'get /:branding/:portal/record/edit/:oid': 'RecordController.edit',
+  'get /:branding/:portal/record/viewAudit/:oid': 'RecordAuditController.render', 
+  'get /:branding/:portal/record/finalise/:recordType/edit/:oid': {
+    controller: 'RecordController',
+    action: 'edit',
+    locals: {
+      'localFormName': 'default-1.0-draft'
+    }
+  },
   'delete /:branding/:portal/record/delete/:oid': 'RecordController.delete',
   '/:branding/:portal/record/:oid/attach': 'RecordController.doAttachment',
   '/:branding/:portal/record/:oid/attach/:attachId': 'RecordController.doAttachment',
@@ -185,6 +195,7 @@ module.exports.routes = {
   'get /:branding/:portal/record/:oid/datastream*': 'RecordController.getDataStream',
   'get /:branding/:portal/record/:oid/attachments': 'RecordController.getAttachments',
   'get /:branding/:portal/record/:oid/permissions': 'RecordController.getPermissions',
+  'get /:branding/:portal/record/:oid/relatedRecords': 'RecordController.getRelatedRecords',
   'get /:branding/:portal/record/wfSteps/:recordType': 'RecordController.getWorkflowSteps',
   'post /:branding/:portal/recordmeta/:recordType': 'RecordController.create',
   'put /:branding/:portal/recordmeta/:oid': 'RecordController.update',
@@ -192,8 +203,8 @@ module.exports.routes = {
   //TODO: Reinstate it when we add formal permission editing screens
   // 'post /:branding/:portal/record/editors/modify': 'RecordController.modifyEditors',
   'post /:branding/:portal/record/responsibility/update': 'RecordController.updateResponsibilities',
-  'get /:branding/:portal/dashboard/:recordType': 'DashboardController.render',
-  'get /:branding/:portal/listRecords': 'DashboardController.getRecordList',
+  'get /:branding/:portal/dashboard/:recordType': 'RecordController.render',
+  'get /:branding/:portal/listRecords': 'RecordController.getRecordList',
   'get /:branding/:portal/vocab/:vocabId': 'VocabController.get',
   'get /:branding/:portal/ands/vocab/resourceDetails': 'VocabController.rvaGetResourceDetails',
   'get /:branding/:portal/mint/:mintSourceType': 'VocabController.getMint',
@@ -270,6 +281,21 @@ module.exports.routes = {
   'get /:branding/:portal/api/records/list': {
     controller: 'webservice/RecordController',
     action: 'listRecords',
+    csrf: false
+  },
+  'get /:branding/:portal/api/deletedrecords/list': {
+    controller: 'webservice/RecordController',
+    action: 'listDeletedRecords',
+    csrf: false
+  },
+  'put /:branding/:portal/api/deletedrecords/:oid': {
+    controller: 'webservice/RecordController',
+    action: 'restoreRecord',
+    csrf: false
+  },
+  'delete /:branding/:portal/api/deletedrecords/:oid': {
+    controller: 'webservice/RecordController',
+    action: 'destroyDeletedRecord',
     csrf: false
   },
   'get /:branding/:portal/api/records/objectmetadata/:oid': {
@@ -456,6 +482,11 @@ module.exports.routes = {
   'get /:branding/:portal/api/report/namedQuery': {
     controller: 'webservice/ReportController',
     action: 'executeNamedQuery',
+    csrf: false
+  },
+  'get /:branding/:portal/api/export/record/download/:format': {
+    controller: 'webservice/ExportController',
+    action: 'downloadRecs',
     csrf: false
   },
   'get /:branding/:portal/workspaces/types/:name': 'WorkspaceTypesController.getOne',

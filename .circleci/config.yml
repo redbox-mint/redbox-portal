@@ -1,26 +1,29 @@
 jobs:
   build:
     docker:
-      - image: 'cimg/node:14.19'
+      - image: 'cimg/node:18.12'
     steps:
       - checkout
       - run: (cd core && npm install && node_modules/.bin/tsc)
       - run: npm install --production
       - run: node_modules/.bin/tsc
-      - run: (cd angular && npm install)
+      - run: curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.2/install.sh | bash
       - run: (chmod +x support/build/compileProductionAngular.sh && support/build/compileProductionAngular.sh)
+      - run: (chmod +x support/build/compileProductionAngularLegacy.sh && support/build/compileProductionAngularLegacy.sh)
+      - run: npm run webpack
       - persist_to_workspace:
           root: .
           paths:
             - .
   build_without_angular:
     docker:
-      - image: 'cimg/node:14.19'
+      - image: 'cimg/node:18.12'
     steps:
       - checkout
       - run: (cd core && npm install && node_modules/.bin/tsc)
       - run: npm install --production
       - run: node_modules/.bin/tsc
+      - run: npm run webpack
       - persist_to_workspace:
           root: .
           paths:
@@ -31,15 +34,15 @@ jobs:
     steps:
       - attach_workspace:
            at: /home/circleci/project
-      # Make a copy of original project state as it gets modified for integration testing and code coverage reasons
-      # - run: (mkdir -p /tmp/original && cp -Rf /home/circleci/project/* /tmp/original
       - run: node_modules/.bin/tsc -p tsconfig-codecov.json
       - run: (sudo chmod -R 777 . && cd support/integration-testing && sudo mkdir -p .tmp/attachments/staging && sudo chmod -R 777 . && docker-compose -f docker-compose.newman.yml up --abort-on-container-exit --exit-code-from redboxportal && docker-compose -f docker-compose.mocha.yml up --abort-on-container-exit --exit-code-from redboxportal)
       - run: npm i -g codecov && codecov -t $CODECOV_TOKEN
-      - run: npm i
+      - run: curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.2/install.sh | bash
+      - run: (chmod +x support/unit-testing/angular/testAngular.sh && source support/unit-testing/angular/testAngular.sh)
+      - run: sudo chmod -R 777 . && npm i
   deploy:
     docker:
-      - image: 'cimg/node:14.19'
+      - image: 'cimg/node:18.12'
     steps:
       - setup_remote_docker
       - attach_workspace:
@@ -100,7 +103,7 @@ workflows:
               only: 'master'
   build_test_dependabot:
     jobs:
-      - build_without_angular:
+      - build:
           filters:
             branches:
               only: /^dependabot.*/
@@ -108,7 +111,7 @@ workflows:
               ignore: /.*/
       - test:
           requires:
-            - build_without_angular
+            - build
       - deploy:
           requires:
             - test

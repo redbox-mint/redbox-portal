@@ -1,0 +1,35 @@
+<ng-container >
+<div class='padding-bottom-10' [style.display]="field.visible? 'block': 'none'">
+  <div *ngIf="field.editMode" [formGroup]='form' class="form-group">
+  <label [attr.for]="field.name">
+    {{field.label}} {{ getRequiredLabelStr()}}
+    <button type="button" class="btn btn-default" *ngIf="field.help" (click)="toggleHelp()" [attr.aria-label]="'help' | translate "><span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span></button>
+   </label><br/>
+  <span id="{{ 'helpBlock_' + field.name }}" class="help-block" *ngIf="this.helpShow" [innerHtml]="field.help"></span>
+
+  <div leaflet style="height: 450px;"
+       leafletDraw
+       [leafletOptions]="field.leafletOptions"
+       [leafletDrawOptions]="field.drawOptions"
+       (leafletMapReady)="field.onMapReady($event)"
+       [leafletLayersControl]="field.layersControl">
+  </div>
+  <div class='padding-top-10'>
+  <div>
+    <label [attr.for]="field.name">{{field.kmlGeoJsonLabel}}
+      <button type="button" class="btn btn-default" *ngIf="field.editMode && field.coordinatesHelp" (click)="toggleCoordinatesHelp()" [attr.aria-label]="'help' | translate "><span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span></button>
+    </label><br/>
+    <span id="{{ 'helpBlock_' + field.name + '_coordinates' }}" class="help-block" *ngIf="field.editMode && this.coordinatesHelpShow" [innerHtml]="field.coordinatesHelp"></span>
+    <textarea [id]="field.name" class="form-control" rows="5" [(ngModel)]="field.importDataString" [ngModelOptions]="{standalone: true}"></textarea></div>
+  <div class="padding-top-10"><a class="btn btn-info" (click)="field.importData()">{{field.importButtonLabel}}</a> <span *ngIf="field.importFailed" class="text-danger">{{field.invalidDataMessage}}</span></div>
+</div>
+</div>
+</div>
+<div *ngIf="!field.editMode">
+  <div leaflet style="height: 450px;"
+       [leafletOptions]="field.leafletOptions"
+       (leafletMapReady)="field.onMapReady($event)"
+       [leafletLayersControl]="field.layersControl">
+  </div>
+</div>
+</ng-container>

@@ -27,6 +27,9 @@ module.exports = {
     messages: {
       type: 'json'
     },
+    requiredFieldIndicator: {
+      type: 'string'
+    },
     viewCssClasses: {
       type: 'string'
     },

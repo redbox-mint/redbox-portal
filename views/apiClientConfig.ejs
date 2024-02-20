@@ -1,13 +1,23 @@
-{
-  "baseUrl": "<%= sails.config.appUrl %>",
-  "branding": "<%= req.session.branding %>",
-  "portal": "<%= req.session.portal %>",
-  "defaultForm": "<%= sails.config.form.defaultForm %>",
-  "vocabRootUrl": "<%= sails.config.vocab.clientUri %>",
-  "collectionRootUri": "<%= sails.config.vocab.collectionUri %>",
-  "mintRootUri": "<%= sails.config.mint.mintRootUri %>",
-  "userRootUri": "<%= sails.config.vocab.userRootUri %>",
-  "translationVersion": "<%= sails.config.startupMinute %>",
-  "maxTransferRowsPerPage": "<%= sails.config.record.transfer.maxRecordsPerPage%>",
-  "maxSearchRowsPerPage": "<%= sails.config.record.search.maxRecordsPerPage%>"
+<% 
+let i18NextOpts = sails.config.i18n.next.init;
+i18NextOpts.backend = undefined;
+let defaultConfig = {
+  baseUrl: sails.config.appUrl,
+  branding: req.session.branding,
+  portal: req.session.portal,
+  defaultForm: sails.config.form.defaultForm,
+  vocabRootUrl: sails.config.vocab.clientUri,
+  collectionRootUri: sails.config.vocab.collectionUri,
+  mintRootUri: sails.config.mint.mintRootUri,
+  userRootUri: sails.config.vocab.userRootUri,
+  translationVersion: sails.config.startupMinute,
+  maxTransferRowsPerPage: sails.config.record.transfer.maxRecordsPerPage,
+  maxSearchRowsPerPage: sails.config.record.search.maxRecordsPerPage,
+  i18NextOpts: i18NextOpts,
+  lang: lang
+};
+if (!_.isUndefined(sails.config.api.additionalClientConfig)) {
+  _.merge(defaultConfig, sails.config.api.additionalClientConfig);
 }
+%>
+<%- JSON.stringify(defaultConfig) %>

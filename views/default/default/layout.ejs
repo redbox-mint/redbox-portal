@@ -1,16 +1,16 @@
-<% include ../../functions %>
+<% include('../../functions') %>
 <!DOCTYPE html>
 <html lang="en">
 
 <head>
-  <base href="<%= BrandingService.getBrandAndPortalPath(req) %>">
+  <base href="<%= BrandingService.getRootContext() ? BrandingService.getRootContext() : '/'  %>">
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="apple-touch-icon" sizes="180x180" "<%= BrandingService.getRootContext() %>/apple-touch-icon.png">
   <link rel="icon" type="image/png" sizes="32x32" "<%= BrandingService.getRootContext() %>/favicon-32x32.png">
   <link rel="icon" type="image/png" sizes="16x16" "<%= BrandingService.getRootContext() %>/favicon-16x16.png">
-  
+
   <title>
     <%=typeof title == 'undefined' ? TranslationService.t('default-title') : title%>
   </title>
@@ -20,22 +20,18 @@
   <link href='//fonts.googleapis.com/css?family=Roboto+Condensed:400,700,300' rel='stylesheet' type='text/css'>
   <link href='//fonts.googleapis.com/css?family=Raleway:400,100' rel='stylesheet' type='text/css'>
 
+
   <!-- Custom CSS -->
   <link rel="stylesheet" href="<%= BrandingService.getBrandAndPortalPath(req) %>/styles/style.min.css">
   <link rel="stylesheet" href="<%= BrandingService.getBrandAndPortalPath(req) %>/styles/theme.css">
 
-  <!-- Latest jQuery form server -->
-  <script
-  src="<%= BrandingService.getBrandAndPortalPath(req) %>/js/jquery-3.6.0.min.js"
-  integrity="sha256-gPBHF/MuoDIMXoYY+6zt0f7jqHda2CkhQKYRNVHUtbA="
-  crossorigin="anonymous"></script>
+  <!-- Current latest jQuery -->
+  <script src="<%= BrandingService.getBrandAndPortalPath(req) %>/js/jquery.min.js"></script>
+  <!-- Current latest Bootstrap JS  -->
+  <script src="<%= BrandingService.getBrandAndPortalPath(req) %>/js/bootstrap.bundle.min.js"></script>
 
-  <!-- Bootstrap JS form CDN -->
-  <script src="<%= BrandingService.getBrandAndPortalPath(req) %>/js/3_4_1-bootstrap.min.js" 
-    integrity="sha384-aJ21OjlMXNL5UyIl/XNwTMqvzeRMZH2w8c5cRVpzpU8Y5bApTppSuUkhZXN0VxHd" 
-    crossorigin="anonymous"></script>
-    
-  <angular-bootstrap rootContext="<%= BrandingService.getRootContext() %>"></angular-bootstrap>
+
+    <angular-bootstrap rootContext="<%= BrandingService.getRootContext() %>"></angular-bootstrap>
 </head>
 
 <body>
@@ -57,6 +53,39 @@
             </ul>
           </div>
         </div>
+        <div class="col-md-4">
+          <div class="mt-3" >
+            <div class="dropdown pull-right">
+                <% 
+                  // remove the cimode
+                  const langCodes = _.filter(sails.config.i18n.next.init.supportedLngs, (lng) => {
+                    return lng != 'cimode';                    
+                  });
+                  if (langCodes.length > 1) { %>
+                  <a class="dropdown-toggle" href="#" data-bs-toggle="dropdown" aria-expanded="false">
+                    <%= TranslationService.t('lang-' + lang) %>
+                  </a>
+                  <ul class="dropdown-menu">
+                    <%
+                    for (const langCode of langCodes) {
+                      if (langCode != lang) {
+                        const langUrl = new URL(`${req.protocol}://${req.get('host')}${req.originalUrl}`);
+                        const params = new URLSearchParams(langUrl.search);
+                        params.set('lng', langCode);
+                        langUrl.search = params;
+                        %>
+                        <li><a class="dropdown-item" href="<%= langUrl.toString() %>"><%= TranslationService.t('lang-' + langCode) %></a></li>
+                        <%
+                      }
+                    } 
+                  %>
+                  </ul>
+                    <% 
+                  }
+                %>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -68,7 +97,7 @@
         <% if(locals.branding != null && locals.portal != null) { %>
         <%- superPartial("/layout/logo.ejs", branding, portal, true) %>
         <% } else { %>
-          <%- include layout/logo.ejs %>
+          <%- include('layout/logo.ejs') %>
         <%}%>
 
         <div class="col-sm-2 search-box">
@@ -80,11 +109,21 @@
   <% if(locals.branding != null && locals.portal != null) { %>
   <%- superPartial("/layout/menu.ejs", branding, portal, true) %>
     <% } else { %>
-    <%- include layout/menu.ejs %>
+    <%- include('layout/menu.ejs') %>
     <%}%>
   <!-- End mainmenu area -->
 <% if (typeof title!== 'undefined') { %>
 <% } %>
+
+<% if (TranslationService.t('system-message-enabled') == 'true') { %>
+  <div id="system-message-area" class="container">
+  <div id="system-message" class="alert alert-primary alert-dismissible fade show" role="alert">
+    <h4><%- TranslationService.t('system-message-title') %></h4>
+    <div><%- TranslationService.t('system-message-description') %></div>
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+  </div>
+</div>
+ <% } %>
 
   <div class="maincontent-body">
     <%- body %>
@@ -96,14 +135,12 @@
     <% if(locals.branding != null && locals.portal != null) { %>
       <%- superPartial("/layout/footer.ejs", branding, portal, true) %>
       <% } else { %>
-        <%- include layout/footer.ejs %>
+        <%- include('layout/footer.ejs') %>
       <%}%>
 
   </div>
 
-  <!--SCRIPTS-->
-  <script src="/js/dependencies/sails.io.js"></script>
-  <!--SCRIPTS END-->
+  
   <script>
   $(document).ready(function() {
     $('li.active').removeClass('active');
@@ -128,11 +165,34 @@
         curHref.closest('li').addClass('active').closest('.dropdown').addClass('site-branding-area');
       }
     }
+
+    const storedsystemMessageDismissalTime = parseInt(localStorage.getItem('systemMessageDismissalTime'), 10);
+
+   if (storedsystemMessageDismissalTime) {
+    const currentsystemMessageDismissalTime = Date.now();
+    const eightHoursInMillis = 8 * 60 * 60 * 1000; // 8 hours in milliseconds
+    if (currentsystemMessageDismissalTime - storedsystemMessageDismissalTime > eightHoursInMillis) {
+     //Already been dismissed in the past 8 hours so close it
+      $('#system-message-area').show()
+    }  else {
+      //remove the system message area as it takes up space even when hidden
+      const systemMessageArea = document.getElementById('system-message-area');
+      systemMessageArea.parentNode.removeChild(systemMessageArea)
+    }
+  }  else {
+    $('#system-message-area').show()
+  }
+
+    $('#system-message').on('closed.bs.alert', function () {
+
+    const currentEpochMillis = Date.now();
+
+    localStorage.setItem('systemMessageDismissalTime', currentEpochMillis.toString());
+    //remove the system message area as it takes up space even when hidden
+    const systemMessageArea = document.getElementById('system-message-area');
+      systemMessageArea.parentNode.removeChild(systemMessageArea)
+  })
   });
   </script>
 </body>
-<% if (res.statusCode <= 400 && sails.config.ng2.use_bundled) { %>
-  <!-- NG2 bundled scripts section, expects a 'ng2_apps' local containing the list of apps to load for this view -->
-  <%- partial ('../../misc/ng2-apps.ejs', {apps: ng2_apps}) %>
-<% } %>
 </html>

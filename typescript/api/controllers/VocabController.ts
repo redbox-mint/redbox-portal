@@ -22,7 +22,7 @@ declare var module;
 declare var sails;
 declare var _;
 import { Observable } from 'rxjs/Rx';
-import * as flat from 'flat';
+let flat;
 declare var VocabService;
 /**
  * Package that contains all Controllers.
@@ -55,6 +55,10 @@ export module Controllers {
      **************************************** Override default methods ********************************
      **************************************************************************************************
      */
+
+     protected async processDynamicImports() {
+      flat = await import("flat");
+    }
 
     /**
      **************************************************************************************************

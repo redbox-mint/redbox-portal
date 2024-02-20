@@ -138,7 +138,7 @@ module.exports.solr = {
       }
     ],
     'add-dynamic-field': [
-      {
+    {
         name: "date_*",
         type: "pdate",
         indexed: true,

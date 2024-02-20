@@ -107,6 +107,7 @@ export module Controllers {
 
             var data = {};
             if (req.body.data) { data = req.body.data; }
+            data['sailsConfig'] = sails.config;
 
             var buildResponse = EmailService.buildFromTemplate(template, data);
 

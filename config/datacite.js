@@ -10,9 +10,10 @@ module.exports.datacite = {
         publisher: "<%= record.metadata.citation_publisher %>",
         creatorGivenName: "<%= creator.given_name %>",
         creatorFamilyName: "<%= creator.family_name %>",
+        creatorIdentifier: "<%= `http://orcid.org/${creator.orcid}` %>",
         "sizes": "<%= JSON.stringify([record.metadata.collectionCapacity]) %>",
         "identifiers": "<%= JSON.stringify(record.metadata.finalIdentifiers) %>",
-        "subjects": "<%= JSON.stringify(record.metadata.finalKeywords) %>",
+        "subjects": ["<%= JSON.stringify(record.metadata.finalKeywords) %>", "<%= JSON.stringify(processForCodes(record.metadata['dc:subject_anzsrc:for'])) %>"],
         "dates": [
             {"dateType": "Available", "template": "<%= record.metadata.embargoUntil %>"},
             {"dateType": "Created", "template":  "<%= record.dateCreated %>"},

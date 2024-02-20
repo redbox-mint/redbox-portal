@@ -3,24 +3,38 @@ module.exports.recordtype = {
     "packageType": "rdmp",
     hooks: {
       onCreate: {
-        pre: [{
-          function: 'sails.services.rdmpservice.assignPermissions',
-          options: {
-            "emailProperty": "email",
-            "editContributorProperties": [
-              "metadata.contributor_ci",
-              "metadata.contributor_data_manager",
-              "metadata.dataowner_email"
-            ],
-            "viewContributorProperties": [
-              "metadata.contributor_ci",
-              "metadata.contributor_data_manager",
-              "metadata.contributor_supervisor",
-              "metadata.contributors"
-            ],
-            "recordCreatorPermissions" : "view&edit"
-          }
-        }],
+        pre: [
+          {
+            function: 'sails.services.rdmpservice.assignPermissions',
+            options: {
+              "emailProperty": "email",
+              "editContributorProperties": [
+                "metadata.contributor_ci",
+                "metadata.contributor_data_manager",
+                "metadata.dataowner_email"
+              ],
+              "viewContributorProperties": [
+                "metadata.contributor_ci",
+                "metadata.contributor_data_manager",
+                "metadata.contributor_supervisor",
+                "metadata.contributors"
+              ],
+              "recordCreatorPermissions" : "view&edit"
+            }
+          },
+          // {
+          //   function: 'sails.services.raidservice.mintTrigger',
+          //   options: {
+          //     triggerCondition: '<%= _.isEmpty(record.metadata.raidUrl) %>',
+          //     request: {
+          //       mint: {
+          //         // to DRY, `fields` can either be the actual mapping or a string path of `sails.config` object where the field mapping config resides
+          //         fields: 'raid.mapping.dmp'
+          //       }
+          //     }
+          //   }
+          // }
+        ],
         // Requires the PDF Gen hook to be installed https://www.npmjs.com/package/@researchdatabox/sails-hook-redbox-pdfgen
         // post: [{
         //
@@ -32,36 +46,56 @@ module.exports.recordtype = {
         //     // token: 'abcd-efgh-abcd-abcd-abcd'
         //   }
         // }]
+        post: [
+          // {
+          //   function: 'sails.services.raidservice.mintPostCreateRetryHandler',
+          //   options: {
+          //     // nothing here as the record-specific options are in the metaMetadata
+          //   }
+          // }
+        ]
       },
       onUpdate: {
-        pre: [{
-          function: 'sails.services.rdmpservice.assignPermissions',
-          options: {
-            "emailProperty": "email",
-            "editContributorProperties": [
-              "metadata.contributor_ci",
-              "metadata.contributor_data_manager",
-              "metadata.dataowner_email"
-            ],
-            "viewContributorProperties": [
-              "metadata.contributor_ci",
-              "metadata.contributor_data_manager",
-              "metadata.contributor_supervisor",
-              "metadata.contributors"
-            ],
-            "recordCreatorPermissions" : "view&edit"
-          }
-        },
-        {
-          function: 'sails.services.rdmpservice.checkTotalSizeOfFilesInRecord',
-          options: {
-              triggerCondition: '<%= _.isEqual(record.workflow.stage, "draft") || _.isEqual(record.workflow.stage, "queued") || _.isEqual(record.workflow.stage, "published") %>',
-              maxUploadSizeMessageCode: 'max-total-files-upload-size-alternative-validation-error',
-              replaceOrAppend:'append'
-              }
-          }
-      
-      ],
+        pre: [
+          {
+            function: 'sails.services.rdmpservice.assignPermissions',
+            options: {
+              "emailProperty": "email",
+              "editContributorProperties": [
+                "metadata.contributor_ci",
+                "metadata.contributor_data_manager",
+                "metadata.dataowner_email"
+              ],
+              "viewContributorProperties": [
+                "metadata.contributor_ci",
+                "metadata.contributor_data_manager",
+                "metadata.contributor_supervisor",
+                "metadata.contributors"
+              ],
+              "recordCreatorPermissions" : "view&edit"
+            }
+          },
+          {
+            function: 'sails.services.rdmpservice.checkTotalSizeOfFilesInRecord',
+            options: {
+                triggerCondition: '<%= _.isEqual(record.workflow.stage, "draft") || _.isEqual(record.workflow.stage, "queued") || _.isEqual(record.workflow.stage, "published") %>',
+                maxUploadSizeMessageCode: 'max-total-files-upload-size-alternative-validation-error',
+                replaceOrAppend:'append'
+                }
+          },
+          // {
+          //   function: 'sails.services.raidservice.mintTrigger',
+          //   options: {
+          //     triggerCondition: '<%= _.isEmpty(record.metadata.raidUrl) %>',
+          //     request: {
+          //       mint: {
+          //         // to DRY, `fields` can either be the actual mapping or a string path of `sails.config` object where the field mapping config resides
+          //         fields: 'raid.mapping.dmp'
+          //       }
+          //     }
+          //   }
+          // }  
+        ],
         // Requires the PDF Gen hook to be installed https://www.npmjs.com/package/@researchdatabox/sails-hook-redbox-pdfgen
         // post: [{
         //   function: 'sails.services.pdfservice.createPDF',
@@ -563,5 +597,12 @@ module.exports.recordtype = {
         ]
       }
     }
+  },
+  "consolidated": {
+    "searchable": false,
+    "packageType": "rdmp",
+    "packageName": "consolidated",
+    "searchFilters": [],
+    hooks: { }
   }
 };

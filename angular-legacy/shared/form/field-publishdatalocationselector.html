@@ -1,0 +1,68 @@
+<div class='padding-bottom-10' *ngIf="field.visible">
+  <span class="label-font">
+    {{field.label}} {{ getRequiredLabelStr()}}
+    <button type="button" class="btn btn-default" *ngIf="field.help" (click)="toggleHelp()" [attr.aria-label]="'help' | translate "><span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span></button>
+  </span><br/>
+  <div>
+    <div class="table-responsive">
+    <table class="table table-bordered table-striped table-hover">
+      <thead>
+        <tr>
+          <th width="5%"><input type="checkbox" (change)="selectAllLocations($event.target.checked)" *ngIf="field.editMode" [attr.aria-label]="'select-all-items' | translate"/><span [hidden]="true">Select</span></th>
+          <th width="15%">{{ field.typeHeader }}</th>
+          <th width="40%">{{ field.locationHeader }}</th>
+          <th width="40%">{{ field.notesHeader }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let dataLocation of getDatalocations(); let i = index;">
+          <td><input type="checkbox" [(ngModel)]="dataLocation.selected" [attr.disabled]="field.editMode ? null : ''"  [attr.aria-label]="'select-item' | translate"/></td>
+          <td>{{ field.dataTypeLookup[dataLocation.type] }}</td>
+          <td>
+            <ng-container *ngIf="dataLocation && dataLocation.type != 'attachment' && dataLocation.type != 'url'">
+            {{ dataLocation.location }}
+            </ng-container>
+            <ng-container *ngIf="dataLocation.type == 'url'">
+              <a *ngIf="!dataLocation.pending" [href]="dataLocation.location" target="_blank" rel="noopener noreferrer">
+                {{ dataLocation.location }}
+              </a>
+            </ng-container>
+            <ng-container *ngIf="dataLocation.type == 'attachment'">
+              <ng-container *ngIf="dataLocation.pending">
+                {{ dataLocation.name }}
+              </ng-container>
+              <a *ngIf="!dataLocation.pending" href="{{ getAbsUrl(dataLocation.location) }}" target="_blank" rel="noopener noreferrer">
+                {{ dataLocation.name }}
+              </a>
+            </ng-container>
+          </td>
+          <td>
+            {{ dataLocation.notes }}
+            <button *ngIf="field.editMode" type='button' class="btn btn-primary pull-right" (click)="editNotes(dataLocation, i)">{{ field.editNotesButtonText }}</button>
+          </td>
+
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <!-- <div><button class="btn btn-info">Export</button></div> -->
+</div>
+</div>
+<!--- Edit notes modal -->
+<div *ngIf="field.editMode" class="modal fade" id="{{ field.name }}_editnotes" tabindex="-1" role="dialog" >
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+        <span class="modal-title" [innerHtml]="field.editNotesTitle"></span>
+      </div>
+      <div class="modal-body">
+        <input type='text' [ngClass]="field.editNotesCssClasses" [(ngModel)]="editingNotes.notes" [attr.aria-label]="field.notesHeader"/>
+      </div>
+      <div class="modal-footer">
+        <button (click)="hideEditNotes()" type="button" class="btn btn-default" data-bs-dismiss="modal" [innerHtml]="field.cancelEditNotesButtonText"></button>
+        <button (click)="saveNotes()" type="button" class="btn btn-primary" [innerHtml]="field.applyEditNotesButtonText"></button>
+      </div>
+    </div>
+  </div>
+</div>

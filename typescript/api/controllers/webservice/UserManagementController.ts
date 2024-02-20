@@ -32,7 +32,7 @@ declare var _;
  */
  import {APIErrorResponse, Controllers as controllers, CreateUserAPIResponse, ListAPIResponse, User as UserModel, UserAPITokenAPIResponse, APIActionResponse} from '@researchdatabox/redbox-core-types';
 
-import * as uuidv4 from 'uuid/v4';
+ import { v4 as uuidv4 } from 'uuid';
 
 export module Controllers {
   /**

@@ -1,13 +1,13 @@
 <div class="default-page">
   <div class="header">
-    <h1 id="main-title" class="container"><%= TranslationService.t('welcome-title') %></h1>
+    <h1 id="main-title" class="container"><%- TranslationService.t('welcome-title') %></h1>
   </div>
 <div class="row equal">
     <div class="col-md-3 homepanel">
       <div class="panel panel-default">
          <div class="panel-heading text-center">
              <span class="panel-title">
-               <div><img class="overlay" src="<%= BrandingService.getBrandAndPortalPath(req) %>/images/checklist.png" alt="@document.icon" width="43px" height="30px"></div>
+               <div><i class="icon-checklist icon-3x" ></i></div>
                <%= TranslationService.t('menu-plan')%>
              </span>
          </div>
@@ -66,15 +66,22 @@
     </div>
 
 </div>
+
 <!-- simple jquery script to make all the panels equal height -->
 <script>
   $( document ).ready(function() {
-    panels = $('.homepanel .panel-default .panel-body');
-    maxHeight = Math.max.apply(
-      Math, panels.map(function() {
-        return $(this).height();
-        }).get());
-    panels.maxHeight(maxHeight);
+   const panels = document.querySelectorAll('.homepanel .panel-default .panel-body');
+   let maxHeight = 0;
+   for (let i = 0; i < panels.length; i++) {
+      const panel = panels[i];
+      const panelHeight = panel.offsetHeight;
+      if (maxHeight < panelHeight) {
+        maxHeight = panelHeight;
+      }
+    }
+    for (let panel of panels) {
+      panel.style.minHeight = `${maxHeight}px`;
+    }
   });
 </script>
 </div>

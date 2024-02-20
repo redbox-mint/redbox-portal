@@ -1,8 +1,9 @@
 {
 	"info": {
-		"_postman_id": "363eaa2d-3707-4d81-811e-b0f3ace19590",
+		"_postman_id": "e8c23941-c2d8-4537-810f-031a881dd33d",
 		"name": "Redbox Portal API - With tests",
-		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "6438809"
 	},
 	"item": [
 		{
@@ -307,6 +308,79 @@
 							"response": []
 						},
 						{
+							"name": "Export RDMP Records",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test(\"There is more than 1 RDMP record in the records\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData.records.length).to.be.greaterThan(0);",
+											"});",
+											"",
+											"pm.test(\"Content-Disposition is present and valid\", function () {",
+											"    pm.response.to.have.header(\"Content-Disposition\");",
+											"    pm.response.to.be.header(\"Content-Disposition\", 'attachment; filename=\"Plan - Exported Records.json\"');",
+											"});",
+											""
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									},
+									{
+										"key": "",
+										"value": "",
+										"type": "text",
+										"disabled": true
+									}
+								],
+								"url": {
+									"raw": "{{host}}/default/rdmp/api/export/record/download/json?before=&after=&recType=rdmp",
+									"host": [
+										"{{host}}"
+									],
+									"path": [
+										"default",
+										"rdmp",
+										"api",
+										"export",
+										"record",
+										"download",
+										"json"
+									],
+									"query": [
+										{
+											"key": "before",
+											"value": ""
+										},
+										{
+											"key": "after",
+											"value": ""
+										},
+										{
+											"key": "recType",
+											"value": "rdmp"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
 							"name": "Get RDMP's Metadata - Updated Test",
 							"event": [
 								{
@@ -469,10 +543,16 @@
 										"audit",
 										"{{dmpOid}}"
 									],
-								"query": [
-									{"key":"dateFrom","value":"2023"},
-									{"key":"dateTo","value":"2021"}
-								]
+									"query": [
+										{
+											"key": "dateFrom",
+											"value": "2023"
+										},
+										{
+											"key": "dateTo",
+											"value": "2021"
+										}
+									]
 								}
 							},
 							"response": []
@@ -649,6 +729,213 @@
 									]
 								},
 								"description": "Delete Record"
+							},
+							"response": []
+						},
+						{
+							"name": "List Deleted RDMPs",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test(\"There is more than 1 RDMP record in the records\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData.records.length).to.be.greaterThan(0);",
+											"});",
+											"",
+											"pm.test(\"Check record has oid and metadata properties\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData.records[0]).to.have.property(\"oid\")",
+											"    pm.expect(jsonData.records[0]).to.have.property(\"deletedRecord\")",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									},
+									{
+										"key": "",
+										"value": "",
+										"type": "text",
+										"disabled": true
+									}
+								],
+								"url": {
+									"raw": "{{host}}/default/rdmp/api/deletedrecords/list?recordType=rdmp",
+									"host": [
+										"{{host}}"
+									],
+									"path": [
+										"default",
+										"rdmp",
+										"api",
+										"deletedrecords",
+										"list"
+									],
+									"query": [
+										{
+											"key": "recordType",
+											"value": "rdmp"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Restore Deleted Record",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									},
+									{
+										"key": "",
+										"value": "",
+										"type": "text",
+										"disabled": true
+									}
+								],
+								"url": {
+									"raw": "{{host}}/default/rdmp/api/deletedrecords/{{dmpOidToDelete}}",
+									"host": [
+										"{{host}}"
+									],
+									"path": [
+										"default",
+										"rdmp",
+										"api",
+										"deletedrecords",
+										"{{dmpOidToDelete}}"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Delete Record Again",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test(\"Success is set and is true\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData).to.have.property('success');",
+											"    pm.expect(jsonData.success).to.eql(true);",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "DELETE",
+								"header": [],
+								"url": {
+									"raw": "{{host}}/default/rdmp/api/records/metadata/{{dmpOidToDelete}}",
+									"host": [
+										"{{host}}"
+									],
+									"path": [
+										"default",
+										"rdmp",
+										"api",
+										"records",
+										"metadata",
+										"{{dmpOidToDelete}}"
+									]
+								},
+								"description": "Delete Record"
+							},
+							"response": []
+						},
+						{
+							"name": "Destroy Deleted Record",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "DELETE",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									},
+									{
+										"key": "",
+										"value": "",
+										"type": "text",
+										"disabled": true
+									}
+								],
+								"url": {
+									"raw": "{{host}}/default/rdmp/api/deletedrecords/{{dmpOidToDelete}}",
+									"host": [
+										"{{host}}"
+									],
+									"path": [
+										"default",
+										"rdmp",
+										"api",
+										"deletedrecords",
+										"{{dmpOidToDelete}}"
+									]
+								}
 							},
 							"response": []
 						},
@@ -1942,6 +2229,249 @@
 									"path": [
 										"user",
 										"login_local"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "List Dashboard Types",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test(\"Has forms in response\", function () {",
+											"    var jsonData = pm.response.json();",
+											"     pm.expect(jsonData).to.have.property(\"dashboardTypes\");",
+											"     pm.expect(jsonData.dashboardTypes.length).to.be.greaterThan(0)",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									},
+									{
+										"key": "X-Source",
+										"value": "jsclient",
+										"type": "text"
+									},
+									{
+										"key": "Accept",
+										"value": "application/json, text/plain, */*",
+										"type": "text"
+									},
+									{
+										"key": "Cookie",
+										"value": "{{cookie}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{host}}/default/rdmp/dashboard/type",
+									"host": [
+										"{{host}}"
+									],
+									"path": [
+										"default",
+										"rdmp",
+										"dashboard",
+										"type"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Get Dashboard Type Standard",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test(\"Has name property\", function () {",
+											"    var jsonData = pm.response.json();",
+											"     pm.expect(jsonData).to.have.property(\"name\");",
+											"     pm.expect(jsonData).to.have.property(\"formatRules\");",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									},
+									{
+										"key": "X-Source",
+										"value": "jsclient",
+										"type": "text"
+									},
+									{
+										"key": "Accept",
+										"value": "application/json, text/plain, */*",
+										"type": "text"
+									},
+									{
+										"key": "Cookie",
+										"value": "{{cookie}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{host}}/default/rdmp/dashboard/type/standard",
+									"host": [
+										"{{host}}"
+									],
+									"path": [
+										"default",
+										"rdmp",
+										"dashboard",
+										"type",
+										"standard"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Get Dashboard Type Workspace",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test(\"Has name property\", function () {",
+											"    var jsonData = pm.response.json();",
+											"     pm.expect(jsonData).to.have.property(\"name\");",
+											"     pm.expect(jsonData).to.have.property(\"formatRules\");",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									},
+									{
+										"key": "X-Source",
+										"value": "jsclient",
+										"type": "text"
+									},
+									{
+										"key": "Accept",
+										"value": "application/json, text/plain, */*",
+										"type": "text"
+									},
+									{
+										"key": "Cookie",
+										"value": "{{cookie}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{host}}/default/rdmp/dashboard/type/workspace",
+									"host": [
+										"{{host}}"
+									],
+									"path": [
+										"default",
+										"rdmp",
+										"dashboard",
+										"type",
+										"workspace"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Get Dashboard Type Consolidated",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test(\"Has name property\", function () {",
+											"    var jsonData = pm.response.json();",
+											"     pm.expect(jsonData).to.have.property(\"name\");",
+											"     pm.expect(jsonData).to.have.property(\"formatRules\");",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									},
+									{
+										"key": "X-Source",
+										"value": "jsclient",
+										"type": "text"
+									},
+									{
+										"key": "Accept",
+										"value": "application/json, text/plain, */*",
+										"type": "text"
+									},
+									{
+										"key": "Cookie",
+										"value": "{{cookie}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{host}}/default/rdmp/dashboard/type/consolidated",
+									"host": [
+										"{{host}}"
+									],
+									"path": [
+										"default",
+										"rdmp",
+										"dashboard",
+										"type",
+										"consolidated"
 									]
 								}
 							},
@@ -6036,7 +6566,7 @@
 									"});",
 									"",
 									"pm.test(\"Has valid content\", function () {",
-									"    pm.expect(pm.response.stream.toString()).to.match(/^@charset \"UTF-8\"/)",
+									"    pm.expect(pm.response.stream.toString()).to.match(/^.*@charset \"UTF-8\"/)",
 									"});",
 									""
 								],
@@ -6163,8 +6693,15 @@
 								"json"
 							],
 							"query": [
-								{"key":"wt","value":"json"},
-								{"key":"add","value":"[8d95849003df11ed8b078341db3bde98 (1738385794638282752)]"}							]
+								{
+									"key": "wt",
+									"value": "json"
+								},
+								{
+									"key": "add",
+									"value": "[8d95849003df11ed8b078341db3bde98 (1738385794638282752)]"
+								}
+							]
 						}
 					},
 					"response": []

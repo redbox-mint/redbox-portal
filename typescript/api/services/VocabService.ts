@@ -20,7 +20,7 @@
 import { Observable, Scheduler } from 'rxjs/Rx';
 import {Services as services}   from '@researchdatabox/redbox-core-types';
 import {Sails, Model} from "sails";
-import * as request from "request-promise";
+import axios from 'axios';
 
 
 declare var CacheService, RecordsService, AsynchsService;
@@ -46,7 +46,8 @@ export module Services {
       'findCollection',
       'findInMint',
       'findInExternalService',
-      'rvaGetResourceDetails'
+      'rvaGetResourceDetails',
+      'findInMintTriggerWrapper'
     ];
 
     public bootstrap() {
@@ -59,6 +60,76 @@ export module Services {
       .last();
     }
 
+    public async findInMintTriggerWrapper(user: object, options: object, failureMode: string) {
+      let additionalInfoFound = _.get(user, 'additionalInfoFound');
+      if(!_.isArray(additionalInfoFound)) {
+        additionalInfoFound = [];
+      }
+      try {
+        let sourceType = _.get(options, 'sourceType');
+        let queryStringTmp = _.get(options, 'queryString');
+        let compiledTemplate = _.template(queryStringTmp, {});
+        let fieldsToMap = _.get(options, 'fieldsToMap');
+        
+        let queryString = compiledTemplate({user: user});
+        let mintResponse = await this.findInMint(sourceType, queryString).toPromise();
+        let responseDocs = _.get(mintResponse, 'response.docs');
+        if(_.isArray(responseDocs) && responseDocs.length > 0) {
+
+          for(let fieldName of fieldsToMap) {
+            let sourceField = _.get(responseDocs[0], fieldName);
+            if(!_.isUndefined(sourceField) && !_.isEmpty(sourceField) && !_.isNull(sourceField)) {
+              _.set(user, 'additionalAttributes.'+fieldName, sourceField);
+            }
+          }
+          this.setSuccessOrFailure(user, additionalInfoFound, '', true);
+
+        } else {
+          
+          this.setSuccessOrFailure(user, additionalInfoFound, failureMode);
+        }
+
+        return user;
+
+      } catch (err) {
+        sails.log.error(`findInMintTriggerWrapper failed to complete. Additional info for user ${_.get(user, 'name')} not found`);
+        sails.log.error(err);
+        sails.log.error(options);
+        this.setSuccessOrFailure(user, additionalInfoFound, failureMode);
+        return user; 
+      }
+    }
+
+    private setSuccessOrFailure( user: object, additionalInfoFound: any, failureMode: string, forceSuccess: boolean = false) {
+      
+      if (forceSuccess) {
+
+        let successResponse = {
+          message: `Additional info for user ${_.get(user, 'name')} found.`,
+          isSuccess: true
+        };
+        additionalInfoFound.push(successResponse);
+        _.set(user, 'additionalInfoFound', additionalInfoFound);
+
+      } else if (failureMode == 'continue') {
+
+        let successResponse = {
+          message: `Additional info for user ${_.get(user, 'name')} not found. Ignore because failure mode is set to ${failureMode}`,
+          isSuccess: true
+        };
+        additionalInfoFound.push(successResponse);
+        _.set(user, 'additionalInfoFound', additionalInfoFound);
+
+      } else {
+        let errorResponse = {
+          message: `Additional info for user ${_.get(user, 'name')} not found`,
+          isSuccess: false
+        };
+        additionalInfoFound.push(errorResponse);
+        _.set(user, 'additionalInfoFound', additionalInfoFound);
+      }
+    }
+
     public findInMint(sourceType, queryString) {
       queryString = _.trim(queryString);
       let searchString = '';
@@ -68,9 +139,10 @@ export module Services {
 
       const mintUrl = `${sails.config.record.baseUrl.mint}${sails.config.mint.api.search.url}?q=repository_type:${sourceType}${searchString}&version=2.2&wt=json&start=0`;
       sails.log(mintUrl);
-      const options = this.getMintOptions(mintUrl);
+      const options = this.getMintOptions(mintUrl, sails.config.record.api.search.method);
       sails.log.verbose(options);
-      return Observable.fromPromise(request[sails.config.record.api.search.method](options));
+      
+      return Observable.fromPromise(axios(options).then(res => res.data));
     }
 
     public findInExternalService(providerName, params) {
@@ -82,14 +154,27 @@ export module Services {
 
       sails.log.info(url);
       let options = sails.config.vocab.providers[providerName].options;
-      options['url'] = url;
-      options['json'] = true;
-      sails.log.verbose(options);
 
       if(method == 'post') {
-        options['body'] = params.postBody;
+        const post = {
+          method: method,
+          url: url,
+          data: params.postBody,
+          params: options
+        };
+        sails.log.verbose(post);
+        
+        return Observable.fromPromise(axios(post));
+      } else {
+        const getSearch = {
+          method: sails.config.record.api.search.method,
+          url: url,
+          params: options
+        };
+        sails.log.verbose(getSearch);
+        
+        return Observable.fromPromise(axios(getSearch));
       }
-      return Observable.fromPromise(request[sails.config.record.api.search.method](options));
     }
 
     private getTemplateStringFunction(template) {
@@ -131,8 +216,7 @@ export module Services {
     // have to do this since ANDS endpoint ignores _pageSize
     protected getConcepts(url, rawItems) {
       console.log(`Getting concepts....${url}`);
-      const options = {url:url, json: true};
-      return Observable.fromPromise(request.get(options))
+      return Observable.fromPromise(axios.get(url))
       .flatMap((resp) => {
         let response:any = resp;
         rawItems = rawItems.concat(response.result.items);
@@ -145,8 +229,7 @@ export module Services {
 
     protected getNonAndsVocab(vocabId) {
       const url = sails.config.vocab.nonAnds[vocabId].url;
-      const options = {url: url, json:true};
-      return Observable.fromPromise(request.get(options)).flatMap(response => {
+      return Observable.fromPromise(axios.get(url)).flatMap(response => {
         CacheService.set(vocabId, response);
         return Observable.of(response);
       });
@@ -163,8 +246,7 @@ export module Services {
           const url = sails.config.vocab.collection[collectionId].url;
           sails.log.verbose(`Loading collection: ${collectionId}, using url: ${url}`);
           const methodName = sails.config.vocab.collection[collectionId].saveMethod;
-          const options = {url: url, json:true};
-          return Observable.fromPromise(request.get(options))
+          return Observable.fromPromise(axios.get(url))
           .flatMap(resp => {
             let response:any = resp;
             sails.log.verbose(`Got response retrieving data for collection: ${collectionId}, saving...`);
@@ -212,16 +294,24 @@ export module Services {
 
     public rvaGetResourceDetails(uri,vocab) {
       const url = sails.config.vocab.rootUrl+`${vocab}/resource.json?uri=${uri}`;
-      const options = {url: url, json:true};
-
-      return Observable.fromPromise(request.get(options)).flatMap(response => {
+      return Observable.fromPromise(axios.get(url)).flatMap(response => {
         CacheService.set(vocab, response);
         return Observable.of(response);
       });
     }
 
-    protected getMintOptions(url) {
-      return {url:url, json:true, headers: {'Authorization': `Bearer ${sails.config.mint.apiKey}`, 'Content-Type': 'application/json; charset=utf-8'}};
+    protected getMintOptions(url, method, contentType = 'application/json; charset=utf-8') {
+
+      const opts =  {
+        method: method,
+        url: url,
+        headers: {
+          'Authorization': `Bearer ${sails.config.mint.apiKey}`, 
+          'Content-Type': contentType
+        }
+      };
+
+      return opts;
     }
   }
 }

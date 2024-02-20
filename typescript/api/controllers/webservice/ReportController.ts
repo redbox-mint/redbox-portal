@@ -28,8 +28,7 @@ declare var UsersService;
 declare var User;
 declare var Record;
 declare var _;
-import { APIActionResponse, APIErrorResponse, ListAPIResponse } from '@researchdatabox/redbox-core-types';
-const moment = require('moment');
+import { APIErrorResponse } from '@researchdatabox/redbox-core-types';
 /**
  * Package that contains all Controllers.
  */
@@ -37,7 +36,7 @@ import { Controllers as controllers } from '@researchdatabox/redbox-core-types';
 
 
 
-declare var TranslationService;
+declare var NamedQueryService;
 
 export module Controllers {
   /**
@@ -66,20 +65,13 @@ export module Controllers {
 
     }
 
-    private filterObject(obj, predicate) {
-      return Object.keys(obj).reduce((memo, key) => {
-        if (predicate(obj[key], key)) {
-          memo[key] = obj[key]
-        }
-        return memo
-      }, {})
-    }
 
     public async executeNamedQuery(req, res) {
       try {
         const brand = BrandingService.getBrand(req.session.branding);
         let queryName = req.param('queryName');
-        if (_.isEmpty(sails.config.namedQuery[queryName])) {
+        let namedQuery = await NamedQueryService.getNamedQueryConfig(brand,queryName);
+        if (_.isEmpty(namedQuery)) {
           return this.apiFail(req, res, 400, new APIErrorResponse("Named query not found"));
         }
 
@@ -100,135 +92,18 @@ export module Controllers {
         let mongoQuery = _.clone(configMongoQuery);
         let queryParams = namedQueryConfig.queryParams;
         let paramMap = _.clone(req.query);
-
-        //query params
-        const dataType = 'type';
-        const path = 'path';
-        const queryType = 'queryType';
-        const whenUndefined = 'whenUndefined';
-        const defaultValue = 'defaultValue';
-        const ignore = 'ignore';
-        const ISODate = 'ISODate';
-        const days = 'days';
-        const format = 'format';
-
-        //data types
-        const dateDT = 'date';
-        const numberDT = 'number';
-        const stringDT = 'string';
-
-        for (let queryParam in queryParams) {
-          
-          let value = paramMap[queryParam];
-          sails.log.error(`${queryParam} has value ${value}`);
-          if (value == undefined && queryParams[queryParam].required === true) {
-            return this.apiFail(req, res, 400, new APIErrorResponse(`${queryParam} is a required parameter`));
-          }
-          if (queryParams[queryParam][dataType] == numberDT) {
-            value = _.toNumber(value)
-          }
-
-          if (queryParams[queryParam][dataType] == stringDT) {
-            if (!_.isEmpty(queryParams[queryParam][queryType])) {
-              let query = {}
-              // if there is no value pass empty string
-
-              if (value == undefined) {
-                if (queryParams[queryParam][whenUndefined] == defaultValue) {
-                  value = queryParams[queryParam][defaultValue];
-                }
-              }
-              if (value != undefined || (value == undefined && queryParams[queryParam][whenUndefined] != ignore)) {
-                query[queryParams[queryParam][queryType]] = value;
-                value = query;
-              }
-            }
-          }
-
-          if(queryParams[queryParam][dataType] == dateDT) {
-            if (!_.isEmpty(queryParams[queryParam][queryType])) {
-              let query = {};
-              if (_.isUndefined(value)) {
-                if (queryParams[queryParam][whenUndefined] == defaultValue) {
-                  if(queryParams[queryParam][format] == days) {
-                    let days = _.toInteger(queryParams[queryParam][defaultValue]);
-                    let nowDateAddOrSubtract = moment();
-                    if (days > 0) {
-                      //Going forward in time X number of days
-                      nowDateAddOrSubtract = nowDateAddOrSubtract.add(days, 'days');
-                    } else if(days < 0) {
-                      //This "additional" step makes the code self explanatory
-                      days = days * -1;
-                      //Going backwards in time X number of days
-                      nowDateAddOrSubtract = nowDateAddOrSubtract.subtract(days, 'days');
-                    }
-                    value = nowDateAddOrSubtract.toISOString();
-                  } else if(queryParams[queryParam][format] == ISODate) {
-                    value = queryParams[queryParam][defaultValue];
-                  }
-                  query[queryParams[queryParam][queryType]] = value;
-                  value = query;
-                }
-              }
-            }
-          }
-          
-          if (value == undefined && queryParams[queryParam][whenUndefined] == ignore) {
-            
-              delete mongoQuery[queryParams[queryParam][path]];
-          } else {
-
-            let existingValue = _.get(mongoQuery,queryParams[queryParam][path])
-            if(existingValue != null && _.isObject(existingValue)) {
-              _.merge(value,existingValue);
-            }
-            _.set(mongoQuery, queryParams[queryParam][path], value);
-          }
-        }
-        
-        mongoQuery['metaMetadata.brandId'] = brand.id;
-
-        sails.log.error(mongoQuery);
-        let totalItems = await Record.count(mongoQuery).meta({
-          enableExperimentalDeepTargets: true
-        });
-        let results = [];
-        if (totalItems > 0) {
-          results = await Record.find({
-            where: mongoQuery,
-            skip: start,
-            limit: rows
-          }).meta({
-            enableExperimentalDeepTargets: true
-          })
-        }
-        let responseRecords = []
-        for (let record of results) {
-          responseRecords.push({
-            oid: record.redboxOid,
-            title: record.metadata.title,
-            metadata: record.metadata
-          })
-        }
-        let response = new ListAPIResponse();
-
-
-        let startIndex = start;
-        let noItems = rows;
-        let pageNumber = Math.floor((startIndex / noItems) + 1);
-
-        response.records = responseRecords;
-        response.summary.start = start
-        response.summary.page = pageNumber
-        response.summary.numFound = totalItems;
-
+        let response = await NamedQueryService.performNamedQuery(mongoQuery,queryParams,paramMap,brand,start,rows)
+        sails.log.error("NamedQueryService response")
+        sails.log.error(response)
         return this.apiRespond(req, res, response, 200)
       } catch (error) {
         return this.apiFail(req, res, 500, new APIErrorResponse(error.message));
       }
     }
+    
+    
 
-
+    
 
     /**
      **************************************************************************************************

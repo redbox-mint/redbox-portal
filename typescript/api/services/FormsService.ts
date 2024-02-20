@@ -116,6 +116,7 @@ export module Services {
               type: sails.config.form.forms[formName].type,
               messages: sails.config.form.forms[formName].messages,
               viewCssClasses: sails.config.form.forms[formName].viewCssClasses,
+              requiredFieldIndicator: sails.config.form.forms[formName].requiredFieldIndicator,
               editCssClasses: sails.config.form.forms[formName].editCssClasses,
               skipValidationOnSave: sails.config.form.forms[formName].skipValidationOnSave,
               attachmentFields: sails.config.form.forms[formName].attachmentFields,

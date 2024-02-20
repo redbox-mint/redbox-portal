@@ -1,0 +1,45 @@
+<span class="print-hidden">
+
+<span *ngIf="field.pdfAttachments.length > 0">
+  <!-- <a [attr.href]="getDownloadUrl(field.latestPdf)+'&fileName=rdmp.pdf'" target="_blank" [ngClass]="field.cssClasses"><i class="fa fa-file-pdf-o">&nbsp;</i> Download a PDF of this plan</a>
+  <a *ngIf="field.pdfAttachments.length > 1" data-bs-toggle="modal" data-target="#pdfHistoryModal" [ngClass]="field.cssClasses">Download a previous version</a> -->
+
+
+  <div class="btn-group">
+    <a type="button" [attr.href]="getDownloadUrl(field.latestPdf, true)" target="_blank" rel="noopener noreferrer" class="btn btn-danger"><i class="fa fa-file-pdf-o">&nbsp;</i>{{ field.downloadBtnLabel }}</a>
+    <button type="button" class="btn btn-danger dropdown-toggle" data-bs-toggle="dropdown">
+      <span class="sr-only" [innerHtml]="'toggle-dropdown' | translate"></span>
+    </button>
+    <ul class="dropdown-menu" role="menu">
+      <li><a (click)="showDialog()" >{{ field.downloadPreviousBtnLabel }}</a></li>
+    </ul>
+  </div>
+</span>
+
+<!-- Modal -->
+<div class="modal fade {{field.name}}PdfDialog" tabindex="-1" role="dialog" [attr.aria-label]="'pdf-history-modal-label' | translate" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-body">
+        <table class="table">
+          <thead>
+              <tr>
+                  <th *ngIf="field.showVersionColumn">{{ '@pdf-column-version' | translate }}</th><th>{{ '@pdf-column-date-created' | translate }}</th><th>{{ '@pdf-column-download' | translate }}</th>
+              </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let item of field.pdfAttachments; index as i;">
+              <td *ngIf="field.showVersionColumn"><span [innerHtml]="field.getVersionLabel(attachment, i)"></span></td>
+              <td>{{ item.dateUpdated }}</td>
+              <td><a [attr.href]="getDownloadUrl(item, field.useVersionLabelForFileName, i)" target="_blank" rel="noopener noreferrer"><i class="fa fa-file-pdf-o"></i> {{ '@pdf-column-download' | translate }}</a></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-default" data-bs-dismiss="modal">{{ '@pdf-close' | translate }}</button>
+      </div>
+    </div>
+  </div>
+</div>
+</span>

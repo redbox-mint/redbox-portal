@@ -1,0 +1,59 @@
+<div class="row">
+  <div class="col-md-offset-2 col-md-8" *ngIf="!isLoading">
+    <div class="panel panel-default">
+      <div class="panel-heading">
+        <h3 class="panel-title">
+          {{ 'record-search-heading' | translate }}
+        </h3>
+      </div>
+      <div class="panel-body" style="overflow:scroll" >
+        <div class="input-group">
+          <span class="input-group-addon" id="basic-search-addon">{{ 'record-search-basic-search' | translate }}</span>
+          <input type="text" [disabled]="isSearching" [(ngModel)]="params.basicSearch" class="form-control" placeholder="{{ 'record-search-basic-search-placeholder' | translate}}" (keyup.enter)="search()" aria-describedby="basic-search-addon">
+          <span class="input-group-btn">
+            <button [disabled]="isSearching || !params.basicSearch" class="btn btn-primary" type='button' (click)="search()">
+              {{ 'record-search-' + record_type + '-submit' | translate }}
+            </button>
+            <button [disabled]="isSearching" class="btn btn-primary dropdown-toggle" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>
+            <ul class="dropdown-menu dropdown-menu-right">
+              <li *ngFor="let recTypeName of getRecordTypeNames()">
+                <a href="#" (click)="setRecordType(recTypeName, $event)">{{ 'record-search-' + recTypeName + '-submit' | translate }}</a>
+              </li>
+            </ul>
+          </span>
+        </div>
+        <div><br/></div>
+        <button [disabled]="isSearching" class="btn btn-primary" type='button' (click)="resetSearch()">{{ 'record-search-reset' | translate }}</button>
+        <div><br/></div>
+        <div *ngIf="searchMsg" class="bg-{{searchMsgType}} text-center" [innerHtml]="searchMsg"></div>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- Results section -->
+<ng-container  *ngIf="!isLoading && !isSearching && ((plans && plans.length > 0) || params.hasActiveRefiners())">
+  <div class="row">
+    <div class="col-md-2">
+      <!-- Exact match and facets -->
+      <record-search-refiner *ngFor="let refinerConfig of params.getRefinerConfigs()" [isSearching]="isSearching" [refinerConfig]="refinerConfig" (onApplyFilter)="search($event)" ></record-search-refiner>
+    </div>
+    <div class="col-md-10">
+      <div class="panel panel-default" *ngFor="let plan of plans">
+        <div class="panel-body">
+          <h3>
+            <a href="{{ recordsService.brandingAndPortalUrl }}/record/view/{{ plan.storage_id }}" target="_blank">{{ plan.dashboardTitle }}</a>
+            <a *ngIf="plan.hasEditAccess" class="glyphicon glyphicon-pencil" href="{{ recordsService.brandingAndPortalUrl }}/record/edit/{{ plan.storage_id }}" tooltip="Edit" ></a>
+          </h3>
+          <div [innerHtml]="plan.description"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-md-10 col-md-offset-2">
+      <pagination *ngIf="totalItems > 0" [directionLinks]="false" [boundaryLinks]="true" [totalItems]="totalItems"
+        [(ngModel)]="params.currentPage" (pageChanged)="pageChanged($event)" class="pagination-sm" [maxSize]="10"></pagination>
+    </div>
+  </div>
+
+</ng-container>

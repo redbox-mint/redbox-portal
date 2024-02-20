@@ -8,7 +8,7 @@
   <div class="col-xs-1">
   </div>
 </div>
-<dmp-form oid="<%= req.param('oid') %>" editMode="false" ></dmp-form>
+<dmp-form oid="<%= req.param('oid') %>" editMode="false" branding="<%= typeof branding == 'undefined'? data.branding : branding %>" portal="<%= typeof portal == 'undefined'? data.portal : portal %>"></dmp-form>
 <%
 var currentMinute = sails.config.startupMinute;
 %>

@@ -29,8 +29,8 @@ import {
   Sails,
   Model
 } from "sails";
-import moment = require('moment');
-import * as numeral from 'numeral';
+import { default as moment } from 'moment';
+import numeral from 'numeral';
 
 import {
   isObservable
@@ -298,7 +298,7 @@ export module Services {
       return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
     }
 
-    protected addEmailToList(contributor, emailProperty, emailList) {
+    protected addEmailToList(contributor, emailProperty, emailList, lowerCaseEmailAddresses:boolean = true) {
       let contributorEmailAddress = _.get(contributor, emailProperty, null);
       if (!contributorEmailAddress) {
         if (!contributor) {
@@ -312,6 +312,9 @@ export module Services {
         }
         if (_.isString(contributorEmailAddress)) {
           sails.log.verbose(`Pushing contrib email address ${contributorEmailAddress}`);
+          if(lowerCaseEmailAddresses) {
+            contributorEmailAddress = contributorEmailAddress.toLowerCase()
+          }
           emailList.push(contributorEmailAddress);
         }
       }
@@ -660,6 +663,7 @@ export module Services {
       sails.log.verbose(`runTemplates oid: ${oid} with user: ${JSON.stringify(user)}`);
       sails.log.verbose(JSON.stringify(record));
 
+      let parseObject = _.get(options, 'parseObject', false);
       let tmplConfig = null;
       try {
         _.each(options.templates, (templateConfig) => {
@@ -676,7 +680,12 @@ export module Services {
             imports: imports
           };
           const data = _.template(templateConfig.template, templateData)();
-          _.set(record, templateConfig.field, data);
+          if(parseObject) {
+            let obj = JSON.parse(data);
+            _.set(record, templateConfig.field, obj);
+          } else {
+            _.set(record, templateConfig.field, data);
+          }
         });
       } catch (e) {
         const errLog = `Failed to run one of the string templates: ${JSON.stringify(tmplConfig)}`

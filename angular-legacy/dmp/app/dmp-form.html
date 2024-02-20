@@ -1,0 +1,43 @@
+<div *ngIf="!criticalError" class="row">
+  <div class="col-xs-1"></div>
+  <div class="col-xs-10">
+      <div [ngClass]="cssClasses">
+        <div *ngIf="form">
+          <form (ngSubmit)="onSubmit()" [formGroup]="form">
+            <dmp-field *ngFor="let field of fields" [field]="field" [form]="form" class="form-row" [fieldMap]="fieldMap"></dmp-field>
+            <div *ngIf="editMode" class="form-row">
+              <div class="form-status-message pull-right col-md-10 margin-15">
+                <p class="alert-info text-16 padding-10" *ngIf="status.saving">{{status.saving.msg}}<i class="fa fa-spinner fa-pulse fa-1x fa-fw"></i></p>
+                <p class="alert-danger text-16 padding-10" *ngIf="status.error && failedValidationLinks != undefined">
+                  {{status.error.msg}}
+                  <a style="cursor:pointer" *ngFor="let failedValidationLink of failedValidationLinks" (click)="gotoTab(failedValidationLink.parentId)">
+                      {{failedValidationLink.label}}
+                  </a>
+                </p>
+                <p class="alert-danger text-16 padding-10" [innerHTML]="status.error.msg" *ngIf="status.error && failedValidationLinks == undefined"></p>
+                <p class="alert-success text-16 s padding-10" *ngIf="status.success">{{status.success.msg}}</p>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+  </div>
+  <div class="col-xs-1"></div>
+</div>
+<div *ngIf="criticalError" class="row">
+  <div class="col-xs-2"></div>
+  <div class="col-xs-8">
+    <div class="panel panel-danger">
+      <div class="panel-heading">
+         <h3 class="panel-title">Error</h3>
+       </div>
+       <div class="panel-body">
+         <code>
+           {{criticalError}}
+         </code>
+       </div>
+    </div>
+  </div>
+  <div class="col-xs-2"></div>
+</div>
+<h1 *ngIf="finishedRendering" id="GH">Dummy selector</h1>

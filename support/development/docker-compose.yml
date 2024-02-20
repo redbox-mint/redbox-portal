@@ -8,6 +8,8 @@ services:
     image: qcifengineering/redbox-portal:develop
     ports:
       - "1500:1500"
+      # Debugging port
+      - "9876:9876"
     user: node
     volumes:
       - "../..:/opt/redbox-portal:delegated"
@@ -16,10 +18,13 @@ services:
       - "./.dev/hooks:/opt/hooks:delegated"
     expose:
       - "1500"
+      # Debugging port
+      - "9876"
     environment:
       - NODE_ENV=docker
       - PORT=1500
-      - sails_angularDev=true
+      # For NG apps migrated NG 15 or above, if you are actively developing the front-end, then build your app manually, making sure you disable filename hashing, before you use the app.
+      # - sails_angularDev=true
       - sails_redbox__apiKey=c8e844fc-8550-497f-b970-7900ec8741ca
       - sails_record__baseUrl__redbox=http://redbox:9000/redbox
       - sails_record__baseUrl__mint=https://demo.redboxresearchdata.com.au/mint
@@ -33,9 +38,10 @@ services:
       main:
         aliases:
           - rbportal
-    entrypoint: /bin/bash -c "cd /opt/redbox-portal && node app.js"
+    entrypoint: /bin/bash -c "cd /opt/redbox-portal && node --inspect=0.0.0.0:9876 app.js"
   mongodb:
-    image: mvertes/alpine-mongo:latest
+    #image: mvertes/alpine-mongo:latest
+    image: mongo:latest
     volumes:
       - "./devdata:/devdata:delegated"
       - "./.dev/mongo/data/db:/data/db:delegated"

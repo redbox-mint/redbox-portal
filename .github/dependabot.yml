@@ -1,11 +1,31 @@
 version: 2
 updates:
+- package-ecosystem: "docker"
+  directory: "/"
+  schedule:
+    interval: "daily"
+    time: "19:30"
+  target-branch: "develop"
+- package-ecosystem: npm
+  directory: "/angular"
+  schedule:
+    interval: daily
+    time: "07:00"
+  open-pull-requests-limit: 10
+  target-branch: "develop"
+- package-ecosystem: npm
+  directory: "/core"
+  schedule:
+    interval: weekly
+  open-pull-requests-limit: 10
+  target-branch: "develop"
 - package-ecosystem: npm
   directory: "/"
   schedule:
     interval: daily
     time: "19:30"
   open-pull-requests-limit: 10
+  target-branch: "develop"
   ignore:
   - dependency-name: typescript
     versions:

@@ -1,39 +1,18 @@
-<script src="<%= BrandingService.getRootContext() %>/node_modules/bootstrap-datepicker/dist/js/bootstrap-datepicker.min.js"></script>
-<link href='<%= BrandingService.getRootContext() %>/node_modules/bootstrap-datepicker/dist/css/bootstrap-datepicker3.min.css' rel='stylesheet' type='text/css'>
-
+<% let appName = 'report'; %>
+<div class="row"><div class="col-xs-2"></div><div class="col-xs-8"><a class="btn btn-large btn-primary" href="<%= BrandingService.getBrandAndPortalPath(req) %>/admin/reports"><i class="fa fa-arrow-left"></i> <%= TranslationService.t('report-return-to-reports-list') %></a></div></div>
 <div class="row">
-
-</div>
-<div class="row">
-  <div class="col-xs-2">
-
-  </div>
+  <div class="col-xs-2"></div>
   <div class="col-xs-8">
-
-   <report branding="<%= typeof branding == 'undefined'? data.branding : branding %>" portal="<%= typeof portal == 'undefined'? data.portal : portal %>" name="<%= req.param('name') %>"></report>
-   <div class="row" id="loading">
-     <div class="col-xs-1">
-     </div>
-     <div class="col-xs-10">
-       <img class="center-block" src="<%= BrandingService.getRootContext() %>/images/loading.svg" alt="<%= TranslationService.t('loading-alt-text') %>">
-     </div>
-     <div class="col-xs-1">
-     </div>
-   </div>
-
-   <script type="text/javascript" src="<%= BrandingService.getRootContext() %>/angular/report/inline.bundle.js?ts=<%= sails.config.startupMinute %>"></script>
-<script type="text/javascript" src="<%= BrandingService.getRootContext() %>/angular/report/polyfills.bundle.js?ts=<%= sails.config.startupMinute %>"></script>
-<% if (sails.config.angularDev) { %>
-<script type="text/javascript" src="<%= BrandingService.getRootContext() %>/angular/report/vendor.bundle.js?ts=<%= sails.config.startupMinute %>"></script>
-<% } %>
-<script type="text/javascript" src="<%= BrandingService.getRootContext() %>/angular/report/main.bundle.js?ts=<%= sails.config.startupMinute %>"></script>
-<% if (sails.config.angularDev) { %>
-  <script type="text/javascript" src="<%= BrandingService.getRootContext() %>/angular/report/styles.bundle.js?ts=<%= sails.config.startupMinute %>"></script>
-<% } else { %>
-  <link rel="stylesheet" href="<%= BrandingService.getRootContext() %>/angular/report/styles.bundle.css?ts=<%= sails.config.startupMinute %>">
-<% } %>
-
+   <report branding="<%= typeof branding == 'undefined'? data.branding : branding %>" portal="<%= typeof portal == 'undefined'? data.portal : portal %>" reportName="<%= req.param('name') %>">
+    <img class="center-block" src="<%= BrandingService.getRootContext() %>/images/loading.svg" alt="<%= TranslationService.t('loading-alt-text') %>">
+   </report>
   </div>
-  <div class="col-xs-2">
-  </div>
+  <div class="col-xs-2"></div>
 </div>
+<script src="<%= BrandingService.getRootContext() %>/angular/<%=appName%>/runtime<%= CacheService.getNgAppFileHash(appName, 'runtime', '.') %>.js" type="module"></script>
+<script src="<%= BrandingService.getRootContext() %>/angular/<%=appName%>/polyfills<%=CacheService.getNgAppFileHash(appName, 'polyfills', '.') %>.js" type="module"></script>
+<% if (sails.config.angularDev) { %>
+<script src="<%= BrandingService.getRootContext() %>/angular/<%=appName%>/vendor.js" type="module"></script>
+<% } %>
+<script src="<%= BrandingService.getRootContext() %>/angular/<%=appName%>/main<%=CacheService.getNgAppFileHash(appName, 'main', '.') %>.js" type="module"></script>
+<link rel="stylesheet" href="<%= BrandingService.getRootContext() %>/angular/<%= appName %>/styles<%= CacheService.getNgAppFileHash(appName, 'styles', '.') %>.css">

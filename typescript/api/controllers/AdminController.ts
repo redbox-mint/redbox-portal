@@ -22,7 +22,7 @@ declare var module;
 declare var sails;
 declare var _;
 import { Observable } from 'rxjs/Rx';
-import * as uuidv4 from 'uuid/v4';
+import { v4 as uuidv4 } from 'uuid';
 declare var BrandingService, RolesService, UsersService;
 
 import { Controllers as controllers} from '@researchdatabox/redbox-core-types';

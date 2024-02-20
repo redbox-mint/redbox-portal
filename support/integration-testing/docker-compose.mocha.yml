@@ -3,7 +3,7 @@ networks:
   main:
 services:
   redboxportal:
-    image: qcifengineering/redbox-portal:feature-node-14
+    image: qcifengineering/redbox-portal:develop
     ports:
        - "1500:1500"
     volumes:

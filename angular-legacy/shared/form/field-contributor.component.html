@@ -1,0 +1,293 @@
+<ng-container *ngIf="field.visible">
+<div *ngIf="field.editMode" class='padding-bottom-10'>
+  <div class="row" *ngIf="field.label && field.showHeader">
+    <div class="col-xs-12">
+      <span class="label-font">
+       <span [outerHTML]="field.label"></span><span class="form-field-required-indicator" [innerHTML]="getRequiredLabelStr()"></span>
+        <button type="button" class="btn btn-default" *ngIf="field.help" (click)="toggleHelp()" [attr.aria-label]="'help' | translate "><span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span></button>
+      </span>
+    </div>
+  </div>
+  <div class="row" *ngIf="field.showHeader">
+    <span id="{{ 'helpBlock_' + field.name }}" class="col-xs-12 help-block" *ngIf="this.helpShow" [innerHtml]="field.help"></span>
+  </div>
+  <div class="row">
+    <ng-container *ngIf="field.freeText" [formGroup]='field.formModel'>
+      <!-- Free Text version -->
+      <!--
+      <ng-container >
+        <div [ngClass]="getGroupClass('name')">
+          <input formControlName="name" type="text" class="form-control"/>
+          <div class="text-danger" *ngIf="field.formModel.controls['name'].touched && field.formModel.controls['name'].hasError('required')">{{field.validationMessages.required.name}}</div>
+        </div>
+        <div [ngClass]="getGroupClass('email')">
+          <input formControlName="email" type="text" class="form-control" />
+          <div class="text-danger" *ngIf="field.formModel.controls['email'].touched && field.formModel.controls['email'].hasError('email')">{{field.validationMessages.invalid.email}}</div>
+          <div class="text-danger" *ngIf="field.formModel.controls['email'].touched && field.formModel.controls['email'].hasError('required')">{{field.validationMessages.required.email}}</div>
+        </div>
+        <div >
+          <input formControlName="orcid" type="text" class="form-control"/>
+        </div>
+      </ng-container>  -->
+
+      <div *ngIf="!isEmbedded">
+        <div class="row">
+          <span class='col-xs-10' >
+            <!-- Free text not embedded version -->
+            <!-- Name not split -->
+            <ng-container *ngIf="!field.splitNames">
+              <!-- If we show the title -->
+              <ng-container *ngIf="field.showTitle">
+                <div class='col-xs-1'>
+                  <input formControlName="honorific" type="text" class="form-control" [attr.aria-label]="field.titleColHdr" [attr.placeholder]="field.titleColHdr"/>
+                </div>
+              </ng-container>
+              <!-- Name  -->
+              <div class='col-xs-1'>
+                <span class='text-right'>{{ field.nameColHdr }}</span>
+              </div>
+              <div [ngClass]="getGroupClass('text_full_name', true)" >
+                <input formControlName="text_full_name" type="text" class="form-control" [attr.aria-label]="field.nameColHdr"/>
+                <div class="text-danger" *ngIf="field.formModel.controls['text_full_name'].touched && field.formModel.controls['text_full_name'].hasError('required')">{{field.validationMessages.required.text_full_name}}</div>
+              </div>
+            </ng-container>
+            <!-- Name split to family name, give name -->
+            <ng-container *ngIf="field.splitNames">
+              <div class='col-xs-1' >
+                <span class='text-right'>{{ field.familyNameHdr }}</span>
+              </div>
+              <div [ngClass]="getGroupClass('family_name')" >
+                <input formControlName="family_name" type="text" class="form-control"/>
+                <div class="text-danger" *ngIf="field.formModel.controls['family_name'].touched && field.formModel.controls['family_name'].hasError('required')" [attr.aria-label]="field.familyNameHdr">{{field.validationMessages.required.family_name}}</div>
+              </div>
+              <div class='col-xs-1' >
+                <span class='text-right'>{{ field.givenNameHdr }}</span>
+              </div>
+              <div [ngClass]="getGroupClass('given_name')" >
+                <input formControlName="given_name" type="text" class="form-control"/>
+                <div class="text-danger" *ngIf="field.formModel.controls['given_name'].touched && field.formModel.controls['given_name'].hasError('required')" [attr.aria-label]="field.givenNameHdr">{{field.validationMessages.required.given_name}}</div>
+              </div>
+            </ng-container>
+            <!-- Email field -->
+            <ng-container *ngIf="field.showEmail">
+            <div class='col-xs-1'>
+              <span class='text-right'>{{ field.emailColHdr }}</span>
+            </div>
+            <div [ngClass]="getGroupClass('email', !field.splitNames)">
+              <input formControlName="email" type="text" class="form-control" [attr.aria-label]="field.emailColHdr"/>
+              <div class="text-danger" *ngIf="field.formModel.controls['email'].touched && field.formModel.controls['email'].hasError('email')">{{field.validationMessages.invalid.email}}</div>
+              <div class="text-danger" *ngIf="field.formModel.controls['email'].touched && field.formModel.controls['email'].hasError('required')">{{field.validationMessages.required.email}}</div>
+            </div>
+          </ng-container>
+            <ng-container *ngIf="field.showOrcid">
+            <div class='col-xs-1'>
+              <span class='text-right'>{{ field.orcidColHdr }}</span>
+            </div>
+            <div [ngClass]="getGroupClass('orcid', !field.splitNames && !field.showTitle)">
+              <input formControlName="orcid" type="text" class="form-control" [attr.aria-label]="field.orcidColHdr"/>
+            </div>
+          </ng-container>
+          <ng-container *ngIf="field.showRole">
+            <div class='col-xs-1'>
+              <span class='text-right'>{{ field.roleColHdr }}</span>
+            </div>
+            <div [ngClass]="getGroupClass('role', !field.splitNames && !field.showTitle)">
+              <select formControlName="role"  class="form-control" [attr.aria-label]="field.roleColHdr">
+                <option *ngFor="let role of field.roles" [value]="role.value">{{role.label}}</option>
+              </select>
+            </div>
+          </ng-container>
+          </span>
+        </div>
+      </div>
+      <!-- Embedded free text version -->
+      <ng-container *ngIf="isEmbedded">
+        <div class="row">
+          <span class='col-xs-12' >
+            <ng-container *ngIf="field.showTitle">
+              <div class='col-xs-1'>
+                <input formControlName="honorific" type="text" class="form-control" [attr.aria-label]="field.titleColHdr" [attr.placeholder]="field.titleColHdr"/>
+              </div>
+            </ng-container>
+            <!-- Names unsplit -->
+            <div class='col-xs-1' *ngIf="!field.splitNames">
+              <span class='text-right'>{{ field.nameColHdr }}</span>
+            </div>
+            <div [ngClass]="getGroupClass('text_full_name', true)" *ngIf="!field.splitNames">
+              <input formControlName="text_full_name" type="text" class="form-control" [attr.aria-label]="field.nameColHdr"/>
+              <div class="text-danger" *ngIf="field.formModel.controls['text_full_name'].touched && field.formModel.controls['text_full_name'].hasError('required')">{{field.validationMessages.required.text_full_name}}</div>
+            </div>
+            <!-- Names are split -->
+            <div class='col-xs-1' *ngIf="field.splitNames">
+              <span class='text-right'>{{ field.familyNameHdr }}</span>
+            </div>
+            <div [ngClass]="getGroupClass('family_name')" *ngIf="field.splitNames">
+              <input formControlName="family_name" type="text" class="form-control" [attr.aria-label]="field.familyNameHdr"/>
+              <div class="text-danger" *ngIf="field.formModel.controls['family_name'].touched && field.formModel.controls['family_name'].hasError('required')">{{field.validationMessages.required.family_name}}</div>
+            </div>
+            <div class='col-xs-1' *ngIf="field.splitNames">
+              <span class='text-right'>{{ field.givenNameHdr }}</span>
+            </div>
+            <div [ngClass]="getGroupClass('given_name')" *ngIf="field.splitNames">
+              <input formControlName="given_name" type="text" class="form-control" [attr.aria-label]="field.givenNameHdr"/>
+              <div class="text-danger" *ngIf="field.formModel.controls['given_name'].touched && field.formModel.controls['given_name'].hasError('required')">{{field.validationMessages.required.given_name}}</div>
+            </div>
+            <ng-container *ngIf="field.showEmail">
+            <div class='col-xs-1'>
+              <span class='text-right'>{{ field.emailColHdr }}</span>
+            </div>
+            <div [ngClass]="getGroupClass('email', !field.splitNames)">
+              <input formControlName="email" type="text" class="form-control" [attr.aria-label]="field.emailColHdr"/>
+              <div class="text-danger" *ngIf="field.formModel.controls['email'].touched && field.formModel.controls['email'].hasError('email')">{{field.validationMessages.invalid.email}}</div>
+              <div class="text-danger" *ngIf="field.formModel.controls['email'].touched && field.formModel.controls['email'].hasError('required')">{{field.validationMessages.required.email}}</div>
+            </div>
+          </ng-container>
+            <ng-container *ngIf="field.showOrcid">
+            <div class='col-xs-1'>
+              <span class='text-right'>{{ field.orcidColHdr }}</span>
+            </div>
+            <div [ngClass]="getGroupClass('orcid', !field.splitNames && !field.showTitle)">
+              <input formControlName="orcid" type="text" class="form-control" [attr.aria-label]="field.orcidColHdr"/>
+            </div>
+            </ng-container>
+            <ng-container *ngIf="field.showRole">
+              <div class='col-xs-1'>
+                <span class='text-right'>{{ field.roleColHdr }}</span>
+              </div>
+              <div [ngClass]="getGroupClass('role', !field.splitNames && !field.showTitle)">
+                <select formControlName="role"  class="form-control" [attr.aria-label]="field.roleColHdr">
+                  <option *ngFor="let role of field.roles" [value]="role.value">{{role.label}}</option>
+                </select>
+              </div>
+            </ng-container>
+          </span>
+        </div>
+      </ng-container>
+
+    </ng-container>
+    <!-- Lookup version -->
+    <ng-container *ngIf="!field.freeText" [formGroup]="field.formModel">
+      <!-- Not embedded version -->
+      <div *ngIf="!isEmbedded">
+        <div class="row">
+          <span class='col-xs-10' >
+            <!-- Lookup Not Embedded version -->
+            <!-- If we show the title -->
+            <ng-container *ngIf="field.showTitle">
+              <div class="col-xs-1" >
+                <input formControlName="honorific" type="text" class="form-control" [attr.aria-label]="field.titleColHdr" [attr.placeholder]="field.titleColHdr"/>
+              </div>
+            </ng-container>
+            <div class='col-xs-1'>
+              <span class='text-right'>{{ field.nameColHdr }}</span>
+            </div>
+            <div [ngClass]="getGroupClass('text_full_name', true)">
+              <ng2-completer #ngCompleter (opened)="onOpen($event)" (blur)="onBlur()" (keyup)="onKeyUp($event)" (keydown)="onKeydown($event)" [overrideSuggested]="!field.forceLookupOnly" [inputClass]="'form-control'" [placeholder]="field.vocabField.placeHolder" [clearUnselected]="shouldClearUnselected()" (selected)="onSelect($event)" [datasource]="field.vocabField.dataService" [minSearchLength]="0" [initialValue]="field.vocabField.initialValue"></ng2-completer>
+              <div class="text-danger" *ngIf="field.formModel.controls['text_full_name'].hasError('required')">{{field.validationMessages.required.text_full_name}}</div>
+            </div>
+            <ng-container *ngIf="field.showEmail">
+            <div class='col-xs-1'>
+              <span class='text-right'>{{ field.emailColHdr }}</span>
+            </div>
+            <div [ngClass]="getGroupClass('email', true)">
+              <input formControlName="email" type="text" class="form-control" [readOnly]="field.forceLookupOnly" [attr.aria-label]="field.emailColHdr"/>
+              <div class="text-danger" *ngIf="field.formModel.controls['email'].touched && field.formModel.controls['email'].hasError('email')">{{field.validationMessages.invalid.email}}</div>
+              <div class="text-danger" *ngIf="field.formModel.controls['email'].touched && field.formModel.controls['email'].hasError('required')">{{field.validationMessages.required.email}}</div>
+            </div>
+          </ng-container>
+            <ng-container *ngIf="field.showOrcid">
+            <div class='col-xs-1'>
+              <span class='text-right'>{{ field.orcidColHdr }}</span>
+            </div>
+            <div [ngClass]="getGroupClass('orcid', !field.showTitle)">
+              <input formControlName="orcid" type="text" class="form-control" [attr.aria-label]="field.orcidColHdr"/>
+            </div>
+            </ng-container>
+            <ng-container *ngIf="field.showRole">
+              <div class='col-xs-1'>
+                <span class='text-right'>{{ field.roleColHdr }}</span>
+              </div>
+              <div [ngClass]="getGroupClass('role', !field.splitNames && !field.showTitle)">
+                <select formControlName="role"  class="form-control" [attr.aria-label]="field.roleColHdr">
+                  <option *ngFor="let role of field.roles" [value]="role.value">{{role.label}}</option>
+                </select>
+              </div>
+            </ng-container>
+          </span>
+        </div>
+      </div>
+      <ng-container *ngIf="isEmbedded">
+        <div class="row">
+          <span class='col-xs-12' >
+            <!-- Lookup Embedded version -->
+            <!-- If we show the title -->
+            <ng-container *ngIf="field.showTitle">
+              <div class="col-xs-1" >
+                <input formControlName="honorific" type="text" class="form-control" [attr.aria-label]="field.titleColHdr" [attr.placeholder]="field.titleColHdr"/>
+              </div>
+            </ng-container>
+            <div class='col-xs-1'>
+              <span class='text-right'>{{ field.nameColHdr }}</span>
+            </div>
+            <div [ngClass]="getGroupClass('text_full_name', true)">
+              <ng2-completer #ngCompleter (opened)="onOpen($event)" (blur)="onBlur()" (keyup)="onKeyUp($event)" (keydown)="onKeydown($event)" [overrideSuggested]="!field.forceLookupOnly" [inputClass]="'form-control'" [placeholder]="field.vocabField.placeHolder" [clearUnselected]="shouldClearUnselected()" (selected)="onSelect($event)" [datasource]="field.vocabField.dataService" [minSearchLength]="0" [initialValue]="field.vocabField.initialValue"></ng2-completer>
+              <div class="text-danger" *ngIf="field.formModel.controls['text_full_name'].hasError('required')">{{field.validationMessages.required.text_full_name}}</div>
+            </div>
+            <ng-container *ngIf="field.showEmail">
+            <div class='col-xs-1'>
+              <span class='text-right'>{{ field.emailColHdr }}</span>
+            </div>
+            <div [ngClass]="getGroupClass('email', true)">
+              <input formControlName="email" type="text" class="form-control" [readOnly]="field.forceLookupOnly" [attr.aria-label]="field.emailColHdr"/>
+              <div class="text-danger" *ngIf="field.formModel.controls['email'].touched && field.formModel.controls['email'].hasError('email')">{{field.validationMessages.invalid.email}}</div>
+              <div class="text-danger" *ngIf="field.formModel.controls['email'].touched && field.formModel.controls['email'].hasError('required')">{{field.validationMessages.required.email}}</div>
+            </div>
+            </ng-container>
+            <ng-container *ngIf="field.showOrcid">
+            <div class='col-xs-1'>
+              <span class='text-right'>{{ field.orcidColHdr }}</span>
+            </div>
+            <div [ngClass]="getGroupClass('orcid', !field.showTitle)">
+              <input formControlName="orcid" type="text" class="form-control" [attr.aria-label]="field.orcidColHdr" />
+            </div>
+            </ng-container>
+            <ng-container *ngIf="field.showRole">
+              <div class='col-xs-1'>
+                <span class='text-right'>{{ field.roleColHdr }}</span>
+              </div>
+              <div [ngClass]="getGroupClass('role', !field.splitNames && !field.showTitle)">
+                <select formControlName="role"  class="form-control" [attr.aria-label]="field.roleColHdr">
+                  <option *ngFor="let role of field.roles" [value]="role.value">{{role.label}}</option>
+                </select>
+              </div>
+            </ng-container>
+          </span>
+        </div>
+      </ng-container>
+    </ng-container>
+  </div>
+</div>
+<div class="view-contributor" *ngIf="!field.editMode">
+  <div class="row">
+    <div class="col-xs-12 key-value-pair" *ngIf="field.label">
+      <span class="key">
+      {{ field.label }}
+      </span>
+    </div>
+  </div>
+  <div class="row view-contributor" *ngIf="field.showHeader">
+    <div *ngIf="field.showTitle" class="col-xs-1 label-font">{{field.titleColHdr}}</div>
+    <div class="col-xs-3 label-font">{{field.nameColHdr}}</div>
+    <div *ngIf="field.showEmail" [attr.class]="field.showRole? 'col-xs-3':'col-xs-4'"><span class='label-font'>{{field.emailColHdr}}</span></div>
+    <div [attr.class]="field.showRole? 'col-xs-3':'hidden'"><span class='label-font'>{{field.roleColHdr}}</span></div>
+    <div *ngIf="field.showOrcid" [attr.class]="field.showRole? (field.showTitle ? 'col-xs-2' : 'col-xs-3') :'col-xs-4'"><span  class='label-font'>{{field.orcidColHdr}}</span></div>
+  </div>
+  <div class="row view-contributor">
+    <div *ngIf="field.showTitle" class="col-xs-1">{{field.value.honorific}}</div>
+    <div class="col-xs-3">{{field.value.text_full_name}}</div>
+    <div *ngIf="field.showEmail" [attr.class]="field.showRole? 'col-xs-3':'col-xs-4'">{{field.value.email}}</div>
+    <div [attr.class]="field.showRole? 'col-xs-3':'hidden'">{{field.value.text_full_name != null || field.value.text_full_name != '' || field.value.email != null || field.value.email != '' ? field.value.role : ''}}</div>
+    <div *ngIf="field.showOrcid" [attr.class]="field.showRole? (field.showTitle ? 'col-xs-2' : 'col-xs-3') :'col-xs-4'">{{field.value.orcid}}</div>
+  </div>
+</div>
+</ng-container>

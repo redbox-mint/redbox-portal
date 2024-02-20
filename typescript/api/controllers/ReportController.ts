@@ -22,11 +22,11 @@ declare var module;
 declare var sails;
 import { Observable } from 'rxjs/Rx';
 declare var BrandingService, RolesService, DashboardService, ReportsService;
-
+declare var _;
 /**
  * Package that contains all Controllers.
  */
-import { Controllers as controllers} from '@researchdatabox/redbox-core-types';
+import { Controllers as controllers } from '@researchdatabox/redbox-core-types';
 export module Controllers {
   /**
    * Responsible for all things related to the Dashboard
@@ -60,69 +60,45 @@ export module Controllers {
       return this.sendView(req, res, 'admin/report');
     }
 
-    public get(req, res) {
+    public async get(req, res) {
       const brand = BrandingService.getBrand(req.session.branding);
-      ReportsService.get(brand, req.param('name')).subscribe(response => {
-        return this.ajaxOk(req, res, null, response);
-      });
+      const report: Report = await ReportsService.get(brand, req.param('name'));
+      return this.ajaxOk(req, res, null, ReportsService.getReportDto(report));
     }
 
     public getResults(req, res) {
       const brand = BrandingService.getBrand(req.session.branding);
-      var response = ReportsService.getResults(brand, req.param('name'),  req, req.param('start'), req.param('rows'));
-      return response.map(results => {
-        var totalItems = results["response"]["numFound"];
-        var startIndex = results["response"]["start"];
-        var noItems = 10;
-        var pageNumber = (startIndex / noItems) + 1;
-
-        var response = {};
-        response["totalItems"] = totalItems;
-        response["currentPage"] = pageNumber;
-        response["noItems"] = noItems;
-
-        var items = [];
-        var docs = results["response"]["docs"];
-
-        for (var i = 0; i < docs.length; i++) {
-          var doc = docs[i];
-          var item = {};
-          for(var key in doc) {
-            item[key] = doc[key];
-          }
-          items.push(item);
+      var response = Observable.fromPromise(ReportsService.getResults(brand, req.param('name'), req, req.param('start'), req.param('rows')));
+      return response.subscribe(responseObject => {
+        if (responseObject) {
+          let response:any = responseObject;
+          response.success = true;
+          this.ajaxOk(req, res, null, response);
+        } else {
+          this.ajaxFail(req, res, null, responseObject);
         }
-
-        response["items"] = items;
-        return Observable.of(response);
-      }).flatMap(results => {
-          return results;
-        }).subscribe(response => {
-          if (response && response.code == "200") {
-            response.success = true;
-            this.ajaxOk(req, res, null, response);
-          } else {
-            this.ajaxFail(req, res, null, response);
-          }
-        }, error => {
-          sails.log.error("Error updating meta:");
-          sails.log.error(error);
-          this.ajaxFail(req, res, error.message);
-        });;
+      }, error => {
+        sails.log.error("Error updating meta:");
+        sails.log.error(error);
+        this.ajaxFail(req, res, error.message);
+      });;
     }
 
-    public downloadCSV(req, res) {
-      const brand = BrandingService.getBrand(req.session.branding);
+    public async downloadCSV(req, res) {
+      try {
+        const brand = BrandingService.getBrand(req.session.branding);
 
-      var response = ReportsService.getCSVResult(brand, req.param('name'), req);
-      response.subscribe(results => {
-        let fileName = req.param('name')+'.csv';
-        sails.log.verbose("fileName "+fileName);
+        var results = await ReportsService.getCSVResult(brand, req.param('name'), req);
+        let fileName = req.param('name') + '.csv';
+        sails.log.verbose("fileName " + fileName);
         res.attachment(fileName);
         res.set('Content-Type', 'text/csv');
         res.status(200).send(results);
         return res
-      });
+      } catch (error) {
+        sails.log.error(error);
+        this.ajaxFail(req, res, error.message);
+      }
     }
 
     /**

@@ -8,12 +8,17 @@ export interface StorageService{
   createBatch(type, data, harvestIdFldName): Promise<any>;
   provideUserAccessAndRemovePendingAccess(oid, userid, pendingValue): void;
   getRelatedRecords(oid, brand): Promise<any>;
-  delete(oid): Promise<any>;
+  delete(oid, permanentlyDelete): Promise<any>;
   updateNotificationLog(oid, record, options): Promise<any>;
 
-  getRecords(workflowState, recordType, start, rows, username, roles, brand, editAccessOnly, packageType, sort, fieldNames?, filterString?): Promise<any>;
+  restoreRecord(oid): Promise<any>;
+  destroyDeletedRecord(oid): Promise<any>;
+
+  getRecords(workflowState, recordType, start, rows, username, roles, brand, editAccessOnly, packageType, sort, fieldNames?, filterString?, filterMode?): Promise<any>;
+  getDeletedRecords(workflowState, recordType, start, rows, username, roles, brand, editAccessOnly, packageType, sort, fieldNames?, filterString?, filterMode?): Promise<any>;
   exportAllPlans(username, roles, brand, format, modBefore, modAfter, recType): Readable;
 
   createRecordAudit?(record):Promise<any>;
+  exists(oid): Promise<boolean>;
   getRecordAudit(params): Promise<any>;
 }

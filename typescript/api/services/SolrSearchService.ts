@@ -20,7 +20,7 @@
 declare var module;
 import {QueueService, SearchService, Services as services}   from '@researchdatabox/redbox-core-types';
 
-import solr = require('solr-client');
+import { default as solr } from 'solr-client';
 const axios = require('axios');
 const util = require('util');
 const querystring = require('querystring');
@@ -30,7 +30,7 @@ import {
 declare var sails: Sails;
 declare var _;
 declare var _this;
-import * as flat from 'flat';
+let flat;
 import * as luceneEscapeQuery from "lucene-escape-query";
 
 declare var RecordsService;
@@ -47,8 +47,9 @@ export module Services {
       'searchFuzzy',
       'solrAddOrUpdate',
       'solrDelete',
-      'searchAdvanced'
-    ];
+      'searchAdvanced',
+      'preIndex'
+    ]
 
     protected queueService: QueueService;
     private client: any;
@@ -63,6 +64,10 @@ export module Services {
         that.initClient();
         await that.buildSchema();
       });
+    }
+
+    protected async processDynamicImports() {
+      flat = await import("flat");
     }
 
     protected initClient() {
@@ -251,7 +256,7 @@ export module Services {
 
     public async solrAddOrUpdate(job: any) {
       try {
-        let data = job.attrs.data;
+        let data:any = job.attrs.data;
         sails.log.verbose(`${this.logHeader} adding document: ${data.id} to index`);
         // flatten the JSON
         const processedData = this.preIndex(data);
@@ -267,48 +272,79 @@ export module Services {
       }
     }
 
-    private preIndex(data: any) {
-      let processedData = _.cloneDeep(data);
+    // TODO: This method shouldn't need to be public 
+    // but can't unit test it easily if it isn't
+    public preIndex(data: any) {
+      let processedData:any = _.cloneDeep(data);
       // moving
-      _.each(sails.config.solr.preIndex.move, (moveConfig) => {
-        const source = moveConfig.source;
-        const dest = moveConfig.dest;
+      _.each(sails.config.solr.preIndex.move, (moveConfig:any) => {
+        const source:string = moveConfig.source;
+        const dest:string = moveConfig.dest;
         // the data used will always be the original object
-        const moveData = _.get(data, source);
+        const moveData:any = _.get(data, source);
         if (!_.isEmpty(moveData)) {
           _.unset(processedData, source);
           if (_.isEmpty(dest)) {
             // empty destination means the root object
             _.merge(processedData, moveData);
           } else {
-            _.set(processedData, dest);
+            _.set(processedData, dest, moveData);
           }
         } else {
           sails.log.verbose(`${this.logHeader} no data to move from: ${moveConfig.source}, ignoring.`);
         }
       });
       // copying
-      _.each(sails.config.solr.preIndex.copy, (copyConfig) => {
+      _.each(sails.config.solr.preIndex.copy, (copyConfig:any) => {
         _.set(processedData, copyConfig.dest, _.get(data, copyConfig.source));
       });
+
+      _.each(sails.config.solr.preIndex.jsonString, (jsonStringConfig:any) => {
+        let setProperty:string = jsonStringConfig.source;
+        if (jsonStringConfig.dest != null) {
+          setProperty = jsonStringConfig.dest;
+        }
+          _.set(processedData, setProperty, JSON.stringify(_.get(data, jsonStringConfig.source, undefined)));
+      });
+
+      //Evaluate a template to generate a value for the solr document
+      _.each(sails.config.solr.preIndex.template, (templateConfig:any) => {
+        let setProperty:string = templateConfig.source;
+        if (templateConfig.dest != null) {
+          setProperty = templateConfig.dest;
+        }
+
+        // If no source property set, use the whole data object
+        let templateData:any;
+        if(templateConfig.source != null) {
+          templateData = _.get(data, templateConfig.source)
+        } else {
+          templateData = _.cloneDeep(data);
+        }
+
+        let template:any = _.template(templateConfig.template)
+        _.set(processedData, setProperty, template({data: templateData}) );
+      });
+
       // flattening...
       // first remove those with special flattening options
-      _.each(sails.config.solr.preIndex.flatten.special, (specialFlattenConfig) => {
+      _.each(sails.config.solr.preIndex.flatten.special, (specialFlattenConfig:any) => {
         _.unset(processedData, specialFlattenConfig.field);
       });
       processedData = flat.flatten(processedData, sails.config.solr.preIndex.flatten.options);
-      _.each(sails.config.solr.preIndex.flatten.special, (specialFlattenConfig) => {
-        const dataToFlatten = {};
+      _.each(sails.config.solr.preIndex.flatten.special, (specialFlattenConfig:any) => {
+        const dataToFlatten:any = {};
         if (specialFlattenConfig.dest) {
           _.set(dataToFlatten, specialFlattenConfig.dest, _.get(data, specialFlattenConfig.source));
         } else {
           _.set(dataToFlatten, specialFlattenConfig.source, _.get(data, specialFlattenConfig.source));
         }
-        let flattened = flat.flatten(dataToFlatten, specialFlattenConfig.options);
+        let flattened:any = flat.flatten(dataToFlatten, specialFlattenConfig.options);
         _.merge(processedData, flattened);
       });
+
       // sanitise any empty keys so SOLR doesn't complain
-      _.forOwn(processedData, (v, k) => {
+      _.forOwn(processedData, (v:any, k:any) => {
         if (_.isEmpty(k)) {
           _.unset(processedData, k);
         }

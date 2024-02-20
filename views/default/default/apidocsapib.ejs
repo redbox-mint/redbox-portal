@@ -113,7 +113,7 @@ The ReDBox Portal API provides authorized access to manage functions.
     + Attributes (Error, fixed-type)
         - message: Failed to transition workflow, please check server logs.
 
-## Record Metadata Actions [/<%= branding %>/<%= portal %>/api/records/metadata/{oid}]
+## Record Metadata Actions [/<%= branding %>/<%= portal %>/api/records/metadata/{oid}{?merge}]
 
 ### Update Record Metadata [PUT]
 
@@ -189,6 +189,26 @@ The ReDBox Portal API provides authorized access to manage functions.
     + Attributes (Error, fixed-type)
         - message: Get Metadata failed, failed to retrieve existing record.
 
+## Record Audit Actions [/<%= branding %>/<%= portal %>/api/records/audit]
+
+### Get Record Audit Information [GET /<%= branding %>/<%= portal %>/api/records/audit/{oid}{?dateFrom,dateTo}]
+
++ Parameters
+    + oid: `7e72b5952e8e323c77f72ae268a27c46` (string, required) - The identifier for the record
+    + dateFrom: `2023-02-14T00:44:26Z` (string, required) - Show modifications to the record from this date. ISO8601 format
+    + dateTo: `2023-02-28T00:44:26Z` (string, required) - Show modifications to the record from this date. ISO8601 format
+
+
+
++ Request
+
+    + Headers
+
+                    Authorization: Bearer abcabcab-abca-abca-abca-abcabcabcabc
+
++ Response 200 (application/json)
+  
+
 ## Datastream Actions [/<%= branding %>/<%= portal %>/api/records/datastreams]
 
 ### Add attachment to record [POST /<%= branding %>/<%= portal %>/api/records/datastreams/{oid}]
@@ -219,7 +239,22 @@ The ReDBox Portal API provides authorized access to manage functions.
     + Attributes (Error, fixed-type)
         - message: Get Metadata failed, failed to retrieve existing record.
 
-### List attachments in record [PUT /<%= branding %>/<%= portal %>/api/datastreams/{oid}]
+### Get attachment in record [GET /<%= branding %>/<%= portal %>/api/records/datastreams/{oid}{?datastreamId}]
++ Parameters
+    + oid: `7e72b5952e8e323c77f72ae268a27c46` (string, required) - The identifier for the record
+    + datastreamId: `9159dc90fa9511edbc38b7f112a6db3d` (string, required) - The datastream identifier
+
++ Request Get Attachment (application/json)
+ 
+  + Headers
+       
+            Authorization: Bearer abcabcab-abca-abca-abca-abcabcabcabc
+           
++ Response 500 (application/json) 
+    + Attributes (Error, fixed-type)
+        - message: Failed to get attachment.
+
+### List attachments in record [PUT /<%= branding %>/<%= portal %>/api/records/datastreams/{oid}]
 + Parameters
     + oid: `7e72b5952e8e323c77f72ae268a27c46` (string, required) - The identifier for the record
 
@@ -241,7 +276,6 @@ The ReDBox Portal API provides authorized access to manage functions.
 + Response 500 (application/json) 
     + Attributes (Error, fixed-type)
         - message: Failed to list attachments, please check server logs.
-
 
 
 ## Record Permission Actions [/<%= branding %>/<%= portal %>/api/records/permissions]
@@ -458,6 +492,17 @@ The ReDBox Portal API provides authorized access to manage functions.
 + Response 200 (application/json)
     + Attributes (CreateRecordAuthorization, fixed-type)
 
+## Export Actions [/<%= branding %>/<%= portal %>/api/export]
+
+### Export record data [GET /<%= branding %>/<%= portal %>/api/export/record/download/{format}{?recType,before,after}]
++ Parameters
+    + format: `json` (string, required) - The format of the export. Valid values are 'json' or 'csv'
+    + recType: `rdmp` (string) - The type of record to export
+    + before: `2023-06-30T00:00:00Z` (string) - Show records updated before the date (ISO 8601 format)
+    + after: `2022-07-01T00:00:00Z` (string) - Show records updated after the date (ISO 8601 format)
+
++ Response 200
+
 # Group Search
 
 ## Search Actions [/<%= branding %>/<%= portal %>/api/search]
@@ -492,11 +537,11 @@ The ReDBox Portal API provides authorized access to manage functions.
 
 ## User Management Actions [/<%= branding %>/<%= portal %>/api/users]
 
-### List users in the system [GET /<%= branding %>/<%= portal %>/api/users{?searchBy,query,start,rows}]
+### List users in the system [GET /<%= branding %>/<%= portal %>/api/users{?searchBy,query,page,pageSize}]
 + Parameters
-    + start: `0` (number, optional) - The index number for the first value to return from the result set.
-        + Default: 0
-    + rows: `10` (number,optional) - The number of records to return in the request
+    + page: `1` (number, optional) - The page index of the result set to show.
+        + Default: 1
+    + pageSize: `10` (number,optional) - The number of records to return in a page
         + Default: 10
     + searchBy: `type` (string, optional) - The attribute to search by. e.g. email
     + query: `local` (string, optional) - The value to query. Only exact matches.
@@ -643,6 +688,54 @@ The ReDBox Portal API provides authorized access to manage functions.
 + Response 200 (application/json)
     + Attributes (ObjectActionResponse, fixed-type)
 
+# Group Mint
+
+The following APIs are for the Mint system used to manage records used in lookups in ReDBox. Like ReDBox, the Mint system is configurable so the record type and associated metadata required varies from system to system.
+
+## Harvest records [/mint/api/v1.1/harvest/{record_type}]
+
+### Harvest a set of records into Mint [POST]
++ Parameters
+    + record_type: `Activities` (string, required) - The name of the configured record type in Mint.
+
++ Request (application/json)
+  + Headers
+
+            Authorization: Bearer abcabcab-abca-abca-abca-abcabcabcabc      
+
+  + Body 
+
+                    {
+                     "records": [
+                         {
+                           "harvest_id": "someSourceSystemIdentifierValue",
+                              "metadata": {
+                                  "TITLE": "Activity Title",
+                                  "DESCRIPTION": "Activity Description"
+                                }
+                            }
+                        ]
+                    }
+
++ Response 200 (application/json)
+    + Attributes (ObjectActionResponse, fixed-type)    
+
+## Search Mint records [/mint/api/v1.1/search{?q}]
+This endpoint is an authenticated wrapper to Apache solr's search endpoint and supports all the [basic common query parameters](https://solr.apache.org/guide/6_6/common-query-parameters.html).
+
+### Search [GET]
+
++ Parameters
+    + q: `query` (string, required) - The search string to query the index.
+
++ Request
+    + Headers
+
+                Authorization: Bearer abcabcab-abca-abca-abca-abcabcabcabc
+
++ Response 200 (application/json)
+
+
 ## Data Structures
 
 ### Error (object)
@@ -733,4 +826,3 @@ The ReDBox Portal API provides authorized access to manage functions.
 
 ### Attachment (object)
 - filename: researchdata.zip
-

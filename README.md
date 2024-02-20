@@ -15,7 +15,7 @@ The [Queensland Cyber Infrastructure Foundation](http://www.qcif.edu.au) (QCIF) 
 
 Requirements:
 
-- Node 12.x
+- Node 18.x
 - Docker
 - Docker Compose
 

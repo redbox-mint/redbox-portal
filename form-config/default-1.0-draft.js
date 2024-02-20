@@ -48,7 +48,7 @@ module.exports = {
             viewOnly: true,
             definition: {
               label: '@view-record-audit-link',
-              value: '/@branding/@portal/api/records/audit/@oid',
+              value: '/@branding/@portal/record/viewAudit/@oid',
               cssClasses: 'btn btn-large btn-info margin-15',
               controlType: 'anchor'
             },
@@ -156,6 +156,37 @@ module.exports = {
                   definition: {
                     value: '@dmpt-project-heading',
                     type: 'h3'
+                  }
+                },
+                {
+                  class: 'TextField',
+                  viewOnly: true,
+                  definition: {
+                    name: 'raidUrl',
+                    label: '@dmpt-raid',
+                    help: '@dmpt-raid-help',
+                    type: 'text'
+                  }
+                },
+                {
+                  class: 'TextField',
+                  editOnly: true,
+                  definition: {
+                    name: 'raidUrl',
+                    label: '@dmpt-raid',
+                    help: '@dmpt-raid-help',
+                    type: 'text',
+                    readOnly: true,
+                    subscribe: {
+                      'rdmpGetter': {
+                        onValueUpdate: [
+                          {
+                            action: 'utilityService.getPropertyFromObject',
+                            field: 'raidUrl'
+                          }
+                        ]
+                      }
+                    }
                   }
                 },
                 {
@@ -1369,7 +1400,8 @@ module.exports = {
             class: "SaveButton",
             definition: {
               label: '@save-button',
-              cssClasses: 'btn-success'
+              cssClasses: 'btn-success',
+              disableValidation: true
             }
           },
           {
@@ -1428,6 +1460,27 @@ module.exports = {
             ],
             recordSaved: [
               { action: 'updateTitle' }
+            ]
+          }
+        }
+      }
+    },
+    {
+      class: 'RecordMetadataRetriever',
+      compClass: 'RecordMetadataRetrieverComponent',
+      editOnly: true,
+      definition: {
+        name: 'rdmpGetter',
+        subscribe: {
+          'form': {
+            recordCreated: [
+              {
+                action: 'utilityService.getPropertyFromObject',
+                field: 'oid'
+              },
+              {
+                action: 'publishMetadata'
+              }
             ]
           }
         }
