@@ -494,7 +494,7 @@ The ReDBox Portal API provides authorized access to manage functions.
 
 ## Export Actions [/<%= branding %>/<%= portal %>/api/export]
 
-### Export record data [POST /<%= branding %>/<%= portal %>/api/export/record/download/{format}{?recType,before,after}]
+### Export record data [GET /<%= branding %>/<%= portal %>/api/export/record/download/{format}{?recType,before,after}]
 + Parameters
     + format: `json` (string, required) - The format of the export. Valid values are 'json' or 'csv'
     + recType: `rdmp` (string) - The type of record to export
