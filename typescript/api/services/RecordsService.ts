@@ -306,7 +306,7 @@ export module Services {
     async delete(oid: any, permanentlyDelete:boolean, user:any) {
       const response = await this.storageService.delete(oid, permanentlyDelete);
       if (response.isSuccessful()) {
-        let action:RecordAuditActionType = permanentlyDelete? RecordAuditActionType.permanentlyDeleted : RecordAuditActionType.deleted;
+        let action:RecordAuditActionType = permanentlyDelete? RecordAuditActionType.destroyed : RecordAuditActionType.deleted;
         this.auditRecord(oid,{}, user, action)
         this.searchService.remove(oid);
       }
@@ -706,7 +706,7 @@ export module Services {
 
     async destroyDeletedRecord(oid: any, user:any): Promise<any> {
       let record = await this.storageService.destroyDeletedRecord(oid);
-      this.auditRecord(oid, record, user, RecordAuditActionType.permanentlyDeleted)
+      this.auditRecord(oid, record, user, RecordAuditActionType.destroyed)
       return record
     }
 
