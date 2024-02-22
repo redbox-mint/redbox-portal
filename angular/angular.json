@@ -99,10 +99,10 @@
           "builder": "@angular-devkit/build-angular:dev-server",
           "configurations": {
             "production": {
-              "browserTarget": "@researchdatabox/local-auth:build:production"
+              "buildTarget": "@researchdatabox/local-auth:build:production"
             },
             "development": {
-              "browserTarget": "@researchdatabox/local-auth:build:development"
+              "buildTarget": "@researchdatabox/local-auth:build:development"
             }
           },
           "defaultConfiguration": "development"
@@ -110,7 +110,7 @@
         "extract-i18n": {
           "builder": "@angular-devkit/build-angular:extract-i18n",
           "options": {
-            "browserTarget": "@researchdatabox/local-auth:build"
+            "buildTarget": "@researchdatabox/local-auth:build"
           }
         },
         "test": {
@@ -198,10 +198,10 @@
           "builder": "@angular-devkit/build-angular:dev-server",
           "configurations": {
             "production": {
-              "browserTarget": "@researchdatabox/export:build:production"
+              "buildTarget": "@researchdatabox/export:build:production"
             },
             "development": {
-              "browserTarget": "@researchdatabox/export:build:development"
+              "buildTarget": "@researchdatabox/export:build:development"
             }
           },
           "defaultConfiguration": "development"
@@ -209,7 +209,7 @@
         "extract-i18n": {
           "builder": "@angular-devkit/build-angular:extract-i18n",
           "options": {
-            "browserTarget": "@researchdatabox/export:build"
+            "buildTarget": "@researchdatabox/export:build"
           }
         },
         "test": {
@@ -296,10 +296,10 @@
           "builder": "@angular-devkit/build-angular:dev-server",
           "configurations": {
             "production": {
-              "browserTarget": "@researchdatabox/dashboard:build:production"
+              "buildTarget": "@researchdatabox/dashboard:build:production"
             },
             "development": {
-              "browserTarget": "@researchdatabox/dashboard:build:development"
+              "buildTarget": "@researchdatabox/dashboard:build:development"
             }
           },
           "defaultConfiguration": "development"
@@ -307,7 +307,7 @@
         "extract-i18n": {
           "builder": "@angular-devkit/build-angular:extract-i18n",
           "options": {
-            "browserTarget": "@researchdatabox/dashboard:build"
+            "buildTarget": "@researchdatabox/dashboard:build"
           }
         },
         "test": {
@@ -395,10 +395,10 @@
           "builder": "@angular-devkit/build-angular:dev-server",
           "configurations": {
             "production": {
-              "browserTarget": "@researchdatabox/report:build:production"
+              "buildTarget": "@researchdatabox/report:build:production"
             },
             "development": {
-              "browserTarget": "@researchdatabox/report:build:development"
+              "buildTarget": "@researchdatabox/report:build:development"
             }
           },
           "defaultConfiguration": "development"
@@ -406,7 +406,7 @@
         "extract-i18n": {
           "builder": "@angular-devkit/build-angular:extract-i18n",
           "options": {
-            "browserTarget": "@researchdatabox/report:build"
+            "buildTarget": "@researchdatabox/report:build"
           }
         },
         "test": {
@@ -492,10 +492,10 @@
           "builder": "@angular-devkit/build-angular:dev-server",
           "configurations": {
             "production": {
-              "browserTarget": "@researchdatabox/manage-users:build:production"
+              "buildTarget": "@researchdatabox/manage-users:build:production"
             },
             "development": {
-              "browserTarget": "@researchdatabox/manage-users:build:development"
+              "buildTarget": "@researchdatabox/manage-users:build:development"
             }
           },
           "defaultConfiguration": "development"
@@ -503,7 +503,7 @@
         "extract-i18n": {
           "builder": "@angular-devkit/build-angular:extract-i18n",
           "options": {
-            "browserTarget": "@researchdatabox/manage-users:build"
+            "buildTarget": "@researchdatabox/manage-users:build"
           }
         },
         "test": {
@@ -589,10 +589,10 @@
           "builder": "@angular-devkit/build-angular:dev-server",
           "configurations": {
             "production": {
-              "browserTarget": "@researchdatabox/manage-roles:build:production"
+              "buildTarget": "@researchdatabox/manage-roles:build:production"
             },
             "development": {
-              "browserTarget": "@researchdatabox/manage-roles:build:development"
+              "buildTarget": "@researchdatabox/manage-roles:build:development"
             }
           },
           "defaultConfiguration": "development"
@@ -600,7 +600,7 @@
         "extract-i18n": {
           "builder": "@angular-devkit/build-angular:extract-i18n",
           "options": {
-            "browserTarget": "@researchdatabox/manage-roles:build"
+            "buildTarget": "@researchdatabox/manage-roles:build"
           }
         },
         "test": {
@@ -687,10 +687,10 @@
           "builder": "@angular-devkit/build-angular:dev-server",
           "configurations": {
             "production": {
-              "browserTarget": "@researchdatabox/form:build:production"
+              "buildTarget": "@researchdatabox/form:build:production"
             },
             "development": {
-              "browserTarget": "@researchdatabox/form:build:development"
+              "buildTarget": "@researchdatabox/form:build:development"
             }
           },
           "defaultConfiguration": "development"
@@ -698,7 +698,7 @@
         "extract-i18n": {
           "builder": "@angular-devkit/build-angular:extract-i18n",
           "options": {
-            "browserTarget": "@researchdatabox/form:build"
+            "buildTarget": "@researchdatabox/form:build"
           }
         },
         "test": {
