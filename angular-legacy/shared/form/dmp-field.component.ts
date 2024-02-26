@@ -116,20 +116,31 @@ export class DmpFieldComponent {
         if (!this.disabled) {
           //take note of which elements where already disabled as we dont want to enable them if whole component becomes enabled again
           this.disabledElements = parentElement.find('*:disabled');
-          parentElement.find('input').prop( "disabled", true );
-          parentElement.find('button').filter((index, buttonElem) => {
-            const isHelp = jQuery(buttonElem).find("span[class='glyphicon glyphicon-question-sign']");
-            return isHelp.length <= 0;
-          }).prop( "disabled", true );
-          parentElement.find('textarea').prop( "disabled", true );
-          parentElement.find('select').prop( "disabled", true );
           this.disabled = true;
-        }
+        } 
+        // elements don't exist in the dom when they are not visible due to ngIf 
+        // so we need to set the disabled property each time
+        this.disableInputFields(parentElement);
         return 'disabled';
       } else {
         if(this.disabled) {
           //previously disabled so lets re-enable
-          parentElement.find('input').prop( "disabled", false );
+          this.enableInputFields(parentElement);
+          this.disabledElements = [];
+          this.disabled = false;
+        } else {
+          // elements don't exist in the dom when they are not visible due to ngIf 
+          // so we need to set the disabled property each time
+          this.enableInputFields(parentElement);
+        }
+        return null;
+      }
+
+    }
+    return null;
+  }
+  enableInputFields(parentElement: any) {
+    parentElement.find('input').prop( "disabled", false );
           parentElement.find('button').prop( "disabled", false );
           parentElement.find('textarea').prop( "disabled", false );
           parentElement.find('select').prop( "disabled", false );
@@ -138,14 +149,15 @@ export class DmpFieldComponent {
               disabledElement.prop("disabled",true)
             }
           });
-          this.disabledElements = [];
-          this.disabled = false;
-        }
-        return null;
-      }
-
-    }
-    return null;
+  }
+  disableInputFields(parentElement: any) {
+    parentElement.find('input').prop( "disabled", true );
+    parentElement.find('button').filter((index, buttonElem) => {
+    const isHelp = jQuery(buttonElem).find("span[class='glyphicon glyphicon-question-sign']");
+            return isHelp.length <= 0;
+    }).prop( "disabled", true );
+    parentElement.find('textarea').prop( "disabled", true );
+    parentElement.find('select').prop( "disabled", true );
   }
 
   /**
