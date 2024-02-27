@@ -20,11 +20,12 @@
 import { Component, Inject } from '@angular/core';
 import { FormGroup, Validators, FormBuilder } from '@angular/forms';
 import { DOCUMENT } from "@angular/common"
-import { BaseComponent, UserService, UserLoginResult, UtilityService, LoggerService, TranslationService } from '@researchdatabox/portal-ng-common';
+import { BaseComponent, UserService, UserLoginResult, UtilityService, LoggerService, TranslationService, AppConfigService } from '@researchdatabox/portal-ng-common';
 import { FormlyFieldConfig } from '@ngx-formly/core';
 import { FormlyJsonschema } from '@ngx-formly/core/json-schema';
 import { JSONSchema7 } from 'json-schema';
-
+import { AppConfig } from 'projects/researchdatabox/portal-ng-common/src/public-api';
+import { clone as _clone} from 'lodash'
 /**
  * Application Config  Component
  *
@@ -40,7 +41,7 @@ export class AppConfigComponent extends BaseComponent {
   // loginResult:  UserLoginResult = null as any;
   window: any;
   form = new FormGroup({});
-  model = { email: 'email@gmail.com' };
+  model = {  };
   fields: FormlyFieldConfig[] = [
     {
       key: 'email',
@@ -52,49 +53,7 @@ export class AppConfigComponent extends BaseComponent {
       }
     }
   ];
-  
 
-  jsonSchema:string = 
-  `{
-      "title": "A list of tasks",
-      "type": "object",
-      "required": [
-        "title"
-      ],
-      "properties": {
-        "title": {
-          "type": "string",
-          "title": "Task list title"
-        },
-        "tasks": {
-          "type": "array",
-          "title": "Tasks",
-          "items": {
-            "type": "object",
-            "required": [
-              "title"
-            ],
-            "properties": {
-              "title": {
-                "type": "string",
-                "title": "Title",
-                "description": "A sample title"
-              },
-              "details": {
-                "type": "string",
-                "title": "Task details",
-                "description": "Enter the task details"
-              },
-              "done": {
-                "type": "boolean",
-                "title": "Done?",
-                "default": false
-              }
-            }
-          }
-        }
-      }
-    }`
 
   constructor(
     @Inject(LoggerService) private loggerService: LoggerService,
@@ -103,26 +62,42 @@ export class AppConfigComponent extends BaseComponent {
     @Inject(FormBuilder) private fb: FormBuilder,
     @Inject(DOCUMENT) private document: Document,
     @Inject(TranslationService) private translationService: TranslationService,
+    @Inject(AppConfigService) private appConfigService: AppConfigService,
     private formlyJsonschema: FormlyJsonschema
   ) {
     super();
     this.loggerService.debug(`AppConfig waiting for deps to init...`); 
     this.window = this.document.defaultView;
     // set this component's dependencies
-    const jsonObject:JSONSchema7 = JSON.parse(this.jsonSchema);
-
-    this.fields = [this.formlyJsonschema.toFieldConfig(jsonObject)]
-    this.initDependencies = [translationService, userService];
+    
+    this.initDependencies = [translationService, userService, appConfigService];
   }
 
   protected override async initComponent():Promise<void> {
+    let result:AppConfig = await this.appConfigService.getAppConfigForm("systemMessage")
+      const jsonObject:JSONSchema7 = result.schema as JSONSchema7;
+      const fieldOrder = result.fieldOrder;
+      let originalProperties =  _clone(jsonObject.properties);
+      jsonObject.properties = {};
+      for(let field of fieldOrder) {
+        if (originalProperties) {
+          jsonObject.properties[field] = originalProperties[field];
+        }
+      }
+
+      this.fields = [this.formlyJsonschema.toFieldConfig(jsonObject)]
+      this.model = result.model;
+      this.loggerService.debug(`AppConfig initialised.`); 
+      
     
-    this.loggerService.debug(`AppConfig initialised.`); 
   }
 
 
   onSubmit(model:any) {
-    console.log(model);
+    this.appConfigService.saveAppConfig("systemMessage", model).then((result:AppConfig) => {
+      //TODO: refresh form and and display feedback to user
+      console.log(result);
+  });
   }
 
 }

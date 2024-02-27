@@ -21,6 +21,11 @@ import { Observable } from 'rxjs/Rx';
 import { Services as services } from '@researchdatabox/redbox-core-types';
 import { Sails } from "sails";
 import { find } from 'lodash';
+import { ConfigModels } from '../configmodels/ConfigModels'; // Import the ConfigModels module
+import { AppConfig as AppConfigInterface } from '../configmodels/AppConfig.interface';
+import * as TJS from "typescript-json-schema";
+import { globSync } from 'glob';
+
 declare var AppConfig;
 
 declare var sails: Sails;
@@ -42,7 +47,8 @@ export module Services {
       'getAllConfigurationForBrand',
       'loadAppConfigurationModel',
       'getAppConfigurationForBrand',
-      'createOrUpdateConfig'
+      'createOrUpdateConfig',
+      'getAppConfigForm'
     ];
 
 
@@ -66,7 +72,7 @@ export module Services {
     }
 
     public getAppConfigurationForBrand(brandName): any {
-      return _.get(this.brandingAppConfigMap, brandName, sails.config.brandingConfigurationDefaults);
+      return _.get(this.brandingAppConfigMap, brandName, sails.config.brandingConfigurationDefaults == undefined? {} : sails.config.brandingConfigurationDefaults);
     }
 
     public getAllConfigurationForBrand = (brandId): Promise<any> => {
@@ -74,10 +80,18 @@ export module Services {
     }
 
     public async loadAppConfigurationModel(brandId): Promise<any> {
-      let appConfiguration = sails.config.brandingConfigurationDefaults;
-      if (appConfiguration == undefined) {
-        appConfiguration = {};
+      let appConfiguration = {};
+      const modelNames = ConfigModels.getConfigKeys();
+      for(let modelName of modelNames) {
+        const modelClass = ConfigModels.getModelInfo(modelName).class;
+        let defaultModel = new modelClass();
+         _.set(appConfiguration, modelName, defaultModel);
       }
+      
+      // grab any default branding configuration we're overriding in config
+      _.merge(appConfiguration,sails.config.brandingConfigurationDefaults);
+      
+      
       let appConfigItems: any[] = await this.getAllConfigurationForBrand(brandId);
       for (let appConfigItem of appConfigItems) {
         _.set(appConfiguration, appConfigItem.configKey, appConfigItem.configData);
@@ -94,8 +108,8 @@ export module Services {
       return dbConfig.configData;
     }
 
-    public async createOrUpdateConfig(brandName, configKey, configData): Promise<any> {
-      let branding = BrandingService.getBrand(brandName);
+    public async createOrUpdateConfig(branding, configKey, configData): Promise<any> {
+
       let dbConfig = await AppConfig.findOne({ branding: branding.id, configKey });
       
       // Create if no config exists
@@ -107,6 +121,7 @@ export module Services {
       }
 
       let updatedRecord = await AppConfig.updateOne({ branding: branding.id, configKey }).set({ configData: configData });
+      this.refreshBrandingAppConfigMap(branding);
       return updatedRecord.configData;
     }
 
@@ -125,6 +140,32 @@ export module Services {
       throw Error(`Config with key ${configKey} for branding ${brandName} already exists`)
     }
 
+    public async getAppConfigForm(branding, configForm): Promise<any> {
+      
+      let appConfig = await this.getAppConfigurationForBrand(branding.name);
+      
+      let modelDefinition:any = ConfigModels.getModelInfo(configForm);
+      let model = _.get(appConfig, configForm, new modelDefinition.class());
+      const jsonSchema: any = this.getJsonSchema(modelDefinition);
+      
+      let configData = {model: model, schema: jsonSchema, fieldOrder:modelDefinition.class.getFieldOrder()};
+      return configData;
+    }
+
+    private getJsonSchema(modelDefinition: any): any {
+      const wildcardPath =  `${sails.config.appPath}/typescript/api/configmodels/*.ts`;
+      const filePaths = globSync(wildcardPath);
+      const typeName = modelDefinition.modelName;
+
+      const program = TJS.getProgramFromFiles(filePaths);
+      const settings = {
+          titles: true
+      };
+
+      // Generate the schema
+      const schema = TJS.generateSchema(program, typeName, settings);
+      return schema;
+    }
   }
 
 }

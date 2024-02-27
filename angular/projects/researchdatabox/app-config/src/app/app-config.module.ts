@@ -7,10 +7,14 @@ import { RouterModule } from '@angular/router';
 import { FormlyModule } from '@ngx-formly/core';
 import { FormlyBootstrapModule } from '@ngx-formly/bootstrap';
 import { AppConfigComponent } from './app-config.component';
+import { ArrayTypeComponent } from './fieldTypes/array.type';
+import { ObjectTypeComponent } from './fieldTypes/object.type';
+import { TextAreaComponent } from './fieldTypes/textarea.type';
+import { FormlyFieldTextArea } from '@ngx-formly/bootstrap/textarea';
 
 @NgModule({
   declarations: [
-    AppConfigComponent
+    AppConfigComponent, ArrayTypeComponent, ObjectTypeComponent,TextAreaComponent
   ],
   imports: [
     BrowserModule,
@@ -18,7 +22,13 @@ import { AppConfigComponent } from './app-config.component';
     RouterModule,
     RedboxPortalCoreModule,
     ReactiveFormsModule,
-   FormlyModule.forRoot(),
+   FormlyModule.forRoot({
+    types: [
+      { name: 'array', component: ArrayTypeComponent },
+      { name: 'object', component: ObjectTypeComponent },
+      { name: 'textarea', component: FormlyFieldTextArea }
+    ],
+  }),
     FormlyBootstrapModule
   ],
   providers: [

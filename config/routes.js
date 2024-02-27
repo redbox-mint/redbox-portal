@@ -238,6 +238,8 @@ module.exports.routes = {
   'post /:branding/:portal/user/update': 'UserController.update',
   'get /:branding/:portal/transferconfig/:type': 'RecordController.getTransferResponsibilityConfig',
   'post /:branding/:portal/action/:action': 'ActionController.callService',
+  'get /:branding/:portal/appconfig/form/:appConfigId': 'AppConfigController.getAppConfigForm',
+  'post /:branding/:portal/appconfig/form/:appConfigId': 'AppConfigController.saveAppConfig',
   /***************************************************************************
    *                                                                          *
    * REST API routes                                                          *

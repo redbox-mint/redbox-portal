@@ -10,6 +10,7 @@ import { PaginationModule } from 'ngx-bootstrap/pagination';
 
 import { ConfigService } from './config.service';
 import { UtilityService } from './utility.service';
+import { AppConfigService } from './appconfig.service';
 import { CsrfInterceptor } from './csrf.interceptor';
 import { UserService } from './user.service';
 import { LoggerService } from './logger.service';
@@ -40,6 +41,7 @@ export function trimLastSlashFromUrl(baseUrl: string) {
     TranslationService,
     LoggerService,
     UtilityService,
+    AppConfigService,
     {
       provide: HTTP_INTERCEPTORS,
       useClass: CsrfInterceptor,

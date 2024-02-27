@@ -85,7 +85,7 @@ export module Services {
       return _.find(this.brandings, (o) => { return o.name == this.dBrand.name });
     }
 
-    public getBrand = (name): any => {
+    public getBrand = (name): string => {
       return _.find(this.brandings, (o) => { return o.name == name });
     }
 
