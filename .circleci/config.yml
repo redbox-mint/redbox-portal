@@ -28,7 +28,7 @@ jobs:
             - .
   test:
     machine:
-      image: ubuntu-2004:default
+      image: ubuntu-2004:current
     steps:
       - attach_workspace:
            at: /home/circleci/project
@@ -59,7 +59,7 @@ jobs:
             curl -v -u $MAVEN_USER:$MAVEN_PASSWORD --upload-file $RBPORTAL_FILENAME "https://nexus-prod.redboxresearchdata.com.au/nexus/repository/maven-snapshots/au/edu/qcif/redbox-portal/${PACKAGE_VERSION}-SNAPSHOT/redbox-portal-${PACKAGE_VERSION}-SNAPSHOT.tgz"  
   generate-docs:
     machine:
-      image: ubuntu-2004:default
+      image: ubuntu-2004:current
     steps:
       - add_ssh_keys:
           fingerprints:
