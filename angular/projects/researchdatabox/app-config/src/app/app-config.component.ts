@@ -17,7 +17,7 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { Component, Inject } from '@angular/core';
+import { Component, ElementRef, Inject } from '@angular/core';
 import { FormGroup, Validators, FormBuilder } from '@angular/forms';
 import { DOCUMENT } from "@angular/common"
 import { BaseComponent, UserService, UserLoginResult, UtilityService, LoggerService, TranslationService, AppConfigService } from '@researchdatabox/portal-ng-common';
@@ -53,6 +53,7 @@ export class AppConfigComponent extends BaseComponent {
       }
     }
   ];
+  configKey: any;
 
 
   constructor(
@@ -63,18 +64,19 @@ export class AppConfigComponent extends BaseComponent {
     @Inject(DOCUMENT) private document: Document,
     @Inject(TranslationService) private translationService: TranslationService,
     @Inject(AppConfigService) private appConfigService: AppConfigService,
-    private formlyJsonschema: FormlyJsonschema
+    private formlyJsonschema: FormlyJsonschema,
+    @Inject(ElementRef) elementRef: ElementRef
   ) {
     super();
     this.loggerService.debug(`AppConfig waiting for deps to init...`); 
     this.window = this.document.defaultView;
     // set this component's dependencies
-    
+    this.configKey = elementRef.nativeElement.getAttribute('configKey');
     this.initDependencies = [translationService, userService, appConfigService];
   }
 
   protected override async initComponent():Promise<void> {
-    let result:AppConfig = await this.appConfigService.getAppConfigForm("systemMessage")
+    let result:AppConfig = await this.appConfigService.getAppConfigForm(this.configKey)
       const jsonObject:JSONSchema7 = result.schema as JSONSchema7;
       const fieldOrder = result.fieldOrder;
       let originalProperties =  _clone(jsonObject.properties);
@@ -94,7 +96,7 @@ export class AppConfigComponent extends BaseComponent {
 
 
   onSubmit(model:any) {
-    this.appConfigService.saveAppConfig("systemMessage", model).then((result:AppConfig) => {
+    this.appConfigService.saveAppConfig(this.configKey, model).then((result:AppConfig) => {
       //TODO: refresh form and and display feedback to user
       console.log(result);
   });

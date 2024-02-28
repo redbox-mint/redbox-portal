@@ -41,6 +41,7 @@ export module Services {
    */
   export class AppConfigs extends services.Core.Service {
     brandingAppConfigMap: {};
+    modelSchemaMap:any = {};
 
     protected _exportedMethods: any = [
       'bootstrap',
@@ -58,11 +59,25 @@ export module Services {
     }
 
     private async bootstrapAsync() {
+      // Caching the form schemas is for performance 
+      // and we shouldn't wait for them to lift the app
+      this.initAllConfigFormSchemas().then(result => {
+        sails.log.info("Config Form Schemas Loaded");
+      })
       let availableBrandings = BrandingService.getAvailable();
       for (let availableBranding of availableBrandings) {
         let branding = BrandingService.getBrand(availableBranding);
         let appConfigObject = await this.loadAppConfigurationModel(branding.id);
         this.brandingAppConfigMap[availableBranding] = appConfigObject;
+      }
+
+    }
+
+    async initAllConfigFormSchemas(): Promise<any>{
+      let configKeys:string[] = ConfigModels.getConfigKeys();
+      for(let configKey of configKeys) {
+        let modelDefinition:any = ConfigModels.getModelInfo(configKey);
+        this.modelSchemaMap[modelDefinition.modelName] = this.getJsonSchema(modelDefinition);
       }
     }
 
@@ -153,6 +168,9 @@ export module Services {
     }
 
     private getJsonSchema(modelDefinition: any): any {
+      if(this.modelSchemaMap[modelDefinition.modelName] != undefined) {
+        return this.modelSchemaMap[modelDefinition.modelName];
+      }
       const wildcardPath =  `${sails.config.appPath}/typescript/api/configmodels/*.ts`;
       const filePaths = globSync(wildcardPath);
       const typeName = modelDefinition.modelName;

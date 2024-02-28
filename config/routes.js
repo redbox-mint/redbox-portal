@@ -240,6 +240,10 @@ module.exports.routes = {
   'post /:branding/:portal/action/:action': 'ActionController.callService',
   'get /:branding/:portal/appconfig/form/:appConfigId': 'AppConfigController.getAppConfigForm',
   'post /:branding/:portal/appconfig/form/:appConfigId': 'AppConfigController.saveAppConfig',
+  'get /:branding/:portal/appconfig/:appConfigId': {
+    controller: 'AppConfigController',
+    action: 'editAppConfig'
+  },
   /***************************************************************************
    *                                                                          *
    * REST API routes                                                          *

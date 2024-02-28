@@ -3,7 +3,7 @@ import {SystemMessage} from './SystemMessage';
 
 export class ConfigModels {
     private static modelsMap: Map<string, any> = new Map([
-        ['systemMessage',  {modelName: 'SystemMessage', class: SystemMessage}]
+        ['systemMessage',  {modelName: 'SystemMessage', title: 'System Messages', class: SystemMessage}]
     ]);
 
     public static getModelInfo(key: string): any {

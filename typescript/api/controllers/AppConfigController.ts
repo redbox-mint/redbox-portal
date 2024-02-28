@@ -21,6 +21,7 @@ import {Services as BrandingServiceType} from '../services/BrandingService';
  * Package that contains all Controllers.
  */
 import { Controllers as controllers, DatastreamService, RecordsService, SearchService } from '@researchdatabox/redbox-core-types';
+import { ConfigModels } from '../configmodels/ConfigModels';
 declare var AppConfigService:AppConfigServiceType.AppConfigs, BrandingService:BrandingServiceType.Branding;
 
 export module Controllers {
@@ -45,7 +46,8 @@ export module Controllers {
      */
     protected _exportedMethods: any = [
       'getAppConfigForm',
-      'saveAppConfig'
+      'saveAppConfig',
+      'editAppConfig'
     ];
 
     /**
@@ -56,6 +58,28 @@ export module Controllers {
 
     public bootstrap() { }
 
+    public async editAppConfig(req,res) {
+      try {
+      const brand = BrandingService.getBrand(req.session.branding);
+      let appConfigId:string = req.param('appConfigId');
+
+      if(appConfigId === undefined) {
+        return res.notFound('appConfigId is required');
+      }
+      const modelInfo = await ConfigModels.getModelInfo(appConfigId);
+      if(modelInfo === undefined) {
+        return res.notFound('No config found for key');
+      }
+
+      return this.sendView(req, res, 'admin/appconfig', {
+       configKey: appConfigId,
+       formTitle: modelInfo.title
+      });
+      } catch (error) {
+        sails.log.error(error);
+        return res.serverError(error);
+      }
+    }
     public async saveAppConfig(req, res) {
       try {
         const brand:string = BrandingService.getBrand(req.session.branding);
