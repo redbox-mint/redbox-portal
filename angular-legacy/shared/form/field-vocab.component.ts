@@ -67,8 +67,10 @@ export class VocabField extends FieldBase<any> {
   public isEmbedded: boolean;
   public groupClass: string;
   public inputClass: string;
+  storedEventData: null;
 
   @Output() onItemSelect: EventEmitter<any> = new EventEmitter<any>();
+  
 
   constructor(options: any, injector: any) {
     super(options, injector);
@@ -215,6 +217,12 @@ export class VocabField extends FieldBase<any> {
 
   public getTitle(data: any): string {
     let title = '';
+    if(!data) {
+      if(this.storedEventData != null) {
+        data = _.clone(this.storedEventData);
+        this.storedEventData == null;
+      }
+    }
     if (data) {
       if (_.isString(data)) {
         return data;
@@ -232,7 +240,7 @@ export class VocabField extends FieldBase<any> {
           const delimPair = this.titleFieldDelim[idx];
           const titleVal = data[titleFld];
           if (titleVal) {
-            title = `${title}${_.isEmpty(title) ? '' : delimPair.prefix}${titleVal}${_.isEmpty(title) ? '' : delimPair.suffix}`;
+            title = `${title}${_.isEmpty(titleVal) ? '' : delimPair.prefix}${titleVal}${_.isEmpty(titleVal) ? '' : delimPair.suffix}`;
           }
         });
       }
@@ -283,7 +291,11 @@ export class VocabField extends FieldBase<any> {
   public setValue(value: any, emitEvent: boolean = true, updateTitle: boolean = true) {
     this.formModel.setValue(value, { emitEvent: emitEvent });
     if (updateTitle) {
-      this.component.ngCompleter.ctrInput.nativeElement.value = this.getTitle(value);
+      if(!_.isUndefined(this.component.ngCompleter)) {
+        this.component.ngCompleter.ctrInput.nativeElement.value = this.getTitle(value);
+      } else {
+        this.storedEventData = _.clone(value);
+      }
     }
   }
 
@@ -330,6 +342,67 @@ export class VocabField extends FieldBase<any> {
     }
   }
 
+  public setVisibility(data, eventConf:any = {}) {
+    let newVisible = this.visible;
+    if (_.isArray(this.visibilityCriteria)) {
+      // save the value of this data in a map, so we can run complex conditional logic that depends on one or more fields
+      if (!_.isEmpty(eventConf) && !_.isEmpty(eventConf.srcName)) {
+        this.subscriptionData[eventConf.srcName] = data;
+      }
+      // only run the function set if we have all the data...
+      if (_.size(this.subscriptionData) == _.size(this.visibilityCriteria)) {
+        newVisible = true;
+        _.each(this.visibilityCriteria, (visibilityCriteria) => {
+          const dataEntry = this.subscriptionData[visibilityCriteria.fieldName];
+          newVisible = newVisible && this.execVisibilityFn(dataEntry, visibilityCriteria);
+        });
+
+      }
+    } else
+    if (_.isObject(this.visibilityCriteria) && _.get(this.visibilityCriteria, 'type') == 'function') {
+      newVisible = this.execVisibilityFn(data, this.visibilityCriteria);
+    } else {
+      newVisible = _.isEqual(data, this.visibilityCriteria);
+    }
+    const that = this;
+    setTimeout(() => {
+      if (!newVisible) {
+        if (that.visible) {
+          // remove validators
+          if (that.formModel) {
+            if(that['disableValidators'] != null && typeof(that['disableValidators']) == 'function') {
+              that['disableValidators']();
+            } else {
+              that.formModel.clearValidators();
+            }
+            that.formModel.updateValueAndValidity();
+            that.storedEventData = _.clone(that.formModel.value)
+          }
+        }
+      } else {
+        if (!that.visible) {
+          // restore validators
+          if (that.formModel) {       
+              if(that['enableValidators'] != null && typeof(that['enableValidators']) == 'function') {
+                that['enableValidators']();
+              } else {
+                that.formModel.setValidators(that.validators);
+              }
+              that.formModel.updateValueAndValidity();
+              setTimeout(() => {
+              that.component.ngCompleter.ctrInput.nativeElement.value = that.getTitle(null);
+              });
+          }
+        }
+      }
+      that.visible = newVisible;
+    });
+    if(eventConf.returnData == true) {
+      return data;
+    }
+    
+  }
+
 }
 
 export function objectRequired(): ValidationErrors|null {
@@ -343,6 +416,7 @@ export function objectRequired(): ValidationErrors|null {
 
 
 class ExternalLookupDataService extends Subject<CompleterItem[]> implements CompleterData {
+  storedEventData:any = null;
 
   constructor(private url: string,
     private http: Http,
@@ -384,7 +458,14 @@ class ExternalLookupDataService extends Subject<CompleterItem[]> implements Comp
 
   getTitle(data: any): string {
     let title = '';
-    if (data) {
+    if (data == null) {
+      if(this.storedEventData != null) {
+          data = _.clone(this.storedEventData);
+      }
+      this.storedEventData = null;
+    }
+  
+  if(data){
       if (_.isString(this.titleFieldDelim)) {
         _.forEach(this.titleFieldArr, (titleFld: string) => {
           const titleVal = _.get(data, titleFld);
@@ -393,6 +474,7 @@ class ExternalLookupDataService extends Subject<CompleterItem[]> implements Comp
           }
         });
       } else {
+        
         // // expecting a delim pair array, 'prefix', 'suffix'
         // _.forEach(this.titleFieldArr, (titleFld: string, idx) => {
         //   const delimPair = this.titleFieldDelim[idx];
@@ -413,7 +495,7 @@ class MintLookupDataService extends Subject<CompleterItem[]> implements Complete
 
   constructor(private url: string,
     private http: Http,
-    private fields: string[],
+    private lookupResponseFields: string[],
     private compositeTitleName: string,
     private titleFieldArr: string[],
     private titleFieldDelim: any[],
@@ -451,7 +533,7 @@ class MintLookupDataService extends Subject<CompleterItem[]> implements Complete
       return null;
     }
     const item: any = {};
-    _.forEach(this.fields, (fieldName) => {
+    _.forEach(this.lookupResponseFields, (fieldName) => {
       if (_.isString(fieldName)) {
         item[fieldName] = data[fieldName];
       } else {

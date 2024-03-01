@@ -4,7 +4,7 @@
     <table class="table">
       <thead>
           <tr>
-              <ng-container *ngFor="let header of field.columns"><th *ngIf='header.show != false'>{{ header.label }}</th></ng-container>
+              <ng-container *ngFor="let header of field.columns"><th *ngIf='header.show != false'>{{ header.label | translate }}</th></ng-container>
           </tr>
       </thead>
       <tbody>

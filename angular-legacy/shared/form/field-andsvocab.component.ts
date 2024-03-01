@@ -46,6 +46,8 @@ export class ANDSVocabField extends FieldBase<any> {
   public disableCheckboxRegexPattern:string;
   public disableCheckboxRegexTestValue:string;
   public disableCheckboxRegexCaseSensitive: boolean;
+  public disableExpandCollapseToggleByName: boolean;
+  public skipLeafNodeExpandCollapseProcessing: number;
   public component:any;
 
   constructor(options: any, injector: any) {
@@ -56,6 +58,8 @@ export class ANDSVocabField extends FieldBase<any> {
     this.disableCheckboxRegexPattern = options['disableCheckboxRegexPattern'] || "";
     this.disableCheckboxRegexTestValue = options['disableCheckboxRegexTestValue'] || "";
     this.disableCheckboxRegexCaseSensitive = options['disableCheckboxRegexCaseSensitive'] || true;
+    this.disableExpandCollapseToggleByName = options['disableExpandCollapseToggleByName'] || false;
+    this.skipLeafNodeExpandCollapseProcessing = options['skipLeafNodeExpandCollapseProcessing'] || 4;
 
     this.andsService = this.getFromInjector(ANDSService);
   }
@@ -238,6 +242,7 @@ export class ANDSVocabComponent extends SimpleComponent {
     }
   }
 
+  //This method is called when the record edit view is first loaded and sets state and expand nodes that have checkboxes selected
   protected startTreeInit() {
     this.treeInitListener = Observable.interval(1000).subscribe(()=> {
       
@@ -279,6 +284,7 @@ export class ANDSVocabComponent extends SimpleComponent {
       event = eventArr[1];
     }
     let currentState = this.getNodeSelected(event.node.id);
+
     switch(event.eventName) {
       case "nodeActivate":
         if (currentState == undefined) {
@@ -295,6 +301,10 @@ export class ANDSVocabComponent extends SimpleComponent {
       case "nodeDeactivate":
         this.updateSingleNodeSelectedState(event.node, false);
         break;
+    }
+
+    if(!this.field.disableExpandCollapseToggleByName) {
+      this.expandCollapseNode(event.node);
     }
   }
 
@@ -315,6 +325,7 @@ export class ANDSVocabComponent extends SimpleComponent {
     this.nodeEventSubject.next(event);
   }
 
+  //This method is called when the record edit view is first loaded populates expandNodeIds list
   public updateTreeView(that) {
     const state = that.andsTree.treeModel.getState();
     that.expandNodeIds = [];
@@ -331,6 +342,7 @@ export class ANDSVocabComponent extends SimpleComponent {
     that.expandNodeIds = _.sortBy(that.expandNodeIds, (o) => { return _.isString(o) ? o.length : 0 });
   }
 
+  //Takes the first entry in expandNodeIds list and expands the node and the removed the id from the list 
   protected expandNodes() {
     if (!_.isEmpty(this.expandNodeIds)) {
       const parentId = this.expandNodeIds[0];
@@ -338,6 +350,24 @@ export class ANDSVocabComponent extends SimpleComponent {
       if (node) {
         node.expand();
         _.remove(this.expandNodeIds, (id) => { return id == parentId });
+      }
+    }
+  }
+
+  protected expandCollapseNode(nodeEvent: any) {
+    const nodeId = _.get(nodeEvent,'id','');
+
+    //Ignore expand collapse processing if id string value has length that exceeds default
+    if(nodeId == '' || nodeId.length > this.field.skipLeafNodeExpandCollapseProcessing) {
+      return;
+    }
+
+    const node = this.andsTree.treeModel.getNodeById(nodeId);
+    if (node) {
+      if(_.get(node, 'isCollapsed', false)) {
+        node.expand();
+      } else {
+        node.collapse();
       }
     }
   }

@@ -60,11 +60,10 @@ export module Controllers {
       return this.sendView(req, res, 'admin/report');
     }
 
-    public get(req, res) {
+    public async get(req, res) {
       const brand = BrandingService.getBrand(req.session.branding);
-      ReportsService.get(brand, req.param('name')).subscribe(response => {
-        return this.ajaxOk(req, res, null, response);
-      });
+      const report: Report = await ReportsService.get(brand, req.param('name'));
+      return this.ajaxOk(req, res, null, ReportsService.getReportDto(report));
     }
 
     public getResults(req, res) {

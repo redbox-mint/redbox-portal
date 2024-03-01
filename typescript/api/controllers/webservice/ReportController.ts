@@ -29,7 +29,6 @@ declare var User;
 declare var Record;
 declare var _;
 import { APIErrorResponse } from '@researchdatabox/redbox-core-types';
-const moment = require('moment');
 /**
  * Package that contains all Controllers.
  */

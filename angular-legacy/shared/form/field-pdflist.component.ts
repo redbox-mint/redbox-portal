@@ -23,7 +23,7 @@ import { FormGroup, FormControl, Validators } from '@angular/forms';
 import * as _ from "lodash";
 import { RecordsService } from './records.service';
 import * as moment from 'moment';
-import * as numeral from 'numeral';
+import numeral from 'numeral';
 
 
 

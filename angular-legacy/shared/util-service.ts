@@ -20,7 +20,7 @@
 import {Injectable} from '@angular/core';
 import * as _ from "lodash";
 import * as moment from 'moment';
-import * as numeral from 'numeral';
+import numeral from 'numeral';
 /**
  * Utility service...
  *

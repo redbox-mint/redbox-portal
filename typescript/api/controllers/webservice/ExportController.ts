@@ -23,8 +23,8 @@ declare var sails;
 declare var _;
 import { APIErrorResponse } from '@researchdatabox/redbox-core-types';
 declare var RecordsService, BrandingService, TranslationService;
-import util = require('util');
-import stream = require('stream');
+import { default as util } from 'util';
+import { default as stream } from 'stream';
 const pipeline = util.promisify(stream.pipeline);
 /**
  * Package that contains all Controllers.

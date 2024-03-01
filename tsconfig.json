@@ -1,33 +1,19 @@
 {
+    "extends": "@tsconfig/node18/tsconfig.json",   
     "compilerOptions": {
-        "target": "es6",
-        "module": "commonjs",
-        "moduleResolution": "node",
-        "isolatedModules": false,
-        "jsx": "react",
-        "experimentalDecorators": true,
-        "emitDecoratorMetadata": true,
-        "declaration": false,
-        "noImplicitAny": false,
-        "noImplicitUseStrict": false,
-        "removeComments": true,
-        "noLib": false,
-        "preserveConstEnums": true,
-        "sourceMap": false,
-        "inlineSourceMap": true,
-        "outDir": "./",
-        "rootDir": "./typescript",
-        "types": ["node"]
+      "outDir": "./",
+      "rootDir": "./typescript",
+      "strict": false
     },
     "exclude": [
-        "node_modules/**",
-        "typings/browser/**",
-        "typings/browser.d.ts",
-        "test/integration/**/*.ts",
-        "angular/**"
+      "node_modules/**",
+      "typings/browser/**",
+      "typings/browser.d.ts",
+      "test/integration/**/*.ts",
+      "angular/**"
     ],
     "include": [
-        "typescript/**/*.ts"
+      "typescript/**/*.ts", 
     ],
     "compileOnSave": true,
     "buildOnSave": false,

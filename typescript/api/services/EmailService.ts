@@ -26,7 +26,6 @@ import {
   Model
 } from "sails";
 import 'rxjs/add/operator/toPromise';
-import * as request from "request-promise";
 import * as ejs from 'ejs';
 import * as fs from 'graceful-fs';
 import * as nodemailer from 'nodemailer';
@@ -214,6 +213,7 @@ export module Services {
         const data = {};
         data['record'] = record;
         data['oid'] = oid;
+        data['sailsConfig'] = sails.config;
         return this.buildFromTemplate(templateName, data)
           .flatMap(buildResult => {
             if (buildResult['status'] != 200) {

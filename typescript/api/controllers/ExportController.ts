@@ -23,8 +23,8 @@ declare var sails;
 declare var _;
 import { Observable } from 'rxjs/Rx';
 declare var RecordsService, DashboardService, BrandingService, TranslationService;
-import util = require('util');
-import stream = require('stream');
+import { default as util } from 'util';
+import { default as stream } from 'stream';
 const pipeline = util.promisify(stream.pipeline);
 /**
  * Package that contains all Controllers.

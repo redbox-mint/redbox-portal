@@ -34,6 +34,7 @@ module.exports.http = {
     passportInit: require('passport').initialize(),
     passportSession: require('passport').session(),
     brandingAndPortalAwareStaticRouter: function(req, res, next) {
+      const existsSync = require('fs').existsSync;
       // Checks the branding and portal parameters if the resource isn't overidden for the required portal and branding,
       // it routes the request to the default location
       var url = req.url;
@@ -56,22 +57,21 @@ module.exports.http = {
         if(resourceLocation.lastIndexOf('?') != -1) {
           resourceLocation = resourceLocation.substring(0, resourceLocation.lastIndexOf('?'));
         }
-        var pathExists = require("path-exists");
         var resolvedPath = null;
         var locationToTest = sails.config.appPath + "/.tmp/public/" + branding + "/" + portal + "/" + resourceLocation;
-        if (pathExists.sync(locationToTest)) {
+        if (existsSync(locationToTest)) {
           resolvedPath = "/" + branding + "/" + portal + "/" + resourceLocation;
         }
 
         if (resolvedPath == null) {
           locationToTest = sails.config.appPath + "/.tmp/public/default/" + portal + "/" + resourceLocation;
-          if (pathExists.sync(locationToTest)) {
+          if (existsSync(locationToTest)) {
             resolvedPath = "/default/" + portal + "/" + resourceLocation;
           }
         }
         if (resolvedPath == null) {
           locationToTest = sails.config.appPath + "/.tmp/public/default/default/" + resourceLocation;
-          if (pathExists.sync(locationToTest)) {
+          if (existsSync(locationToTest)) {
             resolvedPath = "/default/default/" + resourceLocation;
           }
         }

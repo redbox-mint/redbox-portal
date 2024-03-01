@@ -38,10 +38,10 @@ import {
   Sails,
   Model
 } from "sails";
-import * as request from "request-promise";
+import axios from 'axios';
 import * as luceneEscapeQuery from "lucene-escape-query";
 import * as fs from 'fs';
-import moment = require('moment');
+import { default as moment } from 'moment';
 
 import {
   isObservable
@@ -415,29 +415,27 @@ export module Services {
 
     private info(): Promise < any > {
 
-      const options = this.getOptions(sails.config.record.baseUrl.redbox + sails.config.record.api.info.url);
-      return request[sails.config.record.api.info.method](options)
+      const options = this.getOptions(sails.config.record.baseUrl.redbox + sails.config.record.api.info.url, sails.config.record.api.info.method);
+      
+      return axios(options);
     }
 
-    protected getOptions(url, oid = null, packageType = null, isJson: boolean = true) {
+    protected getOptions(url, method, oid = null, packageType = null, contentType = 'application/json; charset=utf-8') {
       if (!_.isEmpty(oid)) {
         url = url.replace('$oid', oid);
       }
       if (!_.isEmpty(packageType)) {
         url = url.replace('$packageType', packageType);
       }
-      const opts: any = {
+      const opts = {
+        method: method,
         url: url,
         headers: {
-          'Authorization': `Bearer ${sails.config.redbox.apiKey}`
+          'Authorization': `Bearer ${sails.config.redbox.apiKey}`,
+          'Content-Type': contentType
         }
       };
-      if (isJson == true) {
-        opts.json = true;
-        opts.headers['Content-Type'] = 'application/json; charset=utf-8';
-      } else {
-        opts.encoding = null;
-      }
+      
       return opts;
     }
 
@@ -527,7 +525,7 @@ export module Services {
       const uname = user.username;
 
       const isInUserEdit = _.find(editArr, username => {
-        sails.log.verbose(`Username: ${uname} == ${username}`);
+        // sails.log.verbose(`Username: ${uname} == ${username}`);
         return uname == username;
       });
       // sails.log.verbose(`isInUserEdit: ${isInUserEdit}`);
@@ -564,8 +562,9 @@ export module Services {
       let url = `${sails.config.record.baseUrl.redbox}${sails.config.record.api.search.url}?q=metaMetadata_brandId:${brand.id} AND metaMetadata_type:${type}${searchParam}&version=2.2&wt=json&sort=date_object_modified desc`;
       url = this.addAuthFilter(url, username, roles, brand, false)
       sails.log.debug(`Searching fuzzy using: ${url}`);
-      const options = this.getOptions(url);
-      return Observable.fromPromise(request[sails.config.record.api.search.method](options))
+      const options = this.getOptions(url, sails.config.record.api.search.method);
+      
+      return Observable.fromPromise(axios(options))
         .flatMap(resp => {
           let response: any = resp;
           const customResp = {

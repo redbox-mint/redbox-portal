@@ -1,11 +1,11 @@
 import { APP_INITIALIZER, LOCALE_ID } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { APP_BASE_HREF } from '@angular/common'; 
-import { RedboxPortalCoreModule, UtilityService, LoggerService, TranslationService, ConfigService, ReportService, getStubConfigService, getStubTranslationService, appInit, localeId, getStubReportService, ReportFilter, Report, ReportResult, RecordPropViewMeta } from '@researchdatabox/portal-ng-common';
+import { RedboxPortalCoreModule, UtilityService, LoggerService, TranslationService, ConfigService, ReportService, getStubConfigService, getStubTranslationService, appInit, localeId, getStubReportService } from '@researchdatabox/portal-ng-common';
+import { ReportFilterDto, ReportDto, ReportResultDto, RecordPropViewMetaDto } from '@researchdatabox/sails-ng-common';
 import { I18NextModule, I18NEXT_SERVICE } from 'angular-i18next';
 import { BsDatepickerModule } from 'ngx-bootstrap/datepicker';
 import { FormsModule } from "@angular/forms";
-import { DateTime } from 'luxon';
 import { PaginationModule } from 'ngx-bootstrap/pagination';
 import { ReportComponent } from './report.component';
 
@@ -34,15 +34,15 @@ describe('ReportComponent', () => {
           "property": "title",
           "message": "Filter by title"
         }
-      ] as ReportFilter[],
+      ] as ReportFilterDto[],
       columns: [
         {
           "label": "Chief Investigator",
           "property": "contributor_ci.text_full_name",
           "template" : "${ data['contributor_ci.text_full_name'] }"
         }
-      ] as RecordPropViewMeta[]
-    } as Report;
+      ] as RecordPropViewMetaDto[]
+    } as ReportDto;
     let pageNum = 1;
     const mockReportResult = {
       records: [
@@ -54,7 +54,7 @@ describe('ReportComponent', () => {
       total: 10,
       pageNum: pageNum,
       recordsPerPage: 1
-    } as ReportResult;
+    } as ReportResultDto;
     mockReportData = {
       reportConfig: mockReportConfigData,
       reportResult: mockReportResult

@@ -34,9 +34,8 @@ import {
   Sails,
   Model
 } from "sails";
-import * as request from "request-promise";
 import * as crypto from 'crypto';
-import * as flat from 'flat';
+
 
 declare var sails: Sails;
 declare var User, Role, UserAudit, Record: Model;
@@ -403,6 +402,7 @@ export module Services {
       //
       // JWT/AAF Strategy
       //
+      let that = this;
       sails.log.verbose(`AAF, checking if within active array: ${defAuthConfig.active}`);
       if (defAuthConfig.active != undefined && defAuthConfig.active.indexOf('aaf') != -1) {
         var JwtStrategy = require('passport-jwt').Strategy,
@@ -412,7 +412,7 @@ export module Services {
         sails.config.passport.use('aaf-jwt', new JwtStrategy(aafOpts, function (req, jwt_payload, done) {
           let brand = BrandingService.getBrandFromReq(req);
           
-          let that = this;
+          
 
           if (_.isString(brand)) {
             brand = BrandingService.getBrand(brand);
@@ -536,7 +536,7 @@ export module Services {
             } else {
               sails.log.verbose("At AAF Strategy verify, creating new user...");
               // first time login, create with default role
-              var userToCreate = {
+              let userToCreate:any = {
                 username: userName,
                 name: jwt_payload[aafAttributes].cn,
                 email: jwt_payload[aafAttributes].mail.toLowerCase(),
@@ -571,7 +571,7 @@ export module Services {
 
               let configAAF = _.get(defAuthConfig, 'aaf');
               if(that.hasPreSaveTriggerConfigured(configAAF, 'onCreate')) {
-                that.triggerPreSaveTriggers(userToCreate, configAAF).then((userAdditionalInfo) => {
+                that.triggerPreSaveTriggers(userToCreate, configAAF).then((userAdditionalInfo:any) => {
                   
                   let success = that.checkAllTriggersSuccessOrFailure(userAdditionalInfo);
                   if(success) {

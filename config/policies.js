@@ -55,11 +55,13 @@ module.exports.policies = {
     'beginOidc': true,
     'info': 'isAuthenticated'
   },
-  '*': ['brandingAndPortal',
-         'checkBrandingValid',
-         'prepWs',
-         'isWebServiceAuthenticated',
-         'checkAuth'
+  '*': [
+    'brandingAndPortal',
+    'checkBrandingValid',
+    'setLang',
+    'prepWs',
+    'isWebServiceAuthenticated',
+    'checkAuth'
   ]
 
 };

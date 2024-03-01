@@ -225,30 +225,34 @@ export module Services {
         const language_file_path = resolve(`assets/${langJsonPath}`);
         const hook_language_file_path = resolve(hook_root_dir, langJsonPath);  
         const hook_language_file_csv_path = resolve(hook_root_dir, langCsvPath);
+        const mergeFn = function () {
+          // the actual merge
+          if (fs.pathExistsSync(language_file_path) && fs.pathExistsSync(hook_language_file_path)) {
+            sails.log.verbose(`${hook_log_header}::Merging '${langCode}' translation file...`);
+            const mainTranslation = require(language_file_path);
+            const hookTranslation = require(hook_language_file_path);
+            _.merge(mainTranslation, hookTranslation);
+            // if not overwriting the original, we save a copy of the 'core' version 
+            if (!overwriteOrig) {
+              const core_language_file_path = `assets/${langBasePath}-core.json`;
+              if (!fs.pathExistsSync(core_language_file_path)) {
+                fs.copySync(language_file_path, core_language_file_path);
+              }
+            }
+            fs.writeFileSync(language_file_path, JSON.stringify(mainTranslation, null, 2));
+          } 
+        };
         // check if the CSV version is there, and if so convert it
         if (fs.pathExistsSync(hook_language_file_csv_path)) {
           // convert the CSV to JSON 
-          this.csvToi18Next(hook_language_file_csv_path, hook_language_file_path);
+          this.csvToi18Next(hook_language_file_csv_path, hook_language_file_path, mergeFn);
+        } else {
+          mergeFn();
         }
-        // the actual merge
-        if (fs.pathExistsSync(language_file_path) && fs.pathExistsSync(hook_language_file_path)) {
-          sails.log.verbose(`${hook_log_header}::Merging '${langCode}' translation file...`);
-          const mainTranslation = require(language_file_path);
-          const hookTranslation = require(hook_language_file_path);
-          _.merge(mainTranslation, hookTranslation);
-          // if not overwriting the original, we save a copy of the 'core' version 
-          if (!overwriteOrig) {
-            const core_language_file_path = `assets/${langBasePath}-core.json`;
-            if (!fs.pathExistsSync(core_language_file_path)) {
-              fs.copySync(language_file_path, core_language_file_path);
-            }
-          }
-          fs.writeFileSync(language_file_path, JSON.stringify(mainTranslation, null, 2));
-        } 
       }
     }
 
-    private csvToi18Next(csvPath: string, jsonPath: string) {
+    private csvToi18Next(csvPath: string, jsonPath: string, cb: any) {
       const csv = require('csv-parser');  
 
       let languageJson = {};
@@ -261,6 +265,7 @@ export module Services {
           let data = JSON.stringify(languageJson, null, "  ");
           data = data.replace(/\\\\\\/g, '\\');
           fs.writeFileSync(jsonPath, data);
+          cb();
         });
     }    
 

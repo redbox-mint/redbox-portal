@@ -5,6 +5,9 @@
     "paths": {
       "@researchdatabox/portal-ng-common": [
         "dist/researchdatabox/portal-ng-common"
+      ],
+      "@researchdatabox/portal-ng-form-custom": [
+        "dist/researchdatabox/portal-ng-form-custom"
       ]
     },
     "baseUrl": "./",

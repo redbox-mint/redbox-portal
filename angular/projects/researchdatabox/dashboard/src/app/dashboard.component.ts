@@ -231,12 +231,19 @@ export class DashboardComponent extends BaseComponent {
           this.formatRules = _get(step, 'config.dashboard.table.formatRules');
         }
       }
+
       this.tableConfig[step.name] = stepTableConfig;
       this.sortMap[step.name] = {};
       for (let rowConfig of stepTableConfig) {
         this.sortMap[step.name][rowConfig.variable] = {
           sort: rowConfig.initialSort
         };
+      }
+      
+      if(this.dashboardTypeSelected == 'consolidated') {
+        this.enableSort = false;
+      } else {
+        this.enableSort = true;
       }
 
       if(this.dashboardTypeSelected == 'consolidated') {

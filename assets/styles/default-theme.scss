@@ -1,4 +1,5 @@
-@import "../../node_modules/font-awesome-sass/assets/stylesheets/_font-awesome";
+$fa-font-path: "../../node_modules/font-awesome-sass/assets/fonts/font-awesome/";
+@import "~font-awesome-sass/assets/stylesheets/_font-awesome";
 @import "redbox-font";
 
 
@@ -168,16 +169,6 @@ z-index: 999;
   color: #fff
 }
 
-
-a {color: #428bca}
-
-.footer-bottom-area {
-  background: none repeat scroll 0 0 $footer-bottom-area-branding-background-color;
-  color: #fff;
-  padding-bottom: 40px;
-}
-
-
 .footer-card-icon {
   font-size: 30px;
   text-align: right;
@@ -200,6 +191,11 @@ a {color: #428bca}
 .maincontent-body {
   padding: 80px 0 130px;
 }
+
+#system-message-area {
+    padding-top: 80px;
+    display: none;
+  }
 
 .site-branding-area {
   background-color: $site-branding-area-background;
@@ -847,8 +843,8 @@ td,th {
 
 @font-face {
     font-family: "Glyphicons Halflings";
-    src: url("../fonts/bootstrap/glyphicons-halflings-regular.eot");
-    src: url("../fonts/bootstrap/glyphicons-halflings-regular.eot?#iefix") format("embedded-opentype"),url("../fonts/bootstrap/glyphicons-halflings-regular.woff2") format("woff2"),url("../fonts/bootstrap/glyphicons-halflings-regular.woff") format("woff"),url("../fonts/bootstrap/glyphicons-halflings-regular.ttf") format("truetype"),url("../fonts/bootstrap/glyphicons-halflings-regular.svg#glyphicons_halflingsregular") format("svg")
+    src: url("../default/default/fonts/bootstrap/glyphicons-halflings-regular.eot");
+    src: url("../default/default/fonts/bootstrap/glyphicons-halflings-regular.eot?#iefix") format("embedded-opentype"),url("../default/default/fonts/bootstrap/glyphicons-halflings-regular.woff2") format("woff2"),url("../default/default/fonts/bootstrap/glyphicons-halflings-regular.woff") format("woff"),url("../default/default/fonts/bootstrap/glyphicons-halflings-regular.ttf") format("truetype"),url("../default/default/fonts/bootstrap/glyphicons-halflings-regular.svg#glyphicons_halflingsregular") format("svg")
 }
 
 .glyphicon {
@@ -1942,18 +1938,20 @@ button,input,select,textarea {
 }
 
 a {
-    color: #337ab7;
+    color: $anchor-color;
     text-decoration: none
 }
 
-a:focus,a:hover {
-    color: #23527c;
-    text-decoration: underline
+a:hover {
+    color: $anchor-color-hover;
+    text-decoration: underline;
 }
 
 a:focus {
+    color: $anchor-color-focus;
     outline: 5px auto -webkit-focus-ring-color;
-    outline-offset: -2px
+    outline-offset: -2px;
+    text-decoration: underline
 }
 
 figure {

@@ -26,6 +26,7 @@ import { Service } from './service.interface';
 
 import { I18NEXT_SERVICE, ITranslationService, defaultInterpolationFormat, I18NextModule } from 'angular-i18next';
 import HttpApi from 'i18next-http-backend';
+import LanguageDetector from 'i18next-browser-languagedetector';
 import { ConfigService } from './config.service';
 import { UtilityService } from './utility.service';
 import { LoggerService  } from './logger.service';
@@ -61,7 +62,7 @@ export class TranslationService implements Service {
       // order and from where user language should be detected
       order: ['cookie'],
       // keys or params to lookup language from
-      lookupCookie: 'lang',
+      lookupCookie: 'lng',
       // cache user language on
       caches: ['cookie'],
       // optional expire and domain for set cookie
@@ -86,7 +87,7 @@ export class TranslationService implements Service {
 
   async initTranslator(): Promise<any> {
     await this.utilService.waitForDependencies([this.configService]);
-    this.config = this.configService.getConfig();
+    this.config = await this.configService.getConfig();
     if (!_isEmpty(_get(this.config, 'i18NextOpts'))) {
       this.i18NextOpts = _get(this.config, 'i18NextOpts');
       if (_isUndefined(_get(this.i18NextOpts, 'backend.loadPath'))) {
@@ -97,6 +98,7 @@ export class TranslationService implements Service {
       }
     } else {
       // default value...
+      this.loggerService.info(`Language service using default config`);
       this.i18NextOpts = this.i18NextOptsDefault;
       _set(this.i18NextOpts, 'backend.loadPath', this.loadPath);
     }
@@ -104,6 +106,7 @@ export class TranslationService implements Service {
     try {
     	await this.i18NextService
 	              .use(HttpApi)
+                .use(LanguageDetector)
 	              .init(this.i18NextOpts);
       this.loggerService.info(`Language service ready`);
 	    this.translatorReady = true;

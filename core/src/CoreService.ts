@@ -17,6 +17,7 @@ export module Services.Core {
     private _defaultExportedMethods: string[] = [
       // Sails controller custom config.
       '_config',
+      'convertToType'
     ];
 
     protected logHeader: string;
@@ -35,6 +36,29 @@ export module Services.Core {
     */
     protected exec(q, successFn, errorFn) {
       this.getObservable(q).subscribe(successFn, errorFn);
+    }
+
+    constructor() {
+      this.processDynamicImports().then(result => {
+        sails.log.verbose("Dynamic imports imported");
+        this.onDynamicImportsCompleted();
+      })
+    }
+    
+    /** 
+     * Function that allows async dynamic imports of modules (such as ECMAScript modules).
+     * Called in the constructor and intended to be overridden in sub class to allow imports.
+     */
+    protected async processDynamicImports() {
+      // Override in sub class as needed
+    }
+
+    /** 
+     * Function that is called during the construction of the Controller after the dynamic imports are completed.
+     * Intended to be overridden in the sub class
+     */
+    protected onDynamicImportsCompleted() {
+      // Override in sub class as needed
     }
     /**
      * Returns an object that contains all exported methods of the controller.
@@ -102,6 +126,35 @@ export module Services.Core {
       return new Promise(resolve => {
         setTimeout(resolve, ms)
       });
+    }
+    /**
+     * Convenience method to quickly assign properties of one type to another. Note type-safety isn't fully guaranteed.
+     * 
+     * Usually used to convert to/from DTOs. Destination object constructing is left to the callee.
+     * 
+     * TODO: source and dest can be made more type safe
+     * 
+     * @param source 
+     * @param dest 
+     * @param mapping 
+     * @param appendMappingToSource 
+     * @returns 
+     */
+    public convertToType<Type>(source:any, dest:any, mapping:{[key: string]: string} | undefined, appendMappingToSource: boolean = false): Type {
+      let fields = _.mapValues(dest, (val, key) => {
+        return key;
+      });
+      if (appendMappingToSource) {
+        fields = _.merge(fields, mapping);
+      } else {
+        // make the mapping optional
+        fields = _.isUndefined(mapping) ? fields : mapping;
+      }
+      // force to enumerable string keyed only, transforming at the root level 
+      _.forOwn(fields, (destKey, srcKey) => {
+        _.set(dest, destKey, source[srcKey]);
+      });
+      return dest as Type;
     }
   }
 }

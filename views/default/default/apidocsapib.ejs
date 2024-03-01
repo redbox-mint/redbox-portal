@@ -278,8 +278,6 @@ The ReDBox Portal API provides authorized access to manage functions.
         - message: Failed to list attachments, please check server logs.
 
 
-
-
 ## Record Permission Actions [/<%= branding %>/<%= portal %>/api/records/permissions]
 
 ### Give users edit access to record [POST /<%= branding %>/<%= portal %>/api/records/permissions/edit/{oid}]
@@ -493,6 +491,17 @@ The ReDBox Portal API provides authorized access to manage functions.
 
 + Response 200 (application/json)
     + Attributes (CreateRecordAuthorization, fixed-type)
+
+## Export Actions [/<%= branding %>/<%= portal %>/api/export]
+
+### Export record data [GET /<%= branding %>/<%= portal %>/api/export/record/download/{format}{?recType,before,after}]
++ Parameters
+    + format: `json` (string, required) - The format of the export. Valid values are 'json' or 'csv'
+    + recType: `rdmp` (string) - The type of record to export
+    + before: `2023-06-30T00:00:00Z` (string) - Show records updated before the date (ISO 8601 format)
+    + after: `2022-07-01T00:00:00Z` (string) - Show records updated after the date (ISO 8601 format)
+
++ Response 200
 
 # Group Search
 

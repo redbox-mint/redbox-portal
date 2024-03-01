@@ -11,25 +11,24 @@ module.exports = {
     return returnValue;
   },
   resolvePartialPath: function(value, branding, portal, templatePath, fromTemplate = false) {
-
+    const existsSync = require('fs').existsSync;
     var partialLocation = value;
     var viewsDir = sails.config.appPath + "/views";
     masterTemplateLocation = templatePath.substring(viewsDir.length, templatePath.length);
     var splitUrl = masterTemplateLocation.split('/');
     if (splitUrl.length > 2) {
 
-
-      var pathExists = require("path-exists");
+      
       var locationToTest = sails.config.appPath + "/views/" + branding + "/" + portal + "/" + value;
       sails.log.debug("testing :" + locationToTest);
-      if (pathExists.sync(locationToTest)) {
+      if (existsSync(locationToTest)) {
         partialLocation = branding + "/" + portal + "/" + value;
       }
 
       if (partialLocation == value) {
         var locationToTest = sails.config.appPath + "/views/default/" + portal + "/" + value;
         sails.log.debug("testing :" + locationToTest);
-        if (pathExists.sync(locationToTest)) {
+        if (existsSync(locationToTest)) {
           partialLocation = "default/" + portal + "/" + value;
         }
       }
@@ -37,7 +36,7 @@ module.exports = {
       if (partialLocation == value) {
         var locationToTest = sails.config.appPath + "/views/default/default/" + value;
         sails.log.debug("testing :" + locationToTest);
-        if (pathExists.sync(locationToTest)) {
+        if (existsSync(locationToTest)) {
           partialLocation = "default/default/" + value;
         }
       }

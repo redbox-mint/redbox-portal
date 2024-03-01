@@ -5,7 +5,7 @@ import { SimpleComponent } from './field-simple.component';
 import * as _ from "lodash";
 import { WorkspaceTypeService } from '../workspace-service';
 import * as moment from 'moment';
-import * as numeral from 'numeral';
+import numeral from 'numeral';
 
 declare var jQuery: any;
 declare var $: any;
