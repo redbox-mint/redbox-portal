@@ -26,6 +26,7 @@ import {
 
 declare var sails: Sails;
 declare var Record: Model;
+declare var User: Model;
 declare var NamedQuery: Model;
 const moment = require('moment');
 declare var _this;
@@ -81,7 +82,8 @@ export module Services {
         name: name,
         branding: brand.id,
         mongoQuery: JSON.stringify(config.mongoQuery),
-        queryParams: JSON.stringify(config.queryParams)
+        queryParams: JSON.stringify(config.queryParams),
+        collectionName: config.collectionName
       }));
     }
 
@@ -93,38 +95,75 @@ export module Services {
       return new NamedQueryConfig(nQDBEntry)
     }
 
-    async performNamedQuery(mongoQuery, queryParams, paramMap, brand, start, rows, user=undefined):Promise<ListAPIResponse<NamedQueryResponseRecord>> {
+    async performNamedQuery(collectionName, mongoQuery, queryParams, paramMap, brand, start, rows, user=undefined):Promise<ListAPIResponse<NamedQueryResponseRecord>> {
       
-      this.setParamsInQuery(mongoQuery, queryParams, paramMap) 
-      mongoQuery['metaMetadata.brandId'] = brand.id;
-      sails.log.debug("Mongo query to be executed")
-      sails.log.debug(mongoQuery)
+      this.setParamsInQuery(mongoQuery, queryParams, paramMap);
       
-      let totalItems = await Record.count(mongoQuery).meta({
-        enableExperimentalDeepTargets: true
-      });
+      if(collectionName == 'record') {
+        mongoQuery['metaMetadata.brandId'] = brand.id;
+      }
+      sails.log.debug("Mongo query to be executed");
+      sails.log.debug(mongoQuery);
+      
+      let totalItems = 0;
+      if(collectionName == 'user') {
+        totalItems = await User.count(mongoQuery).meta({
+          enableExperimentalDeepTargets: true
+        });
+      } else {
+        totalItems = await Record.count(mongoQuery).meta({
+          enableExperimentalDeepTargets: true
+        });
+      }
+
       let results = [];
       if (totalItems > 0) {
-        results = await Record.find({
-          where: mongoQuery,
-          skip: start,
-          limit: rows
-        }).meta({
-          enableExperimentalDeepTargets: true
-        })
+        if(collectionName == 'user') {
+          results = await User.find({
+            where: mongoQuery,
+            skip: start,
+            limit: rows
+          }).meta({
+            enableExperimentalDeepTargets: true
+          });
+        } else {
+          results = await Record.find({
+            where: mongoQuery,
+            skip: start,
+            limit: rows
+          }).meta({
+            enableExperimentalDeepTargets: true
+          });
+        }
       }
       
       let responseRecords:NamedQueryResponseRecord[] = []
       for (let record of results) {
-
-        let responseRecord:NamedQueryResponseRecord = new NamedQueryResponseRecord({
-          oid: record.redboxOid,
-          title: record.metadata.title,
-          metadata: record.metadata,
-          lastSaveDate: record.lastSaveDate,
-          dateCreated: record.dateCreated
-        })
-        responseRecords.push(responseRecord)
+        if(collectionName == 'user') {
+          let responseRecord:NamedQueryResponseRecord = new NamedQueryResponseRecord({
+            oid: record.email,
+            title: record.username,
+            metadata: {
+                       type: record.type,
+                       name: record.name,
+                       email: record.email,
+                       username: record.username,
+                       lastLogin: record.lastLogin
+                      },
+            lastSaveDate: record.updatedAt,
+            dateCreated: record.createdAt
+          });
+          responseRecords.push(responseRecord);
+        } else {
+          let responseRecord:NamedQueryResponseRecord = new NamedQueryResponseRecord({
+            oid: record.redboxOid,
+            title: record.metadata.title,
+            metadata: record.metadata,
+            lastSaveDate: record.lastSaveDate,
+            dateCreated: record.dateCreated
+          });
+          responseRecords.push(responseRecord);
+        }
       }
       let response = new ListAPIResponse<NamedQueryResponseRecord>();
 
@@ -255,6 +294,7 @@ export class NamedQueryConfig {
   key: string;
   queryParams: Map<string,QueryParameterDefinition>;
   mongoQuery: object;
+  collectionName: string;
 
   constructor(values:any) {
       this.name = values.name
@@ -265,6 +305,7 @@ export class NamedQueryConfig {
       this.key = values.key
       this.queryParams = JSON.parse(values.queryParams)
       this.mongoQuery = JSON.parse(values.mongoQuery)
+      this.collectionName = values.collectionName
   }
 }
 

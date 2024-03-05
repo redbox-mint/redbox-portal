@@ -26,8 +26,11 @@ module.exports = {
     queryParams: {
       type: 'string',
       required: true
+    },
+    collectionName: {
+      type: 'string',
+      required: true
     }
-    
   },
     beforeCreate: function(namedQuery, cb) {
         namedQuery.key = namedQuery.branding+'_'+namedQuery.name;

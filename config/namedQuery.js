@@ -1,5 +1,6 @@
 module.exports.namedQuery = {
   'listRDMPRecords': {
+    collectionName: 'record',
     mongoQuery: {
       'metaMetadata.type': "rdmp",
       'metadata.title': null,
@@ -44,6 +45,7 @@ module.exports.namedQuery = {
     }
   },
   'listDRRecords': {
+    collectionName: 'record',
     mongoQuery: {
       'metaMetadata.type': "dataRecord",
       'metadata.title': null,
@@ -88,6 +90,7 @@ module.exports.namedQuery = {
     }
   },
   'listDPRecords': {
+    collectionName: 'record',
     mongoQuery: {
       'metaMetadata.type': "dataPublication",
       'metadata.title': null,
@@ -132,6 +135,7 @@ module.exports.namedQuery = {
     }
   },
   'listEmbargoedDPRecords': {
+    collectionName: 'record',
     mongoQuery: {
       'metaMetadata.type': "dataPublication",
       'workflow.stage': "embargoed",
@@ -192,6 +196,7 @@ module.exports.namedQuery = {
     }
   },
   'listWorkspaceRecords': {
+    collectionName: 'record',
     mongoQuery: {
       'metaMetadata.packageType': "workspace",
       'metadata.title': null,
@@ -236,6 +241,7 @@ module.exports.namedQuery = {
     }
   },
   'listDraftInactiveRDMPRecords': {
+    collectionName: 'record',
     mongoQuery: {
       'metaMetadata.type': "rdmp",
       'workflow.stage': 'draft'
@@ -254,6 +260,45 @@ module.exports.namedQuery = {
                         //a full ISO date like 2021-06-01T07:09:51.498Z is expected
         whenUndefined: 'defaultValue',
         defaultValue: '-365'
+      }
+    }
+  },
+  'listUsers': {
+    collectionName: 'user',
+    mongoQuery: {},
+    queryParams: {
+      'dateCreatedBefore': {
+        type: 'string',
+        path: 'createdAt',
+        queryType: '<=',
+        whenUndefined: 'defaultValue',
+        defaultValue: '3000-01-01T00:00:00.000Z'
+      },
+      'dateCreatedAfter': {
+        type: 'string',
+        path: 'createdAt',
+        queryType: '>=',
+        whenUndefined: 'defaultValue',
+        defaultValue: '1900-01-01T00:00:00.000Z'
+      },
+      'lastLoginBefore': {
+        type: 'string',
+        path: 'lastLogin',
+        queryType: '<=',
+        whenUndefined: 'defaultValue',
+        defaultValue: '3000-01-01T00:00:00.000Z'
+      },
+      'lastLoginAfter': {
+        type: 'string',
+        path: 'lastLogin',
+        queryType: '>=',
+        whenUndefined: 'defaultValue',
+        defaultValue: '1900-01-01T00:00:00.000Z'
+      },
+      'userType': {
+        type: 'string',
+        path: 'type',
+        whenUndefined: 'ignore'
       }
     }
   } 
