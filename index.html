@@ -97,59 +97,17 @@
 <p><a href="https://circleci.com/gh/redbox-mint/redbox-portal"><img src="https://circleci.com/gh/redbox-mint/redbox-portal.svg?style=svg" alt="Build Status" class="img-responsive"></a>
 <a href="https://codecov.io/gh/redbox-mint/redbox-portal"><img src="https://codecov.io/gh/redbox-mint/redbox-portal/branch/master/graph/badge.svg" alt="codecov" class="img-responsive"></a></p>
 <p>ReDBox is an open source Research Data Management platform that assists researchers and institutions to plan, create and publish their research data assets.
-ReDBox is one of the most popular research data management tools in Australia. It is currently in use across 12 Australian universities. ReDBox supports the Australian research community to describe and share information about research data collections. It assists data custodians in meeting institutional data management policies, applying the requirements of the <a href="https://www.nhmrc.gov.au/guidelines-publications/r39">Australian Code for the Responsible Conduct of Research</a>, and publishing to <a href="http://researchdata.ands.org.au/">Research Data Australia</a> (RDA), the national research data discovery system maintained by the <a href="http://ardc.org.au/">Australian Research Data Commons</a> (ARDC).</p>
+ReDBox is one of the most popular research data management tools in Australia. It is currently in use across 11 universities in Australia and New Zealand. ReDBox supports the Australian research community to describe and share information about research data collections. It assists data custodians in meeting institutional data management policies, applying the requirements of the <a href="https://www.nhmrc.gov.au/guidelines-publications/r39">Australian Code for the Responsible Conduct of Research</a>, and publishing to <a href="http://researchdata.ands.org.au/">Research Data Australia</a> (RDA), the national research data discovery system maintained by the <a href="http://ardc.org.au/">Australian Research Data Commons</a> (ARDC).</p>
 <p>The <a href="http://www.qcif.edu.au">Queensland Cyber Infrastructure Foundation</a> (QCIF) leads the ReDBox development initiative and provides several services including a support subscription service to institutions.</p>
+<h2>Getting Started</h2>
+<p>For information on the prerequisites, installation, and configuration, please visit our <a href="https://github.com/redbox-mint/redbox-portal/wiki">Redbox Portal Wiki</a>.</p>
+<h2>Usage</h2>
+<p>For detailed instructions on how to use the Redbox Portal, including features and functionalities, refer to our <a href="https://github.com/redbox-mint/redbox-portal/wiki/User-Guide">User Guide</a> in the Redbox Portal Wiki.</p>
+<h2>Contributing</h2>
+<p>We welcome contributions from the community! For guidelines on contributing to the Redbox Portal, please check out our <a href="https://github.com/redbox-mint/redbox-portal/blob/master/CONTRIBUTING.md">Contribution Guidelines</a>.</p>
 <h2>Development</h2>
-<p>Requirements:</p>
-<ul>
-<li>Node 18.x</li>
-<li>Docker</li>
-<li>Docker Compose</li>
-</ul>
-<p>The QCIF team uses a VM provisioned using <a href="https://www.vagrantup.com/">Vagrant</a> that has all the required tools and is the recommended way to develop ReDBox. It&#39;s available in the following repository
-<a href="https://github.com/qcif/vagrant-redbox-dev">https://github.com/qcif/vagrant-redbox-dev</a></p>
-<h3>Building and running the application</h3>
-<p>ReDBox uses typescript and requires compilation to javascript for both the backend Sails application and front end angular.</p>
-<h4>Building Backend (Sails)</h4>
-<p>Run </p>
-<p><code>npm run compile:sails</code></p>
-<p>to install npm packages and compile the typescript</p>
-<h4>Building Frontend apps (Angular)</h4>
-<p>Run </p>
-<p><code>npm run compile:ng</code></p>
-<p>to install npm packages and compile the typescript</p>
-<h4>Run the application</h4>
-<p>Run </p>
-<p><code>npm run dev:run</code></p>
-<p>to bring up the docker-compose stack specified in support/development/docker-compose.yml</p>
-<p>Alternatively, you can use all the standard docker-compose commands with the file in support/development/docker-compose.yml</p>
-<p>e.g. </p>
-<p><code>docker-compose -f support/development/docker-compose.yml up</code></p>
-<p><code>docker-compose -f support/development/docker-compose.yml restart redboxportal</code></p>
-<p><code>docker-compose -f support/development/docker-compose.yml logs -f redboxportal</code></p>
-<h4>Run all (Initial setup)</h4>
-<p>If you&#39;d like to run all the above steps in one command then you may run</p>
-<p><code>npm run dev:all</code></p>
-<h3>Running Tests</h3>
-<p>ReDBox has 2 sets of tests it runs:</p>
-<ul>
-<li>Integration tests for services written for Mocha</li>
-<li>Postman API tests run using Newman</li>
-</ul>
-<h4>Running Mocha Tests</h4>
-<p>To run the mocha tests</p>
-<p><code>npm run test:mocha</code></p>
-<p>Note: for the DOI tests to pass you will need to have Datacite Fabrica credentials and these need to be set to the following environment variables:</p>
-<ul>
-<li><code>datacite_username</code>: Your datacite username</li>
-<li><code>datacite_password</code>: Your datacite password</li>
-<li><code>datacite_doiPrefix</code>: The DOI prefix</li>
-</ul>
-<h4>Running Postman Tests</h4>
-<p>To run the postman tests</p>
-<p><code>npm run test:postman</code></p>
-<p>Note: if you receive the error below, it&#39;s because you have previously run the application for development. To fix, simply delete the support/development/.dev directory and try again.</p>
-<p><code>EACCES: permission denied, scandir &#39;/opt/redbox-portal/support/development/.dev/mongo/data/db/diagnostic.data&#39;</code></p>
+<p>For development documentation and guidelines, please refer to our <a href="https://github.com/redbox-mint/redbox-portal/wiki/Development-Guide">Development Guide</a> in the Redbox Portal Wiki.</p>
+<p>For further assistance or to report issues, please visit our <a href="https://github.com/redbox-mint/redbox-portal/issues">Issues</a> section.</p>
 
 
 
