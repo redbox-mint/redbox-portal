@@ -160,8 +160,8 @@ export module Services {
           }
 
           let responseRecord:NamedQueryResponseRecord = new NamedQueryResponseRecord({
-            email: record.email,
-            username: record.username,
+            oid: '',
+            title: '',
             metadata: defaultMetadata,
             lastSaveDate: record.updatedAt,
             dateCreated: record.createdAt

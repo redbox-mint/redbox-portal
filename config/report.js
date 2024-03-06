@@ -427,5 +427,70 @@ module.exports.reports = {
         "template" : "${ _.get(data, 'metadata.contributor_data_manager.text_full_name', '') }"
       }
     ]
+  },
+  "user": {
+    "title": "List users",
+    "reportSource": "database",
+    "databaseQuery": {
+      queryName: "listUsers"
+    },
+    "filter": [
+      {
+        "paramName": "dateObjectModifiedRange",
+        "type": "date-range",
+        "message": "Filter by last login date",
+        "database":{
+          "fromProperty": "lastLoginAfter",
+          "toProperty": "lastLoginBefore",
+        }
+      },
+      {
+        "paramName": "dateObjectCreatedRange",
+        "type": "date-range",
+        "message": "Filter by date created",
+        "database":{
+          "fromProperty": "dateCreatedAfter",
+          "toProperty": "dateCreatedBefore",
+        }
+      },
+      {
+        "paramName": "userType",
+        "type": "text",
+        "property": "userType",
+        "message": "Filter by user type"
+      }
+    ],
+    "columns": [
+      {
+        "label": "Name",
+        "property": "name",
+        "template": "${ _.get(data, 'metadata.name', '')}",
+      },
+      {
+        "label": "Email",
+        "property": "oid",
+        "template" : "${ _.get(data, 'metadata.email', '')}"
+      },
+      {
+        "label": "Username",
+        "property": "title",
+        "template" : "${ _.get(data, 'metadata.username', '') }"
+      },
+      {
+        "label": "User Type",
+        "property": "userType",
+        "template" : "${ _.get(data, 'metadata.type', '') }"
+      },
+      {
+        "label": "Date Last Login",
+        "property": "lastLogin",
+        "template" : "${ DateTime.fromISO(_.get(data, 'metadata.lastLogin', '')).toFormat('dd/MM/yyyy hh:mm a') }"
+      },
+      {
+        "label": "Date Created",
+        "property": "dateCreated",
+        "template" : "${ DateTime.fromISO(data.dateCreated).toFormat('dd/MM/yyyy hh:mm a') }"
+      }
+    ]
   }
 };
