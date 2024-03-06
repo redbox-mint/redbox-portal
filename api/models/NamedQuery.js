@@ -30,6 +30,10 @@ module.exports = {
     collectionName: {
       type: 'string',
       required: true
+    },
+    filterResults: {
+      type: 'string',
+      required: true
     }
   },
     beforeCreate: function(namedQuery, cb) {

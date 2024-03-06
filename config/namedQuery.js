@@ -1,8 +1,16 @@
 module.exports.namedQuery = {
   'listRDMPRecords': {
     collectionName: 'record',
+    filterResults: {
+      title: '',
+      descriptions: '',
+      finalKeywords: '',
+      contributor_ci: '',
+      contributors: '',
+      contributor_data_manager: ''
+    },
     mongoQuery: {
-      'metaMetadata.type': "rdmp",
+      'metaMetadata.type': 'rdmp',
       'metadata.title': null,
       'dateCreated': null
     },
@@ -46,8 +54,9 @@ module.exports.namedQuery = {
   },
   'listDRRecords': {
     collectionName: 'record',
+    filterResults: {},
     mongoQuery: {
-      'metaMetadata.type': "dataRecord",
+      'metaMetadata.type': 'dataRecord',
       'metadata.title': null,
       'dateCreated': null
     },
@@ -91,8 +100,9 @@ module.exports.namedQuery = {
   },
   'listDPRecords': {
     collectionName: 'record',
+    filterResults: {},
     mongoQuery: {
-      'metaMetadata.type': "dataPublication",
+      'metaMetadata.type': 'dataPublication',
       'metadata.title': null,
       'dateCreated': null
     },
@@ -136,9 +146,10 @@ module.exports.namedQuery = {
   },
   'listEmbargoedDPRecords': {
     collectionName: 'record',
+    filterResults: {},
     mongoQuery: {
-      'metaMetadata.type': "dataPublication",
-      'workflow.stage': "embargoed",
+      'metaMetadata.type': 'dataPublication',
+      'workflow.stage': 'embargoed',
       'metadata.title': null,
       'metadata.embargoUntil': null,
       'dateCreated': null
@@ -197,8 +208,9 @@ module.exports.namedQuery = {
   },
   'listWorkspaceRecords': {
     collectionName: 'record',
+    filterResults: {},
     mongoQuery: {
-      'metaMetadata.packageType': "workspace",
+      'metaMetadata.packageType': 'workspace',
       'metadata.title': null,
       'dateCreated': null
     },
@@ -242,8 +254,9 @@ module.exports.namedQuery = {
   },
   'listDraftInactiveRDMPRecords': {
     collectionName: 'record',
+    filterResults: {},
     mongoQuery: {
-      'metaMetadata.type': "rdmp",
+      'metaMetadata.type': 'rdmp',
       'workflow.stage': 'draft'
     },
     queryParams: {
@@ -265,6 +278,13 @@ module.exports.namedQuery = {
   },
   'listUsers': {
     collectionName: 'user',
+    filterResults: {
+      'type': '',
+      'name': '',
+      'email': '',
+      'username': '',
+      'lastLogin': ''
+    },
     mongoQuery: {},
     queryParams: {
       'dateCreatedBefore': {

@@ -83,7 +83,8 @@ export module Services {
         branding: brand.id,
         mongoQuery: JSON.stringify(config.mongoQuery),
         queryParams: JSON.stringify(config.queryParams),
-        collectionName: config.collectionName
+        collectionName: config.collectionName,
+        filterResults: JSON.stringify(config.filterResults)
       }));
     }
 
@@ -95,7 +96,7 @@ export module Services {
       return new NamedQueryConfig(nQDBEntry)
     }
 
-    async performNamedQuery(collectionName, mongoQuery, queryParams, paramMap, brand, start, rows, user=undefined):Promise<ListAPIResponse<NamedQueryResponseRecord>> {
+    async performNamedQuery(filterResults, collectionName, mongoQuery, queryParams, paramMap, brand, start, rows, user=undefined):Promise<ListAPIResponse<NamedQueryResponseRecord>> {
       
       this.setParamsInQuery(mongoQuery, queryParams, paramMap);
       
@@ -139,30 +140,55 @@ export module Services {
       
       let responseRecords:NamedQueryResponseRecord[] = []
       for (let record of results) {
+
         if(collectionName == 'user') {
+
+          let defaultMetadata = {
+            type: record.type,
+            name: record.name,
+            email: record.email,
+            username: record.username,
+            lastLogin: record.lastLogin
+          };
+
+          if(!_.isEmpty(filterResults)) {
+            let filteredMetadata = _.cloneDeep(filterResults);
+            _.forOwn(filterResults, function(value, key) {
+              _.set(filteredMetadata,key,_.get(defaultMetadata,key));
+            });
+            defaultMetadata = filteredMetadata;
+          }
+
           let responseRecord:NamedQueryResponseRecord = new NamedQueryResponseRecord({
-            oid: record.email,
-            title: record.username,
-            metadata: {
-                       type: record.type,
-                       name: record.name,
-                       email: record.email,
-                       username: record.username,
-                       lastLogin: record.lastLogin
-                      },
+            email: record.email,
+            username: record.username,
+            metadata: defaultMetadata,
             lastSaveDate: record.updatedAt,
             dateCreated: record.createdAt
           });
           responseRecords.push(responseRecord);
+
         } else {
+
+          let defaultMetadata = _.cloneDeep(record.metadata);
+
+          if(!_.isEmpty(filterResults)) {
+            let filteredMetadata = _.cloneDeep(filterResults);
+            _.forOwn(filterResults, function(value, key) {
+              _.set(filteredMetadata,key,_.get(defaultMetadata,key));
+            });
+            defaultMetadata = filteredMetadata;
+          }
+
           let responseRecord:NamedQueryResponseRecord = new NamedQueryResponseRecord({
             oid: record.redboxOid,
             title: record.metadata.title,
-            metadata: record.metadata,
+            metadata: defaultMetadata,
             lastSaveDate: record.lastSaveDate,
             dateCreated: record.dateCreated
           });
           responseRecords.push(responseRecord);
+
         }
       }
       let response = new ListAPIResponse<NamedQueryResponseRecord>();
@@ -295,17 +321,19 @@ export class NamedQueryConfig {
   queryParams: Map<string,QueryParameterDefinition>;
   mongoQuery: object;
   collectionName: string;
+  filterResults: any;
 
   constructor(values:any) {
-      this.name = values.name
-      this.branding = values.branding
-      this.metadata = values.metadata
-      this.createdAt = values.createdAt
-      this.updatedAt = values.updatedAt
-      this.key = values.key
-      this.queryParams = JSON.parse(values.queryParams)
-      this.mongoQuery = JSON.parse(values.mongoQuery)
-      this.collectionName = values.collectionName
+      this.name = values.name;
+      this.branding = values.branding;
+      this.metadata = values.metadata;
+      this.createdAt = values.createdAt;
+      this.updatedAt = values.updatedAt;
+      this.key = values.key;
+      this.queryParams = JSON.parse(values.queryParams);
+      this.mongoQuery = JSON.parse(values.mongoQuery);
+      this.collectionName = values.collectionName;
+      this.filterResults = JSON.parse(values.filterResults);
   }
 }
 
