@@ -34,6 +34,10 @@ module.exports = {
     filterResults: {
       type: 'string',
       required: true
+    },
+    brandIdFieldPath: {
+      type: 'string',
+      required: false
     }
   },
     beforeCreate: function(namedQuery, cb) {

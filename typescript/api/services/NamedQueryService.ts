@@ -84,7 +84,8 @@ export module Services {
         mongoQuery: JSON.stringify(config.mongoQuery),
         queryParams: JSON.stringify(config.queryParams),
         collectionName: config.collectionName,
-        filterResults: JSON.stringify(config.filterResults)
+        filterResults: JSON.stringify(config.filterResults),
+        brandIdFieldPath: config.brandIdFieldPath
       }));
     }
 
@@ -96,12 +97,12 @@ export module Services {
       return new NamedQueryConfig(nQDBEntry)
     }
 
-    async performNamedQuery(filterResults, collectionName, mongoQuery, queryParams, paramMap, brand, start, rows, user=undefined):Promise<ListAPIResponse<NamedQueryResponseRecord>> {
+    async performNamedQuery(brandIdFieldPath, filterResults, collectionName, mongoQuery, queryParams, paramMap, brand, start, rows, user=undefined):Promise<ListAPIResponse<NamedQueryResponseRecord>> {
       
       this.setParamsInQuery(mongoQuery, queryParams, paramMap);
       
-      if(collectionName == 'record') {
-        mongoQuery['metaMetadata.brandId'] = brand.id;
+      if(brandIdFieldPath != '') {
+        mongoQuery[brandIdFieldPath] = brand.id;
       }
       sails.log.debug("Mongo query to be executed");
       sails.log.debug(mongoQuery);
@@ -322,6 +323,7 @@ export class NamedQueryConfig {
   mongoQuery: object;
   collectionName: string;
   filterResults: any;
+  brandIdFieldPath: string;
 
   constructor(values:any) {
       this.name = values.name;
@@ -334,6 +336,7 @@ export class NamedQueryConfig {
       this.mongoQuery = JSON.parse(values.mongoQuery);
       this.collectionName = values.collectionName;
       this.filterResults = JSON.parse(values.filterResults);
+      this.brandIdFieldPath = values.brandIdFieldPath;
   }
 }
 

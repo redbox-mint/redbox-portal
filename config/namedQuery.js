@@ -1,6 +1,7 @@
 module.exports.namedQuery = {
   'listRDMPRecords': {
     collectionName: 'record',
+    brandIdFieldPath: 'metaMetadata.brandId',
     filterResults: {
       title: '',
       descriptions: '',
@@ -54,6 +55,7 @@ module.exports.namedQuery = {
   },
   'listDRRecords': {
     collectionName: 'record',
+    brandIdFieldPath: 'metaMetadata.brandId',
     filterResults: {},
     mongoQuery: {
       'metaMetadata.type': 'dataRecord',
@@ -100,6 +102,7 @@ module.exports.namedQuery = {
   },
   'listDPRecords': {
     collectionName: 'record',
+    brandIdFieldPath: 'metaMetadata.brandId',
     filterResults: {},
     mongoQuery: {
       'metaMetadata.type': 'dataPublication',
@@ -146,6 +149,7 @@ module.exports.namedQuery = {
   },
   'listEmbargoedDPRecords': {
     collectionName: 'record',
+    brandIdFieldPath: 'metaMetadata.brandId',
     filterResults: {},
     mongoQuery: {
       'metaMetadata.type': 'dataPublication',
@@ -208,6 +212,7 @@ module.exports.namedQuery = {
   },
   'listWorkspaceRecords': {
     collectionName: 'record',
+    brandIdFieldPath: 'metaMetadata.brandId',
     filterResults: {},
     mongoQuery: {
       'metaMetadata.packageType': 'workspace',
@@ -254,6 +259,7 @@ module.exports.namedQuery = {
   },
   'listDraftInactiveRDMPRecords': {
     collectionName: 'record',
+    brandIdFieldPath: 'metaMetadata.brandId',
     filterResults: {},
     mongoQuery: {
       'metaMetadata.type': 'rdmp',
