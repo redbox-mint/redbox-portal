@@ -108,6 +108,13 @@ export module Services {
              srcRecVal = await RecordsService.getMeta(srcRecOid);
              if (!_.isEmpty(srcRecVal)) {
                srcRecord = srcRecVal;
+               // process any overrides to the source record
+               const recordOverrides = _.get(options, 'request.recordOverrides');
+               if (!_.isEmpty(recordOverrides) && _.isArray(recordOverrides)) {
+                 for (const recOverride of recordOverrides) {
+                   _.set(srcRecord, recOverride.field, _.get(record, recOverride.value));
+                 }
+               }
              }
           }
           if (_.isEmpty(srcRecVal)) {
@@ -173,8 +180,11 @@ export module Services {
         }
       } catch (error) {
         _.set(error, 'response.request.headers.Authorization', '-redacted-');
-        if (_.get(error, 'response.statusCode') == 401) {
+        if (_.get(error, 'statusCode') == 401 || _.get(error, 'statusCode') == 403 ) {
           sails.log.error(`${this.logHeader} mintRaid() ${oid} -> Authentication failed, check if the auth token is properly configured.`);
+          let errorMessage = TranslationService.t('raid-mint-server-error');
+          let customError:RBValidationError = new RBValidationError(errorMessage);
+          throw customError;
         }
         // This is the generic handler for when the API call itself throws an exception
         sails.log.error(`${this.logHeader} mintRaid() ${oid} -> API error, Status Code: '${error.statusCode}'`);
