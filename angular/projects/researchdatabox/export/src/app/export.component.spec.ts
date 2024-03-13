@@ -93,8 +93,11 @@ describe('ExportComponent', () => {
     let generatedUrl:string = `${recordService.brandingAndPortalUrl}/export/record/download/csv?before=&after=&recType=rdmp`;
     expect(url).toEqual(generatedUrl);
     // test with modified after set
-    const dateNow = DateTime.local();
-    const dateNowStr = dateNow.toFormat('yyyy-MM-ddTHH:mm:ss.SSSZ');
+    let dateNow = DateTime.local();
+    dateNow = dateNow.startOf('day');
+    const dateEnd = dateNow.endOf('day');
+    const dateEndStr = dateEnd.toFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+    const dateNowStr = dateNow.toFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
     app.modAfter = dateNow.toJSDate();
     app.download();
     generatedUrl = `${recordService.brandingAndPortalUrl}/export/record/download/csv?before=&after=${dateNowStr}&recType=rdmp`;
@@ -102,17 +105,17 @@ describe('ExportComponent', () => {
     // test with modified before set
     app.modBefore = dateNow.toJSDate();
     app.download();
-    generatedUrl = `${recordService.brandingAndPortalUrl}/export/record/download/csv?before=${dateNowStr}&after=${dateNowStr}&recType=rdmp`;
+    generatedUrl = `${recordService.brandingAndPortalUrl}/export/record/download/csv?before=${dateEndStr}&after=${dateNowStr}&recType=rdmp`;
     expect(url).toEqual(generatedUrl);
     // test with different data type
     app.setRecordType('dataRecord', event);
     app.download();
-    generatedUrl = `${recordService.brandingAndPortalUrl}/export/record/download/csv?before=${dateNowStr}&after=${dateNowStr}&recType=dataRecord`;
+    generatedUrl = `${recordService.brandingAndPortalUrl}/export/record/download/csv?before=${dateEndStr}&after=${dateNowStr}&recType=dataRecord`;
     expect(url).toEqual(generatedUrl);
     // test with different format
     app.setExportFormat('json', event);
     app.download();
-    generatedUrl = `${recordService.brandingAndPortalUrl}/export/record/download/json?before=${dateNowStr}&after=${dateNowStr}&recType=dataRecord`;
+    generatedUrl = `${recordService.brandingAndPortalUrl}/export/record/download/json?before=${dateEndStr}&after=${dateNowStr}&recType=dataRecord`;
     expect(url).toEqual(generatedUrl);
   });
 });
