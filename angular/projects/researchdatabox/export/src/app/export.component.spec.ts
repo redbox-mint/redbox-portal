@@ -94,7 +94,7 @@ describe('ExportComponent', () => {
     expect(url).toEqual(generatedUrl);
     // test with modified after set
     const dateNow = DateTime.local();
-    const dateNowStr = dateNow.toFormat('yyyy-MM-dd');
+    const dateNowStr = dateNow.toFormat('yyyy-MM-ddTHH:mm:ss.SSSZ');
     app.modAfter = dateNow.toJSDate();
     app.download();
     generatedUrl = `${recordService.brandingAndPortalUrl}/export/record/download/csv?before=&after=${dateNowStr}&recType=rdmp`;
