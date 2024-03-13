@@ -466,7 +466,10 @@ export class RepeatableContributor extends RepeatableContainer {
   }
 
   setValueAtElem(index, value:any) {
-    this.fields[index].component.onSelect(value, false, true);
+    // error thrown when on view mode, only set when on edit mode...
+    if (this.editMode) {
+      this.fields[index].component.onSelect(value, false, true);
+    }
   }
 
   addElem(val:any = null) {
