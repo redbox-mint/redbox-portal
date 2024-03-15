@@ -476,8 +476,8 @@
 
                     <tr>
                         <td class="col-md-4">
-                            <div class="io-line">Defined in <a href="" data-line="86"
-                                    class="link-to-prism">angular/projects/researchdatabox/export/src/app/export.component.ts:86</a></div>
+                            <div class="io-line">Defined in <a href="" data-line="95"
+                                    class="link-to-prism">angular/projects/researchdatabox/export/src/app/export.component.ts:95</a></div>
                         </td>
                     </tr>
 
@@ -513,8 +513,8 @@
 
                     <tr>
                         <td class="col-md-4">
-                            <div class="io-line">Defined in <a href="" data-line="82"
-                                    class="link-to-prism">angular/projects/researchdatabox/export/src/app/export.component.ts:82</a></div>
+                            <div class="io-line">Defined in <a href="" data-line="91"
+                                    class="link-to-prism">angular/projects/researchdatabox/export/src/app/export.component.ts:91</a></div>
                         </td>
                     </tr>
 
@@ -597,8 +597,8 @@
 
                     <tr>
                         <td class="col-md-4">
-                            <div class="io-line">Defined in <a href="" data-line="97"
-                                    class="link-to-prism">angular/projects/researchdatabox/export/src/app/export.component.ts:97</a></div>
+                            <div class="io-line">Defined in <a href="" data-line="106"
+                                    class="link-to-prism">angular/projects/researchdatabox/export/src/app/export.component.ts:106</a></div>
                         </td>
                     </tr>
 
@@ -676,8 +676,8 @@
 
                     <tr>
                         <td class="col-md-4">
-                            <div class="io-line">Defined in <a href="" data-line="90"
-                                    class="link-to-prism">angular/projects/researchdatabox/export/src/app/export.component.ts:90</a></div>
+                            <div class="io-line">Defined in <a href="" data-line="99"
+                                    class="link-to-prism">angular/projects/researchdatabox/export/src/app/export.component.ts:99</a></div>
                         </td>
                     </tr>
 
@@ -1594,9 +1594,18 @@ export class ExportComponent extends BaseComponent {
   }
 
   download() {
-    const formatStr &#x3D; &#x27;yyyy-MM-dd&#x27;
-    const before &#x3D; this.modBefore ? DateTime.fromObject(this.modBefore).toFormat(formatStr) : &#x27;&#x27;;
-    const after &#x3D; this.modAfter ? DateTime.fromObject(this.modAfter).toFormat(formatStr) : &#x27;&#x27;;
+    let before &#x3D; &#x27;&#x27;;
+    let after &#x3D; &#x27;&#x27;;
+    if(this.modBefore) {
+      this.modBefore.setHours(23,59,59,999);
+      before &#x3D; this.modBefore.toISOString();
+    }
+    if(this.modAfter) {
+      this.modAfter.setHours(0,0,0,0);
+      after &#x3D; this.modAfter.toISOString();
+    }
+    
+    
     const url &#x3D; &#x60;${this.recordService.brandingAndPortalUrl}/export/record/download/${this.export_format}?before&#x3D;${before}&amp;after&#x3D;${after}&amp;recType&#x3D;${this.record_type}&#x60;;
     this.window.open(url, &#x27;_blank&#x27;);
   }
