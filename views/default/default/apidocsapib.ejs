@@ -3,7 +3,34 @@ HOST: https://demo.redboxresearchdata.com.au
 
 # ReDBox Portal API 
 
-The ReDBox Portal API provides authorized access to manage functions.
+The ReDBox Portal API provides authorized access to manage functions related to records, user management, roles, search functionalities, and more. This document outlines the available endpoints, request/response formats, and other relevant technical details.
+
+## Overview
+
+### Authorization
+
+The ReDBox Portal API secures access through the use of bearer tokens. A bearer token must be obtained from the ReDBox admin user interface and included in the `Authorization` header as a Bearer token for all API requests.
+
+#### Obtaining Bearer Tokens
+
+To obtain a bearer token, follow the instructions on the [ReDBox Portal Wiki](https://github.com/redbox-mint/redbox-portal/wiki/ReDBox-Portal-API#creating-an-api-user)
+
+#### Using Bearer Tokens
+
+Once you have obtained a bearer token, include it in the `Authorization` header as a Bearer token with each API request:
+
+```
+Authorization: Bearer YOUR_BEARER_TOKEN_HERE
+```
+
+Please ensure that your bearer tokens are stored securely and are not exposed to unauthorized entities. If a token is compromised, generate a new token from the admin user interface immediately to replace it.
+
+### Error Handling
+
+The API uses standard HTTP status codes to indicate the success or failure of an API request. In general:
+- `2xx` codes indicate success.
+- `4xx` codes indicate an error that failed given the information provided (e.g., a required parameter was omitted, a charge failed, etc.).
+- `5xx` codes indicate an error with ReDBox's servers.
 
 
 # Group Record
@@ -668,6 +695,18 @@ The ReDBox Portal API provides authorized access to manage functions.
 
 # Group Other
 
+## Admin Resources [/default/rdmp/api/admin/refreshCachedResources]
+
+This endpoint is used to refresh the cached resources in the application such as CSS and JS resources and the language files.
+
+### Refresh Cached Resources [GET]
+
++ Response 200 (application/json)
+    + Attributes (APIActionResponse)
+
++ Response 500 (application/json)
+    + Attributes (APIErrorResponse)
+
 ## Email Actions [/<%= branding %>/<%= portal %>/api/sendNotification]
 
 ### Send an email [POST]
@@ -756,6 +795,14 @@ This endpoint is an authenticated wrapper to Apache solr's search endpoint and s
 - dateModified: 2020-12-02T00:00:33.01Z (required)
 - metadata (object) - Record Metadata, this varies depending on the record type
 
+### APIActionResponse (object)
++ message (string, optional) - The success message. Defaults to 'Request processed successfully'.
++ details (string, optional) - Additional details about the action. Defaults to an empty string.
+
+### APIErrorResponse (object)
+- message (string, optional) - The error message. Defaults to 'An error has occurred'.
+- details (string, optional) - Additional details about the error. Defaults to an empty string.
+
 ### CreateRecordRequest (object)
 - metadata (object) (required)
 
@@ -826,3 +873,4 @@ This endpoint is an authenticated wrapper to Apache solr's search endpoint and s
 
 ### Attachment (object)
 - filename: researchdata.zip
+
