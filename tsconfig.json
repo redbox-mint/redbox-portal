@@ -3,7 +3,8 @@
     "compilerOptions": {
       "outDir": "./",
       "rootDir": "./typescript",
-      "strict": false
+      "strict": false,
+      "inlineSourceMap": true
     },
     "exclude": [
       "node_modules/**",

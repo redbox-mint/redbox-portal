@@ -50,6 +50,7 @@ import {
 import {
   Readable
 } from 'stream';
+import { RecordAuditActionType } from '@researchdatabox/redbox-core-types/dist/model/RecordAuditModel';
 
 
 const util = require('util');
@@ -127,6 +128,9 @@ export module Services {
       'deleteFilesFromStageDir',
       'getRelatedRecords',
       'delete',
+      'restoreRecord',
+      'destroyDeletedRecord',
+      'getDeletedRecords',
       'updateNotificationLog',
       'updateWorkflowStep',
       'triggerPreSaveTriggers',
@@ -197,7 +201,7 @@ export module Services {
           this.searchService.index(recordOid, record);
         }
 
-        this.auditRecord(createResponse['oid'], record, user)
+        this.auditRecord(createResponse['oid'], record, user, RecordAuditActionType.created)
 
       } else {
         sails.log.error(`${this.logHeader} Failed to create record, storage service response:`);
@@ -270,7 +274,7 @@ export module Services {
           this.triggerPostSaveTriggers(updateResponse['oid'], record, recordType, 'onUpdate', user);
         }
         this.searchService.index(oid, record);
-        this.auditRecord(updateResponse['oid'], record, user)
+        this.auditRecord(updateResponse['oid'], record, user, RecordAuditActionType.updated)
       } else {
         sails.log.error(`${this.logHeader} Failed to update record, storage service response:`);
         sails.log.error(JSON.stringify(updateResponse));
@@ -299,9 +303,11 @@ export module Services {
       return this.storageService.getRelatedRecords(oid, brand);
     }
 
-    async delete(oid: any) {
-      const response = await this.storageService.delete(oid);
+    async delete(oid: any, permanentlyDelete:boolean, user:any) {
+      const response = await this.storageService.delete(oid, permanentlyDelete);
       if (response.isSuccessful()) {
+        let action:RecordAuditActionType = permanentlyDelete? RecordAuditActionType.destroyed : RecordAuditActionType.deleted;
+        this.auditRecord(oid,{}, user, action)
         this.searchService.remove(oid);
       }
       return response;
@@ -378,7 +384,7 @@ export module Services {
     }
 
 
-    public auditRecord(id: string, record: any, user: any) {
+    public auditRecord(id: string, record: any, user: any, action:RecordAuditActionType = RecordAuditActionType.updated) {
       if (this.queueService == null) {
         sails.log.verbose(`${this.logHeader} Queue service isn't defined. Skipping auditing`);
         return;
@@ -391,7 +397,7 @@ export module Services {
       }
       sails.log.verbose(`${this.logHeader} adding record audit job: ${id} with data:`);
       // storage_id is used as the main ID in searches
-      let data = new RecordAuditModel(id, record, user)
+      let data = new RecordAuditModel(id, record, user, action)
       sails.log.verbose(JSON.stringify(data));
       this.queueService.now(sails.config.record.auditing.recordAuditJobName, data);
     }
@@ -688,6 +694,30 @@ export module Services {
       //   return Observable.of(record);
       // });
     }
+
+    
+
+    async restoreRecord(oid: any, user:any): Promise<any> {
+      let record = await this.storageService.restoreRecord(oid);
+      this.searchService.index(oid, record);
+      this.auditRecord(oid, record, user, RecordAuditActionType.restored)
+      return record
+    }
+
+    async destroyDeletedRecord(oid: any, user:any): Promise<any> {
+      let record = await this.storageService.destroyDeletedRecord(oid);
+      this.auditRecord(oid, record, user, RecordAuditActionType.destroyed)
+      return record
+    }
+
+    async getDeletedRecords(workflowState: any, recordType: any, start: any, rows: any, username: any, roles: any, brand: any, editAccessOnly: any, packageType: any, sort: any, fieldNames?: any, filterString?: any, filterMode?: any): Promise<any> {
+      return await this.storageService.getDeletedRecords(workflowState,recordType,start,rows,username,roles,brand,editAccessOnly,packageType,sort,fieldNames,filterString,filterMode);
+    }
+
+    async createRecordAudit?(record: any): Promise<any> {
+      return await this.storageService.createRecordAudit(record);
+    }
+
 
     public updateWorkflowStep(currentRec, nextStep): void {
       if (!_.isEmpty(nextStep)) {

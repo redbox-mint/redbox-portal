@@ -283,6 +283,21 @@ module.exports.routes = {
     action: 'listRecords',
     csrf: false
   },
+  'get /:branding/:portal/api/deletedrecords/list': {
+    controller: 'webservice/RecordController',
+    action: 'listDeletedRecords',
+    csrf: false
+  },
+  'put /:branding/:portal/api/deletedrecords/:oid': {
+    controller: 'webservice/RecordController',
+    action: 'restoreRecord',
+    csrf: false
+  },
+  'delete /:branding/:portal/api/deletedrecords/:oid': {
+    controller: 'webservice/RecordController',
+    action: 'destroyDeletedRecord',
+    csrf: false
+  },
   'get /:branding/:portal/api/records/objectmetadata/:oid': {
     controller: 'webservice/RecordController',
     action: 'getObjectMeta',

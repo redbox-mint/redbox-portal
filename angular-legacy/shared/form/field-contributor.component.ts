@@ -264,7 +264,13 @@ export class ContributorField extends FieldBase<any> implements CustomValidation
     this.formModel.markAsTouched();
     this.formModel.markAsDirty();
     if (updateTitle && !this.freeText) {
-      this.component.ngCompleter.ctrInput.nativeElement.value = this.vocabField.getTitle(value);
+      try {
+        this.component.ngCompleter.ctrInput.nativeElement.value = this.vocabField.getTitle(value);
+      } catch(e) {
+        //Catch the error and do nothing by design. The reason is explained in trello card below 
+        //TODO: Review if there is a better solution while working in trello card below that is in progress
+        //https://trello.com/c/yR3yb87F/108-contributor-component-cannot-handle-subscribe-to-a-field-to-setvisibility-and-also-subscribe-to-rdmpgetter-object-metadata-retri
+      }
     }
     // install the validators if needed
     if (this.splitNames) {

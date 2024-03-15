@@ -109,22 +109,30 @@ export module Controllers {
 
     public bootstrap() { }
 
-    public getMeta(req, res) {
+    public async getMeta(req, res) {
       const brand = BrandingService.getBrand(req.session.branding);
       const oid = req.param('oid') ? req.param('oid') : '';
-      var obs = Observable.fromPromise(this.recordsService.getMeta(oid));
-      return obs.subscribe(record => {
-        this.hasViewAccess(brand, req.user, record).subscribe(hasViewAccess => {
-          if (hasViewAccess) {
-            return res.json(record.metadata);
-          } else {
-            return res.json({
-              status: "Access Denied"
-            });
-          }
-
-        });
-      });
+      if (oid == '') {
+        return res.badRequest();
+      }
+      try {
+        let record: any = await this.recordsService.getMeta(oid);
+        if(_.isEmpty(record)) {
+          return res.notFound();
+        }
+        let hasViewAccess = await this.hasViewAccess(brand, req.user, record).toPromise()
+        if (hasViewAccess) {
+          return res.json(record.metadata);
+        } else {
+          return res.json({
+            status: "Access Denied"
+          });
+        }
+      } catch (err) {
+        sails.log.error("Error retrieving metdata")
+        sails.log.error(err);
+        return res.serverError();
+      }
     }
 
     public edit(req, res) {
@@ -133,10 +141,10 @@ export module Controllers {
       const recordType = req.param('recordType') ? req.param('recordType') : '';
       const rdmp = req.query.rdmp ? req.query.rdmp : '';
       let localFormName;
-      if(!_.isUndefined(req.options.locals) && !_.isNull(req.options.locals)) {
+      if (!_.isUndefined(req.options.locals) && !_.isNull(req.options.locals)) {
         localFormName = req.options.locals.localFormName;
       }
-      const extFormName =  localFormName ? localFormName : '';
+      const extFormName = localFormName ? localFormName : '';
       let appSelector = 'dmp-form';
       let appName = 'dmp';
       sails.log.debug('RECORD::APP: ' + appName);
@@ -170,7 +178,7 @@ export module Controllers {
             appSelector: appSelector,
             appName: appName
           });
-        }, error=> {
+        }, error => {
           sails.log.error("Failed to load form")
           sails.log.error(error)
           return res.serverError();
@@ -633,7 +641,7 @@ export module Controllers {
       })
         .flatMap(hasEditAccess => {
           if (hasEditAccess) {
-            return Observable.fromPromise(this.recordsService.delete(oid));
+            return Observable.fromPromise(this.recordsService.delete(oid, false, user));
           }
           message = TranslationService.t('edit-error-no-permissions');
           return Observable.throw(new Error(TranslationService.t('edit-error-no-permissions')));
@@ -729,7 +737,7 @@ export module Controllers {
 
       try {
         if (metadata.delete) {
-          let response = await this.recordsService.delete(oid);
+          let response = await this.recordsService.delete(oid, false, user);
           if (response && response.isSuccessful()) {
             response.success = true;
             sails.log.verbose(`Successfully deleted: ${oid}`);
@@ -1223,7 +1231,7 @@ export module Controllers {
       const recordType = req.param('recordType');
       const brand = BrandingService.getBrand(req.session.branding);
       RecordTypesService.get(brand, recordType).subscribe(recordType => {
-        let recordTypeModel = new RecordTypeResponseModel(_.get(recordType, 'name'), _.get(recordType, 'packageType'),  _.get(recordType, 'searchFilters'),  _.get(recordType, 'searchable'));
+        let recordTypeModel = new RecordTypeResponseModel(_.get(recordType, 'name'), _.get(recordType, 'packageType'), _.get(recordType, 'searchFilters'), _.get(recordType, 'searchable'));
         this.ajaxOk(req, res, null, recordTypeModel);
       }, error => {
         this.ajaxFail(req, res, error.message);
@@ -1239,7 +1247,7 @@ export module Controllers {
       RecordTypesService.getAll(brand).subscribe(recordTypes => {
         let recordTypeModels = [];
         for (let recType of recordTypes) {
-          let recordTypeModel = new RecordTypeResponseModel(_.get(recType, 'name'), _.get(recType, 'packageType'),_.get(recType, 'searchFilters'),  _.get(recType, 'searchable'));
+          let recordTypeModel = new RecordTypeResponseModel(_.get(recType, 'name'), _.get(recType, 'packageType'), _.get(recType, 'searchFilters'), _.get(recType, 'searchable'));
           recordTypeModels.push(recordTypeModel);
         }
         this.ajaxOk(req, res, null, recordTypeModels);
@@ -1252,7 +1260,7 @@ export module Controllers {
       const dashboardTypeParam = req.param('dashboardType');
       const brand = BrandingService.getBrand(req.session.branding);
       DashboardTypesService.get(brand, dashboardTypeParam).subscribe(dashboardType => {
-        let dashboardTypeModel = new DashboardTypeResponseModel(_.get(dashboardType, 'name'), _.get(dashboardType,'formatRules'));
+        let dashboardTypeModel = new DashboardTypeResponseModel(_.get(dashboardType, 'name'), _.get(dashboardType, 'formatRules'));
         this.ajaxOk(req, res, null, dashboardTypeModel);
       }, error => {
         this.ajaxFail(req, res, error.message);
@@ -1265,7 +1273,7 @@ export module Controllers {
         let dashboardTypesModel = { dashboardTypes: [] };
         let dashboardTypesModelList = [];
         for (let dashboardType of dashboardTypes) {
-          let dashboardTypeModel = new DashboardTypeResponseModel(_.get(dashboardType, 'name'), _.get(dashboardType,'formatRules'));
+          let dashboardTypeModel = new DashboardTypeResponseModel(_.get(dashboardType, 'name'), _.get(dashboardType, 'formatRules'));
           dashboardTypesModelList.push(dashboardTypeModel);
         }
         _.set(dashboardTypesModel, 'dashboardTypes', dashboardTypesModelList);
@@ -1280,10 +1288,10 @@ export module Controllers {
     protected initTusServer() {
       if (!this.tusServer) {
         let tusServerOptions = {
-        path: sails.config.record.attachments.path
-      }
+          path: sails.config.record.attachments.path
+        }
         this.tusServer = new tus.Server(tusServerOptions);
-        
+
         const targetDir = sails.config.record.attachments.stageDir;
         if (!fs.existsSync(targetDir)) {
           fs.mkdirSync(targetDir);
@@ -1361,6 +1369,12 @@ export module Controllers {
           mimeType = 'application/octet-stream'
         }
         res.set('Content-Type', mimeType);
+
+        let size = found.size;
+        if (!_.isEmpty(size)) {
+          res.set('Content-Length', size);
+        }
+
         sails.log.verbose("found.name " + found.name);
         res.attachment(found.name);
         sails.log.verbose(`Returning datastream observable of ${oid}: ${found.name}, attachId: ${attachId}`);
@@ -1426,7 +1440,7 @@ export module Controllers {
         return this.ajaxOk(req, res, null, response);
       });
     }
-    
+
     public async getRelatedRecordsInternal(req, res) {
       sails.log.verbose(`getRelatedRecordsInternal - starting...`);
       const brand = BrandingService.getBrand(req.session.branding);
@@ -1547,9 +1561,9 @@ export module Controllers {
      */
 
 
-     /** Dashboard Controller functions */
+    /** Dashboard Controller functions */
 
-     public listWorkspaces(req, res) {
+    public listWorkspaces(req, res) {
       const url = `${BrandingService.getFullPath(req)}/dashboard/workspace?packageType=workspace&titleLabel=workspaces`;
       return res.redirect(url);
     }
@@ -1557,8 +1571,8 @@ export module Controllers {
     public render(req, res) {
       const recordType = req.param('recordType') ? req.param('recordType') : '';
       const packageType = req.param('packageType') ? req.param('packageType') : '';
-      const titleLabel = req.param('titleLabel') ? TranslationService.t(req.param('titleLabel')) : `${TranslationService.t('edit-dashboard')} ${TranslationService.t(recordType+'-title-label')}`;
-      return this.sendView(req, res, 'dashboard', {recordType: recordType, packageType: packageType, titleLabel: titleLabel });
+      const titleLabel = req.param('titleLabel') ? TranslationService.t(req.param('titleLabel')) : `${TranslationService.t('edit-dashboard')} ${TranslationService.t(recordType + '-title-label')}`;
+      return this.sendView(req, res, 'dashboard', { recordType: recordType, packageType: packageType, titleLabel: titleLabel });
     }
 
 
@@ -1577,7 +1591,7 @@ export module Controllers {
         username = req.user.username;
       } else {
         // assign default role if needed...
-        user = {username: username};
+        user = { username: username };
         roles = [];
         roles.push(RolesService.getDefUnathenticatedRole(brand));
       }
@@ -1593,17 +1607,17 @@ export module Controllers {
       const filterModeString = req.param('filterMode');
       let filterMode = undefined;
 
-       if(!_.isEmpty(filterFieldString)) {
-         filterFields = filterFieldString.split(',')
-       } else {
-         filterString = undefined;
-       }
+      if (!_.isEmpty(filterFieldString)) {
+        filterFields = filterFieldString.split(',')
+      } else {
+        filterString = undefined;
+      }
 
-       if(!_.isEmpty(filterModeString)) {
-         filterMode = filterModeString.split(',')
-       } else {
-         filterMode = undefined;
-       }
+      if (!_.isEmpty(filterModeString)) {
+        filterMode = filterModeString.split(',')
+      } else {
+        filterMode = undefined;
+      }
 
       // sails.log.error('-------------Record Controller getRecordList------------------------');
       // sails.log.error('filterFields '+ filterFields);
@@ -1612,7 +1626,7 @@ export module Controllers {
       // sails.log.error('----------------------------------------------------------');
 
       try {
-        const response = await this.getRecords(workflowState, recordType, start,rows,user,roles,brand,editAccessOnly, packageType,sort,filterFields,filterString,filterMode);
+        const response = await this.getRecords(workflowState, recordType, start, rows, user, roles, brand, editAccessOnly, packageType, sort, filterFields, filterString, filterMode);
         if (response) {
           this.ajaxOk(req, res, null, response);
         } else {
@@ -1627,18 +1641,18 @@ export module Controllers {
 
     private getDocMetadata(doc) {
       var metadata = {};
-      for(var key in doc){
-        if(key.indexOf('authorization_') != 0 && key.indexOf('metaMetadata_') != 0) {
+      for (var key in doc) {
+        if (key.indexOf('authorization_') != 0 && key.indexOf('metaMetadata_') != 0) {
           metadata[key] = doc[key];
         }
-        if(key == 'authorization_editRoles') {
+        if (key == 'authorization_editRoles') {
           metadata[key] = doc[key];
         }
       }
       return metadata;
     }
 
-    protected async getRecords(workflowState, recordType, start,rows,user, roles, brand, editAccessOnly=undefined, packageType = undefined, sort=undefined, filterFields=undefined, filterString=undefined, filterMode=undefined) {
+    protected async getRecords(workflowState, recordType, start, rows, user, roles, brand, editAccessOnly = undefined, packageType = undefined, sort = undefined, filterFields = undefined, filterString = undefined, filterMode = undefined) {
       const username = user.username;
       if (!_.isUndefined(recordType) && !_.isEmpty(recordType)) {
         recordType = recordType.split(',');
@@ -1646,7 +1660,7 @@ export module Controllers {
       if (!_.isUndefined(packageType) && !_.isEmpty(packageType)) {
         packageType = packageType.split(',');
       }
-      var results = await RecordsService.getRecords(workflowState,recordType, start,rows,username,roles,brand,editAccessOnly, packageType, sort,filterFields,filterString, filterMode);
+      var results = await RecordsService.getRecords(workflowState, recordType, start, rows, username, roles, brand, editAccessOnly, packageType, sort, filterFields, filterString, filterMode);
       if (!results.isSuccessful()) {
         sails.log.verbose(`Failed to retrieve records!`);
         return null;
@@ -1670,8 +1684,8 @@ export module Controllers {
         var item = {};
         item["oid"] = doc["redboxOid"];
         item["title"] = doc["metadata"]["title"];
-        item["metadata"]= this.getDocMetadata(doc);
-        item["dateCreated"] =  doc["dateCreated"];
+        item["metadata"] = this.getDocMetadata(doc);
+        item["dateCreated"] = doc["dateCreated"];
         item["dateModified"] = doc["lastSaveDate"];
         item["hasEditAccess"] = RecordsService.hasEditAccess(brand, user, roles, doc);
         items.push(item);
