@@ -170,10 +170,27 @@ The API uses standard HTTP status codes to indicate the success or failure of an
     + Attributes (Error, fixed-type)
         - message: Update Metadata failed
 
-### Update Record Metadata [DELETE]
+### Delete a Record [DELETE /<%= branding %>/<%= portal %>/api/records/metadata/{oid}{?permanent}]
+
 
 + Parameters
-    + oid: `7e72b5952e8e323c77f72ae268a27c46` (string, required) - The identifier for the record
+    + oid (required, string) - The identifier of the Record in the form of a string.
+    + permanent (optional, boolean) - A flag to permanently delete the record.
+        + Default: false
+
++ Request (application/json)
+    + Headers
+
+            Authorization: Bearer <token>
+
++ Response 200 (application/json)
+    + Attributes (APIActionResponse)
+
++ Response 400 (application/json)
+    + Attributes (APIErrorResponse)
+
++ Response 500 (application/json)
+    + Attributes (APIErrorResponse)
 
 + Request Update record metadata (application/json)
   + Headers
@@ -216,6 +233,74 @@ The API uses standard HTTP status codes to indicate the success or failure of an
     + Attributes (Error, fixed-type)
         - message: Get Metadata failed, failed to retrieve existing record.
 
+
+## Deleted Record Actions [/api/deletedrecords]
+
+### List Deleted Records [GET /api/deletedrecords{?recordType,state,start,rows,packageType,sort,filterFields,filter}]
+        
++ Parameters
+    + recordType (optional, string) - The type of the record.
+    + state (optional, string) - The workflow state of the record.
+    + start (optional, number) - The starting index for the records to be returned.
+    + rows (optional, number) - The number of records to be returned.
+    + packageType (optional, string) - The package type of the record.
+    + sort (optional, string) - The sorting order for the records.
+    + filterFields (optional, string) - The a comma seperated list of the fields to be  used for filtering.
+    + filter (optional, string) - The filter string to be applied.
+        
++ Request (application/json)
+    + Headers
+        
+            Authorization: Bearer <token>
+        
++ Response 200 (application/json)
+    + Attributes (ListAPIResponse)
+
++ Response 400 (application/json)
+    + Attributes (APIErrorResponse)
+
++ Response 500 (application/json)
+    + Attributes (APIErrorResponse)
+
+### Restore a Deleted Record [PUT /api/deletedrecords/{oid}]
+        
++ Parameters
+    + oid (required, string) - The identifier of the Deleted Record in the form of a string.
+        
++ Request (application/json)
+    + Headers
+        
+            Authorization: Bearer <token>
+        
++ Response 200 (application/json)
+    + Attributes (APIActionResponse)
+        
++ Response 400 (application/json)
+    + Attributes (APIErrorResponse)
+        
++ Response 500 (application/json)
+    + Attributes (APIErrorResponse)
+
+### Permanently Delete a Deleted Record [DELETE /api/deletedrecords/{oid}]
+        
++ Parameters
+    + oid (required, string) - The identifier of the Deleted Record in the form of a string.
+            
++ Request (application/json)
+    + Headers
+            
+            Authorization: Bearer <token>
+            
++ Response 200 (application/json)
+    + Attributes (APIActionResponse)
+            
++ Response 400 (application/json)
+     + Attributes (APIErrorResponse)
+            
++ Response 500 (application/json)
+    + Attributes (APIErrorResponse)
+
+            
 ## Record Audit Actions [/<%= branding %>/<%= portal %>/api/records/audit]
 
 ### Get Record Audit Information [GET /<%= branding %>/<%= portal %>/api/records/audit/{oid}{?dateFrom,dateTo}]
@@ -802,6 +887,15 @@ This endpoint is an authenticated wrapper to Apache solr's search endpoint and s
 ### APIErrorResponse (object)
 - message (string, optional) - The error message. Defaults to 'An error has occurred'.
 - details (string, optional) - Additional details about the error. Defaults to an empty string.
+
+### ListAPIResponse (object)
++ summary (ListAPISummary, required) - An object containing summary information about the list.
++ records (array, required) - An array of records. The type of the records is defined by the specific use case.
+
+### ListAPISummary (object)
++ numFound (number, required) - The total number of records found.
++ page (number, required) - The current page number.
++ start (number, required) - The starting index of the records in the current page.
 
 ### CreateRecordRequest (object)
 - metadata (object) (required)
