@@ -1,7 +1,7 @@
 jobs:
   build:
     docker:
-      - image: 'cimg/node:18.12'
+      - image: 'cimg/node:20.11'
     steps:
       - checkout
       - run: (cd core && npm install && node_modules/.bin/tsc)
@@ -11,13 +11,14 @@ jobs:
       - run: (chmod +x support/build/compileProductionAngular.sh && support/build/compileProductionAngular.sh)
       - run: (chmod +x support/build/compileProductionAngularLegacy.sh && support/build/compileProductionAngularLegacy.sh)
       - run: npm run webpack
+      - run: (chmod +x support/build/generateAPIDescriptors.sh && support/build/generateAPIDescriptors.sh)
       - persist_to_workspace:
           root: .
           paths:
             - .
   build_without_angular:
     docker:
-      - image: 'cimg/node:18.12'
+      - image: 'cimg/node:20.11'
     steps:
       - checkout
       - run: (cd core && npm install && node_modules/.bin/tsc)
