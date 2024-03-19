@@ -84,7 +84,7 @@ export module Services {
         mongoQuery: JSON.stringify(config.mongoQuery),
         queryParams: JSON.stringify(config.queryParams),
         collectionName: config.collectionName,
-        filterResults: JSON.stringify(config.filterResults),
+        resultObjectMapping: JSON.stringify(config.resultObjectMapping),
         brandIdFieldPath: config.brandIdFieldPath
       }));
     }
@@ -97,9 +97,11 @@ export module Services {
       return new NamedQueryConfig(nQDBEntry)
     }
 
-    async performNamedQuery(brandIdFieldPath, filterResults, collectionName, mongoQuery, queryParams, paramMap, brand, start, rows, user=undefined):Promise<ListAPIResponse<NamedQueryResponseRecord>> {
+    async performNamedQuery(brandIdFieldPath, resultObjectMapping, collectionName, mongoQuery, queryParams, paramMap, brand, start, rows, user=undefined):Promise<ListAPIResponse<Object>> {
       
       this.setParamsInQuery(mongoQuery, queryParams, paramMap);
+
+      let that = this;
       
       if(brandIdFieldPath != '') {
         mongoQuery[brandIdFieldPath] = brand.id;
@@ -144,20 +146,24 @@ export module Services {
 
         if(collectionName == 'user') {
 
-          let defaultMetadata = {
-            type: record.type,
-            name: record.name,
-            email: record.email,
-            username: record.username,
-            lastLogin: record.lastLogin
-          };
+          let defaultMetadata = {};
+          let variables = { record: record };
 
-          if(!_.isEmpty(filterResults)) {
-            let filteredMetadata = _.cloneDeep(filterResults);
-            _.forOwn(filterResults, function(value, key) {
-              _.set(filteredMetadata,key,_.get(defaultMetadata,key));
+          if(!_.isEmpty(resultObjectMapping)) {
+            let filteredMetadata = _.cloneDeep(resultObjectMapping);
+            _.forOwn(resultObjectMapping, function(value, key) {
+              _.set(filteredMetadata,key,that.runTemplate(value,variables));
             });
             defaultMetadata = filteredMetadata;
+
+          } else {
+            defaultMetadata = {
+              type: that.runTemplate('record.type',variables),
+              name: that.runTemplate('record.name',variables),
+              email: that.runTemplate('record.email',variables),
+              username: that.runTemplate('record.username',variables),
+              lastLogin: that.runTemplate('record.lastLogin',variables)
+            };
           }
 
           let responseRecord:NamedQueryResponseRecord = new NamedQueryResponseRecord({
@@ -173,9 +179,9 @@ export module Services {
 
           let defaultMetadata = _.cloneDeep(record.metadata);
 
-          if(!_.isEmpty(filterResults)) {
-            let filteredMetadata = _.cloneDeep(filterResults);
-            _.forOwn(filterResults, function(value, key) {
+          if(!_.isEmpty(resultObjectMapping)) {
+            let filteredMetadata = _.cloneDeep(resultObjectMapping);
+            _.forOwn(resultObjectMapping, function(value, key) {
               _.set(filteredMetadata,key,_.get(defaultMetadata,key));
             });
             defaultMetadata = filteredMetadata;
@@ -280,7 +286,12 @@ export module Services {
       return mongoQuery;
     }
 
-    
+    runTemplate(templateOrPath: string, variables: any) {
+      if (templateOrPath && templateOrPath.indexOf('<%') != -1) {
+        return _.template(templateOrPath)(variables);
+      }
+      return _.get(variables, templateOrPath);
+    }
 
   }
 }
@@ -322,7 +333,7 @@ export class NamedQueryConfig {
   queryParams: Map<string,QueryParameterDefinition>;
   mongoQuery: object;
   collectionName: string;
-  filterResults: any;
+  resultObjectMapping: any;
   brandIdFieldPath: string;
 
   constructor(values:any) {
@@ -335,7 +346,7 @@ export class NamedQueryConfig {
       this.queryParams = JSON.parse(values.queryParams);
       this.mongoQuery = JSON.parse(values.mongoQuery);
       this.collectionName = values.collectionName;
-      this.filterResults = JSON.parse(values.filterResults);
+      this.resultObjectMapping = JSON.parse(values.resultObjectMapping);
       this.brandIdFieldPath = values.brandIdFieldPath;
   }
 }

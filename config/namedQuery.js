@@ -2,13 +2,7 @@ module.exports.namedQuery = {
   'listRDMPRecords': {
     collectionName: 'record',
     brandIdFieldPath: 'metaMetadata.brandId',
-    filterResults: {
-      title: '',
-      descriptions: '',
-      finalKeywords: '',
-      contributor_ci: '',
-      contributors: '',
-      contributor_data_manager: ''
+    resultObjectMapping: {
     },
     mongoQuery: {
       'metaMetadata.type': 'rdmp',
@@ -56,7 +50,7 @@ module.exports.namedQuery = {
   'listDRRecords': {
     collectionName: 'record',
     brandIdFieldPath: 'metaMetadata.brandId',
-    filterResults: {},
+    resultObjectMapping: {},
     mongoQuery: {
       'metaMetadata.type': 'dataRecord',
       'metadata.title': null,
@@ -103,7 +97,7 @@ module.exports.namedQuery = {
   'listDPRecords': {
     collectionName: 'record',
     brandIdFieldPath: 'metaMetadata.brandId',
-    filterResults: {},
+    resultObjectMapping: {},
     mongoQuery: {
       'metaMetadata.type': 'dataPublication',
       'metadata.title': null,
@@ -150,7 +144,7 @@ module.exports.namedQuery = {
   'listEmbargoedDPRecords': {
     collectionName: 'record',
     brandIdFieldPath: 'metaMetadata.brandId',
-    filterResults: {},
+    resultObjectMapping: {},
     mongoQuery: {
       'metaMetadata.type': 'dataPublication',
       'workflow.stage': 'embargoed',
@@ -213,7 +207,7 @@ module.exports.namedQuery = {
   'listWorkspaceRecords': {
     collectionName: 'record',
     brandIdFieldPath: 'metaMetadata.brandId',
-    filterResults: {},
+    resultObjectMapping: {},
     mongoQuery: {
       'metaMetadata.packageType': 'workspace',
       'metadata.title': null,
@@ -260,7 +254,7 @@ module.exports.namedQuery = {
   'listDraftInactiveRDMPRecords': {
     collectionName: 'record',
     brandIdFieldPath: 'metaMetadata.brandId',
-    filterResults: {},
+    resultObjectMapping: {},
     mongoQuery: {
       'metaMetadata.type': 'rdmp',
       'workflow.stage': 'draft'
@@ -284,12 +278,12 @@ module.exports.namedQuery = {
   },
   'listUsers': {
     collectionName: 'user',
-    filterResults: {
-      'type': '',
-      'name': '',
-      'email': '',
-      'username': '',
-      'lastLogin': ''
+    resultObjectMapping: {
+      type: '<%= record.type %>',
+      name: '<%= record.name %>',
+      email: '<%= record.email %>',
+      username: '<%= record.username %>',
+      lastLogin: '<%= record.lastLogin %>'
     },
     mongoQuery: {},
     queryParams: {

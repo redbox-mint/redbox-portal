@@ -31,7 +31,7 @@ module.exports = {
       type: 'string',
       required: true
     },
-    filterResults: {
+    resultObjectMapping: {
       type: 'string',
       required: true
     },
