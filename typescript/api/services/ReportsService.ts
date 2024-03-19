@@ -162,11 +162,14 @@ export module Services {
         let namedQueryConfig = await NamedQueryService.getNamedQueryConfig(brand, report.databaseQuery.queryName)
        
         let configMongoQuery = namedQueryConfig.mongoQuery;
+        let collectionName = _.get(namedQueryConfig, 'collectionName', '');
+        let resultObjectMapping = _.get(namedQueryConfig, 'resultObjectMapping', {});
+        let brandIdFieldPath = _.get(namedQueryConfig, 'brandIdFieldPath', '');
         let mongoQuery = _.clone(configMongoQuery);
         let queryParams = namedQueryConfig.queryParams;
         let paramMap = this.buildNamedQueryParamMap(req, report)
 
-        let dbResult = await NamedQueryService.performNamedQuery(mongoQuery, queryParams, paramMap, brand, start, rows);
+        let dbResult = await NamedQueryService.performNamedQuery(brandIdFieldPath,resultObjectMapping,collectionName,mongoQuery, queryParams, paramMap, brand, start, rows);
         return this.getTranslateDatabaseResultToReportResult(dbResult, report);
       } else {
         var url = this.buildSolrParams(brand, req, report, start, rows, 'json');
@@ -282,11 +285,14 @@ export module Services {
         let namedQueryConfig = await NamedQueryService.getNamedQueryConfig(brand, report.databaseQuery.queryName)
         
         let configMongoQuery = namedQueryConfig.mongoQuery;
+        let collectionName = _.get(namedQueryConfig, 'collectionName', '');
+        let resultObjectMapping = _.get(namedQueryConfig, 'resultObjectMapping', {});
+        let brandIdFieldPath = _.get(namedQueryConfig, 'brandIdFieldPath', '');
         let mongoQuery = _.clone(configMongoQuery);
         let queryParams = namedQueryConfig.queryParams;
         let paramMap = this.buildNamedQueryParamMap(req, report)
 
-        let dbResult = await NamedQueryService.performNamedQuery(mongoQuery, queryParams, paramMap, brand, start, rows);
+        let dbResult = await NamedQueryService.performNamedQuery(brandIdFieldPath,resultObjectMapping,collectionName,mongoQuery, queryParams, paramMap, brand, start, rows);
         result = this.getTranslateDatabaseResultToReportResult(dbResult, report);
       } else {
         var url = this.buildSolrParams(brand, req, report, start, rows, 'json');
