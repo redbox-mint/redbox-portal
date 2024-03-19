@@ -2,7 +2,12 @@ module.exports.namedQuery = {
   'listRDMPRecords': {
     collectionName: 'record',
     brandIdFieldPath: 'metaMetadata.brandId',
-    resultObjectMapping: {},
+    resultObjectMapping: {
+      oid: '<%= record.redboxOid%>',
+      title: '<%= record.metadata.title %>',
+      contributor_ci: '<%= record.metadata.contributor_ci.text_full_name %>',
+      contributor_data_manager: '<%= record.metadata.contributor_data_manager.text_full_name %>'
+    },
     mongoQuery: {
       'metaMetadata.type': 'rdmp',
       'metadata.title': null,
