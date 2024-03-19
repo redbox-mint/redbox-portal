@@ -150,11 +150,11 @@ export module Services {
           let variables = { record: record };
 
           if(!_.isEmpty(resultObjectMapping)) {
-            let filteredMetadata = _.cloneDeep(resultObjectMapping);
+            let resultMetadata = _.cloneDeep(resultObjectMapping);
             _.forOwn(resultObjectMapping, function(value, key) {
-              _.set(filteredMetadata,key,that.runTemplate(value,variables));
+              _.set(resultMetadata,key,that.runTemplate(value,variables));
             });
-            defaultMetadata = filteredMetadata;
+            defaultMetadata = resultMetadata;
 
           } else {
             defaultMetadata = {
@@ -177,14 +177,18 @@ export module Services {
 
         } else {
 
-          let defaultMetadata = _.cloneDeep(record.metadata);
+          let defaultMetadata = {};
+          let variables = { record: record };
 
           if(!_.isEmpty(resultObjectMapping)) {
-            let filteredMetadata = _.cloneDeep(resultObjectMapping);
+            let resultMetadata = _.cloneDeep(resultObjectMapping);
             _.forOwn(resultObjectMapping, function(value, key) {
-              _.set(filteredMetadata,key,_.get(defaultMetadata,key));
+              _.set(resultMetadata,key,that.runTemplate(value,variables));
             });
-            defaultMetadata = filteredMetadata;
+            defaultMetadata = resultMetadata;
+            
+          } else {
+            defaultMetadata =  that.runTemplate('record.metadata',variables);
           }
 
           let responseRecord:NamedQueryResponseRecord = new NamedQueryResponseRecord({

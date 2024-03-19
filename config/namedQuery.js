@@ -2,8 +2,7 @@ module.exports.namedQuery = {
   'listRDMPRecords': {
     collectionName: 'record',
     brandIdFieldPath: 'metaMetadata.brandId',
-    resultObjectMapping: {
-    },
+    resultObjectMapping: {},
     mongoQuery: {
       'metaMetadata.type': 'rdmp',
       'metadata.title': null,
