@@ -11,7 +11,7 @@ jobs:
       - run: (chmod +x support/build/compileProductionAngular.sh && support/build/compileProductionAngular.sh)
       - run: (chmod +x support/build/compileProductionAngularLegacy.sh && support/build/compileProductionAngularLegacy.sh)
       - run: npm run webpack
-      - run: (chmod +x support/build/generateAPIDescriptors.sh && cd support/build && ./generateAPIDescriptors.sh)
+      - run: (chmod +x support/build/api-descriptors/generateAPIDescriptors.sh && cd support/buildapi-descriptors && ./generateAPIDescriptors.sh)
       - persist_to_workspace:
           root: .
           paths:
