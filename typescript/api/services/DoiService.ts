@@ -561,11 +561,13 @@ export module Services {
       return record;
     }
 
+    //TODO: This method will be deprecated soon and moved to its own run template service so it can be reused in 
+    //      which will allow to standardise config structure in all places were object mappings are needed
     protected runTemplate(template: string, variables) {
       if (template && template.indexOf('<%') != -1) {
         return _.template(template)(variables);
       }
-      return _.get(template, variables);
+      return _.get(variables,template);
     }
   }
 }
