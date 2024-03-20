@@ -1,5 +1,5 @@
 FORMAT: 1A
-HOST: https://demo.redboxresearchdata.com.au
+HOST: <%= baseUrl != undefined ? baseUrl: "demo.redboxresearchdata.com.au" %>
 
 # ReDBox Portal API 
 
@@ -780,7 +780,7 @@ The API uses standard HTTP status codes to indicate the success or failure of an
 
 # Group Other
 
-## Admin Resources [/default/rdmp/api/admin/refreshCachedResources]
+## Admin Resources [/<%= branding %>/<%= portal %>/api/admin/refreshCachedResources]
 
 This endpoint is used to refresh the cached resources in the application such as CSS and JS resources and the language files.
 
