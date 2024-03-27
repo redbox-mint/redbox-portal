@@ -8,7 +8,7 @@
     "@researchdatabox/redbox-core-types": "^1.4.3",
     "@researchdatabox/sails-hook-redbox-storage-mongo": "^1.4.5",
     "@researchdatabox/sails-ng-common": "^0.1.0",
-    "@tsconfig/node18": "^18.2.2",
+    "@tsconfig/node18": "^18.2.4",
     "agenda": "github:redbox-mint-contrib/agenda#dist",
     "async": "3.2.5",
     "axios": "^1.6.8",
