@@ -36,7 +36,7 @@ jobs:
       - attach_workspace:
            at: /home/circleci/project
       - run: node_modules/.bin/tsc -p tsconfig-codecov.json
-      #- run: (sudo chmod -R 777 . && cd support/integration-testing && sudo mkdir -p .tmp/attachments/staging && sudo chmod -R 777 . && docker-compose -f docker-compose.newman.yml up --abort-on-container-exit --exit-code-from redboxportal && docker-compose -f docker-compose.mocha.yml up --abort-on-container-exit --exit-code-from redboxportal)
+      - run: (sudo chmod -R 777 . && cd support/integration-testing && sudo mkdir -p .tmp/attachments/staging && sudo chmod -R 777 . && docker-compose -f docker-compose.newman.yml up --abort-on-container-exit --exit-code-from redboxportal && docker-compose -f docker-compose.mocha.yml up --abort-on-container-exit --exit-code-from redboxportal)
       - run: npm i -g codecov && codecov -t $CODECOV_TOKEN
       - run: curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.2/install.sh | bash
       - run: (chmod +x support/unit-testing/angular/testAngular.sh && source support/unit-testing/angular/testAngular.sh)
