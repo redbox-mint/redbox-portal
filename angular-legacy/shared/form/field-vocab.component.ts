@@ -63,6 +63,7 @@ export class VocabField extends FieldBase<any> {
   public provider: string;
   public resultArrayProperty: string;
   public unflattenFlag: boolean;
+  public exactMatchString: boolean;
   public dontEmitEventOnLoad: boolean;
   public isEmbedded: boolean;
   public groupClass: string;
@@ -94,6 +95,7 @@ export class VocabField extends FieldBase<any> {
     this.provider = options['provider'] ? options['provider'] : '';
     this.resultArrayProperty = options['resultArrayProperty'] ? options['resultArrayProperty'] : '';
     this.unflattenFlag = _.isUndefined(options['unflattenFlag']) ? false : options['unflattenFlag'];
+    this.exactMatchString = _.isUndefined(options['exactMatchString']) ? false : options['exactMatchString'];
     this.dontEmitEventOnLoad = _.isUndefined(options['dontEmitEventOnLoad']) ? false : options['dontEmitEventOnLoad'];
     this.groupClasses = _.isUndefined(options['groupClasses']) ? '' : options['groupClasses'];
     this.cssClasses = _.isUndefined(options['cssClasses']) ? '' : options['cssClasses'];
@@ -200,7 +202,8 @@ export class VocabField extends FieldBase<any> {
         this.titleFieldDelim,
         this.titleCompleterDescription,
         this.searchFields,
-        this.unflattenFlag);
+        this.unflattenFlag,
+        this.exactMatchString);
     } else if (this.sourceType == "external") {
       const url = this.lookupService.getExternalServiceUrl(this.provider);
       this.dataService = new ExternalLookupDataService(
@@ -492,6 +495,7 @@ class ExternalLookupDataService extends Subject<CompleterItem[]> implements Comp
 class MintLookupDataService extends Subject<CompleterItem[]> implements CompleterData {
 
   searchFields: any[];
+  stringWildcard: string = '*';
 
   constructor(private url: string,
     private http: Http,
@@ -501,27 +505,36 @@ class MintLookupDataService extends Subject<CompleterItem[]> implements Complete
     private titleFieldDelim: any[],
     private titleCompleterDescription: string,
     searchFieldStr: any,
-    private unflattenFlag: boolean) {
+    private unflattenFlag: boolean,
+    private exactMatchString: boolean) {
     super();
     this.searchFields = searchFieldStr.split(',');
+    
+    if(this.exactMatchString) {
+      this.stringWildcard = '';
+    }
   }
 
   public search(term: string): void {
     term = _.trim(luceneEscapeQuery.escape(term));
     let searchString = '';
     if (!_.isEmpty(term)) {
-      term = _.toLower(term);
+      if(!this.exactMatchString) {
+        term = _.toLower(term);
+      }
       _.forEach(this.searchFields, (searchFld) => {
-        searchString = `${searchString}${_.isEmpty(searchString) ? '' : ' OR '}${searchFld}:${term}*`
+          searchString = `${searchString}${_.isEmpty(searchString) ? '' : ' OR '}${searchFld}:${term}${this.stringWildcard}`
       });
     }
-    const searchUrl = `${this.url}${searchString}&unflatten=${this.unflattenFlag}`;
-    this.http.get(`${searchUrl}`).map((res: any, index: number) => {
-      // Convert the result to CompleterItem[]
-      let data = res.json();
-      let matches: CompleterItem[] = _.map(data, (mintDataItem: any) => { return this.convertToItem(mintDataItem); });
-      this.next(matches);
-    }).subscribe();
+    if (!this.exactMatchString || (!_.isEmpty(term) && this.exactMatchString)) {
+      const searchUrl = `${this.url}${searchString}&unflatten=${this.unflattenFlag}`;
+      this.http.get(`${searchUrl}`).map((res: any, index: number) => {
+        // Convert the result to CompleterItem[]
+        let data = res.json();
+        let matches: CompleterItem[] = _.map(data, (mintDataItem: any) => { return this.convertToItem(mintDataItem); });
+        this.next(matches);
+      }).subscribe();
+    }
   }
 
   public cancel() {
