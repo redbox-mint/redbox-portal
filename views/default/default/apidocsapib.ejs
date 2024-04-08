@@ -642,8 +642,31 @@ The API uses standard HTTP status codes to indicate the success or failure of an
                 Authorization: Bearer abcabcab-abca-abca-abca-abcabcabcabc
 
 + Response 200 (application/json)
-    + Attributes (ListResponse, fixed-type)
-        - records (array[ListRecord])  
+    + Attributes (APIObjectActionResponse)
+        - message: `Index request added to message queue for processing`
+        - status: `200` 
+
+### Index all records [GET /<%= branding %>/<%= portal %>/api/search/indexAll{?}]
++ Request (application/json)
+    + Headers
+                
+                Authorization: Bearer abcabcab-abca-abca-abca-abcabcabcabc
+                
++ Response 200 (application/json)
+    + Attributes (APIObjectActionResponse)
+        - message: `Index all records request added to message queue for processing`
+        - status: `200`
+
+### Remove all records from index [DELETE /<%= branding %>/<%= portal %>/api/search/index/removeAll{?}]
++ Request (application/json)
+    + Headers
+        
+               Authorization: Bearer abcabcab-abca-abca-abca-abcabcabcabc
+        
++ Response 200 (application/json)
+    + Attributes (APIObjectActionResponse)
+        - message: `Remove all records request added to message queue for processing`
+        - status: `200`
 
 # Group User Management
 
@@ -883,6 +906,11 @@ This endpoint is an authenticated wrapper to Apache solr's search endpoint and s
 ### APIActionResponse (object)
 + message (string, optional) - The success message. Defaults to 'Request processed successfully'.
 + details (string, optional) - Additional details about the action. Defaults to an empty string.
+
+## APIObjectActionResponse (object)
++ oid: `1234abcd` (string, optional) - The object identifier
++ message: `Request processed successfully` (string, optional) - The response message
++ details: `Additional details` (string, optional) - Additional details about the response
 
 ### APIErrorResponse (object)
 - message (string, optional) - The error message. Defaults to 'An error has occurred'.
