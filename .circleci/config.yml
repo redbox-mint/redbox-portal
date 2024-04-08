@@ -82,14 +82,14 @@ jobs:
       - run:
           name: Compile typescript for code coverage
           command: node_modules/.bin/tsc -p tsconfig-codecov.json
-#      - run:
-#          name: Run Postman and Mocha tests
-#          command: >-
-#            sudo chmod -R 777 . &&
-#            cd support/integration-testing &&
-#            sudo mkdir -p .tmp/attachments/staging && sudo chmod -R 777 . &&
-#            docker-compose -f docker-compose.newman.yml up --abort-on-container-exit --exit-code-from redboxportal &&
-#            docker-compose -f docker-compose.mocha.yml up --abort-on-container-exit --exit-code-from redboxportal
+      - run:
+          name: Run Postman and Mocha tests
+          command: >-
+            sudo chmod -R 777 . &&
+            cd support/integration-testing &&
+            sudo mkdir -p .tmp/attachments/staging && sudo chmod -R 777 . &&
+            docker-compose -f docker-compose.newman.yml up --abort-on-container-exit --exit-code-from redboxportal &&
+            docker-compose -f docker-compose.mocha.yml up --abort-on-container-exit --exit-code-from redboxportal
       - run:
           name: Install and run code coverage
           command: >-
