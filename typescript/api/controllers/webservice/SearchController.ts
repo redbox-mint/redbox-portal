@@ -57,7 +57,8 @@ export module Controllers {
     protected _exportedMethods: any = [
       'search',
       'index',
-      'indexAll'
+      'indexAll',
+      'removeAll'
     ];
 
     /**
@@ -104,6 +105,17 @@ export module Controllers {
       
       sails.log.verbose(`SearchController::indexAll() -> All records submitted for indexing`);
       return this.apiRespond(req,res,new APIObjectActionResponse("", "Index all records request added to message queue for processing"),200);
+    }
+
+    public async removeAll(req, res) {
+      const brand = BrandingService.getBrand(req.session.branding);
+      sails.log.verbose(`SearchController::removeAll() -> Removing all records has been requested!`);
+
+      // delete all documents by specifying id as '*'
+      await this.searchService.remove('*');
+
+      sails.log.verbose(`SearchController::indexAll() -> Submitted request to remove all`);
+      return this.apiRespond(req, res, new APIObjectActionResponse("", "Remove all records request added to message queue for processing"), 200);
     }
 
     public async search(req, res) {
