@@ -74,7 +74,6 @@ export module Services {
 
     searchService: SearchService = null;
     protected queueService: QueueService = null;
-    private nameRBValidationError = 'RBValidationError';
 
 
     constructor() {
@@ -155,7 +154,7 @@ export module Services {
           record = await this.triggerPreSaveTriggers(null, record, recordType, "onCreate", user);
         } catch (err) {
           sails.log.error(`${this.logHeader} Failed to run pre-save hooks when onCreate...`);
-          if(err.name == this.nameRBValidationError) {
+          if(RBValidationError.isRBValidationError(err)) {
             sails.log.error(err.message);
             createResponse.message = err.message;
           } else {
@@ -173,7 +172,7 @@ export module Services {
           try {
             createResponse = await this.triggerPostSaveSyncTriggers(createResponse['oid'], record, recordType, 'onCreate', user, createResponse);
           } catch (err) {
-            if(err.name == this.nameRBValidationError) {
+            if(RBValidationError.isRBValidationError(err)) {
               createResponse.message = err.message;
             } else {
               createResponse.message = failedMessage;
@@ -227,7 +226,7 @@ export module Services {
           record = await this.triggerPreSaveTriggers(oid, record, recordType, "onUpdate", user);
         } catch (err) {
           sails.log.error(`${this.logHeader} Failed to run pre-save hooks when onUpdate...`);
-          if(err.name == this.nameRBValidationError) {
+          if(RBValidationError.isRBValidationError(err)) {
             sails.log.error(err.message);
             updateResponse.message = err.message;
           } else {
@@ -256,7 +255,7 @@ export module Services {
             sails.log.verbose('RecordService - updateMeta - calling triggerPostSaveSyncTriggers');
             updateResponse = await this.triggerPostSaveSyncTriggers(updateResponse['oid'], record, recordType, 'onUpdate', user, updateResponse);
           } catch (err) {
-            if(err.name == this.nameRBValidationError) {
+            if(RBValidationError.isRBValidationError(err)) {
               updateResponse.message = err.message;
             } else {
               updateResponse.message = failedMessage;
@@ -791,7 +790,7 @@ export module Services {
                 sails.log.verbose(JSON.stringify(response));
                 sails.log.debug(`post-save sync trigger ${postSaveSyncHooksFunctionString} completed for ${oid}`);
               } catch (err) {
-                if(err.name == this.nameRBValidationError) {
+                if(RBValidationError.isRBValidationError(err)) {
                   sails.log.error(`post-save async trigger ${postSaveSyncHooksFunctionString} failed to complete. See custom message:`);
                   sails.log.error(`post-save async trigger RBValidationError custom message ${err.message}`);
                 } else {

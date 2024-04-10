@@ -139,8 +139,8 @@ export module Services {
         request.subject = _.get(mappedData, 'subject');
       } catch (error) {
         sails.log.error(error);
-        let customError:RBValidationError = undefined;
-        if (error.name == "RBValidationError") {
+        let customError: RBValidationError;
+        if (RBValidationError.isRBValidationError(error)) {
           customError = error;
         } else {
           let errorMessage = TranslationService.t('raid-mint-transform-validation-error');
@@ -394,6 +394,17 @@ export module Services {
         } catch (fieldErr) {
           sails.log.error(`${this.logHeader} getMappedData() -> Failed to process field: ${fieldName}`);
           sails.log.error(fieldErr);
+
+          let customError: RBValidationError;
+          if (RBValidationError.isRBValidationError(fieldErr)) {
+            customError = fieldErr;
+          } else {
+            let errorMessage = TranslationService.t('raid-mint-transform-validation-error');
+            customError = new RBValidationError(errorMessage);
+            sails.log.error(errorMessage);
+          }
+          throw customError;
+
           throw fieldErr;
         }
       }

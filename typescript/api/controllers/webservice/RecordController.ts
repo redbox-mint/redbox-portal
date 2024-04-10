@@ -35,7 +35,17 @@ declare var User;
  */
 import { Observable } from 'rxjs/Rx';
 import * as path from "path";
-import { APIErrorResponse, APIHarvestResponse, Controllers as controllers, Datastream, DatastreamService, DatastreamServiceResponse, RecordsService, SearchService } from '@researchdatabox/redbox-core-types';
+import {
+  APIErrorResponse,
+  APIHarvestResponse,
+  Controllers as controllers,
+  Datastream,
+  DatastreamService,
+  DatastreamServiceResponse,
+  RBValidationError,
+  RecordsService,
+  SearchService
+} from '@researchdatabox/redbox-core-types';
 import { ListAPIResponse } from '@researchdatabox/redbox-core-types';
 
 
@@ -284,7 +294,8 @@ export module Controllers {
       } catch (err) {
         sails.log.error(`Failed to list audit records for ${oid}`);
         sails.log.error(JSON.stringify(err));
-        this.apiFail(req, res, 500, new APIErrorResponse(`Failed to list audit records, please check server logs.`));
+        const apiErr = new APIErrorResponse(this.getErrorMessage(err, "Failed to list audit records, please check server logs."));
+        this.apiFail(req, res, 500, apiErr);
       }
 
     }
@@ -570,7 +581,8 @@ export module Controllers {
 
         } catch (error) {
           sails.log.error(defaultErrorMessage, error);
-          return res.status(500).json({ message: defaultErrorMessage });
+          const msg = self.getErrorMessage(error, defaultErrorMessage);
+          return res.status(500).json({ message: msg });
         }
       });
     }
@@ -851,7 +863,8 @@ export module Controllers {
       } catch (err) {
         sails.log.error(`Failed to transitionWorkflow: ${oid} to ${targetStepName}`);
         sails.log.error(JSON.stringify(err));
-        this.apiFail(req, res, 500, new APIErrorResponse(`Failed to transition workflow, please check server logs.`));
+        const apiErr = new APIErrorResponse(this.getErrorMessage(err, "Failed to transition workflow, please check server logs."));
+        this.apiFail(req, res, 500, apiErr);
       }
     }
 
@@ -871,7 +884,8 @@ export module Controllers {
       } catch (err) {
         sails.log.error(`Failed to list attachments: ${oid}`);
         sails.log.error(JSON.stringify(err));
-        this.apiFail(req, res, 500, new APIErrorResponse(`Failed to list attachments, please check server logs.`));
+        const apiErr = new APIErrorResponse(this.getErrorMessage(err, "Failed to list attachments, please check server logs."));
+        this.apiFail(req, res, 500, apiErr);
       }
     }
 
@@ -1061,10 +1075,12 @@ export module Controllers {
           return new APIHarvestResponse(harvestId, oid, true, `Record updated successfully`)
 
         } catch (error) {
-          return new APIHarvestResponse(harvestId, oid, false, `Failed to update meta`)
+          const msg = this.getErrorMessage(error, "Failed to update meta");
+          return new APIHarvestResponse(harvestId, oid, false, msg);
         }
       } catch (error) {
-        return new APIHarvestResponse(harvestId, oid, false, `Failed to retrieve record metadata before update`)
+        const msg = this.getErrorMessage(error, "Failed to retrieve record metadata before update");
+        return new APIHarvestResponse(harvestId, oid, false, msg);
       }
     }
 
@@ -1168,7 +1184,8 @@ export module Controllers {
 
         }
       } catch (error) {
-        return new APIHarvestResponse(harvestId, null, false, error.toString());
+        const msg = this.getErrorMessage(error, error.toString());
+        return new APIHarvestResponse(harvestId, null, false, msg);
       }
 
 
@@ -1234,6 +1251,12 @@ export module Controllers {
           res.json(err);
         });
       }
+    }
+
+    private getErrorMessage(err: Error, defaultMessage: string) {
+      return RBValidationError.isRBValidationError(err) ?
+          err.message :
+          defaultMessage;
     }
 
   }

@@ -26,7 +26,8 @@ import {
 import {
   StorageServiceResponse,
   RecordTypeResponseModel,
-  DashboardTypeResponseModel
+  DashboardTypeResponseModel,
+  RBValidationError
 } from '@researchdatabox/redbox-core-types';
 import { default as moment } from 'moment';
 import * as tus from 'tus-node-server';
@@ -53,7 +54,6 @@ export module Controllers {
     recordsService: RecordsService = RecordsService;
     searchService: SearchService;
     datastreamService: DatastreamService = RecordsService;
-    private nameRBValidationError = 'RBValidationError';
 
     constructor() {
       super();
@@ -129,7 +129,7 @@ export module Controllers {
           });
         }
       } catch (err) {
-        sails.log.error("Error retrieving metdata")
+        sails.log.error("Error retrieving metadata")
         sails.log.error(err);
         return res.serverError();
       }
@@ -560,7 +560,8 @@ export module Controllers {
         this.recordsService.updateWorkflowStep(record, wfStep);
         return this.createRecord(record, brand, recordType, req, res);
       } catch (error) {
-        this.ajaxFail(req, res, `Failed to save record: ${error}`);
+        const msg = RBValidationError.isRBValidationError(error) ? error.message : `Failed to save record: ${error}`;
+        this.ajaxFail(req, res, msg);
       }
 
     }
@@ -765,15 +766,11 @@ export module Controllers {
             let recordType = await RecordTypesService.get(brand, currentRec.metaMetadata.type).toPromise();
             currentRec = await this.recordsService.triggerPreSaveTriggers(oid, currentRec, recordType, "onUpdate", user);
           } catch (err) {
-            sails.log.verbose(`RecordController - updateInternal - triggerPreSaveTriggers err ` + JSON.stringify(err));
-            if (err.name == this.nameRBValidationError) {
-              sails.log.error(err.message);
-              preTriggerResponse.message = err.message;
-            } else {
-              sails.log.error(JSON.stringify(err));
-              preTriggerResponse.message = failedMessage;
-            }
+            sails.log.verbose("RecordController - updateInternal - triggerPreSaveTriggers error");
+            sails.log.error(JSON.stringify(err));
+            preTriggerResponse.message = RBValidationError.isRBValidationError(err) ? err.message : failedMessage;
             this.ajaxFail(req, res, err.message);
+
             return preTriggerResponse;
           }
         }
@@ -1389,14 +1386,12 @@ export module Controllers {
         } catch (error) {
           if (this.isAjax(req)) {
             this.ajaxFail(req, res, error.message);
+          } else if (error.message == TranslationService.t('edit-error-no-permissions')) {
+            res.forbidden();
+          } else if (error.message == TranslationService.t('attachment-not-found')) {
+            res.notFound();
           } else {
-            if (error.message == TranslationService.t('edit-error-no-permissions')) {
-              res.forbidden();
-            } else if (error.message == TranslationService.t('attachment-not-found')) {
-              res.notFound();
-            } else {
-              res.serverError();
-            }
+            res.serverError();
           }
         }
       } else {
@@ -1543,12 +1538,12 @@ export module Controllers {
         } catch (error) {
           if (this.isAjax(req)) {
             this.ajaxFail(req, res, error.message);
+          } else if (error.message == TranslationService.t('edit-error-no-permissions')) {
+            res.forbidden();
+          } else if (error.message == TranslationService.t('attachment-not-found')) {
+            res.notFound();
           } else {
-            if (error.message == TranslationService.t('edit-error-no-permissions')) {
-              res.forbidden();
-            } else if (error.message == TranslationService.t('attachment-not-found')) {
-              res.notFound();
-            }
+            res.serverError();
           }
         }
       }
