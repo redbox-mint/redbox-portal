@@ -4,8 +4,4 @@ export class RBValidationError extends Error {
         super(args);
         this.name = RBValidationError.clName;
     }
-
-    static isRBValidationError(err) {
-        return RBValidationError.clName == err.name;
-    }
 }

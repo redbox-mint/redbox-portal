@@ -140,7 +140,7 @@ export module Services {
       } catch (error) {
         sails.log.error(error);
         let customError: RBValidationError;
-        if (RBValidationError.isRBValidationError(error)) {
+        if (this.isValidationError(error)) {
           customError = error;
         } else {
           let errorMessage = TranslationService.t('raid-mint-transform-validation-error');
@@ -396,7 +396,7 @@ export module Services {
           sails.log.error(fieldErr);
 
           let customError: RBValidationError;
-          if (RBValidationError.isRBValidationError(fieldErr)) {
+          if (this.isValidationError(fieldErr)) {
             customError = fieldErr;
           } else {
             let errorMessage = TranslationService.t('raid-mint-transform-validation-error');
@@ -453,6 +453,10 @@ export module Services {
       }
     }
 
+    private isValidationError(err: Error) {
+      const validationName = 'RBValidationError'; // RBValidationError.clName;
+      return validationName == err.name;
+    }
   }
 }
 module.exports = new Services.Raid().exports();

@@ -560,7 +560,7 @@ export module Controllers {
         this.recordsService.updateWorkflowStep(record, wfStep);
         return this.createRecord(record, brand, recordType, req, res);
       } catch (error) {
-        const msg = RBValidationError.isRBValidationError(error) ? error.message : `Failed to save record: ${error}`;
+        const msg = this.getErrorMessage(error, `Failed to save record: ${error}`);
         this.ajaxFail(req, res, msg);
       }
 
@@ -768,7 +768,7 @@ export module Controllers {
           } catch (err) {
             sails.log.verbose("RecordController - updateInternal - triggerPreSaveTriggers error");
             sails.log.error(JSON.stringify(err));
-            preTriggerResponse.message = RBValidationError.isRBValidationError(err) ? err.message : failedMessage;
+            preTriggerResponse.message = this.getErrorMessage(err, failedMessage);
             this.ajaxFail(req, res, err.message);
 
             return preTriggerResponse;
@@ -1688,6 +1688,11 @@ export module Controllers {
 
       response["items"] = items;
       return response;
+    }
+
+    private getErrorMessage(err: Error, defaultMessage: string) {
+      const validationName = 'RBValidationError'; // RBValidationError.clName;
+      return validationName == err.name ? err.message : defaultMessage;
     }
   }
 }
