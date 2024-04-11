@@ -3,10 +3,10 @@
 set -e
 function testAngular() {
   echo "-------------------------------------------"
-  echo "Testing ${1}"
+  echo "Testing ${1} (flag ${2})"
   echo "-------------------------------------------"
-  (node_modules/.bin/ng t --browsers=ChromeHeadless @researchdatabox/${1} --no-watch --code-coverage)
-  /tmp/codecov -t $CODECOV_TOKEN -c -f ./projects/researchdatabox/${1}/coverage/coverage-final.json -F ${2}
+  (node_modules/.bin/ng t --browsers=ChromeHeadless "@researchdatabox/${1}" --no-watch --code-coverage)
+  /tmp/codecov -t "${CODECOV_TOKEN}" -c -f "./projects/researchdatabox/${1}/coverage/coverage-final.json" -F "${2}"
 }
 export NVM_DIR="$HOME/.nvm"
 [ -s "$HOME/.nvm/nvm.sh" ] && . "$HOME/.nvm/nvm.sh"

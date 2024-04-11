@@ -94,7 +94,8 @@ jobs:
           name: Install and run code coverage
           command: >-
             npm i -g codecov &&
-            codecov -t $CODECOV_TOKEN
+            codecov -t $CODECOV_TOKEN -c -f ./coverage/newman/lcov.info -F newman &&
+            codecov -t $CODECOV_TOKEN -c -f ./coverage/mocha/lcov.info -F mocha
       - run:
           name: Install nvm
           command: curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.2/install.sh | bash
