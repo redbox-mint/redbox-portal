@@ -1,6 +1,14 @@
 describe('The DOI Service', function () {
   before(function (done) {
-    done();
+    if (
+        !sails.config.datacite.username ||
+        !sails.config.datacite.password ||
+        !sails.config.datacite.doiPrefix
+    ) {
+      this.skip();
+    } else {
+      done();
+    }
   });
 
  let createdDoi = null
