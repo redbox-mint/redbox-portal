@@ -109,9 +109,9 @@ jobs:
             shasum -a 256 -c codecov.SHA256SUM
             chmod +x codecov
             cd ~/project
-            /tmp/.codecov-cli/codecov --verbose upload-process --fail-on-error --disable-search --token ${{ secrets.CODECOV_TOKEN }} \
+            /tmp/.codecov-cli/codecov --verbose upload-process --fail-on-error --disable-search --token "${CODECOV_TOKEN}" \
             --name "job-${CIRCLE_BUILD_NUM}-${CIRCLE_BRANCH}" --flag "newman" --file "./coverage/newman/lcov.info"
-            /tmp/.codecov-cli/codecov --verbose upload-process --fail-on-error --disable-search --token ${{ secrets.CODECOV_TOKEN }} \
+            /tmp/.codecov-cli/codecov --verbose upload-process --fail-on-error --disable-search --token "${CODECOV_TOKEN}" \
             --name "job-${CIRCLE_BUILD_NUM}-${CIRCLE_BRANCH}" --flag "mocha" --file "./coverage/mocha/lcov.info"
       - run:
           name: Run angular tests
