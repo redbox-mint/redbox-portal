@@ -6,9 +6,9 @@ function testAngular() {
   echo "Testing ${1} (flag ${2})"
   echo "-------------------------------------------"
   node_modules/.bin/ng t --browsers=ChromeHeadless "@researchdatabox/${1}" --no-watch --no-progress --code-coverage
-  /tmp/.codecov-cli/codecov --verbose upload-process --fail-on-error --disable-search --token "${CODECOV_TOKEN}" \
-    --name "job-${CIRCLE_BUILD_NUM}-${CIRCLE_BRANCH}" --flag "${2}" \
-    --file "./projects/researchdatabox/${1}/coverage/coverage-final.json"
+  /tmp/.codecov-cli/codecov --verbose upload-process --fail-on-error --disable-search \
+    --token "${CODECOV_TOKEN}" --name "job-${CIRCLE_BUILD_NUM}-${CIRCLE_BRANCH}" \
+    --flag "${2}" --file "./projects/researchdatabox/${1}/coverage/coverage-final.json"
 }
 export NVM_DIR="$HOME/.nvm"
 [ -s "$HOME/.nvm/nvm.sh" ] && . "$HOME/.nvm/nvm.sh"
