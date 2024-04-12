@@ -2,6 +2,7 @@ jobs:
   build:
     docker:
       - image: 'cimg/node:20.11'
+    resource_class: large
     steps:
       - checkout
       - run:
@@ -40,7 +41,7 @@ jobs:
           name: Build api descriptors
           command: |
             cd support/build/api-descriptors
-            chmod +x .generateAPIDescriptors.sh
+            chmod +x ./generateAPIDescriptors.sh
             ./generateAPIDescriptors.sh
       - persist_to_workspace:
           root: .
@@ -77,6 +78,7 @@ jobs:
   test:
     machine:
       image: ubuntu-2004:current
+    resource_class: large
     steps:
       - attach_workspace:
           at: /home/circleci/project
