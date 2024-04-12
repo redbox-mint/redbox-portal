@@ -6,13 +6,13 @@ jobs:
       - checkout
       - run:
           name: Install npm packages for core
-          command: >-
-            cd core &&
+          command: |
+            cd core
             npm install
       - run:
           name: Compile core
-          command: >-
-            cd core &&
+          command: |
+            cd core
             node_modules/.bin/tsc
       - run:
           name: Install npm packages for project
@@ -22,25 +22,26 @@ jobs:
           command: node_modules/.bin/tsc
       - run:
           name: Install nvm
-          command: curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.2/install.sh | bash
+          command: curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
       - run:
           name: Compile angular
-          command: >-
-            chmod +x support/build/compileProductionAngular.sh &&
+          command: |
+            chmod +x support/build/compileProductionAngular.sh
             support/build/compileProductionAngular.sh
       - run:
           name: Compile legacy angular
-          command: >-
-            chmod +x support/build/compileProductionAngularLegacy.sh &&
+          command: |
+            chmod +x support/build/compileProductionAngularLegacy.sh
             support/build/compileProductionAngularLegacy.sh
       - run:
           name: Compile sails app using webpack
           command: npm run webpack
       - run:
           name: Build api descriptors
-          command: >-
-            chmod +x support/build/api-descriptors/generateAPIDescriptors.sh &&
-            cd support/build/api-descriptors && ./generateAPIDescriptors.sh
+          command: |
+            cd support/build/api-descriptors
+            chmod +x .generateAPIDescriptors.sh
+            ./generateAPIDescriptors.sh
       - persist_to_workspace:
           root: .
           paths:
@@ -52,13 +53,13 @@ jobs:
       - checkout
       - run:
           name: Install npm packages for core
-          command: >-
-            cd core &&
+          command: |
+            cd core
             npm install
       - run:
           name: Compile core
-          command: >-
-            cd core &&
+          command: |
+            cd core
             node_modules/.bin/tsc
       - run:
           name: Install npm packages for project
@@ -84,30 +85,40 @@ jobs:
           command: node_modules/.bin/tsc -p tsconfig-codecov.json
       - run:
           name: Run Postman and Mocha tests with code coverage
-          command: >-
-            sudo chmod -R 777 . &&
-            cd support/integration-testing &&
-            sudo mkdir -p .tmp/attachments/staging && sudo chmod -R 777 . &&
-            docker-compose -f docker-compose.newman.yml up --abort-on-container-exit --exit-code-from redboxportal &&
+          command: |
+            sudo chmod -R 777 .
+            cd support/integration-testing
+            sudo mkdir -p .tmp/attachments/staging
+            sudo chmod -R 777 .
+            docker-compose -f docker-compose.newman.yml up --abort-on-container-exit --exit-code-from redboxportal
             docker-compose -f docker-compose.mocha.yml up --abort-on-container-exit --exit-code-from redboxportal
-      - codecov/upload:
-          file: ./coverage/newman/lcov.info
-          flags: newman
-      - codecov/upload:
-          file: ./coverage/mocha/lcov.info
-          flags: mocha
       - run:
-          name: Install nvm
-          command: curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.2/install.sh | bash
+          name: Install codecov and upload newman and mocha code coverage
+          # https://docs.codecov.com/docs/the-codecov-cli#as-a-binary
+          # https://docs.codecov.com/docs/codecov-uploader#using-the-cli-to-upload-reports-with-codecovio-cloud
+          command: |
+            mkdir -p /tmp/.codecov-cli
+            curl https://keybase.io/codecovsecurity/pgp_keys.asc | gpg --no-default-keyring --keyring trustedkeys.gpg --import
+            curl -o /tmp/.codecov-cli/codecov -Os https://uploader.codecov.io/latest/linux/codecov
+            curl -o /tmp/.codecov-cli/codecov.SHA256SUM -Os https://uploader.codecov.io/latest/linux/codecov.SHA256SUM
+            curl -o /tmp/.codecov-cli/codecov.SHA256SUM.sig -Os https://uploader.codecov.io/latest/linux/codecov.SHA256SUM.sig
+            gpgv /tmp/.codecov-cli/codecov.SHA256SUM.sig /tmp/.codecov-cli/codecov.SHA256SUM
+            shasum -a 256 -c /tmp/.codecov-cli/codecov.SHA256SUM
+            chmod +x /tmp/.codecov-cli/codecov
+            /tmp/.codecov-cli/codecov --verbose upload-process --fail-on-error --disable-search --token ${{ secrets.CODECOV_TOKEN }} \
+            --name "job-${CIRCLE_BUILD_NUM}-${CIRCLE_BRANCH}" --flag "newman" --file "./coverage/newman/lcov.info"
+            /tmp/.codecov-cli/codecov --verbose upload-process --fail-on-error --disable-search --token ${{ secrets.CODECOV_TOKEN }} \
+            --name "job-${CIRCLE_BUILD_NUM}-${CIRCLE_BRANCH}" --flag "mocha" --file "./coverage/mocha/lcov.info"
       - run:
           name: Run angular tests
-          command: >-
-            chmod +x support/unit-testing/angular/testAngular.sh &&
+          # uses the codecov binary installed in previous step
+          command: |
+            chmod +x support/unit-testing/angular/testAngular.sh
             source support/unit-testing/angular/testAngular.sh
       - run:
           name: Install npm packages for project
-          command: >-
-            sudo chmod -R 777 . &&
+          command: |
+            sudo chmod -R 777 .
             npm i
   deploy:
     docker:
@@ -118,7 +129,9 @@ jobs:
           at: /home/circleci/project
       - run:
           name: Build docker container
-          command: chmod +x dockerhub_deploy.sh && ./dockerhub_deploy.sh
+          command: |
+            chmod +x dockerhub_deploy.sh
+            ./dockerhub_deploy.sh
       - run:
           name: Upload container to Nexus
           command: |
@@ -153,7 +166,6 @@ jobs:
 orbs:
   node: circleci/node@4.0.0
   docker: circleci/docker@1.4.0
-  codecov: codecov/codecov@4.0.1
 version: 2.1
 workflows:
   build_test_gendocs_and_deploy:
