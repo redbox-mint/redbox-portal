@@ -100,13 +100,15 @@ jobs:
           # https://docs.codecov.com/docs/codecov-uploader#using-the-cli-to-upload-reports-with-codecovio-cloud
           command: |
             mkdir -p /tmp/.codecov-cli
+            cd /tmp/.codecov-cli
             curl https://keybase.io/codecovsecurity/pgp_keys.asc | gpg --no-default-keyring --keyring trustedkeys.gpg --import
-            curl -o /tmp/.codecov-cli/codecov -Os https://uploader.codecov.io/latest/linux/codecov
-            curl -o /tmp/.codecov-cli/codecov.SHA256SUM -Os https://uploader.codecov.io/latest/linux/codecov.SHA256SUM
-            curl -o /tmp/.codecov-cli/codecov.SHA256SUM.sig -Os https://uploader.codecov.io/latest/linux/codecov.SHA256SUM.sig
-            gpgv /tmp/.codecov-cli/codecov.SHA256SUM.sig /tmp/.codecov-cli/codecov.SHA256SUM
-            shasum -a 256 -c /tmp/.codecov-cli/codecov.SHA256SUM
-            chmod +x /tmp/.codecov-cli/codecov
+            curl -Os https://uploader.codecov.io/latest/linux/codecov
+            curl -Os https://uploader.codecov.io/latest/linux/codecov.SHA256SUM
+            curl -Os https://uploader.codecov.io/latest/linux/codecov.SHA256SUM.sig
+            gpgv codecov.SHA256SUM.sig codecov.SHA256SUM
+            shasum -a 256 -c codecov.SHA256SUM
+            chmod +x codecov
+            cd ~/project
             /tmp/.codecov-cli/codecov --verbose upload-process --fail-on-error --disable-search --token ${{ secrets.CODECOV_TOKEN }} \
             --name "job-${CIRCLE_BUILD_NUM}-${CIRCLE_BRANCH}" --flag "newman" --file "./coverage/newman/lcov.info"
             /tmp/.codecov-cli/codecov --verbose upload-process --fail-on-error --disable-search --token ${{ secrets.CODECOV_TOKEN }} \
