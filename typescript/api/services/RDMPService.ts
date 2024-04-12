@@ -320,23 +320,34 @@ export module Services {
       }
     }
 
-    protected populateContribList(contribProperties, record, emailProperty, emailList) {
-      _.each(contribProperties, editContributorProperty => {
-        let editContributor = _.get(record, editContributorProperty, null);
+    protected checkEmailDuplicates(emailList) {
+      const duplicates = _.uniq(emailList.filter((element, index, array) => array.indexOf(element) !== index).sort());
+      if (duplicates.length > 0) {
+        const msg = TranslationService.tInter("user-emails-duplicate", {emailAddresses: duplicates.join(", ")});
+        throw new RBValidationError(msg);
+      }
+      return emailList;
+    }
 
-        if (editContributor) {
+    protected populateContribList(contribProperties, record, emailProperty, emailList) {
+      _.each(contribProperties, contributorProperty => {
+        let contributor = _.get(record, contributorProperty, null);
+
+        if (contributor) {
           sails.log.verbose(`Contributor:`);
-          sails.log.verbose(JSON.stringify(editContributor));
-          if (_.isArray(editContributor)) {
-            _.each(editContributor, contributor => {
+          sails.log.verbose(JSON.stringify(contributor));
+          if (_.isArray(contributor)) {
+            _.each(contributor, contributor => {
               this.addEmailToList(contributor, emailProperty, emailList);
             });
           } else {
-            this.addEmailToList(editContributor, emailProperty, emailList);
+            this.addEmailToList(contributor, emailProperty, emailList);
           }
         }
       });
-      return _.uniq(emailList);
+
+      this.checkEmailDuplicates(emailList);
+      return emailList;
     }
 
     protected getContribListByRule(contribProperties, record, rule, emailProperty, emailList) {
@@ -360,7 +371,9 @@ export module Services {
           }
         }
       });
-      return _.uniq(emailList);
+
+      this.checkEmailDuplicates(emailList);
+      return emailList;
     }
 
     protected filterPending(users, userEmails, userList) {
