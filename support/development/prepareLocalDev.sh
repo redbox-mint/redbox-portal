@@ -38,6 +38,5 @@ npm run compile:sails
 show_step 'Prepare tests.'
 node_modules/.bin/tsc -p tsconfig-codecov.json
 sudo mkdir -p support/integration-testing/.tmp/attachments/staging
-npm i -g codecov
 
 show_step 'Finished.'
