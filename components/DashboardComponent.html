@@ -3524,8 +3524,8 @@ export class DashboardComponent extends BaseComponent {
       this.records[step] &#x3D; planTable;
     } else if (this.dashboardTypeSelected &#x3D;&#x3D; &#x27;workspace&#x27;) {
       let stagedRecords &#x3D; await this.recordService.getRecords(&#x27;&#x27;, &#x27;&#x27;, event.page, this.packageType, this.getSortString(sortDetails));
-      let planTable: PlanTable &#x3D; this.evaluatePlanTableColumns({}, {}, {}, this.packageType, stagedRecords);
-      this.records[this.packageType] &#x3D; planTable;
+      let planTable: PlanTable &#x3D; this.evaluatePlanTableColumns({}, {}, {}, step, stagedRecords);
+      this.records[step] &#x3D; planTable;
     } else if (this.dashboardTypeSelected &#x3D;&#x3D; &#x27;consolidated&#x27;) {
       let packageType &#x3D; &#x27;&#x27;;
       let stepName &#x3D; &#x27;&#x27;;
