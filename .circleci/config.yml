@@ -1,54 +1,125 @@
 jobs:
   build:
     docker:
-      - image: 'cimg/node:18.12'
+      - image: 'cimg/node:20.11'
     steps:
       - checkout
-      - run: (cd core && npm install && node_modules/.bin/tsc)
-      - run: npm install --production
-      - run: node_modules/.bin/tsc
-      - run: curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.2/install.sh | bash
-      - run: (chmod +x support/build/compileProductionAngular.sh && support/build/compileProductionAngular.sh)
-      - run: (chmod +x support/build/compileProductionAngularLegacy.sh && support/build/compileProductionAngularLegacy.sh)
-      - run: npm run webpack
+      - run:
+          name: Install npm packages for core
+          command: >-
+            cd core &&
+            npm install
+      - run:
+          name: Compile core
+          command: >-
+            cd core &&
+            node_modules/.bin/tsc
+      - run:
+          name: Install npm packages for project
+          command: npm install --production
+      - run:
+          name: Compile project
+          command: node_modules/.bin/tsc
+      - run:
+          name: Install nvm
+          command: curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.2/install.sh | bash
+      - run:
+          name: Compile angular
+          command: >-
+            chmod +x support/build/compileProductionAngular.sh &&
+            support/build/compileProductionAngular.sh
+      - run:
+          name: Compile legacy angular
+          command: >-
+            chmod +x support/build/compileProductionAngularLegacy.sh &&
+            support/build/compileProductionAngularLegacy.sh
+      - run:
+          name: Compile sails app using webpack
+          command: npm run webpack
+      - run:
+          name: Build api descriptors
+          command: >-
+            chmod +x support/build/api-descriptors/generateAPIDescriptors.sh &&
+            cd support/build/api-descriptors && ./generateAPIDescriptors.sh
       - persist_to_workspace:
           root: .
           paths:
             - .
   build_without_angular:
     docker:
-      - image: 'cimg/node:18.12'
+      - image: 'cimg/node:20.11'
     steps:
       - checkout
-      - run: (cd core && npm install && node_modules/.bin/tsc)
-      - run: npm install --production
-      - run: node_modules/.bin/tsc
-      - run: npm run webpack
+      - run:
+          name: Install npm packages for core
+          command: >-
+            cd core &&
+            npm install
+      - run:
+          name: Compile core
+          command: >-
+            cd core &&
+            node_modules/.bin/tsc
+      - run:
+          name: Install npm packages for project
+          command: npm install --production
+      - run:
+          name: Compile project
+          command: node_modules/.bin/tsc
+      - run:
+          name: Compile sails app using webpack
+          command: npm run webpack
       - persist_to_workspace:
           root: .
           paths:
             - .
   test:
     machine:
-      image: ubuntu-2004:202201-02
+      image: ubuntu-2004:current
     steps:
       - attach_workspace:
-           at: /home/circleci/project
-      - run: node_modules/.bin/tsc -p tsconfig-codecov.json
-      - run: (sudo chmod -R 777 . && cd support/integration-testing && sudo mkdir -p .tmp/attachments/staging && sudo chmod -R 777 . && docker-compose -f docker-compose.newman.yml up --abort-on-container-exit --exit-code-from redboxportal && docker-compose -f docker-compose.mocha.yml up --abort-on-container-exit --exit-code-from redboxportal)
-      - run: npm i -g codecov && codecov -t $CODECOV_TOKEN
-      - run: curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.2/install.sh | bash
-      - run: (chmod +x support/unit-testing/angular/testAngular.sh && source support/unit-testing/angular/testAngular.sh)
-      - run: sudo chmod -R 777 . && npm i
+          at: /home/circleci/project
+      - run:
+          name: Compile typescript for code coverage
+          command: node_modules/.bin/tsc -p tsconfig-codecov.json
+      - run:
+          name: Run Postman and Mocha tests
+          command: >-
+            sudo chmod -R 777 . &&
+            cd support/integration-testing &&
+            sudo mkdir -p .tmp/attachments/staging && sudo chmod -R 777 . &&
+            docker-compose -f docker-compose.newman.yml up --abort-on-container-exit --exit-code-from redboxportal &&
+            docker-compose -f docker-compose.mocha.yml up --abort-on-container-exit --exit-code-from redboxportal
+      - run:
+          name: Install and run code coverage
+          command: >-
+            npm i -g codecov &&
+            codecov -t $CODECOV_TOKEN
+      - run:
+          name: Install nvm
+          command: curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.2/install.sh | bash
+      - run:
+          name: Run angular tests
+          command: >-
+            chmod +x support/unit-testing/angular/testAngular.sh &&
+            source support/unit-testing/angular/testAngular.sh
+      - run:
+          name: Install npm packages for project
+          command: >-
+            sudo chmod -R 777 . &&
+            npm i
   deploy:
     docker:
       - image: 'cimg/node:18.12'
     steps:
       - setup_remote_docker
       - attach_workspace:
-            at: /home/circleci/project
-      - run: (chmod +x dockerhub_deploy.sh && ./dockerhub_deploy.sh)
+          at: /home/circleci/project
       - run:
+          name: Build docker container
+          command: chmod +x dockerhub_deploy.sh && ./dockerhub_deploy.sh
+      - run:
+          name: Upload container to Nexus
           command: |
             echo $CIRCLE_BRANCH
             npm pack
@@ -61,15 +132,18 @@ jobs:
             curl -v -u $MAVEN_USER:$MAVEN_PASSWORD --upload-file $RBPORTAL_FILENAME "https://nexus-prod.redboxresearchdata.com.au/nexus/repository/maven-snapshots/au/edu/qcif/redbox-portal/${PACKAGE_VERSION}-SNAPSHOT/redbox-portal-${PACKAGE_VERSION}-SNAPSHOT.tgz"  
   generate-docs:
     machine:
-      image: ubuntu-2004:202201-02
+      image: ubuntu-2004:current
     steps:
       - add_ssh_keys:
           fingerprints:
             - "50:0c:a1:7f:b6:64:84:42:01:61:0f:76:3f:e4:78:ff"
       - attach_workspace:
-            at: /home/circleci/project
-      - run: npm run doc-ng2
-      - run: 
+          at: /home/circleci/project
+      - run:
+          name: Generate angular docs
+          command: npm run doc-ng2
+      - run:
+          name: Deploy docs by adding commit to gh-pages branch
           command: |
             npm install -g --silent gh-pages@2.0.1
             git config user.email "ci-build@redboxresearchdata.com.au"
@@ -96,7 +170,7 @@ workflows:
             branches:
               ignore: /^dependabot.*/
       - generate-docs:
-          requires: 
+          requires:
             - test
           filters:
             branches:
@@ -119,7 +193,7 @@ workflows:
             branches:
               ignore: /^dependabot.*/
       - generate-docs:
-          requires: 
+          requires:
             - test
           filters:
             branches:
@@ -142,7 +216,7 @@ workflows:
               ignore: /.*/
       - deploy:
           requires:
-            - test     
+            - test
           filters:
             tags:
               only: /^v.*/

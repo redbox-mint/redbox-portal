@@ -26,8 +26,19 @@ module.exports = {
     queryParams: {
       type: 'string',
       required: true
+    },
+    collectionName: {
+      type: 'string',
+      required: true
+    },
+    resultObjectMapping: {
+      type: 'string',
+      required: true
+    },
+    brandIdFieldPath: {
+      type: 'string',
+      required: false
     }
-    
   },
     beforeCreate: function(namedQuery, cb) {
         namedQuery.key = namedQuery.branding+'_'+namedQuery.name;

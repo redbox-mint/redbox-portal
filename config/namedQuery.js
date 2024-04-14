@@ -1,7 +1,15 @@
 module.exports.namedQuery = {
   'listRDMPRecords': {
+    collectionName: 'record',
+    brandIdFieldPath: 'metaMetadata.brandId',
+    resultObjectMapping: {
+      oid: '<%= record.redboxOid%>',
+      title: '<%= record.metadata.title %>',
+      contributor_ci: '<%= record.metadata.contributor_ci.text_full_name %>',
+      contributor_data_manager: '<%= record.metadata.contributor_data_manager.text_full_name %>'
+    },
     mongoQuery: {
-      'metaMetadata.type': "rdmp",
+      'metaMetadata.type': 'rdmp',
       'metadata.title': null,
       'dateCreated': null
     },
@@ -44,8 +52,11 @@ module.exports.namedQuery = {
     }
   },
   'listDRRecords': {
+    collectionName: 'record',
+    brandIdFieldPath: 'metaMetadata.brandId',
+    resultObjectMapping: {},
     mongoQuery: {
-      'metaMetadata.type': "dataRecord",
+      'metaMetadata.type': 'dataRecord',
       'metadata.title': null,
       'dateCreated': null
     },
@@ -88,8 +99,11 @@ module.exports.namedQuery = {
     }
   },
   'listDPRecords': {
+    collectionName: 'record',
+    brandIdFieldPath: 'metaMetadata.brandId',
+    resultObjectMapping: {},
     mongoQuery: {
-      'metaMetadata.type': "dataPublication",
+      'metaMetadata.type': 'dataPublication',
       'metadata.title': null,
       'dateCreated': null
     },
@@ -132,9 +146,12 @@ module.exports.namedQuery = {
     }
   },
   'listEmbargoedDPRecords': {
+    collectionName: 'record',
+    brandIdFieldPath: 'metaMetadata.brandId',
+    resultObjectMapping: {},
     mongoQuery: {
-      'metaMetadata.type': "dataPublication",
-      'workflow.stage': "embargoed",
+      'metaMetadata.type': 'dataPublication',
+      'workflow.stage': 'embargoed',
       'metadata.title': null,
       'metadata.embargoUntil': null,
       'dateCreated': null
@@ -192,8 +209,11 @@ module.exports.namedQuery = {
     }
   },
   'listWorkspaceRecords': {
+    collectionName: 'record',
+    brandIdFieldPath: 'metaMetadata.brandId',
+    resultObjectMapping: {},
     mongoQuery: {
-      'metaMetadata.packageType': "workspace",
+      'metaMetadata.packageType': 'workspace',
       'metadata.title': null,
       'dateCreated': null
     },
@@ -236,8 +256,11 @@ module.exports.namedQuery = {
     }
   },
   'listDraftInactiveRDMPRecords': {
+    collectionName: 'record',
+    brandIdFieldPath: 'metaMetadata.brandId',
+    resultObjectMapping: {},
     mongoQuery: {
-      'metaMetadata.type': "rdmp",
+      'metaMetadata.type': 'rdmp',
       'workflow.stage': 'draft'
     },
     queryParams: {
@@ -254,6 +277,52 @@ module.exports.namedQuery = {
                         //a full ISO date like 2021-06-01T07:09:51.498Z is expected
         whenUndefined: 'defaultValue',
         defaultValue: '-365'
+      }
+    }
+  },
+  'listUsers': {
+    collectionName: 'user',
+    resultObjectMapping: {
+      type: '<%= record.type %>',
+      name: '<%= record.name %>',
+      email: '<%= record.email %>',
+      username: '<%= record.username %>',
+      lastLogin: '<%= record.lastLogin %>'
+    },
+    mongoQuery: {},
+    queryParams: {
+      'dateCreatedBefore': {
+        type: 'string',
+        path: 'createdAt',
+        queryType: '<=',
+        whenUndefined: 'defaultValue',
+        defaultValue: '3000-01-01T00:00:00.000Z'
+      },
+      'dateCreatedAfter': {
+        type: 'string',
+        path: 'createdAt',
+        queryType: '>=',
+        whenUndefined: 'defaultValue',
+        defaultValue: '1900-01-01T00:00:00.000Z'
+      },
+      'lastLoginBefore': {
+        type: 'string',
+        path: 'lastLogin',
+        queryType: '<=',
+        whenUndefined: 'defaultValue',
+        defaultValue: '3000-01-01T00:00:00.000Z'
+      },
+      'lastLoginAfter': {
+        type: 'string',
+        path: 'lastLogin',
+        queryType: '>=',
+        whenUndefined: 'defaultValue',
+        defaultValue: '1900-01-01T00:00:00.000Z'
+      },
+      'userType': {
+        type: 'string',
+        path: 'type',
+        whenUndefined: 'ignore'
       }
     }
   } 

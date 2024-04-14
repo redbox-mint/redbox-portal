@@ -26,6 +26,7 @@ import {
 
 declare var sails: Sails;
 declare var Record: Model;
+declare var User: Model;
 declare var NamedQuery: Model;
 const moment = require('moment');
 declare var _this;
@@ -81,7 +82,10 @@ export module Services {
         name: name,
         branding: brand.id,
         mongoQuery: JSON.stringify(config.mongoQuery),
-        queryParams: JSON.stringify(config.queryParams)
+        queryParams: JSON.stringify(config.queryParams),
+        collectionName: config.collectionName,
+        resultObjectMapping: JSON.stringify(config.resultObjectMapping),
+        brandIdFieldPath: config.brandIdFieldPath
       }));
     }
 
@@ -93,38 +97,110 @@ export module Services {
       return new NamedQueryConfig(nQDBEntry)
     }
 
-    async performNamedQuery(mongoQuery, queryParams, paramMap, brand, start, rows, user=undefined):Promise<ListAPIResponse<NamedQueryResponseRecord>> {
+    async performNamedQuery(brandIdFieldPath, resultObjectMapping, collectionName, mongoQuery, queryParams, paramMap, brand, start, rows, user=undefined):Promise<ListAPIResponse<Object>> {
       
-      this.setParamsInQuery(mongoQuery, queryParams, paramMap) 
-      mongoQuery['metaMetadata.brandId'] = brand.id;
-      sails.log.debug("Mongo query to be executed")
-      sails.log.debug(mongoQuery)
+      this.setParamsInQuery(mongoQuery, queryParams, paramMap);
+
+      let that = this;
       
-      let totalItems = await Record.count(mongoQuery).meta({
-        enableExperimentalDeepTargets: true
-      });
+      if(brandIdFieldPath != '') {
+        mongoQuery[brandIdFieldPath] = brand.id;
+      }
+      sails.log.debug("Mongo query to be executed");
+      sails.log.debug(mongoQuery);
+      
+      let totalItems = 0;
+      if(collectionName == 'user') {
+        totalItems = await User.count(mongoQuery).meta({
+          enableExperimentalDeepTargets: true
+        });
+      } else {
+        totalItems = await Record.count(mongoQuery).meta({
+          enableExperimentalDeepTargets: true
+        });
+      }
+
       let results = [];
       if (totalItems > 0) {
-        results = await Record.find({
-          where: mongoQuery,
-          skip: start,
-          limit: rows
-        }).meta({
-          enableExperimentalDeepTargets: true
-        })
+        if(collectionName == 'user') {
+          results = await User.find({
+            where: mongoQuery,
+            skip: start,
+            limit: rows
+          }).meta({
+            enableExperimentalDeepTargets: true
+          });
+        } else {
+          results = await Record.find({
+            where: mongoQuery,
+            skip: start,
+            limit: rows
+          }).meta({
+            enableExperimentalDeepTargets: true
+          });
+        }
       }
       
       let responseRecords:NamedQueryResponseRecord[] = []
       for (let record of results) {
 
-        let responseRecord:NamedQueryResponseRecord = new NamedQueryResponseRecord({
-          oid: record.redboxOid,
-          title: record.metadata.title,
-          metadata: record.metadata,
-          lastSaveDate: record.lastSaveDate,
-          dateCreated: record.dateCreated
-        })
-        responseRecords.push(responseRecord)
+        if(collectionName == 'user') {
+
+          let defaultMetadata = {};
+          let variables = { record: record };
+
+          if(!_.isEmpty(resultObjectMapping)) {
+            let resultMetadata = _.cloneDeep(resultObjectMapping);
+            _.forOwn(resultObjectMapping, function(value, key) {
+              _.set(resultMetadata,key,that.runTemplate(value,variables));
+            });
+            defaultMetadata = resultMetadata;
+
+          } else {
+            defaultMetadata = {
+              type: that.runTemplate('record.type',variables),
+              name: that.runTemplate('record.name',variables),
+              email: that.runTemplate('record.email',variables),
+              username: that.runTemplate('record.username',variables),
+              lastLogin: that.runTemplate('record.lastLogin',variables)
+            };
+          }
+
+          let responseRecord:NamedQueryResponseRecord = new NamedQueryResponseRecord({
+            oid: '',
+            title: '',
+            metadata: defaultMetadata,
+            lastSaveDate: record.updatedAt,
+            dateCreated: record.createdAt
+          });
+          responseRecords.push(responseRecord);
+
+        } else {
+
+          let defaultMetadata = {};
+          let variables = { record: record };
+
+          if(!_.isEmpty(resultObjectMapping)) {
+            let resultMetadata = _.cloneDeep(resultObjectMapping);
+            _.forOwn(resultObjectMapping, function(value, key) {
+              _.set(resultMetadata,key,that.runTemplate(value,variables));
+            });
+            defaultMetadata = resultMetadata;
+            
+          } else {
+            defaultMetadata =  that.runTemplate('record.metadata',variables);
+          }
+
+          let responseRecord:NamedQueryResponseRecord = new NamedQueryResponseRecord({
+            oid: record.redboxOid,
+            title: record.metadata.title,
+            metadata: defaultMetadata,
+            lastSaveDate: record.lastSaveDate,
+            dateCreated: record.dateCreated
+          });
+          responseRecords.push(responseRecord);
+
+        }
       }
       let response = new ListAPIResponse<NamedQueryResponseRecord>();
 
@@ -214,7 +290,12 @@ export module Services {
       return mongoQuery;
     }
 
-    
+    runTemplate(templateOrPath: string, variables: any) {
+      if (templateOrPath && templateOrPath.indexOf('<%') != -1) {
+        return _.template(templateOrPath)(variables);
+      }
+      return _.get(variables, templateOrPath);
+    }
 
   }
 }
@@ -255,16 +336,22 @@ export class NamedQueryConfig {
   key: string;
   queryParams: Map<string,QueryParameterDefinition>;
   mongoQuery: object;
+  collectionName: string;
+  resultObjectMapping: any;
+  brandIdFieldPath: string;
 
   constructor(values:any) {
-      this.name = values.name
-      this.branding = values.branding
-      this.metadata = values.metadata
-      this.createdAt = values.createdAt
-      this.updatedAt = values.updatedAt
-      this.key = values.key
-      this.queryParams = JSON.parse(values.queryParams)
-      this.mongoQuery = JSON.parse(values.mongoQuery)
+      this.name = values.name;
+      this.branding = values.branding;
+      this.metadata = values.metadata;
+      this.createdAt = values.createdAt;
+      this.updatedAt = values.updatedAt;
+      this.key = values.key;
+      this.queryParams = JSON.parse(values.queryParams);
+      this.mongoQuery = JSON.parse(values.mongoQuery);
+      this.collectionName = values.collectionName;
+      this.resultObjectMapping = JSON.parse(values.resultObjectMapping);
+      this.brandIdFieldPath = values.brandIdFieldPath;
   }
 }
 

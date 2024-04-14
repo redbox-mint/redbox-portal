@@ -195,9 +195,23 @@ export module Services {
       //Set false by default if not present this option will remove leading and trailing spaces from a none array value
       //then it will modify the value in the record if the the regex validation is passed therefore handle with care
       let trimLeadingAndTrailingSpacesBeforeValidation = _.get(options, 'trimLeadingAndTrailingSpacesBeforeValidation') || false;
-      let caseSensitive = _.get(options, 'caseSensitive') || true;
+      let caseSensitive = _.isUndefined(_.get(options, 'caseSensitive', undefined)) ? true : _.get(options, 'caseSensitive', undefined); // default to true
+      let allowNulls = _.isUndefined(_.get(options, 'caseSensitive', undefined)) ? true : _.get(options, 'caseSensitive', undefined); // default to true for backwards compatibility
 
       let data = _.get(record, fieldDBName);
+      // Fail fast if the field is empty and allowNulls is false
+      if (_.isEmpty(data) && !allowNulls) {
+        let customError: RBValidationError;
+        if (!_.isUndefined(fieldLanguageCode)) {
+          let fieldName = TranslationService.t(fieldLanguageCode);
+          let baseErrorMessage = TranslationService.t(errorMessageCode);
+          customError = new RBValidationError(fieldName + ' ' + baseErrorMessage);
+        } else {
+          let baseErrorMessage = TranslationService.t(errorMessageCode);
+          customError = new RBValidationError(baseErrorMessage);
+        }
+        throw customError;
+      }
 
       if (_.isArray(data) && !_.isUndefined(arrayObjFieldDBName)) {
 

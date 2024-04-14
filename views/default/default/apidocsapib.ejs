@@ -1,9 +1,36 @@
 FORMAT: 1A
-HOST: https://demo.redboxresearchdata.com.au
+HOST: <%= baseUrl != undefined ? baseUrl: "demo.redboxresearchdata.com.au" %>
 
 # ReDBox Portal API 
 
-The ReDBox Portal API provides authorized access to manage functions.
+The ReDBox Portal API provides authorized access to manage functions related to records, user management, roles, search functionalities, and more. This document outlines the available endpoints, request/response formats, and other relevant technical details.
+
+## Overview
+
+### Authorization
+
+The ReDBox Portal API secures access through the use of bearer tokens. A bearer token must be obtained from the ReDBox admin user interface and included in the `Authorization` header as a Bearer token for all API requests.
+
+#### Obtaining Bearer Tokens
+
+To obtain a bearer token, follow the instructions on the [ReDBox Portal Wiki](https://github.com/redbox-mint/redbox-portal/wiki/ReDBox-Portal-API#creating-an-api-user)
+
+#### Using Bearer Tokens
+
+Once you have obtained a bearer token, include it in the `Authorization` header as a Bearer token with each API request:
+
+```
+Authorization: Bearer YOUR_BEARER_TOKEN_HERE
+```
+
+Please ensure that your bearer tokens are stored securely and are not exposed to unauthorized entities. If a token is compromised, generate a new token from the admin user interface immediately to replace it.
+
+### Error Handling
+
+The API uses standard HTTP status codes to indicate the success or failure of an API request. In general:
+- `2xx` codes indicate success.
+- `4xx` codes indicate an error that failed given the information provided (e.g., a required parameter was omitted, a charge failed, etc.).
+- `5xx` codes indicate an error with ReDBox's servers.
 
 
 # Group Record
@@ -143,10 +170,27 @@ The ReDBox Portal API provides authorized access to manage functions.
     + Attributes (Error, fixed-type)
         - message: Update Metadata failed
 
-### Update Record Metadata [DELETE]
+### Delete a Record [DELETE /<%= branding %>/<%= portal %>/api/records/metadata/{oid}{?permanent}]
+
 
 + Parameters
-    + oid: `7e72b5952e8e323c77f72ae268a27c46` (string, required) - The identifier for the record
+    + oid (required, string) - The identifier of the Record in the form of a string.
+    + permanent (optional, boolean) - A flag to permanently delete the record.
+        + Default: false
+
++ Request (application/json)
+    + Headers
+
+            Authorization: Bearer <token>
+
++ Response 200 (application/json)
+    + Attributes (APIActionResponse)
+
++ Response 400 (application/json)
+    + Attributes (APIErrorResponse)
+
++ Response 500 (application/json)
+    + Attributes (APIErrorResponse)
 
 + Request Update record metadata (application/json)
   + Headers
@@ -189,6 +233,74 @@ The ReDBox Portal API provides authorized access to manage functions.
     + Attributes (Error, fixed-type)
         - message: Get Metadata failed, failed to retrieve existing record.
 
+
+## Deleted Record Actions [/api/deletedrecords]
+
+### List Deleted Records [GET /api/deletedrecords{?recordType,state,start,rows,packageType,sort,filterFields,filter}]
+        
++ Parameters
+    + recordType (optional, string) - The type of the record.
+    + state (optional, string) - The workflow state of the record.
+    + start (optional, number) - The starting index for the records to be returned.
+    + rows (optional, number) - The number of records to be returned.
+    + packageType (optional, string) - The package type of the record.
+    + sort (optional, string) - The sorting order for the records.
+    + filterFields (optional, string) - The a comma seperated list of the fields to be  used for filtering.
+    + filter (optional, string) - The filter string to be applied.
+        
++ Request (application/json)
+    + Headers
+        
+            Authorization: Bearer <token>
+        
++ Response 200 (application/json)
+    + Attributes (ListAPIResponse)
+
++ Response 400 (application/json)
+    + Attributes (APIErrorResponse)
+
++ Response 500 (application/json)
+    + Attributes (APIErrorResponse)
+
+### Restore a Deleted Record [PUT /api/deletedrecords/{oid}]
+        
++ Parameters
+    + oid (required, string) - The identifier of the Deleted Record in the form of a string.
+        
++ Request (application/json)
+    + Headers
+        
+            Authorization: Bearer <token>
+        
++ Response 200 (application/json)
+    + Attributes (APIActionResponse)
+        
++ Response 400 (application/json)
+    + Attributes (APIErrorResponse)
+        
++ Response 500 (application/json)
+    + Attributes (APIErrorResponse)
+
+### Permanently Delete a Deleted Record [DELETE /api/deletedrecords/{oid}]
+        
++ Parameters
+    + oid (required, string) - The identifier of the Deleted Record in the form of a string.
+            
++ Request (application/json)
+    + Headers
+            
+            Authorization: Bearer <token>
+            
++ Response 200 (application/json)
+    + Attributes (APIActionResponse)
+            
++ Response 400 (application/json)
+     + Attributes (APIErrorResponse)
+            
++ Response 500 (application/json)
+    + Attributes (APIErrorResponse)
+
+            
 ## Record Audit Actions [/<%= branding %>/<%= portal %>/api/records/audit]
 
 ### Get Record Audit Information [GET /<%= branding %>/<%= portal %>/api/records/audit/{oid}{?dateFrom,dateTo}]
@@ -530,8 +642,31 @@ The ReDBox Portal API provides authorized access to manage functions.
                 Authorization: Bearer abcabcab-abca-abca-abca-abcabcabcabc
 
 + Response 200 (application/json)
-    + Attributes (ListResponse, fixed-type)
-        - records (array[ListRecord])  
+    + Attributes (APIObjectActionResponse)
+        - message: `Index request added to message queue for processing`
+        - status: `200` 
+
+### Index all records [GET /<%= branding %>/<%= portal %>/api/search/indexAll{?}]
++ Request (application/json)
+    + Headers
+                
+                Authorization: Bearer abcabcab-abca-abca-abca-abcabcabcabc
+                
++ Response 200 (application/json)
+    + Attributes (APIObjectActionResponse)
+        - message: `Index all records request added to message queue for processing`
+        - status: `200`
+
+### Remove all records from index [DELETE /<%= branding %>/<%= portal %>/api/search/index/removeAll{?}]
++ Request (application/json)
+    + Headers
+        
+               Authorization: Bearer abcabcab-abca-abca-abca-abcabcabcabc
+        
++ Response 200 (application/json)
+    + Attributes (APIObjectActionResponse)
+        - message: `Remove all records request added to message queue for processing`
+        - status: `200`
 
 # Group User Management
 
@@ -604,7 +739,7 @@ The ReDBox Portal API provides authorized access to manage functions.
     + Attributes (Error, fixed-type)
         - message: User update failed
 
-### Generate API Token for user [GET /<%= branding %>/<%= portal %>/api/users/token/generate(?id}]
+### Generate API Token for user [GET /<%= branding %>/<%= portal %>/api/users/token/generate{?id}]
 
 + Parameters
     + id: `59daee5720b453050057c2f5` (string, required) - The user's identifier
@@ -625,7 +760,7 @@ The ReDBox Portal API provides authorized access to manage functions.
     + Attributes (Error, fixed-type)
         - message: Token generation failed
 
-### Revoke API Token for user [GET /<%= branding %>/<%= portal %>/api/users/token/revoke(?id}]
+### Revoke API Token for user [GET /<%= branding %>/<%= portal %>/api/users/token/revoke{?id}]
 
 + Parameters
     + id: `59daee5720b453050057c2f5` (string, required) - The user's identifier
@@ -667,6 +802,18 @@ The ReDBox Portal API provides authorized access to manage functions.
     + Attributes (Error, fixed-type)
 
 # Group Other
+
+## Admin Resources [/<%= branding %>/<%= portal %>/api/admin/refreshCachedResources]
+
+This endpoint is used to refresh the cached resources in the application such as CSS and JS resources and the language files.
+
+### Refresh Cached Resources [GET]
+
++ Response 200 (application/json)
+    + Attributes (APIActionResponse)
+
++ Response 500 (application/json)
+    + Attributes (APIErrorResponse)
 
 ## Email Actions [/<%= branding %>/<%= portal %>/api/sendNotification]
 
@@ -756,6 +903,28 @@ This endpoint is an authenticated wrapper to Apache solr's search endpoint and s
 - dateModified: 2020-12-02T00:00:33.01Z (required)
 - metadata (object) - Record Metadata, this varies depending on the record type
 
+### APIActionResponse (object)
++ message (string, optional) - The success message. Defaults to 'Request processed successfully'.
++ details (string, optional) - Additional details about the action. Defaults to an empty string.
+
+## APIObjectActionResponse (object)
++ oid: `1234abcd` (string, optional) - The object identifier
++ message: `Request processed successfully` (string, optional) - The response message
++ details: `Additional details` (string, optional) - Additional details about the response
+
+### APIErrorResponse (object)
+- message (string, optional) - The error message. Defaults to 'An error has occurred'.
+- details (string, optional) - Additional details about the error. Defaults to an empty string.
+
+### ListAPIResponse (object)
++ summary (ListAPISummary, required) - An object containing summary information about the list.
++ records (array, required) - An array of records. The type of the records is defined by the specific use case.
+
+### ListAPISummary (object)
++ numFound (number, required) - The total number of records found.
++ page (number, required) - The current page number.
++ start (number, required) - The starting index of the records in the current page.
+
 ### CreateRecordRequest (object)
 - metadata (object) (required)
 
@@ -826,3 +995,4 @@ This endpoint is an authenticated wrapper to Apache solr's search endpoint and s
 
 ### Attachment (object)
 - filename: researchdata.zip
+
