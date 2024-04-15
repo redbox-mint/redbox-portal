@@ -85,10 +85,10 @@ jobs:
       - run:
           name: Run Postman and Mocha tests with code coverage
           command: |
+            sudo mkdir -p .tmp/junit
             sudo chmod -R 777 .
             cd support/integration-testing
             sudo mkdir -p .tmp/attachments/staging
-            sudo mkdir -p .tmp/junit
             sudo chmod -R 777 .
             docker-compose -f docker-compose.newman.yml up --abort-on-container-exit --exit-code-from redboxportal
             docker-compose -f docker-compose.mocha.yml up --abort-on-container-exit --exit-code-from redboxportal
