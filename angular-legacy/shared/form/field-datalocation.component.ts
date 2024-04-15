@@ -85,11 +85,18 @@ export class DataLocationField extends FieldBase<any> {
   uppyDashboardNote: string;
   allowUploadWithoutSave: boolean;
   hideNotesForLocationTypes: string[];
+  /* BEGIN UTS IMPORT */
+  notesEnabled: boolean;
+  securityClassificationOptions: any;
+  iscHeader: string;
+  iscEnabled: boolean;
+  defaultSelect: string;
+  /* END UTS IMPORT */
 
   constructor(options: any, injector: any) {
     super(options, injector);
     this.accessDeniedObjects = [];
-    this.locationAddText = this.getTranslated(options['locationAddText'], null);
+    this.locationAddText = this.getTranslated(options['locationAddText'], 'Add Location');
     this.editNotesButtonText = this.getTranslated(options['editNotesButtonText'], 'Edit');
     this.editNotesTitle = this.getTranslated(options['editNotesTitle'], 'Edit Notes');
     this.cancelEditNotesButtonText = this.getTranslated(options['cancelEditNotesButtonText'], 'Cancel');
@@ -115,6 +122,16 @@ export class DataLocationField extends FieldBase<any> {
     this.recordsService = this.getFromInjector(RecordsService);
     this.allowUploadWithoutSave = _.isUndefined(options['allowUploadWithoutSave']) ? false : options['allowUploadWithoutSave'];
     this.hideNotesForLocationTypes = options['hideNotesForLocationTypes'] || [];
+    /* BEGIN UTS IMPORT */
+    this.notesEnabled = !_.isUndefined(options['notesEnabled']) ? options['notesEnabled'] : true;
+    this.iscHeader = !_.isUndefined(options['iscHeader']) ? this.getTranslated(options['iscHeader'], options['iscHeader']) : 'Information Security Classification';
+    this.iscEnabled = !_.isUndefined(options['iscEnabled']) ? options['iscEnabled'] : false;
+    this.defaultSelect = !_.isUndefined(options['defaultSelect']) ? options['defaultSelect'] : "confidential";
+    if(this.iscEnabled) {
+      this.newLocation['isc'] = this.defaultSelect;
+    }
+    this.securityClassificationOptions = options['securityClassificationOptions'] || [];
+    /* END UTS IMPORT */
   }
 
   setValue(value: any, emitEvent: boolean = true) {
@@ -131,7 +148,9 @@ export class DataLocationField extends FieldBase<any> {
   addLocation() {
     this.value.push(this.newLocation);
     this.setValue(this.value);
-    this.newLocation = { type: "url", location: "", notes: "" };
+    /* BEGIN UTS IMPORT */
+    this.newLocation = { type: "url", location: "", notes: "", isc: this.defaultSelect };
+    /* END UTS IMPORT */
   }
 
   appendLocation(newLoc: any) {
@@ -293,6 +312,9 @@ export class DataLocationComponent extends SimpleComponent {
       const oidUrlPosition = _.indexOf(urlParts, oidGlobal);
       const choppedUrl = urlParts.slice(oidUrlPosition, urlParts.length).join('/');
       const newLoc = { type: "attachment", pending: true, location: choppedUrl, notes: passInNotes, mimeType: file.type, name: file.meta.name, fileId: fileId, uploadUrl: uploadURL, size: file.size };
+      if(this.field.iscEnabled) {
+        newLoc['isc'] = this.field.newLocation.isc;
+      }
       console.debug(`Adding new location:`);
       console.debug(newLoc);
       this.field.appendLocation(newLoc);

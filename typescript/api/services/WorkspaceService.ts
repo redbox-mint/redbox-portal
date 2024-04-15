@@ -147,7 +147,8 @@ export module Services {
     updateWorkspaceInfo(id, info) {
       return this.getObservable(
         WorkspaceApp.update(
-          {id: id},
+          {id: id})
+        .set(
           {info: info}
         )
       );

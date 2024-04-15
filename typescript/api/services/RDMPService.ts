@@ -713,6 +713,8 @@ export module Services {
       const rdmpOid = workspaceData.metadata.rdmpOid;
       sails.log.verbose(`Generic adding workspace ${oid} to record: ${rdmpOid}`);
       response = await WorkspaceService.addWorkspaceToRecord(workspaceData.metadata.rdmpOid, oid);
+      _.set(response, 'workspaceOid', oid);
+      _.set(response, 'workspaceData', workspaceData);
       return response;
     }
   }
