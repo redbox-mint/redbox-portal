@@ -30,7 +30,7 @@ services:
      main:
        aliases:
          - rbportal
-    entrypoint: /bin/bash -c "cd /opt/redbox-portal && npm i nyc -g && nyc --report-dir coverage/mocha --reporter=lcov --exclude-after-remap=false node ./node_modules/mocha/bin/mocha --exit test/bootstrap.test.js test/unit/**/*.test.js"
+    entrypoint: /bin/bash -c "cd /opt/redbox-portal && node ./node_modules/mocha/bin/mocha --exit test/bootstrap.test.js test/unit/**/*.test.js"
   mongodb:
     image: mvertes/alpine-mongo:latest
     networks:

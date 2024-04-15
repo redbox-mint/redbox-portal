@@ -320,15 +320,6 @@ export module Services {
       }
     }
 
-    protected checkEmailDuplicates(emailList) {
-      const duplicates = _.uniq(emailList.filter((element, index, array) => array.indexOf(element) !== index).sort());
-      if (duplicates.length > 0) {
-        const msg = TranslationService.tInter("user-emails-duplicate", {emailAddresses: duplicates.join(", ")});
-        throw new RBValidationError(msg);
-      }
-      return emailList;
-    }
-
     protected populateContribList(contribProperties, record, emailProperty, emailList) {
       _.each(contribProperties, contributorProperty => {
         let contributor = _.get(record, contributorProperty, null);
@@ -345,9 +336,7 @@ export module Services {
           }
         }
       });
-
-      this.checkEmailDuplicates(emailList);
-      return emailList;
+      return _.uniq(emailList);
     }
 
     protected getContribListByRule(contribProperties, record, rule, emailProperty, emailList) {
@@ -371,9 +360,7 @@ export module Services {
           }
         }
       });
-
-      this.checkEmailDuplicates(emailList);
-      return emailList;
+      return _.uniq(emailList);
     }
 
     protected filterPending(users, userEmails, userList) {
