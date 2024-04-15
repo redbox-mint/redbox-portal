@@ -6,6 +6,7 @@ function testAngular() {
   echo "Testing ${1} (flag ${2})"
   echo "-------------------------------------------"
   sudo mkdir -p "${HOME}/project/.tmp/junit/${2}"
+  sudo chmod -R 777 "${HOME}/project/.tmp/junit/${2}"
   node_modules/.bin/ng t --browsers=ChromeHeadless "@researchdatabox/${1}" --no-watch --no-progress --code-coverage
   /tmp/.codecov-cli/codecov --verbose upload-process --fail-on-error --disable-search \
     --token "${CODECOV_TOKEN}" --name "job-${CIRCLE_BUILD_NUM}-${CIRCLE_BRANCH}" \
