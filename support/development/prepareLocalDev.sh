@@ -28,12 +28,6 @@ sudo rm -rf ../portal-ng-form-custom
 npm run compile:ng
 npm run webpack
 
-show_step 'Build api descriptors.'
-cd support/build/api-descriptors
-chmod +x ./generateAPIDescriptors.sh
-./generateAPIDescriptors.sh
-cd ../../..
-
 show_step 'Compile backend.'
 npm run compile:sails
 
