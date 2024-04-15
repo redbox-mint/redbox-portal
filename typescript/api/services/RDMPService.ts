@@ -484,11 +484,13 @@ export module Services {
         return Observable.of(record);
       }
       _.each(editContributorEmails, editorEmail => {
+        sails.log.verbose(`Adding editorEmail: ${editorEmail}`);
         editContributorObs.push(this.getObservable(User.findOne({
           email: editorEmail.toLowerCase()
         })));
       });
       _.each(viewContributorEmails, viewerEmail => {
+        sails.log.verbose(`Adding viewerEmail: ${viewerEmail}`);
         viewContributorObs.push(this.getObservable(User.findOne({
           email: viewerEmail.toLowerCase()
         })));
@@ -506,6 +508,8 @@ export module Services {
             }
             record.authorization.edit = newEditList;
             record.authorization.editPending = editContributorEmails;
+
+            sails.log.verbose(`flatMap editContributorUsers: ${JSON.stringify(record)}`);
             return Observable.zip(...viewContributorObs);
           })
       }
@@ -520,6 +524,8 @@ export module Services {
           }
           record.authorization.view = newviewList;
           record.authorization.viewPending = viewContributorEmails;
+
+          sails.log.verbose(`flatMap viewContributorUsers: ${JSON.stringify(record)}`);
           return Observable.of(record);
         });
       }
@@ -557,11 +563,13 @@ export module Services {
         return Observable.of(record);
       }
       _.each(editContributorEmails, editorEmail => {
+        sails.log.verbose(`Adding editorEmail: ${editorEmail}`);
         editContributorObs.push(this.getObservable(User.findOne({
           email: editorEmail.toLowerCase()
         })));
       });
       _.each(viewContributorEmails, viewerEmail => {
+        sails.log.verbose(`Adding viewerEmail: ${viewerEmail}`);
         viewContributorObs.push(this.getObservable(User.findOne({
           email: viewerEmail.toLowerCase()
         })));
@@ -579,6 +587,8 @@ export module Services {
             }
             record.authorization.edit = newEditList;
             record.authorization.editPending = editContributorEmails;
+
+            sails.log.verbose(`flatMap editContributorUsers: ${JSON.stringify(record)}`);
             return Observable.zip(...viewContributorObs);
           })
       }
@@ -593,6 +603,8 @@ export module Services {
           }
           record.authorization.view = newviewList;
           record.authorization.viewPending = viewContributorEmails;
+
+          sails.log.verbose(`flatMap viewContributorUsers: ${JSON.stringify(record)}`);
           return Observable.of(record);
         });
       }
