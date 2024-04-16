@@ -645,6 +645,40 @@ The API uses standard HTTP status codes to indicate the success or failure of an
     + Attributes (ListResponse, fixed-type)
         - records (array[ListRecord])  
 
+# Group Report
+
+## Report [/<%= branding %>/<%= portal %>/api/report/namedQuery/{queryName}{?rows,start}]
+
+### Execute Named Query [GET]
+
+Executes a named query based on the provided query name and parameters.
+
++ Parameters
+    + queryName (required, string) - The name of the query to execute.
+    + start (optional, number) - The starting index for the query results. Defaults to 0.
+    + rows (optional, number) - The number of rows to return. Defaults to 10 and must not be greater than 100.
+
++ Request (application/json)
+
+    + Headers
+
+            Authorization: Bearer <token>
+
++ Response 200 (application/json)
+
+    + Attributes (object)
+        + results (array[object], required)
+        + total (number, required)
+
++ Response 400 (application/json)
+
+    + Attributes (APIErrorResponse)
+
++ Response 500 (application/json)
+
+    + Attributes (APIErrorResponse)     
+    
+
 # Group User Management
 
 ## User Management Actions [/<%= branding %>/<%= portal %>/api/users]
