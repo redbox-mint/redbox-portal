@@ -63,7 +63,7 @@
     "sails-hook-sockets": "^3.0.0",
     "sails-mongo": "^2.1.0",
     "sass": "^1.75.0",
-    "sass-loader": "^14.2.0",
+    "sass-loader": "^14.2.1",
     "skipper": "^0.9.4",
     "skipper-gridfs": "^1.0.2",
     "solr-client": "^0.9.0",
