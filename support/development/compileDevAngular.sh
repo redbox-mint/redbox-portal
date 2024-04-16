@@ -1,6 +1,9 @@
 #! /bin/bash
 set -e
 function buildAngularApp() {
+  echo "-------------------------------------------"
+  echo "Building angular app ${1}"
+  echo "-------------------------------------------"
   NG_BUILD_PREFIX=""
   if [ ! -z "$NG_BUILD_TEMP_OUTPUT" ]  && [ "$2" == "" ]; then
     NG_BUILD_PREFIX="--output-path=${NG_BUILD_TEMP_OUTPUT}/${1}"
@@ -15,7 +18,6 @@ nvm i < .nvmrc && npm install
 
 if [ $# -ne 0 ]
   then
-    echo "Bundling ${1}"
     buildAngularApp "$1"
 else 
 # Check if the custom form components placeholder is available one directory up from the parent, clone if not...
@@ -37,7 +39,6 @@ else
   for ng2app in "${ng2apps[@]}"
   do
     if [ "$ng2app" != "portal-ng-common" ] && [ "$ng2app" != "portal-ng-form-custom" ]; then
-      echo "Building ${ng2app}"
       buildAngularApp "${ng2app}"
     fi
   done

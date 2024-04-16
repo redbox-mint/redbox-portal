@@ -19,7 +19,7 @@
     "chokidar": "~3.6.0",
     "connect-mongo": "^5.1.0",
     "copy-webpack-plugin": "^12.0.2",
-    "core-js": "^3.36.1",
+    "core-js": "^3.37.0",
     "css-loader": "^7.1.1",
     "css-minimizer-webpack-plugin": "^6.0.0",
     "csv-parser": "^3.0.0",
@@ -31,7 +31,7 @@
     "font-awesome-sass": "4.7.0",
     "fs-extra": "^11.2.0",
     "har-validator": "5.1.5",
-    "i18next": "^23.11.1",
+    "i18next": "^23.11.2",
     "i18next-fs-backend": "^2.3.1",
     "include-all": "^4.0.3",
     "jquery": "^3.7.1",
@@ -41,7 +41,7 @@
     "lodash-es": "^4.17.21",
     "lucene-escape-query": "^1.0.1",
     "luxon": "^3.4.4",
-    "mini-css-extract-plugin": "^2.8.1",
+    "mini-css-extract-plugin": "^2.9.0",
     "moment": "^2.30.1",
     "mongodb": "^6.3.0",
     "node-cache": "^5.1.2",
@@ -63,7 +63,7 @@
     "sails-hook-sockets": "^3.0.0",
     "sails-mongo": "^2.1.0",
     "sass": "^1.75.0",
-    "sass-loader": "^14.2.0",
+    "sass-loader": "^14.2.1",
     "skipper": "^0.9.4",
     "skipper-gridfs": "^1.0.2",
     "solr-client": "^0.9.0",
@@ -80,15 +80,17 @@
   "scripts": {
     "debug": "node debug app.js",
     "start": "node app.js",
-    "test:mocha": "docker-compose -f ./support/integration-testing/docker-compose.mocha.yml up --abort-on-container-exit --exit-code-from redboxportal",
-    "test:postman": "docker-compose -f ./support/integration-testing/docker-compose.newman.yml up --abort-on-container-exit --exit-code-from redboxportal",
+    "test:mocha": "docker compose -f ./support/integration-testing/docker-compose.mocha.yml up --abort-on-container-exit --exit-code-from redboxportal",
+    "test:postman": "docker compose -f ./support/integration-testing/docker-compose.newman.yml up --abort-on-container-exit --exit-code-from redboxportal",
+    "test:angular": "./support/unit-testing/angular/testDevAngular.sh",
     "api-test": "node test/postman/runNewmanTests.js",
     "doc-ng2": "npm -g install @compodoc/compodoc &&  npm -g install ejs-cli aglio &&  compodoc -p angular/tsconfig.json -d support/docs/generated/ng2 -n \"ReDBox Portal - NG2 Apps\" --theme postmark --includes support/docs &&  ejs-cli views/default/default/apidocsapib.ejs -O '{\"portal\":\"rdmp\",\"branding\":\"default\",\"baseUrl\":\"https://demo.redboxresearchdata.com.au\"}' > apidocs.apib && aglio -i apidocs.apib -o rest-api.html && mv rest-api.html support/docs/generated/ng2/additional-documentation/",
     "compile:sails": "npm install && ./node_modules/.bin/tsc --project tsconfig.json",
     "compile:ng": "./support/development/compileDevAngularAll.sh",
     "dev:run": "docker compose -f ./support/development/docker-compose.yml up",
     "dev:all": "npm run compile:sails && npm run compile:ng && npm run dev:run",
-    "webpack": "NODE_ENV=docker WEBPACK_CSS_MINI=true node support/build/wrapper-webpack.js"
+    "webpack": "NODE_ENV=docker WEBPACK_CSS_MINI=true node support/build/wrapper-webpack.js",
+    "dev:prepare": "./support/development/prepareLocalDev.sh"
   },
   "main": "app.js",
   "repository": {
@@ -106,6 +108,7 @@
     "ejs-cli": "^2.2.3",
     "istanbul": "^0.4.5",
     "mocha": "^10.4.0",
+    "mocha-junit-reporter": "^2.2.1",
     "newman": "^6.1.2",
     "supertest": "^6.3.4",
     "uglify-es": "^3.3.10"
@@ -132,5 +135,17 @@
       "text",
       "text-summary"
     ]
+  },
+  "mocha": {
+    "require": "chai",
+    "recursive": true,
+    "slow": 2000,
+    "timeout": "60s",
+    "ui": "bdd",
+    "reporter": "mocha-junit-reporter",
+    "reporter-option": [
+      "mochaFile=./.tmp/junit/backend-mocha/backend-mocha.xml"
+    ],
+    "global": ["sails"]
   }
 }

@@ -2,17 +2,18 @@ jobs:
   build:
     docker:
       - image: 'cimg/node:20.11'
+    resource_class: large
     steps:
       - checkout
       - run:
           name: Install npm packages for core
-          command: >-
-            cd core &&
+          command: |
+            cd core
             npm install
       - run:
           name: Compile core
-          command: >-
-            cd core &&
+          command: |
+            cd core
             node_modules/.bin/tsc
       - run:
           name: Install npm packages for project
@@ -22,25 +23,26 @@ jobs:
           command: node_modules/.bin/tsc
       - run:
           name: Install nvm
-          command: curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.2/install.sh | bash
+          command: curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
       - run:
           name: Compile angular
-          command: >-
-            chmod +x support/build/compileProductionAngular.sh &&
+          command: |
+            chmod +x support/build/compileProductionAngular.sh
             support/build/compileProductionAngular.sh
       - run:
           name: Compile legacy angular
-          command: >-
-            chmod +x support/build/compileProductionAngularLegacy.sh &&
+          command: |
+            chmod +x support/build/compileProductionAngularLegacy.sh
             support/build/compileProductionAngularLegacy.sh
       - run:
           name: Compile sails app using webpack
           command: npm run webpack
       - run:
           name: Build api descriptors
-          command: >-
-            chmod +x support/build/api-descriptors/generateAPIDescriptors.sh &&
-            cd support/build/api-descriptors && ./generateAPIDescriptors.sh
+          command: |
+            cd support/build/api-descriptors
+            chmod +x ./generateAPIDescriptors.sh
+            ./generateAPIDescriptors.sh
       - persist_to_workspace:
           root: .
           paths:
@@ -52,13 +54,13 @@ jobs:
       - checkout
       - run:
           name: Install npm packages for core
-          command: >-
-            cd core &&
+          command: |
+            cd core
             npm install
       - run:
           name: Compile core
-          command: >-
-            cd core &&
+          command: |
+            cd core
             node_modules/.bin/tsc
       - run:
           name: Install npm packages for project
@@ -76,38 +78,53 @@ jobs:
   test:
     machine:
       image: ubuntu-2004:current
+    resource_class: large
     steps:
       - attach_workspace:
           at: /home/circleci/project
       - run:
-          name: Compile typescript for code coverage
-          command: node_modules/.bin/tsc -p tsconfig-codecov.json
-      - run:
-          name: Run Postman and Mocha tests
-          command: >-
-            sudo chmod -R 777 . &&
-            cd support/integration-testing &&
-            sudo mkdir -p .tmp/attachments/staging && sudo chmod -R 777 . &&
-            docker-compose -f docker-compose.newman.yml up --abort-on-container-exit --exit-code-from redboxportal &&
+          name: Run Postman and Mocha tests with code coverage
+          command: |
+            sudo mkdir -p .tmp/junit
+            sudo chmod -R 777 .
+            cd support/integration-testing
+            sudo mkdir -p .tmp/attachments/staging
+            sudo chmod -R 777 .
+            docker-compose -f docker-compose.newman.yml up --abort-on-container-exit --exit-code-from redboxportal
             docker-compose -f docker-compose.mocha.yml up --abort-on-container-exit --exit-code-from redboxportal
       - run:
-          name: Install and run code coverage
-          command: >-
-            npm i -g codecov &&
-            codecov -t $CODECOV_TOKEN
-      - run:
-          name: Install nvm
-          command: curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.2/install.sh | bash
+          name: Install codecov and upload newman and mocha code coverage
+          # https://github.com/codecov/codecov-cli?tab=readme-ov-file#usage
+          command: |
+            mkdir -p /tmp/.codecov-cli
+            cd /tmp/.codecov-cli
+            curl https://keybase.io/codecovsecurity/pgp_keys.asc | gpg --no-default-keyring --keyring trustedkeys.gpg --import # One-time step
+            curl -Os https://cli.codecov.io/latest/linux/codecov
+            curl -Os https://cli.codecov.io/latest/linux/codecov.SHA256SUM
+            curl -Os https://cli.codecov.io/latest/linux/codecov.SHA256SUM.sig
+            gpgv codecov.SHA256SUM.sig codecov.SHA256SUM
+            shasum -a 256 -c codecov.SHA256SUM
+            chmod +x codecov
+            cd ~/project
+            /tmp/.codecov-cli/codecov --verbose upload-process --fail-on-error --disable-search \
+              --token "${CODECOV_TOKEN}" --name "job-${CIRCLE_BUILD_NUM}-${CIRCLE_BRANCH}" \
+              --flag "backend-newman" --file "./coverage/newman/lcov.info"
+            /tmp/.codecov-cli/codecov --verbose upload-process --fail-on-error --disable-search \
+              --token "${CODECOV_TOKEN}" --name "job-${CIRCLE_BUILD_NUM}-${CIRCLE_BRANCH}" \
+              --flag "backend-mocha" --file "./coverage/mocha/lcov.info"
       - run:
           name: Run angular tests
-          command: >-
-            chmod +x support/unit-testing/angular/testAngular.sh &&
+          # uses the codecov binary installed in previous step
+          command: |
+            chmod +x support/unit-testing/angular/testAngular.sh
             source support/unit-testing/angular/testAngular.sh
       - run:
           name: Install npm packages for project
-          command: >-
-            sudo chmod -R 777 . &&
+          command: |
+            sudo chmod -R 777 .
             npm i
+      - store_test_results:
+          path: .tmp/junit
   deploy:
     docker:
       - image: 'cimg/node:18.12'
@@ -117,7 +134,9 @@ jobs:
           at: /home/circleci/project
       - run:
           name: Build docker container
-          command: chmod +x dockerhub_deploy.sh && ./dockerhub_deploy.sh
+          command: |
+            chmod +x dockerhub_deploy.sh
+            ./dockerhub_deploy.sh
       - run:
           name: Upload container to Nexus
           command: |

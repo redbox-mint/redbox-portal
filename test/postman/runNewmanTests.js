@@ -30,7 +30,12 @@ sails.lift({
 
   newman.run({
     collection: require('./test-collection.json'),
-    reporters: 'cli',
+    reporters: ['cli', 'junit'],
+    reporter: {
+      junit: {
+        export: '.tmp/junit/backend-newman/backend-newman.xml'
+      },
+    },
     environment: require('./local.environment.json')
   }, function(err, summary) {
     const runError = err || summary.run.error || summary.run.failures.length;
