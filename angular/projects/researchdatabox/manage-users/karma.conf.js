@@ -6,6 +6,7 @@ module.exports = function (config) {
       require('karma-jasmine'),
       require('karma-chrome-launcher'),
       require('karma-jasmine-html-reporter'),
+      require('karma-junit-reporter'),
       require('karma-coverage'),
       require('@angular-devkit/build-angular/plugins/karma')
     ],
@@ -30,7 +31,10 @@ module.exports = function (config) {
         { type: 'json' }
       ]
     },
-    reporters: ['progress', 'kjhtml' ],
+    junitReporter: {
+      outputDir: require('path').join(__dirname, '../../../../.tmp/junit/frontend-manage-users')
+    },
+    reporters: ['progress', 'kjhtml', 'junit'],
     port: 9876,
     colors: true,
     logLevel: config.LOG_INFO,
