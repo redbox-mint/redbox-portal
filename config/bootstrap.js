@@ -31,19 +31,19 @@
    sails.log.verbose("Pathrules service, bootstrapped.");
    let pathRulesBootstrapResult = await sails.services.pathrulesservice.bootstrap(defUserAndDefRoles.defUser, defUserAndDefRoles.defRoles).toPromise();
    sails.log.verbose("Record types service, bootstrapped.");
-   let recordsTypes = await sails.services.recordtypesservice.bootstrap(sails.services.brandingservice.getDefault()).toPromise();
+   let recordsTypes = await sails.services.recordtypesservice.bootstrap(sails.services.brandingservice.getDefault());
    sails.log.verbose("Workflowsteps service, bootstrapped.");
-   let dashboardTypes = await sails.services.dashboardtypesservice.bootstrap(sails.services.brandingservice.getDefault()).toPromise();
+   let dashboardTypes = await sails.services.dashboardtypesservice.bootstrap(sails.services.brandingservice.getDefault());
    sails.log.verbose("DashboardTypes service, bootstrapped.");
-   let workflowSteps = await sails.services.workflowstepsservice.bootstrap(recordsTypes).toPromise();
+   let workflowSteps = await sails.services.workflowstepsservice.bootstrap(recordsTypes);
    sails.log.verbose("Workflowsteps service, bootstrapped.");
    if (_.isArray(workflowSteps)) {
  
      for (let workflowStep of workflowSteps) {
-       await sails.services.formsservice.bootstrap(workflowStep).toPromise();
+       await sails.services.formsservice.bootstrap(workflowStep);
      }
    } else {
-     await sails.services.formsservice.bootstrap(workflowSteps).toPromise();
+     await sails.services.formsservice.bootstrap(workflowSteps);
    }
  
  
