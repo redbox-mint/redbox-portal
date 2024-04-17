@@ -45,14 +45,15 @@ export module Services {
       'getAllForRecordType'
     ];
 
-    public bootstrap = (recordTypes) => {
-      let startQ = WorkflowStep.find({});
+    public async bootstrap(recordTypes):Promise<any> {
+      let workflows = await WorkflowStep.find({});
       if (sails.config.appmode.bootstrapAlways) {
-        startQ = WorkflowStep.destroy({});
+        await WorkflowStep.destroy({});
+        workflows = null;
       }
-      return super.getObservable(startQ)
-        .flatMap(workflows => {
+      
           sails.log.debug(`WorkflowSteps found: ${workflows} and boostrapAlways set to: ${sails.config.appmode.bootstrapAlways}`);
+          let wfSteps = workflows;
           if (_.isEmpty(workflows)) {
             sails.log.verbose("Bootstrapping workflow definitions... ");
             const wfSteps = {};
@@ -66,28 +67,26 @@ export module Services {
                 }
               });
             });
-            return Observable.of(wfSteps);
-          } else {
-            return Observable.of(workflows);
-          }
-        }).flatMap(wfSteps => {
+            
+        
           sails.log.verbose(`wfSteps: `);
           sails.log.verbose(JSON.stringify(wfSteps));
           if (_.isArray(wfSteps) && wfSteps[0]["config"] != null) {
-            sails.log.verbose(`return as Observable of`);
-            return Observable.from(wfSteps);
+            
           } else {
             var workflowSteps = [];
-            _.forOwn(wfSteps, (workflowStepsObject, recordTypeName) => {
-              _.forEach(workflowStepsObject, workflowStep => {
+            for(let recordTypeName in wfSteps) {
+              let workflowStepsObject = wfSteps[recordTypeName];
+              for (let workflowStep of workflowStepsObject){
                 const workflowConf = sails.config.workflow[recordTypeName][workflowStep["workflow"]];
-                var obs = this.create(workflowStep["recordType"], workflowStep["workflow"], workflowConf.config, workflowConf.starting == true, workflowConf['hidden']);
+                var obs = await this.create(workflowStep["recordType"], workflowStep["workflow"], workflowConf.config, workflowConf.starting == true, workflowConf['hidden']).toPromise();
                 workflowSteps.push(obs);
-              });
-            });
-            return Observable.zip(...workflowSteps);
+              };
+            }
+            
+            return workflowSteps;
           }
-        });
+          }
     }
 
 

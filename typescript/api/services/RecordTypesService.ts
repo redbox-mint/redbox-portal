@@ -45,33 +45,37 @@ export module Services {
 
     protected recordTypes;
 
-    public bootstrap = (defBrand) => {
-      let startQ = RecordType.find({branding:defBrand.id});
+    public async bootstrap (defBrand):Promise<any> {
+      let recordTypes = await RecordType.find({branding:defBrand.id});
       if (sails.config.appmode.bootstrapAlways) {
-        startQ = RecordType.destroy({branding:defBrand.id});
+        await RecordType.destroy({branding:defBrand.id});
+        recordTypes = null;
       }
-      return super.getObservable(startQ).flatMap(recordTypes => {
         if (_.isUndefined(recordTypes)) {
           recordTypes = [];
         }
         sails.log.debug(`RecordTypes found: ${recordTypes} and boostrapAlways set to: ${sails.config.appmode.bootstrapAlways}`);
         if (_.isEmpty(recordTypes)) {
-          var rTypes = [];
+          // var rTypesObs = [];
           sails.log.verbose("Bootstrapping record type definitions... ");
-          _.forOwn(sails.config.recordtype, (config, recordType) => {
-            recordTypes.push(recordType);
-            var obs = this.create(defBrand, recordType, config);
-            rTypes.push(obs);
-          });
+          // _.forOwn(sails.config.recordtype, (config, recordType) => {
+          //   recordTypes.push(recordType);
+          //   var obs = this.create(defBrand, recordType, config);
+          //   rTypesObs.push(obs);
+          // });
+
           this.recordTypes = recordTypes;
-          return Observable.zip(...rTypes);
-        } else {
+          let rTypes = [];
+          for(let recordType in sails.config.recordtype) {
+            let config = sails.config.recordtype[recordType];
+            rTypes.push(await this.create(defBrand, recordType, config).toPromise())
+          }    
+          return rTypes;
+        } 
           sails.log.verbose("Default recordTypes definition(s) exist.");
           sails.log.verbose(JSON.stringify(recordTypes));
           this.recordTypes = recordTypes;
-          return Observable.of(recordTypes);
-        }
-      });
+          return recordTypes;
     }
 
     public create(brand, name, config) {
