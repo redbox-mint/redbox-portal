@@ -321,18 +321,18 @@ export module Services {
     }
 
     protected populateContribList(contribProperties, record, emailProperty, emailList) {
-      _.each(contribProperties, contributorProperty => {
-        let contributor = _.get(record, contributorProperty, null);
+      _.each(contribProperties, editContributorProperty => {
+        let editContributor = _.get(record, editContributorProperty, null);
 
-        if (contributor) {
+        if (editContributor) {
           sails.log.verbose(`Contributor:`);
-          sails.log.verbose(JSON.stringify(contributor));
-          if (_.isArray(contributor)) {
-            _.each(contributor, contributor => {
+          sails.log.verbose(JSON.stringify(editContributor));
+          if (_.isArray(editContributor)) {
+            _.each(editContributor, contributor => {
               this.addEmailToList(contributor, emailProperty, emailList);
             });
           } else {
-            this.addEmailToList(contributor, emailProperty, emailList);
+            this.addEmailToList(editContributor, emailProperty, emailList);
           }
         }
       });
