@@ -275,7 +275,7 @@ export module Controllers {
       try {
         const record = await this.RecordsService.getMeta(oid);
         if (_.isEmpty(record)) {
-          return this.apiFailWrapper(req, res, 500, null, null,
+          return this.apiFailWrapper(req, res, 400, null, null,
               `Failed to get meta, cannot find existing record with oid: ${oid}`);
         }
         return res.json(record["metadata"]);
@@ -337,7 +337,7 @@ export module Controllers {
       try {
         record = await this.RecordsService.getMeta(oid);
         if (_.isEmpty(record)) {
-          return this.apiFailWrapper(req, res, 500, null, null,
+          return this.apiFailWrapper(req, res, 400, null, null,
               `Failed to update meta, cannot find existing record with oid: ${oid}`);
         }
         if (shouldMerge) {
@@ -351,7 +351,7 @@ export module Controllers {
           record["metadata"] = req.body;
         }
       } catch (err) {
-        return this.apiFailWrapper(req, res, 400, null, err,
+        return this.apiFailWrapper(req, res, 500, null, err,
             "Update Metadata failed, failed to retrieve existing record.");
       }
 
@@ -550,16 +550,12 @@ export module Controllers {
           }
           return
         } catch (error) {
-          sails.log.error(error)
           return this.customErrorMessageHandlingOnUpstreamResult(error, res);
         }
-
-
 
       } catch (error) {
         return this.customErrorMessageHandlingOnUpstreamResult(error, res);
       }
-
     }
 
     public async addDataStreams(req, res) {
@@ -614,24 +610,39 @@ export module Controllers {
     }
 
     protected customErrorMessageHandlingOnUpstreamResult(error, res) {
-      const defaultErrorMessage = 'There was a problem with the upstream request.';
-      let errorMessage;
+      sails.log.error(error);
+
+      let errorMessage = "";
+
+      // get the message from the error property
       if (error.error) {
-        errorMessage = _.isBuffer(error.error) ? error.error.toString('UTF-8') : error.error
-        try {
-          errorMessage = JSON.parse(errorMessage)
-        } catch (error) {
-          sails.log.verbose("Error message is not a json object. Keeping it as is.");
-        }
-        sails.log.error(defaultErrorMessage, errorMessage);
-      } else {
-        errorMessage = defaultErrorMessage;
-        sails.log.error(defaultErrorMessage);
+        errorMessage = _.isBuffer(error.error) ? error.error.toString('UTF-8') : error.error;
       }
-      sails.log.verbose(error);
+
+      // get the 'friendly' Error message
+      // TODO: use RBValidationError.clName;
+      const rBValidationErrorName = 'RBValidationError';
+      if (!errorMessage && error?.name == rBValidationErrorName && error?.message) {
+        errorMessage = error.message
+      }
+
+      // the message might be JSON - try to parse it
+      try {
+        errorMessage = JSON.parse(errorMessage)
+      } catch (error) {
+        sails.log.verbose("Error message is not a json object. Keeping it as is.");
+      }
+
+      // use a prefix message to give some context
+      errorMessage = 'There was a problem with the upstream request.' + (errorMessage ? " " : "") + errorMessage.trim();
+
+      // set the response to be json,
+      // in case the response was already changed to suit the attachment
       res.set('Content-Type', 'application/json');
       _.unset(res, 'Content-Disposition');
-      return res.status(error.statusCode || 500).json({ message: errorMessage });
+
+      sails.log.error('customErrorMessageHandlingOnUpstreamResult', errorMessage);
+      return res.status(error.statusCode || 500).json({message: errorMessage});
     }
 
 
@@ -1308,6 +1319,8 @@ export module Controllers {
       // TODO: incorporate some of this into the controller core apiFail function
       if (!errorResponse) {
         errorResponse = new APIErrorResponse();
+        // start with an empty message
+        errorResponse.message = "";
       }
 
       // if there is an error and/or defaultMessage, log it

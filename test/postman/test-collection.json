@@ -1275,6 +1275,412 @@
 								}
 							},
 							"response": []
+						},
+						{
+							"name": "Remove user edit permissions to RDMP",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test(\"User edit permission removed\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    //TODO: This is because of the save trigger",
+											"    pm.expect(true).to.eql(true);",
+											"    pm.expect(jsonData.edit).to.not.include(\"user\");",
+											"});"
+										],
+										"type": "text/javascript",
+										"packages": {}
+									}
+								}
+							],
+							"request": {
+								"method": "DELETE",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									},
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n\t\"users\": [\"user\"]\n}"
+								},
+								"url": {
+									"raw": "{{host}}/default/rdmp/api/records/permissions/edit/{{dmpOid}}",
+									"host": [
+										"{{host}}"
+									],
+									"path": [
+										"default",
+										"rdmp",
+										"api",
+										"records",
+										"permissions",
+										"edit",
+										"{{dmpOid}}"
+									]
+								},
+								"description": "http://localhost:1500/default/rdmp/api/records/rdmp/create"
+							},
+							"response": []
+						},
+						{
+							"name": "Give user view permissions to RDMP",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test(\"User view permission added\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    //TODO: This is because of the save trigger",
+											"    pm.expect(true).to.eql(true);",
+											"    pm.expect(jsonData.view).to.include(\"user\");",
+											"});"
+										],
+										"type": "text/javascript",
+										"packages": {}
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									},
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n\t\"users\": [\"user\"]\n}"
+								},
+								"url": {
+									"raw": "{{host}}/default/rdmp/api/records/permissions/view/{{dmpOid}}",
+									"host": [
+										"{{host}}"
+									],
+									"path": [
+										"default",
+										"rdmp",
+										"api",
+										"records",
+										"permissions",
+										"view",
+										"{{dmpOid}}"
+									]
+								},
+								"description": "http://localhost:1500/default/rdmp/api/records/rdmp/create"
+							},
+							"response": []
+						},
+						{
+							"name": "Remove user view permissions to RDMP",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test(\"User view permission removed\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    //TODO: This is because of the save trigger",
+											"    pm.expect(true).to.eql(true);",
+											"    pm.expect(jsonData.view).to.not.include(\"user\");",
+											"});"
+										],
+										"type": "text/javascript",
+										"packages": {}
+									}
+								}
+							],
+							"request": {
+								"method": "DELETE",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									},
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n\t\"users\": [\"user\"]\n}"
+								},
+								"url": {
+									"raw": "{{host}}/default/rdmp/api/records/permissions/view/{{dmpOid}}",
+									"host": [
+										"{{host}}"
+									],
+									"path": [
+										"default",
+										"rdmp",
+										"api",
+										"records",
+										"permissions",
+										"view",
+										"{{dmpOid}}"
+									]
+								},
+								"description": "http://localhost:1500/default/rdmp/api/records/rdmp/create"
+							},
+							"response": []
+						},
+						{
+							"name": "Give role view permissions to RDMP",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test(\"Role view permission added\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData.viewRoles).to.include(\"Chief Investigator\");",
+											"    //TODO: This is because of the save trigger",
+											"    pm.expect(true).to.eql(true);",
+											"});"
+										],
+										"type": "text/javascript",
+										"packages": {}
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									},
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n\t\"roles\": [\"Chief Investigator\"]\n}"
+								},
+								"url": {
+									"raw": "{{host}}/default/rdmp/api/records/permissions/viewRole/{{dmpOid}}",
+									"host": [
+										"{{host}}"
+									],
+									"path": [
+										"default",
+										"rdmp",
+										"api",
+										"records",
+										"permissions",
+										"viewRole",
+										"{{dmpOid}}"
+									]
+								},
+								"description": "http://localhost:1500/default/rdmp/api/records/rdmp/create"
+							},
+							"response": []
+						},
+						{
+							"name": "Remove role view permissions to RDMP",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test(\"Role view permission removed\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData.viewRoles).to.not.include(\"Chief Investigator\");",
+											"    //TODO: This is because of the save trigger",
+											"    pm.expect(true).to.eql(true);",
+											"});"
+										],
+										"type": "text/javascript",
+										"packages": {}
+									}
+								}
+							],
+							"request": {
+								"method": "DELETE",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									},
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n\t\"roles\": [\"Chief Investigator\"]\n}"
+								},
+								"url": {
+									"raw": "{{host}}/default/rdmp/api/records/permissions/viewRole/{{dmpOid}}",
+									"host": [
+										"{{host}}"
+									],
+									"path": [
+										"default",
+										"rdmp",
+										"api",
+										"records",
+										"permissions",
+										"viewRole",
+										"{{dmpOid}}"
+									]
+								},
+								"description": "http://localhost:1500/default/rdmp/api/records/rdmp/create"
+							},
+							"response": []
+						},
+						{
+							"name": "Give role edit permissions to RDMP",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test(\"Role edit permission added\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData.editRoles).to.include(\"Chief Investigator\");",
+											"    //TODO: This is because of the save trigger",
+											"    pm.expect(true).to.eql(true);",
+											"});"
+										],
+										"type": "text/javascript",
+										"packages": {}
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									},
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n\t\"roles\": [\"Chief Investigator\"]\n}"
+								},
+								"url": {
+									"raw": "{{host}}/default/rdmp/api/records/permissions/editRole/{{dmpOid}}",
+									"host": [
+										"{{host}}"
+									],
+									"path": [
+										"default",
+										"rdmp",
+										"api",
+										"records",
+										"permissions",
+										"editRole",
+										"{{dmpOid}}"
+									]
+								},
+								"description": "http://localhost:1500/default/rdmp/api/records/rdmp/create"
+							},
+							"response": []
+						},
+						{
+							"name": "Remove role edit permissions to RDMP",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test(\"Role edit permission removed\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData.editRoles).to.not.include(\"Chief Investigator\");",
+											"    //TODO: This is because of the save trigger",
+											"    pm.expect(true).to.eql(true);",
+											"});"
+										],
+										"type": "text/javascript",
+										"packages": {}
+									}
+								}
+							],
+							"request": {
+								"method": "DELETE",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									},
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n\t\"roles\": [\"Chief Investigator\"]\n}"
+								},
+								"url": {
+									"raw": "{{host}}/default/rdmp/api/records/permissions/editRole/{{dmpOid}}",
+									"host": [
+										"{{host}}"
+									],
+									"path": [
+										"default",
+										"rdmp",
+										"api",
+										"records",
+										"permissions",
+										"editRole",
+										"{{dmpOid}}"
+									]
+								},
+								"description": "http://localhost:1500/default/rdmp/api/records/rdmp/create"
+							},
+							"response": []
 						}
 					]
 				},
