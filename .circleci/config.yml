@@ -6,21 +6,16 @@ jobs:
     steps:
       - checkout
       - run:
-          name: Install npm packages for core
+          name: Install npm packages and compile for core
           command: |
             cd core
             npm install
-      - run:
-          name: Compile core
-          command: |
-            cd core
             node_modules/.bin/tsc
       - run:
-          name: Install npm packages for project
-          command: npm install --production
-      - run:
-          name: Compile project
-          command: node_modules/.bin/tsc
+          name: Install npm packages and compile for project
+          command: |
+            npm install --production
+            node_modules/.bin/tsc
       - run:
           name: Install nvm
           command: curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
@@ -53,21 +48,16 @@ jobs:
     steps:
       - checkout
       - run:
-          name: Install npm packages for core
+          name: Install npm packages and compile for core
           command: |
             cd core
             npm install
-      - run:
-          name: Compile core
-          command: |
-            cd core
             node_modules/.bin/tsc
       - run:
-          name: Install npm packages for project
-          command: npm install --production
-      - run:
-          name: Compile project
-          command: node_modules/.bin/tsc
+          name: Install npm packages and compile for project
+          command: |
+            npm install --production
+            node_modules/.bin/tsc
       - run:
           name: Compile sails app using webpack
           command: npm run webpack
@@ -83,17 +73,7 @@ jobs:
       - attach_workspace:
           at: /home/circleci/project
       - run:
-          name: Run Postman and Mocha tests with code coverage
-          command: |
-            sudo mkdir -p .tmp/junit
-            sudo chmod -R 777 .
-            cd support/integration-testing
-            sudo mkdir -p .tmp/attachments/staging
-            sudo chmod -R 777 .
-            docker-compose -f docker-compose.newman.yml up --abort-on-container-exit --exit-code-from redboxportal
-            docker-compose -f docker-compose.mocha.yml up --abort-on-container-exit --exit-code-from redboxportal
-      - run:
-          name: Install codecov and upload newman and mocha code coverage
+          name: Install codecov
           # https://github.com/codecov/codecov-cli?tab=readme-ov-file#usage
           command: |
             mkdir -p /tmp/.codecov-cli
@@ -105,19 +85,33 @@ jobs:
             gpgv codecov.SHA256SUM.sig codecov.SHA256SUM
             shasum -a 256 -c codecov.SHA256SUM
             chmod +x codecov
-            cd ~/project
+      - run:
+          name: Run Postman and Mocha tests with code coverage
+          command: |
+            sudo mkdir -p .tmp/junit
+            sudo chmod -R 777 .
+            cd support/integration-testing
+            sudo mkdir -p .tmp/attachments/staging
+            sudo chmod -R 777 .
+            docker-compose -f docker-compose.newman.yml up --abort-on-container-exit --exit-code-from redboxportal
+            docker-compose -f docker-compose.mocha.yml up --abort-on-container-exit --exit-code-from redboxportal
+      - run:
+          name: Upload newman and mocha code coverage
+          command: |
             /tmp/.codecov-cli/codecov --verbose upload-process --fail-on-error --disable-search \
               --token "${CODECOV_TOKEN}" --name "job-${CIRCLE_BUILD_NUM}-${CIRCLE_BRANCH}" \
               --flag "backend-newman" --file "./coverage/newman/lcov.info"
             /tmp/.codecov-cli/codecov --verbose upload-process --fail-on-error --disable-search \
               --token "${CODECOV_TOKEN}" --name "job-${CIRCLE_BUILD_NUM}-${CIRCLE_BRANCH}" \
               --flag "backend-mocha" --file "./coverage/mocha/lcov.info"
+          when: always
       - run:
           name: Run angular tests
           # uses the codecov binary installed in previous step
           command: |
             chmod +x support/unit-testing/angular/testAngular.sh
             source support/unit-testing/angular/testAngular.sh
+          when: always
       - run:
           name: Install npm packages for project
           command: |
