@@ -1,6 +1,6 @@
 {
 	"info": {
-		"_postman_id": "edfc4f29-ac72-470f-a7c9-18f237c19eaf",
+		"_postman_id": "9b7cd5f9-e0d7-4637-ae65-f02cbcc5a285",
 		"name": "Redbox Portal API - With tests",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
 		"_exporter_id": "33916034"
@@ -568,13 +568,15 @@
 											"    pm.response.to.have.status(200);",
 											"});",
 											"",
-											"pm.test(\"Edit permissions applied\", function () {",
+											"pm.test(\"User edit permission added\", function () {",
 											"    var jsonData = pm.response.json();",
 											"    //TODO: This is because of the save trigger",
 											"    pm.expect(true).to.eql(true);",
+											"    pm.expect(jsonData.edit).to.include(\"user\");",
 											"});"
 										],
-										"type": "text/javascript"
+										"type": "text/javascript",
+										"packages": {}
 									}
 								}
 							],
@@ -1017,9 +1019,16 @@
 											"pm.test(\"Status code is 200\", function () {",
 											"    pm.response.to.have.status(200);",
 											"});",
-											""
+											"pm.test(\"Test oid exists\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData.message).to.have.property('fileIds');",
+											"    pm.expect(jsonData.message.fileIds).to.have.length(1);",
+											"    pm.expect(jsonData.message.fileIds[0]).to.have.property('fileId');",
+											"    postman.setEnvironmentVariable(\"attDataRecordStreamId\", jsonData.message.fileIds[0].fileId);",
+											"});"
 										],
-										"type": "text/javascript"
+										"type": "text/javascript",
+										"packages": {}
 									}
 								},
 								{
@@ -1028,7 +1037,8 @@
 										"exec": [
 											""
 										],
-										"type": "text/javascript"
+										"type": "text/javascript",
+										"packages": {}
 									}
 								}
 							],
@@ -1139,6 +1149,55 @@
 										"records",
 										"datastreams",
 										"{{attDataRecordOid}}"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Get Attachment for Datarecord",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code is 200\", function () {\r",
+											"    pm.response.to.have.status(200);\r",
+											"});\r",
+											""
+										],
+										"type": "text/javascript",
+										"packages": {}
+									}
+								}
+							],
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{host}}/default/rdmp/api/records/datastreams/{{attDataRecordOid}}?datastreamId={{attDataRecordStreamId}}",
+									"host": [
+										"{{host}}"
+									],
+									"path": [
+										"default",
+										"rdmp",
+										"api",
+										"records",
+										"datastreams",
+										"{{attDataRecordOid}}"
+									],
+									"query": [
+										{
+											"key": "datastreamId",
+											"value": "{{attDataRecordStreamId}}"
+										}
 									]
 								}
 							},
