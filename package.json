@@ -153,7 +153,10 @@
     "slow": 2000,
     "timeout": "60s",
     "ui": "bdd",
-    "reporter": "spec",
+    "reporter": "mocha-junit-reporter",
+    "reporter-option": [
+      "mochaFile=./.tmp/junit/backend-mocha/backend-mocha.xml"
+    ],
     "global": ["sails"]
   }
 }
