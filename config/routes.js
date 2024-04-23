@@ -329,6 +329,11 @@ module.exports.routes = {
     action: 'listDatastreams',
     csrf: false
   },
+  'get /:branding/:portal/api/records/datastreams/:oid': {
+    controller: 'webservice/RecordController',
+    action: 'listDatastreams',
+    csrf: false
+  },
   'delete /:branding/:portal/api/records/permissions/view/:oid': {
     controller: 'webservice/RecordController',
     action: 'removeUserView',
