@@ -111,7 +111,7 @@
     "mocha": "^10.4.0",
     "mocha-junit-reporter": "^2.2.1",
     "newman": "^6.1.2",
-    "supertest": "^6.3.4",
+    "supertest": "^7.0.0",
     "uglify-es": "^3.3.10"
   },
   "nyc": {
