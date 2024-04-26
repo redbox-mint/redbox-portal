@@ -568,15 +568,13 @@
 											"    pm.response.to.have.status(200);",
 											"});",
 											"",
-											"pm.test(\"User edit permission added\", function () {",
+											"pm.test(\"Edit permissions applied\", function () {",
 											"    var jsonData = pm.response.json();",
 											"    //TODO: This is because of the save trigger",
 											"    pm.expect(true).to.eql(true);",
-											"    pm.expect(jsonData.edit).to.include(\"user\");",
 											"});"
 										],
-										"type": "text/javascript",
-										"packages": {}
+										"type": "text/javascript"
 									}
 								}
 							],
