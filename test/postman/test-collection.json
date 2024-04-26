@@ -1121,7 +1121,7 @@
 								}
 							],
 							"request": {
-								"method": "PUT",
+								"method": "GET",
 								"header": [
 									{
 										"key": "Content-Type",
@@ -1159,10 +1159,13 @@
 									"listen": "test",
 									"script": {
 										"exec": [
-											"pm.test(\"Status code is 200\", function () {\r",
-											"    pm.response.to.have.status(200);\r",
-											"});\r",
-											""
+											"pm.test(\"Status code is 200\", function () {\n",
+											"    pm.response.to.have.status(200);\n",
+											"});\n",
+											"pm.test(\"Body has attachment content\", function () {\n",
+											"    pm.expect(pm.response.size()).to.eql(30148);\n",
+											"    pm.expect(pm.response.contentInfo().contentType).to.eql('application/octet-stream');\n",
+											"});"
 										],
 										"type": "text/javascript",
 										"packages": {}
@@ -1941,14 +1944,14 @@
 									"listen": "test",
 									"script": {
 										"exec": [
-											"pm.test(\"Status code is 200\", function () {\r",
-											"    pm.response.to.have.status(200);\r",
-											"});\r",
-											"\r",
-											"pm.test(\"Has expected message\", function () {\r",
-											"    var jsonData = pm.response.json();\r",
-											"    pm.expect(jsonData).to.have.property(\"message\");\r",
-											"    pm.expect(jsonData.message).to.eql(\"Remove all records request added to message queue for processing\")\r",
+											"pm.test(\"Status code is 200\", function () {\n",
+											"    pm.response.to.have.status(200);\n",
+											"});\n",
+											"\n",
+											"pm.test(\"Has expected message\", function () {\n",
+											"    var jsonData = pm.response.json();\n",
+											"    pm.expect(jsonData).to.have.property(\"message\");\n",
+											"    pm.expect(jsonData.message).to.eql(\"Remove all records request added to message queue for processing\")\n",
 											"});"
 										],
 										"type": "text/javascript",
