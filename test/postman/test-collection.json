@@ -628,6 +628,7 @@
 											"    var jsonData = pm.response.json();",
 											"    //TODO: This is because of the save trigger",
 											"    pm.expect(true).to.eql(true);",
+											"    pm.expect(jsonData.edit).to.include(\"user\");",
 											"});"
 										],
 										"type": "text/javascript"
@@ -1519,9 +1520,9 @@
 											"",
 											"pm.test(\"Role view permission added\", function () {",
 											"    var jsonData = pm.response.json();",
-											"    pm.expect(jsonData.viewRoles).to.include(\"Chief Investigator\");",
 											"    //TODO: This is because of the save trigger",
 											"    pm.expect(true).to.eql(true);",
+											"    pm.expect(jsonData.viewRoles).to.include(\"Chief Investigator\");",
 											"});"
 										],
 										"type": "text/javascript",
@@ -1577,9 +1578,9 @@
 											"",
 											"pm.test(\"Role view permission removed\", function () {",
 											"    var jsonData = pm.response.json();",
-											"    pm.expect(jsonData.viewRoles).to.not.include(\"Chief Investigator\");",
 											"    //TODO: This is because of the save trigger",
 											"    pm.expect(true).to.eql(true);",
+											"    pm.expect(jsonData.viewRoles).to.not.include(\"Chief Investigator\");",
 											"});"
 										],
 										"type": "text/javascript",
@@ -1635,9 +1636,9 @@
 											"",
 											"pm.test(\"Role edit permission added\", function () {",
 											"    var jsonData = pm.response.json();",
-											"    pm.expect(jsonData.editRoles).to.include(\"Chief Investigator\");",
 											"    //TODO: This is because of the save trigger",
 											"    pm.expect(true).to.eql(true);",
+											"    pm.expect(jsonData.editRoles).to.include(\"Chief Investigator\");",
 											"});"
 										],
 										"type": "text/javascript",
@@ -1693,9 +1694,9 @@
 											"",
 											"pm.test(\"Role edit permission removed\", function () {",
 											"    var jsonData = pm.response.json();",
-											"    pm.expect(jsonData.editRoles).to.not.include(\"Chief Investigator\");",
 											"    //TODO: This is because of the save trigger",
 											"    pm.expect(true).to.eql(true);",
+											"    pm.expect(jsonData.editRoles).to.not.include(\"Chief Investigator\");",
 											"});"
 										],
 										"type": "text/javascript",
