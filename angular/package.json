@@ -34,7 +34,7 @@
     "@angular-devkit/build-angular": "^17.3.5",
     "@angular/cli": "^17.3.5",
     "@angular/compiler-cli": "^17.3.5",
-    "@schematics/angular": "^17.1.2",
+    "@schematics/angular": "^17.3.6",
     "@types/jasmine": "~5.1.1",
     "@types/lodash": "^4.17.0",
     "@types/lodash-es": "^4.17.10",
