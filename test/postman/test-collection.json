@@ -1182,7 +1182,7 @@
 									}
 								],
 								"url": {
-									"raw": "{{host}}/default/rdmp/api/records/datastreams/{{attDataRecordOid}}?datastreamId={{attDataRecordStreamId}}",
+									"raw": "{{host}}/default/rdmp/api/records/datastreams/{{attDataRecordOid}}/{{attDataRecordStreamId}}",
 									"host": [
 										"{{host}}"
 									],
@@ -1192,14 +1192,10 @@
 										"api",
 										"records",
 										"datastreams",
-										"{{attDataRecordOid}}"
+										"{{attDataRecordOid}}",
+										"{{attDataRecordStreamId}}"
 									],
-									"query": [
-										{
-											"key": "datastreamId",
-											"value": "{{attDataRecordStreamId}}"
-										}
-									]
+									"query": []
 								}
 							},
 							"response": []
