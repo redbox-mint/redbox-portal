@@ -774,6 +774,5 @@
   "lang-mri": "Māori",
   "system-message-enabled": "false",
   "system-message-title": "System Notification",
-  "system-message-description": "ReDBox will be unavailable from 9am to 12pm on October 20 for system upgrades. Please contact support for any help",
-  "user-emails-duplicate": "One or more email addresses are assigned to two or more users. Re-used email addresses can cause permission problems. The affected email addresses are {{emailAddresses}}."
+  "system-message-description": "ReDBox will be unavailable from 9am to 12pm on October 20 for system upgrades. Please contact support for any help"
 }
