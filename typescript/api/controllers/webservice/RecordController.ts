@@ -42,7 +42,6 @@ import {
   Datastream,
   DatastreamService,
   DatastreamServiceResponse,
-  RBValidationError,
   RecordsService,
   SearchService
 } from '@researchdatabox/redbox-core-types';

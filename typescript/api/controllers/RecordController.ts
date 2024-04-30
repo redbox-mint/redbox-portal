@@ -1482,7 +1482,8 @@ export module Controllers {
     }
 
     private getErrorMessage(err: Error, defaultMessage: string) {
-      const validationName = 'RBValidationError'; // RBValidationError.clName;
+      // TODO: use RBValidationError.clName;
+      const validationName = 'RBValidationError';
       return validationName == err.name ? err.message : defaultMessage;
     }
   }

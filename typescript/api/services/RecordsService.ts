@@ -30,7 +30,6 @@ import {
   Services as services,
   StorageService,
   StorageServiceResponse,
-  RBValidationError,
   RecordAuditParams
 } from '@researchdatabox/redbox-core-types';
 
@@ -864,7 +863,8 @@ export module Services {
     }
 
     private isValidationError(err: Error) {
-      const validationName = 'RBValidationError'; // RBValidationError.clName;
+      // TODO: use RBValidationError.clName;
+      const validationName = 'RBValidationError';
       return validationName == err.name;
     }
   }
