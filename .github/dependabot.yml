@@ -6,19 +6,20 @@ updates:
     interval: "daily"
     time: "19:30"
   target-branch: "develop"
-- package-ecosystem: npm
-  directory: "/angular" 
-  schedule:
-    interval: "weekly"  
-  labels:
-    - "dependencies"
-    - "angular"
-  grouping:
-    grouping_strategy: "label"
-  allow:
-    - dependency-name: "@angular/*"
-  open-pull-requests-limit: 10
-  target-branch: "develop"
+# TODO: how to group angular prs but not the rest?
+# - package-ecosystem: npm
+#   directory: "/angular" 
+#   schedule:
+#     interval: "weekly"  
+#   labels:
+#     - "dependencies"
+#     - "angular"
+#   grouping:
+#     grouping_strategy: "label"
+#   allow:
+#     - dependency-name: "@angular/*"
+#   open-pull-requests-limit: 10
+#   target-branch: "develop"
 - package-ecosystem: npm
   directory: "/angular"
   schedule:
