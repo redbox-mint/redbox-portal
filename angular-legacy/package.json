@@ -14,7 +14,7 @@
   "dependencies": {
     "@angular-devkit/core": "^9.0.7",
     "@angular/animations": "^4.0.0",
-    "@angular/cli": "^1.7.4",
+    "@angular/cli": "^17.3.6",
     "@angular/common": "^4.0.0",
     "@angular/compiler": "^4.0.0",
     "@angular/core": "^4.0.0",
@@ -72,6 +72,6 @@
     "ts-node": "~3.0.4",
     "tslint": "~5.20.1",
     "typescript": "^2.8.4",
-    "webpack-bundle-analyzer": "^3.8.0"
+    "webpack-bundle-analyzer": "^4.10.2"
   }
 }
