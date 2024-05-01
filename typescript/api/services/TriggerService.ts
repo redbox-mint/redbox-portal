@@ -19,6 +19,7 @@
 
 import { Observable } from 'rxjs/Rx';
 import {
+  RBValidationError,
   Services as services,
 } from '@researchdatabox/redbox-core-types';
 import { Sails, Model } from "sails";
@@ -160,20 +161,122 @@ export module Services {
     }
 
     public async validateFieldUsingRegex(oid, record, options) {
-      return await sails.helpers.validateRegexp.with({
-        record: record,
-        fieldDBName: options?.fieldDBName,
-        errorLanguageCode: options?.errorLanguageCode,
-        regexPattern: options?.regexPattern,
-        fieldLanguageCode: options?.fieldLanguageCode,
-        arrayObjFieldDBName: options?.arrayObjFieldDBName || undefined,
-        trimLeadingAndTrailingSpacesBeforeValidation: options?.trimLeadingAndTrailingSpacesBeforeValidation || false,
-        caseSensitive: options?.caseSensitive,
-        allowNulls: options?.allowNulls,
-      }).intercept('validationError', (err) => {
-        sails.log.error('validateFieldUsingRegex', err.raw, options);
-        return err.raw;
-      });
+      // mandatory
+      let fieldDBName = _.get(options, 'fieldDBName');
+      let errorLanguageCode = _.get(options, 'errorLanguageCode');
+      let regexPattern = _.get(options, 'regexPattern');
+
+      // optional
+      let fieldLanguageCode = _.get(options, 'fieldLanguageCode');
+      let arrayObjFieldDBName = _.get(options, 'arrayObjFieldDBName');
+
+      // trimLeadingAndTrailingSpacesBeforeValidation:
+      // Set false by default if not present this option will remove leading and trailing spaces from a none array value
+      // then it will modify the value in the record if the regex validation is passed therefore handle with care
+      let trimLeadingAndTrailingSpacesBeforeValidation = _.get(options, 'trimLeadingAndTrailingSpacesBeforeValidation') || false;
+
+      let caseSensitive = _.get(options, 'caseSensitive');
+      if (caseSensitive !== false && caseSensitive !== true) {
+        // default to true
+        caseSensitive = true;
+      }
+
+      let allowNulls = _.get(options, 'allowNulls');
+      if (allowNulls !== false && allowNulls !== true) {
+        // default to true for backwards compatibility
+        allowNulls = true;
+      }
+
+      // re-usable functions
+      const textRegex = function (value) {
+        let flags = '';
+        if (caseSensitive) {
+          flags += 'i';
+        }
+        const re = new RegExp(regexPattern, flags);
+        return re.test(value);
+      }
+      const getError = function () {
+        let customError: RBValidationError;
+        if (fieldLanguageCode) {
+          let fieldName = TranslationService.t(fieldLanguageCode);
+          let baseErrorMessage = TranslationService.t(errorLanguageCode);
+          customError = new RBValidationError(fieldName + ' ' + baseErrorMessage);
+        } else {
+          let baseErrorMessage = TranslationService.t(errorLanguageCode);
+          customError = new RBValidationError(baseErrorMessage);
+        }
+        sails.log.error('validateFieldUsingRegex', customError, record, options);
+        return customError;
+      }
+      const hasValue = function (data) {
+        return data !== '' &&
+            data !== null &&
+            data !== undefined &&
+            (data?.length !== undefined && data.length > 0);
+      }
+      const evaluate = function (element, fieldName) {
+        let value = _.get(element, fieldName);
+
+        if (trimLeadingAndTrailingSpacesBeforeValidation) {
+          value = _.trim(value);
+        }
+
+        if (!hasValue(value) && !allowNulls) {
+          return false;
+        } else if (!hasValue(value) && allowNulls) {
+          // this is ok
+        } else if (!textRegex(value)) {
+          return false;
+        }
+
+        if (trimLeadingAndTrailingSpacesBeforeValidation) {
+          _.set(element, fieldName, value);
+        }
+
+        return true;
+      }
+
+      // get the data
+      const data = _.get(record, fieldDBName);
+
+      // early checks
+      if (!hasValue(data) && !allowNulls) {
+        throw getError();
+      }
+      if (!hasValue(data) && allowNulls) {
+        sails.log.debug(
+            'validateFieldUsingRegex',
+            'data value is null and value is allowed to be null',
+            record,
+            options);
+        return record;
+      }
+      if (!_.isArray(data) && arrayObjFieldDBName) {
+        throw getError();
+      }
+      if (_.isArray(data) && !arrayObjFieldDBName) {
+        throw getError();
+      }
+
+      // evaluate the record field against the regex
+      if (_.isArray(data)) {
+        for (const row of data) {
+          if (!evaluate(row, arrayObjFieldDBName)) {
+            throw getError() ;
+          }
+        }
+      } else {
+        if (!evaluate(record, fieldDBName)) {
+          throw getError();
+        }
+      }
+      sails.log.debug(
+          'validateFieldUsingRegex',
+          'data value passed check',
+          record,
+          options);
+      return record;
     }
 
   }

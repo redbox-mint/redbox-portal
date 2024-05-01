@@ -13,8 +13,8 @@ describe('The TriggerService', function () {
                 fieldLanguageCode: "title-required",
                 arrayObjFieldDBName: 'row-item',
                 trimLeadingAndTrailingSpacesBeforeValidation: true,
-                caseSensitive: true,
-                allowNulls: true,
+                // caseSensitive: true, - default
+                // allowNulls: true, - default
             };
             const result = await TriggerService.validateFieldUsingRegex(oid, record, options);
             expect(result).to.eql({'testing-field': [{'row-item': 'field-value'}]});
