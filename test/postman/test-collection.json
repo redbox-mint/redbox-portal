@@ -1176,7 +1176,7 @@
 								}
 							],
 							"request": {
-								"method": "PUT",
+								"method": "GET",
 								"header": [
 									{
 										"key": "Content-Type",
@@ -1214,10 +1214,13 @@
 									"listen": "test",
 									"script": {
 										"exec": [
-											"pm.test(\"Status code is 200\", function () {\r",
-											"    pm.response.to.have.status(200);\r",
-											"});\r",
-											""
+											"pm.test(\"Status code is 200\", function () {\n",
+											"    pm.response.to.have.status(200);\n",
+											"});\n",
+											"pm.test(\"Body has attachment content\", function () {\n",
+											"    pm.expect(pm.response.size()).to.eql(30148);\n",
+											"    pm.expect(pm.response.contentInfo().contentType).to.eql('application/octet-stream');\n",
+											"});"
 										],
 										"type": "text/javascript",
 										"packages": {}
@@ -1234,7 +1237,7 @@
 									}
 								],
 								"url": {
-									"raw": "{{host}}/default/rdmp/api/records/datastreams/{{attDataRecordOid}}?datastreamId={{attDataRecordStreamId}}",
+									"raw": "{{host}}/default/rdmp/api/records/datastreams/{{attDataRecordOid}}/{{attDataRecordStreamId}}",
 									"host": [
 										"{{host}}"
 									],
@@ -1244,14 +1247,10 @@
 										"api",
 										"records",
 										"datastreams",
-										"{{attDataRecordOid}}"
+										"{{attDataRecordOid}}",
+										"{{attDataRecordStreamId}}"
 									],
-									"query": [
-										{
-											"key": "datastreamId",
-											"value": "{{attDataRecordStreamId}}"
-										}
-									]
+									"query": []
 								}
 							},
 							"response": []

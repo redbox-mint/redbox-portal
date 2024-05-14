@@ -319,14 +319,9 @@ module.exports.routes = {
     action: 'addDataStreams',
     csrf: false
   },
-  'get /:branding/:portal/api/records/datastreams/:oid': {
+  'get /:branding/:portal/api/records/datastreams/:oid/:datastreamId': {
     controller: 'webservice/RecordController',
     action: 'getDataStream',
-    csrf: false
-  },
-  'put /:branding/:portal/api/records/datastreams/:oid': {
-    controller: 'webservice/RecordController',
-    action: 'listDatastreams',
     csrf: false
   },
   'get /:branding/:portal/api/records/datastreams/:oid': {
