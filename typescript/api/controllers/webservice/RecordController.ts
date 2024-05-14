@@ -503,18 +503,27 @@ export module Controllers {
       const datastreamId = req.param('datastreamId');
       sails.log.debug(`getDataStream ${oid} ${datastreamId}`);
       try {
+        // let found: any = null;
+        // let currentRec = await this.RecordsService.getMeta(oid)
+        // for(let attachmentField of currentRec.metaMetadata.attachmentFields) {
+        //   if(found == null) {
+        //     const attFieldVal = currentRec.metadata[attachmentField];
+        //     found = _.find(attFieldVal, (attVal) => {
+        //       return attVal.fileId == datastreamId
+        //     });
+        //   } else {
+        //     break;
+        //   }
+        // }
+        
         let found: any = null;
-        let currentRec = await this.RecordsService.getMeta(oid)
-        for(let attachmentField of currentRec.metaMetadata.attachmentFields) {
-          if(found == null) {
-            const attFieldVal = currentRec.metadata[attachmentField];
-            found = _.find(attFieldVal, (attVal) => {
-              return attVal.fileId == datastreamId
-            });
-          } else {
-            break;
+        const attachments = await this.RecordsService.getAttachments(oid);
+        for(let attachment of attachments) {
+          if(attachment.fileId == datastreamId) {
+            found = attachment;
           }
         }
+
         if (!found) {
           return res.notFound()
         }
@@ -523,7 +532,7 @@ export module Controllers {
           // Set octet stream as a default
           mimeType = 'application/octet-stream'
         }
-        const fileName = req.param('fileName') ? req.param('fileName') : datastreamId;
+        const fileName = req.param('fileName') ? req.param('fileName') : found.name? found.name : datastreamId;
         res.set('Content-Type', 'application/octet-stream');
 
         let size = found.size;
@@ -534,6 +543,7 @@ export module Controllers {
         sails.log.verbose("fileName " + fileName);
         res.attachment(fileName);
         sails.log.info(`Returning datastream observable of ${oid}: ${fileName}, datastreamId: ${datastreamId}`);
+        
         try {
           const response = await this.DatastreamService.getDatastream(oid, datastreamId);
           if (response.readstream) {
@@ -992,7 +1002,7 @@ export module Controllers {
 
     public async removeRoleEdit(req, res) {
       const brand = BrandingService.getBrand(req.session.branding);
-      const oid = req.param('oid');
+      const oid = req.param('oid'); 
       const body = req.body;
       const roles = body["roles"];
 
