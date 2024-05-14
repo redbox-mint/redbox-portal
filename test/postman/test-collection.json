@@ -1218,7 +1218,7 @@
 											"    pm.response.to.have.status(200);\n",
 											"});\n",
 											"pm.test(\"Body has attachment content\", function () {\n",
-											"    pm.expect(pm.response.size()).to.eql(30148);\n",
+											"    pm.expect(pm.response.size().body).to.eql(30148);\n",
 											"    pm.expect(pm.response.contentInfo().contentType).to.eql('application/octet-stream');\n",
 											"});"
 										],
