@@ -17,7 +17,7 @@ export default tseslint.config(
         ],
         ignores: [
             "test/**/*.ts",
-            "support/**/*.ts",
+            "support/**/*.*",
             "config/**/*.ts",
             "assets/**/*.ts",
             ".tmp/**/*.ts",
@@ -73,10 +73,12 @@ export default tseslint.config(
         ],
         ignores: [
             "test/**/*.js",
-            "support/**/*.js",
+            "support/**/*.*",
             "config/**/*.js",
             "assets/**/*.js",
             ".tmp/**/*.js",
+            "api/controllers/**/*.js",
+            "api/services/**/*.js"
         ],
         extends: [
             eslint.configs.recommended,
