@@ -6,6 +6,8 @@ services:
     image: qcifengineering/redbox-portal:develop
     ports:
        - "1500:1500"
+      # Debugging port
+      # - "9876:9876"
     volumes:
        - "../../:/opt/redbox-portal"
        - "./.tmp/attachments:/attachments"
@@ -27,7 +29,15 @@ services:
      main:
        aliases:
          - rbportal
-    entrypoint: /bin/bash -c " cd /opt/redbox-portal && npm i nyc  -g && npm i newman --legacy-peer-deps && nyc --exclude-after-remap=false --reporter=lcov npm run api-test "
+    # add 'node --inspect=0.0.0.0:9876' to entrypoint for debugging
+    entrypoint: >-
+      /bin/bash -c "cd /opt/redbox-portal && 
+      npm i nyc -g && 
+      npm i newman --legacy-peer-deps && 
+      nyc --no-clean 
+      --report-dir coverage/newman --reporter=lcov 
+      --exclude-after-remap=false 
+      node test/postman/runNewmanTests.js"
   mongodb:
     image: mvertes/alpine-mongo:latest
     networks:

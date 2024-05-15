@@ -11,7 +11,10 @@
           <tr>
             <th width="15%">{{ field.typeHeader }}</th>
             <th width="40%">{{ field.locationHeader }}</th>
-            <th width="40%">{{ field.notesHeader }}</th>
+            <!-- BEGIN UTS IMPORT -->
+            <th *ngIf="field.notesEnabled" width="{{ field.iscEnabled == true && field.notesEnabled ? '20%' : '40%'}}">{{ field.notesHeader }}</th>
+            <th *ngIf="field.iscEnabled" width="20%">{{ field.iscHeader }}</th>
+            <!-- END UTS IMPORT -->
             <th width="5%" *ngIf="field.editMode"><span [hidden]="true">Action</span></th>
           </tr>
         </thead>
@@ -36,9 +39,12 @@
                 </a>
               </ng-container>
             </td>
-            <td>
+            <td *ngIf="field.notesEnabled">
               {{ dataLocation.notes }}
               <button *ngIf="field.editMode" type='button' class="btn btn-primary pull-right" (click)="editNotes(dataLocation, i)">{{ field.editNotesButtonText }}</button>
+            </td>
+            <td *ngIf="field.iscEnabled">
+              {{ dataLocation.isc }}
             </td>
             <td *ngIf="field.editMode">
               <a class="fa fa-minus-circle btn text-20 btn-danger" (click)="field.removeLocation(dataLocation)"></a>
@@ -48,13 +54,16 @@
       </table>
     </div>
     <div class="row padding-bottom-10" *ngIf="field.editMode">
-      <div class="col-xs-3">
+      <div class="col-xs-3" *ngIf="field.iscEnabled">
+        <span class="label-font">{{ field.iscHeader }}</span>
+      </div>
+      <div class="{{ field.iscEnabled == true ? 'col-xs-2' : 'col-xs-3'}}">
         <span class="label-font">{{ field.typeHeader }}</span>
       </div>
-      <div class="col-xs-4">
+      <div class="{{ field.iscEnabled == true ? 'col-xs-3' : 'col-xs-4'}}">
         <span class="label-font">{{ field.locationHeader }}</span>
       </div>
-      <div class="col-xs-4">
+      <div *ngIf="field.notesEnabled" class="{{ field.iscEnabled == true ? 'col-xs-3' : 'col-xs-4'}}">
         <span class="label-font" *ngIf="!field.isNotesHiddenForLocationType(field.newLocation.type)">{{ field.notesHeader }}</span>
       </div>
       <div class="col-xs-1">
@@ -66,24 +75,29 @@
     </div>
     <ng-container *ngIf="field.editMode">
       <div class="row">
-        <div class="col-xs-3">
+        <div class="col-xs-3" *ngIf="field.iscEnabled">
+          <select [(ngModel)]="field.newLocation.isc" [id]="field.newLocation.isc" class="form-control" [attr.aria-label]="field.iscHeader">
+            <option *ngFor="let opt of field.securityClassificationOptions" [value]="opt.value">{{opt.label}}</option>
+          </select>
+        </div>
+        <div class="{{ field.iscEnabled == true ? 'col-xs-2' : 'col-xs-3'}}">
           <select [(ngModel)]="field.newLocation.type" [id]="field.newLocation.type" class="form-control" [attr.aria-label]="field.typeHeader">
              <option *ngFor="let opt of field.dataTypes" [value]="opt.value">{{opt.label}}</option>
           </select>
         </div>
 
-        <div class="col-xs-4">
+        <div class="{{ field.iscEnabled == true && field.notesEnabled ? 'col-xs-3' : 'col-xs-4'}}">
           <input [(ngModel)]="field.newLocation.location" *ngIf="field.newLocation.type != 'attachment'" type="text" class="form-control" [attr.aria-label]="field.locationHeader" />
           <a [class.disabled]="isAttachmentsDisabled()"
           class="btn btn-info UppyModalOpenerBtn"
           [style.display]="field.newLocation.type == 'attachment' ? 'inherit' : 'none'" (click)="openModal()">{{ field.attachmentText }}</a>
         </div>
-        <div class="col-xs-4">
+        <div *ngIf="field.notesEnabled" class="{{ field.iscEnabled == true ? 'col-xs-3' : 'col-xs-4'}}">
           <input [(ngModel)]="field.newLocation.notes" type="text" *ngIf="!field.isNotesHiddenForLocationType(field.newLocation.type)" class="form-control" [attr.aria-label]="field.notesHeader" />
         </div>
         <div class="col-xs-1">
           <a  *ngIf="field.newLocation.type != 'attachment' && !field.locationAddText" class="fa fa-plus-circle btn text-20 pull-right btn-success" (click)="field.addLocation()"></a>
-          <button *ngIf="field.newLocation.type != 'attachment' && field.locationAddText" class="btn btn-success" type='button' (click)="field.addLocation()">Enter</button>
+          <button *ngIf="field.newLocation.type != 'attachment' && field.locationAddText" class="btn btn-success" type='button' (click)="field.addLocation()">{{ field.locationAddText }}</button>
         </div>
         <!--- Edit notes modal -->
         <div class="modal fade" id="{{ field.name }}_editnotes" tabindex="-1" role="dialog" >

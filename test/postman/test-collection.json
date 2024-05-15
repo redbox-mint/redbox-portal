@@ -1,9 +1,9 @@
 {
 	"info": {
-		"_postman_id": "e8c23941-c2d8-4537-810f-031a881dd33d",
+		"_postman_id": "edfc4f29-ac72-470f-a7c9-18f237c19eaf",
 		"name": "Redbox Portal API - With tests",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-		"_exporter_id": "6438809"
+		"_exporter_id": "33916034"
 	},
 	"item": [
 		{
@@ -240,7 +240,62 @@
 										"{{dmpOid}}"
 									]
 								},
-								"description": "http://localhost:1500/default/rdmp/api/records/rdmp/create"
+								"description": ""
+							},
+							"response": []
+						},
+						{
+							"name": "Update RDMP Metadata that does not exist",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code is 400\", function () {",
+											"    pm.response.to.have.status(400);",
+											"});",
+											"",
+											"pm.test(\"Body has json with error\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData).to.have.property('message');",
+											"    pm.expect(jsonData.message).to.eql(\"Failed to update meta, cannot find existing record with oid: blah-blah-blah\");",
+											"});"
+										],
+										"type": "text/javascript",
+										"packages": {}
+									}
+								}
+							],
+							"request": {
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									},
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"title\": \"Andrew's Postman test - Updated\",\n    \"dc:identifier\": \"http://purl.org/au-research/grants/nhmrc/566728\",\n    \"description\": \"Movement of molecules within cells by a process known as membrane transport is critical for normal cell function and also exploited by bacteria to promote infection. The pathway that connects the import pathway to the export pathway is essential for the function of a large number of proteins, however this connecting pathway is poorly characterised. This study will define the machinery of this trafficking pathway, which will provide the ability to modulate biological processes and cytotoxicity.\",\n    \"finalKeywords\": [\n        \"270199\",\n        \"Golgi apparatus\",\n        \"endocytosis\",\n        \"membrane transport\",\n        \"protein trafficking\",\n        \"secretion\",\n        \"HIV-AIDS\",\n        \"bacterial pathogen\",\n        \"hormone secretion\",\n        \"immune development\",\n        \"lysosomal storage disorder\"\n    ],\n    \"contributor_ci\": {\n        \"text_full_name\": \"Prof Paul Gleeson\",\n        \"email\": \"notAReal@email.edu.au\",\n        \"orcid\": \"http://orcid.org/0000-0000-0000-000\"\n    },\n    \"contributor_data_manager\": {\n        \"text_full_name\": \"Prof Paul Gleeson\",\n        \"email\": \"notAReal@email.edu.au\",\n        \"orcid\": \"http://orcid.org/0000-0000-0000-000\"\n    },\n    \"contributors\": [\n        {\n            \"text_full_name\": \"Prof Paul Gleeson\",\n            \"email\": \"notAReal@email.edu.au\",\n            \"orcid\": \"http://orcid.org/0000-0000-0000-000\"\n        }\n    ],\n    \"vivo:Dataset_redbox:DataCollectionMethodology\": \"The data collection methodology\",\n    \"vivo:Dataset_dc_format\": \"xls\",\n    \"vivo:Dataset_dc:location_rdf:PlainLiteral\": \"eResearch Store network drive\",\n    \"vivo:Dataset_dc:source_dc:location_rdf:PlainLiteral\": \"shared university network drive (e.g. G, H, etc)\",\n    \"vivo:Dataset_dc:extent\": \"100GB - 2TB\",\n    \"redbox:retentionPeriod_dc:date\": \"1year\",\n    \"dc:rightsHolder_dc:name\": \"myUni\",\n    \"dc:accessRights\": \"permission from the data manager\",\n    \"authorization\": []\n}"
+								},
+								"url": {
+									"raw": "{{host}}/default/rdmp/api/records/metadata/blah-blah-blah",
+									"host": [
+										"{{host}}"
+									],
+									"path": [
+										"default",
+										"rdmp",
+										"api",
+										"records",
+										"metadata",
+										"blah-blah-blah"
+									]
+								}
 							},
 							"response": []
 						},
@@ -1017,9 +1072,16 @@
 											"pm.test(\"Status code is 200\", function () {",
 											"    pm.response.to.have.status(200);",
 											"});",
-											""
+											"pm.test(\"Test oid exists\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData.message).to.have.property('fileIds');",
+											"    pm.expect(jsonData.message.fileIds).to.have.length(1);",
+											"    pm.expect(jsonData.message.fileIds[0]).to.have.property('fileId');",
+											"    postman.setEnvironmentVariable(\"attDataRecordStreamId\", jsonData.message.fileIds[0].fileId);",
+											"});"
 										],
-										"type": "text/javascript"
+										"type": "text/javascript",
+										"packages": {}
 									}
 								},
 								{
@@ -1028,7 +1090,8 @@
 										"exec": [
 											""
 										],
-										"type": "text/javascript"
+										"type": "text/javascript",
+										"packages": {}
 									}
 								}
 							],
@@ -1113,7 +1176,7 @@
 								}
 							],
 							"request": {
-								"method": "PUT",
+								"method": "GET",
 								"header": [
 									{
 										"key": "Content-Type",
@@ -1140,6 +1203,54 @@
 										"datastreams",
 										"{{attDataRecordOid}}"
 									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Get Attachment for Datarecord",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code is 200\", function () {\n",
+											"    pm.response.to.have.status(200);\n",
+											"});\n",
+											"pm.test(\"Body has attachment content\", function () {\n",
+											"    pm.expect(pm.response.size().body).to.eql(30148);\n",
+											"    pm.expect(pm.response.contentInfo().contentType).to.eql('image/png');\n",
+											"});"
+										],
+										"type": "text/javascript",
+										"packages": {}
+									}
+								}
+							],
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{host}}/default/rdmp/api/records/datastreams/{{attDataRecordOid}}/{{attDataRecordStreamId}}",
+									"host": [
+										"{{host}}"
+									],
+									"path": [
+										"default",
+										"rdmp",
+										"api",
+										"records",
+										"datastreams",
+										"{{attDataRecordOid}}",
+										"{{attDataRecordStreamId}}"
+									],
+									"query": []
 								}
 							},
 							"response": []
@@ -1275,6 +1386,527 @@
 								}
 							},
 							"response": []
+						},
+						{
+							"name": "Give role view permissions to RDMP",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test(\"Role view permission added\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    //TODO: This is because of the save trigger",
+											"    pm.expect(true).to.eql(true);",
+											"    pm.expect(jsonData.viewRoles).to.include(\"Chief Investigator\");",
+											"});"
+										],
+										"type": "text/javascript",
+										"packages": {}
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									},
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n\t\"roles\": [\"Chief Investigator\"]\n}"
+								},
+								"url": {
+									"raw": "{{host}}/default/rdmp/api/records/permissions/viewRole/{{dmpOid}}",
+									"host": [
+										"{{host}}"
+									],
+									"path": [
+										"default",
+										"rdmp",
+										"api",
+										"records",
+										"permissions",
+										"viewRole",
+										"{{dmpOid}}"
+									]
+								},
+								"description": ""
+							},
+							"response": []
+						},
+						{
+							"name": "Remove role view permissions to RDMP",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test(\"Role view permission removed\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    //TODO: This is because of the save trigger",
+											"    pm.expect(true).to.eql(true);",
+											"    pm.expect(jsonData.viewRoles).to.not.include(\"Chief Investigator\");",
+											"});"
+										],
+										"type": "text/javascript",
+										"packages": {}
+									}
+								}
+							],
+							"request": {
+								"method": "DELETE",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									},
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n\t\"roles\": [\"Chief Investigator\"]\n}"
+								},
+								"url": {
+									"raw": "{{host}}/default/rdmp/api/records/permissions/viewRole/{{dmpOid}}",
+									"host": [
+										"{{host}}"
+									],
+									"path": [
+										"default",
+										"rdmp",
+										"api",
+										"records",
+										"permissions",
+										"viewRole",
+										"{{dmpOid}}"
+									]
+								},
+								"description": ""
+							},
+							"response": []
+						},
+						{
+							"name": "Give role edit permissions to RDMP",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test(\"Role edit permission added\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    //TODO: This is because of the save trigger",
+											"    pm.expect(true).to.eql(true);",
+											"    pm.expect(jsonData.editRoles).to.include(\"Chief Investigator\");",
+											"});"
+										],
+										"type": "text/javascript",
+										"packages": {}
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									},
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n\t\"roles\": [\"Chief Investigator\"]\n}"
+								},
+								"url": {
+									"raw": "{{host}}/default/rdmp/api/records/permissions/editRole/{{dmpOid}}",
+									"host": [
+										"{{host}}"
+									],
+									"path": [
+										"default",
+										"rdmp",
+										"api",
+										"records",
+										"permissions",
+										"editRole",
+										"{{dmpOid}}"
+									]
+								},
+								"description": ""
+							},
+							"response": []
+						},
+						{
+							"name": "Remove role edit permissions to RDMP",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test(\"Role edit permission removed\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    //TODO: This is because of the save trigger",
+											"    pm.expect(true).to.eql(true);",
+											"    pm.expect(jsonData.editRoles).to.not.include(\"Chief Investigator\");",
+											"});"
+										],
+										"type": "text/javascript",
+										"packages": {}
+									}
+								}
+							],
+							"request": {
+								"method": "DELETE",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									},
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n\t\"roles\": [\"Chief Investigator\"]\n}"
+								},
+								"url": {
+									"raw": "{{host}}/default/rdmp/api/records/permissions/editRole/{{dmpOid}}",
+									"host": [
+										"{{host}}"
+									],
+									"path": [
+										"default",
+										"rdmp",
+										"api",
+										"records",
+										"permissions",
+										"editRole",
+										"{{dmpOid}}"
+									]
+								},
+								"description": ""
+							},
+							"response": []
+						},
+						{
+							"name": "Create record type Existing Locations",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code is 201\", function () {\n",
+											"    pm.response.to.have.status(201);\n",
+											"});\n",
+											"\n",
+											"pm.test(\"Test oid exists\", function () {\n",
+											"    var jsonData = pm.response.json();\n",
+											"    pm.expect(jsonData).to.have.property('workspaceOid');\n",
+											"    postman.setEnvironmentVariable(\"existingLocationsOid\", jsonData.workspaceOid);\n",
+											"});"
+										],
+										"type": "text/javascript",
+										"packages": {}
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"authorization\": {\n        \"edit\": [\"admin\", \"userExistingLocationsTest1\"],\n        \"view\": [\"admin\", \"userExistingLocationsTest1\"],\n        \"editPending\": [],\n        \"viewPending\":[\"userExistingLocationsTest2\"]\n    },\n    \"metadata\": {\"rdmpOid\":\"{{dmpOid}}\"}\n    \n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{host}}/default/rdmp/api/records/metadata/existing-locations",
+									"host": [
+										"{{host}}"
+									],
+									"path": [
+										"default",
+										"rdmp",
+										"api",
+										"records",
+										"metadata",
+										"existing-locations"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Give user view permissions to RDMP",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test(\"User view permission added\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    //TODO: This is because of the save trigger",
+											"    pm.expect(true).to.eql(true);",
+											"    pm.expect(jsonData.view).to.include(\"user\");",
+											"});"
+										],
+										"type": "text/javascript",
+										"packages": {}
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									},
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n\t\"users\": [\"user\"]\n}"
+								},
+								"url": {
+									"raw": "{{host}}/default/rdmp/api/records/permissions/view/{{existingLocationsOid}}",
+									"host": [
+										"{{host}}"
+									],
+									"path": [
+										"default",
+										"rdmp",
+										"api",
+										"records",
+										"permissions",
+										"view",
+										"{{existingLocationsOid}}"
+									]
+								},
+								"description": ""
+							},
+							"response": []
+						},
+						{
+							"name": "Remove user view permissions to RDMP",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test(\"User view permission removed\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    //TODO: This is because of the save trigger",
+											"    pm.expect(true).to.eql(true);",
+											"    pm.expect(jsonData.view).to.not.include(\"user\");",
+											"});"
+										],
+										"type": "text/javascript",
+										"packages": {}
+									}
+								}
+							],
+							"request": {
+								"method": "DELETE",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									},
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n\t\"users\": [\"user\"]\n}"
+								},
+								"url": {
+									"raw": "{{host}}/default/rdmp/api/records/permissions/view/{{existingLocationsOid}}",
+									"host": [
+										"{{host}}"
+									],
+									"path": [
+										"default",
+										"rdmp",
+										"api",
+										"records",
+										"permissions",
+										"view",
+										"{{existingLocationsOid}}"
+									]
+								},
+								"description": ""
+							},
+							"response": []
+						},
+						{
+							"name": "Give user edit permissions to RDMP",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test(\"Edit permissions applied\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    //TODO: This is because of the save trigger",
+											"    pm.expect(true).to.eql(true);",
+											"    pm.expect(jsonData.edit).to.include(\"user\");",
+											"});"
+										],
+										"type": "text/javascript",
+										"packages": {}
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									},
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n\t\"users\": [\"user\"]\n}"
+								},
+								"url": {
+									"raw": "{{host}}/default/rdmp/api/records/permissions/edit/{{existingLocationsOid}}",
+									"host": [
+										"{{host}}"
+									],
+									"path": [
+										"default",
+										"rdmp",
+										"api",
+										"records",
+										"permissions",
+										"edit",
+										"{{existingLocationsOid}}"
+									]
+								},
+								"description": ""
+							},
+							"response": []
+						},
+						{
+							"name": "Remove user edit permissions to RDMP",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test(\"User edit permission removed\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    //TODO: This is because of the save trigger",
+											"    pm.expect(true).to.eql(true);",
+											"    pm.expect(jsonData.edit).to.not.include(\"user\");",
+											"});"
+										],
+										"type": "text/javascript",
+										"packages": {}
+									}
+								}
+							],
+							"request": {
+								"method": "DELETE",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									},
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n\t\"users\": [\"user\"]\n}"
+								},
+								"url": {
+									"raw": "{{host}}/default/rdmp/api/records/permissions/edit/{{existingLocationsOid}}",
+									"host": [
+										"{{host}}"
+									],
+									"path": [
+										"default",
+										"rdmp",
+										"api",
+										"records",
+										"permissions",
+										"edit",
+										"{{existingLocationsOid}}"
+									]
+								},
+								"description": ""
+							},
+							"response": []
 						}
 					]
 				},
@@ -1332,7 +1964,7 @@
 										"users"
 									]
 								},
-								"description": "http://localhost:1500/default/rdmp/api/records/rdmp/create"
+								"description": ""
 							},
 							"response": []
 						},
@@ -1406,7 +2038,7 @@
 										}
 									]
 								},
-								"description": "http://localhost:1500/default/rdmp/api/records/rdmp/create"
+								"description": ""
 							},
 							"response": []
 						},
@@ -1482,7 +2114,7 @@
 										}
 									]
 								},
-								"description": "http://localhost:1500/default/rdmp/api/records/rdmp/create"
+								"description": ""
 							},
 							"response": []
 						},
@@ -1872,6 +2504,53 @@
 											"key": "oid",
 											"value": "{{dmpOid}}"
 										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Remove All",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code is 200\", function () {\n",
+											"    pm.response.to.have.status(200);\n",
+											"});\n",
+											"\n",
+											"pm.test(\"Has expected message\", function () {\n",
+											"    var jsonData = pm.response.json();\n",
+											"    pm.expect(jsonData).to.have.property(\"message\");\n",
+											"    pm.expect(jsonData.message).to.eql(\"Remove all records request added to message queue for processing\")\n",
+											"});"
+										],
+										"type": "text/javascript",
+										"packages": {}
+									}
+								}
+							],
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{host}}/default/rdmp/api/search/removeAll",
+									"host": [
+										"{{host}}"
+									],
+									"path": [
+										"default",
+										"rdmp",
+										"api",
+										"search",
+										"removeAll"
 									]
 								}
 							},
@@ -2799,209 +3478,6 @@
 										"rdmp",
 										"recordmeta",
 										"{{dmpOid}}"
-									]
-								}
-							},
-							"response": []
-						},
-						{
-							"name": "Get RDMP transfer responsibility configuration",
-							"event": [
-								{
-									"listen": "test",
-									"script": {
-										"exec": [
-											"pm.test(\"Status code is 200\", function () {",
-											"    pm.response.to.have.status(200);",
-											"});",
-											"",
-											"pm.test(\"Contains valid config with fields and canEdit object\", function () {",
-											"    var jsonData = pm.response.json();",
-											"   ",
-											"        pm.expect(jsonData).to.have.property('fields');",
-											"        pm.expect(jsonData).to.have.property('canEdit');",
-											"});"
-										],
-										"type": "text/javascript"
-									}
-								}
-							],
-							"request": {
-								"method": "GET",
-								"header": [
-									{
-										"key": "Pragma",
-										"value": "no-cache"
-									},
-									{
-										"key": "Accept-Encoding",
-										"value": "gzip, deflate, br"
-									},
-									{
-										"key": "X-CSRF-Token",
-										"value": ""
-									},
-									{
-										"key": "Accept-Language",
-										"value": "en-US,en;q=0.9,en-AU;q=0.8,it;q=0.7"
-									},
-									{
-										"key": "User-Agent",
-										"value": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.102 Safari/537.36"
-									},
-									{
-										"key": "Content-Type",
-										"value": "application/json;charset=utf-8"
-									},
-									{
-										"key": "Accept",
-										"value": "application/json, text/plain, */*"
-									},
-									{
-										"key": "Connection",
-										"value": "keep-alive"
-									},
-									{
-										"key": "Referer",
-										"value": "{{host}}/default/rdmp/record/transfer/rdmp"
-									},
-									{
-										"key": "Cookie",
-										"value": "{{cookie}}"
-									},
-									{
-										"key": "X-Source",
-										"value": "jsclient"
-									},
-									{
-										"key": "Cache-Control",
-										"value": "no-cache"
-									}
-								],
-								"url": {
-									"raw": "{{host}}/default/rdmp/transferconfig/rdmp",
-									"host": [
-										"{{host}}"
-									],
-									"path": [
-										"default",
-										"rdmp",
-										"transferconfig",
-										"rdmp"
-									]
-								}
-							},
-							"response": []
-						},
-						{
-							"name": "Transfer responsibility of plan",
-							"event": [
-								{
-									"listen": "test",
-									"script": {
-										"exec": [
-											"// \"contributor_ci\": {",
-											"                    // \"text_full_name\": \"Alberto Zweinstein\",",
-											"                    ",
-											"pm.test(\"Status code is 200\", function () {",
-											"    pm.response.to.have.status(200);",
-											"});",
-											"",
-											"pm.test(\"CI has been updated\", function () {",
-											"    var jsonData = pm.response.json();",
-											"    pm.expect(jsonData[0].record.metadata.contributor_ci.text_full_name).to.eq(\"Alberto Zweinstein\");",
-											"});",
-											"",
-											"pm.test(\"CI has been added to editPending array\", function () {",
-											"    var jsonData = pm.response.json();",
-											"    pm.expect(jsonData[0].record.authorization.editPending).to.contain(\"alberto.zweinstein@example.edu.au\");",
-											"    ",
-											"});",
-											"",
-											"pm.test(\"CI has been added to viewPending array\", function () {",
-											"    var jsonData = pm.response.json();",
-											"    pm.expect(jsonData[0].record.authorization.viewPending).to.contain(\"alberto.zweinstein@example.edu.au\");",
-											"});",
-											"",
-											""
-										],
-										"type": "text/javascript"
-									}
-								}
-							],
-							"request": {
-								"method": "POST",
-								"header": [
-									{
-										"key": "Pragma",
-										"value": "no-cache"
-									},
-									{
-										"key": "Origin",
-										"value": "{{host}}"
-									},
-									{
-										"key": "Accept-Encoding",
-										"value": "gzip, deflate, br"
-									},
-									{
-										"key": "X-CSRF-Token",
-										"value": ""
-									},
-									{
-										"key": "Accept-Language",
-										"value": "en-US,en;q=0.9,en-AU;q=0.8,it;q=0.7"
-									},
-									{
-										"key": "User-Agent",
-										"value": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.102 Safari/537.36"
-									},
-									{
-										"key": "X-Source",
-										"value": "jsclient"
-									},
-									{
-										"key": "Content-Type",
-										"value": "application/json;charset=UTF-8"
-									},
-									{
-										"key": "Accept",
-										"value": "application/json, text/plain, */*"
-									},
-									{
-										"key": "Cache-Control",
-										"value": "no-cache"
-									},
-									{
-										"key": "Referer",
-										"value": "{{host}}/default/rdmp/record/transfer/rdmp"
-									},
-									{
-										"key": "Cookie",
-										"value": "{{cookie}}"
-									},
-									{
-										"key": "Connection",
-										"value": "keep-alive"
-									}
-								],
-								"body": {
-									"mode": "raw",
-									"raw": "{\n  \"records\": [\n    {\n      \"oid\": \"{{dmpOid}}\"\n    }\n  ],\n  \"role\": \"chiefInvestigator\",\n  \"updateData\": {\n    \"text_full_name\": \"Alberto Zweinstein\",\n    \"storage_id\": \"23c3f253fa53809e2d986e69e2537de8\",\n    \"email\": \"alberto.zweinstein@example.edu.au\",\n    \"full_name_honorific\": \"Dr Alberto Zweinstein\",\n    \"given_name\": \"Alberto\",\n    \"family_name\": \"Zweinstein\",\n    \"honorific\": \"Dr\",\n    \"full_name_family_name_first\": \"Zweinstein, Alberto\"\n  }\n}"
-								},
-								"url": {
-									"raw": "http://localhost:1500/default/rdmp/record/responsibility/update",
-									"protocol": "http",
-									"host": [
-										"localhost"
-									],
-									"port": "1500",
-									"path": [
-										"default",
-										"rdmp",
-										"record",
-										"responsibility",
-										"update"
 									]
 								}
 							},

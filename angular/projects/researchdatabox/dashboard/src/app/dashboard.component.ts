@@ -680,8 +680,8 @@ export class DashboardComponent extends BaseComponent {
       this.records[step] = planTable;
     } else if (this.dashboardTypeSelected == 'workspace') {
       let stagedRecords = await this.recordService.getRecords('', '', event.page, this.packageType, this.getSortString(sortDetails));
-      let planTable: PlanTable = this.evaluatePlanTableColumns({}, {}, {}, this.packageType, stagedRecords);
-      this.records[this.packageType] = planTable;
+      let planTable: PlanTable = this.evaluatePlanTableColumns({}, {}, {}, step, stagedRecords);
+      this.records[step] = planTable;
     } else if (this.dashboardTypeSelected == 'consolidated') {
       let packageType = '';
       let stepName = '';

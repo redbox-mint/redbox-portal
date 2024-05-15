@@ -19,8 +19,8 @@
 
 import { Observable } from 'rxjs/Rx';
 import {
+  RBValidationError,
   Services as services,
-  RBValidationError
 } from '@researchdatabox/redbox-core-types';
 import { Sails, Model } from "sails";
 
@@ -127,30 +127,6 @@ export module Services {
       }
     }
 
-    private validateRegex(data, regexPattern, fieldLanguageCode, errorMessageCode, caseSensitive) {
-      let re;
-      if (caseSensitive) {
-        re = new RegExp(regexPattern);
-      } else {
-        re = new RegExp(regexPattern, 'i');
-      }
-      sails.log.verbose('validateFieldUsingRegex data.toString() ' + data.toString());
-      let reTest = re.test(data.toString());
-      sails.log.verbose('validateFieldUsingRegex caseSensitive ' + caseSensitive + ' reTest ' + reTest);
-      if (!reTest) {
-        let customError: RBValidationError;
-        if (!_.isUndefined(fieldLanguageCode)) {
-          let fieldName = TranslationService.t(fieldLanguageCode);
-          let baseErrorMessage = TranslationService.t(errorMessageCode);
-          customError = new RBValidationError(fieldName + ' ' + baseErrorMessage);
-        } else {
-          let baseErrorMessage = TranslationService.t(errorMessageCode);
-          customError = new RBValidationError(baseErrorMessage);
-        }
-        throw customError;
-      }
-    }
-
     public async applyFieldLevelPermissions(oid, record, options, user) {
       // mandatory
       let fieldDBNames = _.get(options, 'fieldDBNames', []);
@@ -185,67 +161,121 @@ export module Services {
     }
 
     public async validateFieldUsingRegex(oid, record, options) {
-      //mandatory
+      // mandatory
       let fieldDBName = _.get(options, 'fieldDBName');
-      let errorMessageCode = _.get(options, 'errorLanguageCode');
+      let errorLanguageCode = _.get(options, 'errorLanguageCode');
       let regexPattern = _.get(options, 'regexPattern');
-      //optional
+
+      // optional
       let fieldLanguageCode = _.get(options, 'fieldLanguageCode');
       let arrayObjFieldDBName = _.get(options, 'arrayObjFieldDBName');
-      //Set false by default if not present this option will remove leading and trailing spaces from a none array value
-      //then it will modify the value in the record if the the regex validation is passed therefore handle with care
-      let trimLeadingAndTrailingSpacesBeforeValidation = _.get(options, 'trimLeadingAndTrailingSpacesBeforeValidation') || false;
-      let caseSensitive = _.isUndefined(_.get(options, 'caseSensitive', undefined)) ? true : _.get(options, 'caseSensitive', undefined); // default to true
-      let allowNulls = _.isUndefined(_.get(options, 'caseSensitive', undefined)) ? true : _.get(options, 'caseSensitive', undefined); // default to true for backwards compatibility
 
-      let data = _.get(record, fieldDBName);
-      // Fail fast if the field is empty and allowNulls is false
-      if (_.isEmpty(data) && !allowNulls) {
+      // trimLeadingAndTrailingSpacesBeforeValidation:
+      // Set false by default if not present this option will remove leading and trailing spaces from a none array value
+      // then it will modify the value in the record if the regex validation is passed therefore handle with care
+      let trimLeadingAndTrailingSpacesBeforeValidation = _.get(options, 'trimLeadingAndTrailingSpacesBeforeValidation') || false;
+
+      let caseSensitive = _.get(options, 'caseSensitive');
+      if (caseSensitive !== false && caseSensitive !== true) {
+        // default to true
+        caseSensitive = true;
+      }
+
+      let allowNulls = _.get(options, 'allowNulls');
+      if (allowNulls !== false && allowNulls !== true) {
+        // default to true for backwards compatibility
+        allowNulls = true;
+      }
+
+      // re-usable functions
+      const textRegex = function (value) {
+        let flags = '';
+        if (caseSensitive) {
+          flags += 'i';
+        }
+        const re = new RegExp(regexPattern, flags);
+        return re.test(value);
+      }
+      const getError = function () {
         let customError: RBValidationError;
-        if (!_.isUndefined(fieldLanguageCode)) {
+        if (fieldLanguageCode) {
           let fieldName = TranslationService.t(fieldLanguageCode);
-          let baseErrorMessage = TranslationService.t(errorMessageCode);
+          let baseErrorMessage = TranslationService.t(errorLanguageCode);
           customError = new RBValidationError(fieldName + ' ' + baseErrorMessage);
         } else {
-          let baseErrorMessage = TranslationService.t(errorMessageCode);
+          let baseErrorMessage = TranslationService.t(errorLanguageCode);
           customError = new RBValidationError(baseErrorMessage);
         }
-        throw customError;
+        sails.log.error('validateFieldUsingRegex', customError, record, options);
+        return customError;
       }
+      const hasValue = function (data) {
+        return data !== '' &&
+            data !== null &&
+            data !== undefined &&
+            (data?.length !== undefined && data.length > 0);
+      }
+      const evaluate = function (element, fieldName) {
+        let value = _.get(element, fieldName);
 
-      if (_.isArray(data) && !_.isUndefined(arrayObjFieldDBName)) {
-
-        sails.log.verbose(`validateFieldUsingRegex is array ${fieldDBName} ` + JSON.stringify(data));
-        sails.log.verbose('validateFieldUsingRegex is array regexPattern ' + regexPattern);
-        for (let row of data) {
-
-          let objField = _.get(row, arrayObjFieldDBName);
-
-          if (!_.isUndefined(objField) && objField != null && objField != '' && !_.isUndefined(regexPattern) && !_.isUndefined(errorMessageCode)) {
-
-            this.validateRegex(objField, regexPattern, fieldLanguageCode, errorMessageCode, caseSensitive);
-          }
+        if (trimLeadingAndTrailingSpacesBeforeValidation) {
+          value = _.trim(value);
         }
 
+        if (!hasValue(value) && !allowNulls) {
+          return false;
+        } else if (!hasValue(value) && allowNulls) {
+          // this is ok
+        } else if (!textRegex(value)) {
+          return false;
+        }
+
+        if (trimLeadingAndTrailingSpacesBeforeValidation) {
+          _.set(element, fieldName, value);
+        }
+
+        return true;
+      }
+
+      // get the data
+      const data = _.get(record, fieldDBName);
+
+      // early checks
+      if (!hasValue(data) && !allowNulls) {
+        throw getError();
+      }
+      if (!hasValue(data) && allowNulls) {
+        sails.log.debug(
+            'validateFieldUsingRegex',
+            'data value is null and value is allowed to be null',
+            record,
+            options);
+        return record;
+      }
+      if (!_.isArray(data) && arrayObjFieldDBName) {
+        throw getError();
+      }
+      if (_.isArray(data) && !arrayObjFieldDBName) {
+        throw getError();
+      }
+
+      // evaluate the record field against the regex
+      if (_.isArray(data)) {
+        for (const row of data) {
+          if (!evaluate(row, arrayObjFieldDBName)) {
+            throw getError() ;
+          }
+        }
       } else {
-
-        sails.log.verbose(`validateFieldUsingRegex ${fieldDBName} ` + data);
-        sails.log.verbose('validateFieldUsingRegex regexPattern ' + regexPattern);
-        if (!_.isUndefined(data) && data != null && data != '' && !_.isUndefined(regexPattern) && !_.isUndefined(errorMessageCode)) {
-
-          if (trimLeadingAndTrailingSpacesBeforeValidation) {
-            let trimData = _.trim(data);
-            data = trimData;
-          }
-
-          this.validateRegex(data, regexPattern, fieldLanguageCode, errorMessageCode, caseSensitive);
-
-          if (trimLeadingAndTrailingSpacesBeforeValidation) {
-            _.set(record, fieldDBName, data);
-          }
+        if (!evaluate(record, fieldDBName)) {
+          throw getError();
         }
       }
-
+      sails.log.debug(
+          'validateFieldUsingRegex',
+          'data value passed check',
+          record,
+          options);
       return record;
     }
 

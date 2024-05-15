@@ -79,6 +79,7 @@ export module Controllers {
      */
     public renderApiB(req, res) {
       res.contentType('text/plain');
+      req.options.locals["baseUrl"] = sails.config.appUrl;
       return this.sendView(req, res, "apidocsapib", {layout: false});
     }
 
@@ -92,6 +93,7 @@ export module Controllers {
      */
     public renderSwaggerJSON(req, res) {
       res.contentType('application/json');
+      req.options.locals["baseUrl"] = sails.config.appUrl;
       return this.sendView(req, res, "apidocsswaggerjson", {layout: false});
     }
 
@@ -104,6 +106,7 @@ export module Controllers {
      */
     public renderSwaggerYAML(req, res) {
       res.contentType('application/x-yaml');
+      req.options.locals["baseUrl"] = sails.config.appUrl;
       return this.sendView(req, res, "apidocsswaggeryaml", {layout: false});
     }
 

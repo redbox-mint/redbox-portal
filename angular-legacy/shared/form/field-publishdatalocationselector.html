@@ -11,12 +11,13 @@
           <th width="5%"><input type="checkbox" (change)="selectAllLocations($event.target.checked)" *ngIf="field.editMode" [attr.aria-label]="'select-all-items' | translate"/><span [hidden]="true">Select</span></th>
           <th width="15%">{{ field.typeHeader }}</th>
           <th width="40%">{{ field.locationHeader }}</th>
-          <th width="40%">{{ field.notesHeader }}</th>
+          <th *ngIf="field.notesEnabled" width="{{ field.iscEnabled && field.notesEnabled ? '20%' : '40%' }}">{{ field.notesHeader }}</th>
+          <th *ngIf="field.iscEnabled" width="20%">{{ field.iscHeader }}</th>
         </tr>
       </thead>
       <tbody>
         <tr *ngFor="let dataLocation of getDatalocations(); let i = index;">
-          <td><input type="checkbox" [(ngModel)]="dataLocation.selected" [attr.disabled]="field.editMode ? null : ''"  [attr.aria-label]="'select-item' | translate"/></td>
+          <td><input (change)="field.checkIfLocationsSelected($event)"  type="checkbox" [(ngModel)]="dataLocation.selected" [attr.disabled]="field.editMode ? null : ''"  [attr.aria-label]="'select-item' | translate"/></td>
           <td>{{ field.dataTypeLookup[dataLocation.type] }}</td>
           <td>
             <ng-container *ngIf="dataLocation && dataLocation.type != 'attachment' && dataLocation.type != 'url'">
@@ -36,14 +37,20 @@
               </a>
             </ng-container>
           </td>
-          <td>
+          <td *ngIf="field.notesEnabled">
             {{ dataLocation.notes }}
             <button *ngIf="field.editMode" type='button' class="btn btn-primary pull-right" (click)="editNotes(dataLocation, i)">{{ field.editNotesButtonText }}</button>
           </td>
-
+          <td *ngIf="field.iscEnabled">
+            {{ dataLocation.isc }}
+          </td>
         </tr>
       </tbody>
     </table>
+  </div>
+  <div *ngIf="field.noLocationSelected">
+    <h5 class="font-weight-bold">{{ field.noLocationSelectedText }}</h5>
+    <p>{{ field.noLocationSelectedHelp }}</p>
   </div>
   <!-- <div><button class="btn btn-info">Export</button></div> -->
 </div>

@@ -41,33 +41,33 @@ export module Services {
 
     protected dashboardTypes;
 
-    public bootstrap = (defBrand) => {
-      let startQ = DashboardType.find({branding:defBrand.id});
+    public async bootstrap(defBrand):Promise<any> {
+      let dashboardTypes = await DashboardType.find({branding:defBrand.id});
       if (sails.config.appmode.bootstrapAlways) {
-        startQ = DashboardType.destroy({branding:defBrand.id});
+        await DashboardType.destroy({branding:defBrand.id});
+        dashboardTypes = [];
       }
-      return super.getObservable(startQ).flatMap(dashboardTypes => {
-        if (_.isUndefined(dashboardTypes)) {
-          dashboardTypes = [];
-        }
+
+        // if (_.isUndefined(dashboardTypes)) {
+        //   dashboardTypes = [];
+        // }
         sails.log.verbose(`DashboardTypes found: ${dashboardTypes} and boostrapAlways set to: ${sails.config.appmode.bootstrapAlways}`);
         if (_.isEmpty(dashboardTypes)) {
           var dashTypes = [];
           sails.log.verbose("Bootstrapping DashboardTypes definitions... ");
-          _.forOwn(sails.config.dashboardtype, (config, dashboardType) => {
+          for(let dashboardType in sails.config.dashboardtype) {
             dashboardTypes.push(dashboardType);
-            var obs = this.create(defBrand, dashboardType, config);
-            dashTypes.push(obs);
-          });
+            let config = sails.config.dashboardtype[dashboardType];
+            var createdDashboardType = await this.create(defBrand, dashboardType, config).toPromise();
+            dashTypes.push(createdDashboardType);
+          };
           this.dashboardTypes = dashboardTypes;
-          return Observable.zip(...dashTypes);
-        } else {
+          return dashTypes;
+        } 
           sails.log.verbose("Default DashboardTypes definition(s) exist.");
           sails.log.verbose(JSON.stringify(dashboardTypes));
           this.dashboardTypes = dashboardTypes;
-          return Observable.of(dashboardTypes);
-        }
-      });
+          return dashboardTypes
     }
 
     public create(brand, name, config) {

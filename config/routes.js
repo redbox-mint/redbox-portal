@@ -56,13 +56,6 @@ module.exports.routes = {
       'view': 'record/view'
     }
   },
-  '/:branding/:portal/record/transfer/:type': {
-    controller: 'RenderViewController',
-    action: 'render',
-    locals: {
-      'view': 'record/transfer'
-    }
-  },
   '/:branding/:portal/record/search': {
     controller: 'RenderViewController',
     action: 'render',
@@ -202,7 +195,6 @@ module.exports.routes = {
   'post /:branding/:portal/record/workflow/step/:targetStep/:oid': 'RecordController.stepTo',
   //TODO: Reinstate it when we add formal permission editing screens
   // 'post /:branding/:portal/record/editors/modify': 'RecordController.modifyEditors',
-  'post /:branding/:portal/record/responsibility/update': 'RecordController.updateResponsibilities',
   'get /:branding/:portal/dashboard/:recordType': 'RecordController.render',
   'get /:branding/:portal/listRecords': 'RecordController.getRecordList',
   'get /:branding/:portal/vocab/:vocabId': 'VocabController.get',
@@ -236,7 +228,6 @@ module.exports.routes = {
   'post /:branding/:portal/user/genKey': 'UserController.generateUserKey',
   'post /:branding/:portal/user/revokeKey': 'UserController.revokeUserKey',
   'post /:branding/:portal/user/update': 'UserController.update',
-  'get /:branding/:portal/transferconfig/:type': 'RecordController.getTransferResponsibilityConfig',
   'post /:branding/:portal/action/:action': 'ActionController.callService',
   'get /:branding/:portal/appconfig/form/:appConfigId': 'AppConfigController.getAppConfigForm',
   'post /:branding/:portal/appconfig/form/:appConfigId': 'AppConfigController.saveAppConfig',
@@ -334,12 +325,12 @@ module.exports.routes = {
     action: 'addDataStreams',
     csrf: false
   },
-  'get /:branding/:portal/api/records/datastreams/:oid': {
+  'get /:branding/:portal/api/records/datastreams/:oid/:datastreamId': {
     controller: 'webservice/RecordController',
     action: 'getDataStream',
     csrf: false
   },
-  'put /:branding/:portal/api/records/datastreams/:oid': {
+  'get /:branding/:portal/api/records/datastreams/:oid': {
     controller: 'webservice/RecordController',
     action: 'listDatastreams',
     csrf: false
@@ -432,6 +423,11 @@ module.exports.routes = {
   'get /:branding/:portal/api/search/indexAll': {
     controller: 'webservice/SearchController',
     action: 'indexAll',
+    csrf: false
+  },
+  'get /:branding/:portal/api/search/removeAll': {
+    controller: 'webservice/SearchController',
+    action: 'removeAll',
     csrf: false
   },
   'get /:branding/:portal/api/forms/get':{

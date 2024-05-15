@@ -450,6 +450,12 @@ export module Services {
       return response;
     }
 
+    /**
+     * Assign editor and viewer permissions to the record using rules.
+     * @param oid {string} The identifier.
+     * @param record The record to update.
+     * @param options The options for modifying the record.
+     */
     public complexAssignPermissions(oid, record, options) {
       sails.log.verbose(`Complex Assign Permissions executing on oid: ${oid}, using options:`);
       sails.log.verbose(JSON.stringify(options));
@@ -472,59 +478,19 @@ export module Services {
       // get the new viewer list...
       viewContributorEmails = this.getContribListByRule(userProperties, record, viewPermissionRule, emailProperty, viewContributorEmails);
 
-
-      if (_.isEmpty(editContributorEmails)) {
-        sails.log.error(`No editors for record: ${oid}`);
-      }
-      if (_.isEmpty(viewContributorEmails)) {
-        sails.log.error(`No viewers for record: ${oid}`);
-      }
-      // when both are empty, simpy return the record
-      if (_.isEmpty(editContributorEmails) && _.isEmpty(viewContributorEmails)) {
-        return Observable.of(record);
-      }
-      _.each(editContributorEmails, editorEmail => {
-        editContributorObs.push(this.getObservable(User.findOne({
-          email: editorEmail.toLowerCase()
-        })));
-      });
-      _.each(viewContributorEmails, viewerEmail => {
-        viewContributorObs.push(this.getObservable(User.findOne({
-          email: viewerEmail.toLowerCase()
-        })));
-      });
-      let zippedViewContributorUsers = null;
-      if (editContributorObs.length == 0) {
-        zippedViewContributorUsers = Observable.zip(...viewContributorObs);
-      } else {
-        zippedViewContributorUsers = Observable.zip(...editContributorObs)
-          .flatMap(editContributorUsers => {
-            let newEditList = [];
-            this.filterPending(editContributorUsers, editContributorEmails, newEditList);
-            if (recordCreatorPermissions == "edit" || recordCreatorPermissions == "view&edit") {
-              newEditList.push(record.metaMetadata.createdBy);
-            }
-            record.authorization.edit = newEditList;
-            record.authorization.editPending = editContributorEmails;
-            return Observable.zip(...viewContributorObs);
-          })
-      }
-      if (zippedViewContributorUsers.length == 0) {
-        return Observable.of(record);
-      } else {
-        return zippedViewContributorUsers.flatMap(viewContributorUsers => {
-          let newviewList = [];
-          this.filterPending(viewContributorUsers, viewContributorEmails, newviewList);
-          if (recordCreatorPermissions == "view" || recordCreatorPermissions == "view&edit") {
-            newviewList.push(record.metaMetadata.createdBy);
-          }
-          record.authorization.view = newviewList;
-          record.authorization.viewPending = viewContributorEmails;
-          return Observable.of(record);
-        });
-      }
+      return this.assignContributorRecordPermissions(
+          oid, record, recordCreatorPermissions,
+          editContributorEmails, editContributorObs,
+          viewContributorEmails, viewContributorObs
+      );
     }
 
+    /**
+     * Assign editor and viewer permissions to the record using properties.
+     * @param oid {string} The identifier.
+     * @param record The record to update.
+     * @param options The options for modifying the record.
+     */
     public assignPermissions(oid, record, options) {
       sails.log.verbose(`Assign Permissions executing on oid: ${oid}, using options:`);
       sails.log.verbose(JSON.stringify(options));
@@ -545,7 +511,28 @@ export module Services {
       // get the new viewer list...
       viewContributorEmails = this.populateContribList(viewContributorProperties, record, emailProperty, viewContributorEmails);
 
+      return this.assignContributorRecordPermissions(
+          oid, record, recordCreatorPermissions,
+          editContributorEmails, editContributorObs,
+          viewContributorEmails, viewContributorObs
+      );
+    }
 
+    /**
+     * Assign contributor permissions to the record.
+     * @param oid The identifier.
+     * @param record The record to update.
+     * @param recordCreatorPermissions {string} The creator permission from the options.
+     * @param editContributorEmails {Array<string>} The list of editor emails.
+     * @param editContributorObs {Array<Observable>} The list of editor observables.
+     * @param viewContributorEmails {Array<string>} The list of viewer emails.
+     * @param viewContributorObs {Array<Observable>} The list of viewer observables.
+     * @private
+     */
+    private assignContributorRecordPermissions(
+        oid, record, recordCreatorPermissions,
+        editContributorEmails, editContributorObs,
+        viewContributorEmails, viewContributorObs) {
       if (_.isEmpty(editContributorEmails)) {
         sails.log.error(`No editors for record: ${oid}`);
       }
@@ -566,32 +553,36 @@ export module Services {
           email: viewerEmail.toLowerCase()
         })));
       });
-      let zippedViewContributorUsers = null;
+      let zippedViewContributorUsers;
       if (editContributorObs.length == 0) {
         zippedViewContributorUsers = Observable.zip(...viewContributorObs);
       } else {
         zippedViewContributorUsers = Observable.zip(...editContributorObs)
-          .flatMap(editContributorUsers => {
-            let newEditList = [];
-            this.filterPending(editContributorUsers, editContributorEmails, newEditList);
-            if (recordCreatorPermissions == "edit" || recordCreatorPermissions == "view&edit") {
-              newEditList.push(record.metaMetadata.createdBy);
-            }
-            record.authorization.edit = newEditList;
-            record.authorization.editPending = editContributorEmails;
-            return Observable.zip(...viewContributorObs);
-          })
+            .flatMap(editContributorUsers => {
+              let newEditList = [];
+              this.filterPending(editContributorUsers, editContributorEmails, newEditList);
+              if (recordCreatorPermissions == "edit" || recordCreatorPermissions == "view&edit") {
+                newEditList.push(record.metaMetadata.createdBy);
+              }
+              record.authorization.edit = newEditList;
+              record.authorization.editPending = editContributorEmails;
+              if (viewContributorObs.length === 0) {
+                return Observable.of(record);
+              } else {
+                return Observable.zip(...viewContributorObs);
+              }
+            });
       }
       if (zippedViewContributorUsers.length == 0) {
-        return Observable.of(record);
+        return zippedViewContributorUsers;
       } else {
         return zippedViewContributorUsers.flatMap(viewContributorUsers => {
-          let newviewList = [];
-          this.filterPending(viewContributorUsers, viewContributorEmails, newviewList);
+          let newViewList = [];
+          this.filterPending(viewContributorUsers, viewContributorEmails, newViewList);
           if (recordCreatorPermissions == "view" || recordCreatorPermissions == "view&edit") {
-            newviewList.push(record.metaMetadata.createdBy);
+            newViewList.push(record.metaMetadata.createdBy);
           }
-          record.authorization.view = newviewList;
+          record.authorization.view = newViewList;
           record.authorization.viewPending = viewContributorEmails;
           return Observable.of(record);
         });
@@ -700,6 +691,8 @@ export module Services {
       const rdmpOid = workspaceData.metadata.rdmpOid;
       sails.log.verbose(`Generic adding workspace ${oid} to record: ${rdmpOid}`);
       response = await WorkspaceService.addWorkspaceToRecord(workspaceData.metadata.rdmpOid, oid);
+      _.set(response, 'workspaceOid', oid);
+      _.set(response, 'workspaceData', workspaceData);
       return response;
     }
   }
