@@ -351,7 +351,7 @@ The API uses standard HTTP status codes to indicate the success or failure of an
     + Attributes (Error, fixed-type)
         - message: Get Metadata failed, failed to retrieve existing record.
 
-### Get attachment in record [GET /<%= branding %>/<%= portal %>/api/records/datastreams/{oid}{?datastreamId}]
+### Get attachment in record [GET /<%= branding %>/<%= portal %>/api/records/datastreams/{oid}/{datastreamId}]
 + Parameters
     + oid: `7e72b5952e8e323c77f72ae268a27c46` (string, required) - The identifier for the record
     + datastreamId: `9159dc90fa9511edbc38b7f112a6db3d` (string, required) - The datastream identifier
@@ -366,7 +366,7 @@ The API uses standard HTTP status codes to indicate the success or failure of an
     + Attributes (Error, fixed-type)
         - message: Failed to get attachment.
 
-### List attachments in record [PUT /<%= branding %>/<%= portal %>/api/records/datastreams/{oid}]
+### List attachments in record [GET /<%= branding %>/<%= portal %>/api/records/datastreams/{oid}]
 + Parameters
     + oid: `7e72b5952e8e323c77f72ae268a27c46` (string, required) - The identifier for the record
 
@@ -667,6 +667,40 @@ The API uses standard HTTP status codes to indicate the success or failure of an
     + Attributes (APIObjectActionResponse)
         - message: `Remove all records request added to message queue for processing`
         - status: `200`
+
+# Group Report
+
+## Report [/<%= branding %>/<%= portal %>/api/report/namedQuery/{queryName}{?rows,start}]
+
+### Execute Named Query [GET]
+
+Executes a named query based on the provided query name and parameters.
+
++ Parameters
+    + queryName (required, string) - The name of the query to execute.
+    + start (optional, number) - The starting index for the query results. Defaults to 0.
+    + rows (optional, number) - The number of rows to return. Defaults to 10 and must not be greater than 100.
+
++ Request (application/json)
+
+    + Headers
+
+            Authorization: Bearer <token>
+
++ Response 200 (application/json)
+
+    + Attributes (object)
+        + results (array[object], required)
+        + total (number, required)
+
++ Response 400 (application/json)
+
+    + Attributes (APIErrorResponse)
+
++ Response 500 (application/json)
+
+    + Attributes (APIErrorResponse)     
+    
 
 # Group User Management
 
