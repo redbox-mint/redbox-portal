@@ -351,7 +351,7 @@ The API uses standard HTTP status codes to indicate the success or failure of an
     + Attributes (Error, fixed-type)
         - message: Get Metadata failed, failed to retrieve existing record.
 
-### Get attachment in record [GET /<%= branding %>/<%= portal %>/api/records/datastreams/{oid}{?datastreamId}]
+### Get attachment in record [GET /<%= branding %>/<%= portal %>/api/records/datastreams/{oid}/{datastreamId}]
 + Parameters
     + oid: `7e72b5952e8e323c77f72ae268a27c46` (string, required) - The identifier for the record
     + datastreamId: `9159dc90fa9511edbc38b7f112a6db3d` (string, required) - The datastream identifier
@@ -366,7 +366,7 @@ The API uses standard HTTP status codes to indicate the success or failure of an
     + Attributes (Error, fixed-type)
         - message: Failed to get attachment.
 
-### List attachments in record [PUT /<%= branding %>/<%= portal %>/api/records/datastreams/{oid}]
+### List attachments in record [GET /<%= branding %>/<%= portal %>/api/records/datastreams/{oid}]
 + Parameters
     + oid: `7e72b5952e8e323c77f72ae268a27c46` (string, required) - The identifier for the record
 
