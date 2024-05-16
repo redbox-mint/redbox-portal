@@ -62,7 +62,7 @@
    }
  
   // Initialise the applicationConfig for all the brands
-  await sails.services.appconfigservice.bootstrap().toPromise()
+  await sails.services.appconfigservice.bootstrap()
   // bind convenience function to sails.config so that configuration access syntax is consistent
   sails.config.brandingAware = AppConfigService.getAppConfigurationForBrand
     

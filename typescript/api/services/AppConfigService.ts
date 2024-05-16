@@ -53,9 +53,9 @@ export module Services {
     ];
 
 
-    public bootstrap = (): Observable<any> => {
+    public bootstrap = (): Promise<void> => {
       this.brandingAppConfigMap = {}
-      return Observable.fromPromise(this.bootstrapAsync());
+      return this.bootstrapAsync();
     }
 
     private async bootstrapAsync() {

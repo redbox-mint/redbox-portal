@@ -54,6 +54,9 @@ export class AppConfigComponent extends BaseComponent {
     }
   ];
   configKey: any;
+  formSaving: boolean = false;
+  formSaveSuccessful: boolean = false;
+  formSaveUnsuccessful: boolean = false;
 
 
   constructor(
@@ -91,15 +94,25 @@ export class AppConfigComponent extends BaseComponent {
       this.model = result.model;
       this.loggerService.debug(`AppConfig initialised.`); 
       
-    
   }
 
 
   onSubmit(model:any) {
+    this.formSaving = true;
+    this.formSaveUnsuccessful = false;
+    this.formSaveSuccessful = false;
     this.appConfigService.saveAppConfig(this.configKey, model).then((result:AppConfig) => {
       //TODO: refresh form and and display feedback to user
       console.log(result);
+      this.formSaveSuccessful = true;
+      setTimeout(() => {
+        this.formSaveSuccessful = false;
+      }, 3000);
+      this.formSaving = false;
+  }).catch((error:any) => {
+    this.formSaveSuccessful = false;
+    this.formSaveUnsuccessful = true;
+    this.formSaving = false;
   });
   }
-
 }

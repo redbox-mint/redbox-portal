@@ -231,7 +231,7 @@ module.exports.routes = {
   'post /:branding/:portal/action/:action': 'ActionController.callService',
   'get /:branding/:portal/appconfig/form/:appConfigId': 'AppConfigController.getAppConfigForm',
   'post /:branding/:portal/appconfig/form/:appConfigId': 'AppConfigController.saveAppConfig',
-  'get /:branding/:portal/appconfig/:appConfigId': {
+  'get /:branding/:portal/admin/appconfig/edit/:appConfigId': {
     controller: 'AppConfigController',
     action: 'editAppConfig'
   },
@@ -244,7 +244,6 @@ module.exports.routes = {
    *                                                                          *
    *                                                                          *
    ***************************************************************************/
-
   'post /:branding/:portal/api/records/metadata/:recordType': {
     controller: 'webservice/RecordController',
     action: 'create',
