@@ -123,7 +123,7 @@ export module Services {
       if (dbConfig == null) {
         let config = _.get(sails.config.brandingConfigurationDefaults, configKey, {});
         if (_.isEmpty(config)) {
-          const modelInfo: any = ConfigModels.getConfigKeys()[configKey];
+          const modelInfo: any = ConfigModels.getModelInfo(configKey);
           if (modelInfo == null) {
             throw Error(`No config found for config key ${configKey}`);
           }
