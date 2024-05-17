@@ -1,5 +1,3 @@
-const { expect } = require("chai");
-
 describe('appConfigService', function () {
   let appConfigService;
 
