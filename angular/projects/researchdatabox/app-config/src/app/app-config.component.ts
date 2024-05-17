@@ -20,12 +20,12 @@
 import { Component, ElementRef, Inject } from '@angular/core';
 import { FormGroup, Validators, FormBuilder } from '@angular/forms';
 import { DOCUMENT } from "@angular/common"
-import { BaseComponent, UserService, UserLoginResult, UtilityService, LoggerService, TranslationService, AppConfigService } from '@researchdatabox/portal-ng-common';
+import { BaseComponent, UtilityService, LoggerService, TranslationService, AppConfigService } from '@researchdatabox/portal-ng-common';
 import { FormlyFieldConfig } from '@ngx-formly/core';
 import { FormlyJsonschema } from '@ngx-formly/core/json-schema';
 import { JSONSchema7 } from 'json-schema';
 import { AppConfig } from 'projects/researchdatabox/portal-ng-common/src/public-api';
-import { clone as _clone} from 'lodash'
+import { clone as _clone } from 'lodash'
 /**
  * Application Config  Component
  *
@@ -41,7 +41,7 @@ export class AppConfigComponent extends BaseComponent {
   // loginResult:  UserLoginResult = null as any;
   window: any;
   form = new FormGroup({});
-  model = {  };
+  model = {};
   fields: FormlyFieldConfig[] = [
     {
       key: 'email',
@@ -61,7 +61,6 @@ export class AppConfigComponent extends BaseComponent {
 
   constructor(
     @Inject(LoggerService) private loggerService: LoggerService,
-    @Inject(UserService) private userService: UserService,
     @Inject(UtilityService) protected utilService: UtilityService,
     @Inject(FormBuilder) private fb: FormBuilder,
     @Inject(DOCUMENT) private document: Document,
@@ -71,48 +70,45 @@ export class AppConfigComponent extends BaseComponent {
     @Inject(ElementRef) elementRef: ElementRef
   ) {
     super();
-    this.loggerService.debug(`AppConfig waiting for deps to init...`); 
+    this.loggerService.debug(`AppConfig waiting for deps to init...`);
     this.window = this.document.defaultView;
     // set this component's dependencies
     this.configKey = elementRef.nativeElement.getAttribute('configKey');
-    this.initDependencies = [translationService, userService, appConfigService];
+    this.initDependencies = [translationService, appConfigService];
   }
 
-  protected override async initComponent():Promise<void> {
-    let result:AppConfig = await this.appConfigService.getAppConfigForm(this.configKey)
-      const jsonObject:JSONSchema7 = result.schema as JSONSchema7;
-      const fieldOrder = result.fieldOrder;
-      let originalProperties =  _clone(jsonObject.properties);
-      jsonObject.properties = {};
-      for(let field of fieldOrder) {
-        if (originalProperties) {
-          jsonObject.properties[field] = originalProperties[field];
-        }
+  protected override async initComponent(): Promise<void> {
+    let result: AppConfig = await this.appConfigService.getAppConfigForm(this.configKey)
+    const jsonObject: JSONSchema7 = result.schema as JSONSchema7;
+    const fieldOrder = result.fieldOrder;
+    let originalProperties = _clone(jsonObject.properties);
+    jsonObject.properties = {};
+    for (let field of fieldOrder) {
+      if (originalProperties) {
+        jsonObject.properties[field] = originalProperties[field];
       }
+    }
 
-      this.fields = [this.formlyJsonschema.toFieldConfig(jsonObject)]
-      this.model = result.model;
-      this.loggerService.debug(`AppConfig initialised.`); 
-      
+    this.fields = [this.formlyJsonschema.toFieldConfig(jsonObject)]
+    this.model = result.model;
+    this.loggerService.debug(`AppConfig initialised.`);
   }
 
 
-  onSubmit(model:any) {
+  onSubmit(model: any) {
     this.formSaving = true;
     this.formSaveUnsuccessful = false;
     this.formSaveSuccessful = false;
-    this.appConfigService.saveAppConfig(this.configKey, model).then((result:AppConfig) => {
-      //TODO: refresh form and and display feedback to user
-      console.log(result);
+    this.appConfigService.saveAppConfig(this.configKey, model).then((result: AppConfig) => {
       this.formSaveSuccessful = true;
       setTimeout(() => {
         this.formSaveSuccessful = false;
       }, 3000);
       this.formSaving = false;
-  }).catch((error:any) => {
-    this.formSaveSuccessful = false;
-    this.formSaveUnsuccessful = true;
-    this.formSaving = false;
-  });
+    }).catch((error: any) => {
+      this.formSaveSuccessful = false;
+      this.formSaveUnsuccessful = true;
+      this.formSaving = false;
+    });
   }
 }

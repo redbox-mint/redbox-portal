@@ -5,17 +5,20 @@ describe('appConfigService', function () {
     appConfigService = sails.services.appconfigservice;
   });
 
-  // it('should bootstrap successfully', async () => {
-  //   await appConfigService.bootstrap();
-  //   // Add your assertions here
-  //   expect(true).to.be.true;
-  // });
-
   it('should get the app configuration for a brand', () => {
     const brandName = 'default';
     const appConfig = appConfigService.getAppConfigurationForBrand(brandName);
     expect(appConfig.systemMessage).to.not.be.null;
   });
+
+  it('should get the app configuration by brand and key from database', async () => {
+    const brandName = 'default';
+    const branding = BrandingService.getBrand(brandName);
+    const configKey = 'systemMessage';
+    const configData = await appConfigService.getAppConfigByBrandAndKey(branding.id, configKey);
+    expect(configData.message).to.eq(undefined)
+  });
+
 
   it('should create or update a configuration', async () => {
     const brandName = 'default';
@@ -45,7 +48,7 @@ describe('appConfigService', function () {
     expect(configurations.length).to.be.greaterThan(0);
   });
 
-  it('should get the app configuration by brand and key', async () => {
+  it('should get the app configuration by brand and key from database', async () => {
     const brandName = 'default';
     const branding = BrandingService.getBrand(brandName);
     const configKey = 'systemMessage';
