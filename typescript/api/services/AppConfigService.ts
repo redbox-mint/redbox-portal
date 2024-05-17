@@ -25,6 +25,7 @@ import { ConfigModels } from '../configmodels/ConfigModels'; // Import the Confi
 import { AppConfig as AppConfigInterface } from '../configmodels/AppConfig.interface';
 import * as TJS from "typescript-json-schema";
 import { globSync } from 'glob';
+import { config } from 'node:process';
 
 declare var AppConfig;
 
@@ -41,7 +42,7 @@ export module Services {
    */
   export class AppConfigs extends services.Core.Service {
     brandingAppConfigMap: {};
-    modelSchemaMap:any = {};
+    modelSchemaMap: any = {};
 
     protected _exportedMethods: any = [
       'bootstrap',
@@ -49,7 +50,9 @@ export module Services {
       'loadAppConfigurationModel',
       'getAppConfigurationForBrand',
       'createOrUpdateConfig',
-      'getAppConfigForm'
+      'getAppConfigForm',
+      'getAppConfigByBrandAndKey',
+      'createConfig'
     ];
 
 
@@ -73,10 +76,10 @@ export module Services {
 
     }
 
-    async initAllConfigFormSchemas(): Promise<any>{
-      let configKeys:string[] = ConfigModels.getConfigKeys();
-      for(let configKey of configKeys) {
-        let modelDefinition:any = ConfigModels.getModelInfo(configKey);
+    async initAllConfigFormSchemas(): Promise<any> {
+      let configKeys: string[] = ConfigModels.getConfigKeys();
+      for (let configKey of configKeys) {
+        let modelDefinition: any = ConfigModels.getModelInfo(configKey);
         this.modelSchemaMap[modelDefinition.modelName] = this.getJsonSchema(modelDefinition);
       }
     }
@@ -87,7 +90,7 @@ export module Services {
     }
 
     public getAppConfigurationForBrand(brandName): any {
-      return _.get(this.brandingAppConfigMap, brandName, sails.config.brandingConfigurationDefaults == undefined? {} : sails.config.brandingConfigurationDefaults);
+      return _.get(this.brandingAppConfigMap, brandName, sails.config.brandingConfigurationDefaults == undefined ? {} : sails.config.brandingConfigurationDefaults);
     }
 
     public getAllConfigurationForBrand = (brandId): Promise<any> => {
@@ -97,16 +100,16 @@ export module Services {
     public async loadAppConfigurationModel(brandId): Promise<any> {
       let appConfiguration = {};
       const modelNames = ConfigModels.getConfigKeys();
-      for(let modelName of modelNames) {
+      for (let modelName of modelNames) {
         const modelClass = ConfigModels.getModelInfo(modelName).class;
         let defaultModel = new modelClass();
-         _.set(appConfiguration, modelName, defaultModel);
+        _.set(appConfiguration, modelName, defaultModel);
       }
-      
+
       // grab any default branding configuration we're overriding in config
-      _.merge(appConfiguration,sails.config.brandingConfigurationDefaults);
-      
-      
+      _.merge(appConfiguration, sails.config.brandingConfigurationDefaults);
+
+
       let appConfigItems: any[] = await this.getAllConfigurationForBrand(brandId);
       for (let appConfigItem of appConfigItems) {
         _.set(appConfiguration, appConfigItem.configKey, appConfigItem.configData);
@@ -118,37 +121,49 @@ export module Services {
       let dbConfig = await AppConfig.findOne({ branding: brandId, configKey });
       // If no config exists in the DB return the default settings
       if (dbConfig == null) {
-        return _.get(sails.config.brandingConfigurationDefaults, configKey, {})
+        let config = _.get(sails.config.brandingConfigurationDefaults, configKey, {});
+        if (_.isEmpty(config)) {
+          const modelInfo: any = ConfigModels.getConfigKeys()[configKey];
+          if (modelInfo == null) {
+            throw Error(`No config found for config key ${configKey}`);
+          }
+          const modelClass = modelInfo.class;
+          let defaultModel = new modelClass();
+          config = defaultModel;
+        }
+        return config;
       }
+      
+
       return dbConfig.configData;
     }
 
     public async createOrUpdateConfig(branding, configKey, configData): Promise<any> {
 
       let dbConfig = await AppConfig.findOne({ branding: branding.id, configKey });
-      
+
       // Create if no config exists
       if (dbConfig == null) {
         let createdRecord = await AppConfig.create({ branding: branding.id, configKey: configKey, configData: configData });
-        
-        this.refreshBrandingAppConfigMap(branding);
+
+        await this.refreshBrandingAppConfigMap(branding);
         return createdRecord.configData;
       }
 
       let updatedRecord = await AppConfig.updateOne({ branding: branding.id, configKey }).set({ configData: configData });
-      this.refreshBrandingAppConfigMap(branding);
+      await this.refreshBrandingAppConfigMap(branding);
       return updatedRecord.configData;
     }
 
     public async createConfig(brandName, configKey, configData): Promise<any> {
       let branding = BrandingService.getBrand(brandName);
       let dbConfig = await AppConfig.findOne({ branding: branding.id, configKey });
-      
+
       // Create if no config exists
       if (dbConfig == null) {
         let createdRecord = await AppConfig.create({ branding: branding.id, configKey: configKey, configData: configData });
-        
-        this.refreshBrandingAppConfigMap(branding);
+
+        await this.refreshBrandingAppConfigMap(branding);
         return createdRecord.configData;
       }
 
@@ -156,28 +171,28 @@ export module Services {
     }
 
     public async getAppConfigForm(branding, configForm): Promise<any> {
-      
+
       let appConfig = await this.getAppConfigurationForBrand(branding.name);
-      
-      let modelDefinition:any = ConfigModels.getModelInfo(configForm);
+
+      let modelDefinition: any = ConfigModels.getModelInfo(configForm);
       let model = _.get(appConfig, configForm, new modelDefinition.class());
       const jsonSchema: any = this.getJsonSchema(modelDefinition);
-      
-      let configData = {model: model, schema: jsonSchema, fieldOrder:modelDefinition.class.getFieldOrder()};
+
+      let configData = { model: model, schema: jsonSchema, fieldOrder: modelDefinition.class.getFieldOrder() };
       return configData;
     }
 
     private getJsonSchema(modelDefinition: any): any {
-      if(this.modelSchemaMap[modelDefinition.modelName] != undefined) {
+      if (this.modelSchemaMap[modelDefinition.modelName] != undefined) {
         return this.modelSchemaMap[modelDefinition.modelName];
       }
-      const wildcardPath =  `${sails.config.appPath}/typescript/api/configmodels/*.ts`;
+      const wildcardPath = `${sails.config.appPath}/typescript/api/configmodels/*.ts`;
       const filePaths = globSync(wildcardPath);
       const typeName = modelDefinition.modelName;
 
       const program = TJS.getProgramFromFiles(filePaths);
       const settings = {
-          titles: true
+        titles: true
       };
 
       // Generate the schema

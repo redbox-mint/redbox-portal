@@ -46,6 +46,8 @@ describe('AppConfigComponent', () => {
     TestBed.inject(LoggerService);
     TestBed.inject(UtilityService);
   });
-
+  it('dummy test', async () =>  {
+    expect(true).toBeTrue();
+  });
   
 });
