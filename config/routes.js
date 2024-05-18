@@ -490,6 +490,16 @@ module.exports.routes = {
     action: 'downloadRecs',
     csrf: false
   },
+  'get /:branding/:portal/api/appconfig/:appConfigId': {
+    controller: 'webservice/AppConfigController',
+    action: 'getAppConfig',
+    csrf: false
+  },
+  'post /:branding/:portal/api/appconfig/:appConfigId': {
+    controller: 'webservice/AppConfigController',
+    action: 'getAppConfig',
+    csrf: false
+  },
   'get /:branding/:portal/workspaces/types/:name': 'WorkspaceTypesController.getOne',
   'get /:branding/:portal/workspaces/types': 'WorkspaceTypesController.get'
 };
