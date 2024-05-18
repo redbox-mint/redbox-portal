@@ -35,23 +35,12 @@ import { clone as _clone } from 'lodash'
   templateUrl: './app-config.component.html'
 })
 export class AppConfigComponent extends BaseComponent {
-  // form: FormGroup = null as any;
-  // loginMessage: string = null as any;
-  // isLoginDisabled: boolean = false;
-  // loginResult:  UserLoginResult = null as any;
+
   window: any;
   form = new FormGroup({});
   model = {};
   fields: FormlyFieldConfig[] = [
-    {
-      key: 'email',
-      type: 'input',
-      props: {
-        label: 'Email address',
-        placeholder: 'Enter email',
-        required: true,
-      }
-    }
+   
   ];
   configKey: any;
   formSaving: boolean = false;
