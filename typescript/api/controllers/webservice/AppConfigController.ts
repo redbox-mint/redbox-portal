@@ -58,7 +58,7 @@ export module Controllers {
         }
         //TODO: validate post body against key?
         await AppConfigService.createOrUpdateConfig(brand,appConfigId,appConfig)
-        return this.apiRespond(req,res,200, appConfig);
+        return this.apiRespond(req,res, appConfig,200);
       } catch (error) {
         sails.log.error(error);
         return this.apiFail(req,res,500, new APIErrorResponse(error.message));

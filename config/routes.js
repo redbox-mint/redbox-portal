@@ -497,7 +497,7 @@ module.exports.routes = {
   },
   'post /:branding/:portal/api/appconfig/:appConfigId': {
     controller: 'webservice/AppConfigController',
-    action: 'getAppConfig',
+    action: 'saveAppConfig',
     csrf: false
   },
   'get /:branding/:portal/workspaces/types/:name': 'WorkspaceTypesController.getOne',
