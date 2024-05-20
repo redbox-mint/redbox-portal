@@ -84,20 +84,20 @@ export module Services {
       }
     }
 
-    private async refreshBrandingAppConfigMap(branding) {
+    private async refreshBrandingAppConfigMap(branding: any) {
       let appConfig = await this.loadAppConfigurationModel(branding.id)
       this.brandingAppConfigMap[branding.name] = appConfig;
     }
 
-    public getAppConfigurationForBrand(brandName): any {
+    public getAppConfigurationForBrand(brandName: string): any {
       return _.get(this.brandingAppConfigMap, brandName, sails.config.brandingConfigurationDefaults == undefined ? {} : sails.config.brandingConfigurationDefaults);
     }
 
-    public getAllConfigurationForBrand = (brandId): Promise<any> => {
+    public getAllConfigurationForBrand = (brandId: string): Promise<any> => {
       return AppConfig.find({ branding: brandId });
     }
 
-    public async loadAppConfigurationModel(brandId): Promise<any> {
+    public async loadAppConfigurationModel(brandId: string): Promise<any> {
       let appConfiguration = {};
       const modelNames = ConfigModels.getConfigKeys();
       for (let modelName of modelNames) {
@@ -117,7 +117,7 @@ export module Services {
       return appConfiguration;
     }
 
-    public async getAppConfigByBrandAndKey(brandId, configKey): Promise<any> {
+    public async getAppConfigByBrandAndKey(brandId: string, configKey: string): Promise<any> {
       let dbConfig = await AppConfig.findOne({ branding: brandId, configKey });
       // If no config exists in the DB return the default settings
       if (dbConfig == null) {
@@ -133,12 +133,12 @@ export module Services {
         }
         return config;
       }
-      
+
 
       return dbConfig.configData;
     }
 
-    public async createOrUpdateConfig(branding, configKey, configData): Promise<any> {
+    public async createOrUpdateConfig(branding: any, configKey: string, configData: string): Promise<any> {
 
       let dbConfig = await AppConfig.findOne({ branding: branding.id, configKey });
 
@@ -155,7 +155,7 @@ export module Services {
       return updatedRecord.configData;
     }
 
-    public async createConfig(brandName, configKey, configData): Promise<any> {
+    public async createConfig(brandName: string, configKey: string, configData: string): Promise<any> {
       let branding = BrandingService.getBrand(brandName);
       let dbConfig = await AppConfig.findOne({ branding: branding.id, configKey });
 
@@ -170,7 +170,7 @@ export module Services {
       throw Error(`Config with key ${configKey} for branding ${brandName} already exists`)
     }
 
-    public async getAppConfigForm(branding, configForm): Promise<any> {
+    public async getAppConfigForm(branding: any, configForm: string): Promise<any> {
 
       let appConfig = await this.getAppConfigurationForBrand(branding.name);
 
