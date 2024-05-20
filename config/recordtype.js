@@ -179,6 +179,7 @@ module.exports.recordtype = {
   },
   "dataRecord": {
     "packageType": "dataRecord",
+    searchCore: "dataRecord",
     labels: {
       name: "Record",
       namePlural: "Records"
