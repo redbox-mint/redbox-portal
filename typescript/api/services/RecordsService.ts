@@ -143,8 +143,44 @@ export module Services {
       'exists'
     ];
 
+    protected initRecordMetaMetadata(brandId: string, username: string, recordType: any, metaMetadataWorkflowStep: any, form: any, dateCreated: string): any {
+      
+      let metaMetadata = {};
+      if (recordType.packageType) {
+        _.set(metaMetadata,'packageType',recordType.packageType);
+      }
 
+      if (recordType.packageName) {
+        _.set(metaMetadata,'packageName',recordType.packageName);
+      }
+      _.set(metaMetadata,'brandId',brandId);
+      _.set(metaMetadata,'createdBy',username);
+      _.set(metaMetadata,'type',recordType.name);
+      _.set(metaMetadata,'searchCore',recordType.searchCore);
+
+      if(!_.isEmpty(dateCreated)) {
+        _.set(metaMetadata,'createdOn',dateCreated);
+        _.set(metaMetadata,'lastSaveDate',dateCreated);
+      }
+
+      _.set(metaMetadata,'form', _.get(metaMetadataWorkflowStep,'config.form'));
+
+      _.set(metaMetadata,'attachmentFields', form.attachmentFields);
+
+      return metaMetadata;
+    }
+    
     async create(brand: any, record: any, recordType: any, user ? : any, triggerPreSaveTriggers = true, triggerPostSaveTriggers = true) {
+
+      let wfStep = await WorkflowStepsService.getFirst(recordType).toPromise();
+
+      let formName = _.get(wfStep,'config.form');
+      let form = await FormsService.getFormByName(formName, true).toPromise();
+
+      let metaMetadata = this.initRecordMetaMetadata(brand.id, user.username, recordType, wfStep, form, moment().format());
+
+      _.set(record,'metaMetadata',metaMetadata);
+
       let createResponse = new StorageServiceResponse();
       const failedMessage = "Failed to created record, please check server logs.";
       // trigger the pre-save

@@ -79,10 +79,17 @@ export module Services {
     }
 
     public create(brand, name, config) {
+      
+      let searchCore = 'default';
+      if(config.searchCore) {
+        searchCore = config.searchCore;
+      }
+
       return super.getObservable(RecordType.create({
         name: name,
         branding: brand.id,
         packageType: config.packageType,
+        searchCore: searchCore,
         searchFilters: config.searchFilters,
         hooks: config.hooks,
         transferResponsibility: config.transferResponsibility,

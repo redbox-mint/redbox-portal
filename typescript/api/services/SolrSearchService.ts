@@ -70,8 +70,8 @@ export module Services {
       flat = await import("flat");
     }
 
-    protected initClient() {
-      this.client = solr.createClient(sails.config.solr.options);
+    protected initClient() { //TODO check if these properties are going to be different by core???
+      this.client = solr.createClient(sails.config.solr.cores.default.options);
       this.client.autoCommit = true;
       this.baseUrl = this.getBaseUrl();
       this.client.promiseAdd = util.promisify(this.client.add);
@@ -80,41 +80,51 @@ export module Services {
     }
 
     protected async buildSchema() {
-      const coreName = sails.config.solr.options.core;
-      // wait for SOLR to start up
-      await this.waitForSolr();
-      // check if the schema is built....
-      try {
-        const flagName = sails.config.solr.initSchemaFlag.name;
-        const schemaInitFlag = await this.getSchemaEntry(coreName, 'fields', flagName);
-        if (!_.isEmpty(schemaInitFlag)) {
-          sails.log.verbose(`${this.logHeader} Schema flag found: ${flagName}. Schema is already initialised, skipping build.`);
-          return;
+
+      let coreNameKeys = Object.keys(sails.config.solr.cores);
+
+      for(let coreNameKey of coreNameKeys) {
+
+        let coreNameKeyPath = coreNameKey+'.options.core';
+
+        const coreName = _.get(sails.config.solr.cores,coreNameKeyPath);
+
+        // wait for SOLR to start up
+        await this.waitForSolr(coreName);
+        // check if the schema is built....
+        try {
+          const flagName = sails.config.solr.initSchemaFlag.name;
+          const schemaInitFlag = await this.getSchemaEntry(coreName, 'fields', flagName);
+          if (!_.isEmpty(schemaInitFlag)) {
+            sails.log.verbose(`${this.logHeader} Schema flag found: ${flagName}. Schema is already initialised, skipping build.`);
+            return;
+          }
+        } catch (err) {
+          sails.log.verbose(JSON.stringify(err));
         }
-      } catch (err) {
-        sails.log.verbose(JSON.stringify(err));
-      }
-      sails.log.verbose(`${this.logHeader} Schema not initialised, building schema...`)
-      const schemaUrl = `${this.baseUrl}${coreName}/schema`;
-      try {
-        const schemaDef = sails.config.solr.schema;
-        if (_.isEmpty(schemaDef)) {
-          sails.log.verbose(`${this.logHeader} Schema definition empty, skipping build.`);
-          return;
+        sails.log.verbose(`${this.logHeader} Schema not initialised, building schema...`)
+        const schemaUrl = `${this.baseUrl}${coreName}/schema`;
+        try {
+          const schemaDef = sails.config.solr.schema;
+          if (_.isEmpty(schemaDef)) {
+            sails.log.verbose(`${this.logHeader} Schema definition empty, skipping build.`);
+            return;
+          }
+          // append the init flag
+          if (_.isEmpty(schemaDef['add-field'])) {
+            schemaDef['add-field'] = [];
+          }
+          schemaDef['add-field'].push(sails.config.solr.initSchemaFlag);
+          sails.log.verbose(`${this.logHeader} sending schema definition:`);
+          sails.log.verbose(JSON.stringify(schemaDef));
+          const response = await axios.post(schemaUrl,schemaDef).then(response => response.data);
+          sails.log.verbose(`${this.logHeader} Schema build successful, response: `);
+          sails.log.verbose(JSON.stringify(response));
+        } catch (err) {
+          sails.log.error(`${this.logHeader} Failed to build SOLR schema:`);
+          sails.log.error(JSON.stringify(err));
         }
-        // append the init flag
-        if (_.isEmpty(schemaDef['add-field'])) {
-          schemaDef['add-field'] = [];
-        }
-        schemaDef['add-field'].push(sails.config.solr.initSchemaFlag);
-        sails.log.verbose(`${this.logHeader} sending schema definition:`);
-        sails.log.verbose(JSON.stringify(schemaDef));
-        const response = await axios.post(schemaUrl,schemaDef).then(response => response.data);
-        sails.log.verbose(`${this.logHeader} Schema build successful, response: `);
-        sails.log.verbose(JSON.stringify(response));
-      } catch (err) {
-        sails.log.error(`${this.logHeader} Failed to build SOLR schema:`);
-        sails.log.error(JSON.stringify(err));
+
       }
     }
 
@@ -128,10 +138,9 @@ export module Services {
       return await axios.get(schemaUrl).then(response => response.data);
     }
 
-    private async waitForSolr() {
+    private async waitForSolr(coreName: string) {
       let solrUp = false;
       let tryCtr = 0;
-      const coreName = sails.config.solr.options.core;
       const urlCheck = `${this.baseUrl}admin/cores?action=STATUS&core=${coreName}`;
       while (!solrUp && tryCtr <= sails.config.solr.maxWaitTries) {
         try {
@@ -158,8 +167,9 @@ export module Services {
       }
     }
 
+    //TODO check if these properties are going to be different by core???
     private getBaseUrl(): string {
-      return `${sails.config.solr.options.https ? 'https' : 'http'}://${sails.config.solr.options.host}:${sails.config.solr.options.port}/solr/`;
+      return `${sails.config.solr.cores.default.options.https ? 'https' : 'http'}://${sails.config.solr.cores.default.options.host}:${sails.config.solr.cores.default.options.port}/solr/`;
     }
 
     public index(id: string, data: any) {
@@ -178,18 +188,17 @@ export module Services {
       this.queueService.now(sails.config.solr.deleteJobName, data);
     }
 
-    public async searchAdvanced(query): Promise<any> {
-      const coreName = sails.config.solr.options.core;
+    public async searchAdvanced(type: string, query: string): Promise<any> {
+      const coreName = _.get(sails.config.solr.cores,type+'.options.core',_.get(sails.config.solr.cores,'default.options.core'));
       let url = `${this.baseUrl}${coreName}/select?q=${query}`;
       sails.log.verbose(`Searching advanced using: ${url}`);
       const response = await axios.get(url).then(response => response.data);
       return response;
     }
 
-    public async searchFuzzy(type, workflowState, searchQuery, exactSearches, facetSearches, brand, user, roles, returnFields, start=0, rows=10): Promise<any> {
+    public async searchFuzzy(type: string, workflowState: string, searchQuery: string, exactSearches, facetSearches, brand, user, roles, returnFields, start=0, rows=10): Promise<any> {
       const username = user.username;
-      const coreName = sails.config.solr.options.core;
-      // const url = `${this.getSearchTypeUrl(type, searchField, searchStr)}&start=0&rows=${sails.config.record.export.maxRecords}`;
+      const coreName = _.get(sails.config.solr.cores,type+'.options.core',_.get(sails.config.solr.cores,'default.options.core'));
       let searchParam = workflowState ? ` AND workflow_stage:${workflowState} ` : '';
       searchParam = `${searchParam} AND full_text:${searchQuery}`;
       _.forEach(exactSearches, (exactSearch) => {

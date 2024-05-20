@@ -401,6 +401,7 @@ export module Controllers {
       const recordType = req.param('recordType');
       const user = req.user;
       const body = req.body;
+      let that = this;
       if (body != null) {
         var authorizationEdit, authorizationView, authorizationEditPending, authorizationViewPending;
         if (body["authorization"] != null) {
@@ -423,69 +424,34 @@ export module Controllers {
             var metadata = body["metadata"];
             var workflowStage = body["workflowStage"];
             var request = {};
-            var metaMetadata = {};
-            metaMetadata["brandId"] = brand.id;
-            metaMetadata["type"] = recordTypeModel.name;
-            metaMetadata["packageName"] = recordTypeModel.packageName;
-            metaMetadata["packageType"] = recordTypeModel.packageType;
-
-            // Resolves #723: removed hardcoded value
-            metaMetadata["createdBy"] = req.user.username;
-            request["metaMetadata"] = metaMetadata;
+            
             //if no metadata field, no authorization
             if (metadata == null) {
               request["metadata"] = body;
             } else {
               request["metadata"] = metadata;
-              // Adding custom metaMetadata values when specifying the metadata block
-              if (!_.isEmpty(body["metaMetadata"])) {
-                _.merge(metaMetadata, body["metaMetadata"]);
-              }
             }
+            let createPromise = this.RecordsService.create(brand, request, recordTypeModel, user);
 
-            // FormsService
-            var workflowStepsObs = WorkflowStepsService.getAllForRecordType(recordTypeModel);
+            var obs = Observable.fromPromise(createPromise);
+            obs.subscribe(response => {
+              if (response.isSuccessful()) {
 
-            workflowStepsObs.subscribe(workflowSteps => {
-              _.each(workflowSteps, function (workflowStep) {
-                // If no workflowStage set, find the starting step
-                if (workflowStage == null) {
-                  if (workflowStep["starting"] == true) {
-                    request["workflow"] = workflowStep["config"]["workflow"];
-                    request["authorization"] = workflowStep["config"]["authorization"];
-                    request["authorization"]["view"] = authorizationView;
-                    request["authorization"]["edit"] = authorizationEdit;
-                    request["authorization"]["viewPending"] = authorizationViewPending;
-                    request["authorization"]["editPending"] = authorizationEditPending;
-                    metaMetadata["form"] = workflowStep["config"]["form"];
-                  }
-                } else {
-                  if (workflowStep["name"] == workflowStage) {
-                    request["workflow"] = workflowStep["config"]["workflow"];
-                    request["authorization"] = workflowStep["config"]["authorization"];
-                    request["authorization"]["view"] = authorizationView;
-                    request["authorization"]["edit"] = authorizationEdit;
-                    request["authorization"]["viewPending"] = authorizationViewPending;
-                    request["authorization"]["editPending"] = authorizationEditPending;
-                    metaMetadata["form"] = workflowStep["config"]["form"];
-                  }
+                if(workflowStage) {
+                  WorkflowStepsService.get(recordTypeModel.name, workflowStage).subscribe(wfStep  => {
+                    that.RecordsService.updateWorkflowStep(request, wfStep);
+                  });
                 }
 
-              });
-              let createPromise = this.RecordsService.create(brand, request, recordTypeModel, user)
-              var obs = Observable.fromPromise(createPromise);
-              obs.subscribe(response => {
-                if (response.isSuccessful()) {
-                  res.set('Location', sails.config.appUrl + BrandingService.getBrandAndPortalPath(req) + "/api/records/metadata/" + response.oid);
-                  this.apiRespond(req, res, response, 201);
-                } else {
-                  return this.apiFailWrapper(req, res, 500, null, null,
-                      "Create Record failed");
-                }
-              }, error => {
-                return this.apiFailWrapper(req, res, 500, null, error,
+                res.set('Location', sails.config.appUrl + BrandingService.getBrandAndPortalPath(req) + "/api/records/metadata/" + response.oid);
+                this.apiRespond(req, res, response, 201);
+              } else {
+                return this.apiFailWrapper(req, res, 500, null, null,
                     "Create Record failed");
-              });
+              }
+            }, error => {
+              return this.apiFailWrapper(req, res, 500, null, error,
+                  "Create Record failed");
             });
 
           } else {
@@ -1207,43 +1173,15 @@ export module Controllers {
         request["metadata"] = body;
       } else {
         request["metadata"] = metadata;
-        // Adding custom metaMetadata values when specifying the metadata block
-        if (!_.isEmpty(body["metaMetadata"])) {
-          _.merge(metaMetadata, body["metaMetadata"]);
-        }
-      }
-
-      // FormsService
-      let workflowSteps = await WorkflowStepsService.getAllForRecordType(recordTypeModel).toPromise();
-
-
-      for (let workflowStep of workflowSteps) {
-        // If no workflowStage set, find the starting step
-        if (workflowStage == null) {
-          if (workflowStep["starting"] == true) {
-            request["workflow"] = workflowStep["config"]["workflow"];
-            request["authorization"] = workflowStep["config"]["authorization"];
-            request["authorization"]["view"] = authorizationView;
-            request["authorization"]["edit"] = authorizationEdit;
-            request["authorization"]["viewPending"] = authorizationViewPending;
-            request["authorization"]["editPending"] = authorizationEditPending;
-            metaMetadata["form"] = workflowStep["config"]["form"];
-          }
-        } else {
-          if (workflowStep["name"] == workflowStage) {
-            request["workflow"] = workflowStep["config"]["workflow"];
-            request["authorization"] = workflowStep["config"]["authorization"];
-            request["authorization"]["view"] = authorizationView;
-            request["authorization"]["edit"] = authorizationEdit;
-            request["authorization"]["viewPending"] = authorizationViewPending;
-            request["authorization"]["editPending"] = authorizationEditPending;
-            metaMetadata["form"] = workflowStep["config"]["form"];
-          }
-        }
       }
 
       try {
         let response = await this.RecordsService.create(brand, request, recordTypeModel, user)
+
+        if(workflowStage) {
+          let wfStep = await WorkflowStepsService.get(recordTypeModel.name, workflowStage).toPromise();
+          this.RecordsService.updateWorkflowStep(request, wfStep);
+        }
 
         if (response.isSuccessful()) {
           return new APIHarvestResponse(harvestId, response.oid, true, `Record created successfully`);

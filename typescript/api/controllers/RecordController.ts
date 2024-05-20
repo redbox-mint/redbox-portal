@@ -326,30 +326,20 @@ export module Controllers {
         view: [req.user.username],
         edit: [req.user.username]
       };
-      record.metaMetadata.brandId = brand.id;
-      record.metaMetadata.createdBy = req.user.username;
-      record.metaMetadata.createdOn = moment().format();
-      record.metaMetadata.lastSaveDate = record.metaMetadata.createdOn;
-      //TODO: This is currently hardcoded
-      record.metaMetadata.type = recType;
       record.metadata = metadata;
 
       let recordType = await RecordTypesService.get(brand, recType).toPromise();
+      
 
-      if (recordType.packageType) {
-        record.metaMetadata.packageType = recordType.packageType;
-      }
-
-      if (recordType.packageName) {
-        record.metaMetadata.packageName = recordType.packageName;
-      }
-      let wfStep = await WorkflowStepsService.getFirst(recordType).toPromise();
-      if (targetStep) {
-        wfStep = await WorkflowStepsService.get(recType, targetStep).toPromise();
-      }
+      
       try {
-        this.recordsService.updateWorkflowStep(record, wfStep);
         return this.createRecord(record, brand, recordType, req, res);
+
+        if (targetStep) {
+          let wfStep = await WorkflowStepsService.get(recType, targetStep).toPromise();
+          this.recordsService.updateWorkflowStep(record, wfStep);
+        }
+        
       } catch (error) {
         const msg = this.getErrorMessage(error, `Failed to save record: ${error}`);
         this.ajaxFail(req, res, msg);
@@ -359,14 +349,10 @@ export module Controllers {
 
     private async createRecord(record, brand, recordType, req, res) {
       const user = req.user;
-      let formDef = null;
       let oid = null;
       const fieldsToCheck = ['location', 'uploadUrl'];
-      let form = await FormsService.getFormByName(record.metaMetadata.form, true).toPromise();
 
       sails.log.verbose(`RecordController - createRecord - enter`);
-      formDef = form;
-      record.metaMetadata.attachmentFields = form.attachmentFields;
       let updateResponse = await this.recordsService.create(brand, record, recordType, user);
 
       if (updateResponse && _.isFunction(updateResponse.isSuccessful) && updateResponse.isSuccessful()) {
