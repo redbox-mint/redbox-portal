@@ -1,0 +1,31 @@
+meta {
+  name: Logout Researcher User
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{host}}/default/rdmp/user/logout
+  body: none
+  auth: none
+}
+
+headers {
+  Connection: keep-alive
+  Pragma: no-cache
+  Cache-Control: no-cache
+  Upgrade-Insecure-Requests: 1
+  User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.102 Safari/537.36
+  Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8
+  Referer: {{host}}/default/rdmp/researcher/home
+  Accept-Encoding: gzip, deflate, br
+  Accept-Language: en-US,en;q=0.9,en-AU;q=0.8,it;q=0.7
+  Cookie: {{cookie}}
+}
+
+tests {
+  test("Status code is 200", function () {
+      expect(res.getStatus()).to.equal(200);
+  });
+  
+}

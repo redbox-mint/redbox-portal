@@ -1,0 +1,41 @@
+meta {
+  name: List Attachments for Datarecord
+  type: http
+  seq: 19
+}
+
+put {
+  url: {{host}}/default/rdmp/api/records/datastreams/{{attDataRecordOid}}
+  body: none
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+  Authorization: Bearer {{token}}
+}
+
+tests {
+  //Replacement for lodash not being in bruno by default
+  function size(collection) {
+      if (collection == null) {
+          return 0;
+      }
+      if (Array.isArray(collection) || typeof collection === 'string') {
+          return collection.length;
+      }
+      if (typeof collection === 'object') {
+          return Object.keys(collection).length;
+      }
+      return 0; // return zero if none of the above conditions apply
+  }
+  
+  test("Status code is 200", function () {
+      expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("Has attachments", function () {
+      var jsonData = res.getBody();
+      expect(size(jsonData)).to.gt(0);
+  });
+}

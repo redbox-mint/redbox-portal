@@ -1,0 +1,42 @@
+meta {
+  name: Search Index
+  type: http
+  seq: 31
+}
+
+get {
+  url: {{host}}/default/rdmp/record/search/rdmp/?searchStr=Andrew&facetNames=grant_number_name,finalKeywords,workflow_stageLabel
+  body: none
+  auth: none
+}
+
+query {
+  searchStr: Andrew
+  facetNames: grant_number_name,finalKeywords,workflow_stageLabel
+}
+
+headers {
+  Pragma: no-cache
+  Accept-Encoding: gzip, deflate, br
+  X-CSRF-Token: 
+  Accept-Language: en-US,en;q=0.9,en-AU;q=0.8,it;q=0.7
+  User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.102 Safari/537.36
+  Content-Type: application/json;charset=utf-8
+  Accept: application/json, text/plain, */*
+  Connection: keep-alive
+  Referer: {{host}}/default/rdmp/record/search?q=Record
+  Cookie: {{cookie}}
+  X-Source: jsclient
+  Cache-Control: no-cache
+}
+
+tests {
+  test("Status code is 200", function () {
+      expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("Has record array", function () {
+      var jsonData = res.getBody();
+      expect(jsonData).to.have.property("records");
+  });
+}

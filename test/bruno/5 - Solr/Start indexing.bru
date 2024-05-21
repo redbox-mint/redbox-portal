@@ -1,0 +1,35 @@
+meta {
+  name: Start indexing
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{solrhost}}/solr/redbox/update/json?wt=json&add=[8d95849003df11ed8b078341db3bde98 (1738385794638282752)]
+  body: none
+  auth: none
+}
+
+query {
+  wt: json
+  add: [8d95849003df11ed8b078341db3bde98 (1738385794638282752)]
+}
+
+script:pre-request {
+  setTimeout(function(){},30000)
+}
+
+tests {
+  test("Solr HTTP status code is 200", function () {
+      expect(res.getStatus()).to.equal(200);
+  });
+  
+  // test("Solr reports no error", function () {
+  //     pm.expect(pm.response.stream.toString()).to.include('"status":0')
+  // });
+  
+  // test("Solr reports Query Time", function () {
+  //     pm.expect(pm.response.stream.toString()).to.include('"QTime":')
+  // });
+  
+}

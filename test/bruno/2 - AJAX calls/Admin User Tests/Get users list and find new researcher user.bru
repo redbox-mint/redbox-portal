@@ -1,0 +1,54 @@
+meta {
+  name: Get users list and find new researcher user
+  type: http
+  seq: 12
+}
+
+get {
+  url: {{host}}/default/rdmp/admin/users/get
+  body: none
+  auth: none
+}
+
+headers {
+  Pragma: no-cache
+  Accept-Encoding: gzip, deflate, br
+  X-CSRF-Token: 
+  Accept-Language: en-US,en;q=0.9,en-AU;q=0.8,it;q=0.7
+  User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.102 Safari/537.36
+  Content-Type: application/json;charset=utf-8
+  Accept: application/json, text/plain, */*
+  Connection: keep-alive
+  Referer: http://localhost:1500/default/rdmp/admin/users
+  Cookie: {{cookie}}
+  X-Source: jsclient
+  Cache-Control: no-cache
+}
+
+tests {
+  test("Status code is 200", function () {
+      expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("Check response is an array", function () {
+      var jsonData = res.getBody();
+      expect(jsonData).to.be.an.instanceof(Array);
+  });
+  
+  test("Check researcheruser is in the array", function () {
+      var jsonData = res.getBody();
+      var found = false;
+      for(var i=0; i< jsonData.length; i++) {
+          if(jsonData[i].username.startsWith("researcheruser")) {
+              found = true;
+              bru.setEnvVar("researcherUserId", jsonData[i].id);
+              break;
+          }
+      }
+      expect(found).to.eq(true);
+      
+  });
+  
+  
+  
+}

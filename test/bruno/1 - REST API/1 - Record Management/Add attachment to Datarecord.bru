@@ -1,0 +1,29 @@
+meta {
+  name: Add attachment to Datarecord
+  type: http
+  seq: 18
+}
+
+post {
+  url: {{host}}/default/rdmp/api/records/datastreams/{{attDataRecordOid}}
+  body: multipartForm
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+  ~Content-Type: application/json
+}
+
+body:multipart-form {
+  attachmentFields: undefined
+  ~dataLocations: 
+}
+
+tests {
+  
+  test("Status code is 200", function () {
+      expect(res.getStatus()).to.equal(200);
+  });
+  
+}

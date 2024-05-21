@@ -1,0 +1,14 @@
+{
+  "version": "1",
+  "name": "Redbox Portal API - With tests",
+  "type": "collection",
+  "ignore": [
+    "node_modules",
+    ".git"
+  ],
+  "scripts": {
+    "filesystemAccess": {
+        "allow": true
+    }
+  }
+}

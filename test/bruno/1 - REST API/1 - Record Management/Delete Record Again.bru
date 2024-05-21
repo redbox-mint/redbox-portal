@@ -1,0 +1,27 @@
+meta {
+  name: Delete Record Again
+  type: http
+  seq: 15
+}
+
+delete {
+  url: {{host}}/default/rdmp/api/records/metadata/{{dmpOidToDelete}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+tests {
+  test("Status code is 200", function () {
+      expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("Success is set and is true", function () {
+      var jsonData = res.getBody();
+      expect(jsonData).to.have.property('success');
+      expect(jsonData.success).to.eql(true);
+  });
+}

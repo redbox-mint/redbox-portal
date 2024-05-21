@@ -1,0 +1,39 @@
+meta {
+  name: First Phase of attachment upload
+  type: http
+  seq: 21
+}
+
+post {
+  url: {{host}}/default/rdmp/record/{{dataRecordOid}}/attach
+  body: none
+  auth: none
+}
+
+headers {
+  Upload-Length: 194397
+  Origin: {{host}}
+  Accept-Encoding: gzip, deflate, br
+  X-CSRF-Token: 
+  Accept-Language: en-US,en;q=0.9,en-AU;q=0.8,it;q=0.7
+  Tus-Resumable: 1.0.0
+  Cookie: {{cookie}}
+  Connection: keep-alive
+  Content-Length: 0
+  Upload-Metadata: name U2NyZWVuIFNob3QgMjAxOC0xMS0yNiBhdCAyLjM0LjI2IHBtLnBuZw==,type aW1hZ2UvcG5n
+  Pragma: no-cache
+  User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.102 Safari/537.36
+  Accept: */*
+  Cache-Control: no-cache
+  Content-Type: application/x-www-form-urlencoded
+}
+
+tests {
+  test("Status code is 201", function () {
+      expect(res.getStatus()).to.equal(201);
+  
+    let location = res.headers.location;
+      bru.setEnvVar("attachmentLocation", location );
+      bru.setEnvVar("attachmentId", location.split("/")[8] );
+  });
+}

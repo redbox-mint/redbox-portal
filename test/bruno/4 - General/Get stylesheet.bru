@@ -1,0 +1,26 @@
+meta {
+  name: Get stylesheet
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{host}}/default/rdmp/styles/style.min.css
+  body: none
+  auth: none
+}
+
+script:pre-request {
+  setTimeout(function(){},30000)
+}
+
+tests {
+  test("Status code is 200", function () {
+      expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("Has valid content", function () {
+      expect(res.getBody()).to.match(/@charset "UTF-8"/s)
+  });
+  
+}

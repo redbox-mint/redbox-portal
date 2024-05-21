@@ -1,0 +1,26 @@
+meta {
+  name: Delete the created data record
+  type: http
+  seq: 33
+}
+
+delete {
+  url: {{host}}/default/rdmp/record/delete/{{dataRecordOid}}
+  body: none
+  auth: none
+}
+
+headers {
+  Pragma: no-cache
+  Origin: {{host}}
+  Accept-Encoding: gzip, deflate, br
+  Accept-Language: en-US,en;q=0.9,en-AU;q=0.8,it;q=0.7
+  User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.102 Safari/537.36
+  Content-Type: application/json;charset=utf-8
+  Accept: application/json, text/plain, */*
+  Connection: keep-alive
+  Referer: http://localhost:1500/default/rdmp/record/edit/ee3a12b7a95dd42619ebe16ecd2461f9
+  Cookie: {{cookie}}
+  X-Source: jsclient
+  Cache-Control: no-cache
+}

@@ -1,0 +1,224 @@
+meta {
+  name: Update data publication after in review
+  type: http
+  seq: 6
+}
+
+put {
+  url: {{host}}/default/rdmp/recordmeta/{{dataPublicationOid}}
+  body: json
+  auth: none
+}
+
+headers {
+  Pragma: no-cache
+  Origin: http://localhost:1500
+  Accept-Encoding: gzip, deflate, br
+  Accept-Language: en-US,en;q=0.9,en-AU;q=0.8,it;q=0.7
+  User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.102 Safari/537.36
+  X-Source: jsclient
+  Content-Type: application/json;charset=UTF-8
+  Accept: application/json, text/plain, */*
+  Cache-Control: no-cache
+  Referer: http://localhost:1500/default/rdmp/record/edit/{{dmpOid}}
+  Connection: keep-alive
+  Cookie: {{cookie}}
+}
+
+body:json {
+  {
+      "parameterRetriever": "",
+      "dataRecordGetter": "",
+      "": {},
+      "dataRecord": {
+          "oid": "{{dataRecordOid}}",
+          "title": "A Data record"
+      },
+      "title": "A Data record - changed",
+      "description": "Data record",
+      "datatype": "collection",
+      "finalKeywords": [
+          "270199",
+          "Golgi apparatus",
+          "endocytosis",
+          "membrane transport",
+          "protein trafficking",
+          "secretion",
+          "HIV-AIDS",
+          "bacterial pathogen",
+          "hormone secretion",
+          "immune development",
+          "lysosomal storage disorder"
+      ],
+      "foaf:fundedBy_foaf:Agent": [
+          {}
+      ],
+      "foaf:fundedBy_vivo:Grant": [
+          {}
+      ],
+      "dc:subject_anzsrc:for": [
+          {
+              "name": "01 - MATHEMATICAL SCIENCES",
+              "label": "MATHEMATICAL SCIENCES",
+              "notation": "01"
+          }
+      ],
+      "dc:subject_anzsrc:seo": [],
+      "startDate": "",
+      "endDate": "",
+      "timePeriod": "",
+      "geolocations": [
+          ""
+      ],
+      "geospatial": {},
+      "accessRightsToggle": "",
+      "dataLocations": [
+          {
+              "type": "attachment",
+              "location": "b869b4fae83a1f01082465d165d868a8/attach/d3de61376e5bc93c814607ee604ebac5",
+              "mimeType": "image/png",
+              "name": "Screen Shot 2018-11-26 at 3.39.48 pm.png",
+              "fileId": "d3de61376e5bc93c814607ee604ebac5",
+              "uploadUrl": "http://localhost:1500/default/rdmp/record/b869b4fae83a1f01082465d165d868a8/attach/d3de61376e5bc93c814607ee604ebac5",
+              "selected": true
+          }
+      ],
+      "dataLicensingAccess_manager": "Prof Paul Gleeson",
+      "dc:accessRights": "Open",
+      "accessRights_url": "",
+      "related_publications": [
+          {
+              "related_title": "",
+              "related_url": "",
+              "related_notes": ""
+          }
+      ],
+      "related_websites": [
+          {
+              "related_title": "",
+              "related_url": "",
+              "related_notes": ""
+          }
+      ],
+      "related_metadata": [
+          {
+              "related_title": "",
+              "related_url": "",
+              "related_notes": ""
+          }
+      ],
+      "related_data": [
+          {
+              "related_title": "",
+              "related_url": "",
+              "related_notes": ""
+          }
+      ],
+      "related_services": [
+          {
+              "related_title": "",
+              "related_url": "",
+              "related_notes": ""
+          }
+      ],
+      "license_identifier": "",
+      "license_notes": "",
+      "license_other_url": "",
+      "license_statement": "Copyright ReDBox Research Data 2018",
+      "license_statement_url": "",
+      "citation_doi": "",
+      "requestIdentifier": [],
+      "citation_title": "A Data Record",
+      "creators": [
+          {
+              "text_full_name": "Alberto Zweinstein",
+              "email": "alberto.zweinstein@example.edu.au",
+              "role": "Chief Investigator",
+              "username": "",
+              "orcid": "",
+              "family_name": "Zweinstein",
+              "given_name": "Alberto"
+          },
+          {
+              "text_full_name": "Prof Paul Gleeson",
+              "email": "notAReal@email.edu.au",
+              "role": "Data manager",
+              "username": "",
+              "orcid": "http://orcid.org/0000-0000-0000-000",
+              "family_name": "Paul Gleeson",
+              "given_name": "Prof"
+          },
+          {
+              "text_full_name": "Prof Paul Gleeson",
+              "email": "notAReal@email.edu.au",
+              "role": "Contributors",
+              "username": "",
+              "orcid": "http://orcid.org/0000-0000-0000-000",
+              "family_name": "Paul Gleeson",
+              "given_name": "Prof"
+          },
+          {
+              "text_full_name": null,
+              "email": null,
+              "role": "Supervisor",
+              "username": "",
+              "orcid": "",
+              "family_name": "",
+              "given_name": ""
+          }
+      ],
+      "citation_publisher": "ReDBox Research Data",
+      "citation_url": "",
+      "citation_publication_date": "",
+      "citation_generated": "Zweinstein, Alberto; Paul Gleeson, Prof; Paul Gleeson, Prof (Invalid date): A Data Record. ReDBox Research Data. {ID_WILL_BE_HERE}",
+      "dataowner_name": "Alberto Zweinstein",
+      "dataowner_email": "alberto.zweinstein@example.edu.au",
+      "contributor_ci": {
+          "text_full_name": "Alberto Zweinstein",
+          "full_name_honorific": "Dr Alberto Zweinstein",
+          "email": "alberto.zweinstein@example.edu.au",
+          "given_name": "Alberto",
+          "family_name": "Zweinstein",
+          "honorific": "Dr",
+          "full_name_family_name_first": "Zweinstein, Alberto",
+          "username": "",
+          "role": "Chief Investigator"
+      },
+      "contributor_data_manager": {
+          "text_full_name": "Prof Paul Gleeson",
+          "full_name_honorific": "",
+          "email": "notAReal@email.edu.au",
+          "given_name": "Prof",
+          "family_name": "Paul Gleeson",
+          "honorific": "",
+          "full_name_family_name_first": "Paul Gleeson, Prof",
+          "username": "",
+          "role": "Data manager",
+          "orcid": "http://orcid.org/0000-0000-0000-000"
+      },
+      "contributor_supervisor": {
+          "text_full_name": "",
+          "full_name_honorific": "",
+          "email": "",
+          "given_name": "",
+          "family_name": "",
+          "honorific": "",
+          "full_name_family_name_first": "",
+          "username": "",
+          "role": "Supervisor"
+      },
+      "embargoByDate": "",
+      "embargoUntil": null,
+      "embargoNote": "",
+      "reviewerNote": "",
+      "ckanLocation": ""
+  }
+}
+
+tests {
+  //Record is now in review so the researcher should no longer be able to edit the record
+  test("Status code is 403", function () {
+      expect(res.getStatus()).to.equal(403);
+  });
+  
+}

@@ -1,0 +1,151 @@
+meta {
+  name: Save attachment on Data Record
+  type: http
+  seq: 23
+}
+
+put {
+  url: {{host}}/default/rdmp/recordmeta/{{dataRecordOid}}
+  body: json
+  auth: none
+}
+
+headers {
+  Pragma: no-cache
+  Origin: {{host}}
+  Accept-Encoding: gzip, deflate, br
+  X-CSRF-Token: 
+  Accept-Language: en-US,en;q=0.9,en-AU;q=0.8,it;q=0.7
+  User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.102 Safari/537.36
+  X-Source: jsclient
+  Content-Type: application/json;charset=UTF-8
+  Accept: application/json, text/plain, */*
+  Cache-Control: no-cache
+  Referer: {{host}}/default/rdmp/record/edit/{{dataRecordOid}}
+  Cookie: {{cookie}}
+  Connection: keep-alive
+}
+
+body:json {
+  {
+      "parameterRetriever": "",
+      "rdmpGetter": "",
+      "": {},
+      "rdmp": {
+          "oid": "{{dmpOid}}",
+          "title": "Andrew's Postman test - Updated from form AJAX call"
+      },
+      "aim_project_name": "Andrew's Postman test - Updated from form AJAX call",
+      "foaf:fundedBy_foaf:Agent": [
+          ""
+      ],
+      "dc:coverage_vivo:DateTimeInterval_vivo:end": "",
+      "foaf:fundedBy_vivo:Grant": [
+          ""
+      ],
+      "dc:subject_anzsrc:for": [
+          {
+              "name": "01 - MATHEMATICAL SCIENCES",
+              "label": "MATHEMATICAL SCIENCES",
+              "notation": "01"
+          }
+      ],
+      "dc:subject_anzsrc:seo": [],
+      "title": "A Data record",
+      "description": "Data record",
+      "datatype": "collection",
+      "finalKeywords": [
+          "270199",
+          "Golgi apparatus",
+          "endocytosis",
+          "membrane transport",
+          "protein trafficking",
+          "secretion",
+          "HIV-AIDS",
+          "bacterial pathogen",
+          "hormone secretion",
+          "immune development",
+          "lysosomal storage disorder"
+      ],
+      "contributor_ci": {
+          "text_full_name": "Alberto Zweinstein",
+          "full_name_honorific": "Dr Alberto Zweinstein",
+          "email": "alberto.zweinstein@example.edu.au",
+          "given_name": "Alberto",
+          "family_name": "Zweinstein",
+          "honorific": "Dr",
+          "full_name_family_name_first": "Zweinstein, Alberto",
+          "username": "",
+          "role": "Chief Investigator",
+          "orcid": null
+      },
+      "contributor_data_manager": {
+          "text_full_name": "Prof Paul Gleeson",
+          "full_name_honorific": "",
+          "email": "notAReal@email.edu.au",
+          "given_name": "",
+          "family_name": "",
+          "honorific": "",
+          "full_name_family_name_first": "",
+          "username": "",
+          "role": "Data manager",
+          "orcid": "http://orcid.org/0000-0000-0000-000"
+      },
+      "contributors": [
+          {
+              "text_full_name": "Prof Paul Gleeson",
+              "full_name_honorific": "",
+              "email": "notAReal@email.edu.au",
+              "given_name": "",
+              "family_name": "",
+              "honorific": "",
+              "full_name_family_name_first": "",
+              "username": "",
+              "role": "Contributors",
+              "orcid": "http://orcid.org/0000-0000-0000-000"
+          }
+      ],
+      "contributor_supervisor": {
+          "text_full_name": "",
+          "full_name_honorific": "",
+          "email": "",
+          "given_name": "",
+          "family_name": "",
+          "honorific": "",
+          "full_name_family_name_first": "",
+          "username": "",
+          "role": "Supervisor",
+          "orcid": null
+      },
+      "dataowner_name": "Alberto Zweinstein",
+      "dataowner_email": "alberto.zweinstein@example.edu.au",
+      "redbox:retentionPeriod_dc:date": "1year",
+      "redbox:retentionPeriod_dc:date_skos:note": "",
+      "disposalDate": "",
+      "related_publications": [
+          {
+              "related_url": "",
+              "related_title": "",
+              "related_notes": ""
+          }
+      ],
+      "dataLocations": [
+          {
+              "type": "attachment",
+              "location": "{{dataRecordOid}}/attach/{{attachmentId}}",
+              "mimeType": "image/png",
+              "name": "Screen Shot 2018-11-26 at 3.39.48 pm.png",
+              "fileId": "{{attachmentId}}",
+              "uploadUrl": "http:{{attachmentLocation}}"
+          }
+      ],
+      "software_equipment": ""
+  }
+}
+
+tests {
+  test("Status code is 200", function () {
+      expect(res.getStatus()).to.equal(200);
+  });
+  
+}

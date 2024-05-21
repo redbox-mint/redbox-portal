@@ -1,0 +1,48 @@
+meta {
+  name: Login via Internal authentication
+  type: http
+  seq: 1
+}
+
+post {
+  url: http://localhost:1500/user/login_local
+  body: json
+  auth: none
+}
+
+headers {
+  Pragma: no-cache
+  Origin: {{host}}
+  Accept-Encoding: gzip, deflate, br
+  X-CSRF-Token: 
+  Accept-Language: en-US,en;q=0.9,en-AU;q=0.8,it;q=0.7
+  User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.102 Safari/537.36
+  X-Source: jsclient
+  Content-Type: application/json;charset=UTF-8
+  Accept: application/json, text/plain, */*
+  Cache-Control: no-cache
+  Referer: {{host}}/default/rdmp/user/login
+  Connection: keep-alive
+}
+
+body:json {
+  {
+      "username": "admin",
+      "password": "rbadmin",
+      "branding": "default",
+      "portal": "rdmp"
+  }
+}
+
+tests {
+  test("Status code is 200", function () {
+      expect(res.getStatus()).to.equal(200);
+      bru.setVar("cookie",res.headers["set-cookie"] );
+  });
+  
+  test("Check that user returned is admin", function () {
+      var jsonData = res.getBody();
+      expect(jsonData.user.username).to.eql("admin");
+  });
+  
+}

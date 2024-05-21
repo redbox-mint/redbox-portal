@@ -1,0 +1,42 @@
+meta {
+  name: Get edit form config for RDMP
+  type: http
+  seq: 8
+}
+
+get {
+  url: {{host}}/default/rdmp/record/form/auto/{{dmpOid}}?edit=true
+  body: none
+  auth: none
+}
+
+query {
+  edit: true
+}
+
+headers {
+  Content-Type: application/json
+  X-Source: jsclient
+  Accept: application/json, text/plain, */*
+  Cookie: {{cookie}}
+}
+
+tests {
+  test("Status code is 200", function () {
+      expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("RDMP form name is default-1.0-draft", function () {
+      var jsonData = res.getBody();
+      
+      var numFound = jsonData.totalItems;
+      expect(jsonData.name).to.eql("default-1.0-draft");
+  });
+  
+  test("Fields array has values", function () {
+      var jsonData = res.getBody();
+      
+      var numFound = jsonData.totalItems;
+      expect(jsonData.fields).to.be.an('array').that.is.not.empty
+  });
+}

@@ -1,0 +1,47 @@
+meta {
+  name: Get Admin User Details
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{host}}/default/rdmp/api/users/get?searchBy=email&query=admin@redboxresearchdata.com.au
+  body: none
+  auth: none
+}
+
+query {
+  searchBy: email
+  query: admin@redboxresearchdata.com.au
+}
+
+headers {
+  Content-Type: application/json
+  Authorization: Bearer {{token}}
+}
+
+tests {
+  test("Status code is 200", function () {
+      expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("Username is admin", function () {
+      var jsonData = res.getBody();
+      
+      var username = jsonData.username;
+      
+      expect(username).to.eql('admin');
+      
+          
+  });
+  
+  test("email address is admin@redboxresearchdata.com.au", function () {
+      var jsonData = res.getBody();
+      
+      var email = jsonData.email;
+      
+      expect(email).to.eql('admin@redboxresearchdata.com.au');
+      
+          
+  });
+}

@@ -1,0 +1,30 @@
+meta {
+  name: Get Dashboard Type Standard
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{host}}/default/rdmp/dashboard/type/standard
+  body: none
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+  X-Source: jsclient
+  Accept: application/json, text/plain, */*
+  Cookie: {{cookie}}
+}
+
+tests {
+  test("Status code is 200", function () {
+      expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("Has name property", function () {
+      var jsonData = res.getBody();
+       expect(jsonData).to.have.property("name");
+       expect(jsonData).to.have.property("formatRules");
+  });
+}

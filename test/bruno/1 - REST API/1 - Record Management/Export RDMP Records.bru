@@ -1,0 +1,40 @@
+meta {
+  name: Export RDMP Records
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{host}}/default/rdmp/api/export/record/download/json?before=&after=&recType=rdmp
+  body: none
+  auth: none
+}
+
+query {
+  before: 
+  after: 
+  recType: rdmp
+}
+
+headers {
+  Authorization: Bearer {{token}}
+  ~: 
+}
+
+tests {
+  test("Status code is 200", function () {
+      expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("There is more than 1 RDMP record in the records", function () {
+      var jsonData = res.getBody();
+      expect(jsonData.records.length).to.be.greaterThan(0);
+  });
+  
+  test("Content-Disposition is present and valid", function () {
+    console.log(res.getHeaders())
+      expect(res.getHeader("content-disposition")).to.not.be.undefined;
+      expect(res.getHeader("content-disposition")).to.equal('attachment; filename="Plan - Exported Records.json"');
+  });
+  
+}

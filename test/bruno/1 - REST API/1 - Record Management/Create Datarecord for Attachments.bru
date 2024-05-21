@@ -1,0 +1,127 @@
+meta {
+  name: Create Datarecord for Attachments
+  type: http
+  seq: 17
+}
+
+post {
+  url: {{host}}/default/rdmp/api/records/metadata/dataRecord
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+  Authorization: Bearer {{token}}
+}
+
+body:json {
+  {
+      "parameterRetriever": "",
+      "rdmpGetter": "",
+      "": {},
+      "rdmp": {
+          "oid": "{{dmpOid}}",
+          "title": "Andrew's Postman test - Updated from form AJAX call"
+      },
+      "aim_project_name": "Andrew's Postman test - Updated from form AJAX call",
+      "foaf:fundedBy_foaf:Agent": [
+          ""
+      ],
+      "dc:coverage_vivo:DateTimeInterval_vivo:end": "",
+      "foaf:fundedBy_vivo:Grant": [
+          ""
+      ],
+      "dc:subject_anzsrc:for": [
+          {
+              "name": "01 - MATHEMATICAL SCIENCES",
+              "label": "MATHEMATICAL SCIENCES",
+              "notation": "01"
+          }
+      ],
+      "dc:subject_anzsrc:seo": [],
+      "title": "A Data record",
+      "description": "Data record",
+      "datatype": "collection",
+      "finalKeywords": [
+          "270199",
+          "Golgi apparatus",
+          "endocytosis",
+          "membrane transport",
+          "protein trafficking",
+          "secretion",
+          "HIV-AIDS",
+          "bacterial pathogen",
+          "hormone secretion",
+          "immune development",
+          "lysosomal storage disorder"
+      ],
+      "contributor_ci": {
+          "text_full_name": "Alberto Zweinstein",
+          "full_name_honorific": "Dr Alberto Zweinstein",
+          "email": "alberto.zweinstein@example.edu.au",
+          "given_name": "Alberto",
+          "family_name": "Zweinstein",
+          "honorific": "Dr",
+          "full_name_family_name_first": "Zweinstein, Alberto",
+          "username": "",
+          "role": "Chief Investigator",
+          "orcid": null
+      },
+      "contributor_data_manager": {
+          "text_full_name": "Prof Paul Gleeson",
+          "email": "notAReal@email.edu.au",
+          "username": "",
+          "role": "Data manager",
+          "orcid": "http://orcid.org/0000-0000-0000-000"
+      },
+      "contributors": [
+          {
+              "text_full_name": "Prof Paul Gleeson",
+              "email": "notAReal@email.edu.au",
+              "username": "",
+              "role": "Contributors",
+              "orcid": "http://orcid.org/0000-0000-0000-000"
+          }
+      ],
+      "contributor_supervisor": {
+          "text_full_name": null,
+          "full_name_honorific": "",
+          "email": null,
+          "given_name": "",
+          "family_name": "",
+          "honorific": "",
+          "full_name_family_name_first": "",
+          "username": "",
+          "role": "Supervisor",
+          "orcid": null
+      },
+      "dataowner_name": "Alberto Zweinstein",
+      "dataowner_email": "alberto.zweinstein@example.edu.au",
+      "redbox:retentionPeriod_dc:date": "1year",
+      "redbox:retentionPeriod_dc:date_skos:note": "",
+      "disposalDate": "",
+      "related_publications": [
+          {
+              "related_url": "",
+              "related_title": "",
+              "related_notes": ""
+          }
+      ],
+      "dataLocations": [],
+      "software_equipment": ""
+  }
+}
+
+tests {
+  
+  test("Status code is 201", function () {
+      expect(res.getStatus()).to.equal(201);
+  });
+  
+  test("Test oid exists", function () {
+      var jsonData = res.getBody();
+      expect(jsonData).to.have.property('oid');
+      bru.setEnvVar("attDataRecordOid", jsonData.oid);
+  });
+}

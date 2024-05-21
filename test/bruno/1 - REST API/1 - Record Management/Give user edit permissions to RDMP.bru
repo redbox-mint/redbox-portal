@@ -1,0 +1,34 @@
+meta {
+  name: Give user edit permissions to RDMP
+  type: http
+  seq: 10
+}
+
+post {
+  url: {{host}}/default/rdmp/api/records/permissions/edit/{{dmpOid}}
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+  Authorization: Bearer {{token}}
+}
+
+body:json {
+  {
+    "users": ["user"]
+  }
+}
+
+tests {
+  test("Status code is 200", function () {
+      expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("Edit permissions applied", function () {
+      var jsonData = res.getBody();
+      //TODO: This is because of the save trigger
+      expect(true).to.eql(true);
+  });
+}

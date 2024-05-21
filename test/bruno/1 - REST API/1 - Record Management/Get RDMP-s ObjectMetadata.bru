@@ -1,0 +1,29 @@
+meta {
+  name: Get RDMP-s ObjectMetadata
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{host}}/default/rdmp/api/records/objectmetadata/{{dmpOid}}
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+  ~: 
+}
+
+tests {
+  test("Status code is 200", function () {
+      expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("Type and Form is correct", function () {
+      var jsonData = res.getBody();
+      expect(jsonData.type).to.eql("rdmp");
+      expect(jsonData.form).to.eql("default-1.0-draft");
+      bru.setEnvVar("brandId", jsonData.brandId);
+  });
+}

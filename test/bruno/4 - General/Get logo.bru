@@ -1,0 +1,24 @@
+meta {
+  name: Get logo
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{host}}/default/rdmp/images/logo
+  body: none
+  auth: none
+}
+
+tests {
+  test("Status code is 200", function () {
+      expect(res.getStatus()).to.equal(200);
+  });
+  
+  
+  test("Has valid content and type", function () {
+      expect(res.getHeader("content-type")).to.equal("image/png")
+    const sizeInBytes = Buffer.byteLength(res.getBody(),"utf-8")
+      expect(sizeInBytes).to.be.greaterThan(0);
+  });
+}
