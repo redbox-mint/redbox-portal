@@ -173,7 +173,7 @@ export module Services {
         return this.getTranslateDatabaseResultToReportResult(dbResult, report);
       } else {
         var url = this.buildSolrParams(brand, req, report, start, rows, 'json');
-        const solrResults = await this.getSearchService().searchAdvanced('',url); //TODO pass type
+        const solrResults = await this.getSearchService().searchAdvanced('rdmp',url); //TODO pass type
         return this.getTranslateSolrResultToReportResult(solrResults, rows);
       }
     }
@@ -296,7 +296,7 @@ export module Services {
         result = this.getTranslateDatabaseResultToReportResult(dbResult, report);
       } else {
         var url = this.buildSolrParams(brand, req, report, start, rows, 'json');
-        const solrResults = await this.getSearchService().searchAdvanced('',url); //TODO pass type
+        const solrResults = await this.getSearchService().searchAdvanced('rdmp',url); //TODO pass type
         result = this.getTranslateSolrResultToReportResult(solrResults, rows);
       }
 
