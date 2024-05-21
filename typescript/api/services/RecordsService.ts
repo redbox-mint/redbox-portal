@@ -50,6 +50,7 @@ import {
   Readable
 } from 'stream';
 import { RecordAuditActionType } from '@researchdatabox/redbox-core-types/dist/model/RecordAuditModel';
+import { cpuUsage } from 'process';
 
 
 const util = require('util');
@@ -173,13 +174,14 @@ export module Services {
     async create(brand: any, record: any, recordType: any, user ? : any, triggerPreSaveTriggers = true, triggerPostSaveTriggers = true) {
 
       let wfStep = await WorkflowStepsService.getFirst(recordType).toPromise();
-      this.updateWorkflowStep(record, wfStep);
       let formName = _.get(wfStep,'config.form');
       let form = await FormsService.getFormByName(formName, true).toPromise();
 
       let metaMetadata = this.initRecordMetaMetadata(brand.id, user.username, recordType, wfStep, form, moment().format());
       _.set(record,'metaMetadata',metaMetadata);
 
+      this.updateWorkflowStep(record, wfStep);
+      
       let createResponse = new StorageServiceResponse();
       const failedMessage = "Failed to created record, please check server logs.";
       // trigger the pre-save
@@ -764,9 +766,19 @@ export module Services {
         if (sails.config.jsonld.addJsonLdContext) {
           currentRec.metadata['@context'] = sails.config.jsonld.contexts[currentRec.metaMetadata.form];
         }
-        // update authorizations based on workflow...
-        currentRec.authorization.viewRoles = nextStep.config.authorization.viewRoles;
-        currentRec.authorization.editRoles = nextStep.config.authorization.editRoles;
+        //TODO: if this was all typed we probably don't need these sorts of initialisations
+        if(currentRec.authorization == undefined) {
+          currentRec.authorization = {
+            viewRoles:[],
+            editRoles:[],
+            edit:[],
+            view:[]
+          };
+        }
+          // update authorizations based on workflow...
+          currentRec.authorization.viewRoles = nextStep.config.authorization.viewRoles;
+          currentRec.authorization.editRoles = nextStep.config.authorization.editRoles;
+        
       }
     }
 
