@@ -3,15 +3,12 @@ describe('The DOI Service', function () {
     if (
       !sails.config.datacite.username ||
       !sails.config.datacite.password ||
-      !sails.config.datacite.doiPrefix
+      !sails.config.datacite.doiPrefix ||
+      process.env.SKIP_DOI_TESTS === 'true'
     ) {
       this.skip();
     } else {
-      if (process.env.SKIP_DOI_TESTS === 'true') {
-        this.skip();
-      } else {
-        done();
-      }
+      done();
     }
   });
 
