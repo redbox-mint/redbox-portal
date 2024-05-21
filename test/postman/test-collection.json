@@ -1,9 +1,9 @@
 {
 	"info": {
-		"_postman_id": "edfc4f29-ac72-470f-a7c9-18f237c19eaf",
+		"_postman_id": "ba79da62-2008-4880-a2d8-c458dacbbb08",
 		"name": "Redbox Portal API - With tests",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-		"_exporter_id": "33916034"
+		"_exporter_id": "6438809"
 	},
 	"item": [
 		{
@@ -239,8 +239,7 @@
 										"metadata",
 										"{{dmpOid}}"
 									]
-								},
-								"description": ""
+								}
 							},
 							"response": []
 						},
@@ -1249,8 +1248,7 @@
 										"datastreams",
 										"{{attDataRecordOid}}",
 										"{{attDataRecordStreamId}}"
-									],
-									"query": []
+									]
 								}
 							},
 							"response": []
@@ -1440,8 +1438,7 @@
 										"viewRole",
 										"{{dmpOid}}"
 									]
-								},
-								"description": ""
+								}
 							},
 							"response": []
 						},
@@ -1498,8 +1495,7 @@
 										"viewRole",
 										"{{dmpOid}}"
 									]
-								},
-								"description": ""
+								}
 							},
 							"response": []
 						},
@@ -1556,8 +1552,7 @@
 										"editRole",
 										"{{dmpOid}}"
 									]
-								},
-								"description": ""
+								}
 							},
 							"response": []
 						},
@@ -1614,8 +1609,7 @@
 										"editRole",
 										"{{dmpOid}}"
 									]
-								},
-								"description": ""
+								}
 							},
 							"response": []
 						},
@@ -1729,8 +1723,7 @@
 										"view",
 										"{{existingLocationsOid}}"
 									]
-								},
-								"description": ""
+								}
 							},
 							"response": []
 						},
@@ -1787,8 +1780,7 @@
 										"view",
 										"{{existingLocationsOid}}"
 									]
-								},
-								"description": ""
+								}
 							},
 							"response": []
 						},
@@ -1845,8 +1837,7 @@
 										"edit",
 										"{{existingLocationsOid}}"
 									]
-								},
-								"description": ""
+								}
 							},
 							"response": []
 						},
@@ -1903,8 +1894,7 @@
 										"edit",
 										"{{existingLocationsOid}}"
 									]
-								},
-								"description": ""
+								}
 							},
 							"response": []
 						}
@@ -1963,8 +1953,7 @@
 										"api",
 										"users"
 									]
-								},
-								"description": ""
+								}
 							},
 							"response": []
 						},
@@ -2037,8 +2026,7 @@
 											"value": "admin@redboxresearchdata.com.au"
 										}
 									]
-								},
-								"description": ""
+								}
 							},
 							"response": []
 						},
@@ -2113,8 +2101,7 @@
 											"value": "fake@redboxresearchdata.com.au"
 										}
 									]
-								},
-								"description": ""
+								}
 							},
 							"response": []
 						},
@@ -2810,6 +2797,122 @@
 							"response": []
 						}
 					]
+				},
+				{
+					"name": "App Config",
+					"item": [
+						{
+							"name": "Get App Config",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test(\"Has enabled property\", function () {",
+											"    var jsonData = pm.response.json();",
+											"     pm.expect(jsonData).to.have.property(\"enabled\");",
+											"});"
+										],
+										"type": "text/javascript",
+										"packages": {}
+									}
+								}
+							],
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"type": "text",
+										"value": "Bearer {{token}}"
+									}
+								],
+								"url": {
+									"raw": "{{host}}/default/rdmp/api/appconfig/systemMessage",
+									"host": [
+										"{{host}}"
+									],
+									"path": [
+										"default",
+										"rdmp",
+										"api",
+										"appconfig",
+										"systemMessage"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Update App Config",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test(\"Has enabled property\", function () {",
+											"    var jsonData = pm.response.json();",
+											"     pm.expect(jsonData).to.have.property(\"enabled\");",
+											"});",
+											"",
+											"pm.test(\"Has title property\", function () {",
+											"    var jsonData = pm.response.json();",
+											"     pm.expect(jsonData).to.have.property(\"title\");",
+											"});",
+											"",
+											"pm.test(\"Has message property\", function () {",
+											"    var jsonData = pm.response.json();",
+											"     pm.expect(jsonData).to.have.property(\"message\");",
+											"});"
+										],
+										"type": "text/javascript",
+										"packages": {}
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Authorization",
+										"type": "text",
+										"value": "Bearer {{token}}"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"enabled\": false,\n    \"title\": \"The new title\",\n    \"message\": \"The new message\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{host}}/default/rdmp/api/appconfig/systemMessage",
+									"host": [
+										"{{host}}"
+									],
+									"path": [
+										"default",
+										"rdmp",
+										"api",
+										"appconfig",
+										"systemMessage"
+									]
+								}
+							},
+							"response": []
+						}
+					]
 				}
 			]
 		},
@@ -2838,7 +2941,8 @@
 											"});",
 											""
 										],
-										"type": "text/javascript"
+										"type": "text/javascript",
+										"packages": {}
 									}
 								}
 							],
@@ -2899,12 +3003,10 @@
 									"raw": "{\n    \"username\": \"admin\",\n    \"password\": \"rbadmin\",\n    \"branding\": \"default\",\n    \"portal\": \"rdmp\"\n}"
 								},
 								"url": {
-									"raw": "http://localhost:1500/user/login_local",
-									"protocol": "http",
+									"raw": "{{host}}/user/login_local",
 									"host": [
-										"localhost"
+										"{{host}}"
 									],
-									"port": "1500",
 									"path": [
 										"user",
 										"login_local"
@@ -5735,6 +5837,310 @@
 										"record",
 										"delete",
 										"{{dataRecordOid}}"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Get App Config Form - System Messages",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"",
+											"pm.test(\"Response contains model attribute\", function () {",
+											"     var jsonData = pm.response.json();",
+											"     pm.expect(jsonData.model).is.not.null;",
+											"});",
+											"",
+											"pm.test(\"Response contains schema attribute\", function () {",
+											"     var jsonData = pm.response.json();",
+											"     pm.expect(jsonData.schema).is.not.null;",
+											"});",
+											"",
+											"pm.test(\"Response contains fieldOrder attribute\", function () {",
+											"     var jsonData = pm.response.json();",
+											"     pm.expect(jsonData.fieldOrder).is.not.null;",
+											"});",
+											"",
+											""
+										],
+										"type": "text/javascript",
+										"packages": {}
+									}
+								}
+							],
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Pragma",
+										"value": "no-cache"
+									},
+									{
+										"key": "Accept-Encoding",
+										"value": "gzip, deflate, br"
+									},
+									{
+										"key": "X-CSRF-Token",
+										"value": ""
+									},
+									{
+										"key": "Accept-Language",
+										"value": "en-US,en;q=0.9,en-AU;q=0.8,it;q=0.7"
+									},
+									{
+										"key": "User-Agent",
+										"value": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.102 Safari/537.36"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json;charset=utf-8"
+									},
+									{
+										"key": "Accept",
+										"value": "application/json, text/plain, */*"
+									},
+									{
+										"key": "Connection",
+										"value": "keep-alive"
+									},
+									{
+										"key": "Referer",
+										"value": "{{host}}/default/rdmp/record/search?q=Record"
+									},
+									{
+										"key": "Cookie",
+										"value": "{{cookie}}"
+									},
+									{
+										"key": "X-Source",
+										"value": "jsclient"
+									},
+									{
+										"key": "Cache-Control",
+										"value": "no-cache"
+									}
+								],
+								"url": {
+									"raw": "{{host}}/default/rdmp/appconfig/form/systemMessage",
+									"host": [
+										"{{host}}"
+									],
+									"path": [
+										"default",
+										"rdmp",
+										"appconfig",
+										"form",
+										"systemMessage"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Save App Config - System Messages",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"",
+											"pm.test(\"Enabled value in response is true\", function () {",
+											"     var jsonData = pm.response.json();",
+											"     pm.expect(jsonData.enabled).is.true;",
+											"});",
+											"",
+											"pm.test(\"title value in response is The new title\", function () {",
+											"     var jsonData = pm.response.json();",
+											"     pm.expect(jsonData.title).to.eq(\"The new title\");",
+											"});",
+											"",
+											"pm.test(\"message value in response is The new message\", function () {",
+											"     var jsonData = pm.response.json();",
+											"     pm.expect(jsonData.message).to.eq(\"The new message\");",
+											"});",
+											"",
+											""
+										],
+										"type": "text/javascript",
+										"packages": {}
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Pragma",
+										"value": "no-cache"
+									},
+									{
+										"key": "Accept-Encoding",
+										"value": "gzip, deflate, br"
+									},
+									{
+										"key": "X-CSRF-Token",
+										"value": ""
+									},
+									{
+										"key": "Accept-Language",
+										"value": "en-US,en;q=0.9,en-AU;q=0.8,it;q=0.7"
+									},
+									{
+										"key": "User-Agent",
+										"value": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.102 Safari/537.36"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json;charset=utf-8"
+									},
+									{
+										"key": "Accept",
+										"value": "application/json, text/plain, */*"
+									},
+									{
+										"key": "Connection",
+										"value": "keep-alive"
+									},
+									{
+										"key": "Referer",
+										"value": "{{host}}/default/rdmp/record/search?q=Record"
+									},
+									{
+										"key": "Cookie",
+										"value": "{{cookie}}"
+									},
+									{
+										"key": "X-Source",
+										"value": "jsclient"
+									},
+									{
+										"key": "Cache-Control",
+										"value": "no-cache"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n        \"enabled\": true,\n        \"title\": \"The new title\",\n        \"message\": \"The new message\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{host}}/default/rdmp/appconfig/form/systemMessage",
+									"host": [
+										"{{host}}"
+									],
+									"path": [
+										"default",
+										"rdmp",
+										"appconfig",
+										"form",
+										"systemMessage"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Get App Config View - System Messages",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"",
+											"pm.test(\"HTML returned correctly sets the configKey in the app-config tag\", function () {",
+											"     var responseBody = pm.response.text();",
+											"    pm.expect(responseBody).to.include('<app-config configKey=\"systemMessage\">');",
+											"});"
+										],
+										"type": "text/javascript",
+										"packages": {}
+									}
+								}
+							],
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Pragma",
+										"value": "no-cache"
+									},
+									{
+										"key": "Accept-Encoding",
+										"value": "gzip, deflate, br"
+									},
+									{
+										"key": "X-CSRF-Token",
+										"value": ""
+									},
+									{
+										"key": "Accept-Language",
+										"value": "en-US,en;q=0.9,en-AU;q=0.8,it;q=0.7"
+									},
+									{
+										"key": "User-Agent",
+										"value": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.102 Safari/537.36"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json;charset=utf-8"
+									},
+									{
+										"key": "Accept",
+										"value": "application/json, text/plain, */*"
+									},
+									{
+										"key": "Connection",
+										"value": "keep-alive"
+									},
+									{
+										"key": "Referer",
+										"value": "{{host}}/default/rdmp/record/search?q=Record"
+									},
+									{
+										"key": "Cookie",
+										"value": "{{cookie}}"
+									},
+									{
+										"key": "X-Source",
+										"value": "jsclient"
+									},
+									{
+										"key": "Cache-Control",
+										"value": "no-cache"
+									}
+								],
+								"url": {
+									"raw": "{{host}}/default/rdmp/admin/appconfig/edit/systemMessage",
+									"host": [
+										"{{host}}"
+									],
+									"path": [
+										"default",
+										"rdmp",
+										"admin",
+										"appconfig",
+										"edit",
+										"systemMessage"
 									]
 								}
 							},

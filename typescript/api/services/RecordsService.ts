@@ -394,6 +394,8 @@ export module Services {
         }
       }
       sails.log.verbose(`${this.logHeader} adding record audit job: ${id} with data:`);
+      _.unset(user,'password')
+      _.unset(user,'token')
       // storage_id is used as the main ID in searches
       let data = new RecordAuditModel(id, record, user, action)
       sails.log.verbose(JSON.stringify(data));

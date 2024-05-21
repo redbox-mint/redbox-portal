@@ -229,6 +229,12 @@ module.exports.routes = {
   'post /:branding/:portal/user/revokeKey': 'UserController.revokeUserKey',
   'post /:branding/:portal/user/update': 'UserController.update',
   'post /:branding/:portal/action/:action': 'ActionController.callService',
+  'get /:branding/:portal/appconfig/form/:appConfigId': 'AppConfigController.getAppConfigForm',
+  'post /:branding/:portal/appconfig/form/:appConfigId': 'AppConfigController.saveAppConfig',
+  'get /:branding/:portal/admin/appconfig/edit/:appConfigId': {
+    controller: 'AppConfigController',
+    action: 'editAppConfig'
+  },
   /***************************************************************************
    *                                                                          *
    * REST API routes                                                          *
@@ -238,7 +244,6 @@ module.exports.routes = {
    *                                                                          *
    *                                                                          *
    ***************************************************************************/
-
   'post /:branding/:portal/api/records/metadata/:recordType': {
     controller: 'webservice/RecordController',
     action: 'create',
@@ -450,6 +455,21 @@ module.exports.routes = {
     action: 'refreshCachedResources',
     csrf: false
   },
+  'post /:branding/:portal/api/admin/config/:configKey': {
+    controller: 'webservice/AdminController',
+    action: 'setAppConfig',
+    csrf: false
+  },
+  'get /:branding/:portal/api/admin/config/:configKey': {
+    controller: 'webservice/AdminController',
+    action: 'getAppConfig',
+    csrf: false
+  },
+  'get /:branding/:portal/api/admin/config': {
+    controller: 'webservice/AdminController',
+    action: 'getAppConfig',
+    csrf: false
+  },
   'post /:branding/:portal/api/sendNotification': {
     controller: 'EmailController',
     action: 'sendNotification',
@@ -468,6 +488,16 @@ module.exports.routes = {
   'get /:branding/:portal/api/export/record/download/:format': {
     controller: 'webservice/ExportController',
     action: 'downloadRecs',
+    csrf: false
+  },
+  'get /:branding/:portal/api/appconfig/:appConfigId': {
+    controller: 'webservice/AppConfigController',
+    action: 'getAppConfig',
+    csrf: false
+  },
+  'post /:branding/:portal/api/appconfig/:appConfigId': {
+    controller: 'webservice/AppConfigController',
+    action: 'saveAppConfig',
     csrf: false
   },
   'get /:branding/:portal/workspaces/types/:name': 'WorkspaceTypesController.getOne',
