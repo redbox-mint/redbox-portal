@@ -18,7 +18,7 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 import { Observable } from 'rxjs/Rx';
-import {Services as services}   from '@researchdatabox/redbox-core-types';
+import {Branding, Services as services}   from '@researchdatabox/redbox-core-types';
 import {Sails, Model} from "sails";
 import { default as UrlPattern } from 'url-pattern';
 
@@ -50,7 +50,7 @@ export module Services {
 
     public bootstrap = (defUser, defRoles) => {
       sails.log.verbose("Bootstrapping path rules....");
-      var defBrand = BrandingService.getDefault();
+      var defBrand:Branding = BrandingService.getDefault();
       return this.loadRules()
         .flatMap(rules => {
           if (!rules || rules.length == 0) {

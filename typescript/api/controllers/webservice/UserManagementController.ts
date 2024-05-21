@@ -30,7 +30,7 @@ declare var _;
 /**
  * Package that contains all Controllers.
  */
- import {APIErrorResponse, Controllers as controllers, CreateUserAPIResponse, ListAPIResponse, User as UserModel, UserAPITokenAPIResponse, APIActionResponse} from '@researchdatabox/redbox-core-types';
+ import {APIErrorResponse, Controllers as controllers, CreateUserAPIResponse, ListAPIResponse, User as UserModel, UserAPITokenAPIResponse, APIActionResponse, Branding} from '@researchdatabox/redbox-core-types';
 
  import { v4 as uuidv4 } from 'uuid';
 
@@ -140,7 +140,7 @@ export module Controllers {
 
         if (userReq.roles) {
           let roles = userReq.roles;
-          let brand = BrandingService.getBrand(req.session.branding);
+          let brand:Branding = BrandingService.getBrand(req.session.branding);
           let roleIds = RolesService.getRoleIds(brand.roles, roles);
           UsersService.updateUserRoles(response.id, roleIds).subscribe(user => {
             sails.log.error(user)
@@ -194,7 +194,7 @@ export module Controllers {
 
         if (userReq.roles) {
           let roles = userReq.roles;
-          let brand = BrandingService.getBrand(req.session.branding);
+          let brand:Branding = BrandingService.getBrand(req.session.branding);
           let roleIds = RolesService.getRoleIds(brand.roles, roles);
           UsersService.updateUserRoles(response.id, roleIds).subscribe(user => {
             //TODO: Add roles to the response            
@@ -279,7 +279,7 @@ export module Controllers {
     }
 
     public listSystemRoles(req, res) {
-      let brand = BrandingService.getBrand(req.session.branding);
+      let brand:Branding = BrandingService.getBrand(req.session.branding);
       let response: ListAPIResponse < any > = new ListAPIResponse < any > ();
       response.summary.numFound = brand.roles.length;
       response.records =  brand.roles;
@@ -296,7 +296,7 @@ export module Controllers {
       }
       sails.log.verbose('createSystemRole - roleName '+roleName);
       if(!_.isUndefined(roleName)) {
-        let brand = BrandingService.getBrand(req.session.branding);
+        let brand:Branding = BrandingService.getBrand(req.session.branding);
         RolesService.createRoleWithBrand(brand,roleName);
         let response: APIActionResponse = new APIActionResponse (roleName +' create call success',roleName +' create call success');
         return this.apiRespond(req,res,response);

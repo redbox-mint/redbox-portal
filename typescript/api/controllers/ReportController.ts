@@ -26,7 +26,7 @@ declare var _;
 /**
  * Package that contains all Controllers.
  */
-import { Controllers as controllers } from '@researchdatabox/redbox-core-types';
+import { Branding, Controllers as controllers } from '@researchdatabox/redbox-core-types';
 export module Controllers {
   /**
    * Responsible for all things related to the Dashboard
@@ -61,13 +61,13 @@ export module Controllers {
     }
 
     public async get(req, res) {
-      const brand = BrandingService.getBrand(req.session.branding);
+      const brand:Branding = BrandingService.getBrand(req.session.branding);
       const report: Report = await ReportsService.get(brand, req.param('name'));
       return this.ajaxOk(req, res, null, ReportsService.getReportDto(report));
     }
 
     public getResults(req, res) {
-      const brand = BrandingService.getBrand(req.session.branding);
+      const brand:Branding = BrandingService.getBrand(req.session.branding);
       var response = Observable.fromPromise(ReportsService.getResults(brand, req.param('name'), req, req.param('start'), req.param('rows')));
       return response.subscribe(responseObject => {
         if (responseObject) {
@@ -86,7 +86,7 @@ export module Controllers {
 
     public async downloadCSV(req, res) {
       try {
-        const brand = BrandingService.getBrand(req.session.branding);
+        const brand:Branding = BrandingService.getBrand(req.session.branding);
 
         var results = await ReportsService.getCSVResult(brand, req.param('name'), req);
         let fileName = req.param('name') + '.csv';

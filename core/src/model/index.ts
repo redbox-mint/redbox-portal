@@ -10,5 +10,6 @@ export {RequestDetails} from "./RequestDetails";
 export {User} from "./User";
 export {RecordTypeResponseModel} from "./RecordTypeResponseModel";
 export {DashboardTypeResponseModel} from "./DashboardTypeResponseModel";
-
+export {Branding} from "./Branding";
+export {Role} from "./Role";
 export * from './api'

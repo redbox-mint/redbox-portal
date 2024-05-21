@@ -28,7 +28,7 @@ declare var AsynchsService, VocabService, BrandingService;
 /**
  * Package that contains all Controllers.
  */
- import { Controllers as controllers} from '@researchdatabox/redbox-core-types';
+ import { Branding, Controllers as controllers} from '@researchdatabox/redbox-core-types';
 export module Controllers {
   /**
    * Responsible for all things related to exporting anything
@@ -85,7 +85,7 @@ export module Controllers {
     }
 
     protected createProgressObjFromRequest(req) {
-      const brand = BrandingService.getBrand(req.session.branding);
+      const brand:Branding = BrandingService.getBrand(req.session.branding);
       const username = req.user.username;
       const name = req.param('name');
       const recordOid = req.param('relatedRecordId');
@@ -116,7 +116,7 @@ export module Controllers {
       if (_.isEmpty(fq)) {
         return this.ajaxFail(req, res, 'Empty queries are not allowed.');
       }
-      const brand = BrandingService.getBrand(req.session.branding);
+      const brand:Branding = BrandingService.getBrand(req.session.branding);
       fq.where.branding = brand.id;
       AsynchsService.get(fq).subscribe(progress => {
         this.ajaxOk(req, res, null, progress, true);

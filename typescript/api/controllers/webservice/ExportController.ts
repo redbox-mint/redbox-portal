@@ -21,7 +21,7 @@
 declare var module;
 declare var sails;
 declare var _;
-import { APIErrorResponse } from '@researchdatabox/redbox-core-types';
+import { APIErrorResponse, Branding } from '@researchdatabox/redbox-core-types';
 declare var RecordsService, BrandingService, TranslationService;
 import { default as util } from 'util';
 import { default as stream } from 'stream';
@@ -52,7 +52,7 @@ export module Controllers {
      */
     public async downloadRecs(req, res) {
       try {
-        const brand = BrandingService.getBrand(req.session.branding);
+        const brand:Branding = BrandingService.getBrand(req.session.branding);
         const format = req.param('format');
         const recType = req.param('recType');
         const before = _.isEmpty(req.query.before) ? null : req.query.before;

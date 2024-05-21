@@ -28,7 +28,7 @@ declare var DashboardService;
 declare var UsersService;
 declare var User;
 declare var _;
-import { APIActionResponse, APIErrorResponse } from '@researchdatabox/redbox-core-types';
+import { APIActionResponse, APIErrorResponse, Branding } from '@researchdatabox/redbox-core-types';
 /**
  * Package that contains all Controllers.
  */
@@ -83,10 +83,9 @@ export module Controllers {
       try {
         let configKey = req.param('configKey')
         
-        let brand = BrandingService.getBrandFromReq(req);
-        if (_.isString(brand)) {
-          brand = BrandingService.getBrand(brand);
-        }
+        let brandName:string = BrandingService.getBrandFromReq(req);
+        let brand:Branding = BrandingService.getBrand(brandName);
+        
         let config = await AppConfigService.createOrUpdateConfig(brand.name, configKey, req.body)
         
         let response = new APIActionResponse('App configuration updated successfully');
@@ -101,10 +100,10 @@ export module Controllers {
       try {
         let configKey = req.param('configKey')
         
-        let brand = BrandingService.getBrandFromReq(req);
-        if (_.isString(brand)) {
-          brand = BrandingService.getBrand(brand);
-        }
+        let brandName:string = BrandingService.getBrandFromReq(req);
+        
+        let brand:Branding = BrandingService.getBrand(brandName);
+        
         let config = AppConfigService.getAppConfigurationForBrand(brand.name)
         if(!_.isEmpty(configKey)) {
           config = _.get(config, configKey, null)
