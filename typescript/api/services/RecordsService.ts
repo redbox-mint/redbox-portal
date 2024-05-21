@@ -173,12 +173,11 @@ export module Services {
     async create(brand: any, record: any, recordType: any, user ? : any, triggerPreSaveTriggers = true, triggerPostSaveTriggers = true) {
 
       let wfStep = await WorkflowStepsService.getFirst(recordType).toPromise();
-
+      this.updateWorkflowStep(record, wfStep);
       let formName = _.get(wfStep,'config.form');
       let form = await FormsService.getFormByName(formName, true).toPromise();
 
       let metaMetadata = this.initRecordMetaMetadata(brand.id, user.username, recordType, wfStep, form, moment().format());
-
       _.set(record,'metaMetadata',metaMetadata);
 
       let createResponse = new StorageServiceResponse();
