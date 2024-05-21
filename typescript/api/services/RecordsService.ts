@@ -50,7 +50,6 @@ import {
   Readable
 } from 'stream';
 import { RecordAuditActionType } from '@researchdatabox/redbox-core-types/dist/model/RecordAuditModel';
-import { cpuUsage } from 'process';
 
 
 const util = require('util');
