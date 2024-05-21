@@ -80,7 +80,7 @@ export module Services {
 
     public create(brand, name, config) {
       
-      let searchCore = _.get(sails.config.solr.cores.default.options.core,'redbox');
+      let searchCore = _.get(sails.config.solr.cores,'default.options.core','redbox');
       if(config.searchCore) {
         searchCore = config.searchCore;
       }
