@@ -61,9 +61,15 @@
      sails.log.debug('cronjobs scheduled...');
    }
  
-   sails.log.verbose("Cron service, bootstrapped.");
-   // After last, because it was being triggered twice
-   await sails.services.workspacetypesservice.bootstrap(sails.services.brandingservice.getDefault()).toPromise();
+  // Initialise the applicationConfig for all the brands
+  await sails.services.appconfigservice.bootstrap()
+  // bind convenience function to sails.config so that configuration access syntax is consistent
+  sails.config.brandingAware = AppConfigService.getAppConfigurationForBrand
+    
+  sails.log.verbose("Cron service, bootstrapped.");
+  // After last, because it was being triggered twice
+  await sails.services.workspacetypesservice.bootstrap(sails.services.brandingservice.getDefault()).toPromise();
+
  
    sails.log.verbose("WorkspaceTypes service, bootstrapped.");
 
@@ -104,7 +110,7 @@
    } else {
      throw new Error('ReDBox Storage failed to start');
    }
- 
+
  }
  
  

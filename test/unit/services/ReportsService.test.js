@@ -148,7 +148,7 @@ describe('The Reporting Service', function () {
 
     let result = ReportsService.getCSVHeaderRow(reportConfig);
     expect(result, 'result to have 6 elements').to.have.length(6)
-    sails.log.error(result)
+    sails.log.verbose(result)
 
     expect(result[0], 'Expect first element to be Id').to.have.equal("Id")
     expect(result[1], 'Expect second element to be Title').to.have.equal("Title")

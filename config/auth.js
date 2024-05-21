@@ -158,6 +158,11 @@ module.exports.auth = {
       can_update:true
     },
     {
+      path: '/:branding/:portal/appconfig(/*)',
+      role: 'Admin',
+      can_update:true
+    },
+    {
       path: '/:branding/:portal/asynch(/*)',
       role: 'Researcher',
       can_update:true
