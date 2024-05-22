@@ -22,7 +22,7 @@ headers {
   Cache-Control: no-cache
   Referer: http://localhost:1500/default/rdmp/record/edit/{{dmpOid}}
   Connection: keep-alive
-  Cookie: {{cookie}}
+  
 }
 
 body:json {
@@ -69,6 +69,15 @@ body:json {
       "dc:rightsHolder_dc:name": "myUni",
       "dc:accessRights": "permission from the data manager",
       "authorization": []
+  }
+}
+
+
+script:pre-request {
+  const cookie = bru.getVar("cookie");
+  
+  if(cookie) {
+    req.setHeader("Cookie", cookie)
   }
 }
 

@@ -37,7 +37,9 @@ body:json {
 tests {
   test("Status code is 200", function () {
       expect(res.getStatus()).to.equal(200);
-      bru.setVar("cookie",res.headers["set-cookie"] );
+      let cookie = res.headers['set-cookie']
+      console.log(`Cookie is ${cookie}`)
+      bru.setVar("cookie",cookie );
   });
   
   test("Check that user returned is admin", function () {

@@ -22,7 +22,16 @@ headers {
   Content-Type: application/json
   X-Source: jsclient
   Accept: application/json, text/plain, */*
-  Cookie: {{cookie}}
+  
+}
+
+
+script:pre-request {
+  const cookie = bru.getVar("cookie");
+  
+  if(cookie) {
+    req.setHeader("Cookie", cookie)
+  }
 }
 
 tests {

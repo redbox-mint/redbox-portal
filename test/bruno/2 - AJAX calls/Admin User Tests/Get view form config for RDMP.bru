@@ -18,7 +18,16 @@ headers {
   Content-Type: application/json
   X-Source: jsclient
   Accept: application/json, text/plain, */*
-  Cookie: {{cookie}}
+  
+}
+
+
+script:pre-request {
+  const cookie = bru.getVar("cookie");
+  
+  if(cookie) {
+    req.setHeader("Cookie", cookie)
+  }
 }
 
 tests {
@@ -28,7 +37,8 @@ tests {
   
   test("RDMP form name is default-1.0-draft", function () {
       var jsonData = res.getBody();
-      
+      console.log(`jsonData:`)
+      console.log(jsonData)
       var numFound = jsonData.totalItems;
       expect(jsonData.name).to.eql("default-1.0-draft");
   });

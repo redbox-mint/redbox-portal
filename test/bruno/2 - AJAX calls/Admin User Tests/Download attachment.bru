@@ -10,8 +10,13 @@ get {
   auth: none
 }
 
-headers {
-  Cookie: {{cookie}}
+
+script:pre-request {
+  const cookie = bru.getVar("cookie");
+  
+  if(cookie) {
+    req.setHeader("Cookie", cookie)
+  }
 }
 
 tests {

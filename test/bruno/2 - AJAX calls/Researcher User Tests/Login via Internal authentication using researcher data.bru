@@ -34,8 +34,9 @@ body:json {
   }
 }
 
+
 tests {
-  bru.setEnvVar("cookie",res.getHeader("set-cookie") );
+  bru.setVar("cookie",res.getHeader("set-cookie") );
   
   test("Status code is 200", function () {
       expect(res.getStatus()).to.equal(200);

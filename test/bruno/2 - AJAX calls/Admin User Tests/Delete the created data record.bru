@@ -20,7 +20,17 @@ headers {
   Accept: application/json, text/plain, */*
   Connection: keep-alive
   Referer: http://localhost:1500/default/rdmp/record/edit/ee3a12b7a95dd42619ebe16ecd2461f9
-  Cookie: {{cookie}}
+  
   X-Source: jsclient
   Cache-Control: no-cache
 }
+
+script:pre-request {
+  const cookie = bru.getVar("cookie");
+  
+  if(cookie) {
+    req.setHeader("Cookie", cookie)
+  }
+}
+
+

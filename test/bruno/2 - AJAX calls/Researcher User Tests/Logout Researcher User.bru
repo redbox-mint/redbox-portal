@@ -23,6 +23,13 @@ headers {
   Cookie: {{cookie}}
 }
 
+script:pre-request {
+  const cookie = bru.getVar("cookie");
+  
+  if(cookie) {
+    req.setHeader("Cookie", cookie)
+  }
+}
 tests {
   test("Status code is 200", function () {
       expect(res.getStatus()).to.equal(200);

@@ -20,7 +20,16 @@ headers {
   Referer: {{host}}/default/rdmp/researcher/home
   Accept-Encoding: gzip, deflate, br
   Accept-Language: en-US,en;q=0.9,en-AU;q=0.8,it;q=0.7
-  Cookie: {{cookie}}
+  
+}
+
+
+script:pre-request {
+  const cookie = bru.getVar("cookie");
+  
+  if(cookie) {
+    req.setHeader("Cookie", cookie)
+  }
 }
 
 tests {

@@ -21,7 +21,7 @@ headers {
   Accept: application/json, text/plain, */*
   Cache-Control: no-cache
   Referer: {{host}}{/default/rdmp/record/dataRecord/edit
-  Cookie: {{cookie}}
+  
   Connection: keep-alive
 }
 
@@ -120,6 +120,14 @@ body:json {
       ],
       "dataLocations": [],
       "software_equipment": ""
+  }
+}
+
+script:pre-request {
+  const cookie = bru.getVar("cookie");
+  
+  if(cookie) {
+    req.setHeader("Cookie", cookie)
   }
 }
 

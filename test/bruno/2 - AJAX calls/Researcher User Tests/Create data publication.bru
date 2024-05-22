@@ -22,7 +22,6 @@ headers {
   Accept: application/json, text/plain, */*
   Cache-Control: no-cache
   Referer: {{host}}/default/rdmp/record/dataPublication/edit
-  Cookie: {{cookie}}
   Connection: keep-alive
 }
 
@@ -216,6 +215,13 @@ body:json {
   }
 }
 
+script:pre-request {
+  const cookie = bru.getVar("cookie");
+  
+  if(cookie) {
+    req.setHeader("Cookie", cookie)
+  }
+}
 tests {
   
   test("Status code is 200", function () {

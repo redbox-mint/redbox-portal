@@ -20,9 +20,18 @@ headers {
   Accept: application/json, text/plain, */*
   Connection: keep-alive
   Referer: {{host}}/default/rdmp/admin/roles
-  Cookie: {{cookie}}
+  
   X-Source: jsclient
   Cache-Control: no-cache
+}
+
+
+script:pre-request {
+  const cookie = bru.getVar("cookie");
+  
+  if(cookie) {
+    req.setHeader("Cookie", cookie)
+  }
 }
 
 tests {

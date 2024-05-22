@@ -14,9 +14,14 @@ headers {
   Content-Type: application/json
   X-Source: jsclient
   Accept: application/json, text/plain, */*
-  Cookie: {{cookie}}
-  X-Token: {{token}}
-  X-Token: {{dmpOid}}
+}
+
+script:pre-request {
+  const cookie = bru.getVar("cookie");
+  
+  if(cookie) {
+    req.setHeader("Cookie", cookie)
+  }
 }
 
 tests {
