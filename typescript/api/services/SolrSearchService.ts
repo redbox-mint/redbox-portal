@@ -83,17 +83,18 @@ export module Services {
 
       let coreNameKeys = Object.keys(sails.config.solr.cores);
 
+      // wait for SOLR deafult core to start up
+      await this.waitForSolr(sails.config.solr.cores.default.options.core);
+
       for(let coreNameKey of coreNameKeys) {
 
         let coreNameKeyPath = coreNameKey+'.options.core';
 
         const coreName = _.get(sails.config.solr.cores,coreNameKeyPath);
 
-        // wait for SOLR to start up
-        await this.waitForSolr(coreName);
         // check if the schema is built....
         try {
-          const flagName = sails.config.solr.initSchemaFlag.name;
+          const flagName = _.get(sails.config.solr.cores,coreNameKey+'.initSchemaFlag.name');
           const schemaInitFlag = await this.getSchemaEntry(coreName, 'fields', flagName);
           if (!_.isEmpty(schemaInitFlag)) {
             sails.log.verbose(`${this.logHeader} Schema flag found: ${flagName}. Schema is already initialised, skipping build.`);
@@ -105,7 +106,7 @@ export module Services {
         sails.log.verbose(`${this.logHeader} Schema not initialised, building schema...`)
         const schemaUrl = `${this.baseUrl}${coreName}/schema`;
         try {
-          const schemaDef = sails.config.solr.schema;
+          const schemaDef = _.get(sails.config.solr.cores,coreNameKey+'.schema');
           if (_.isEmpty(schemaDef)) {
             sails.log.verbose(`${this.logHeader} Schema definition empty, skipping build.`);
             return;
@@ -114,7 +115,7 @@ export module Services {
           if (_.isEmpty(schemaDef['add-field'])) {
             schemaDef['add-field'] = [];
           }
-          schemaDef['add-field'].push(sails.config.solr.initSchemaFlag);
+          schemaDef['add-field'].push(_.get(sails.config.solr.cores,coreNameKey+'.initSchemaFlag'));
           sails.log.verbose(`${this.logHeader} sending schema definition:`);
           sails.log.verbose(JSON.stringify(schemaDef));
           const response = await axios.post(schemaUrl,schemaDef).then(response => response.data);
@@ -124,7 +125,6 @@ export module Services {
           sails.log.error(`${this.logHeader} Failed to build SOLR schema:`);
           sails.log.error(JSON.stringify(err));
         }
-
       }
     }
 
@@ -285,8 +285,10 @@ export module Services {
     // but can't unit test it easily if it isn't
     public preIndex(data: any) {
       let processedData:any = _.cloneDeep(data);
+      let recordType = _.get(data,'metaMetadata.type');
+      let moveObj = _.get(sails.config.solr.cores,recordType+'.preIndex.move',sails.config.solr.cores,'default.preIndex.move');
       // moving
-      _.each(sails.config.solr.preIndex.move, (moveConfig:any) => {
+      _.each(moveObj, (moveConfig:any) => {
         const source:string = moveConfig.source;
         const dest:string = moveConfig.dest;
         // the data used will always be the original object
@@ -303,21 +305,22 @@ export module Services {
           sails.log.verbose(`${this.logHeader} no data to move from: ${moveConfig.source}, ignoring.`);
         }
       });
+      let copyObj = _.get(sails.config.solr.cores,recordType+'.preIndex.copy',sails.config.solr.cores,'default.preIndex.copy');
       // copying
-      _.each(sails.config.solr.preIndex.copy, (copyConfig:any) => {
+      _.each(copyObj, (copyConfig:any) => {
         _.set(processedData, copyConfig.dest, _.get(data, copyConfig.source));
       });
-
-      _.each(sails.config.solr.preIndex.jsonString, (jsonStringConfig:any) => {
+      let jsonStringObj = _.get(sails.config.solr.cores,recordType+'.preIndex.jsonString',sails.config.solr.cores,'default.preIndex.jsonString');
+      _.each(jsonStringObj, (jsonStringConfig:any) => {
         let setProperty:string = jsonStringConfig.source;
         if (jsonStringConfig.dest != null) {
           setProperty = jsonStringConfig.dest;
         }
           _.set(processedData, setProperty, JSON.stringify(_.get(data, jsonStringConfig.source, undefined)));
       });
-
+      let templateObj = _.get(sails.config.solr.cores,recordType+'.preIndex.template',sails.config.solr.cores,'default.preIndex.template');
       //Evaluate a template to generate a value for the solr document
-      _.each(sails.config.solr.preIndex.template, (templateConfig:any) => {
+      _.each(templateObj, (templateConfig:any) => {
         let setProperty:string = templateConfig.source;
         if (templateConfig.dest != null) {
           setProperty = templateConfig.dest;
@@ -335,13 +338,15 @@ export module Services {
         _.set(processedData, setProperty, template({data: templateData}) );
       });
 
+      let flattenSpecialObj = _.get(sails.config.solr.cores,recordType+'.preIndex.flatten.special',sails.config.solr.cores,'default.preIndex.flatten.special');
       // flattening...
       // first remove those with special flattening options
-      _.each(sails.config.solr.preIndex.flatten.special, (specialFlattenConfig:any) => {
+      _.each(flattenSpecialObj, (specialFlattenConfig:any) => {
         _.unset(processedData, specialFlattenConfig.field);
       });
-      processedData = flat.flatten(processedData, sails.config.solr.preIndex.flatten.options);
-      _.each(sails.config.solr.preIndex.flatten.special, (specialFlattenConfig:any) => {
+      let flattenOptionsObj = _.get(sails.config.solr.cores,recordType+'.preIndex.flatten.options',sails.config.solr.cores,'default.preIndex.flatten.options');
+      processedData = flat.flatten(processedData, flattenOptionsObj);
+      _.each(flattenSpecialObj, (specialFlattenConfig:any) => {
         const dataToFlatten:any = {};
         if (specialFlattenConfig.dest) {
           _.set(dataToFlatten, specialFlattenConfig.dest, _.get(data, specialFlattenConfig.source));
