@@ -6,6 +6,7 @@ services:
     image: ghcr.io/davidkarlsen/bruno-image:main
     volumes:
       - "../../test/bruno:/tests"
+      - "./.tmp/junit:/junit"
     working_dir: /tests
     depends_on:
       redboxportal:
@@ -14,7 +15,7 @@ services:
      main:
        aliases:
          - bruno
-    entrypoint: /bin/bash -c "cd /tests && npm install && bru run --env int-test --format junit --output /tests/results.xml --bail"
+    entrypoint: /bin/bash -c "cd /tests && npm install && bru run --env int-test --format junit --output /junit/bruno-results.xml --bail"
   redboxportal:
     image: qcifengineering/redbox-portal:develop
     ports:
