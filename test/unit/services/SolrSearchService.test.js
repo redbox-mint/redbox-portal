@@ -30,7 +30,7 @@ describe('The Solr Indexing Service', function () {
   })
 
   it("Should produce a transformed document", function (done) {
-    let originalPreIndexConfig = _.cloneDeep(sails.config.solr.preIndex)
+    let originalPreIndexConfig = _.cloneDeep(sails.config.solr.cores.default.preIndex);
     let testPreIndexConfig = {
       move: [
         {
@@ -76,7 +76,7 @@ describe('The Solr Indexing Service', function () {
       }
     }
 
-    sails.config.solr.preIndex = testPreIndexConfig;
+    sails.config.solr.cores.default.preIndex = testPreIndexConfig;
 
     let result = SolrSearchService.preIndex(testObject)
     
@@ -98,7 +98,7 @@ describe('The Solr Indexing Service', function () {
     // Test template function
     expect(result, 'template evaluated correctly and stored into property templatespecialFlattenObjectProperty1AndProperty2').to.have.property('templatespecialFlattenObjectProperty1AndProperty2').and.equal('value1value2');
           
-    sails.config.solr.preIndex = originalPreIndexConfig;
+    sails.config.solr.cores.default.preIndex = originalPreIndexConfig;
     done()
   })
 })
