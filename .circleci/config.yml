@@ -86,21 +86,22 @@ jobs:
             shasum -a 256 -c codecov.SHA256SUM
             chmod +x codecov
       - run:
-          name: Run Postman and Mocha tests with code coverage
+          name: Run Bruno and Mocha tests with code coverage
           command: |
             sudo mkdir -p .tmp/junit
             sudo chmod -R 777 .
             cd support/integration-testing
             sudo mkdir -p .tmp/attachments/staging
             sudo chmod -R 777 .
-            docker-compose -f docker-compose.newman.yml up --abort-on-container-exit --exit-code-from redboxportal
+            docker-compose -f docker-compose.bruno.yml up --abort-on-container-exit --exit-code-from redboxportal
+            cp ../../tests/bruno/results.xml .tmp/junit/bruno-results.xml
             docker-compose -f docker-compose.mocha.yml up --abort-on-container-exit --exit-code-from redboxportal
       - run:
-          name: Upload newman and mocha code coverage
+          name: Upload Bruno and mocha code coverage
           command: |
-            /tmp/.codecov-cli/codecov --verbose upload-process --fail-on-error --disable-search \
-              --token "${CODECOV_TOKEN}" --name "job-${CIRCLE_BUILD_NUM}-${CIRCLE_BRANCH}" \
-              --flag "backend-newman" --file "./coverage/newman/lcov.info"
+            # /tmp/.codecov-cli/codecov --verbose upload-process --fail-on-error --disable-search \
+            #  --token "${CODECOV_TOKEN}" --name "job-${CIRCLE_BUILD_NUM}-${CIRCLE_BRANCH}" \
+            #  --flag "backend-newman" --file "./coverage/newman/lcov.info"
             /tmp/.codecov-cli/codecov --verbose upload-process --fail-on-error --disable-search \
               --token "${CODECOV_TOKEN}" --name "job-${CIRCLE_BUILD_NUM}-${CIRCLE_BRANCH}" \
               --flag "backend-mocha" --file "./coverage/mocha/lcov.info"
