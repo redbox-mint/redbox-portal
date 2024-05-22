@@ -29,7 +29,7 @@ module.exports = {
   log: {
     level: 'verbose'
   },
-  appUrl:'http://localhost:1500',
+  appUrl:'http://redboxportal:1500',
   record:{
     baseUrl: {
       redbox: "http://redbox:9000/redbox",
@@ -67,7 +67,7 @@ module.exports = {
           secretOrKey: 'Y30wY4xv1*6I7yUX%6v*Tzce8OEbVO&@R4hVb%2@Gehtx^xgOqQ97Slv!ZOkfHHmox&x0zAt*0o&4^8$9oW8WTf&r@&d31EFbQZr',
           jsonWebTokenOptions: {
             issuer: 'https://rapid.test.aaf.edu.au',
-            audience: 'http://localhost:1500/default/rdmp/',
+            audience: 'http://redboxportal:1500/default/rdmp/',
             ignoreNotBefore: true
           }
         }
@@ -95,8 +95,8 @@ module.exports = {
           client: {
             client_id: 'redbox',
             client_secret: 'w2snramgGaqehPiujV695iUfKmZAJ147',
-            redirect_uris: ['http://localhost:1500/user/login_oidc'],
-            post_logout_redirect_uris: ['http://localhost:1500/default/rdmp/user/logout'],
+            redirect_uris: ['http://redboxportal:1500/user/login_oidc'],
+            post_logout_redirect_uris: ['http://redboxportal:1500/default/rdmp/user/logout'],
           },
           params: {
             scope: 'openid email profile',

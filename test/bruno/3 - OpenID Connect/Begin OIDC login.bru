@@ -5,7 +5,7 @@ meta {
 }
 
 get {
-  url: http://localhost:1500/user/begin_oidc
+  url: {{host}}/user/begin_oidc
   body: none
   auth: none
 }
@@ -16,7 +16,7 @@ headers {
   Cache-Control: no-cache
   Connection: keep-alive
   Pragma: no-cache
-  Referer: http://localhost:1500/default/rdmp/user/login
+  Referer: {{host}}/default/rdmp/user/login
   Sec-Fetch-Dest: document
   Sec-Fetch-Mode: navigate
   Sec-Fetch-Site: same-origin

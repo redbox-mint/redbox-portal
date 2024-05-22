@@ -5,18 +5,20 @@ meta {
 }
 
 post {
-  url: {{solrhost}}/solr/redbox/update/json?wt=json&add=[8d95849003df11ed8b078341db3bde98 (1738385794638282752)]
+  url: {{solrhost}}/solr/redbox/update/json?wt=json&add={{dmpOid}}
   body: none
   auth: none
 }
 
 query {
   wt: json
-  add: [8d95849003df11ed8b078341db3bde98 (1738385794638282752)]
+  add: {{dmpOid}}
 }
 
 script:pre-request {
-  setTimeout(function(){},30000)
+  
+  await new Promise((resolve) => setTimeout(() => resolve(), 30000));
+ 
 }
 
 tests {

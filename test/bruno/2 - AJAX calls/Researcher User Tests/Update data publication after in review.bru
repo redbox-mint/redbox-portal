@@ -12,7 +12,7 @@ put {
 
 headers {
   Pragma: no-cache
-  Origin: http://localhost:1500
+  Origin: {{host}}
   Accept-Encoding: gzip, deflate, br
   Accept-Language: en-US,en;q=0.9,en-AU;q=0.8,it;q=0.7
   User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.102 Safari/537.36
@@ -20,7 +20,7 @@ headers {
   Content-Type: application/json;charset=UTF-8
   Accept: application/json, text/plain, */*
   Cache-Control: no-cache
-  Referer: http://localhost:1500/default/rdmp/record/edit/{{dmpOid}}
+  Referer: {{host}}/default/rdmp/record/edit/{{dmpOid}}
   Connection: keep-alive
 }
 
@@ -78,7 +78,7 @@ body:json {
               "mimeType": "image/png",
               "name": "Screen Shot 2018-11-26 at 3.39.48 pm.png",
               "fileId": "d3de61376e5bc93c814607ee604ebac5",
-              "uploadUrl": "http://localhost:1500/default/rdmp/record/b869b4fae83a1f01082465d165d868a8/attach/d3de61376e5bc93c814607ee604ebac5",
+              "uploadUrl": "{{host}}/default/rdmp/record/b869b4fae83a1f01082465d165d868a8/attach/d3de61376e5bc93c814607ee604ebac5",
               "selected": true
           }
       ],
