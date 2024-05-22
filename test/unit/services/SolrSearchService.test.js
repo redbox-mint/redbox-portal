@@ -68,6 +68,10 @@ describe('The Solr Indexing Service', function () {
     }
 
     let testObject = {
+      metaMetadata: {
+        type: 'rdmp',
+        searchCore: 'redbox'
+      },
       movedPropertyOriginalPosition: "movedValue",
       copiedPropertyOriginalPosition: "copiedValue",
       specialFlattenObject: {
