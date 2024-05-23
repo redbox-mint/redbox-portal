@@ -226,11 +226,11 @@ module.exports.solr = {
         required: false
       }
     },
-    dataRecord: {
+    dataRecordSearchCore: {
       options: {
         host: 'solr',
         port: '8983',
-        core: 'dataRecord'
+        core: 'dataRecordSolrCore'
       },
       schema: {
         'add-field': [

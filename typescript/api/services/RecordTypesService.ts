@@ -80,16 +80,13 @@ export module Services {
 
     public create(brand, name, config) {
       
-      let searchCore = _.get(sails.config.solr.cores,'default.options.core','redbox');
-      if(config.searchCore) {
-        searchCore = config.searchCore;
-      }
+      let searchCoreId = _.get(config,'searchCore','default');
 
       return super.getObservable(RecordType.create({
         name: name,
         branding: brand.id,
         packageType: config.packageType,
-        searchCore: searchCore,
+        searchCore: searchCoreId,
         searchFilters: config.searchFilters,
         hooks: config.hooks,
         transferResponsibility: config.transferResponsibility,
