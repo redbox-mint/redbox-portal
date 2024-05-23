@@ -1,0 +1,47 @@
+meta {
+  name: Get DataPublication Workflow Steps
+  type: http
+  seq: 27
+}
+
+get {
+  url: {{host}}/default/rdmp/record/wfSteps/dataPublication
+  body: none
+  auth: none
+}
+
+headers {
+  Pragma: no-cache
+  Accept-Encoding: gzip, deflate, br
+  X-CSRF-Token: 
+  Accept-Language: en-US,en;q=0.9,en-AU;q=0.8,it;q=0.7
+  User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.102 Safari/537.36
+  Content-Type: application/json;charset=utf-8
+  Accept: application/json, text/plain, */*
+  Connection: keep-alive
+  Referer: {{host}}/default/rdmp/record/search?q=Record
+  X-Source: jsclient
+  Cache-Control: no-cache
+}
+
+script:pre-request {
+  const cookie = bru.getVar("cookie");
+  
+  if(cookie) {
+    req.setHeader("Cookie", cookie)
+  }
+}
+
+tests {
+  test("Status code is 200", function () {
+      expect(res.getStatus()).to.equal(200);
+  });
+  
+  
+  test("Response contains 5 steps", function () {
+       var jsonData = res.getBody();
+       expect(jsonData.length).to.eql(5);
+  });
+  
+  
+}

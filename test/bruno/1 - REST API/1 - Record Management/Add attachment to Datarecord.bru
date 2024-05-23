@@ -1,7 +1,7 @@
 meta {
   name: Add attachment to Datarecord
   type: http
-  seq: 18
+  seq: 27
 }
 
 post {
@@ -16,8 +16,18 @@ headers {
 }
 
 body:multipart-form {
-  attachmentFields: undefined
+  attachmentFields: @file(attachment.png)
   ~dataLocations: 
+}
+
+assert {
+  res.body.message.fileIds.length: eq 1
+}
+
+script:post-response {
+  let jsonData = res.getBody();
+  console.log(jsonData)
+  bru.setVar("attDataRecordStreamId", jsonData.message.fileIds[0].fileId)
 }
 
 tests {

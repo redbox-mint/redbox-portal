@@ -1,11 +1,11 @@
 meta {
-  name: Give user edit permissions to RDMP
+  name: Give user view permissions to Existing Locations
   type: http
-  seq: 18
+  seq: 16
 }
 
 post {
-  url: {{host}}/default/rdmp/api/records/permissions/edit/{{existingLocationsOid}}
+  url: {{host}}/default/rdmp/api/records/permissions/view/{{existingLocationsOid}}
   body: json
   auth: none
 }
@@ -26,10 +26,10 @@ tests {
       expect(res.getStatus()).to.equal(200);
   });
   
-  test("Edit permissions applied", function () {
+  test("User view permission added", function () {
       var jsonData = res.getBody();
       //TODO: This is because of the save trigger
       expect(true).to.eql(true);
-      expect(jsonData.edit).to.include("user");
+      expect(jsonData.view).to.include("user");
   });
 }

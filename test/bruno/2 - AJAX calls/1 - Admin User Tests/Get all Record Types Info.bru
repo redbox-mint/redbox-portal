@@ -1,18 +1,13 @@
 meta {
-  name: Search Index
+  name: Get all Record Types Info
   type: http
-  seq: 31
+  seq: 25
 }
 
 get {
-  url: {{host}}/default/rdmp/record/search/rdmp/?searchStr=Andrew&facetNames=grant_number_name,finalKeywords,workflow_stageLabel
+  url: {{host}}/default/rdmp/record/type/
   body: none
   auth: none
-}
-
-query {
-  searchStr: Andrew
-  facetNames: grant_number_name,finalKeywords,workflow_stageLabel
 }
 
 headers {
@@ -25,11 +20,9 @@ headers {
   Accept: application/json, text/plain, */*
   Connection: keep-alive
   Referer: {{host}}/default/rdmp/record/search?q=Record
-  
   X-Source: jsclient
   Cache-Control: no-cache
 }
-
 
 script:pre-request {
   const cookie = bru.getVar("cookie");
@@ -44,8 +37,10 @@ tests {
       expect(res.getStatus()).to.equal(200);
   });
   
-  test("Has record array", function () {
-      var jsonData = res.getBody();
-      expect(jsonData).to.have.property("records");
+  test("Reponse is an array with more than one result", function () {
+      
   });
+  
+  
+  
 }

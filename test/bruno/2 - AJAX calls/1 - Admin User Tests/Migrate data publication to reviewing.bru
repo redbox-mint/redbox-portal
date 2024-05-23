@@ -1,7 +1,7 @@
 meta {
   name: Migrate data publication to reviewing
   type: http
-  seq: 30
+  seq: 29
 }
 
 put {
@@ -25,7 +25,6 @@ headers {
   Accept: application/json, text/plain, */*
   Cache-Control: no-cache
   Referer: {{host}}/default/rdmp/record/edit/49a33460c794498a56fa29ed08567cc4
-  
   Connection: keep-alive
 }
 
@@ -218,7 +217,6 @@ body:json {
       "ckanLocation": ""
   }
 }
-
 
 script:pre-request {
   const cookie = bru.getVar("cookie");

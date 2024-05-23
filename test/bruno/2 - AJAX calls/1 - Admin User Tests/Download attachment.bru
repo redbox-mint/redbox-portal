@@ -1,7 +1,7 @@
 meta {
   name: Download attachment
   type: http
-  seq: 25
+  seq: 24
 }
 
 get {
@@ -9,7 +9,6 @@ get {
   body: none
   auth: none
 }
-
 
 script:pre-request {
   const cookie = bru.getVar("cookie");

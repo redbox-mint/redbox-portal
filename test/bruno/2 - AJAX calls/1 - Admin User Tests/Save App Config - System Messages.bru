@@ -1,12 +1,12 @@
 meta {
-  name: Get DataRecord Type info
+  name: Save App Config - System Messages
   type: http
-  seq: 27
+  seq: 34
 }
 
-get {
-  url: {{host}}/default/rdmp/record/type/dataRecord
-  body: none
+post {
+  url: {{host}}/default/rdmp/appconfig/form/systemMessage
+  body: json
   auth: none
 }
 
@@ -20,11 +20,17 @@ headers {
   Accept: application/json, text/plain, */*
   Connection: keep-alive
   Referer: {{host}}/default/rdmp/record/search?q=Record
-  
   X-Source: jsclient
   Cache-Control: no-cache
 }
 
+body:json {
+  {
+          "enabled": true,
+          "title": "The new title",
+          "message": "The new message"
+  }
+}
 
 script:pre-request {
   const cookie = bru.getVar("cookie");
@@ -39,11 +45,21 @@ tests {
       expect(res.getStatus()).to.equal(200);
   });
   
-  test("Response is correct package type", function () {
+  
+  test("Enabled value in response is true", function () {
        var jsonData = res.getBody();
-       expect(jsonData.packageType).to.eql("dataRecord");
+       expect(jsonData.enabled).is.true;
   });
   
+  test("title value in response is The new title", function () {
+       var jsonData = res.getBody();
+       expect(jsonData.title).to.eq("The new title");
+  });
+  
+  test("message value in response is The new message", function () {
+       var jsonData = res.getBody();
+       expect(jsonData.message).to.eq("The new message");
+  });
   
   
 }

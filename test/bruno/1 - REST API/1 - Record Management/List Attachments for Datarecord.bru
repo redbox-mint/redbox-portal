@@ -1,7 +1,7 @@
 meta {
   name: List Attachments for Datarecord
   type: http
-  seq: 20
+  seq: 28
 }
 
 get {
@@ -23,6 +23,6 @@ tests {
   
   test("Has attachments", function () {
       var jsonData = res.getBody();
-      expect(_.size(jsonData)).to.gt(0);
+      expect(_.size(jsonData.records)).to.gt(0);
   });
 }

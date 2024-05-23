@@ -1,17 +1,13 @@
 meta {
-  name: Report
+  name: Get DataRecord Type info
   type: http
-  seq: 32
+  seq: 26
 }
 
 get {
-  url: {{host}}/default/rdmp/admin/getReportResults?name=rdmpRecords
+  url: {{host}}/default/rdmp/record/type/dataRecord
   body: none
   auth: none
-}
-
-query {
-  name: rdmpRecords
 }
 
 headers {
@@ -24,11 +20,9 @@ headers {
   Accept: application/json, text/plain, */*
   Connection: keep-alive
   Referer: {{host}}/default/rdmp/record/search?q=Record
-  
   X-Source: jsclient
   Cache-Control: no-cache
 }
-
 
 script:pre-request {
   const cookie = bru.getVar("cookie");
@@ -43,8 +37,11 @@ tests {
       expect(res.getStatus()).to.equal(200);
   });
   
-  // test("Has items array", function () {
-  //     var jsonData = pm.response.json();
-  //     pm.expect(jsonData).to.have.property("items");
-  // });
+  test("Response is correct package type", function () {
+       var jsonData = res.getBody();
+       expect(jsonData.packageType).to.eql("dataRecord");
+  });
+  
+  
+  
 }

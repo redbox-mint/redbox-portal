@@ -1,11 +1,11 @@
 meta {
-  name: Create RDMP For Deletion
+  name: Update RDMP Metadata that does not exist
   type: http
-  seq: 20
+  seq: 5
 }
 
-post {
-  url: {{host}}/default/rdmp/api/records/metadata/rdmp
+put {
+  url: {{host}}/default/rdmp/api/records/metadata/blah-blah-blah
   body: json
   auth: none
 }
@@ -17,7 +17,7 @@ headers {
 
 body:json {
   {
-      "title": "Andrew's Postman test",
+      "title": "Andrew's Postman test - Updated",
       "dc:identifier": "http://purl.org/au-research/grants/nhmrc/566728",
       "description": "Movement of molecules within cells by a process known as membrane transport is critical for normal cell function and also exploited by bacteria to promote infection. The pathway that connects the import pathway to the export pathway is essential for the function of a large number of proteins, however this connecting pathway is poorly characterised. This study will define the machinery of this trafficking pathway, which will provide the ability to modulate biological processes and cytotoxicity.",
       "finalKeywords": [
@@ -63,14 +63,13 @@ body:json {
 }
 
 tests {
-  
-  test("Status code is 201", function () {
-      expect(res.getStatus()).to.equal(201);
+  test("Status code is 400", function () {
+      expect(res.getStatus()).to.equal(400);
   });
   
-  test("Test oid exists", function () {
-      var jsonData = res.getBody();
-      expect(jsonData).to.have.property('oid');
-      bru.setEnvVar("dmpOidToDelete", jsonData.oid);
+  test("Body has json with error", function () {
+     var jsonData = res.getBody();
+      expect(jsonData).to.have.property('message');
+      expect(jsonData.message).to.eql("Failed to update meta, cannot find existing record with oid: blah-blah-blah");
   });
 }

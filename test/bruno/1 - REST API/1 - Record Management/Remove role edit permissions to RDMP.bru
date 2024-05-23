@@ -1,11 +1,11 @@
 meta {
-  name: Give user edit permissions to RDMP
+  name: Remove role edit permissions to RDMP
   type: http
-  seq: 18
+  seq: 14
 }
 
-post {
-  url: {{host}}/default/rdmp/api/records/permissions/edit/{{existingLocationsOid}}
+delete {
+  url: {{host}}/default/rdmp/api/records/permissions/editRole/{{dmpOid}}
   body: json
   auth: none
 }
@@ -17,7 +17,7 @@ headers {
 
 body:json {
   {
-    "users": ["user"]
+    "roles": ["Chief Investigator"]
   }
 }
 
@@ -26,10 +26,10 @@ tests {
       expect(res.getStatus()).to.equal(200);
   });
   
-  test("Edit permissions applied", function () {
+  test("Role edit permission removed", function () {
       var jsonData = res.getBody();
       //TODO: This is because of the save trigger
-      expect(true).to.eql(true);
-      expect(jsonData.edit).to.include("user");
+      pm.expect(true).to.eql(true);
+      pm.expect(jsonData.editRoles).to.not.include("Chief Investigator");
   });
 }

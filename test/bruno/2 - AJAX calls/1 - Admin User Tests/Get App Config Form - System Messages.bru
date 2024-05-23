@@ -1,11 +1,11 @@
 meta {
-  name: Get DataPublication Workflow Steps
+  name: Get App Config Form - System Messages
   type: http
-  seq: 28
+  seq: 33
 }
 
 get {
-  url: {{host}}/default/rdmp/record/wfSteps/dataPublication
+  url: {{host}}/default/rdmp/appconfig/form/systemMessage
   body: none
   auth: none
 }
@@ -20,11 +20,9 @@ headers {
   Accept: application/json, text/plain, */*
   Connection: keep-alive
   Referer: {{host}}/default/rdmp/record/search?q=Record
-  
   X-Source: jsclient
   Cache-Control: no-cache
 }
-
 
 script:pre-request {
   const cookie = bru.getVar("cookie");
@@ -40,9 +38,19 @@ tests {
   });
   
   
-  test("Response contains 5 steps", function () {
+  test("Response contains model attribute", function () {
        var jsonData = res.getBody();
-       expect(jsonData.length).to.eql(5);
+       expect(jsonData.model).is.not.null;
+  });
+  
+  test("Response contains schema attribute", function () {
+       var jsonData = res.getBody();
+       expect(jsonData.schema).is.not.null;
+  });
+  
+  test("Response contains fieldOrder attribute", function () {
+       var jsonData = res.getBody();
+       expect(jsonData.fieldOrder).is.not.null;
   });
   
   
