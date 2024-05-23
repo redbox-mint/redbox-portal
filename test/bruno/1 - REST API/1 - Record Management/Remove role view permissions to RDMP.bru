@@ -27,9 +27,9 @@ tests {
   });
   
   test("Role view permission removed", function () {
-      var jsonData = pm.response.json();
+      var jsonData = res.getBody();
       //TODO: This is because of the save trigger
-      pm.expect(true).to.eql(true);
-      pm.expect(jsonData.viewRoles).to.not.include("Chief Investigator");
+      expect(true).to.eql(true);
+      expect(jsonData.viewRoles).to.not.include("Chief Investigator");
   });
 }

@@ -51,7 +51,7 @@ services:
     # add 'node --inspect=0.0.0.0:9876' to entrypoint for debugging
     entrypoint: /bin/bash -c "cd /opt/redbox-portal && node app.js"
   mongodb:
-    image: mvertes/alpine-mongo:latest
+    image: mongo:latest
     networks:
       main:
         aliases:
