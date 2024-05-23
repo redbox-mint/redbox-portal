@@ -43,7 +43,7 @@ services:
       --exclude-after-remap=false 
       node ./node_modules/mocha/bin/mocha --exit test/bootstrap.test.js test/unit/**/*.test.js"
   mongodb:
-    image: mvertes/alpine-mongo:latest
+    image: mongo:6
     networks:
       main:
         aliases:
