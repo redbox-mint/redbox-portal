@@ -38,6 +38,7 @@ services:
     entrypoint: >-
       /bin/bash -c "cd /opt/redbox-portal && 
       npm i nyc -g && 
+      npm i &&
       nyc --no-clean 
       --report-dir coverage/mocha --reporter=lcov 
       --exclude-after-remap=false 
