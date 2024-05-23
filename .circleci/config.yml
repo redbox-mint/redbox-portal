@@ -94,7 +94,9 @@ jobs:
             sudo mkdir -p .tmp/attachments/staging
             sudo chmod -R 777 .
             docker-compose -f docker-compose.bruno.yml up --abort-on-container-exit --exit-code-from redboxportal
+            docker-compose -f docker-compose.bruno.yml down
             docker-compose -f docker-compose.mocha.yml up --abort-on-container-exit --exit-code-from redboxportal
+            docker-compose -f docker-compose.mocha.yml down
       - run:
           name: Upload Bruno and mocha code coverage
           command: |
