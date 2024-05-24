@@ -30,7 +30,8 @@ import {
   Services as services,
   StorageService,
   StorageServiceResponse,
-  RecordAuditParams
+  RecordAuditParams,
+  RecordAuditActionType
 } from '@researchdatabox/redbox-core-types';
 
 import {
@@ -49,7 +50,7 @@ import {
 import {
   Readable
 } from 'stream';
-import { RecordAuditActionType } from '@researchdatabox/redbox-core-types/dist/model/RecordAuditModel';
+
 
 
 const util = require('util');
