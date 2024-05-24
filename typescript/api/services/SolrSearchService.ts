@@ -18,7 +18,7 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 declare var module;
-import {QueueService, SearchService, SolrConfig, Services as services}   from '@researchdatabox/redbox-core-types';
+import {QueueService, SearchService, SolrConfig, SolrOptions, Services as services}   from '@researchdatabox/redbox-core-types';
 
 import { default as solr } from 'solr-client';
 const axios = require('axios');
@@ -52,8 +52,9 @@ export module Services {
     ]
 
     protected queueService: QueueService;
-    private client: any;
-    private baseUrl: string;
+    private clients: {
+      [key :string]: any;
+    };
 
     constructor() {
       super();
@@ -70,13 +71,18 @@ export module Services {
       flat = await import("flat");
     }
 
-    protected initClient() { //TODO check if these properties are going to be different by core???
-      this.client = solr.createClient(sails.config.solr.cores.default.options);
-      this.client.autoCommit = true;
-      this.baseUrl = this.getBaseUrl();
-      this.client.promiseAdd = util.promisify(this.client.add);
-      this.client.promiseDelete = util.promisify(this.client.delete);
-      this.client.promiseCommit = util.promisify(this.client.commit);
+    protected initClient() {
+      const solrConfig:SolrConfig = sails.config.solr;
+      let coreIds:string[] = Object.keys(solrConfig.cores);
+      for(let coreId of coreIds) {
+        let solrOpts:SolrOptions = solrConfig.cores[coreId].options;
+        let client:any = solr.createClient(solrOpts);
+        client.autoCommit = true;
+        client.promiseAdd = util.promisify(client.add);
+        client.promiseDelete = util.promisify(client.delete);
+        client.promiseCommit = util.promisify(client.commit);
+        this.clients[coreId]= client;
+      }
     }
 
     protected async buildSchema() {
@@ -84,28 +90,7 @@ export module Services {
       let coreNameKeys:string[] = Object.keys(solrConfig.cores);
 
       // wait for SOLR deafult core to start up
-      await this.waitForSolr(solrConfig.cores.default.options.core);
-
-      // for(let coreId of coreNameKeys) {
-
-      //   const coreName = _.get(sails.config.solr.cores,coreId+'.options.core');
-
-      //   if(coreId != 'default') {
-      //     let errorOnCreate = false;
-      //     try {
-      //       const urlCreate = `${this.baseUrl}admin/cores?action=CREATE&name=${coreName}&instanceDir=${coreName}&config=solrconfig.xml&dataDir=data`;
-      //       sails.log.verbose(`${this.logHeader} Create SOLR core ${urlCreate}`);
-      //       const solrStat = await axios.get(urlCreate).then(response => response.data);
-      //       sails.log.verbose(solrStat);
-      //     } catch (err) {
-      //       sails.log.error(err);
-      //       errorOnCreate = true;
-      //     }
-      //     if(!errorOnCreate) {
-      //       await this.waitForSolr(coreName);
-      //     }
-      //   }
-      // }
+      await this.waitForSolr('default');
 
       for(let coreId of coreNameKeys) {
 
@@ -113,13 +98,13 @@ export module Services {
         const coreName = core.options.core;
 
         if(coreId != 'default') {
-          await this.waitForSolr(coreName);
+          await this.waitForSolr(coreId);
         }
 
         // check if the schema is built....
         try {
           const flagName:string = core.initSchemaFlag.name;
-          const schemaInitFlag = await this.getSchemaEntry(coreName, 'fields', flagName);
+          const schemaInitFlag = await this.getSchemaEntry(coreId, 'fields', flagName);
           if (!_.isEmpty(schemaInitFlag)) {
             sails.log.verbose(`${this.logHeader} Schema flag found: ${flagName}. Schema is already initialised, skipping build.`);
             continue;
@@ -128,7 +113,7 @@ export module Services {
           sails.log.verbose(JSON.stringify(err));
         }
         sails.log.verbose(`${this.logHeader} Schema not initialised, building schema...`)
-        const schemaUrl = `${this.baseUrl}${coreName}/schema`;
+        const schemaUrl = `${this.getBaseUrl(core.options)}${coreName}/schema`;
         try {
           const schemaDef = _.get(sails.config.solr.cores,coreId+'.schema');
           if (_.isEmpty(schemaDef)) {
@@ -152,20 +137,25 @@ export module Services {
       }
     }
 
-    private async getSchemaEntry(core: string, fieldName: string, name: string) {
-      const schemaResp = await this.getSchema(core);
+    private async getSchemaEntry(coreId: string, fieldName: string, name: string) {
+      const schemaResp = await this.getSchema(coreId);
       return _.find(_.get(schemaResp.schema, fieldName), (schemaDef) => { return schemaDef.name == name });
     }
 
-    private async getSchema(core: string) {
-      const schemaUrl = `${this.baseUrl}${core}/schema?wt=json`;
+    private async getSchema(coreId: string) {
+      const solrConfig:SolrConfig = sails.config.solr;
+      const core = solrConfig.cores[coreId];
+      const schemaUrl = `${this.getBaseUrl(core.options)}${core}/schema?wt=json`;
       return await axios.get(schemaUrl).then(response => response.data);
     }
 
-    private async waitForSolr(coreName: string) {
+    private async waitForSolr(coreId: string) {
+      const solrConfig:SolrConfig = sails.config.solr;
+      const core = solrConfig.cores[coreId];
+      let coreName:string = core.options.core;
       let solrUp = false;
       let tryCtr = 0;
-      const urlCheck = `${this.baseUrl}admin/cores?action=STATUS&core=${coreName}`;
+      const urlCheck = `${this.getBaseUrl(core.options)}admin/cores?action=STATUS&core=${coreName}`;
       while (!solrUp && tryCtr <= sails.config.solr.maxWaitTries) {
         try {
           tryCtr++;
@@ -191,9 +181,8 @@ export module Services {
       }
     }
 
-    //TODO check if these properties are going to be different by core???
-    private getBaseUrl(): string {
-      return `${sails.config.solr.cores.default.options.https ? 'https' : 'http'}://${sails.config.solr.cores.default.options.host}:${sails.config.solr.cores.default.options.port}/solr/`;
+    private getBaseUrl(coreOptions:any): string {
+      return `${coreOptions.https ? 'https' : 'http'}://${coreOptions.host}:${coreOptions.port}/solr/`;
     }
 
     public index(id: string, data: any) {
@@ -212,19 +201,21 @@ export module Services {
       this.queueService.now(sails.config.solr.deleteJobName, data);
     }
 
-    public async searchAdvanced(core:string = 'default', type: string, query: string): Promise<any> {
-      const coreId = _.get(sails.config.recordtype,type+'.searchCore','default');
-      const coreName = _.get(sails.config.solr.cores,coreId+'.options.core');
-      let url = `${this.baseUrl}${coreName}/select?q=${query}`;
+    public async searchAdvanced(coreId:string = 'default', type: string, query: string): Promise<any> {
+      const solrConfig:SolrConfig = sails.config.solr;
+      const core = solrConfig.cores[coreId];
+      const coreName = core.options.core;
+      let url = `${this.getBaseUrl(core.options)}${coreName}/select?q=${query}`;
       sails.log.verbose(`Searching advanced using: ${url}`);
       const response = await axios.get(url).then(response => response.data);
       return response;
     }
 
-    public async searchFuzzy(core:string = 'default', type: string, workflowState: string, searchQuery: string, exactSearches: any, facetSearches: any, brand: any, user: any, roles: any, returnFields: any, start=0, rows=10): Promise<any> {
+    public async searchFuzzy(coreId:string = 'default', type: string, workflowState: string, searchQuery: string, exactSearches: any, facetSearches: any, brand: any, user: any, roles: any, returnFields: string[], start=0, rows=10): Promise<any> {
       const username = user.username;
-      const coreId = _.get(sails.config.recordtype,type+'.searchCore','default');
-      const coreName = _.get(sails.config.solr.cores,coreId+'.options.core');
+      const solrConfig:SolrConfig = sails.config.solr;
+      const core = solrConfig.cores[coreId];
+      const coreName = core.options.core;
       let searchParam = workflowState ? ` AND workflow_stage:${workflowState} ` : '';
       searchParam = `${searchParam} AND full_text:${searchQuery}`;
       _.forEach(exactSearches, (exactSearch) => {
@@ -237,7 +228,7 @@ export module Services {
         });
       }
       searchParam= `${searchParam}&start=${start}&rows=${rows}`
-      let url = `${this.baseUrl}${coreName}/select?q=metaMetadata_brandId:${brand.id} AND metaMetadata_type:${type}${searchParam}&version=2.2&wt=json&sort=date_object_modified desc`;
+      let url = `${this.getBaseUrl(core.options)}${coreName}/select?q=metaMetadata_brandId:${brand.id} AND metaMetadata_type:${type}${searchParam}&version=2.2&wt=json&sort=date_object_modified desc`;
       url = this.addAuthFilter(url, username, roles, brand, false);
       sails.log.verbose(`Searching fuzzy using: ${url}`);
       const response = await axios.get(url).then(response => response.data);
@@ -292,13 +283,14 @@ export module Services {
     public async solrAddOrUpdate(job: any) {
       try {
         let data:any = job.attrs.data;
+        let coreId = _.get(data,'metaMetadata.searchCore');
         sails.log.verbose(`${this.logHeader} adding document: ${data.id} to index`);
         // flatten the JSON
         const processedData = this.preIndex(data);
         sails.log.verbose(JSON.stringify(processedData));
-        await this.client.promiseAdd(processedData);
+        await this.clients[coreId].promiseAdd(processedData);
         // intentionally adding the commit call as the client doesn't respect the 'autoCommit' flag
-        await this.client.promiseCommit();
+        await this.clients[coreId].promiseCommit();
         await this.clientSleep();
 
       } catch (err) {
@@ -419,10 +411,11 @@ export module Services {
     public async solrDelete(job: any, done:any) {
       try {
         let data = job.attrs.data;
+        let coreId = _.get(data,'metaMetadata.searchCore');
         sails.log.verbose(`${this.logHeader} deleting document: ${data.id}`);
-        await this.client.promiseDelete('id', data.id);
+        await this.clients[coreId].promiseDelete('id', data.id);
         // intentionally adding the commit call as the client doesn't respect the 'autoCommit' flag
-        await this.client.promiseCommit();
+        await this.clients[coreId].promiseCommit();
         await this.clientSleep();
       } catch (err) {
         sails.log.error(`${this.logHeader} Failed to solrDelete:`);

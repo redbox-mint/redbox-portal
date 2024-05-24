@@ -9,7 +9,7 @@ describe('The Solr Indexing Service', function () {
     let oid = "xxxxxxxxx"
     let record = {}
     SolrSearchService.index(oid, record)
-    SolrSearchService.searchAdvanced('rdmp','test').then(result => {
+    SolrSearchService.searchAdvanced('default','rdmp','test').then(result => {
       sails.log.debug("Index result: ")
       sails.log.debug(result)
       expect(result).to.not.be.null &&
