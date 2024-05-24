@@ -954,7 +954,7 @@ export module Controllers {
       const type = req.param('type');
       let rows = req.param('rows');
       let page = req.param('page');
-      let core = req.param('core')? req.param('core') : 'default';
+      let core = req.param('core');
 
       // If a record type is set, fetch from the configuration what core it's being sent from
       if(type != null) {

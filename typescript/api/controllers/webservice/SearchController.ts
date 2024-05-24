@@ -123,7 +123,7 @@ export module Controllers {
       const type = req.query.type;
       const workflow = req.query.workflow;
       const searchString = req.query.searchStr;
-      let core = req.query.core == undefined ? 'default' : req.query.core;
+      let core = req.query.core;
       const exactSearchNames = _.isEmpty(req.query.exactNames) ? [] : req.query.exactNames.split(',');
       const exactSearches = [];
       const facetSearchNames = _.isEmpty(req.query.facetNames) ? [] : req.query.facetNames.split(',');

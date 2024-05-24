@@ -212,7 +212,7 @@ export module Services {
       this.queueService.now(sails.config.solr.deleteJobName, data);
     }
 
-    public async searchAdvanced(type: string, query: string): Promise<any> {
+    public async searchAdvanced(core:string = 'default', type: string, query: string): Promise<any> {
       const coreId = _.get(sails.config.recordtype,type+'.searchCore','default');
       const coreName = _.get(sails.config.solr.cores,coreId+'.options.core');
       let url = `${this.baseUrl}${coreName}/select?q=${query}`;
@@ -221,7 +221,7 @@ export module Services {
       return response;
     }
 
-    public async searchFuzzy(type: string, workflowState: string, searchQuery: string, exactSearches: any, facetSearches: any, brand: any, user: any, roles: any, returnFields: any, start=0, rows=10): Promise<any> {
+    public async searchFuzzy(core:string = 'default', type: string, workflowState: string, searchQuery: string, exactSearches: any, facetSearches: any, brand: any, user: any, roles: any, returnFields: any, start=0, rows=10): Promise<any> {
       const username = user.username;
       const coreId = _.get(sails.config.recordtype,type+'.searchCore','default');
       const coreName = _.get(sails.config.solr.cores,coreId+'.options.core');
