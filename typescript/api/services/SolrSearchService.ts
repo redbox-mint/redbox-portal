@@ -311,8 +311,8 @@ export module Services {
     // but can't unit test it easily if it isn't
     public preIndex(data: any) {
       let processedData:any = _.cloneDeep(data);
-      let recordType = _.get(data,'metaMetadata.type');
-      let coreId = _.get(sails.config.recordtype,recordType+'.searchCore','default');
+      
+      let coreId = _.get(data,'metaMetadata.searchCore');
       let moveObj = _.get(sails.config.solr.cores,coreId+'.preIndex.move');
       // moving
       _.each(moveObj, (moveConfig:any) => {
