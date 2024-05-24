@@ -3,7 +3,7 @@ declare var sails;
 
 import {
   APIErrorResponse,
-  Branding
+  BrandingModel
 } from '@researchdatabox/redbox-core-types';
 declare var _;
 import {Services as AppConfigServiceType} from '../../services/AppConfigService';
@@ -51,7 +51,7 @@ export module Controllers {
     
     public async saveAppConfig(req, res) {
       try {
-        const brand:Branding = BrandingService.getBrand(req.session.branding);
+        const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
         let appConfigId:string = req.param('appConfigId');
         let appConfig = req.body;
         if(appConfigId === undefined) {
@@ -68,7 +68,7 @@ export module Controllers {
 
     public async getAppConfig(req, res) {
       try {
-        const brand:Branding = BrandingService.getBrand(req.session.branding);
+        const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
         let appConfigId:string = req.param('appConfigId');
         if(appConfigId === undefined) {
           return res.badRequest('appConfigId is required');

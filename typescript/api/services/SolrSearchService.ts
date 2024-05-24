@@ -18,7 +18,7 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 declare var module;
-import {QueueService, SearchService, Services as services}   from '@researchdatabox/redbox-core-types';
+import {QueueService, SearchService, SolrConfig, Services as services}   from '@researchdatabox/redbox-core-types';
 
 import { default as solr } from 'solr-client';
 const axios = require('axios');
@@ -80,19 +80,20 @@ export module Services {
     }
 
     protected async buildSchema() {
-
-      let coreNameKeys = Object.keys(sails.config.solr.cores);
+      const solrConfig:SolrConfig = sails.config.solr;
+      let coreNameKeys:string[] = Object.keys(solrConfig.cores);
 
       // wait for SOLR deafult core to start up
-      await this.waitForSolr(sails.config.solr.cores.default.options.core);
+      await this.waitForSolr(solrConfig.cores.default.options.core);
 
       for(let coreId of coreNameKeys) {
-
-        const coreName = _.get(sails.config.solr.cores,coreId+'.options.core');
+        const core = solrConfig.cores[coreId];
+        const coreName = core.options.core;
 
         // check if the schema is built....
         try {
-          const flagName = _.get(sails.config.solr.cores,coreId+'.initSchemaFlag.name');
+          const flagName:string = core.initSchemaFlag.name;
+          
           const schemaInitFlag = await this.getSchemaEntry(coreName, 'fields', flagName);
           if (!_.isEmpty(schemaInitFlag)) {
             sails.log.verbose(`${this.logHeader} Schema flag found: ${flagName}. Schema is already initialised, skipping build.`);

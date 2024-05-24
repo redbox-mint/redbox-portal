@@ -29,7 +29,7 @@ const pipeline = util.promisify(stream.pipeline);
 /**
  * Package that contains all Controllers.
  */
-import { Branding, Controllers as controllers} from '@researchdatabox/redbox-core-types';
+import { BrandingModel, Controllers as controllers} from '@researchdatabox/redbox-core-types';
 export module Controllers {
   /**
    * Responsible for all things related to exporting anything
@@ -56,7 +56,7 @@ export module Controllers {
     }
 
     public async downloadRecs(req, res) {
-      const brand:Branding = BrandingService.getBrand(req.session.branding);
+      const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
       const format = req.param('format');
       const recType = req.param('recType');
       const before = _.isEmpty(req.query.before) ? null : req.query.before;

@@ -18,7 +18,7 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 import { Observable } from 'rxjs/Rx';
-import {Branding, Services as services}   from '@researchdatabox/redbox-core-types';
+import {BrandingModel, Services as services}   from '@researchdatabox/redbox-core-types';
 import {Sails, Model} from "sails";
 import * as fs from 'fs-extra';
 import { resolve, basename } from 'path';
@@ -107,7 +107,7 @@ export module Services {
           _.each(overrideFiles, (file_path) => {
             const config_file = require(file_path);
             let configKey = basename(file_path)
-            const brand:Branding = BrandingService.getBrand(brandName);
+            const brand:BrandingModel = BrandingService.getBrand(brandName);
             AppConfigService.createOrUpdateConfig(brand, configKey, config_file).then(config => {
               sails.log.verbose(hook_log_header + "::Configuration created or updated:");
               sails.log.verbose(config);

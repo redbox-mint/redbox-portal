@@ -24,7 +24,7 @@ declare var _;
 declare var BrandingService, UsersService, ConfigService;
 import { v4 as uuidv4 } from 'uuid';
 
-import { Branding, Controllers as controllers, RequestDetails } from '@researchdatabox/redbox-core-types';
+import { BrandingModel, Controllers as controllers, RequestDetails } from '@researchdatabox/redbox-core-types';
 
 
 export module Controllers {
@@ -487,7 +487,7 @@ export module Controllers {
     }
 
     public find(req, res) {
-      const brand:Branding = BrandingService.getBrand(req.session.branding);
+      const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
       const searchSource = req.query.source;
       const searchName = req.query.name;
       UsersService.findUsersWithName(searchName, brand.id, searchSource).subscribe(users => {

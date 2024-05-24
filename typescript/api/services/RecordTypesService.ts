@@ -18,7 +18,7 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 import { Observable } from 'rxjs/Rx';
-import {Services as services}   from '@researchdatabox/redbox-core-types';
+import {BrandingModel, RecordTypeModel, Services as services}   from '@researchdatabox/redbox-core-types';
 import {Sails, Model} from "sails";
 
 declare var sails: Sails;
@@ -43,13 +43,13 @@ export module Services {
       'getAllCache'
     ];
 
-    protected recordTypes;
+    protected recordTypes:RecordTypeModel[];
 
-    public async bootstrap (defBrand):Promise<any> {
-      let recordTypes = await RecordType.find({branding:defBrand.id});
+    public async bootstrap (defBrand:BrandingModel):Promise<RecordTypeModel[]> {
+      let recordTypes:RecordTypeModel[] = await RecordType.find({branding:defBrand.id});
       if (sails.config.appmode.bootstrapAlways) {
         await RecordType.destroy({branding:defBrand.id});
-        recordTypes = null;
+        recordTypes  = null;
       }
         if (_.isUndefined(recordTypes)) {
           recordTypes = [];
@@ -64,10 +64,10 @@ export module Services {
           //   rTypesObs.push(obs);
           // });
 
-          this.recordTypes = recordTypes;
+          this.recordTypes= recordTypes;
           let rTypes = [];
           for(let recordType in sails.config.recordtype) {
-            let config = sails.config.recordtype[recordType];
+            let config:RecordTypeModel = sails.config.recordtype[recordType];
             rTypes.push(await this.create(defBrand, recordType, config).toPromise())
           }    
           return rTypes;
@@ -78,15 +78,13 @@ export module Services {
           return recordTypes;
     }
 
-    public create(brand, name, config) {
-      
-      let searchCoreId = _.get(config,'searchCore','default');
-
+    public create(brand:BrandingModel, name:string, config:RecordTypeModel):Observable<RecordTypeModel> {
+    
       return super.getObservable(RecordType.create({
         name: name,
         branding: brand.id,
         packageType: config.packageType,
-        searchCore: searchCoreId,
+        searchCore: config.searchCore,
         searchFilters: config.searchFilters,
         hooks: config.hooks,
         transferResponsibility: config.transferResponsibility,
@@ -95,7 +93,7 @@ export module Services {
       }));
     }
 
-    public get(brand, name, fields:any[]=null) {
+    public get(brand:BrandingModel, name:string, fields:string[]=null): Observable<RecordTypeModel> {
       const criteria:any = {where: {branding: brand.id, name: name}};
       if (fields) {
         criteria.select = fields;
@@ -103,7 +101,7 @@ export module Services {
       return super.getObservable(RecordType.findOne(criteria));
     }
 
-    public getAll(brand, fields:any[] = null) {
+    public getAll(brand:BrandingModel, fields:string[] = null): Observable<RecordTypeModel[]> {
       const criteria:any = {where: {branding: brand.id}};
       if (fields) {
         criteria.select = fields;
@@ -111,9 +109,9 @@ export module Services {
       return super.getObservable(RecordType.find(criteria));
     }
 
-    public getAllCache() {
+    public getAllCache(): RecordTypeModel[] {
       return this.recordTypes;
-    }
+        }
   }
 }
 module.exports = new Services.RecordTypes().exports();

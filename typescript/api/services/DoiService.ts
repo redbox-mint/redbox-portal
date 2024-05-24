@@ -23,7 +23,7 @@ import {
 import {
   Services as services,
   RBValidationError,
-  Branding
+  BrandingModel
 } from '@researchdatabox/redbox-core-types';
 import {
   Sails,
@@ -504,7 +504,7 @@ export module Services {
     public async publishDoiTrigger(oid, record, options): Promise<any> {
 
       if (this.metTriggerCondition(oid, record, options) === "true") {
-        const brand:Branding = BrandingService.getBrand('default');
+        const brand:BrandingModel = BrandingService.getBrand('default');
         let doi = await this.publishDoi(oid, record);
 
         if (doi != null) {

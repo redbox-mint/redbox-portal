@@ -30,7 +30,7 @@ declare var _;
 /**
  * Package that contains all Controllers.
  */
- import {APIErrorResponse, APIObjectActionResponse, Branding, Controllers as controllers,  RecordsService, SearchService} from '@researchdatabox/redbox-core-types';
+ import {APIErrorResponse, APIObjectActionResponse, BrandingModel, Controllers as controllers,  RecordsService, SearchService} from '@researchdatabox/redbox-core-types';
 
 export module Controllers {
   /**
@@ -80,7 +80,7 @@ export module Controllers {
     }
 
     public async indexAll(req, res) {
-      const brand:Branding = BrandingService.getBrand(req.session.branding);
+      const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
       sails.log.verbose(`SearchController::indexAll() -> Indexing all records has been requested!`);
       let itemsPerPage = 100;
       let itemsRead = 0;
@@ -108,7 +108,7 @@ export module Controllers {
     }
 
     public async removeAll(req, res) {
-      const brand:Branding = BrandingService.getBrand(req.session.branding);
+      const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
       sails.log.verbose(`SearchController::removeAll() -> Removing all records has been requested!`);
 
       // delete all documents by specifying id as '*'
@@ -119,7 +119,7 @@ export module Controllers {
     }
 
     public async search(req, res) {
-      const brand:Branding = BrandingService.getBrand(req.session.branding);
+      const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
       const type = req.query.type;
       const workflow = req.query.workflow;
       const searchString = req.query.searchStr;

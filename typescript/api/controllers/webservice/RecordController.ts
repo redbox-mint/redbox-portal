@@ -38,7 +38,7 @@ import * as path from "path";
 import {
   APIErrorResponse,
   APIHarvestResponse,
-  Branding,
+  BrandingModel,
   Controllers as controllers,
   Datastream,
   DatastreamService,
@@ -116,7 +116,7 @@ export module Controllers {
     }
 
     public async getPermissions(req, res) {
-      const brand:Branding = BrandingService.getBrand(req.session.branding);
+      const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
       const oid = req.param('oid');
 
       try {
@@ -129,7 +129,7 @@ export module Controllers {
     }
 
     public async addUserEdit(req, res) {
-      const brand:Branding = BrandingService.getBrand(req.session.branding);
+      const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
       const oid = req.param('oid');
       const body = req.body;
       const users = body["users"];
@@ -164,7 +164,7 @@ export module Controllers {
     }
 
     public async addUserView(req, res) {
-      const brand:Branding = BrandingService.getBrand(req.session.branding);
+      const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
       const oid = req.param('oid');
       const body = req.body;
       const users = body["users"];
@@ -199,7 +199,7 @@ export module Controllers {
     }
 
     public async removeUserEdit(req, res) {
-      const brand:Branding = BrandingService.getBrand(req.session.branding);
+      const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
       const oid = req.param('oid');
       const body = req.body;
       const users = body["users"];
@@ -234,7 +234,7 @@ export module Controllers {
     }
 
     public async removeUserView(req, res) {
-      const brand:Branding = BrandingService.getBrand(req.session.branding);
+      const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
       const oid = req.param('oid');
       const body = req.body;
       const users = body["users"];
@@ -269,7 +269,7 @@ export module Controllers {
     }
 
     public async getMeta(req, res) {
-      const brand:Branding = BrandingService.getBrand(req.session.branding);
+      const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
       const oid = req.param('oid');
 
       try {
@@ -286,7 +286,7 @@ export module Controllers {
     }
 
     public async getRecordAudit(req, res) {
-      const brand:Branding = BrandingService.getBrand(req.session.branding);
+      const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
       var oid = req.param('oid');
       var dateFrom = req.param('dateFrom');
       var dateTo = req.param('dateTo');
@@ -313,7 +313,7 @@ export module Controllers {
     }
 
     public async getObjectMeta(req, res) {
-      const brand:Branding = BrandingService.getBrand(req.session.branding);
+      const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
       sails.log.debug('brand is...');
       sails.log.debug(brand);
       var oid = req.param('oid');
@@ -328,7 +328,7 @@ export module Controllers {
     }
 
     public async updateMeta(req, res) {
-      const brand:Branding = BrandingService.getBrand(req.session.branding);
+      const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
       const oid = req.param('oid');
       const shouldMerge = req.param('merge', false);
       const shouldProcessDatastreams = req.param('datastreams', false);
@@ -376,7 +376,7 @@ export module Controllers {
     }
 
     public async updateObjectMeta(req, res) {
-      const brand:Branding = BrandingService.getBrand(req.session.branding);
+      const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
       const oid = req.param('oid');
 
       let record;
@@ -398,7 +398,7 @@ export module Controllers {
     }
 
     public create(req, res) {
-      const brand:Branding = BrandingService.getBrand(req.session.branding);
+      const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
       const recordType = req.param('recordType');
       const user = req.user;
       const body = req.body;
@@ -465,7 +465,7 @@ export module Controllers {
     }
 
     public async getDataStream(req, res) {
-      const brand:Branding = BrandingService.getBrand(req.session.branding);
+      const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
       const oid = req.param('oid');
       const datastreamId = req.param('datastreamId');
       sails.log.debug(`getDataStream ${oid} ${datastreamId}`);
@@ -535,7 +535,7 @@ export module Controllers {
     }
 
     public async addDataStreams(req, res) {
-      const brand:Branding = BrandingService.getBrand(req.session.branding);
+      const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
       var oid = req.param('oid');
       const self = this;
       req.file('attachmentFields').upload({
@@ -744,7 +744,7 @@ export module Controllers {
 
     public listRecords(req, res) {
       //sails.log.debug('api-list-records');
-      const brand:Branding = BrandingService.getBrand(req.session.branding);
+      const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
       const editAccessOnly = req.query.editOnly;
 
       var roles = [];
@@ -864,7 +864,7 @@ export module Controllers {
           return this.apiFailWrapper(req, res, 400, null, null,
               "Missing ID of record.");
         }
-        const brand:Branding = BrandingService.getBrand(req.session.branding);
+        const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
         const record = await this.RecordsService.getMeta(oid);
         if (_.isEmpty(record)) {
           return this.apiFailWrapper(req, res, 500, null, null,
@@ -906,7 +906,7 @@ export module Controllers {
     }
 
     public async addRoleEdit(req, res) {
-      const brand:Branding = BrandingService.getBrand(req.session.branding);
+      const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
       const oid = req.param('oid');
       const body = req.body;
       const roles = body["roles"];
@@ -937,7 +937,7 @@ export module Controllers {
     }
 
     public async addRoleView(req, res) {
-      const brand:Branding = BrandingService.getBrand(req.session.branding);
+      const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
       const oid = req.param('oid');
       const body = req.body;
       const roles = body["roles"];
@@ -968,7 +968,7 @@ export module Controllers {
     }
 
     public async removeRoleEdit(req, res) {
-      const brand:Branding = BrandingService.getBrand(req.session.branding);
+      const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
       const oid = req.param('oid'); 
       const body = req.body;
       const roles = body["roles"];
@@ -999,7 +999,7 @@ export module Controllers {
     }
 
     public async removeRoleView(req, res) {
-      const brand:Branding = BrandingService.getBrand(req.session.branding);
+      const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
       const oid = req.param('oid');
       const body = req.body;
       const users = body["roles"];
@@ -1030,7 +1030,7 @@ export module Controllers {
     }
 
     public async harvest(req, res) {
-      const brand:Branding = BrandingService.getBrand(req.session.branding);
+      const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
       let updateModes = ["merge", "override", "create"]
 
       let updateMode = req.param('updateMode')
@@ -1201,7 +1201,7 @@ export module Controllers {
 
     public listDeletedRecords(req, res) {
       //sails.log.debug('api-list-records');
-      const brand:Branding = BrandingService.getBrand(req.session.branding);
+      const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
       const editAccessOnly = req.query.editOnly;
 
       var roles = [];

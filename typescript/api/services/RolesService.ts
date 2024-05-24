@@ -18,7 +18,7 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 import { Observable } from 'rxjs/Rx';
-import {Branding, Services as services}   from '@researchdatabox/redbox-core-types';
+import {BrandingModel, Services as services}   from '@researchdatabox/redbox-core-types';
 import {Sails, Model} from "sails";
 
 declare var sails: Sails;
@@ -147,7 +147,7 @@ export module Services {
                            return super.getObservable(Role.create(roleConfig))
                                        .flatMap(newRole => {
                                          sails.log.verbose("Adding role to brand:" + newRole.id);
-                                         var brand:Branding = sails.services.brandingservice.getDefault();
+                                         var brand:BrandingModel = sails.services.brandingservice.getDefault();
                                          // START Sails 1.0 upgrade
                                          // brand.roles.add(newRole.id);
                                          const q = BrandingConfig.addToCollection(brand.id, 'roles').members([newRole.id]);

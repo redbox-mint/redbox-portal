@@ -18,7 +18,7 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 import { Observable } from 'rxjs/Rx';
-import {Services as services, Branding as BrandingModel}   from '@researchdatabox/redbox-core-types';
+import {Services as services, BrandingModel}   from '@researchdatabox/redbox-core-types';
 import { Sails, Model } from "sails";
 
 declare var sails: Sails;

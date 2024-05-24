@@ -4,7 +4,7 @@ import {
   Observable
 } from 'rxjs/Rx';
 import {
-  Branding
+  BrandingModel
 } from '@researchdatabox/redbox-core-types';
 import { default as moment } from 'moment';
 import * as tus from 'tus-node-server';
@@ -58,7 +58,7 @@ export module Controllers {
 
     public async editAppConfig(req,res) {
       try {
-      const brand:Branding = BrandingService.getBrand(req.session.branding);
+      const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
       let appConfigId:string = req.param('appConfigId');
 
       if(appConfigId === undefined) {
@@ -80,7 +80,7 @@ export module Controllers {
     }
     public async saveAppConfig(req, res) {
       try {
-        const brand:Branding = BrandingService.getBrand(req.session.branding);
+        const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
         let appConfigId:string = req.param('appConfigId');
         let appConfig = req.body;
         if(appConfigId === undefined) {
@@ -97,7 +97,7 @@ export module Controllers {
 
     public async getAppConfigForm(req, res) {
       try {
-        const brand:Branding = BrandingService.getBrand(req.session.branding);
+        const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
         let appConfigId:string = req.param('appConfigId');
         if(appConfigId === undefined) {
           return res.badRequest('appConfigId is required');

@@ -28,7 +28,7 @@ declare var UsersService;
 declare var User;
 declare var Record;
 declare var _;
-import { APIErrorResponse, Branding } from '@researchdatabox/redbox-core-types';
+import { APIErrorResponse, BrandingModel } from '@researchdatabox/redbox-core-types';
 /**
  * Package that contains all Controllers.
  */
@@ -68,7 +68,7 @@ export module Controllers {
 
     public async executeNamedQuery(req, res) {
       try {
-        const brand:Branding = BrandingService.getBrand(req.session.branding);
+        const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
         let queryName = req.param('queryName');
         let namedQuery = await NamedQueryService.getNamedQueryConfig(brand,queryName);
         if (_.isEmpty(namedQuery)) {

@@ -26,7 +26,7 @@ import {
 } from 'rxjs';
 
 import {
-  Branding,
+  BrandingModel,
   SearchService,
   Services as services
 } from '@researchdatabox/redbox-core-types';
@@ -413,7 +413,7 @@ export module Services {
         sails.config.passport.use('aaf-jwt', new JwtStrategy(aafOpts, function (req, jwt_payload, done) {
           const brandName:string = BrandingService.getBrandFromReq(req);
 
-          const brand:Branding = BrandingService.getBrand(brandName);
+          const brand:BrandingModel = BrandingService.getBrand(brandName);
           
           const authConfig = ConfigService.getBrand(brand.name, 'auth');
           var aafAttributes = authConfig.aaf.attributesField;
@@ -732,7 +732,7 @@ export module Services {
         req.session.errorTextRaw = JSON.stringify(err, null, 2);
         return done(null, false);
       }
-      var brand:Branding = BrandingService.getBrand(req.session.branding);
+      var brand:BrandingModel = BrandingService.getBrand(req.session.branding);
       var claimsMappings = oidcConfig.claimMappings;
       let userName = '';
       let tmpUserName = _.get(userinfo, claimsMappings['username']);
