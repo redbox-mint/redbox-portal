@@ -18,21 +18,25 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 //<reference path='./../../typings/loader.d.ts'/>
-declare var module;
-declare var sails;
+import {APIErrorResponse, Controllers as controllers, CreateUserAPIResponse, ListAPIResponse, UserModel, UserAPITokenAPIResponse, APIActionResponse, BrandingModel} from '@researchdatabox/redbox-core-types';
+import {Services as userService} from '../../services/UsersService';
+import {Services as rolesService} from '../../services/RolesService';
+import {Services as brandingService} from '../../services/BrandingService';
+import {Sails, Model} from "sails";
+import { v4 as uuidv4 } from 'uuid';
 
-declare var BrandingService;
-declare var RolesService;
-declare var DashboardService;
-declare var UsersService;
-declare var User;
+
+
+declare var sails: Sails;
+
+declare var BrandingService: brandingService.Branding;
+declare var RolesService: rolesService.Roles;
+declare var UsersService: userService.Users;
+declare var User: Model;
 declare var _;
 /**
  * Package that contains all Controllers.
  */
- import {APIErrorResponse, Controllers as controllers, CreateUserAPIResponse, ListAPIResponse, UserModel, UserAPITokenAPIResponse, APIActionResponse, BrandingModel} from '@researchdatabox/redbox-core-types';
-
- import { v4 as uuidv4 } from 'uuid';
 
 export module Controllers {
   /**
@@ -87,7 +91,7 @@ export module Controllers {
 
       User.count({
         where: queryObject
-      }).exec(function (err, count) {
+      }).exec(function (err, count:number) {
         let response: ListAPIResponse < any > = new ListAPIResponse < any > ();
         response.summary.numFound = count;
         response.summary.page = page;
@@ -100,10 +104,11 @@ export module Controllers {
             where: queryObject,
             limit: pageSize,
             skip: skip
-          }).exec(function (err, users) {
+          }).exec(function (err, users:UserModel[]) {
 
             _.each(users, user => {
               delete user["token"];
+              delete user["password"]
             });
             response.records = users;
 
@@ -119,13 +124,14 @@ export module Controllers {
       var query = req.param('query');
       var queryObject = {};
       queryObject[searchField] = query;
-      User.findOne(queryObject).exec(function (err, user) {
+      User.findOne(queryObject).exec(function (err, user:UserModel) {
         if (err != null) {
           sails.log.error(err)
           return that.apiFail(req, res, 500)
         }
         if (user != null) {
           delete user["token"];
+          delete user["password"]
           return that.apiRespond(req, res, user);
         }
 
@@ -136,14 +142,15 @@ export module Controllers {
     public createUser(req, res) {
       let userReq: UserModel = req.body;
 
-      UsersService.addLocalUser(userReq.username, userReq.name, userReq.email, userReq.password).subscribe(response => {
-
+      UsersService.addLocalUser(userReq.username, userReq.name, userReq.email, userReq.password).subscribe(userResponse => {
+        const response: UserModel = userResponse;
         if (userReq.roles) {
           let roles = userReq.roles;
           let brand:BrandingModel = BrandingService.getBrand(req.session.branding);
           let roleIds = RolesService.getRoleIds(brand.roles, roles);
-          UsersService.updateUserRoles(response.id, roleIds).subscribe(user => {
-            sails.log.error(user)
+          UsersService.updateUserRoles(response.id, roleIds).subscribe(roleUser => {
+            let user:UserModel = roleUser;
+            sails.log.verbose(user);
             let userResponse = new CreateUserAPIResponse();
             userResponse.id = response.id;
             userResponse.username = response.username;
@@ -179,18 +186,20 @@ export module Controllers {
     public updateUser(req, res) {
       let userReq: UserModel = req.body;
 
-      UsersService.updateUserDetails(userReq.id, userReq.name, userReq.email, userReq.password).subscribe(response => {
-        
+      UsersService.updateUserDetails(userReq.id, userReq.name, userReq.email, userReq.password).subscribe(userResponse => {
+        let response:UserModel = userResponse;
         let user = response;
-        sails.log.error(user)
-        if (!_.isEmpty(response) && _.isArray(response)) {
-          for (let userItem of response) {
-            if (!_.isEmpty(response) && _.isArray(userItem)) {
-              user = userItem[0];
-              break;
-            }
-          }
-        }
+        sails.log.verbose(user)
+
+        //This shouldn't be possible as the response should be a single user
+        // if (!_.isEmpty(response) && _.isArray(response)) {
+        //   for (let userItem of response) {
+        //     if (!_.isEmpty(response) && _.isArray(userItem)) {
+        //       user = userItem[0];
+        //       break;
+        //     }
+        //   }
+        // }
 
         if (userReq.roles) {
           let roles = userReq.roles;
@@ -235,11 +244,12 @@ export module Controllers {
     }
 
     public generateAPIToken(req, res) {
-      let userid = req.param('id');
+      let userid:string = req.param('id');
 
       if (userid) {
-        var uuid = uuidv4();
-        UsersService.setUserKey(userid, uuid).subscribe(user => {
+        let uuid:string = uuidv4();
+        UsersService.setUserKey(userid, uuid).subscribe(userResponse => {
+          let user:UserModel = userResponse;
           let response = new UserAPITokenAPIResponse();
           response.id = userid
           response.username = user.username
@@ -262,7 +272,8 @@ export module Controllers {
 
       if (userid) {
         var uuid = null;
-        UsersService.setUserKey(userid, uuid).subscribe(user => {
+        UsersService.setUserKey(userid, uuid).subscribe(userResponse => {
+          let user:UserModel = userResponse;
           let response = new UserAPITokenAPIResponse();
           response.id = userid
           response.username = user.username

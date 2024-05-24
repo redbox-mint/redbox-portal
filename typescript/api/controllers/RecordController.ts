@@ -27,7 +27,7 @@ import {
   StorageServiceResponse,
   RecordTypeResponseModel,
   DashboardTypeResponseModel,
-  RBValidationError,
+  RecordTypeModel,
   BrandingModel
 } from '@researchdatabox/redbox-core-types';
 import { default as moment } from 'moment';
@@ -35,9 +35,10 @@ import * as tus from 'tus-node-server';
 import * as fs from 'fs';
 import * as url from 'url';
 import { default as checkDiskSpace } from 'check-disk-space';
+import {Services as recordTypeService} from '../services/RecordTypesService';
 declare var _;
 
-declare var FormsService, WorkflowStepsService, BrandingService, RecordsService, RecordTypesService, TranslationService, User, UsersService, EmailService, RolesService;
+declare var FormsService, WorkflowStepsService, BrandingService, RecordsService, RecordTypesService:recordTypeService.RecordTypes, TranslationService, User, UsersService, EmailService, RolesService;
 declare var DashboardTypesService;
 /**
  * Package that contains all Controllers.
@@ -953,6 +954,13 @@ export module Controllers {
       const type = req.param('type');
       let rows = req.param('rows');
       let page = req.param('page');
+      let core = req.param('core')? req.param('core') : 'default';
+
+      // If a record type is set, fetch from the configuration what core it's being sent from
+      if(type != null) {
+        let recordType:RecordTypeModel = await RecordTypesService.get(brand, type).toPromise();
+        core = recordType.searchCore;
+      }
       if (_.isEmpty(rows)) {
         rows = 10
       }
@@ -991,7 +999,7 @@ export module Controllers {
       });
 
       try {
-        let searchRes = await this.searchService.searchFuzzy(type, workflow, searchString, exactSearches, facetSearches, brand, req.user, req.user.roles, sails.config.record.search.returnFields, start, rows);
+        let searchRes = await this.searchService.searchFuzzy(core, type, workflow, searchString, exactSearches, facetSearches, brand, req.user, req.user.roles, sails.config.record.search.returnFields, start, rows);
         searchRes['page'] = page
         this.ajaxOk(req, res, null, searchRes);
       } catch (error) {

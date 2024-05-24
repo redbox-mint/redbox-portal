@@ -1,16 +1,9 @@
 declare var module;
 declare var sails;
-import {
-  Observable
-} from 'rxjs/Rx';
+
 import {
   BrandingModel
 } from '@researchdatabox/redbox-core-types';
-import { default as moment } from 'moment';
-import * as tus from 'tus-node-server';
-import * as fs from 'fs';
-import * as url from 'url';
-import { default as checkDiskSpace } from 'check-disk-space';
 declare var _;
 import {Services as AppConfigServiceType} from '../services/AppConfigService';
 import {Services as BrandingServiceType} from '../services/BrandingService';
@@ -18,7 +11,7 @@ import {Services as BrandingServiceType} from '../services/BrandingService';
 /**
  * Package that contains all Controllers.
  */
-import { Controllers as controllers, DatastreamService, RecordsService, SearchService } from '@researchdatabox/redbox-core-types';
+import { Controllers as controllers} from '@researchdatabox/redbox-core-types';
 import { ConfigModels } from '../configmodels/ConfigModels';
 declare var AppConfigService:AppConfigServiceType.AppConfigs, BrandingService:BrandingServiceType.Branding;
 

@@ -27,7 +27,9 @@ import {
 
 import {
   BrandingModel,
+  RoleModel,
   SearchService,
+  UserModel,
   Services as services
 } from '@researchdatabox/redbox-core-types';
 
@@ -1057,7 +1059,7 @@ export module Services {
      * @return User: the newly created user
      *
      */
-    public addLocalUser = (username, name, email, password) => {
+    public addLocalUser = (username, name, email, password): Observable<UserModel> => {
       const authConfig = ConfigService.getBrand(BrandingService.getDefault().name, 'auth');
       var usernameField = authConfig.local.usernameField,
         passwordField = authConfig.local.passwordField;
@@ -1150,7 +1152,7 @@ export module Services {
       });
     }
 
-    public updateUserDetails = (userid, name, email, password) => {
+    public updateUserDetails = (userid, name, email, password): Observable<UserModel> => {
       const authConfig = ConfigService.getBrand(BrandingService.getDefault().name, 'auth');
       var passwordField = authConfig.local.passwordField;
       return this.getUserWithId(userid).flatMap(user => {
@@ -1183,7 +1185,7 @@ export module Services {
       });
     }
 
-    public updateUserRoles = (userid, newRoleIds) => {
+    public updateUserRoles = (userid, newRoleIds): Observable<UserModel> => {
       return this.getUserWithId(userid).flatMap(user => {
         if (user) {
           if (_.isEmpty(newRoleIds) || newRoleIds.length == 0) {
@@ -1219,7 +1221,7 @@ export module Services {
       });
     }
 
-    public hasRole(user, targetRole) {
+    public hasRole(user, targetRole): RoleModel {
       return _.find(user.roles, (role) => {
         return role.id == targetRole.id;
       });
@@ -1244,7 +1246,7 @@ export module Services {
       return this.findUsersWithQuery(query, brandId, source);
     }
     // S2TEST-21
-    public findUsersWithQuery(query: any, brandId: string, source: any = null) {
+    public findUsersWithQuery(query: any, brandId: string, source: any = null): Observable<UserModel[]> {
       if (!_.isEmpty(source) && !_.isUndefined(source) && !_.isNull(source)) {
         query['type'] = source;
       }
@@ -1269,7 +1271,7 @@ export module Services {
      * we're not able to reliably determine the username before they login to the system for the first time.
      *
      **/
-    public findAndAssignAccessToRecords(pendingValue, userid) {
+    public findAndAssignAccessToRecords(pendingValue, userid):void {
       
       Record.find({
         'or': [{
