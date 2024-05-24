@@ -86,18 +86,43 @@ export module Services {
       // wait for SOLR deafult core to start up
       await this.waitForSolr(solrConfig.cores.default.options.core);
 
+      // for(let coreId of coreNameKeys) {
+
+      //   const coreName = _.get(sails.config.solr.cores,coreId+'.options.core');
+
+      //   if(coreId != 'default') {
+      //     let errorOnCreate = false;
+      //     try {
+      //       const urlCreate = `${this.baseUrl}admin/cores?action=CREATE&name=${coreName}&instanceDir=${coreName}&config=solrconfig.xml&dataDir=data`;
+      //       sails.log.verbose(`${this.logHeader} Create SOLR core ${urlCreate}`);
+      //       const solrStat = await axios.get(urlCreate).then(response => response.data);
+      //       sails.log.verbose(solrStat);
+      //     } catch (err) {
+      //       sails.log.error(err);
+      //       errorOnCreate = true;
+      //     }
+      //     if(!errorOnCreate) {
+      //       await this.waitForSolr(coreName);
+      //     }
+      //   }
+      // }
+
       for(let coreId of coreNameKeys) {
+
         const core = solrConfig.cores[coreId];
         const coreName = core.options.core;
+
+        if(coreId != 'default') {
+          await this.waitForSolr(coreName);
+        }
 
         // check if the schema is built....
         try {
           const flagName:string = core.initSchemaFlag.name;
-          
           const schemaInitFlag = await this.getSchemaEntry(coreName, 'fields', flagName);
           if (!_.isEmpty(schemaInitFlag)) {
             sails.log.verbose(`${this.logHeader} Schema flag found: ${flagName}. Schema is already initialised, skipping build.`);
-            return;
+            continue;
           }
         } catch (err) {
           sails.log.verbose(JSON.stringify(err));
@@ -108,7 +133,7 @@ export module Services {
           const schemaDef = _.get(sails.config.solr.cores,coreId+'.schema');
           if (_.isEmpty(schemaDef)) {
             sails.log.verbose(`${this.logHeader} Schema definition empty, skipping build.`);
-            return;
+            continue;
           }
           // append the init flag
           if (_.isEmpty(schemaDef['add-field'])) {
