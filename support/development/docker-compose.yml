@@ -58,6 +58,8 @@ services:
       - "8983"
     ports:
       - "8983:8983"
+    volumes: 
+     - "./solr.in.sh:/etc/default/solr.in.sh"
     networks:
       main:
        aliases:
