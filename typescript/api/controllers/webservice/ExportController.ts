@@ -18,18 +18,26 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 //<reference path='./../../typings/loader.d.ts'/>
-declare var module;
-declare var sails;
-declare var _;
+import { Sails } from 'sails';
 import { APIErrorResponse, BrandingModel } from '@researchdatabox/redbox-core-types';
-declare var RecordsService, BrandingService, TranslationService;
+import { Controllers as controllers } from '@researchdatabox/redbox-core-types';
 import { default as util } from 'util';
 import { default as stream } from 'stream';
+import { default as _ } from 'lodash';
+import { Services as recordsService } from '../../services/RecordsService';
+import { Services as brandingService } from '../../services/BrandingService';
+import { Services as translationService } from '../../services/TranslationService';
+
+declare var sails: Sails;
+
+
+declare var RecordsService: recordsService.Records, BrandingService: brandingService.Branding, TranslationService: translationService.Translation;
+
+
 const pipeline = util.promisify(stream.pipeline);
 /**
  * Package that contains all Controllers.
  */
-import { Controllers as controllers} from '@researchdatabox/redbox-core-types';
 export module Controllers {
   /**
    * Responsible for exporting data
@@ -42,7 +50,7 @@ export module Controllers {
      * Exported methods, accessible from internet.
      */
     protected _exportedMethods: any = [
-        'downloadRecs'
+      'downloadRecs'
     ];
 
     /**
@@ -52,15 +60,15 @@ export module Controllers {
      */
     public async downloadRecs(req, res) {
       try {
-        const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
-        const format = req.param('format');
-        const recType = req.param('recType');
-        const before = _.isEmpty(req.query.before) ? null : req.query.before;
-        const after = _.isEmpty(req.query.after) ? null : req.query.after;
-        const filename = `${TranslationService.t(`${recType}-title`)} - Exported Records.${format}`;
+        const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
+        const format:string = req.param('format');
+        const recType:string = req.param('recType');
+        const before:string = _.isEmpty(req.query.before) ? null : req.query.before;
+        const after:string = _.isEmpty(req.query.after) ? null : req.query.after;
+        const filename:string = `${TranslationService.t(`${recType}-title`)} - Exported Records.${format}`;
         if (format == 'csv' || format == 'json') {
           res.set('Content-Type', `text/${format}`);
-          sails.log.verbose("filename "+filename);
+          sails.log.verbose("filename " + filename);
           res.attachment(filename);
           await pipeline(
             RecordsService.exportAllPlans(req.user.username, req.user.roles, brand, format, before, after, recType),

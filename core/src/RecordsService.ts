@@ -1,4 +1,5 @@
-import { StorageService } from "./StorageService";
+import StorageServiceResponse from "./StorageServiceResponse";
+import { RecordModel } from "./model";
 
 export interface RecordsService {
 
@@ -12,11 +13,11 @@ export interface RecordsService {
   getAttachments(oid: string, labelFilterStr?: string): Promise<any>;
   getDeletedRecords(workflowState, recordType, start, rows, username, roles, brand, editAccessOnly, packageType, sort, fieldNames?, filterString?, filterMode?): Promise<any>;
   getRecords(workflowState, recordType, start, rows, username, roles, brand, editAccessOnly, packageType, sort, fieldNames?, filterString?, filterMode?): Promise<any>;
-  create(brand, record, recordType, user?):Promise<any>;
-  updateMeta(brand, oid, record, user?, triggerPreSaveTriggers?, triggerPostSaveTriggers?): Promise<any>;
+  create(brand, record, recordType, user?):Promise<StorageServiceResponse>;
+  updateMeta(brand, oid, record, user?, triggerPreSaveTriggers?, triggerPostSaveTriggers?): Promise<StorageServiceResponse>;
   delete(oid, permanentlyDelete, user): Promise<any>;
   destroyDeletedRecord(oid: any, user:any): Promise<any>;
-  getMeta(oid): Promise<any>;
+  getMeta(oid): Promise<RecordModel>;
   restoreRecord(oid,user): Promise<any>;
   getRecordAudit(params): Promise<any>;
   getRelatedRecords(oid, brand): Promise<any>;

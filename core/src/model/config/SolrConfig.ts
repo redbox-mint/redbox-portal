@@ -65,6 +65,7 @@ export class SolrCopyField {
 }
 
 export class SolrOptions {
+    https:boolean = false;
     host:string;
     port:string;
     core:string;

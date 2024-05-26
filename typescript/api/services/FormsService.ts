@@ -20,7 +20,7 @@
 import {
   Observable
 } from 'rxjs/Rx';
-import { Services as services } from '@researchdatabox/redbox-core-types';
+import { FormModel, Services as services } from '@researchdatabox/redbox-core-types';
 import {
   Sails,
   Model
@@ -30,7 +30,7 @@ declare var sails: Sails;
 declare var Form: Model;
 declare var RecordType: Model;
 declare var WorkflowStep: Model;
-declare var _this;
+
 declare var _;
 
 export module Services {
@@ -140,12 +140,12 @@ export module Services {
       return null;
     }
 
-    public listForms = (): Observable<any> => {
+    public listForms = (): Observable<FormModel[]> => {
       return super.getObservable(Form.find({}));
     }
 
 
-    public getFormByName = (formName, editMode): Observable<any> => {
+    public getFormByName = (formName, editMode): Observable<FormModel> => {
       return super.getObservable(Form.findOne({
         name: formName
       })).flatMap(form => {
@@ -157,7 +157,7 @@ export module Services {
       });
     }
 
-    public getForm = (branding, recordType, editMode, starting: boolean): Observable<any> => {
+    public getForm = (branding, recordType, editMode, starting: boolean): Observable<FormModel> => {
 
       return super.getObservable(RecordType.findOne({
         key: branding + "_" + recordType
@@ -188,7 +188,7 @@ export module Services {
         }).filter(result => result !== null).last();
     }
 
-    protected setFormEditMode(fields, editMode) {
+    protected setFormEditMode(fields, editMode): void{
       _.remove(fields, field => {
         if (editMode) {
           return field.viewOnly == true;
@@ -204,7 +204,7 @@ export module Services {
       });
     }
 
-    public filterFieldsHasEditAccess(fields, hasEditAccess) {
+    public filterFieldsHasEditAccess(fields, hasEditAccess):void {
       _.remove(fields, field => {
         return field.needsEditAccess && hasEditAccess != true;
       });
@@ -215,7 +215,7 @@ export module Services {
       });
     }
 
-    public flattenFields(fields, fieldArr) {
+    public flattenFields(fields, fieldArr):void {
       _.map(fields, (f) => {
         fieldArr.push(f);
         if (f.fields) {

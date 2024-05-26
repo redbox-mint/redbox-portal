@@ -43,6 +43,7 @@ import {
   Datastream,
   DatastreamService,
   DatastreamServiceResponse,
+  RecordModel,
   RecordsService,
   SearchService
 } from '@researchdatabox/redbox-core-types';
@@ -135,14 +136,14 @@ export module Controllers {
       const users = body["users"];
       const pendingUsers = body["pendingUsers"];
 
-      let record;
+      let record:RecordModel;
       try {
         record = await this.RecordsService.getMeta(oid);
         if (users != null && users.length > 0) {
-          record["authorization"]["edit"] = _.union(record["authorization"]["edit"], users);
+          record.authorization.edit = _.union(record["authorization"]["edit"], users);
         }
         if (pendingUsers != null && pendingUsers.length > 0) {
-          record["authorization"]["editPending"] = _.union(record["authorization"]["editPending"], pendingUsers);
+          record.authorization.editPending = _.union(record["authorization"]["editPending"], pendingUsers);
         }
       } catch (err) {
         return this.apiFailWrapper(req, res, 500, null, err,

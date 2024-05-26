@@ -249,7 +249,7 @@ export module Services {
 
 
 
-    async updateMeta(brand: any, oid: any, record: any, user ? : any, triggerPreSaveTriggers = true, triggerPostSaveTriggers = true) {
+    async updateMeta(brand: any, oid: any, record: any, user ? : any, triggerPreSaveTriggers = true, triggerPostSaveTriggers = true):Promise<StorageServiceResponse> {
       let updateResponse = new StorageServiceResponse();
       updateResponse.oid = oid;
       let recordType = null;
