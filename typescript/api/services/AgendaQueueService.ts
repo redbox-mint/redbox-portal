@@ -42,7 +42,7 @@ import {QueueService, Services as services}   from '@researchdatabox/redbox-core
 import {Sails, Model} from "sails";
 import { Agenda } from 'agenda';
 
-declare var module;
+
 declare var sails: Sails;
 declare var User: Model;
 declare var _;
@@ -149,7 +149,7 @@ export module Services {
         }
        ]
        */
-      public defineJobs(jobs: any[]) {
+      public defineJobs(jobs: any[]) : void{
         _.each(jobs, (job) => {
           const serviceFn = _.get(sails.services, job.fnName);
           if (_.isUndefined(serviceFn)) {

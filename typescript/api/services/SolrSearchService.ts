@@ -18,7 +18,7 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 declare var module;
-import {QueueService, SearchService, SolrConfig, SolrOptions, Services as services}   from '@researchdatabox/redbox-core-types';
+import {QueueService, SearchService, SolrConfig, SolrCore, SolrOptions, Services as services}   from '@researchdatabox/redbox-core-types';
 
 import { default as solr } from 'solr-client';
 const axios = require('axios');
@@ -54,7 +54,7 @@ export module Services {
     protected queueService: QueueService;
     private clients: {
       [key :string]: any;
-    };
+    } = {};
 
     constructor() {
       super();
@@ -144,8 +144,8 @@ export module Services {
 
     private async getSchema(coreId: string) {
       const solrConfig:SolrConfig = sails.config.solr;
-      const core = solrConfig.cores[coreId];
-      const schemaUrl = `${this.getBaseUrl(core.options)}${core}/schema?wt=json`;
+      const core:SolrCore = solrConfig.cores[coreId];
+      const schemaUrl = `${this.getBaseUrl(core.options)}${core.options.core}/schema?wt=json`;
       return await axios.get(schemaUrl).then(response => response.data);
     }
 
@@ -181,7 +181,7 @@ export module Services {
       }
     }
 
-    private getBaseUrl(coreOptions:any): string {
+    private getBaseUrl(coreOptions:SolrOptions): string {
       return `${coreOptions.https ? 'https' : 'http'}://${coreOptions.host}:${coreOptions.port}/solr/`;
     }
 
