@@ -21,6 +21,8 @@ mkdir -p support/integration-testing/.tmp/attachments/staging
 sudo chmod -R 777 support/integration-testing
 
 mkdir -p .tmp/junit
+mkdir -p .tmp/junit/backend-bruno
+mkdir -p .tmp/junit/backend-mocha
 sudo chmod -R 777 .tmp
 
 mkdir -p support/development/.dev
