@@ -11,6 +11,8 @@ services:
     volumes:
        - "../../:/opt/redbox-portal"
        - "./.tmp/attachments:/attachments"
+       - "./recordtype-solr-multi-core-example.js:/opt/redbox-portal/config/recordtype.js"
+       - "./solr-multi-core-example.js:/opt/redbox-portal/config/solr.js"
     expose:
        - "1500"
     environment:
@@ -56,6 +58,8 @@ services:
       - "8983"
     ports:
       - "8983:8983"
+    volumes: 
+      - "./solr.in.sh:/etc/default/solr.in.sh"
     networks:
       main:
        aliases:

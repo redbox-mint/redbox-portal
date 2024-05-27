@@ -58,8 +58,9 @@ services:
       - "8983"
     ports:
       - "8983:8983"
-    volumes: 
-     - "./solr.in.sh:/etc/default/solr.in.sh"
+    # Example of pre create additional solr cores that needs to be coupled with correct record type configuration
+    # volumes: 
+    #  - "../integration-testing/solr.in.sh:/etc/default/solr.in.sh"
     networks:
       main:
        aliases:
