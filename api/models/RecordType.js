@@ -20,6 +20,15 @@ module.exports = {
       model: 'brandingconfig',
       required: true
     },
+    packageType: {
+      type: 'string',
+      required: false
+    },
+    searchCore: {
+      type: 'string',
+      required: false,
+      defaultsTo: 'default'
+    },
     // RecordType can have many workflow steps
     workflowSteps: {
       collection: 'workflowStep',
@@ -34,6 +43,18 @@ module.exports = {
       type: 'boolean',
       required: false,
       defaultsTo: true
+    },
+    transferResponsibility: {
+      type: 'json',
+      required: false
+    },
+    relatedTo: {
+      type: 'json',
+      required: false
+    },
+    hooks: {
+      type: 'json',
+      required: false
     }
   },
     beforeCreate: function(recordType, cb) {
