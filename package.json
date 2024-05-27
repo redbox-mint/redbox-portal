@@ -83,7 +83,9 @@
     "debug": "node debug app.js",
     "start": "node app.js",
     "test:mocha": "docker compose -f ./support/integration-testing/docker-compose.mocha.yml up --abort-on-container-exit --exit-code-from redboxportal",
-    "test:postman": "docker compose -f ./support/integration-testing/docker-compose.newman.yml up --abort-on-container-exit --exit-code-from redboxportal",
+    "test:mocha:clean": "docker compose -f ./support/integration-testing/docker-compose.mocha.yml down",
+    "test:bruno": "docker compose -f ./support/integration-testing/docker-compose.bruno.yml up --abort-on-container-exit --exit-code-from bruno",
+    "test:bruno:clean": "docker compose -f ./support/integration-testing/docker-compose.bruno.yml down",
     "test:angular": "./support/unit-testing/angular/testDevAngular.sh",
     "doc-ng2": "npm -g install @compodoc/compodoc &&  npm -g install ejs-cli aglio &&  compodoc -p angular/tsconfig.json -d support/docs/generated/ng2 -n \"ReDBox Portal - NG2 Apps\" --theme postmark --includes support/docs &&  ejs-cli views/default/default/apidocsapib.ejs -O '{\"portal\":\"rdmp\",\"branding\":\"default\",\"baseUrl\":\"https://demo.redboxresearchdata.com.au\"}' > apidocs.apib && aglio -i apidocs.apib -o rest-api.html && mv rest-api.html support/docs/generated/ng2/additional-documentation/",
     "compile:sails": "npm install && ./node_modules/.bin/tsc --project tsconfig.json",
@@ -91,6 +93,7 @@
     "compile:ng-legacy": "./support/development/compileDevAngularLegacy.sh",
     "compile:ng": "npm run compile:ng-apps && npm run compile:ng-legacy",
     "dev:run": "docker compose -f ./support/development/docker-compose.yml up",
+    "dev:run:clean": "docker compose -f ./support/development/docker-compose.yml down",
     "dev:all": "npm run compile:sails && npm run compile:ng && npm run dev:run",
     "webpack": "NODE_ENV=docker WEBPACK_CSS_MINI=true node support/build/wrapper-webpack.js",
     "dev:prepare": "./support/development/prepareLocalDev.sh"
@@ -112,7 +115,6 @@
     "istanbul": "^0.4.5",
     "mocha": "^10.4.0",
     "mocha-junit-reporter": "^2.2.1",
-    "newman": "^6.1.2",
     "supertest": "^7.0.0",
     "uglify-es": "^3.3.10"
   },

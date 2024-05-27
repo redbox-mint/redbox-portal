@@ -1,0 +1,63 @@
+meta {
+  name: Create new researcher user
+  type: http
+  seq: 10
+}
+
+post {
+  url: {{host}}/default/rdmp/admin/users/newUser
+  body: json
+  auth: none
+}
+
+headers {
+  Pragma: no-cache
+  Origin: {{host}}
+  Accept-Encoding: gzip, deflate, br
+  X-CSRF-Token: 
+  Accept-Language: en-US,en;q=0.9,en-AU;q=0.8,it;q=0.7
+  User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.102 Safari/537.36
+  X-Source: jsclient
+  Content-Type: application/json;charset=UTF-8
+  Accept: application/json, text/plain, */*
+  Cache-Control: no-cache
+  Referer: {{host}}/default/rdmp/admin/users
+  
+  Connection: keep-alive
+}
+
+body:json {
+  {
+      "username": "{{researcherUsername}}",
+      "details": {
+          "name": "A dummy researcher",
+          "email": "{{researcherEmail}}",
+          "password": "{{researcherPassword}}",
+          "roles": [
+              "Researcher",
+              "Guest"
+          ]
+      }
+  }
+}
+
+
+script:pre-request {
+  const cookie = bru.getVar("cookie");
+  
+  if(cookie) {
+    req.setHeader("Cookie", cookie)
+  }
+}
+
+tests {
+  test("Status code is 200", function () {
+      expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("Check response status", function () {
+      var jsonData = res.getBody();
+      expect(jsonData.status).to.eql(true);
+  });
+  
+}

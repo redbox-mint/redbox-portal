@@ -1,0 +1,35 @@
+meta {
+  name: Remove user edit permissions to RDMP
+  type: http
+  seq: 19
+}
+
+delete {
+  url: {{host}}/default/rdmp/api/records/permissions/edit/{{existingLocationsOid}}
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+  Authorization: Bearer {{token}}
+}
+
+body:json {
+  {
+    "users": ["user"]
+  }
+}
+
+tests {
+  test("Status code is 200", function () {
+      expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("User edit permission removed", function () {
+      var jsonData = res.getBody();
+      //TODO: This is because of the save trigger
+      expect(true).to.eql(true);
+      expect(jsonData.edit).to.not.include("user");
+  });
+}

@@ -1,0 +1,25 @@
+meta {
+  name: Index Record
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{host}}/default/rdmp/api/search/index?oid={{dmpOid}}
+  body: none
+  auth: none
+}
+
+query {
+  oid: {{dmpOid}}
+}
+
+headers {
+  Authorization: Bearer {{token}}
+}
+
+tests {
+  test("Status code is 200", function () {
+      expect(res.getStatus()).to.equal(200);
+  });
+}

@@ -2,6 +2,28 @@ version: '3.1'
 networks:
   main:
 services:
+  bruno:
+    image: node:20.13.1-buster
+    volumes:
+      - "../..:/opt/redbox-portal"
+      - "../../.tmp/attachments:/attachments"
+    working_dir: /tests
+    depends_on:
+      redboxportal:
+        condition: service_healthy
+    networks:
+     main:
+       aliases:
+         - bruno
+    entrypoint: >-
+      /bin/bash -c "cd /opt/redbox-portal/test/bruno && 
+      npm install -g @usebruno/cli &&
+      npm install && 
+      bru run 
+      --env int-test 
+      --format junit 
+      --output /opt/redbox-portal/.tmp/junit/backend-bruno/backend-bruno.xml 
+      --bail"
   redboxportal:
     image: qcifengineering/redbox-portal:develop
     ports:
@@ -9,8 +31,13 @@ services:
       # Debugging port
       # - "9876:9876"
     volumes:
-       - "../../:/opt/redbox-portal"
-       - "./.tmp/attachments:/attachments"
+       - "../..:/opt/redbox-portal"
+       - "../../.tmp/attachments:/attachments"
+    healthcheck:
+      test: ["CMD-SHELL", "curl http://localhost:1500"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
     depends_on:
       keycloak:
         condition: service_healthy
@@ -28,18 +55,20 @@ services:
     networks:
      main:
        aliases:
-         - rbportal
+         - redboxportal
     # add 'node --inspect=0.0.0.0:9876' to entrypoint for debugging
     entrypoint: >-
       /bin/bash -c "cd /opt/redbox-portal && 
-      npm i nyc -g && 
-      npm i newman --legacy-peer-deps && 
-      nyc --no-clean 
-      --report-dir coverage/newman --reporter=lcov 
-      --exclude-after-remap=false 
-      node test/postman/runNewmanTests.js"
+      npm install -g nyc &&
+      npm install && 
+      nyc
+      --no-clean
+      --report-dir coverage/bruno
+      --reporter=lcov
+      --exclude-after-remap=false
+      node app.js"
   mongodb:
-    image: mvertes/alpine-mongo:latest
+    image: mongo:latest
     networks:
       main:
         aliases:

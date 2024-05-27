@@ -1,0 +1,28 @@
+meta {
+  name: List Attachments for Datarecord
+  type: http
+  seq: 28
+}
+
+get {
+  url: {{host}}/default/rdmp/api/records/datastreams/{{attDataRecordOid}}
+  body: none
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+  Authorization: Bearer {{token}}
+}
+
+tests {
+  const _ = require('lodash')
+  test("Status code is 200", function () {
+      expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("Has attachments", function () {
+      var jsonData = res.getBody();
+      expect(_.size(jsonData.records)).to.gt(0);
+  });
+}

@@ -78,7 +78,7 @@ jobs:
           command: |
             mkdir -p /tmp/.codecov-cli
             cd /tmp/.codecov-cli
-            curl https://keybase.io/codecovsecurity/pgp_keys.asc | gpg --no-default-keyring --keyring trustedkeys.gpg --import # One-time step
+            curl https://keybase.io/codecovsecurity/pgp_keys.asc | gpg --no-default-keyring --keyring trustedkeys.gpg --import
             curl -Os https://cli.codecov.io/latest/linux/codecov
             curl -Os https://cli.codecov.io/latest/linux/codecov.SHA256SUM
             curl -Os https://cli.codecov.io/latest/linux/codecov.SHA256SUM.sig
@@ -86,21 +86,23 @@ jobs:
             shasum -a 256 -c codecov.SHA256SUM
             chmod +x codecov
       - run:
-          name: Run Postman and Mocha tests with code coverage
+          name: Run Bruno and Mocha tests with code coverage
           command: |
-            sudo mkdir -p .tmp/junit
-            sudo chmod -R 777 .
-            cd support/integration-testing
+            sudo mkdir -p .tmp/junit/backend-bruno
+            sudo mkdir -p .tmp/junit/backend-mocha
             sudo mkdir -p .tmp/attachments/staging
             sudo chmod -R 777 .
-            docker-compose -f docker-compose.newman.yml up --abort-on-container-exit --exit-code-from redboxportal
-            docker-compose -f docker-compose.mocha.yml up --abort-on-container-exit --exit-code-from redboxportal
+            cd support/integration-testing
+            npm run test:bruno
+            npm run test:bruno:clean
+            npm run test:mocha
+            npm run test:mocha:clean
       - run:
-          name: Upload newman and mocha code coverage
+          name: Upload Bruno and mocha code coverage
           command: |
             /tmp/.codecov-cli/codecov --verbose upload-process --fail-on-error --disable-search \
               --token "${CODECOV_TOKEN}" --name "job-${CIRCLE_BUILD_NUM}-${CIRCLE_BRANCH}" \
-              --flag "backend-newman" --file "./coverage/newman/lcov.info"
+              --flag "backend-bruno" --file "./coverage/bruno/lcov.info"
             /tmp/.codecov-cli/codecov --verbose upload-process --fail-on-error --disable-search \
               --token "${CODECOV_TOKEN}" --name "job-${CIRCLE_BUILD_NUM}-${CIRCLE_BRANCH}" \
               --flag "backend-mocha" --file "./coverage/mocha/lcov.info"

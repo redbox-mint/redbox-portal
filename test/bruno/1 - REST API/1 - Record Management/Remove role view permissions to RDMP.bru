@@ -1,0 +1,35 @@
+meta {
+  name: Remove role view permissions to RDMP
+  type: http
+  seq: 12
+}
+
+delete {
+  url: {{host}}/default/rdmp/api/records/permissions/viewRole/{{dmpOid}}
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+  Authorization: Bearer {{token}}
+}
+
+body:json {
+  {
+  	"roles": ["Chief Investigator"]
+  }
+}
+
+tests {
+  test("Status code is 200", function () {
+      expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("Role view permission removed", function () {
+      var jsonData = res.getBody();
+      //TODO: This is because of the save trigger
+      expect(true).to.eql(true);
+      expect(jsonData.viewRoles).to.not.include("Chief Investigator");
+  });
+}

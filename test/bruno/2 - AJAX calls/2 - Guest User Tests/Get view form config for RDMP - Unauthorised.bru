@@ -1,0 +1,33 @@
+meta {
+  name: Get view form config for RDMP - Unauthorised
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{host}}/default/rdmp/record/form/auto/{{dmpOid}}?edit=false
+  body: none
+  auth: none
+}
+
+query {
+  edit: false
+}
+
+headers {
+  Content-Type: application/json
+  X-Source: jsclient
+  Accept: application/json, text/plain, */*
+}
+
+tests {
+  test("Status code is 403", function () {
+      expect(res.getStatus()).to.equal(403);
+  });
+  
+  test("Message is access denied", function () {
+      var jsonData = res.getBody();
+      
+      expect(jsonData.message).to.eql("Access Denied");
+  });
+}
