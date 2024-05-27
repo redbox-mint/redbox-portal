@@ -3,7 +3,7 @@ networks:
   main:
 services:
   bruno:
-    image: ghcr.io/davidkarlsen/bruno-image:main
+    image: node:20.13.1-buster
     volumes:
       - "../../test/bruno:/tests"
       - "./.tmp/junit:/junit"
@@ -15,7 +15,15 @@ services:
      main:
        aliases:
          - bruno
-    entrypoint: /bin/bash -c "cd /tests && npm install && bru run --env int-test --format junit --output /junit/bruno-results.xml --bail"
+    entrypoint: >-
+      /bin/bash -c "cd /tests && 
+      npm install -g @usebruno/cli &&
+      npm install && 
+      bru run 
+      --env int-test 
+      --format junit 
+      --output /junit/backend-bruno/backend-bruno.xml 
+      --bail"
   redboxportal:
     image: qcifengineering/redbox-portal:develop
     ports:
@@ -49,7 +57,16 @@ services:
        aliases:
          - redboxportal
     # add 'node --inspect=0.0.0.0:9876' to entrypoint for debugging
-    entrypoint: /bin/bash -c "cd /opt/redbox-portal && node app.js"
+    entrypoint: >-
+      /bin/bash -c "cd /opt/redbox-portal && 
+      npm install -g nyc &&
+      npm install && 
+      nyc
+      --no-clean
+      --report-dir coverage/bruno
+      --reporter=lcov
+      --exclude-after-remap=false
+      node app.js"
   mongodb:
     image: mongo:latest
     networks:

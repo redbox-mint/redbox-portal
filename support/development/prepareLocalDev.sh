@@ -10,7 +10,7 @@ function show_step(){
 
 show_step 'Prepare local development - remove existing data and create directories'
 # remove existing code coverage, temp, and dev data
-sudo find . -name '.nyc_output' -type d -prune -not -path "*/node_modules/*" -exec rm -r '{}' '+'
+sudo find . -name '.nyc_*' -type d -prune -not -path "*/node_modules/*" -exec rm -r '{}' '+'
 sudo find . -name 'coverage' -type d -prune -not -path "*/node_modules/*" -exec rm -r '{}' '+'
 sudo find . -name '.tmp' -type d -prune -not -path "*/node_modules/*" -exec rm -r '{}' '+'
 sudo rm -r support/development/.dev || true

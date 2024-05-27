@@ -39,10 +39,15 @@ services:
       /bin/bash -c "cd /opt/redbox-portal && 
       npm i nyc -g && 
       npm i &&
-      nyc --no-clean 
-      --report-dir coverage/mocha --reporter=lcov 
+      nyc 
+      --no-clean 
+      --report-dir coverage/mocha 
+      --reporter=lcov 
       --exclude-after-remap=false 
-      node ./node_modules/mocha/bin/mocha --exit test/bootstrap.test.js test/unit/**/*.test.js"
+      node 
+      ./node_modules/mocha/bin/mocha 
+      --exit test/bootstrap.test.js 
+      test/unit/**/*.test.js"
   mongodb:
     image: mongo:latest
     networks:
