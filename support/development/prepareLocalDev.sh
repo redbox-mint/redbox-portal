@@ -17,12 +17,10 @@ sudo rm -r support/development/.dev || true
 sudo rm -r support/development/devdata || true
 
 # ensure folders are created so that local dev can access them
-mkdir -p support/integration-testing/.tmp/attachments/staging
 sudo chmod -R 777 support/integration-testing
-
-mkdir -p .tmp/junit
 mkdir -p .tmp/junit/backend-bruno
 mkdir -p .tmp/junit/backend-mocha
+mkdir -p .tmp/attachments/staging
 sudo chmod -R 777 .tmp
 
 mkdir -p support/development/.dev

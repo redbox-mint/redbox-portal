@@ -88,13 +88,11 @@ jobs:
       - run:
           name: Run Bruno and Mocha tests with code coverage
           command: |
-            sudo mkdir -p .tmp/junit
             sudo mkdir -p .tmp/junit/backend-bruno
             sudo mkdir -p .tmp/junit/backend-mocha
-            sudo chmod -R 777 .
-            cd support/integration-testing
             sudo mkdir -p .tmp/attachments/staging
             sudo chmod -R 777 .
+            cd support/integration-testing
             npm run test:bruno
             npm run test:bruno:clean
             npm run test:mocha

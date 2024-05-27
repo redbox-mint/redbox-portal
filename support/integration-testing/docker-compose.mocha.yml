@@ -10,7 +10,7 @@ services:
       # - "9876:9876"
     volumes:
        - "../../:/opt/redbox-portal"
-       - "./.tmp/attachments:/attachments"
+       - "../../.tmp/attachments:/attachments"
     expose:
        - "1500"
     environment:

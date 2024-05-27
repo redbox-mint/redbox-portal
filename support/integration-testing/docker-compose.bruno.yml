@@ -5,8 +5,8 @@ services:
   bruno:
     image: node:20.13.1-buster
     volumes:
-      - "../../test/bruno:/tests"
-      - "./.tmp/junit:/junit"
+      - "../..:/opt/redbox-portal"
+      - "../../.tmp/attachments:/attachments"
     working_dir: /tests
     depends_on:
       redboxportal:
@@ -16,13 +16,13 @@ services:
        aliases:
          - bruno
     entrypoint: >-
-      /bin/bash -c "cd /tests && 
+      /bin/bash -c "cd /opt/redbox-portal/test/bruno && 
       npm install -g @usebruno/cli &&
       npm install && 
       bru run 
       --env int-test 
       --format junit 
-      --output /junit/backend-bruno/backend-bruno.xml 
+      --output /opt/redbox-portal/.tmp/junit/backend-bruno/backend-bruno.xml 
       --bail"
   redboxportal:
     image: qcifengineering/redbox-portal:develop
@@ -32,7 +32,7 @@ services:
       # - "9876:9876"
     volumes:
        - "../..:/opt/redbox-portal"
-       - "./.tmp/attachments:/attachments"
+       - "../../.tmp/attachments:/attachments"
     healthcheck:
       test: ["CMD-SHELL", "curl http://localhost:1500"]
       interval: 5s

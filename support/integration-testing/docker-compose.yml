@@ -8,7 +8,7 @@ services:
        - "1500:1500"
     volumes:
        - "../../:/opt/redbox-portal"
-       - "./.tmp/attachments:/attachments"
+       - "../../.tmp/attachments:/attachments"
     expose:
        - "1500"
     environment:
