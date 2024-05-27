@@ -1152,7 +1152,7 @@ export module Services {
       });
     }
 
-    public updateUserDetails = (userid, name, email, password): Observable<UserModel> => {
+    public updateUserDetails = (userid, name, email, password): Observable<UserModel[]> => {
       const authConfig = ConfigService.getBrand(BrandingService.getDefault().name, 'auth');
       var passwordField = authConfig.local.passwordField;
       return this.getUserWithId(userid).flatMap(user => {

@@ -187,33 +187,32 @@ export module Controllers {
       let userReq: UserModel = req.body;
 
       UsersService.updateUserDetails(userReq.id, userReq.name, userReq.email, userReq.password).subscribe(userResponse => {
-        let response:UserModel = userResponse;
-        let user = response;
+        let response:UserModel[] = userResponse;
+        let user = null;
         sails.log.verbose(user)
 
-        //This shouldn't be possible as the response should be a single user
-        // if (!_.isEmpty(response) && _.isArray(response)) {
-        //   for (let userItem of response) {
-        //     if (!_.isEmpty(response) && _.isArray(userItem)) {
-        //       user = userItem[0];
-        //       break;
-        //     }
-        //   }
-        // }
+        if (!_.isEmpty(response) && _.isArray(response)) {
+          for (let userItem of response) {
+            if (!_.isEmpty(response) && _.isArray(userItem)) {
+              user = userItem[0];
+              break;
+            }
+          }
+        }
 
         if (userReq.roles) {
           let roles = userReq.roles;
           let brand:BrandingModel = BrandingService.getBrand(req.session.branding);
           let roleIds = RolesService.getRoleIds(brand.roles, roles);
-          UsersService.updateUserRoles(response.id, roleIds).subscribe(user => {
+          UsersService.updateUserRoles(user.id, roleIds).subscribe(user => {
             //TODO: Add roles to the response            
             let userResponse = new CreateUserAPIResponse();
-            userResponse.id = response.id;
-            userResponse.username = response.username;
-            userResponse.name = response.name;
-            userResponse.email = response.email;
-            userResponse.type = response.type;
-            userResponse.lastLogin = response.lastLogin;
+            userResponse.id = user.id;
+            userResponse.username = user.username;
+            userResponse.name = user.name;
+            userResponse.email = user.email;
+            userResponse.type = user.type;
+            userResponse.lastLogin = user.lastLogin;
             return this.apiRespond(req, res, userResponse, 201);
           }, error => {
             sails.log.error("Failed to update user roles:");
