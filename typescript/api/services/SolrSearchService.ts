@@ -18,7 +18,7 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 declare var module;
-import {QueueService, SearchService, SolrConfig, SolrCore, SolrOptions, Services as services}   from '@researchdatabox/redbox-core-types';
+import {QueueService, SearchService, SolrConfig, SolrCore, SolrOptions, BrandingModel, UserModel, RoleModel, Services as services}   from '@researchdatabox/redbox-core-types';
 
 import { default as solr } from 'solr-client';
 const axios = require('axios');
@@ -94,7 +94,7 @@ export module Services {
 
       for(let coreId of coreNameKeys) {
 
-        const core = solrConfig.cores[coreId];
+        const core:SolrCore = solrConfig.cores[coreId];
         const coreName = core.options.core;
 
         if(coreId != 'default') {
@@ -151,7 +151,7 @@ export module Services {
 
     private async waitForSolr(coreId: string) {
       const solrConfig:SolrConfig = sails.config.solr;
-      const core = solrConfig.cores[coreId];
+      const core:SolrCore = solrConfig.cores[coreId];
       let coreName:string = core.options.core;
       let solrUp = false;
       let tryCtr = 0;
@@ -203,7 +203,7 @@ export module Services {
 
     public async searchAdvanced(coreId:string = 'default', type: string, query: string): Promise<any> {
       const solrConfig:SolrConfig = sails.config.solr;
-      const core = solrConfig.cores[coreId];
+      const core:SolrCore = solrConfig.cores[coreId];
       const coreName = core.options.core;
       let url = `${this.getBaseUrl(core.options)}${coreName}/select?q=${query}`;
       sails.log.verbose(`Searching advanced using: ${url}`);
@@ -211,10 +211,10 @@ export module Services {
       return response;
     }
 
-    public async searchFuzzy(coreId:string = 'default', type: string, workflowState: string, searchQuery: string, exactSearches: any, facetSearches: any, brand: any, user: any, roles: any, returnFields: string[], start=0, rows=10): Promise<any> {
+    public async searchFuzzy(coreId:string = 'default', type: string, workflowState: string, searchQuery: string, exactSearches: any, facetSearches: any, brand: BrandingModel, user: UserModel, roles: RoleModel[], returnFields: string[], start:number=0, rows:number=10): Promise<any> {
       const username = user.username;
       const solrConfig:SolrConfig = sails.config.solr;
-      const core = solrConfig.cores[coreId];
+      const core:SolrCore = solrConfig.cores[coreId];
       const coreName = core.options.core;
       let searchParam = workflowState ? ` AND workflow_stage:${workflowState} ` : '';
       searchParam = `${searchParam} AND full_text:${searchQuery}`;
