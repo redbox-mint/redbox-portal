@@ -1,0 +1,48 @@
+meta {
+  name: Create record type Existing Locations
+  type: http
+  seq: 15
+}
+
+post {
+  url: {{host}}/default/rdmp/api/records/metadata/existing-locations
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+}
+
+body:json {
+  {
+      "authorization": {
+          "edit": ["admin", "userExistingLocationsTest1"],
+          "view": ["admin", "userExistingLocationsTest1"],
+          "editPending": [],
+          "viewPending":["userExistingLocationsTest2"]
+      },
+      "metadata": {"rdmpOid":"{{dmpOid}}"}
+      
+  }
+}
+
+tests {
+  test("Status code is 201", function () {
+  
+      expect(res.getStatus()).to.equal(201);
+  
+  });
+  
+  
+  
+  test("Test oid exists", function () {
+  
+      var jsonData = res.getBody();
+  
+      expect(jsonData).to.have.property('workspaceOid');
+  
+     bru.setVar("existingLocationsOid", jsonData.workspaceOid);
+  
+  });
+}

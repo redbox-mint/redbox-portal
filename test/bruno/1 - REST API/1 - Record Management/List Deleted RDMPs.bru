@@ -1,0 +1,37 @@
+meta {
+  name: List Deleted RDMPs
+  type: http
+  seq: 22
+}
+
+get {
+  url: {{host}}/default/rdmp/api/deletedrecords/list?recordType=rdmp
+  body: none
+  auth: none
+}
+
+query {
+  recordType: rdmp
+}
+
+headers {
+  Authorization: Bearer {{token}}
+  ~: 
+}
+
+tests {
+  test("Status code is 200", function () {
+      expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("There is more than 1 RDMP record in the records", function () {
+      var jsonData = res.getBody();
+      expect(jsonData.records.length).to.be.greaterThan(0);
+  });
+  
+  test("Check record has oid and metadata properties", function () {
+      var jsonData = res.getBody();
+      expect(jsonData.records[0]).to.have.property("oid")
+      expect(jsonData.records[0]).to.have.property("deletedRecord")
+  });
+}

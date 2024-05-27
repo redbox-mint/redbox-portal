@@ -1,0 +1,30 @@
+meta {
+  name: Get Form
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{host}}/default/rdmp/api/forms/get?name=default-1.0-draft
+  body: none
+  auth: none
+}
+
+query {
+  name: default-1.0-draft
+}
+
+headers {
+  Authorization: Bearer {{token}}
+}
+
+tests {
+  test("Status code is 200", function () {
+      expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("Has name property", function () {
+      var jsonData = res.getBody();
+       expect(jsonData).to.have.property("name");
+  });
+}

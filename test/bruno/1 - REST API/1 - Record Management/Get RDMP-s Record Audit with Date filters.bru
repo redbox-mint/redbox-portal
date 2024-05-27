@@ -1,0 +1,34 @@
+meta {
+  name: Get RDMP-s Record Audit with Date filters
+  type: http
+  seq: 10
+}
+
+get {
+  url: {{host}}/default/rdmp/api/records/audit/{{dmpOid}}?dateFrom=2023&dateTo=2021
+  body: none
+  auth: none
+}
+
+query {
+  dateFrom: 2023
+  dateTo: 2021
+}
+
+headers {
+  Authorization: Bearer {{token}}
+  ~: 
+}
+
+tests {
+  test("Status code is 200", function () {
+      expect(res.getStatus()).to.equal(200)
+  });
+  
+  test("Zero items found", function () {
+      var jsonData = res.getBody();
+      expect(jsonData).to.have.property('summary')
+     .and.to.have.property('numFound')
+        .and.equal(0)
+  });
+}

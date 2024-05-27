@@ -1,0 +1,75 @@
+meta {
+  name: Update RDMP Metadata that does not exist
+  type: http
+  seq: 5
+}
+
+put {
+  url: {{host}}/default/rdmp/api/records/metadata/blah-blah-blah
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+  Authorization: Bearer {{token}}
+}
+
+body:json {
+  {
+      "title": "Andrew's integration test - Updated",
+      "dc:identifier": "http://purl.org/au-research/grants/nhmrc/566728",
+      "description": "Movement of molecules within cells by a process known as membrane transport is critical for normal cell function and also exploited by bacteria to promote infection. The pathway that connects the import pathway to the export pathway is essential for the function of a large number of proteins, however this connecting pathway is poorly characterised. This study will define the machinery of this trafficking pathway, which will provide the ability to modulate biological processes and cytotoxicity.",
+      "finalKeywords": [
+          "270199",
+          "Golgi apparatus",
+          "endocytosis",
+          "membrane transport",
+          "protein trafficking",
+          "secretion",
+          "HIV-AIDS",
+          "bacterial pathogen",
+          "hormone secretion",
+          "immune development",
+          "lysosomal storage disorder"
+      ],
+      "contributor_ci": {
+          "text_full_name": "Prof Paul Gleeson",
+          "email": "notAReal@email.edu.au",
+          "orcid": "http://orcid.org/0000-0000-0000-000"
+      },
+      "contributor_data_manager": {
+          "text_full_name": "Prof Paul Gleeson",
+          "email": "notAReal@email.edu.au",
+          "orcid": "http://orcid.org/0000-0000-0000-000"
+      },
+      "contributors": [
+          {
+              "text_full_name": "Prof Paul Gleeson",
+              "email": "notAReal@email.edu.au",
+              "orcid": "http://orcid.org/0000-0000-0000-000"
+          }
+      ],
+      "vivo:Dataset_redbox:DataCollectionMethodology": "The data collection methodology",
+      "vivo:Dataset_dc_format": "xls",
+      "vivo:Dataset_dc:location_rdf:PlainLiteral": "eResearch Store network drive",
+      "vivo:Dataset_dc:source_dc:location_rdf:PlainLiteral": "shared university network drive (e.g. G, H, etc)",
+      "vivo:Dataset_dc:extent": "100GB - 2TB",
+      "redbox:retentionPeriod_dc:date": "1year",
+      "dc:rightsHolder_dc:name": "myUni",
+      "dc:accessRights": "permission from the data manager",
+      "authorization": []
+  }
+}
+
+tests {
+  test("Status code is 400", function () {
+      expect(res.getStatus()).to.equal(400);
+  });
+  
+  test("Body has json with error", function () {
+     var jsonData = res.getBody();
+      expect(jsonData).to.have.property('message');
+      expect(jsonData.message).to.eql("Failed to update meta, cannot find existing record with oid: blah-blah-blah");
+  });
+}
