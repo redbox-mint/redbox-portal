@@ -30,7 +30,7 @@ declare var _;
 /**
  * Package that contains all Controllers.
  */
- import {APIErrorResponse, APIObjectActionResponse, BrandingModel, Controllers as controllers, RecordTypeModel,  RecordsService, SearchService} from '@researchdatabox/redbox-core-types';
+ import {APIErrorResponse, APIObjectActionResponse, BrandingModel, Controllers as controllers, RecordTypeModel, RecordModel, RecordsService, SearchService} from '@researchdatabox/redbox-core-types';
 
 export module Controllers {
   /**
@@ -73,7 +73,7 @@ export module Controllers {
 
     public async index(req, res) {
       let oid = req.param('oid');
-      let record = await this.RecordsService.getMeta(oid);
+      let record: RecordModel = await this.RecordsService.getMeta(oid);
       await this.searchService.index(oid,record);
 
       return this.apiRespond(req,res,new APIObjectActionResponse(oid, "Index request added to message queue for processing"),200)
