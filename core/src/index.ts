@@ -47,9 +47,5 @@ export {
     RecordAuditParams
 }
 from "./RecordAuditParams";
-export {
-    SolrDocument
-}
-from "./model/SolrDocument";
 
 export * from './model'

@@ -8,6 +8,7 @@ export {ListAPISummary}from "./ListAPISummary";
 export {RequestDetails} from "./RequestDetails";
 export {RecordTypeResponseModel} from "./RecordTypeResponseModel";
 export {DashboardTypeResponseModel} from "./DashboardTypeResponseModel";
+export {SolrDocument} from "./SolrDocument";
 export * from './storage';
 export * from './api';
 export * from './config';
