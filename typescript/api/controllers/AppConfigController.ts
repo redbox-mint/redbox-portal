@@ -1,18 +1,9 @@
 declare var module;
 declare var sails;
+
 import {
-  Observable
-} from 'rxjs/Rx';
-import {
-  StorageServiceResponse,
-  RecordTypeResponseModel,
-  DashboardTypeResponseModel
+  BrandingModel
 } from '@researchdatabox/redbox-core-types';
-import { default as moment } from 'moment';
-import * as tus from 'tus-node-server';
-import * as fs from 'fs';
-import * as url from 'url';
-import { default as checkDiskSpace } from 'check-disk-space';
 declare var _;
 import {Services as AppConfigServiceType} from '../services/AppConfigService';
 import {Services as BrandingServiceType} from '../services/BrandingService';
@@ -20,7 +11,7 @@ import {Services as BrandingServiceType} from '../services/BrandingService';
 /**
  * Package that contains all Controllers.
  */
-import { Controllers as controllers, DatastreamService, RecordsService, SearchService } from '@researchdatabox/redbox-core-types';
+import { Controllers as controllers} from '@researchdatabox/redbox-core-types';
 import { ConfigModels } from '../configmodels/ConfigModels';
 declare var AppConfigService:AppConfigServiceType.AppConfigs, BrandingService:BrandingServiceType.Branding;
 
@@ -60,7 +51,7 @@ export module Controllers {
 
     public async editAppConfig(req,res) {
       try {
-      const brand = BrandingService.getBrand(req.session.branding);
+      const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
       let appConfigId:string = req.param('appConfigId');
 
       if(appConfigId === undefined) {
@@ -82,7 +73,7 @@ export module Controllers {
     }
     public async saveAppConfig(req, res) {
       try {
-        const brand:any = BrandingService.getBrand(req.session.branding);
+        const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
         let appConfigId:string = req.param('appConfigId');
         let appConfig = req.body;
         if(appConfigId === undefined) {
@@ -99,7 +90,7 @@ export module Controllers {
 
     public async getAppConfigForm(req, res) {
       try {
-        const brand:any = BrandingService.getBrand(req.session.branding);
+        const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
         let appConfigId:string = req.param('appConfigId');
         if(appConfigId === undefined) {
           return res.badRequest('appConfigId is required');

@@ -27,16 +27,18 @@ import {
   StorageServiceResponse,
   RecordTypeResponseModel,
   DashboardTypeResponseModel,
-  RBValidationError
+  RecordTypeModel,
+  BrandingModel
 } from '@researchdatabox/redbox-core-types';
 import { default as moment } from 'moment';
 import * as tus from 'tus-node-server';
 import * as fs from 'fs';
 import * as url from 'url';
 import { default as checkDiskSpace } from 'check-disk-space';
+import {Services as recordTypeService} from '../services/RecordTypesService';
 declare var _;
 
-declare var FormsService, WorkflowStepsService, BrandingService, RecordsService, RecordTypesService, TranslationService, User, UsersService, EmailService, RolesService;
+declare var FormsService, WorkflowStepsService, BrandingService, RecordsService, RecordTypesService:recordTypeService.RecordTypes, TranslationService, User, UsersService, EmailService, RolesService;
 declare var DashboardTypesService;
 /**
  * Package that contains all Controllers.
@@ -108,7 +110,7 @@ export module Controllers {
     public bootstrap() { }
 
     public async getMeta(req, res) {
-      const brand = BrandingService.getBrand(req.session.branding);
+      const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
       const oid = req.param('oid') ? req.param('oid') : '';
       if (oid == '') {
         return res.badRequest();
@@ -134,7 +136,7 @@ export module Controllers {
     }
 
     public edit(req, res) {
-      const brand = BrandingService.getBrand(req.session.branding);
+      const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
       const oid = req.param('oid') ? req.param('oid') : '';
       const recordType = req.param('recordType') ? req.param('recordType') : '';
       const rdmp = req.query.rdmp ? req.query.rdmp : '';
@@ -226,7 +228,7 @@ export module Controllers {
     }
 
     public getForm(req, res) {
-      const brand = BrandingService.getBrand(req.session.branding);
+      const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
       const name = req.param('name');
       const oid = req.param('oid');
       const editMode = req.query.edit == "true";
@@ -315,7 +317,7 @@ export module Controllers {
     }
 
     private async createInternal(req, res) {
-      const brand = BrandingService.getBrand(req.session.branding);
+      const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
       const metadata = req.body;
       let record: any = {
         metaMetadata: {}
@@ -326,30 +328,20 @@ export module Controllers {
         view: [req.user.username],
         edit: [req.user.username]
       };
-      record.metaMetadata.brandId = brand.id;
-      record.metaMetadata.createdBy = req.user.username;
-      record.metaMetadata.createdOn = moment().format();
-      record.metaMetadata.lastSaveDate = record.metaMetadata.createdOn;
-      //TODO: This is currently hardcoded
-      record.metaMetadata.type = recType;
       record.metadata = metadata;
 
       let recordType = await RecordTypesService.get(brand, recType).toPromise();
+      
 
-      if (recordType.packageType) {
-        record.metaMetadata.packageType = recordType.packageType;
-      }
-
-      if (recordType.packageName) {
-        record.metaMetadata.packageName = recordType.packageName;
-      }
-      let wfStep = await WorkflowStepsService.getFirst(recordType).toPromise();
-      if (targetStep) {
-        wfStep = await WorkflowStepsService.get(recType, targetStep).toPromise();
-      }
+      
       try {
-        this.recordsService.updateWorkflowStep(record, wfStep);
         return this.createRecord(record, brand, recordType, req, res);
+
+        if (targetStep) {
+          let wfStep = await WorkflowStepsService.get(recType, targetStep).toPromise();
+          this.recordsService.updateWorkflowStep(record, wfStep);
+        }
+        
       } catch (error) {
         const msg = this.getErrorMessage(error, `Failed to save record: ${error}`);
         this.ajaxFail(req, res, msg);
@@ -359,14 +351,10 @@ export module Controllers {
 
     private async createRecord(record, brand, recordType, req, res) {
       const user = req.user;
-      let formDef = null;
       let oid = null;
       const fieldsToCheck = ['location', 'uploadUrl'];
-      let form = await FormsService.getFormByName(record.metaMetadata.form, true).toPromise();
 
       sails.log.verbose(`RecordController - createRecord - enter`);
-      formDef = form;
-      record.metaMetadata.attachmentFields = form.attachmentFields;
       let updateResponse = await this.recordsService.create(brand, record, recordType, user);
 
       if (updateResponse && _.isFunction(updateResponse.isSuccessful) && updateResponse.isSuccessful()) {
@@ -422,7 +410,7 @@ export module Controllers {
     }
 
     public delete(req, res) {
-      const brand = BrandingService.getBrand(req.session.branding);
+      const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
       const oid = req.param('oid');
       const user = req.user;
       let currentRec = null;
@@ -471,7 +459,7 @@ export module Controllers {
     }
 
     private async updateInternal(req, res) {
-      const brand = BrandingService.getBrand(req.session.branding);
+      const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
       const metadata = req.body;
       const oid = req.param('oid');
       const targetStep = req.param('targetStep');
@@ -722,7 +710,7 @@ export module Controllers {
     }
 
     public stepTo(req, res) {
-      const brand = BrandingService.getBrand(req.session.branding);
+      const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
       const metadata = req.body;
       const oid = req.param('oid');
       const targetStep = req.param('targetStep');
@@ -962,10 +950,17 @@ export module Controllers {
     // }
 
     public async search(req, res) {
-      const brand = BrandingService.getBrand(req.session.branding);
+      const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
       const type = req.param('type');
       let rows = req.param('rows');
       let page = req.param('page');
+      let core = req.param('core');
+
+      // If a record type is set, fetch from the configuration what core it's being sent from
+      if(type != null) {
+        let recordType:RecordTypeModel = await RecordTypesService.get(brand, type).toPromise();
+        core = recordType.searchCore;
+      }
       if (_.isEmpty(rows)) {
         rows = 10
       }
@@ -1004,7 +999,7 @@ export module Controllers {
       });
 
       try {
-        let searchRes = await this.searchService.searchFuzzy(type, workflow, searchString, exactSearches, facetSearches, brand, req.user, req.user.roles, sails.config.record.search.returnFields, start, rows);
+        let searchRes = await this.searchService.searchFuzzy(core, type, workflow, searchString, exactSearches, facetSearches, brand, req.user, req.user.roles, sails.config.record.search.returnFields, start, rows);
         searchRes['page'] = page
         this.ajaxOk(req, res, null, searchRes);
       } catch (error) {
@@ -1017,7 +1012,7 @@ export module Controllers {
      */
     public getType(req, res) {
       const recordType = req.param('recordType');
-      const brand = BrandingService.getBrand(req.session.branding);
+      const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
       RecordTypesService.get(brand, recordType).subscribe(recordType => {
         let recordTypeModel = new RecordTypeResponseModel(_.get(recordType, 'name'), _.get(recordType, 'packageType'), _.get(recordType, 'searchFilters'), _.get(recordType, 'searchable'));
         this.ajaxOk(req, res, null, recordTypeModel);
@@ -1031,7 +1026,7 @@ export module Controllers {
      * the object schema and information that is allowed to be sent back in this endpoint
      */
     public getAllTypes(req, res) {
-      const brand = BrandingService.getBrand(req.session.branding);
+      const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
       RecordTypesService.getAll(brand).subscribe(recordTypes => {
         let recordTypeModels = [];
         for (let recType of recordTypes) {
@@ -1046,7 +1041,7 @@ export module Controllers {
 
     public getDashboardType(req, res) {
       const dashboardTypeParam = req.param('dashboardType');
-      const brand = BrandingService.getBrand(req.session.branding);
+      const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
       DashboardTypesService.get(brand, dashboardTypeParam).subscribe(dashboardType => {
         let dashboardTypeModel = new DashboardTypeResponseModel(_.get(dashboardType, 'name'), _.get(dashboardType, 'formatRules'));
         this.ajaxOk(req, res, null, dashboardTypeModel);
@@ -1056,7 +1051,7 @@ export module Controllers {
     }
 
     public getAllDashboardTypes(req, res) {
-      const brand = BrandingService.getBrand(req.session.branding);
+      const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
       DashboardTypesService.getAll(brand).subscribe(dashboardTypes => {
         let dashboardTypesModel = { dashboardTypes: [] };
         let dashboardTypesModelList = [];
@@ -1109,7 +1104,7 @@ export module Controllers {
     }
 
     public async doAttachment(req, res) {
-      const brand = BrandingService.getBrand(req.session.branding);
+      const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
       const oid = req.param('oid');
       const attachId = req.param('attachId');
       sails.log.verbose(`Have attach Id: ${attachId}`);
@@ -1213,7 +1208,7 @@ export module Controllers {
 
     public getWorkflowSteps(req, res) {
       const recordType = req.param('recordType');
-      const brand = BrandingService.getBrand(req.session.branding);
+      const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
       return RecordTypesService.get(brand, recordType).subscribe(recordType => {
         return WorkflowStepsService.getAllForRecordType(recordType).subscribe(wfSteps => {
           return this.ajaxOk(req, res, null, wfSteps);
@@ -1229,7 +1224,7 @@ export module Controllers {
 
     public async getRelatedRecordsInternal(req, res) {
       sails.log.verbose(`getRelatedRecordsInternal - starting...`);
-      const brand = BrandingService.getBrand(req.session.branding);
+      const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
       const oid = req.param('oid');
       //TODO may need to check user authorization like in getPermissionsInternal?
       //let record = await this.getRecord(oid).toPromise();
@@ -1304,7 +1299,7 @@ export module Controllers {
     }
 
     public async getDataStream(req, res) {
-      const brand = BrandingService.getBrand(req.session.branding);
+      const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
       const oid = req.param('oid');
       const datastreamId = req.param('datastreamId');
       const currentRec = await this.getRecord(oid).toPromise();
@@ -1364,7 +1359,7 @@ export module Controllers {
 
     public async getRecordList(req, res) {
 
-      const brand = BrandingService.getBrand(req.session.branding);
+      const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
 
       const editAccessOnly = req.query.editOnly;
 

@@ -18,11 +18,12 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 import { Observable } from 'rxjs/Rx';
-import { Services as services } from '@researchdatabox/redbox-core-types';
+import { BrandingModel, Services as services } from '@researchdatabox/redbox-core-types';
 import { Sails } from "sails";
 import { find } from 'lodash';
 import { ConfigModels } from '../configmodels/ConfigModels'; // Import the ConfigModels module
 import { AppConfig as AppConfigInterface } from '../configmodels/AppConfig.interface';
+import { Services as Brandings} from './BrandingService'
 import * as TJS from "typescript-json-schema";
 import { globSync } from 'glob';
 import { config } from 'node:process';
@@ -30,7 +31,7 @@ import { config } from 'node:process';
 declare var AppConfig;
 
 declare var sails: Sails;
-declare var BrandingService;
+declare var BrandingService: Brandings.Branding;
 declare var _;
 
 
@@ -69,7 +70,7 @@ export module Services {
       })
       let availableBrandings = BrandingService.getAvailable();
       for (let availableBranding of availableBrandings) {
-        let branding = BrandingService.getBrand(availableBranding);
+        let branding:BrandingModel = BrandingService.getBrand(availableBranding);
         let appConfigObject = await this.loadAppConfigurationModel(branding.id);
         this.brandingAppConfigMap[availableBranding] = appConfigObject;
       }
@@ -84,7 +85,7 @@ export module Services {
       }
     }
 
-    private async refreshBrandingAppConfigMap(branding: any) {
+    private async refreshBrandingAppConfigMap(branding: BrandingModel) {
       let appConfig = await this.loadAppConfigurationModel(branding.id)
       this.brandingAppConfigMap[branding.name] = appConfig;
     }
@@ -138,7 +139,7 @@ export module Services {
       return dbConfig.configData;
     }
 
-    public async createOrUpdateConfig(branding: any, configKey: string, configData: string): Promise<any> {
+    public async createOrUpdateConfig(branding: BrandingModel, configKey: string, configData: string): Promise<any> {
 
       let dbConfig = await AppConfig.findOne({ branding: branding.id, configKey });
 
@@ -156,7 +157,7 @@ export module Services {
     }
 
     public async createConfig(brandName: string, configKey: string, configData: string): Promise<any> {
-      let branding = BrandingService.getBrand(brandName);
+      let branding:BrandingModel = BrandingService.getBrand(brandName);
       let dbConfig = await AppConfig.findOne({ branding: branding.id, configKey });
 
       // Create if no config exists
@@ -170,7 +171,7 @@ export module Services {
       throw Error(`Config with key ${configKey} for branding ${brandName} already exists`)
     }
 
-    public async getAppConfigForm(branding: any, configForm: string): Promise<any> {
+    public async getAppConfigForm(branding: BrandingModel, configForm: string): Promise<any> {
 
       let appConfig = await this.getAppConfigurationForBrand(branding.name);
 

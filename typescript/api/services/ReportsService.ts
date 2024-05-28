@@ -20,7 +20,7 @@
 import {
   Observable
 } from 'rxjs/Rx';
-import { ListAPIResponse, SearchService, Services as services } from '@researchdatabox/redbox-core-types';
+import { ListAPIResponse, ReportConfig, ReportModel, ReportFilterType, ReportSource, ReportResult, SearchService, Services as services } from '@researchdatabox/redbox-core-types';
 import { DateTime } from 'luxon';
 import {
   Sails,
@@ -100,7 +100,7 @@ export module Services {
       })
     }
 
-    public create(brand, name, config: ReportConfig) {
+    public create(brand, name, config: ReportConfig): Observable<ReportModel> {
       return super.getObservable(Report.create({
         name: name,
         branding: brand.id,
@@ -158,9 +158,9 @@ export module Services {
       reportObject = this.convertLegacyReport(reportObject);
       let report: ReportConfig = reportObject;
       if (report.reportSource == ReportSource.database) {
-        
+
         let namedQueryConfig = await NamedQueryService.getNamedQueryConfig(brand, report.databaseQuery.queryName)
-       
+
         let configMongoQuery = namedQueryConfig.mongoQuery;
         let collectionName = _.get(namedQueryConfig, 'collectionName', '');
         let resultObjectMapping = _.get(namedQueryConfig, 'resultObjectMapping', {});
@@ -169,11 +169,11 @@ export module Services {
         let queryParams = namedQueryConfig.queryParams;
         let paramMap = this.buildNamedQueryParamMap(req, report)
 
-        let dbResult = await NamedQueryService.performNamedQuery(brandIdFieldPath,resultObjectMapping,collectionName,mongoQuery, queryParams, paramMap, brand, start, rows);
+        let dbResult = await NamedQueryService.performNamedQuery(brandIdFieldPath, resultObjectMapping, collectionName, mongoQuery, queryParams, paramMap, brand, start, rows);
         return this.getTranslateDatabaseResultToReportResult(dbResult, report);
       } else {
-        var url = this.buildSolrParams(brand, req, report, start, rows, 'json');
-        const solrResults = await this.getSearchService().searchAdvanced(url);
+        let url = this.buildSolrParams(brand, req, report, start, rows, 'json');
+        const solrResults = await this.getSearchService().searchAdvanced(report.solrQuery.searchCore,null, url); //TODO pass type
         return this.getTranslateSolrResultToReportResult(solrResults, rows);
       }
     }
@@ -206,7 +206,7 @@ export module Services {
       let paramMap = {}
       if (report.filter != null) {
         var filterQuery = ""
-        
+
         for (let filter of report.filter) {
           if (filter.type == ReportFilterType.dateRange) {
             let paramName = filter.paramName;
@@ -253,7 +253,7 @@ export module Services {
       return response;
     }
 
-    private getSearchService() {
+    private getSearchService(): SearchService{
       return sails.services[sails.config.search.serviceName];
     }
 
@@ -271,19 +271,19 @@ export module Services {
 
     public async getCSVResult(brand, name = '', req, start = 0, rows = 1000000000) {
 
-      var report = await super.getObservable(Report.findOne({
+      var report:ReportModel = await super.getObservable(Report.findOne({
         key: brand.id + "_" + name
       })).toPromise();
 
       report = this.convertLegacyReport(report);
 
-       // TODO: Ensure we get all results in a tidier way
+      // TODO: Ensure we get all results in a tidier way
       //       Stream the resultset rather than load it in-memory
       let result: ReportResult = null
       if (report.reportSource == ReportSource.database) {
-        
+
         let namedQueryConfig = await NamedQueryService.getNamedQueryConfig(brand, report.databaseQuery.queryName)
-        
+
         let configMongoQuery = namedQueryConfig.mongoQuery;
         let collectionName = _.get(namedQueryConfig, 'collectionName', '');
         let resultObjectMapping = _.get(namedQueryConfig, 'resultObjectMapping', {});
@@ -292,11 +292,11 @@ export module Services {
         let queryParams = namedQueryConfig.queryParams;
         let paramMap = this.buildNamedQueryParamMap(req, report)
 
-        let dbResult = await NamedQueryService.performNamedQuery(brandIdFieldPath,resultObjectMapping,collectionName,mongoQuery, queryParams, paramMap, brand, start, rows);
+        let dbResult = await NamedQueryService.performNamedQuery(brandIdFieldPath, resultObjectMapping, collectionName, mongoQuery, queryParams, paramMap, brand, start, rows);
         result = this.getTranslateDatabaseResultToReportResult(dbResult, report);
       } else {
         var url = this.buildSolrParams(brand, req, report, start, rows, 'json');
-        const solrResults = await this.getSearchService().searchAdvanced(url);
+        const solrResults = await this.getSearchService().searchAdvanced(report.solrQuery.searchCore,null, url); 
         result = this.getTranslateSolrResultToReportResult(solrResults, rows);
       }
 
@@ -399,7 +399,7 @@ export module Services {
       return headerRow;
     }
 
-    protected getQueryValue(report:ReportConfig) {
+    protected getQueryValue(report: ReportConfig) {
       let query = `${report.solrQuery.baseQuery}&sort=date_object_modified desc&version=2.2&fl=`
       for (var i = 0; i < report.columns.length; i++) {
         var column = report.columns[i];
@@ -419,66 +419,9 @@ export module Services {
     public getReportDto(reportModel: Model): ReportDto {
       return this.convertToType<ReportDto>(reportModel, new ReportDto(), {
         "solr_query": "solrQuery"
-      }, true); 
+      }, true);
     }
 
   }
 }
 module.exports = new Services.Reports().exports();
-
-enum ReportSource {
-  solr = "solr",
-  database = "database"
-}
-
-enum ReportFilterType {
-  dateRange = 'date-range',
-  text = "text"
-}
-
-class ReportDatabaseQueryConfig {
-  queryName: string
-}
-
-class ReportSolrQueryConfig {
-  baseQuery: string
-}
-
-
-class ReportConfig {
-  title: string
-  reportSource: ReportSource = ReportSource.solr
-  databaseQuery: ReportDatabaseQueryConfig
-  solrQuery: ReportSolrQueryConfig
-  filter: ReportFilterConfig[]
-  columns: ReportColumnConfig[]
-}
-
-class ReportFilterDatabaseDateConfig {
-  fromProperty:string
-  toProperty:string
-}
-class ReportFilterConfig {
-  paramName: string
-  type: ReportFilterType
-  property: string
-  messsage: string
-  database: ReportFilterDatabaseDateConfig
-}
-
-class ReportColumnConfig {
-  label: string
-  property: string
-  hide: boolean
-  exportTemplate: string
-  template: string
-}
-
-class ReportResult {
-  total: number;
-  pageNum: number;
-  recordPerPage: number;
-  records: any[];
-  success: boolean;
-
-}

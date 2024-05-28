@@ -1,0 +1,21 @@
+meta {
+  name: Index All Records
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{host}}/default/rdmp/api/search/indexAll
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+}
+
+tests {
+  test("Status code is 200", function () {
+      expect(res.getStatus()).to.equal(200);
+  });
+}

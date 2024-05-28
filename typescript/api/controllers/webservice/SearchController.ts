@@ -18,19 +18,19 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 //<reference path='./../../typings/loader.d.ts'/>
-declare var module;
-declare var sails;
+import {Sails, Model} from 'sails';
 
-declare var BrandingService;
-declare var RolesService;
-declare var DashboardService;
-declare var UsersService;
-declare var User;
+import {Services as recordTypesService} from '../../services/RecordTypesService';
+import {Services as brandingService} from '../../services/BrandingService';
+declare var sails:Sails;
+
+declare var RecordTypesService:recordTypesService.RecordTypes;
+declare var BrandingService:brandingService.Branding;
 declare var _;
 /**
  * Package that contains all Controllers.
  */
- import {APIErrorResponse, APIObjectActionResponse, Controllers as controllers,  RecordsService, SearchService} from '@researchdatabox/redbox-core-types';
+ import {APIErrorResponse, APIObjectActionResponse, BrandingModel, Controllers as controllers, RecordTypeModel, RecordModel, RecordsService, SearchService} from '@researchdatabox/redbox-core-types';
 
 export module Controllers {
   /**
@@ -73,14 +73,14 @@ export module Controllers {
 
     public async index(req, res) {
       let oid = req.param('oid');
-      let record = await this.RecordsService.getMeta(oid);
+      let record: RecordModel = await this.RecordsService.getMeta(oid);
       await this.searchService.index(oid,record);
 
       return this.apiRespond(req,res,new APIObjectActionResponse(oid, "Index request added to message queue for processing"),200)
     }
 
     public async indexAll(req, res) {
-      const brand = BrandingService.getBrand(req.session.branding);
+      const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
       sails.log.verbose(`SearchController::indexAll() -> Indexing all records has been requested!`);
       let itemsPerPage = 100;
       let itemsRead = 0;
@@ -108,7 +108,7 @@ export module Controllers {
     }
 
     public async removeAll(req, res) {
-      const brand = BrandingService.getBrand(req.session.branding);
+      const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
       sails.log.verbose(`SearchController::removeAll() -> Removing all records has been requested!`);
 
       // delete all documents by specifying id as '*'
@@ -119,14 +119,21 @@ export module Controllers {
     }
 
     public async search(req, res) {
-      const brand = BrandingService.getBrand(req.session.branding);
+      const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
       const type = req.query.type;
       const workflow = req.query.workflow;
       const searchString = req.query.searchStr;
+      let core = req.query.core;
       const exactSearchNames = _.isEmpty(req.query.exactNames) ? [] : req.query.exactNames.split(',');
       const exactSearches = [];
       const facetSearchNames = _.isEmpty(req.query.facetNames) ? [] : req.query.facetNames.split(',');
       const facetSearches = [];
+
+      // If a record type is set, fetch from the configuration what core it's being sent from
+      if(type != null) {
+        let recordType:RecordTypeModel = await RecordTypesService.get(brand, type).toPromise();
+        core = recordType.searchCore;
+      }
 
       _.forEach(exactSearchNames, (exactSearch) => {
         exactSearches.push({
@@ -142,7 +149,7 @@ export module Controllers {
       });
 
       try {
-        const searchRes = await this.searchService.searchFuzzy(type, workflow, searchString, exactSearches, facetSearches, brand, req.user, req.user.roles, sails.config.record.search.returnFields);
+        const searchRes = await this.searchService.searchFuzzy(core, type, workflow, searchString, exactSearches, facetSearches, brand, req.user, req.user.roles, sails.config.record.search.returnFields);
         this.apiRespond(req, res,searchRes);
       } catch (error) {
         this.apiFail(req, res, 500, new APIErrorResponse(error.message));
