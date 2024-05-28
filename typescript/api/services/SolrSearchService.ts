@@ -18,7 +18,7 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 declare var module;
-import {QueueService, SearchService, SolrConfig, SolrCore, SolrOptions, BrandingModel, UserModel, RoleModel, Services as services}   from '@researchdatabox/redbox-core-types';
+import {QueueService, SearchService, SolrConfig, SolrCore, SolrOptions, BrandingModel, UserModel, RoleModel, RecordModel, SolrDocument, Services as services}   from '@researchdatabox/redbox-core-types';
 
 import { default as solr } from 'solr-client';
 const axios = require('axios');
@@ -185,16 +185,14 @@ export module Services {
       return `${coreOptions.https ? 'https' : 'http'}://${coreOptions.host}:${coreOptions.port}/solr/`;
     }
 
-    public index(id: string, data: any) {
+    public index(id: string, data: RecordModel): void {
       sails.log.verbose(`${this.logHeader} adding indexing job: ${id} with data:`);
-      // storage_id is used as the main ID in searches
-      _.set(data, 'storage_id', id);
-      _.set(data, 'id', id);
+      data.id = id;
       sails.log.verbose(JSON.stringify(data));
       this.queueService.now(sails.config.solr.createOrUpdateJobName, data);
     }
 
-    public remove(id: string) {
+    public remove(id: string): void {
       sails.log.verbose(`${this.logHeader} adding delete-index job: ${id} with data:`);
       const data = { id: id };
       sails.log.verbose(JSON.stringify(data));
@@ -282,11 +280,13 @@ export module Services {
 
     public async solrAddOrUpdate(job: any) {
       try {
-        let data:any = job.attrs.data;
+        let data:RecordModel = job.attrs.data;
         let coreId = _.get(data,'metaMetadata.searchCore');
-        sails.log.verbose(`${this.logHeader} adding document: ${data.id} to index`);
+        // storage_id is used as the main ID in searches
+        let solrDocument:SolrDocument = new SolrDocument(data);
+        sails.log.verbose(`${this.logHeader} adding document: ${solrDocument.id} to index`);
         // flatten the JSON
-        const processedData = this.preIndex(data);
+        const processedData = this.preIndex(solrDocument);
         sails.log.verbose(JSON.stringify(processedData));
         await this.clients[coreId].promiseAdd(processedData);
         // intentionally adding the commit call as the client doesn't respect the 'autoCommit' flag
@@ -301,7 +301,7 @@ export module Services {
 
     // TODO: This method shouldn't need to be public 
     // but can't unit test it easily if it isn't
-    public preIndex(data: any) {
+    public preIndex(data: SolrDocument): any {
       let processedData:any = _.cloneDeep(data);
       
       let coreId = _.get(data,'metaMetadata.searchCore');
@@ -412,8 +412,9 @@ export module Services {
       try {
         let data = job.attrs.data;
         let coreId = _.get(data,'metaMetadata.searchCore');
-        sails.log.verbose(`${this.logHeader} deleting document: ${data.id}`);
-        await this.clients[coreId].promiseDelete('id', data.id);
+        let solrDocument:SolrDocument = new SolrDocument(data);
+        sails.log.verbose(`${this.logHeader} deleting document: ${solrDocument.id}`);
+        await this.clients[coreId].promiseDelete('id', solrDocument.id);
         // intentionally adding the commit call as the client doesn't respect the 'autoCommit' flag
         await this.clients[coreId].promiseCommit();
         await this.clientSleep();

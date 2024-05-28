@@ -9,6 +9,7 @@ export interface RecordModel {
     authorization: RecordAuthorization;
     dateCreated: string;
     lastSaveDate: string;
+    id: string;
   }
 
   export interface RecordMetaMetadata {
