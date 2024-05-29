@@ -598,6 +598,18 @@ module.exports.recordtype = {
       }
     }
   },
+  "party": {
+    "packageType": "party",
+    searchCore: "parties",
+    hooks: {
+      onCreate: {
+      },
+      onUpdate: {
+      }
+    },
+    relatedTo: [],
+    searchFilters: []
+  },
   "consolidated": {
     "searchable": false,
     "packageType": "rdmp",
