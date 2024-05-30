@@ -142,7 +142,7 @@ export module Services {
       const options = this.getMintOptions(mintUrl, sails.config.record.api.search.method);
       sails.log.verbose(options);
       
-      return Observable.fromPromise(axios(options).then(res => res.data));
+      return Observable.fromPromise(axios(options)).flatMap(response => { return response.data});
     }
 
     public findInExternalService(providerName, params) {
@@ -164,7 +164,7 @@ export module Services {
         };
         sails.log.verbose(post);
         
-        return Observable.fromPromise(axios(post));
+        return Observable.fromPromise(axios(post)).flatMap(response => { return response.data});
       } else {
         const getSearch = {
           method: sails.config.record.api.search.method,
@@ -173,7 +173,7 @@ export module Services {
         };
         sails.log.verbose(getSearch);
         
-        return Observable.fromPromise(axios(getSearch));
+        return Observable.fromPromise(axios(getSearch)).flatMap(response => { return response.data});
       }
     }
 
@@ -218,7 +218,7 @@ export module Services {
       console.log(`Getting concepts....${url}`);
       return Observable.fromPromise(axios.get(url))
       .flatMap((resp) => {
-        let response:any = resp;
+        let response:any = resp.data;
         rawItems = rawItems.concat(response.result.items);
         if (response.result && response.result.next) {
           return this.getConcepts(response.result.next, rawItems);
@@ -230,7 +230,7 @@ export module Services {
     protected getNonAndsVocab(vocabId) {
       const url = sails.config.vocab.nonAnds[vocabId].url;
       return Observable.fromPromise(axios.get(url)).flatMap(response => {
-        CacheService.set(vocabId, response);
+        CacheService.set(vocabId, response.data);
         return Observable.of(response);
       });
     }
@@ -248,7 +248,7 @@ export module Services {
           const methodName = sails.config.vocab.collection[collectionId].saveMethod;
           return Observable.fromPromise(axios.get(url))
           .flatMap(resp => {
-            let response:any = resp;
+            let response:any = resp.data;
             sails.log.verbose(`Got response retrieving data for collection: ${collectionId}, saving...`);
             sails.log.verbose(`Number of items: ${response.length}`);
             const itemsToSave = _.chunk(response, bufferCount);
@@ -295,7 +295,7 @@ export module Services {
     public rvaGetResourceDetails(uri,vocab) {
       const url = sails.config.vocab.rootUrl+`${vocab}/resource.json?uri=${uri}`;
       return Observable.fromPromise(axios.get(url)).flatMap(response => {
-        CacheService.set(vocab, response);
+        CacheService.set(vocab, response.data);
         return Observable.of(response);
       });
     }
