@@ -1,0 +1,53 @@
+meta {
+  name: Create HARVEST Legacy Record
+  type: http
+  seq: 33
+}
+
+post {
+  url: {{host}}/default/rdmp/api/mint/harvest/rdmp
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+  Authorization: Bearer {{token}}
+}
+
+body:json {
+  {
+    "records": [
+        {
+            "harvest_id": "s123456",
+            "metadata": {
+                "data": {
+                    "ID": "s123456",
+                    "GIVEN_NAME": "Andrew",
+                    "OTHER_NAMES": "",
+                    "FAMILY_NAME": "S",
+                    "PREF_NAME": "",
+                    "HONORIFIC": "",
+                    "EMAIL": "notAReal@email.edu.au",
+                    "JOB_TITLE": "Assistant Professor",
+                    "URI": "",
+                    "NLA_PARTY_IDENTIFIER": "",
+                    "ORCID": "0000-0001-7269-2286",
+                    "PERSONAL_HOMEPAGE": "",
+                    "STAFF_PROFILE_HOMEPAGE": "",
+                    "DESCRIPTION": "",
+                    "RESEARCH_ELEMENTS_USER_ID": "12345678"
+                }
+            }
+        }
+    ]
+  }
+}
+
+tests {
+  
+  test("Status code is 200", function () {
+      expect(res.getStatus()).to.equal(200);
+  });
+  
+}

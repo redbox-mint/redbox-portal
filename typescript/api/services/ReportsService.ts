@@ -173,7 +173,7 @@ export module Services {
         return this.getTranslateDatabaseResultToReportResult(dbResult, report);
       } else {
         let url = this.buildSolrParams(brand, req, report, start, rows, 'json');
-        const solrResults = await this.getSearchService().searchAdvanced(report.solrQuery.searchCore,null, url); //TODO pass type
+        const solrResults = await this.getSearchService().searchAdvanced(report.solrQuery.searchCore,null, url);
         return this.getTranslateSolrResultToReportResult(solrResults, rows);
       }
     }

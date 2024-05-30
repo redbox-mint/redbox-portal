@@ -1,0 +1,27 @@
+meta {
+  name: Get HARVEST Record-s Metadata
+  type: http
+  seq: 32
+}
+
+get {
+  url: {{host}}/default/rdmp/api/mint/harvest/search?harvestId=s123456&recordType=rdmp
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+  ~: 
+}
+
+tests {
+  test("Status code is 200", function () {
+      expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("Title is correct", function () {
+      var jsonData = res.getBody();
+      expect(jsonData.GIVEN_NAME).to.eql("Andrew");
+  });
+}
