@@ -259,9 +259,9 @@ module.exports.routes = {
     action: 'harvest',
     csrf: false
   },
-  'post /mint/api/v1.1/harvest/:recordType': {
+  'post /:branding/:portal/api/mint/harvest/:recordType': {
     controller: 'webservice/RecordController',
-    action: 'harvest',
+    action: 'legacyHarvest',
     csrf: false
   },
   'put /:branding/:portal/api/records/objectmetadata/:oid': {

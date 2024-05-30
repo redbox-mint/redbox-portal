@@ -91,7 +91,8 @@ export module Controllers {
       'removeRoleEdit',
       'addRoleView',
       'removeRoleView',
-      'harvest'
+      'harvest',
+      'legacyHarvest'
     ];
 
     constructor() {
@@ -1032,16 +1033,60 @@ export module Controllers {
 
     public async harvest(req, res) {
       const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
-      let updateModes = ['merge', 'override', 'create'];
+      let updateModes = ["merge", "override", "create"]
 
-      let updateMode = req.param('updateMode');
+      let updateMode = req.param('updateMode')
       if (_.isEmpty(updateMode)) {
-        updateMode = 'override';
+        updateMode = "override"
       }
 
       var recordType = req.param('recordType');
       var recordTypeModel = await RecordTypesService.get(brand, recordType).toPromise();
 
+
+      if (recordTypeModel == null) {
+        return this.apiFailWrapper(req, res, 400,null, null,
+            "Record Type provided is not valid");
+      }
+      var user = req.user;
+      var body = req.body;
+      if (body != null) {
+
+        if (_.isEmpty(body["records"])) {
+          return this.apiFailWrapper(req, res, 400, null, null,
+              "Invalid request body");
+        }
+        let recordResponses = [];
+        let records = body['records'];
+        for (let record of records) {
+          let harvestId = record["harvestId"]
+          if (_.isEmpty(harvestId)) {
+            recordResponses.push(new APIHarvestResponse(harvestId, null, false, "HarvestId was not specified"))
+          } else {
+            let existingRecord = await this.findExistingHarvestRecord(harvestId, recordType)
+            if (existingRecord.length == 0 || updateMode == "create") {
+              recordResponses.push(await this.createHarvestRecord(brand, recordTypeModel, record['recordRequest'], harvestId, updateMode, user));
+            } else {
+              let oid = existingRecord[0].redboxOid;
+              if (updateMode != "ignore") {
+                recordResponses.push(await this.updateHarvestRecord(brand, recordTypeModel, updateMode, record['recordRequest']['metadata'], oid, harvestId, user));
+              } else {
+                recordResponses.push(new APIHarvestResponse(harvestId, oid, true, `Record ignored as the record already exists. oid: ${oid}`))
+              }
+            }
+          }
+        }
+        return res.json(recordResponses);
+      }
+      return this.apiFailWrapper(req, res, 400, null, null,
+          "Invalid request");
+    }
+
+    public async legacyHarvest(req, res) {
+      const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
+
+      var recordType = req.param('recordType');
+      var recordTypeModel = await RecordTypesService.get(brand, recordType).toPromise();
 
       if (recordTypeModel == null) {
         return this.apiFailWrapper(req, res, 400,null, null,
@@ -1063,15 +1108,11 @@ export module Controllers {
             recordResponses.push(new APIHarvestResponse(harvestId, null, false, 'HarvestId was not specified'))
           } else {
             let existingRecord = await this.findExistingHarvestRecord(harvestId, recordType)
-            if (existingRecord.length == 0 || updateMode == 'create') {
-              recordResponses.push(await this.createHarvestRecord(brand, recordTypeModel, record['metadata'], harvestId, updateMode, user));
+            if (existingRecord.length == 0) {
+              recordResponses.push(await this.createHarvestRecord(brand, recordTypeModel, record['metadata']['data'], harvestId, 'update', user));
             } else {
               let oid = existingRecord[0].redboxOid;
-              if (updateMode != 'ignore') {
-                recordResponses.push(await this.updateHarvestRecord(brand, recordTypeModel, updateMode, record['metadata']['data'], oid, harvestId, user));
-              } else {
-                recordResponses.push(new APIHarvestResponse(harvestId, oid, true, `Record ignored as the record already exists. oid: ${oid}`))
-              }
+              recordResponses.push(await this.updateHarvestRecord(brand, recordTypeModel, 'update', record['metadata']['data'], oid, harvestId, user));
             }
           }
         }
@@ -1124,7 +1165,7 @@ export module Controllers {
 
     private async findExistingHarvestRecord(harvestId: any, recordType: any) {
       let results = await Record.find({
-        'harvest_id': harvestId,
+        'harvestId': harvestId,
         'metaMetadata.type': recordType
       }).meta({
         enableExperimentalDeepTargets: true
@@ -1148,28 +1189,14 @@ export module Controllers {
         authorizationView.push(user.username);
       }
 
-      let sourceMetadata = body['sourceMetadata'];
-
-      var metadata = body['data'];
+      var metadata = body['metadata'];
       var workflowStage = body['workflowStage'];
       var request = {};
       if (updateMode != 'create') {
         // Only set harvestId if not in create mode
         request['harvestId'] = harvestId;
       }
-      // var metaMetadata = {};
-      // metaMetadata['brandId'] = brand.id;
-      // metaMetadata['type'] = recordTypeModel.name;
-      // metaMetadata['packageName'] = recordTypeModel.packageName;
-      // metaMetadata['packageType'] = recordTypeModel.packageType;
-
-      // if (!_.isEmpty(sourceMetadata)) {
-      //   //Force this to be stored as a string
-      //   metaMetadata['sourceMetadata'] = '' + sourceMetadata
-      // }
-      // // Resolves #723: removed hardcoded value
-      // metaMetadata['createdBy'] = user.username;
-      // request['metaMetadata'] = metaMetadata;
+      
       //if no metadata field, no authorization
       if (metadata == null) {
         request['metadata'] = body;
