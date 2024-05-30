@@ -1,7 +1,7 @@
 meta {
   name: Get HARVEST Record-s Metadata
   type: http
-  seq: 32
+  seq: 34
 }
 
 get {
@@ -20,8 +20,8 @@ tests {
       expect(res.getStatus()).to.equal(200);
   });
   
-  test("Title is correct", function () {
+  test("ID is correct", function () {
       var jsonData = res.getBody();
-      expect(jsonData.GIVEN_NAME).to.eql("Andrew");
+      expect(jsonData.ID).to.eql("s123456");
   });
 }
