@@ -264,11 +264,6 @@ module.exports.routes = {
     action: 'legacyHarvest',
     csrf: false
   },
-  'get /:branding/:portal/api/mint/harvest/search': {
-    controller: 'webservice/RecordController',
-    action: 'getHarvestRecord',
-    csrf: false
-  },
   'put /:branding/:portal/api/records/objectmetadata/:oid': {
     controller: 'webservice/RecordController',
     action: 'updateObjectMeta',

@@ -50,4 +50,14 @@ tests {
       expect(res.getStatus()).to.equal(200);
   });
   
+  test("Test oid exists", function () {
+        var jsonData = res.getBody();
+        expect(jsonData[0]).to.have.property('oid');
+  });
+  
+  test("Test harvestId exists", function () {
+        var jsonData = res.getBody();
+        expect(jsonData[0]).to.have.property('harvestId');
+  });
+  
 }

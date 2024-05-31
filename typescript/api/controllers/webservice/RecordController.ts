@@ -94,8 +94,7 @@ export module Controllers {
       'addRoleView',
       'removeRoleView',
       'harvest',
-      'legacyHarvest',
-      'getHarvestRecord'
+      'legacyHarvest'
     ];
 
     constructor() {
@@ -1155,26 +1154,6 @@ export module Controllers {
         const result = new APIHarvestResponse(harvestId, oid, false, "Failed to retrieve record metadata before update");
         sails.log.error(error, result);
         return result;
-      }
-    }
-
-    public async getHarvestRecord(req, res) {
-      const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
-      sails.log.debug('brand is...');
-      sails.log.debug(brand);
-      let harvestId:string = req.param('harvestId');
-      let recordType:string = req.param('recordType');
-
-      try {
-        let results = await this.findExistingHarvestRecord(harvestId,recordType);
-        if(!_.isEmpty(results)) {
-          const record:RecordModel = results[0];
-          return res.json(record['metadata']);
-        } else {
-          this.apiFailWrapper(req, res, 500, null, null, `Failed to get object meta for harvestId ${harvestId} and recordType ${recordType}, please check server logs.`);
-        }
-      } catch (err) {
-        this.apiFailWrapper(req, res, 500, null, err, `Failed to get object meta for harvestId ${harvestId} and recordType ${recordType}, please check server logs.`);
       }
     }
 

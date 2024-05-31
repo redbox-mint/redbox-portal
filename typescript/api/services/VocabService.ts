@@ -137,7 +137,6 @@ export module Services {
         searchString = ` AND (${queryString})`;
       }
 
-      //TODO instead of call external mint perform an Ajax call to ReDBOx or directly serach in the database for records or in the solr index ???
       const mintUrl = `${sails.config.record.baseUrl.mint}${sails.config.mint.api.search.url}?q=repository_type:${sourceType}${searchString}&version=2.2&wt=json&start=0`;
       sails.log(mintUrl);
       const options = this.getMintOptions(mintUrl, sails.config.record.api.search.method);
