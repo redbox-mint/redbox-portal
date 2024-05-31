@@ -146,14 +146,14 @@ export module Services {
     }
 
     public findInExternalService(providerName, params) {
-      const method = sails.config.vocab.providers[providerName].method;
-      let url = sails.config.vocab.providers[providerName].url;
+      const method = sails.config.vocab.external[providerName].method;
+      let url = sails.config.vocab.external[providerName].url;
 
       let templateFunction = this.getTemplateStringFunction(url);
       url = templateFunction(params.options);
 
       sails.log.info(url);
-      let options = sails.config.vocab.providers[providerName].options;
+      let options = sails.config.vocab.external[providerName].options;
 
       if(method == 'post') {
         const post = {

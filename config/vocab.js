@@ -8,7 +8,7 @@ module.exports.vocab = {
   rootUrl: 'http://vocabs.ardc.edu.au/repository/api/lda/',
   conceptUri: 'concept.json?_view=all',
   cacheExpiry: 31536000, // one year in seconds
-  providers: {
+  external: {
     geonames: {
       method: 'get',
       url: "http://mint:9001/geonames/search?func=search&q=${query}&format=json",
