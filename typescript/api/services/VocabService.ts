@@ -72,8 +72,7 @@ export module Services {
         let fieldsToMap = _.get(options, 'fieldsToMap');
 
         let queryString = compiledTemplate({ user: user });
-        let mintObs = this.findInMint(sourceType, queryString);
-        let mintResponse = await mintObs;
+        let mintResponse = await this.findInMint(sourceType, queryString);
         let responseDocs = _.get(mintResponse, 'response.docs');
         if (_.isArray(responseDocs) && responseDocs.length > 0) {
 
