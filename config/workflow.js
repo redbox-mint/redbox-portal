@@ -283,5 +283,4 @@ module.exports.workflow = {
       consolidated: true
     }
   }
-
 };
