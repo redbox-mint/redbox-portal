@@ -55,8 +55,9 @@ tests {
         expect(jsonData[0]).to.have.property('oid');
   });
   
-  test("Test harvestId exists", function () {
+  test("Test harvestId exists and value is as expected", function () {
         var jsonData = res.getBody();
         expect(jsonData[0]).to.have.property('harvestId');
+        expect(jsonData[0].harvestId).to.equal('s123456');
   });
 }
