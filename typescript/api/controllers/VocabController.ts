@@ -22,12 +22,14 @@ declare var module;
 declare var sails;
 declare var _;
 import { Observable } from 'rxjs/Rx';
+import { Services as vocabService } from '../services/VocabService';
+
 let flat;
-declare var VocabService;
+declare var VocabService: vocabService.Vocab;
 /**
  * Package that contains all Controllers.
  */
-import { Controllers as controllers} from '@researchdatabox/redbox-core-types';
+import { Controllers as controllers } from '@researchdatabox/redbox-core-types';
 export module Controllers {
   /**
    * Vocabulary related features....
@@ -41,13 +43,13 @@ export module Controllers {
      * Exported methods, accessible from internet.
      */
     protected _exportedMethods: any = [
-        'get',
-        'getCollection',
-        'loadCollection',
-        'getMint',
-        'searchExternalService',
-        'searchPeople',
-        'rvaGetResourceDetails'
+      'get',
+      'getCollection',
+      'loadCollection',
+      'getMint',
+      'searchExternalService',
+      'searchPeople',
+      'rvaGetResourceDetails'
     ];
 
     /**
@@ -56,7 +58,7 @@ export module Controllers {
      **************************************************************************************************
      */
 
-     protected async processDynamicImports() {
+    protected async processDynamicImports() {
       flat = await import("flat");
     }
 
@@ -96,23 +98,23 @@ export module Controllers {
       const collectionId = req.param('collectionId');
       let that = this;
       VocabService.loadCollection(collectionId).subscribe(receipt => {
-        that.ajaxOk(req, res, null, {status: 'queued', message: 'All good.', receipt: receipt}, true);
+        that.ajaxOk(req, res, null, { status: 'queued', message: 'All good.', receipt: receipt }, true);
       }, error => {
         sails.log.error(`Error calling loadCollection:`)
         sails.log.error(error)
-        that.ajaxFail(req, res, null, "An error occurred" , true);
-        
+        that.ajaxFail(req, res, null, "An error occurred", true);
+
       });
     }
 
-    public getMint(req, res) {
+    public async getMint(req, res) {
       const mintSourceType = req.param('mintSourceType');
       const searchString = req.query.search;
       const unflatten = req.param('unflatten');
       const flattened_prefix = "flattened_";
-      let that = this;
-      VocabService.findInMint(mintSourceType, searchString).subscribe(mintResponse => {
-        let response_docs = mintResponse.response.docs;
+      try {
+        let mintResponse = await VocabService.findInMint(mintSourceType, searchString);
+        let response_docs = mintResponse.docs;
         if (unflatten == "true") {
           _.forEach(response_docs, (doc: any) => {
             _.forOwn(doc, (val: any, key: any) => {
@@ -125,26 +127,27 @@ export module Controllers {
           });
         }
         // only return the response...
-        that.ajaxOk(req, res, null, response_docs, true);
-      }, error => {
+        this.ajaxOk(req, res, null, response_docs, true);
+      } catch (error) {
         sails.log.verbose("Error getting mint data:");
         sails.log.verbose(error);
-        that.ajaxFail(req, res, null, "An error occurred", true);
-      });
+        this.ajaxFail(req, res, null, "An error occurred", true);
+      }
     }
 
-    public searchExternalService(req, res) {
+    public async searchExternalService(req, res) {
       const providerName = req.param('provider');
       const params = req.body;
       let that = this;
-      VocabService.findInExternalService(providerName, params).subscribe(response => {
+      try {
+        let response = await VocabService.findInExternalService(providerName, params);
         // only return the response...
         that.ajaxOk(req, res, null, response, true);
-      }, error => {
-          sails.log.error(`Error calling searchExternalService:`)
-          sails.log.error(error)
-          that.ajaxFail(req, res, null, "An error occurred" , true);
-      });
+      } catch (error) {
+        sails.log.error(`Error calling searchExternalService:`)
+        sails.log.error(error)
+        that.ajaxFail(req, res, null, "An error occurred", true);
+      }
     }
 
     public searchPeople(req, res) {
@@ -154,13 +157,13 @@ export module Controllers {
       const surname = req.param('surname');
       let that = this;
       sails.config.peopleSearch[source](givenNames, surname, page).subscribe(response => {
-          // only return the response...
-          that.ajaxOk(req, res, null, response, true);
-        }, error => {
-          sails.log.error(`Error calling searchPeople:`)
-          sails.log.error(error)
-          that.ajaxFail(req, res, null, "An error occurred" , true);
-        });
+        // only return the response...
+        that.ajaxOk(req, res, null, response, true);
+      }, error => {
+        sails.log.error(`Error calling searchPeople:`)
+        sails.log.error(error)
+        that.ajaxFail(req, res, null, "An error occurred", true);
+      });
 
     }
 
@@ -168,12 +171,12 @@ export module Controllers {
       const uri = req.param('uri');
       const vocab = req.param('vocab');
       let that = this;
-      VocabService.rvaGetResourceDetails(uri,vocab).subscribe(response => {
-          // only return the response...
-          that.ajaxOk(req, res, null, response, true);
-        }, error => {
-          that.ajaxFail(req, res, null, error, true);
-        });
+      VocabService.rvaGetResourceDetails(uri, vocab).subscribe(response => {
+        // only return the response...
+        that.ajaxOk(req, res, null, response, true);
+      }, error => {
+        that.ajaxFail(req, res, null, error, true);
+      });
 
     }
 
