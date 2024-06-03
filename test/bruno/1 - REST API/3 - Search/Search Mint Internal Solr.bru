@@ -1,0 +1,36 @@
+meta {
+  name: Search Mint Internal Solr
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{host}}/default/rdmp/query/vocab/party?search=Andrew&start=0&rows=10
+  body: none
+  auth: none
+}
+
+query {
+  search: Andrew
+  start: 0
+  rows: 10
+}
+
+headers {
+  Authorization: Bearer {{token}}
+  ~: 
+}
+
+tests {
+  test("Status code is 200", function () {
+      expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("Test response format", function () {
+        var jsonData = res.getBody();
+        expect(jsonData[0]).to.have.property('fullName');
+        expect(jsonData[0]).to.have.property('email');
+        expect(jsonData[0]).to.have.property('orcid');
+  });
+  
+}
