@@ -18,12 +18,14 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 import { Observable, Scheduler } from 'rxjs/Rx';
-import {Services as services}   from '@researchdatabox/redbox-core-types';
+import {BrandingModel, Services as services}   from '@researchdatabox/redbox-core-types';
+import { ReportConfig }   from '@researchdatabox/redbox-core-types';
 import {Sails, Model} from "sails";
 import axios from 'axios';
 
 
 declare var CacheService, RecordsService, AsynchsService;
+declare var NamedQueryService;
 declare var sails: Sails;
 declare var _this;
 declare var _;
@@ -47,7 +49,8 @@ export module Services {
       'findInMint',
       'findInExternalService',
       'rvaGetResourceDetails',
-      'findInMintTriggerWrapper'
+      'findInMintTriggerWrapper',
+      'findInMintInternal'
     ];
 
     public bootstrap() {
@@ -143,6 +146,43 @@ export module Services {
       sails.log.verbose(options);
       
       return Observable.fromPromise(axios(options).then(res => res.data));
+    }
+
+    public async findInMintInternal(sourceType:string, brand:BrandingModel, searchString:string, start:number, rows:number) {
+
+      const report = sails.config.vocab[sourceType];
+
+      if (report.reportSource == 'database') {
+
+        let namedQueryConfig = await NamedQueryService.getNamedQueryConfig(brand, report.databaseQuery.queryName);
+
+        let configMongoQuery = namedQueryConfig.mongoQuery;
+        let collectionName = _.get(namedQueryConfig, 'collectionName', '');
+        let resultObjectMapping = _.get(namedQueryConfig, 'resultObjectMapping', {});
+        let brandIdFieldPath = _.get(namedQueryConfig, 'brandIdFieldPath', '');
+        let mongoQuery = _.clone(configMongoQuery);
+        let queryParams = namedQueryConfig.queryParams;
+        let paramMap = this.buildNamedQueryParamMap(report, searchString);
+
+        let dbResult = await NamedQueryService.performNamedQuery(brandIdFieldPath, resultObjectMapping, collectionName, mongoQuery, queryParams, paramMap, brand, start, rows);
+        // result = this.getTranslateDatabaseResultToReportResult(dbResult, report);
+        return Observable.fromPromise(dbResult);
+      } else {
+        // var url = this.buildSolrParams(brand, req, report, start, rows, 'json');
+        // const solrResults = await this.getSearchService().searchAdvanced(report.solrQuery.searchCore,null, url); 
+        // result = this.getTranslateSolrResultToReportResult(solrResults, rows);
+        return Observable.fromPromise(null);
+      }
+      
+    }
+
+    buildNamedQueryParamMap(report: any, searchString:string):any {
+      let paramMap = {}
+      if (report.queryField.type == 'text') {
+        paramMap[report.queryField.property] = searchString;
+      }
+
+      return paramMap
     }
 
     public findInExternalService(providerName, params) {

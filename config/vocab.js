@@ -16,5 +16,31 @@ module.exports.vocab = {
 
       }
     }
+  },
+  party: {
+    reportSource: 'solr',
+    searchQuery: {
+      searchCore: 'parties',
+      baseQuery : 'metaMetadata_type:party'
+    },
+    queryField: {
+      property: 'full_name',
+      type: 'text'
+    },
+    resultObjectMapping: {
+      fullname: '<%= record.full_name %>',
+      email: '<%= record.email %>',
+      orcid: '<%= record.orcid %>'
+    }
+  },
+  rdmp: {
+    reportSource: 'database',
+    databaseQuery: {
+      queryName: 'listRDMPRecords',
+    },
+    queryField: {
+      property: 'title',
+      type: 'text'
+    }
   }
 };

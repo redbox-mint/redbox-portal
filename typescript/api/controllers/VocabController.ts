@@ -24,10 +24,12 @@ declare var _;
 import { Observable } from 'rxjs/Rx';
 let flat;
 declare var VocabService;
+declare var BrandingService;
 /**
  * Package that contains all Controllers.
  */
-import { Controllers as controllers} from '@researchdatabox/redbox-core-types';
+import { Controllers as controllers} from '@researchdatabox/redbox-core-types'; 
+import { BrandingModel } from '@researchdatabox/redbox-core-types';
 export module Controllers {
   /**
    * Vocabulary related features....
@@ -47,7 +49,8 @@ export module Controllers {
         'getMint',
         'searchExternalService',
         'searchPeople',
-        'rvaGetResourceDetails'
+        'rvaGetResourceDetails',
+        'getMintInternal'
     ];
 
     /**
@@ -132,6 +135,44 @@ export module Controllers {
         that.ajaxFail(req, res, null, "An error occurred", true);
       });
     }
+
+    public getMintInternal(req, res) {
+      const mintSourceType = req.param('queryId');
+      const searchString = req.param('search');
+      const unflatten = req.param('unflatten');
+      const flattened_prefix = "flattened_";
+      const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
+      let that = this;
+      VocabService.findInMintInternal(mintSourceType, brand, searchString, req.param('start'), req.param('rows')).subscribe(mintResponse => {
+
+        const report = sails.config.vocab[mintSourceType];
+
+        if (report.reportSource == 'database') {
+
+          that.ajaxOk(req, res, null, mintResponse, true);
+
+        } else {
+          let response_docs = mintResponse.response.docs;
+          if (unflatten == "true") {
+            _.forEach(response_docs, (doc: any) => {
+              _.forOwn(doc, (val: any, key: any) => {
+                if (_.startsWith(key, flattened_prefix)) {
+                  const targetKey = key.substring(flattened_prefix.length);
+                  const objVal = JSON.parse(val);
+                  doc[targetKey] = flat.unflatten(objVal)[key];
+                }
+              });
+            });
+          }
+          that.ajaxOk(req, res, null, response_docs, true);
+        }
+      }, error => {
+        sails.log.verbose("Error getting mint internal data:");
+        sails.log.verbose(error);
+        that.ajaxFail(req, res, null, "Mint internal an error occurred", true);
+      });
+    }
+
 
     public searchExternalService(req, res) {
       const providerName = req.param('provider');
