@@ -18,8 +18,8 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 import { Observable, Scheduler } from 'rxjs/Rx';
-import {BrandingModel, Services as services}   from '@researchdatabox/redbox-core-types';
-import {Sails, Model} from "sails";
+import {SearchService, BrandingModel, Services as services}   from '@researchdatabox/redbox-core-types';
+import {Sails, Model} from 'sails';
 import axios from 'axios';
 
 
@@ -29,6 +29,7 @@ declare var sails: Sails;
 declare var _this;
 declare var _;
 declare var Institution: Model;
+let flat;
 
 export module Services {
   /**
@@ -148,7 +149,7 @@ export module Services {
       return response.data;
     }
 
-    public async findInMintInternal(sourceType:string, brand:BrandingModel, searchString:string, start:number, rows:number): Promise<any> {
+    public async findInMintInternal(sourceType:string, brand:BrandingModel, searchString:string, unflatten:string, unflattenPrefix:string, start:number, rows:number): Promise<any> {
 
       const report = sails.config.vocab[sourceType];
 
@@ -167,13 +168,12 @@ export module Services {
         let dbResult = await NamedQueryService.performNamedQuery(brandIdFieldPath, resultObjectMapping, collectionName, mongoQuery, queryParams, paramMap, brand, start, rows);
         // result = this.getTranslateDatabaseResultToReportResult(dbResult, report);
         return dbResult;
-      } else {
-        // var url = this.buildSolrParams(brand, req, report, start, rows, 'json');
-        // const solrResults = await this.getSearchService().searchAdvanced(report.solrQuery.searchCore,null, url); 
-        // result = this.getTranslateSolrResultToReportResult(solrResults, rows);
-        return null;
+      } else if (report.reportSource == 'solr') {
+        let url = this.buildSolrParams(brand, searchString, report, start, rows, 'json');
+        const solrResults = await this.getSearchService().searchAdvanced(report.searchQuery.searchCore, null, url);
+        let result = this.getSolrResultToResultObjectMappings(solrResults, report, unflatten, unflattenPrefix);
+        return result;
       }
-      
     }
 
     buildNamedQueryParamMap(report: any, searchString:string):any {
@@ -181,8 +181,73 @@ export module Services {
       if (report.queryField.type == 'text') {
         paramMap[report.queryField.property] = searchString;
       }
+      return paramMap;
+    }
 
-      return paramMap
+    private buildSolrParams(brand:BrandingModel, searchString:string, report:any, start:number, rows:number, format:string = 'json'):string {
+      let query = `${report.searchQuery.baseQuery}&sort=date_object_modified desc`+'&start=' + start + '&rows=' + rows;
+      query = query + `&fq=metaMetadata_brandId:${brand.id}&wt=${format}`;
+
+      if (report.queryField.type == 'text') {
+        let value = searchString;
+        if (!_.isEmpty(value)) {
+          let searchProperty = report.queryField.property;
+          query = query + '&fq=' + searchProperty + ':';
+          if(value == '*'){
+            query = query + value;
+          } else {
+            query = query + value + '*';
+          }
+        }
+      }
+
+      //TODO apply fl=field1,field2... in solr query? based of resultObjectMapping ? 
+
+      return query;
+    }
+
+    getSolrResultToResultObjectMappings(results: any, report: any, unflatten:string, unflattenPrefix:string) {
+
+      let responseDocs = results.response.docs;
+      if (unflatten == "true") {
+        _.forEach(responseDocs, (doc: any) => {
+          _.forOwn(doc, (val: any, key: any) => {
+            if (_.startsWith(key, unflattenPrefix)) {
+              const targetKey = key.substring(unflattenPrefix.length);
+              const objVal = JSON.parse(val);
+              doc[targetKey] = flat.unflatten(objVal)[key];
+            }
+          });
+        });
+      }
+
+      let response = [];
+      let that = this;
+      let resultObjectMapping = report.resultObjectMapping;
+      for(let record of responseDocs) {
+        let variables = { record: record };
+        let defaultMetadata = {};
+        if(!_.isEmpty(resultObjectMapping)) {
+          let resultMetadata = _.cloneDeep(resultObjectMapping);
+          _.forOwn(resultObjectMapping, function(value, key) {
+            _.set(resultMetadata,key,that.runTemplate(value,variables));
+          });
+          defaultMetadata = resultMetadata;
+          response.push(defaultMetadata);
+        }
+      }
+      return response;
+    }
+
+    private getSearchService(): SearchService{
+      return sails.services[sails.config.search.serviceName];
+    }
+
+    private runTemplate(templateOrPath: string, variables: any) {
+      if (templateOrPath && templateOrPath.indexOf('<%') != -1) {
+        return _.template(templateOrPath)(variables);
+      }
+      return _.get(variables, templateOrPath);
     }
 
     public async findInExternalService(providerName, params): Promise<any> {

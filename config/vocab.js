@@ -20,17 +20,17 @@ module.exports.vocab = {
   party: {
     reportSource: 'solr',
     searchQuery: {
-      searchCore: 'parties',
-      baseQuery : 'metaMetadata_type:party'
+      searchCore: 'default',
+      baseQuery : 'metaMetadata_type:rdmp'
     },
     queryField: {
-      property: 'full_name',
+      property: 'GIVEN_NAME',
       type: 'text'
     },
     resultObjectMapping: {
-      fullname: '<%= record.full_name %>',
-      email: '<%= record.email %>',
-      orcid: '<%= record.orcid %>'
+      fullName: '<%= record.GIVEN_NAME %>',
+      email: '<%= record.EMAIL %>',
+      orcid: '<%= record.ORCID %>'
     }
   },
   rdmp: {
