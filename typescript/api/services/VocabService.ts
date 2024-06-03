@@ -148,7 +148,7 @@ export module Services {
       return response.data;
     }
 
-    public async findInMintInternal(sourceType:string, brand:BrandingModel, searchString:string, start:number, rows:number) {
+    public async findInMintInternal(sourceType:string, brand:BrandingModel, searchString:string, start:number, rows:number): Promise<any> {
 
       const report = sails.config.vocab[sourceType];
 
@@ -166,12 +166,12 @@ export module Services {
 
         let dbResult = await NamedQueryService.performNamedQuery(brandIdFieldPath, resultObjectMapping, collectionName, mongoQuery, queryParams, paramMap, brand, start, rows);
         // result = this.getTranslateDatabaseResultToReportResult(dbResult, report);
-        return Observable.fromPromise(dbResult);
+        return dbResult;
       } else {
         // var url = this.buildSolrParams(brand, req, report, start, rows, 'json');
         // const solrResults = await this.getSearchService().searchAdvanced(report.solrQuery.searchCore,null, url); 
         // result = this.getTranslateSolrResultToReportResult(solrResults, rows);
-        return Observable.fromPromise(null);
+        return null;
       }
       
     }

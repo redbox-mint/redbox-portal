@@ -139,20 +139,20 @@ export module Controllers {
       }
     }
 
-    public getMintInternal(req, res) {
+    public async getMintInternal(req, res) {
       const mintSourceType = req.param('queryId');
       const searchString = req.param('search');
       const unflatten = req.param('unflatten');
       const flattened_prefix = "flattened_";
       const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
-      let that = this;
-      VocabService.findInMintInternal(mintSourceType, brand, searchString, req.param('start'), req.param('rows')).subscribe(mintResponse => {
+      try {
+        let mintResponse = await VocabService.findInMintInternal(mintSourceType, brand, searchString, req.param('start'), req.param('rows'));
 
         const report = sails.config.vocab[mintSourceType];
 
         if (report.reportSource == 'database') {
 
-          that.ajaxOk(req, res, null, mintResponse, true);
+          this.ajaxOk(req, res, null, mintResponse, true);
 
         } else {
           let response_docs = mintResponse.response.docs;
@@ -167,13 +167,13 @@ export module Controllers {
               });
             });
           }
-          that.ajaxOk(req, res, null, response_docs, true);
+          this.ajaxOk(req, res, null, response_docs, true);
         }
-      }, error => {
+      } catch(error) {
         sails.log.verbose("Error getting mint internal data:");
         sails.log.verbose(error);
-        that.ajaxFail(req, res, null, "Mint internal an error occurred", true);
-      });
+        this.ajaxFail(req, res, null, "Mint internal an error occurred", true);
+      }
     }
 
     public async searchExternalService(req, res) {
