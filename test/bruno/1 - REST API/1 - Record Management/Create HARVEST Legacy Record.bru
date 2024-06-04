@@ -23,7 +23,7 @@ body:json {
             "metadata": {
                 "data": {
                     "ID": "s123456",
-                    "GIVEN_NAME": "Andrew",
+                    "GIVEN_NAME": "Ant",
                     "OTHER_NAMES": "",
                     "FAMILY_NAME": "S",
                     "PREF_NAME": "",
@@ -36,12 +36,27 @@ body:json {
                     "PERSONAL_HOMEPAGE": "",
                     "STAFF_PROFILE_HOMEPAGE": "",
                     "DESCRIPTION": "",
-                    "RESEARCH_ELEMENTS_USER_ID": "12345678"
+                    "RESEARCH_ELEMENTS_USER_ID": "12345678",
+                    "title": "Mock mint record type rdmp integration test",
+                    "contributor_ci": {
+                        "text_full_name": "Prof Ant Season",
+                        "email": "notAReal@email.edu.au",
+                        "orcid": "http://orcid.org/0000-0000-0000-000"
+                    },
+                    "contributor_data_manager": {
+                        "text_full_name": "Prof Ant Season",
+                        "email": "notAReal@email.edu.au",
+                        "orcid": "http://orcid.org/0000-0000-0000-000"
+                    }
                 }
             }
         }
     ]
   }
+}
+
+assert {
+  res.body[0].harvestId: eq s123456
 }
 
 tests {

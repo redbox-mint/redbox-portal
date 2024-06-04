@@ -169,8 +169,8 @@ export module Services {
         // result = this.getTranslateDatabaseResultToReportResult(dbResult, report);
         return dbResult;
       } else if (report.reportSource == 'solr') {
-        let url = this.buildSolrParams(brand, searchString, report, start, rows, 'json');
-        const solrResults = await this.getSearchService().searchAdvanced(report.searchQuery.searchCore, null, url);
+        let solrQuery = this.buildSolrParams(brand, searchString, report, start, rows, 'json');
+        const solrResults = await this.getSearchService().searchAdvanced(report.searchQuery.searchCore, null, solrQuery);
         let result = this.getSolrResultToResultObjectMappings(solrResults, report, unflatten, unflattenPrefix);
         return result;
       }
@@ -193,8 +193,8 @@ export module Services {
         if (!_.isEmpty(value)) {
           let searchProperty = report.queryField.property;
           query = query + '&fq=' + searchProperty + ':';
-          if(value == '*'){
-            query = query + value;
+          if(value.indexOf('*') != -1){
+            query = query + value.replaceAll('*','') + '*';
           } else {
             query = query + value + '*';
           }
