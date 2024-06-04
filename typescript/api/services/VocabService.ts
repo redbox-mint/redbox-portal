@@ -50,7 +50,7 @@ export module Services {
       'findInExternalService',
       'rvaGetResourceDetails',
       'findInMintTriggerWrapper',
-      'findInMintInternal'
+      'findRecords'
     ];
 
     public bootstrap() {
@@ -149,7 +149,7 @@ export module Services {
       return response.data;
     }
 
-    public async findInMintInternal(sourceType:string, brand:BrandingModel, searchString:string, unflatten:string, unflattenPrefix:string, start:number, rows:number): Promise<any> {
+    public async findRecords(sourceType:string, brand:BrandingModel, searchString:string, start:number, rows:number): Promise<any> {
 
       const report = sails.config.vocab[sourceType];
 
@@ -171,7 +171,7 @@ export module Services {
       } else if (report.reportSource == 'solr') {
         let solrQuery = this.buildSolrParams(brand, searchString, report, start, rows, 'json');
         const solrResults = await this.getSearchService().searchAdvanced(report.searchQuery.searchCore, null, solrQuery);
-        let result = this.getSolrResultToResultObjectMappings(solrResults, report, unflatten, unflattenPrefix);
+        let result = this.getSolrResultToResultObjectMappings(solrResults, report);
         return result;
       }
     }
@@ -185,7 +185,7 @@ export module Services {
     }
 
     private buildSolrParams(brand:BrandingModel, searchString:string, report:any, start:number, rows:number, format:string = 'json'):string {
-      let query = `${report.searchQuery.baseQuery}&sort=date_object_modified desc`+'&start=' + start + '&rows=' + rows;
+      let query = `${report.searchQuery.baseQuery}&sort=date_object_modified desc&start=${start}&rows=${rows}`;
       query = query + `&fq=metaMetadata_brandId:${brand.id}&wt=${format}`;
 
       if (report.queryField.type == 'text') {
@@ -201,39 +201,32 @@ export module Services {
         }
       }
 
-      //TODO apply fl=field1,field2... in solr query? based of resultObjectMapping ? 
-
       return query;
     }
 
-    getSolrResultToResultObjectMappings(results: any, report: any, unflatten:string, unflattenPrefix:string) {
+    getSolrResultToResultObjectMappings(results: any, report: any) {
 
       let responseDocs = results.response.docs;
-      if (unflatten == "true") {
-        _.forEach(responseDocs, (doc: any) => {
-          _.forOwn(doc, (val: any, key: any) => {
-            if (_.startsWith(key, unflattenPrefix)) {
-              const targetKey = key.substring(unflattenPrefix.length);
-              const objVal = JSON.parse(val);
-              doc[targetKey] = flat.unflatten(objVal)[key];
-            }
-          });
-        });
-      }
-
       let response = [];
       let that = this;
       let resultObjectMapping = report.resultObjectMapping;
       for(let record of responseDocs) {
-        let variables = { record: record };
-        let defaultMetadata = {};
-        if(!_.isEmpty(resultObjectMapping)) {
-          let resultMetadata = _.cloneDeep(resultObjectMapping);
-          _.forOwn(resultObjectMapping, function(value, key) {
-            _.set(resultMetadata,key,that.runTemplate(value,variables));
-          });
-          defaultMetadata = resultMetadata;
-          response.push(defaultMetadata);
+        try {
+          let variables = { record: record };
+          let defaultMetadata = {};
+          if(!_.isEmpty(resultObjectMapping)) {
+            let resultMetadata = _.cloneDeep(resultObjectMapping);
+            _.forOwn(resultObjectMapping, function(value, key) {
+              _.set(resultMetadata,key,that.runTemplate(value,variables));
+            });
+            defaultMetadata = resultMetadata;
+            response.push(defaultMetadata);
+          }
+        } catch (error) {
+            //This is required because the records retrieved from the solr index can have different structure and runTemplate method 
+            //cannot handle this .i.e if there are records type rdmp thar normal rdmp records and there are mock mint records that 
+            //are also rdmp type when the mock mint records are set to a different record type this should not happen 
+            continue;
         }
       }
       return response;
@@ -245,7 +238,7 @@ export module Services {
 
     private runTemplate(templateOrPath: string, variables: any) {
       if (templateOrPath && templateOrPath.indexOf('<%') != -1) {
-        return _.template(templateOrPath)(variables);
+          return _.template(templateOrPath)(variables);
       }
       return _.get(variables, templateOrPath);
     }

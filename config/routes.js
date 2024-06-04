@@ -200,7 +200,7 @@ module.exports.routes = {
   'get /:branding/:portal/vocab/:vocabId': 'VocabController.get',
   'get /:branding/:portal/ands/vocab/resourceDetails': 'VocabController.rvaGetResourceDetails',
   'get /:branding/:portal/mint/:mintSourceType': 'VocabController.getMint',
-  'get /:branding/:portal/query/vocab/:queryId': 'VocabController.getMintInternal',
+  'get /:branding/:portal/query/vocab/:queryId': 'VocabController.getRecords',
   'post /:branding/:portal/external/vocab/:provider': {
     controller: 'VocabController',
     action: 'searchExternalService',
