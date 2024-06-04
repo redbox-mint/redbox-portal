@@ -185,7 +185,7 @@ export module Services {
     }
 
     private buildSolrParams(brand:BrandingModel, searchString:string, report:any, start:number, rows:number, format:string = 'json'):string {
-      let query = `${report.searchQuery.baseQuery}&sort=date_object_modified desc&start=${start}&rows=${rows}`;
+      let query = `${report.searchQuery.baseQuery}&sort=date_object_modified desc&version=2.2&start=${start}&rows=${rows}`;
       query = query + `&fq=metaMetadata_brandId:${brand.id}&wt=${format}`;
 
       if (report.queryField.type == 'text') {
