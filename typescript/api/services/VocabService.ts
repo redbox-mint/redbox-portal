@@ -212,7 +212,10 @@ export module Services {
       let resultObjectMapping = report.resultObjectMapping;
       for(let record of responseDocs) {
         try {
-          let variables = { record: record };
+          let variables = { 
+            record: record,
+            _: _
+           };
           let defaultMetadata = {};
           if(!_.isEmpty(resultObjectMapping)) {
             let resultMetadata = _.cloneDeep(resultObjectMapping);

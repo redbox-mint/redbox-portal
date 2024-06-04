@@ -28,9 +28,9 @@ module.exports.vocab = {
       type: 'text'
     },
     resultObjectMapping: {
-      fullName: '<%= record.GIVEN_NAME %>',
-      email: '<%= record.EMAIL %>',
-      orcid: '<%= record.ORCID %>'
+      fullName: '<%= _.get(record,"contributor_ci.text_full_name","") %>',
+      email: '<%= _.get(record,"contributor_ci.email","") %>',
+      orcid: '<%= _.get(record,"contributor_ci.orcid","") %>'
     }
   },
   rdmp: {
