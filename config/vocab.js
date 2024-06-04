@@ -24,7 +24,7 @@ module.exports.vocab = {
       baseQuery : 'metaMetadata_type:rdmp'
     },
     queryField: {
-      property: 'GIVEN_NAME',
+      property: 'title',
       type: 'text'
     },
     resultObjectMapping: {
