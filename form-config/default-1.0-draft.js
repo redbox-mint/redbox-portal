@@ -685,6 +685,7 @@ module.exports = {
                       definition: {
                         disableEditAfterSelect: false,
                         vocabQueryId: 'party',
+                        vocabQueryResultMaxRows: '30',
                         sourceType: 'query',
                         titleFieldName: 'title',
                         titleFieldArr: ['fullName','email','orcid'],

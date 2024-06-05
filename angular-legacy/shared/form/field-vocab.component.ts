@@ -62,6 +62,7 @@ export class VocabField extends FieldBase<any> {
   public storeLabelOnly: boolean;
   public provider: string;
   public vocabQueryId: string;
+  public vocabQueryResultMaxRows: string;
   public resultArrayProperty: string;
   public unflattenFlag: boolean;
   public exactMatchString: boolean;
@@ -95,6 +96,7 @@ export class VocabField extends FieldBase<any> {
     this.storeLabelOnly = options['storeLabelOnly'] ? options['storeLabelOnly'] : false;
     this.provider = options['provider'] ? options['provider'] : '';
     this.vocabQueryId = options['vocabQueryId'] ? options['vocabQueryId'] : '';
+    this.vocabQueryResultMaxRows = options['vocabQueryResultMaxRows'] ? options['vocabQueryResultMaxRows'] : '50';
     this.resultArrayProperty = options['resultArrayProperty'] ? options['resultArrayProperty'] : '';
     this.unflattenFlag = _.isUndefined(options['unflattenFlag']) ? false : options['unflattenFlag'];
     this.exactMatchString = _.isUndefined(options['exactMatchString']) ? false : options['exactMatchString'];
@@ -224,7 +226,8 @@ export class VocabField extends FieldBase<any> {
         this.resultArrayProperty,
         this.titleFieldName,
         this.titleFieldArr,
-        this.titleFieldDelim
+        this.titleFieldDelim,
+        this.vocabQueryResultMaxRows
       );
     }
   }
@@ -436,13 +439,14 @@ class ReDBoxQueryLookupDataService extends Subject<CompleterItem[]> implements C
     private arrayProperty: string,
     private compositeTitleName: string,
     private titleFieldArr: string[],
-    private titleFieldDelim: string) {
+    private titleFieldDelim: string,
+    private maxRows: string) {
     super();
   }
 
   public search(term: string): void {
     let that = this;
-    this.http.get(`${this.url}?search=${term}&start=0&rows=50`).map((res: any, index: number) => {
+    this.http.get(`${this.url}?search=${term}&start=0&rows=${this.maxRows}`).map((res: any, index: number) => {
       let data = res.json();
       let arrayPath = that.arrayProperty;
       let itemArray = [];
