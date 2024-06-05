@@ -18,20 +18,20 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 //<reference path='./../../typings/loader.d.ts'/>
-declare var module;
-declare var sails;
-declare var _;
-import { Observable } from 'rxjs/Rx';
-import { Services as vocabService } from '../services/VocabService';
 
-let flat;
-declare var VocabService;
-declare var BrandingService;
 /**
  * Package that contains all Controllers.
  */
 import { Controllers as controllers} from '@researchdatabox/redbox-core-types'; 
 import { BrandingModel } from '@researchdatabox/redbox-core-types';
+import { Services as vocabService } from '../services/VocabService';
+
+declare var module;
+declare var sails;
+declare var _;
+declare var VocabService: vocabService.Vocab;
+declare var BrandingService;
+let flat;
 
 export module Controllers {
   /**
@@ -147,9 +147,9 @@ export module Controllers {
         let response = await VocabService.findRecords(mintSourceType, brand, searchString, req.param('start'), req.param('rows'));
         this.ajaxOk(req, res, null, response, true);
       } catch(error) {
-        sails.log.verbose("Error getting mint internal data:");
+        sails.log.verbose("Error getting internal records:");
         sails.log.verbose(error);
-        this.ajaxFail(req, res, null, "An error occurred getting mint internal data", true);
+        this.ajaxFail(req, res, null, "An error occurred getting internal records", true);
       }
     }
 

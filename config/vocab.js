@@ -17,30 +17,32 @@ module.exports.vocab = {
       }
     }
   },
-  party: {
-    reportSource: 'solr',
-    searchQuery: {
-      searchCore: 'default',
-      baseQuery : 'metaMetadata_type:rdmp'
+  queries: {
+    party: {
+      querySource: 'solr',
+      searchQuery: {
+        searchCore: 'default',
+        baseQuery : 'metaMetadata_type:rdmp'
+      },
+      queryField: {
+        property: 'title',
+        type: 'text'
+      },
+      resultObjectMapping: {
+        fullName: '<%= _.get(record,"contributor_ci.text_full_name","") %>',
+        email: '<%= _.get(record,"contributor_ci.email","") %>',
+        orcid: '<%= _.get(record,"contributor_ci.orcid","") %>'
+      }
     },
-    queryField: {
-      property: 'title',
-      type: 'text'
-    },
-    resultObjectMapping: {
-      fullName: '<%= _.get(record,"contributor_ci.text_full_name","") %>',
-      email: '<%= _.get(record,"contributor_ci.email","") %>',
-      orcid: '<%= _.get(record,"contributor_ci.orcid","") %>'
-    }
-  },
-  rdmp: {
-    reportSource: 'database',
-    databaseQuery: {
-      queryName: 'listRDMPRecords',
-    },
-    queryField: {
-      property: 'title',
-      type: 'text'
+    rdmp: {
+      querySource: 'database',
+      databaseQuery: {
+        queryName: 'listRDMPRecords',
+      },
+      queryField: {
+        property: 'title',
+        type: 'text'
+      }
     }
   }
 };

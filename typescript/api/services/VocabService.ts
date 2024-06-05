@@ -17,19 +17,15 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { Observable, Scheduler } from 'rxjs/Rx';
-import {SearchService, BrandingModel, Services as services}   from '@researchdatabox/redbox-core-types';
-import {Sails, Model} from 'sails';
+import { Observable } from 'rxjs/Rx';
+import { SearchService, VocabQueryConfig, BrandingModel, Services as services } from '@researchdatabox/redbox-core-types';
+import { Sails } from 'sails';
 import axios from 'axios';
 
-
-declare var CacheService, RecordsService, AsynchsService;
+declare var CacheService, AsynchsService;
 declare var NamedQueryService;
 declare var sails: Sails;
-declare var _this;
 declare var _;
-declare var Institution: Model;
-let flat;
 
 export module Services {
   /**
@@ -151,11 +147,11 @@ export module Services {
 
     public async findRecords(sourceType:string, brand:BrandingModel, searchString:string, start:number, rows:number): Promise<any> {
 
-      const report = sails.config.vocab[sourceType];
+      const queryConfig:VocabQueryConfig = sails.config.vocab.queries[sourceType];
 
-      if (report.reportSource == 'database') {
+      if (queryConfig.querySource == 'database') {
 
-        let namedQueryConfig = await NamedQueryService.getNamedQueryConfig(brand, report.databaseQuery.queryName);
+        let namedQueryConfig = await NamedQueryService.getNamedQueryConfig(brand, queryConfig.databaseQuery.queryName);
 
         let configMongoQuery = namedQueryConfig.mongoQuery;
         let collectionName = _.get(namedQueryConfig, 'collectionName', '');
@@ -163,41 +159,41 @@ export module Services {
         let brandIdFieldPath = _.get(namedQueryConfig, 'brandIdFieldPath', '');
         let mongoQuery = _.clone(configMongoQuery);
         let queryParams = namedQueryConfig.queryParams;
-        let paramMap = this.buildNamedQueryParamMap(report, searchString);
+        let paramMap = this.buildNamedQueryParamMap(queryConfig, searchString);
 
         let dbResults = await NamedQueryService.performNamedQuery(brandIdFieldPath, resultObjectMapping, collectionName, mongoQuery, queryParams, paramMap, brand, start, rows);
-        if(report.resultObjectMapping) {
-          return this.getResultObjectMappings(dbResults,report);
+        if(queryConfig.resultObjectMapping) {
+          return this.getResultObjectMappings(dbResults,queryConfig);
         } else {
           return dbResults;
         }
-      } else if (report.reportSource == 'solr') {
-        let solrQuery = this.buildSolrParams(brand, searchString, report, start, rows, 'json');
-        let solrResults = await this.getSearchService().searchAdvanced(report.searchQuery.searchCore, null, solrQuery);
-        if(report.resultObjectMapping) {
-          return this.getResultObjectMappings(solrResults,report);
+      } else if (queryConfig.querySource == 'solr') {
+        let solrQuery = this.buildSolrParams(brand, searchString, queryConfig, start, rows, 'json');
+        let solrResults = await this.getSearchService().searchAdvanced(queryConfig.searchQuery.searchCore, null, solrQuery);
+        if(queryConfig.resultObjectMapping) {
+          return this.getResultObjectMappings(solrResults,queryConfig);
         } else {
           return solrResults;
         }
       }
     }
 
-    buildNamedQueryParamMap(report: any, searchString:string):any {
+    buildNamedQueryParamMap(queryConfig:VocabQueryConfig, searchString:string):any {
       let paramMap = {}
-      if (report.queryField.type == 'text') {
-        paramMap[report.queryField.property] = searchString;
+      if (queryConfig.queryField.type == 'text') {
+        paramMap[queryConfig.queryField.property] = searchString;
       }
       return paramMap;
     }
 
-    private buildSolrParams(brand:BrandingModel, searchString:string, report:any, start:number, rows:number, format:string = 'json'):string {
-      let query = `${report.searchQuery.baseQuery}&sort=date_object_modified desc&version=2.2&start=${start}&rows=${rows}`;
+    private buildSolrParams(brand:BrandingModel, searchString:string, queryConfig:VocabQueryConfig, start:number, rows:number, format:string = 'json'):string {
+      let query = `${queryConfig.searchQuery.baseQuery}&sort=date_object_modified desc&version=2.2&start=${start}&rows=${rows}`;
       query = query + `&fq=metaMetadata_brandId:${brand.id}&wt=${format}`;
 
-      if (report.queryField.type == 'text') {
+      if (queryConfig.queryField.type == 'text') {
         let value = searchString;
         if (!_.isEmpty(value)) {
-          let searchProperty = report.queryField.property;
+          let searchProperty = queryConfig.queryField.property;
           query = query + '&fq=' + searchProperty + ':';
           if(value.indexOf('*') != -1){
             query = query + value.replaceAll('*','') + '*';
@@ -210,7 +206,7 @@ export module Services {
       return query;
     }
 
-    getResultObjectMappings(results: any, report: any) {
+    getResultObjectMappings(results:any, queryConfig:VocabQueryConfig) {
 
       let responseRecords = _.get(results,'response.docs','');
       if(responseRecords == '') {
@@ -218,7 +214,7 @@ export module Services {
       }
       let response = [];
       let that = this;
-      let resultObjectMapping = report.resultObjectMapping;
+      let resultObjectMapping = queryConfig.resultObjectMapping;
       for(let record of responseRecords) {
         try {
           let variables = { 
@@ -256,8 +252,8 @@ export module Services {
     }
 
     public async findInExternalService(providerName, params): Promise<any> {
-      const method = sails.config.vocab.providers[providerName].method;
-      let url = sails.config.vocab.providers[providerName].url;
+      const method = sails.config.vocab.external[providerName].method;
+      let url = sails.config.vocab.external[providerName].url;
 
       let templateFunction = this.getTemplateStringFunction(url);
       url = templateFunction(params.options);
