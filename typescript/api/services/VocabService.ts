@@ -17,17 +17,15 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { Observable, Scheduler } from 'rxjs/Rx';
-import { Services as services } from '@researchdatabox/redbox-core-types';
-import { Sails, Model } from "sails";
+import { Observable } from 'rxjs/Rx';
+import { SearchService, VocabQueryConfig, BrandingModel, Services as services } from '@researchdatabox/redbox-core-types';
+import { Sails } from 'sails';
 import axios from 'axios';
 
-
-declare var CacheService, RecordsService, AsynchsService;
+declare var CacheService, AsynchsService;
+declare var NamedQueryService;
 declare var sails: Sails;
-declare var _this;
 declare var _;
-declare var Institution: Model;
 
 export module Services {
   /**
@@ -47,7 +45,8 @@ export module Services {
       'findInMint',
       'findInExternalService',
       'rvaGetResourceDetails',
-      'findInMintTriggerWrapper'
+      'findInMintTriggerWrapper',
+      'findRecords'
     ];
 
     public bootstrap() {
@@ -146,15 +145,121 @@ export module Services {
       return response.data;
     }
 
+    public async findRecords(sourceType:string, brand:BrandingModel, searchString:string, start:number, rows:number): Promise<any> {
+
+      const queryConfig:VocabQueryConfig = sails.config.vocab.queries[sourceType];
+
+      if (queryConfig.querySource == 'database') {
+
+        let namedQueryConfig = await NamedQueryService.getNamedQueryConfig(brand, queryConfig.databaseQuery.queryName);
+
+        let configMongoQuery = namedQueryConfig.mongoQuery;
+        let collectionName = _.get(namedQueryConfig, 'collectionName', '');
+        let resultObjectMapping = _.get(namedQueryConfig, 'resultObjectMapping', {});
+        let brandIdFieldPath = _.get(namedQueryConfig, 'brandIdFieldPath', '');
+        let mongoQuery = _.clone(configMongoQuery);
+        let queryParams = namedQueryConfig.queryParams;
+        let paramMap = this.buildNamedQueryParamMap(queryConfig, searchString);
+
+        let dbResults = await NamedQueryService.performNamedQuery(brandIdFieldPath, resultObjectMapping, collectionName, mongoQuery, queryParams, paramMap, brand, start, rows);
+        if(queryConfig.resultObjectMapping) {
+          return this.getResultObjectMappings(dbResults,queryConfig);
+        } else {
+          return dbResults;
+        }
+      } else if (queryConfig.querySource == 'solr') {
+        let solrQuery = this.buildSolrParams(brand, searchString, queryConfig, start, rows, 'json');
+        let solrResults = await this.getSearchService().searchAdvanced(queryConfig.searchQuery.searchCore, null, solrQuery);
+        if(queryConfig.resultObjectMapping) {
+          return this.getResultObjectMappings(solrResults,queryConfig);
+        } else {
+          return solrResults;
+        }
+      }
+    }
+
+    buildNamedQueryParamMap(queryConfig:VocabQueryConfig, searchString:string):any {
+      let paramMap = {}
+      if (queryConfig.queryField.type == 'text') {
+        paramMap[queryConfig.queryField.property] = searchString;
+      }
+      return paramMap;
+    }
+
+    private buildSolrParams(brand:BrandingModel, searchString:string, queryConfig:VocabQueryConfig, start:number, rows:number, format:string = 'json'):string {
+      let query = `${queryConfig.searchQuery.baseQuery}&sort=date_object_modified desc&version=2.2&start=${start}&rows=${rows}`;
+      query = query + `&fq=metaMetadata_brandId:${brand.id}&wt=${format}`;
+
+      if (queryConfig.queryField.type == 'text') {
+        let value = searchString;
+        if (!_.isEmpty(value)) {
+          let searchProperty = queryConfig.queryField.property;
+          query = query + '&fq=' + searchProperty + ':';
+          if(value.indexOf('*') != -1){
+            query = query + value.replaceAll('*','') + '*';
+          } else {
+            query = query + value + '*';
+          }
+        }
+      }
+
+      return query;
+    }
+
+    getResultObjectMappings(results:any, queryConfig:VocabQueryConfig) {
+
+      let responseRecords = _.get(results,'response.docs','');
+      if(responseRecords == '') {
+        responseRecords = results.records;
+      }
+      let response = [];
+      let that = this;
+      let resultObjectMapping = queryConfig.resultObjectMapping;
+      for(let record of responseRecords) {
+        try {
+          let variables = { 
+            record: record,
+            _: _
+           };
+          let defaultMetadata = {};
+          if(!_.isEmpty(resultObjectMapping)) {
+            let resultMetadata = _.cloneDeep(resultObjectMapping);
+            _.forOwn(resultObjectMapping, function(value, key) {
+              _.set(resultMetadata,key,that.runTemplate(value,variables));
+            });
+            defaultMetadata = resultMetadata;
+            response.push(defaultMetadata);
+          }
+        } catch (error) {
+            //This is required because the records retrieved from the solr index can have different structure and runTemplate method 
+            //cannot handle this .i.e if there are records type rdmp thar normal rdmp records and there are mock mint records that 
+            //are also rdmp type when the mock mint records are set to a different record type this should not happen 
+            continue;
+        }
+      }
+      return response;
+    }
+
+    private getSearchService(): SearchService{
+      return sails.services[sails.config.search.serviceName];
+    }
+
+    private runTemplate(templateOrPath: string, variables: any) {
+      if (templateOrPath && templateOrPath.indexOf('<%') != -1) {
+          return _.template(templateOrPath)(variables);
+      }
+      return _.get(variables, templateOrPath);
+    }
+
     public async findInExternalService(providerName, params): Promise<any> {
-      const method = sails.config.vocab.providers[providerName].method;
-      let url = sails.config.vocab.providers[providerName].url;
+      const method = sails.config.vocab.external[providerName].method;
+      let url = sails.config.vocab.external[providerName].url;
 
       let templateFunction = this.getTemplateStringFunction(url);
       url = templateFunction(params.options);
 
       sails.log.info(url);
-      let options = sails.config.vocab.providers[providerName].options;
+      let options = sails.config.vocab.external[providerName].options;
 
       if (method == 'post') {
         const post = {

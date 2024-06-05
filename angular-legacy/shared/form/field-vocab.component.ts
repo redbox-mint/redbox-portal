@@ -61,6 +61,8 @@ export class VocabField extends FieldBase<any> {
   public restrictToSelection: boolean;
   public storeLabelOnly: boolean;
   public provider: string;
+  public vocabQueryId: string;
+  public vocabQueryResultMaxRows: string;
   public resultArrayProperty: string;
   public unflattenFlag: boolean;
   public exactMatchString: boolean;
@@ -93,6 +95,8 @@ export class VocabField extends FieldBase<any> {
     this.restrictToSelection = _.isUndefined(options['restrictToSelection']) ? (_.isUndefined(options['forceLookupOnly']) ? false : options['forceLookupOnly']) : options['restrictToSelection'];
     this.storeLabelOnly = options['storeLabelOnly'] ? options['storeLabelOnly'] : false;
     this.provider = options['provider'] ? options['provider'] : '';
+    this.vocabQueryId = options['vocabQueryId'] ? options['vocabQueryId'] : '';
+    this.vocabQueryResultMaxRows = options['vocabQueryResultMaxRows'] ? options['vocabQueryResultMaxRows'] : '50';
     this.resultArrayProperty = options['resultArrayProperty'] ? options['resultArrayProperty'] : '';
     this.unflattenFlag = _.isUndefined(options['unflattenFlag']) ? false : options['unflattenFlag'];
     this.exactMatchString = _.isUndefined(options['exactMatchString']) ? false : options['exactMatchString'];
@@ -214,8 +218,18 @@ export class VocabField extends FieldBase<any> {
         this.titleFieldArr,
         this.titleFieldDelim
       );
+    }  else if (this.sourceType == "query") {
+      const url = this.lookupService.getRedboxLookupServiceUrl(this.vocabQueryId);
+      this.dataService = new ReDBoxQueryLookupDataService(
+        url,
+        this.lookupService.http,
+        this.resultArrayProperty,
+        this.titleFieldName,
+        this.titleFieldArr,
+        this.titleFieldDelim,
+        this.vocabQueryResultMaxRows
+      );
     }
-
   }
 
   public getTitle(data: any): string {
@@ -417,6 +431,76 @@ export function objectRequired(): ValidationErrors|null {
   
 }
 
+class ReDBoxQueryLookupDataService extends Subject<CompleterItem[]> implements CompleterData {
+  storedEventData:any = null;
+
+  constructor(private url: string,
+    private http: Http,
+    private arrayProperty: string,
+    private compositeTitleName: string,
+    private titleFieldArr: string[],
+    private titleFieldDelim: string,
+    private maxRows: string) {
+    super();
+  }
+
+  public search(term: string): void {
+    let that = this;
+    this.http.get(`${this.url}?search=${term}&start=0&rows=${this.maxRows}`).map((res: any, index: number) => {
+      let data = res.json();
+      let arrayPath = that.arrayProperty;
+      let itemArray = [];
+      if (_.isUndefined(arrayPath) || _.isEmpty(arrayPath)) {
+        itemArray = data;
+      } else {
+        itemArray = _.get(data, arrayPath);
+      }
+      // Convert the result to CompleterItem[]
+      let matches: CompleterItem[] = [];
+      _.each(itemArray, item => {
+        matches.push(this.convertToItem(item));
+      });
+
+      this.next(matches);
+    }).subscribe();
+  }
+
+  public cancel() {
+    // Handle cancel
+  }
+
+  public convertToItem(data: any): CompleterItem | null {
+    if (!data) {
+      return null;
+    }
+    let completerItem = {};
+    completerItem[this.compositeTitleName] = this.getTitle(data);
+    completerItem['originalObject'] = data;
+    return completerItem as CompleterItem;
+  }
+
+  getTitle(data: any): string {
+    let title = '';
+    if (data == null) {
+      if(this.storedEventData != null) {
+          data = _.clone(this.storedEventData);
+      }
+      this.storedEventData = null;
+    }
+  
+    if(data){
+      if (_.isString(this.titleFieldDelim)) {
+        _.forEach(this.titleFieldArr, (titleFld: string) => {
+          const titleVal = _.get(data, titleFld);
+          if (titleVal) {
+            title = `${title}${_.isEmpty(title) ? '' : this.titleFieldDelim}${titleVal}`;
+          }
+        });
+      } 
+    }
+    return title;
+  }
+}
 
 class ExternalLookupDataService extends Subject<CompleterItem[]> implements CompleterData {
   storedEventData:any = null;
@@ -654,6 +738,10 @@ export class VocabFieldLookupService extends BaseService {
     return `${this.brandingAndPortalUrl}/external/vocab/${provider}`;
   }
 
+  getRedboxLookupServiceUrl(vocabQueryId: string) {
+    return `${this.brandingAndPortalUrl}/query/vocab/${vocabQueryId}`;
+  }
+  
 
 }
 

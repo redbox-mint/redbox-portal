@@ -18,18 +18,21 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 //<reference path='./../../typings/loader.d.ts'/>
-declare var module;
-declare var sails;
-declare var _;
-import { Observable } from 'rxjs/Rx';
-import { Services as vocabService } from '../services/VocabService';
 
-let flat;
-declare var VocabService: vocabService.Vocab;
 /**
  * Package that contains all Controllers.
  */
-import { Controllers as controllers } from '@researchdatabox/redbox-core-types';
+import { Controllers as controllers} from '@researchdatabox/redbox-core-types'; 
+import { BrandingModel } from '@researchdatabox/redbox-core-types';
+import { Services as vocabService } from '../services/VocabService';
+
+declare var module;
+declare var sails;
+declare var _;
+declare var VocabService: vocabService.Vocab;
+declare var BrandingService;
+let flat;
+
 export module Controllers {
   /**
    * Vocabulary related features....
@@ -43,13 +46,14 @@ export module Controllers {
      * Exported methods, accessible from internet.
      */
     protected _exportedMethods: any = [
-      'get',
-      'getCollection',
-      'loadCollection',
-      'getMint',
-      'searchExternalService',
-      'searchPeople',
-      'rvaGetResourceDetails'
+        'get',
+        'getCollection',
+        'loadCollection',
+        'getMint',
+        'searchExternalService',
+        'searchPeople',
+        'rvaGetResourceDetails',
+        'getRecords'
     ];
 
     /**
@@ -132,6 +136,20 @@ export module Controllers {
         sails.log.verbose("Error getting mint data:");
         sails.log.verbose(error);
         this.ajaxFail(req, res, null, "An error occurred", true);
+      }
+    }
+
+    public async getRecords(req, res) {
+      const mintSourceType = req.param('queryId');
+      const searchString = req.param('search');
+      const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
+      try {
+        let response = await VocabService.findRecords(mintSourceType, brand, searchString, req.param('start'), req.param('rows'));
+        this.ajaxOk(req, res, null, response, true);
+      } catch(error) {
+        sails.log.verbose("Error getting internal records:");
+        sails.log.verbose(error);
+        this.ajaxFail(req, res, null, "An error occurred getting internal records", true);
       }
     }
 
