@@ -426,7 +426,8 @@ module.exports = {
             definition: {
               id: "people",
               label: "@dmpt-people-tab",
-              fields: [{
+              fields: [
+                {
                   class: 'ContributorField',
                   showHeader: true,
                   showRole: false,
@@ -629,6 +630,55 @@ module.exports = {
                         modelEventSource: 'valueChanges'
                       }
                     }
+                  }
+                },
+                {
+                  class: 'RepeatableContainer',
+                  compClass: 'RepeatableVocabComponent',
+                  definition: {
+                    name: 'people-lookup-in-index-based-of-record-title',
+                    label: "People lookup in index based of record title",
+                    help: "Upon typing the string will be matched to title field and will show the primary investigator of each record",
+                    forceClone: ['lookupService', 'completerService'],
+                    fields: [
+                      {
+                      class: 'VocabField',
+                      definition: {
+                        disableEditAfterSelect: false,
+                        vocabQueryId: 'party',
+                        sourceType: 'query',
+                        titleFieldName: 'title',
+                        titleFieldArr: ['fullName','email','orcid'],
+                        fieldNames:['fullName','email','orcid'],
+                        stringLabelToField: 'fullName'
+                        }
+                      }
+                    ]
+                  }
+                },
+                {
+                  class: 'RepeatableContainer',
+                  compClass: 'RepeatableVocabComponent',
+                  definition: {
+                    name: 'people-lookup-in-db-based-of-record-title',
+                    label: "People lookup in database based of record title",
+                    help: "Upon typing the string will be matched to title field and will show the primary investigator of each record",
+                    forceClone: ['lookupService', 'completerService'],
+                    fields: [
+                      {
+                      class: 'VocabField',
+                      definition: {
+                        disableEditAfterSelect: false,
+                        vocabQueryId: 'rdmp',
+                        sourceType: 'query',
+                        titleFieldName: 'title',
+                        titleFieldArr: ['metadata.contributor_ci'],
+                        fieldNames:['metadata.contributor_ci'],
+                        stringLabelToField: 'metadata.contributor_ci',
+                        resultArrayProperty: 'records'
+                        }
+                      }
+                    ]
                   }
                 }
               ]

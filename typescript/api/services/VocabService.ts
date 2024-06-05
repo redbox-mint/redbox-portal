@@ -165,14 +165,20 @@ export module Services {
         let queryParams = namedQueryConfig.queryParams;
         let paramMap = this.buildNamedQueryParamMap(report, searchString);
 
-        let dbResult = await NamedQueryService.performNamedQuery(brandIdFieldPath, resultObjectMapping, collectionName, mongoQuery, queryParams, paramMap, brand, start, rows);
-        // result = this.getTranslateDatabaseResultToReportResult(dbResult, report);
-        return dbResult;
+        let dbResults = await NamedQueryService.performNamedQuery(brandIdFieldPath, resultObjectMapping, collectionName, mongoQuery, queryParams, paramMap, brand, start, rows);
+        if(report.resultObjectMapping) {
+          return this.getResultObjectMappings(dbResults,report);
+        } else {
+          return dbResults;
+        }
       } else if (report.reportSource == 'solr') {
         let solrQuery = this.buildSolrParams(brand, searchString, report, start, rows, 'json');
-        const solrResults = await this.getSearchService().searchAdvanced(report.searchQuery.searchCore, null, solrQuery);
-        let result = this.getSolrResultToResultObjectMappings(solrResults, report);
-        return result;
+        let solrResults = await this.getSearchService().searchAdvanced(report.searchQuery.searchCore, null, solrQuery);
+        if(report.resultObjectMapping) {
+          return this.getResultObjectMappings(solrResults,report);
+        } else {
+          return solrResults;
+        }
       }
     }
 
@@ -204,13 +210,16 @@ export module Services {
       return query;
     }
 
-    getSolrResultToResultObjectMappings(results: any, report: any) {
+    getResultObjectMappings(results: any, report: any) {
 
-      let responseDocs = results.response.docs;
+      let responseRecords = _.get(results,'response.docs','');
+      if(responseRecords == '') {
+        responseRecords = results.records;
+      }
       let response = [];
       let that = this;
       let resultObjectMapping = report.resultObjectMapping;
-      for(let record of responseDocs) {
+      for(let record of responseRecords) {
         try {
           let variables = { 
             record: record,
