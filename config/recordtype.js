@@ -604,5 +604,8 @@ module.exports.recordtype = {
     "packageName": "consolidated",
     "searchFilters": [],
     hooks: { }
+  },
+  "party": {
+    "packageType": "rdmp"
   }
 };
