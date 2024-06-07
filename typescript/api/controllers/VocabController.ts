@@ -114,7 +114,7 @@ export module Controllers {
       const flattened_prefix = "flattened_";
       try {
         let mintResponse = await VocabService.findInMint(mintSourceType, searchString);
-        let response_docs = mintResponse.docs;
+        let response_docs = mintResponse.response.docs;
         if (unflatten == "true") {
           _.forEach(response_docs, (doc: any) => {
             _.forOwn(doc, (val: any, key: any) => {
