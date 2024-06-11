@@ -21,3 +21,39 @@ export class Plan {
   metadata: object = {};
   dashboardTitle: string = '';
 }
+
+// export declare class FilterBy {
+//     filterBase: string;
+//     filterBaseFieldOrValue: string;
+//     filterField: string;
+//     filterMode: string;
+// }
+
+export declare class QueryFilter {
+  filterType: string;
+  filterFields: string[];
+}
+
+export declare class SortGroupBy {
+  rowLevel: number;
+  compareFieldValue: string;
+  compareField: string;
+  relatedTo: string;
+}
+
+export declare class FormatRules {
+  filterBy: any;
+  filterWorkflowStepsBy: string[];
+  recordTypeFilterBy: string;
+  queryFilters: QueryFilter[];
+  sortBy: string;
+  groupBy: string;
+  sortGroupBy: SortGroupBy[];
+  hideWorkflowStepTitleForRecordType: string[];
+}
+
+export declare class DashboardConfig {
+  [key: string]: {
+      formatRules: FormatRules;
+  }
+}

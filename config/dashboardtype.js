@@ -1,16 +1,23 @@
 module.exports.dashboardtype = {
   "standard": {
     formatRules: {
-        filterBy: [], //filterBase can only have two values user or record
-        filterWorkflowStepsBy: [], //values: empty array (all) or a list with particular types i.e. [ 'draft', 'finalised' ]  
+        filterBy: {}, //filterBase can only have two values user or record
+        filterWorkflowStepsBy: [], //values: empty array (all) or a list with particular types i.e. [ 'draft', 'finalised' ]
+        queryFilters: [
+	        {
+            filterType: 'text',
+            filterFields:  ['metadata.title', 'metadata.description']
+          }
+        ],
         sortBy: 'metaMetadata.lastSaveDate:-1',
-        groupBy: '', //values: empty (not grouped any order), groupedByRecordType, groupedByRelationships 
+        groupBy: '', //values: empty (not grouped any order), groupedByRecordType, groupedByRelationships
         sortGroupBy: [], //values: as many levels as required?
+        hideWorkflowStepTitleForRecordType: ['party']
       }
   },
   "workspace": {
     formatRules: {
-      filterBy: [], //filterBase can only have two values user or record
+      filterBy: {}, //filterBase can only have two values user or record
       recordTypeFilterBy: 'existing-locations',
       filterWorkflowStepsBy: ['existing-locations-draft'], //values: empty array (all) or a list with particular types i.e. [ 'draft', 'finalised'] 
       sortBy: 'metaMetadata.lastSaveDate:-1',
