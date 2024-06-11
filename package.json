@@ -77,7 +77,7 @@
     "typescript-require": "~0.3.0",
     "url-pattern": "^1.0.3",
     "webpack": "^5.91.0",
-    "zone.js": "^0.14.6"
+    "zone.js": "^0.14.7"
   },
   "scripts": {
     "debug": "node debug app.js",
