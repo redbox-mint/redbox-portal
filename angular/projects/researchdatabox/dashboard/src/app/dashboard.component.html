@@ -8,25 +8,32 @@
                {{ 'dashboard-heading-one-step' | i18next: {recordTypeName: typeLabel} }}
             </h2>
             <h2 *ngIf="workflowSteps.length == 1 && hideWorkflowStepTitle && (dashboardTypeSelected == 'standard' || dashboardTypeSelected == 'consolidated')">
-                <div class="input-group">
-                    <div class="input-group-addon" id="basic-search-addon">{{ 'record-search-basic-search' | i18next }}</div>
-                    <input type="text" class="form-control" placeholder="{{ 'record-search-basic-search-placeholder' | i18next}}" (keyup.enter)="filterChanged()" aria-describedby="basic-search-addon">
-                    <div class="input-group-btn">
-                        <button class="btn btn-primary" type='button' (click)="filterChanged()">
-                        something here
-                        </button>
-                        <button class="btn btn-primary dropdown-toggle" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>
-                        <ul class="dropdown-menu dropdown-menu-right">
-                        <li *ngFor="let filterFieldName of getFilters()">
-                            <a href="#" (click)="setFilterField(filterFieldName, $event)">Filter by {{ filterFieldName }}</a>
-                        </li>
-                        </ul>
-                    </div>
-                    <button class="btn btn-primary" type='button' (click)="resetSearch()">{{ 'record-search-reset' | i18next }}</button> 
+                <div class="row">
+                <div class="col-md-offset-2 col-md-8">
+                  <div class="panel panel-default">
+                    <div class="input-group">
+                        <div class="input-group-addon" id="basic-search-addon">{{ 'record-search-basic-search' | i18next }}</div>
+                        <input type="text" class="form-control" [(ngModel)]="filterSearchString" placeholder="{{ 'record-search-basic-search-placeholder' | i18next}}" (keyup.enter)="filterChanged(workflowStep.config.workflow.stage)" aria-describedby="basic-search-addon">
+                        <div class="input-group-btn">
+                            <button class="btn btn-primary" type='button' (click)="filterChanged(workflowStep.config.workflow.stage)">
+                            {{ filterField }}
+                            </button>
+                            <button class="btn btn-primary dropdown-toggle" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>
+                            <ul class="dropdown-menu dropdown-menu-right">
+                              <li *ngFor="let filterField of getFilters()">
+                                <a href="#" (click)="setFilterField(filterField, $event)">Filter by {{ filterField.name }}</a>
+                              </li>
+                            </ul>
+                        </div>
+                    </div><br>
+                    <button class="btn btn-primary" type='button' (click)="resetFilterAndSearch(workflowStep.config.workflow.stage)">{{ 'record-search-reset' | i18next }}</button> 
+                  </div>
+                </div>
                 </div>
             </h2>
             <div *ngIf="records[workflowStep.config.workflow.stage] != null">
-                <div *ngIf="records[workflowStep.config.workflow.stage].totalItems <= 0" class="padding-bottom-10" [innerHTML]="'no-records' | i18next: {stage: workflowStep.config.workflow.stageLabel.toLowerCase(), recordTypeName: typeLabel.toLowerCase()}">
+                <div *ngIf="records[workflowStep.config.workflow.stage].totalItems <= 0" class="padding-bottom-10" >
+                    {{ 'no-records' | i18next: {stage: workflowStep.config.workflow.stageLabel.toLowerCase(), recordTypeName: typeLabel.toLowerCase()} }}
                 </div>
                 <div *ngIf="records[workflowStep.config.workflow.stage].totalItems > 0">
                 <table class="table">

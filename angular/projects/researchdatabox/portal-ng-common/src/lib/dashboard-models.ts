@@ -29,9 +29,14 @@ export class Plan {
 //     filterMode: string;
 // }
 
+export declare class FilterField {
+    name: string;
+    path: string;
+}
+
 export declare class QueryFilter {
   filterType: string;
-  filterFields: string[];
+  filterFields: FilterField[];
 }
 
 export declare class SortGroupBy {

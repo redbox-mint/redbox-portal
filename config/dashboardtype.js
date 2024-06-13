@@ -6,7 +6,13 @@ module.exports.dashboardtype = {
         queryFilters: [
 	        {
             filterType: 'text',
-            filterFields:  ['metadata.title', 'metadata.description']
+            filterFields:  [ 
+                             { name: 'Title',
+                               path: 'metadata.title' }, 
+                             { name: 'Description',
+                               path: 'metadata.description'
+                             }
+                           ]
           }
         ],
         sortBy: 'metaMetadata.lastSaveDate:-1',

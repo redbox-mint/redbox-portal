@@ -1,6 +1,6 @@
 import { Component, Inject, ElementRef } from '@angular/core';
 import { PageChangedEvent } from 'ngx-bootstrap/pagination';
-import { BaseComponent, UtilityService, LoggerService, TranslationService, RecordService, PlanTable, UserService, ConfigService, FormatRules, SortGroupBy, QueryFilter } from '@researchdatabox/portal-ng-common';
+import { BaseComponent, UtilityService, LoggerService, TranslationService, RecordService, PlanTable, UserService, ConfigService, FormatRules, SortGroupBy, QueryFilter, FilterField } from '@researchdatabox/portal-ng-common';
 import { get as _get, set as _set, isEmpty as _isEmpty, isUndefined as _isUndefined, trim as _trim, isNull as _isNull, orderBy as _orderBy, map as _map, find as _find, indexOf as _indexOf, isArray as _isArray, forEach as _forEach, join as _join, first as _first } from 'lodash-es';
 
 import { LoDashTemplateUtilityService } from 'projects/researchdatabox/portal-ng-common/src/lib/lodash-template-utility.service';
@@ -28,7 +28,9 @@ export class DashboardComponent extends BaseComponent {
   rulesService: object;
   currentUser: object = {};
   enableSort: boolean = true;
-  filterField: string = '';
+  filterField: string = 'Title';
+  filterFieldPath: string = 'metadata.title';
+  filterSearchString: string = '';
   hideWorkflowStepTitle: boolean = false;
 
   defaultTableConfig = [
@@ -96,7 +98,7 @@ export class DashboardComponent extends BaseComponent {
     filterBy: {}, //filterBase can only have two values user or record
     filterWorkflowStepsBy: [], //values: empty array (all) or a list with particular types i.e. [ 'draft', 'finalised' ]  
     recordTypeFilterBy: '',
-    queryFilters: [{ filterType: 'text', filterFields: ['metadata.title'] }],
+    queryFilters: [{ filterType: 'text', filterFields: [ { name: 'Title', path: 'metadata.title' } ] } ],
     sortBy: 'metaMetadata.lastSaveDate:-1',
     groupBy: '', //values: empty (not grouped any order), groupedByRecordType, groupedByRelationships 
     sortGroupBy: [], //values: as many levels as required?
@@ -664,7 +666,7 @@ export class DashboardComponent extends BaseComponent {
       if (this.dashboardTypeSelected == 'workspace') {
         stagedRecords = await this.recordService.getRecords('', '', 1, this.dashboardTypeSelected, sortString);
       } else {
-        stagedRecords = await this.recordService.getRecords(this.recordType, data.step, 1, '', sortString);
+        stagedRecords = await this.recordService.getRecords(this.recordType, data.step, 1, '', sortString,this.filterFieldPath,this.filterSearchString);
       }
 
       let planTable: PlanTable = this.evaluatePlanTableColumns({}, {}, {}, data.step, stagedRecords);
@@ -689,7 +691,7 @@ export class DashboardComponent extends BaseComponent {
     let sortDetails = this.sortMap[step];
 
     if (this.dashboardTypeSelected == 'standard') {
-      let stagedRecords = await this.recordService.getRecords(this.recordType, step, event.page, '', this.getSortString(sortDetails));
+      let stagedRecords = await this.recordService.getRecords(this.recordType, step, event.page, '', this.getSortString(sortDetails),this.filterFieldPath,this.filterSearchString);
       let planTable: PlanTable = this.evaluatePlanTableColumns({}, {}, {}, step, stagedRecords);
       this.records[step] = planTable;
     } else if (this.dashboardTypeSelected == 'workspace') {
@@ -734,7 +736,7 @@ export class DashboardComponent extends BaseComponent {
   }
 
   public getFilters() {
-    let filterFields: string[] = [];
+    let filterFields: FilterField[] = [];
     let queryFilters: QueryFilter[] = this.formatRules.queryFilters;
     for(let queryFilter of queryFilters) {
       for(let filterField of queryFilter.filterFields) {
@@ -744,16 +746,35 @@ export class DashboardComponent extends BaseComponent {
     return filterFields;
   }
 
-  public filterChanged() {
+  public async filterChanged(step: string) {
 
+    if (this.dashboardTypeSelected == 'standard') {
+      let sortDetails = this.sortMap[step];
+      let stagedRecords = await this.recordService.getRecords(this.recordType, step, 1, '', this.getSortString(sortDetails),this.filterFieldPath,this.filterSearchString);
+      let planTable: PlanTable = this.evaluatePlanTableColumns({}, {}, {}, step, stagedRecords);
+      this.records[step] = planTable;
+    }
   }
 
-  public resetSearch() {
+  public async resetFilterAndSearch(step: string) {
 
+    if (this.dashboardTypeSelected == 'standard') {
+      let sortDetails = this.sortMap[step];
+      this.filterField = 'Title';
+      this.filterFieldPath = 'metadata.title';
+      this.filterSearchString = '';
+      let stagedRecords = await this.recordService.getRecords(this.recordType, step, 1, '', this.getSortString(sortDetails),this.filterFieldPath,this.filterSearchString);
+      let planTable: PlanTable = this.evaluatePlanTableColumns({}, {}, {}, step, stagedRecords);
+      this.records[step] = planTable;
+    }
   }
 
-  public setFilterField(filterField:string, e: any) {
-    this.filterField = filterField;
+  public setFilterField(filterField:FilterField, e: any) {
+    if (e) {
+      e.preventDefault();
+    }
+    this.filterField = filterField.name;
+    this.filterFieldPath = filterField.path;
   }
 
 }
