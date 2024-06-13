@@ -50,7 +50,7 @@ export declare class FormatRules {
   filterBy: any;
   filterWorkflowStepsBy: string[];
   recordTypeFilterBy: string;
-  queryFilters: QueryFilter[];
+  queryFilters: { [key: string]: QueryFilter[] };
   sortBy: string;
   groupBy: string;
   sortGroupBy: SortGroupBy[];

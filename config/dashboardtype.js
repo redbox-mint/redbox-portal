@@ -3,18 +3,51 @@ module.exports.dashboardtype = {
     formatRules: {
         filterBy: {}, //filterBase can only have two values user or record
         filterWorkflowStepsBy: [], //values: empty array (all) or a list with particular types i.e. [ 'draft', 'finalised' ]
-        queryFilters: [
-	        {
-            filterType: 'text',
-            filterFields:  [ 
-                             { name: 'Title',
-                               path: 'metadata.title' }, 
-                             { name: 'Contributor',
-                               path: 'metadata.contributor_ci.text_full_name'
-                             }
-                           ]
-          }
-        ],
+        queryFilters: {
+          party: [
+            {
+              filterType: 'text',
+              filterFields:  [ 
+                               { 
+                                  name: 'Title',
+                                  path: 'metadata.title' 
+                               }, 
+                               { 
+                                  name: 'Contributor',
+                                  path: 'metadata.contributor_ci.text_full_name'
+                               }
+                             ]
+            },
+            {
+              filterType: 'date-range',
+              filterFields:  [ 
+                               { 
+                                  name: 'Filter by date modified',
+                                  path: 'lastSaveDate' 
+                               }, 
+                               { 
+                                  name: 'Filter by date created',
+                                  path: 'dateCreated'
+                               }
+                             ]
+            }
+          ],
+          rdmp: [
+            {
+              filterType: 'text',
+              filterFields:  [ 
+                               { 
+                                  name: 'Title',
+                                  path: 'metadata.title' 
+                               }, 
+                               { 
+                                  name: 'Contributor',
+                                  path: 'metadata.contributor_ci.text_full_name'
+                               }
+                             ]
+            }
+          ]
+        },
         sortBy: 'metaMetadata.lastSaveDate:-1',
         groupBy: '', //values: empty (not grouped any order), groupedByRecordType, groupedByRelationships
         sortGroupBy: [], //values: as many levels as required

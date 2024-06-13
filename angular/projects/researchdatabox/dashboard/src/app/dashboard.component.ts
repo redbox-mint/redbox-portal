@@ -32,6 +32,10 @@ export class DashboardComponent extends BaseComponent {
   filterFieldPath: string = 'metadata.title';
   filterSearchString: string = '';
   hideWorkflowStepTitle: boolean = false;
+  dateRangeFilterParams: any = {};
+  datePickerOpts = { dateInputFormat: 'DD/MM/YYYY', containerClass: 'theme-dark-blue' };
+  datePickerPlaceHolder: string = '';
+  appName:string = 'dashboard';
 
   defaultTableConfig = [
     {
@@ -98,7 +102,19 @@ export class DashboardComponent extends BaseComponent {
     filterBy: {}, //filterBase can only have two values user or record
     filterWorkflowStepsBy: [], //values: empty array (all) or a list with particular types i.e. [ 'draft', 'finalised' ]  
     recordTypeFilterBy: '',
-    queryFilters: [{ filterType: 'text', filterFields: [ { name: 'Title', path: 'metadata.title' } ] } ],
+    queryFilters: {
+      rdmp: [
+              { 
+                filterType: 'text',
+                filterFields: [
+                                { 
+                                  name: 'Title',
+                                  path: 'metadata.title'
+                                }
+                              ]
+              }
+            ]
+      },
     sortBy: 'metaMetadata.lastSaveDate:-1',
     groupBy: '', //values: empty (not grouped any order), groupedByRecordType, groupedByRelationships 
     sortGroupBy: [], //values: as many levels as required?
@@ -147,6 +163,11 @@ export class DashboardComponent extends BaseComponent {
 
   protected override async initComponent(): Promise<void> {
     if (_indexOf(this.dashboardTypeOptions, this.dashboardTypeSelected) >= 0) {
+      const sysConfig = await this.configService.getConfig();
+      const defaultDatePickerOpts = { dateInputFormat: 'DD/MM/YYYY', containerClass: 'theme-dark-blue' };
+      const defaultDatePickerPlaceHolder = 'dd/mm/yyyy';
+      this.datePickerOpts = ConfigService._getAppConfigProperty(sysConfig, this.appName, 'datePickerOpts', defaultDatePickerOpts);  
+      this.datePickerPlaceHolder = ConfigService._getAppConfigProperty(sysConfig, this.appName, 'datePickerPlaceHolder', defaultDatePickerPlaceHolder);
       this.loggerService.debug(`Dashboard waiting for deps to init...`);
       this.loggerService.debug(`Dashboard initialised.`);
       this.config = this.recordService.getConfig();
@@ -735,15 +756,26 @@ export class DashboardComponent extends BaseComponent {
     return 'metaMetadata.lastSaveDate:-1';
   }
 
-  public getFilters() {
+  private getFilters(type:string) {
     let filterFields: FilterField[] = [];
-    let queryFilters: QueryFilter[] = this.formatRules.queryFilters;
+    let queryFilters: QueryFilter[] = this.formatRules.queryFilters[this.recordType];
     for(let queryFilter of queryFilters) {
-      for(let filterField of queryFilter.filterFields) {
-        filterFields.push(filterField);
+      if(queryFilter.filterType == type) {
+        for(let filterField of queryFilter.filterFields) {
+          filterFields.push(filterField);
+        }
       }
     }
     return filterFields;
+  }
+
+  
+  public getTextFilters() {
+    return this.getFilters('text');
+  }
+
+  public getDateRangeFilters() {
+    return this.getFilters('date-range');
   }
 
   public async filterChanged(step: string) {

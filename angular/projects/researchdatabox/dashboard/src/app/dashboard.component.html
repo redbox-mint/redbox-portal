@@ -7,8 +7,42 @@
             <h2 *ngIf="workflowSteps.length == 1 && !hideWorkflowStepTitle && (dashboardTypeSelected == 'standard' || dashboardTypeSelected == 'consolidated')">
                {{ 'dashboard-heading-one-step' | i18next: {recordTypeName: typeLabel} }}
             </h2>
-            <h2 *ngIf="workflowSteps.length == 1 && hideWorkflowStepTitle && (dashboardTypeSelected == 'standard' || dashboardTypeSelected == 'consolidated')">
-                <div class="row">
+
+            <div *ngIf="workflowSteps.length == 1 && hideWorkflowStepTitle && dashboardTypeSelected == 'standard'" class="panel panel-default">
+              <div class="panel-body">
+              <div *ngFor="let filter of getDateRangeFilters()" class="row">
+                <div class="col-md-2"></div>
+                  <div class="col-12 col-sm-2 col-md-2">
+                    <label [for]="filter.name" class="report-filter-date-range-label">{{filter.name}}</label>
+                  </div>
+                <div class="col-12 col-sm-3 col-md-3">
+                    
+                    <div class="form-group">
+                        <label class="control-label mr-2">{{ 'report-filter-date-from' | i18next }}</label>
+    
+                        <input type="text" [id]="filter.name + '_fromDate'"
+                            [bsConfig] = "datePickerOpts"
+                            [placeholder] = "datePickerPlaceHolder"
+                            [(ngModel)]="dateRangeFilterParams[ filter.name + '_fromDate']"
+                            bsDatepicker />
+                    
+                    </div>
+                </div>
+                <div class="col-12 col-sm-3 col-md-3">
+                    
+                    <div class="form-group">
+                        <label class="control-label mr-2">{{ 'report-filter-date-to' | i18next }}</label>    
+                        <input type="text" [id]="filter.name + '_toDate'"
+                        [bsConfig] = "datePickerOpts"
+                        [placeholder] = "datePickerPlaceHolder"
+                        [(ngModel)]="dateRangeFilterParams[ filter.name + '_toDate']"
+                        bsDatepicker />
+                        </div>
+                  </div>
+                <div class="col-md-2"></div>
+              </div>
+
+              <div class="row">
                 <div class="col-md-offset-2 col-md-8">
                   <div class="panel panel-default">
                     <div class="input-group">
@@ -20,8 +54,8 @@
                             </button>
                             <button class="btn btn-primary dropdown-toggle" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>
                             <ul class="dropdown-menu dropdown-menu-right">
-                              <li *ngFor="let filterField of getFilters()">
-                                <a href="#" (click)="setFilterField(filterField, $event)">Filter by {{ filterField.name }}</a>
+                              <li *ngFor="let filter of getTextFilters()">
+                                <a href="#" (click)="setFilterField(filter, $event)">Filter by {{ filter.name }}</a>
                               </li>
                             </ul>
                         </div>
@@ -29,8 +63,10 @@
                     <button class="btn btn-primary" type='button' (click)="resetFilterAndSearch(workflowStep.config.workflow.stage)">{{ 'record-search-reset' | i18next }}</button> 
                   </div>
                 </div>
-                </div>
-            </h2>
+              </div>
+              </div>
+            </div>
+
             <div *ngIf="records[workflowStep.config.workflow.stage] != null">
                 <div *ngIf="records[workflowStep.config.workflow.stage].totalItems <= 0" class="padding-bottom-10" >
                     {{ 'no-records' | i18next: {stage: workflowStep.config.workflow.stageLabel.toLowerCase(), recordTypeName: typeLabel.toLowerCase()} }}

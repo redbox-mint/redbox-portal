@@ -15,7 +15,19 @@ let recordDataStandard = {
     formatRules: {
       filterBy: [],
       filterWorkflowStepsBy: [],
-      queryFilters: [{ filterType: 'text', filterFields: [ { name: 'Title', path: 'metadata.title' } ] } ],
+      queryFilters: {
+        rdmp: [
+                { 
+                  filterType: 'text',
+                  filterFields: [
+                                  { 
+                                    name: 'Title',
+                                    path: 'metadata.title'
+                                  }
+                                ]
+                }
+              ]
+        },
       sortBy: 'metaMetadata.lastSaveDate:-1',
       groupBy: '',
       sortGroupBy: [],
@@ -157,7 +169,19 @@ let recordDataWorkspace = {
       filterBy: [],
       recordTypeFilterBy: 'existing-locations',
       filterWorkflowStepsBy: [ 'existing-locations-draft'],
-      queryFilters: [{ filterType: 'text', filterFields: [ { name: 'Title', path: 'metadata.title' } ] } ],
+      queryFilters: {
+        rdmp: [
+                { 
+                  filterType: 'text',
+                  filterFields: [
+                                  { 
+                                    name: 'Title',
+                                    path: 'metadata.title'
+                                  }
+                                ]
+                }
+              ]
+        },
       sortBy: 'metaMetadata.lastSaveDate:-1',
       groupBy: '',
       sortGroupBy: [],
@@ -301,7 +325,19 @@ let recordDataConsolidated = {
     formatRules: {
       filterBy: [],
       filterWorkflowStepsBy: ['consolidated'],
-      queryFilters: [{ filterType: 'text', filterFields: [ { name: 'Title', path: 'metadata.title' } ] } ],
+      queryFilters: {
+        rdmp: [
+                { 
+                  filterType: 'text',
+                  filterFields: [
+                                  { 
+                                    name: 'Title',
+                                    path: 'metadata.title'
+                                  }
+                                ]
+                }
+              ]
+        },
       sortBy: '',
       groupBy: 'groupedByRecordType',
       sortGroupBy: [{ rowLevel: 0, compareFieldValue: 'rdmp' }],
@@ -513,7 +549,19 @@ let recordDataConsolidatedRelationships = {
     formatRules: {
       filterBy: [],
       filterWorkflowStepsBy: ['consolidated'],
-      queryFilters: [{ filterType: 'text', filterFields: [ { name: 'Title', path: 'metadata.title' } ] } ],
+      queryFilters: {
+        rdmp: [
+                { 
+                  filterType: 'text',
+                  filterFields: [
+                                  { 
+                                    name: 'Title',
+                                    path: 'metadata.title'
+                                  }
+                                ]
+                }
+              ]
+        },
       sortBy: '',
       groupBy: 'groupedByRelationships',
       sortGroupBy: [{ rowLevel: 0, compareFieldValue: 'rdmp' }],
