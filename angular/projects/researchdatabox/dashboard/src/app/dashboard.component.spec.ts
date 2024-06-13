@@ -13,11 +13,13 @@ let recordDataStandard = {
   dashboardType: 
   { 
     formatRules: {
-      filterBy: [], 
-      filterWorkflowStepsBy: [], 
+      filterBy: [],
+      filterWorkflowStepsBy: [],
+      queryFilters: [{ filterType: 'text', filterFields: [ { name: 'Title', path: 'metadata.title' } ] } ],
       sortBy: 'metaMetadata.lastSaveDate:-1',
-      groupBy: '', 
-      sortGroupBy: [], 
+      groupBy: '',
+      sortGroupBy: [],
+      hideWorkflowStepTitleForRecordType: []
     }
   },
   step: [{
@@ -152,12 +154,14 @@ let recordDataWorkspace = {
   dashboardType: 
   { 
     formatRules: {
-      filterBy: [], 
+      filterBy: [],
       recordTypeFilterBy: 'existing-locations',
-      filterWorkflowStepsBy: [ 'existing-locations-draft'], 
+      filterWorkflowStepsBy: [ 'existing-locations-draft'],
+      queryFilters: [{ filterType: 'text', filterFields: [ { name: 'Title', path: 'metadata.title' } ] } ],
       sortBy: 'metaMetadata.lastSaveDate:-1',
-      groupBy: '', 
-      sortGroupBy: [], 
+      groupBy: '',
+      sortGroupBy: [],
+      hideWorkflowStepTitleForRecordType: []
     }
   },
   step: [{
@@ -295,11 +299,13 @@ let recordDataConsolidated = {
   dashboardType: 
   { 
     formatRules: {
-      filterBy: [], 
-      filterWorkflowStepsBy: ['consolidated'], 
+      filterBy: [],
+      filterWorkflowStepsBy: ['consolidated'],
+      queryFilters: [{ filterType: 'text', filterFields: [ { name: 'Title', path: 'metadata.title' } ] } ],
       sortBy: '',
-      groupBy: 'groupedByRecordType', 
-      sortGroupBy: [{ rowLevel: 0, compareFieldValue: 'rdmp' }], 
+      groupBy: 'groupedByRecordType',
+      sortGroupBy: [{ rowLevel: 0, compareFieldValue: 'rdmp' }],
+      hideWorkflowStepTitleForRecordType: []
     }
   },
   step: [{
@@ -505,11 +511,13 @@ let recordDataConsolidatedRelationships = {
   dashboardType: 
   { 
     formatRules: {
-      filterBy: [], 
-      filterWorkflowStepsBy: ['consolidated'], 
+      filterBy: [],
+      filterWorkflowStepsBy: ['consolidated'],
+      queryFilters: [{ filterType: 'text', filterFields: [ { name: 'Title', path: 'metadata.title' } ] } ],
       sortBy: '',
-      groupBy: 'groupedByRelationships', 
-      sortGroupBy: [{ rowLevel: 0, compareFieldValue: 'rdmp' }], 
+      groupBy: 'groupedByRelationships',
+      sortGroupBy: [{ rowLevel: 0, compareFieldValue: 'rdmp' }],
+      hideWorkflowStepTitleForRecordType: []
     }
   },
   step: [{
