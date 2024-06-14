@@ -17,22 +17,39 @@ module.exports.dashboardtype = {
                                   path: 'metadata.contributor_ci.text_full_name'
                                }
                              ]
-            },
+            }
+          ],
+          rdmp: [
             {
-              filterType: 'date-range',
+              filterType: 'text',
               filterFields:  [ 
                                { 
-                                  name: 'Filter by date modified',
-                                  path: 'lastSaveDate' 
+                                  name: 'Title',
+                                  path: 'metadata.title' 
                                }, 
                                { 
-                                  name: 'Filter by date created',
-                                  path: 'dateCreated'
+                                  name: 'Contributor',
+                                  path: 'metadata.contributor_ci.text_full_name'
                                }
                              ]
             }
           ],
-          rdmp: [
+          dataRecord: [
+            {
+              filterType: 'text',
+              filterFields:  [ 
+                               { 
+                                  name: 'Title',
+                                  path: 'metadata.title' 
+                               }, 
+                               { 
+                                  name: 'Contributor',
+                                  path: 'metadata.contributor_ci.text_full_name'
+                               }
+                             ]
+            }
+          ],
+          dataPublication: [
             {
               filterType: 'text',
               filterFields:  [ 

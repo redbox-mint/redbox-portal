@@ -4,6 +4,7 @@ import { BaseComponent, UtilityService, LoggerService, TranslationService, Recor
 import { get as _get, set as _set, isEmpty as _isEmpty, isUndefined as _isUndefined, trim as _trim, isNull as _isNull, orderBy as _orderBy, map as _map, find as _find, indexOf as _indexOf, isArray as _isArray, forEach as _forEach, join as _join, first as _first } from 'lodash-es';
 
 import { LoDashTemplateUtilityService } from 'projects/researchdatabox/portal-ng-common/src/lib/lodash-template-utility.service';
+import * as _ from 'lodash';
 
 @Component({
   selector: 'dashboard',
@@ -28,14 +29,13 @@ export class DashboardComponent extends BaseComponent {
   rulesService: object;
   currentUser: object = {};
   enableSort: boolean = true;
-  filterField: string = 'Title';
+  filterFieldName: string = 'Title';
   filterFieldPath: string = 'metadata.title';
+  defaultFilterField: FilterField = { name: this.filterFieldName, path: this.filterFieldPath };
   filterSearchString: string = '';
   hideWorkflowStepTitle: boolean = false;
-  dateRangeFilterParams: any = {};
-  datePickerOpts = { dateInputFormat: 'DD/MM/YYYY', containerClass: 'theme-dark-blue' };
-  datePickerPlaceHolder: string = '';
-  appName:string = 'dashboard';
+  isFilterSearchDisplayed: boolean = false;
+  isSearching: boolean = false;
 
   defaultTableConfig = [
     {
@@ -163,11 +163,6 @@ export class DashboardComponent extends BaseComponent {
 
   protected override async initComponent(): Promise<void> {
     if (_indexOf(this.dashboardTypeOptions, this.dashboardTypeSelected) >= 0) {
-      const sysConfig = await this.configService.getConfig();
-      const defaultDatePickerOpts = { dateInputFormat: 'DD/MM/YYYY', containerClass: 'theme-dark-blue' };
-      const defaultDatePickerPlaceHolder = 'dd/mm/yyyy';
-      this.datePickerOpts = ConfigService._getAppConfigProperty(sysConfig, this.appName, 'datePickerOpts', defaultDatePickerOpts);  
-      this.datePickerPlaceHolder = ConfigService._getAppConfigProperty(sysConfig, this.appName, 'datePickerPlaceHolder', defaultDatePickerPlaceHolder);
       this.loggerService.debug(`Dashboard waiting for deps to init...`);
       this.loggerService.debug(`Dashboard initialised.`);
       this.config = this.recordService.getConfig();
@@ -370,6 +365,10 @@ export class DashboardComponent extends BaseComponent {
     } else {
 
       planTable = this.evaluatePlanTableColumns({}, {}, {}, evaluateStepName, stagedRecords);
+
+      let filter: FilterField = this.getFirstTextFilter();
+      this.filterFieldName = filter.name;
+      this.filterFieldPath = filter.path;
     }
 
     this.records[evaluateStepName] = planTable;
@@ -756,6 +755,18 @@ export class DashboardComponent extends BaseComponent {
     return 'metaMetadata.lastSaveDate:-1';
   }
 
+  private getFirstFilter(type:string): FilterField {
+    let queryFilters: QueryFilter[] = this.formatRules.queryFilters[this.recordType];
+    for(let queryFilter of queryFilters) {
+      if(queryFilter.filterType == type) {
+        for(let filterField of queryFilter.filterFields) {
+          return filterField;
+        }
+      }
+    }
+    return this.defaultFilterField;
+  }
+
   private getFilters(type:string) {
     let filterFields: FilterField[] = [];
     let queryFilters: QueryFilter[] = this.formatRules.queryFilters[this.recordType];
@@ -769,35 +780,37 @@ export class DashboardComponent extends BaseComponent {
     return filterFields;
   }
 
-  
-  public getTextFilters() {
-    return this.getFilters('text');
+  private getFirstTextFilter(): FilterField {
+    return this.getFirstFilter('text');
   }
 
-  public getDateRangeFilters() {
-    return this.getFilters('date-range');
+  public getTextFilters() {
+    return this.getFilters('text');
   }
 
   public async filterChanged(step: string) {
 
     if (this.dashboardTypeSelected == 'standard') {
+      this.isSearching = true;
+      this.isFilterSearchDisplayed = true;
       let sortDetails = this.sortMap[step];
       let stagedRecords = await this.recordService.getRecords(this.recordType, step, 1, '', this.getSortString(sortDetails),this.filterFieldPath,this.filterSearchString);
       let planTable: PlanTable = this.evaluatePlanTableColumns({}, {}, {}, step, stagedRecords);
       this.records[step] = planTable;
+      this.isSearching = false;
     }
   }
 
-  public async resetFilterAndSearch(step: string) {
-
+  public async resetFilterAndSearch(step: string, e: any) {
     if (this.dashboardTypeSelected == 'standard') {
+      this.setFilterField(this.getFirstTextFilter(), e);
+      this.isSearching = true;
       let sortDetails = this.sortMap[step];
-      this.filterField = 'Title';
-      this.filterFieldPath = 'metadata.title';
       this.filterSearchString = '';
       let stagedRecords = await this.recordService.getRecords(this.recordType, step, 1, '', this.getSortString(sortDetails),this.filterFieldPath,this.filterSearchString);
       let planTable: PlanTable = this.evaluatePlanTableColumns({}, {}, {}, step, stagedRecords);
       this.records[step] = planTable;
+      this.isSearching = false;
     }
   }
 
@@ -805,7 +818,7 @@ export class DashboardComponent extends BaseComponent {
     if (e) {
       e.preventDefault();
     }
-    this.filterField = filterField.name;
+    this.filterFieldName = filterField.name;
     this.filterFieldPath = filterField.path;
   }
 

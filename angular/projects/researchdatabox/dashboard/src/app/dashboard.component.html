@@ -1,72 +1,30 @@
 <div *ngIf="isReady">
     <ng-container>
         <div *ngFor="let workflowStep of workflowSteps">
-            <h2 *ngIf="workflowSteps.length > 1 && (dashboardTypeSelected == 'standard' || dashboardTypeSelected == 'consolidated')" >
-                {{ 'dashboard-heading' | i18next: {stage: workflowStep.config.workflow.stageLabel, recordTypeName: typeLabel} }}
-            </h2>
-            <h2 *ngIf="workflowSteps.length == 1 && !hideWorkflowStepTitle && (dashboardTypeSelected == 'standard' || dashboardTypeSelected == 'consolidated')">
-               {{ 'dashboard-heading-one-step' | i18next: {recordTypeName: typeLabel} }}
-            </h2>
 
-            <div *ngIf="workflowSteps.length == 1 && hideWorkflowStepTitle && dashboardTypeSelected == 'standard'" class="panel panel-default">
-              <div class="panel-body">
-              <div *ngFor="let filter of getDateRangeFilters()" class="row">
-                <div class="col-md-2"></div>
-                  <div class="col-12 col-sm-2 col-md-2">
-                    <label [for]="filter.name" class="report-filter-date-range-label">{{filter.name}}</label>
-                  </div>
-                <div class="col-12 col-sm-3 col-md-3">
-                    
-                    <div class="form-group">
-                        <label class="control-label mr-2">{{ 'report-filter-date-from' | i18next }}</label>
-    
-                        <input type="text" [id]="filter.name + '_fromDate'"
-                            [bsConfig] = "datePickerOpts"
-                            [placeholder] = "datePickerPlaceHolder"
-                            [(ngModel)]="dateRangeFilterParams[ filter.name + '_fromDate']"
-                            bsDatepicker />
-                    
-                    </div>
-                </div>
-                <div class="col-12 col-sm-3 col-md-3">
-                    
-                    <div class="form-group">
-                        <label class="control-label mr-2">{{ 'report-filter-date-to' | i18next }}</label>    
-                        <input type="text" [id]="filter.name + '_toDate'"
-                        [bsConfig] = "datePickerOpts"
-                        [placeholder] = "datePickerPlaceHolder"
-                        [(ngModel)]="dateRangeFilterParams[ filter.name + '_toDate']"
-                        bsDatepicker />
-                        </div>
-                  </div>
-                <div class="col-md-2"></div>
+            <div class="d-flex flex-row">
+              <div *ngIf="workflowSteps.length > 1 && (dashboardTypeSelected == 'standard' || dashboardTypeSelected == 'consolidated')" class="col-md-4">
+                <h2>{{ 'dashboard-heading' | i18next: {stage: workflowStep.config.workflow.stageLabel, recordTypeName: typeLabel} }}</h2>
               </div>
-
-              <div class="row">
-                <div class="col-md-offset-2 col-md-8">
-                  <div class="panel panel-default">
-                    <div class="input-group">
-                        <div class="input-group-addon" id="basic-search-addon">{{ 'record-search-basic-search' | i18next }}</div>
-                        <input type="text" class="form-control" [(ngModel)]="filterSearchString" placeholder="{{ 'record-search-basic-search-placeholder' | i18next}}" (keyup.enter)="filterChanged(workflowStep.config.workflow.stage)" aria-describedby="basic-search-addon">
-                        <div class="input-group-btn">
-                            <button class="btn btn-primary" type='button' (click)="filterChanged(workflowStep.config.workflow.stage)">
-                            {{ filterField }}
-                            </button>
-                            <button class="btn btn-primary dropdown-toggle" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>
-                            <ul class="dropdown-menu dropdown-menu-right">
-                              <li *ngFor="let filter of getTextFilters()">
-                                <a href="#" (click)="setFilterField(filter, $event)">Filter by {{ filter.name }}</a>
-                              </li>
-                            </ul>
-                        </div>
-                    </div><br>
-                    <button class="btn btn-primary" type='button' (click)="resetFilterAndSearch(workflowStep.config.workflow.stage)">{{ 'record-search-reset' | i18next }}</button> 
+              <div *ngIf="workflowSteps.length == 1 && !hideWorkflowStepTitle && (dashboardTypeSelected == 'standard' || dashboardTypeSelected == 'consolidated')" class="col-md-4">
+                <h2>{{ 'dashboard-heading-one-step' | i18next: {recordTypeName: typeLabel} }}</h2>
+              </div>
+              <ng-container *ngIf="dashboardTypeSelected == 'standard' && (records[workflowStep.config.workflow.stage].totalItems > 0 || (records[workflowStep.config.workflow.stage].totalItems <= 0 && isFilterSearchDisplayed))">
+                <div class="col-md-8">
+                  <div class="d-flex flex-row mt-4">
+                    <button class="btn btn-primary dropdown-toggle" type='button' data-bs-toggle="dropdown" aria-expanded="false" >Filter by {{ filterFieldName }}</button>
+                    <ul class="dropdown-menu">
+                      <li *ngFor="let filter of getTextFilters()"><a class="dropdown-item" href="#" (click)="setFilterField(filter, $event); searchTextInput.focus()">Filter by {{ filter.name }}</a></li>
+                      <li><hr class="dropdown-divider"></li>
+                      <li><a class="dropdown-item" href="#" (click)="resetFilterAndSearch(workflowStep.config.workflow.stage, $event); searchTextInput.focus()">{{ 'record-search-reset' | i18next }}</a></li>
+                    </ul>
+                    <input type="text" class="form-control" #searchTextInput [(ngModel)]="filterSearchString" placeholder="{{ 'record-search-basic-search-placeholder' | i18next}}" (keyup.enter)="filterChanged(workflowStep.config.workflow.stage)" aria-describedby="basic-search-addon" autofocus>
+                    <button class="btn btn-primary" type='button' aria-expanded="false" [disabled]="isSearching || filterSearchString == ''" (click)="filterChanged(workflowStep.config.workflow.stage); searchTextInput.focus()">{{ 'record-search-basic-search' | i18next }}</button>
                   </div>
                 </div>
-              </div>
-              </div>
+                <div class="col-md-4"></div>
+              </ng-container>
             </div>
-
             <div *ngIf="records[workflowStep.config.workflow.stage] != null">
                 <div *ngIf="records[workflowStep.config.workflow.stage].totalItems <= 0" class="padding-bottom-10" >
                     {{ 'no-records' | i18next: {stage: workflowStep.config.workflow.stageLabel.toLowerCase(), recordTypeName: typeLabel.toLowerCase()} }}

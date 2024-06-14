@@ -22,13 +22,6 @@ export class Plan {
   dashboardTitle: string = '';
 }
 
-// export declare class FilterBy {
-//     filterBase: string;
-//     filterBaseFieldOrValue: string;
-//     filterField: string;
-//     filterMode: string;
-// }
-
 export declare class FilterField {
     name: string;
     path: string;
