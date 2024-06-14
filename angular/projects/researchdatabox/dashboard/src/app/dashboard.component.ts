@@ -366,9 +366,11 @@ export class DashboardComponent extends BaseComponent {
 
       planTable = this.evaluatePlanTableColumns({}, {}, {}, evaluateStepName, stagedRecords);
 
-      let filter: FilterField = this.getFirstTextFilter();
-      this.filterFieldName = filter.name;
-      this.filterFieldPath = filter.path;
+      if (this.dashboardTypeSelected == 'standard') {
+        let filter: FilterField = this.getFirstTextFilter();
+        this.filterFieldName = filter.name;
+        this.filterFieldPath = filter.path;
+      }
     }
 
     this.records[evaluateStepName] = planTable;
