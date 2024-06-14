@@ -758,15 +758,19 @@ export class DashboardComponent extends BaseComponent {
   }
 
   private getFirstFilter(type:string): FilterField {
-    let queryFilters: QueryFilter[] = this.formatRules.queryFilters[this.recordType];
-    for(let queryFilter of queryFilters) {
-      if(queryFilter.filterType == type) {
-        for(let filterField of queryFilter.filterFields) {
-          return filterField;
+    try {
+      let queryFilters: QueryFilter[] = this.formatRules.queryFilters[this.recordType];
+      for(let queryFilter of queryFilters) {
+        if(queryFilter.filterType == type) {
+          for(let filterField of queryFilter.filterFields) {
+            return filterField;
+          }
         }
       }
+      return this.defaultFilterField;
+    } catch(error) {
+      return this.defaultFilterField;
     }
-    return this.defaultFilterField;
   }
 
   private getFilters(type:string) {
