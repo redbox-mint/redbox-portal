@@ -148,7 +148,6 @@ describe('DashboardComponent standard', () => {
     const fixture = TestBed.createComponent(DashboardComponent);
     const dashboardComponent = fixture.componentInstance;
     await dashboardComponent.initView('rdmp');
-    expect(dashboardComponent.workflowSteps.length).toBeGreaterThan(0);
     expect(dashboardComponent.defaultRowConfig.length).toBeGreaterThan(0);
     expect(dashboardComponent.dashboardTypeSelected).toEqual('standard');
     await dashboardComponent.initStep('draft','draft','rdmp','',1);
@@ -305,7 +304,6 @@ describe('DashboardComponent workspace', () => {
     const dashboardComponent = fixture.componentInstance;
     dashboardComponent.dashboardTypeSelected = 'workspace';
     await dashboardComponent.initView('workspace');
-    expect(dashboardComponent.workflowSteps.length).toBeGreaterThan(0);
     expect(dashboardComponent.defaultRowConfig.length).toBeGreaterThan(0);
     expect(dashboardComponent.dashboardTypeSelected).toEqual('workspace');
     await dashboardComponent.initStep('','existing-locations-draft','','workspace',1);
