@@ -25,6 +25,7 @@ import {
   Sails,
   Model
 } from "sails";
+import { createSchema } from 'genson-js';
 
 declare var sails: Sails;
 declare var Form: Model;
@@ -48,7 +49,9 @@ export module Services {
       'flattenFields',
       'getFormByName',
       'filterFieldsHasEditAccess',
-      'listForms'
+      'listForms',
+      'inferSchemaFromMetadata',
+      'generateFormFromSchema'
     ];
 
     public async bootstrap(workflowStep): Promise<any> {
@@ -186,6 +189,160 @@ export module Services {
           }
           return Observable.of(null);
         }).filter(result => result !== null).last();
+    }
+
+    public inferSchemaFromMetadata(record: any): any {
+      const schema = createSchema(record.metadata);
+      // sails.log.verbose(schema);
+      return schema;
+    }
+
+    public generateFormFromSchema(record: any): FormModel {
+
+      let form: FormModel;
+
+      let schema = this.inferSchemaFromMetadata(record);
+
+      let fieldKeys = _.keys(schema.properties);
+
+      let buttonsList = [
+        {
+          class: "AnchorOrButton",
+          viewOnly: true,
+          definition: {
+            label: '@dmp-edit-record-link',
+            value: '/@branding/@portal/record/edit/@oid',
+            cssClasses: 'btn btn-large btn-info',
+            showPencil: true,
+            controlType: 'anchor'
+          },
+          variableSubstitutionFields: ['value']
+        },
+        {
+          class: "AnchorOrButton",
+          roles: ['Admin', 'Librarians'],
+          viewOnly: true,
+          definition: {
+            label: '@view-record-audit-link',
+            value: '/@branding/@portal/record/viewAudit/@oid',
+            cssClasses: 'btn btn-large btn-info margin-15',
+            controlType: 'anchor'
+          },
+          variableSubstitutionFields: ['value']
+        }
+      ];
+
+      let textFieldTemplate = {
+        class: 'TextField',
+        viewOnly: true,
+        definition: {
+          name: '',
+          label: '',
+          help: '',
+          type: 'text'
+        }
+      };
+
+      let objectFieldHeadingTemplate = {
+        class: 'Container',
+        compClass: 'TextBlockComponent',
+        definition: {
+          value: '',
+          type: 'h3'
+        }
+      };
+
+      let fieldList = [
+        {
+          class: 'Container',
+          compClass: 'TextBlockComponent',
+          viewOnly: true,
+          definition: {
+            name: 'title',
+            type: 'h1'
+          }
+        },
+        {
+          class: 'Container',
+          compClass: 'GenericGroupComponent',
+          definition: {
+            cssClasses: "form-inline",
+            fields: buttonsList
+          }
+        }
+
+        // {
+        //   class: 'TextArea',
+        //   viewOnly: true,
+        //   definition: {
+        //     name: 'description',
+        //     label: '@dmpt-description'
+        //   }
+        // },
+
+
+        // {
+        //   class: "Container",
+        //   definition: {
+        //     id: "project",
+        //     label: "project-tab",
+        //     fields: [
+        //     ]
+        //   }
+        // }
+
+
+        // {
+        //   class: "TabOrAccordionContainer",
+        //   compClass: "TabOrAccordionContainerComponent",
+        //   definition: {
+        //     id: "mainTab",
+        //     accContainerClass: "view-accordion",
+        //     expandAccordionsOnOpen: true,
+        //     fields: [
+        //     ]
+        //   }
+        // }
+      ];
+
+      for(let fieldKey of fieldKeys) {
+        if(schema.properties[fieldKey].type == 'string') {
+          let textField = _.cloneDeep(textFieldTemplate);
+          _.set(textField.definition,'name',fieldKey);
+          _.set(textField.definition,'label',fieldKey);
+          fieldList.push(textField);
+        } else if(schema.properties[fieldKey].type == 'object') {
+          
+          let objectFieldHeading =  _.cloneDeep(objectFieldHeadingTemplate);
+          _.set(objectFieldHeading.definition, 'value', fieldKey);
+          fieldList.push(objectFieldHeading);
+          
+          let objectFieldKeys = _.keys(schema.properties[fieldKey].properties);
+          for(let objectFieldKey of objectFieldKeys) {
+            if(schema.properties[fieldKey].properties[objectFieldKey].type == 'string') {
+              let textField = _.cloneDeep(textFieldTemplate);
+              _.set(textField.definition,'name',objectFieldKey);
+              _.set(textField.definition,'label',objectFieldKey);
+              fieldList.push(textField);
+            }
+          }
+        }
+      }
+
+      let formObject = {
+        name: 'generated-view-only',
+        type: record.metaMetadata.type,
+        skipValidationOnSave: false,
+        editCssClasses: 'row col-md-12',
+        viewCssClasses: 'row col-md-offset-1 col-md-10',
+        messages: {},
+        attachmentFields: [],
+        fields: fieldList
+      };
+
+      form = formObject as any;
+
+      return form;
     }
 
     protected setFormEditMode(fields, editMode): void{

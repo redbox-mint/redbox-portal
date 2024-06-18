@@ -149,7 +149,7 @@ describe('DashboardComponent standard', () => {
     const dashboardComponent = fixture.componentInstance;
     await dashboardComponent.initView('rdmp');
     expect(dashboardComponent.workflowSteps.length).toBeGreaterThan(0);
-    expect(dashboardComponent.defaultTableConfig.length).toBeGreaterThan(0);
+    expect(dashboardComponent.defaultRowConfig.length).toBeGreaterThan(0);
     expect(dashboardComponent.dashboardTypeSelected).toEqual('standard');
     await dashboardComponent.initStep('draft','draft','rdmp','',1);
     let planTable = dashboardComponent.evaluatePlanTableColumns({}, {}, {}, 'draft', recordDataStandard['records']);
@@ -306,7 +306,7 @@ describe('DashboardComponent workspace', () => {
     dashboardComponent.dashboardTypeSelected = 'workspace';
     await dashboardComponent.initView('workspace');
     expect(dashboardComponent.workflowSteps.length).toBeGreaterThan(0);
-    expect(dashboardComponent.defaultTableConfig.length).toBeGreaterThan(0);
+    expect(dashboardComponent.defaultRowConfig.length).toBeGreaterThan(0);
     expect(dashboardComponent.dashboardTypeSelected).toEqual('workspace');
     await dashboardComponent.initStep('','existing-locations-draft','','workspace',1);
     let planTable = dashboardComponent.evaluatePlanTableColumns({}, {}, {}, 'existing-locations-draft', recordDataWorkspace['records']);
@@ -520,7 +520,7 @@ describe('DashboardComponent consolidated group by record type', () => {
     dashboardComponent.dashboardTypeSelected = 'consolidated';
     await dashboardComponent.initView('consolidated');
     expect(dashboardComponent.workflowSteps.length).toBeGreaterThan(0);
-    expect(dashboardComponent.defaultTableConfig.length).toBeGreaterThan(0);
+    expect(dashboardComponent.defaultRowConfig.length).toBeGreaterThan(0);
     expect(dashboardComponent.dashboardTypeSelected).toEqual('consolidated');
     await dashboardComponent.initStep('','consolidated','rdmp','',1);
     let groupedRecords = recordDataConsolidated['groupedRecords'];
@@ -761,7 +761,7 @@ describe('DashboardComponent consolidated group by relationships', () => {
     dashboardComponent.dashboardTypeSelected = 'consolidated';
     await dashboardComponent.initView('consolidated');
     expect(dashboardComponent.workflowSteps.length).toBeGreaterThan(0);
-    expect(dashboardComponent.defaultTableConfig.length).toBeGreaterThan(0);
+    expect(dashboardComponent.defaultRowConfig.length).toBeGreaterThan(0);
     expect(dashboardComponent.dashboardTypeSelected).toEqual('consolidated');
     await dashboardComponent.initStep('','consolidated','rdmp','',1);
     let groupedRecords = recordDataConsolidatedRelationships['groupedRecords'];

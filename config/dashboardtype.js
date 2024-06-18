@@ -79,7 +79,7 @@ module.exports.dashboardtype = {
       sortBy: 'metaMetadata.lastSaveDate:-1',
       groupBy: '', //values: empty (not grouped any order), groupedByRecordType, groupedByRelationships 
       sortGroupBy: [], //values: as many levels as required
-      hideWorkflowStepTitleForRecordType: ['party']
+      hideWorkflowStepTitleForRecordType: []
     }
   },
   "consolidated": {
@@ -91,7 +91,7 @@ module.exports.dashboardtype = {
         sortGroupBy: [{ rowLevel: 0, compareFieldValue: 'rdmp', compareField: 'metadata.metaMetadata.type', relatedTo: '' }, 
                       { rowLevel: 1, compareFieldValue: 'dataRecord', compareField: 'metadata.metaMetadata.type', relatedTo: 'metadata.metadata.rdmp.oid' }, 
                       { rowLevel: 2, compareFieldValue: 'dataPublication', compareField: 'metadata.metaMetadata.type', relatedTo: 'metadata.metadata.dataRecord.oid' }], //values: as many levels as required
-        hideWorkflowStepTitleForRecordType: ['party']
+        hideWorkflowStepTitleForRecordType: []
       }
   }
 };

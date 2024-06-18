@@ -30,6 +30,7 @@
     "flat": "^6.0.1",
     "font-awesome-sass": "4.7.0",
     "fs-extra": "^11.2.0",
+    "genson-js": "^0.0.8",
     "glob": "^10.4.1",
     "har-validator": "5.1.5",
     "i18next": "^23.11.5",

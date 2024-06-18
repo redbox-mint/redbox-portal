@@ -250,6 +250,102 @@ export module Controllers {
           }
           // allow client to set the form name to use
           const formName = _.isUndefined(formParam) || _.isEmpty(formParam) ? currentRec.metaMetadata.form : formParam;
+
+          if(formName == 'generated-view-only') {
+            let schema = FormsService.inferSchemaFromMetadata(currentRec);
+            _.set(currentRec,'schema',schema);
+            const user = req.user;
+            this.recordsService.updateMeta(brand, oid, currentRec, user, false, false);
+          }
+
+          if (editMode) {
+            return this.hasEditAccess(brand, req.user, currentRec)
+              .flatMap(hasEditAccess => {
+                if (!hasEditAccess) {
+                  return Observable.throw(new Error(TranslationService.t('edit-error-no-permissions')));
+                }
+                return FormsService.getFormByName(formName, editMode).flatMap(form => {
+                  if (_.isEmpty(form)) {
+                    return Observable.throw(new Error(`Error, getting form ${formName} for OID: ${oid}`));
+                  }
+                  let mergedForm = this.mergeFields(req, res, form.fields, form.requiredFieldIndicator, currentRec.metaMetadata.type, currentRec).then(fields => {
+                    form.fields = fields;
+
+                    return form;
+                  });
+                  return mergedForm;
+                });
+              });
+          } else {
+            return this.hasViewAccess(brand, req.user, currentRec)
+              .flatMap(hasViewAccess => {
+                if (!hasViewAccess) {
+                  return Observable.throw(new Error(TranslationService.t('view-error-no-permissions')));
+                }
+                return this.hasEditAccess(brand, req.user, currentRec);
+              })
+              .flatMap(hasEditAccess => {
+                return FormsService.getFormByName('default-1.0-draft', editMode).flatMap(form => {
+                  if (_.isEmpty(form)) {
+                    return Observable.throw(new Error(`Error, getting form ${formName} for OID: ${oid}`));
+                  }
+                  if(formName == 'generated-view-only') {
+                    form = FormsService.generateFormFromSchema(currentRec);
+                  }
+                  FormsService.filterFieldsHasEditAccess(form.fields, hasEditAccess);
+                  return this.mergeFields(req, res, form.fields, form.requiredFieldIndicator, currentRec.metaMetadata.type, currentRec).then(fields => {
+                    form.fields = fields;
+
+                    return form;
+                  });
+                });
+              });
+          }
+        });
+      }
+      obs.subscribe(form => {
+        if (!_.isEmpty(form)) {
+          this.ajaxOk(req, res, null, form);
+        } else {
+          this.ajaxFail(req, res, null, {
+            message: `Failed to get form with name:${name}`
+          });
+        }
+      }, error => {
+        sails.log.error("Error getting form definition:");
+        sails.log.error(error);
+        let message = error.message;
+        if (error.error && error.error.code == 500) {
+          message = TranslationService.t('missing-record');
+        }
+        this.ajaxFail(req, res, message);
+      });
+
+    }
+
+    public getFormByName(req, res) {
+      const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
+      const name = req.param('name');
+      const oid = req.param('oid');
+      const editMode = req.query.edit == "true";
+      const formParam = req.param('formName');
+      let obs = null;
+      if (_.isEmpty(oid)) {
+        obs = FormsService.getForm(brand.id, name, editMode, true).flatMap(form => {
+          let mergedForm = this.mergeFields(req, res, form.fields, form.requiredFieldIndicator, name, {}).then(fields => {
+            form.fields = fields;
+            return form;
+          });
+          return mergedForm;
+        });
+      } else {
+        // defaults to retrive the form of the current workflow state...
+        obs = Observable.fromPromise(this.recordsService.getMeta(oid)).flatMap(currentRec => {
+          if (_.isEmpty(currentRec)) {
+            return Observable.throw(new Error(`Error, empty metadata for OID: ${oid}`));
+          }
+          // allow client to set the form name to use
+          const formName = _.isUndefined(formParam) || _.isEmpty(formParam) ? currentRec.metaMetadata.form : formParam;
           if (editMode) {
             return this.hasEditAccess(brand, req.user, currentRec)
               .flatMap(hasEditAccess => {

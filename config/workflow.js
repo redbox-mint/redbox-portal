@@ -294,7 +294,43 @@ module.exports.workflow = {
           viewRoles: ['Admin', 'Librarians'],
           editRoles: ['Admin', 'Librarians']
         },
-        form: 'default-1.0-draft'
+        form: 'generated-view-only',
+        dashboard: {
+          table: {
+            rowConfig: [
+              {
+                title: 'Record Title',
+                variable: 'metadata.title',
+                template: `<a href='<%=rootContext%>/<%= branding %>/<%= portal %>/record/view/<%= oid %>'><%= metadata.title %></a>`,
+                initialSort: 'desc'
+              },
+              {
+                title: 'header-ci',
+                variable: 'metadata.contributor_ci.text_full_name',
+                template: '<%= metadata.contributor_ci != undefined ? metadata.contributor_ci.text_full_name : "" %>',
+                initialSort: 'desc'
+              },
+              {
+                title: 'header-data-manager',
+                variable: 'metadata.contributor_data_manager.text_full_name',
+                template: '<%= metadata.contributor_data_manager != undefined ? metadata.contributor_data_manager.text_full_name : "" %>',
+                initialSort: 'desc'
+              },
+              {
+                title: 'header-created',
+                variable: 'metaMetadata.createdOn',
+                template: '<%= util.formatDateLocale(util.parseDateString(dateCreated), "DATETIME_MED") %>',
+                initialSort: 'desc'
+              },
+              {
+                title: 'header-modified',
+                variable: 'metaMetadata.lastSaveDate',
+                template: '<%= util.formatDateLocale(util.parseDateString(dateModified),"DATETIME_MED") %>',
+                initialSort: 'desc'
+              }
+            ]
+          }
+        }
       },
       starting: true
     }

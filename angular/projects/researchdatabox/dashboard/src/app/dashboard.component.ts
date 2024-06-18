@@ -37,7 +37,7 @@ export class DashboardComponent extends BaseComponent {
   isFilterSearchDisplayed: boolean = false;
   isSearching: boolean = false;
 
-  defaultTableConfig = [
+  defaultRowConfig = [
     {
       title: 'Record Title',
       variable: 'metadata.title',
@@ -185,9 +185,8 @@ export class DashboardComponent extends BaseComponent {
     this.groupRowConfig = this.defaultGroupRowConfig;
     this.groupRowRules = this.defaultGroupRowRules;
 
-    let dashboardType: any = await this.recordService.getDashboardType(this.dashboardTypeSelected);
-    let formatRules: FormatRules = _get(dashboardType, 'formatRules');
-    let startIndex = 1;
+    let dashboardTypeConfig: any = await this.recordService.getDashboardType(this.dashboardTypeSelected);
+    let formatRules: FormatRules = _get(dashboardTypeConfig, 'formatRules');
     if (!_isUndefined(formatRules) && !_isNull(formatRules) && !_isEmpty(formatRules)) {
       //global format rules from dashboardtype.js config
       this.formatRules = formatRules;
@@ -203,6 +202,41 @@ export class DashboardComponent extends BaseComponent {
         this.hideWorkflowStepTitle = true;
       }
     }
+
+    let steps = await this.initWorkflowSteps(recordType);
+
+    let startIndex = 1;
+    for (let step of steps) {
+
+      this.initStepTableConfig(recordType, step);
+
+      this.initSortConfig(step);
+
+      let packageType = '';
+      let stepName = '';
+      let evaluateStepName = '';
+      if (this.dashboardTypeSelected == 'consolidated') {
+        this.workflowSteps.push(step);
+        packageType = '';
+        stepName = '';
+        evaluateStepName = _get(step, 'name');
+        recordType = _get(step, 'config.baseRecordType');
+      } else if (this.dashboardTypeSelected == 'workspace') {
+        stepName = '';
+        packageType = this.packageType;
+        evaluateStepName = _get(step, 'name');
+        recordType = '';
+      } else {
+        packageType = '';
+        stepName = _get(step, 'name');
+        evaluateStepName = stepName;
+      }
+
+      await this.initStep(stepName, evaluateStepName, recordType, packageType, startIndex);
+    }
+  }
+
+  private async initWorkflowSteps(recordType: string) {
 
     let beforeFilterSteps: any = await this.recordService.getWorkflowSteps(recordType);
 
@@ -223,48 +257,22 @@ export class DashboardComponent extends BaseComponent {
       steps = beforeFilterSteps;
     }
     steps = _orderBy(steps, ['config.displayIndex'], ['asc']);
-
-    for (let step of steps) {
-
-      this.workflowSteps.push(step);
-
-      let stepTableConfig = this.initStepTableConfig(recordType, step);
-
-      this.initSortConfig(step, stepTableConfig);
-
-      let packageType = '';
-      let stepName = '';
-      let evaluateStepName = '';
-      if (this.dashboardTypeSelected == 'consolidated') {
-        packageType = '';
-        stepName = '';
-        evaluateStepName = _get(step, 'name');
-        recordType = _get(step, 'config.baseRecordType');
-      } else if (this.dashboardTypeSelected == 'workspace') {
-        stepName = '';
-        packageType = this.packageType;
-        evaluateStepName = _get(step, 'name');
-        recordType = '';
-      } else {
-        packageType = '';
-        stepName = _get(step, 'name');
-        evaluateStepName = stepName;
-      }
-
-      await this.initStep(stepName, evaluateStepName, recordType, packageType, startIndex);
-    }
+    return steps;
   }
 
   private initStepTableConfig(recordType: string, step: any) {
-    let stepTableConfig = this.defaultTableConfig;
-    if (_isEmpty(this.defaultTableConfig[0].title)) {
-      this.defaultTableConfig[0].title = `${recordType}-title` || 'Title';
+
+    let stepRowConfig = this.defaultRowConfig;
+
+    if (_isEmpty(this.defaultRowConfig[0].title)) {
+      this.defaultRowConfig[0].title = `${recordType}-title` || 'Title';
     }
+
     if (!_isUndefined(_get(step, 'config.dashboard'))
       && !_isUndefined(_get(step, 'config.dashboard.table'))) {
 
       if (!_isUndefined(_get(step, 'config.dashboard.table.rowConfig'))) {
-        stepTableConfig = _get(step, 'config.dashboard.table.rowConfig');
+        stepRowConfig = _get(step, 'config.dashboard.table.rowConfig');
         this.sortFields = _map(_get(step, 'config.dashboard.table.rowConfig'), (config) => { return config.variable; });
       }
 
@@ -285,16 +293,19 @@ export class DashboardComponent extends BaseComponent {
         this.formatRules = _get(step, 'config.dashboard.table.formatRules');
       }
     }
-    return stepTableConfig;
+
+    this.tableConfig[step.name] = stepRowConfig;
   }
 
-  private initSortConfig(step: any, stepTableConfig: any[]) {
+  private initSortConfig(step: any) {
 
-    this.tableConfig[step.name] = stepTableConfig;
+    let stepRowConfig: any[] = this.tableConfig[step.name];
+
     this.sortMap[step.name] = {};
-    for (let rowConfig of stepTableConfig) {
-      this.sortMap[step.name][rowConfig.variable] = {
-        sort: rowConfig.initialSort
+
+    for (let columnConfig of stepRowConfig) {
+      this.sortMap[step.name][columnConfig.variable] = {
+        sort: columnConfig.initialSort
       };
     }
 
@@ -490,13 +501,11 @@ export class DashboardComponent extends BaseComponent {
 
           let record: any = {};
 
-          let stepTableConfig = _isEmpty(this.tableConfig[stepName]) ? this.defaultTableConfig : this.tableConfig[stepName];
+          let stepRowConfig: any[] = this.tableConfig[stepName];
 
-          for (let rowConfig of stepTableConfig) {
-
-
-            const templateRes = this.runTemplate(rowConfig.template, imports)
-            record[rowConfig.variable] = templateRes;
+          for (let columnConfig of stepRowConfig) {
+            const templateRes = this.runTemplate(columnConfig.template, imports)
+            record[columnConfig.variable] = templateRes;
           }
           recordRows.push(record);
         }
@@ -533,12 +542,11 @@ export class DashboardComponent extends BaseComponent {
           _set(imports, 'translationService', this.translationService);
 
           let record: any = {};
-          let stepTableCOnfig = _isEmpty(this.tableConfig[stepName]) ? this.defaultTableConfig : this.tableConfig[stepName];
+          let stepRowConfig = this.tableConfig[stepName];
 
-          for (let rowConfig of stepTableCOnfig) {
-
-            const templateRes = this.runTemplate(rowConfig.template, imports);
-            record[rowConfig.variable] = templateRes;
+          for (let columnConfig of stepRowConfig) {
+            const templateRes = this.runTemplate(columnConfig.template, imports);
+            record[columnConfig.variable] = templateRes;
           }
           recordRows.push(record);
         }
@@ -700,9 +708,10 @@ export class DashboardComponent extends BaseComponent {
   }
 
   private updateSortMap(sortData: any) {
-    let stepTableConfig = this.tableConfig[sortData.step];
-    for (let rowConfig of stepTableConfig) {
-      this.sortMap[sortData.step][rowConfig.variable] = { sort: rowConfig.noSort };
+
+    let stepRowConfig: any[] = this.tableConfig[sortData.step];
+    for (let columnConfig of stepRowConfig) {
+      this.sortMap[sortData.step][columnConfig.variable] = { sort: columnConfig.noSort };
     }
 
     this.sortMap[sortData.step][sortData.variable] = { sort: sortData.sort };
