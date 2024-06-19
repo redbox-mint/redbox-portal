@@ -78,7 +78,11 @@ export module Services {
             for(let recordTypeName in wfSteps) {
               let workflowStepsObject = wfSteps[recordTypeName];
               for (let workflowStep of workflowStepsObject){
-                const workflowConf = sails.config.workflow[recordTypeName][workflowStep["workflow"]];
+                let workflowConf = sails.config.workflow[recordTypeName][workflowStep["workflow"]];
+                let form = _.get(workflowConf,'config.form','');
+                if(form == '') {
+                  _.set(workflowConf.config,'form','generated-view-only');
+                }
                 var obs = await this.create(workflowStep["recordType"], workflowStep["workflow"], workflowConf.config, workflowConf.starting == true, workflowConf['hidden']).toPromise();
                 workflowSteps.push(obs);
               };

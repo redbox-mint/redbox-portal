@@ -160,7 +160,31 @@ export module Services {
       });
     }
 
-    public getForm = (branding, recordType, editMode, starting: boolean): Observable<FormModel> => {
+    public getForm = (formParam: string, editMode: boolean, currentRec: any): Observable<FormModel> => {
+
+      // allow client to set the form name to use
+      const formName = _.isUndefined(formParam) || _.isEmpty(formParam) ? currentRec.metaMetadata.form : formParam;
+
+      if(formName == 'generated-view-only') {
+        return super.getObservable(this.generateFormFromSchema(currentRec));
+      } else {
+
+        return this.getFormByName(formName, editMode);
+      }
+
+      
+      // if(formName == 'generated-view-only') {
+      //   let schema = this.inferSchemaFromMetadata(currentRec);
+      //   _.set(currentRec,'schema',schema);
+      //   const user = req.user;
+      //   this.recordsService.updateMeta(brand, oid, currentRec, user, false, false);
+      // }
+
+    }
+
+    public getFormByStartingWorkflowStep = (branding, recordType, editMode): Observable<FormModel> => {
+
+      let starting = true;
 
       return super.getObservable(RecordType.findOne({
         key: branding + "_" + recordType
@@ -199,6 +223,8 @@ export module Services {
 
     public generateFormFromSchema(record: any): FormModel {
 
+      let recordType = record.metaMetadata.type;
+
       let form: FormModel;
 
       let schema = this.inferSchemaFromMetadata(record);
@@ -206,20 +232,20 @@ export module Services {
       let fieldKeys = _.keys(schema.properties);
 
       let buttonsList = [
+        // {
+        //   class: "AnchorOrButton",
+        //   viewOnly: true,
+        //   definition: {
+        //     label: '@dmp-edit-record-link',
+        //     value: '/@branding/@portal/record/edit/@oid',
+        //     cssClasses: 'btn btn-large btn-info',
+        //     showPencil: true,
+        //     controlType: 'anchor'
+        //   },
+        //   variableSubstitutionFields: ['value']
+        // },
         {
-          class: "AnchorOrButton",
-          viewOnly: true,
-          definition: {
-            label: '@dmp-edit-record-link',
-            value: '/@branding/@portal/record/edit/@oid',
-            cssClasses: 'btn btn-large btn-info',
-            showPencil: true,
-            controlType: 'anchor'
-          },
-          variableSubstitutionFields: ['value']
-        },
-        {
-          class: "AnchorOrButton",
+          class: 'AnchorOrButton',
           roles: ['Admin', 'Librarians'],
           viewOnly: true,
           definition: {
@@ -229,6 +255,25 @@ export module Services {
             controlType: 'anchor'
           },
           variableSubstitutionFields: ['value']
+        },
+        {
+          class: 'SaveButton',
+          viewOnly: true,
+          roles: ['Admin', 'Librarians'],
+          definition: {
+            name: 'confirmDelete',
+            label: 'Delete this record',
+            closeOnSave: true,
+            redirectLocation: '/@branding/@portal/dashboard/'+recordType,
+            cssClasses: 'btn-danger',
+            confirmationMessage: '@dataPublication-confirmDelete',
+            confirmationTitle: '@dataPublication-confirmDeleteTitle',
+            cancelButtonMessage: '@dataPublication-cancelButtonMessage',
+            confirmButtonMessage: '@dataPublication-confirmButtonMessage',
+            isDelete: true,
+            isSubmissionButton: true
+          },
+          variableSubstitutionFields: ['redirectLocation']
         }
       ];
 
@@ -331,7 +376,7 @@ export module Services {
 
       let formObject = {
         name: 'generated-view-only',
-        type: record.metaMetadata.type,
+        type: recordType,
         skipValidationOnSave: false,
         editCssClasses: 'row col-md-12',
         viewCssClasses: 'row col-md-offset-1 col-md-10',
