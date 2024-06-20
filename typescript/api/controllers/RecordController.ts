@@ -227,173 +227,76 @@ export module Controllers {
       return Observable.of(this.recordsService.hasViewAccess(brand, user, user.roles, currentRec));
     }
 
-    public getForm(req, res) {
+    public async getForm(req, res) {
       const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
       const name = req.param('name');
       const oid = req.param('oid');
       const editMode = req.query.edit == "true";
       const formParam = req.param('formName');
-      let obs = null;
-      if (_.isEmpty(oid)) {
-        obs = FormsService.getFormByStartingWorkflowStep(brand.id, name, editMode).flatMap(form => {
-          let mergedForm = this.mergeFields(req, res, form.fields, form.requiredFieldIndicator, name, {}).then(fields => {
-            form.fields = fields;
-            return form;
-          });
-          return mergedForm;
-        });
-      } else {
-        // defaults to retrive the form of the current workflow state...
-        obs = Observable.fromPromise(this.recordsService.getMeta(oid)).flatMap(currentRec => {
-          if (_.isEmpty(currentRec)) {
-            return Observable.throw(new Error(`Error, empty metadata for OID: ${oid}`));
-          }
-
-          if (editMode) {
-            return this.hasEditAccess(brand, req.user, currentRec)
-              .flatMap(hasEditAccess => {
-                if (!hasEditAccess) {
-                  return Observable.throw(new Error(TranslationService.t('edit-error-no-permissions')));
-                }
-                return FormsService.getForm(formParam, editMode, currentRec).flatMap(form => {
-                  if (_.isEmpty(form)) {
-                    return Observable.throw(new Error(`Error, getting form ${formParam} for OID: ${oid}`));
-                  }
-                  let mergedForm = this.mergeFields(req, res, form.fields, form.requiredFieldIndicator, currentRec.metaMetadata.type, currentRec).then(fields => {
-                    form.fields = fields;
-
-                    return form;
-                  });
-                  return mergedForm;
-                });
-              });
+      try {
+        if (_.isEmpty(oid)) {
+          let form = await FormsService.getFormByStartingWorkflowStep(brand.id, name, editMode); 
+          let fields = await this.mergeFields(req, res, form.fields, form.requiredFieldIndicator, name, {});
+          form.fields = fields;
+          let mergedForm = form;
+          if (!_.isEmpty(mergedForm)) {
+            return this.ajaxOk(req, res, null, mergedForm);
           } else {
-            return this.hasViewAccess(brand, req.user, currentRec)
-              .flatMap(hasViewAccess => {
-                if (!hasViewAccess) {
-                  return Observable.throw(new Error(TranslationService.t('view-error-no-permissions')));
-                }
-                return this.hasEditAccess(brand, req.user, currentRec);
-              })
-              .flatMap(hasEditAccess => {
-                return FormsService.getForm('default-1.0-draft', editMode, currentRec).flatMap(form => {
-                  if (_.isEmpty(form)) {
-                    return Observable.throw(new Error(`Error, getting form ${formParam} for OID: ${oid}`));
-                  }
-                  FormsService.filterFieldsHasEditAccess(form.fields, hasEditAccess);
-                  return this.mergeFields(req, res, form.fields, form.requiredFieldIndicator, currentRec.metaMetadata.type, currentRec).then(fields => {
-                    form.fields = fields;
-
-                    return form;
-                  });
-                });
-              });
+            return this.ajaxFail(req, res, null, {message: `Failed to get form with name:${name}`});
           }
-        });
-      }
-      obs.subscribe(form => {
-        if (!_.isEmpty(form)) {
-          this.ajaxOk(req, res, null, form);
         } else {
-          this.ajaxFail(req, res, null, {
-            message: `Failed to get form with name:${name}`
-          });
+          // defaults to retrive the form of the current workflow state...
+          let currentRec = await this.recordsService.getMeta(oid);
+          if (_.isEmpty(currentRec)) {
+            return this.ajaxFail(req, res, null, {message: `Error, empty metadata for OID: ${oid}`});
+          }
+          if (editMode) {
+            let hasEditAccess = await this.hasEditAccess(brand, req.user, currentRec).toPromise();
+            if (!hasEditAccess) {
+              return this.ajaxFail(req, res, null, {message: TranslationService.t('edit-error-no-permissions')});
+            }
+            let form = await FormsService.getForm(formParam, editMode, currentRec).toPromise();
+            if (_.isEmpty(form)) {
+              return this.ajaxFail(req, res, null, {message: `Error, getting form ${formParam} for OID: ${oid}`});
+            }
+            let fields = await this.mergeFields(req, res, form.fields, form.requiredFieldIndicator, currentRec.metaMetadata.type, currentRec);
+            form.fields = fields;
+            let mergedForm = form;
+            if (!_.isEmpty(mergedForm)) {
+              return this.ajaxOk(req, res, null, mergedForm);
+            } else {
+              return this.ajaxFail(req, res, null, {message: `Failed to get form with name:${name}`});
+            }
+          } else {
+            let hasViewAccess = await this.hasViewAccess(brand, req.user, currentRec).toPromise();
+            
+            if (!hasViewAccess) {
+              return this.ajaxFail(req, res, null, {message: TranslationService.t('view-error-no-permissions')});
+            }
+            let hasEditAccess = await this.hasEditAccess(brand, req.user, currentRec).toPromise();
+            let form = await FormsService.getForm(formParam, editMode, currentRec).toPromise();
+            if (_.isEmpty(form)) {
+              return this.ajaxFail(req, res, null, {message: `Error, getting form ${formParam} for OID: ${oid}`});
+            }
+            FormsService.filterFieldsHasEditAccess(form.fields, hasEditAccess);
+            let fields = await this.mergeFields(req, res, form.fields, form.requiredFieldIndicator, currentRec.metaMetadata.type, currentRec);
+            form.fields = fields;
+            if (!_.isEmpty(form)) {
+              return this.ajaxOk(req, res, null, form);
+            } else {
+              return this.ajaxFail(req, res, null, {message: `Failed to get form with name:${name}`});
+            }
+          }
         }
-      }, error => {
+      } catch(error) {
         sails.log.error("Error getting form definition:");
         sails.log.error(error);
         let message = error.message;
         if (error.error && error.error.code == 500) {
           message = TranslationService.t('missing-record');
         }
-        this.ajaxFail(req, res, message);
-      });
-
-    }
-
-    public getFormByName(req, res) {
-      const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
-      const name = req.param('name');
-      const oid = req.param('oid');
-      const editMode = req.query.edit == "true";
-      const formParam = req.param('formName');
-      let obs = null;
-      if (_.isEmpty(oid)) {
-        obs = FormsService.getForm(brand.id, name, editMode, true).flatMap(form => {
-          let mergedForm = this.mergeFields(req, res, form.fields, form.requiredFieldIndicator, name, {}).then(fields => {
-            form.fields = fields;
-            return form;
-          });
-          return mergedForm;
-        });
-      } else {
-        // defaults to retrive the form of the current workflow state...
-        obs = Observable.fromPromise(this.recordsService.getMeta(oid)).flatMap(currentRec => {
-          if (_.isEmpty(currentRec)) {
-            return Observable.throw(new Error(`Error, empty metadata for OID: ${oid}`));
-          }
-          // allow client to set the form name to use
-          const formName = _.isUndefined(formParam) || _.isEmpty(formParam) ? currentRec.metaMetadata.form : formParam;
-          if (editMode) {
-            return this.hasEditAccess(brand, req.user, currentRec)
-              .flatMap(hasEditAccess => {
-                if (!hasEditAccess) {
-                  return Observable.throw(new Error(TranslationService.t('edit-error-no-permissions')));
-                }
-                return FormsService.getFormByName(formName, editMode).flatMap(form => {
-                  if (_.isEmpty(form)) {
-                    return Observable.throw(new Error(`Error, getting form ${formName} for OID: ${oid}`));
-                  }
-                  let mergedForm = this.mergeFields(req, res, form.fields, form.requiredFieldIndicator, currentRec.metaMetadata.type, currentRec).then(fields => {
-                    form.fields = fields;
-
-                    return form;
-                  });
-                  return mergedForm;
-                });
-              });
-          } else {
-            return this.hasViewAccess(brand, req.user, currentRec)
-              .flatMap(hasViewAccess => {
-                if (!hasViewAccess) {
-                  return Observable.throw(new Error(TranslationService.t('view-error-no-permissions')));
-                }
-                return this.hasEditAccess(brand, req.user, currentRec)
-              })
-              .flatMap(hasEditAccess => {
-                return FormsService.getFormByName(formName, editMode).flatMap(form => {
-                  if (_.isEmpty(form)) {
-                    return Observable.throw(new Error(`Error, getting form ${formName} for OID: ${oid}`));
-                  }
-                  FormsService.filterFieldsHasEditAccess(form.fields, hasEditAccess);
-                  return this.mergeFields(req, res, form.fields, form.requiredFieldIndicator, currentRec.metaMetadata.type, currentRec).then(fields => {
-                    form.fields = fields;
-
-                    return form;
-                  });
-                });
-              });
-          }
-        });
+        return this.ajaxFail(req, res, message);
       }
-      obs.subscribe(form => {
-        if (!_.isEmpty(form)) {
-          this.ajaxOk(req, res, null, form);
-        } else {
-          this.ajaxFail(req, res, null, {
-            message: `Failed to get form with name:${name}`
-          });
-        }
-      }, error => {
-        sails.log.error("Error getting form definition:");
-        sails.log.error(error);
-        let message = error.message;
-        if (error.error && error.error.code == 500) {
-          message = TranslationService.t('missing-record');
-        }
-        this.ajaxFail(req, res, message);
-      });
-
     }
 
     public create(req, res) {

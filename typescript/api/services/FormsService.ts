@@ -166,7 +166,7 @@ export module Services {
       const formName = _.isUndefined(formParam) || _.isEmpty(formParam) ? currentRec.metaMetadata.form : formParam;
 
       if(formName == 'generated-view-only') {
-        return super.getObservable(this.generateFormFromSchema(currentRec));
+        return Observable.of(this.generateFormFromSchema(currentRec));
       } else {
 
         return this.getFormByName(formName, editMode);
