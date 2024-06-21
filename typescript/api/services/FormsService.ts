@@ -51,7 +51,8 @@ export module Services {
       'filterFieldsHasEditAccess',
       'listForms',
       'inferSchemaFromMetadata',
-      'generateFormFromSchema'
+      'generateFormFromSchema',
+      'getFormByStartingWorkflowStep'
     ];
 
     public async bootstrap(workflowStep): Promise<any> {

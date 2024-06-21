@@ -150,7 +150,7 @@ export module Controllers {
       sails.log.debug('RECORD::APP: ' + appName);
       sails.log.debug('RECORD::APP formName: ' + extFormName);
       if (recordType != '' && extFormName == '') {
-        FormsService.getForm(brand.id, recordType, true, true).subscribe(form => {
+        FormsService.getFormByStartingWorkflowStep(brand.id, recordType, true).subscribe(form => {
           if (form['customAngularApp'] != null) {
             appSelector = form['customAngularApp']['appSelector'];
             appName = form['customAngularApp']['appName'];
@@ -229,20 +229,23 @@ export module Controllers {
 
     public async getForm(req, res) {
       const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
-      const name = req.param('name');
+      const recordType = req.param('name');
       const oid = req.param('oid');
       const editMode = req.query.edit == "true";
       const formParam = req.param('formName');
       try {
         if (_.isEmpty(oid)) {
-          let form = await FormsService.getFormByStartingWorkflowStep(brand.id, name, editMode); 
-          let fields = await this.mergeFields(req, res, form.fields, form.requiredFieldIndicator, name, {});
+          let form = await FormsService.getFormByStartingWorkflowStep(brand.id, recordType, editMode).toPromise();
+          if (_.isEmpty(form)) {
+            return this.ajaxFail(req, res, null, {message: `Error, getting form for record type: ${recordType}`});
+          }
+          let fields = await this.mergeFields(req, res, form.fields, form.requiredFieldIndicator, recordType, {});
           form.fields = fields;
           let mergedForm = form;
           if (!_.isEmpty(mergedForm)) {
             return this.ajaxOk(req, res, null, mergedForm);
           } else {
-            return this.ajaxFail(req, res, null, {message: `Failed to get form with name:${name}`});
+            return this.ajaxFail(req, res, null, {message: `Failed to get form with name:${recordType}`});
           }
         } else {
           // defaults to retrive the form of the current workflow state...
@@ -265,11 +268,10 @@ export module Controllers {
             if (!_.isEmpty(mergedForm)) {
               return this.ajaxOk(req, res, null, mergedForm);
             } else {
-              return this.ajaxFail(req, res, null, {message: `Failed to get form with name:${name}`});
+              return this.ajaxFail(req, res, null, {message: `Failed to get form with name:${recordType}`});
             }
           } else {
             let hasViewAccess = await this.hasViewAccess(brand, req.user, currentRec).toPromise();
-            
             if (!hasViewAccess) {
               return this.ajaxFail(req, res, null, {message: TranslationService.t('view-error-no-permissions')});
             }
@@ -284,7 +286,7 @@ export module Controllers {
             if (!_.isEmpty(form)) {
               return this.ajaxOk(req, res, null, form);
             } else {
-              return this.ajaxFail(req, res, null, {message: `Failed to get form with name:${name}`});
+              return this.ajaxFail(req, res, null, {message: `Failed to get form with name:${recordType}`});
             }
           }
         }
