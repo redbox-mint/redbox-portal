@@ -233,6 +233,7 @@ export module Controllers {
       const oid = req.param('oid');
       const editMode = req.query.edit == "true";
       const formParam = req.param('formName');
+      let mergedForm: any = {};
       try {
         if (_.isEmpty(oid)) {
           let form = await FormsService.getFormByStartingWorkflowStep(brand.id, recordType, editMode).toPromise();
@@ -241,12 +242,7 @@ export module Controllers {
           }
           let fields = await this.mergeFields(req, res, form.fields, form.requiredFieldIndicator, recordType, {});
           form.fields = fields;
-          let mergedForm = form;
-          if (!_.isEmpty(mergedForm)) {
-            return this.ajaxOk(req, res, null, mergedForm);
-          } else {
-            return this.ajaxFail(req, res, null, {message: `Failed to get form with name:${recordType}`});
-          }
+          mergedForm = form;
         } else {
           // defaults to retrive the form of the current workflow state...
           let currentRec = await this.recordsService.getMeta(oid);
@@ -264,12 +260,7 @@ export module Controllers {
             }
             let fields = await this.mergeFields(req, res, form.fields, form.requiredFieldIndicator, currentRec.metaMetadata.type, currentRec);
             form.fields = fields;
-            let mergedForm = form;
-            if (!_.isEmpty(mergedForm)) {
-              return this.ajaxOk(req, res, null, mergedForm);
-            } else {
-              return this.ajaxFail(req, res, null, {message: `Failed to get form with name:${recordType}`});
-            }
+            mergedForm = form;
           } else {
             let hasViewAccess = await this.hasViewAccess(brand, req.user, currentRec).toPromise();
             if (!hasViewAccess) {
@@ -283,12 +274,13 @@ export module Controllers {
             FormsService.filterFieldsHasEditAccess(form.fields, hasEditAccess);
             let fields = await this.mergeFields(req, res, form.fields, form.requiredFieldIndicator, currentRec.metaMetadata.type, currentRec);
             form.fields = fields;
-            if (!_.isEmpty(form)) {
-              return this.ajaxOk(req, res, null, form);
-            } else {
-              return this.ajaxFail(req, res, null, {message: `Failed to get form with name:${recordType}`});
-            }
+            mergedForm = form;
           }
+        }
+        if (!_.isEmpty(mergedForm)) {
+          return this.ajaxOk(req, res, null, mergedForm);
+        } else {
+          return this.ajaxFail(req, res, null, {message: `Failed to get form with name:${recordType}`});
         }
       } catch(error) {
         sails.log.error("Error getting form definition:");
