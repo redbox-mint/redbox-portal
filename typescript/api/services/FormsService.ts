@@ -20,12 +20,13 @@
 import {
   Observable
 } from 'rxjs/Rx';
-import { FormModel, Services as services } from '@researchdatabox/redbox-core-types';
+import { BrandingModel, FormModel, Services as services } from '@researchdatabox/redbox-core-types';
 import {
   Sails,
   Model
 } from "sails";
 import { createSchema } from 'genson-js';
+import { config } from 'process';
 
 declare var sails: Sails;
 declare var Form: Model;
@@ -161,34 +162,25 @@ export module Services {
       });
     }
 
-    public getForm = (formParam: string, editMode: boolean, currentRec: any): Observable<FormModel> => {
+    public getForm(branding: BrandingModel, formParam: string, editMode: boolean, currentRec: any): Observable<FormModel> {
 
       // allow client to set the form name to use
       const formName = _.isUndefined(formParam) || _.isEmpty(formParam) ? currentRec.metaMetadata.form : formParam;
 
       if(formName == 'generated-view-only') {
-        return Observable.of(this.generateFormFromSchema(currentRec));
+        return this.generateFormFromSchema(branding, currentRec);
       } else {
 
         return this.getFormByName(formName, editMode);
       }
-
-      
-      // if(formName == 'generated-view-only') {
-      //   let schema = this.inferSchemaFromMetadata(currentRec);
-      //   _.set(currentRec,'schema',schema);
-      //   const user = req.user;
-      //   this.recordsService.updateMeta(brand, oid, currentRec, user, false, false);
-      // }
-
     }
 
-    public getFormByStartingWorkflowStep = (branding, recordType, editMode): Observable<FormModel> => {
+    public getFormByStartingWorkflowStep(branding: BrandingModel, recordType: string, editMode: boolean): Observable<FormModel> {
 
       let starting = true;
 
       return super.getObservable(RecordType.findOne({
-        key: branding + "_" + recordType
+        key: branding.id + "_" + recordType
       }))
         .flatMap(recordType => {
 
@@ -218,178 +210,155 @@ export module Services {
 
     public inferSchemaFromMetadata(record: any): any {
       const schema = createSchema(record.metadata);
-      // sails.log.verbose(schema);
       return schema;
     }
 
-    public generateFormFromSchema(record: any): FormModel {
+    public generateFormFromSchema(branding: BrandingModel, record: any): Observable<FormModel> {
 
       let recordType = record.metaMetadata.type;
 
-      let form: FormModel;
+      let starting = true;
 
-      let schema = this.inferSchemaFromMetadata(record);
+      return super.getObservable(RecordType.findOne({
+        key: branding.id + "_" + recordType
+      }))
+        .flatMap(recordType => {
 
-      let fieldKeys = _.keys(schema.properties);
+          return super.getObservable(WorkflowStep.findOne({
+            recordType: recordType.id,
+            starting: starting
+          }));
+        }).flatMap(workflowStep => {
 
-      let buttonsList = [
-        // {
-        //   class: "AnchorOrButton",
-        //   viewOnly: true,
-        //   definition: {
-        //     label: '@dmp-edit-record-link',
-        //     value: '/@branding/@portal/record/edit/@oid',
-        //     cssClasses: 'btn btn-large btn-info',
-        //     showPencil: true,
-        //     controlType: 'anchor'
-        //   },
-        //   variableSubstitutionFields: ['value']
-        // },
-        {
-          class: 'AnchorOrButton',
-          roles: ['Admin', 'Librarians'],
-          viewOnly: true,
-          definition: {
-            label: '@view-record-audit-link',
-            value: '/@branding/@portal/record/viewAudit/@oid',
-            cssClasses: 'btn btn-large btn-info margin-15',
-            controlType: 'anchor'
-          },
-          variableSubstitutionFields: ['value']
-        },
-        {
-          class: 'SaveButton',
-          viewOnly: true,
-          roles: ['Admin', 'Librarians'],
-          definition: {
-            name: 'confirmDelete',
-            label: 'Delete this record',
-            closeOnSave: true,
-            redirectLocation: '/@branding/@portal/dashboard/'+recordType,
-            cssClasses: 'btn-danger',
-            confirmationMessage: '@dataPublication-confirmDelete',
-            confirmationTitle: '@dataPublication-confirmDeleteTitle',
-            cancelButtonMessage: '@dataPublication-cancelButtonMessage',
-            confirmButtonMessage: '@dataPublication-confirmButtonMessage',
-            isDelete: true,
-            isSubmissionButton: true
-          },
-          variableSubstitutionFields: ['redirectLocation']
-        }
-      ];
+          if (workflowStep.starting == true) {
+            
+            let form: FormModel;
+  
+            let schema = this.inferSchemaFromMetadata(record);
+      
+            let fieldKeys = _.keys(schema.properties);
+    
+            let buttonsList = [
+              {
+                class: 'AnchorOrButton',
+                roles: ['Admin', 'Librarians'],
+                viewOnly: true,
+                definition: {
+                  label: '@view-record-audit-link',
+                  value: '/@branding/@portal/record/viewAudit/@oid',
+                  cssClasses: 'btn btn-large btn-info margin-15',
+                  controlType: 'anchor'
+                },
+                variableSubstitutionFields: ['value']
+              },
+              {
+                class: 'SaveButton',
+                viewOnly: true,
+                roles: ['Admin', 'Librarians'],
+                definition: {
+                  name: 'confirmDelete',
+                  label: 'Delete this record',
+                  closeOnSave: true,
+                  redirectLocation: '/@branding/@portal/dashboard/'+recordType,
+                  cssClasses: 'btn-danger',
+                  confirmationMessage: '@dataPublication-confirmDelete',
+                  confirmationTitle: '@dataPublication-confirmDeleteTitle',
+                  cancelButtonMessage: '@dataPublication-cancelButtonMessage',
+                  confirmButtonMessage: '@dataPublication-confirmButtonMessage',
+                  isDelete: true,
+                  isSubmissionButton: true
+                },
+                variableSubstitutionFields: ['redirectLocation']
+              }
+            ];
+    
+            let textFieldTemplate = {
+              class: 'TextField',
+              viewOnly: true,
+              definition: {
+                name: '',
+                label: '',
+                help: '',
+                type: 'text'
+              }
+            };
+    
+            let objectFieldHeadingTemplate = {
+              class: 'Container',
+              compClass: 'TextBlockComponent',
+              definition: {
+                value: '',
+                type: 'h3'
+              }
+            };
+    
+            let mainTitleFieldName = _.get(workflowStep,'config.generatedView.mainField','title');
 
-      let textFieldTemplate = {
-        class: 'TextField',
-        viewOnly: true,
-        definition: {
-          name: '',
-          label: '',
-          help: '',
-          type: 'text'
-        }
-      };
-
-      let objectFieldHeadingTemplate = {
-        class: 'Container',
-        compClass: 'TextBlockComponent',
-        definition: {
-          value: '',
-          type: 'h3'
-        }
-      };
-
-      let fieldList = [
-        {
-          class: 'Container',
-          compClass: 'TextBlockComponent',
-          viewOnly: true,
-          definition: {
-            name: 'title',
-            type: 'h1'
-          }
-        },
-        {
-          class: 'Container',
-          compClass: 'GenericGroupComponent',
-          definition: {
-            cssClasses: "form-inline",
-            fields: buttonsList
-          }
-        }
-
-        // {
-        //   class: 'TextArea',
-        //   viewOnly: true,
-        //   definition: {
-        //     name: 'description',
-        //     label: '@dmpt-description'
-        //   }
-        // },
-
-
-        // {
-        //   class: "Container",
-        //   definition: {
-        //     id: "project",
-        //     label: "project-tab",
-        //     fields: [
-        //     ]
-        //   }
-        // }
-
-
-        // {
-        //   class: "TabOrAccordionContainer",
-        //   compClass: "TabOrAccordionContainerComponent",
-        //   definition: {
-        //     id: "mainTab",
-        //     accContainerClass: "view-accordion",
-        //     expandAccordionsOnOpen: true,
-        //     fields: [
-        //     ]
-        //   }
-        // }
-      ];
-
-      for(let fieldKey of fieldKeys) {
-        if(schema.properties[fieldKey].type == 'string') {
-          let textField = _.cloneDeep(textFieldTemplate);
-          _.set(textField.definition,'name',fieldKey);
-          _.set(textField.definition,'label',fieldKey);
-          fieldList.push(textField);
-        } else if(schema.properties[fieldKey].type == 'object') {
-          
-          let objectFieldHeading =  _.cloneDeep(objectFieldHeadingTemplate);
-          _.set(objectFieldHeading.definition, 'value', fieldKey);
-          fieldList.push(objectFieldHeading);
-          
-          let objectFieldKeys = _.keys(schema.properties[fieldKey].properties);
-          for(let objectFieldKey of objectFieldKeys) {
-            if(schema.properties[fieldKey].properties[objectFieldKey].type == 'string') {
-              let textField = _.cloneDeep(textFieldTemplate);
-              _.set(textField.definition,'name',objectFieldKey);
-              _.set(textField.definition,'label',objectFieldKey);
-              fieldList.push(textField);
+            let fieldList = [
+              {
+                class: 'Container',
+                compClass: 'TextBlockComponent',
+                viewOnly: true,
+                definition: {
+                  name: mainTitleFieldName,
+                  type: 'h1'
+                }
+              },
+              {
+                class: 'Container',
+                compClass: 'GenericGroupComponent',
+                definition: {
+                  cssClasses: "form-inline",
+                  fields: buttonsList
+                }
+              }
+            ];
+    
+            for(let fieldKey of fieldKeys) {
+              if(schema.properties[fieldKey].type == 'string') {
+                let textField = _.cloneDeep(textFieldTemplate);
+                _.set(textField.definition,'name',fieldKey);
+                _.set(textField.definition,'label',fieldKey);
+                fieldList.push(textField);
+              } else if(schema.properties[fieldKey].type == 'object') {
+                
+                let objectFieldHeading =  _.cloneDeep(objectFieldHeadingTemplate);
+                _.set(objectFieldHeading.definition, 'value', fieldKey);
+                fieldList.push(objectFieldHeading);
+                
+                let objectFieldKeys = _.keys(schema.properties[fieldKey].properties);
+                for(let objectFieldKey of objectFieldKeys) {
+                  if(schema.properties[fieldKey].properties[objectFieldKey].type == 'string') {
+                    let textField = _.cloneDeep(textFieldTemplate);
+                    _.set(textField.definition,'name',fieldKey+'.'+objectFieldKey);
+                    _.set(textField.definition,'label',objectFieldKey);
+                    fieldList.push(textField);
+                  }
+                }
+              }
             }
+    
+            let formObject = {
+              name: 'generated-view-only',
+              type: recordType,
+              skipValidationOnSave: false,
+              editCssClasses: 'row col-md-12',
+              viewCssClasses: 'row col-md-offset-1 col-md-10',
+              messages: {},
+              attachmentFields: [],
+              fields: fieldList
+            };
+    
+            form = formObject as any;
+    
+            return Observable.of(form);
           }
-        }
-      }
 
-      let formObject = {
-        name: 'generated-view-only',
-        type: recordType,
-        skipValidationOnSave: false,
-        editCssClasses: 'row col-md-12',
-        viewCssClasses: 'row col-md-offset-1 col-md-10',
-        messages: {},
-        attachmentFields: [],
-        fields: fieldList
-      };
-
-      form = formObject as any;
-
-      return form;
+          return Observable.of(null);
+        }).filter(result => result !== null).last();
     }
+      
+
 
     protected setFormEditMode(fields, editMode): void{
       _.remove(fields, field => {

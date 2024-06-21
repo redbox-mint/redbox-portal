@@ -295,25 +295,26 @@ module.exports.workflow = {
           editRoles: ['Admin', 'Librarians']
         },
         form: 'generated-view-only',
+        generatedView: { mainField: 'JOB_TITLE' },
         dashboard: {
           table: {
             rowConfig: [
               {
-                title: 'Record Title',
-                variable: 'metadata.title',
-                template: `<a href='<%=rootContext%>/<%= branding %>/<%= portal %>/record/view/<%= oid %>'><%= metadata.title %></a>`,
+                title: 'Party Name',
+                variable: 'metadata.GIVEN_NAME',
+                template: `<a href='<%=rootContext%>/<%= branding %>/<%= portal %>/record/view/<%= oid %>'><%= metadata.GIVEN_NAME %> <%= metadata.FAMILY_NAME %></a>`,
                 initialSort: 'desc'
               },
               {
-                title: 'header-ci',
-                variable: 'metadata.contributor_ci.text_full_name',
-                template: '<%= metadata.contributor_ci != undefined ? metadata.contributor_ci.text_full_name : "" %>',
+                title: 'Party Title',
+                variable: 'metadata.JOB_TITLE',
+                template: '<%= metadata.JOB_TITLE %>',
                 initialSort: 'desc'
               },
               {
-                title: 'header-data-manager',
-                variable: 'metadata.contributor_data_manager.text_full_name',
-                template: '<%= metadata.contributor_data_manager != undefined ? metadata.contributor_data_manager.text_full_name : "" %>',
+                title: 'Party Email',
+                variable: 'metadata.EMAIL',
+                template: '<%= metadata.EMAIL %>',
                 initialSort: 'desc'
               },
               {

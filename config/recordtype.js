@@ -606,6 +606,6 @@ module.exports.recordtype = {
     hooks: { }
   },
   "party": {
-    "packageType": "rdmp"
+    packageType: "party"
   }
 };
