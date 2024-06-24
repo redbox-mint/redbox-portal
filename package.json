@@ -48,7 +48,7 @@
     "mongodb": "^6.3.0",
     "node-cache": "^5.1.2",
     "node-schedule": "^2.1.1",
-    "nodemailer": "^6.9.13",
+    "nodemailer": "^6.9.14",
     "numeral": "^2.0.6",
     "openid-client": "^5.6.5",
     "passport": "^0.7.0",
@@ -64,7 +64,7 @@
     "sails-hook-orm": "^4.0.3",
     "sails-hook-sockets": "^3.0.0",
     "sails-mongo": "^2.1.1",
-    "sass": "^1.77.4",
+    "sass": "^1.77.6",
     "sass-loader": "^14.2.1",
     "skipper": "^0.9.4",
     "skipper-gridfs": "^1.0.2",
@@ -74,11 +74,11 @@
     "ts-node": "^10.9.2",
     "tus-node-server": "^0.9.0",
     "typescript": "5.4",
-    "typescript-json-schema": "^0.63.0",
+    "typescript-json-schema": "^0.64.0",
     "typescript-require": "~0.3.0",
     "url-pattern": "^1.0.3",
-    "webpack": "^5.91.0",
-    "zone.js": "^0.14.6"
+    "webpack": "^5.92.0",
+    "zone.js": "^0.14.7"
   },
   "scripts": {
     "debug": "node debug app.js",

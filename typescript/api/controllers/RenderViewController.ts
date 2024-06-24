@@ -1,20 +1,17 @@
 //<reference path='./../../typings/loader.d.ts'/>
 
-import { Controllers as controllers} from '@researchdatabox/redbox-core-types';
-
+import { Controllers as controllers,PopulateExportedMethods} from '@researchdatabox/redbox-core-types';
 /**
  * Package that contains all Controllers.
  */
+
+
+
+
 export module Controllers {
-
+    
+    @PopulateExportedMethods
     export class RenderView extends controllers.Core.Controller {
-
-        /**
-         * Exported methods, accessible from internet.
-         */
-        protected _exportedMethods: any = [
-            'render'
-        ];
 
         /**
          **************************************************************************************************
