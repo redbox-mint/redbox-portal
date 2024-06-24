@@ -141,6 +141,9 @@ module.exports.routes = {
     action: 'openIdConnectLogin',
     csrf: false
   },
+  'HEAD /user/begin_oidc': {
+    policy: 'disallowedHeadRequestHandler'
+  },
   'get /user/begin_oidc': {
     controller: 'UserController',
     action: 'beginOidc',
