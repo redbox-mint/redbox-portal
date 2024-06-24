@@ -212,11 +212,12 @@ export class DashboardComponent extends BaseComponent {
 
       this.initSortConfig(step);
 
+      this.workflowSteps.push(step);
+
       let packageType = '';
       let stepName = '';
       let evaluateStepName = '';
       if (this.dashboardTypeSelected == 'consolidated') {
-        this.workflowSteps.push(step);
         packageType = '';
         stepName = '';
         evaluateStepName = _get(step, 'name');
@@ -803,7 +804,7 @@ export class DashboardComponent extends BaseComponent {
     return this.getFilters('text');
   }
 
-  public getFilterSearchDisplayed(step: string): boolean {
+  public getFilterSearchDisplayed(step: any): boolean {
     let filterDisplayed = _.get(this.isFilterSearchDisplayed,step,'');
     if(filterDisplayed == 'filterDisplayed') {
       return true;

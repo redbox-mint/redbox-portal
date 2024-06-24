@@ -1,7 +1,6 @@
 <div *ngIf="isReady">
     <ng-container>
         <div *ngFor="let workflowStep of workflowSteps">
-
             <div class="d-flex flex-row">
               <div *ngIf="workflowSteps.length > 1 && (dashboardTypeSelected == 'standard' || dashboardTypeSelected == 'consolidated')" class="col-md-4">
                 <h2>{{ 'dashboard-heading' | i18next: {stage: workflowStep.config.workflow.stageLabel, recordTypeName: typeLabel} }}</h2>
