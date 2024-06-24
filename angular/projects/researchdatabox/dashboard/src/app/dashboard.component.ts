@@ -34,7 +34,7 @@ export class DashboardComponent extends BaseComponent {
   defaultFilterField: FilterField = { name: this.filterFieldName, path: this.filterFieldPath };
   filterSearchString: string = '';
   hideWorkflowStepTitle: boolean = false;
-  isFilterSearchDisplayed: boolean = false;
+  isFilterSearchDisplayed: any = {};
   isSearching: boolean = false;
 
   defaultRowConfig = [
@@ -803,11 +803,20 @@ export class DashboardComponent extends BaseComponent {
     return this.getFilters('text');
   }
 
+  public getFilterSearchDisplayed(step: string): boolean {
+    let filterDisplayed = _.get(this.isFilterSearchDisplayed,step,'');
+    if(filterDisplayed == 'filterDisplayed') {
+      return true;
+    } else {
+      return false;
+    }
+  }
+
   public async filterChanged(step: string) {
 
     if (this.dashboardTypeSelected == 'standard') {
       this.isSearching = true;
-      this.isFilterSearchDisplayed = true;
+      this.isFilterSearchDisplayed[step] = 'filterDisplayed';
       let sortDetails = this.sortMap[step];
       let stagedRecords = await this.recordService.getRecords(this.recordType, step, 1, '', this.getSortString(sortDetails),this.filterFieldPath,this.filterSearchString);
       let planTable: PlanTable = this.evaluatePlanTableColumns({}, {}, {}, step, stagedRecords);
