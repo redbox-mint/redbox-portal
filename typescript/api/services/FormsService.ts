@@ -162,13 +162,13 @@ export module Services {
       });
     }
 
-    public getForm(branding: BrandingModel, formParam: string, editMode: boolean, currentRec: any): Observable<FormModel> {
+    public getForm(branding: BrandingModel, formParam: string, editMode: boolean, recordType: string, currentRec: any): Observable<FormModel> {
 
       // allow client to set the form name to use
       const formName = _.isUndefined(formParam) || _.isEmpty(formParam) ? currentRec.metaMetadata.form : formParam;
 
       if(formName == 'generated-view-only') {
-        return this.generateFormFromSchema(branding, currentRec);
+        return this.generateFormFromSchema(branding, recordType, currentRec);
       } else {
 
         return this.getFormByName(formName, editMode);
@@ -213,9 +213,14 @@ export module Services {
       return schema;
     }
 
-    public generateFormFromSchema(branding: BrandingModel, record: any): Observable<FormModel> {
+    public generateFormFromSchema(branding: BrandingModel, recordType: string, record: any): Observable<FormModel> {
 
-      let recordType = record.metaMetadata.type;
+      if(recordType == '') {
+        recordType = _.get(record,'metaMetadata.type','');
+        if(recordType == '') {
+          return  Observable.of(null);
+        }
+      }
 
       let starting = true;
 
@@ -282,6 +287,40 @@ export module Services {
                 type: 'text'
               }
             };
+
+            let groupComponentTemplate = {
+              class: 'Container',
+              compClass: 'GenericGroupComponent',
+              definition: {
+                name: '',
+                cssClasses: 'form-inline',
+                fields: []
+              }
+            };
+
+            let groupTextFieldTemplate = {
+              class: 'TextField',
+              definition: {
+                name: '',
+                label: '',
+                type: 'text',
+                groupName: '',
+                groupClasses: 'width-30',
+                cssClasses : "width-80 form-control"
+              }
+            };
+
+            let repeatableGroupComponentTemplate = {
+              class: 'RepeatableContainer',
+              compClass: 'RepeatableGroupComponent',
+              definition: {
+                name: '',
+                label: '',
+                help: '',
+                forceClone: ['fields'],
+                fields: []
+              }
+            };
     
             let objectFieldHeadingTemplate = {
               class: 'Container',
@@ -292,7 +331,7 @@ export module Services {
               }
             };
     
-            let mainTitleFieldName = _.get(workflowStep,'config.generatedView.mainField','title');
+            let mainTitleFieldName = 'title';
 
             let fieldList = [
               {
@@ -315,26 +354,69 @@ export module Services {
             ];
     
             for(let fieldKey of fieldKeys) {
+              
               if(schema.properties[fieldKey].type == 'string') {
+                
                 let textField = _.cloneDeep(textFieldTemplate);
                 _.set(textField.definition,'name',fieldKey);
                 _.set(textField.definition,'label',fieldKey);
                 fieldList.push(textField);
+
+              } if(schema.properties[fieldKey].type == 'array') {
+
+                if(schema.properties[fieldKey].items.type == 'string') {
+
+                  let textField = _.cloneDeep(textFieldTemplate);
+                  _.set(textField.definition,'name',fieldKey);
+                  _.set(textField.definition,'label',fieldKey);
+                  fieldList.push(textField);
+
+                } else if(schema.properties[fieldKey].items.type == 'object') {
+
+                  let objectFieldKeys = _.keys(schema.properties[fieldKey].items.properties);
+                  let repeatableGroupField = _.cloneDeep(repeatableGroupComponentTemplate);
+                  let groupField = _.cloneDeep(groupComponentTemplate);
+                  let groupFieldList = [];
+                  for(let objectFieldKey of objectFieldKeys) {
+                    if(schema.properties[fieldKey].items.properties[objectFieldKey].type == 'string') {
+                      let textField = _.cloneDeep(groupTextFieldTemplate);
+                      _.set(textField.definition,'name',objectFieldKey);
+                      _.set(textField.definition,'label',objectFieldKey);
+                      _.set(textField.definition,'groupName','item');
+                      groupFieldList.push(textField);
+                    }
+                  }
+  
+                  _.set(groupField.definition,'name','item');
+                  _.set(groupField.definition,'fields',groupFieldList);
+                  _.set(repeatableGroupField.definition,'name',fieldKey);
+                  _.set(repeatableGroupField.definition,'label',fieldKey);
+                  _.set(repeatableGroupField.definition,'fields',[groupField]);
+                  fieldList.push(repeatableGroupField);
+                }
+
               } else if(schema.properties[fieldKey].type == 'object') {
                 
+                let objectFieldKeys = _.keys(schema.properties[fieldKey].properties);
+                let groupField = _.cloneDeep(groupComponentTemplate);
+                let groupFieldList = [];
+                for(let objectFieldKey of objectFieldKeys) {
+                  if(schema.properties[fieldKey].properties[objectFieldKey].type == 'string') {
+                    let textField = _.cloneDeep(groupTextFieldTemplate);
+                    _.set(textField.definition,'name',objectFieldKey);
+                    _.set(textField.definition,'label',objectFieldKey);
+                    _.set(textField.definition,'groupName',fieldKey);
+                    groupFieldList.push(textField);
+                  }
+                }
+
                 let objectFieldHeading =  _.cloneDeep(objectFieldHeadingTemplate);
                 _.set(objectFieldHeading.definition, 'value', fieldKey);
                 fieldList.push(objectFieldHeading);
-                
-                let objectFieldKeys = _.keys(schema.properties[fieldKey].properties);
-                for(let objectFieldKey of objectFieldKeys) {
-                  if(schema.properties[fieldKey].properties[objectFieldKey].type == 'string') {
-                    let textField = _.cloneDeep(textFieldTemplate);
-                    _.set(textField.definition,'name',fieldKey+'.'+objectFieldKey);
-                    _.set(textField.definition,'label',objectFieldKey);
-                    fieldList.push(textField);
-                  }
-                }
+
+                _.set(groupField.definition,'name',fieldKey);
+                _.set(groupField.definition,'fields',groupFieldList);
+                fieldList.push(groupField);
               }
             }
     
@@ -355,6 +437,7 @@ export module Services {
           }
 
           return Observable.of(null);
+
         }).filter(result => result !== null).last();
     }
       

@@ -606,6 +606,40 @@ module.exports.recordtype = {
     hooks: { }
   },
   "party": {
-    packageType: "party"
+    packageType: "party",
+    hooks: {
+      onCreate: {
+        pre: [
+          {
+              function: 'sails.services.rdmpservice.runTemplates',
+              options: {
+              parseObject: false,
+              templates: [
+                  {
+                  field: "metadata.title",
+                  template: "<%= _.get(record, 'metadata.JOB_TITLE') %>"
+                  }
+              ]
+              }
+          }
+        ]
+      },
+      onUpdate: {
+        pre: [
+          {
+              function: 'sails.services.rdmpservice.runTemplates',
+              options: {
+              parseObject: false,
+              templates: [
+                  {
+                  field: "metadata.title",
+                  template: "<%= _.get(record, 'metadata.JOB_TITLE') %>"
+                  }
+              ]
+              }
+          }
+        ]
+      }
+    }
   }
 };

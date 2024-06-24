@@ -295,7 +295,6 @@ module.exports.workflow = {
           editRoles: ['Admin', 'Librarians']
         },
         form: 'generated-view-only',
-        generatedView: { mainField: 'JOB_TITLE' },
         dashboard: {
           table: {
             rowConfig: [
