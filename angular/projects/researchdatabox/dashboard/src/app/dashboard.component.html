@@ -17,7 +17,7 @@
                       <li><hr class="dropdown-divider"></li>
                       <li><a class="dropdown-item" href="#" (click)="resetFilterAndSearch(workflowStep.config.workflow.stage, $event)">{{ 'record-search-reset' | i18next }}</a></li>
                     </ul>
-                    <input type="text" class="form-control" [(ngModel)]="filterSearchString" placeholder="{{ 'record-search-basic-search-placeholder' | i18next}}" (keyup.enter)="filterChanged(workflowStep.config.workflow.stage)" aria-describedby="basic-search-addon" autofocus>
+                    <input type="text" class="form-control" [(ngModel)]="filterSearchString[workflowStep.config.workflow.stage]" placeholder="{{ 'record-search-basic-search-placeholder' | i18next}}" (keyup.enter)="filterChanged(workflowStep.config.workflow.stage)" aria-describedby="basic-search-addon" autofocus>
                     <button class="btn btn-primary" type='button' aria-expanded="false" [disabled]="getIsSearching(workflowStep.config.workflow.stage) || getFilterSearchString(workflowStep.config.workflow.stage) == ''" (click)="filterChanged(workflowStep.config.workflow.stage)">{{ 'record-search-basic-search' | i18next }}</button>
                   </div>
                 </div>
