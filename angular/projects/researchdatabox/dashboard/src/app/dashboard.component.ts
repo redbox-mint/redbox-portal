@@ -32,10 +32,10 @@ export class DashboardComponent extends BaseComponent {
   filterFieldName: string = 'Title';
   filterFieldPath: string = 'metadata.title';
   defaultFilterField: FilterField = { name: this.filterFieldName, path: this.filterFieldPath };
-  filterSearchString: string = '';
+  filterSearchString: any = {};
   hideWorkflowStepTitle: boolean = false;
   isFilterSearchDisplayed: any = {};
-  isSearching: boolean = false;
+  isSearching: any = {};
 
   defaultRowConfig = [
     {
@@ -697,7 +697,7 @@ export class DashboardComponent extends BaseComponent {
       if (this.dashboardTypeSelected == 'workspace') {
         stagedRecords = await this.recordService.getRecords('', '', 1, this.dashboardTypeSelected, sortString);
       } else {
-        stagedRecords = await this.recordService.getRecords(this.recordType, data.step, 1, '', sortString,this.filterFieldPath,this.filterSearchString);
+        stagedRecords = await this.recordService.getRecords(this.recordType, data.step, 1, '', sortString,this.filterFieldPath,this.getFilterSearchString(data.step));
       }
 
       let planTable: PlanTable = this.evaluatePlanTableColumns({}, {}, {}, data.step, stagedRecords);
@@ -723,7 +723,7 @@ export class DashboardComponent extends BaseComponent {
     let sortDetails = this.sortMap[step];
 
     if (this.dashboardTypeSelected == 'standard') {
-      let stagedRecords = await this.recordService.getRecords(this.recordType, step, event.page, '', this.getSortString(sortDetails),this.filterFieldPath,this.filterSearchString);
+      let stagedRecords = await this.recordService.getRecords(this.recordType, step, event.page, '', this.getSortString(sortDetails),this.filterFieldPath,this.getFilterSearchString(step));
       let planTable: PlanTable = this.evaluatePlanTableColumns({}, {}, {}, step, stagedRecords);
       this.records[step] = planTable;
     } else if (this.dashboardTypeSelected == 'workspace') {
@@ -813,29 +813,43 @@ export class DashboardComponent extends BaseComponent {
     }
   }
 
+  public getIsSearching(step: any): boolean {
+    let searching = _.get(this.isSearching,step,'');
+    if(searching == 'searching') {
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  public getFilterSearchString(step: any): string {
+    let filterString = _.get(this.filterSearchString,step,'');
+    return filterString;
+  }
+
   public async filterChanged(step: string) {
 
     if (this.dashboardTypeSelected == 'standard') {
-      this.isSearching = true;
+      this.isSearching[step] = 'searching';
       this.isFilterSearchDisplayed[step] = 'filterDisplayed';
       let sortDetails = this.sortMap[step];
-      let stagedRecords = await this.recordService.getRecords(this.recordType, step, 1, '', this.getSortString(sortDetails),this.filterFieldPath,this.filterSearchString);
+      let stagedRecords = await this.recordService.getRecords(this.recordType, step, 1, '', this.getSortString(sortDetails),this.filterFieldPath,this.getFilterSearchString(step));
       let planTable: PlanTable = this.evaluatePlanTableColumns({}, {}, {}, step, stagedRecords);
       this.records[step] = planTable;
-      this.isSearching = false;
+      this.isSearching[step] = '';
     }
   }
 
   public async resetFilterAndSearch(step: string, e: any) {
     if (this.dashboardTypeSelected == 'standard') {
       this.setFilterField(this.getFirstTextFilter(), e);
-      this.isSearching = true;
+      this.isSearching[step] = 'searching';
       let sortDetails = this.sortMap[step];
-      this.filterSearchString = '';
-      let stagedRecords = await this.recordService.getRecords(this.recordType, step, 1, '', this.getSortString(sortDetails),this.filterFieldPath,this.filterSearchString);
+      this.filterSearchString[step] = '';
+      let stagedRecords = await this.recordService.getRecords(this.recordType, step, 1, '', this.getSortString(sortDetails),this.filterFieldPath,this.getFilterSearchString(step));
       let planTable: PlanTable = this.evaluatePlanTableColumns({}, {}, {}, step, stagedRecords);
       this.records[step] = planTable;
-      this.isSearching = false;
+      this.isSearching[step] = '';
     }
   }
 

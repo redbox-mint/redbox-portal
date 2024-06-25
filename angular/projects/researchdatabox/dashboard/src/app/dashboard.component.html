@@ -13,12 +13,12 @@
                   <div class="d-flex flex-row mt-4">
                     <button class="btn btn-primary dropdown-toggle" type='button' data-bs-toggle="dropdown" aria-expanded="false" >Filter by {{ filterFieldName }}</button>
                     <ul class="dropdown-menu">
-                      <li *ngFor="let filter of getTextFilters()"><a class="dropdown-item" href="#" (click)="setFilterField(filter, $event); searchTextInput.focus()">Filter by {{ filter.name }}</a></li>
+                      <li *ngFor="let filter of getTextFilters()"><a class="dropdown-item" href="#" (click)="setFilterField(filter, $event)">Filter by {{ filter.name }}</a></li>
                       <li><hr class="dropdown-divider"></li>
-                      <li><a class="dropdown-item" href="#" (click)="resetFilterAndSearch(workflowStep.config.workflow.stage, $event); searchTextInput.focus()">{{ 'record-search-reset' | i18next }}</a></li>
+                      <li><a class="dropdown-item" href="#" (click)="resetFilterAndSearch(workflowStep.config.workflow.stage, $event)">{{ 'record-search-reset' | i18next }}</a></li>
                     </ul>
-                    <input type="text" class="form-control" #searchTextInput [(ngModel)]="filterSearchString" placeholder="{{ 'record-search-basic-search-placeholder' | i18next}}" (keyup.enter)="filterChanged(workflowStep.config.workflow.stage)" aria-describedby="basic-search-addon" autofocus>
-                    <button class="btn btn-primary" type='button' aria-expanded="false" [disabled]="isSearching || filterSearchString == ''" (click)="filterChanged(workflowStep.config.workflow.stage); searchTextInput.focus()">{{ 'record-search-basic-search' | i18next }}</button>
+                    <input type="text" class="form-control" [(ngModel)]="filterSearchString" placeholder="{{ 'record-search-basic-search-placeholder' | i18next}}" (keyup.enter)="filterChanged(workflowStep.config.workflow.stage)" aria-describedby="basic-search-addon" autofocus>
+                    <button class="btn btn-primary" type='button' aria-expanded="false" [disabled]="getIsSearching(workflowStep.config.workflow.stage) || getFilterSearchString(workflowStep.config.workflow.stage) == ''" (click)="filterChanged(workflowStep.config.workflow.stage)">{{ 'record-search-basic-search' | i18next }}</button>
                   </div>
                 </div>
                 <div class="col-md-4"></div>
