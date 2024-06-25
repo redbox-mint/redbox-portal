@@ -43,7 +43,6 @@ describe('The FormsService', function () {
     };
     FormsService.getForm(brand, '', true, '', record).subscribe(form => {
       expect(form).to.have.property('name', formName);
-      // expect(true).to.eq(true);
       done();
     })
   });
@@ -58,8 +57,7 @@ describe('The FormsService', function () {
       }
     };
     FormsService.getForm(brand, '', true, '', record).subscribe(form => {
-      // expect(form).to.have.property('name', formName);
-      expect(true).to.eq(true);
+      expect(form).to.have.property('name', formName);
       done();
     })
   });
@@ -69,7 +67,6 @@ describe('The FormsService', function () {
     let formName = 'default-1.0-draft';
     FormsService.getForm(brand, formName, true, 'rdmp', {}).subscribe(form => {
       expect(form).to.have.property('name', formName);
-      // expect(true).to.eq(true);
       done();
     })
   });
@@ -79,7 +76,6 @@ describe('The FormsService', function () {
     let formName = 'generated-view-only';
     FormsService.getForm(brand, formName, true, 'rdmp', {}).subscribe(form => {
       expect(form).to.have.property('name', formName);
-      //expect(true).to.eq(true);
       done();
     })
   });
