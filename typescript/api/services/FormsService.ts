@@ -355,30 +355,34 @@ export module Services {
     
             for(let fieldKey of fieldKeys) {
               
-              if(schema.properties[fieldKey].type == 'string') {
+              let schemaProperty = schema.properties[fieldKey];
+
+              if(_.get(schemaProperty,'type','') == 'string') {
                 
                 let textField = _.cloneDeep(textFieldTemplate);
                 _.set(textField.definition,'name',fieldKey);
                 _.set(textField.definition,'label',fieldKey);
                 fieldList.push(textField);
 
-              } if(schema.properties[fieldKey].type == 'array') {
+              } if(_.get(schemaProperty,'type','') == 'array') {
 
-                if(schema.properties[fieldKey].items.type == 'string') {
+                if(_.get(schemaProperty,'items.type','') == 'string') {
 
                   let textField = _.cloneDeep(textFieldTemplate);
                   _.set(textField.definition,'name',fieldKey);
                   _.set(textField.definition,'label',fieldKey);
                   fieldList.push(textField);
 
-                } else if(schema.properties[fieldKey].items.type == 'object') {
+                } else if(_.get(schemaProperty,'items.type','') == 'object') {
 
-                  let objectFieldKeys = _.keys(schema.properties[fieldKey].items.properties);
+                  let objectFieldKeys = _.keys(schemaProperty.items.properties);
                   let repeatableGroupField = _.cloneDeep(repeatableGroupComponentTemplate);
                   let groupField = _.cloneDeep(groupComponentTemplate);
                   let groupFieldList = [];
+
                   for(let objectFieldKey of objectFieldKeys) {
-                    if(schema.properties[fieldKey].items.properties[objectFieldKey].type == 'string') {
+                    let innerProperty = schemaProperty.items.properties[objectFieldKey];
+                    if(_.get(innerProperty,'type','') == 'string') {
                       let textField = _.cloneDeep(groupTextFieldTemplate);
                       _.set(textField.definition,'name',objectFieldKey);
                       _.set(textField.definition,'label',objectFieldKey);
@@ -395,13 +399,15 @@ export module Services {
                   fieldList.push(repeatableGroupField);
                 }
 
-              } else if(schema.properties[fieldKey].type == 'object') {
+              } else if(_.get(schemaProperty,'type','') == 'object') {
                 
-                let objectFieldKeys = _.keys(schema.properties[fieldKey].properties);
+                let objectFieldKeys = _.keys(schemaProperty.properties);
                 let groupField = _.cloneDeep(groupComponentTemplate);
                 let groupFieldList = [];
+                
                 for(let objectFieldKey of objectFieldKeys) {
-                  if(schema.properties[fieldKey].properties[objectFieldKey].type == 'string') {
+                  let innerProperty = schemaProperty.properties[objectFieldKey];
+                  if(_.get(innerProperty,'type','') == 'string') {
                     let textField = _.cloneDeep(groupTextFieldTemplate);
                     _.set(textField.definition,'name',objectFieldKey);
                     _.set(textField.definition,'label',objectFieldKey);
