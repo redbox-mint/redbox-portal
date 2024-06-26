@@ -87,8 +87,12 @@ export module Services {
         _.forOwn(sails.config.agendaQueue.options, (optionVal:any, optionName:string) => {
           this.setOptionIfDefined(agendaOpts, optionName, optionVal);
         });
+        const dbManager = User.getDatastore().manager;
+        const collectionName = _.get(agendaOpts, 'collection', 'agendaJobs');
+        await dbManager.collection(collectionName).createIndex({ name: 1, disabled: 1, lockedAt: 1, nextRunAt: 1 }) 
+        await dbManager.collection(collectionName).createIndex({ name: -1, disabled: -1, lockedAt: -1, nextRunAt: -1})
         if (_.isEmpty(_.get(agendaOpts, 'db.address'))) {
-          agendaOpts['mongo'] = User.getDatastore().manager;
+          agendaOpts['mongo'] = dbManager;
         }
         this.agenda = new Agenda(agendaOpts);
         this.defineJobs(sails.config.agendaQueue.jobs);
