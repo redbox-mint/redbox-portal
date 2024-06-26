@@ -88,9 +88,6 @@ export module Services {
           this.setOptionIfDefined(agendaOpts, optionName, optionVal);
         });
         const dbManager = User.getDatastore().manager;
-        const collectionName = _.get(agendaOpts, 'collection', 'agendaJobs');
-        await dbManager.collection(collectionName).createIndex({ name: 1, disabled: 1, lockedAt: 1, nextRunAt: 1 }) 
-        await dbManager.collection(collectionName).createIndex({ name: -1, disabled: -1, lockedAt: -1, nextRunAt: -1})
         if (_.isEmpty(_.get(agendaOpts, 'db.address'))) {
           agendaOpts['mongo'] = dbManager;
         }
@@ -115,6 +112,12 @@ export module Services {
           sails.log.error(err);
         });
         await this.agenda.start();
+
+        //Create indexes after agenda start
+        const collectionName = _.get(agendaOpts, 'collection', 'agendaJobs');
+        await dbManager.collection(collectionName).createIndex({ name: 1, disabled: 1, lockedAt: 1, nextRunAt: 1 });
+        await dbManager.collection(collectionName).createIndex({ name: -1, disabled: -1, lockedAt: -1, nextRunAt: -1});
+
         // check for in-line job schedule
         _.each(sails.config.agendaQueue.jobs, (job) => {
           if (!_.isEmpty(job.schedule)) {
