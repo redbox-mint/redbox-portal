@@ -20,14 +20,13 @@ describe('The FormsService', function () {
     })
   });
 
-  it('should get default-1.0-draft form', function (done) {
+  it('should get dataPublication-1.0-embargoed form', function (done) {
     
     var formName = 'dataPublication-1.0-embargoed';
 
-    FormsService.getFormByName( formName, true).subscribe(function(form) {
+    FormsService.getFormByName(formName, true).subscribe(function(form) {
       console.log(form)
-      // expect(form).to.have.property('name', formName);
-      expect(true).to.eq(true)
+      expect(form).to.have.property('name', formName);
       done();
     })
   });
