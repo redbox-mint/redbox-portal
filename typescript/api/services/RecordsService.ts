@@ -175,7 +175,8 @@ export module Services {
 
       let wfStep = await WorkflowStepsService.getFirst(recordType).toPromise();
       let formName = _.get(wfStep,'config.form');
-      let form = await FormsService.getFormByName(formName, true).toPromise();
+
+      let form = await FormsService.getForm(brand, formName, true, recordType.name, record);
 
       let metaMetadata = this.initRecordMetaMetadata(brand.id, user.username, recordType, wfStep, form, moment().format());
       _.set(record,'metaMetadata',metaMetadata);
