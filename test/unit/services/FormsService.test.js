@@ -53,8 +53,36 @@ describe('The FormsService', function () {
       metaMetadata: {
         form: formName,
         type: 'rdmp'
+      },
+      metadata: {
+        ID : 's823456',
+        GIVEN_NAME : 'Ant10',
+        OTHER_NAMES : 'Other',
+        FAMILY_NAME : 'Season',
+        PREF_NAME : 'Ant',
+        HONORIFIC : 'Sr',
+        EMAIL : 'notAReal@email.edu.au',
+        JOB_TITLE : 'Assistant Professor',
+        NLA_PARTY_IDENTIFIER : '',
+        URIs : ['URI1', 'URI2', 'URI3'],
+        ORCID : '0000-0001-7269-2286',
+        PERSONAL_HOMEPAGE : '',
+        STAFF_PROFILE_HOMEPAGE : '',
+        DESCRIPTION : '',
+        RESEARCH_ELEMENTS_USER_ID : '12345678',
+        contributor_ci : {
+            text_full_name : 'Prof Ant10 Season',
+            email : 'notAReal@email.edu.au',
+            orcid : 'http://orcid.org/0000-0000-0000-000'
+        },
+        contributor_data_manager : [{
+            text_full_name : 'Prof Ant Season',
+            email : 'notAReal@email.edu.au',
+            orcid : 'http://orcid.org/0000-0000-0000-000'
+        }]
       }
     };
+    
     FormsService.getForm(brand, '', true, '', record).then(form => {
       expect(form).to.have.property('name', formName);
       done();
