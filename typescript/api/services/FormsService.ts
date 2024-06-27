@@ -162,16 +162,16 @@ export module Services {
       });
     }
 
-    public getForm(branding: BrandingModel, formParam: string, editMode: boolean, recordType: string, currentRec: any): Observable<FormModel> {
+    public async getForm(branding: BrandingModel, formParam: string, editMode: boolean, recordType: string, currentRec: any) {
 
       // allow client to set the form name to use
       const formName = _.isUndefined(formParam) || _.isEmpty(formParam) ? currentRec.metaMetadata.form : formParam;
 
       if(formName == 'generated-view-only') {
-        return this.generateFormFromSchema(branding, recordType, currentRec);
+        return await this.generateFormFromSchema(branding, recordType, currentRec);
       } else {
 
-        return this.getFormByName(formName, editMode);
+        return await this.getFormByName(formName, editMode).toPromise();
       }
     }
 
@@ -213,241 +213,219 @@ export module Services {
       return schema;
     }
 
-    public generateFormFromSchema(branding: BrandingModel, recordType: string, record: any): Observable<FormModel> {
+    public async generateFormFromSchema(branding: BrandingModel, recordType: string, record: any) {
 
       if(recordType == '') {
         recordType = _.get(record,'metaMetadata.type','');
         if(recordType == '') {
-          return  Observable.of(null);
+          return {};
         }
       }
 
-      let starting = true;
+      let form: FormModel;
 
-      return super.getObservable(RecordType.findOne({
-        key: branding.id + "_" + recordType
-      }))
-        .flatMap(recordType => {
+      let schema = this.inferSchemaFromMetadata(record);
 
-          return super.getObservable(WorkflowStep.findOne({
-            recordType: recordType.id,
-            starting: starting
-          }));
-        }).flatMap(workflowStep => {
+      let fieldKeys = _.keys(schema.properties);
 
-          if (workflowStep.starting == true) {
-            
-            let form: FormModel;
-  
-            let schema = this.inferSchemaFromMetadata(record);
-      
-            let fieldKeys = _.keys(schema.properties);
-    
-            let buttonsList = [
-              {
-                class: 'AnchorOrButton',
-                roles: ['Admin', 'Librarians'],
-                viewOnly: true,
-                definition: {
-                  label: '@view-record-audit-link',
-                  value: '/@branding/@portal/record/viewAudit/@oid',
-                  cssClasses: 'btn btn-large btn-info margin-15',
-                  controlType: 'anchor'
-                },
-                variableSubstitutionFields: ['value']
-              },
-              {
-                class: 'SaveButton',
-                viewOnly: true,
-                roles: ['Admin', 'Librarians'],
-                definition: {
-                  name: 'confirmDelete',
-                  label: 'Delete this record',
-                  closeOnSave: true,
-                  redirectLocation: '/@branding/@portal/dashboard/'+recordType,
-                  cssClasses: 'btn-danger',
-                  confirmationMessage: '@dataPublication-confirmDelete',
-                  confirmationTitle: '@dataPublication-confirmDeleteTitle',
-                  cancelButtonMessage: '@dataPublication-cancelButtonMessage',
-                  confirmButtonMessage: '@dataPublication-confirmButtonMessage',
-                  isDelete: true,
-                  isSubmissionButton: true
-                },
-                variableSubstitutionFields: ['redirectLocation']
-              }
-            ];
-    
-            let textFieldTemplate = {
-              class: 'TextField',
-              viewOnly: true,
-              definition: {
-                name: '',
-                label: '',
-                help: '',
-                type: 'text'
-              }
-            };
+      let buttonsList = [
+        {
+          class: 'AnchorOrButton',
+          roles: ['Admin', 'Librarians'],
+          viewOnly: true,
+          definition: {
+            label: '@view-record-audit-link',
+            value: '/@branding/@portal/record/viewAudit/@oid',
+            cssClasses: 'btn btn-large btn-info margin-15',
+            controlType: 'anchor'
+          },
+          variableSubstitutionFields: ['value']
+        },
+        {
+          class: 'SaveButton',
+          viewOnly: true,
+          roles: ['Admin', 'Librarians'],
+          definition: {
+            name: 'confirmDelete',
+            label: 'Delete this record',
+            closeOnSave: true,
+            redirectLocation: '/@branding/@portal/dashboard/'+recordType,
+            cssClasses: 'btn-danger',
+            confirmationMessage: '@dataPublication-confirmDelete',
+            confirmationTitle: '@dataPublication-confirmDeleteTitle',
+            cancelButtonMessage: '@dataPublication-cancelButtonMessage',
+            confirmButtonMessage: '@dataPublication-confirmButtonMessage',
+            isDelete: true,
+            isSubmissionButton: true
+          },
+          variableSubstitutionFields: ['redirectLocation']
+        }
+      ];
 
-            let groupComponentTemplate = {
-              class: 'Container',
-              compClass: 'GenericGroupComponent',
-              definition: {
-                name: '',
-                cssClasses: 'form-inline',
-                fields: []
-              }
-            };
+      let textFieldTemplate = {
+        class: 'TextField',
+        viewOnly: true,
+        definition: {
+          name: '',
+          label: '',
+          help: '',
+          type: 'text'
+        }
+      };
 
-            let groupTextFieldTemplate = {
-              class: 'TextField',
-              definition: {
-                name: '',
-                label: '',
-                type: 'text',
-                groupName: '',
-                groupClasses: 'width-30',
-                cssClasses : "width-80 form-control"
-              }
-            };
+      let groupComponentTemplate = {
+        class: 'Container',
+        compClass: 'GenericGroupComponent',
+        definition: {
+          name: '',
+          cssClasses: 'form-inline',
+          fields: []
+        }
+      };
 
-            let repeatableGroupComponentTemplate = {
-              class: 'RepeatableContainer',
-              compClass: 'RepeatableGroupComponent',
-              definition: {
-                name: '',
-                label: '',
-                help: '',
-                forceClone: ['fields'],
-                fields: []
-              }
-            };
-    
-            let objectFieldHeadingTemplate = {
-              class: 'Container',
-              compClass: 'TextBlockComponent',
-              definition: {
-                value: '',
-                type: 'h3'
-              }
-            };
-    
-            let mainTitleFieldName = 'title';
+      let groupTextFieldTemplate = {
+        class: 'TextField',
+        definition: {
+          name: '',
+          label: '',
+          type: 'text',
+          groupName: '',
+          groupClasses: 'width-30',
+          cssClasses : "width-80 form-control"
+        }
+      };
 
-            let fieldList = [
-              {
-                class: 'Container',
-                compClass: 'TextBlockComponent',
-                viewOnly: true,
-                definition: {
-                  name: mainTitleFieldName,
-                  type: 'h1'
-                }
-              },
-              {
-                class: 'Container',
-                compClass: 'GenericGroupComponent',
-                definition: {
-                  cssClasses: "form-inline",
-                  fields: buttonsList
-                }
-              }
-            ];
-    
-            for(let fieldKey of fieldKeys) {
-              
-              let schemaProperty = schema.properties[fieldKey];
+      let repeatableGroupComponentTemplate = {
+        class: 'RepeatableContainer',
+        compClass: 'RepeatableGroupComponent',
+        definition: {
+          name: '',
+          label: '',
+          help: '',
+          forceClone: ['fields'],
+          fields: []
+        }
+      };
 
-              if(_.get(schemaProperty,'type','') == 'string') {
-                
-                let textField = _.cloneDeep(textFieldTemplate);
-                _.set(textField.definition,'name',fieldKey);
-                _.set(textField.definition,'label',fieldKey);
-                fieldList.push(textField);
+      let objectFieldHeadingTemplate = {
+        class: 'Container',
+        compClass: 'TextBlockComponent',
+        definition: {
+          value: '',
+          type: 'h3'
+        }
+      };
 
-              } if(_.get(schemaProperty,'type','') == 'array') {
+      let mainTitleFieldName = 'title';
 
-                if(_.get(schemaProperty,'items.type','') == 'string') {
+      let fieldList = [
+        {
+          class: 'Container',
+          compClass: 'TextBlockComponent',
+          viewOnly: true,
+          definition: {
+            name: mainTitleFieldName,
+            type: 'h1'
+          }
+        },
+        {
+          class: 'Container',
+          compClass: 'GenericGroupComponent',
+          definition: {
+            cssClasses: "form-inline",
+            fields: buttonsList
+          }
+        }
+      ];
 
-                  let textField = _.cloneDeep(textFieldTemplate);
-                  _.set(textField.definition,'name',fieldKey);
-                  _.set(textField.definition,'label',fieldKey);
-                  fieldList.push(textField);
+      for(let fieldKey of fieldKeys) {
+        
+        let schemaProperty = schema.properties[fieldKey];
 
-                } else if(_.get(schemaProperty,'items.type','') == 'object') {
+        if(_.get(schemaProperty,'type','') == 'string') {
+          
+          let textField = _.cloneDeep(textFieldTemplate);
+          _.set(textField.definition,'name',fieldKey);
+          _.set(textField.definition,'label',fieldKey);
+          fieldList.push(textField);
 
-                  let objectFieldKeys = _.keys(schemaProperty.items.properties);
-                  let repeatableGroupField = _.cloneDeep(repeatableGroupComponentTemplate);
-                  let groupField = _.cloneDeep(groupComponentTemplate);
-                  let groupFieldList = [];
+        } if(_.get(schemaProperty,'type','') == 'array') {
 
-                  for(let objectFieldKey of objectFieldKeys) {
-                    let innerProperty = schemaProperty.items.properties[objectFieldKey];
-                    if(_.get(innerProperty,'type','') == 'string') {
-                      let textField = _.cloneDeep(groupTextFieldTemplate);
-                      _.set(textField.definition,'name',objectFieldKey);
-                      _.set(textField.definition,'label',objectFieldKey);
-                      _.set(textField.definition,'groupName','item');
-                      groupFieldList.push(textField);
-                    }
-                  }
-  
-                  _.set(groupField.definition,'name','item');
-                  _.set(groupField.definition,'fields',groupFieldList);
-                  _.set(repeatableGroupField.definition,'name',fieldKey);
-                  _.set(repeatableGroupField.definition,'label',fieldKey);
-                  _.set(repeatableGroupField.definition,'fields',[groupField]);
-                  fieldList.push(repeatableGroupField);
-                }
+          if(_.get(schemaProperty,'items.type','') == 'string') {
 
-              } else if(_.get(schemaProperty,'type','') == 'object') {
-                
-                let objectFieldKeys = _.keys(schemaProperty.properties);
-                let groupField = _.cloneDeep(groupComponentTemplate);
-                let groupFieldList = [];
-                
-                for(let objectFieldKey of objectFieldKeys) {
-                  let innerProperty = schemaProperty.properties[objectFieldKey];
-                  if(_.get(innerProperty,'type','') == 'string') {
-                    let textField = _.cloneDeep(groupTextFieldTemplate);
-                    _.set(textField.definition,'name',objectFieldKey);
-                    _.set(textField.definition,'label',objectFieldKey);
-                    _.set(textField.definition,'groupName',fieldKey);
-                    groupFieldList.push(textField);
-                  }
-                }
+            let textField = _.cloneDeep(textFieldTemplate);
+            _.set(textField.definition,'name',fieldKey);
+            _.set(textField.definition,'label',fieldKey);
+            fieldList.push(textField);
 
-                let objectFieldHeading =  _.cloneDeep(objectFieldHeadingTemplate);
-                _.set(objectFieldHeading.definition, 'value', fieldKey);
-                fieldList.push(objectFieldHeading);
+          } else if(_.get(schemaProperty,'items.type','') == 'object') {
 
-                _.set(groupField.definition,'name',fieldKey);
-                _.set(groupField.definition,'fields',groupFieldList);
-                fieldList.push(groupField);
+            let objectFieldKeys = _.keys(schemaProperty.items.properties);
+            let repeatableGroupField = _.cloneDeep(repeatableGroupComponentTemplate);
+            let groupField = _.cloneDeep(groupComponentTemplate);
+            let groupFieldList = [];
+
+            for(let objectFieldKey of objectFieldKeys) {
+              let innerProperty = schemaProperty.items.properties[objectFieldKey];
+              if(_.get(innerProperty,'type','') == 'string') {
+                let textField = _.cloneDeep(groupTextFieldTemplate);
+                _.set(textField.definition,'name',objectFieldKey);
+                _.set(textField.definition,'label',objectFieldKey);
+                _.set(textField.definition,'groupName','item');
+                groupFieldList.push(textField);
               }
             }
-    
-            let formObject = {
-              name: 'generated-view-only',
-              type: recordType,
-              skipValidationOnSave: false,
-              editCssClasses: 'row col-md-12',
-              viewCssClasses: 'row col-md-offset-1 col-md-10',
-              messages: {},
-              attachmentFields: [],
-              fields: fieldList
-            };
-    
-            form = formObject as any;
-    
-            return Observable.of(form);
+
+            _.set(groupField.definition,'name','item');
+            _.set(groupField.definition,'fields',groupFieldList);
+            _.set(repeatableGroupField.definition,'name',fieldKey);
+            _.set(repeatableGroupField.definition,'label',fieldKey);
+            _.set(repeatableGroupField.definition,'fields',[groupField]);
+            fieldList.push(repeatableGroupField);
           }
 
-          return Observable.of(null);
+        } else if(_.get(schemaProperty,'type','') == 'object') {
+          
+          let objectFieldKeys = _.keys(schemaProperty.properties);
+          let groupField = _.cloneDeep(groupComponentTemplate);
+          let groupFieldList = [];
+          
+          for(let objectFieldKey of objectFieldKeys) {
+            let innerProperty = schemaProperty.properties[objectFieldKey];
+            if(_.get(innerProperty,'type','') == 'string') {
+              let textField = _.cloneDeep(groupTextFieldTemplate);
+              _.set(textField.definition,'name',objectFieldKey);
+              _.set(textField.definition,'label',objectFieldKey);
+              _.set(textField.definition,'groupName',fieldKey);
+              groupFieldList.push(textField);
+            }
+          }
 
-        }).filter(result => result !== null).last();
+          let objectFieldHeading =  _.cloneDeep(objectFieldHeadingTemplate);
+          _.set(objectFieldHeading.definition, 'value', fieldKey);
+          fieldList.push(objectFieldHeading);
+
+          _.set(groupField.definition,'name',fieldKey);
+          _.set(groupField.definition,'fields',groupFieldList);
+          fieldList.push(groupField);
+        }
+      }
+
+      let formObject = {
+        name: 'generated-view-only',
+        type: recordType,
+        skipValidationOnSave: false,
+        editCssClasses: 'row col-md-12',
+        viewCssClasses: 'row col-md-offset-1 col-md-10',
+        messages: {},
+        attachmentFields: [],
+        fields: fieldList
+      };
+
+      form = formObject as any;
+
+      return form;
     }
-      
-
 
     protected setFormEditMode(fields, editMode): void{
       _.remove(fields, field => {

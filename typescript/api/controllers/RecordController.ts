@@ -261,7 +261,7 @@ export module Controllers {
             if (!hasEditAccess) {
               return this.ajaxFail(req, res, null, {message: TranslationService.t('edit-error-no-permissions')});
             }
-            form = await FormsService.getForm(brand, formParam, editMode, '', currentRec).toPromise();
+            form = await FormsService.getForm(brand, formParam, editMode, '', currentRec);
             if (_.isEmpty(form)) {
               return this.ajaxFail(req, res, null, {message: `Error, getting form ${formParam} for OID: ${oid}`});
             }
@@ -271,7 +271,7 @@ export module Controllers {
             if (!hasViewAccess) {
               return this.ajaxFail(req, res, null, {message: TranslationService.t('view-error-no-permissions')});
             }
-            form = await FormsService.getForm(brand, formParam, editMode, '', currentRec).toPromise();
+            form = await FormsService.getForm(brand, formParam, editMode, '', currentRec);
             if (_.isEmpty(form)) {
               return this.ajaxFail(req, res, null, {message: `Error, getting form ${formParam} for OID: ${oid}`});
             }

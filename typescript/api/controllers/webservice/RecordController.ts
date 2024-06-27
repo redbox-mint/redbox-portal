@@ -1085,7 +1085,7 @@ export module Controllers {
       let keys = _.keys(meta1);
 
       for(let key of keys) {
-        if(_.get(meta1,key,'') != _.get(meta2,key,'')) {
+        if(!_.isEqual(meta1?.[key],meta2?.[key])) {
           return false;
         }
       }
