@@ -1080,6 +1080,19 @@ export module Controllers {
       return this.apiFailWrapper(req, res, 400, null, null, "Invalid request");
     }
 
+    private isMetadataEqual(meta1:any, meta2:any): boolean {
+
+      let keys = _.keys(meta1);
+
+      for(let key of keys) {
+        if(!_.isEqual(meta1?.[key],meta2?.[key])) {
+          return false;
+        }
+      }
+
+      return true;
+    }
+
     public async legacyHarvest(req, res) {
       const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
 
@@ -1108,7 +1121,21 @@ export module Controllers {
               recordResponses.push(await this.createHarvestRecord(brand, recordTypeModel, record['metadata']['data'], harvestId, 'update', user));
             } else {
               let oid = existingRecord[0].redboxOid;
-              recordResponses.push(await this.updateHarvestRecord(brand, recordTypeModel, 'update', record['metadata']['data'], oid, harvestId, user));
+              let oldMetadata = existingRecord[0].metadata;
+              let newMetadata = record['metadata']['data'];
+              let response = { 
+                details: '',
+                message: `skip update of harvestId ${harvestId} oid ${oid} metadata sent is equal to metadata in existing record`,
+                harvestId: harvestId,
+                oid: oid,
+                status: true
+              };
+              if(this.isMetadataEqual(newMetadata,oldMetadata)) {
+                recordResponses.push(response);
+              } else {
+                response = await this.updateHarvestRecord(brand, recordTypeModel, 'update', newMetadata, oid, harvestId, user);
+                recordResponses.push(response);
+              }
             }
           }
         }

@@ -775,5 +775,7 @@
   "lang-mri": "Māori",
   "system-message-enabled": "false",
   "system-message-title": "System Notification",
-  "system-message-description": "ReDBox will be unavailable from 9am to 12pm on October 20 for system upgrades. Please contact support for any help"
+  "system-message-description": "ReDBox will be unavailable from 9am to 12pm on October 20 for system upgrades. Please contact support for any help",
+  "system-lookup-records": "Lookup records",
+  "system-lookup-record-item1": "Parties"
 }

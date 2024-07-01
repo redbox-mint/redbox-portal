@@ -87,8 +87,9 @@ export module Services {
         _.forOwn(sails.config.agendaQueue.options, (optionVal:any, optionName:string) => {
           this.setOptionIfDefined(agendaOpts, optionName, optionVal);
         });
+        const dbManager = User.getDatastore().manager;
         if (_.isEmpty(_.get(agendaOpts, 'db.address'))) {
-          agendaOpts['mongo'] = User.getDatastore().manager;
+          agendaOpts['mongo'] = dbManager;
         }
         this.agenda = new Agenda(agendaOpts);
         this.defineJobs(sails.config.agendaQueue.jobs);
@@ -111,6 +112,12 @@ export module Services {
           sails.log.error(err);
         });
         await this.agenda.start();
+
+        //Create indexes after agenda start
+        const collectionName = _.get(agendaOpts, 'collection', 'agendaJobs');
+        await dbManager.collection(collectionName).createIndex({ name: 1, disabled: 1, lockedAt: 1, nextRunAt: 1 });
+        await dbManager.collection(collectionName).createIndex({ name: -1, disabled: -1, lockedAt: -1, nextRunAt: -1});
+
         // check for in-line job schedule
         _.each(sails.config.agendaQueue.jobs, (job) => {
           if (!_.isEmpty(job.schedule)) {
