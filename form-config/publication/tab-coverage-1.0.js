@@ -131,7 +131,7 @@ module.exports = [
                 titleFieldArr: ['basic_name'],
                 fieldNames:['basic_name','latitude','longitude'],
                 stringLabelToField: 'basic_name',
-                resultArrayProperty: 'results'
+                resultArrayProperty: 'response.docs'
               }
             }],
             disabledExpression: '<%= _.isEmpty(relatedRecordId) %>'
