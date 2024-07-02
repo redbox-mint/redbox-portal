@@ -496,7 +496,16 @@ class ReDBoxQueryLookupDataService extends Subject<CompleterItem[]> implements C
             title = `${title}${_.isEmpty(title) ? '' : this.titleFieldDelim}${titleVal}`;
           }
         });
-      } 
+      } else {
+        // expecting a delim pair array, 'prefix', 'suffix'
+        _.forEach(this.titleFieldArr, (titleFld: string, idx) => {
+          const delimPair: any = this.titleFieldDelim[idx];
+          const titleVal = data[titleFld];
+          if (titleVal) {
+            title = `${title} ${titleVal}${delimPair.suffix}`;
+          }
+        });
+      }
     }
     return title;
   }
