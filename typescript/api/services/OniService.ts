@@ -30,7 +30,7 @@ const finished = promisify(stream.finished);
 import {languageProfileURI} from "language-data-commons-vocabs";
 import * as mime from 'mime-types';
 import {ROCrate} from "ro-crate";
-const { convertToWK } = require('wkt-parser-helper');
+import { convertToWK } from 'wkt-parser-helper';
 
 declare var sails: Sails;
 declare var RecordsService, UsersService;
