@@ -11,7 +11,7 @@ module.exports.vocab = {
   external: {
     geonames: {
       method: 'get',
-      url: "https://geonames.redboxresearchdata.com.au/select?timeAllowed=1000&q=${query}",
+      url: "https://geonames.redboxresearchdata.com.au/select?timeAllowed=1000&q=basic_name:${query}",
       options: {
 
       }

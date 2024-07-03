@@ -274,7 +274,7 @@ export module Services {
         return response.data;
       } else {
         const getSearch = {
-          method: sails.config.vocab.external[providerName].method,
+          method: method,
           url: url,
           params: options
         };
