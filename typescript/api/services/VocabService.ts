@@ -270,17 +270,17 @@ export module Services {
         };
         sails.log.verbose(post);
 
-        let response = await axios(options);
+        let response = await axios(post);
         return response.data;
       } else {
         const getSearch = {
-          method: sails.config.record.api.search.method,
+          method: sails.config.vocab.external[providerName].method,
           url: url,
           params: options
         };
         sails.log.verbose(getSearch);
 
-        let response = await axios(options);
+        let response = await axios(getSearch);
         return response.data;
       }
     }
