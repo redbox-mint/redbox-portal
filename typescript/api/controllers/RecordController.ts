@@ -1340,8 +1340,16 @@ export module Controllers {
 
     public render(req, res) {
       const recordType = req.param('recordType') ? req.param('recordType') : '';
-      const packageType = req.param('packageType') ? req.param('packageType') : '';
-      const titleLabel = req.param('titleLabel') ? TranslationService.t(req.param('titleLabel')) : `${TranslationService.t('edit-dashboard')} ${TranslationService.t(recordType + '-title-label')}`;
+      let packageType = req.param('packageType') ? req.param('packageType') : '';
+      let titleLabel = req.param('titleLabel') ? TranslationService.t(req.param('titleLabel')) : `${TranslationService.t('edit-dashboard')} ${TranslationService.t(recordType + '-title-label')}`;
+      if(recordType == 'workspace') {
+        if(packageType == '') {
+          packageType = 'workspace';
+        }
+        if(titleLabel == '') {
+          titleLabel = 'workspaces';
+        }
+      }
       return this.sendView(req, res, 'dashboard', { recordType: recordType, packageType: packageType, titleLabel: titleLabel });
     }
 
