@@ -42,10 +42,9 @@ const DEFAULT_IDENTIFIER_NAMESPACE = 'redbox';
 export module Services {
 	/**
 	 *
-	 * a Service to extract a DataPub and put it in a RO-Crate with the
-	 * metadata crosswalked into the right JSON-LD
+	 *  Creates a ROCRate record from a ReDBox data publication record and writes it to the OCFL repository
 	 *
-	 * @author <a target='_' href='https://github.com/spikelynch'>Mike Lynch</a>
+	 * @author <a target='_' href='https://github.com/shilob'>Shilo Banihit</a>
 	 *
 	 */
 	export class OniService extends services.Core.Service {
@@ -176,10 +175,11 @@ export module Services {
 				(a) => ( !mdOnly && a['type'] === 'attachment' && a['selected'] )
 			);
 			// write all valid attachments to temp directory
+			const oidTempDir = path.join(tempDir, oid);
 			try {
 				attachments.map((a) => {
 					// a['fileId'] necessary to avoid file name clashes within the dataset
-					a['parentDir'] = path.join(tempDir, oid, a['fileId']);
+					a['parentDir'] = path.join(oidTempDir, a['fileId']);
 					a['path'] = path.join(a['parentDir'] , a['name']);
 				});
 				for (let a of attachments) {
@@ -193,12 +193,26 @@ export module Services {
 					await this.writeDatastream(dataFile, a['parentDir'], a['name']);
 				}
 			} catch (err) {
+				await this.removeTempDir(oidTempDir);
 				throw this.getRBError(`${this.logHeader} writeDatasetObject()`, `Error writing attachments for dataset ${oid}: ${err}`);
 			}
-			await this.writeDatasetROCrate(creator, approver, oid, attachments, record, targetCollector, rootCollection);
+			try {
+				await this.writeDatasetROCrate(creator, approver, oid, attachments, record, targetCollector, rootCollection);
+			} catch (err) {
+				throw this.getRBError(`${this.logHeader} writeDatasetObject()`, `Error writing dataset RO-Crate for ${oid}: ${err}`);
+			} finally {
+				await this.removeTempDir(oidTempDir);
+			}
 		}
 
-
+		private async removeTempDir(tempDir: string) {
+			// remove the temp record-specific attachment directory
+			try {
+				await fs.rm(tempDir, { recursive: true });
+			} catch (err) {
+				sails.log.warn(`${this.logHeader} writeDatasetObject() -> Error removing temp directory ${tempDir}: ${err}`);
+			}
+		}
 		/**
 		 * 
 		 * Builds and persists the rocrate object to the OCFL repository
