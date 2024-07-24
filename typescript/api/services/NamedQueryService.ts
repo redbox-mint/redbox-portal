@@ -226,6 +226,9 @@ export module Services {
         if (value == undefined && queryParam.required === true) {
           throw Error(`${queryParamKey} is a required parameter`);
         }
+        if (!_.isEmpty(queryParam.template))  {
+          value = this.runTemplate(queryParam.template, { value: value, queryParams: queryParams, paramMap: paramMap });
+        }
         if (queryParam.type == DataType.Number) {
           value = _.toNumber(value)
         }
@@ -325,6 +328,7 @@ class QueryParameterDefinition {
   whenUndefined:NamedQueryWhenUndefinedOptions
   format: NamedQueryFormatOptions;
   path: string;
+  template: string;
 }
 
 export class NamedQueryConfig {
