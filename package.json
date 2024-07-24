@@ -33,7 +33,7 @@
     "genson-js": "^0.0.8",
     "glob": "^10.4.1",
     "har-validator": "5.1.5",
-    "i18next": "^23.11.5",
+    "i18next": "^23.12.2",
     "i18next-fs-backend": "^2.3.1",
     "include-all": "^4.0.3",
     "jquery": "^3.7.1",
@@ -58,7 +58,7 @@
     "passport-http-bearer": "^1.0.1",
     "passport-jwt": "^4.0.1",
     "passport-local": "^1.0.0",
-    "postcss": "^8.4.38",
+    "postcss": "^8.4.39",
     "rc": "1.2.8",
     "redux": "5.0.1",
     "rxjs": "6.6.2",
@@ -67,7 +67,7 @@
     "sails-hook-orm": "^4.0.3",
     "sails-hook-sockets": "^3.0.0",
     "sails-mongo": "^2.1.1",
-    "sass": "^1.77.6",
+    "sass": "^1.77.8",
     "sass-loader": "^14.2.1",
     "skipper": "^0.9.4",
     "skipper-gridfs": "^1.0.2",
@@ -80,9 +80,9 @@
     "typescript-json-schema": "^0.64.0",
     "typescript-require": "~0.3.0",
     "url-pattern": "^1.0.3",
-    "webpack": "^5.92.1",
+    "webpack": "^5.93.0",
     "wkt-parser-helper": "^4.1.0",
-    "zone.js": "^0.14.7"
+    "zone.js": "^0.14.8"
   },
   "scripts": {
     "debug": "node debug app.js",
@@ -118,7 +118,7 @@
     "chai": "^5.1.1",
     "ejs-cli": "^2.2.3",
     "istanbul": "^0.4.5",
-    "mocha": "^10.5.2",
+    "mocha": "^10.7.0",
     "mocha-junit-reporter": "^2.2.1",
     "supertest": "^7.0.0",
     "uglify-es": "^3.3.10"
