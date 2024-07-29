@@ -49,11 +49,12 @@
       "prefix": "app",
       "architect": {
         "build": {
-          "builder": "@angular-devkit/build-angular:browser",
+          "builder": "@angular-devkit/build-angular:application",
           "options": {
-            "outputPath": "../assets/angular/local-auth",
+            "outputPath": {
+              "base": "../assets/angular/local-auth"
+            },
             "index": "projects/researchdatabox/local-auth/src/index.html",
-            "main": "projects/researchdatabox/local-auth/src/main.ts",
             "polyfills": [
               "zone.js"
             ],
@@ -66,7 +67,8 @@
             "styles": [
               "projects/researchdatabox/local-auth/src/styles.scss"
             ],
-            "scripts": []
+            "scripts": [],
+            "browser": "projects/researchdatabox/local-auth/src/main.ts"
           },
           "configurations": {
             "production": {
@@ -85,9 +87,7 @@
               "outputHashing": "all"
             },
             "development": {
-              "buildOptimizer": false,
               "optimization": false,
-              "vendorChunk": true,
               "extractLicenses": false,
               "sourceMap": true,
               "namedChunks": true
@@ -147,11 +147,12 @@
       "prefix": "app",
       "architect": {
         "build": {
-          "builder": "@angular-devkit/build-angular:browser",
+          "builder": "@angular-devkit/build-angular:application",
           "options": {
-            "outputPath": "../assets/angular/export",
+            "outputPath": {
+              "base": "../assets/angular/export"
+            },
             "index": "projects/researchdatabox/export/src/index.html",
-            "main": "projects/researchdatabox/export/src/main.ts",
             "polyfills": [
               "zone.js"
             ],
@@ -165,7 +166,8 @@
               "projects/researchdatabox/export/src/styles.scss",
               "node_modules/ngx-bootstrap/datepicker/bs-datepicker.scss"
             ],
-            "scripts": []
+            "scripts": [],
+            "browser": "projects/researchdatabox/export/src/main.ts"
           },
           "configurations": {
             "production": {
@@ -184,9 +186,7 @@
               "outputHashing": "all"
             },
             "development": {
-              "buildOptimizer": false,
               "optimization": false,
-              "vendorChunk": true,
               "extractLicenses": false,
               "sourceMap": true,
               "namedChunks": true
@@ -246,11 +246,12 @@
       "prefix": "dashboard",
       "architect": {
         "build": {
-          "builder": "@angular-devkit/build-angular:browser",
+          "builder": "@angular-devkit/build-angular:application",
           "options": {
-            "outputPath": "../assets/angular/dashboard",
+            "outputPath": {
+              "base": "../assets/angular/dashboard"
+            },
             "index": "projects/researchdatabox/dashboard/src/index.html",
-            "main": "projects/researchdatabox/dashboard/src/main.ts",
             "polyfills": [
               "zone.js"
             ],
@@ -263,7 +264,8 @@
             "styles": [
               "projects/researchdatabox/dashboard/src/styles.scss"
             ],
-            "scripts": []
+            "scripts": [],
+            "browser": "projects/researchdatabox/dashboard/src/main.ts"
           },
           "configurations": {
             "production": {
@@ -282,9 +284,7 @@
               "outputHashing": "all"
             },
             "development": {
-              "buildOptimizer": false,
               "optimization": false,
-              "vendorChunk": true,
               "extractLicenses": false,
               "sourceMap": true,
               "namedChunks": true
@@ -344,11 +344,12 @@
       "prefix": "app",
       "architect": {
         "build": {
-          "builder": "@angular-devkit/build-angular:browser",
+          "builder": "@angular-devkit/build-angular:application",
           "options": {
-            "outputPath": "../assets/angular/report",
+            "outputPath": {
+              "base": "../assets/angular/report"
+            },
             "index": "projects/researchdatabox/report/src/index.html",
-            "main": "projects/researchdatabox/report/src/main.ts",
             "polyfills": [
               "zone.js"
             ],
@@ -362,7 +363,8 @@
               "projects/researchdatabox/report/src/styles.scss",
               "node_modules/ngx-bootstrap/datepicker/bs-datepicker.scss"
             ],
-            "scripts": []
+            "scripts": [],
+            "browser": "projects/researchdatabox/report/src/main.ts"
           },
           "configurations": {
             "production": {
@@ -381,9 +383,7 @@
               "outputHashing": "all"
             },
             "development": {
-              "buildOptimizer": false,
               "optimization": false,
-              "vendorChunk": true,
               "extractLicenses": false,
               "sourceMap": true,
               "namedChunks": true
@@ -443,11 +443,12 @@
       "prefix": "manage-users",
       "architect": {
         "build": {
-          "builder": "@angular-devkit/build-angular:browser",
+          "builder": "@angular-devkit/build-angular:application",
           "options": {
-            "outputPath": "../assets/angular/manage-users",
+            "outputPath": {
+              "base": "../assets/angular/manage-users"
+            },
             "index": "projects/researchdatabox/manage-users/src/index.html",
-            "main": "projects/researchdatabox/manage-users/src/main.ts",
             "polyfills": [
               "zone.js"
             ],
@@ -459,7 +460,8 @@
             "styles": [
               "projects/researchdatabox/manage-users/src/styles.scss"
             ],
-            "scripts": []
+            "scripts": [],
+            "browser": "projects/researchdatabox/manage-users/src/main.ts"
           },
           "configurations": {
             "production": {
@@ -478,9 +480,7 @@
               "outputHashing": "all"
             },
             "development": {
-              "buildOptimizer": false,
               "optimization": false,
-              "vendorChunk": true,
               "extractLicenses": false,
               "sourceMap": true,
               "namedChunks": true
@@ -539,11 +539,12 @@
       "prefix": "manage-roles",
       "architect": {
         "build": {
-          "builder": "@angular-devkit/build-angular:browser",
+          "builder": "@angular-devkit/build-angular:application",
           "options": {
-            "outputPath": "../assets/angular/manage-roles",
+            "outputPath": {
+              "base": "../assets/angular/manage-roles"
+            },
             "index": "projects/researchdatabox/manage-roles/src/index.html",
-            "main": "projects/researchdatabox/manage-roles/src/main.ts",
             "polyfills": [
               "zone.js"
             ],
@@ -556,7 +557,8 @@
             "styles": [
               "projects/researchdatabox/manage-roles/src/styles.scss"
             ],
-            "scripts": []
+            "scripts": [],
+            "browser": "projects/researchdatabox/manage-roles/src/main.ts"
           },
           "configurations": {
             "production": {
@@ -575,9 +577,7 @@
               "outputHashing": "all"
             },
             "development": {
-              "buildOptimizer": false,
               "optimization": false,
-              "vendorChunk": true,
               "extractLicenses": false,
               "sourceMap": true,
               "namedChunks": true
@@ -637,11 +637,12 @@
       "prefix": "app",
       "architect": {
         "build": {
-          "builder": "@angular-devkit/build-angular:browser",
+          "builder": "@angular-devkit/build-angular:application",
           "options": {
-            "outputPath": "../assets/angular/form",
+            "outputPath": {
+              "base": "../assets/angular/form"
+            },
             "index": "projects/researchdatabox/form/src/index.html",
-            "main": "projects/researchdatabox/form/src/main.ts",
             "polyfills": [
               "zone.js"
             ],
@@ -654,7 +655,8 @@
             "styles": [
               "projects/researchdatabox/form/src/styles.scss"
             ],
-            "scripts": []
+            "scripts": [],
+            "browser": "projects/researchdatabox/form/src/main.ts"
           },
           "configurations": {
             "production": {
@@ -673,9 +675,7 @@
               "outputHashing": "all"
             },
             "development": {
-              "buildOptimizer": false,
               "optimization": false,
-              "vendorChunk": true,
               "extractLicenses": false,
               "sourceMap": true,
               "namedChunks": true
@@ -734,11 +734,12 @@
       "prefix": "app",
       "architect": {
         "build": {
-          "builder": "@angular-devkit/build-angular:browser",
+          "builder": "@angular-devkit/build-angular:application",
           "options": {
-            "outputPath": "../assets/angular/app-config",
+            "outputPath": {
+              "base": "../assets/angular/app-config"
+            },
             "index": "projects/researchdatabox/app-config/src/index.html",
-            "main": "projects/researchdatabox/app-config/src/main.ts",
             "polyfills": [
               "zone.js"
             ],
@@ -751,7 +752,8 @@
             "styles": [
               "projects/researchdatabox/app-config/src/styles.scss"
             ],
-            "scripts": []
+            "scripts": [],
+            "browser": "projects/researchdatabox/app-config/src/main.ts"
           },
           "configurations": {
             "production": {
@@ -770,9 +772,7 @@
               "outputHashing": "all"
             },
             "development": {
-              "buildOptimizer": false,
               "optimization": false,
-              "vendorChunk": true,
               "extractLicenses": false,
               "sourceMap": true,
               "namedChunks": true
