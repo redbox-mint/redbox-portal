@@ -207,6 +207,15 @@ export class RepeatableContainer extends Container {
     }
     const newFormModel = newElem.createFormModel();
     this.formModel.push(newFormModel);
+
+    // After cloning the first element, the publish event emitters still have the old subscribers.
+    // Iterate over the list of configured published events and set a new event emitter
+    let fields = newElem.fields;
+    for(let field of fields){
+      for(let event in field['publish']) {
+        field[event] = new EventEmitter();
+      }
+    }
     // Group component event handling: will need to set up event handlers within the new element
     newElem.setupEventHandlers();
     // finally, render in the UI
