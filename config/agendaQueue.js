@@ -36,6 +36,11 @@ module.exports.agendaQueue = {
     {
       name: 'RecordsService-StoreRecordAudit',
       fnName: 'recordsservice.storeRecordAudit',
+      options: {
+        lockLifetime: 30 * 1000,
+        lockLimit: 10,
+        concurrency: 10 
+      }
     },
     {
       name: 'RaidMintRetryJob',
