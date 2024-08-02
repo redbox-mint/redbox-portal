@@ -81,17 +81,17 @@ export class RepeatableContainer extends Container {
     this.minimumEntries = (!_.isUndefined(options['minimumEntries']) && options['minimumEntries'] > 0) ? options['minimumEntries'] : 1;
     this.maximumEntries = (!_.isUndefined(options['maximumEntries']) && options['maximumEntries'] > 0) ? options['maximumEntries'] : 1000;
     //Validate that maximumEntries is bigger or equal to minimumEntries
-    if(this.maximumEntries < this.minimumEntries) {
-      console.debug("minimumEntries "+this.minimumEntries+" cannot be bigger than maximumEntries "+this.maximumEntries
-                    +" setting them to equal smallest value within the range given");
+    if (this.maximumEntries < this.minimumEntries) {
+      console.debug("minimumEntries " + this.minimumEntries + " cannot be bigger than maximumEntries " + this.maximumEntries
+        + " setting them to equal smallest value within the range given");
       this.minimumEntries = this.maximumEntries;
     }
     //Set the number of rows on first display if minimumEntries option has been set but also take into account
     //that defaultValue option may have been set and don't override if it has been set in the form config
-    if(this.minimumEntries > 1 && _.isUndefined(options.defaultValue)) {
+    if (this.minimumEntries > 1 && _.isUndefined(options.defaultValue)) {
       let arrayWithEmptyValues = [];
       let i = 0;
-      while ( i < this.minimumEntries) {
+      while (i < this.minimumEntries) {
         arrayWithEmptyValues.push("");
         i++;
       }
@@ -119,14 +119,14 @@ export class RepeatableContainer extends Container {
 
   getGroup(group: any, fieldMap: any) {
     this.fieldMap = fieldMap;
-    fieldMap[this.name] = {field:this};
+    fieldMap[this.name] = { field: this };
     if (!this.value || this.value.length == 0) {
       this.formModel = this.required ? new FormArray(this.getInitArrayEntry(), Validators.required) : new FormArray(this.getInitArrayEntry());
     } else {
       let fieldCtr = 0;
       const baseField = this.fields[0];
       const elems = [];
-      this.fields = _.map(this.value, (valueElem:any) => {
+      this.fields = _.map(this.value, (valueElem: any) => {
         let fieldClone = null;
         if (fieldCtr == 0) {
           fieldClone = baseField;
@@ -158,11 +158,11 @@ export class RepeatableContainer extends Container {
     }
   }
 
-  createNewElem(baseFieldInst: any, value:any = null) {
+  createNewElem(baseFieldInst: any, value: any = null) {
     const newOpts = _.cloneDeep(baseFieldInst.options);
     newOpts.value = value;
     const newInst = new baseFieldInst.constructor(newOpts, this.injector);
-    _.forEach(this.skipClone, (f: any)=> {
+    _.forEach(this.skipClone, (f: any) => {
       newInst[f] = null;
     });
 
@@ -188,10 +188,10 @@ export class RepeatableContainer extends Container {
     return newInst;
   }
 
-  getCloneCustomizer(cloneOpts:any) {
+  getCloneCustomizer(cloneOpts: any) {
     const that = this;
-    return function(value: any, key: any) {
-      if (_.includes(cloneOpts.skipClone, key) ) {
+    return function (value: any, key: any) {
+      if (_.includes(cloneOpts.skipClone, key)) {
         if (_.includes(cloneOpts.copy, key)) {
           return that[key];
         }
@@ -200,7 +200,7 @@ export class RepeatableContainer extends Container {
     };
   }
 
-  addElem(val:any = null) {
+  addElem(val: any = null) {
     const newElem = this.createNewElem(this.fields[0], val);
     if (val == null && _.isFunction(newElem.setEmptyValue)) {
       newElem.setEmptyValue();
@@ -208,24 +208,28 @@ export class RepeatableContainer extends Container {
     const newFormModel = newElem.createFormModel();
     this.formModel.push(newFormModel);
 
+
     // After cloning the first element, the publish event emitters still have the old subscribers.
     // Iterate over the list of configured published events and set a new event emitter
     let fields = newElem.fields;
-    for(let field of fields){
-      for(let event in field['publish']) {
-        field[event] = new EventEmitter();
+    if (fields != undefined) {
+      for (let field of fields) {
+        for (let event in field['publish']) {
+          field[event] = new EventEmitter();
+        }
       }
     }
+
     // Group component event handling: will need to set up event handlers within the new element
     newElem.setupEventHandlers();
     // finally, render in the UI
-    newElem['arrayIndex'] = this.fields.length; 
+    newElem['arrayIndex'] = this.fields.length;
     this.fields.push(newElem);
     return newElem;
   }
 
   removeElem(index: number) {
-    _.remove(this.fields, (val:any, idx: number) => { return idx == index });
+    _.remove(this.fields, (val: any, idx: number) => { return idx == index });
     this.formModel.removeAt(index);
   }
 
@@ -238,12 +242,12 @@ export class RepeatableContainer extends Container {
     this.formModel.setControl(fromIdx, temp);
   }
 
-  setValueAtElem(index, value:any) {
+  setValueAtElem(index, value: any) {
     this.fields[index].setValue(value, true);
   }
 
   public triggerValidation() {
-    _.forEach(this.fields, (f:any) => {
+    _.forEach(this.fields, (f: any) => {
       f.triggerValidation();
     });
   }
@@ -252,7 +256,7 @@ export class RepeatableContainer extends Container {
     console.log(`Repeatable container field reacting: ${eventName}`);
     console.log(eventData);
     //delete first and leave only one row that is used as a template for repopulating the list... 
-    while(this.fields.length > 1) {
+    while (this.fields.length > 1) {
       this.removeElem(this.fields.length - 1);
     }
     _.each(eventData, (entry, idx) => {
@@ -262,7 +266,7 @@ export class RepeatableContainer extends Container {
         this.setValueAtElem(idx, entry);
       }
     });
-    this.formModel.updateValueAndValidity({onlySelf: false, emitEvent: false});
+    this.formModel.updateValueAndValidity({ onlySelf: false, emitEvent: false });
   }
 
   public removeAllElems() {
@@ -271,17 +275,17 @@ export class RepeatableContainer extends Container {
     });
   }
 
-  public reset(data=null, eventConfig=null) {
+  public reset(data = null, eventConfig = null) {
     this.fields[0].setValue(null);
     if (this.fields.length > 1) {
-      for (var i=1; i<this.fields.length; i++) {
+      for (var i = 1; i < this.fields.length; i++) {
         this.removeElem(i);
       }
     }
     return data;
   }
 
-  public setVisibility(data, eventConf:any = {}) {
+  public setVisibility(data, eventConf: any = {}) {
     let newVisible = this.visible;
     if (_.isArray(this.visibilityCriteria)) {
       // save the value of this data in a map, so we can run complex conditional logic that depends on one or more fields
@@ -298,27 +302,27 @@ export class RepeatableContainer extends Container {
 
       }
     } else
-    if (_.isObject(this.visibilityCriteria) && _.get(this.visibilityCriteria, 'type') == 'function') {
-      newVisible = this.execVisibilityFn(data, this.visibilityCriteria);
-    } else {
-      newVisible = _.isEqual(data, this.visibilityCriteria);
-    }
+      if (_.isObject(this.visibilityCriteria) && _.get(this.visibilityCriteria, 'type') == 'function') {
+        newVisible = this.execVisibilityFn(data, this.visibilityCriteria);
+      } else {
+        newVisible = _.isEqual(data, this.visibilityCriteria);
+      }
     const that = this;
     setTimeout(() => {
       if (!newVisible) {
         if (that.visible) {
           // remove validators
           if (that.formModel) {
-            if(that['disableValidators'] != null && typeof(that['disableValidators']) == 'function') {
+            if (that['disableValidators'] != null && typeof (that['disableValidators']) == 'function') {
               that['disableValidators']();
             } else {
               that.formModel.clearValidators();
             }
             that.formModel.updateValueAndValidity();
           }
-          for(let field of that.fields) {
-            if(field.formModel) {
-              if(field['disableValidators'] != null && typeof(field['disableValidators']) == 'function') {
+          for (let field of that.fields) {
+            if (field.formModel) {
+              if (field['disableValidators'] != null && typeof (field['disableValidators']) == 'function') {
                 field['disableValidators']();
               } else {
                 field.formModel.clearValidators();
@@ -331,16 +335,16 @@ export class RepeatableContainer extends Container {
         if (!that.visible) {
           // restore validators
           if (that.formModel) {
-            if(that['enableValidators'] != null && typeof(that['enableValidators']) == 'function') {
+            if (that['enableValidators'] != null && typeof (that['enableValidators']) == 'function') {
               that['enableValidators']();
             } else {
               that.formModel.setValidators(that.validators);
             }
             that.formModel.updateValueAndValidity();
           }
-          for(let field of that.fields) {
-            if(field.formModel) {
-              if(field['enableValidators'] != null && typeof(field['enableValidators']) == 'function') {
+          for (let field of that.fields) {
+            if (field.formModel) {
+              if (field['enableValidators'] != null && typeof (field['enableValidators']) == 'function') {
                 field['enableValidators']();
               } else {
                 field.formModel.setValidators(field.validators);
@@ -352,7 +356,7 @@ export class RepeatableContainer extends Container {
       }
       that.visible = newVisible;
     });
-    if(eventConf.returnData == true) {
+    if (eventConf.returnData == true) {
       return data;
     }
   }
@@ -369,14 +373,14 @@ export class EmbeddableComponent extends SimpleComponent {
     this.onRemoveBtnClick.emit([event, this.index]);
   }
 
-  public getGroupClass(fldName:string=null): string {
+  public getGroupClass(fldName: string = null): string {
     let baseClass = 'form-group';
     if (this.isEmbedded) {
       baseClass = '';
     }
-    return `${baseClass} ${this.hasRequiredError() ? 'has-error' : '' } ${this.field.groupClasses}`;
+    return `${baseClass} ${this.hasRequiredError() ? 'has-error' : ''} ${this.field.groupClasses}`;
   }
-  
+
 }
 
 export class RepeatableComponent extends SimpleComponent {
@@ -410,7 +414,7 @@ export class RepeatableVocab extends RepeatableContainer {
     this.clName = 'RepeatableVocab';
   }
 
-  setValueAtElem(index, value:any) {
+  setValueAtElem(index, value: any) {
     console.log(`Repeatable vocab setting value at: ${index}`);
     console.log(value);
     let selected = {};
@@ -475,15 +479,18 @@ export class RepeatableContributor extends RepeatableContainer {
   }
 
   setValueAtElem(index, value:any) {
-    this.fields[index].component.onSelect(value, false, true);
+    // error thrown when on view mode, only set when on edit mode...
+    if (this.editMode) {
+      this.fields[index].component.onSelect(value, false, true);
+    }
   }
 
-  addElem(val:any = null) {
+  addElem(val: any = null) {
     this.fields[0].setMissingFields(val);
     return super.addElem(val);
   }
 
-  public setVisibility(data, eventConf:any = {}) {
+  public setVisibility(data, eventConf: any = {}) {
     let newVisible = this.visible;
     if (_.isArray(this.visibilityCriteria)) {
       // save the value of this data in a map, so we can run complex conditional logic that depends on one or more fields
@@ -500,27 +507,27 @@ export class RepeatableContributor extends RepeatableContainer {
 
       }
     } else
-    if (_.isObject(this.visibilityCriteria) && _.get(this.visibilityCriteria, 'type') == 'function') {
-      newVisible = this.execVisibilityFn(data, this.visibilityCriteria);
-    } else {
-      newVisible = _.isEqual(data, this.visibilityCriteria);
-    }
+      if (_.isObject(this.visibilityCriteria) && _.get(this.visibilityCriteria, 'type') == 'function') {
+        newVisible = this.execVisibilityFn(data, this.visibilityCriteria);
+      } else {
+        newVisible = _.isEqual(data, this.visibilityCriteria);
+      }
     const that = this;
     setTimeout(() => {
       if (!newVisible) {
         if (that.visible) {
           // remove validators
           if (that.formModel) {
-            if(that['disableValidators'] != null && typeof(that['disableValidators']) == 'function') {
+            if (that['disableValidators'] != null && typeof (that['disableValidators']) == 'function') {
               that['disableValidators']();
             } else {
               that.formModel.clearValidators();
             }
             that.formModel.updateValueAndValidity();
           }
-          for(let field of that.fields) {
-            if(field.formModel) {
-              if(field['disableValidators'] != null && typeof(field['disableValidators']) == 'function') {
+          for (let field of that.fields) {
+            if (field.formModel) {
+              if (field['disableValidators'] != null && typeof (field['disableValidators']) == 'function') {
                 field['disableValidators']();
               } else {
                 field.formModel.clearValidators();
@@ -533,22 +540,22 @@ export class RepeatableContributor extends RepeatableContainer {
         if (!that.visible) {
           // restore validators
           if (that.formModel) {
-            if(that['enableValidators'] != null && typeof(that['enableValidators']) == 'function') {
+            if (that['enableValidators'] != null && typeof (that['enableValidators']) == 'function') {
               that['enableValidators']();
             } else {
               that.formModel.setValidators(that.validators);
             }
             that.formModel.updateValueAndValidity();
           }
-          for(let field of that.fields) {
-            if(field.formModel) {
-              if(field['enableValidators'] != null && typeof(field['enableValidators']) == 'function') {
+          for (let field of that.fields) {
+            if (field.formModel) {
+              if (field['enableValidators'] != null && typeof (field['enableValidators']) == 'function') {
                 field['enableValidators']();
               } else {
                 field.formModel.setValidators(field.validators);
               }
               setTimeout(() => {
-                field.setValue(field.formModel.value,false,true)
+                field.setValue(field.formModel.value, false, true)
               });
               field.formModel.updateValueAndValidity();
             }
@@ -557,11 +564,11 @@ export class RepeatableContributor extends RepeatableContainer {
       }
       that.visible = newVisible;
     });
-    if(eventConf.returnData == true) {
+    if (eventConf.returnData == true) {
       return data;
     }
   }
-  
+
 }
 
 @Component({
@@ -632,7 +639,7 @@ export class RepeatableContributorComponent extends RepeatableComponent implemen
   }
 
   addElem(event: any) {
-    const newElem:any = this.field.addElem();
+    const newElem: any = this.field.addElem();
     newElem.marginTop = '0px';
     if (!_.isUndefined(newElem.vocabField)) {
       newElem.vocabField.initialValue = null;
@@ -649,7 +656,7 @@ export class RepeatableContributorComponent extends RepeatableComponent implemen
     }
   }
 
-  public reactEvent(eventName: string, eventData: any, origData: any, elem:any) {
+  public reactEvent(eventName: string, eventData: any, origData: any, elem: any) {
     if (this.field.fields.length > 0) {
       elem.marginTop = '0px';
       elem.vocabField.initialValue = eventData;
@@ -658,7 +665,7 @@ export class RepeatableContributorComponent extends RepeatableComponent implemen
     }
   }
 
-  public moveUp(event: any, i:number) {
+  public moveUp(event: any, i: number) {
     const newIdx = i - 1;
     if (newIdx >= 0) {
       this.field.swap(i, newIdx);
@@ -669,7 +676,7 @@ export class RepeatableContributorComponent extends RepeatableComponent implemen
     }
   }
 
-  public moveDown(event: any, i:number) {
+  public moveDown(event: any, i: number) {
     const newIdx = i + 1;
     if (newIdx < this.field.fields.length) {
       this.field.swap(i, newIdx);
