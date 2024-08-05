@@ -82,7 +82,7 @@
     "url-pattern": "^1.0.3",
     "webpack": "^5.93.0",
     "wkt-parser-helper": "^4.1.0",
-    "zone.js": "^0.14.8"
+    "zone.js": "^0.14.10"
   },
   "scripts": {
     "debug": "node debug app.js",
