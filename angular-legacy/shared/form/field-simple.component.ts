@@ -425,8 +425,10 @@ export class SelectionFieldComponent extends SelectionComponent {
     let formcontrol: any = this.field.formModel;
     if (event.target.checked) {
       if(_.isObject(formcontrol.push)) {
-        // Commented out: No need to manually manage the binding
-        // formcontrol.push(new FormControl(opt.value));
+        // Only need to manually manage the binding for checkbox
+        if(this.field.controlType == 'checkbox') {
+          formcontrol.push(new FormControl(opt.value));
+        }
       } else if(this.isRadio()) {
         // modifies defers the changes on radio
         if(opt['modifies'] && !defered) {
@@ -438,18 +440,13 @@ export class SelectionFieldComponent extends SelectionComponent {
     } else {
       if(opt['modifies'] && !defered) {
         this.modifies(opt, event, defered);
+      // Only need to manually manage the binding for checkbox
+      } else if(_.isObject(formcontrol.controls) && this.field.controlType == 'checkbox' && !defered) {
+        let idx = _.findIndex(formcontrol.controls, (ctrl: any) => { return ctrl.value == opt.value; }); 
+        if(idx >= 0) {
+          formcontrol.removeAt(idx);
+        }
       }
-      // Commented out: No need to manually manage the binding
-      // if(!defered) {
-        // let idx = null;
-        // _.forEach(formcontrol.controls, (ctrl, i) => {
-        //   if (ctrl.value == opt.value) {
-        //     idx = i;
-        //     return false;
-        //   }
-        // });
-        // formcontrol.removeAt(idx);
-      // }
     }
     if(this.field.publish && this.confirmChanges) {
       if(this.field.publish.onItemSelect) {
