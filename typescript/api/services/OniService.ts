@@ -65,7 +65,7 @@ export module Services {
 		}
 
 		getDatastreamService() {
-			this.datastreamService = sails.services[sails.config.storage.serviceName];
+			this.datastreamService = sails.services[sails.config.record.datastreamService];
 		}
 
 		private getRBError(logPrefix: string, message: string) {
@@ -404,7 +404,7 @@ export module Services {
 
 		private addSpatialCoverage(targetRepoOjb: any, metadata: Object, extraContext: Object) {
 			sails.log.verbose(`${this.logHeader} addSpatialCoverage() -> adding spatial coverage to the dataset`);
-			if (metadata['geospatial']) {
+			if (!_.isEmpty(metadata['geospatial'])) {
 				if (_.isEmpty(extraContext['Geometry'])) {
 					extraContext['Geometry'] =  "http://www.opengis.net/ont/geosparql#Geometry";
 					extraContext['asWKT'] = "http://www.opengis.net/ont/geosparql#asWKT";
