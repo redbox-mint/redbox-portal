@@ -104,8 +104,9 @@ export module Services {
 					throw this.getRBError(`${this.logHeader} exportDataset()`, err);
 				}
 				// set the dataset URL and DOI
-				const recUrl = `arcp://name,${sails.config.datapubs.rootCollection.targetRepoNamespace}/${oid}&_crateId=arcp://name,${sails.config.datapubs.rootCollection.targetRepoNamespace}/${oid}`;
-				const datasetUrl = `${site['url']}/object?id=${encodeURIComponent(recUrl)}` ;
+				const recUrlOid = encodeURIComponent(`arcp://name,${sails.config.datapubs.rootCollection.targetRepoNamespace}/${oid}`);
+				const recUrl = `id=${recUrlOid}&_crateId=${recUrlOid}`;
+				const datasetUrl = `${site['url']}/object?${recUrl}` ;
 				md['citation_url'] = datasetUrl;
 				md['citation_doi'] = md['citation_doi'].replace(URL_PLACEHOLDER, datasetUrl);
 
