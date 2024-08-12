@@ -90,7 +90,7 @@
   <li class="breadcrumb-item">Components</li>
   <li class="breadcrumb-item"
   >
-  LocalAuthComponent</li>
+  AppConfigComponent</li>
 </ol>
 
 <ul class="nav nav-tabs" role="tablist">
@@ -117,7 +117,7 @@
     <h3>File</h3>
 </p>
 <p class="comment">
-    <code>angular/projects/researchdatabox/local-auth/src/app/local-auth.component.ts</code>
+    <code>angular/projects/researchdatabox/app-config/src/app/app-config.component.ts</code>
 </p>
 
 
@@ -125,8 +125,7 @@
         <h3>Description</h3>
     </p>
     <p class="comment">
-        <p>Local Authentication  Component</p>
-<p>Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a></p>
+        <p>Application Config  Component</p>
 
     </p>
 
@@ -157,7 +156,7 @@
 
             <tr>
                 <td class="col-md-3">selector</td>
-                <td class="col-md-9"><code>local-auth</code></td>
+                <td class="col-md-9"><code>app-config</code></td>
             </tr>
 
 
@@ -167,7 +166,7 @@
 
             <tr>
                 <td class="col-md-3">templateUrl</td>
-                <td class="col-md-9"><code>./local-auth.component.html</code></td>
+                <td class="col-md-9"><code>./app-config.component.html</code></td>
             </tr>
 
 
@@ -194,16 +193,25 @@
                     <td class="col-md-4">
                         <ul class="index-list">
                             <li>
+                                <a href="#configKey" >configKey</a>
+                            </li>
+                            <li>
+                                <a href="#fields" >fields</a>
+                            </li>
+                            <li>
                                 <a href="#form" >form</a>
                             </li>
                             <li>
-                                <a href="#isLoginDisabled" >isLoginDisabled</a>
+                                <a href="#formSaveSuccessful" >formSaveSuccessful</a>
                             </li>
                             <li>
-                                <a href="#loginMessage" >loginMessage</a>
+                                <a href="#formSaveUnsuccessful" >formSaveUnsuccessful</a>
                             </li>
                             <li>
-                                <a href="#loginResult" >loginResult</a>
+                                <a href="#formSaving" >formSaving</a>
+                            </li>
+                            <li>
+                                <a href="#model" >model</a>
                             </li>
                             <li>
                                 <a href="#window" >window</a>
@@ -241,18 +249,13 @@
                     <td class="col-md-4">
                         <ul class="index-list">
                             <li>
-                                    <span class="modifier">Private</span>
-                                <a href="#getErrors" >getErrors</a>
-                            </li>
-                            <li>
                                     <span class="modifier">Protected</span>
                                     <span class="modifier"></span>
                                     <span class="modifier">Async</span>
                                 <a href="#initComponent" >initComponent</a>
                             </li>
                             <li>
-                                    <span class="modifier">Async</span>
-                                <a href="#onLogin" >onLogin</a>
+                                <a href="#onSubmit" >onSubmit</a>
                             </li>
                             <li>
                                 <a href="#getInitSubject" >getInitSubject</a>
@@ -289,12 +292,12 @@
             <tbody>
                 <tr>
                     <td class="col-md-4">
-<code>constructor(loggerService: <a href="../injectables/LoggerService.html" target="_self">LoggerService</a>, userService: <a href="../injectables/UserService.html" target="_self">UserService</a>, utilService: <a href="../injectables/UtilityService.html" target="_self">UtilityService</a>, fb: FormBuilder, document: Document, translationService: <a href="../injectables/TranslationService.html" target="_self">TranslationService</a>)</code>
+<code>constructor(loggerService: <a href="../injectables/LoggerService.html" target="_self">LoggerService</a>, utilService: <a href="../injectables/UtilityService.html" target="_self">UtilityService</a>, fb: FormBuilder, document: Document, translationService: <a href="../injectables/TranslationService.html" target="_self">TranslationService</a>, appConfigService: <a href="../injectables/AppConfigService.html" target="_self">AppConfigService</a>, formlyJsonschema: FormlyJsonschema, elementRef: ElementRef)</code>
                     </td>
                 </tr>
                         <tr>
                             <td class="col-md-4">
-                                <div class="io-line">Defined in <a href="" data-line="39" class="link-to-prism">angular/projects/researchdatabox/local-auth/src/app/local-auth.component.ts:39</a></div>
+                                <div class="io-line">Defined in <a href="" data-line="48" class="link-to-prism">angular/projects/researchdatabox/app-config/src/app/app-config.component.ts:48</a></div>
                             </td>
                         </tr>
 
@@ -316,18 +319,6 @@
                                                   
                                                         <td>
                                                                         <code><a href="../injectables/LoggerService.html" target="_self" >LoggerService</a></code>
-                                                        </td>
-                                                  
-                                                    <td>
-                                                            No
-                                                    </td>
-                                                    
-                                                </tr>
-                                                <tr>
-                                                        <td>userService</td>
-                                                  
-                                                        <td>
-                                                                        <code><a href="../injectables/UserService.html" target="_self" >UserService</a></code>
                                                         </td>
                                                   
                                                     <td>
@@ -383,6 +374,42 @@
                                                     </td>
                                                     
                                                 </tr>
+                                                <tr>
+                                                        <td>appConfigService</td>
+                                                  
+                                                        <td>
+                                                                        <code><a href="../injectables/AppConfigService.html" target="_self" >AppConfigService</a></code>
+                                                        </td>
+                                                  
+                                                    <td>
+                                                            No
+                                                    </td>
+                                                    
+                                                </tr>
+                                                <tr>
+                                                        <td>formlyJsonschema</td>
+                                                  
+                                                        <td>
+                                                                    <code>FormlyJsonschema</code>
+                                                        </td>
+                                                  
+                                                    <td>
+                                                            No
+                                                    </td>
+                                                    
+                                                </tr>
+                                                <tr>
+                                                        <td>elementRef</td>
+                                                  
+                                                        <td>
+                                                                    <code>ElementRef</code>
+                                                        </td>
+                                                  
+                                                    <td>
+                                                            No
+                                                    </td>
+                                                    
+                                                </tr>
                                         </tbody>
                                     </table>
                             </div>
@@ -401,45 +428,6 @@
     <h3 id="methods">
         Methods
     </h3>
-    <table class="table table-sm table-bordered">
-        <tbody>
-            <tr>
-                <td class="col-md-4">
-                    <a name="getErrors"></a>
-                    <span class="name">
-                            <span class="modifier">Private</span>
-                        <span ><b>getErrors</b></span>
-                        <a href="#getErrors"><span class="icon ion-ios-link"></span></a>
-                    </span>
-                </td>
-            </tr>
-            <tr>
-                <td class="col-md-4">
-                        <span class="modifier-icon icon ion-ios-reset"></span>
-                    <code>getErrors()</code>
-                </td>
-            </tr>
-
-
-                    <tr>
-                        <td class="col-md-4">
-                            <div class="io-line">Defined in <a href="" data-line="88"
-                                    class="link-to-prism">angular/projects/researchdatabox/local-auth/src/app/local-auth.component.ts:88</a></div>
-                        </td>
-                    </tr>
-
-
-            <tr>
-                <td class="col-md-4">
-
-                        <div class="io-description">
-                            <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >void</a></code>
-
-                        </div>
-                </td>
-            </tr>
-        </tbody>
-    </table>
     <table class="table table-sm table-bordered">
         <tbody>
             <tr>
@@ -470,7 +458,7 @@
                     </tr>
                     <tr>
                         <td class="col-md-4">
-                                <div class="io-line">Defined in         <code><a href="../components/BaseComponent.html#source" target="_self" >BaseComponent:56</a></code>
+                                <div class="io-line">Defined in         <code><a href="../components/BaseComponent.html#source" target="_self" >BaseComponent:69</a></code>
 </div>
                         </td>
                     </tr>
@@ -491,26 +479,24 @@
         <tbody>
             <tr>
                 <td class="col-md-4">
-                    <a name="onLogin"></a>
+                    <a name="onSubmit"></a>
                     <span class="name">
-                            <span class="modifier">Async</span>
-                        <span ><b>onLogin</b></span>
-                        <a href="#onLogin"><span class="icon ion-ios-link"></span></a>
+                        <span ><b>onSubmit</b></span>
+                        <a href="#onSubmit"><span class="icon ion-ios-link"></span></a>
                     </span>
                 </td>
             </tr>
             <tr>
                 <td class="col-md-4">
-                        <span class="modifier-icon icon ion-ios-reset"></span>
-                    <code>onLogin(event: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>)</code>
+<code>onSubmit(model: <a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank">any</a>)</code>
                 </td>
             </tr>
 
 
                     <tr>
                         <td class="col-md-4">
-                            <div class="io-line">Defined in <a href="" data-line="70"
-                                    class="link-to-prism">angular/projects/researchdatabox/local-auth/src/app/local-auth.component.ts:70</a></div>
+                            <div class="io-line">Defined in <a href="" data-line="87"
+                                    class="link-to-prism">angular/projects/researchdatabox/app-config/src/app/app-config.component.ts:87</a></div>
                         </td>
                     </tr>
 
@@ -531,7 +517,7 @@
                                     </thead>
                                     <tbody>
                                         <tr>
-                                                <td>event</td>
+                                                <td>model</td>
                                             <td>
                                                             <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
                                             </td>
@@ -546,7 +532,7 @@
                                 </table>
                             </div>
                         <div class="io-description">
-                            <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
+                            <b>Returns : </b>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >void</a></code>
 
                         </div>
                             <div class="io-description">
@@ -796,27 +782,22 @@
         <tbody>
             <tr>
                 <td class="col-md-4">
-                    <a name="form"></a>
+                    <a name="configKey"></a>
                     <span class="name">
-                        <span ><b>form</b></span>
-                        <a href="#form"><span class="icon ion-ios-link"></span></a>
+                        <span ><b>configKey</b></span>
+                        <a href="#configKey"><span class="icon ion-ios-link"></span></a>
                     </span>
                 </td>
             </tr>
                 <tr>
                     <td class="col-md-4">
-                        <i>Type : </i>    <code>FormGroup</code>
+                        <i>Type : </i>        <code><a href="https://www.typescriptlang.org/docs/handbook/basic-types.html" target="_blank" >any</a></code>
 
-                    </td>
-                </tr>
-                <tr>
-                    <td class="col-md-4">
-                        <i>Default value : </i><code>null as any</code>
                     </td>
                 </tr>
                     <tr>
                         <td class="col-md-4">
-                                <div class="io-line">Defined in <a href="" data-line="35" class="link-to-prism">angular/projects/researchdatabox/local-auth/src/app/local-auth.component.ts:35</a></div>
+                                <div class="io-line">Defined in <a href="" data-line="45" class="link-to-prism">angular/projects/researchdatabox/app-config/src/app/app-config.component.ts:45</a></div>
                         </td>
                     </tr>
 
@@ -827,10 +808,68 @@
         <tbody>
             <tr>
                 <td class="col-md-4">
-                    <a name="isLoginDisabled"></a>
+                    <a name="fields"></a>
                     <span class="name">
-                        <span ><b>isLoginDisabled</b></span>
-                        <a href="#isLoginDisabled"><span class="icon ion-ios-link"></span></a>
+                        <span ><b>fields</b></span>
+                        <a href="#fields"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Type : </i>    <code>FormlyFieldConfig[]</code>
+
+                    </td>
+                </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Default value : </i><code>[
+   
+  ]</code>
+                    </td>
+                </tr>
+                    <tr>
+                        <td class="col-md-4">
+                                <div class="io-line">Defined in <a href="" data-line="42" class="link-to-prism">angular/projects/researchdatabox/app-config/src/app/app-config.component.ts:42</a></div>
+                        </td>
+                    </tr>
+
+
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="form"></a>
+                    <span class="name">
+                        <span ><b>form</b></span>
+                        <a href="#form"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Default value : </i><code>new FormGroup({})</code>
+                    </td>
+                </tr>
+                    <tr>
+                        <td class="col-md-4">
+                                <div class="io-line">Defined in <a href="" data-line="40" class="link-to-prism">angular/projects/researchdatabox/app-config/src/app/app-config.component.ts:40</a></div>
+                        </td>
+                    </tr>
+
+
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="formSaveSuccessful"></a>
+                    <span class="name">
+                        <span ><b>formSaveSuccessful</b></span>
+                        <a href="#formSaveSuccessful"><span class="icon ion-ios-link"></span></a>
                     </span>
                 </td>
             </tr>
@@ -847,7 +886,7 @@
                 </tr>
                     <tr>
                         <td class="col-md-4">
-                                <div class="io-line">Defined in <a href="" data-line="37" class="link-to-prism">angular/projects/researchdatabox/local-auth/src/app/local-auth.component.ts:37</a></div>
+                                <div class="io-line">Defined in <a href="" data-line="47" class="link-to-prism">angular/projects/researchdatabox/app-config/src/app/app-config.component.ts:47</a></div>
                         </td>
                     </tr>
 
@@ -858,27 +897,27 @@
         <tbody>
             <tr>
                 <td class="col-md-4">
-                    <a name="loginMessage"></a>
+                    <a name="formSaveUnsuccessful"></a>
                     <span class="name">
-                        <span ><b>loginMessage</b></span>
-                        <a href="#loginMessage"><span class="icon ion-ios-link"></span></a>
+                        <span ><b>formSaveUnsuccessful</b></span>
+                        <a href="#formSaveUnsuccessful"><span class="icon ion-ios-link"></span></a>
                     </span>
                 </td>
             </tr>
                 <tr>
                     <td class="col-md-4">
-                        <i>Type : </i>        <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/string" target="_blank" >string</a></code>
+                        <i>Type : </i>        <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/boolean" target="_blank" >boolean</a></code>
 
                     </td>
                 </tr>
                 <tr>
                     <td class="col-md-4">
-                        <i>Default value : </i><code>null as any</code>
+                        <i>Default value : </i><code>false</code>
                     </td>
                 </tr>
                     <tr>
                         <td class="col-md-4">
-                                <div class="io-line">Defined in <a href="" data-line="36" class="link-to-prism">angular/projects/researchdatabox/local-auth/src/app/local-auth.component.ts:36</a></div>
+                                <div class="io-line">Defined in <a href="" data-line="48" class="link-to-prism">angular/projects/researchdatabox/app-config/src/app/app-config.component.ts:48</a></div>
                         </td>
                     </tr>
 
@@ -889,27 +928,58 @@
         <tbody>
             <tr>
                 <td class="col-md-4">
-                    <a name="loginResult"></a>
+                    <a name="formSaving"></a>
                     <span class="name">
-                        <span ><b>loginResult</b></span>
-                        <a href="#loginResult"><span class="icon ion-ios-link"></span></a>
+                        <span ><b>formSaving</b></span>
+                        <a href="#formSaving"><span class="icon ion-ios-link"></span></a>
                     </span>
                 </td>
             </tr>
                 <tr>
                     <td class="col-md-4">
-                        <i>Type : </i>        <code><a href="../interfaces/UserLoginResult.html" target="_self" >UserLoginResult</a></code>
+                        <i>Type : </i>        <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/boolean" target="_blank" >boolean</a></code>
 
                     </td>
                 </tr>
                 <tr>
                     <td class="col-md-4">
-                        <i>Default value : </i><code>null as any</code>
+                        <i>Default value : </i><code>false</code>
                     </td>
                 </tr>
                     <tr>
                         <td class="col-md-4">
-                                <div class="io-line">Defined in <a href="" data-line="38" class="link-to-prism">angular/projects/researchdatabox/local-auth/src/app/local-auth.component.ts:38</a></div>
+                                <div class="io-line">Defined in <a href="" data-line="46" class="link-to-prism">angular/projects/researchdatabox/app-config/src/app/app-config.component.ts:46</a></div>
+                        </td>
+                    </tr>
+
+
+        </tbody>
+    </table>
+    <table class="table table-sm table-bordered">
+        <tbody>
+            <tr>
+                <td class="col-md-4">
+                    <a name="model"></a>
+                    <span class="name">
+                        <span ><b>model</b></span>
+                        <a href="#model"><span class="icon ion-ios-link"></span></a>
+                    </span>
+                </td>
+            </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Type : </i>        <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/object" target="_blank" >object</a></code>
+
+                    </td>
+                </tr>
+                <tr>
+                    <td class="col-md-4">
+                        <i>Default value : </i><code>{}</code>
+                    </td>
+                </tr>
+                    <tr>
+                        <td class="col-md-4">
+                                <div class="io-line">Defined in <a href="" data-line="41" class="link-to-prism">angular/projects/researchdatabox/app-config/src/app/app-config.component.ts:41</a></div>
                         </td>
                     </tr>
 
@@ -935,7 +1005,7 @@
                 </tr>
                     <tr>
                         <td class="col-md-4">
-                                <div class="io-line">Defined in <a href="" data-line="39" class="link-to-prism">angular/projects/researchdatabox/local-auth/src/app/local-auth.component.ts:39</a></div>
+                                <div class="io-line">Defined in <a href="" data-line="39" class="link-to-prism">angular/projects/researchdatabox/app-config/src/app/app-config.component.ts:39</a></div>
                         </td>
                     </tr>
 
@@ -1137,80 +1207,88 @@
 
 
     <div class="tab-pane fade  tab-source-code" id="source">
-        <pre class="line-numbers compodoc-sourcecode"><code class="language-typescript">import { Component, Inject } from &#x27;@angular/core&#x27;;
+        <pre class="line-numbers compodoc-sourcecode"><code class="language-typescript">import { Component, ElementRef, Inject } from &#x27;@angular/core&#x27;;
 import { FormGroup, Validators, FormBuilder } from &#x27;@angular/forms&#x27;;
 import { DOCUMENT } from &quot;@angular/common&quot;
-import { BaseComponent, UserService, UserLoginResult, UtilityService, LoggerService, TranslationService } from &#x27;@researchdatabox/portal-ng-common&#x27;;
+import { BaseComponent, UtilityService, LoggerService, TranslationService, AppConfigService } from &#x27;@researchdatabox/portal-ng-common&#x27;;
+import { FormlyFieldConfig } from &#x27;@ngx-formly/core&#x27;;
+import { FormlyJsonschema } from &#x27;@ngx-formly/core/json-schema&#x27;;
+import { JSONSchema7 } from &#x27;json-schema&#x27;;
+import { AppConfig } from &#x27;projects/researchdatabox/portal-ng-common/src/public-api&#x27;;
+import { clone as _clone } from &#x27;lodash&#x27;
 /**
- * Local Authentication  Component
- *
- * Author: &lt;a href&#x3D;&#x27;https://github.com/shilob&#x27; target&#x3D;&#x27;_blank&#x27;&gt;Shilo Banihit&lt;/a&gt;
+ * Application Config  Component
  *
  */
 @Component({
-  selector: &#x27;local-auth&#x27;,
-  templateUrl: &#x27;./local-auth.component.html&#x27;
+  selector: &#x27;app-config&#x27;,
+  templateUrl: &#x27;./app-config.component.html&#x27;
 })
-export class LocalAuthComponent extends BaseComponent {
-  form: FormGroup &#x3D; null as any;
-  loginMessage: string &#x3D; null as any;
-  isLoginDisabled: boolean &#x3D; false;
-  loginResult:  UserLoginResult &#x3D; null as any;
+export class AppConfigComponent extends BaseComponent {
+
   window: any;
+  form &#x3D; new FormGroup({});
+  model &#x3D; {};
+  fields: FormlyFieldConfig[] &#x3D; [
+   
+  ];
+  configKey: any;
+  formSaving: boolean &#x3D; false;
+  formSaveSuccessful: boolean &#x3D; false;
+  formSaveUnsuccessful: boolean &#x3D; false;
+
 
   constructor(
     @Inject(LoggerService) private loggerService: LoggerService,
-    @Inject(UserService) private userService: UserService,
     @Inject(UtilityService) protected utilService: UtilityService,
     @Inject(FormBuilder) private fb: FormBuilder,
     @Inject(DOCUMENT) private document: Document,
-    @Inject(TranslationService) private translationService: TranslationService
+    @Inject(TranslationService) private translationService: TranslationService,
+    @Inject(AppConfigService) private appConfigService: AppConfigService,
+    private formlyJsonschema: FormlyJsonschema,
+    @Inject(ElementRef) elementRef: ElementRef
   ) {
     super();
-    this.loggerService.debug(&#x60;LocalAuth waiting for deps to init...&#x60;); 
+    this.loggerService.debug(&#x60;AppConfig waiting for deps to init...&#x60;);
     this.window &#x3D; this.document.defaultView;
     // set this component&#x27;s dependencies
-    this.initDependencies &#x3D; [translationService, userService];
+    this.configKey &#x3D; elementRef.nativeElement.getAttribute(&#x27;configKey&#x27;);
+    this.initDependencies &#x3D; [translationService, appConfigService];
   }
 
-  protected override async initComponent():Promise&lt;void&gt; {
-    this.form &#x3D; this.fb.group({
-      &quot;username&quot;: [&quot;&quot;, Validators.required],
-      &quot;password&quot;:[&quot;&quot;, Validators.required]
-    });
-    this.form.valueChanges.subscribe((data:any) &#x3D;&gt; {
-      this.isLoginDisabled &#x3D; this.form.status &#x3D;&#x3D; &#x27;INVALID&#x27;;
-      if (this.isLoginDisabled) {
-        this.getErrors();
+  protected override async initComponent(): Promise&lt;void&gt; {
+    let result: AppConfig &#x3D; await this.appConfigService.getAppConfigForm(this.configKey)
+    const jsonObject: JSONSchema7 &#x3D; result.schema as JSONSchema7;
+    const fieldOrder &#x3D; result.fieldOrder;
+    let originalProperties &#x3D; _clone(jsonObject.properties);
+    jsonObject.properties &#x3D; {};
+    for (let field of fieldOrder) {
+      if (originalProperties) {
+        jsonObject.properties[field] &#x3D; originalProperties[field];
       }
+    }
+
+    this.fields &#x3D; [this.formlyJsonschema.toFieldConfig(jsonObject)]
+    this.model &#x3D; result.model;
+    this.loggerService.debug(&#x60;AppConfig initialised.&#x60;);
+  }
+
+
+  onSubmit(model: any) {
+    this.formSaving &#x3D; true;
+    this.formSaveUnsuccessful &#x3D; false;
+    this.formSaveSuccessful &#x3D; false;
+    this.appConfigService.saveAppConfig(this.configKey, model).then((result: AppConfig) &#x3D;&gt; {
+      this.formSaveSuccessful &#x3D; true;
+      setTimeout(() &#x3D;&gt; {
+        this.formSaveSuccessful &#x3D; false;
+      }, 3000);
+      this.formSaving &#x3D; false;
+    }).catch((error: any) &#x3D;&gt; {
+      this.formSaveSuccessful &#x3D; false;
+      this.formSaveUnsuccessful &#x3D; true;
+      this.formSaving &#x3D; false;
     });
-    this.loggerService.debug(&#x60;LocalAuth initialised.&#x60;); 
-  }
-
-  async onLogin(event:any) {
-    if (this.isLoginDisabled || this.form.status &#x3D;&#x3D; &#x27;INVALID&#x27;) {
-      this.getErrors();
-      return;
-    }
-    event.preventDefault();
-    this.isLoginDisabled &#x3D; true;
-    this.loginResult &#x3D; await this.userService.loginLocal(this.form.value.username, this.form.value.password);
-    this.loggerService.debug(&#x60;LocalAuth, login result: &#x60;, this.loginResult);
-    if (this.loginResult.user) {
-      this.loggerService.debug(&#x60;LocalAuth, login success, redirecting...${this.loginResult.url}&#x60;);
-      this.window.location.href &#x3D; this.loginResult.url;
-    } else {
-      this.loginMessage &#x3D; this.loginResult.message;
-      this.isLoginDisabled &#x3D; false;
-    }
-  }
-
-  private getErrors():void {
-    if (this.form.controls[&#x27;username&#x27;].hasError(&#x27;required&#x27;)) {
-      this.loginMessage &#x3D; &quot;Please provide a username.&quot;;
-    } else {
-      this.loginMessage &#x3D; &quot;Please provide a password.&quot;;
-    }
   }
 }
 </code></pre>
@@ -1219,32 +1297,13 @@ export class LocalAuthComponent extends BaseComponent {
     <div class="tab-pane fade " id="templateData">
         <pre class="line-numbers"><code class="language-html">&lt;!-- ngIf is needed so init completes and view has all the information it needs --&gt;
 &lt;ng-container *ngIf&#x3D;&quot;isReady&quot;&gt; 
-  &lt;div class&#x3D;&quot;col-md-offset-5 col-md-3&quot; &gt;
-    &lt;div class&#x3D;&quot;panel panel-default&quot;&gt;
-      &lt;div class&#x3D;&quot;panel-heading&quot;&gt;
-        &lt;span class&#x3D;&quot;panel-title&quot;&gt;{{ &#x27;local-creds-header&#x27; | i18next }}&lt;/span&gt;
-      &lt;/div&gt;
-      &lt;div class&#x3D;&quot;panel-body&quot;&gt;
-        &lt;div class&#x3D;&quot;form-login&quot;&gt;
-        &lt;form [formGroup]&#x3D;&quot;form&quot; (ngSubmit)&#x3D;&#x27;onLogin($event)&#x27;&gt;
-          &lt;input type&#x3D;&quot;text&quot; id&#x3D;&quot;username&quot; class&#x3D;&quot;form-control input-sm chat-input&quot; [placeholder]&#x3D;&quot;&#x27;local-creds-input-username-label&#x27; | i18next&quot; formControlName&#x3D;&quot;username&quot; [attr.aria-label]&#x3D;&quot;&#x27;local-creds-input-username-label&#x27; | i18next &quot; autocomplete&#x3D;&quot;off&quot;/&gt;
-          &lt;br/&gt;
-          &lt;input type&#x3D;&quot;password&quot; id&#x3D;&quot;password&quot; class&#x3D;&quot;form-control input-sm chat-input&quot; [placeholder]&#x3D;&quot;&#x27;local-creds-input-password-label&#x27; | i18next&quot; formControlName&#x3D;&quot;password&quot; [attr.aria-label]&#x3D;&quot;&#x27;local-creds-input-password-label&#x27; | i18next &quot; autocomplete&#x3D;&quot;off&quot;/&gt;
-          &lt;br/&gt;
-          &lt;div class&#x3D;&quot;wrapper&quot;&gt;
-            &lt;span class&#x3D;&quot;group-btn&quot;&gt;
-                &lt;button type&#x3D;&#x27;submit&#x27; class&#x3D;&quot;btn btn-primary btn-md {{isLoginDisabled ? &#x27;disabled&#x27; : &#x27;&#x27;}}&quot; (click)&#x3D;&quot;onLogin($event)&quot;&gt;{{ &#x27;local-auth-login&#x27; | i18next }} &lt;i class&#x3D;&quot;fa fa-sign-in&quot;&gt;&lt;/i&gt;&lt;/button&gt;
-            &lt;/span&gt;
-          &lt;/div&gt;
-          &lt;br/&gt;
-          &lt;div class&#x3D;&quot;alert alert-danger&quot; *ngIf&#x3D;&quot;loginMessage !&#x3D; null&quot;&gt;
-            {{loginMessage}}
-          &lt;/div&gt;
-        &lt;/form&gt;
-      &lt;/div&gt;
-      &lt;/div&gt;
-    &lt;/div&gt;
-  &lt;/div&gt;
+  &lt;form [formGroup]&#x3D;&quot;form&quot; (ngSubmit)&#x3D;&quot;onSubmit(model)&quot;&gt;
+    &lt;formly-form [form]&#x3D;&quot;form&quot; [fields]&#x3D;&quot;fields&quot; [model]&#x3D;&quot;model&quot;&gt;&lt;/formly-form&gt;
+    &lt;button type&#x3D;&quot;submit&quot; class&#x3D;&quot;btn btn-default&quot;&gt;Submit&lt;/button&gt;
+  &lt;/form&gt;
+  &lt;p class&#x3D;&quot;alert-info text-16 padding-10 mt-2&quot; *ngIf&#x3D;&quot;formSaving&quot;&gt;Configuration is being saved &lt;i class&#x3D;&quot;fa fa-spinner fa-pulse fa-1x fa-fw&quot;&gt;&lt;/i&gt;&lt;/p&gt;
+  &lt;p class&#x3D;&quot;alert-success text-16 padding-10 mt-2&quot; *ngIf&#x3D;&quot;formSaveSuccessful&quot;&gt;Configuration saved successfully&lt;/p&gt;
+  &lt;p class&#x3D;&quot;alert-danger text-16 padding-10 mt-2&quot; *ngIf&#x3D;&quot;formSaveUnsuccessful&quot;&gt;Configuration failed to save. Please try again.&lt;/p&gt;
 &lt;/ng-container&gt;</code></pre>
     </div>
 
@@ -1274,10 +1333,10 @@ export class LocalAuthComponent extends BaseComponent {
 <script src="../js/libs/htmlparser.js"></script>
 <script src="../js/libs/deep-iterator.js"></script>
 <script>
-        var COMPONENT_TEMPLATE = '<div><!-- ngIf is needed so init completes and view has all the information it needs --><ng-container *ngIf="isReady">   <div class="col-md-offset-5 col-md-3" >    <div class="panel panel-default">      <div class="panel-heading">        <span class="panel-title">{{ \'local-creds-header\' | i18next }}</span>      </div>      <div class="panel-body">        <div class="form-login">        <form [formGroup]="form" (ngSubmit)=\'onLogin($event)\'>          <input type="text" id="username" class="form-control input-sm chat-input" [placeholder]="\'local-creds-input-username-label\' | i18next" formControlName="username" [attr.aria-label]="\'local-creds-input-username-label\' | i18next " autocomplete="off"/>          <br/>          <input type="password" id="password" class="form-control input-sm chat-input" [placeholder]="\'local-creds-input-password-label\' | i18next" formControlName="password" [attr.aria-label]="\'local-creds-input-password-label\' | i18next " autocomplete="off"/>          <br/>          <div class="wrapper">            <span class="group-btn">                <button type=\'submit\' class="btn btn-primary btn-md {{isLoginDisabled ? \'disabled\' : \'\'}}" (click)="onLogin($event)">{{ \'local-auth-login\' | i18next }} <i class="fa fa-sign-in"></i></button>            </span>          </div>          <br/>          <div class="alert alert-danger" *ngIf="loginMessage != null">            {{loginMessage}}          </div>        </form>      </div>      </div>    </div>  </div></ng-container></div>'
+        var COMPONENT_TEMPLATE = '<div><!-- ngIf is needed so init completes and view has all the information it needs --><ng-container *ngIf="isReady">   <form [formGroup]="form" (ngSubmit)="onSubmit(model)">    <formly-form [form]="form" [fields]="fields" [model]="model"></formly-form>    <button type="submit" class="btn btn-default">Submit</button>  </form>  <p class="alert-info text-16 padding-10 mt-2" *ngIf="formSaving">Configuration is being saved <i class="fa fa-spinner fa-pulse fa-1x fa-fw"></i></p>  <p class="alert-success text-16 padding-10 mt-2" *ngIf="formSaveSuccessful">Configuration saved successfully</p>  <p class="alert-danger text-16 padding-10 mt-2" *ngIf="formSaveUnsuccessful">Configuration failed to save. Please try again.</p></ng-container></div>'
     var COMPONENTS = [{'name': 'AppConfigComponent', 'selector': 'app-config'},{'name': 'ArrayTypeComponent', 'selector': 'formly-array-type'},{'name': 'BaseComponent', 'selector': ''},{'name': 'DashboardComponent', 'selector': 'dashboard'},{'name': 'ExportComponent', 'selector': 'export'},{'name': 'FormBaseComponent', 'selector': ''},{'name': 'FormComponent', 'selector': 'redbox-form'},{'name': 'FormFieldWrapperComponent', 'selector': 'redbox-form-field'},{'name': 'LocalAuthComponent', 'selector': 'local-auth'},{'name': 'ManageRolesComponent', 'selector': 'manage-roles'},{'name': 'ManageUsersComponent', 'selector': 'manage-users'},{'name': 'ObjectTypeComponent', 'selector': 'formly-object-type'},{'name': 'RecordTableComponent', 'selector': 'record-table'},{'name': 'ReportComponent', 'selector': 'report'},{'name': 'SortComponent', 'selector': 'sort'},{'name': 'TextAreaComponent', 'selector': 'formly-textarea-type'},{'name': 'TextFieldComponent', 'selector': 'textfield'}];
     var DIRECTIVES = [{'name': 'FormFieldWrapperDirective', 'selector': '[formFieldComp]'}];
-    var ACTUAL_COMPONENT = {'name': 'LocalAuthComponent'};
+    var ACTUAL_COMPONENT = {'name': 'AppConfigComponent'};
 </script>
 <script src="../js/tree.js"></script>
 
@@ -1323,7 +1382,7 @@ export class LocalAuthComponent extends BaseComponent {
        <script>
             var COMPODOC_CURRENT_PAGE_DEPTH = 1;
             var COMPODOC_CURRENT_PAGE_CONTEXT = 'component';
-            var COMPODOC_CURRENT_PAGE_URL = 'LocalAuthComponent.html';
+            var COMPODOC_CURRENT_PAGE_URL = 'AppConfigComponent.html';
             var MAX_SEARCH_RESULTS = 15;
        </script>
 

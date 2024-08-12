@@ -90,7 +90,7 @@
   <li class="breadcrumb-item">Components</li>
   <li class="breadcrumb-item"
   >
-  TextFieldComponent</li>
+  ArrayTypeComponent</li>
 </ol>
 
 <ul class="nav nav-tabs" role="tablist">
@@ -113,7 +113,7 @@
     <h3>File</h3>
 </p>
 <p class="comment">
-    <code>angular/projects/researchdatabox/form/src/app/component/textfield.component.ts</code>
+    <code>angular/projects/researchdatabox/app-config/src/app/fieldTypes/array.type.ts</code>
 </p>
 
 
@@ -122,7 +122,7 @@
         <h3>Extends</h3>
     </p>
     <p class="comment">
-                    <code><a href="../components/FormBaseComponent.html" target="_self" >FormBaseComponent</a></code>
+                <code>FieldArrayType</code>
     </p>
 
 
@@ -145,7 +145,7 @@
 
             <tr>
                 <td class="col-md-3">selector</td>
-                <td class="col-md-9"><code>textfield</code></td>
+                <td class="col-md-9"><code>formly-array-type</code></td>
             </tr>
 
 
@@ -154,8 +154,24 @@
 
             <tr>
                 <td class="col-md-3">template</td>
-                <td class="col-md-9"><pre class="line-numbers"><code class="language-html">&lt;span&gt;Text Label&lt;/span&gt;
-&lt;input type&#x3D;&#x27;text&#x27; value&#x3D;&#x27;hello!&#x27; /&gt;
+                <td class="col-md-9"><pre class="line-numbers"><code class="language-html">&lt;div class&#x3D;&quot;mb-3&quot;&gt;
+  &lt;legend *ngIf&#x3D;&quot;props.label&quot;&gt;{{ props.label }}&lt;/legend&gt;
+  &lt;p *ngIf&#x3D;&quot;props.description&quot;&gt;{{ props.description }}&lt;/p&gt;
+  &lt;div class&#x3D;&quot;d-flex flex-row-reverse&quot;&gt;
+    &lt;button class&#x3D;&quot;btn btn-primary&quot; type&#x3D;&quot;button&quot; (click)&#x3D;&quot;add()&quot;&gt;+&lt;/button&gt;
+  &lt;/div&gt;
+
+  &lt;div class&#x3D;&quot;alert alert-danger&quot; role&#x3D;&quot;alert&quot; *ngIf&#x3D;&quot;showError &amp;&amp; formControl.errors&quot;&gt;
+    &lt;formly-validation-message [field]&#x3D;&quot;field&quot;&gt;&lt;/formly-validation-message&gt;
+  &lt;/div&gt;
+
+  &lt;div *ngFor&#x3D;&quot;let field of field.fieldGroup; let i &#x3D; index&quot; class&#x3D;&quot;row align-items-start&quot;&gt;
+    &lt;formly-field class&#x3D;&quot;col&quot; [field]&#x3D;&quot;field&quot;&gt;&lt;/formly-field&gt;
+    &lt;div  class&#x3D;&quot;col-2 text-right&quot;&gt;
+      &lt;button class&#x3D;&quot;btn btn-danger&quot; type&#x3D;&quot;button&quot; (click)&#x3D;&quot;remove(i)&quot;&gt;-&lt;/button&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+&lt;/div&gt;
 </code></pre></td>
             </tr>
 
@@ -184,26 +200,32 @@
 
     <div class="tab-pane fade  tab-source-code" id="source">
         <pre class="line-numbers compodoc-sourcecode"><code class="language-typescript">import { Component } from &#x27;@angular/core&#x27;;
-import { FormBaseComponent, ModelBase } from &quot;@researchdatabox/portal-ng-common&quot;;
-
-export class TextField extends ModelBase&lt;string&gt; {
-  type: string &#x3D; &#x27;text&#x27;
-  constructor(initJson: any) {
-    super(initJson);
-    
-  }
-}
+import { FieldArrayType } from &#x27;@ngx-formly/core&#x27;;
 
 @Component({
-  selector: &#x27;textfield&#x27;,
+  selector: &#x27;formly-array-type&#x27;,
   template: &#x60;
-  &lt;span&gt;Text Label&lt;/span&gt;
-  &lt;input type&#x3D;&#x27;text&#x27; value&#x3D;&#x27;hello!&#x27; /&gt;
+    &lt;div class&#x3D;&quot;mb-3&quot;&gt;
+      &lt;legend *ngIf&#x3D;&quot;props.label&quot;&gt;{{ props.label }}&lt;/legend&gt;
+      &lt;p *ngIf&#x3D;&quot;props.description&quot;&gt;{{ props.description }}&lt;/p&gt;
+      &lt;div class&#x3D;&quot;d-flex flex-row-reverse&quot;&gt;
+        &lt;button class&#x3D;&quot;btn btn-primary&quot; type&#x3D;&quot;button&quot; (click)&#x3D;&quot;add()&quot;&gt;+&lt;/button&gt;
+      &lt;/div&gt;
+
+      &lt;div class&#x3D;&quot;alert alert-danger&quot; role&#x3D;&quot;alert&quot; *ngIf&#x3D;&quot;showError &amp;&amp; formControl.errors&quot;&gt;
+        &lt;formly-validation-message [field]&#x3D;&quot;field&quot;&gt;&lt;/formly-validation-message&gt;
+      &lt;/div&gt;
+
+      &lt;div *ngFor&#x3D;&quot;let field of field.fieldGroup; let i &#x3D; index&quot; class&#x3D;&quot;row align-items-start&quot;&gt;
+        &lt;formly-field class&#x3D;&quot;col&quot; [field]&#x3D;&quot;field&quot;&gt;&lt;/formly-field&gt;
+        &lt;div  class&#x3D;&quot;col-2 text-right&quot;&gt;
+          &lt;button class&#x3D;&quot;btn btn-danger&quot; type&#x3D;&quot;button&quot; (click)&#x3D;&quot;remove(i)&quot;&gt;-&lt;/button&gt;
+        &lt;/div&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
   &#x60;,
 })
-export class TextFieldComponent extends FormBaseComponent {
-
-}</code></pre>
+export class ArrayTypeComponent extends FieldArrayType {}</code></pre>
     </div>
 
 
@@ -233,10 +255,10 @@ export class TextFieldComponent extends FormBaseComponent {
 <script src="../js/libs/htmlparser.js"></script>
 <script src="../js/libs/deep-iterator.js"></script>
 <script>
-        var COMPONENT_TEMPLATE = '<div><span>Text Label</span><input type=\'text\' value=\'hello!\' /></div>'
+        var COMPONENT_TEMPLATE = '<div><div class="mb-3">  <legend *ngIf="props.label">{{ props.label }}</legend>  <p *ngIf="props.description">{{ props.description }}</p>  <div class="d-flex flex-row-reverse">    <button class="btn btn-primary" type="button" (click)="add()">+</button>  </div>  <div class="alert alert-danger" role="alert" *ngIf="showError && formControl.errors">    <formly-validation-message [field]="field"></formly-validation-message>  </div>  <div *ngFor="let field of field.fieldGroup; let i = index" class="row align-items-start">    <formly-field class="col" [field]="field"></formly-field>    <div  class="col-2 text-right">      <button class="btn btn-danger" type="button" (click)="remove(i)">-</button>    </div>  </div></div></div>'
     var COMPONENTS = [{'name': 'AppConfigComponent', 'selector': 'app-config'},{'name': 'ArrayTypeComponent', 'selector': 'formly-array-type'},{'name': 'BaseComponent', 'selector': ''},{'name': 'DashboardComponent', 'selector': 'dashboard'},{'name': 'ExportComponent', 'selector': 'export'},{'name': 'FormBaseComponent', 'selector': ''},{'name': 'FormComponent', 'selector': 'redbox-form'},{'name': 'FormFieldWrapperComponent', 'selector': 'redbox-form-field'},{'name': 'LocalAuthComponent', 'selector': 'local-auth'},{'name': 'ManageRolesComponent', 'selector': 'manage-roles'},{'name': 'ManageUsersComponent', 'selector': 'manage-users'},{'name': 'ObjectTypeComponent', 'selector': 'formly-object-type'},{'name': 'RecordTableComponent', 'selector': 'record-table'},{'name': 'ReportComponent', 'selector': 'report'},{'name': 'SortComponent', 'selector': 'sort'},{'name': 'TextAreaComponent', 'selector': 'formly-textarea-type'},{'name': 'TextFieldComponent', 'selector': 'textfield'}];
     var DIRECTIVES = [{'name': 'FormFieldWrapperDirective', 'selector': '[formFieldComp]'}];
-    var ACTUAL_COMPONENT = {'name': 'TextFieldComponent'};
+    var ACTUAL_COMPONENT = {'name': 'ArrayTypeComponent'};
 </script>
 <script src="../js/tree.js"></script>
 
@@ -282,7 +304,7 @@ export class TextFieldComponent extends FormBaseComponent {
        <script>
             var COMPODOC_CURRENT_PAGE_DEPTH = 1;
             var COMPODOC_CURRENT_PAGE_CONTEXT = 'component';
-            var COMPODOC_CURRENT_PAGE_URL = 'TextFieldComponent.html';
+            var COMPODOC_CURRENT_PAGE_URL = 'ArrayTypeComponent.html';
             var MAX_SEARCH_RESULTS = 15;
        </script>
 

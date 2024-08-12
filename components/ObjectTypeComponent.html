@@ -90,7 +90,7 @@
   <li class="breadcrumb-item">Components</li>
   <li class="breadcrumb-item"
   >
-  TextFieldComponent</li>
+  ObjectTypeComponent</li>
 </ol>
 
 <ul class="nav nav-tabs" role="tablist">
@@ -113,7 +113,7 @@
     <h3>File</h3>
 </p>
 <p class="comment">
-    <code>angular/projects/researchdatabox/form/src/app/component/textfield.component.ts</code>
+    <code>angular/projects/researchdatabox/app-config/src/app/fieldTypes/object.type.ts</code>
 </p>
 
 
@@ -122,7 +122,7 @@
         <h3>Extends</h3>
     </p>
     <p class="comment">
-                    <code><a href="../components/FormBaseComponent.html" target="_self" >FormBaseComponent</a></code>
+                <code>FieldType</code>
     </p>
 
 
@@ -145,7 +145,7 @@
 
             <tr>
                 <td class="col-md-3">selector</td>
-                <td class="col-md-9"><code>textfield</code></td>
+                <td class="col-md-9"><code>formly-object-type</code></td>
             </tr>
 
 
@@ -154,8 +154,14 @@
 
             <tr>
                 <td class="col-md-3">template</td>
-                <td class="col-md-9"><pre class="line-numbers"><code class="language-html">&lt;span&gt;Text Label&lt;/span&gt;
-&lt;input type&#x3D;&#x27;text&#x27; value&#x3D;&#x27;hello!&#x27; /&gt;
+                <td class="col-md-9"><pre class="line-numbers"><code class="language-html">&lt;div class&#x3D;&quot;mb-3&quot;&gt;
+  &lt;legend *ngIf&#x3D;&quot;props.label&quot;&gt;{{ props.label }}&lt;/legend&gt;
+  &lt;p *ngIf&#x3D;&quot;props.description&quot;&gt;{{ props.description }}&lt;/p&gt;
+  &lt;div class&#x3D;&quot;alert alert-danger&quot; role&#x3D;&quot;alert&quot; *ngIf&#x3D;&quot;showError &amp;&amp; formControl.errors&quot;&gt;
+    &lt;formly-validation-message [field]&#x3D;&quot;field&quot;&gt;&lt;/formly-validation-message&gt;
+  &lt;/div&gt;
+  &lt;formly-field *ngFor&#x3D;&quot;let f of field.fieldGroup&quot; [field]&#x3D;&quot;f&quot;&gt;&lt;/formly-field&gt;
+&lt;/div&gt;
 </code></pre></td>
             </tr>
 
@@ -183,27 +189,21 @@
 
 
     <div class="tab-pane fade  tab-source-code" id="source">
-        <pre class="line-numbers compodoc-sourcecode"><code class="language-typescript">import { Component } from &#x27;@angular/core&#x27;;
-import { FormBaseComponent, ModelBase } from &quot;@researchdatabox/portal-ng-common&quot;;
-
-export class TextField extends ModelBase&lt;string&gt; {
-  type: string &#x3D; &#x27;text&#x27;
-  constructor(initJson: any) {
-    super(initJson);
-    
-  }
-}
-
-@Component({
-  selector: &#x27;textfield&#x27;,
-  template: &#x60;
-  &lt;span&gt;Text Label&lt;/span&gt;
-  &lt;input type&#x3D;&#x27;text&#x27; value&#x3D;&#x27;hello!&#x27; /&gt;
-  &#x60;,
-})
-export class TextFieldComponent extends FormBaseComponent {
-
-}</code></pre>
+        <pre class="line-numbers compodoc-sourcecode"><code class="language-typescript">import { Component } from &#x27;@angular/core&#x27;; 
+import { FieldType } from &#x27;@ngx-formly/core&#x27;; 
+@Component({ 
+    selector: &#x27;formly-object-type&#x27;, 
+    template: &#x60;
+    &lt;div class&#x3D;&quot;mb-3&quot;&gt;
+      &lt;legend *ngIf&#x3D;&quot;props.label&quot;&gt;{{ props.label }}&lt;/legend&gt;
+      &lt;p *ngIf&#x3D;&quot;props.description&quot;&gt;{{ props.description }}&lt;/p&gt;
+      &lt;div class&#x3D;&quot;alert alert-danger&quot; role&#x3D;&quot;alert&quot; *ngIf&#x3D;&quot;showError &amp;&amp; formControl.errors&quot;&gt;
+        &lt;formly-validation-message [field]&#x3D;&quot;field&quot;&gt;&lt;/formly-validation-message&gt;
+      &lt;/div&gt;
+      &lt;formly-field *ngFor&#x3D;&quot;let f of field.fieldGroup&quot; [field]&#x3D;&quot;f&quot;&gt;&lt;/formly-field&gt;
+    &lt;/div&gt;
+  &#x60;, }) 
+export class ObjectTypeComponent extends FieldType { }</code></pre>
     </div>
 
 
@@ -233,10 +233,10 @@ export class TextFieldComponent extends FormBaseComponent {
 <script src="../js/libs/htmlparser.js"></script>
 <script src="../js/libs/deep-iterator.js"></script>
 <script>
-        var COMPONENT_TEMPLATE = '<div><span>Text Label</span><input type=\'text\' value=\'hello!\' /></div>'
+        var COMPONENT_TEMPLATE = '<div><div class="mb-3">  <legend *ngIf="props.label">{{ props.label }}</legend>  <p *ngIf="props.description">{{ props.description }}</p>  <div class="alert alert-danger" role="alert" *ngIf="showError && formControl.errors">    <formly-validation-message [field]="field"></formly-validation-message>  </div>  <formly-field *ngFor="let f of field.fieldGroup" [field]="f"></formly-field></div></div>'
     var COMPONENTS = [{'name': 'AppConfigComponent', 'selector': 'app-config'},{'name': 'ArrayTypeComponent', 'selector': 'formly-array-type'},{'name': 'BaseComponent', 'selector': ''},{'name': 'DashboardComponent', 'selector': 'dashboard'},{'name': 'ExportComponent', 'selector': 'export'},{'name': 'FormBaseComponent', 'selector': ''},{'name': 'FormComponent', 'selector': 'redbox-form'},{'name': 'FormFieldWrapperComponent', 'selector': 'redbox-form-field'},{'name': 'LocalAuthComponent', 'selector': 'local-auth'},{'name': 'ManageRolesComponent', 'selector': 'manage-roles'},{'name': 'ManageUsersComponent', 'selector': 'manage-users'},{'name': 'ObjectTypeComponent', 'selector': 'formly-object-type'},{'name': 'RecordTableComponent', 'selector': 'record-table'},{'name': 'ReportComponent', 'selector': 'report'},{'name': 'SortComponent', 'selector': 'sort'},{'name': 'TextAreaComponent', 'selector': 'formly-textarea-type'},{'name': 'TextFieldComponent', 'selector': 'textfield'}];
     var DIRECTIVES = [{'name': 'FormFieldWrapperDirective', 'selector': '[formFieldComp]'}];
-    var ACTUAL_COMPONENT = {'name': 'TextFieldComponent'};
+    var ACTUAL_COMPONENT = {'name': 'ObjectTypeComponent'};
 </script>
 <script src="../js/tree.js"></script>
 
@@ -282,7 +282,7 @@ export class TextFieldComponent extends FormBaseComponent {
        <script>
             var COMPODOC_CURRENT_PAGE_DEPTH = 1;
             var COMPODOC_CURRENT_PAGE_CONTEXT = 'component';
-            var COMPODOC_CURRENT_PAGE_URL = 'TextFieldComponent.html';
+            var COMPODOC_CURRENT_PAGE_URL = 'ObjectTypeComponent.html';
             var MAX_SEARCH_RESULTS = 15;
        </script>
 

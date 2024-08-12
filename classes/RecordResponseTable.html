@@ -330,7 +330,40 @@ export class Plan {
   metadata: object &#x3D; {};
   dashboardTitle: string &#x3D; &#x27;&#x27;;
 }
-</code></pre>
+
+export declare class FilterField {
+    name: string;
+    path: string;
+}
+
+export declare class QueryFilter {
+  filterType: string;
+  filterFields: FilterField[];
+}
+
+export declare class SortGroupBy {
+  rowLevel: number;
+  compareFieldValue: string;
+  compareField: string;
+  relatedTo: string;
+}
+
+export declare class FormatRules {
+  filterBy: any;
+  filterWorkflowStepsBy: string[];
+  recordTypeFilterBy: string;
+  queryFilters: { [key: string]: QueryFilter[] };
+  sortBy: string;
+  groupBy: string;
+  sortGroupBy: SortGroupBy[];
+  hideWorkflowStepTitleForRecordType: string[];
+}
+
+export declare class DashboardConfig {
+  [key: string]: {
+      formatRules: FormatRules;
+  }
+}</code></pre>
     </div>
 </div>
 
