@@ -24,4 +24,44 @@ describe('The UsersService', function () {
     });
   });
 
+  describe('login restrictions using authorised email config', function () {
+    const tests = [
+      {
+        args: {conf: {}, email: null},
+        expected: {success: false, message: 'No email address provided.'}
+      },
+      {
+        args: {conf: {}, email: 'testexample.com'},
+        expected: {success: false, message: 'Unexpected email format: testexample.com'},
+      },
+      {
+        args: {conf: {}, email: 'test@more@example.com'},
+        expected: {success: false, message: 'Unexpected email format: test@more@example.com'},
+      },
+      {
+        args: {conf: {}, email: 'test@example.com'},
+        expected: {success: true, message: 'No authorized email configuration.'},
+      },
+      {
+        args: {conf: {authorizedEmailDomains:['example.com']}, email: 'test@example.com'},
+        expected: {success: true, message: 'Authorized email domain: example.com'},
+      },
+      {
+        args: {conf: {authorizedEmailExceptions:['test@example.com']}, email: 'test@example.com'},
+        expected: {success: true, message: 'Authorized email exception: test@example.com'},
+      },
+      {
+        args: {conf: {authorizedEmailDomains:['example.net']}, email: 'test@example.com'},
+        expected: {success: false, message: 'Email is not authorized to login: test@example.com'},
+      },
+    ];
+
+    tests.forEach(({args, expected}) => {
+      it(`should ${expected.success ? 'pass' : 'fail'} with args ${args}`, function () {
+        const result = UsersService.checkAuthorizedEmail(args.conf, args.email);
+        expect(result.success).to.equal(expected.success);
+        expect(result.message).to.equal(expected.message);
+      });
+    });
+  });
 });

@@ -71,7 +71,8 @@ export module Services {
       'findUsersWithQuery',
       'findAndAssignAccessToRecords',
       'getUsers',
-      'addUserAuditEvent'
+      'addUserAuditEvent',
+      'checkAuthorizedEmail',
     ];
 
     searchService: SearchService;
@@ -419,8 +420,6 @@ export module Services {
           
           const authConfig = ConfigService.getBrand(brand.name, 'auth');
           var aafAttributes = authConfig.aaf.attributesField;
-          let authorizedEmailDomains = _.get(authConfig.aaf, "authorizedEmailDomains", []);
-          let authorizedEmailExceptions = _.get(authConfig.aaf, "authorizedEmailExceptions", []);
           sails.log.verbose("Configured roles: ")
           sails.log.verbose(sails.config.auth.roles);
           sails.log.verbose("AAF default roles ")
@@ -552,22 +551,11 @@ export module Services {
                 lastLogin: new Date()
               };
               sails.log.verbose(userToCreate);
-              if (authorizedEmailExceptions.length > 0 || authorizedEmailDomains > 0) {
-                let emailParts = userToCreate.email.split('@');
-                if (emailParts.length != 2) {
-                  sails.log.error(`Unexpected email format: ${userToCreate.email}`);
-                  return done(`Unexpected email format: ${userToCreate.email}`, false);
-                }
 
-                let emailDomain = emailParts[1];
-                if (authorizedEmailDomains.indexOf(emailDomain) == -1) {
-                  if (authorizedEmailExceptions.indexOf(userToCreate.email) == -1) {
-                    sails.log.error(`User is not authorized to login: ${userToCreate.email}`);
-                    return done(`User is not authorized to login: ${userToCreate.email}`, false);
-                  }
-                }
+              const emailAuthorizedCheck = that.checkAuthorizedEmail(authConfig.aaf, userToCreate.email);
+              if (!emailAuthorizedCheck.success) {
+                return done(emailAuthorizedCheck.message, false);
               }
-
 
               let configAAF = _.get(defAuthConfig, 'aaf');
               if(that.hasPreSaveTriggerConfigured(configAAF, 'onCreate')) {
@@ -874,6 +862,11 @@ export module Services {
           }
           sails.log.verbose(`Creating user: `);
           sails.log.verbose(userToCreate);
+
+          const emailAuthorizedCheck = that.checkAuthorizedEmail(oidcConfig, userToCreate.email);
+          if (!emailAuthorizedCheck.success) {
+            return done(emailAuthorizedCheck.message, false);
+          }
 
           if(that.hasPreSaveTriggerConfigured(oidcConfig, 'onCreate')) {
             that.triggerPreSaveTriggers(userToCreate, oidcConfig).then((userAdditionalInfo) => {
@@ -1297,6 +1290,67 @@ export module Services {
       });
     }
 
+    /**
+     * Check whether an email is authorized.
+     * @param authConfigItem The auth configuration object for item.
+     * @param email The email to check.
+     * @private
+     */
+    public checkAuthorizedEmail(
+        authConfigItem: {},
+        email: string
+    ): { success: boolean, message: string } {
+      // Must pass email.
+      if (!email) {
+        const msg = "No email address provided.";
+        sails.log.error(msg);
+        return {success: false, message: msg};
+      }
+
+      // Assess email address.
+      const emailParts = email.includes('@') ? email.split('@') : [];
+      if (emailParts.length !== 2) {
+        const msg = `Unexpected email format: ${email}`;
+        sails.log.error(msg);
+        return {success: false, message: msg};
+      }
+
+      // Check configuration.
+      const domains = _.get(authConfigItem, "authorizedEmailDomains", []);
+      const exceptions = _.get(authConfigItem, "authorizedEmailExceptions", []);
+      if (domains.length === 0) {
+        sails.log.verbose("No authorized email domains configured.");
+      }
+      if (exceptions.length === 0) {
+        sails.log.verbose("No authorized email exceptions configured.");
+      }
+      if (domains.length == 0 && exceptions.length === 0) {
+        const msg = "No authorized email configuration.";
+        sails.log.verbose(msg);
+        return {success: true, message: msg};
+      }
+
+      // Assess domains and exceptions.
+      const emailDomain = emailParts[1];
+      const isAllowedDomain = domains.indexOf(emailDomain) !== -1;
+      if (isAllowedDomain) {
+        const msg = `Authorized email domain: ${emailDomain}`;
+        sails.log.verbose(msg);
+        return {success: true, message: msg};
+      }
+
+      const isAllowedException = exceptions.indexOf(email) !== -1;
+      if (isAllowedException) {
+        const msg = `Authorized email exception: ${email}`;
+        sails.log.verbose(msg);
+        return {success: true, message: msg};
+      }
+
+      // Checks did not pass, so email is not allowed.
+      const msg = `Email is not authorized to login: ${email}`;
+      sails.log.error(msg);
+      return {success: false, message: msg};
+    }
     }
   }
 
