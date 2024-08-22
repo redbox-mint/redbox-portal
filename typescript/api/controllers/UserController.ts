@@ -341,6 +341,17 @@ export module Controllers {
       sails.log.verbose('decodeErrorMappings - options: ' + JSON.stringify(options));
       let errorMessageDecoded = 'oidc-default-unknown-error';
       let errorMappingList = _.get(options, 'errorMappings', []);
+
+      // TODO: hard-coded messages should be part of the auth config in aaf/oidc errorMappings instead
+      const authorizedEmailMsgs = UsersService.checkAuthorizedEmailMessages();
+      for (const [key, value] of Object.entries(authorizedEmailMsgs)) {
+        errorMappingList.push({
+          errorDescPattern: new RegExp(`${value}\\s*(?<email>.*)?`),
+          matchRegexWithGroups: true,
+          altErrorRedboxCodeMessage: `oidc-${key}`,
+        });
+      }
+
       let errorMessageDecodedAsObject = {};
 
       if(!_.isUndefined(errorMessage) && !_.isNull(errorMessage)) {
