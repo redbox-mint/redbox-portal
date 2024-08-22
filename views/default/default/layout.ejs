@@ -115,11 +115,11 @@
 <% if (typeof title!== 'undefined') { %>
 <% } %>
  
-<% if (sails.config.brandingAware(branding).systemMessage.enabled == true) { %>
+<% if (sails.config.brandingAware(BrandingService.getBrandFromReq(req)).systemMessage.enabled === true) { %>
   <div id="system-message-area" class="container">
   <div id="system-message" class="alert alert-primary alert-dismissible fade show" role="alert">
-    <h4><%- sails.config.brandingAware(branding).systemMessage.title %></h4>
-    <div><%- sails.config.brandingAware(branding).systemMessage.message %></div>
+    <h4><%- sails.config.brandingAware(BrandingService.getBrandFromReq(req)).systemMessage.title %></h4>
+    <div><%- sails.config.brandingAware(BrandingService.getBrandFromReq(req)).systemMessage.message %></div>
     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
   </div>
 </div>

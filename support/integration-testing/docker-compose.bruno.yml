@@ -52,6 +52,8 @@ services:
       # - sails_log__level=verbose
       - sails_auth__default__local__default__token=d077835a-696b-4728-85cf-3ffd57152b1e
       - sails_security__csrf=false
+      - sails_auth__default__oidc__authorizedEmailDomains='["researcher.com"]'
+      - sails_auth__default__oidc__authorizedEmailExceptions='["test@exception.example.com"]'
     networks:
      main:
        aliases:

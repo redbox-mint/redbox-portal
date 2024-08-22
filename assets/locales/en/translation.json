@@ -777,5 +777,8 @@
   "system-message-title": "System Notification",
   "system-message-description": "ReDBox will be unavailable from 9am to 12pm on October 20 for system upgrades. Please contact support for any help",
   "system-lookup-records": "Lookup records",
-  "system-lookup-record-item1": "Parties"
+  "system-lookup-record-item1": "Parties",
+  "oidc-authorized-email-no-email": "No email address provided.",
+  "oidc-authorized-email-unexpected-format": "Unexpected email format: {{-email}}.",
+  "oidc-authorized-email-denied": "Email is not authorized to login: {{-email}}."
 }

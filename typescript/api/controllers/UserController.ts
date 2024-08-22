@@ -285,7 +285,7 @@ export module Controllers {
           }
 
           let oidcConfig = _.get(sails.config, 'auth.default.oidc');
-          let errorMessage = _.get(err, 'message');
+          let errorMessage = _.get(err, 'message', err?.toString() ?? '');
           let errorMessageDecoded = that.decodeErrorMappings(oidcConfig, errorMessage);
           sails.log.verbose('After decodeErrorMappings - errorMessageDecoded: ' + JSON.stringify(errorMessageDecoded));
           if(!_.isEmpty(errorMessageDecoded)) {

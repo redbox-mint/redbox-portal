@@ -73,6 +73,7 @@ export module Services {
       'getUsers',
       'addUserAuditEvent',
       'checkAuthorizedEmail',
+      'checkAuthorizedEmailMessages',
     ];
 
     searchService: SearchService;
@@ -1026,7 +1027,7 @@ export module Services {
      */
     public addUserAuditEvent = (user, action, additionalContext) => {
       let auditEvent = {}
-      if (!_.isEmpty(user.password)) {
+      if (user && !_.isEmpty(user.password)) {
         delete user.password;
       }
       user.additionalAttributes = this.stringifyObject(user.additionalAttributes)
@@ -1290,6 +1291,16 @@ export module Services {
       });
     }
 
+    public checkAuthorizedEmailMessages() {
+      // TODO: hard-coded messages should be part of the auth config in aaf/oidc errorMappings instead.
+      // Key is the message id, value is the message prefix.
+      return {
+        "authorized-email-no-email": "No email address provided.",
+        "authorized-email-unexpected-format": "Unexpected email format:",
+        "authorized-email-denied": "Email is not authorized to login:",
+      }
+    }
+
     /**
      * Check whether an email is authorized.
      * @param authConfigItem The auth configuration object for item.
@@ -1300,9 +1311,10 @@ export module Services {
         authConfigItem: {},
         email: string
     ): { success: boolean, message: string } {
+      const msgs = this.checkAuthorizedEmailMessages();
       // Must pass email.
       if (!email) {
-        const msg = "No email address provided.";
+        const msg = msgs["authorized-email-no-email"];
         sails.log.error(msg);
         return {success: false, message: msg};
       }
@@ -1310,7 +1322,7 @@ export module Services {
       // Assess email address.
       const emailParts = email.includes('@') ? email.split('@') : [];
       if (emailParts.length !== 2) {
-        const msg = `Unexpected email format: ${email}`;
+        const msg = `${msgs["authorized-email-unexpected-format"]} ${email}`;
         sails.log.error(msg);
         return {success: false, message: msg};
       }
@@ -1324,7 +1336,7 @@ export module Services {
       if (exceptions.length === 0) {
         sails.log.verbose("No authorized email exceptions configured.");
       }
-      if (domains.length == 0 && exceptions.length === 0) {
+      if (domains.length === 0 && exceptions.length === 0) {
         const msg = "No authorized email configuration.";
         sails.log.verbose(msg);
         return {success: true, message: msg};
@@ -1347,7 +1359,7 @@ export module Services {
       }
 
       // Checks did not pass, so email is not allowed.
-      const msg = `Email is not authorized to login: ${email}`;
+      const msg = `${msgs["authorized-email-denied"]} ${email}`;
       sails.log.error(msg);
       return {success: false, message: msg};
     }
