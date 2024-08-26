@@ -763,5 +763,7 @@
   "lang-en": "English",
   "lang-mri": "Māori",
   "system-lookup-records": "Lookup records",
-  "system-lookup-record-item1": "Parties"
+  "system-lookup-record-item1": "Parties",
+  "menu-authorizeddomainsemails": "Authorized Domains and Emails",
+  "authorized-email-denied": "Email is not authorized to login."
 }
