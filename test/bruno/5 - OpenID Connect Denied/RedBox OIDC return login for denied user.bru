@@ -1,7 +1,7 @@
 meta {
   name: RedBox OIDC return login
   type: http
-  seq: 5
+  seq: 6
 }
 
 get {
@@ -34,14 +34,14 @@ script:pre-request {
 }
 
 tests {
-  test("Status code is 500", function () {
-    // TODO: this should be status 403 Forbidden, but that requires changes in how auth errors are processed
-    expect(res.getStatus()).to.equal(500);
+  test("Status code is 403", function () {
+    expect(res.getStatus()).to.equal(403);
     bru.setVar("cookie", res.headers['set-cookie']);
   });
 
   test("Page contains expected error", function () {
         var responseBody = res.getBody();
-        expect(responseBody).to.include('Email is not authorized to login:');
+        expect(responseBody).to.include('issue with your user credentials');
+        expect(responseBody).to.include('Email is not authorized to login');
   });
 }
