@@ -1,6 +1,7 @@
-version: '3.1'
+
 networks:
   main:
+
 services:
   redboxportal:
     image: qcifengineering/redbox-portal:develop
@@ -13,6 +14,13 @@ services:
        - "../../.tmp/attachments:/attachments"
        - "./recordtype-solr-multi-core-example.js:/opt/redbox-portal/config/recordtype.js"
        - "./solr-multi-core-example.js:/opt/redbox-portal/config/solr.js"
+    depends_on:
+      keycloak:
+        condition: 'service_healthy'
+      mongodb:
+        condition: 'service_healthy'
+      solr:
+        condition: 'service_healthy'
     expose:
        - "1500"
     environment:
@@ -27,25 +35,20 @@ services:
       - datacite_username=${datacite_username}
       - datacite_password=${datacite_password}
       - datacite_doiPrefix=${datacite_doiPrefix}
-    depends_on:
-      keycloak:
-        condition: service_healthy
-      mongodb:
-        condition: service_started
     networks:
      main:
        aliases:
-         - rbportal
+         - redboxportal
     # add 'node --inspect=0.0.0.0:9876' to entrypoint for debugging
     entrypoint: >-
       /bin/bash -c "cd /opt/redbox-portal && 
-      npm i nyc -g && 
-      npm i &&
-      nyc 
-      --no-clean 
+      npm install -g nyc &&
+      npm install &&
+      nyc
+      --no-clean
       --report-dir coverage/mocha 
-      --reporter=lcov 
-      --exclude-after-remap=false 
+      --reporter=lcov
+      --exclude-after-remap=false
       node 
       ./node_modules/mocha/bin/mocha 
       --exit test/bootstrap.test.js 
@@ -58,12 +61,24 @@ services:
           - mongodb
     ports:
        - "27017:27017"
+    healthcheck:
+      test: [ 'CMD-SHELL', "echo 'db.runCommand(\"ping\").ok' | mongosh" ]
+      interval: '10s'
+      timeout: '5s'
+      retries: 10
+      start_period: '30s'
   solr:
     image: solr:latest
     expose:
       - "8983"
     ports:
       - "8983:8983"
+    healthcheck:
+      test: [ 'CMD-SHELL', 'curl http://localhost:8983' ]
+      interval: '10s'
+      timeout: '5s'
+      retries: 10
+      start_period: '30s'
     volumes: 
       - "./solr.in.sh:/etc/default/solr.in.sh"
     networks:
@@ -82,9 +97,10 @@ services:
       - "8080:8080"
     healthcheck:
       test: ["CMD-SHELL", "curl http://localhost:8080"]
-      interval: 5s
-      timeout: 5s
+      interval: '10s'
+      timeout: '5s'
       retries: 10
+      start_period: '30s'
     volumes:
       - "./keycloakdb/data:/opt/keycloak/data"
     networks:
