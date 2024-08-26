@@ -1,18 +1,25 @@
 import {AppConfig} from './AppConfig.interface';
 
 export class SystemMessage extends AppConfig {
-      
-      enabled: boolean = false;
-      title: string;
+    /**
+     * @title Enabled
+     */
+    enabled: boolean = false;
+
+    /**
+     * @title Message Title
+     */
+    title: string;
+
     /**
      * The system message to display
      *
+     * @title Message Body
      * @type textarea
      */
-      message:string;
+    message: string;
 
-      public static getFieldOrder(): string[] {
-            return ["enabled", "title", "message"]
-      }
-  
+    public static getFieldOrder(): string[] {
+        return ["enabled", "title", "message"]
+    }
 }

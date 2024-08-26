@@ -21,7 +21,7 @@
 declare var module;
 declare var sails;
 declare var _;
-declare var BrandingService, UsersService, ConfigService;
+declare var BrandingService, UsersService, ConfigService, TranslationService;
 import { v4 as uuidv4 } from 'uuid';
 
 import { BrandingModel, Controllers as controllers, RequestDetails } from '@researchdatabox/redbox-core-types';
@@ -285,7 +285,16 @@ export module Controllers {
           }
 
           let oidcConfig = _.get(sails.config, 'auth.default.oidc');
-          let errorMessage = _.get(err, 'message');
+          let errorMessage = _.get(err, 'message', err?.toString() ?? '');
+
+          if (errorMessage === "authorized-email-denied") {
+            req.session['data'] = {
+              message: "error-auth",
+              detailedMessage: "authorized-email-denied",
+            }
+            return res.forbidden();
+          }
+
           let errorMessageDecoded = that.decodeErrorMappings(oidcConfig, errorMessage);
           sails.log.verbose('After decodeErrorMappings - errorMessageDecoded: ' + JSON.stringify(errorMessageDecoded));
           if(!_.isEmpty(errorMessageDecoded)) {
@@ -341,6 +350,7 @@ export module Controllers {
       sails.log.verbose('decodeErrorMappings - options: ' + JSON.stringify(options));
       let errorMessageDecoded = 'oidc-default-unknown-error';
       let errorMappingList = _.get(options, 'errorMappings', []);
+
       let errorMessageDecodedAsObject = {};
 
       if(!_.isUndefined(errorMessage) && !_.isNull(errorMessage)) {
@@ -458,6 +468,16 @@ export module Controllers {
         if ((err) || (!user)) {
           sails.log.error(err)
           // means the provider has authenticated the user, but has been rejected, redirect to catch-all
+
+          let errorMessage = _.get(err, 'message', err?.toString() ?? '');
+          if (errorMessage === "authorized-email-denied") {
+            req.session['data'] = {
+              message: "error-auth",
+              detailedMessage: "authorized-email-denied",
+            }
+            return res.forbidden();
+          }
+
           // from https://sailsjs.com/documentation/reference/response-res/res-server-error
           // "The specified data will be excluded from the JSON response and view locals if the app is running in the "production" environment (i.e. process.env.NODE_ENV === 'production')."
           // so storing the data in session

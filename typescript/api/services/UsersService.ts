@@ -71,7 +71,8 @@ export module Services {
       'findUsersWithQuery',
       'findAndAssignAccessToRecords',
       'getUsers',
-      'addUserAuditEvent'
+      'addUserAuditEvent',
+      'checkAuthorizedEmail',
     ];
 
     searchService: SearchService;
@@ -419,8 +420,6 @@ export module Services {
           
           const authConfig = ConfigService.getBrand(brand.name, 'auth');
           var aafAttributes = authConfig.aaf.attributesField;
-          let authorizedEmailDomains = _.get(authConfig.aaf, "authorizedEmailDomains", []);
-          let authorizedEmailExceptions = _.get(authConfig.aaf, "authorizedEmailExceptions", []);
           sails.log.verbose("Configured roles: ")
           sails.log.verbose(sails.config.auth.roles);
           sails.log.verbose("AAF default roles ")
@@ -552,22 +551,11 @@ export module Services {
                 lastLogin: new Date()
               };
               sails.log.verbose(userToCreate);
-              if (authorizedEmailExceptions.length > 0 || authorizedEmailDomains > 0) {
-                let emailParts = userToCreate.email.split('@');
-                if (emailParts.length != 2) {
-                  sails.log.error(`Unexpected email format: ${userToCreate.email}`);
-                  return done(`Unexpected email format: ${userToCreate.email}`, false);
-                }
 
-                let emailDomain = emailParts[1];
-                if (authorizedEmailDomains.indexOf(emailDomain) == -1) {
-                  if (authorizedEmailExceptions.indexOf(userToCreate.email) == -1) {
-                    sails.log.error(`User is not authorized to login: ${userToCreate.email}`);
-                    return done(`User is not authorized to login: ${userToCreate.email}`, false);
-                  }
-                }
+              const emailAuthorizedCheck = that.checkAuthorizedEmail(userToCreate.email, brandName, 'aaf');
+              if (!emailAuthorizedCheck) {
+                return done("authorized-email-denied", false);
               }
-
 
               let configAAF = _.get(defAuthConfig, 'aaf');
               if(that.hasPreSaveTriggerConfigured(configAAF, 'onCreate')) {
@@ -734,7 +722,8 @@ export module Services {
         req.session.errorTextRaw = JSON.stringify(err, null, 2);
         return done(null, false);
       }
-      var brand:BrandingModel = BrandingService.getBrand(req.session.branding);
+      const brandName = req.session.branding;
+      var brand:BrandingModel = BrandingService.getBrand(brandName);
       var claimsMappings = oidcConfig.claimMappings;
       let userName = '';
       let tmpUserName = _.get(userinfo, claimsMappings['username']);
@@ -874,6 +863,11 @@ export module Services {
           }
           sails.log.verbose(`Creating user: `);
           sails.log.verbose(userToCreate);
+
+          const emailAuthorizedCheck = that.checkAuthorizedEmail(userToCreate.email, brandName, 'oidc');
+          if (!emailAuthorizedCheck) {
+            return done("authorized-email-denied", false);
+          }
 
           if(that.hasPreSaveTriggerConfigured(oidcConfig, 'onCreate')) {
             that.triggerPreSaveTriggers(userToCreate, oidcConfig).then((userAdditionalInfo) => {
@@ -1297,7 +1291,80 @@ export module Services {
       });
     }
 
+    /**
+     * Check whether an email is authorized.
+     * @param email The email to check.
+     * @param branding The branding name.
+     * @param authType The auth type ('aaf' or 'oidc').
+     * @returns True if email is authorized or authorization check is disabled, otherwise false if email is not allowed.
+     * @private
+     */
+    public checkAuthorizedEmail(email: string, branding: string, authType: string): boolean {
+      // Must pass email.
+      if (!email) {
+        sails.log.error("No email address provided.");
+        return false;
+      }
+
+      // Assess email address.
+      const emailParts = email.includes('@') ? email.split('@') : [];
+      if (emailParts.length !== 2) {
+        sails.log.error(`Unexpected email format: ${email}.`);
+        return false;
+      }
+
+      // Get the configuration data.
+      const brandingAwareData = sails.config.brandingAware(branding);
+      const authorizedDomainsEmails = _.get(brandingAwareData, 'authorizedDomainsEmails', {});
+
+      if (authorizedDomainsEmails.enabled?.toString() !== 'true') {
+        sails.log.warn("Authorized email configuration is disabled.");
+        return true;
+      }
+
+      let domains = [];
+      let emails = [];
+      if (authType === 'aaf') {
+        domains.push(...(authorizedDomainsEmails.domainsAaf || []));
+        emails.push(...(authorizedDomainsEmails.emailsAaf || []));
+      } else if (authType === 'oidc') {
+        domains.push(...(authorizedDomainsEmails.domainsOidc || []));
+        emails.push(...(authorizedDomainsEmails.emailsOidc || []));
+      } else {
+        sails.log.error(`Authorized domains and emails config problem: unknown auth type '${authType}'`);
+        return false;
+      }
+
+      // Check configuration.
+      if (domains.length === 0) {
+        sails.log.verbose(`No authorized email domains configured for ${authType}.`);
+      }
+      if (emails.length === 0) {
+        sails.log.verbose(`No authorized email exceptions configured for ${authType}.`);
+      }
+      if (domains.length === 0 && emails.length === 0) {
+        return true;
+      }
+
+      // Assess domains and exceptions.
+      const emailDomain = emailParts[1];
+      const isAllowedDomain = domains.indexOf(emailDomain) !== -1;
+      if (isAllowedDomain) {
+        sails.log.verbose(`Authorized email domain: ${emailDomain}`);
+        return true;
+      }
+
+      const isAllowedException = emails.indexOf(email) !== -1;
+      if (isAllowedException) {
+        sails.log.verbose(`Authorized email exception: ${email}`);
+        return true;
+      }
+
+      // Checks did not pass, so email is not allowed.
+      sails.log.error(`Email is not authorized to login using ${authType}: ${email}.`);
+      return false;
     }
   }
+}
 
 module.exports = new Services.Users().exports();

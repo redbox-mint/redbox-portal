@@ -1,4 +1,4 @@
-<!--
+<%#
 
 
        444444444       000000000      333333333333333
@@ -31,7 +31,7 @@
 
 
 
--->
+%>
 <div class="container">
   <div class="row">
     <div class="col-xs-2"></div>
@@ -42,21 +42,21 @@
          </div>
          <div class="panel-body">
            <p>
-             <% if( typeof data == 'undefined') { %>
+             <% if( typeof req.session.data == 'undefined') { %>
               You don't have permission on this page, please contact an administrator.
-            <% } else if( typeof data == 'object') { %>   
-              <%= TranslationService.t(data.message) %>
+            <% } else if( typeof req.session.data == 'object') { %>
+              <%= TranslationService.t(req.session.data.message) %>
             </p>
             <p>
-              <% if( req.session.data.interpolation == true) { %>
+              <% if( req.session.data.interpolation === true) { %>
                 <%= TranslationService.tInter(req.session.data.detailedMessage, req.session.data.interpolationObj) %>
                <% }  else { %>
                  <%= TranslationService.t(req.session.data.detailedMessage) %>
                <% } %>
 
             <% }  else { %>
-              <%= TranslationService.t(data) %>
-            <% } % >
+              <%= TranslationService.t(req.session.data) %>
+            <% } %>
            </p>
            <p>
                <a href="<%= BrandingService.getBrandAndPortalPath(req) %>/home">Click here to return to the home page.</a>
