@@ -119,41 +119,38 @@ export module Services {
     }
 
     public async getAppConfigByBrandAndKey(brandId: string, configKey: string): Promise<any> {
-      let dbConfig = await AppConfig.findOne({ branding: brandId, configKey });
+      let dbConfig = await AppConfig.findOne({branding: brandId, configKey});
+
       // If no config exists in the DB return the default settings
-      if (dbConfig == null) {
-        let config = _.get(sails.config.brandingConfigurationDefaults, configKey, {});
-        if (_.isEmpty(config)) {
-          const modelInfo: any = ConfigModels.getModelInfo(configKey);
-          if (modelInfo == null) {
-            throw Error(`No config found for config key ${configKey}`);
-          }
-          const modelClass = modelInfo.class;
-          let defaultModel = new modelClass();
-          config = defaultModel;
-        }
-        return config;
+      if (dbConfig != null) {
+        return dbConfig.configData;
       }
 
-
-      return dbConfig.configData;
+      let config = _.get(sails.config.brandingConfigurationDefaults, configKey, {});
+      if (_.isEmpty(config)) {
+        const modelInfo: any = ConfigModels.getModelInfo(configKey);
+        if (modelInfo == null) {
+          throw Error(`No config found for config key ${configKey}`);
+        }
+        const modelClass = modelInfo.class;
+        config = new modelClass();
+      }
+      return config;
     }
 
     public async createOrUpdateConfig(branding: BrandingModel, configKey: string, configData: string): Promise<any> {
-
-      let dbConfig = await AppConfig.findOne({ branding: branding.id, configKey });
+      const dbConfig = await AppConfig.findOne({branding: branding.id, configKey});
 
       // Create if no config exists
+      let record;
       if (dbConfig == null) {
-        let createdRecord = await AppConfig.create({ branding: branding.id, configKey: configKey, configData: configData });
-
-        await this.refreshBrandingAppConfigMap(branding);
-        return createdRecord.configData;
+        record = await AppConfig.create({branding: branding.id, configKey: configKey, configData: configData});
+      } else {
+        record = await AppConfig.updateOne({branding: branding.id, configKey}).set({configData: configData});
       }
 
-      let updatedRecord = await AppConfig.updateOne({ branding: branding.id, configKey }).set({ configData: configData });
       await this.refreshBrandingAppConfigMap(branding);
-      return updatedRecord.configData;
+      return record.configData;
     }
 
     public async createConfig(brandName: string, configKey: string, configData: string): Promise<any> {
@@ -168,7 +165,7 @@ export module Services {
         return createdRecord.configData;
       }
 
-      throw Error(`Config with key ${configKey} for branding ${brandName} already exists`)
+      throw Error(`Config with key ${configKey} for branding ${brandName} already exists`);
     }
 
     public async getAppConfigForm(branding: BrandingModel, configForm: string): Promise<any> {
@@ -192,8 +189,12 @@ export module Services {
       const typeName = modelDefinition.modelName;
 
       const program = TJS.getProgramFromFiles(filePaths);
-      const settings = {
-        titles: true
+      const settings: TJS.PartialArgs = {
+        // TODO: enabling the 'titles' setting seems to mean that
+        //  the generated titles cannot be overridden.
+        //  This is a problem when the generated title (field name) is not clear.
+        //  Fixed for now by declaring titles for all the model fields and turning this setting off.
+        // titles: true,
       };
 
       // Generate the schema
