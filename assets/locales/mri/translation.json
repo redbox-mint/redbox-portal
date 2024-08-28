@@ -105,7 +105,7 @@
   "manage-users-api-confirm": "This will replace the existing API key. Are you sure you want to continue?",
   "manage-users-add-local": "Add a new local user",
   "manage-users-password": "Password",
-  "manage-users-aaf-password": "Login managed by AAF",
+  "manage-users-aaf-password": "Login managed by Single Sign On",
   "manage-users-confirm-password": "Confirm password",
   "manage-users-validation-name": "Name is required",
   "manage-users-validation-email": "Invalid email address",
