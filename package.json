@@ -65,7 +65,7 @@
     "rxjs-compat": "6.6.7",
     "sails": "^1.5.11",
     "sails-hook-orm": "^4.0.3",
-    "sails-hook-sockets": "^3.0.0",
+    "sails-hook-sockets": "^3.0.1",
     "sails-mongo": "^2.1.1",
     "sass": "^1.77.8",
     "sass-loader": "^16.0.1",
