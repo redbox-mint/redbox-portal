@@ -105,13 +105,13 @@ export module Services {
 
       const brandId = record.metaMetadata.brandId;
       let processRecordCountersLogLevel = 'verbose';
-      if(sails.config.record.processRecordCountersLogLevel != null) {
+      if (sails.config.record.processRecordCountersLogLevel != null) {
         processRecordCountersLogLevel = sails.config.record.processRecordCountersLogLevel;
         sails.log.info(`processRecordCounters - log level ${sails.config.record.processRecordCountersLogLevel}`);
       } else {
         sails.log.info(`processRecordCounters - log level ${processRecordCountersLogLevel}`);
       }
-      
+
       //For all projects that don't set environment variable "sails_record__processRecordCountersLogLevel" in docker-compose.yml  
       //the log level of this function is going to be verbose which is the standard but in example for CQU it will be set to 
       //error to make it so this function always prints logging until the RDMPs missing IDs issue is fixed  
@@ -119,7 +119,7 @@ export module Services {
       sails.log[processRecordCountersLogLevel]('processRecordCounters - options:');
       sails.log[processRecordCountersLogLevel](options);
       // get the counters
-      for(let counter of options.counters) {
+      for (let counter of options.counters) {
         sails.log[processRecordCountersLogLevel](`processRecordCounters - counter.strategy: ${counter.strategy}`);
 
         if (counter.strategy == "global") {
@@ -173,7 +173,7 @@ export module Services {
           this.incrementCounter(record, counter, newVal);
         }
       }
-      
+
       sails.log[processRecordCountersLogLevel]('processRecordCounters - end');
       return record;
     }
@@ -181,13 +181,13 @@ export module Services {
     private incrementCounter(record: any, counter: any, newVal: any) {
 
       let processRecordCountersLogLevel = 'verbose';
-      if(sails.config.record.processRecordCountersLogLevel != null) {
+      if (sails.config.record.processRecordCountersLogLevel != null) {
         processRecordCountersLogLevel = sails.config.record.processRecordCountersLogLevel;
         sails.log.info(`incrementCounter - log level ${sails.config.record.processRecordCountersLogLevel}`);
       } else {
         sails.log.info(`incrementCounter - log level ${processRecordCountersLogLevel}`);
       }
-      
+
       //For all projects that don't set environment variable "sails_record__processRecordCountersLogLevel" in docker-compose.yml  
       //the log level of this function is going to be verbose which is the standard but in example for CQU it will be set to 
       //error to make it so this function always prints logging until the RDMPs missing IDs issue is fixed  
@@ -197,16 +197,18 @@ export module Services {
         sails.log[processRecordCountersLogLevel](`incrementCounter - newVal: ${newVal}`);
         sails.log[processRecordCountersLogLevel]('incrementCounter - counter:');
         sails.log[processRecordCountersLogLevel](counter);
-        const imports = _.extend({
-          moment: moment,
-          numeral: numeral,
-          newVal: newVal
-        }, counter);
-        const templateData = {
-          imports: imports
+        const templateData = _.extend({newVal: newVal}, counter);
+        const templateImportData = {
+          imports: {
+            moment: moment,
+            numeral: numeral
+          }
         };
-        const template = _.template(counter.template, templateData);
-        newVal = template();
+        if(_.isString(counter.templateConfig)) {
+          const compiledTemplate = _.template(counter.template, templateImportData);
+          counter.template = compiledTemplate;
+        }
+        newVal = counter.template(templateData);
       }
       const recVal = `${TranslationService.t(counter.prefix)}${newVal}`;
       sails.log[processRecordCountersLogLevel](`incrementCounter - recVal: ${recVal}`);
@@ -215,7 +217,7 @@ export module Services {
         const arrayVal = _.get(record, counter.add_value_to_array, []);
         arrayVal.push(recVal);
         _.set(record, counter.add_value_to_array, arrayVal);
-        sails.log[processRecordCountersLogLevel]('incrementCounter - arrayVal:'); 
+        sails.log[processRecordCountersLogLevel]('incrementCounter - arrayVal:');
         sails.log[processRecordCountersLogLevel](arrayVal);
       }
       sails.log[processRecordCountersLogLevel]('incrementCounter - end');
@@ -223,7 +225,7 @@ export module Services {
 
     public checkTotalSizeOfFilesInRecord(oid, record, options, user) {
       let functionLogLevel = 'verbose';
-      if(sails.config.record.checkTotalSizeOfFilesInRecordLogLevel != null) {
+      if (sails.config.record.checkTotalSizeOfFilesInRecordLogLevel != null) {
         functionLogLevel = sails.config.record.checkTotalSizeOfFilesInRecordLogLevel;
         sails.log.info(`checkTotalSizeOfFilesInRecord - log level ${sails.config.record.checkTotalSizeOfFilesInRecordLogLevel}`);
       } else {
@@ -232,38 +234,38 @@ export module Services {
       let dataLocations = record['metadata']['dataLocations'];
       sails.log[functionLogLevel]('checkTotalSizeOfFilesInRecord - dataLocations');
       sails.log[functionLogLevel](dataLocations);
-      if(!_.isUndefined(dataLocations)) {
+      if (!_.isUndefined(dataLocations)) {
         let foundAttachment = false;
 
-        for(let attachmentFile of dataLocations) {
-          if(!_.isUndefined(attachmentFile) && !_.isEmpty(attachmentFile) && attachmentFile.type == 'attachment' && _.toInteger(attachmentFile.size) > 0) {
+        for (let attachmentFile of dataLocations) {
+          if (!_.isUndefined(attachmentFile) && !_.isEmpty(attachmentFile) && attachmentFile.type == 'attachment' && _.toInteger(attachmentFile.size) > 0) {
             foundAttachment = true;
             break;
           }
         }
-  
-        sails.log[functionLogLevel]('checkTotalSizeOfFilesInRecord - foundAttachment '+foundAttachment);
-        if(foundAttachment) {
+
+        sails.log[functionLogLevel]('checkTotalSizeOfFilesInRecord - foundAttachment ' + foundAttachment);
+        if (foundAttachment) {
           let totalSizeOfFilesInRecord = 0;
-          for(let attachmentFile of dataLocations) {
+          for (let attachmentFile of dataLocations) {
             sails.log[functionLogLevel](attachmentFile);
-            if(!_.isUndefined(attachmentFile.size)) {
+            if (!_.isUndefined(attachmentFile.size)) {
               totalSizeOfFilesInRecord = totalSizeOfFilesInRecord + _.toInteger(attachmentFile.size);
             }
           }
-          
-          sails.log[functionLogLevel]('checkTotalSizeOfFilesInRecord - totalSizeOfFilesInRecord '+totalSizeOfFilesInRecord);
-          if(totalSizeOfFilesInRecord > sails.config.record.maxUploadSize) {
-            
+
+          sails.log[functionLogLevel]('checkTotalSizeOfFilesInRecord - totalSizeOfFilesInRecord ' + totalSizeOfFilesInRecord);
+          if (totalSizeOfFilesInRecord > sails.config.record.maxUploadSize) {
+
             let maxUploadSizeMessage = TranslationService.t('max-total-files-upload-size-validation-error');
             let alternativeMessageCode = options['maxUploadSizeMessageCode'];
-            
-            if(!_.isUndefined(alternativeMessageCode)) {
+
+            if (!_.isUndefined(alternativeMessageCode)) {
               let replaceOrAppend = options['replaceOrAppend'];
-              if(_.isUndefined(replaceOrAppend)) {
+              if (_.isUndefined(replaceOrAppend)) {
                 replaceOrAppend = 'append';
               }
-              if(replaceOrAppend == 'replace'){
+              if (replaceOrAppend == 'replace') {
                 maxUploadSizeMessage = TranslationService.t(alternativeMessageCode);
               } else if (replaceOrAppend == 'append') {
                 let tmpMaxUploadSizeMessage = maxUploadSizeMessage + ' ' + TranslationService.t(alternativeMessageCode);
@@ -271,7 +273,7 @@ export module Services {
               }
             }
             let maxSizeFormatted = this.formatBytes(sails.config.record.maxUploadSize);
-            let interMessage = TranslationService.tInter(maxUploadSizeMessage,{maxUploadSize: maxSizeFormatted});
+            let interMessage = TranslationService.tInter(maxUploadSizeMessage, { maxUploadSize: maxSizeFormatted });
             maxUploadSizeMessage = interMessage;
             let customError: RBValidationError = new RBValidationError(maxUploadSizeMessage);
             throw customError;
@@ -288,17 +290,17 @@ export module Services {
     //https://stackoverflow.com/questions/15900485/correct-way-to-convert-size-in-bytes-to-kb-mb-gb-in-javascript
     private formatBytes(bytes, decimals = 2) {
       if (bytes === 0) return '0 Bytes';
-  
+
       const k = 1024;
       const dm = decimals < 0 ? 0 : decimals;
       const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
-  
+
       const i = Math.floor(Math.log(bytes) / Math.log(k));
-  
+
       return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
     }
 
-    protected addEmailToList(contributor, emailProperty, emailList, lowerCaseEmailAddresses:boolean = true) {
+    protected addEmailToList(contributor, emailProperty, emailList, lowerCaseEmailAddresses: boolean = true) {
       let contributorEmailAddress = _.get(contributor, emailProperty, null);
       if (!contributorEmailAddress) {
         if (!contributor) {
@@ -312,7 +314,7 @@ export module Services {
         }
         if (_.isString(contributorEmailAddress)) {
           sails.log.verbose(`Pushing contrib email address ${contributorEmailAddress}`);
-          if(lowerCaseEmailAddresses) {
+          if (lowerCaseEmailAddresses) {
             contributorEmailAddress = contributorEmailAddress.toLowerCase()
           }
           emailList.push(contributorEmailAddress);
@@ -479,9 +481,9 @@ export module Services {
       viewContributorEmails = this.getContribListByRule(userProperties, record, viewPermissionRule, emailProperty, viewContributorEmails);
 
       return this.assignContributorRecordPermissions(
-          oid, record, recordCreatorPermissions,
-          editContributorEmails, editContributorObs,
-          viewContributorEmails, viewContributorObs
+        oid, record, recordCreatorPermissions,
+        editContributorEmails, editContributorObs,
+        viewContributorEmails, viewContributorObs
       );
     }
 
@@ -512,9 +514,9 @@ export module Services {
       viewContributorEmails = this.populateContribList(viewContributorProperties, record, emailProperty, viewContributorEmails);
 
       return this.assignContributorRecordPermissions(
-          oid, record, recordCreatorPermissions,
-          editContributorEmails, editContributorObs,
-          viewContributorEmails, viewContributorObs
+        oid, record, recordCreatorPermissions,
+        editContributorEmails, editContributorObs,
+        viewContributorEmails, viewContributorObs
       );
     }
 
@@ -530,9 +532,9 @@ export module Services {
      * @private
      */
     private assignContributorRecordPermissions(
-        oid, record, recordCreatorPermissions,
-        editContributorEmails, editContributorObs,
-        viewContributorEmails, viewContributorObs) {
+      oid, record, recordCreatorPermissions,
+      editContributorEmails, editContributorObs,
+      viewContributorEmails, viewContributorObs) {
       if (_.isEmpty(editContributorEmails)) {
         sails.log.error(`No editors for record: ${oid}`);
       }
@@ -558,20 +560,20 @@ export module Services {
         zippedViewContributorUsers = Observable.zip(...viewContributorObs);
       } else {
         zippedViewContributorUsers = Observable.zip(...editContributorObs)
-            .flatMap(editContributorUsers => {
-              let newEditList = [];
-              this.filterPending(editContributorUsers, editContributorEmails, newEditList);
-              if (recordCreatorPermissions == "edit" || recordCreatorPermissions == "view&edit") {
-                newEditList.push(record.metaMetadata.createdBy);
-              }
-              record.authorization.edit = newEditList;
-              record.authorization.editPending = editContributorEmails;
-              if (viewContributorObs.length === 0) {
-                return Observable.of(record);
-              } else {
-                return Observable.zip(...viewContributorObs);
-              }
-            });
+          .flatMap(editContributorUsers => {
+            let newEditList = [];
+            this.filterPending(editContributorUsers, editContributorEmails, newEditList);
+            if (recordCreatorPermissions == "edit" || recordCreatorPermissions == "view&edit") {
+              newEditList.push(record.metaMetadata.createdBy);
+            }
+            record.authorization.edit = newEditList;
+            record.authorization.editPending = editContributorEmails;
+            if (viewContributorObs.length === 0) {
+              return Observable.of(record);
+            } else {
+              return Observable.zip(...viewContributorObs);
+            }
+          });
       }
       if (zippedViewContributorUsers.length == 0) {
         return zippedViewContributorUsers;
@@ -660,18 +662,24 @@ export module Services {
         _.each(options.templates, (templateConfig) => {
           tmplConfig = templateConfig;
           const imports = _.extend({
-            oid: oid,
-            record: record,
-            user: user,
             options: options,
             moment: moment,
             numeral: numeral
           }, this);
-          const templateData = {
+          const templateImportsData = {
             imports: imports
           };
-          const data = _.template(templateConfig.template, templateData)();
-          if(parseObject) {
+          const templateData = {
+            oid: oid,
+            record: record,
+            user: user
+          }
+          if (_.isString(templateConfig.template)) {
+            const compiledTemplate = _.template(templateConfig.template, templateImportsData);
+            templateConfig.template = compiledTemplate;
+          }
+          const data = templateConfig.template(templateData);
+          if (parseObject) {
             let obj = JSON.parse(data);
             _.set(record, templateConfig.field, obj);
           } else {
