@@ -319,23 +319,6 @@ export module Services {
       let mainTitleFieldName = 'title';
 
       let fieldList = [
-        {
-          class: 'Container',
-          compClass: 'TextBlockComponent',
-          viewOnly: true,
-          definition: {
-            name: mainTitleFieldName,
-            type: 'h1'
-          }
-        },
-        {
-          class: 'Container',
-          compClass: 'GenericGroupComponent',
-          definition: {
-            cssClasses: "form-inline",
-            fields: buttonsList
-          }
-        }
       ];
 
       for(let fieldKey of fieldKeys) {
@@ -419,7 +402,45 @@ export module Services {
         viewCssClasses: 'row col-md-offset-1 col-md-10',
         messages: {},
         attachmentFields: [],
-        fields: fieldList
+        fields: [
+          {
+            class: 'Container',
+            compClass: 'TextBlockComponent',
+            viewOnly: true,
+            definition: {
+              name: mainTitleFieldName,
+              type: 'h1'
+            }
+          },
+          {
+            class: 'Container',
+            compClass: 'GenericGroupComponent',
+            definition: {
+              cssClasses: "form-inline",
+              fields: buttonsList
+            }
+          },
+          {
+          class: 'TabOrAccordionContainer',
+          compClass: 'TabOrAccordionContainerComponent',
+          definition: {
+            id: 'mainTab',
+            accContainerClass: 'view-accordion',
+            expandAccordionsOnOpen: true,
+            fields: [
+              {
+                class: 'Container',
+                editOnly: true,
+                definition: {
+                  id: 'main',
+                  label: 'Record details',
+                  active: true,
+                  fields: fieldList
+                }
+              }
+            ]
+          }
+        }]
       };
 
       form = formObject as any;
