@@ -269,7 +269,16 @@ export module Services {
           name: '',
           label: '',
           help: '',
-          type: 'text'
+          type: 'text',
+          subscribe: {
+            'form': {
+              onFormLoaded: [{
+              action: 'utilityService.runTemplate',
+              template: '',
+              includeFieldInFnCall: true
+            }]
+          }
+        }
         }
       };
 
@@ -330,6 +339,7 @@ export module Services {
           let textField = _.cloneDeep(textFieldTemplate);
           _.set(textField.definition,'name',fieldKey);
           _.set(textField.definition,'label',fieldKey);
+          _.set(textField.definition,'subscribe.form.onFormLoaded[0].template','<%= _.trim(field.fieldMap["'+fieldKey+'"].field.value) == "" ? field.translationService.t("@lookup-record-field-empty") : field.fieldMap["'+fieldKey+'"].field.value %>');
           fieldList.push(textField);
 
         } if(_.get(schemaProperty,'type','') == 'array') {
@@ -339,6 +349,7 @@ export module Services {
             let textField = _.cloneDeep(textFieldTemplate);
             _.set(textField.definition,'name',fieldKey);
             _.set(textField.definition,'label',fieldKey);
+            _.set(textField.definition,'subscribe.form.onFormLoaded[0].template','<%= _.isEmpty(_.trim(field.fieldMap["'+fieldKey+'"].field.value)) ? [field.translationService.t("@lookup-record-field-empty")] : field.fieldMap["'+fieldKey+'"].field.value %>');
             fieldList.push(textField);
 
           } else if(_.get(schemaProperty,'items.type','') == 'object') {
@@ -433,7 +444,7 @@ export module Services {
                 editOnly: true,
                 definition: {
                   id: 'main',
-                  label: 'Record details',
+                  label: '@lookup-record-details-'+recordType,
                   active: true,
                   fields: fieldList
                 }
