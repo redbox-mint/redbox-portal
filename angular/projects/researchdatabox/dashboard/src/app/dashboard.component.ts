@@ -36,6 +36,13 @@ export class DashboardComponent extends BaseComponent {
   hideWorkflowStepTitle: boolean = false;
   isFilterSearchDisplayed: any = {};
   isSearching: any = {};
+  isProcessingPageChange: boolean = false;
+  defaultSortObject: any = {
+    sort: "desc",
+    step: "draft",
+    title: "",
+    variable: "metaMetadata.lastSaveDate"
+  };
 
   defaultRowConfig = [
     {
@@ -47,26 +54,22 @@ export class DashboardComponent extends BaseComponent {
               <a href='<%=rootContext%>/<%= branding %>/<%= portal %>/record/edit/<%= oid %>' aria-label='<%= translationService.t('edit-link-label') %>'><i class="fa fa-pencil" aria-hidden="true"></i></a>
             <% } %>
           </span>
-        `,
-      initialSort: 'desc'
+        `
     },
     {
       title: 'header-ci',
       variable: 'metadata.contributor_ci.text_full_name',
-      template: '<%= metadata.contributor_ci != undefined ? metadata.contributor_ci.text_full_name : "" %>',
-      initialSort: 'desc'
+      template: '<%= metadata.contributor_ci != undefined ? metadata.contributor_ci.text_full_name : "" %>'
     },
     {
       title: 'header-data-manager',
       variable: 'metadata.contributor_data_manager.text_full_name',
-      template: '<%= metadata.contributor_data_manager != undefined ? metadata.contributor_data_manager.text_full_name : "" %>',
-      initialSort: 'desc'
+      template: '<%= metadata.contributor_data_manager != undefined ? metadata.contributor_data_manager.text_full_name : "" %>'
     },
     {
       title: 'header-created',
       variable: 'metaMetadata.createdOn',
-      template: '<%= util.formatDateLocale(util.parseDateString(dateCreated), "DATETIME_MED") %>',
-      initialSort: 'desc'
+      template: '<%= util.formatDateLocale(util.parseDateString(dateCreated), "DATETIME_MED") %>'
     },
     {
       title: 'header-modified',
@@ -305,9 +308,19 @@ export class DashboardComponent extends BaseComponent {
     this.sortMap[step.name] = {};
 
     for (let columnConfig of stepRowConfig) {
-      this.sortMap[step.name][columnConfig.variable] = {
-        sort: columnConfig.initialSort
-      };
+
+      if(columnConfig.initialSort == 'asc' || columnConfig.initialSort == 'desc') {
+        this.sortMap[step.name][columnConfig.variable] = {
+          sort: columnConfig.initialSort
+        };
+
+        this.defaultSortObject = {
+          sort: columnConfig.initialSort,
+          step: step.name,
+          title: "",
+          variable: columnConfig.variable
+        }
+      }
     }
 
     if (this.dashboardTypeSelected == 'consolidated') {
@@ -386,6 +399,10 @@ export class DashboardComponent extends BaseComponent {
     }
 
     this.records[evaluateStepName] = planTable;
+
+    if (this.dashboardTypeSelected == 'standard' || this.dashboardTypeSelected == 'workspace') {
+      this.sortChanged(this.defaultSortObject);
+    }
   }
 
   private async getAllItemsGroupedByRecordType(sortGroupBy: SortGroupBy[], stepName: string, startIndex: number, packageType: string, sortByString: string, filterFileds: any, filterString: any, filterMode: any) {
@@ -719,6 +736,12 @@ export class DashboardComponent extends BaseComponent {
   }
 
   public async pageChanged(event: PageChangedEvent, step: string) {
+    
+    if (this.isProcessingPageChange) {
+      return;
+    }
+
+    this.isProcessingPageChange = true;
 
     let sortDetails = this.sortMap[step];
 
@@ -726,16 +749,19 @@ export class DashboardComponent extends BaseComponent {
       let stagedRecords = await this.recordService.getRecords(this.recordType, step, event.page, '', this.getSortString(sortDetails),this.filterFieldPath,this.getFilterSearchString(step));
       let planTable: PlanTable = this.evaluatePlanTableColumns({}, {}, {}, step, stagedRecords);
       this.records[step] = planTable;
+      this.isProcessingPageChange = false;
     } else if (this.dashboardTypeSelected == 'workspace') {
       let stagedRecords = await this.recordService.getRecords('', '', event.page, this.packageType, this.getSortString(sortDetails));
       let planTable: PlanTable = this.evaluatePlanTableColumns({}, {}, {}, step, stagedRecords);
       this.records[step] = planTable;
+      this.isProcessingPageChange = false;
     } else if (this.dashboardTypeSelected == 'consolidated') {
       let packageType = '';
       let stepName = '';
       let evaluateStepName = _get(this.workflowSteps[0], 'name');
       let recordType = _get(this.workflowSteps[0], 'config.baseRecordType');
       await this.initStep(stepName, evaluateStepName, recordType, packageType, event.page);
+      this.isProcessingPageChange = false;
     }
   }
 
