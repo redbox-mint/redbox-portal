@@ -28,7 +28,6 @@ let recordDataStandard = {
                 }
               ]
         },
-      sortBy: 'metaMetadata.lastSaveDate:-1',
       groupBy: '',
       sortGroupBy: [],
       hideWorkflowStepTitleForRecordType: []
@@ -181,7 +180,6 @@ let recordDataWorkspace = {
                 }
               ]
         },
-      sortBy: 'metaMetadata.lastSaveDate:-1',
       groupBy: '',
       sortGroupBy: [],
       hideWorkflowStepTitleForRecordType: []

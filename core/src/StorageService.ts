@@ -14,7 +14,7 @@ export interface StorageService{
   restoreRecord(oid): Promise<any>;
   destroyDeletedRecord(oid): Promise<any>;
 
-  getRecords(workflowState, recordType, start, rows, username, roles, brand, editAccessOnly, packageType, sort, fieldNames?, filterString?, filterMode?): Promise<any>;
+  getRecords(workflowState, recordType, start, rows, username, roles, brand, editAccessOnly, packageType, sort, fieldNames?, filterString?, filterMode?, secondarySort?): Promise<any>;
   getDeletedRecords(workflowState, recordType, start, rows, username, roles, brand, editAccessOnly, packageType, sort, fieldNames?, filterString?, filterMode?): Promise<any>;
   exportAllPlans(username, roles, brand, format, modBefore, modAfter, recType): Readable;
 
