@@ -110,17 +110,18 @@ export class RecordService extends HttpClientService {
     return response;
   }
 
-  public async getRecords(recordType:string,state:string,pageNumber:number,packageType:string='', sort:string='', filterFields:string='', filterString:string='', filterMode:string='') {
+  public async getRecords(recordType:string,state:string,pageNumber:number,packageType:string='', sort:string='', filterFields:string='', filterString:string='', filterMode:string='', secondarySort:string='') {
     let rows = 10;
     let start = (pageNumber-1) * rows;
     recordType = (!_isEmpty(recordType) && !_isUndefined(recordType)) ? `recordType=${recordType}` : '';
     packageType = (!_isEmpty(packageType) && !_isUndefined(packageType)) ? `packageType=${packageType}` : '';
     sort = (!_isEmpty(sort) && !_isUndefined(sort)) ? `&sort=${sort}` : '';
+    secondarySort = (!_isEmpty(secondarySort) && !_isUndefined(secondarySort)) ? `&secondarySort=${secondarySort}` : '';
     state = (!_isEmpty(state) && !_isUndefined(state)) ? `&state=${state}` : '';
     filterFields = (!_isEmpty(filterFields) && !_isUndefined(filterFields)) ? `&filterFields=${filterFields}` : '';
     filterString = (!_isEmpty(filterString) && !_isUndefined(filterString)) ? `&filter=${filterString}` : '';
     filterMode = (!_isEmpty(filterMode) && !_isUndefined(filterMode)) ? `&filterMode=${filterMode}` : '';
-    let url = `${this.brandingAndPortalUrl}/listRecords?${recordType}${packageType}${state}${sort}${filterFields}${filterString}${filterMode}&start=${start}&rows=${rows}`;
+    let url = `${this.brandingAndPortalUrl}/listRecords?${recordType}${packageType}${state}${sort}${secondarySort}${filterFields}${filterString}${filterMode}&start=${start}&rows=${rows}`;
     const result$ = this.http.get(url).pipe(map(res => res));
     let result = await firstValueFrom(result$);
     return result;

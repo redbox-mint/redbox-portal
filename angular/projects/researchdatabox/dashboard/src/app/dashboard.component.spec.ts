@@ -154,7 +154,7 @@ describe('DashboardComponent standard', () => {
     let planTable = dashboardComponent.evaluatePlanTableColumns({}, {}, {}, 'draft', recordDataStandard['records']);
     expect(planTable.items.length).toBeGreaterThan(0);
     dashboardComponent.sortChanged(recordDataStandard['sortData']);
-    // expect(dashboardComponent.sortMap['draft']['header-modified'].sort).toEqual('desc');
+    expect(dashboardComponent.sortMap['draft']['metadata.title'].sort).toEqual('desc');
     dashboardComponent.pageChanged(recordDataStandard['paginationData'], recordDataStandard['paginationData'].step);
     expect(dashboardComponent.records['draft'].currentPage).toEqual(1);
     expect(dashboardComponent.records['draft'].items.length).toBeGreaterThan(0);
@@ -310,7 +310,7 @@ describe('DashboardComponent workspace', () => {
     let planTable = dashboardComponent.evaluatePlanTableColumns({}, {}, {}, 'existing-locations-draft', recordDataWorkspace['records']);
     expect(planTable.items.length).toBeGreaterThan(0);
     dashboardComponent.sortChanged(recordDataWorkspace['sortData']);
-    // expect(dashboardComponent.sortMap['existing-locations-draft']['header-modified'].sort).toEqual('desc');
+    expect(dashboardComponent.sortMap['existing-locations-draft']['metadata.title'].sort).toEqual('desc');
     dashboardComponent.pageChanged(recordDataWorkspace['paginationData'], recordDataWorkspace['paginationData'].step);
     expect(dashboardComponent.records['existing-locations-draft'].currentPage).toEqual(1);
     expect(dashboardComponent.records['existing-locations-draft'].items.length).toBeGreaterThan(0);
