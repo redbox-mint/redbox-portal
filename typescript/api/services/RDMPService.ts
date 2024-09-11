@@ -662,7 +662,7 @@ export module Services {
         _.each(options.templates, (templateConfig) => {
           tmplConfig = templateConfig;
           const imports = _.extend({
-            options: options,
+            
             moment: moment,
             numeral: numeral
           }, this);
@@ -672,7 +672,8 @@ export module Services {
           const templateData = {
             oid: oid,
             record: record,
-            user: user
+            user: user,
+            options: options
           }
           if (_.isString(templateConfig.template)) {
             const compiledTemplate = _.template(templateConfig.template, templateImportsData);
