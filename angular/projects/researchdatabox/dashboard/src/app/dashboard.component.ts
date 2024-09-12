@@ -367,9 +367,7 @@ export class DashboardComponent extends BaseComponent {
 
     this.records[evaluateStepName] = planTable;
 
-    if (this.dashboardTypeSelected == 'standard' || this.dashboardTypeSelected == 'workspace') {
-      this.sortChanged(this.defaultSortObject);
-    }
+    this.sortChanged(this.defaultSortObject);
   }
 
   private async getAllItemsGroupedByRecordType(sortGroupBy: SortGroupBy[], stepName: string, startIndex: number, packageType: string, sortByString: string, filterFileds: any, filterString: any, filterMode: any) {
@@ -720,13 +718,26 @@ export class DashboardComponent extends BaseComponent {
   public async sortChanged(data: any) {
 
     if (this.dashboardTypeSelected == 'standard' || this.dashboardTypeSelected == 'workspace') {
-      let sortString = this.getSortString(data);
-      let sortMapAtStep = this.sortMap[data.step];
+      
+      let sortString = `${data.variable}:`;
+      let secondarySort = this.sortMap[data.step][data.variable].secondarySort;
+      let secondarySortString = undefined;
+      if (data.sort == 'desc') {
+        sortString = sortString + "-1";
+        if(secondarySort != undefined && secondarySort != '') {
+          secondarySortString = `${secondarySort}:`+ "-1";
+        }
+      } else {
+        sortString = sortString + "1";
+        if(secondarySort != undefined && secondarySort != '') {
+          secondarySortString = `${secondarySort}:`+ "-1";
+        }
+      }
       let stagedRecords: any;
       if (this.dashboardTypeSelected == 'workspace') {
         stagedRecords = await this.recordService.getRecords('', '', 1, this.dashboardTypeSelected, sortString);
       } else {
-        stagedRecords = await this.recordService.getRecords(this.recordType, data.step, 1, '', sortString,this.filterFieldPath,this.getFilterSearchString(data.step),'',this.getSecondarySortStringFromSortMap(sortMapAtStep));
+        stagedRecords = await this.recordService.getRecords(this.recordType, data.step, 1, '', sortString,this.filterFieldPath,this.getFilterSearchString(data.step),'',secondarySortString);
       }
 
       let planTable: PlanTable = this.evaluatePlanTableColumns({}, {}, {}, data.step, stagedRecords);
@@ -791,16 +802,6 @@ export class DashboardComponent extends BaseComponent {
     return this.lodashTemplateUtilityService.runTemplate(data, config, imports)
   }
 
-  private getSortString(sortObject: any) {
-    let sortString = `${sortObject.variable}:`;
-    if (sortObject.sort == 'desc') {
-      sortString = sortString + "-1";
-    } else {
-      sortString = sortString + "1";
-    }
-    return sortString;
-  }
-
   private getSortStringFromSortMap(sortMapAtStep: any, forceDefault: boolean = false) {
 
     let fields = this.sortFields;
@@ -808,24 +809,25 @@ export class DashboardComponent extends BaseComponent {
     for (let i = 0; i < fields.length; i++) {
       let sortField = fields[i];
       let sortString = `${sortField}:`;
-
-      if(forceDefault) {
-        if (sortMapAtStep[sortField].sort != null && sortMapAtStep[sortField].defaultSort == true) {
-          if (sortMapAtStep[sortField].sort == 'desc') {
-            sortString = sortString + "-1";
-          } else {
-            sortString = sortString + "1";
+      if(!_.isEmpty(sortMapAtStep)) {
+        if(forceDefault) {
+          if (sortMapAtStep[sortField].sort != null && sortMapAtStep[sortField].defaultSort == true) {
+            if (sortMapAtStep[sortField].sort == 'desc') {
+              sortString = sortString + "-1";
+            } else {
+              sortString = sortString + "1";
+            }
+            return sortString;
           }
-          return sortString;
-        }
-      } else {
-        if (sortMapAtStep[sortField].sort != null) {
-          if (sortMapAtStep[sortField].sort == 'desc') {
-            sortString = sortString + "-1";
-          } else {
-            sortString = sortString + "1";
+        } else {
+          if (sortMapAtStep[sortField].sort != null) {
+            if (sortMapAtStep[sortField].sort == 'desc') {
+              sortString = sortString + "-1";
+            } else {
+              sortString = sortString + "1";
+            }
+            return sortString;
           }
-          return sortString;
         }
       }
     }
