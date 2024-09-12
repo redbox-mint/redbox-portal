@@ -68,12 +68,6 @@ let recordDataStandard = {
     currentPage: 1,
     noItems: 10
   },
-  sortData: {
-    sort: 'asc',
-    step: 'draft',
-    title: 'Record Title',
-    variable: 'metadata.title'
-  },
   paginationData: {
     itemsPerPage: 10,
     page: 2,
@@ -152,15 +146,7 @@ describe('DashboardComponent standard', () => {
     await dashboardComponent.initStep('draft','draft','rdmp','',1);
     let planTable = dashboardComponent.evaluatePlanTableColumns({}, {}, {}, 'draft', recordDataStandard['records']);
     expect(planTable.items.length).toBeGreaterThan(0);
-    dashboardComponent.sortChanged(recordDataStandard['sortData']);
-    console.log('==============================================');
-    console.log('==============================================');
-    console.log('==============================================');
-    console.log(JSON.stringify(dashboardComponent.sortMap));
-    console.log('==============================================');
-    console.log('==============================================');
-    console.log('==============================================');
-    expect(dashboardComponent.sortMap['draft']['metadata.title'].sort).toEqual('desc');
+    expect(dashboardComponent.sortMap['draft']['metaMetadata.lastSaveDate'].sort).toEqual('desc');
     dashboardComponent.pageChanged(recordDataStandard['paginationData'], recordDataStandard['paginationData'].step);
     expect(dashboardComponent.records['draft'].currentPage).toEqual(1);
     expect(dashboardComponent.records['draft'].items.length).toBeGreaterThan(0);
@@ -226,12 +212,6 @@ let recordDataWorkspace = {
     totalItems: 0,
     currentPage: 1,
     noItems: 10
-  },
-  sortData: {
-    sort: 'asc',
-    step: 'existing-locations-draft',
-    title: 'Record Title',
-    variable: 'metadata.title'
   },
   paginationData: {
     itemsPerPage: 10,
@@ -309,22 +289,12 @@ describe('DashboardComponent workspace', () => {
     const dashboardComponent = fixture.componentInstance;
     dashboardComponent.dashboardTypeSelected = 'workspace';
     await dashboardComponent.initView('workspace');
-    dashboardComponent.sortChanged(recordDataStandard['sortData']);
-    console.log('===================== DashboardComponent workspace =========================');
-    console.log('==============================================');
-    console.log('==============================================');
-    console.log(JSON.stringify(dashboardComponent.sortFields));
-    console.log(JSON.stringify(dashboardComponent.sortMap));
-    console.log('==============================================');
-    console.log('==============================================');
-    console.log('==============================================');
     expect(dashboardComponent.defaultRowConfig.length).toBeGreaterThan(0);
     expect(dashboardComponent.dashboardTypeSelected).toEqual('workspace');
     await dashboardComponent.initStep('','existing-locations-draft','','workspace',1);
     let planTable = dashboardComponent.evaluatePlanTableColumns({}, {}, {}, 'existing-locations-draft', recordDataWorkspace['records']);
     expect(planTable.items.length).toBeGreaterThan(0);
-    dashboardComponent.sortChanged(recordDataWorkspace['sortData']);
-    expect(dashboardComponent.sortMap['existing-locations-draft']['metadata.title'].sort).toEqual('desc');
+    expect(dashboardComponent.sortMap['existing-locations-draft']['metaMetadata.lastSaveDate'].sort).toEqual('desc');
     dashboardComponent.pageChanged(recordDataWorkspace['paginationData'], recordDataWorkspace['paginationData'].step);
     expect(dashboardComponent.records['existing-locations-draft'].currentPage).toEqual(1);
     expect(dashboardComponent.records['existing-locations-draft'].items.length).toBeGreaterThan(0);
