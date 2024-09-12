@@ -720,17 +720,16 @@ export class DashboardComponent extends BaseComponent {
     if (this.dashboardTypeSelected == 'standard' || this.dashboardTypeSelected == 'workspace') {
       
       let sortString = `${data.variable}:`;
-      let secondarySort = this.sortMap[data.step][data.variable].secondarySort;
       let secondarySortString = undefined;
       if (data.sort == 'desc') {
         sortString = sortString + "-1";
-        if(secondarySort != undefined && secondarySort != '') {
-          secondarySortString = `${secondarySort}:`+ "-1";
+        if(data.secondarySort != undefined && data.secondarySort != '') {
+          secondarySortString = `${data.secondarySort}:`+ "-1";
         }
       } else {
         sortString = sortString + "1";
-        if(secondarySort != undefined && secondarySort != '') {
-          secondarySortString = `${secondarySort}:`+ "-1";
+        if(data.secondarySort != undefined && data.secondarySort != '') {
+          secondarySortString = `${data.secondarySort}:`+ "1";
         }
       }
       let stagedRecords: any;
@@ -929,6 +928,7 @@ export class DashboardComponent extends BaseComponent {
       this.isSearching[step] = 'searching';
       this.isFilterSearchDisplayed[step] = 'filterDisplayed';
       let sortMapAtStep = this.sortMap[step];
+      this.records[step].currentPage = 1;
       let stagedRecords = await this.recordService.getRecords(this.recordType, step, 1, '', this.getSortStringFromSortMap(sortMapAtStep),this.filterFieldPath,this.getFilterSearchString(step),'',this.getSecondarySortStringFromSortMap(sortMapAtStep));
       let planTable: PlanTable = this.evaluatePlanTableColumns({}, {}, {}, step, stagedRecords);
       this.records[step] = planTable;
@@ -943,6 +943,7 @@ export class DashboardComponent extends BaseComponent {
       this.isSearching[step] = 'searching';
       let sortMapAtStep = this.sortMap[step];
       this.filterSearchString[step] = '';
+      this.records[step].currentPage = 1;
       let stagedRecords = await this.recordService.getRecords(this.recordType, step, 1, '', this.getSortStringFromSortMap(sortMapAtStep),this.filterFieldPath,this.getFilterSearchString(step),'',this.getSecondarySortStringFromSortMap(sortMapAtStep));
       let planTable: PlanTable = this.evaluatePlanTableColumns({}, {}, {}, step, stagedRecords);
       this.records[step] = planTable;

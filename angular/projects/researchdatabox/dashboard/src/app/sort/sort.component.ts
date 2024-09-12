@@ -11,6 +11,7 @@ export class SortComponent {
   @Input() title: string = '';
   @Input() step: string = '';
   @Input() variable: string = '';
+  @Input() secondarySort: string = '';
   @Output() sortChanged = new EventEmitter();
 
   sortClicked() {
@@ -23,7 +24,7 @@ export class SortComponent {
     } else {
       this.sort = "asc";
     }
-    this.sortChanged.emit({title:this.title, variable:this.variable, sort:this.sort, step:this.step});
+    this.sortChanged.emit({title:this.title, variable:this.variable, sort:this.sort, step:this.step, secondarySort:this.secondarySort});
     return false;
   }
 }
