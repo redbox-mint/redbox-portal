@@ -1,10 +1,8 @@
 import { Component, Inject, ElementRef } from '@angular/core';
 import { PageChangedEvent } from 'ngx-bootstrap/pagination';
 import { BaseComponent, UtilityService, LoggerService, TranslationService, RecordService, PlanTable, UserService, ConfigService, FormatRules, SortGroupBy, QueryFilter, FilterField } from '@researchdatabox/portal-ng-common';
-import { get as _get, set as _set, isEmpty as _isEmpty, isUndefined as _isUndefined, trim as _trim, isNull as _isNull, orderBy as _orderBy, map as _map, find as _find, indexOf as _indexOf, isArray as _isArray, forEach as _forEach, join as _join, first as _first } from 'lodash-es';
-
+import { get as _get, set as _set, isEmpty as _isEmpty, isUndefined as _isUndefined, trim as _trim, isNull as _isNull, orderBy as _orderBy, map as _map, find as _find, indexOf as _indexOf, isArray as _isArray, forEach as _forEach, join as _join, first as _first, has as _has } from 'lodash-es';
 import { LoDashTemplateUtilityService } from 'projects/researchdatabox/portal-ng-common/src/lib/lodash-template-utility.service';
-import * as _ from 'lodash';
 
 @Component({
   selector: 'dashboard',
@@ -305,7 +303,7 @@ export class DashboardComponent extends BaseComponent {
 
     let filterBy = _get(this.formatRules, 'filterBy');
     let filterString;
-    let filterFileds;
+    let filterFields;
     let filterMode;
     if (!_isUndefined(filterBy) && !_isEmpty(filterBy)) {
       let filterBase = _get(filterBy, 'filterBase');
@@ -315,13 +313,13 @@ export class DashboardComponent extends BaseComponent {
       } else if (filterBase == 'record') {
         filterString = _get(filterBy, 'filterBaseFieldOrValue');
       }
-      filterFileds = _get(filterBy, 'filterField');
+      filterFields = _get(filterBy, 'filterField');
       filterMode = _get(filterBy, 'filterMode');
     }
 
     let sortByString = this.getSortStringFromSortMap(this.sortMap[stepName], true);
 
-    let stagedRecords = await this.recordService.getRecords(recordType, stepName, startIndex, packageType, sortByString, filterFileds, filterString, filterMode);
+    let stagedRecords = await this.recordService.getRecords(recordType, stepName, startIndex, packageType, sortByString, filterFields, filterString, filterMode);
 
     let planTable: PlanTable;
 
@@ -340,7 +338,7 @@ export class DashboardComponent extends BaseComponent {
 
       } else if (groupBy == 'groupedByRecordType' && !_isUndefined(sortGroupBy) && !_isEmpty(sortGroupBy)) {
 
-        allItemsByGroup = await this.getAllItemsGroupedByRecordType(sortGroupBy, stepName, startIndex, packageType, sortByString, filterFileds, filterString, filterMode);
+        allItemsByGroup = await this.getAllItemsGroupedByRecordType(sortGroupBy, stepName, startIndex, packageType, sortByString, filterFields, filterString, filterMode);
       }
 
       let pageNumber = _get(stagedRecords, 'currentPage');
@@ -370,7 +368,7 @@ export class DashboardComponent extends BaseComponent {
     this.sortChanged(this.defaultSortObject);
   }
 
-  private async getAllItemsGroupedByRecordType(sortGroupBy: SortGroupBy[], stepName: string, startIndex: number, packageType: string, sortByString: string, filterFileds: any, filterString: any, filterMode: any) {
+  private async getAllItemsGroupedByRecordType(sortGroupBy: SortGroupBy[], stepName: string, startIndex: number, packageType: string, sortByString: string, filterFields: any, filterString: any, filterMode: any) {
     let allItemsByGroup: any[] = [];
     let countHerarchyLevels = sortGroupBy.length;
     for (let i = 0; i < countHerarchyLevels; i++) {
@@ -382,7 +380,7 @@ export class DashboardComponent extends BaseComponent {
         return false;
       });
       let compareFieldValue = _get(rule, 'compareFieldValue', '');
-      let itemsGroupRelated: any = await this.recordService.getRecords(compareFieldValue, stepName, startIndex, packageType, sortByString, filterFileds, filterString, filterMode);
+      let itemsGroupRelated: any = await this.recordService.getRecords(compareFieldValue, stepName, startIndex, packageType, sortByString, filterFields, filterString, filterMode);
 
       allItemsByGroup.push(itemsGroupRelated);
     }
@@ -697,7 +695,7 @@ export class DashboardComponent extends BaseComponent {
           title: '',
           variable: columnConfig.variable
         }
-      } else if(i == stepRowConfigLength && _.isEmpty(this.defaultSortObject)) {
+      } else if(i == stepRowConfigLength && _isEmpty(this.defaultSortObject)) {
         this.defaultSortObject = {
           sort: columnConfig.initialSort,
           secondarySort: columnConfig.secondarySort != undefined ? columnConfig.secondarySort : '',
@@ -802,11 +800,11 @@ export class DashboardComponent extends BaseComponent {
   }
 
   public getSortStateFromSortMap(sortMap: any, workflowStep: any, rowConfig: any) {
-    let step = _.get(workflowStep,'config.workflow.stage','');
+    let step = _get(workflowStep,'config.workflow.stage','');
     let sort = 'desc';
     if(step != '') {
       let sortMapAtStep = sortMap[step];
-      if(_.has(sortMapAtStep,rowConfig.variable)) {
+      if(_has(sortMapAtStep,rowConfig.variable)) {
         sort = sortMapAtStep[rowConfig.variable].sort;
         return sort;
       }
@@ -815,11 +813,11 @@ export class DashboardComponent extends BaseComponent {
   }
 
   public getSecondarySortStateFromSortMap(sortMap: any, workflowStep: any, rowConfig: any) {
-    let step = _.get(workflowStep,'config.workflow.stage','');
+    let step = _get(workflowStep,'config.workflow.stage','');
     let secondarySort = 'desc';
     if(step != '') {
       let sortMapAtStep = sortMap[step];
-      if(_.has(sortMapAtStep,rowConfig.variable)) {
+      if(_has(sortMapAtStep,rowConfig.variable)) {
         secondarySort = sortMapAtStep[rowConfig.variable].secondarySort;
         return secondarySort;
       }
@@ -834,7 +832,7 @@ export class DashboardComponent extends BaseComponent {
     let sortString = 'metaMetadata.lastSaveDate:-1';
     for (let i = 0; i < fields.length; i++) {
       let sortField = fields[i];
-      if(!_.isEmpty(sortMapAtStep) && !_.isEmpty(sortField) && _.has(sortMapAtStep,sortField)) {
+      if(!_isEmpty(sortMapAtStep) && !_isEmpty(sortField) && _has(sortMapAtStep,sortField)) {
         if (sortMapAtStep[sortField].sort != null && forceDefault && sortMapAtStep[sortField].defaultSort == true) {
           sortString = `${sortField}:`;
           if (sortMapAtStep[sortField].sort == 'desc') {
@@ -904,6 +902,19 @@ export class DashboardComponent extends BaseComponent {
     }
   }
 
+  private findFilterTemplate(filterFieldPath: string): string {
+    let templateString: string = '';
+    let queryFilters: QueryFilter[] = this.formatRules.queryFilters[this.recordType];
+    for(let queryFilter of queryFilters) {
+        for(let filterField of queryFilter.filterFields) {
+          if(filterField.path == filterFieldPath) {
+            return _get(filterField,'template','');
+          }
+        }
+    }
+    return templateString;
+  }
+
   private getFilters(type:string) {
     let filterFields: FilterField[] = [];
     let queryFilters: QueryFilter[] = this.formatRules.queryFilters[this.recordType];
@@ -926,7 +937,7 @@ export class DashboardComponent extends BaseComponent {
   }
 
   public getFilterSearchDisplayed(step: any): boolean {
-    let filterDisplayed = _.get(this.isFilterSearchDisplayed,step,'');
+    let filterDisplayed = _get(this.isFilterSearchDisplayed,step,'');
     if(filterDisplayed == 'filterDisplayed') {
       return true;
     } else {
@@ -935,7 +946,7 @@ export class DashboardComponent extends BaseComponent {
   }
 
   public getIsSearching(step: any): boolean {
-    let searching = _.get(this.isSearching,step,'');
+    let searching = _get(this.isSearching,step,'');
     if(searching == 'searching') {
       return true;
     } else {
@@ -944,7 +955,12 @@ export class DashboardComponent extends BaseComponent {
   }
 
   public getFilterSearchString(step: any): string {
-    let filterString = _.get(this.filterSearchString,step,'');
+    let filterString = _get(this.filterSearchString,step,'');
+    let templateOrPath = this.findFilterTemplate(this.filterFieldPath);
+    if (templateOrPath && templateOrPath.indexOf('<%') != -1) {
+      const imports: any = { value: filterString};
+      return this.runTemplate(templateOrPath,imports);
+    }
     return filterString;
   }
 

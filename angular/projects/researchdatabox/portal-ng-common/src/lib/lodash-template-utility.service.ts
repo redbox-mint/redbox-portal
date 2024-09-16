@@ -20,7 +20,7 @@
 
 import { Injectable } from '@angular/core';
 import { DateTime } from 'luxon';
-import { get as _get, set as _set, extend as _extend, isEmpty as _isEmpty, isUndefined as _isUndefined, merge as _merge, trim as _trim, isNull as _isNull, orderBy as _orderBy, map as _map, find as _find, indexOf as _indexOf, isArray as _isArray, forEach as _forEach, join as _join, first as _first, template as _template } from 'lodash-es';
+import { get as _get, set as _set, extend as _extend, isEmpty as _isEmpty, isUndefined as _isUndefined, merge as _merge, trim as _trim, isNull as _isNull, orderBy as _orderBy, map as _map, find as _find, indexOf as _indexOf, isArray as _isArray, forEach as _forEach, join as _join, first as _first, template as _template, toLower as _toLower } from 'lodash-es';
 
 /**
  * Utility functions to run and render loadash templates
@@ -72,7 +72,8 @@ export class LoDashTemplateUtilityService {
     first: _first,
     merge: _merge,
     extend: _extend,
-    template: _template
+    template: _template,
+    toLower: _toLower
   }
 
   public formatDate(date: Date, format: string): string {
