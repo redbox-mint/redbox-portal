@@ -16,11 +16,13 @@ module.exports.datapubs = {
   },
   "sites": {
   	"staging": {
+      "useCleanUrl": false,
       "dir": "/opt/oni/staged/ocfl",
       "tempDir": "/opt/oni/staged/temp",
       "url": "http://localhost:11000"
     },
   	"public": {
+      "useCleanUrl": false,
       "dir": "/opt/oni/public/ocfl",
       "url": "http://localhost:11000/publication"
     }
