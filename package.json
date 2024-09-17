@@ -17,7 +17,7 @@
     "bootstrap": "^5.3.3",
     "captains-log": "^2.0.5",
     "check-disk-space": "^3.4.0",
-    "chokidar": "~3.6.0",
+    "chokidar": "~4.0.0",
     "connect-mongo": "^5.1.0",
     "copy-webpack-plugin": "^12.0.2",
     "core-js": "^3.38.1",
