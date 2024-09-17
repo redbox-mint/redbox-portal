@@ -116,7 +116,12 @@ export module Services {
 				md['citation_doi'] = md['citation_doi'].replace(URL_PLACEHOLDER, datasetUrl);
 
 				// get the repository, then write out the attachments and the RO-Crate
-				const targetCollector = new Collector({repoPath: site.dir, namespace: rootColConfig.targetRepoNamespace});
+				const targetCollector = new Collector({
+					repoPath: site.dir, 
+					namespace: rootColConfig.targetRepoNamespace,
+					tempPath: site.tempPath,
+					repoScratch: site.repoScratch
+				});
 				try {
 					await targetCollector.connect();
 				} catch (err) {
@@ -215,7 +220,9 @@ export module Services {
 		private async removeTempDir(tempDir: string) {
 			// remove the temp record-specific attachment directory
 			try {
-				await fs.rm(tempDir, { recursive: true });
+				if (await this.pathExists(tempDir)) {
+					await fs.rm(tempDir, { recursive: true });
+				}
 			} catch (err) {
 				sails.log.warn(`${this.logHeader} writeDatasetObject() -> Error removing temp directory ${tempDir}: ${err}`);
 			}
