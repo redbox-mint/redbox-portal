@@ -32,15 +32,15 @@ export interface RecordTypeConf {
 }
 /**
  * Record Service
- * 
+ *
  * Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a>
  */
 @Injectable()
 export class RecordService extends HttpClientService {
   private requestOptions:any = null as any;
 
-  constructor( 
-    @Inject(HttpClient) protected override http: HttpClient, 
+  constructor(
+    @Inject(HttpClient) protected override http: HttpClient,
     @Inject(APP_BASE_HREF) public override rootContext: string,
     @Inject(UtilityService) protected override utilService: UtilityService,
     @Inject(ConfigService) protected override configService: ConfigService,
@@ -62,7 +62,7 @@ export class RecordService extends HttpClientService {
     let url = `${this.brandingAndPortalUrl}/record/wfSteps/${name}`;
     const result$ = this.http.get(url).pipe(map(res => res));
     let result = await firstValueFrom(result$);
-    return result; 
+    return result;
   }
 
   private getDocMetadata(doc: any) {
@@ -79,18 +79,18 @@ export class RecordService extends HttpClientService {
   }
 
   public async getRelatedRecords(oid: string) {
-    
+
     let url = `${this.brandingAndPortalUrl}/record/${oid}/relatedRecords`;
     const result$ = this.http.get(url).pipe(map(res => res));
     let relatedRecords = await firstValueFrom(result$);
-    
+
     let response: any = {};
     let items = [];
     let childOrTreeLevel2: any = _get(relatedRecords, 'processedRelationships');
 
     for(let childNameStr of childOrTreeLevel2) {
       let childArr = _get(relatedRecords,'relatedObjects.'+childNameStr);
-      
+
       if(!_isUndefined(childArr) && _isArray(childArr)) {
         for (let child of childArr) {
           let item: any = {};
@@ -110,18 +110,72 @@ export class RecordService extends HttpClientService {
     return response;
   }
 
-  public async getRecords(recordType:string,state:string,pageNumber:number,packageType:string='', sort:string='', filterFields:string='', filterString:string='', filterMode:string='') {
+  public async getRecords(
+    recordType: string,
+    state: string,
+    pageNumber: number,
+    packageType: string = '',
+    sort: string = '',
+    filterFields: string = '',
+    filterString: string = '',
+    filterMode: string = ''
+  ) {
     let rows = 10;
-    let start = (pageNumber-1) * rows;
-    recordType = (!_isEmpty(recordType) && !_isUndefined(recordType)) ? `recordType=${recordType}` : '';
-    packageType = (!_isEmpty(packageType) && !_isUndefined(packageType)) ? `packageType=${packageType}` : '';
-    sort = (!_isEmpty(sort) && !_isUndefined(sort)) ? `&sort=${sort}` : '';
-    state = (!_isEmpty(state) && !_isUndefined(state)) ? `&state=${state}` : '';
-    filterFields = (!_isEmpty(filterFields) && !_isUndefined(filterFields)) ? `&filterFields=${filterFields}` : '';
-    filterString = (!_isEmpty(filterString) && !_isUndefined(filterString)) ? `&filter=${filterString}` : '';
-    filterMode = (!_isEmpty(filterMode) && !_isUndefined(filterMode)) ? `&filterMode=${filterMode}` : '';
-    let url = `${this.brandingAndPortalUrl}/listRecords?${recordType}${packageType}${state}${sort}${filterFields}${filterString}${filterMode}&start=${start}&rows=${rows}`;
-    const result$ = this.http.get(url).pipe(map(res => res));
+    let start = (pageNumber - 1) * rows;
+
+    const items = {
+      recordType: recordType,
+      packageType: packageType,
+      sort: sort,
+      state: state,
+      filterFields: filterFields,
+      filter: filterString,
+      filterMode: filterMode,
+      start: start,
+      rows: rows,
+    };
+
+    const listRecordsUrl = new URL(`${this.brandingAndPortalUrl}/listRecords`);
+    for (const [key, value] of Object.entries(items)) {
+      listRecordsUrl.searchParams.set(key, encodeURIComponent(value));
+    }
+
+    const result$ = this.http.get(listRecordsUrl.toString()).pipe(map(res => res));
+    let result = await firstValueFrom(result$);
+    return result;
+  }
+
+  public async getDeletedRecords(
+    recordType: string,
+    state: string,
+    pageNumber: number,
+    packageType: string = '',
+    sort: string = '',
+    filterFields: string = '',
+    filterString: string = '',
+    filterMode: string = ''
+  ) {
+    let rows = 10;
+    let start = (pageNumber - 1) * rows;
+
+    const items = {
+      recordType: recordType,
+      packageType: packageType,
+      sort: sort,
+      state: state,
+      filterFields: filterFields,
+      filter: filterString,
+      filterMode: filterMode,
+      start: start,
+      rows: rows,
+    };
+
+    const listDeletedRecordsUrl = new URL(`${this.brandingAndPortalUrl}/listDeletedRecords`);
+    for (const [key, value] of Object.entries(items)) {
+      listDeletedRecordsUrl.searchParams.set(key, encodeURIComponent(value));
+    }
+
+    const result$ = this.http.get(listDeletedRecordsUrl.toString()).pipe(map(res => res));
     let result = await firstValueFrom(result$);
     return result;
   }

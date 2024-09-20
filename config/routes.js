@@ -185,6 +185,7 @@ module.exports.routes = {
     }
   },
   'delete /:branding/:portal/record/delete/:oid': 'RecordController.delete',
+  'put /:branding/:portal/record/delete/:oid': 'RecordController.restore',
   '/:branding/:portal/record/:oid/attach': 'RecordController.doAttachment',
   '/:branding/:portal/record/:oid/attach/:attachId': 'RecordController.doAttachment',
   //TODO: we're using an * here as sails slugs and req.param don't seem to like parameters with . in them without it.
@@ -200,6 +201,7 @@ module.exports.routes = {
   // 'post /:branding/:portal/record/editors/modify': 'RecordController.modifyEditors',
   'get /:branding/:portal/dashboard/:recordType': 'RecordController.render',
   'get /:branding/:portal/listRecords': 'RecordController.getRecordList',
+  'get /:branding/:portal/listDeletedRecords': 'RecordController.getDeletedRecordList',
   'get /:branding/:portal/vocab/:vocabId': 'VocabController.get',
   'get /:branding/:portal/ands/vocab/resourceDetails': 'VocabController.rvaGetResourceDetails',
   'get /:branding/:portal/mint/:mintSourceType': 'VocabController.getMint',
@@ -239,6 +241,7 @@ module.exports.routes = {
     controller: 'AppConfigController',
     action: 'editAppConfig'
   },
+  'get /:branding/:portal/admin/deletedRecords': 'RecordsController.renderDeletedRecords',
   /***************************************************************************
    *                                                                          *
    * REST API routes                                                          *

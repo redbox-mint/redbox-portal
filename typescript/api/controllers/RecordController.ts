@@ -421,7 +421,7 @@ export module Controllers {
               success: true,
               oid: oid
             };
-            sails.log.verbose(`Successfully deleted: ${oid}`);
+            sails.log.verbose(`Successfully ${permanentlyDelete ? 'permanently ' : ''}deleted: ${oid}`);
             this.ajaxOk(req, res, null, resp);
           } else {
             this.ajaxFail(req, res, TranslationService.t('failed-delete'), {
@@ -1416,6 +1416,72 @@ export module Controllers {
         this.ajaxFail(req, res, error.message);
       }
     }
+
+    public async getDeletedRecordList(req, res){
+      const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
+      const editAccessOnly = req.query.editOnly;
+
+      var roles = [];
+      var username = "guest";
+      let user = {};
+      if (req.isAuthenticated()) {
+        roles = req.user.roles;
+        user = req.user;
+        username = req.user.username;
+      } else {
+        // assign default role if needed...
+        user = { username: username };
+        roles = [];
+        roles.push(RolesService.getDefUnathenticatedRole(brand));
+      }
+      const recordType = req.param('recordType');
+      const workflowState = req.param('state');
+      const start = req.param('start');
+      const rows = req.param('rows');
+      const packageType = req.param('packageType');
+      const sort = req.param('sort');
+      const filterFieldString = req.param('filterFields');
+      let filterString = req.param('filter');
+      let filterFields = undefined;
+      const filterModeString = req.param('filterMode');
+      let filterMode = undefined;
+
+      if (!_.isEmpty(filterFieldString)) {
+        filterFields = filterFieldString.split(',')
+      } else {
+        filterString = undefined;
+      }
+
+      if (!_.isEmpty(filterModeString)) {
+        filterMode = filterModeString.split(',')
+      } else {
+        filterMode = undefined;
+      }
+
+      // sails.log.error('-------------Record Controller getRecordList------------------------');
+      // sails.log.error('filterFields '+ filterFields);
+      // sails.log.error('filterString '+ filterString);
+      // sails.log.error('filterMode '+ filterMode);
+      // sails.log.error('----------------------------------------------------------');
+
+      try {
+        const response = await this.getDeletedRecords(workflowState, recordType, start, rows, user, roles, brand, editAccessOnly, packageType, sort, filterFields, filterString, filterMode);
+        if (response) {
+          this.ajaxOk(req, res, null, response);
+        } else {
+          this.ajaxFail(req, res, null, response);
+        }
+      } catch (error) {
+        sails.log.error("Error updating meta:");
+        sails.log.error(error);
+        this.ajaxFail(req, res, error.message);
+      }
+    }
+
+    public renderDeletedRecords(req, res) {
+      return this.sendView(req, res, 'admin/deletedRecords');
+    }
+
 
     private getDocMetadata(doc) {
       var metadata = {};

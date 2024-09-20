@@ -462,6 +462,7 @@
   "view-error-no-permissions": "You do not have permission to view this record",
   "missing-record": "Problems retrieving this record, are you sure it exists?",
   "failed-delete": "Problems deleting this record.",
+  "failed-restore": "Problems restoring this record.",
   "@dmpt-related-website": "Related website",
   "@dmpt-related-website-help": "Help text for related website",
   "@dmpt-related-website-url": "URL",
