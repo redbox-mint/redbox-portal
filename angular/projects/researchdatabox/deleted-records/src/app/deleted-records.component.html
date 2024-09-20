@@ -1,0 +1,102 @@
+<ng-container *ngIf="isReady">
+  <div class="row">
+    <div class="col-xs-12">
+      <h1 class="text-center" >
+        {{ 'deleted-records-heading' | i18next }}
+      </h1>
+    </div>
+  </div>
+
+  <!-- Render the filter UI elements -->
+  <div class="row" *ngIf="filters != null">
+    <div class="panel panel-default">
+      <div class="panel-body">
+        <div class="row">
+          <div class="text-center h4-header mb-2">
+            {{ 'deleted-records-filters-heading' | i18next }}
+          </div>
+        </div>
+        <ng-container *ngFor="let filter of filters">
+
+          <!-- Text filter -->
+          <div *ngIf="filter.type == 'text'" class="row">
+            <div class="col-md-2"></div>
+            <div class="col-xs-2">
+              <label [for]="filter.paramName">{{filter.message}}</label>
+            </div>
+            <div class="col-xs-6">
+              <input [id]="filter.paramName" type="text" class="form-control" [(ngModel)]="filterParams[ filter['paramName']]">
+            </div>
+            <div class="col-md-2"></div>
+          </div>
+
+          <!-- Date filter -->
+          <div *ngIf="filter.type == 'date-range'" class="row">
+            <div class="col-md-2"></div>
+            <div class="col-12 col-sm-2 col-md-2">
+              <label [for]="filter.paramName" class="mt-2">{{filter.message}}</label>
+            </div>
+            <div class="col-12 col-sm-3 col-md-3">
+                <div class="form-group">
+                  <label class="control-label mr-2">{{ 'deleted-records-filter-date-from' | i18next }}</label>
+                    <input type="text" [id]="filter.paramName + '_fromDate'"
+                      [bsConfig] = "datePickerOpts"
+                      [placeholder] = "datePickerPlaceHolder"
+                      [(ngModel)]="filterParams[ filter['paramName'] + '_fromDate']"
+                      bsDatepicker />
+              </div>
+            </div>
+            <div class="col-12 col-sm-3 col-md-3">
+                <div class="form-group">
+                  <label class="control-label mr-2">{{ 'deleted-records-filter-date-to' | i18next }}</label>
+                    <input type="text" [id]="filter.paramName + '_toDate'"
+                    [bsConfig] = "datePickerOpts"
+                    [placeholder] = "datePickerPlaceHolder"
+                    [(ngModel)]="filterParams[ filter['paramName'] + '_toDate']"
+                    bsDatepicker />
+                  </div>
+            </div>
+            <div class="col-md-2"></div>
+          </div>
+
+        </ng-container>
+        <div class="row">
+          <div class="col-xs-2"></div>
+          <div class="col-xs-8 pt-2 text-end">
+            <a class="btn btn-large btn-primary" (click)="filter()">
+              <span class="glyphicon glyphicon-search"></span>
+              {{ 'deleted-records-filter-button' | i18next }}
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- Result overview  -->
+  <div class="row" *ngIf="initTracker && initTracker.resultsReturned">
+    <div class="col-xs-2">
+      <span *ngIf="initTracker.resultsReturned == false">
+        <span class="fa fa-spinner fa-spin fa-fw"></span>
+          {{ 'deleted-records-retrieving-results' | i18next }}
+      </span>
+      <span *ngIf="initTracker.resultsReturned == true"
+        [innerHTML]='"deleted-records-results-returned" | i18next: {count: deletedRecordsResult.total }'>
+      </span>
+    </div>
+    <div class="col-xs-8"></div>
+    <div class="col-xs-2">
+      <a class="btn btn-large btn-primary" [attr.href]='getDownloadCSVUrl()'>
+        <span class="glyphicon glyphicon-download"></span>
+        {{ 'deleted-records-csv-download' | i18next }}
+      </a>
+    </div>
+  </div>
+  <!-- Result details -->
+  <record-table
+    [columnConfig]="tableHeaders"
+    [dataSource]="this"
+    [optTemplateData]="optTemplateData"
+    [paginationItemsPerPage]="recordsPerPage"
+    [paginationMaxSize]="paginationMaxSize">
+  </record-table>
+</ng-container>
