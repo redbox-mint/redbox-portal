@@ -98,7 +98,9 @@ export module Controllers {
       'getRecordList',
       'listWorkspaces',
       'getAllDashboardTypes',
-      'getDashboardType'
+      'getDashboardType',
+      'renderDeletedRecords',
+      'getDeletedRecordList',
     ];
 
     /**
@@ -401,6 +403,7 @@ export module Controllers {
     public delete(req, res) {
       const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
       const oid = req.param('oid');
+      const permanentlyDelete = req.query.permanent === 'true';
       const user = req.user;
       let currentRec = null;
       let message = null;
@@ -410,7 +413,7 @@ export module Controllers {
       })
         .flatMap(hasEditAccess => {
           if (hasEditAccess) {
-            return Observable.fromPromise(this.recordsService.delete(oid, false, user));
+            return Observable.fromPromise(this.recordsService.delete(oid, permanentlyDelete, user));
           }
           message = TranslationService.t('edit-error-no-permissions');
           return Observable.throw(new Error(TranslationService.t('edit-error-no-permissions')));
@@ -441,6 +444,51 @@ export module Controllers {
             }
           this.ajaxFail(req, res, message);
         });
+    }
+
+    public restore(req, res) {
+      const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
+      const oid = req.param('oid');
+      const user = req.user;
+      let currentRec = null;
+      let message = null;
+      // TODO: this.getDeletedRecord() ?
+      this.getRecord(oid).flatMap(cr => {
+        currentRec = cr;
+        return this.hasEditAccess(brand, user, currentRec);
+      })
+          .flatMap(hasEditAccess => {
+            if (hasEditAccess) {
+              return Observable.fromPromise(this.recordsService.restoreRecord(oid, user));
+            }
+            message = TranslationService.t('edit-error-no-permissions');
+            return Observable.throw(new Error(TranslationService.t('edit-error-no-permissions')));
+          })
+          .subscribe(response => {
+            if (response && response.isSuccessful()) {
+              const resp = {
+                success: true,
+                oid: oid
+              };
+              sails.log.verbose(`Successfully restored: ${oid}`);
+              this.ajaxOk(req, res, null, resp);
+            } else {
+              this.ajaxFail(req, res, TranslationService.t('failed-restore'), {
+                success: false,
+                oid: oid,
+                message: response.message
+              });
+            }
+          }, error => {
+            sails.log.error("Error restoring:");
+            sails.log.error(error);
+            if (message == null) {
+              message = error.message;
+            } else if (error.error && error.error.code == 500) {
+              message = TranslationService.t('missing-record');
+            }
+            this.ajaxFail(req, res, message);
+          });
     }
 
     public update(req, res) {
@@ -1507,6 +1555,49 @@ export module Controllers {
       var results = await RecordsService.getRecords(workflowState, recordType, start, rows, username, roles, brand, editAccessOnly, packageType, sort, filterFields, filterString, filterMode);
       if (!results.isSuccessful()) {
         sails.log.verbose(`Failed to retrieve records!`);
+        return null;
+      }
+
+      var totalItems = results.totalItems;
+      var startIndex = start;
+      var noItems = rows;
+      var pageNumber = (startIndex / noItems) + 1;
+
+      var response = {};
+      response["totalItems"] = totalItems;
+      response["currentPage"] = pageNumber;
+      response["noItems"] = noItems;
+
+      var items = [];
+      var docs = results.items;
+
+      for (var i = 0; i < docs.length; i++) {
+        var doc = docs[i];
+        var item = {};
+        item["oid"] = doc["redboxOid"];
+        item["title"] = doc["metadata"]["title"];
+        item["metadata"] = this.getDocMetadata(doc);
+        item["dateCreated"] = doc["dateCreated"];
+        item["dateModified"] = doc["lastSaveDate"];
+        item["hasEditAccess"] = RecordsService.hasEditAccess(brand, user, roles, doc);
+        items.push(item);
+      }
+
+      response["items"] = items;
+      return response;
+    }
+
+    protected async getDeletedRecords(workflowState, recordType, start, rows, user, roles, brand, editAccessOnly = undefined, packageType = undefined, sort = undefined, filterFields = undefined, filterString = undefined, filterMode = undefined) {
+      const username = user.username;
+      if (!_.isUndefined(recordType) && !_.isEmpty(recordType)) {
+        recordType = recordType.split(',');
+      }
+      if (!_.isUndefined(packageType) && !_.isEmpty(packageType)) {
+        packageType = packageType.split(',');
+      }
+      var results = await RecordsService.getDeletedRecords(workflowState, recordType, start, rows, username, roles, brand, editAccessOnly, packageType, sort, filterFields, filterString, filterMode);
+      if (!results.isSuccessful()) {
+        sails.log.verbose(`Failed to retrieve deleted records!`);
         return null;
       }
 

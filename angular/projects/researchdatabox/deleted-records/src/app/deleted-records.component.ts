@@ -26,8 +26,8 @@ import {
   BaseComponent,
   RecordSource
 } from '@researchdatabox/portal-ng-common';
-import {RecordPropViewMetaDto, ReportDto, ReportResultDto, RecordPageDto } from '@researchdatabox/sails-ng-common';
-import { isEmpty as _isEmpty, set as _set, map as _map } from 'lodash-es';
+import { RecordPropViewMetaDto, ReportResultDto, RecordPageDto } from '@researchdatabox/sails-ng-common';
+import { isEmpty as _isEmpty, set as _set } from 'lodash-es';
 import { DateTime } from 'luxon';
 import {ReportFilterDto} from "@researchdatabox/sails-ng-common/dist/report.model";
 
@@ -55,7 +55,7 @@ export class DeletedRecordsComponent extends BaseComponent implements RecordSour
   paginationMaxSize: number = 10;
   // See https://moment.github.io/luxon/docs/manual/zones.html#specifying-a-zone
   dateParamTz: string = 'utc';
-  filters: ReportFilterDto[] | null;
+  filters: ReportFilterDto[] = [];
 
   // Filter values entered by user
   filterParams: any = {};
@@ -113,7 +113,7 @@ export class DeletedRecordsComponent extends BaseComponent implements RecordSour
         multivalue: false
       },
       {
-        label: "Title",
+        label: "deleted-records-results-table-header-title",
         property: "title",
         template: "<a href='${ data.optTemplateData.brandingAndPortalUrl }/record/view/${ data.oid }'>${ data.title }</a>",
         // exportTemplate: "${data.title}"
@@ -129,28 +129,28 @@ export class DeletedRecordsComponent extends BaseComponent implements RecordSour
         multivalue: false
       },
       {
-        label: "Date Created",
+        label: "deleted-records-results-table-header-created-date",
         property: "dateCreated",
         template: "${ DateTime.fromISO(data.dateCreated).toFormat('dd/MM/yyyy hh:mm a') }",
         hide: false,
         multivalue: false
       },
       {
-        label: "Created By",
+        label: "deleted-records-results-table-header-created-by",
         property: "createdBy",
         template: "TODO",
         hide: false,
         multivalue: false
       },
       {
-        label: "Date Deleted",
+        label: "deleted-records-results-table-header-deleted-date",
         property: "dateDeleted",
         template: "${ DateTime.fromISO(data.dateDeleted).toFormat('dd/MM/yyyy hh:mm a') }",
         hide: false,
         multivalue: false
       },
       {
-        label: "Deleted By",
+        label: "deleted-records-results-table-header-deleted-by",
         property: "deletedBy",
         template: "TODO",
         hide: false,
@@ -171,16 +171,16 @@ export class DeletedRecordsComponent extends BaseComponent implements RecordSour
         property: "",
       },
       {
-        "paramName": "title",
-        "type": "text",
-        "property": "title",
-        "message": "Filter by title"
+        paramName: "title",
+        type: "text",
+        message: "Filter by title",
+        property: "title",
       },
       {
         paramName: "recordType",
-        type: 'dropdown',
+        type: 'drop-down',
         message: "Filter by record type",
-        property: "",
+        property: 'RDMP;DataSet',
       },
     ];
     this.brandingAndPortalUrl = this.recordService.brandingAndPortalUrl;
@@ -195,15 +195,6 @@ export class DeletedRecordsComponent extends BaseComponent implements RecordSour
     await this.gotoPage(1);
   }
 
-  public getDownloadCSVUrl() {
-    let url = `${this.brandingAndPortalUrl}/admin/downloadReportCSV?name=${this.reportName}`;
-    let params = this.getParams();
-    for (var key in params) {
-      url = url + '&' + key + "=" + params[key];
-    }
-    return url;
-  }
-
   public getLuxonDateFromJs(srcDate: Date, tz: string, mode: string) {
     if (mode == 'floor') {
       srcDate.setHours(0, 0, 0, 0);
@@ -213,16 +204,17 @@ export class DeletedRecordsComponent extends BaseComponent implements RecordSour
     return DateTime.fromJSDate(srcDate, {zone: tz});
   }
 
-  private async getDeletedRecords() {
-    const workflowState = '';
+  private async getDeletedRecords() : Promise<any> {
     const recordType = '';
-    const pageNumber = '';
-    const packageType = '';
-    const sort = '';
-    const filterFields = '';
-    const filterString = '';
-    const filterMode = '';
+    const workflowState = '';
+    const pageNumber = 1;
+    const packageType = undefined;
+    const sort = undefined;
+    const filterFields = undefined;
+    const filterString = undefined;
+    const filterMode = undefined;
     const records = await this.recordService.getDeletedRecords(recordType, workflowState, pageNumber, packageType, sort, filterFields, filterString, filterMode);
+    return records;
   }
 
   private getParams() {

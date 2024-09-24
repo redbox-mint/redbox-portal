@@ -22,7 +22,7 @@
           <div *ngIf="filter.type == 'text'" class="row">
             <div class="col-md-2"></div>
             <div class="col-xs-2">
-              <label [for]="filter.paramName">{{filter.message}}</label>
+              <label [for]="filter.paramName" class="form-label">{{filter.message}}</label>
             </div>
             <div class="col-xs-6">
               <input [id]="filter.paramName" type="text" class="form-control" [(ngModel)]="filterParams[ filter['paramName']]">
@@ -34,12 +34,12 @@
           <div *ngIf="filter.type == 'date-range'" class="row">
             <div class="col-md-2"></div>
             <div class="col-12 col-sm-2 col-md-2">
-              <label [for]="filter.paramName" class="mt-2">{{filter.message}}</label>
+              <label [for]="filter.paramName" class="form-label">{{filter.message}}</label>
             </div>
             <div class="col-12 col-sm-3 col-md-3">
                 <div class="form-group">
                   <label class="control-label mr-2">{{ 'deleted-records-filter-date-from' | i18next }}</label>
-                    <input type="text" [id]="filter.paramName + '_fromDate'"
+                    <input type="text" class="form-control" [id]="filter.paramName + '_fromDate'"
                       [bsConfig] = "datePickerOpts"
                       [placeholder] = "datePickerPlaceHolder"
                       [(ngModel)]="filterParams[ filter['paramName'] + '_fromDate']"
@@ -48,13 +48,29 @@
             </div>
             <div class="col-12 col-sm-3 col-md-3">
                 <div class="form-group">
-                  <label class="control-label mr-2">{{ 'deleted-records-filter-date-to' | i18next }}</label>
-                    <input type="text" [id]="filter.paramName + '_toDate'"
+                  <label class="form-label mr-2">{{ 'deleted-records-filter-date-to' | i18next }}</label>
+                    <input type="text" class="form-control" [id]="filter.paramName + '_toDate'"
                     [bsConfig] = "datePickerOpts"
                     [placeholder] = "datePickerPlaceHolder"
                     [(ngModel)]="filterParams[ filter['paramName'] + '_toDate']"
                     bsDatepicker />
                   </div>
+            </div>
+            <div class="col-md-2"></div>
+          </div>
+
+          <!-- Dropdown filter -->
+          <div *ngIf="filter.type == 'drop-down'" class="row">
+            <div class="col-md-2"></div>
+            <div class="col-xs-2">
+              <label [for]="filter.paramName" class="form-label">{{filter.message}}</label>
+            </div>
+            <div class="col-xs-6">
+              <select [id]="filter.paramName" class="form-control" [ngModel]="filterParams[ filter['paramName']]">
+                <option *ngFor="let item of filter.property.split(';')" [ngValue]="item">
+                  {{ item }}
+                </option>
+              </select>
             </div>
             <div class="col-md-2"></div>
           </div>
@@ -84,12 +100,7 @@
       </span>
     </div>
     <div class="col-xs-8"></div>
-    <div class="col-xs-2">
-      <a class="btn btn-large btn-primary" [attr.href]='getDownloadCSVUrl()'>
-        <span class="glyphicon glyphicon-download"></span>
-        {{ 'deleted-records-csv-download' | i18next }}
-      </a>
-    </div>
+    <div class="col-xs-2"></div>
   </div>
   <!-- Result details -->
   <record-table

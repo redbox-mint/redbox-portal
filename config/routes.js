@@ -241,7 +241,7 @@ module.exports.routes = {
     controller: 'AppConfigController',
     action: 'editAppConfig'
   },
-  'get /:branding/:portal/admin/deletedRecords': 'RecordsController.renderDeletedRecords',
+  'get /:branding/:portal/admin/deletedRecords': 'RecordController.renderDeletedRecords',
   /***************************************************************************
    *                                                                          *
    * REST API routes                                                          *

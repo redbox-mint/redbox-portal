@@ -111,14 +111,14 @@ export class RecordService extends HttpClientService {
   }
 
   public async getRecords(
-    recordType: string,
-    state: string,
-    pageNumber: number,
-    packageType: string = '',
-    sort: string = '',
-    filterFields: string = '',
-    filterString: string = '',
-    filterMode: string = ''
+      recordType: string,
+      state: string,
+      pageNumber: number,
+      packageType: string = '',
+      sort: string = '',
+      filterFields: string = '',
+      filterString: string = '',
+      filterMode: string = ''
   ) {
     let rows = 10;
     let start = (pageNumber - 1) * rows;
@@ -137,7 +137,9 @@ export class RecordService extends HttpClientService {
 
     const listRecordsUrl = new URL(`${this.brandingAndPortalUrl}/listRecords`);
     for (const [key, value] of Object.entries(items)) {
-      listRecordsUrl.searchParams.set(key, encodeURIComponent(value));
+      if (!_isEmpty(value) && !_isUndefined(value)) {
+        listRecordsUrl.searchParams.set(key, value?.toString());
+      }
     }
 
     const result$ = this.http.get(listRecordsUrl.toString()).pipe(map(res => res));
@@ -146,14 +148,14 @@ export class RecordService extends HttpClientService {
   }
 
   public async getDeletedRecords(
-    recordType: string,
-    state: string,
-    pageNumber: number,
-    packageType: string = '',
-    sort: string = '',
-    filterFields: string = '',
-    filterString: string = '',
-    filterMode: string = ''
+      recordType: string,
+      state: string,
+      pageNumber: number,
+      packageType: string = '',
+      sort: string = '',
+      filterFields: string = '',
+      filterString: string = '',
+      filterMode: string = ''
   ) {
     let rows = 10;
     let start = (pageNumber - 1) * rows;
@@ -172,7 +174,9 @@ export class RecordService extends HttpClientService {
 
     const listDeletedRecordsUrl = new URL(`${this.brandingAndPortalUrl}/listDeletedRecords`);
     for (const [key, value] of Object.entries(items)) {
-      listDeletedRecordsUrl.searchParams.set(key, encodeURIComponent(value));
+      if (!_isEmpty(value) && !_isUndefined(value)) {
+        listDeletedRecordsUrl.searchParams.set(key, value?.toString());
+      }
     }
 
     const result$ = this.http.get(listDeletedRecordsUrl.toString()).pipe(map(res => res));
