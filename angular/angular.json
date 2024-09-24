@@ -867,7 +867,8 @@
               "projects/researchdatabox/deleted-records/src/assets"
             ],
             "styles": [
-              "projects/researchdatabox/deleted-records/src/styles.scss"
+              "projects/researchdatabox/deleted-records/src/styles.scss",
+              "node_modules/ngx-bootstrap/datepicker/bs-datepicker.scss"
             ],
             "scripts": [],
             "browser": "projects/researchdatabox/deleted-records/src/main.ts"

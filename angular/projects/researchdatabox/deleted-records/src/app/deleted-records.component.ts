@@ -108,24 +108,15 @@ export class DeletedRecordsComponent extends BaseComponent implements RecordSour
       {
         label: "Id",
         property: "oid",
-        hide: true,
         template: '',
+        hide: true,
         multivalue: false
       },
       {
         label: "deleted-records-results-table-header-title",
         property: "title",
         template: "<a href='${ data.optTemplateData.brandingAndPortalUrl }/record/view/${ data.oid }'>${ data.title }</a>",
-        // exportTemplate: "${data.title}"
         hide: false,
-        multivalue: false
-      },
-      {
-        label: "External URL",
-        property: "reportExternalURL",
-        template: "TODO",
-        // exportTemplate: "${ data.optTemplateData.brandingAndPortalUrl }/record/view/${ data.oid }",
-        hide: true,
         multivalue: false
       },
       {
@@ -136,9 +127,9 @@ export class DeletedRecordsComponent extends BaseComponent implements RecordSour
         multivalue: false
       },
       {
-        label: "deleted-records-results-table-header-created-by",
-        property: "createdBy",
-        template: "TODO",
+        label: "deleted-records-results-table-header-modified-date",
+        property: "dateModified",
+        template: "${ DateTime.fromISO(data.dateModified).toFormat('dd/MM/yyyy hh:mm a') }",
         hide: false,
         multivalue: false
       },
@@ -150,9 +141,10 @@ export class DeletedRecordsComponent extends BaseComponent implements RecordSour
         multivalue: false
       },
       {
-        label: "deleted-records-results-table-header-deleted-by",
-        property: "deletedBy",
-        template: "TODO",
+        label: "deleted-records-results-table-header-actions",
+        property: "oid",
+        template: "<button type='button' class='btn btn-secondary' (click)='restore(${ data.oid })'>Restore</button>" +
+          "<button type='button' class='btn btn-danger' (click)='destroy(${ data.oid })'>Destroy</button>",
         hide: false,
         multivalue: false
       },
@@ -204,6 +196,14 @@ export class DeletedRecordsComponent extends BaseComponent implements RecordSour
     return DateTime.fromJSDate(srcDate, {zone: tz});
   }
 
+  public restore() {
+    console.log(arguments);
+  }
+
+  public destroy() {
+    console.log(arguments);
+  }
+
   private async getDeletedRecords() : Promise<any> {
     const recordType = '';
     const workflowState = '';
@@ -213,6 +213,7 @@ export class DeletedRecordsComponent extends BaseComponent implements RecordSour
     const filterFields = undefined;
     const filterString = undefined;
     const filterMode = undefined;
+    console.log("getDeletedRecords params:", this.getParams());
     const records = await this.recordService.getDeletedRecords(recordType, workflowState, pageNumber, packageType, sort, filterFields, filterString, filterMode);
     return records;
   }

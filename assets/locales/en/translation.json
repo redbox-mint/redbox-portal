@@ -793,7 +793,7 @@
   "deleted-records-heading": "Deleted Records",
   "deleted-records-results-table-header-title": "Title",
   "deleted-records-results-table-header-created-date": "Date Created",
-  "deleted-records-results-table-header-created-by": "Created By",
+  "deleted-records-results-table-header-modified-date": "Date Modified",
   "deleted-records-results-table-header-deleted-date": "Date Deleted",
-  "deleted-records-results-table-header-deleted-by": "Deleted By"
+  "deleted-records-results-table-header-actions": "Actions"
 }

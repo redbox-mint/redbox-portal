@@ -1,11 +1,11 @@
 meta {
-  name: Delete the created data record
+  name: Destroy the data record
   type: http
-  seq: 32
+  seq: 37
 }
 
 delete {
-  url: {{host}}/default/rdmp/record/delete/{{dataRecordOid}}
+  url: {{host}}/default/rdmp/record/delete/{{dataRecordOid}}?permanent=true
   body: none
   auth: none
 }

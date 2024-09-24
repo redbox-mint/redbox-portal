@@ -446,51 +446,6 @@ export module Controllers {
         });
     }
 
-    public restore(req, res) {
-      const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
-      const oid = req.param('oid');
-      const user = req.user;
-      let currentRec = null;
-      let message = null;
-      // TODO: this.getDeletedRecord() ?
-      this.getRecord(oid).flatMap(cr => {
-        currentRec = cr;
-        return this.hasEditAccess(brand, user, currentRec);
-      })
-          .flatMap(hasEditAccess => {
-            if (hasEditAccess) {
-              return Observable.fromPromise(this.recordsService.restoreRecord(oid, user));
-            }
-            message = TranslationService.t('edit-error-no-permissions');
-            return Observable.throw(new Error(TranslationService.t('edit-error-no-permissions')));
-          })
-          .subscribe(response => {
-            if (response && response.isSuccessful()) {
-              const resp = {
-                success: true,
-                oid: oid
-              };
-              sails.log.verbose(`Successfully restored: ${oid}`);
-              this.ajaxOk(req, res, null, resp);
-            } else {
-              this.ajaxFail(req, res, TranslationService.t('failed-restore'), {
-                success: false,
-                oid: oid,
-                message: response.message
-              });
-            }
-          }, error => {
-            sails.log.error("Error restoring:");
-            sails.log.error(error);
-            if (message == null) {
-              message = error.message;
-            } else if (error.error && error.error.code == 500) {
-              message = TranslationService.t('missing-record');
-            }
-            this.ajaxFail(req, res, message);
-          });
-    }
-
     public update(req, res) {
       this.updateInternal(req, res).then(result => { });
     }
@@ -1617,12 +1572,12 @@ export module Controllers {
       for (var i = 0; i < docs.length; i++) {
         var doc = docs[i];
         var item = {};
+        const delRecordMeta= doc["deletedRecordMetadata"]
         item["oid"] = doc["redboxOid"];
-        item["title"] = doc["metadata"]["title"];
-        item["metadata"] = this.getDocMetadata(doc);
-        item["dateCreated"] = doc["dateCreated"];
-        item["dateModified"] = doc["lastSaveDate"];
-        item["hasEditAccess"] = RecordsService.hasEditAccess(brand, user, roles, doc);
+        item["title"] = delRecordMeta["metadata"]["title"];
+        item["dateCreated"] = delRecordMeta["dateCreated"];
+        item["dateModified"] = delRecordMeta["lastSaveDate"];
+        item["dateDeleted"]  = doc["dateDeleted"];
         items.push(item);
       }
 
