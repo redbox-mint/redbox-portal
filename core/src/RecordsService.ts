@@ -12,7 +12,7 @@ export interface RecordsService {
   updateWorkflowStep(currentRec, nextStep): void;
   getAttachments(oid: string, labelFilterStr?: string): Promise<any>;
   getDeletedRecords(workflowState, recordType, start, rows, username, roles, brand, editAccessOnly, packageType, sort, fieldNames?, filterString?, filterMode?): Promise<any>;
-  getRecords(workflowState, recordType, start, rows, username, roles, brand, editAccessOnly, packageType, sort, fieldNames?, filterString?, filterMode?): Promise<any>;
+  getRecords(workflowState, recordType, start, rows, username, roles, brand, editAccessOnly, packageType, sort, fieldNames?, filterString?, filterMode?, secondarySort?): Promise<any>;
   create(brand, record, recordType, user?):Promise<StorageServiceResponse>;
   updateMeta(brand, oid, record, user?, triggerPreSaveTriggers?, triggerPostSaveTriggers?): Promise<StorageServiceResponse>;
   delete(oid, permanentlyDelete, user): Promise<any>;
