@@ -295,7 +295,7 @@ export module Services {
           return re.test(value);
         }
       }
-      const getError = function (fieldName: string, errorLanguageCode: string) {
+      const getError = function (errorLanguageCode: string) {
         let baseErrorMessage = TranslationService.t(errorLanguageCode);
         sails.log.error('validateFieldMapUsingRegex ' + baseErrorMessage);
         return baseErrorMessage;
@@ -334,14 +334,14 @@ export module Services {
       }
 
       // mandatory
-      let fieldObjectList = _.get(options, 'fieldObjectList', {});
-      let errorMap = {};
+      let fieldObjectList = _.get(options, 'fieldObjectList', []);
+      let errorMap = { errorFieldList: []};
 
       sails.log.debug('validateFieldMapUsingRegex fieldObjectList '+JSON.stringify(fieldObjectList));
 
       for(let field of fieldObjectList) {
         // get the data
-        const data = _.get(record, field.name);
+        const data = _.get(record, 'metadata.'+field.name);
         let caseSensitive = _.get(field,'caseSensitive',true) ;
         sails.log.debug('validateFieldMapUsingRegex field.allowNulls '+field.allowNulls);
         let allowNulls = _.get(field,'allowNulls',true);
@@ -352,7 +352,16 @@ export module Services {
         sails.log.debug('validateFieldMapUsingRegex '+field.name+' data '+JSON.stringify(data));
         // early checks
         if (!hasValue(data) && !allowNulls) {
-          _.set(errorMap,field.name, getError(field.name, field.label));
+          let errorField:any = {};
+          _.set(errorField,'name',field.name);
+          _.set(errorField,'label',getError(field.label));
+          let error = getError(field.errorLabel);
+          if(error != '') {
+            _.set(errorField,'error',error);
+          }
+          errorMap.errorFieldList.push(errorField);
+          sails.log.debug('validateFieldMapUsingRegex !hasValue(data) && !allowNulls');
+          continue;
         }
 
         // evaluate the record field against the regex
@@ -361,13 +370,27 @@ export module Services {
             let innerFieldName = _.get(field,'arrayObjFieldDBName','');
             if (!evaluate(row, innerFieldName, trim, allowNulls, regexPattern, caseSensitive)) {
               sails.log.debug('validateFieldMapUsingRegex evaluate arrayObjFieldDBName '+field.name);
-              _.set(errorMap,field.name, getError(field.name, field.label));
+              let errorField:any = {};
+              _.set(errorField,'name',field.name);
+              _.set(errorField,'label',getError(field.label));
+              let error = getError(field.errorLabel);
+              if(error != '') {
+                _.set(errorField,'error',error);
+              }
+              errorMap.errorFieldList.push(errorField);
             }
           }
         } else {
-          if (!evaluate(record, field.name, trim, allowNulls, regexPattern, caseSensitive)) {
+          if (!evaluate(data, '', trim, allowNulls, regexPattern, caseSensitive)) {
             sails.log.debug('validateFieldMapUsingRegex evaluate field.name '+field.name);
-            _.set(errorMap,field.name, getError(field.name, field.label));
+            let errorField:any = {};
+            _.set(errorField,'name',field.name);
+            _.set(errorField,'label',getError(field.label));
+            let error = getError(field.errorLabel);
+            if(error != '') {
+              _.set(errorField,'error',error);
+            }
+            errorMap.errorFieldList.push(errorField);
           }
         }
         
@@ -375,10 +398,9 @@ export module Services {
 
       sails.log.debug('validateFieldMapUsingRegex errorMap '+JSON.stringify(errorMap));
 
-      if(!_.isEmpty(errorMap)) {
-        
+      if(!_.isEmpty(errorMap.errorFieldList)) {
         let customError: RBValidationError;
-        customError = new RBValidationError(errorMap);
+        customError = new RBValidationError(JSON.stringify(errorMap));
         throw customError;
       }
 

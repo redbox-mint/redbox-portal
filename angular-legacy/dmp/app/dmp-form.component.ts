@@ -271,7 +271,16 @@ export class DmpFormComponent extends LoadableComponent {
           return Observable.of(true);
         } else {
           this.recordSaved.emit({oid: this.oid, success:false});
-          this.setError(`${this.getMessage(this.formDef.messages.saveError)} ${res.message}`);
+          try {
+            let errorFieldMap = JSON.parse(res.message);
+            if(!_.isEmpty(errorFieldMap.errorFieldList)) {
+              this.isValid(false, errorFieldMap);
+            } else {
+              this.setError(`${this.getMessage(this.formDef.messages.saveError)} ${res.message}`);
+            }
+          } catch(error) {
+            this.setError(`${this.getMessage(this.formDef.messages.saveError)} ${res.message}`);
+          }
           return Observable.of(false);
         }
       }).catch((err:any)=>{
@@ -433,7 +442,7 @@ export class DmpFormComponent extends LoadableComponent {
    * @param  {boolean=false} forceValidate
    * @return {[type]}
    */
-  isValid(forceValidate:boolean=false) {
+  isValid(forceValidate:boolean=false, backendFieldList:any={}) {
     if (this.formDef.skipValidationOnSave  && (_.isUndefined(forceValidate) || _.isNull(forceValidate) || !forceValidate)) {
       return true;
     }
@@ -441,14 +450,34 @@ export class DmpFormComponent extends LoadableComponent {
     if (this.formDef.skipValidationOnSave === false && forceValidate === true) {
       return true;
     }
-    this.triggerValidation();
-    if (!this.form.valid) {
-      // STEST-22
+
+    if(!forceValidate && !_.isEmpty(backendFieldList.errorFieldList)) {
       this.setError(this.getMessage(this.formDef.messages.validationFail));
-      this.generateFailedValidationLinks();
+      this.generateBackendFailedValidationLinks(backendFieldList);
       return false;
+    } else {
+      this.triggerValidation();
+      if (!this.form.valid) {
+        // STEST-22
+        this.setError(this.getMessage(this.formDef.messages.validationFail));
+        this.generateFailedValidationLinks();
+        return false;
+      }
     }
     return true;
+  }
+
+
+  generateBackendFailedValidationLinks(fieldMap: any) {
+    let label = null;
+    for(let field of fieldMap.errorFieldList)  {
+      label = field.label;
+      label = this.failedValidationLinks.length > 0 ? `, ${label}` : label;
+      this.failedValidationLinks.push({
+        label: label,
+        parentId: this.fieldMap[field.name].instance.parentId
+      });
+    }
   }
 
   // STEST-22
