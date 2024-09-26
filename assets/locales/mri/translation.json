@@ -463,6 +463,8 @@
   "missing-record": "Problems retrieving this record, are you sure it exists?",
   "failed-delete": "Problems deleting this record.",
   "failed-restore": "Problems restoring this record.",
+  "action-destroy": "Destroy",
+  "action-restore": "Restore",
   "@dmpt-related-website": "Related website",
   "@dmpt-related-website-help": "Help text for related website",
   "@dmpt-related-website-url": "URL",

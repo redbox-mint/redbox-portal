@@ -26,6 +26,7 @@ import { UtilityService } from './utility.service';
 import { LoggerService } from './logger.service';
 import { HttpClientService } from './httpClient.service';
 import { merge as _merge, isUndefined as _isUndefined, isEmpty as _isEmpty, get as _get, isArray as _isArray } from 'lodash-es';
+import { RecordResponseTable } from "./dashboard-models";
 
 export interface RecordTypeConf {
   name: string;
@@ -156,7 +157,7 @@ export class RecordService extends HttpClientService {
       filterFields: string = '',
       filterString: string = '',
       filterMode: string = ''
-  ) {
+  ): Promise<RecordResponseTable> {
     let rows = 10;
     let start = (pageNumber - 1) * rows;
 
@@ -180,7 +181,21 @@ export class RecordService extends HttpClientService {
     }
 
     const result$ = this.http.get(listDeletedRecordsUrl.toString()).pipe(map(res => res));
-    let result = await firstValueFrom(result$);
+    let result: any = await firstValueFrom(result$);
+    return result;
+  }
+
+  public async restoreDeletedRecord(oid: string) {
+    const restoreDeletedRecordUrl = new URL(`${this.brandingAndPortalUrl}/record/delete/${oid}`);
+    const result$ = this.http.put(restoreDeletedRecordUrl.toString(), undefined).pipe(map(res => res));
+    let result: any = await firstValueFrom(result$);
+    return result;
+  }
+
+  public async destroyDeletedRecord(oid: string) {
+    const destroyDeletedRecordUrl = new URL(`${this.brandingAndPortalUrl}/record/destroy/${oid}`);
+    const result$ = this.http.delete(destroyDeletedRecordUrl.toString()).pipe(map(res => res));
+    let result: any = await firstValueFrom(result$);
     return result;
   }
 

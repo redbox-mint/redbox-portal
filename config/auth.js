@@ -43,6 +43,16 @@ module.exports.auth = {
       can_update:true
     },
     {
+      path: '/:branding/:portal/record/destroy(/*)',
+      role: 'Admin',
+      can_update:true
+    },
+    {
+      path: '/:branding/:portal/listDeletedRecords(/*)',
+      role: 'Admin',
+      can_update:true
+    },
+    {
       path: '/:branding/:portal/admin',
       role: 'Librarians',
       can_update:true

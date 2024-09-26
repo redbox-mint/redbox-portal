@@ -185,6 +185,8 @@ module.exports.routes = {
     }
   },
   'delete /:branding/:portal/record/delete/:oid': 'RecordController.delete',
+  'put /:branding/:portal/record/delete/:oid': 'RecordController.restore',
+  'delete /:branding/:portal/record/destroy/:oid': 'RecordController.destroy',
   '/:branding/:portal/record/:oid/attach': 'RecordController.doAttachment',
   '/:branding/:portal/record/:oid/attach/:attachId': 'RecordController.doAttachment',
   //TODO: we're using an * here as sails slugs and req.param don't seem to like parameters with . in them without it.

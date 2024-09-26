@@ -18,6 +18,7 @@ import { RecordService } from './record.service';
 import { TranslationService  } from './translation.service';
 import { RecordTableComponent } from './record-table.component';
 import { ReportService } from './report.service';
+import { HeaderSortComponent } from "./header-sort.component";
 
 export function trimLastSlashFromUrl(baseUrl: string) {
   if (!_isEmpty(baseUrl) && (baseUrl[baseUrl.length - 1] == '/')) {
@@ -29,7 +30,8 @@ export function trimLastSlashFromUrl(baseUrl: string) {
 
 @NgModule({
   declarations: [
-    RecordTableComponent
+    RecordTableComponent,
+    HeaderSortComponent
   ],
   providers: [
     {
@@ -61,7 +63,8 @@ export function trimLastSlashFromUrl(baseUrl: string) {
   exports: [
     I18NextModule,
     PaginationModule,
-    RecordTableComponent
+    RecordTableComponent,
+    HeaderSortComponent,
   ]
 })
 export class RedboxPortalCoreModule { }

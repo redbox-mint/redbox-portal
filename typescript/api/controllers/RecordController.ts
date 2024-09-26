@@ -101,6 +101,7 @@ export module Controllers {
       'getDashboardType',
       'renderDeletedRecords',
       'getDeletedRecordList',
+      'restore',
     ];
 
     /**
@@ -403,7 +404,6 @@ export module Controllers {
     public delete(req, res) {
       const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
       const oid = req.param('oid');
-      const permanentlyDelete = req.query.permanent === 'true';
       const user = req.user;
       let currentRec = null;
       let message = null;
@@ -413,7 +413,7 @@ export module Controllers {
       })
         .flatMap(hasEditAccess => {
           if (hasEditAccess) {
-            return Observable.fromPromise(this.recordsService.delete(oid, permanentlyDelete, user));
+            return Observable.fromPromise(this.recordsService.delete(oid, false, user));
           }
           message = TranslationService.t('edit-error-no-permissions');
           return Observable.throw(new Error(TranslationService.t('edit-error-no-permissions')));
@@ -444,6 +444,48 @@ export module Controllers {
             }
           this.ajaxFail(req, res, message);
         });
+    }
+
+    public async restore(req, res) {
+      const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
+      const oid = req.param('oid');
+      const user = req.user;
+      const response = await this.recordsService.restoreRecord(oid, user);
+      if (response && response.isSuccessful()) {
+        const resp = {
+          success: true,
+          oid: oid
+        };
+        sails.log.verbose(`Successfully restored: ${oid}`);
+        this.ajaxOk(req, res, null, resp);
+      } else {
+        this.ajaxFail(req, res, TranslationService.t('failed-restore'), {
+          success: false,
+          oid: oid,
+          message: response.message
+        });
+      }
+    }
+
+    public async destroy(req, res) {
+      const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
+      const oid = req.param('oid');
+      const user = req.user;
+      const response = await this.recordsService.destroyDeletedRecord(oid, user);
+      if (response && response.isSuccessful()) {
+        const resp = {
+          success: true,
+          oid: oid
+        };
+        sails.log.verbose(`Successfully destroyed: ${oid}`);
+        this.ajaxOk(req, res, null, resp);
+      } else {
+        this.ajaxFail(req, res, TranslationService.t('failed-destroy'), {
+          success: false,
+          oid: oid,
+          message: response.message
+        });
+      }
     }
 
     public update(req, res) {
