@@ -30,44 +30,15 @@
             <div class="col-md-2"></div>
           </div>
 
-          <!-- Date filter -->
-          <div *ngIf="filter.type == 'date-range'" class="row">
-            <div class="col-md-2"></div>
-            <div class="col-12 col-sm-2 col-md-2">
-              <label [for]="filter.paramName" class="form-label">{{filter.message}}</label>
-            </div>
-            <div class="col-12 col-sm-3 col-md-3">
-                <div class="form-group">
-                  <label class="control-label mr-2">{{ 'deleted-records-filter-date-from' | i18next }}</label>
-                    <input type="text" class="form-control" [id]="filter.paramName + '_fromDate'"
-                      [bsConfig] = "datePickerOpts"
-                      [placeholder] = "datePickerPlaceHolder"
-                      [(ngModel)]="filterParams[ filter['paramName'] + '_fromDate']"
-                      bsDatepicker />
-              </div>
-            </div>
-            <div class="col-12 col-sm-3 col-md-3">
-                <div class="form-group">
-                  <label class="form-label mr-2">{{ 'deleted-records-filter-date-to' | i18next }}</label>
-                    <input type="text" class="form-control" [id]="filter.paramName + '_toDate'"
-                    [bsConfig] = "datePickerOpts"
-                    [placeholder] = "datePickerPlaceHolder"
-                    [(ngModel)]="filterParams[ filter['paramName'] + '_toDate']"
-                    bsDatepicker />
-                  </div>
-            </div>
-            <div class="col-md-2"></div>
-          </div>
-
           <!-- Dropdown filter -->
-          <div *ngIf="filter.type == 'drop-down'" class="row">
+          <div *ngIf="filter.type == 'drop-down'" class="row mt-2">
             <div class="col-md-2"></div>
             <div class="col-xs-2">
               <label [for]="filter.paramName" class="form-label">{{filter.message}}</label>
             </div>
             <div class="col-xs-6">
-              <select [id]="filter.paramName" class="form-control" [ngModel]="filterParams[ filter['paramName']]">
-                <option *ngFor="let item of filter.property.split(';')" [ngValue]="item">
+              <select [id]="filter.paramName" class="form-control" [(ngModel)]="filterParams[ filter['paramName']]">
+                <option *ngFor="let item of filter.property.split(';'); first as isFirst" [value]="item" [defaultSelected]="isFirst">
                   {{ item }}
                 </option>
               </select>
@@ -108,6 +79,9 @@
     [dataSource]="this"
     [optTemplateData]="optTemplateData"
     [paginationItemsPerPage]="recordsPerPage"
-    [paginationMaxSize]="paginationMaxSize">
+    [paginationMaxSize]="paginationMaxSize"
+    [showActions]="showActions"
+    [enableSort]="true"
+    [enableActions]="true">
   </record-table>
 </ng-container>

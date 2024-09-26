@@ -27,12 +27,12 @@ import {
   RecordSource
 } from '@researchdatabox/portal-ng-common';
 import { RecordPropViewMetaDto, ReportResultDto, RecordPageDto } from '@researchdatabox/sails-ng-common';
-import { isEmpty as _isEmpty, set as _set } from 'lodash-es';
-import { DateTime } from 'luxon';
-import {ReportFilterDto} from "@researchdatabox/sails-ng-common/dist/report.model";
+import { isEmpty as _isEmpty, set as _set, get as _get } from 'lodash-es';
+import { ReportFilterDto } from "@researchdatabox/sails-ng-common/dist/report.model";
+import { RecordResponseTable } from "../../../portal-ng-common/src/lib/dashboard-models";
 
 /**
- * Restore Records Component
+ * Restore deleted records Component
  */
 @Component({
   selector: 'deleted-records',
@@ -49,20 +49,23 @@ export class DeletedRecordsComponent extends BaseComponent implements RecordSour
   initTracker: any = {resultsReturned: false};
 
   // Record filter properties
-  datePickerOpts: any;
-  datePickerPlaceHolder: string = '';
   recordsPerPage: number = 10;
   paginationMaxSize: number = 10;
-  // See https://moment.github.io/luxon/docs/manual/zones.html#specifying-a-zone
-  dateParamTz: string = 'utc';
+  currentPageNumber: number = 1;
   filters: ReportFilterDto[] = [];
+  sort: string | undefined;
 
   // Filter values entered by user
   filterParams: any = {};
 
-  // Record list properties
+  // Record table properties
   tableHeaders: RecordPropViewMetaDto[] = null as any;
   optTemplateData: any = {};
+  showActions = [
+    // TODO: destroy might need a confirmation modal / popup?
+    {name: 'restore', classes: 'btn-primary', label: 'action-restore'},
+    {name: 'destroy', classes: 'btn-danger', label: 'action-destroy'},
+  ]
 
   // Record list data
   deletedRecordsResult: ReportResultDto = null as any;
@@ -79,43 +82,68 @@ export class DeletedRecordsComponent extends BaseComponent implements RecordSour
     this.loggerService.debug(`'${this.appName}' waiting for deps to init...`);
   }
 
-  getCurrentPage() {
+  /**
+   * Get the data for the current page.
+   * Used by RecordTableComponent.
+   */
+  public getCurrentPage() {
     return this.deletedRecordsResult;
   }
 
-  async gotoPage(pageNum: number): Promise<RecordPageDto> {
+  /**
+   * Load the data for the given page.
+   * Used by RecordTableComponent.
+   * @param pageNum Load the data for this page nnumber.
+   */
+  public async gotoPage(pageNum: number): Promise<RecordPageDto> {
+    this.currentPageNumber = pageNum;
     this.initTracker.resultsReturned = false;
     this.deletedRecordsResult = await this.getDeletedRecords();
     this.initTracker.resultsReturned = true;
     return this.deletedRecordsResult;
   }
 
+  /**
+   * Apply the filters.
+   * @param event The click event data.
+   */
+  public async filter(event?: any) {
+    await this.gotoPage(1);
+  }
+
+  public async headerSortChanged(event: any, data: any) {
+    this.sort = `${event.variable}:${event.sort === 'desc' ? '-1' : '1'}`;
+    await this.gotoPage(1);
+  }
+
+  public async recordTableAction(event: any, data: any, actionName: string) {
+    const oid = data.oid;
+    let result: any;
+    if (actionName === 'restore') {
+      result = await this.recordService.restoreDeletedRecord(oid);
+    } else if (actionName === 'destroy') {
+      result = await this.recordService.destroyDeletedRecord(oid);
+    } else {
+      this.loggerService.error(`Unknown record table action name '${actionName}' data ${JSON.stringify(data)}.`);
+      return;
+    }
+    this.loggerService.debug(`Record table action ${actionName} data ${JSON.stringify(data)} result ${JSON.stringify(result)}.`);
+    await this.gotoPage(this.currentPageNumber);
+  }
+
   protected async initComponent(): Promise<void> {
     this.sysConfig = await this.configService.getConfig();
 
     // Initialise settings from sys config
-    this.datePickerOpts = this.getConfigProp('datePickerOpts', {
-      dateInputFormat: 'DD/MM/YYYY',
-      containerClass: 'theme-dark-blue'
-    });
-    this.datePickerPlaceHolder = this.getConfigProp('datePickerPlaceHolder', 'dd/mm/yyyy');
     this.recordsPerPage = this.getConfigProp('recordsPerPage', this.recordsPerPage);
-    this.dateParamTz = this.getConfigProp('dateParamTz', this.dateParamTz);
     this.paginationMaxSize = this.getConfigProp('paginationMaxSize', this.paginationMaxSize);
 
     // Additional data required for the record-table component
     this.tableHeaders = [
       {
-        label: "Id",
-        property: "oid",
-        template: '',
-        hide: true,
-        multivalue: false
-      },
-      {
         label: "deleted-records-results-table-header-title",
         property: "title",
-        template: "<a href='${ data.optTemplateData.brandingAndPortalUrl }/record/view/${ data.oid }'>${ data.title }</a>",
+        template: "${ data.title }",
         hide: false,
         multivalue: false
       },
@@ -140,28 +168,8 @@ export class DeletedRecordsComponent extends BaseComponent implements RecordSour
         hide: false,
         multivalue: false
       },
-      {
-        label: "deleted-records-results-table-header-actions",
-        property: "oid",
-        template: "<button type='button' class='btn btn-secondary' (click)='restore(${ data.oid })'>Restore</button>" +
-          "<button type='button' class='btn btn-danger' (click)='destroy(${ data.oid })'>Destroy</button>",
-        hide: false,
-        multivalue: false
-      },
     ];
     this.filters = [
-      {
-        paramName: "dateObjectModifiedRange",
-        type: "date-range",
-        message: "Filter by date modified",
-        property: "",
-      },
-      {
-        paramName: "dateObjectCreatedRange",
-        type: "date-range",
-        message: "Filter by date created",
-        property: "",
-      },
       {
         paramName: "title",
         type: "text",
@@ -172,7 +180,7 @@ export class DeletedRecordsComponent extends BaseComponent implements RecordSour
         paramName: "recordType",
         type: 'drop-down',
         message: "Filter by record type",
-        property: 'RDMP;DataSet',
+        property: 'All;RDMP;Data Record',
       },
     ];
     this.brandingAndPortalUrl = this.recordService.brandingAndPortalUrl;
@@ -183,61 +191,42 @@ export class DeletedRecordsComponent extends BaseComponent implements RecordSour
     this.loggerService.debug(`'${this.appName}' ready!`);
   }
 
-  public async filter(event?: any) {
-    await this.gotoPage(1);
-  }
+  private async getDeletedRecords(): Promise<ReportResultDto> {
+    const params = this.getParams();
+    const paramText: string = _get(params, 'title', '')?.toString().trim();
+    const paramRecordType: string = _get(params, 'recordType', '');
 
-  public getLuxonDateFromJs(srcDate: Date, tz: string, mode: string) {
-    if (mode == 'floor') {
-      srcDate.setHours(0, 0, 0, 0);
-    } else if (mode == 'ceil') {
-      srcDate.setHours(23, 59, 59, 999);
-    }
-    return DateTime.fromJSDate(srcDate, {zone: tz});
-  }
+    const recordTypeMap: { [key: string]: string } = {
+      'All': '',
+      'RDMP': 'rdmp',
+      'Data Record': 'dataRecord',
+    };
 
-  public restore() {
-    console.log(arguments);
-  }
+    const recordType = recordTypeMap[paramRecordType];
+    const filterString = paramText || '';
+    const filterMode = 'regex';
 
-  public destroy() {
-    console.log(arguments);
-  }
-
-  private async getDeletedRecords() : Promise<any> {
-    const recordType = '';
     const workflowState = '';
-    const pageNumber = 1;
     const packageType = undefined;
-    const sort = undefined;
     const filterFields = undefined;
-    const filterString = undefined;
-    const filterMode = undefined;
-    console.log("getDeletedRecords params:", this.getParams());
-    const records = await this.recordService.getDeletedRecords(recordType, workflowState, pageNumber, packageType, sort, filterFields, filterString, filterMode);
-    return records;
+
+    const records: RecordResponseTable = await this.recordService.getDeletedRecords(
+      recordType, workflowState, this.currentPageNumber, packageType, this.sort, filterFields, filterString, filterMode);
+
+    return {
+      recordsPerPage: this.recordsPerPage,
+      records: records.items,
+      total: records.totalItems,
+      pageNum: this.currentPageNumber,
+    };
   }
 
   private getParams() {
     var params: any = {};
     for (let filter of this.filters) {
-      if (filter.type == 'date-range') {
-        const fromDateJs = this.filterParams[filter.paramName + "_fromDate"];
-        const toDateJs = this.filterParams[filter.paramName + "_toDate"];
-        var fromDate = fromDateJs ? this.getLuxonDateFromJs(fromDateJs, this.dateParamTz, 'floor') : null;
-        var toDate = toDateJs ? this.getLuxonDateFromJs(toDateJs, this.dateParamTz, 'ceil') : null;
-
-        if (fromDate != null) {
-          params[filter.paramName + "_fromDate"] = fromDate.toISO();
-        }
-        if (toDate != null) {
-          params[filter.paramName + "_toDate"] = toDate.toISO();
-        }
-      } else {
-        let paramValue = this.filterParams[filter.paramName];
-        if (!_isEmpty(paramValue)) {
-          params[filter.paramName] = paramValue;
-        }
+      let paramValue = this.filterParams[filter.paramName];
+      if (!_isEmpty(paramValue)) {
+        params[filter.paramName] = paramValue;
       }
     }
     return params;
