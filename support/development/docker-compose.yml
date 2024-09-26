@@ -1,11 +1,11 @@
-version: '3.1'
 networks:
   main:
+
 services:
   redboxportal:
     # uncomment this if you are making changes to the Dockerfile
     # build: .
-    image: qcifengineering/redbox-portal:develop
+    image: 'qcifengineering/redbox-portal:develop'
     ports:
       - "1500:1500"
       # Debugging port
