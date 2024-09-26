@@ -353,7 +353,7 @@ export module Services {
       return this.storageService.updateNotificationLog(oid, record, options);
     }
 
-    public getRecords(workflowState, recordType = undefined, start, rows = 10, username, roles, brand, editAccessOnly = undefined, packageType = undefined, sort = undefined, fieldNames = undefined, filterString = undefined, filterMode=undefined): Promise < any > {
+    public getRecords(workflowState, recordType = undefined, start, rows = 10, username, roles, brand, editAccessOnly = undefined, packageType = undefined, sort = undefined, fieldNames = undefined, filterString = undefined, filterMode=undefined, secondarySort=undefined): Promise < any > {
 
       
       // sails.log.error('------------- Record Service -----------------------------');
@@ -362,7 +362,7 @@ export module Services {
       // sails.log.error('filterMode '+ filterMode);
       // sails.log.error('----------------------------------------------------------');
 
-      return this.storageService.getRecords(workflowState, recordType, start, rows, username, roles, brand, editAccessOnly, packageType, sort, fieldNames, filterString, filterMode);
+      return this.storageService.getRecords(workflowState, recordType, start, rows, username, roles, brand, editAccessOnly, packageType, sort, fieldNames, filterString, filterMode, secondarySort);
     }
 
     public exportAllPlans(username, roles, brand, format, modBefore, modAfter, recType): Readable {

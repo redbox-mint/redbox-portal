@@ -204,7 +204,7 @@ export module Services {
             numeral: numeral
           }
         };
-        if(_.isString(counter.templateConfig)) {
+        if(_.isString(counter.template)) {
           const compiledTemplate = _.template(counter.template, templateImportData);
           counter.template = compiledTemplate;
         }

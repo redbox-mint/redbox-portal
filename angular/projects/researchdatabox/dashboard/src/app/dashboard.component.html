@@ -8,7 +8,7 @@
               <div *ngIf="workflowSteps.length == 1 && !hideWorkflowStepTitle && (dashboardTypeSelected == 'standard' || dashboardTypeSelected == 'consolidated')" class="col-md-4">
                 <h2>{{ 'dashboard-heading-one-step' | i18next: {recordTypeName: typeLabel} }}</h2>
               </div>
-              <ng-container *ngIf="dashboardTypeSelected == 'standard' && (records[workflowStep.config.workflow.stage].totalItems > 0 || (records[workflowStep.config.workflow.stage].totalItems <= 0 && getFilterSearchDisplayed(workflowStep.config.workflow.stage)))">
+              <ng-container *ngIf="(dashboardTypeSelected == 'standard' || dashboardTypeSelected == 'workspace') && (records[workflowStep.config.workflow.stage].totalItems > 0 || (records[workflowStep.config.workflow.stage].totalItems <= 0 && getFilterSearchDisplayed(workflowStep.config.workflow.stage)))">
                 <div class="col-md-8">
                   <div class="d-flex flex-row mt-4">
                     <button class="btn btn-primary dropdown-toggle" type='button' data-bs-toggle="dropdown" aria-expanded="false" >Filter by {{ filterFieldName }}</button>
@@ -33,7 +33,7 @@
                     <thead>
                     <tr>
                     <th *ngFor="let rowConfig of tableConfig[workflowStep.config.workflow.stage]"> 
-                        <sort *ngIf="enableSort" [title]="rowConfig.title | i18next" [variable]="rowConfig.variable" [step]="workflowStep.config.workflow.stage" [sort]="sortMap[workflowStep.config.workflow.stage][rowConfig.variable]['sort']" (sortChanged)="sortChanged($event)"> </sort>
+                        <sort *ngIf="enableSort" [title]="rowConfig.title | i18next" [variable]="rowConfig.variable" [step]="workflowStep.config.workflow.stage" [sort]="getSortStateFromSortMap(sortMap,workflowStep,rowConfig)" [secondarySort]="getSecondarySortStateFromSortMap(sortMap,workflowStep,rowConfig)" (sortChanged)="sortChanged($event)"> </sort>
                         <span *ngIf="!enableSort" class="dashboard-heading-no-sort">{{rowConfig.title | i18next}}</span>
                     </th>
                     </tr>

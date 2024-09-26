@@ -119,8 +119,8 @@ export class RecordService extends HttpClientService {
       sort: string = '',
       filterFields: string = '',
       filterString: string = '',
-      filterMode: string = ''
-  ) {
+      filterMode: string = '',
+      secondarySort:string='') {
     let rows = 10;
     let start = (pageNumber - 1) * rows;
 
@@ -128,6 +128,7 @@ export class RecordService extends HttpClientService {
       recordType: recordType,
       packageType: packageType,
       sort: sort,
+      secondarySort: secondarySort,
       state: state,
       filterFields: filterFields,
       filter: filterString,

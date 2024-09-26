@@ -65,7 +65,6 @@ module.exports.dashboardtype = {
             }
           ]
         },
-        sortBy: 'metaMetadata.lastSaveDate:-1',
         groupBy: '', //values: empty (not grouped any order), groupedByRecordType, groupedByRelationships
         sortGroupBy: [], //values: as many levels as required
         hideWorkflowStepTitleForRecordType: ['party']
@@ -75,8 +74,7 @@ module.exports.dashboardtype = {
     formatRules: {
       filterBy: {}, //filterBase can only have two values user or record
       recordTypeFilterBy: 'existing-locations',
-      filterWorkflowStepsBy: ['existing-locations-draft'], //values: empty array (all) or a list with particular types i.e. [ 'draft', 'finalised'] 
-      sortBy: 'metaMetadata.lastSaveDate:-1',
+      filterWorkflowStepsBy: ['existing-locations-draft'], //values: empty array (all) or a list with particular types i.e. [ 'draft', 'finalised']
       groupBy: '', //values: empty (not grouped any order), groupedByRecordType, groupedByRelationships 
       sortGroupBy: [], //values: as many levels as required
       hideWorkflowStepTitleForRecordType: []
