@@ -1,6 +1,6 @@
-import {APP_INITIALIZER, LOCALE_ID} from '@angular/core';
-import {TestBed} from '@angular/core/testing';
-import {APP_BASE_HREF} from '@angular/common';
+import { APP_INITIALIZER, LOCALE_ID } from '@angular/core';
+import { TestBed } from '@angular/core/testing';
+import { APP_BASE_HREF } from '@angular/common';
 import {
   RedboxPortalCoreModule,
   UtilityService,
@@ -11,16 +11,17 @@ import {
   getStubTranslationService,
   appInit,
   localeId,
-  getStubRecordService
+  getStubRecordService,
+  RecordService
 } from '@researchdatabox/portal-ng-common';
-import {RecordResponseTable, RecordService} from '@researchdatabox/sails-ng-common';
-import {I18NextModule, I18NEXT_SERVICE} from 'angular-i18next';
-import {BsDatepickerModule} from 'ngx-bootstrap/datepicker';
-import {FormsModule} from "@angular/forms";
-import {PaginationModule} from 'ngx-bootstrap/pagination';
-import {DeletedRecordsComponent} from './deleted-records.component';
-import {ModalModule} from "ngx-bootstrap/modal";
-import {DashboardComponent} from "../../../dashboard/src/app/dashboard.component";
+import { I18NextModule, I18NEXT_SERVICE } from 'angular-i18next';
+import { BsDatepickerModule } from 'ngx-bootstrap/datepicker';
+import { FormsModule } from "@angular/forms";
+import { PaginationModule } from 'ngx-bootstrap/pagination';
+import { DeletedRecordsComponent } from './deleted-records.component';
+import { ModalModule } from "ngx-bootstrap/modal";
+import { DashboardComponent } from "../../../dashboard/src/app/dashboard.component";
+import { RecordResponseTable } from "../../../portal-ng-common/src/lib/dashboard-models";
 
 describe('DeletedRecordsComponent', () => {
   let configService: any;
@@ -34,8 +35,20 @@ describe('DeletedRecordsComponent', () => {
     const mockDeletedRecords: RecordResponseTable = {
       currentPage: 1,
       items: [
-        {},
-        {},
+        {
+          oid: 'rdmp-record-1',
+          title: 'rdmp record 1',
+          dateCreated: '26-09-2024T14:00:00Z',
+          dateModified: '26-09-2024T14:10:00Z',
+          dateDeleted: '26-09-2024T14:20:00Z',
+        },
+        {
+          oid: 'dataRecord-record-2',
+          title: 'dataRecord record 2',
+          dateCreated: '26-09-2024T15:00:00Z',
+          dateModified: '26-09-2024T15:10:00Z',
+          dateDeleted: '26-09-2024T15:20:00Z',
+        },
       ],
       noItems: 2,
       totalItems: 2
@@ -113,7 +126,7 @@ describe('DeletedRecordsComponent', () => {
     app.filterParams['title'] = 'test';
     app.filterParams['recordType'] = 'RDMP';
     await app.filter();
-    expect(app.deletedRecordsResult.total).toEqual(mockData.deletedRecords.total);
+    expect(app.deletedRecordsResult.total).toEqual(1);
   });
 
   it('should restore a deleted record', async function () {
@@ -128,8 +141,8 @@ describe('DeletedRecordsComponent', () => {
     expect(app.deletedRecordsResult.total).toEqual(mockData.deletedRecords.total);
 
     // set up recordService.destroyDeletedRecord
-    recordService.destroyDeletedRecord = async function (oid) {
-      const index = mockData.deletedRecords.items.findIndex(item => item.oid == oid);
+    recordService.restoreDeletedRecord = async function (oid: string) {
+      const index = mockData.deletedRecords.items.findIndex((item: any) => item.oid == oid);
       if (index > -1) {
         mockData.deletedRecords.items.splice(index, 1);
         mockData.deletedRecords.noItems -= 1;
@@ -138,7 +151,7 @@ describe('DeletedRecordsComponent', () => {
     };
 
     // trigger restore
-    await app.recordTableAction(undefined, {oid: 'record-id'}, 'restore');
+    await app.recordTableAction(undefined, {oid: 'rdmp-record-1'}, 'restore');
     expect(app.deletedRecordsResult.total).toEqual(mockData.deletedRecords.total);
   });
   it('should destroy a deleted record', async function () {
@@ -153,8 +166,8 @@ describe('DeletedRecordsComponent', () => {
     expect(app.deletedRecordsResult.total).toEqual(mockData.deletedRecords.total);
 
     // set up recordService.destroyDeletedRecord
-    recordService.restoreDeletedRecord = async function (oid) {
-      const index = mockData.deletedRecords.items.findIndex(item => item.oid == oid);
+    recordService.destroyDeletedRecord = async function (oid: string) {
+      const index = mockData.deletedRecords.items.findIndex((item: any) => item.oid == oid);
       if (index > -1) {
         mockData.deletedRecords.items.splice(index, 1);
         mockData.deletedRecords.noItems -= 1;
@@ -163,9 +176,9 @@ describe('DeletedRecordsComponent', () => {
     };
 
     // trigger destroy
-    await app.recordTableAction(undefined, {oid: 'record-id'}, 'destroy');
+    await app.recordTableAction(undefined, {oid: 'rdmp-record-1'}, 'destroy');
     expect(app.isDestroyRecordModalShown).toEqual(true);
-    expect(app.currentDestroyRecordModalOid).toEqual('record-id');
+    expect(app.currentDestroyRecordModalOid).toEqual('rdmp-record-1');
 
     await app.confirmDestroyRecordModal(undefined);
     expect(app.currentDestroyRecordModalOid).toBeUndefined();

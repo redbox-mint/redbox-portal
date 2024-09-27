@@ -38,8 +38,8 @@
             </div>
             <div class="col-xs-6">
               <select [id]="filter.paramName" class="form-control" [(ngModel)]="filterParams[ filter['paramName']]">
-                <option *ngFor="let item of filter.property.split(';'); first as isFirst" [value]="item" [defaultSelected]="isFirst">
-                  {{ item }}
+                <option *ngFor="let item of dropDownProperties[filter['paramName']]; first as isFirst" [value]="item.value" [defaultSelected]="isFirst">
+                  {{ item.title }}
                 </option>
               </select>
             </div>

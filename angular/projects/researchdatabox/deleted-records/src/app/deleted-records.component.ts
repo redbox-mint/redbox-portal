@@ -17,21 +17,13 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import {Component, Inject, ElementRef, ViewChild} from '@angular/core';
-import {
-  ConfigService,
-  LoggerService,
-  TranslationService,
-  RecordService,
-  BaseComponent,
-  RecordSource
-} from '@researchdatabox/portal-ng-common';
+import { Component, Inject, ElementRef, ViewChild } from '@angular/core';
+import { ConfigService, LoggerService, TranslationService, RecordService, BaseComponent, RecordSource } from '@researchdatabox/portal-ng-common';
 import { RecordPropViewMetaDto, ReportResultDto, RecordPageDto } from '@researchdatabox/sails-ng-common';
-import { isEmpty as _isEmpty, set as _set, get as _get } from 'lodash-es';
+import { isEmpty as _isEmpty, set as _set, get as _get, isUndefined as _isUndefined } from 'lodash-es';
 import { ReportFilterDto } from "@researchdatabox/sails-ng-common/dist/report.model";
 import { RecordResponseTable } from "../../../portal-ng-common/src/lib/dashboard-models";
 import { ModalDirective } from "ngx-bootstrap/modal";
-import * as _ from "lodash";
 
 /**
  * Restore deleted records Component
@@ -54,17 +46,61 @@ export class DeletedRecordsComponent extends BaseComponent implements RecordSour
   recordsPerPage: number = 10;
   paginationMaxSize: number = 10;
   currentPageNumber: number = 1;
-  filters: ReportFilterDto[] = [];
+  filters: ReportFilterDto[] = [
+    {
+      paramName: "title",
+      type: "text",
+      message: "Filter by title",
+      property: "title",
+    },
+    {
+      paramName: "recordType",
+      type: 'drop-down',
+      message: "Filter by record type",
+      property: '',
+    },
+  ];
   sort: string | undefined;
+  dropDownProperties: { [key: string]: { title: string, value: string }[] } = {
+    'recordType': [{title: 'All', value: ''}]
+  };
 
   // Filter values entered by user
   filterParams: any = {};
 
   // Record table properties
-  tableHeaders: RecordPropViewMetaDto[] = null as any;
+  tableHeaders: RecordPropViewMetaDto[] = [
+    {
+      label: "deleted-records-results-table-header-title",
+      property: "title",
+      template: "${ data.title }",
+      hide: false,
+      multivalue: false
+    },
+    {
+      label: "deleted-records-results-table-header-created-date",
+      property: "dateCreated",
+      template: "${ DateTime.fromISO(data.dateCreated).toFormat('dd/MM/yyyy hh:mm a') }",
+      hide: false,
+      multivalue: false
+    },
+    {
+      label: "deleted-records-results-table-header-modified-date",
+      property: "dateModified",
+      template: "${ DateTime.fromISO(data.dateModified).toFormat('dd/MM/yyyy hh:mm a') }",
+      hide: false,
+      multivalue: false
+    },
+    {
+      label: "deleted-records-results-table-header-deleted-date",
+      property: "dateDeleted",
+      template: "${ DateTime.fromISO(data.dateDeleted).toFormat('dd/MM/yyyy hh:mm a') }",
+      hide: false,
+      multivalue: false
+    },
+  ];
   optTemplateData: any = {};
   showActions = [
-    // TODO: destroy might need a confirmation modal / popup?
     {name: 'restore', classes: 'btn-primary', label: 'action-restore'},
     {name: 'destroy', classes: 'btn-danger', label: 'action-destroy'},
   ]
@@ -146,7 +182,7 @@ export class DeletedRecordsComponent extends BaseComponent implements RecordSour
   }
 
   public hideDestroyRecordModal(): void {
-    if(!_.isUndefined(this.destroyRecordModal)) {
+    if (!_isUndefined(this.destroyRecordModal)) {
       this.destroyRecordModal.hide();
       this.currentDestroyRecordModalOid = undefined;
     }
@@ -156,8 +192,8 @@ export class DeletedRecordsComponent extends BaseComponent implements RecordSour
     this.isDestroyRecordModalShown = false;
   }
 
-  public async confirmDestroyRecordModal(event: any){
-    if(_.isUndefined(this.currentDestroyRecordModalOid)){
+  public async confirmDestroyRecordModal(event: any) {
+    if (_isUndefined(this.currentDestroyRecordModalOid)) {
       this.loggerService.error("Record oid was not set so cannot destroy record.");
       return;
     }
@@ -176,52 +212,22 @@ export class DeletedRecordsComponent extends BaseComponent implements RecordSour
     this.paginationMaxSize = this.getConfigProp('paginationMaxSize', this.paginationMaxSize);
 
     // Additional data required for the record-table component
-    this.tableHeaders = [
-      {
-        label: "deleted-records-results-table-header-title",
-        property: "title",
-        template: "${ data.title }",
-        hide: false,
-        multivalue: false
-      },
-      {
-        label: "deleted-records-results-table-header-created-date",
-        property: "dateCreated",
-        template: "${ DateTime.fromISO(data.dateCreated).toFormat('dd/MM/yyyy hh:mm a') }",
-        hide: false,
-        multivalue: false
-      },
-      {
-        label: "deleted-records-results-table-header-modified-date",
-        property: "dateModified",
-        template: "${ DateTime.fromISO(data.dateModified).toFormat('dd/MM/yyyy hh:mm a') }",
-        hide: false,
-        multivalue: false
-      },
-      {
-        label: "deleted-records-results-table-header-deleted-date",
-        property: "dateDeleted",
-        template: "${ DateTime.fromISO(data.dateDeleted).toFormat('dd/MM/yyyy hh:mm a') }",
-        hide: false,
-        multivalue: false
-      },
-    ];
-    this.filters = [
-      {
-        paramName: "title",
-        type: "text",
-        message: "Filter by title",
-        property: "title",
-      },
-      {
-        paramName: "recordType",
-        type: 'drop-down',
-        message: "Filter by record type",
-        property: 'All;RDMP;Data Record',
-      },
-    ];
     this.brandingAndPortalUrl = this.recordService.brandingAndPortalUrl;
     _set(this.optTemplateData, 'brandingAndPortalUrl', this.brandingAndPortalUrl);
+
+    // populate record types
+    const recordTypes: {
+      name: string;
+      packageType: string;
+      searchFilters: [];
+      searchable: boolean
+    }[] = await this.recordService.getAllTypes();
+    recordTypes.forEach(recordType => {
+      this.dropDownProperties['recordType'].push({
+        title: `${recordType.name[0].toUpperCase()}${recordType.name.substring(1)}`,
+        value: recordType.name,
+      });
+    });
 
     // Load the first page of records
     this.gotoPage(1);
@@ -233,19 +239,13 @@ export class DeletedRecordsComponent extends BaseComponent implements RecordSour
     const paramText: string = _get(params, 'title', '')?.toString().trim();
     const paramRecordType: string = _get(params, 'recordType', '');
 
-    const recordTypeMap: { [key: string]: string } = {
-      'All': '',
-      'RDMP': 'rdmp',
-      'Data Record': 'dataRecord',
-    };
-
-    const recordType = recordTypeMap[paramRecordType];
+    const recordType = paramRecordType;
     const filterString = paramText || '';
     const filterMode = 'regex';
 
     const workflowState = '';
     const packageType = undefined;
-    const filterFields = undefined;
+    const filterFields = 'title';
 
     const records: RecordResponseTable = await this.recordService.getDeletedRecords(
       recordType, workflowState, this.currentPageNumber, packageType, this.sort, filterFields, filterString, filterMode);
@@ -259,7 +259,7 @@ export class DeletedRecordsComponent extends BaseComponent implements RecordSour
   }
 
   private getParams() {
-    var params: any = {};
+    const params: any = {};
     for (let filter of this.filters) {
       let paramValue = this.filterParams[filter.paramName];
       if (!_isEmpty(paramValue)) {

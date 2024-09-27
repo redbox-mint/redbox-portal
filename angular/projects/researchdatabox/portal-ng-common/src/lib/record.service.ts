@@ -203,7 +203,7 @@ export class RecordService extends HttpClientService {
   public async getAllTypes() {
     let url = `${this.brandingAndPortalUrl}/record/type`;
     const result$ = this.http.get(url).pipe(map(res => res));
-    let result = await firstValueFrom(result$);
+    let result: any = await firstValueFrom(result$);
     return result;
   }
 
