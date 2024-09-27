@@ -101,7 +101,8 @@ export module Controllers {
       'getDashboardType',
       'renderDeletedRecords',
       'getDeletedRecordList',
-      'restore',
+      'restoreRecord',
+      'destroyDeletedRecord',
     ];
 
     /**
@@ -424,7 +425,7 @@ export module Controllers {
               success: true,
               oid: oid
             };
-            sails.log.verbose(`Successfully ${permanentlyDelete ? 'permanently ' : ''}deleted: ${oid}`);
+            sails.log.verbose(`Successfully deleted: ${oid}`);
             this.ajaxOk(req, res, null, resp);
           } else {
             this.ajaxFail(req, res, TranslationService.t('failed-delete'), {
@@ -446,9 +447,17 @@ export module Controllers {
         });
     }
 
-    public async restore(req, res) {
+    public async restoreRecord(req, res) {
       const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
       const oid = req.param('oid');
+      if (_.isEmpty(oid)) {
+        this.ajaxFail(req, res, TranslationService.t('failed-restore'), {
+          success: false,
+          oid: oid,
+          message: TranslationService.t('failed-restore')
+        });
+        return;
+      }
       const user = req.user;
       const response = await this.recordsService.restoreRecord(oid, user);
       if (response && response.isSuccessful()) {
@@ -467,9 +476,17 @@ export module Controllers {
       }
     }
 
-    public async destroy(req, res) {
+    public async destroyDeletedRecord(req, res) {
       const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
       const oid = req.param('oid');
+      if (_.isEmpty(oid)) {
+        this.ajaxFail(req, res, TranslationService.t('failed-destroy'), {
+          success: false,
+          oid: oid,
+          message: TranslationService.t('failed-destroy')
+        });
+        return;
+      }
       const user = req.user;
       const response = await this.recordsService.destroyDeletedRecord(oid, user);
       if (response && response.isSuccessful()) {
