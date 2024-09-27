@@ -785,6 +785,7 @@
   "system-lookup-record-item1": "Parties",
   "menu-authorizeddomainsemails": "Authorized Domains and Emails",
   "authorized-email-denied": "Email is not authorized to login.",
+  "record-table-results-table-header-actions": "Actions",
   "deleted-records-results-returned": "{{count}} deleted record returned",
   "deleted-records-results-returned_plural": "{{count}} deleted records returned",
   "deleted-records-retrieving-results": "Retrieving results",
@@ -796,6 +797,5 @@
   "deleted-records-results-table-header-title": "Title",
   "deleted-records-results-table-header-created-date": "Date Created",
   "deleted-records-results-table-header-modified-date": "Date Modified",
-  "deleted-records-results-table-header-deleted-date": "Date Deleted",
-  "deleted-records-results-table-header-actions": "Actions"
+  "deleted-records-results-table-header-deleted-date": "Date Deleted"
 }

@@ -1,11 +1,17 @@
 import { TestBed } from '@angular/core/testing';
 import { HeaderSortComponent } from './header-sort.component';
+import {LoggerService} from "./logger.service";
 
 describe('HeaderSortComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      declarations: [ HeaderSortComponent ]
+      declarations: [
+        HeaderSortComponent ,
+      ],
+      providers: [
+        LoggerService,
+      ]
     })
       .compileComponents();
   });
@@ -16,7 +22,7 @@ describe('HeaderSortComponent', () => {
     expect(component).toBeTruthy();
   });
 
-  it('sortClicked should toggle sort', () => {
+  it('headerSortClicked should toggle sort', () => {
     const fixture = TestBed.createComponent(HeaderSortComponent);
     const component = fixture.componentInstance;
     expect(component.sort)
