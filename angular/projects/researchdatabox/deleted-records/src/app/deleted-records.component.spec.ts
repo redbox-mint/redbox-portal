@@ -1,74 +1,59 @@
-import { APP_INITIALIZER, LOCALE_ID } from '@angular/core';
-import { TestBed } from '@angular/core/testing';
-import { APP_BASE_HREF } from '@angular/common';
-import { RedboxPortalCoreModule, UtilityService, LoggerService, TranslationService, ConfigService, ReportService, getStubConfigService, getStubTranslationService, appInit, localeId, getStubReportService } from '@researchdatabox/portal-ng-common';
-import { ReportFilterDto, ReportDto, ReportResultDto, RecordPropViewMetaDto } from '@researchdatabox/sails-ng-common';
-import { I18NextModule, I18NEXT_SERVICE } from 'angular-i18next';
-import { BsDatepickerModule } from 'ngx-bootstrap/datepicker';
-import { FormsModule } from "@angular/forms";
-import { PaginationModule } from 'ngx-bootstrap/pagination';
-import { DeletedRecordsComponent } from './deleted-records.component';
+import {APP_INITIALIZER, LOCALE_ID} from '@angular/core';
+import {TestBed} from '@angular/core/testing';
+import {APP_BASE_HREF} from '@angular/common';
+import {
+  RedboxPortalCoreModule,
+  UtilityService,
+  LoggerService,
+  TranslationService,
+  ConfigService,
+  getStubConfigService,
+  getStubTranslationService,
+  appInit,
+  localeId,
+  getStubRecordService
+} from '@researchdatabox/portal-ng-common';
+import {RecordResponseTable, RecordService} from '@researchdatabox/sails-ng-common';
+import {I18NextModule, I18NEXT_SERVICE} from 'angular-i18next';
+import {BsDatepickerModule} from 'ngx-bootstrap/datepicker';
+import {FormsModule} from "@angular/forms";
+import {PaginationModule} from 'ngx-bootstrap/pagination';
+import {DeletedRecordsComponent} from './deleted-records.component';
+import {ModalModule} from "ngx-bootstrap/modal";
+import {DashboardComponent} from "../../../dashboard/src/app/dashboard.component";
 
 describe('DeletedRecordsComponent', () => {
-  let configService:any;
-  let reportService: any;
+  let configService: any;
+  let recordService: any;
   let translationService: any;
-  let mockReportData: any;
+  let mockData: any;
 
   beforeEach(async () => {
     configService = getStubConfigService();
     translationService = getStubTranslationService();
-    const mockReportConfigData = {
-      title: 'Mock Report',
-      name: 'mock-report',
-      filter: [
-        {
-          "paramName": "dateObjectModifiedRange",
-          "type": "date-range",
-          "property": "date_object_modified",
-          "message": "Filter by date modified"
-        },
-        {
-          "paramName": "title",
-          "type": "text",
-          "property": "title",
-          "message": "Filter by title"
-        }
-      ] as ReportFilterDto[],
-      columns: [
-        {
-          "label": "Chief Investigator",
-          "property": "contributor_ci.text_full_name",
-          "template" : "${ data['contributor_ci.text_full_name'] }"
-        }
-      ] as RecordPropViewMetaDto[]
-    } as ReportDto;
-    let pageNum = 1;
-    const mockReportResult = {
-      records: [
-        {
-          id: '123',
-          "contributor_ci.text_full_name": "John Doe"
-        }
+    const mockDeletedRecords: RecordResponseTable = {
+      currentPage: 1,
+      items: [
+        {},
+        {},
       ],
-      total: 10,
-      pageNum: pageNum,
-      recordsPerPage: 1
-    } as ReportResultDto;
-    mockReportData = {
-      reportConfig: mockReportConfigData,
-      reportResult: mockReportResult
+      noItems: 2,
+      totalItems: 2
     };
-    reportService = getStubReportService(mockReportData);
+    mockData = {
+      deletedRecords: mockDeletedRecords,
+    };
+    recordService = getStubRecordService(mockData);
     const testModule = await TestBed.configureTestingModule({
       declarations: [
-        ReportComponent
+        DeletedRecordsComponent,
       ],
       imports: [
         FormsModule,
         I18NextModule.forRoot(),
         BsDatepickerModule.forRoot(),
         PaginationModule.forRoot(),
+        ModalModule.forRoot(),
         RedboxPortalCoreModule
       ],
       providers: [
@@ -87,8 +72,8 @@ describe('DeletedRecordsComponent', () => {
           useValue: configService
         },
         {
-          provide: ReportService,
-          useValue: reportService
+          provide: RecordService,
+          useValue: recordService
         },
         {
           provide: APP_INITIALIZER,
@@ -107,31 +92,83 @@ describe('DeletedRecordsComponent', () => {
     await testModule.compileComponents();
   });
 
-  it('should create the app, and apply filters', async function() {
-    const fixture = TestBed.createComponent(DeletedRecordsComponent);
-    fixture.debugElement.nativeElement.setAttribute('reportName', mockReportData.reportConfig.name);
+  it('should create the app', () => {
+    const fixture = TestBed.createComponent(DashboardComponent);
     const app = fixture.componentInstance;
-    app.reportName = mockReportData.reportConfig.name;
-
     expect(app).toBeTruthy();
+  });
+
+  it('should apply filters', async function () {
+    // create app
+    const fixture = TestBed.createComponent(DeletedRecordsComponent);
+    const app = fixture.componentInstance;
+
+    // init app
     fixture.autoDetectChanges(true);
     await app.waitForInit();
     await fixture.whenStable();
+    expect(app.deletedRecordsResult.total).toEqual(mockData.deletedRecords.total);
 
-    expect(app.reportResult.total).toEqual(mockReportData.reportResult.total);
-
-    mockReportData.reportResult.total = 2;
     // apply filter
-    app.filterParams['dateObjectModifiedRange_fromDate'] = new Date(2023, 0, 1);
-    app.filterParams['dateObjectModifiedRange_toDate'] = new Date(2023, 1, 1);
     app.filterParams['title'] = 'test';
+    app.filterParams['recordType'] = 'RDMP';
     await app.filter();
-    expect(app.reportResult.total).toEqual(mockReportData.reportResult.total);
-    // test download url
-    const downloadUrl = app.getDownloadCSVUrl();
-    console.log(`Download url: ${downloadUrl}`);
-    const expectedUrl = `base/default/rdmp/admin/downloadReportCSV?name=${mockReportData.reportConfig.name}&dateObjectModifiedRange_fromDate=${app.getLuxonDateFromJs(app.filterParams['dateObjectModifiedRange_fromDate'], app.dateParamTz, 'floor')}&dateObjectModifiedRange_toDate=${app.getLuxonDateFromJs(app.filterParams['dateObjectModifiedRange_toDate'], app.dateParamTz, 'ceil')}&title=test`;
-    console.log(`Expected Download url: ${expectedUrl}`);
-    expect(downloadUrl).toEqual(expectedUrl);
+    expect(app.deletedRecordsResult.total).toEqual(mockData.deletedRecords.total);
+  });
+
+  it('should restore a deleted record', async function () {
+    // create app
+    const fixture = TestBed.createComponent(DeletedRecordsComponent);
+    const app = fixture.componentInstance;
+
+    // init app
+    fixture.autoDetectChanges(true);
+    await app.waitForInit();
+    await fixture.whenStable();
+    expect(app.deletedRecordsResult.total).toEqual(mockData.deletedRecords.total);
+
+    // set up recordService.destroyDeletedRecord
+    recordService.destroyDeletedRecord = async function (oid) {
+      const index = mockData.deletedRecords.items.findIndex(item => item.oid == oid);
+      if (index > -1) {
+        mockData.deletedRecords.items.splice(index, 1);
+        mockData.deletedRecords.noItems -= 1;
+        mockData.deletedRecords.totalItems -= 1;
+      }
+    };
+
+    // trigger restore
+    await app.recordTableAction(undefined, {oid: 'record-id'}, 'restore');
+    expect(app.deletedRecordsResult.total).toEqual(mockData.deletedRecords.total);
+  });
+  it('should destroy a deleted record', async function () {
+    // create app
+    const fixture = TestBed.createComponent(DeletedRecordsComponent);
+    const app = fixture.componentInstance;
+
+    // init app
+    fixture.autoDetectChanges(true);
+    await app.waitForInit();
+    await fixture.whenStable();
+    expect(app.deletedRecordsResult.total).toEqual(mockData.deletedRecords.total);
+
+    // set up recordService.destroyDeletedRecord
+    recordService.restoreDeletedRecord = async function (oid) {
+      const index = mockData.deletedRecords.items.findIndex(item => item.oid == oid);
+      if (index > -1) {
+        mockData.deletedRecords.items.splice(index, 1);
+        mockData.deletedRecords.noItems -= 1;
+        mockData.deletedRecords.totalItems -= 1;
+      }
+    };
+
+    // trigger destroy
+    await app.recordTableAction(undefined, {oid: 'record-id'}, 'destroy');
+    expect(app.isDestroyRecordModalShown).toEqual(true);
+    expect(app.currentDestroyRecordModalOid).toEqual('record-id');
+
+    await app.confirmDestroyRecordModal(undefined);
+    expect(app.currentDestroyRecordModalOid).toBeUndefined();
+    expect(app.deletedRecordsResult.total).toEqual(mockData.deletedRecords.total);
   });
 });
