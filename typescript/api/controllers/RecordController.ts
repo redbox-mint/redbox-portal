@@ -328,7 +328,7 @@ export module Controllers {
 
         if (targetStep) {
           let wfStep = await WorkflowStepsService.get(recType, targetStep).toPromise();
-          this.recordsService.updateWorkflowStep(record, wfStep);
+          await this.recordsService.updateWorkflowStep(record, wfStep, recordType);
         }
         
       } catch (error) {
@@ -497,7 +497,14 @@ export module Controllers {
         }
         if (hasPermissionToTransition) {
           sails.log.verbose(`RecordController - updateInternal - hasPermissionToTransition - enter`);
-          this.recordsService.updateWorkflowStep(currentRec, nextStep);
+          
+          let recordType = await RecordTypesService.get(brand, currentRec.metaMetadata.type).toPromise();
+          
+          sails.log.verbose('=============================================================');
+          sails.log.verbose('=============================================================');
+          sails.log.verbose('=============================================================');
+          sails.log.verbose('updateWorkflowStep - before - nextStep '+nextStep);
+          await this.recordsService.updateWorkflowStep(currentRec, nextStep, recordType);
         }
         origRecord = _.cloneDeep(currentRec);
         sails.log.verbose(`RecordController - updateInternal - origRecord - cloneDeep`);
@@ -721,7 +728,7 @@ export module Controllers {
                 sails.log.verbose(currentRec);
                 sails.log.verbose("Next step:");
                 sails.log.verbose(nextStep);
-                this.recordsService.updateWorkflowStep(currentRec, nextStep);
+                this.recordsService.updateWorkflowStep(currentRec, nextStep, recType);
                 return this.updateMetadata(brand, oid, currentRec, req.user);
               });
           })

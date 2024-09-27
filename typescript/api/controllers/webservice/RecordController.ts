@@ -444,7 +444,7 @@ export module Controllers {
 
                 if(workflowStage) {
                   WorkflowStepsService.get(recordTypeModel, workflowStage).subscribe(wfStep  => {
-                    that.RecordsService.updateWorkflowStep(request, wfStep);
+                    that.RecordsService.updateWorkflowStep(request, wfStep, recordTypeModel);
                   });
                 }
 
@@ -880,7 +880,7 @@ export module Controllers {
         }
         const recType = await RecordTypesService.get(brand, record.metaMetadata.type).toPromise();
         const nextStep = await WorkflowStepsService.get(recType, targetStepName).toPromise();
-        this.RecordsService.updateWorkflowStep(record, nextStep);
+        await this.RecordsService.updateWorkflowStep(record, nextStep, recType);
         const response = await this.RecordsService.updateMeta(brand, oid, record, req.user);
         this.apiRespond(req, res, response);
       } catch (err) {
@@ -1230,7 +1230,7 @@ export module Controllers {
 
         if(workflowStage) {
           let wfStep = await WorkflowStepsService.get(recordTypeModel, workflowStage).toPromise();
-          this.RecordsService.updateWorkflowStep(request, wfStep);
+          await this.RecordsService.updateWorkflowStep(request, wfStep, recordTypeModel);
         }
 
         if (response.isSuccessful()) {

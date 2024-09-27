@@ -281,95 +281,110 @@ export module Services {
     }
 
     public async validateFieldMapUsingRegex(oid, record, options) {
-      
-      // re-usable functions
-      const textRegex = function (value, regexPattern, caseSensitive) {
-        if(regexPattern == '') {
+      sails.log.verbose('validateFieldMapUsingRegex - enter');
+      if (this.metTriggerCondition(oid, record, options) === "true") {
+        // re-usable functions
+        const textRegex = function (value, regexPattern, caseSensitive) {
+          if(regexPattern == '') {
+            return true;
+          } else {
+            let flags = '';
+            if (caseSensitive) {
+              flags += 'i';
+            }
+            const re = new RegExp(regexPattern, flags);
+            return re.test(value);
+          }
+        }
+        const getError = function (errorLanguageCode: string) {
+          let baseErrorMessage = TranslationService.t(errorLanguageCode);
+          sails.log.error('validateFieldMapUsingRegex ' + baseErrorMessage);
+          return baseErrorMessage;
+        }
+        const hasValue = function (data) {
+          return data !== '' &&
+              data !== null &&
+              data !== undefined &&
+              (data?.length !== undefined && data.length > 0);
+        }
+        const evaluate = function (element, fieldName, trim, allowNulls, regexPattern, caseSensitive) {
+          let value = '';
+          if(_.isString(element) && fieldName == ''){
+            value = element;
+          } else if(fieldName != '') {
+            value = _.get(element, fieldName);
+            sails.log.debug('validateFieldMapUsingRegex evaluate fieldName '+fieldName+' value '+value);
+          }
+
+          if (trim) {
+            value = _.trim(value);
+          }
+
+          if (!hasValue(value) && !allowNulls) {
+            return false;
+          } else if (!hasValue(value) && allowNulls) {
+            // this is ok
+          } else if (!textRegex(value, regexPattern, caseSensitive)) {
+            return false;
+          }
+
+          if (trim && _.isObject(element) && fieldName != '') {
+            _.set(element, fieldName, value);
+          }
+
           return true;
-        } else {
-          let flags = '';
-          if (caseSensitive) {
-            flags += 'i';
+        }
+
+        // mandatory
+        let fieldObjectList = _.get(options, 'fieldObjectList', []);
+        let errorMap = { errorFieldList: []};
+
+        sails.log.debug('validateFieldMapUsingRegex fieldObjectList '+JSON.stringify(fieldObjectList));
+
+        for(let field of fieldObjectList) {
+          // get the data
+          const data = _.get(record, 'metadata.'+field.name);
+          let caseSensitive = _.get(field,'caseSensitive',true) ;
+          sails.log.debug('validateFieldMapUsingRegex field.allowNulls '+field.allowNulls);
+          let allowNulls = _.get(field,'allowNulls',true);
+          sails.log.debug('validateFieldMapUsingRegex allowNulls '+allowNulls);
+          let trim = _.get(field,'trim',true);
+          let regexPattern = _.get(field,'regexPattern','');
+
+          sails.log.debug('validateFieldMapUsingRegex '+field.name+' data '+JSON.stringify(data));
+          // early checks
+          if (!hasValue(data) && !allowNulls) {
+            let errorField:any = {};
+            _.set(errorField,'name',field.name);
+            _.set(errorField,'label',getError(field.label));
+            let error = getError(field.errorLabel);
+            if(error != '') {
+              _.set(errorField,'error',error);
+            }
+            errorMap.errorFieldList.push(errorField);
+            sails.log.debug('validateFieldMapUsingRegex !hasValue(data) && !allowNulls');
+            continue;
           }
-          const re = new RegExp(regexPattern, flags);
-          return re.test(value);
-        }
-      }
-      const getError = function (errorLanguageCode: string) {
-        let baseErrorMessage = TranslationService.t(errorLanguageCode);
-        sails.log.error('validateFieldMapUsingRegex ' + baseErrorMessage);
-        return baseErrorMessage;
-      }
-      const hasValue = function (data) {
-        return data !== '' &&
-            data !== null &&
-            data !== undefined &&
-            (data?.length !== undefined && data.length > 0);
-      }
-      const evaluate = function (element, fieldName, trim, allowNulls, regexPattern, caseSensitive) {
-        let value = '';
-        if(_.isString(element) && fieldName == ''){
-          value = element;
-        } else if(fieldName != '') {
-          value = _.get(element, fieldName);
-        }
 
-        if (trim) {
-          value = _.trim(value);
-        }
-
-        if (!hasValue(value) && !allowNulls) {
-          return false;
-        } else if (!hasValue(value) && allowNulls) {
-          // this is ok
-        } else if (!textRegex(value, regexPattern, caseSensitive)) {
-          return false;
-        }
-
-        if (trim && _.isObject(element) && fieldName != '') {
-          _.set(element, fieldName, value);
-        }
-
-        return true;
-      }
-
-      // mandatory
-      let fieldObjectList = _.get(options, 'fieldObjectList', []);
-      let errorMap = { errorFieldList: []};
-
-      sails.log.debug('validateFieldMapUsingRegex fieldObjectList '+JSON.stringify(fieldObjectList));
-
-      for(let field of fieldObjectList) {
-        // get the data
-        const data = _.get(record, 'metadata.'+field.name);
-        let caseSensitive = _.get(field,'caseSensitive',true) ;
-        sails.log.debug('validateFieldMapUsingRegex field.allowNulls '+field.allowNulls);
-        let allowNulls = _.get(field,'allowNulls',true);
-        sails.log.debug('validateFieldMapUsingRegex allowNulls '+allowNulls);
-        let trim = _.get(field,'trim',true);
-        let regexPattern = _.get(field,'regexPattern','');
-
-        sails.log.debug('validateFieldMapUsingRegex '+field.name+' data '+JSON.stringify(data));
-        // early checks
-        if (!hasValue(data) && !allowNulls) {
-          let errorField:any = {};
-          _.set(errorField,'name',field.name);
-          _.set(errorField,'label',getError(field.label));
-          let error = getError(field.errorLabel);
-          if(error != '') {
-            _.set(errorField,'error',error);
-          }
-          errorMap.errorFieldList.push(errorField);
-          sails.log.debug('validateFieldMapUsingRegex !hasValue(data) && !allowNulls');
-          continue;
-        }
-
-        // evaluate the record field against the regex
-        if (_.isArray(data)) {
-          for (const row of data) {
-            let innerFieldName = _.get(field,'arrayObjFieldDBName','');
-            if (!evaluate(row, innerFieldName, trim, allowNulls, regexPattern, caseSensitive)) {
-              sails.log.debug('validateFieldMapUsingRegex evaluate arrayObjFieldDBName '+field.name);
+          // evaluate the record field against the regex
+          if (_.isArray(data)) {
+            for (const row of data) {
+              let innerFieldName = _.get(field,'arrayObjFieldDBName','');
+              if (!evaluate(row, innerFieldName, trim, allowNulls, regexPattern, caseSensitive)) {
+                sails.log.debug('validateFieldMapUsingRegex evaluate arrayObjFieldDBName '+field.name);
+                let errorField:any = {};
+                _.set(errorField,'name',field.name);
+                _.set(errorField,'label',getError(field.label));
+                let error = getError(field.errorLabel);
+                if(error != '') {
+                  _.set(errorField,'error',error);
+                }
+                errorMap.errorFieldList.push(errorField);
+              }
+            }
+          } else {
+            if (!evaluate(data, '', trim, allowNulls, regexPattern, caseSensitive)) {
+              sails.log.debug('validateFieldMapUsingRegex evaluate field.name '+field.name);
               let errorField:any = {};
               _.set(errorField,'name',field.name);
               _.set(errorField,'label',getError(field.label));
@@ -380,31 +395,19 @@ export module Services {
               errorMap.errorFieldList.push(errorField);
             }
           }
-        } else {
-          if (!evaluate(data, '', trim, allowNulls, regexPattern, caseSensitive)) {
-            sails.log.debug('validateFieldMapUsingRegex evaluate field.name '+field.name);
-            let errorField:any = {};
-            _.set(errorField,'name',field.name);
-            _.set(errorField,'label',getError(field.label));
-            let error = getError(field.errorLabel);
-            if(error != '') {
-              _.set(errorField,'error',error);
-            }
-            errorMap.errorFieldList.push(errorField);
-          }
+          
         }
-        
+
+        sails.log.debug('validateFieldMapUsingRegex errorMap '+JSON.stringify(errorMap));
+
+        if(!_.isEmpty(errorMap.errorFieldList)) {
+          let customError: RBValidationError;
+          customError = new RBValidationError(JSON.stringify(errorMap));
+          throw customError;
+        }
+
+        sails.log.debug('validateFieldMapUsingRegex data value passed check');
       }
-
-      sails.log.debug('validateFieldMapUsingRegex errorMap '+JSON.stringify(errorMap));
-
-      if(!_.isEmpty(errorMap.errorFieldList)) {
-        let customError: RBValidationError;
-        customError = new RBValidationError(JSON.stringify(errorMap));
-        throw customError;
-      }
-
-      sails.log.debug('validateFieldMapUsingRegex data value passed check');
       return record;
     }
 

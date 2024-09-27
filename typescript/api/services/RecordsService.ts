@@ -181,7 +181,7 @@ export module Services {
       let metaMetadata = this.initRecordMetaMetadata(brand.id, user.username, recordType, wfStep, form, moment().format());
       _.set(record,'metaMetadata',metaMetadata);
 
-      this.updateWorkflowStep(record, wfStep);
+      await this.updateWorkflowStep(record, wfStep, recordType);
       
       let createResponse = new StorageServiceResponse();
       const failedMessage = "Failed to created record, please check server logs.";
@@ -757,8 +757,18 @@ export module Services {
     }
 
 
-    public updateWorkflowStep(currentRec, nextStep): void {
+    public async updateWorkflowStep(currentRec: any, nextStep: any, recordType: any) {
       if (!_.isEmpty(nextStep)) {
+        sails.log.verbose('=============================================================');
+        sails.log.verbose('=============================================================');
+        sails.log.verbose('=============================================================');
+        sails.log.verbose('updateWorkflowStep - enter');
+        sails.log.verbose(nextStep);
+        let oid = _.get(currentRec, 'redboxOid');
+        let user = null;
+        sails.log.verbose(`RecordController - updateInternal - updateWorkflowStep - enter`);
+        currentRec = await this.triggerPreSaveTriggers(oid, currentRec, recordType, "onTransitionWorkflow", user);
+
         currentRec.previousWorkflow = currentRec.workflow;
         currentRec.workflow = nextStep.config.workflow;
         // TODO: validate data with form fields
@@ -776,10 +786,10 @@ export module Services {
             view:[]
           };
         }
-          // update authorizations based on workflow...
-          currentRec.authorization.viewRoles = nextStep.config.authorization.viewRoles;
-          currentRec.authorization.editRoles = nextStep.config.authorization.editRoles;
         
+        // update authorizations based on workflow...
+        currentRec.authorization.viewRoles = nextStep.config.authorization.viewRoles;
+        currentRec.authorization.editRoles = nextStep.config.authorization.editRoles;
       }
     }
 
