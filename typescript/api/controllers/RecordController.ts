@@ -321,21 +321,18 @@ export module Controllers {
 
       let recordType = await RecordTypesService.get(brand, recType).toPromise();
       
-
-      
       try {
         return this.createRecord(record, brand, recordType, req, res);
 
         if (targetStep) {
           let wfStep = await WorkflowStepsService.get(recType, targetStep).toPromise();
-          await this.recordsService.updateWorkflowStep(record, wfStep, recordType);
+          this.recordsService.updateWorkflowStep(record, wfStep);
         }
         
       } catch (error) {
         const msg = this.getErrorMessage(error, `Failed to save record: ${error}`);
         this.ajaxFail(req, res, msg);
       }
-
     }
 
     private async createRecord(record, brand, recordType, req, res) {
@@ -458,6 +455,8 @@ export module Controllers {
       const failedAttachments = [];
       let recType = null;
       sails.log.verbose(`RecordController - updateInternal - enter`);
+      let preTriggerResponse = new StorageServiceResponse();
+      const failedMessage = "Failed to update record, please check server logs.";
 
       let cr = await this.getRecord(oid).toPromise()
       currentRec = cr;
@@ -495,20 +494,32 @@ export module Controllers {
             }
           }
         }
-        if (hasPermissionToTransition) {
-          sails.log.verbose(`RecordController - updateInternal - hasPermissionToTransition - enter`);
-          
-          let recordType = await RecordTypesService.get(brand, currentRec.metaMetadata.type).toPromise();
-          
-          sails.log.verbose('=============================================================');
-          sails.log.verbose('=============================================================');
-          sails.log.verbose('=============================================================');
-          sails.log.verbose('updateWorkflowStep - before - nextStep '+nextStep);
-          await this.recordsService.updateWorkflowStep(currentRec, nextStep, recordType);
-        }
+        
         origRecord = _.cloneDeep(currentRec);
         sails.log.verbose(`RecordController - updateInternal - origRecord - cloneDeep`);
         currentRec.metadata = metadata;
+
+        if (hasPermissionToTransition) {
+          try {
+            sails.log.verbose(`RecordController - updateInternal - hasPermissionToTransition - enter`);
+            
+            let recordType = await RecordTypesService.get(brand, currentRec.metaMetadata.type).toPromise();
+            
+            sails.log.verbose('updateInternal =============================================================');
+            sails.log.verbose('updateInternal =============================================================');
+            sails.log.verbose('updateInternal =============================================================');
+            sails.log.verbose('RecordController - updateInternal updateWorkflowStep - before - nextStep '+JSON.stringify(nextStep));
+            this.recordsService.updateWorkflowStep(currentRec, nextStep);
+            currentRec = await this.recordsService.triggerPreSaveTriggers(oid, currentRec, recordType, 'onTransitionWorkflow', user);
+          } catch (err) {
+            sails.log.verbose("RecordController - updateInternal - onTransitionWorkflow triggerPreSaveTriggers error");
+            sails.log.error(JSON.stringify(err));
+            preTriggerResponse.message = this.getErrorMessage(err, failedMessage);
+            this.ajaxFail(req, res, err.message);
+
+            return preTriggerResponse;
+          }
+        }
       }
 
       try {
@@ -531,8 +542,6 @@ export module Controllers {
       let form = await FormsService.getFormByName(currentRec.metaMetadata.form, true).toPromise()
       currentRec.metaMetadata.attachmentFields = form.attachmentFields;
       let response;
-      let preTriggerResponse = new StorageServiceResponse();
-      const failedMessage = "Failed to update record, please check server logs.";
       try {
         // process pre-save
         if (!_.isEmpty(brand)) {
@@ -728,7 +737,7 @@ export module Controllers {
                 sails.log.verbose(currentRec);
                 sails.log.verbose("Next step:");
                 sails.log.verbose(nextStep);
-                this.recordsService.updateWorkflowStep(currentRec, nextStep, recType);
+                this.recordsService.updateWorkflowStep(currentRec, nextStep);
                 return this.updateMetadata(brand, oid, currentRec, req.user);
               });
           })

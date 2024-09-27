@@ -181,14 +181,15 @@ export module Services {
       let metaMetadata = this.initRecordMetaMetadata(brand.id, user.username, recordType, wfStep, form, moment().format());
       _.set(record,'metaMetadata',metaMetadata);
 
-      await this.updateWorkflowStep(record, wfStep, recordType);
+      this.updateWorkflowStep(record, wfStep);
       
       let createResponse = new StorageServiceResponse();
       const failedMessage = "Failed to created record, please check server logs.";
       // trigger the pre-save
       if (triggerPreSaveTriggers) {
         try {
-          record = await this.triggerPreSaveTriggers(null, record, recordType, "onCreate", user);
+          record = await this.triggerPreSaveTriggers(null, record, recordType, 'onTransitionWorkflow', user);
+          record = await this.triggerPreSaveTriggers(null, record, recordType, 'onCreate', user);
         } catch (err) {
           sails.log.error(`${this.logHeader} Failed to run pre-save hooks when onCreate...`);
           if(this.isValidationError(err)) {
@@ -207,6 +208,7 @@ export module Services {
         if (triggerPostSaveTriggers) {
           // post-save sync
           try {
+            createResponse = await this.triggerPostSaveSyncTriggers(createResponse['oid'], record, recordType, 'onTransitionWorkflow', user, createResponse);
             createResponse = await this.triggerPostSaveSyncTriggers(createResponse['oid'], record, recordType, 'onCreate', user, createResponse);
           } catch (err) {
             if(this.isValidationError(err)) {
@@ -223,6 +225,7 @@ export module Services {
             return createResponse;
           }
           // Fire Post-save hooks async ...
+          this.triggerPostSaveTriggers(createResponse['oid'], record, recordType, 'onTransitionWorkflow', user);
           this.triggerPostSaveTriggers(createResponse['oid'], record, recordType, 'onCreate', user);
         }
 
@@ -260,7 +263,8 @@ export module Services {
         try {
           sails.log.verbose('RecordService - updateMeta - calling triggerPreSaveTriggers');
           recordType = await RecordTypesService.get(brand, record.metaMetadata.type).toPromise();
-          record = await this.triggerPreSaveTriggers(oid, record, recordType, "onUpdate", user);
+          record = await this.triggerPreSaveTriggers(oid, record, recordType, 'onTransitionWorkflow', user);
+          record = await this.triggerPreSaveTriggers(oid, record, recordType, 'onUpdate', user);
         } catch (err) {
           sails.log.error(`${this.logHeader} Failed to run pre-save hooks when onUpdate...`);
           if(this.isValidationError(err)) {
@@ -290,6 +294,7 @@ export module Services {
         // Trigger Post-save sync hooks ...
           try {
             sails.log.verbose('RecordService - updateMeta - calling triggerPostSaveSyncTriggers');
+            updateResponse = await this.triggerPostSaveSyncTriggers(updateResponse['oid'], record, recordType, 'onTransitionWorkflow', user, updateResponse);
             updateResponse = await this.triggerPostSaveSyncTriggers(updateResponse['oid'], record, recordType, 'onUpdate', user, updateResponse);
           } catch (err) {
             if(this.isValidationError(err)) {
@@ -307,6 +312,7 @@ export module Services {
           }
           sails.log.verbose('RecordService - updateMeta - calling triggerPostSaveTriggers');
           // Fire Post-save hooks async ...
+          this.triggerPostSaveTriggers(updateResponse['oid'], record, recordType, 'onTransitionWorkflow', user);
           this.triggerPostSaveTriggers(updateResponse['oid'], record, recordType, 'onUpdate', user);
         }
         this.searchService.index(oid, record);
@@ -757,17 +763,14 @@ export module Services {
     }
 
 
-    public async updateWorkflowStep(currentRec: any, nextStep: any, recordType: any) {
+    public updateWorkflowStep(currentRec: any, nextStep: any) {
       if (!_.isEmpty(nextStep)) {
         sails.log.verbose('=============================================================');
         sails.log.verbose('=============================================================');
         sails.log.verbose('=============================================================');
         sails.log.verbose('updateWorkflowStep - enter');
         sails.log.verbose(nextStep);
-        let oid = _.get(currentRec, 'redboxOid');
-        let user = null;
         sails.log.verbose(`RecordController - updateInternal - updateWorkflowStep - enter`);
-        currentRec = await this.triggerPreSaveTriggers(oid, currentRec, recordType, "onTransitionWorkflow", user);
 
         currentRec.previousWorkflow = currentRec.workflow;
         currentRec.workflow = nextStep.config.workflow;

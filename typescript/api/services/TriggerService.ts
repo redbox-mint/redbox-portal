@@ -281,8 +281,13 @@ export module Services {
     }
 
     public async validateFieldMapUsingRegex(oid, record, options) {
-      sails.log.verbose('validateFieldMapUsingRegex - enter');
+      sails.log.verbose('validateFieldMapUsingRegex - enter '+this.metTriggerCondition(oid, record, options));
       if (this.metTriggerCondition(oid, record, options) === "true") {
+          
+        sails.log.verbose('updateInternal =============================================================');
+        sails.log.verbose('updateInternal =============================================================');
+        sails.log.verbose('updateInternal =============================================================');
+        sails.log.verbose('validateFieldMapUsingRegex - metTriggerCondition');
         // re-usable functions
         const textRegex = function (value, regexPattern, caseSensitive) {
           if(regexPattern == '') {
