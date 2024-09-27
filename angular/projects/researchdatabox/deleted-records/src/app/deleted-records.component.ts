@@ -17,7 +17,7 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { Component, Inject, ElementRef } from '@angular/core';
+import {Component, Inject, ElementRef, ViewChild} from '@angular/core';
 import {
   ConfigService,
   LoggerService,
@@ -30,6 +30,8 @@ import { RecordPropViewMetaDto, ReportResultDto, RecordPageDto } from '@research
 import { isEmpty as _isEmpty, set as _set, get as _get } from 'lodash-es';
 import { ReportFilterDto } from "@researchdatabox/sails-ng-common/dist/report.model";
 import { RecordResponseTable } from "../../../portal-ng-common/src/lib/dashboard-models";
+import { ModalDirective } from "ngx-bootstrap/modal";
+import * as _ from "lodash";
 
 /**
  * Restore deleted records Component
@@ -69,6 +71,11 @@ export class DeletedRecordsComponent extends BaseComponent implements RecordSour
 
   // Record list data
   deletedRecordsResult: ReportResultDto = null as any;
+
+  // destroy record confirm modal
+  currentDestroyRecordModalOid: string | undefined;
+  isDestroyRecordModalShown: boolean = false;
+  @ViewChild('destroyRecordModal') destroyRecordModal?: ModalDirective;
 
   constructor(
     @Inject(LoggerService) private loggerService: LoggerService,
@@ -118,16 +125,46 @@ export class DeletedRecordsComponent extends BaseComponent implements RecordSour
 
   public async recordTableAction(event: any, data: any, actionName: string) {
     const oid = data.oid;
-    let result: any;
     if (actionName === 'restore') {
-      result = await this.recordService.restoreDeletedRecord(oid);
+      const result = await this.recordService.restoreDeletedRecord(oid);
+      this.loggerService.debug(`Record table action ${actionName} data ${JSON.stringify(data)} result ${JSON.stringify(result)}.`);
+      await this.gotoPage(this.currentPageNumber);
+
     } else if (actionName === 'destroy') {
-      result = await this.recordService.destroyDeletedRecord(oid);
+      this.currentDestroyRecordModalOid = oid;
+      this.showDestroyRecordModal();
+
     } else {
       this.loggerService.error(`Unknown record table action name '${actionName}' data ${JSON.stringify(data)}.`);
       return;
     }
-    this.loggerService.debug(`Record table action ${actionName} data ${JSON.stringify(data)} result ${JSON.stringify(result)}.`);
+  }
+
+  public showDestroyRecordModal(): void {
+    this.isDestroyRecordModalShown = true;
+    this.destroyRecordModal?.show();
+  }
+
+  public hideDestroyRecordModal(): void {
+    if(!_.isUndefined(this.destroyRecordModal)) {
+      this.destroyRecordModal.hide();
+      this.currentDestroyRecordModalOid = undefined;
+    }
+  }
+
+  public onDestroyRecordModalHidden(): void {
+    this.isDestroyRecordModalShown = false;
+  }
+
+  public async confirmDestroyRecordModal(event: any){
+    if(_.isUndefined(this.currentDestroyRecordModalOid)){
+      this.loggerService.error("Record oid was not set so cannot destroy record.");
+      return;
+    }
+    const oid = this.currentDestroyRecordModalOid;
+    const result = await this.recordService.destroyDeletedRecord(oid);
+    this.loggerService.debug(`Record table action destroy result ${JSON.stringify(result)}.`);
+    this.currentDestroyRecordModalOid = undefined;
     await this.gotoPage(this.currentPageNumber);
   }
 

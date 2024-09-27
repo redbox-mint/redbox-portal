@@ -84,4 +84,36 @@
     [enableSort]="true"
     [enableActions]="true">
   </record-table>
+
+  <!-- Modal -->
+  <div *ngIf="isDestroyRecordModalShown"
+       [config]="{backdrop: 'static', show: true}"
+       (onHidden)="onDestroyRecordModalHidden()"
+       bsModal
+       #destroyRecordModal="bs-modal"
+       class="modal fade"
+       tabindex="-1"
+       role="dialog"
+       aria-labelledby="deleted-records-confirm-modal-label">
+    <div class="modal-dialog modal-md">
+      <div class="modal-content">
+        <div class="modal-header">
+          <span class="modal-title h4-header" id="deleted-records-confirm-modal-label">
+            {{ 'deleted-records-item-confirm-delete-title' | i18next }}
+          </span>
+        </div>
+        <div class="modal-body">
+          {{ 'deleted-records-item-confirm-delete-message' | i18next }}
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-primary"
+                  (click)="confirmDestroyRecordModal($event)">{{ 'deleted-records-item-confirm-delete-confirm' | i18next }}
+          </button>
+          <button type="button" class="btn btn-default"
+                  (click)="hideDestroyRecordModal()">{{ '@cancel-button' | i18next }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
 </ng-container>
