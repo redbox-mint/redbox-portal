@@ -449,11 +449,15 @@ export class SelectionFieldComponent extends SelectionComponent {
       }
     }
     if(this.field.publish && this.confirmChanges) {
-      if(this.field.publish.onItemSelect) {
-        this.field.onItemSelect.emit({value: opt['publishTag'], checked: event.target.checked, defered: defered});
-      }
-      if(this.field.publish.onValueUpdate) {
-        this.field.onValueUpdate.emit({value: opt['publishTag'], checked: event.target.checked, defered: defered});
+      // fixed radio/checkboxes firing events twice: added condition to check to proceed only when 'publishTag' is defined
+      if (!_.isUndefined(opt['publishTag'])) {
+        // this is to handle the publishTag for checkboxes, mainly for UTS' requirement
+        if(this.field.publish.onItemSelect) {
+          this.field.onItemSelect.emit({value: opt['publishTag'], checked: event.target.checked, defered: defered});
+        }
+        if(this.field.publish.onValueUpdate) {
+          this.field.onValueUpdate.emit({value: opt['publishTag'], checked: event.target.checked, defered: defered});
+        }
       }
     }
   }
