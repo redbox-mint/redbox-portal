@@ -20,7 +20,6 @@ import { FormsModule } from "@angular/forms";
 import { PaginationModule } from 'ngx-bootstrap/pagination';
 import { DeletedRecordsComponent } from './deleted-records.component';
 import { ModalModule } from "ngx-bootstrap/modal";
-import { DashboardComponent } from "../../../dashboard/src/app/dashboard.component";
 import { RecordResponseTable } from "../../../portal-ng-common/src/lib/dashboard-models";
 
 describe('DeletedRecordsComponent', () => {
@@ -120,7 +119,7 @@ describe('DeletedRecordsComponent', () => {
   });
 
   it('should create the app', () => {
-    const fixture = TestBed.createComponent(DashboardComponent);
+    const fixture = TestBed.createComponent(DeletedRecordsComponent);
     const app = fixture.componentInstance;
     expect(app).toBeTruthy();
   });

@@ -182,10 +182,8 @@ export class DeletedRecordsComponent extends BaseComponent implements RecordSour
   }
 
   public hideDestroyRecordModal(): void {
-    if (!_isUndefined(this.destroyRecordModal)) {
-      this.destroyRecordModal.hide();
-      this.currentDestroyRecordModalOid = undefined;
-    }
+    this.destroyRecordModal?.hide();
+    this.currentDestroyRecordModalOid = undefined;
   }
 
   public onDestroyRecordModalHidden(): void {
@@ -201,10 +199,8 @@ export class DeletedRecordsComponent extends BaseComponent implements RecordSour
     const result = await this.recordService.destroyDeletedRecord(oid);
     this.loggerService.debug(`Record table action destroy result ${JSON.stringify(result)}.`);
 
-    if (!_isUndefined(this.destroyRecordModal)) {
-      this.destroyRecordModal.hide();
-      this.currentDestroyRecordModalOid = undefined;
-    }
+    this.destroyRecordModal?.hide();
+    this.currentDestroyRecordModalOid = undefined;
 
     await this.gotoPage(this.currentPageNumber);
   }
