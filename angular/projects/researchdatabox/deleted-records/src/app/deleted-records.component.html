@@ -106,11 +106,11 @@
           {{ 'deleted-records-item-confirm-delete-message' | i18next }}
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-primary"
-                  (click)="confirmDestroyRecordModal($event)">{{ 'deleted-records-item-confirm-delete-confirm' | i18next }}
-          </button>
           <button type="button" class="btn btn-default"
                   (click)="hideDestroyRecordModal()">{{ '@cancel-button' | i18next }}
+          </button>
+          <button type="button" class="btn btn-primary"
+                  (click)="confirmDestroyRecordModal($event)">{{ 'deleted-records-item-confirm-delete-confirm' | i18next }}
           </button>
         </div>
       </div>
