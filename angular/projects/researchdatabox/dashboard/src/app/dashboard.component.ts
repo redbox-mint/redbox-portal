@@ -886,9 +886,26 @@ export class DashboardComponent extends BaseComponent {
     return '';
   }
 
+  private getFormatRulesQueryFilter(): QueryFilter[] {
+    if (!this.formatRules.queryFilters) {
+      console.warn("Not set: 'this.formatRules.queryFilters'");
+      return [];
+    }
+    if (!this.recordType) {
+      console.warn("Not set: 'this.recordType'");
+      return [];
+    }
+    const keys = Object.keys(this.formatRules.queryFilters);
+    if (!keys.includes(this.recordType)) {
+      console.warn(`Could not find '${this.recordType}' in '${JSON.stringify(keys)}'`);
+      return [];
+    }
+    return this.formatRules.queryFilters[this.recordType];
+  }
+
   private getFirstFilter(type:string): FilterField {
     try {
-      let queryFilters: QueryFilter[] = this.formatRules.queryFilters[this.recordType];
+      let queryFilters: QueryFilter[] = this.getFormatRulesQueryFilter();
       for(let queryFilter of queryFilters) {
         if(queryFilter.filterType == type) {
           for(let filterField of queryFilter.filterFields) {
@@ -904,7 +921,7 @@ export class DashboardComponent extends BaseComponent {
 
   private findFilterTemplate(filterFieldPath: string): string {
     let templateString: string = '';
-    let queryFilters: QueryFilter[] = this.formatRules.queryFilters[this.recordType];
+    let queryFilters: QueryFilter[] = this.getFormatRulesQueryFilter();
     for(let queryFilter of queryFilters) {
         for(let filterField of queryFilter.filterFields) {
           if(filterField.path == filterFieldPath) {
@@ -917,7 +934,7 @@ export class DashboardComponent extends BaseComponent {
 
   private getFilters(type:string) {
     let filterFields: FilterField[] = [];
-    let queryFilters: QueryFilter[] = this.formatRules.queryFilters[this.recordType];
+    let queryFilters: QueryFilter[] = this.getFormatRulesQueryFilter();
     for(let queryFilter of queryFilters) {
       if(queryFilter.filterType == type) {
         for(let filterField of queryFilter.filterFields) {

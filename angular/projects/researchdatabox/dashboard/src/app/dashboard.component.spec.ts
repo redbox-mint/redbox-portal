@@ -138,9 +138,11 @@ describe('DashboardComponent standard', () => {
   });
 
   it(`init view`, async () => {
+    console.log('dashboard rdmp');
     const fixture = TestBed.createComponent(DashboardComponent);
     const dashboardComponent = fixture.componentInstance;
-    await dashboardComponent.initView('rdmp');
+    dashboardComponent.recordType = 'rdmp';
+    await dashboardComponent.initView(dashboardComponent.recordType);
     expect(dashboardComponent.defaultRowConfig.length).toBeGreaterThan(0);
     expect(dashboardComponent.dashboardTypeSelected).toEqual('standard');
     await dashboardComponent.initStep('draft','draft','rdmp','',1);
@@ -161,8 +163,8 @@ let recordDataWorkspace = {
       recordTypeFilterBy: 'existing-locations',
       filterWorkflowStepsBy: [ 'existing-locations-draft'],
       queryFilters: {
-        rdmp: [
-                { 
+        workspace: [
+                {
                   filterType: 'text',
                   filterFields: [
                                   { 
@@ -199,7 +201,7 @@ let recordDataWorkspace = {
         dateCreated: 'dateCreated',
         dateModified: 'dateModified',
         metadata: {
-          metaMetadata: { type: 'rdmp',
+          metaMetadata: { type: 'workspace',
                           lastSaveDate: '' },
           metadata: { title: 'test' },
           packageType: 'workspace',
@@ -285,10 +287,12 @@ describe('DashboardComponent workspace', () => {
   });
 
   it(`init view`, async () => {
+    console.log('dashboard workspace');
     const fixture = TestBed.createComponent(DashboardComponent);
     const dashboardComponent = fixture.componentInstance;
     dashboardComponent.dashboardTypeSelected = 'workspace';
-    await dashboardComponent.initView('workspace');
+    dashboardComponent.recordType = 'workspace';
+    await dashboardComponent.initView(dashboardComponent.recordType);
     expect(dashboardComponent.defaultRowConfig.length).toBeGreaterThan(0);
     expect(dashboardComponent.dashboardTypeSelected).toEqual('workspace');
     await dashboardComponent.initStep('','existing-locations-draft','','workspace',1);
@@ -497,10 +501,12 @@ describe('DashboardComponent consolidated group by record type', () => {
   });
 
   it(`init view`, async () => {
+    console.log('dashboard consolidated group by record type');
     const fixture = TestBed.createComponent(DashboardComponent);
     const dashboardComponent = fixture.componentInstance;
     dashboardComponent.dashboardTypeSelected = 'consolidated';
-    await dashboardComponent.initView('consolidated');
+    dashboardComponent.recordType = 'consolidated';
+    await dashboardComponent.initView(dashboardComponent.recordType);
     console.log('===================== DashboardComponent consolidated group by record type =========================');
     console.log('==============================================');
     console.log('==============================================');
@@ -746,10 +752,12 @@ describe('DashboardComponent consolidated group by relationships', () => {
   });
 
   it(`init view`, async () => {
+    console.log('dashboard consolidated grouped by relationships')
     const fixture = TestBed.createComponent(DashboardComponent);
     const dashboardComponent = fixture.componentInstance;
     dashboardComponent.dashboardTypeSelected = 'consolidated';
-    await dashboardComponent.initView('consolidated');
+    dashboardComponent.recordType = 'consolidated';
+    await dashboardComponent.initView(dashboardComponent.recordType);
     expect(dashboardComponent.workflowSteps.length).toBeGreaterThan(0);
     expect(dashboardComponent.defaultRowConfig.length).toBeGreaterThan(0);
     expect(dashboardComponent.dashboardTypeSelected).toEqual('consolidated');
