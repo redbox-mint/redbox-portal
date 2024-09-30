@@ -200,7 +200,12 @@ export class DeletedRecordsComponent extends BaseComponent implements RecordSour
     const oid = this.currentDestroyRecordModalOid;
     const result = await this.recordService.destroyDeletedRecord(oid);
     this.loggerService.debug(`Record table action destroy result ${JSON.stringify(result)}.`);
-    this.currentDestroyRecordModalOid = undefined;
+
+    if (!_isUndefined(this.destroyRecordModal)) {
+      this.destroyRecordModal.hide();
+      this.currentDestroyRecordModalOid = undefined;
+    }
+
     await this.gotoPage(this.currentPageNumber);
   }
 
@@ -224,7 +229,7 @@ export class DeletedRecordsComponent extends BaseComponent implements RecordSour
     }[] = await this.recordService.getAllTypes();
     recordTypes.forEach(recordType => {
       this.dropDownProperties['recordType'].push({
-        title: `${recordType.name[0].toUpperCase()}${recordType.name.substring(1)}`,
+        title: recordType.name,
         value: recordType.name,
       });
     });

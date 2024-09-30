@@ -55,6 +55,20 @@ describe('DeletedRecordsComponent', () => {
     };
     mockData = {
       deletedRecords: mockDeletedRecords,
+      types: [
+        {
+          name: 'rdmp',
+          packageType: 'rdmp',
+          searchFilters: [],
+          searchable: false,
+        },
+        {
+          name: 'dataRecord',
+          packageType: 'dataRecord',
+          searchFilters: [],
+          searchable: false,
+        }
+      ]
     };
     recordService = getStubRecordService(mockData);
     const testModule = await TestBed.configureTestingModule({
@@ -120,11 +134,44 @@ describe('DeletedRecordsComponent', () => {
     fixture.autoDetectChanges(true);
     await app.waitForInit();
     await fixture.whenStable();
-    expect(app.deletedRecordsResult.total).toEqual(mockData.deletedRecords.total);
+    expect(app.deletedRecordsResult.total).toEqual(2);
+
+    recordService.getDeletedRecords = async function(
+      recordType: string,
+      state: string,
+      pageNumber: number,
+      packageType: string = '',
+      sort: string = '',
+      filterFields: string = '',
+      filterString: string = '',
+      filterMode: string = '',
+      secondarySort: string = ''
+      ){
+      mockData.deletedRecords.items = mockData.deletedRecords.items.filter((item: any) => {
+        if (recordType && !item.title.startsWith(recordType)) {
+          console.debug(`item filtered out:
+          item title '${item.title}' does not start with recordType '${recordType}'`);
+          return false;
+        }
+        console.info('filterFields', filterFields, filterFields.split(','));
+        console.info('filterString', filterString, item.title);
+        if (filterFields && filterFields.split(',').includes('title') &&
+          filterString && !item.title.includes(filterString)) {
+          console.debug(`item filtered out:
+          filterFields does not include 'title' '${filterFields.split(',')}' or
+          item title '${item.title}' does not contain filterString '${filterString}'`);
+          return false;
+        }
+        return true;
+      });
+      mockData.deletedRecords.noItems = mockData.deletedRecords.items.length;
+      mockData.deletedRecords.totalItems = mockData.deletedRecords.items.length;
+      return mockData.deletedRecords;
+    }
 
     // apply filter
-    app.filterParams['title'] = 'test';
-    app.filterParams['recordType'] = 'RDMP';
+    app.filterParams['title'] = 'record 1';
+    app.filterParams['recordType'] = 'rdmp';
     await app.filter();
     expect(app.deletedRecordsResult.total).toEqual(1);
   });
@@ -138,7 +185,7 @@ describe('DeletedRecordsComponent', () => {
     fixture.autoDetectChanges(true);
     await app.waitForInit();
     await fixture.whenStable();
-    expect(app.deletedRecordsResult.total).toEqual(mockData.deletedRecords.total);
+    expect(app.deletedRecordsResult.total).toEqual(2);
 
     // set up recordService.destroyDeletedRecord
     recordService.restoreDeletedRecord = async function (oid: string) {
@@ -152,7 +199,7 @@ describe('DeletedRecordsComponent', () => {
 
     // trigger restore
     await app.recordTableAction(undefined, {oid: 'rdmp-record-1'}, 'restore');
-    expect(app.deletedRecordsResult.total).toEqual(mockData.deletedRecords.total);
+    expect(app.deletedRecordsResult.total).toEqual(1);
   });
   it('should destroy a deleted record', async function () {
     // create app
@@ -163,7 +210,7 @@ describe('DeletedRecordsComponent', () => {
     fixture.autoDetectChanges(true);
     await app.waitForInit();
     await fixture.whenStable();
-    expect(app.deletedRecordsResult.total).toEqual(mockData.deletedRecords.total);
+    expect(app.deletedRecordsResult.total).toEqual(2);
 
     // set up recordService.destroyDeletedRecord
     recordService.destroyDeletedRecord = async function (oid: string) {
@@ -182,6 +229,6 @@ describe('DeletedRecordsComponent', () => {
 
     await app.confirmDestroyRecordModal(undefined);
     expect(app.currentDestroyRecordModalOid).toBeUndefined();
-    expect(app.deletedRecordsResult.total).toEqual(mockData.deletedRecords.total);
+    expect(app.deletedRecordsResult.total).toEqual(1);
   });
 });
