@@ -335,6 +335,12 @@ export class DateTime extends FieldBase<any> {
     this.adjustStartRange = !_.isUndefined(options['adjustStartRange']) ? options['adjustStartRange'] : false;
   }
 
+  public createFormModel(valueElem: any = null): any {
+    this.value = valueElem || this.value;
+    this.value = this.value ? this.parseToDate(this.value) : this.value;
+    return super.createFormModel(this.value);
+  }
+
   updatePlaceholderAsFormat(options: any, fieldName = 'placeholderAsFormat') {
     if (_.get(options, fieldName, false) && _.get(options, 'format')) {
       _.set(options, 'placeholder', _.get(options, 'format'));
