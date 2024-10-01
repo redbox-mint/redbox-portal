@@ -9,7 +9,8 @@ export interface RecordsService {
   hasEditAccess(brand, user, roles, record): boolean;
   hasViewAccess(brand, user, roles, record): boolean;
   appendToRecord(targetRecordOid: string, linkData: any, fieldName: string, fieldType: string, targetRecord: any): Promise<any>
-  updateWorkflowStep(currentRec:any, nextStep:any): void;
+  transitionWorkflowStep(currentRec: any, recordType: any, nextStep: any, user: any, triggerPreSaveTriggers: boolean, triggerPostSaveTriggers: boolean): Promise<any>;
+  setWorkflowStepInMetaMetadata(currentRec:any, nextStep:any): void;
   getAttachments(oid: string, labelFilterStr?: string): Promise<any>;
   getDeletedRecords(workflowState, recordType, start, rows, username, roles, brand, editAccessOnly, packageType, sort, fieldNames?, filterString?, filterMode?): Promise<any>;
   getRecords(workflowState, recordType, start, rows, username, roles, brand, editAccessOnly, packageType, sort, fieldNames?, filterString?, filterMode?, secondarySort?): Promise<any>;
