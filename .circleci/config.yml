@@ -25,16 +25,16 @@ jobs:
           root: .
           paths:
             - .
-  test:
-    machine:
-      image: ubuntu-2004:202201-02
-    steps:
-      - attach_workspace:
-           at: /home/circleci/project
+  #test:
+  #  machine:
+  #    image: ubuntu-2004:202201-02
+  #  steps:
+  #    - attach_workspace:
+  #         at: /home/circleci/project
       # - run: node_modules/.bin/tsc -p tsconfig-codecov.json
       # - run: (sudo chmod -R 777 . && cd support/integration-testing && sudo mkdir -p .tmp/attachments/staging && sudo chmod -R 777 . && docker-compose -f docker-compose.newman.yml up --abort-on-container-exit --exit-code-from redboxportal && docker-compose -f docker-compose.mocha.yml up --abort-on-container-exit --exit-code-from redboxportal)
       # - run: npm i -g codecov && codecov -t $CODECOV_TOKEN
-      - run: npm i
+  #    - run: npm i
   deploy:
     docker:
       - image: 'cimg/node:14.19'
@@ -81,9 +81,9 @@ workflows:
           filters:
             branches:
               ignore: /^dependabot.*/
-      - test:
-          requires:
-            - build
+      #- test:
+      #    requires:
+      #      - build
       - deploy:
           requires:
             - test
@@ -104,9 +104,9 @@ workflows:
               only: /^dependabot.*/
             tags:
               ignore: /.*/
-      - test:
-          requires:
-            - build_without_angular
+      #- test:
+      #    requires:
+      #      - build_without_angular
       - deploy:
           requires:
             - test
@@ -127,14 +127,14 @@ workflows:
               only: /^v.*/
             branches:
               ignore: /.*/
-      - test:
-          requires:
-            - build
-          filters:
-            tags:
-              only: /^v.*/
-            branches:
-              ignore: /.*/
+      #- test:
+      #    requires:
+      #      - build
+      #    filters:
+      #      tags:
+      #        only: /^v.*/
+      #      branches:
+      #        ignore: /.*/
       - deploy:
           requires:
             - test     
