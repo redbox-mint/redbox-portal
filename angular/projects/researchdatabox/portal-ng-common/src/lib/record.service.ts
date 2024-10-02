@@ -20,7 +20,7 @@
 import { map, firstValueFrom } from 'rxjs';
 import { Injectable, Inject } from '@angular/core';
 import { APP_BASE_HREF } from '@angular/common';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { ConfigService } from './config.service';
 import { UtilityService } from './utility.service';
 import { LoggerService } from './logger.service';
@@ -187,15 +187,25 @@ export class RecordService extends HttpClientService {
   }
 
   public async restoreDeletedRecord(oid: string) {
+    const httpOptions = {
+      headers: new HttpHeaders({
+        'X-CSRF-TOKEN': this.configService.csrfToken
+      })
+    }
     const restoreDeletedRecordUrl = new URL(`${this.brandingAndPortalUrl}/record/delete/${oid}`);
-    const result$ = this.http.put(restoreDeletedRecordUrl.toString(), undefined).pipe(map(res => res));
+    const result$ = this.http.put(restoreDeletedRecordUrl.toString(), undefined, httpOptions).pipe(map(res => res));
     let result: any = await firstValueFrom(result$);
     return result;
   }
 
   public async destroyDeletedRecord(oid: string) {
+    const httpOptions = {
+      headers: new HttpHeaders({
+        'X-CSRF-TOKEN': this.configService.csrfToken
+      })
+    }
     const destroyDeletedRecordUrl = new URL(`${this.brandingAndPortalUrl}/record/destroy/${oid}`);
-    const result$ = this.http.delete(destroyDeletedRecordUrl.toString()).pipe(map(res => res));
+    const result$ = this.http.delete(destroyDeletedRecordUrl.toString(),httpOptions).pipe(map(res => res));
     let result: any = await firstValueFrom(result$);
     return result;
   }
