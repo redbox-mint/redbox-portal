@@ -25,7 +25,7 @@ import { ConfigService } from './config.service';
 import { UtilityService } from './utility.service';
 import { LoggerService } from './logger.service';
 import { HttpClientService } from './httpClient.service';
-import { merge as _merge, isUndefined as _isUndefined, isEmpty as _isEmpty, get as _get, isArray as _isArray } from 'lodash-es';
+import { merge as _merge, isUndefined as _isUndefined, isEmpty as _isEmpty, get as _get, isArray as _isArray, clone as _clone } from 'lodash-es';
 import { RecordResponseTable } from "./dashboard-models";
 
 export interface RecordTypeConf {
@@ -38,7 +38,7 @@ export interface RecordTypeConf {
  */
 @Injectable()
 export class RecordService extends HttpClientService {
-  private requestOptions:any = null as any;
+  private requestOptions: any = null as any;
 
   constructor(
     @Inject(HttpClient) protected override http: HttpClient,
@@ -48,14 +48,14 @@ export class RecordService extends HttpClientService {
     @Inject(LoggerService) private loggerService: LoggerService
   ) {
     super(http, rootContext, utilService, configService);
-    this.requestOptions = {responseType: 'json', observe: 'body'};
+    this.requestOptions = { responseType: 'json', observe: 'body' };
   }
 
   public override async waitForInit(): Promise<any> {
     await super.waitForInit();
     this.enableCsrfHeader();
     this.loggerService.debug('waitForInit RecordService');
-    _merge(this.requestOptions, {context: this.httpContext});
+    _merge(this.requestOptions, { context: this.httpContext });
     return this;
   }
 
@@ -68,11 +68,11 @@ export class RecordService extends HttpClientService {
 
   private getDocMetadata(doc: any) {
     let metadata: any = {};
-    for(var key in doc){
-      if(key.indexOf('authorization_') != 0 && key.indexOf('metaMetadata_') != 0) {
+    for (var key in doc) {
+      if (key.indexOf('authorization_') != 0 && key.indexOf('metaMetadata_') != 0) {
         metadata[key] = doc[key];
       }
-      if(key == 'authorization_editRoles') {
+      if (key == 'authorization_editRoles') {
         metadata[key] = doc[key];
       }
     }
@@ -89,16 +89,16 @@ export class RecordService extends HttpClientService {
     let items = [];
     let childOrTreeLevel2: any = _get(relatedRecords, 'processedRelationships');
 
-    for(let childNameStr of childOrTreeLevel2) {
-      let childArr = _get(relatedRecords,'relatedObjects.'+childNameStr);
+    for (let childNameStr of childOrTreeLevel2) {
+      let childArr = _get(relatedRecords, 'relatedObjects.' + childNameStr);
 
-      if(!_isUndefined(childArr) && _isArray(childArr)) {
+      if (!_isUndefined(childArr) && _isArray(childArr)) {
         for (let child of childArr) {
           let item: any = {};
           item["oid"] = child["redboxOid"];
           item["title"] = child["metadata"]["title"];
-          item["metadata"]= this.getDocMetadata(child);
-          item["dateCreated"] =  child["dateCreated"];
+          item["metadata"] = this.getDocMetadata(child);
+          item["dateCreated"] = child["dateCreated"];
           item["dateModified"] = child["lastSaveDate"];
           //TODO double check that this is needed or not
           // item["hasEditAccess"] = RecordsService.hasEditAccess(brand, user, roles, doc);
@@ -112,15 +112,15 @@ export class RecordService extends HttpClientService {
   }
 
   public async getRecords(
-      recordType: string,
-      state: string,
-      pageNumber: number,
-      packageType: string = '',
-      sort: string = '',
-      filterFields: string = '',
-      filterString: string = '',
-      filterMode: string = '',
-      secondarySort:string='') {
+    recordType: string,
+    state: string,
+    pageNumber: number,
+    packageType: string = '',
+    sort: string = '',
+    filterFields: string = '',
+    filterString: string = '',
+    filterMode: string = '',
+    secondarySort: string = '') {
     let rows = 10;
     let start = (pageNumber - 1) * rows;
 
@@ -150,14 +150,14 @@ export class RecordService extends HttpClientService {
   }
 
   public async getDeletedRecords(
-      recordType: string,
-      state: string,
-      pageNumber: number,
-      packageType: string = '',
-      sort: string = '',
-      filterFields: string = '',
-      filterString: string = '',
-      filterMode: string = ''
+    recordType: string,
+    state: string,
+    pageNumber: number,
+    packageType: string = '',
+    sort: string = '',
+    filterFields: string = '',
+    filterString: string = '',
+    filterMode: string = ''
   ): Promise<RecordResponseTable> {
     let rows = 10;
     let start = (pageNumber - 1) * rows;
@@ -187,11 +187,7 @@ export class RecordService extends HttpClientService {
   }
 
   public async restoreDeletedRecord(oid: string) {
-    const httpOptions = {
-      headers: new HttpHeaders({
-        'X-CSRF-TOKEN': this.configService.csrfToken
-      })
-    }
+    const httpOptions = this.getHttpOptions();
     const restoreDeletedRecordUrl = new URL(`${this.brandingAndPortalUrl}/record/delete/${oid}`);
     const result$ = this.http.put(restoreDeletedRecordUrl.toString(), undefined, httpOptions).pipe(map(res => res));
     let result: any = await firstValueFrom(result$);
@@ -199,15 +195,21 @@ export class RecordService extends HttpClientService {
   }
 
   public async destroyDeletedRecord(oid: string) {
-    const httpOptions = {
-      headers: new HttpHeaders({
-        'X-CSRF-TOKEN': this.configService.csrfToken
-      })
-    }
+    const httpOptions = this.getHttpOptions();
     const destroyDeletedRecordUrl = new URL(`${this.brandingAndPortalUrl}/record/destroy/${oid}`);
-    const result$ = this.http.delete(destroyDeletedRecordUrl.toString(),httpOptions).pipe(map(res => res));
+    const result$ = this.http.delete(destroyDeletedRecordUrl.toString(), httpOptions).pipe(map(res => res));
     let result: any = await firstValueFrom(result$);
     return result;
+  }
+
+
+  /**
+   * Retrieves the default HTTP request options that includes the CSRF-TOKEN-HEADER.
+   *
+   * @returns {any} A cloned copy of the default request options.
+   */
+  private getHttpOptions(): any {
+    return _clone(this.requestOptions);
   }
 
   public async getAllTypes() {
@@ -217,7 +219,7 @@ export class RecordService extends HttpClientService {
     return result;
   }
 
-  public async getDashboardType(dashboardType:string) {
+  public async getDashboardType(dashboardType: string) {
     let url = `${this.brandingAndPortalUrl}/dashboard/type/${dashboardType}`;
     const result$ = this.http.get(url).pipe(map(res => res));
     let result = await firstValueFrom(result$);
