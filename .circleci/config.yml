@@ -85,14 +85,14 @@ workflows:
       #    requires:
       #      - build
       - deploy:
-        #  requires:
-        #    - test
+          requires:
+            - build
           filters:
             branches:
               ignore: /^dependabot.*/
       - generate-docs:
-        #  requires: 
-        #    - test
+          requires: 
+            - build
           filters:
             branches:
               only: 'master'
