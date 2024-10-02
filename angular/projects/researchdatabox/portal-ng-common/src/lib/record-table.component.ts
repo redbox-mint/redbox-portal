@@ -17,27 +17,28 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { Component, Input, Inject } from '@angular/core';
+import {Component, Input, Inject, ViewChildren, QueryList} from '@angular/core';
 import { BaseComponent } from './base.component';
 import { LoggerService } from './logger.service';
 import { UtilityService } from './utility.service';
-import { isEmpty as _isEmpty, get as _get, merge as _merge, template as _template } from 'lodash-es';
+import { isEmpty as _isEmpty, get as _get, merge as _merge } from 'lodash-es';
 import { RecordSource } from './record.model';
-import { RecordPageDto, RecordPropViewMetaDto } from '@researchdatabox/sails-ng-common';
-import { DateTime } from 'luxon';
+import { RecordPropViewMetaDto } from '@researchdatabox/sails-ng-common';
 import { LoDashTemplateUtilityService } from './lodash-template-utility.service';
+import {HeaderSortComponent} from "./header-sort.component";
+
 /**
- * This component displays records in a table. 
- * 
+ * This component displays records in a table.
+ *
  * Features:
  * - Pagination
  * - Sortable column headers (pending)
  * - Group by workflow stages (pending)
- * 
+ *
  * Requires:
  * - Data source, with async support
  * - Config block used to render the table
- * 
+ *
  * * Author: <a href='https://github.com/shilob' target='_blank'>Shilo B</a>
  */
 @Component({
@@ -51,14 +52,22 @@ export class RecordTableComponent extends BaseComponent {
   @Input() dataSource: RecordSource = null as any;
   // additional binding data for templates
   @Input() optTemplateData: any = {};
-  // pagination 
+  // pagination
   @Input() paginationItemsPerPage: number = 10;
   @Input() paginationDirectionLinks:boolean = false;
   @Input() paginationBoundaryLinks: boolean = true;
   @Input() paginationClass: string = 'pagination-sm';
   @Input() paginationMaxSize:number = 10;
   @Input() paginationRotate: boolean = true;
-  
+  // which actions to show in the table
+  @Input() showActions: {name:string, classes: string, label:string}[] = [];
+  // whether to enable table sorting
+  @Input() enableSort: boolean = false;
+  // whether to enable actions column
+  @Input() enableActions: boolean = false;
+  // find the header sort elements and provide references to them
+  @ViewChildren(HeaderSortComponent) headerSortItems: QueryList<HeaderSortComponent> | undefined;
+
   constructor(
     @Inject(LoggerService) private loggerService: LoggerService,
     @Inject(UtilityService) private utilService: UtilityService,
@@ -92,8 +101,8 @@ export class RecordTableComponent extends BaseComponent {
     let retVal = '';
     if (!_isEmpty(col.template)) {
       const data = _merge({}, row, {
-        recordTableMeta: { 
-          col: col, 
+        recordTableMeta: {
+          col: col,
           val: val
         },
         optTemplateData: this.optTemplateData
@@ -107,5 +116,15 @@ export class RecordTableComponent extends BaseComponent {
 
   async gotoPage(event: any) {
     await this.dataSource.gotoPage(event.page);
-  } 
+  }
+
+  async headerSortChanged(event: any, data: any) {
+    // Reset the sort order for all headers, except the header that was clicked.
+    this.headerSortItems?.forEach(item => {
+      if (item.step == event.step && item.variable == event.variable) {
+        return;
+      }
+      item.sort = '';
+    })
+  }
 }

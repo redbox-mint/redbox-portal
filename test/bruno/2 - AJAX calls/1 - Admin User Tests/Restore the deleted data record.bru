@@ -1,10 +1,10 @@
 meta {
-  name: Delete the created data record
+  name: Restore the deleted data record
   type: http
-  seq: 32
+  seq: 36
 }
 
-delete {
+put {
   url: {{host}}/default/rdmp/record/delete/{{dataRecordOid}}
   body: none
   auth: none

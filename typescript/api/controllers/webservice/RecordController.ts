@@ -817,7 +817,7 @@ export module Controllers {
       if (response.isSuccessful()) {
         this.apiRespond(req, res, response);
       } else {
-        sails.log.verbose(`Delete attempt failed for OID: ${oid}`);
+        sails.log.verbose(`Restore attempt failed for OID: ${oid}`);
         sails.log.verbose(JSON.stringify(response));
         this.apiFailWrapper(req, res, 500, new APIErrorResponse(response.message, response.details));
       }
@@ -825,7 +825,7 @@ export module Controllers {
 
     public async deleteRecord(req, res) {
       const oid = req.param('oid');
-      const permanentlyDelete = req.param('permanent') === 'true' ? true : false ;
+      const permanentlyDelete = req.query.permanent === 'true';
       const user = req.user;
       if (_.isEmpty(oid)) {
         return this.apiFailWrapper(req, res, 400, null, null,

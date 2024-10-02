@@ -26,4 +26,21 @@ import { RecordPageDto } from "@researchdatabox/sails-ng-common";
 export interface RecordSource {
   getCurrentPage(): RecordPageDto;
   gotoPage(pageNum: number): Promise<RecordPageDto>;
+
+  /**
+   * The record table button action click event.
+   * Used by RecordTableComponent.
+   * @param event The click event data.
+   * @param data The data for the current item.
+   * @param actionName The name of the action.
+   */
+  recordTableAction(event: any, data: any, actionName: string): Promise<void>;
+
+  /**
+   * The header sort changed event.
+   * Emitted by HeaderSortComponent.
+   * @param event The sort changed data.
+   * @param data The data for the current item.
+   */
+  headerSortChanged(event:any, data: any): Promise<void>;
 }
