@@ -85,14 +85,14 @@ workflows:
       #    requires:
       #      - build
       - deploy:
-          requires:
-            - test
+        #  requires:
+        #    - test
           filters:
             branches:
               ignore: /^dependabot.*/
       - generate-docs:
-          requires: 
-            - test
+        #  requires: 
+        #    - test
           filters:
             branches:
               only: 'master'
@@ -108,14 +108,14 @@ workflows:
       #    requires:
       #      - build_without_angular
       - deploy:
-          requires:
-            - test
+        #  requires:
+        #    - test
           filters:
             branches:
               ignore: /^dependabot.*/
       - generate-docs:
-          requires: 
-            - test
+        #  requires: 
+        #    - test
           filters:
             branches:
               only: 'master'
@@ -136,8 +136,8 @@ workflows:
       #      branches:
       #        ignore: /.*/
       - deploy:
-          requires:
-            - test     
+      #    requires:
+      #      - test     
           filters:
             tags:
               only: /^v.*/
