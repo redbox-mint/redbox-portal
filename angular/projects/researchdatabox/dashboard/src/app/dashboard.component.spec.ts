@@ -161,18 +161,18 @@ let recordDataWorkspace = {
       recordTypeFilterBy: 'existing-locations',
       filterWorkflowStepsBy: [ 'existing-locations-draft'],
       queryFilters: {
-        rdmp: [
-                { 
-                  filterType: 'text',
-                  filterFields: [
-                                  { 
-                                    name: 'Title',
-                                    path: 'metadata.title'
-                                  }
-                                ]
-                }
-              ]
-        },
+        workspace: [
+                      { 
+                        filterType: 'text',
+                        filterFields: [
+                                        { 
+                                          name: 'Title',
+                                          path: 'metadata.title'
+                                        }
+                                      ]
+                      }
+                    ]
+      },
       groupBy: '',
       sortGroupBy: [],
       hideWorkflowStepTitleForRecordType: []

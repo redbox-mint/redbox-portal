@@ -1,5 +1,5 @@
 module.exports.dashboardtype = {
-  "standard": {
+  'standard': {
     formatRules: {
         filterBy: {}, //filterBase can only have two values user or record
         filterWorkflowStepsBy: [], //values: empty array (all) or a list with particular types i.e. [ 'draft', 'finalised' ]
@@ -70,17 +70,30 @@ module.exports.dashboardtype = {
         hideWorkflowStepTitleForRecordType: ['party']
       }
   },
-  "workspace": {
+  'workspace': {
     formatRules: {
       filterBy: {}, //filterBase can only have two values user or record
       recordTypeFilterBy: 'existing-locations',
       filterWorkflowStepsBy: ['existing-locations-draft'], //values: empty array (all) or a list with particular types i.e. [ 'draft', 'finalised']
+      queryFilters: {
+        'workspace': [
+           { 
+              filterType: 'text',
+              filterFields:  [ 
+                {
+                  name: 'Title',
+                  path: 'metadata.title' 
+                }
+              ]
+           }
+        ]
+      },
       groupBy: '', //values: empty (not grouped any order), groupedByRecordType, groupedByRelationships 
       sortGroupBy: [], //values: as many levels as required
       hideWorkflowStepTitleForRecordType: []
     }
   },
-  "consolidated": {
+  'consolidated': {
     formatRules: {
         filterBy: {filterBase: 'record', filterBaseFieldOrValue: 'rdmp', filterField: 'metaMetadata.type', filterMode: 'equal' }, //filterBase can only have two values user or record
         filterWorkflowStepsBy: ['consolidated'], //values: empty array (all) or a list with particular types i.e. [ 'draft', 'finalised' ]   
