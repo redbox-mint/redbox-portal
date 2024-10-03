@@ -98,7 +98,11 @@ export module Controllers {
       'getRecordList',
       'listWorkspaces',
       'getAllDashboardTypes',
-      'getDashboardType'
+      'getDashboardType',
+      'renderDeletedRecords',
+      'getDeletedRecordList',
+      'restoreRecord',
+      'destroyDeletedRecord',
     ];
 
     /**
@@ -438,6 +442,64 @@ export module Controllers {
             }
           this.ajaxFail(req, res, message);
         });
+    }
+
+    public async restoreRecord(req, res) {
+      const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
+      const oid = req.param('oid');
+      if (_.isEmpty(oid)) {
+        this.ajaxFail(req, res, TranslationService.t('failed-restore'), {
+          success: false,
+          oid: oid,
+          message: TranslationService.t('failed-restore')
+        });
+        return;
+      }
+      const user = req.user;
+      const response = await this.recordsService.restoreRecord(oid, user);
+      if (response && response.isSuccessful()) {
+        const resp = {
+          success: true,
+          oid: oid
+        };
+        sails.log.verbose(`Successfully restored: ${oid}`);
+        this.ajaxOk(req, res, null, resp);
+      } else {
+        this.ajaxFail(req, res, TranslationService.t('failed-restore'), {
+          success: false,
+          oid: oid,
+          message: response.message
+        });
+      }
+    }
+
+    public async destroyDeletedRecord(req, res) {
+      const brand: BrandingModel = BrandingService.getBrand(req.session.branding);
+      const oid = req.param('oid');
+      if (_.isEmpty(oid)) {
+        this.ajaxFail(req, res, TranslationService.t('failed-destroy'), {
+          success: false,
+          oid: oid,
+          message: TranslationService.t('failed-destroy')
+        });
+        return;
+      }
+      const user = req.user;
+      const response = await this.recordsService.destroyDeletedRecord(oid, user);
+      if (response && response.isSuccessful()) {
+        const resp = {
+          success: true,
+          oid: oid
+        };
+        sails.log.verbose(`Successfully destroyed: ${oid}`);
+        this.ajaxOk(req, res, null, resp);
+      } else {
+        this.ajaxFail(req, res, TranslationService.t('failed-destroy'), {
+          success: false,
+          oid: oid,
+          message: response.message
+        });
+      }
     }
 
     public update(req, res) {
@@ -1451,6 +1513,72 @@ export module Controllers {
       }
     }
 
+    public async getDeletedRecordList(req, res){
+      const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
+      const editAccessOnly = req.query.editOnly;
+
+      var roles = [];
+      var username = "guest";
+      let user = {};
+      if (req.isAuthenticated()) {
+        roles = req.user.roles;
+        user = req.user;
+        username = req.user.username;
+      } else {
+        // assign default role if needed...
+        user = { username: username };
+        roles = [];
+        roles.push(RolesService.getDefUnathenticatedRole(brand));
+      }
+      const recordType = req.param('recordType');
+      const workflowState = req.param('state');
+      const start = req.param('start');
+      const rows = req.param('rows');
+      const packageType = req.param('packageType');
+      const sort = req.param('sort');
+      const filterFieldString = req.param('filterFields');
+      let filterString = req.param('filter');
+      let filterFields = undefined;
+      const filterModeString = req.param('filterMode');
+      let filterMode = undefined;
+
+      if (!_.isEmpty(filterFieldString)) {
+        filterFields = filterFieldString.split(',')
+      } else {
+        filterString = undefined;
+      }
+
+      if (!_.isEmpty(filterModeString)) {
+        filterMode = filterModeString.split(',')
+      } else {
+        filterMode = undefined;
+      }
+
+      // sails.log.error('-------------Record Controller getRecordList------------------------');
+      // sails.log.error('filterFields '+ filterFields);
+      // sails.log.error('filterString '+ filterString);
+      // sails.log.error('filterMode '+ filterMode);
+      // sails.log.error('----------------------------------------------------------');
+
+      try {
+        const response = await this.getDeletedRecords(workflowState, recordType, start, rows, user, roles, brand, editAccessOnly, packageType, sort, filterFields, filterString, filterMode);
+        if (response) {
+          this.ajaxOk(req, res, null, response);
+        } else {
+          this.ajaxFail(req, res, null, response);
+        }
+      } catch (error) {
+        sails.log.error("Error updating meta:");
+        sails.log.error(error);
+        this.ajaxFail(req, res, error.message);
+      }
+    }
+
+    public renderDeletedRecords(req, res) {
+      return this.sendView(req, res, 'admin/deletedRecords');
+    }
+
+
     private getDocMetadata(doc) {
       var metadata = {};
       for (var key in doc) {
@@ -1500,6 +1628,49 @@ export module Controllers {
         item["dateCreated"] = doc["dateCreated"];
         item["dateModified"] = doc["lastSaveDate"];
         item["hasEditAccess"] = RecordsService.hasEditAccess(brand, user, roles, doc);
+        items.push(item);
+      }
+
+      response["items"] = items;
+      return response;
+    }
+
+    protected async getDeletedRecords(workflowState, recordType, start, rows, user, roles, brand, editAccessOnly = undefined, packageType = undefined, sort = undefined, filterFields = undefined, filterString = undefined, filterMode = undefined) {
+      const username = user.username;
+      if (!_.isUndefined(recordType) && !_.isEmpty(recordType)) {
+        recordType = recordType.split(',');
+      }
+      if (!_.isUndefined(packageType) && !_.isEmpty(packageType)) {
+        packageType = packageType.split(',');
+      }
+      var results = await RecordsService.getDeletedRecords(workflowState, recordType, start, rows, username, roles, brand, editAccessOnly, packageType, sort, filterFields, filterString, filterMode);
+      if (!results.isSuccessful()) {
+        sails.log.verbose(`Failed to retrieve deleted records!`);
+        return null;
+      }
+
+      var totalItems = results.totalItems;
+      var startIndex = start;
+      var noItems = rows;
+      var pageNumber = (startIndex / noItems) + 1;
+
+      var response = {};
+      response["totalItems"] = totalItems;
+      response["currentPage"] = pageNumber;
+      response["noItems"] = noItems;
+
+      var items = [];
+      var docs = results.items;
+
+      for (var i = 0; i < docs.length; i++) {
+        var doc = docs[i];
+        var item = {};
+        const delRecordMeta= doc["deletedRecordMetadata"]
+        item["oid"] = doc["redboxOid"];
+        item["title"] = delRecordMeta["metadata"]["title"];
+        item["dateCreated"] = delRecordMeta["dateCreated"];
+        item["dateModified"] = delRecordMeta["lastSaveDate"];
+        item["dateDeleted"]  = doc["dateDeleted"];
         items.push(item);
       }
 

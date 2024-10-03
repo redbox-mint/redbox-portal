@@ -7,17 +7,17 @@ import {
 } from 'angular-i18next';
 /**
  * Returns stub for `ConfigService`.
- * 
+ *
  * Can be seeded with optional config block, however, additional methods can be added or set later on, depending on the test.
- * 
- * @param optional configBlock 
- * @returns 
+ *
+ * @param optional configBlock
+ * @returns
  */
 export function getStubConfigService(configBlock: any = null) {
   if (_isEmpty(configBlock)) {
-    configBlock = { 
+    configBlock = {
       csrfToken: 'testCsrfValue',
-      rootContext: 'base', 
+      rootContext: 'base',
       i18NextOpts: {
         load: 'languageOnly',
         lng: 'en',
@@ -43,7 +43,7 @@ export function getStubConfigService(configBlock: any = null) {
       }
     };
   }
-  
+
   return {
     waitForInit: function() {
       return configBlock;
@@ -59,11 +59,11 @@ export function getStubConfigService(configBlock: any = null) {
 }
 /**
  * Returns stub for TranslationService
- * 
+ *
  * Can be seeded with a translation map, which can be modified/replaced as needed.
- * 
+ *
  * @param translationMap
- * @returns 
+ * @returns
  */
 export function getStubTranslationService(translationMap: any = null) {
   if (_isEmpty()) {
@@ -86,11 +86,11 @@ export function getStubTranslationService(translationMap: any = null) {
 }
 /**
  * Returns a UserService stub.
- * 
- * @param username 
- * @param password 
- * @param loginResult 
- * @returns 
+ *
+ * @param username
+ * @param password
+ * @param loginResult
+ * @returns
  */
 export function getStubUserService(username: string = '', password: string = '', loginResult: any = {url: '#greatsuccess', user: null}, userData: any = {}, rolesData: any = {}) {
 
@@ -147,6 +147,8 @@ export function getStubRecordService(recordData: any = {}) {
       return recordData['records'];
     },getRelatedRecords: function() {
       return recordData['relatedRecords'];
+    },getDeletedRecords: function() {
+      return recordData['deletedRecords'];
     }
   }
 }
