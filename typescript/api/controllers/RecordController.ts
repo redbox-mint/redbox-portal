@@ -452,8 +452,7 @@ export module Controllers {
       const user = req.user;
       let currentRec = null;
       let origRecord = null;
-      const failedAttachments = [];
-      let recType = null;
+      
       sails.log.verbose(`RecordController - updateInternal - enter`);
       let preTriggerResponse = new StorageServiceResponse();
       const failedMessage = "Failed to update record, please check server logs.";
@@ -465,10 +464,9 @@ export module Controllers {
         return res.forbidden();
       }
       let recordType = await RecordTypesService.get(brand, currentRec.metaMetadata.type).toPromise();
-      recType = recordType;
       let nextStepResp = null;
       if (targetStep) {
-        nextStepResp = await WorkflowStepsService.get(recType, targetStep).toPromise();
+        nextStepResp = await WorkflowStepsService.get(recordType, targetStep).toPromise();
       }
 
       let nextStep: any = nextStepResp;
@@ -503,8 +501,6 @@ export module Controllers {
         if (hasPermissionToTransition && !_.isEmpty(nextStep)) {
           try {
             sails.log.verbose(`RecordController - updateInternal - hasPermissionToTransition - enter`);
-            
-            let recordType = await RecordTypesService.get(brand, currentRec.metaMetadata.type).toPromise();
             
             sails.log.verbose('updateInternal =============================================================');
             sails.log.verbose('updateInternal =============================================================');
