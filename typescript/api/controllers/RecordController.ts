@@ -563,10 +563,6 @@ export module Controllers {
         if (hasPermissionToTransition && !_.isEmpty(nextStep)) {
           try {
             sails.log.verbose(`RecordController - updateInternal - hasPermissionToTransition - enter`);
-            
-            sails.log.verbose('updateInternal =============================================================');
-            sails.log.verbose('updateInternal =============================================================');
-            sails.log.verbose('updateInternal =============================================================');
             sails.log.verbose('RecordController - updateInternal transitionWorkflowStep - before - nextStep '+JSON.stringify(nextStep));
             await this.recordsService.transitionWorkflowStep(currentRec, recordType, nextStep, user, true, false);
           } catch (err) {
