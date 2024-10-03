@@ -905,12 +905,14 @@ export class DashboardComponent extends BaseComponent {
   private findFilterTemplate(filterFieldPath: string): string {
     let templateString: string = '';
     let queryFilters: QueryFilter[] = this.formatRules.queryFilters[this.recordType];
-    for(let queryFilter of queryFilters) {
-        for(let filterField of queryFilter.filterFields) {
-          if(filterField.path == filterFieldPath) {
-            return _get(filterField,'template','');
+    if(_isArray(queryFilters)) {
+      for(let queryFilter of queryFilters) {
+          for(let filterField of queryFilter.filterFields) {
+            if(filterField.path == filterFieldPath) {
+              return _get(filterField,'template','');
+            }
           }
-        }
+      }
     }
     return templateString;
   }
@@ -918,10 +920,12 @@ export class DashboardComponent extends BaseComponent {
   private getFilters(type:string) {
     let filterFields: FilterField[] = [];
     let queryFilters: QueryFilter[] = this.formatRules.queryFilters[this.recordType];
-    for(let queryFilter of queryFilters) {
-      if(queryFilter.filterType == type) {
-        for(let filterField of queryFilter.filterFields) {
-          filterFields.push(filterField);
+    if(_isArray(queryFilters)) {
+      for(let queryFilter of queryFilters) {
+        if(queryFilter.filterType == type) {
+          for(let filterField of queryFilter.filterFields) {
+            filterFields.push(filterField);
+          }
         }
       }
     }
