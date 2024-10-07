@@ -785,12 +785,8 @@ export module Services {
 
     public setWorkflowStepInMetaMetadata(currentRec: any, nextStep: any) {
       if (!_.isEmpty(nextStep)) {
-        sails.log.verbose('=============================================================');
-        sails.log.verbose('=============================================================');
-        sails.log.verbose('=============================================================');
-        sails.log.verbose('updateWorkflowStep - enter');
+        sails.log.verbose('setWorkflowStepInMetaMetadata - enter');
         sails.log.verbose(nextStep);
-        sails.log.verbose(`RecordController - updateInternal - updateWorkflowStep - enter`);
 
         currentRec.previousWorkflow = currentRec.workflow;
         currentRec.workflow = nextStep.config.workflow;
