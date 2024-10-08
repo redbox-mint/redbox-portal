@@ -11,7 +11,7 @@
     "@tsconfig/node18": "^18.2.4",
     "agenda": "github:redbox-mint-contrib/agenda#dist",
     "async": "3.2.5",
-    "axios": "^1.7.3",
+    "axios": "^1.7.7",
     "bcryptjs": "^2.4.3",
     "bootstrap": "^5.3.3",
     "captains-log": "^2.0.5",
