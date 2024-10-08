@@ -5,7 +5,7 @@
   "keywords": [],
   "dependencies": {
     "@researchdatabox/oni-ocfl": "^1.4.0",
-    "@researchdatabox/raido-openapi-generated-node": "^0.0.2",
+    "@researchdatabox/raido-openapi-generated-node": "^0.0.3",
     "@researchdatabox/redbox-core-types": "file:core",
     "@researchdatabox/sails-hook-redbox-storage-mongo": "^1.4.5",
     "@researchdatabox/sails-ng-common": "^0.1.0",
