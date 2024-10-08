@@ -142,7 +142,7 @@ export module Services {
       'exportAllPlans',
       'storeRecordAudit',
       'exists',
-      'setWorkflowStepInMetaMetadata'
+      'setWorkflowStepRelatedMetadata'
     ];
 
     protected initRecordMetaMetadata(brandId: string, username: string, recordType: any, metaMetadataWorkflowStep: any, form: any, dateCreated: string): any {
@@ -182,7 +182,7 @@ export module Services {
       let metaMetadata = this.initRecordMetaMetadata(brand.id, user.username, recordType, wfStep, form, moment().format());
       _.set(record,'metaMetadata',metaMetadata);
 
-      this.setWorkflowStepInMetaMetadata(record, wfStep);
+      this.setWorkflowStepRelatedMetadata(record, wfStep);
       
       let createResponse = new StorageServiceResponse();
       const failedMessage = "Failed to created record, please check server logs.";
@@ -769,7 +769,7 @@ export module Services {
           currentRec = await this.triggerPreSaveTriggers(oid, currentRec, recordType, 'onTransitionWorkflow', user);
         }
 
-        this.setWorkflowStepInMetaMetadata(currentRec,nextStep);
+        this.setWorkflowStepRelatedMetadata(currentRec,nextStep);
 
         if (triggerPostSaveTriggers) {
 
@@ -783,9 +783,9 @@ export module Services {
     }
 
 
-    public setWorkflowStepInMetaMetadata(currentRec: any, nextStep: any) {
+    public setWorkflowStepRelatedMetadata(currentRec: any, nextStep: any) {
       if (!_.isEmpty(nextStep)) {
-        sails.log.verbose('setWorkflowStepInMetaMetadata - enter');
+        sails.log.verbose('setWorkflowStepRelatedMetadata - enter');
         sails.log.verbose(nextStep);
 
         currentRec.previousWorkflow = currentRec.workflow;

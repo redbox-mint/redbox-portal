@@ -330,7 +330,7 @@ export module Controllers {
 
         if (targetStep) {
           let wfStep = await WorkflowStepsService.get(recType, targetStep).toPromise();
-          this.recordsService.setWorkflowStepInMetaMetadata(record, wfStep);
+          this.recordsService.setWorkflowStepRelatedMetadata(record, wfStep);
         }
         
       } catch (error) {
@@ -808,7 +808,7 @@ export module Controllers {
                 sails.log.verbose(currentRec);
                 sails.log.verbose("Next step:");
                 sails.log.verbose(nextStep);
-                this.recordsService.setWorkflowStepInMetaMetadata(currentRec, nextStep);
+                this.recordsService.setWorkflowStepRelatedMetadata(currentRec, nextStep);
                 return this.updateMetadata(brand, oid, currentRec, req.user);
               });
           })
