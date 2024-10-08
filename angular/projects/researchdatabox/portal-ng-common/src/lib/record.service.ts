@@ -25,7 +25,7 @@ import { ConfigService } from './config.service';
 import { UtilityService } from './utility.service';
 import { LoggerService } from './logger.service';
 import { HttpClientService } from './httpClient.service';
-import { merge as _merge, isUndefined as _isUndefined, isEmpty as _isEmpty, get as _get, isArray as _isArray, clone as _clone } from 'lodash-es';
+import { merge as _merge, isUndefined as _isUndefined, isEmpty as _isEmpty, get as _get, isArray as _isArray, clone as _clone, isString as _isString, isNumber as _isNumber } from 'lodash-es';
 import { RecordResponseTable } from "./dashboard-models";
 
 export interface RecordTypeConf {
@@ -139,8 +139,14 @@ export class RecordService extends HttpClientService {
 
     const listRecordsUrl = new URL(`${this.brandingAndPortalUrl}/listRecords`);
     for (const [key, value] of Object.entries(items)) {
-      if (!_isEmpty(value) && !_isUndefined(value)) {
-        listRecordsUrl.searchParams.set(key, value?.toString());
+      if (!_isUndefined(value)) {
+        if (_isString(value) && !_isEmpty(value)) {
+          listRecordsUrl.searchParams.set(key, value?.toString());
+        } else {
+          if (_isNumber(value)) {
+            listRecordsUrl.searchParams.set(key, value?.toString());
+          }
+        }
       }
     }
 
@@ -176,8 +182,14 @@ export class RecordService extends HttpClientService {
 
     const listDeletedRecordsUrl = new URL(`${this.brandingAndPortalUrl}/listDeletedRecords`);
     for (const [key, value] of Object.entries(items)) {
-      if (!_isEmpty(value) && !_isUndefined(value)) {
-        listDeletedRecordsUrl.searchParams.set(key, value?.toString());
+      if (!_isUndefined(value)) {
+        if (_isString(value) && !_isEmpty(value)) {
+          listDeletedRecordsUrl.searchParams.set(key, value?.toString());
+        } else {
+          if (_isNumber(value)) {
+            listDeletedRecordsUrl.searchParams.set(key, value?.toString());
+          }
+        }
       }
     }
 
