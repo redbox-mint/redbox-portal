@@ -131,7 +131,7 @@ export module Services {
       'destroyDeletedRecord',
       'getDeletedRecords',
       'updateNotificationLog',
-      'updateWorkflowStep',
+      'transitionWorkflowStep',
       'triggerPreSaveTriggers',
       'triggerPostSaveTriggers',
       'triggerPostSaveSyncTriggers',
@@ -141,7 +141,8 @@ export module Services {
       'getRecords',
       'exportAllPlans',
       'storeRecordAudit',
-      'exists'
+      'exists',
+      'setWorkflowStepRelatedMetadata'
     ];
 
     protected initRecordMetaMetadata(brandId: string, username: string, recordType: any, metaMetadataWorkflowStep: any, form: any, dateCreated: string): any {
@@ -181,14 +182,14 @@ export module Services {
       let metaMetadata = this.initRecordMetaMetadata(brand.id, user.username, recordType, wfStep, form, moment().format());
       _.set(record,'metaMetadata',metaMetadata);
 
-      this.updateWorkflowStep(record, wfStep);
+      this.setWorkflowStepRelatedMetadata(record, wfStep);
       
       let createResponse = new StorageServiceResponse();
       const failedMessage = "Failed to created record, please check server logs.";
       // trigger the pre-save
       if (triggerPreSaveTriggers) {
         try {
-          record = await this.triggerPreSaveTriggers(null, record, recordType, "onCreate", user);
+          record = await this.triggerPreSaveTriggers(null, record, recordType, 'onCreate', user);
         } catch (err) {
           sails.log.error(`${this.logHeader} Failed to run pre-save hooks when onCreate...`);
           if(this.isValidationError(err)) {
@@ -260,7 +261,7 @@ export module Services {
         try {
           sails.log.verbose('RecordService - updateMeta - calling triggerPreSaveTriggers');
           recordType = await RecordTypesService.get(brand, record.metaMetadata.type).toPromise();
-          record = await this.triggerPreSaveTriggers(oid, record, recordType, "onUpdate", user);
+          record = await this.triggerPreSaveTriggers(oid, record, recordType, 'onUpdate', user);
         } catch (err) {
           sails.log.error(`${this.logHeader} Failed to run pre-save hooks when onUpdate...`);
           if(this.isValidationError(err)) {
@@ -756,9 +757,37 @@ export module Services {
       return await this.storageService.createRecordAudit(record);
     }
 
+    public async transitionWorkflowStep(currentRec: any, recordType: any, nextStep: any, user: any, triggerPreSaveTriggers: boolean = true, triggerPostSaveTriggers: boolean = true) {
 
-    public updateWorkflowStep(currentRec, nextStep): void {
+      let oid = _.get(currentRec, 'redboxOid');
+      let updateResponse = new StorageServiceResponse();
+      updateResponse.oid = oid;
+      updateResponse.success = true;
+      
       if (!_.isEmpty(nextStep)) {
+        if (triggerPreSaveTriggers) {
+          currentRec = await this.triggerPreSaveTriggers(oid, currentRec, recordType, 'onTransitionWorkflow', user);
+        }
+
+        this.setWorkflowStepRelatedMetadata(currentRec,nextStep);
+
+        if (triggerPostSaveTriggers) {
+
+          updateResponse = await this.triggerPostSaveSyncTriggers(oid, currentRec, recordType, 'onTransitionWorkflow', user, updateResponse);
+          
+          this.triggerPostSaveTriggers(oid, currentRec, recordType, 'onTransitionWorkflow', user);
+        }
+      }
+
+      return updateResponse;
+    }
+
+
+    public setWorkflowStepRelatedMetadata(currentRec: any, nextStep: any) {
+      if (!_.isEmpty(nextStep)) {
+        sails.log.verbose('setWorkflowStepRelatedMetadata - enter');
+        sails.log.verbose(nextStep);
+
         currentRec.previousWorkflow = currentRec.workflow;
         currentRec.workflow = nextStep.config.workflow;
         // TODO: validate data with form fields
@@ -776,10 +805,10 @@ export module Services {
             view:[]
           };
         }
-          // update authorizations based on workflow...
-          currentRec.authorization.viewRoles = nextStep.config.authorization.viewRoles;
-          currentRec.authorization.editRoles = nextStep.config.authorization.editRoles;
         
+        // update authorizations based on workflow...
+        currentRec.authorization.viewRoles = nextStep.config.authorization.viewRoles;
+        currentRec.authorization.editRoles = nextStep.config.authorization.editRoles;
       }
     }
 
