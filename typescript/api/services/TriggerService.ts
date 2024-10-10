@@ -20,9 +20,12 @@
 import { Observable } from 'rxjs/Rx';
 import {
   RBValidationError,
+  BrandingModel,
   Services as services,
 } from '@researchdatabox/redbox-core-types';
 import { Sails, Model } from "sails";
+import { default as moment } from 'moment';
+import numeral from 'numeral';
 
 declare var sails: Sails;
 declare var RecordType: Model;
@@ -31,6 +34,7 @@ declare var _;
 declare var User;
 declare var RecordsService;
 declare var TranslationService;
+declare var BrandingService;
 
 export module Services {
   /**
@@ -46,7 +50,8 @@ export module Services {
       'runHooksSync',
       'validateFieldUsingRegex',
       'applyFieldLevelPermissions',
-      'validateFieldMapUsingRegex'
+      'validateFieldMapUsingRegex',
+      'runTemplatesOnRelatedRecord'
     ];
 
     /**
@@ -413,6 +418,67 @@ export module Services {
         }
 
         sails.log.debug('validateFieldMapUsingRegex data value passed check');
+      }
+      return record;
+    }
+
+    public async runTemplatesOnRelatedRecord(relatedOid, relatedRecord, options, user) {
+      sails.log.verbose(`runTemplates config:`);
+      sails.log.verbose(JSON.stringify(options.templates));
+      sails.log.verbose(`runTemplates on record related to oid: ${relatedOid} with user: ${JSON.stringify(user)}`);
+      sails.log.verbose(JSON.stringify(relatedRecord));
+
+      let pathToRelatedOid = _.get(options,'pathToRelatedOid');
+      let parseObject = _.get(options, 'parseObject', false);
+      let oid = _.get(relatedRecord,pathToRelatedOid,'');
+      sails.log.verbose(`runTemplates on record oid: ${oid}`);
+      let record = null;
+      
+      if(oid != '') {
+        let tmplConfig = null;
+        try {
+          record = await RecordsService.getMeta(oid);
+          _.each(options.templates, (templateConfig) => {
+            tmplConfig = templateConfig;
+            const imports = _.extend({
+              
+              moment: moment,
+              numeral: numeral
+            }, this);
+            const templateImportsData = {
+              imports: imports
+            };
+            const templateData = {
+              oid: oid,
+              record: record,
+              user: user,
+              options: options
+            }
+            if (_.isString(templateConfig.template)) {
+              const compiledTemplate = _.template(templateConfig.template, templateImportsData);
+              templateConfig.template = compiledTemplate;
+            }
+            const data = templateConfig.template(templateData);
+            if (parseObject) {
+              let obj = JSON.parse(data);
+              _.set(record, templateConfig.field, obj);
+            } else {
+              _.set(record, templateConfig.field, data);
+            }
+          });
+          let brandId = _.get(record,'metaMetadata.brandId');
+          const brand:BrandingModel = BrandingService.getBrandById(brandId);
+          sails.log.verbose(`Brand: ${JSON.stringify(brand)}`);
+          await RecordsService.updateMeta(brand, oid, record, user);
+        } catch (e) {
+          const errLog = `Failed to run one of the string templates: ${JSON.stringify(tmplConfig)}`
+          sails.log.error(errLog);
+          sails.log.error(e);
+          // let customError: RBValidationError;
+          // customError = new RBValidationError(JSON.stringify(errorMap));
+          // throw customError;
+          throw new Error(errLog);
+        }
       }
       return record;
     }

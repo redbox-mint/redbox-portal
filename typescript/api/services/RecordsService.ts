@@ -340,12 +340,54 @@ export module Services {
       return this.storageService.getRelatedRecords(oid, brand);
     }
 
-    async delete(oid: any, permanentlyDelete:boolean, user:any) {
-      const response = await this.storageService.delete(oid, permanentlyDelete);
+    private getErrorMessage(err: Error, defaultMessage: string) {
+      // TODO: use RBValidationError.clName;
+      const validationName = 'RBValidationError';
+      return validationName == err.name ? err.message : defaultMessage;
+    }
+
+    async delete(oid: any, permanentlyDelete:boolean, currentRec:any, recordType:any, user:any) {
+
+      let preTriggerResponse = new StorageServiceResponse();
+      const failedMessage = "Failed to delete record, please check server logs.";
+      try {
+        sails.log.verbose('RecordsService - delete - triggerPreSaveTriggers onDelete');
+        preTriggerResponse.oid = oid;
+        currentRec = await this.triggerPreSaveTriggers(oid, currentRec, recordType, 'onDelete', user);
+      } catch (err) {
+        sails.log.verbose('RecordsService - delete - triggerPreSaveTriggers onDelete error');
+        sails.log.error(JSON.stringify(err));
+        preTriggerResponse.message = this.getErrorMessage(err, failedMessage);
+        preTriggerResponse.success = false;
+        return preTriggerResponse;
+      }
+
+      let response = await this.storageService.delete(oid, permanentlyDelete);
       if (response.isSuccessful()) {
         let action:RecordAuditActionType = permanentlyDelete? RecordAuditActionType.destroyed : RecordAuditActionType.deleted;
         this.auditRecord(oid,{}, user, action)
         this.searchService.remove(oid);
+
+        try {
+          sails.log.verbose('RecordsService - delete - calling triggerPostSaveSyncTriggers');
+          response = await this.triggerPostSaveSyncTriggers(oid, currentRec, recordType, 'onDelete', user, response);
+        } catch (err) {
+          if(this.isValidationError(err)) {
+            response.message = err.message;
+          } else {
+            response.message = failedMessage;
+          }
+          sails.log.error(`RecordsService - delete - Exception while running post delate sync hooks when updating:`);
+          sails.log.error(JSON.stringify(err));
+          response.success = false;
+          let metadata = { postSaveSyncWarning: 'true' };
+          response.metadata = metadata;
+          sails.log.error('RecordsService - delete - error - triggerPostSaveSyncTriggers '+JSON.stringify(response));
+          return response;
+        }
+        sails.log.verbose('RecordService - delete - calling triggerPostSaveTriggers');
+        
+        this.triggerPostSaveTriggers(oid, currentRec, recordType, 'onDelete', user);
       }
       return response;
     }

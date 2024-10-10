@@ -403,66 +403,36 @@ export module Controllers {
       const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
       const oid = req.param('oid');
       const user = req.user;
-      let currentRec = null;
       let message = null;
-      let preTriggerResponse = new StorageServiceResponse();
-      const failedMessage = "Failed to delete record, please check server logs.";
-      let cr = await this.getRecord(oid).toPromise();
-      currentRec = cr;
-      let hasEditAccess = this.hasEditAccess(brand, user, currentRec).toPromise();
+      let currentRec = await this.getRecord(oid).toPromise();
+      if(!_.isEmpty(brand)) {
+
+        let hasEditAccess = await this.hasEditAccess(brand, user, currentRec).toPromise();
       
-      if (hasEditAccess && !_.isEmpty(brand)) {
+        if (hasEditAccess) {
 
-        let recordType = await RecordTypesService.get(brand, currentRec.metaMetadata.type).toPromise();
-        try {
-          sails.log.verbose('RecordController - updateInternal - triggerPreSaveTriggers onDelete');
-          preTriggerResponse.oid = oid;
-          currentRec = await this.recordsService.triggerPreSaveTriggers(oid, currentRec, recordType, 'onDelete', user);
-        } catch (err) {
-          sails.log.verbose('RecordController - updateInternal - triggerPreSaveTriggers onDelete error');
-          sails.log.error(JSON.stringify(err));
-          preTriggerResponse.message = this.getErrorMessage(err, failedMessage);
-          this.ajaxFail(req, res, err.message);
-          return preTriggerResponse;
-        }
+          let recordType = await RecordTypesService.get(brand, currentRec.metaMetadata.type).toPromise();
 
-        let response = await this.recordsService.delete(oid, false, user);
-        
-        if (response && response.isSuccessful()) {
-          const resp = {
-            success: true,
-            oid: oid
-          };
-          sails.log.verbose(`RecordController - delete - Successfully deleted: ${oid}`);
-
-          try {
-            sails.log.verbose('RecordController - delete - calling triggerPostSaveSyncTriggers');
-            response = await this.recordsService.triggerPostSaveSyncTriggers(oid, currentRec, recordType, 'onDelete', user, response);
-          } catch (err) {
-            if(this.isValidationError(err)) {
-              response.message = err.message;
-            } else {
-              response.message = failedMessage;
-            }
-            sails.log.error(`RecordController - delete - Exception while running post delate sync hooks when updating:`);
-            sails.log.error(JSON.stringify(err));
-            response.success = false;
-            let metadata = { postSaveSyncWarning: 'true' };
-            response.metadata = metadata;
-            sails.log.error('RecordsService - delete - error - triggerPostSaveSyncTriggers '+JSON.stringify(response));
-            this.ajaxOk(req, res, null, response);
-            return response;
-          }
-          sails.log.verbose('RecordService - delete - calling triggerPostSaveTriggers');
+          let response = await this.recordsService.delete(oid, false, currentRec, recordType, user);
           
-          this.recordsService.triggerPostSaveTriggers(oid, currentRec, recordType, 'onDelete', user);
-        
-          this.ajaxOk(req, res, null, resp);
+          if (response && response.isSuccessful()) {
+            const resp = {
+              success: true,
+              oid: oid
+            };
+            sails.log.verbose(`RecordController - delete - Successfully deleted: ${oid}`);
+
+            this.ajaxOk(req, res, null, resp);
+          } else {
+            message = response.message;
+            this.ajaxFail(req, res, message);
+          }
         } else {
-          this.ajaxFail(req, res, response.message);
+          message = TranslationService.t('edit-error-no-permissions');
+          this.ajaxFail(req, res, message);
         }
       } else {
-        message = TranslationService.t('edit-error-no-permissions');
+        message = TranslationService.t('failed-delete');
         this.ajaxFail(req, res, message);
       }
     }
@@ -606,7 +576,7 @@ export module Controllers {
 
       try {
         if (metadata.delete) {
-          let response = await this.recordsService.delete(oid, false, user);
+          let response = await this.recordsService.delete(oid, false, currentRec, recordType, user);
           if (response && response.isSuccessful()) {
             response.success = true;
             sails.log.verbose(`Successfully deleted: ${oid}`);
