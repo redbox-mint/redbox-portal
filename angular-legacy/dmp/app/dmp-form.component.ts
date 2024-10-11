@@ -298,9 +298,13 @@ export class DmpFormComponent extends LoadableComponent {
       this.clearSaving();
       console.log("Delete Response:");
       console.log(res);
+      let postSaveSyncWarning = _.get(res, 'metadata.postSaveSyncWarning', false);
       if (res.success) {
         this.setSuccess(this.getMessage(this.formDef.messages.saveSuccess));
         return Observable.of(true);
+      } else if(!res.success && postSaveSyncWarning) {
+        this.setError(`${this.getMessage(this.formDef.messages.saveError)} ${res.message}`);
+        return Observable.of(false);
       } else {
         this.setError(`${this.getMessage(this.formDef.messages.saveError)} ${res.message}`);
         return Observable.of(false);

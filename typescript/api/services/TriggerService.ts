@@ -286,7 +286,7 @@ export module Services {
     }
 
     public async validateFieldMapUsingRegex(oid, record, options) {
-      sails.log.verbose('validateFieldMapUsingRegex - enter '+this.metTriggerCondition(oid, record, options));
+      sails.log.verbose('validateFieldMapUsingRegex - enter');
       if (this.metTriggerCondition(oid, record, options) === "true") {
 
         sails.log.verbose('validateFieldMapUsingRegex - metTriggerCondition');
@@ -423,64 +423,72 @@ export module Services {
     }
 
     public async runTemplatesOnRelatedRecord(relatedOid, relatedRecord, options, user) {
-      sails.log.verbose(`runTemplates config:`);
-      sails.log.verbose(JSON.stringify(options.templates));
-      sails.log.verbose(`runTemplates on record related to oid: ${relatedOid} with user: ${JSON.stringify(user)}`);
-      sails.log.verbose(JSON.stringify(relatedRecord));
 
-      let pathToRelatedOid = _.get(options,'pathToRelatedOid');
-      let parseObject = _.get(options, 'parseObject', false);
-      let oid = _.get(relatedRecord,pathToRelatedOid,'');
-      sails.log.verbose(`runTemplates on record oid: ${oid}`);
-      let record = null;
-      
-      if(oid != '') {
-        let tmplConfig = null;
-        try {
-          record = await RecordsService.getMeta(oid);
-          _.each(options.templates, (templateConfig) => {
-            tmplConfig = templateConfig;
-            const imports = _.extend({
-              
-              moment: moment,
-              numeral: numeral
-            }, this);
-            const templateImportsData = {
-              imports: imports
-            };
-            const templateData = {
-              oid: oid,
-              record: record,
-              user: user,
-              options: options
-            }
-            if (_.isString(templateConfig.template)) {
-              const compiledTemplate = _.template(templateConfig.template, templateImportsData);
-              templateConfig.template = compiledTemplate;
-            }
-            const data = templateConfig.template(templateData);
-            if (parseObject) {
-              let obj = JSON.parse(data);
-              _.set(record, templateConfig.field, obj);
+      if (this.metTriggerCondition(relatedOid, relatedRecord, options) === "true") {
+
+        sails.log.verbose('runTemplatesOnRelatedRecord - metTriggerCondition');
+        sails.log.verbose(`runTemplatesOnRelatedRecord config:`);
+        sails.log.verbose(JSON.stringify(options.templates));
+        sails.log.verbose(`runTemplatesOnRelatedRecord to oid: ${relatedOid} with user: ${JSON.stringify(user)}`);
+        sails.log.verbose(JSON.stringify(relatedRecord));
+
+        let pathToRelatedOid = _.get(options,'pathToRelatedOid');
+        let parseObject = _.get(options, 'parseObject', false);
+        let oid = _.get(relatedRecord,pathToRelatedOid,'');
+        let record = null;
+
+        if(oid != '') {
+          sails.log.verbose(`runTemplatesOnRelatedRecord found oid of related record: ${oid}`);
+          let tmplConfig = null;
+          try {
+            record = await RecordsService.getMeta(oid);
+            if(_.isObject(record)) {
+              _.each(options.templates, (templateConfig) => {
+                tmplConfig = templateConfig;
+                const imports = _.extend({
+                  
+                  moment: moment,
+                  numeral: numeral
+                }, this);
+                const templateImportsData = {
+                  imports: imports
+                };
+                const templateData = {
+                  oid: oid,
+                  record: record,
+                  user: user,
+                  options: options
+                }
+                if (_.isString(templateConfig.template)) {
+                  const compiledTemplate = _.template(templateConfig.template, templateImportsData);
+                  templateConfig.template = compiledTemplate;
+                }
+                const data = templateConfig.template(templateData);
+                if (parseObject) {
+                  let obj = JSON.parse(data);
+                  _.set(record, templateConfig.field, obj);
+                } else {
+                  _.set(record, templateConfig.field, data);
+                }
+              });
+              let brandId = _.get(record,'metaMetadata.brandId');
+              const brand:BrandingModel = BrandingService.getBrandById(brandId);
+              sails.log.verbose(`runTemplatesOnRelatedRecord Brand: ${JSON.stringify(brand)}`);
+              await RecordsService.updateMeta(brand, oid, record, user);
             } else {
-              _.set(record, templateConfig.field, data);
+              sails.log.verbose(`runTemplatesOnRelatedRecord did't find related record using oid: ${oid} - object retrived is: ${JSON.stringify(record)}`);
             }
-          });
-          let brandId = _.get(record,'metaMetadata.brandId');
-          const brand:BrandingModel = BrandingService.getBrandById(brandId);
-          sails.log.verbose(`Brand: ${JSON.stringify(brand)}`);
-          await RecordsService.updateMeta(brand, oid, record, user);
-        } catch (e) {
-          const errLog = `Failed to run one of the string templates: ${JSON.stringify(tmplConfig)}`
-          sails.log.error(errLog);
-          sails.log.error(e);
-          // let customError: RBValidationError;
-          // customError = new RBValidationError(JSON.stringify(errorMap));
-          // throw customError;
-          throw new Error(errLog);
+          } catch (e) {
+            const errLog = `runTemplatesOnRelatedRecord Failed to run one of the string templates: ${JSON.stringify(tmplConfig)}`
+            sails.log.error(errLog);
+            sails.log.error(e);
+            throw new Error(errLog);
+          }
+        } else {
+          sails.log.verbose(`runTemplatesOnRelatedRecord did't find related oid: ${oid} - in specified path: ${pathToRelatedOid}`);
         }
       }
-      return record;
+      return relatedRecord;
     }
 
   }
