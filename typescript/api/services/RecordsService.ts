@@ -59,6 +59,7 @@ declare var FormsService, RolesService, UsersService, WorkflowStepsService, Reco
 declare var sails: Sails;
 declare var _;
 declare var _this;
+declare var TranslationService;
 
 export module Services {
   /**
@@ -142,7 +143,9 @@ export module Services {
       'exportAllPlans',
       'storeRecordAudit',
       'exists',
-      'setWorkflowStepRelatedMetadata'
+      'setWorkflowStepRelatedMetadata',
+      'updateDataStream',
+      'handleUpdateDataStream'
     ];
 
     protected initRecordMetaMetadata(brandId: string, username: string, recordType: any, metaMetadataWorkflowStep: any, form: any, dateCreated: string): any {
@@ -251,12 +254,81 @@ export module Services {
 
 
 
-    async updateMeta(brand: any, oid: any, record: any, user ? : any, triggerPreSaveTriggers = true, triggerPostSaveTriggers = true):Promise<StorageServiceResponse> {
+    async updateMeta(brand:any, oid:any, record:any, user ? : any, triggerPreSaveTriggers:boolean = true, triggerPostSaveTriggers:boolean = true, nextStep:any = {}, metadata:any = {}):Promise<StorageServiceResponse> {
+      
       let updateResponse = new StorageServiceResponse();
       updateResponse.oid = oid;
-      let recordType = null;
+      let recordType = await RecordTypesService.get(brand, record.metaMetadata.type).toPromise();
       const failedMessage = "Failed to update record, please check server logs.";
-      // process pre-save
+      sails.log.verbose(`RecordController - updateInternal - origRecord - cloneDeep`);
+      let origRecord = _.cloneDeep(record);
+      let preTriggerResponse = new StorageServiceResponse();
+      let hasPermissionToTransition = true;
+      record.metadata = metadata;
+      
+      if(!_.isEmpty(nextStep)) {
+        if (nextStep != undefined) {
+          if (nextStep.config != undefined) {
+            if (nextStep.config.authorization.transitionRoles != undefined) {
+              if (nextStep.config.authorization.transitionRoles.length > 0) {
+                let validRoles = _.filter(nextStep.config.authorization.transitionRoles, role => {
+                  let val = _.find(user.roles, userRole => {
+                    return role == userRole || role == userRole.name;
+                  });
+                  if (val != undefined) {
+                    return true;
+                  }
+                  return false;
+                });
+                if (validRoles.length == 0) {
+                  hasPermissionToTransition = false;
+                }
+              }
+            }
+          }
+        }
+        
+      // if (!metadata.delete) {
+
+        if (hasPermissionToTransition && !_.isEmpty(nextStep)) {
+          try {
+            sails.log.verbose(`RecordController - updateInternal - hasPermissionToTransition - enter`);
+            sails.log.verbose('RecordController - updateInternal transitionWorkflowStep - before - nextStep '+JSON.stringify(nextStep));
+            await this.transitionWorkflowStep(record, recordType, nextStep, user, true, false);
+          } catch (err) {
+            sails.log.verbose("RecordController - updateInternal - onTransitionWorkflow triggerPreSaveTriggers error");
+            sails.log.error(JSON.stringify(err));
+            preTriggerResponse.message = this.getErrorMessage(err, failedMessage);
+            // this.ajaxFail(req, res, err.message);
+            return preTriggerResponse;
+          }
+        }
+      // }
+      }
+
+
+      // try {
+      //   if (metadata.delete) {
+      //     let response = await this.recordsService.delete(oid, false, record, recordType, user);
+      //     if (response && response.isSuccessful()) {
+      //       response.success = true;
+      //       sails.log.verbose(`Successfully deleted: ${oid}`);
+      //       this.ajaxOk(req, res, null, response);
+      //     } else {
+      //       this.ajaxFail(req, res, TranslationService.t('failed-delete'), response);
+      //     }
+      //   }
+      // } catch (error) {
+      //   sails.log.error(`Error deleting: ${oid}`);
+      //   sails.log.error(error);
+      //   this.ajaxFail(req, res, error.message);
+      // }
+
+      let form = await FormsService.getFormByName(record.metaMetadata.form, true).toPromise()
+      record.metaMetadata.attachmentFields = form.attachmentFields;
+      let response;
+      
+        // process pre-save
       if (!_.isEmpty(brand) && triggerPreSaveTriggers === true) {
         try {
           sails.log.verbose('RecordService - updateMeta - calling triggerPreSaveTriggers');
@@ -274,6 +346,31 @@ export module Services {
           return updateResponse;
         }
       }
+
+      sails.log.verbose(`RecordController - updateInternal - metadata.dataLocations ` + JSON.stringify(metadata.dataLocations));
+      sails.log.verbose(`RecordController - updateInternal - origRecord.metadata.dataLocations ` + JSON.stringify(origRecord.metadata.dataLocations));
+      sails.log.verbose(`RecordController - updateInternal - record.metadata.dataLocations ` + JSON.stringify(record.metadata.dataLocations));
+      sails.log.verbose(`RecordController - updateInternal - before this.updateMetadata`);
+      response = await this.handleUpdateDataStream(oid, origRecord, metadata).toPromise();
+
+      const fieldsToCheck = ['location', 'uploadUrl'];
+      if (!_.isEmpty(record.metaMetadata.attachmentFields)) {
+        // check if we have any pending-oid elements
+        _.each(record.metaMetadata.attachmentFields, (attFieldName) => {
+          _.each(_.get(record.metadata, attFieldName), (attFieldEntry, attFieldIdx) => {
+            if (!_.isEmpty(attFieldEntry)) {
+              _.each(fieldsToCheck, (fldName) => {
+                const fldVal = _.get(attFieldEntry, fldName);
+                if (!_.isEmpty(fldVal)) {
+                  sails.log.verbose(`RecordController - updateInternal - fldVal ${fldVal}`);
+                  _.set(record.metadata, `${attFieldName}[${attFieldIdx}].${fldName}`, _.replace(fldVal, 'pending-oid', oid));
+                }
+              });
+            }
+          });
+        });
+      }
+
       // unsetting the ID just to be safe
       _.unset(record, 'id');
       _.unset(record, 'redboxOid');
@@ -301,14 +398,32 @@ export module Services {
             sails.log.error(`${this.logHeader} Exception while running post save sync hooks when updating:`);
             sails.log.error(JSON.stringify(err));
             updateResponse.success = false;
-            let metadata = { postSaveSyncWarning: 'true' };
-            updateResponse.metadata = metadata;
+            let metadataRes = { postSaveSyncWarning: 'true' };
+            updateResponse.metadata = metadataRes;
             sails.log.error('RecordsService - updateMeta - error - updateResponse '+JSON.stringify(updateResponse));
             return updateResponse;
           }
           sails.log.verbose('RecordService - updateMeta - calling triggerPostSaveTriggers');
           // Fire Post-save hooks async ...
           this.triggerPostSaveTriggers(updateResponse['oid'], record, recordType, 'onUpdate', user);
+
+          if (hasPermissionToTransition && !_.isEmpty(nextStep)) {
+            try {
+              response = await this.transitionWorkflowStep(record, recordType, nextStep, user, false, true);
+              sails.log.verbose(`RecordController - updateInternal - transitionWorkflowStep post save hook enter`);
+              sails.log.verbose(JSON.stringify(response));
+              if(response && response.isSuccessful()) {
+                sails.log.verbose(`RecordController - updateInternal - transitionWorkflowStep ajaxOk`);
+              } else {
+                sails.log.verbose(`RecordController - updateInternal - transitionWorkflowStep post save hook not successful`);
+                // this.ajaxFail(req, res, null, response);
+              }
+            } catch(tErr) {
+              sails.log.error('RecordController - updateInternal - Failed to run post-save hooks when onTransitionWorkflow... or Error updating meta:');
+              sails.log.error(tErr);
+              // this.ajaxFail(req, res, null, tErr.message);
+            }
+          }
         }
         this.searchService.index(oid, record);
         this.auditRecord(updateResponse['oid'], record, user, RecordAuditActionType.updated)
@@ -987,6 +1102,61 @@ export module Services {
       // TODO: use RBValidationError.clName;
       const validationName = 'RBValidationError';
       return validationName == err.name;
+    }
+
+    /**
+     * Handles data stream updates, atm, this call is terminal.
+     */
+    public updateDataStream(oid, origRecord, metadata, response, req, res) {
+      sails.log.verbose(`RecordController - updateDataStream - enter`);
+      return this.handleUpdateDataStream(oid, origRecord, metadata)
+        .subscribe(whatever => {
+          sails.log.verbose(`Done with updating streams and returning response...`);
+          response.success = true;
+          return response;
+        }, error => {
+          sails.log.error("Error updating datatreams:");
+          sails.log.error(error);
+          response.success = false;
+          response.message = error.message;
+          return response;
+        });
+    }
+
+    public handleUpdateDataStream(oid, origRecord, metadata) {
+      const fileIdsAdded = [];
+
+      return this.datastreamService.updateDatastream(oid, origRecord, metadata, sails.config.record.attachments.stageDir, fileIdsAdded)
+        .concatMap(reqs => {
+          if (reqs) {
+            sails.log.verbose(`Updating data streams...`);
+            return Observable.from(reqs);
+          } else {
+            sails.log.verbose(`No datastreams to update...`);
+            return Observable.of(null);
+          }
+        })
+        .concatMap((promise) => {
+          if (promise) {
+            sails.log.verbose(`Update datastream request is...`);
+            sails.log.verbose(JSON.stringify(promise));
+            return promise.catch(e => {
+              sails.log.verbose(`Error in updating stream::::`);
+              sails.log.verbose(JSON.stringify(e));
+              return Observable.throwError(new Error(TranslationService.t('attachment-upload-error')));
+            });
+          } else {
+            return Observable.of(null);
+          }
+        })
+        .concatMap(updateResp => {
+          if (updateResp) {
+            sails.log.verbose(`Got response from update datastream request...`);
+            sails.log.verbose(JSON.stringify(updateResp));
+          }
+          return Observable.of(updateResp);
+        })
+        .last();
     }
   }
 }
