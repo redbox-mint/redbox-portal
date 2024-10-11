@@ -505,13 +505,10 @@ export module Controllers {
       const oid = req.param('oid');
       const targetStep = req.param('targetStep');
       const user = req.user;
-      let currentRec = null;
-      
-      sails.log.verbose(`RecordController - updateInternal - enter`);
       const metadata = req.body;
+      sails.log.verbose(`RecordController - updateInternal - enter`);
 
-      let cr = await this.getRecord(oid).toPromise()
-      currentRec = cr;
+      let currentRec = await this.getRecord(oid).toPromise();
       let hasEditAccess = await this.hasEditAccess(brand, user, currentRec).toPromise();
       if (!hasEditAccess) {
         return res.forbidden();
@@ -523,7 +520,7 @@ export module Controllers {
       }
       let response;
       try {
-        sails.log.verbose(`RecordController - updateInternal - Done with updating streams...`);
+        sails.log.verbose(`RecordController - updateInternal - before updateMeta`);
         response = await this.recordsService.updateMeta(brand, oid, currentRec, user, true, true, nextStepResp, metadata);
         sails.log.verbose(JSON.stringify(response));
         if (response && response.isSuccessful()) {

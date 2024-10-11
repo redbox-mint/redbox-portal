@@ -252,8 +252,6 @@ export module Services {
     }
 
 
-
-
     async updateMeta(brand:any, oid:any, record:any, user ? : any, triggerPreSaveTriggers:boolean = true, triggerPostSaveTriggers:boolean = true, nextStep:any = {}, metadata:any = {}):Promise<StorageServiceResponse> {
       
       let updateResponse = new StorageServiceResponse();
@@ -349,6 +347,7 @@ export module Services {
       sails.log.verbose(`RecordService - updateMeta - origRecord.metadata.dataLocations ` + JSON.stringify(origRecord.metadata.dataLocations));
       sails.log.verbose(`RecordService - updateMeta - record.metadata.dataLocations ` + JSON.stringify(record.metadata.dataLocations));
       updateResponse = await this.handleUpdateDataStream(oid, origRecord, record.metadata).toPromise();
+      sails.log.verbose(`RecordService - updateMeta - Done with updating streams...`);
 
       const fieldsToCheck = ['location', 'uploadUrl'];
       if (!_.isEmpty(record.metaMetadata.attachmentFields)) {
@@ -513,13 +512,6 @@ export module Services {
     }
 
     public getRecords(workflowState, recordType = undefined, start, rows = 10, username, roles, brand, editAccessOnly = undefined, packageType = undefined, sort = undefined, fieldNames = undefined, filterString = undefined, filterMode=undefined, secondarySort=undefined): Promise < any > {
-
-      
-      // sails.log.error('------------- Record Service -----------------------------');
-      // sails.log.error('fieldNames '+ fieldNames);
-      // sails.log.error('filterString '+ filterString);
-      // sails.log.error('filterMode '+ filterMode);
-      // sails.log.error('----------------------------------------------------------');
 
       return this.storageService.getRecords(workflowState, recordType, start, rows, username, roles, brand, editAccessOnly, packageType, sort, fieldNames, filterString, filterMode, secondarySort);
     }
