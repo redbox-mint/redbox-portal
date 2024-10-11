@@ -257,53 +257,49 @@ export module Services {
     async updateMeta(brand:any, oid:any, record:any, user ? : any, triggerPreSaveTriggers:boolean = true, triggerPostSaveTriggers:boolean = true, nextStep:any = {}, metadata:any = {}):Promise<StorageServiceResponse> {
       
       let updateResponse = new StorageServiceResponse();
-      updateResponse.oid = oid;
-      let recordType = await RecordTypesService.get(brand, record.metaMetadata.type).toPromise();
-      const failedMessage = "Failed to update record, please check server logs.";
-      sails.log.verbose(`RecordController - updateInternal - origRecord - cloneDeep`);
-      let origRecord = _.cloneDeep(record);
       let preTriggerResponse = new StorageServiceResponse();
+      updateResponse.oid = oid;
+      const failedMessage = "Failed to update record, please check server logs.";
       let hasPermissionToTransition = true;
-      record.metadata = metadata;
+      let origRecord = _.cloneDeep(record);
+      sails.log.verbose(`RecordService - updateMeta - origRecord - cloneDeep`);
+      //This is done after cloning record to preserve origRecord during processing
+      if(!_.isEmpty(metadata)) {
+        record.metadata = metadata;
+      }
       
-      if(!_.isEmpty(nextStep)) {
-        if (nextStep != undefined) {
-          if (nextStep.config != undefined) {
-            if (nextStep.config.authorization.transitionRoles != undefined) {
-              if (nextStep.config.authorization.transitionRoles.length > 0) {
-                let validRoles = _.filter(nextStep.config.authorization.transitionRoles, role => {
-                  let val = _.find(user.roles, userRole => {
-                    return role == userRole || role == userRole.name;
-                  });
-                  if (val != undefined) {
-                    return true;
-                  }
-                  return false;
-                });
-                if (validRoles.length == 0) {
-                  hasPermissionToTransition = false;
-                }
+      let recordType = await RecordTypesService.get(brand, record.metaMetadata.type).toPromise();
+      if(!_.isEmpty(nextStep) && !_.isEmpty(nextStep.config)) {
+        if (nextStep.config.authorization.transitionRoles != undefined) {
+          if (nextStep.config.authorization.transitionRoles.length > 0) {
+            let validRoles = _.filter(nextStep.config.authorization.transitionRoles, role => {
+              let val = _.find(user.roles, userRole => {
+                return role == userRole || role == userRole.name;
+              });
+              if (val != undefined) {
+                return true;
               }
+              return false;
+            });
+            if (validRoles.length == 0) {
+              hasPermissionToTransition = false;
             }
           }
         }
-        
-      // if (!metadata.delete) {
-
+      
         if (hasPermissionToTransition && !_.isEmpty(nextStep)) {
           try {
-            sails.log.verbose(`RecordController - updateInternal - hasPermissionToTransition - enter`);
-            sails.log.verbose('RecordController - updateInternal transitionWorkflowStep - before - nextStep '+JSON.stringify(nextStep));
+            sails.log.verbose(`RecordService - updateMeta - hasPermissionToTransition - enter`);
+            sails.log.verbose('RecordService - updateMeta transitionWorkflowStep - before - nextStep '+JSON.stringify(nextStep));
             await this.transitionWorkflowStep(record, recordType, nextStep, user, true, false);
           } catch (err) {
-            sails.log.verbose("RecordController - updateInternal - onTransitionWorkflow triggerPreSaveTriggers error");
+            sails.log.verbose("RecordService - updateMeta - onTransitionWorkflow triggerPreSaveTriggers error");
             sails.log.error(JSON.stringify(err));
             preTriggerResponse.message = this.getErrorMessage(err, failedMessage);
-            // this.ajaxFail(req, res, err.message);
+            preTriggerResponse.success = false;
             return preTriggerResponse;
           }
         }
-      // }
       }
 
 
@@ -326,9 +322,8 @@ export module Services {
 
       let form = await FormsService.getFormByName(record.metaMetadata.form, true).toPromise()
       record.metaMetadata.attachmentFields = form.attachmentFields;
-      let response;
       
-        // process pre-save
+      // process pre-save
       if (!_.isEmpty(brand) && triggerPreSaveTriggers === true) {
         try {
           sails.log.verbose('RecordService - updateMeta - calling triggerPreSaveTriggers');
@@ -347,11 +342,9 @@ export module Services {
         }
       }
 
-      sails.log.verbose(`RecordController - updateInternal - metadata.dataLocations ` + JSON.stringify(metadata.dataLocations));
-      sails.log.verbose(`RecordController - updateInternal - origRecord.metadata.dataLocations ` + JSON.stringify(origRecord.metadata.dataLocations));
-      sails.log.verbose(`RecordController - updateInternal - record.metadata.dataLocations ` + JSON.stringify(record.metadata.dataLocations));
-      sails.log.verbose(`RecordController - updateInternal - before this.updateMetadata`);
-      response = await this.handleUpdateDataStream(oid, origRecord, metadata).toPromise();
+      sails.log.verbose(`RecordService - updateMeta - origRecord.metadata.dataLocations ` + JSON.stringify(origRecord.metadata.dataLocations));
+      sails.log.verbose(`RecordService - updateMeta - record.metadata.dataLocations ` + JSON.stringify(record.metadata.dataLocations));
+      updateResponse = await this.handleUpdateDataStream(oid, origRecord, record.metadata).toPromise();
 
       const fieldsToCheck = ['location', 'uploadUrl'];
       if (!_.isEmpty(record.metaMetadata.attachmentFields)) {
@@ -362,7 +355,7 @@ export module Services {
               _.each(fieldsToCheck, (fldName) => {
                 const fldVal = _.get(attFieldEntry, fldName);
                 if (!_.isEmpty(fldVal)) {
-                  sails.log.verbose(`RecordController - updateInternal - fldVal ${fldVal}`);
+                  sails.log.verbose(`RecordService - updateMeta - fldVal ${fldVal}`);
                   _.set(record.metadata, `${attFieldName}[${attFieldIdx}].${fldName}`, _.replace(fldVal, 'pending-oid', oid));
                 }
               });
@@ -374,6 +367,7 @@ export module Services {
       // unsetting the ID just to be safe
       _.unset(record, 'id');
       _.unset(record, 'redboxOid');
+      sails.log.verbose(`RecordService - updateMeta - before storageService.updateMeta`);
       // update
       updateResponse = await this.storageService.updateMeta(brand, oid, record, user);
       sails.log.verbose('RecordService - updateMeta - updateResponse.isSuccessful '+updateResponse.isSuccessful());
@@ -409,19 +403,21 @@ export module Services {
 
           if (hasPermissionToTransition && !_.isEmpty(nextStep)) {
             try {
-              response = await this.transitionWorkflowStep(record, recordType, nextStep, user, false, true);
-              sails.log.verbose(`RecordController - updateInternal - transitionWorkflowStep post save hook enter`);
-              sails.log.verbose(JSON.stringify(response));
-              if(response && response.isSuccessful()) {
-                sails.log.verbose(`RecordController - updateInternal - transitionWorkflowStep ajaxOk`);
+              updateResponse = await this.transitionWorkflowStep(record, recordType, nextStep, user, false, true);
+              sails.log.verbose(`RecordService - updateMeta - transitionWorkflowStep post save hook enter`);
+              sails.log.verbose(JSON.stringify(updateResponse));
+              if(updateResponse && updateResponse.isSuccessful()) {
+                sails.log.verbose(`RecordService - updateMeta - transitionWorkflowStep ajaxOk`);
               } else {
-                sails.log.verbose(`RecordController - updateInternal - transitionWorkflowStep post save hook not successful`);
-                // this.ajaxFail(req, res, null, response);
+                sails.log.verbose(`RecordService - updateMeta - transitionWorkflowStep post save hook not successful`);
+                return updateResponse;
               }
             } catch(tErr) {
-              sails.log.error('RecordController - updateInternal - Failed to run post-save hooks when onTransitionWorkflow... or Error updating meta:');
+              sails.log.error('RecordService - updateMeta - Failed to run post-save hooks when onTransitionWorkflow... or Error updating meta:');
               sails.log.error(tErr);
-              // this.ajaxFail(req, res, null, tErr.message);
+              updateResponse.success = false;
+              updateResponse.message = tErr.message;
+              return updateResponse;
             }
           }
         }
@@ -430,6 +426,7 @@ export module Services {
       } else {
         sails.log.error(`${this.logHeader} Failed to update record, storage service response:`);
         sails.log.error(JSON.stringify(updateResponse));
+        updateResponse.success = false;
         updateResponse.message = failedMessage;
       }
       return updateResponse;
