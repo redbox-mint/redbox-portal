@@ -144,7 +144,7 @@ export module Services {
       'storeRecordAudit',
       'exists',
       'setWorkflowStepRelatedMetadata',
-      'updateDataStream',
+      // 'updateDataStream',
       'handleUpdateDataStream'
     ];
 
@@ -268,7 +268,11 @@ export module Services {
         record.metadata = metadata;
       }
       
-      let recordType = await RecordTypesService.get(brand, record.metaMetadata.type).toPromise();
+      let recordType = null;
+      if(!_.isEmpty(brand)) {
+        recordType = await RecordTypesService.get(brand, record.metaMetadata.type).toPromise();
+      }
+
       if(!_.isEmpty(nextStep) && !_.isEmpty(nextStep.config)) {
         if (nextStep.config.authorization.transitionRoles != undefined) {
           if (nextStep.config.authorization.transitionRoles.length > 0) {
@@ -287,7 +291,7 @@ export module Services {
           }
         }
       
-        if (hasPermissionToTransition && !_.isEmpty(nextStep)) {
+        if (hasPermissionToTransition && !_.isEmpty(nextStep) && !_.isEmpty(recordType)) {
           try {
             sails.log.verbose(`RecordService - updateMeta - hasPermissionToTransition - enter`);
             sails.log.verbose('RecordService - updateMeta transitionWorkflowStep - before - nextStep '+JSON.stringify(nextStep));
@@ -671,6 +675,7 @@ export module Services {
       }
       _.set(targetRecord, fieldName, linkData);
       sails.log.verbose(`RecordsService::Updating record:${targetRecordOid}`);
+      //TODO: check if it's better to set pre and post save trigger flags to false?
       return await this.updateMeta(null, targetRecordOid, targetRecord);
     }
 
@@ -1101,24 +1106,25 @@ export module Services {
       return validationName == err.name;
     }
 
+    //TODO: check if this method is needed?
     /**
      * Handles data stream updates, atm, this call is terminal.
      */
-    public updateDataStream(oid, origRecord, metadata, response, req, res) {
-      sails.log.verbose(`RecordController - updateDataStream - enter`);
-      return this.handleUpdateDataStream(oid, origRecord, metadata)
-        .subscribe(whatever => {
-          sails.log.verbose(`Done with updating streams and returning response...`);
-          response.success = true;
-          return response;
-        }, error => {
-          sails.log.error("Error updating datatreams:");
-          sails.log.error(error);
-          response.success = false;
-          response.message = error.message;
-          return response;
-        });
-    }
+    // public updateDataStream(oid, origRecord, metadata, response, req, res) {
+    //   sails.log.verbose(`RecordController - updateDataStream - enter`);
+    //   return this.handleUpdateDataStream(oid, origRecord, metadata)
+    //     .subscribe(whatever => {
+    //       sails.log.verbose(`Done with updating streams and returning response...`);
+    //       response.success = true;
+    //       return response;
+    //     }, error => {
+    //       sails.log.error("Error updating datatreams:");
+    //       sails.log.error(error);
+    //       response.success = false;
+    //       response.message = error.message;
+    //       return response;
+    //     });
+    // }
 
     public handleUpdateDataStream(oid, origRecord, metadata) {
       const fileIdsAdded = [];

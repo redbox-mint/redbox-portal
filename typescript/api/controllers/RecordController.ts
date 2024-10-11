@@ -328,10 +328,11 @@ export module Controllers {
       try {
         return this.createRecord(record, brand, recordType, req, res);
 
-        if (targetStep) {
-          let wfStep = await WorkflowStepsService.get(recType, targetStep).toPromise();
-          this.recordsService.setWorkflowStepRelatedMetadata(record, wfStep);
-        }
+        //TODO: check remove unreachable code or move into createRecord ???
+        // if (targetStep) {
+        //   let wfStep = await WorkflowStepsService.get(recType, targetStep).toPromise();
+        //   this.recordsService.setWorkflowStepRelatedMetadata(record, wfStep);
+        // }
         
       } catch (error) {
         const msg = this.getErrorMessage(error, `Failed to save record: ${error}`);
@@ -499,12 +500,6 @@ export module Controllers {
       this.updateInternal(req, res).then(result => { });
     }
 
-    private isValidationError(err: Error) {
-      // TODO: use RBValidationError.clName;
-      const validationName = 'RBValidationError';
-      return validationName == err.name;
-    }
-
     private async updateInternal(req, res) {
       const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
       const oid = req.param('oid');
@@ -545,6 +540,7 @@ export module Controllers {
       }
     }
 
+    //TODO: check if this deprecated? 
     protected saveMetadata(brand, oid, currentRec, metadata, user): Observable<any> {
       currentRec.metadata = metadata;
       return this.updateMetadata(brand, oid, currentRec, user);
@@ -566,8 +562,6 @@ export module Controllers {
         });
     }
 
-
-
     protected getRecord(oid) {
       return Observable.fromPromise(this.recordsService.getMeta(oid)).flatMap(currentRec => {
         if (_.isEmpty(currentRec)) {
@@ -577,6 +571,7 @@ export module Controllers {
       });
     }
 
+    //TODO: check if this is deprecated?
     protected updateMetadata(brand, oid, currentRec, user) {
       if (currentRec.metaMetadata.brandId != brand.id) {
         return Observable.throw(new Error(`Failed to update meta, brand's don't match: ${currentRec.metaMetadata.brandId} != ${brand.id}, with oid: ${oid}`));
