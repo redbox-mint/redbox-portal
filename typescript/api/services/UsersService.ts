@@ -1026,7 +1026,12 @@ export module Services {
      *
      */
     public addUserAuditEvent = (user, action, additionalContext) => {
-      let auditEvent = {}
+      // ignore audit events for users with no user, which had crashed the app when user has already logged out
+      if (_.isEmpty(user)) {
+        sails.log.verbose('No user to audit, ignoring: ' + action);
+        return Observable.of(null).toPromise();
+      }
+      let auditEvent = {};
       if (!_.isEmpty(user.password)) {
         delete user.password;
       }
