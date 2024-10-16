@@ -357,23 +357,13 @@ export module Services {
         }
       }
 
-
-      // try {
-      //   if (metadata.delete) {
-      //     let response = await this.recordsService.delete(oid, false, record, recordType, user);
-      //     if (response && response.isSuccessful()) {
-      //       response.success = true;
-      //       sails.log.verbose(`Successfully deleted: ${oid}`);
-      //       this.ajaxOk(req, res, null, response);
-      //     } else {
-      //       this.ajaxFail(req, res, TranslationService.t('failed-delete'), response);
-      //     }
-      //   }
-      // } catch (error) {
-      //   sails.log.error(`Error deleting: ${oid}`);
-      //   sails.log.error(error);
-      //   this.ajaxFail(req, res, error.message);
-      // }
+      if (metadata.delete) {
+        //TODO - this code is deprecated and will be removed in next version
+        sails.log.error('RecordService - updateMeta - Delete record not allowed onSubmit record action');
+        updateResponse.success = false;
+        updateResponse.message = 'Delete record not allowed onSubmit record action';
+        return updateResponse;
+      }
 
       let form = await FormsService.getFormByName(record.metaMetadata.form, true).toPromise()
       record.metaMetadata.attachmentFields = form.attachmentFields;
