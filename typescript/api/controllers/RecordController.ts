@@ -399,49 +399,42 @@ export module Controllers {
       }
     }
 
-    public delete(req, res) {
+    public async delete(req, res) {
       const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
       const oid = req.param('oid');
       const user = req.user;
-      let currentRec = null;
       let message = null;
-      this.getRecord(oid).flatMap(cr => {
-        currentRec = cr;
-        return this.hasEditAccess(brand, user, currentRec);
-      })
-        .flatMap(hasEditAccess => {
-          if (hasEditAccess) {
-            return Observable.fromPromise(this.recordsService.delete(oid, false, user));
-          }
-          message = TranslationService.t('edit-error-no-permissions');
-          return Observable.throw(new Error(TranslationService.t('edit-error-no-permissions')));
-        })
-        .subscribe(response => {
+      let currentRec = await this.getRecord(oid).toPromise();
+      if(!_.isEmpty(brand)) {
+
+        let hasEditAccess = await this.hasEditAccess(brand, user, currentRec).toPromise();
+      
+        if (hasEditAccess) {
+
+          let recordType = await RecordTypesService.get(brand, currentRec.metaMetadata.type).toPromise();
+
+          let response = await this.recordsService.delete(oid, false, currentRec, recordType, user);
+          
           if (response && response.isSuccessful()) {
             const resp = {
               success: true,
               oid: oid
             };
-            sails.log.verbose(`Successfully deleted: ${oid}`);
+            sails.log.verbose(`RecordController - delete - Successfully deleted: ${oid}`);
+
             this.ajaxOk(req, res, null, resp);
           } else {
-            this.ajaxFail(req, res, TranslationService.t('failed-delete'), {
-              success: false,
-              oid: oid,
-              message: response.message
-            });
+            message = response.message;
+            this.ajaxFail(req, res, message);
           }
-        }, error => {
-          sails.log.error("Error deleting:");
-          sails.log.error(error);
-          if (message == null) {
-            message = error.message;
-          } else
-            if (error.error && error.error.code == 500) {
-              message = TranslationService.t('missing-record');
-            }
+        } else {
+          message = TranslationService.t('edit-error-no-permissions');
           this.ajaxFail(req, res, message);
-        });
+        }
+      } else {
+        message = TranslationService.t('failed-delete');
+        this.ajaxFail(req, res, message);
+      }
     }
 
     public async restoreRecord(req, res) {
@@ -504,6 +497,12 @@ export module Controllers {
 
     public update(req, res) {
       this.updateInternal(req, res).then(result => { });
+    }
+
+    private isValidationError(err: Error) {
+      // TODO: use RBValidationError.clName;
+      const validationName = 'RBValidationError';
+      return validationName == err.name;
     }
 
     private async updateInternal(req, res) {
@@ -577,7 +576,7 @@ export module Controllers {
 
       try {
         if (metadata.delete) {
-          let response = await this.recordsService.delete(oid, false, user);
+          let response = await this.recordsService.delete(oid, false, currentRec, recordType, user);
           if (response && response.isSuccessful()) {
             response.success = true;
             sails.log.verbose(`Successfully deleted: ${oid}`);

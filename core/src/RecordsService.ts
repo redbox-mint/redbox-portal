@@ -16,7 +16,7 @@ export interface RecordsService {
   getRecords(workflowState, recordType, start, rows, username, roles, brand, editAccessOnly, packageType, sort, fieldNames?, filterString?, filterMode?, secondarySort?): Promise<any>;
   create(brand, record, recordType, user?):Promise<StorageServiceResponse>;
   updateMeta(brand, oid, record, user?, triggerPreSaveTriggers?, triggerPostSaveTriggers?): Promise<StorageServiceResponse>;
-  delete(oid, permanentlyDelete, user): Promise<any>;
+  delete(oid:string, permanentlyDelete:boolean, record:any, recordType:any, user:any): Promise<any>;
   destroyDeletedRecord(oid: any, user:any): Promise<any>;
   getMeta(oid): Promise<RecordModel>;
   restoreRecord(oid,user): Promise<any>;
