@@ -310,93 +310,35 @@ export module Controllers {
     }
 
     private async createInternal(req, res) {
-      const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
-      const metadata = req.body;
-      let record: any = {
-        metaMetadata: {}
-      };
-      var recType = req.param('recordType');
-      const targetStep = req.param('targetStep');
-      record.authorization = {
-        view: [req.user.username],
-        edit: [req.user.username]
-      };
-      record.metadata = metadata;
-
-      let recordType = await RecordTypesService.get(brand, recType).toPromise();
-      
       try {
-        return this.createRecord(record, brand, recordType, req, res);
+        const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
+        const metadata = req.body;
+        let record: any = {
+          metaMetadata: {}
+        };
+        var recType = req.param('recordType');
+        const targetStep = req.param('targetStep');
+        record.authorization = {
+          view: [req.user.username],
+          edit: [req.user.username]
+        };
+        record.metadata = metadata;
 
-        //TODO: check remove unreachable code or move into createRecord ???
-        // if (targetStep) {
-        //   let wfStep = await WorkflowStepsService.get(recType, targetStep).toPromise();
-        //   this.recordsService.setWorkflowStepRelatedMetadata(record, wfStep);
-        // }
-        
+        let recordType = await RecordTypesService.get(brand, recType).toPromise();
+        const user = req.user;
+
+        sails.log.verbose(`RecordController - createRecord - enter`);
+        let createResponse = await this.recordsService.create(brand, record, recordType, user, true, true, targetStep);
+
+        if (createResponse && _.isFunction(createResponse.isSuccessful) && createResponse.isSuccessful()) {
+          this.ajaxOk(req, res, null, createResponse);
+        } else {
+          this.ajaxFail(req, res, createResponse.message);
+        }
+
       } catch (error) {
         const msg = this.getErrorMessage(error, `Failed to save record: ${error}`);
         this.ajaxFail(req, res, msg);
-      }
-    }
-
-    private async createRecord(record, brand, recordType, req, res) {
-      const user = req.user;
-      let oid = null;
-      const fieldsToCheck = ['location', 'uploadUrl'];
-
-      sails.log.verbose(`RecordController - createRecord - enter`);
-      let updateResponse = await this.recordsService.create(brand, record, recordType, user);
-
-      if (updateResponse && _.isFunction(updateResponse.isSuccessful) && updateResponse.isSuccessful()) {
-        oid = updateResponse.oid;
-        sails.log.verbose(`RecordController - createRecord - oid ${oid}`);
-        if (!_.isEmpty(record.metaMetadata.attachmentFields)) {
-          // check if we have any pending-oid elements
-          _.each(record.metaMetadata.attachmentFields, (attFieldName) => {
-            _.each(_.get(record.metadata, attFieldName), (attFieldEntry, attFieldIdx) => {
-              if (!_.isEmpty(attFieldEntry)) {
-                _.each(fieldsToCheck, (fldName) => {
-                  const fldVal = _.get(attFieldEntry, fldName);
-                  if (!_.isEmpty(fldVal)) {
-                    sails.log.verbose(`RecordController - createRecord - fldVal ${fldVal}`);
-                    _.set(record.metadata, `${attFieldName}[${attFieldIdx}].${fldName}`, _.replace(fldVal, 'pending-oid', oid));
-                  }
-                });
-              }
-            });
-          });
-
-          try {
-            // handle datastream update
-            // we emtpy the data locations in cloned record so we can reuse the same `handleUpdateDataStream` method call
-            const emptyDatastreamRecord = _.cloneDeep(record);
-            _.each(record.metaMetadata.attachmentFields, (attFieldName: any) => {
-              _.set(emptyDatastreamRecord.metadata, attFieldName, []);
-            });
-            // update the datastreams in RB, this is a terminal call
-            sails.log.verbose(`RecordController - createRecord - before handleUpdateDataStream`);
-            let resposeDatastream = await this.recordsService.handleUpdateDataStream(oid, emptyDatastreamRecord, record.metadata).toPromise();
-          } catch (error) {
-            throw new Error(`RecordController - createRecord - Failed to save record: ${error}`);
-          }
-
-          // update the metadata ...
-          updateResponse = await this.recordsService.updateMeta(brand, oid, record, user, false, false);
-
-          if (updateResponse && _.isFunction(updateResponse.isSuccessful) && updateResponse.isSuccessful()) {
-            sails.log.verbose(`RecordController - createRecord - before ajaxOk`);
-            this.ajaxOk(req, res, null, updateResponse);
-            return updateResponse;
-          } else {
-            this.ajaxFail(req, res, null, updateResponse);
-          }
-        } else {
-          this.ajaxOk(req, res, null, updateResponse);
-        }
-      } else {
-        sails.log.error('RecordController - createRecord - createRecord - Failed to save record: ' + JSON.stringify(updateResponse));
-        this.ajaxFail(req, res, null, updateResponse);
       }
     }
 

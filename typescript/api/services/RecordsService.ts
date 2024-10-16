@@ -175,7 +175,8 @@ export module Services {
       return metaMetadata;
     }
     
-    async create(brand: any, record: any, recordType: any, user ? : any, triggerPreSaveTriggers = true, triggerPostSaveTriggers = true) {
+    
+    async create(brand: any, record: any, recordType: any, user ? : any, triggerPreSaveTriggers = true, triggerPostSaveTriggers = true, targetStep = null) {
 
       let wfStep = await WorkflowStepsService.getFirst(recordType).toPromise();
       let formName = _.get(wfStep,'config.form');
@@ -205,9 +206,61 @@ export module Services {
           return createResponse;
         }
       }
+
       // save the record ...
       createResponse = await this.storageService.create(brand, record, recordType, user);
       if (createResponse.isSuccessful()) {
+
+        const fieldsToCheck = ['location', 'uploadUrl'];
+        let oid = createResponse.oid;
+        sails.log.verbose(`RecordsService - create - oid ${oid}`);
+        if (!_.isEmpty(record.metaMetadata.attachmentFields)) {
+          // check if we have any pending-oid elements
+          _.each(record.metaMetadata.attachmentFields, (attFieldName) => {
+            _.each(_.get(record.metadata, attFieldName), (attFieldEntry, attFieldIdx) => {
+              if (!_.isEmpty(attFieldEntry)) {
+                _.each(fieldsToCheck, (fldName) => {
+                  const fldVal = _.get(attFieldEntry, fldName);
+                  if (!_.isEmpty(fldVal)) {
+                    sails.log.verbose(`RecordsService - create - fldVal ${fldVal}`);
+                    _.set(record.metadata, `${attFieldName}[${attFieldIdx}].${fldName}`, _.replace(fldVal, 'pending-oid', oid));
+                  }
+                });
+              }
+            });
+          });
+
+          try {
+            // handle datastream update
+            // we emtpy the data locations in cloned record so we can reuse the same `handleUpdateDataStream` method call
+            const emptyDatastreamRecord = _.cloneDeep(record);
+            _.each(record.metaMetadata.attachmentFields, (attFieldName: any) => {
+              _.set(emptyDatastreamRecord.metadata, attFieldName, []);
+            });
+            // update the datastreams in RB, this is a terminal call
+            sails.log.verbose(`RecordsService - create - before handleUpdateDataStream`);
+            let resposeDatastream = await this.handleUpdateDataStream(oid, emptyDatastreamRecord, record.metadata).toPromise();
+          } catch (error) {
+            throw new Error(`RecordsService - create - Failed to save record: ${error}`);
+          }
+
+          // update the metadata ...
+          createResponse = await this.updateMeta(brand, oid, record, user, false, false);
+
+          if (createResponse && _.isFunction(createResponse.isSuccessful) && createResponse.isSuccessful()) {
+            sails.log.verbose(`RecordsService - create - before ajaxOk`);
+
+            if (targetStep) {
+              let wfStep = await WorkflowStepsService.get(recordType.name, targetStep).toPromise();
+              this.setWorkflowStepRelatedMetadata(record, wfStep);
+            }
+
+          } else {
+            sails.log.error('RecordsService - create - Failed to save record: ' + JSON.stringify(createResponse));
+            return createResponse;
+          }
+        }
+
         if (triggerPostSaveTriggers) {
           // post-save sync
           try {
@@ -230,7 +283,7 @@ export module Services {
           this.triggerPostSaveTriggers(createResponse['oid'], record, recordType, 'onCreate', user);
         }
 
-        const recordOid = _.get(record, 'redboxOid')
+        const recordOid = _.get(record, 'redboxOid');
         if (_.isEmpty(recordOid)) {
           sails.log.warn(`recordOid: '${recordOid}' is empty! Using response oid: ${createResponse['oid']} for solr index.`)
           this.searchService.index(createResponse['oid'], record);
@@ -667,7 +720,7 @@ export module Services {
       }
       _.set(targetRecord, fieldName, linkData);
       sails.log.verbose(`RecordsService::Updating record:${targetRecordOid}`);
-      //TODO: check if it's better to set pre and post save trigger flags to false?
+      
       return await this.updateMeta(null, targetRecordOid, targetRecord);
     }
 
@@ -1097,26 +1150,6 @@ export module Services {
       const validationName = 'RBValidationError';
       return validationName == err.name;
     }
-
-    //TODO: check if this method is needed?
-    /**
-     * Handles data stream updates, atm, this call is terminal.
-     */
-    // public updateDataStream(oid, origRecord, metadata, response, req, res) {
-    //   sails.log.verbose(`RecordController - updateDataStream - enter`);
-    //   return this.handleUpdateDataStream(oid, origRecord, metadata)
-    //     .subscribe(whatever => {
-    //       sails.log.verbose(`Done with updating streams and returning response...`);
-    //       response.success = true;
-    //       return response;
-    //     }, error => {
-    //       sails.log.error("Error updating datatreams:");
-    //       sails.log.error(error);
-    //       response.success = false;
-    //       response.message = error.message;
-    //       return response;
-    //     });
-    // }
 
     public handleUpdateDataStream(oid, origRecord, metadata) {
       const fileIdsAdded = [];
