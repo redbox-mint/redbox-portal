@@ -59,6 +59,7 @@ declare var FormsService, RolesService, UsersService, WorkflowStepsService, Reco
 declare var sails: Sails;
 declare var _;
 declare var _this;
+declare var TranslationService;
 
 export module Services {
   /**
@@ -142,7 +143,9 @@ export module Services {
       'exportAllPlans',
       'storeRecordAudit',
       'exists',
-      'setWorkflowStepRelatedMetadata'
+      'setWorkflowStepRelatedMetadata',
+      // 'updateDataStream',
+      'handleUpdateDataStream'
     ];
 
     protected initRecordMetaMetadata(brandId: string, username: string, recordType: any, metaMetadataWorkflowStep: any, form: any, dateCreated: string): any {
@@ -172,7 +175,8 @@ export module Services {
       return metaMetadata;
     }
     
-    async create(brand: any, record: any, recordType: any, user ? : any, triggerPreSaveTriggers = true, triggerPostSaveTriggers = true) {
+    
+    async create(brand: any, record: any, recordType: any, user ? : any, triggerPreSaveTriggers = true, triggerPostSaveTriggers = true, targetStep = null) {
 
       let wfStep = await WorkflowStepsService.getFirst(recordType).toPromise();
       let formName = _.get(wfStep,'config.form');
@@ -202,9 +206,61 @@ export module Services {
           return createResponse;
         }
       }
+
       // save the record ...
       createResponse = await this.storageService.create(brand, record, recordType, user);
       if (createResponse.isSuccessful()) {
+
+        const fieldsToCheck = ['location', 'uploadUrl'];
+        let oid = createResponse.oid;
+        sails.log.verbose(`RecordsService - create - oid ${oid}`);
+        if (!_.isEmpty(record.metaMetadata.attachmentFields)) {
+          // check if we have any pending-oid elements
+          _.each(record.metaMetadata.attachmentFields, (attFieldName) => {
+            _.each(_.get(record.metadata, attFieldName), (attFieldEntry, attFieldIdx) => {
+              if (!_.isEmpty(attFieldEntry)) {
+                _.each(fieldsToCheck, (fldName) => {
+                  const fldVal = _.get(attFieldEntry, fldName);
+                  if (!_.isEmpty(fldVal)) {
+                    sails.log.verbose(`RecordsService - create - fldVal ${fldVal}`);
+                    _.set(record.metadata, `${attFieldName}[${attFieldIdx}].${fldName}`, _.replace(fldVal, 'pending-oid', oid));
+                  }
+                });
+              }
+            });
+          });
+
+          try {
+            // handle datastream update
+            // we emtpy the data locations in cloned record so we can reuse the same `handleUpdateDataStream` method call
+            const emptyDatastreamRecord = _.cloneDeep(record);
+            _.each(record.metaMetadata.attachmentFields, (attFieldName: any) => {
+              _.set(emptyDatastreamRecord.metadata, attFieldName, []);
+            });
+            // update the datastreams in RB, this is a terminal call
+            sails.log.verbose(`RecordsService - create - before handleUpdateDataStream`);
+            let resposeDatastream = await this.handleUpdateDataStream(oid, emptyDatastreamRecord, record.metadata).toPromise();
+          } catch (error) {
+            throw new Error(`RecordsService - create - Failed to save record: ${error}`);
+          }
+
+          // update the metadata ...
+          createResponse = await this.updateMeta(brand, oid, record, user, false, false);
+
+          if (createResponse && _.isFunction(createResponse.isSuccessful) && createResponse.isSuccessful()) {
+            sails.log.verbose(`RecordsService - create - before ajaxOk`);
+
+            if (targetStep) {
+              let wfStep = await WorkflowStepsService.get(recordType.name, targetStep).toPromise();
+              this.setWorkflowStepRelatedMetadata(record, wfStep);
+            }
+
+          } else {
+            sails.log.error('RecordsService - create - Failed to save record: ' + JSON.stringify(createResponse));
+            return createResponse;
+          }
+        }
+
         if (triggerPostSaveTriggers) {
           // post-save sync
           try {
@@ -227,7 +283,7 @@ export module Services {
           this.triggerPostSaveTriggers(createResponse['oid'], record, recordType, 'onCreate', user);
         }
 
-        const recordOid = _.get(record, 'redboxOid')
+        const recordOid = _.get(record, 'redboxOid');
         if (_.isEmpty(recordOid)) {
           sails.log.warn(`recordOid: '${recordOid}' is empty! Using response oid: ${createResponse['oid']} for solr index.`)
           this.searchService.index(createResponse['oid'], record);
@@ -249,13 +305,69 @@ export module Services {
     }
 
 
-
-
-    async updateMeta(brand: any, oid: any, record: any, user ? : any, triggerPreSaveTriggers = true, triggerPostSaveTriggers = true):Promise<StorageServiceResponse> {
+    async updateMeta(brand:any, oid:any, record:any, user ? : any, triggerPreSaveTriggers:boolean = true, triggerPostSaveTriggers:boolean = true, nextStep:any = {}, metadata:any = {}):Promise<StorageServiceResponse> {
+      
       let updateResponse = new StorageServiceResponse();
+      let preTriggerResponse = new StorageServiceResponse();
       updateResponse.oid = oid;
-      let recordType = null;
       const failedMessage = "Failed to update record, please check server logs.";
+      let hasPermissionToTransition = true;
+      let origRecord = _.cloneDeep(record);
+      sails.log.verbose(`RecordService - updateMeta - origRecord - cloneDeep`);
+      //This is done after cloning record to preserve origRecord during processing
+      if(!_.isEmpty(metadata)) {
+        record.metadata = metadata;
+      }
+      
+      let recordType = null;
+      if(!_.isEmpty(brand)) {
+        recordType = await RecordTypesService.get(brand, record.metaMetadata.type).toPromise();
+      }
+
+      if(!_.isEmpty(nextStep) && !_.isEmpty(nextStep.config)) {
+        if (nextStep.config.authorization.transitionRoles != undefined) {
+          if (nextStep.config.authorization.transitionRoles.length > 0) {
+            let validRoles = _.filter(nextStep.config.authorization.transitionRoles, role => {
+              let val = _.find(user.roles, userRole => {
+                return role == userRole || role == userRole.name;
+              });
+              if (val != undefined) {
+                return true;
+              }
+              return false;
+            });
+            if (validRoles.length == 0) {
+              hasPermissionToTransition = false;
+            }
+          }
+        }
+      
+        if (hasPermissionToTransition && !_.isEmpty(nextStep) && !_.isEmpty(recordType)) {
+          try {
+            sails.log.verbose(`RecordService - updateMeta - hasPermissionToTransition - enter`);
+            sails.log.verbose('RecordService - updateMeta transitionWorkflowStep - before - nextStep '+JSON.stringify(nextStep));
+            await this.transitionWorkflowStep(record, recordType, nextStep, user, true, false);
+          } catch (err) {
+            sails.log.verbose("RecordService - updateMeta - onTransitionWorkflow triggerPreSaveTriggers error");
+            sails.log.error(JSON.stringify(err));
+            preTriggerResponse.message = this.getErrorMessage(err, failedMessage);
+            preTriggerResponse.success = false;
+            return preTriggerResponse;
+          }
+        }
+      }
+
+      if (metadata.delete) {
+        //TODO - this code is deprecated and will be removed in next version
+        sails.log.error('RecordService - updateMeta - Delete record not allowed onSubmit record action');
+        updateResponse.success = false;
+        updateResponse.message = 'Delete record not allowed onSubmit record action';
+        return updateResponse;
+      }
+
+      let form = await FormsService.getFormByName(record.metaMetadata.form, true).toPromise()
+      record.metaMetadata.attachmentFields = form.attachmentFields;
+      
       // process pre-save
       if (!_.isEmpty(brand) && triggerPreSaveTriggers === true) {
         try {
@@ -274,9 +386,34 @@ export module Services {
           return updateResponse;
         }
       }
+
+      sails.log.verbose(`RecordService - updateMeta - origRecord.metadata.dataLocations ` + JSON.stringify(origRecord.metadata.dataLocations));
+      sails.log.verbose(`RecordService - updateMeta - record.metadata.dataLocations ` + JSON.stringify(record.metadata.dataLocations));
+      updateResponse = await this.handleUpdateDataStream(oid, origRecord, record.metadata).toPromise();
+      sails.log.verbose(`RecordService - updateMeta - Done with updating streams...`);
+
+      const fieldsToCheck = ['location', 'uploadUrl'];
+      if (!_.isEmpty(record.metaMetadata.attachmentFields)) {
+        // check if we have any pending-oid elements
+        _.each(record.metaMetadata.attachmentFields, (attFieldName) => {
+          _.each(_.get(record.metadata, attFieldName), (attFieldEntry, attFieldIdx) => {
+            if (!_.isEmpty(attFieldEntry)) {
+              _.each(fieldsToCheck, (fldName) => {
+                const fldVal = _.get(attFieldEntry, fldName);
+                if (!_.isEmpty(fldVal)) {
+                  sails.log.verbose(`RecordService - updateMeta - fldVal ${fldVal}`);
+                  _.set(record.metadata, `${attFieldName}[${attFieldIdx}].${fldName}`, _.replace(fldVal, 'pending-oid', oid));
+                }
+              });
+            }
+          });
+        });
+      }
+
       // unsetting the ID just to be safe
       _.unset(record, 'id');
       _.unset(record, 'redboxOid');
+      sails.log.verbose(`RecordService - updateMeta - before storageService.updateMeta`);
       // update
       updateResponse = await this.storageService.updateMeta(brand, oid, record, user);
       sails.log.verbose('RecordService - updateMeta - updateResponse.isSuccessful '+updateResponse.isSuccessful());
@@ -301,20 +438,41 @@ export module Services {
             sails.log.error(`${this.logHeader} Exception while running post save sync hooks when updating:`);
             sails.log.error(JSON.stringify(err));
             updateResponse.success = false;
-            let metadata = { postSaveSyncWarning: 'true' };
-            updateResponse.metadata = metadata;
+            let metadataRes = { postSaveSyncWarning: 'true' };
+            updateResponse.metadata = metadataRes;
             sails.log.error('RecordsService - updateMeta - error - updateResponse '+JSON.stringify(updateResponse));
             return updateResponse;
           }
           sails.log.verbose('RecordService - updateMeta - calling triggerPostSaveTriggers');
           // Fire Post-save hooks async ...
           this.triggerPostSaveTriggers(updateResponse['oid'], record, recordType, 'onUpdate', user);
+
+          if (hasPermissionToTransition && !_.isEmpty(nextStep)) {
+            try {
+              updateResponse = await this.transitionWorkflowStep(record, recordType, nextStep, user, false, true);
+              sails.log.verbose(`RecordService - updateMeta - transitionWorkflowStep post save hook enter`);
+              sails.log.verbose(JSON.stringify(updateResponse));
+              if(updateResponse && updateResponse.isSuccessful()) {
+                sails.log.verbose(`RecordService - updateMeta - transitionWorkflowStep ajaxOk`);
+              } else {
+                sails.log.verbose(`RecordService - updateMeta - transitionWorkflowStep post save hook not successful`);
+                return updateResponse;
+              }
+            } catch(tErr) {
+              sails.log.error('RecordService - updateMeta - Failed to run post-save hooks when onTransitionWorkflow... or Error updating meta:');
+              sails.log.error(tErr);
+              updateResponse.success = false;
+              updateResponse.message = tErr.message;
+              return updateResponse;
+            }
+          }
         }
         this.searchService.index(oid, record);
         this.auditRecord(updateResponse['oid'], record, user, RecordAuditActionType.updated)
       } else {
         sails.log.error(`${this.logHeader} Failed to update record, storage service response:`);
         sails.log.error(JSON.stringify(updateResponse));
+        updateResponse.success = false;
         updateResponse.message = failedMessage;
       }
       return updateResponse;
@@ -397,13 +555,6 @@ export module Services {
     }
 
     public getRecords(workflowState, recordType = undefined, start, rows = 10, username, roles, brand, editAccessOnly = undefined, packageType = undefined, sort = undefined, fieldNames = undefined, filterString = undefined, filterMode=undefined, secondarySort=undefined): Promise < any > {
-
-      
-      // sails.log.error('------------- Record Service -----------------------------');
-      // sails.log.error('fieldNames '+ fieldNames);
-      // sails.log.error('filterString '+ filterString);
-      // sails.log.error('filterMode '+ filterMode);
-      // sails.log.error('----------------------------------------------------------');
 
       return this.storageService.getRecords(workflowState, recordType, start, rows, username, roles, brand, editAccessOnly, packageType, sort, fieldNames, filterString, filterMode, secondarySort);
     }
@@ -559,6 +710,7 @@ export module Services {
       }
       _.set(targetRecord, fieldName, linkData);
       sails.log.verbose(`RecordsService::Updating record:${targetRecordOid}`);
+      
       return await this.updateMeta(null, targetRecordOid, targetRecord);
     }
 
@@ -987,6 +1139,42 @@ export module Services {
       // TODO: use RBValidationError.clName;
       const validationName = 'RBValidationError';
       return validationName == err.name;
+    }
+
+    public handleUpdateDataStream(oid, origRecord, metadata) {
+      const fileIdsAdded = [];
+
+      return this.datastreamService.updateDatastream(oid, origRecord, metadata, sails.config.record.attachments.stageDir, fileIdsAdded)
+        .concatMap(reqs => {
+          if (reqs) {
+            sails.log.verbose(`Updating data streams...`);
+            return Observable.from(reqs);
+          } else {
+            sails.log.verbose(`No datastreams to update...`);
+            return Observable.of(null);
+          }
+        })
+        .concatMap((promise) => {
+          if (promise) {
+            sails.log.verbose(`Update datastream request is...`);
+            sails.log.verbose(JSON.stringify(promise));
+            return promise.catch(e => {
+              sails.log.verbose(`Error in updating stream::::`);
+              sails.log.verbose(JSON.stringify(e));
+              return Observable.throwError(new Error(TranslationService.t('attachment-upload-error')));
+            });
+          } else {
+            return Observable.of(null);
+          }
+        })
+        .concatMap(updateResp => {
+          if (updateResp) {
+            sails.log.verbose(`Got response from update datastream request...`);
+            sails.log.verbose(JSON.stringify(updateResp));
+          }
+          return Observable.of(updateResp);
+        })
+        .last();
     }
   }
 }
