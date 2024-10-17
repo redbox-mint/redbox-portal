@@ -442,6 +442,12 @@ export module Controllers {
       this.updateInternal(req, res).then(result => { });
     }
 
+    private isValidationError(err: Error) {
+      // TODO: use RBValidationError.clName;
+      const validationName = 'RBValidationError';
+      return validationName == err.name;
+    }
+
     private async updateInternal(req, res) {
       const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
       const oid = req.param('oid');
@@ -460,6 +466,7 @@ export module Controllers {
       if (targetStep) {
         nextStepResp = await WorkflowStepsService.get(recordType, targetStep).toPromise();
       }
+
       let response;
       try {
         sails.log.verbose(`RecordController - updateInternal - before updateMeta`);
