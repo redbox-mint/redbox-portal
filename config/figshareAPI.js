@@ -1,7 +1,7 @@
 module.exports.figshareAPI = {
     frontEndURL: 'https://cqu.figsh.com', //stage
     baseURL: 'https://api.figsh.com/v2', //stage
-    APIToken: '7e3923f206285754f243c70fb273ce6c7675e203eb55607e47d2de05eb58e56696750d264d4473e69ee7866950a2bb09019177973ae33a3640f35ce74ab7bda7', //Stage
+    APIToken: '', //Stage
     
     figArticleGroupId: 32014, //Dataset stage
     figArticleEmbargoOptions: [{id: 1780}], //adminstrator stage
@@ -42,5 +42,23 @@ module.exports.figshareAPI = {
         'Author Research Institute': '', 
         'Geolocation': '', // length 250
         'Full Text URL': ['']  
-      }
+      },
+      customFieldMappings: [
+        { 
+            figName: 'Number and size of Dataset', 
+            rbName: 'metadata.dataset-size', 
+            defaultValue: '' 
+        },
+        {
+            figName: 'Cultural Warning', 
+            rbName: 'metadata.-atsi-content',
+            template: '<%= _.get(record,field.rbName,"") == "yes" ? field.defaultValue : "" %>',
+            defaultValue: 'This research output may contain the names and images of Aboriginal and Torres Strait Islander people now deceased. We apologize for any distress that may occur.' 
+        },
+        { 
+            figName: 'Medium', 
+            rbName: 'metadata.dataset-format', 
+            defaultValue: '' 
+        }
+      ]
 }

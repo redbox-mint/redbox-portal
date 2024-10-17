@@ -31,7 +31,7 @@ declare let TranslationService;
 
 export module Services {
 
-  export class FigshareTrigger extends services.Core.Service {
+  export class FigshareService extends services.Core.Service {
 
     private datastreamService: DatastreamService;
     private queueService: QueueService;
@@ -538,6 +538,25 @@ export module Services {
       }
     }
 
+    private setCustomFieldInRequestBody(record: any, customFieldsTemplate:any, keyName:string) {
+        let customFieldMapping = _.find(sails.config.figshareAPI.customFieldMappings, { 'figName': keyName });
+        let value = '';
+        if(_.isObject(customFieldMapping)) {
+          let template = _.get(customFieldMapping,'template','');
+          if(template.indexOf('<%') != -1) {
+            let context = {
+              record: record,
+              moment: moment,
+              field: customFieldMapping
+            }
+            value = _.template(template)(context);
+          } else {
+            value = _.get(record,customFieldMapping.rbName,customFieldMapping.defaultValue);
+          }
+          _.set(customFieldsTemplate, keyName, value);
+        }
+    }
+
     private setCFCulturalWarning(dataPublicationRecord, customFields) {
       let figArtCulturalWarning = sails.config.figshareAPI.culturalWarning;
       if(_.has(dataPublicationRecord, this.metadataDP + '.' + this.culuralWarningDP)) {
@@ -781,17 +800,24 @@ export module Services {
       this.setArticleAuthors(figshareAccountAuthorIDs, requestBodyUpdate);
       this.setArticleLicense(dataPublicationRecord, requestBodyUpdate);
       this.setArticleCategories(dataPublicationRecord, requestBodyUpdate);
+
+      let customFieldsKeys = _.keys(customFields);
+      for(let customFieldKey of customFieldsKeys) {
+        this.setCustomFieldInRequestBody(dataPublicationRecord, customFields, customFieldKey);
+      }
+
+    //   this.setCFSizeOfDataset(dataPublicationRecord, customFields);
+    //   this.setCFCulturalWarning(dataPublicationRecord, customFields);
+    //   this.setCFDatasetMedium(dataPublicationRecord, customFields);
+
       this.setCFOpenAccess(dataPublicationRecord, customFields);
       this.setFullTextUrl(dataPublicationRecord, customFields);
       this.setCFSupervisors(dataPublicationRecord, customFields);
       this.setCFStartDate(dataPublicationRecord, customFields);
       this.setCFFinishDate(dataPublicationRecord, customFields);
-      this.setCFCulturalWarning(dataPublicationRecord, customFields);
       this.setCFLanguage(dataPublicationRecord, customFields);
       this.setCFGeolocation(dataPublicationRecord, customFields);
       this.setCFAdditionalRights(dataPublicationRecord, customFields);
-      this.setCFSizeOfDataset(dataPublicationRecord, customFields);
-      this.setCFDatasetMedium(dataPublicationRecord, customFields);
       this.setCFAuthorResearchInstitute(dataPublicationRecord, customFields);
 
       _.set(requestBodyUpdate, this.customFieldsFA, customFields);
@@ -1703,4 +1729,4 @@ export module Services {
 
   }
 }
-module.exports = new Services.FigshareTrigger().exports();
+module.exports = new Services.FigshareService().exports();
