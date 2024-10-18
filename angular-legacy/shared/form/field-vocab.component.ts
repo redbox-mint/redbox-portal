@@ -22,7 +22,8 @@ import { SimpleComponent } from './field-simple.component';
 import { FieldBase } from './field-base';
 import { FormGroup, FormControl, Validators, ValidatorFn, AbstractControl, ValidationErrors } from '@angular/forms';
 import * as _ from "lodash";
-import { Observable } from 'rxjs';
+import { Observable, Subscription } from 'rxjs';
+import { debounceTime, distinctUntilChanged, switchMap } from 'rxjs/operators';
 import { Subject } from "rxjs/Subject";
 import 'rxjs/add/operator/toPromise';
 import 'rxjs/add/observable/of';
@@ -63,6 +64,7 @@ export class VocabField extends FieldBase<any> {
   public provider: string;
   public vocabQueryId: string;
   public vocabQueryResultMaxRows: string;
+  public queryDelayTimeMs: number;
   public resultArrayProperty: string;
   public unflattenFlag: boolean;
   public exactMatchString: boolean;
@@ -97,6 +99,7 @@ export class VocabField extends FieldBase<any> {
     this.provider = options['provider'] ? options['provider'] : '';
     this.vocabQueryId = options['vocabQueryId'] ? options['vocabQueryId'] : '';
     this.vocabQueryResultMaxRows = options['vocabQueryResultMaxRows'] ? options['vocabQueryResultMaxRows'] : '50';
+    this.queryDelayTimeMs = options['queryDelayTimeMs'] ? options['queryDelayTimeMs'] : 300;
     this.resultArrayProperty = options['resultArrayProperty'] ? options['resultArrayProperty'] : '';
     this.unflattenFlag = _.isUndefined(options['unflattenFlag']) ? false : options['unflattenFlag'];
     this.exactMatchString = _.isUndefined(options['exactMatchString']) ? false : options['exactMatchString'];
@@ -227,7 +230,8 @@ export class VocabField extends FieldBase<any> {
         this.titleFieldName,
         this.titleFieldArr,
         this.titleFieldDelim,
-        this.vocabQueryResultMaxRows
+        this.vocabQueryResultMaxRows,
+        this.queryDelayTimeMs
       );
     }
   }
@@ -433,6 +437,8 @@ export function objectRequired(): ValidationErrors|null {
 
 class ReDBoxQueryLookupDataService extends Subject<CompleterItem[]> implements CompleterData {
   storedEventData:any = null;
+  private searchTerms = new Subject<string>();
+  private searchSubscription: Subscription;
 
   constructor(private url: string,
     private http: Http,
@@ -440,11 +446,21 @@ class ReDBoxQueryLookupDataService extends Subject<CompleterItem[]> implements C
     private compositeTitleName: string,
     private titleFieldArr: string[],
     private titleFieldDelim: string,
-    private maxRows: string) {
+    private maxRows: string,
+    private queryDelayTimeMs: number = 300) {
     super();
+    this.searchSubscription = this.searchTerms.pipe(
+      debounceTime(this.queryDelayTimeMs), // Wait for a default 300ms of inactivity
+    ).subscribe(term => {
+      this.performSearch(term);
+    });
   }
 
   public search(term: string): void {
+    this.searchTerms.next(term);
+  }
+
+  public performSearch(term: string): void {
     let that = this;
     this.http.get(`${this.url}?search=${term}&start=0&rows=${this.maxRows}`).map((res: any, index: number) => {
       let data = res.json();
