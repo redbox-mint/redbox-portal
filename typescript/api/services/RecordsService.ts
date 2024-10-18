@@ -357,14 +357,6 @@ export module Services {
         }
       }
 
-      if (metadata.delete) {
-        //TODO - this code is deprecated and will be removed in next version
-        sails.log.error('RecordService - updateMeta - Delete record not allowed onSubmit record action');
-        updateResponse.success = false;
-        updateResponse.message = 'Delete record not allowed onSubmit record action';
-        return updateResponse;
-      }
-
       let form = await FormsService.getFormByName(record.metaMetadata.form, true).toPromise()
       record.metaMetadata.attachmentFields = form.attachmentFields;
       
