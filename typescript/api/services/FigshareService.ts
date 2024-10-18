@@ -204,6 +204,23 @@ export module Services {
       return config;
     }
     
+    private setStandardFieldInRequestBody(record:any, requestBody:any, standardField:any) {
+      let value = '';
+      let template = _.get(standardField,'template','');
+      if(template.indexOf('<%') != -1) {
+        let context = {
+          record: record,
+          moment: moment,
+          field: standardField
+        }
+        value = _.template(template)(context);      
+        sails.log[this.createUpdateFigshareArticleLogLevel](`FigArticle ---- standardField ---- ${standardField.figName} ----  template ---- ${value}`);
+      } else {
+        value = _.get(record,standardField.rbName,standardField.defaultValue);
+      }
+      _.set(requestBody, standardField.figName, value);
+    }
+
     private setArticleTitle(dataPublicationRecord, requestBody) {
       if(_.has(dataPublicationRecord, this.metadataDP + '.' + this.titleDP)) {
         let figArtTitle = dataPublicationRecord[this.metadataDP][this.titleDP];
@@ -301,14 +318,18 @@ export module Services {
         sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - has metadata.license-identifier-default '+dataPublicationRecord[this.metadataDP][this.licenseDPDefault]);
         let figArtLicenseDefault = dataPublicationRecord[this.metadataDP][this.licenseDPDefault];
         sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - figArtLicense default '+figArtLicenseDefault);
-        let figArtLicenseIDDefault = this.findLicenseValue(figArtLicenseDefault);
+        //TODO FIXME
+        // let figArtLicenseIDDefault = this.findLicenseValue(figArtLicenseDefault);
+        let figArtLicenseIDDefault = '123456';
         _.set(requestBody, this.licenseFA,  figArtLicenseIDDefault);
       } else {
         if(_.has(dataPublicationRecord, this.metadataDP+ '.' +this.licenseDP)) {
           sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - has metadata.license-identifier '+dataPublicationRecord[this.metadataDP][this.licenseDP]);
           let figArtLicense = dataPublicationRecord[this.metadataDP][this.licenseDP];
           sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - figArtLicense '+figArtLicense);
-          let figArtLicenseID = this.findLicenseValue(figArtLicense);
+          //TODO FIXME
+          // let figArtLicenseID = this.findLicenseValue(figArtLicense);
+          let figArtLicenseID = '123456';
           _.set(requestBody, this.licenseFA,  figArtLicenseID);
         }
       }
@@ -538,23 +559,24 @@ export module Services {
       }
     }
 
-    private setCustomFieldInRequestBody(record: any, customFieldsTemplate:any, keyName:string) {
-        let customFieldMapping = _.find(sails.config.figshareAPI.customFieldMappings, { 'figName': keyName });
-        let value = '';
-        if(_.isObject(customFieldMapping)) {
-          let template = _.get(customFieldMapping,'template','');
-          if(template.indexOf('<%') != -1) {
-            let context = {
-              record: record,
-              moment: moment,
-              field: customFieldMapping
-            }
-            value = _.template(template)(context);
-          } else {
-            value = _.get(record,customFieldMapping.rbName,customFieldMapping.defaultValue);
+    private setCustomFieldInRequestBody(record: any, customFieldsTemplate:any, keyName:string, customFieldsMappings:any) {
+      let customField = _.find(customFieldsMappings, { 'figName': keyName });
+      let value = '';
+      if(_.isObject(customField)) {
+        let template = _.get(customField,'template','');
+        if(template.indexOf('<%') != -1) {
+          let context = {
+            record: record,
+            moment: moment,
+            field: customField
           }
-          _.set(customFieldsTemplate, keyName, value);
+          value = _.template(template)(context);      
+          sails.log[this.createUpdateFigshareArticleLogLevel](`FigArticle ---- ${keyName} ----  template ---- ${value}`);
+        } else {
+          value = _.get(record,customField.rbName,customField.defaultValue);
         }
+        _.set(customFieldsTemplate, keyName, value);
+      }
     }
 
     private setCFCulturalWarning(dataPublicationRecord, customFields) {
@@ -792,10 +814,14 @@ export module Services {
       //group_id = 32014 = dataset
       //Item Type = defined_type = dataset 
       let requestBodyUpdate = new FigshareArticleUpdate(this.figArticleGroupId,this.figArticleItemType); 
-      this.setArticleTitle(dataPublicationRecord, requestBodyUpdate);
-      this.setArticleDescription(dataPublicationRecord, requestBodyUpdate);
-      this.setArticleKeywords(dataPublicationRecord, requestBodyUpdate);
-      this.setArticleFunding(dataPublicationRecord, requestBodyUpdate);
+
+      for(let standardField of sails.config.figshareAPI.standardFieldsMappings) {
+        this.setStandardFieldInRequestBody(dataPublicationRecord,requestBodyUpdate,standardField);
+      }
+      // this.setArticleTitle(dataPublicationRecord, requestBodyUpdate);
+      // this.setArticleDescription(dataPublicationRecord, requestBodyUpdate);
+      // this.setArticleKeywords(dataPublicationRecord, requestBodyUpdate);
+      // this.setArticleFunding(dataPublicationRecord, requestBodyUpdate);
       this.setArticleResource(dataPublicationRecord, requestBodyUpdate);
       this.setArticleAuthors(figshareAccountAuthorIDs, requestBodyUpdate);
       this.setArticleLicense(dataPublicationRecord, requestBodyUpdate);
@@ -803,21 +829,20 @@ export module Services {
 
       let customFieldsKeys = _.keys(customFields);
       for(let customFieldKey of customFieldsKeys) {
-        this.setCustomFieldInRequestBody(dataPublicationRecord, customFields, customFieldKey);
+        this.setCustomFieldInRequestBody(dataPublicationRecord, customFields, customFieldKey, sails.config.figshareAPI.customFieldsMappings);
       }
 
-    //   this.setCFSizeOfDataset(dataPublicationRecord, customFields);
-    //   this.setCFCulturalWarning(dataPublicationRecord, customFields);
-    //   this.setCFDatasetMedium(dataPublicationRecord, customFields);
-
-      this.setCFOpenAccess(dataPublicationRecord, customFields);
-      this.setFullTextUrl(dataPublicationRecord, customFields);
-      this.setCFSupervisors(dataPublicationRecord, customFields);
-      this.setCFStartDate(dataPublicationRecord, customFields);
-      this.setCFFinishDate(dataPublicationRecord, customFields);
-      this.setCFLanguage(dataPublicationRecord, customFields);
-      this.setCFGeolocation(dataPublicationRecord, customFields);
-      this.setCFAdditionalRights(dataPublicationRecord, customFields);
+      // this.setCFSizeOfDataset(dataPublicationRecord, customFields);
+      // this.setCFCulturalWarning(dataPublicationRecord, customFields);
+      // this.setCFDatasetMedium(dataPublicationRecord, customFields);
+      // this.setCFOpenAccess(dataPublicationRecord, customFields);
+      // this.setFullTextUrl(dataPublicationRecord, customFields);
+      // this.setCFSupervisors(dataPublicationRecord, customFields);
+      // this.setCFStartDate(dataPublicationRecord, customFields);
+      // this.setCFFinishDate(dataPublicationRecord, customFields);
+      // this.setCFLanguage(dataPublicationRecord, customFields);
+      // this.setCFGeolocation(dataPublicationRecord, customFields);
+      // this.setCFAdditionalRights(dataPublicationRecord, customFields);
       this.setCFAuthorResearchInstitute(dataPublicationRecord, customFields);
 
       _.set(requestBodyUpdate, this.customFieldsFA, customFields);
@@ -829,18 +854,24 @@ export module Services {
       let requestBodyCreate = new FigshareArticleImpersonate();
       //Open Access and Full Text URL custom fields have to be set on create because the figshare article 
       //cannot be Made non draft (publish) so reviewers can pick it up from the queue
-      let customFieldsImpersonate = {
-        'Open Access': ['No'],
-        'Full Text URL': ['']  
+      let customFieldsImpersonate = _.clone(sails.config.figshareAPI.customFieldsImpersonateTemplate);
+      let customFieldsKeys = _.keys(customFieldsImpersonate);
+      for(let customFieldKey of customFieldsKeys) {
+        this.setCustomFieldInRequestBody(dataPublicationRecord, customFieldsImpersonate, customFieldKey, sails.config.figshareAPI.customFieldsImpersonateMappings);
       }
+      // this.setCFOpenAccess(dataPublicationRecord, customFieldsImpersonate);
+      // this.setFullTextUrl(dataPublicationRecord, customFieldsImpersonate);
+
+      for(let standardField of sails.config.figshareAPI.standardFieldsImpersonateMappings) {
+        this.setStandardFieldInRequestBody(dataPublicationRecord,requestBodyCreate,standardField);
+      }
+      // this.setArticleTitle(dataPublicationRecord, requestBodyCreate);
+      // this.setArticleDescription(dataPublicationRecord, requestBodyCreate);
+      //this.setArticleKeywords(dataPublicationRecord, requestBodyCreate);
+
       this.setImpersonateID(figshareAccountAuthorIDs, requestBodyCreate);
-      this.setArticleTitle(dataPublicationRecord, requestBodyCreate);
-      this.setArticleDescription(dataPublicationRecord, requestBodyCreate);
-      this.setArticleKeywords(dataPublicationRecord, requestBodyCreate);
-      this.setArticleLicense(dataPublicationRecord, requestBodyCreate);
       this.setArticleCategories(dataPublicationRecord, requestBodyCreate);
-      this.setCFOpenAccess(dataPublicationRecord, customFieldsImpersonate);
-      this.setFullTextUrl(dataPublicationRecord, customFieldsImpersonate);
+      this.setArticleLicense(dataPublicationRecord, requestBodyCreate);
       _.set(requestBodyCreate, this.customFieldsFA, customFieldsImpersonate);
       return requestBodyCreate;
     }
@@ -876,7 +907,9 @@ export module Services {
         }
         sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - sendDataPublicationToFigshare - articleId '+articleId);
         let contributorsDP = this.getArticleAuthorsFromDP(dataPublicationRecord);
-        this.figshareAccountAuthorIDs = await this.getAuthorUserIDs(contributorsDP);
+        // this.figshareAccountAuthorIDs = await this.getAuthorUserIDs(contributorsDP);
+        //TODO FIXME
+        this.figshareAccountAuthorIDs = [{ id: 1234, 'user_id': 1234 }];
         sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - sendDataPublicationToFigshare - figshareAccountAuthorIDs');
         sails.log[this.createUpdateFigshareArticleLogLevel](this.figshareAccountAuthorIDs);
         if(articleId == 0) {
@@ -887,9 +920,20 @@ export module Services {
           //created and then a backend validation is thrown before update the DP record will not save the article ID given
           //this process is occurring in a pre save trigger 
           let dummyRequestBodyUpdate = this.getArticleUpdateRequestBody(dataPublicationRecord, this.figshareAccountAuthorIDs);
+          sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - -------------------------------------------');
+          sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - -------------------------------------------');
+          sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - -------------------------------------------');
+          sails.log[this.createUpdateFigshareArticleLogLevel](JSON.stringify(dummyRequestBodyUpdate));
           this.validateUpdateArticleRequestBody(dummyRequestBodyUpdate);
           
           let dummyEmbargoRequestBody = this.getEmbargoRequestBody(dataPublicationRecord, this.figshareAccountAuthorIDs);
+          sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - -------------------------------------------');
+          sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - -------------------------------------------');
+          sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - -------------------------------------------');
+          sails.log[this.createUpdateFigshareArticleLogLevel](JSON.stringify(dummyEmbargoRequestBody));
+          sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - -------------------------------------------');
+          sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - -------------------------------------------');
+          sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - -------------------------------------------');
           this.validateEmbargoRequestBody(dataPublicationRecord, dummyEmbargoRequestBody);
 
           //config for create article
@@ -903,7 +947,19 @@ export module Services {
           sails.log[this.createUpdateFigshareArticleLogLevel](JSON.stringify(requestBodyCreate));
 
           //create article
-          let responseCreate = await axios(figshareArticleConfig);
+          //TODO FIXME
+          let responseCreate = { 
+            status: 'success',
+            statusText: 'success',
+            data: {
+              "entity_id": 11117777,
+              location: `${sails.config.figshareAPI.baseURL}/account/articles/articleLocation`,
+              warnings: [
+                "string"
+              ]
+            }
+          };
+          // let responseCreate = await axios(figshareArticleConfig);
           sails.log[this.createUpdateFigshareArticleLogLevel](`FigArticle - sendDataPublicationToFigshare status: ${responseCreate.status} statusText: ${responseCreate.statusText}`);
 
           //Note that lodash isEmpty will return true if the value is a number therefore had to be removed from the condition 
@@ -926,8 +982,9 @@ export module Services {
                 let requestBodyPublishAfterCreate = this.getPublishRequestBody(this.figshareAccountAuthorIDs);
                 let publishConfig = this.getAxiosConfig('post', `/account/articles/${articleId}/publish`, requestBodyPublishAfterCreate);
                 sails.log[this.createUpdateFigshareArticleLogLevel](`FigArticle - sendDataPublicationToFigshare ${publishConfig.method} - ${publishConfig.url}`);
-                let responsePublish = await axios(publishConfig);
-                sails.log[this.createUpdateFigshareArticleLogLevel](`FigArticle - sendDataPublicationToFigshare status: ${responsePublish.status} statusText: ${responsePublish.statusText}`);
+                //TODO FIXME
+                // let responsePublish = await axios(publishConfig);
+                // sails.log[this.createUpdateFigshareArticleLogLevel](`FigArticle - sendDataPublicationToFigshare status: ${responsePublish.status} statusText: ${responsePublish.statusText}`);
               }
             }
           }

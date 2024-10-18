@@ -29,6 +29,53 @@ module.exports.figshareAPI = {
         {figshareName: 'Centre for Regional Advancement of Learning, Equity, Access and Participation (LEAP)', redboxName: ''}, //In Figshare only for historical purposes no need to be send across
         {figshareName: 'Centre for Regional Economics and Supply Chain (RESC)', redboxName: 'Centre for Regional Economies and Supply Chains (CRESC)'}
     ],
+    customFieldsImpersonateTemplate: {
+        'Open Access': ['No'],
+        'Full Text URL': ['']
+    },
+    customFieldsImpersonateMappings: [
+        { 
+            figName: 'Open Access', 
+            rbName: 'metadata.access-rights',
+            template: `<% let val = [field.defaultValue];
+                         if(_.get(record,field.rbName,'') == 'Open Access') {
+                           val = ['Yes'];
+                         }
+                         return val;
+                        %>`,
+            defaultValue: 'No' 
+        },
+        { 
+            figName: 'Full Text URL', 
+            rbName: 'metadata.dataLocations',
+            template: `<% let dataLocations = _.get(record,field.rbName,[]);
+                         for(let attachmentFile of dataLocations) {
+                           if(!_.isUndefined(attachmentFile) && !_.isEmpty(attachmentFile) && attachmentFile.type == 'url') {
+                             return [attachmentFile.location];
+                           }
+                         }
+                         return [field.defaultValue];
+                       %>`,
+            defaultValue: '' 
+        }
+    ],
+    standardFieldsImpersonateMappings: [
+        { 
+            figName: 'title', 
+            rbName: 'metadata.title', 
+            defaultValue: ''
+        },
+        { 
+            figName: 'description', 
+            rbName: 'metadata.description',
+            defaultValue: ''
+        },
+        { 
+            figName: 'keywords',
+            rbName: 'metadata.finalKeywords',
+            defaultValue: ['']
+        }
+    ],
     customFieldsTemplate: {
         'Supervisor': '', //max length 250
         'Open Access': ['No'],
@@ -43,7 +90,7 @@ module.exports.figshareAPI = {
         'Geolocation': '', // length 250
         'Full Text URL': ['']  
       },
-      customFieldMappings: [
+      customFieldsMappings: [
         { 
             figName: 'Number and size of Dataset', 
             rbName: 'metadata.dataset-size', 
@@ -59,6 +106,148 @@ module.exports.figshareAPI = {
             figName: 'Medium', 
             rbName: 'metadata.dataset-format', 
             defaultValue: '' 
+        },
+        { 
+            figName: 'Open Access', 
+            rbName: 'metadata.access-rights',
+            template: `<% let val = [field.defaultValue];
+                         if(_.get(record,field.rbName,'') == 'Open Access') {
+                           val = ['Yes'];
+                         }
+                         return val;
+                        %>`,
+            defaultValue: 'No' 
+        },
+        { 
+            figName: 'Full Text URL', 
+            rbName: 'metadata.dataLocations',
+            template: `<% let dataLocations = _.get(record,field.rbName,[]);
+                         for(let attachmentFile of dataLocations) {
+                           if(!_.isUndefined(attachmentFile) && !_.isEmpty(attachmentFile) && attachmentFile.type == 'url') {
+                             return [attachmentFile.location];
+                           }
+                         }
+                         return [field.defaultValue];
+                       %>`,
+            defaultValue: '' 
+        },
+        { 
+            figName: 'Supervisor',
+            rbName: 'metadata.contributor_supervisor',
+            template: `<% let supervisorsStringList = field.defaultValue;
+                         let supervisors = _.get(record,field.rbName);
+                         if(!_.isUndefined(supervisors)) {
+                           for(let supervisor of supervisors) {
+                             if(!_.isUndefined(supervisor['text_full_name']) && supervisor['text_full_name'] != null && supervisor['text_full_name'] != 'null') {
+                               if(_.isEmpty(supervisorsStringList)) {
+                                 supervisorsStringList = supervisor['text_full_name'];
+                               } else {
+                                 supervisorsStringList = supervisorsStringList + ', ' + supervisor['text_full_name'];
+                               }
+                             }
+                           }
+                         }
+                         return supervisorsStringList;
+                       %>`,
+            defaultValue: ''
+        },
+        { 
+            figName: 'Start Date',
+            rbName: 'metadata.startDate',
+            template: `<% let val = field.defaultValue;
+                         let startDate = _.get(record,field.rbName,'');
+                         if(startDate != '' && startDate != 'Invalid date') {
+                           val = startDate;
+                         }
+                         return val;
+                       %>`,
+            defaultValue: ''
+        },
+        { 
+            figName: 'Finish Date',
+            rbName: 'metadata.endDate',
+            template: `<% let val = field.defaultValue;
+                         let endDate = _.get(record,field.rbName,'');
+                         if(endDate != '' && endDate != 'Invalid date') {
+                           val = endDate;
+                         }
+                         return val;
+                       %>`,
+            defaultValue: ''
+        },
+        { 
+            figName: 'Language',
+            rbName: 'metadata.languages',
+            template: `<% let val = field.defaultValue;
+                         let languages = _.get(record,field.rbName,[]);
+                         for(let language of languages) {
+                           if(!_.isEmpty(language)){
+                             if(_.isEmpty(val)) {
+                               val = language;
+                             } else {
+                               val = val + ', ' + language;
+                             }
+                           }
+                         }
+                         return val;
+                       %>`,
+            defaultValue: ''
+        },
+        { 
+            figName: 'Geolocation',
+            rbName: 'metadata.geolocations',
+            template: `<% let val = field.defaultValue;
+                         let locationNames = _.get(record,field.rbName,[]);
+                         for(let location of locationNames) {
+                           let loc = _.get(location,'basic_name','');
+                           if(!_.isEmpty(loc)){
+                             if(_.isEmpty(val)) {
+                               val = loc;
+                             } else {
+                               val = val + ', ' + loc;
+                             }
+                           }
+                         }
+                         return val;
+                       %>`,
+            defaultValue: ''
+        },
+        { 
+            figName: 'Additional Rights',
+            rbName: 'metadata.third-party-licences',
+            template: `<% let val = field.defaultValue;
+                         let thirdPartyLicences = _.get(record,field.rbName,[]);
+                         for(let thirdParty of thirdPartyLicences) {
+                           if(!_.isEmpty(thirdParty)) {
+                             val = thirdParty;
+                             return val;
+                           }
+                         }
+                         return val;
+                       %>`,
+            defaultValue: ''
         }
+      ],
+      standardFieldsMappings: [
+          { 
+              figName: 'title', 
+              rbName: 'metadata.title', 
+              defaultValue: ''
+          },
+          { 
+              figName: 'description', 
+              rbName: 'metadata.description',
+              defaultValue: ''
+          },
+          { 
+              figName: 'keywords',
+              rbName: 'metadata.finalKeywords',
+              defaultValue: ['']
+          },
+          { 
+              figName: 'funding',
+              rbName: 'metadata.project-funding',
+              defaultValue: ''
+          }
       ]
 }
