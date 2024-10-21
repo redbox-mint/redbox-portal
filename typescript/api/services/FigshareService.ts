@@ -38,36 +38,19 @@ export module Services {
 
     //Data publication metadata
     private metadataDP = 'metadata';
-    private titleDP = 'title';
-    private descriptionDP = 'description';
-    private finalKeywordsDP = 'finalKeywords';
-    private projectFundingDP = 'project-funding';
     private fullEmgardoDateDP = 'full-embargo-until';
     private fileEmbargoDateDP = 'file-embargo-until';
     private embargoNoteDP = 'embargoNote';
     private licenseDP = 'license-identifier';
     private licenseDPDefault = 'license-identifier-default';
-    private relatedPublicationsDP = 'related_publications';
-    private relatedURL_DP = 'related_url';
     private mintDCIdentifierDP = 'dc_identifier';
     private emailDP = 'email[0]';
     private contributorCI_DP = 'contributor_ci';
     private contributorsDP = 'contributors';
-    private contributorSupervisorDP = 'contributor_supervisor';
-    private startDateDP = 'startDate'; 
-    private endDateDP = 'endDate';
     private anzsrcForDP = 'anzsrcFor'; 
     private figshareArticleID_DP = 'figshare_article_id';
     private figshareArticleLocationDP = 'figshare_article_location';
     private accessRightDP = 'access-rights';
-    private culuralWarningDP = '-atsi-content';
-    private languageDP = 'languages';
-    private thirdPartyLicencesDP = 'third-party-licences';
-    private datasetSizeDP = 'dataset-size';
-    private datasetFormatDP = 'dataset-format';
-    private authorResearchInstituteDP = 'research-center';
-    private geolocationsDP = 'geolocations';
-    private geolocationBasicNameDP = 'basic_name';
     private dataLocationsDP = 'dataLocations'; 
 
     //Figshare authors
@@ -78,10 +61,6 @@ export module Services {
     private authorTextFullName = 'text_full_name';
 
     //Figshare article
-    private titleFA = 'title';
-    private descriptionFA = 'description';
-    private keywordsFA = 'keywords';
-    private fundingFA = 'funding';
     private isEmbargoedFA = 'is_embargoed';
     private embargoDateFA = 'embargo_date';
     private embargoTypeFA = 'embargo_type';
@@ -108,15 +87,10 @@ export module Services {
 
     private customFieldsFA = 'custom_fields';
     private customFieldSupervisor = 'Supervisor'
-    private customFieldOpenAccess = 'Open Access'; 
-    private customFieldStartDate = 'Start Date'; 
-    private customFieldFinishDate = 'Finish Date'; 
-    private customFieldCulturalWarning = 'Cultural Warning';
     private customFieldLanguageFA = 'Language';
     private customFieldAdditionalRights = 'Additional Rights';
     private customFieldSizeOfDataset = 'Number and size of Dataset';
     private customFieldMedium = 'Medium';
-    private customFieldAuthorResearchInstitute = 'Author Research Institute';
     private customFieldGeolocation = 'Geolocation';
     private customFullTextURL = 'Full Text URL';
 
@@ -211,7 +185,8 @@ export module Services {
         let context = {
           record: record,
           moment: moment,
-          field: standardField
+          field: standardField,
+          artifacts: sails.config.figshareAPI.mapping.artifacts
         }
         value = _.template(template)(context);      
         sails.log[this.createUpdateFigshareArticleLogLevel](`FigArticle ---- standardField ---- ${standardField.figName} ----  template ---- ${value}`);
@@ -219,34 +194,6 @@ export module Services {
         value = _.get(record,standardField.rbName,standardField.defaultValue);
       }
       _.set(requestBody, standardField.figName, value);
-    }
-
-    private setArticleTitle(dataPublicationRecord, requestBody) {
-      if(_.has(dataPublicationRecord, this.metadataDP + '.' + this.titleDP)) {
-        let figArtTitle = dataPublicationRecord[this.metadataDP][this.titleDP];
-        _.set(requestBody, this.titleFA, figArtTitle);
-      }
-    }
-    
-    private setArticleDescription(dataPublicationRecord, requestBody) {
-      if(_.has(dataPublicationRecord, this.metadataDP + '.' + this.descriptionDP)) {
-        let figArtDesc = dataPublicationRecord[this.metadataDP][this.descriptionDP];
-        _.set(requestBody, this.descriptionFA, figArtDesc);
-      }
-    }
-    
-    private setArticleKeywords(dataPublicationRecord, requestBody) {
-      if(_.has(dataPublicationRecord, this.metadataDP + '.' + this.finalKeywordsDP)) {
-        let figArtKeywords = dataPublicationRecord[this.metadataDP][this.finalKeywordsDP];
-        _.set(requestBody, this.keywordsFA, figArtKeywords);
-      }
-    }
-    
-    private setArticleFunding(dataPublicationRecord, requestBody) {
-      if(_.has(dataPublicationRecord, this.metadataDP + '.' + this.projectFundingDP)) {
-        let figArtFunding = dataPublicationRecord[this.metadataDP][this.projectFundingDP];
-        _.set(requestBody, this.fundingFA, figArtFunding);
-      }
     }
     
     //Figshare documentation https://docs.figshare.com/#private_article_embargo_update
@@ -333,18 +280,6 @@ export module Services {
           _.set(requestBody, this.licenseFA,  figArtLicenseID);
         }
       }
-    }
-    
-    private setArticleResource(dataPublicationRecord, requestBody) {
-      let doiUrl = dataPublicationRecord[this.metadataDP][this.relatedPublicationsDP][0][this.relatedURL_DP];
-      sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - setArticleResource enter '+doiUrl);
-      if(!_.isEmpty(doiUrl)) {
-          let figArtResourceDOI = dataPublicationRecord[this.metadataDP][this.relatedPublicationsDP][0];
-          _.set(requestBody, this.resourceTitleFA, figArtResourceDOI.related_title);
-          let resourceDOI = figArtResourceDOI[this.relatedURL_DP];
-          sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - resourceDOI '+resourceDOI);
-          _.set(requestBody, this.resourceDOI_FA, resourceDOI); 
-        }
     }
 
     private getOtherContributor(author) {
@@ -483,81 +418,6 @@ export module Services {
       sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - setArticleImpersonateID - accountId '+accountId);
       _.set(requestBody, this.impersonateFA, accountId);
     } 
-    
-    private setCFSupervisors(dataPublicationRecord, customFields) {
-      let figArtSupervisors = '';
-      if(!_.isUndefined(dataPublicationRecord[this.metadataDP][this.contributorSupervisorDP])) {
-        let dataPubSupervisor = dataPublicationRecord[this.metadataDP][this.contributorSupervisorDP];
-        for(let supervisor of dataPubSupervisor) { 
-          if(!_.isUndefined(supervisor[this.authorTextFullName]) 
-            && supervisor[this.authorTextFullName] != null
-            && supervisor[this.authorTextFullName] != 'null'){
-            if(_.isEmpty(figArtSupervisors)) {
-              figArtSupervisors = supervisor[this.authorTextFullName];
-            } else {
-              figArtSupervisors = figArtSupervisors + ', ' + supervisor[this.authorTextFullName];
-            }
-          }
-        }
-        _.set(customFields, this.customFieldSupervisor, figArtSupervisors);
-      }
-    }
-    
-    private setCFLanguage(dataPublicationRecord, customFields) {
-      let figArtLanguages = '';
-      if(_.has(dataPublicationRecord, this.metadataDP + '.' + this.languageDP)) {
-        let dataPubLanguages = dataPublicationRecord[this.metadataDP][this.languageDP];
-        for(let language of dataPubLanguages) { 
-          if(!_.isEmpty(language)){
-            if(_.isEmpty(figArtLanguages)) {
-              figArtLanguages = language;
-            } else {
-              figArtLanguages = figArtLanguages + ', ' + language;
-            }
-          }
-        }
-        _.set(customFields, this.customFieldLanguageFA, figArtLanguages);
-      }
-    }
-
-    private setCFGeolocation(dataPublicationRecord, customFields) {
-      let figArtGeolocations = '';
-      if(_.has(dataPublicationRecord, this.metadataDP + '.' + this.geolocationsDP)) {
-        let dataPubLocationNames = dataPublicationRecord[this.metadataDP][this.geolocationsDP];
-        sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - dataPubLocationNames '+dataPubLocationNames);
-        for(let locationName of dataPubLocationNames) { 
-          sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - locationName '+locationName);
-          if(_.has(locationName, this.geolocationBasicNameDP) && !_.isEmpty(locationName[this.geolocationBasicNameDP])){
-            if(_.isEmpty(figArtGeolocations)) {
-              figArtGeolocations = locationName[this.geolocationBasicNameDP];
-            } else {
-              figArtGeolocations = figArtGeolocations + ', ' + locationName[this.geolocationBasicNameDP];
-            }
-          }
-        }
-        _.set(customFields, this.customFieldGeolocation, figArtGeolocations);
-      }
-    }
-
-    private setCFAdditionalRights(dataPublicationRecord, customFields) {
-      let figArtAdditionalRights = '';
-      if(_.has(dataPublicationRecord, this.metadataDP + '.' + this.thirdPartyLicencesDP)) {
-        let dataPubThirdParties = dataPublicationRecord[this.metadataDP][this.thirdPartyLicencesDP];
-        for(let thirdParty of dataPubThirdParties) { 
-          if(!_.isEmpty(thirdParty)){
-            //only add the first one
-            if(_.isEmpty(figArtAdditionalRights)) {
-              figArtAdditionalRights = thirdParty;
-              break;
-            } 
-          }
-        }
-        
-        if(_.has(customFields,this.customFieldAdditionalRights)) {
-          _.set(customFields, this.customFieldAdditionalRights, figArtAdditionalRights);
-        }
-      }
-    }
 
     private setCustomFieldInRequestBody(record: any, customFieldsTemplate:any, keyName:string, customFieldsMappings:any) {
       let customField = _.find(customFieldsMappings, { 'figName': keyName });
@@ -568,7 +428,8 @@ export module Services {
           let context = {
             record: record,
             moment: moment,
-            field: customField
+            field: customField,
+            artifacts: sails.config.figshareAPI.mapping.artifacts
           }
           value = _.template(template)(context);      
           sails.log[this.createUpdateFigshareArticleLogLevel](`FigArticle ---- ${keyName} ----  template ---- ${value}`);
@@ -578,111 +439,7 @@ export module Services {
         _.set(customFieldsTemplate, keyName, value);
       }
     }
-
-    private setCFCulturalWarning(dataPublicationRecord, customFields) {
-      let figArtCulturalWarning = sails.config.figshareAPI.culturalWarning;
-      if(_.has(dataPublicationRecord, this.metadataDP + '.' + this.culuralWarningDP)) {
-        let dataPubCulturalWarning = dataPublicationRecord[this.metadataDP][this.culuralWarningDP];
-        if(!_.isUndefined(dataPubCulturalWarning) && !_.isEmpty(dataPubCulturalWarning) && dataPubCulturalWarning == 'yes') {
-          _.set(customFields, this.customFieldCulturalWarning, figArtCulturalWarning);
-        } else {
-          _.set(customFields, this.customFieldCulturalWarning, '');
-        }
-      }
-    }
-    
-    private setCFAuthorResearchInstitute(dataPublicationRecord, customFields) {
-      let authorRsearchInstitutes = sails.config.figshareAPI.authorResearchInstitute;
-      let figshareAuthorRIs = [];
-      if(!_.isUndefined(authorRsearchInstitutes) && !_.isEmpty(authorRsearchInstitutes) && 
-         !_.isEmpty(dataPublicationRecord[this.metadataDP][this.authorResearchInstituteDP])){
-        for(let aRI of dataPublicationRecord[this.metadataDP][this.authorResearchInstituteDP]) {
-          let aRIMappedFigshareName = _.find(authorRsearchInstitutes, ['redboxName', aRI]);
-          if(!_.isUndefined(aRIMappedFigshareName)){
-            figshareAuthorRIs.push(aRIMappedFigshareName['figshareName']);
-          }
-        }
-        if(!_.isEmpty(figshareAuthorRIs)) {
-          sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - setCFAuthorResearchInstitute - figshareAuthorRIs '+figshareAuthorRIs);
-          _.set(customFields, this.customFieldAuthorResearchInstitute, figshareAuthorRIs);
-        } else {
-          _.set(customFields, this.customFieldAuthorResearchInstitute, []);
-        }
-      }
-    }
-
-    private setCFDatasetMedium(dataPublicationRecord, customFields) {
-      let figArtDatasetMedium = '';
-      if(_.has(dataPublicationRecord, this.metadataDP + '.' + this.datasetFormatDP)) {
-        let dataPubDatasetFormat = dataPublicationRecord[this.metadataDP][this.datasetFormatDP];
-        if(!_.isUndefined(dataPubDatasetFormat) && !_.isEmpty(dataPubDatasetFormat)) {
-          figArtDatasetMedium = dataPubDatasetFormat;
-          sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - setCFMediumFA - figArtDatasetMedium '+figArtDatasetMedium);
-          _.set(customFields, this.customFieldMedium, figArtDatasetMedium);
-        } else {
-          _.set(customFields, this.customFieldMedium, '');
-        }
-      }
-    }
-
-    private setCFSizeOfDataset(dataPublicationRecord, customFields) {
-      let figArtSizeOfDataset = '';
-      if(_.has(dataPublicationRecord, this.metadataDP + '.' + this.datasetSizeDP)) {
-        let dataPubDatasetSize = dataPublicationRecord[this.metadataDP][this.datasetSizeDP];
-        if(!_.isUndefined(dataPubDatasetSize) && !_.isEmpty(dataPubDatasetSize)) {
-          figArtSizeOfDataset = dataPubDatasetSize;
-          sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - setCFSizeOfDataset - figArtSizeOfDataset '+figArtSizeOfDataset);
-          _.set(customFields, this.customFieldSizeOfDataset, figArtSizeOfDataset);
-        } else {
-          _.set(customFields, this.customFieldSizeOfDataset, '');
-        }
-      }
-    }
-    
-    private setCFOpenAccess(dataPublicationRecord, customFields) {
-      let figArtOpenAccess = ['No'];
-      if(_.has(dataPublicationRecord, this.metadataDP+'.'+this.accessRightDP) && !_.isEmpty(dataPublicationRecord[this.metadataDP][this.accessRightDP])) {
-        let dataPubAccessRights = dataPublicationRecord[this.metadataDP][this.accessRightDP];
-        if(dataPubAccessRights == 'Open Access') {
-          figArtOpenAccess = ['Yes'];
-        }
-      }
-      sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - setCFOpenAccess - figArtOpenAccess '+figArtOpenAccess);
-      _.set(customFields, this.customFieldOpenAccess, figArtOpenAccess);
-    }
-    
-    private setCFStartDate(dataPublicationRecord, customFields) {
-      if(_.has(dataPublicationRecord, this.metadataDP + '.' + this.startDateDP) && !_.isEmpty(dataPublicationRecord[this.metadataDP][this.startDateDP])
-        && dataPublicationRecord[this.metadataDP][this.startDateDP] != 'Invalid date') {
-        let figArtStartDate = dataPublicationRecord[this.metadataDP][this.startDateDP];
-        sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - figArtStartDate '+figArtStartDate);
-        _.set(customFields, this.customFieldStartDate, figArtStartDate);
-      } else {
-        _.set(customFields, this.customFieldStartDate, '');
-      }
-    }
-    
-    private setCFFinishDate(dataPublicationRecord, customFields) {
-      if(_.has(dataPublicationRecord, this.metadataDP + '.' + this.endDateDP) && !_.isEmpty(dataPublicationRecord[this.metadataDP][this.endDateDP])
-        && dataPublicationRecord[this.metadataDP][this.endDateDP] != 'Invalid date') {
-        let figArtFinishDate = dataPublicationRecord[this.metadataDP][this.endDateDP];
-        sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - figArtFinishDate '+figArtFinishDate);
-        _.set(customFields, this.customFieldFinishDate, figArtFinishDate);
-      } else {
-        _.set(customFields, this.customFieldFinishDate, '');
-      }
-    }
-
-    private setFullTextUrl(dataPublicationRecord, customFields) {
-      let dataLocations = dataPublicationRecord[this.metadataDP][this.dataLocationsDP];
-      for(let attachmentFile of dataLocations) {
-        if(!_.isUndefined(attachmentFile) && !_.isEmpty(attachmentFile) && attachmentFile.type == 'url') {
-          _.set(customFields, this.customFullTextURL, [attachmentFile.location]);
-          break;
-        }
-      }
-    }
-
+  
     private findCategoryIDs(dpCategories) {
       let catIDs = [];
       if(!_.isUndefined(this.for2020To2008Mapping) && !_.isEmpty(this.for2020To2008Mapping)){
@@ -810,40 +567,25 @@ export module Services {
 
     private getArticleUpdateRequestBody(dataPublicationRecord, figshareAccountAuthorIDs) {
       //Custom_fields is a dict not an array 
-      let customFields = _.clone(sails.config.figshareAPI.customFieldsTemplate);
+      let customFields = _.clone(sails.config.figshareAPI.mapping.templates.customFields.update);
       //group_id = 32014 = dataset
       //Item Type = defined_type = dataset 
       let requestBodyUpdate = new FigshareArticleUpdate(this.figArticleGroupId,this.figArticleItemType); 
 
-      for(let standardField of sails.config.figshareAPI.standardFieldsMappings) {
+      //TODO FIXE me build artifacts and template context only once to keep memory usage efficient
+
+      for(let standardField of sails.config.figshareAPI.mapping.standardFields.update) {
         this.setStandardFieldInRequestBody(dataPublicationRecord,requestBodyUpdate,standardField);
       }
-      // this.setArticleTitle(dataPublicationRecord, requestBodyUpdate);
-      // this.setArticleDescription(dataPublicationRecord, requestBodyUpdate);
-      // this.setArticleKeywords(dataPublicationRecord, requestBodyUpdate);
-      // this.setArticleFunding(dataPublicationRecord, requestBodyUpdate);
-      this.setArticleResource(dataPublicationRecord, requestBodyUpdate);
+      //TODO FIXME make below methods configurable that are dependent on live artifacts that get retrieved at runtime
       this.setArticleAuthors(figshareAccountAuthorIDs, requestBodyUpdate);
       this.setArticleLicense(dataPublicationRecord, requestBodyUpdate);
       this.setArticleCategories(dataPublicationRecord, requestBodyUpdate);
 
       let customFieldsKeys = _.keys(customFields);
       for(let customFieldKey of customFieldsKeys) {
-        this.setCustomFieldInRequestBody(dataPublicationRecord, customFields, customFieldKey, sails.config.figshareAPI.customFieldsMappings);
+        this.setCustomFieldInRequestBody(dataPublicationRecord, customFields, customFieldKey, sails.config.figshareAPI.mapping.customFields.update);
       }
-
-      // this.setCFSizeOfDataset(dataPublicationRecord, customFields);
-      // this.setCFCulturalWarning(dataPublicationRecord, customFields);
-      // this.setCFDatasetMedium(dataPublicationRecord, customFields);
-      // this.setCFOpenAccess(dataPublicationRecord, customFields);
-      // this.setFullTextUrl(dataPublicationRecord, customFields);
-      // this.setCFSupervisors(dataPublicationRecord, customFields);
-      // this.setCFStartDate(dataPublicationRecord, customFields);
-      // this.setCFFinishDate(dataPublicationRecord, customFields);
-      // this.setCFLanguage(dataPublicationRecord, customFields);
-      // this.setCFGeolocation(dataPublicationRecord, customFields);
-      // this.setCFAdditionalRights(dataPublicationRecord, customFields);
-      this.setCFAuthorResearchInstitute(dataPublicationRecord, customFields);
 
       _.set(requestBodyUpdate, this.customFieldsFA, customFields);
 
@@ -854,21 +596,20 @@ export module Services {
       let requestBodyCreate = new FigshareArticleImpersonate();
       //Open Access and Full Text URL custom fields have to be set on create because the figshare article 
       //cannot be Made non draft (publish) so reviewers can pick it up from the queue
-      let customFieldsImpersonate = _.clone(sails.config.figshareAPI.customFieldsImpersonateTemplate);
+      let customFieldsImpersonate = _.clone(sails.config.figshareAPI.mapping.templates.customFields.createImpersonate);
       let customFieldsKeys = _.keys(customFieldsImpersonate);
-      for(let customFieldKey of customFieldsKeys) {
-        this.setCustomFieldInRequestBody(dataPublicationRecord, customFieldsImpersonate, customFieldKey, sails.config.figshareAPI.customFieldsImpersonateMappings);
-      }
-      // this.setCFOpenAccess(dataPublicationRecord, customFieldsImpersonate);
-      // this.setFullTextUrl(dataPublicationRecord, customFieldsImpersonate);
 
-      for(let standardField of sails.config.figshareAPI.standardFieldsImpersonateMappings) {
+      
+      //TODO FIXE me build artifacts and template context only once to keep memory usage efficient
+      for(let customFieldKey of customFieldsKeys) {
+        this.setCustomFieldInRequestBody(dataPublicationRecord, customFieldsImpersonate, customFieldKey, sails.config.figshareAPI.mapping.customFields.createImpersonate);
+      }
+
+      for(let standardField of sails.config.figshareAPI.mapping.standardFields.createImpersonate) {
         this.setStandardFieldInRequestBody(dataPublicationRecord,requestBodyCreate,standardField);
       }
-      // this.setArticleTitle(dataPublicationRecord, requestBodyCreate);
-      // this.setArticleDescription(dataPublicationRecord, requestBodyCreate);
-      //this.setArticleKeywords(dataPublicationRecord, requestBodyCreate);
 
+      //TODO FIXME make below methods configurable that are dependent on live artifacts that get retrieved at runtime
       this.setImpersonateID(figshareAccountAuthorIDs, requestBodyCreate);
       this.setArticleCategories(dataPublicationRecord, requestBodyCreate);
       this.setArticleLicense(dataPublicationRecord, requestBodyCreate);
@@ -879,6 +620,8 @@ export module Services {
     private getEmbargoRequestBody(dataPublicationRecord, figshareAccountAuthorIDs) {
       //figArticleEmbargoOptions = [{id: 1780}] = administrator
       let requestEmbargoBody = new FigshareArticleEmbargo(0, false,'','','','',this.figArticleEmbargoOptions);
+
+      //TODO FIXME make below methods configurable that are dependent on live artifacts that get retrieved at runtime
       this.setImpersonateID(figshareAccountAuthorIDs, requestEmbargoBody);
       this.setArticleEmbargoDate(dataPublicationRecord, requestEmbargoBody);
       return requestEmbargoBody;
