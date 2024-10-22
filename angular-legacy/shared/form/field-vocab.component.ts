@@ -603,6 +603,8 @@ class ExternalLookupDataService extends Subject<CompleterItem[]> implements Comp
 }
 class MintLookupDataService extends Subject<CompleterItem[]> implements CompleterData {
 
+  private searchTerms = new Subject<string>();
+  private searchSubscription: Subscription;
   searchFields: any[];
   stringWildcard: string = '*';
 
@@ -622,9 +624,20 @@ class MintLookupDataService extends Subject<CompleterItem[]> implements Complete
     if(this.exactMatchString) {
       this.stringWildcard = '';
     }
+
+    this.searchSubscription = this.searchTerms.pipe(
+      debounceTime(300), // Wait for a default 300ms of inactivity
+    ).subscribe(term => {
+      this.performSearch(term);
+    });
+    
   }
 
   public search(term: string): void {
+    this.searchTerms.next(term);
+  }
+
+  public performSearch(term: string): void {
     term = _.trim(luceneEscapeQuery.escape(term));
     let searchString = '';
     if (!_.isEmpty(term)) {

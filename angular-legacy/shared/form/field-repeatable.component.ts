@@ -647,6 +647,9 @@ export class RepeatableContributorComponent extends RepeatableComponent implemen
     newElem.setupEventHandlers();
     newElem.showHeader = false;
     newElem.componentReactors.push(this);
+    // Re-initialize the lookup data service for the new element otherwise the subject
+    //  that supplies the results will point to the original record
+    newElem.vocabField.initLookupData();
   }
 
   removeElem(event: any, i: number) {
