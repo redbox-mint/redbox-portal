@@ -52,9 +52,10 @@ module.exports.figshareAPI = {
       }
     },
     customFields: {
+      path: 'custom_fields',
       createImpersonate: [
           { 
-              figName: 'Open Access', 
+              figName: 'Open Access',
               rbName: 'metadata.access-rights',
               template: `<% let val = [field.defaultValue];
                            if(_.get(record,field.rbName,'') == 'Open Access') {
@@ -62,27 +63,47 @@ module.exports.figshareAPI = {
                            }
                            return val;
                           %>`,
-              defaultValue: 'No' 
+              defaultValue: 'No'
           },
           { 
               figName: 'Full Text URL', 
               rbName: 'metadata.dataLocations',
-              template: `<% let dataLocations = _.get(record,field.rbName,[]);
+              template: `<% let dataLocations = _.get(record,field.rbName,field.defaultValue);
                            for(let attachmentFile of dataLocations) {
                              if(!_.isUndefined(attachmentFile) && !_.isEmpty(attachmentFile) && attachmentFile.type == 'url') {
                                return [attachmentFile.location];
                              }
                            }
-                           return [field.defaultValue];
+                           return field.defaultValue;
                          %>`,
-              defaultValue: '' 
+              defaultValue: [''],
+              validations: [
+                {
+                  template: `<% let path = 'custom_fields'; 
+                              let val = _.get(request,path,{});
+                              let fullTextURL = _.get(val,field.figName,'')[0];
+                              if(!_.isEmpty(fullTextURL) && !_.startsWith(fullTextURL, 'http://') && !_.startsWith(fullTextURL, 'https://')) {
+                                return false;
+                              } else {
+                                return true;
+                              }
+                            %>`,
+                  message: '@backend-URL-validationMessage'
+                }
+              ]
           }
       ],
       update: [
         { 
             figName: 'Number and size of Dataset', 
             rbName: 'metadata.dataset-size', 
-            defaultValue: '' 
+            defaultValue: '',
+            validations: [
+              {
+                maxLength: 250,
+                message: '@dataRecord-dataset-size'
+              }
+            ]
         },
         {
             figName: 'Cultural Warning', 
@@ -93,7 +114,13 @@ module.exports.figshareAPI = {
         { 
             figName: 'Medium', 
             rbName: 'metadata.dataset-format', 
-            defaultValue: '' 
+            defaultValue: '',
+            validations: [
+              {
+                maxLength: 250,
+                message: '@dmpt-dataset-format'
+              }
+            ]
         },
         { 
             figName: 'Open Access', 
@@ -109,15 +136,29 @@ module.exports.figshareAPI = {
         { 
             figName: 'Full Text URL', 
             rbName: 'metadata.dataLocations',
-            template: `<% let dataLocations = _.get(record,field.rbName,[]);
+            template: `<% let dataLocations = _.get(record,field.rbName,field.defaultValue);
                          for(let attachmentFile of dataLocations) {
                            if(!_.isUndefined(attachmentFile) && !_.isEmpty(attachmentFile) && attachmentFile.type == 'url') {
                              return [attachmentFile.location];
                            }
                          }
-                         return [field.defaultValue];
+                         return field.defaultValue;
                        %>`,
-            defaultValue: '' 
+            defaultValue: [''],
+            validations: [
+              {
+                template: `<% let path = 'custom_fields'; 
+                            let val = _.get(request,path,{});
+                            let fullTextURL = _.get(val,field.figName,'')[0];
+                            if(!_.isEmpty(fullTextURL) && !_.startsWith(fullTextURL,'http://') && !_.startsWith(fullTextURL,'https://')) {
+                              return false;
+                            } else {
+                              return true;
+                            }
+                          %>`,
+                message: '@backend-URL-validationMessage'
+              }
+            ]
         },
         { 
             figName: 'Supervisor',
@@ -137,7 +178,24 @@ module.exports.figshareAPI = {
                          }
                          return supervisorsStringList;
                        %>`,
-            defaultValue: ''
+            defaultValue: '',
+            validations: [
+              {
+                template: `<% let val = _.get(request,field.figName,undefined);
+                            if(_.isUndefined(val)) {
+                              return false;
+                            } else {
+                              return true;
+                            }
+                          %>`,
+                message: '@dmpt-people-tab-supervisor',
+                addSuffix: true
+              },
+              {
+                maxLength: 250,
+                message: '@dmpt-people-tab-supervisor'
+              }
+            ]
         },
         { 
             figName: 'Start Date',
@@ -179,7 +237,13 @@ module.exports.figshareAPI = {
                          }
                          return val;
                        %>`,
-            defaultValue: ''
+            defaultValue: '',
+            validations: [
+              {
+                maxLength: 250,
+                message: '@dataRecord-languages'
+              }
+            ]
         },
         { 
             figName: 'Geolocation',
@@ -198,7 +262,13 @@ module.exports.figshareAPI = {
                          }
                          return val;
                        %>`,
-            defaultValue: ''
+            defaultValue: '',
+            validations: [
+              {
+                maxLength: 250,
+                message: '@dataRecord-geolocation'
+              }
+            ]
         },
         { 
             figName: 'Additional Rights',
@@ -213,7 +283,13 @@ module.exports.figshareAPI = {
                          }
                          return val;
                        %>`,
-            defaultValue: ''
+            defaultValue: '',
+            validations: [
+              {
+                maxLength: 1000,
+                message: '@dataRecord-third-party-licences'
+              }
+            ]
         },
         {
           figName: 'Author Research Institute',
@@ -257,6 +333,24 @@ module.exports.figshareAPI = {
             figName: 'keywords',
             rbName: 'metadata.finalKeywords',
             defaultValue: ['']
+        },
+        { 
+            figName: 'license', 
+            rbName: 'metadata.license-identifier',
+            defaultValue: '',
+            validations: [
+              {
+                template: `<% let val = _.get(request,field.figName,undefined);
+                            if(_.isUndefined(val)) {
+                              return false;
+                            } else {
+                              return true;
+                            }
+                          %>`,
+                message: '@dataPublication-license-identifier',
+                addSuffix: true
+              }
+            ]
         }
       ],
       update: [
@@ -314,7 +408,37 @@ module.exports.figshareAPI = {
                       } else {
                         return field.defaultValue;
                       } %>`,
-          defaultValue: ''
+          defaultValue: '',
+          validations: [
+            {
+              template: `<% let path = 'resource_title';
+                          if(!_.isEmpty(_.get(request,field.figName)) && _.isEmpty(_.get(request,path))) {
+                            return false;
+                          } else {
+                            return true;
+                          }
+                        %>`,
+              message: '@dataPublication-relatedResources-title-empty'
+            }
+          ]
+        },
+        { 
+            figName: 'license', 
+            rbName: 'metadata.license-identifier',
+            defaultValue: '',
+            validations: [
+              {
+                template: `<% let val = _.get(request,field.figName,undefined);
+                            if(_.isUndefined(val)) {
+                              return false;
+                            } else {
+                              return true;
+                            }
+                          %>`,
+                message: '@dataPublication-license-identifier',
+                addSuffix: true
+              }
+            ]
         }
       ]
     }

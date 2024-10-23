@@ -68,7 +68,6 @@ export module Services {
     private embargoReasonFA = 'embargo_reason';
     private embargoOptionsFA = 'embargo_options';
     private licenseFA = 'license';
-    private resourceTitleFA = 'resource_title';
     private resourceDOI_FA = 'resource_doi';
     private impersonateFA = 'impersonate';
     private authorsFA = 'authors';
@@ -84,15 +83,6 @@ export module Services {
     //Figshare response
     private entityIdFAR = 'entity_id';
     private locationFAR = 'location'; 
-
-    private customFieldsFA = 'custom_fields';
-    private customFieldSupervisor = 'Supervisor'
-    private customFieldLanguageFA = 'Language';
-    private customFieldAdditionalRights = 'Additional Rights';
-    private customFieldSizeOfDataset = 'Number and size of Dataset';
-    private customFieldMedium = 'Medium';
-    private customFieldGeolocation = 'Geolocation';
-    private customFullTextURL = 'Full Text URL';
 
     private figLicenses: any;
     private for2020To2008Mapping: any;
@@ -587,7 +577,7 @@ export module Services {
         this.setCustomFieldInRequestBody(dataPublicationRecord, customFields, customFieldKey, sails.config.figshareAPI.mapping.customFields.update);
       }
 
-      _.set(requestBodyUpdate, this.customFieldsFA, customFields);
+      _.set(requestBodyUpdate, sails.config.figshareAPI.mapping.customFields.path, customFields);
 
       return requestBodyUpdate;
     }
@@ -613,7 +603,7 @@ export module Services {
       this.setImpersonateID(figshareAccountAuthorIDs, requestBodyCreate);
       this.setArticleCategories(dataPublicationRecord, requestBodyCreate);
       this.setArticleLicense(dataPublicationRecord, requestBodyCreate);
-      _.set(requestBodyCreate, this.customFieldsFA, customFieldsImpersonate);
+      _.set(requestBodyCreate, sails.config.figshareAPI.mapping.customFields.path, customFieldsImpersonate);
       return requestBodyCreate;
     }
 
@@ -840,24 +830,91 @@ export module Services {
 
     private checkArticleCreateFields(requestBody) {
       let valid = '';
-      let idNotFound = TranslationService.t('@backend-idNotFound-validationMessage');
+      
       if(_.isUndefined(requestBody[this.impersonateFA])) {
         valid = TranslationService.t('@dataPublication-accountIdNotFound-validationMessage');
         return valid;
       }
 
-      if(_.isUndefined(requestBody[this.licenseFA])) {
-        valid = TranslationService.t('@dataPublication-license-identifier') + idNotFound;
-        return valid;
+      for(let standardField of sails.config.figshareAPI.mapping.standardFields.createImpersonate) {
+        valid = this.validateFieldInRequestBody(requestBody,standardField);
+        if(valid != '') {
+          return valid;
+        }
       }
 
-      let customFields = requestBody[this.customFieldsFA];
-      let fullTextURL = customFields[this.customFullTextURL][0];
-      if(!_.isEmpty(fullTextURL) && !_.startsWith(fullTextURL, 'http://') && !_.startsWith(fullTextURL, 'https://')) {
-        valid = TranslationService.t('@backend-URL-validationMessage');
-        return valid;
+      for(let customField of sails.config.figshareAPI.mapping.customFields.createImpersonate) {
+        valid = this.validateFieldInRequestBody(requestBody,customField,sails.config.figshareAPI.mapping.customFields.path);
+        if(valid != '') {
+          return valid;
+        }
       }
 
+      return valid;
+    }
+
+    private validateFieldInRequestBody(requestBody:any, field:any, customFieldPath:string ='') {
+      let invalidValueForField = TranslationService.t('@backend-prefix-validationMessage'); //'Invalid value for field: ';
+      let maxLengthIs =  TranslationService.t('@backend-maxlength-validationMessage'); //', maximum length is ';
+      let idNotFound = TranslationService.t('@backend-idNotFound-validationMessage'); //' Id Not Found in Figshare';
+      let valid = '';
+      let passed = true;
+      let validations = _.get(field,'validations',{});
+      sails.log[this.createUpdateFigshareArticleLogLevel](`FigArticle ---- requestBody ---- ${JSON.stringify(requestBody)}`);
+      sails.log[this.createUpdateFigshareArticleLogLevel](`FigArticle ---- field ---- ${JSON.stringify(field)} --- path ${customFieldPath}`);
+      if(!_.isEmpty(validations)) {
+        for(let validation of validations) {
+          let template = _.get(validation,'template');
+          let maxLength = _.get(validation,'maxLength',0);
+          let addPrefix = _.get(validation,'addPrefix',true);
+          let addSuffix = _.get(validation,'addSuffix',false);
+          let overridePrefix = _.get(validation,'overridePrefix','');
+          let overrideSuffix = _.get(validation,'overrideSuffix','');
+          if(!_.isUndefined(template) && template.indexOf('<%') != -1) {
+            let context = {
+              request: requestBody,
+              moment: moment,
+              field: field,
+              artifacts: sails.config.figshareAPI.mapping.artifacts
+            }
+            passed = _.template(template)(context);
+            sails.log[this.createUpdateFigshareArticleLogLevel](`FigArticle ---- field ---- ${field.figName} ----  template ---- ${passed}`);
+            if(!passed) {
+              valid = TranslationService.t(_.get(validation,'message','Error on request to Figshare'));
+            }
+          } else if (maxLength > 0) {
+            let val = _.get(requestBody,field.figName,'');
+            if(customFieldPath != '') {
+              val = _.get(requestBody,customFieldPath+'.'+field.figName,'');
+            }
+            if(val.length > maxLength) {
+              passed = false;
+            } else {
+              passed = true;
+            }
+            sails.log[this.createUpdateFigshareArticleLogLevel](`FigArticle ---- standardField ---- ${field.figName} ----  maxLength ---- ${passed}`);
+            if(!passed) {
+              valid = TranslationService.t(_.get(validation,'message','Error on request to Figshare') + maxLengthIs + maxLength);
+            }
+          }
+          if(valid != ''){
+            if(addPrefix) {
+              if(overridePrefix != '') {
+                valid = overridePrefix + valid;
+              } else {
+                valid = invalidValueForField + valid;
+              }
+            }
+            if(addSuffix) {
+              if(overrideSuffix != '') {
+                valid = valid + overrideSuffix;
+              } else {
+                valid = valid + idNotFound;
+              }
+            }
+          }
+        }
+      }
       return valid;
     }
 
@@ -872,16 +929,7 @@ export module Services {
 
     private checkArticleUpdateFields(requestBody) {
       let valid = '';
-      let max250 = 250;
-      let max1000 = 1000;
       let invalidValueForField = TranslationService.t('@backend-prefix-validationMessage'); //'Invalid value for field: ';
-      let maxLengthIs =  TranslationService.t('@backend-maxlength-validationMessage'); //', maximum length is ';
-      let idNotFound = TranslationService.t('@backend-idNotFound-validationMessage'); //' Id Not Found in Figshare';
-
-      if(_.isUndefined(requestBody[this.licenseFA])) {
-        valid = TranslationService.t('@dataPublication-license-identifier') + idNotFound;
-        return valid;
-      }
 
       // Figshare format requires to remove domain in example
       // https://dx.doi.org/10.25946/5f48373c5ac76
@@ -897,52 +945,19 @@ export module Services {
           return valid;
         }
       }
-      let resourceTitle = requestBody[this.resourceTitleFA];
-      if(!_.isEmpty(resourceDOI) && _.isEmpty(resourceTitle)) {
-        valid = invalidValueForField + TranslationService.t('@dataPublication-relatedResources-title-empty');
-        return valid;
+
+      for(let standardField of sails.config.figshareAPI.mapping.standardFields.update) {
+        valid = this.validateFieldInRequestBody(requestBody,standardField);
+        if(valid != '') {
+          return valid;
+        }
       }
 
-      let customFields = requestBody[this.customFieldsFA];
-      if(_.isUndefined(customFields[this.customFieldSupervisor])) {
-        valid = TranslationService.t('@dmpt-people-tab-supervisor') + idNotFound;
-        return valid;
-      }
-
-      if(customFields[this.customFieldSupervisor].length > max250) {
-        valid = invalidValueForField + TranslationService.t('@dmpt-people-tab-supervisor') + max250;
-        return valid;
-      }
-
-      if(customFields[this.customFieldLanguageFA].length > max250) {
-        valid = invalidValueForField + TranslationService.t('@dataRecord-languages') + maxLengthIs + max250;
-        return valid;
-      }
-
-      if(customFields[this.customFieldAdditionalRights].length > max1000) {
-        valid = invalidValueForField + TranslationService.t('@dataRecord-third-party-licences') + maxLengthIs + max1000;
-        return valid;
-      }
-
-      if(customFields[this.customFieldSizeOfDataset].length > max250) {
-        valid = invalidValueForField + TranslationService.t('@dataRecord-dataset-size') + maxLengthIs + max250;
-        return valid;
-      }
-      
-      if(customFields[this.customFieldMedium].length > max250) {
-        valid = invalidValueForField + TranslationService.t('@dmpt-dataset-format') + maxLengthIs + max250;
-        return valid;
-      }
-
-      if(customFields[this.customFieldGeolocation].length > max250) {
-        valid = invalidValueForField + TranslationService.t('@dataRecord-geolocation') + maxLengthIs + max250;
-        return valid;
-      }
-      
-      let fullTextURL = customFields[this.customFullTextURL][0];
-      if(!_.isEmpty(fullTextURL) && !_.startsWith(fullTextURL, 'http://') && !_.startsWith(fullTextURL, 'https://')) {
-        valid = TranslationService.t('@backend-URL-validationMessage');
-        return valid;
+      for(let customField of sails.config.figshareAPI.mapping.customFields.update) {
+        valid = this.validateFieldInRequestBody(requestBody,customField,sails.config.figshareAPI.mapping.customFields.path);
+        if(valid != '') {
+          return valid;
+        }
       }
 
       return valid;
