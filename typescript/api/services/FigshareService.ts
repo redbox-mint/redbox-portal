@@ -44,9 +44,6 @@ export module Services {
     private licenseDP = 'license-identifier';
     private licenseDPDefault = 'license-identifier-default';
     private mintDCIdentifierDP = 'dc_identifier';
-    private emailDP = 'email[0]';
-    private contributorCI_DP = 'contributor_ci';
-    private contributorsDP = 'contributors';
     private anzsrcForDP = 'anzsrcFor'; 
     private figshareArticleID_DP = 'figshare_article_id';
     private figshareArticleLocationDP = 'figshare_article_location';
@@ -54,10 +51,8 @@ export module Services {
     private dataLocationsDP = 'dataLocations'; 
 
     //Figshare authors
-    private authorName = 'name';
     private authorEmail = 'email';
     private authorOrcid = 'orcid';
-    private authorFamilyName = 'family_name';
     private authorTextFullName = 'text_full_name';
 
     //Figshare article
@@ -70,7 +65,6 @@ export module Services {
     private licenseFA = 'license';
     private resourceDOI_FA = 'resource_doi';
     private impersonateFA = 'impersonate';
-    private authorsFA = 'authors';
     private accountIdFA = 'id'; //id = account id
     private userIdFA = 'user_id'; //user_id = author id 
     private categoriesFA = 'categories';
@@ -171,19 +165,44 @@ export module Services {
     private setStandardFieldInRequestBody(record:any, requestBody:any, standardField:any) {
       let value = '';
       let template = _.get(standardField,'template','');
-      if(template.indexOf('<%') != -1) {
-        let context = {
-          record: record,
-          moment: moment,
-          field: standardField,
-          artifacts: sails.config.figshareAPI.mapping.artifacts
+      let runByNameOnly = _.get(standardField,'runByNameOnly',false);
+      if(!runByNameOnly) {
+        if(template.indexOf('<%') != -1) {
+          let context = {
+            record: record,
+            moment: moment,
+            field: standardField,
+            artifacts: sails.config.figshareAPI.mapping.artifacts
+          }
+          value = _.template(template)(context);      
+          sails.log[this.createUpdateFigshareArticleLogLevel](`FigArticle ---- standardField ---- ${standardField.figName} ----  template ---- ${value}`);
+        } else {
+          value = _.get(record,standardField.rbName,standardField.defaultValue);
         }
-        value = _.template(template)(context);      
-        sails.log[this.createUpdateFigshareArticleLogLevel](`FigArticle ---- standardField ---- ${standardField.figName} ----  template ---- ${value}`);
-      } else {
-        value = _.get(record,standardField.rbName,standardField.defaultValue);
+        _.set(requestBody, standardField.figName, value);
       }
-      _.set(requestBody, standardField.figName, value);
+    }
+
+    private setFieldByNameInRequestBody(record:any, requestBody:any, config:any, fieldName:string, runtimeArtifacts:any={}) {
+      let value = '';
+      let field = _.find(config,{figName:fieldName});
+      if(!_.isEmpty(field)) {
+        let template = _.get(field,'template','');
+        if(template.indexOf('<%') != -1) {
+          let context = {
+            record: record,
+            moment: moment,
+            field: field,
+            artifacts: sails.config.figshareAPI.mapping.artifacts,
+            runtimeArtifacts: runtimeArtifacts
+          }
+          value = _.template(template)(context);
+          sails.log[this.createUpdateFigshareArticleLogLevel](`FigArticle ---- setFieldByNameInRequestBody ---- ${field.figName} ----  template ---- ${value}`);
+        } else {
+          value = _.get(record,field.rbName,field.defaultValue);
+        }
+        _.set(requestBody, field.figName, value);
+      }
     }
     
     //Figshare documentation https://docs.figshare.com/#private_article_embargo_update
@@ -255,18 +274,14 @@ export module Services {
         sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - has metadata.license-identifier-default '+dataPublicationRecord[this.metadataDP][this.licenseDPDefault]);
         let figArtLicenseDefault = dataPublicationRecord[this.metadataDP][this.licenseDPDefault];
         sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - figArtLicense default '+figArtLicenseDefault);
-        //TODO FIXME
-        // let figArtLicenseIDDefault = this.findLicenseValue(figArtLicenseDefault);
-        let figArtLicenseIDDefault = '123456';
+        let figArtLicenseIDDefault = this.findLicenseValue(figArtLicenseDefault);
         _.set(requestBody, this.licenseFA,  figArtLicenseIDDefault);
       } else {
         if(_.has(dataPublicationRecord, this.metadataDP+ '.' +this.licenseDP)) {
           sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - has metadata.license-identifier '+dataPublicationRecord[this.metadataDP][this.licenseDP]);
           let figArtLicense = dataPublicationRecord[this.metadataDP][this.licenseDP];
           sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - figArtLicense '+figArtLicense);
-          //TODO FIXME
-          // let figArtLicenseID = this.findLicenseValue(figArtLicense);
-          let figArtLicenseID = '123456';
+          let figArtLicenseID = this.findLicenseValue(figArtLicense);
           _.set(requestBody, this.licenseFA,  figArtLicenseID);
         }
       }
@@ -282,23 +297,22 @@ export module Services {
         return {name: author[this.authorTextFullName], email: author[this.authorEmail]};
       }
     }
-
-    private getNonCQUAuthor(author) {
-        return {name: author[this.authorName]};
-    }
     
-    private async getAuthorUserIDs(authors) {
+    private async getAuthorUserIDs(authors:any) {
+      //TODO FIXME this method may end up using if else if depending on the different use cases given it relays on a API call. It
+      //also may be that this method logic will not need to be changed and will work as is for all use cases that are needed but 
+      //it's not possible to know at this stage
       sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - getAuthorUserIDs enter');
       let authorList = [];
-      let uniqueAuthorByEmail = _.uniqBy(authors, this.emailDP);
-      let uniqueAuthors = _.uniqBy(uniqueAuthorByEmail, this.authorTextFullName);
+      let uniqueAuthorByEmail = _.uniqBy(authors,'email[0]');
+      let uniqueAuthors = _.uniqBy(uniqueAuthorByEmail,'text_full_name');
       sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - uniqueAuthors');
       sails.log[this.createUpdateFigshareArticleLogLevel](uniqueAuthors);
       for(let author of uniqueAuthors) {
         sails.log[this.createUpdateFigshareArticleLogLevel](author);
         if(_.has(author, this.mintDCIdentifierDP)) {
           let userId = author[this.mintDCIdentifierDP][0];
-          if(!_.isUndefined(userId) &&!_.isEmpty(userId)) {
+          if(!_.isUndefined(userId) && !_.isEmpty(userId)) {
             let requestBody = {
               institution_user_id: userId
             };
@@ -339,53 +353,18 @@ export module Services {
       return authorList;
     }
     
-    private getArticleAuthorsFromDP(dataPublicationRecord) {
+    private getContributorsFromRecord(record:any) {
       let authors = [];
-      if(!_.isUndefined(dataPublicationRecord[this.metadataDP][this.contributorCI_DP])) {
-        let contributorCI = dataPublicationRecord[this.metadataDP][this.contributorCI_DP];
-        sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - getArticleAuthorsFromDP - contributor_ci');
-        sails.log[this.createUpdateFigshareArticleLogLevel](contributorCI);
-        authors.push(contributorCI);
-      }
-      let figArtOthers;
-      sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - getArticleAuthorsFromDP - has other contributors '+!_.isUndefined(dataPublicationRecord[this.metadataDP][this.contributorsDP]));
-      if(!_.isUndefined(dataPublicationRecord[this.metadataDP][this.contributorsDP])) {
-        figArtOthers = dataPublicationRecord[this.metadataDP][this.contributorsDP];
-        sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - getArticleAuthorsFromDP - other contributors');
-        for(let contributor of figArtOthers) { 
-          sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - getArticleAuthorsFromDP - '+this.authorFamilyName+' '+contributor[this.authorFamilyName]);
-          if(!_.isEmpty(contributor[this.authorFamilyName])) {
-            authors.push(contributor);
-          //Check for non cqu contributors that may not have a family name
-          } else if(!_.isEmpty(contributor[this.authorTextFullName])) {
-            sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - getArticleAuthorsFromDP - '+this.authorTextFullName+' '+contributor[this.authorTextFullName]);
-            authors.push(contributor);
-          }
+      let template = sails.config.figshareAPI.mapping.artifacts.getContributorsFromRecord.template;
+      if(!_.isUndefined(template) && template.indexOf('<%') != -1) {
+        let context = {
+          record: record
         }
+        authors = _.template(template)(context);      
+        sails.log[this.createUpdateFigshareArticleLogLevel](`FigArticle ---- getContributorsFromRecord ----  template`);
       }
       sails.log[this.createUpdateFigshareArticleLogLevel](authors);
       return authors;
-    }
-
-    private setArticleAuthors(figshareAccountUserIDs, requestBody) {
-      let authors = [];
-      sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - setArticleAuthors - enter');
-      if(!_.isUndefined(figshareAccountUserIDs) && !_.isEmpty(figshareAccountUserIDs)){
-        for(let author of figshareAccountUserIDs) {
-          sails.log[this.createUpdateFigshareArticleLogLevel](author);
-          if(!_.isUndefined(author[this.userIdFA])) {
-            authors.push({ id: author[this.userIdFA] });
-          } else if(!_.isUndefined(author['name'])) {
-            let nonCQUAuthor = this.getNonCQUAuthor(author);
-            if(!_.isUndefined(nonCQUAuthor)) {
-              authors.push(nonCQUAuthor);
-            }
-          }
-        }
-        if(!_.isUndefined(authors) && authors.length > 0){
-          _.set(requestBody, this.authorsFA, authors);
-        }
-      } 
     }
 
     //The impersonate option must be included in the query string when using the 
@@ -478,7 +457,17 @@ export module Services {
           return response.data;
       } catch (error) {
           sails.log[this.createUpdateFigshareArticleLogLevel](error);
-          return null;
+          if(sails.config.figshareAPI.testMode) {
+            return [
+              {
+                "value": 1,
+                "name": "CC BY",
+                "url": "http://creativecommons.org/licenses/by/4.0/"
+              }
+            ];
+          } else {
+            return null;
+          }
       }
     }
 
@@ -563,12 +552,12 @@ export module Services {
       let requestBodyUpdate = new FigshareArticleUpdate(this.figArticleGroupId,this.figArticleItemType); 
 
       //TODO FIXE me build artifacts and template context only once to keep memory usage efficient
-
       for(let standardField of sails.config.figshareAPI.mapping.standardFields.update) {
         this.setStandardFieldInRequestBody(dataPublicationRecord,requestBodyUpdate,standardField);
       }
-      //TODO FIXME make below methods configurable that are dependent on live artifacts that get retrieved at runtime
-      this.setArticleAuthors(figshareAccountAuthorIDs, requestBodyUpdate);
+      //TODO FIXME make below methods configurable that are dependent on live artifacts and/or API calls data that gets retrieved at runtime
+      this.setFieldByNameInRequestBody(dataPublicationRecord,requestBodyUpdate,sails.config.figshareAPI.mapping.standardFields.update,'authors',figshareAccountAuthorIDs);
+      // this.setArticleAuthors(figshareAccountAuthorIDs, requestBodyUpdate);
       this.setArticleLicense(dataPublicationRecord, requestBodyUpdate);
       this.setArticleCategories(dataPublicationRecord, requestBodyUpdate);
 
@@ -639,10 +628,13 @@ export module Services {
           articleId = 0;
         }
         sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - sendDataPublicationToFigshare - articleId '+articleId);
-        let contributorsDP = this.getArticleAuthorsFromDP(dataPublicationRecord);
-        // this.figshareAccountAuthorIDs = await this.getAuthorUserIDs(contributorsDP);
-        //TODO FIXME
-        this.figshareAccountAuthorIDs = [{ id: 1234, 'user_id': 1234 }];
+        let contributorsDP = this.getContributorsFromRecord(dataPublicationRecord);
+        sails.log[this.createUpdateFigshareArticleLogLevel](`FigArticle - sendDataPublicationToFigshare - contributorsDP ${JSON.stringify(contributorsDP)}`);
+        if(sails.config.figshareAPI.testMode) {
+          this.figshareAccountAuthorIDs = [{ id: 1234, user_id: 1239 }];
+        } else {
+          this.figshareAccountAuthorIDs = await this.getAuthorUserIDs(contributorsDP);
+        }
         sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - sendDataPublicationToFigshare - figshareAccountAuthorIDs');
         sails.log[this.createUpdateFigshareArticleLogLevel](this.figshareAccountAuthorIDs);
         if(articleId == 0) {
@@ -680,19 +672,34 @@ export module Services {
           sails.log[this.createUpdateFigshareArticleLogLevel](JSON.stringify(requestBodyCreate));
 
           //create article
-          //TODO FIXME
           let responseCreate = { 
-            status: 'success',
-            statusText: 'success',
-            data: {
-              "entity_id": 11117777,
-              location: `${sails.config.figshareAPI.baseURL}/account/articles/articleLocation`,
-              warnings: [
-                "string"
-              ]
+                                 status: '',
+                                 statusText: '',
+                                 data: { 
+                                  location: '',
+                                  entity_id: 0,
+                                  warnings: ['']
+                                 }
+                                };
+          try {
+            responseCreate = await axios(figshareArticleConfig);
+          } catch(createError) {
+            if(sails.config.figshareAPI.testMode) {
+              responseCreate = {
+                status: 'success',
+                statusText: 'success',
+                data: {
+                  entity_id: 11117777,
+                  location: `${sails.config.figshareAPI.baseURL}/account/articles/articleLocation`,
+                  warnings: [
+                    'string'
+                  ]
+                }
+              };
+            } else {
+              throw createError;
             }
-          };
-          // let responseCreate = await axios(figshareArticleConfig);
+          }
           sails.log[this.createUpdateFigshareArticleLogLevel](`FigArticle - sendDataPublicationToFigshare status: ${responseCreate.status} statusText: ${responseCreate.statusText}`);
 
           //Note that lodash isEmpty will return true if the value is a number therefore had to be removed from the condition 
@@ -715,9 +722,16 @@ export module Services {
                 let requestBodyPublishAfterCreate = this.getPublishRequestBody(this.figshareAccountAuthorIDs);
                 let publishConfig = this.getAxiosConfig('post', `/account/articles/${articleId}/publish`, requestBodyPublishAfterCreate);
                 sails.log[this.createUpdateFigshareArticleLogLevel](`FigArticle - sendDataPublicationToFigshare ${publishConfig.method} - ${publishConfig.url}`);
-                //TODO FIXME
-                // let responsePublish = await axios(publishConfig);
-                // sails.log[this.createUpdateFigshareArticleLogLevel](`FigArticle - sendDataPublicationToFigshare status: ${responsePublish.status} statusText: ${responsePublish.statusText}`);
+                
+                let responsePublish = {status: '', statusText: ''}
+                try {
+                  responsePublish = await axios(publishConfig);
+                } catch(updateError) {
+                  if(!sails.config.figshareAPI.testMode){
+                    throw updateError;
+                  }
+                }
+                sails.log[this.createUpdateFigshareArticleLogLevel](`FigArticle - sendDataPublicationToFigshare status: ${responsePublish.status} statusText: ${responsePublish.statusText}`);
               }
             }
           }

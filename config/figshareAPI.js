@@ -13,6 +13,7 @@ module.exports.figshareAPI = {
   attachmentsFigshareTempDir: '/attachments/figshare',
   diskSpaceThreshold: 10737418240, //set diskSpaceThreshold to a reasonable amount of space on disk that will be left free as a safety buffer
   figArticleItemType: 'dataset',
+  testMode: true,
   mapping: {
     artifacts: {
       authorResearchInstitute:  [
@@ -27,7 +28,27 @@ module.exports.figshareAPI = {
           {figshareName: 'Centre for Tourism and Regional Opportunities', redboxName: ''}, //In Figshare only for historical purposes no need to be send across
           {figshareName: 'Centre for Regional Advancement of Learning, Equity, Access and Participation (LEAP)', redboxName: ''}, //In Figshare only for historical purposes no need to be send across
           {figshareName: 'Centre for Regional Economics and Supply Chain (RESC)', redboxName: 'Centre for Regional Economies and Supply Chains (CRESC)'}
-      ]
+      ],
+      getContributorsFromRecord: {
+        template: `<% let authors = [];
+                     if(!_.isUndefined(record['metadata']['contributor_ci'])) {
+                        let contributorCI = record['metadata']['contributor_ci'];
+                        authors.push(contributorCI);
+                      }
+                      let figArtOthers;
+                      if(!_.isUndefined(record['metadata']['contributors'])) {
+                        figArtOthers = record['metadata']['contributors'];
+                        for(let contributor of figArtOthers) {
+                          if(!_.isEmpty(contributor['family_name'])) {
+                            authors.push(contributor);
+                          } else if(!_.isEmpty(contributor['text_full_name'])) {
+                            authors.push(contributor);
+                          }
+                        }
+                      }
+                      return authors;
+                    %>`
+      } 
     },
     templates: {
       customFields: {
@@ -65,7 +86,7 @@ module.exports.figshareAPI = {
                           %>`,
               defaultValue: 'No'
           },
-          { 
+          {
               figName: 'Full Text URL', 
               rbName: 'metadata.dataLocations',
               template: `<% let dataLocations = _.get(record,field.rbName,field.defaultValue);
@@ -94,7 +115,7 @@ module.exports.figshareAPI = {
           }
       ],
       update: [
-        { 
+        {
             figName: 'Number and size of Dataset', 
             rbName: 'metadata.dataset-size', 
             defaultValue: '',
@@ -106,12 +127,12 @@ module.exports.figshareAPI = {
             ]
         },
         {
-            figName: 'Cultural Warning', 
+            figName: 'Cultural Warning',
             rbName: 'metadata.-atsi-content',
             template: '<%= _.get(record,field.rbName,"") == "yes" ? field.defaultValue : "" %>',
             defaultValue: 'This research output may contain the names and images of Aboriginal and Torres Strait Islander people now deceased. We apologize for any distress that may occur.' 
         },
-        { 
+        {
             figName: 'Medium', 
             rbName: 'metadata.dataset-format', 
             defaultValue: '',
@@ -122,8 +143,8 @@ module.exports.figshareAPI = {
               }
             ]
         },
-        { 
-            figName: 'Open Access', 
+        {
+            figName: 'Open Access',
             rbName: 'metadata.access-rights',
             template: `<% let val = [field.defaultValue];
                          if(_.get(record,field.rbName,'') == 'Open Access') {
@@ -133,8 +154,8 @@ module.exports.figshareAPI = {
                         %>`,
             defaultValue: 'No' 
         },
-        { 
-            figName: 'Full Text URL', 
+        {
+            figName: 'Full Text URL',
             rbName: 'metadata.dataLocations',
             template: `<% let dataLocations = _.get(record,field.rbName,field.defaultValue);
                          for(let attachmentFile of dataLocations) {
@@ -160,7 +181,7 @@ module.exports.figshareAPI = {
               }
             ]
         },
-        { 
+        {
             figName: 'Supervisor',
             rbName: 'metadata.contributor_supervisor',
             template: `<% let supervisorsStringList = field.defaultValue;
@@ -181,7 +202,9 @@ module.exports.figshareAPI = {
             defaultValue: '',
             validations: [
               {
-                template: `<% let val = _.get(request,field.figName,undefined);
+                template: `<% let path = 'custom_fields'; 
+                            let customFields = _.get(request,path,{});
+                            let val = _.get(customFields,field.figName,undefined);
                             if(_.isUndefined(val)) {
                               return false;
                             } else {
@@ -197,7 +220,7 @@ module.exports.figshareAPI = {
               }
             ]
         },
-        { 
+        {
             figName: 'Start Date',
             rbName: 'metadata.startDate',
             template: `<% let val = field.defaultValue;
@@ -209,7 +232,7 @@ module.exports.figshareAPI = {
                        %>`,
             defaultValue: ''
         },
-        { 
+        {
             figName: 'Finish Date',
             rbName: 'metadata.endDate',
             template: `<% let val = field.defaultValue;
@@ -221,7 +244,7 @@ module.exports.figshareAPI = {
                        %>`,
             defaultValue: ''
         },
-        { 
+        {
             figName: 'Language',
             rbName: 'metadata.languages',
             template: `<% let val = field.defaultValue;
@@ -245,7 +268,7 @@ module.exports.figshareAPI = {
               }
             ]
         },
-        { 
+        {
             figName: 'Geolocation',
             rbName: 'metadata.geolocations',
             template: `<% let val = field.defaultValue;
@@ -334,7 +357,7 @@ module.exports.figshareAPI = {
             rbName: 'metadata.finalKeywords',
             defaultValue: ['']
         },
-        { 
+        {
             figName: 'license', 
             rbName: 'metadata.license-identifier',
             defaultValue: '',
@@ -354,22 +377,44 @@ module.exports.figshareAPI = {
         }
       ],
       update: [
-        { 
+        {
+            figName: 'authors',
+            rbName: 'metadata.title',
+            template: `<% let authors = field.defaultValue;
+                        let userIdFA = 'user_id';
+                        if(!_.isUndefined(runtimeArtifacts) && !_.isEmpty(runtimeArtifacts)){
+                          for(let author of runtimeArtifacts) {
+                            if(!_.isUndefined(author[userIdFA])) {
+                              authors.push({ id: author[userIdFA] });
+                            } else if(!_.isUndefined(author['name'])) {
+                              let nonCQUAuthor = {name: author['name']};
+                              if(!_.isUndefined(nonCQUAuthor)) {
+                                authors.push(nonCQUAuthor);
+                              }
+                            }
+                          }
+                        }
+                        return authors;
+                       %>`,
+            runByNameOnly: true,
+            defaultValue: []
+        },
+        {
             figName: 'title', 
             rbName: 'metadata.title', 
             defaultValue: ''
         },
-        { 
+        {
             figName: 'description', 
             rbName: 'metadata.description',
             defaultValue: ''
         },
-        { 
+        {
             figName: 'keywords',
             rbName: 'metadata.finalKeywords',
             defaultValue: ['']
         },
-        { 
+        {
             figName: 'funding',
             rbName: 'metadata.project-funding',
             defaultValue: ''
