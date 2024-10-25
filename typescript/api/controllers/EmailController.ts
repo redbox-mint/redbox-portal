@@ -116,7 +116,7 @@ export module Controllers {
                     return this.apiFail(req, res, 500);
                 }
                 else {
-                    var sendResponse = EmailService.sendMessage(to, buildResult['body'], subject,from, format,cc);
+                    var sendResponse = EmailService.sendMessage(to, buildResult['body'], subject,from, format, cc, bcc);
 
                     sendResponse.subscribe(sendResult => {
                         if (!sendResult['success']) {
