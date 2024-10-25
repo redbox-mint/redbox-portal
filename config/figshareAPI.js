@@ -3,18 +3,24 @@ module.exports.figshareAPI = {
   baseURL: 'https://api.figsh.com/v2', //stage
   APIToken: '', //Stage
   figArticleGroupId: 32014, //Dataset stage
-  figArticleEmbargoOptions: [{id: 1780}], //adminstrator stage
   //frontEndURL: 'https://cqu.figshare.com', //prod
   //baseURL: 'https://api.figshare.com/v2', //prod
   //APIToken: '', //Prod
   //figArticleGroupId: 30527, //Dataset prod
-  //figArticleEmbargoOptions: [{id: 105}], //adminstrator prod
   attachmentsTempDir: '/attachments',
   attachmentsFigshareTempDir: '/attachments/figshare',
   diskSpaceThreshold: 10737418240, //set diskSpaceThreshold to a reasonable amount of space on disk that will be left free as a safety buffer
   figArticleItemType: 'dataset',
   testMode: true,
   mapping: {
+    recordFigArticleId: 'figshare_article_id',
+    recordFigArticleURL: 'figshare_article_location',
+    recordMetadata: 'metadata',
+    recordDataLocations: 'dataLocations',
+    response: {
+      entityId: 'entity_id',
+      location: 'location'
+    },
     artifacts: {
       authorResearchInstitute:  [
           {figshareName: 'Appleton Institute', redboxName: 'Appleton Institute (AI)'},
@@ -48,11 +54,13 @@ module.exports.figshareAPI = {
                       }
                       return authors;
                     %>`
-      } 
+      },
+      figArticleEmbargoOptions: [{id: 1780}], //adminstrator stage
+      //figArticleEmbargoOptions: [{id: 105}], //adminstrator prod
     },
     templates: {
       customFields: {
-        createImpersonate: {
+        create: {
           'Open Access': ['No'],
           'Full Text URL': ['']
         },
@@ -74,7 +82,7 @@ module.exports.figshareAPI = {
     },
     customFields: {
       path: 'custom_fields',
-      createImpersonate: [
+      create: [
           { 
               figName: 'Open Access',
               rbName: 'metadata.access-rights',
@@ -341,7 +349,36 @@ module.exports.figshareAPI = {
       ]
     },
     standardFields: {
-      createImpersonate: [
+      impersonate: [
+        //The impersonate option must be included in the query string when using the 
+        //GET and DELETE methods, and in the body when using the POST and PUT methods
+        //https://docs.figshare.com/#figshare_documentation_api_description_impersonation
+        {
+          figName: 'impersonate', 
+          rbName: '',
+          template: `<% if(!_.isUndefined(runtimeArtifacts) && runtimeArtifacts.length > 0) {
+                       let authorPI = runtimeArtifacts[0];
+                       accountId = authorPI['id'];
+                       return accountId;
+                     } else {
+                       return field.defaultValue;
+                     } %>`,
+          runByNameOnly: true,
+          defaultValue: '',
+          validations: [
+            {
+              template: `<% let val = _.get(request,field.figName,undefined);
+                            if(_.isUndefined(val)) {
+                              return false;
+                            } else {
+                              return true;
+                            } %>`,
+              message: '@dataPublication-accountIdNotFound-validationMessage'
+            }
+          ]
+        }
+      ],
+      create: [
         { 
             figName: 'title', 
             rbName: 'metadata.title', 
@@ -360,7 +397,34 @@ module.exports.figshareAPI = {
         {
             figName: 'license', 
             rbName: 'metadata.license-identifier',
-            defaultValue: '',
+            template: `<% function findLicenseValue(figArtLicense) {
+                           let licenseValue = field.defaultValue;
+                           let tmpLic = figArtLicense.replace('https://', '');
+                           tmpLic = figArtLicense.replace('http://', '');
+                           for (let license of runtimeArtifacts) {
+                             if(!_.isUndefined(license.url) && !_.isEmpty(license.url) && license.url.includes(tmpLic)) {
+                               licenseValue = license.value;
+                             }
+                           }
+                           return licenseValue;
+                         }
+
+                         let accessType = _.get(record,'metadata.access-rights');
+                         if(_.isUndefined(accessType) || _.isEmpty(accessType) || accessType == 'citation') {
+                           let figArtLicenseDefault = record['metadata']['license-identifier-default'];
+                           let figArtLicenseIDDefault = findLicenseValue(figArtLicenseDefault);
+                           return figArtLicenseIDDefault;
+                         } else {
+                           if(_.has(record,'metadata.license-identifier')) {
+                             let figArtLicense = record['metadata']['license-identifier'];
+                             let figArtLicenseID = findLicenseValue(figArtLicense);
+                             return figArtLicenseID;
+                           }
+                         }
+                         return field.defaultValue;
+                       %>`,
+            defaultValue: 0,
+            runByNameOnly: true,
             validations: [
               {
                 template: `<% let val = _.get(request,field.figName,undefined);
@@ -455,6 +519,12 @@ module.exports.figshareAPI = {
                       } %>`,
           defaultValue: '',
           validations: [
+            // Figshare format requires to remove domain in example
+            // https://dx.doi.org/10.25946/5f48373c5ac76
+            // has to be stripped of domain to 
+            // 10.25946/5f48373c5ac76
+            // Regex to validate DOI taken from
+            // https://www.crossref.org/blog/dois-and-matching-regular-expressions/
             {
               template: `<% let path = 'resource_title';
                           if(!_.isEmpty(_.get(request,field.figName)) && _.isEmpty(_.get(request,path))) {
@@ -464,13 +534,46 @@ module.exports.figshareAPI = {
                           }
                         %>`,
               message: '@dataPublication-relatedResources-title-empty'
+            },
+            {
+              regexValidation: '^10.\\d{4,9}\/[-._;()\/:A-Z0-9]+$',
+              caseSensitive: false,
+              message: '@dataPublication-relatedResources-validationMessage',
+              addPrefix: true
             }
           ]
         },
         { 
             figName: 'license', 
             rbName: 'metadata.license-identifier',
-            defaultValue: '',
+            template: `<% function findLicenseValue(figArtLicense) {
+                           let licenseValue = field.defaultValue;
+                           let tmpLic = figArtLicense.replace('https://', '');
+                           tmpLic = figArtLicense.replace('http://', '');
+                           for (let license of runtimeArtifacts) {
+                             if(!_.isUndefined(license.url) && !_.isEmpty(license.url) && license.url.includes(tmpLic)) {
+                               licenseValue = license.value;
+                             }
+                           }
+                           return licenseValue;
+                         }
+
+                         let accessType = _.get(record,'metadata.access-rights');
+                         if(_.isUndefined(accessType) || _.isEmpty(accessType) || accessType == 'citation') {
+                           let figArtLicenseDefault = record['metadata']['license-identifier-default'];
+                           let figArtLicenseIDDefault = findLicenseValue(figArtLicenseDefault);
+                           return figArtLicenseIDDefault;
+                         } else {
+                           if(_.has(record,'metadata.license-identifier')) {
+                             let figArtLicense = record['metadata']['license-identifier'];
+                             let figArtLicenseID = findLicenseValue(figArtLicense);
+                             return figArtLicenseID;
+                           }
+                         }
+                         return field.defaultValue;
+                       %>`,
+            defaultValue: 0,
+            runByNameOnly: true,
             validations: [
               {
                 template: `<% let val = _.get(request,field.figName,undefined);
@@ -484,6 +587,123 @@ module.exports.figshareAPI = {
                 addSuffix: true
               }
             ]
+        }
+      ],
+      //Figshare documentation https://docs.figshare.com/#private_article_embargo_update
+      //Validate that embargo date is in the future or otherwise it will fail with Invalid Embargo
+      embargo: [
+        {
+            // Date Format in Figshare documentation is + '2022-02-27T00:00:00' but 'YYYY-MM-DD' works
+            figName: 'is_embargoed',
+            rbName: '',//the template will choose from either 'full-embargo-until' or 'file-embargo-until'
+            template: `<% let dataPubAccessRights = record['metadata']['access-rights']; 
+                        if(_.has(record,'metadata.full-embargo-until') && !_.isEmpty(record['metadata']['full-embargo-until'])) {
+                          return true;
+                        } else if (dataPubAccessRights == 'mediated' || 
+                          (_.has(record,'metadata.file-embargo-until') && !_.isEmpty(record['metadata']['file-embargo-until']) && dataPubAccessRights != 'citation')) {
+                            return true;
+                        } else {
+                          return field.defaultValue;
+                        }
+                      %>`,
+            defaultValue: false
+        },
+        {
+            figName: 'embargo_date', //set permanent embargo with '0' when 'mediated' option is selected
+            rbName: '',
+            template: `<% let dataPubAccessRights = record['metadata']['access-rights'];
+                        if(_.has(record,'metadata.full-embargo-until') && !_.isEmpty(record['metadata']['full-embargo-until'])) {
+                          let figArtFullEmbargoDate = record['metadata']['full-embargo-until'];
+                          return figArtFullEmbargoDate;
+                        } else if (dataPubAccessRights == 'mediated' || 
+                          (_.has(record,'metadata.file-embargo-until') && !_.isEmpty(record['metadata']['file-embargo-until']) && dataPubAccessRights != 'citation')) {
+                            if(dataPubAccessRights == 'mediated') {
+                              return '0';
+                            } else {
+                              let figArtFileEmbargoDate = record['metadata']['file-embargo-until'];
+                              return figArtFileEmbargoDate;
+                            }
+                        } else {
+                          return field.defaultValue;
+                        }
+                      %>`,
+            defaultValue: '',
+            validations: [
+              {
+                template: `<% let dateFormat = 'YYYY-MM-DD';
+                            let dataPubAccessRights = record['metadata']['access-rights'];
+                            if(!_.isEmpty(request['embargo_date']) && dataPubAccessRights != 'mediated') {
+                              let now = moment().utc().format(dateFormat);
+                              let compareDate = moment(request['embargo_date'], dateFormat).utc().format(dateFormat);
+                              let isAfter = moment(compareDate).isAfter(now);
+                              if(!isAfter) {
+                                return false;
+                              }
+                            }
+                            return true;
+                           %>`,
+                message: '@dataPublication-embargoDate-validationMessage'
+              }
+            ]
+        },
+        {
+            figName: 'embargo_type',
+            rbName: '',
+            template: `<% let dataPubAccessRights = record['metadata']['access-rights'];
+                        if(_.has(record,'metadata.full-embargo-until') && !_.isEmpty(record['metadata']['full-embargo-until'])) {
+                          return 'article';
+                        } else if (dataPubAccessRights == 'mediated' || 
+                          (_.has(record,'metadata.file-embargo-until') && !_.isEmpty(record['metadata']['file-embargo-until']) && dataPubAccessRights != 'citation')) {
+                          return 'file';
+                        } else {
+                          return field.defaultValue;
+                        }
+                      %>`,
+            defaultValue: 'article'
+        },
+        {
+            figName: 'embargo_title',
+            rbName: '',
+            template: `<% let dataPubAccessRights = record['metadata']['access-rights'];
+                        if(_.has(record,'metadata.full-embargo-until') && !_.isEmpty(record['metadata']['full-embargo-until'])) {
+                          return 'full article embargo';
+                        } else if (dataPubAccessRights == 'mediated' || 
+                          (_.has(record,'metadata.file-embargo-until') && !_.isEmpty(record['metadata']['file-embargo-until']) && dataPubAccessRights != 'citation')) {
+                          return 'files only embargo';
+                        } else {
+                          return field.defaultValue;
+                        }
+                      %>`,
+            defaultValue: ''
+        },
+        {
+            figName: 'embargo_reason',
+            rbName: '',//the template will choose from either 'embargo-until-reason' or 'embargoNote'
+            template: `<% let dataPubAccessRights = record['metadata']['access-rights'];
+                        if(_.has(record,'metadata.full-embargo-until') && !_.isEmpty(record['metadata']['full-embargo-until'])) {
+                          let figArtFullEmbargoReason = record['metadata']['embargo-until-reason'];
+                          return figArtFullEmbargoReason;
+                        } else if (dataPubAccessRights == 'mediated' || 
+                          (_.has(record,'metadata.file-embargo-until') && !_.isEmpty(record['metadata']['file-embargo-until']) && dataPubAccessRights != 'citation')) {
+                          let figArtFileEmbargoReason = record['metadata']['embargoNote'];
+                          return figArtFileEmbargoReason;
+                        } else {
+                          return field.defaultValue;
+                        }
+                      %>`,
+            defaultValue: ''
+        },
+        {
+            figName: 'embargo_options',
+            rbName: '',
+            template: `<% let figArticleEmbargoOptions = artifacts.figArticleEmbargoOptions;
+                          if(!_.isUndefined(figArticleEmbargoOptions)) {
+                            return figArticleEmbargoOptions;
+                          } else {
+                            return field.defaultValue;
+                          }
+                       %>`,
+            defaultValue: []
         }
       ]
     }

@@ -36,19 +36,19 @@ export module Services {
     private datastreamService: DatastreamService;
     private queueService: QueueService;
 
+    private figArticleIdPathInRecord = '';
+    private figArticleURLPathInRecord = '';
+    private metadataPathInRecord = '';
+    private dataLocationsPathInRecord = '';
+
+    //Figshare response
+    private entityIdFAR = '';
+    private locationFAR = '';
+
     //Data publication metadata
-    private metadataDP = 'metadata';
-    private fullEmgardoDateDP = 'full-embargo-until';
-    private fileEmbargoDateDP = 'file-embargo-until';
-    private embargoNoteDP = 'embargoNote';
-    private licenseDP = 'license-identifier';
-    private licenseDPDefault = 'license-identifier-default';
     private mintDCIdentifierDP = 'dc_identifier';
     private anzsrcForDP = 'anzsrcFor'; 
-    private figshareArticleID_DP = 'figshare_article_id';
-    private figshareArticleLocationDP = 'figshare_article_location';
     private accessRightDP = 'access-rights';
-    private dataLocationsDP = 'dataLocations'; 
 
     //Figshare authors
     private authorEmail = 'email';
@@ -57,14 +57,7 @@ export module Services {
 
     //Figshare article
     private isEmbargoedFA = 'is_embargoed';
-    private embargoDateFA = 'embargo_date';
     private embargoTypeFA = 'embargo_type';
-    private embargoTitleFA  = 'embargo_title';
-    private embargoReasonFA = 'embargo_reason';
-    private embargoOptionsFA = 'embargo_options';
-    private licenseFA = 'license';
-    private resourceDOI_FA = 'resource_doi';
-    private impersonateFA = 'impersonate';
     private accountIdFA = 'id'; //id = account id
     private userIdFA = 'user_id'; //user_id = author id 
     private categoriesFA = 'categories';
@@ -73,11 +66,6 @@ export module Services {
     private figArticleGroupId;
     private figArticleItemType;
     private figArticleEmbargoOptions;
-
-    //Figshare response
-    private entityIdFAR = 'entity_id';
-    private locationFAR = 'location'; 
-
     private figLicenses: any;
     private for2020To2008Mapping: any;
 
@@ -125,7 +113,13 @@ export module Services {
         that.for2020To2008Mapping = sails.config.figshareFOR2020To2008Mapping.FORMapping2020To2008;
         that.figArticleGroupId = sails.config.figshareAPI.figArticleGroupId;
         that.figArticleItemType = sails.config.figshareAPI.figArticleItemType;
-        that.figArticleEmbargoOptions = sails.config.figshareAPI.figArticleEmbargoOptions;
+        that.figArticleEmbargoOptions = sails.config.figshareAPI.mapping.artifacts.figArticleEmbargoOptions;
+        that.figArticleIdPathInRecord = sails.config.figshareAPI.mapping.recordFigArticleId;
+        that.figArticleURLPathInRecord = sails.config.figshareAPI.mapping.recordFigArticleURL;
+        that.metadataPathInRecord = sails.config.figshareAPI.mapping.recordMetadata;
+        that.dataLocationsPathInRecord = sails.config.figshareAPI.mapping.recordDataLocations;
+        that.entityIdFAR = sails.config.figshareAPI.mapping.response.entityId;
+        that.locationFAR = sails.config.figshareAPI.mapping.response.location;
         sails.log.error('FigArticle - constructor end');
       });
     }
@@ -202,88 +196,6 @@ export module Services {
           value = _.get(record,field.rbName,field.defaultValue);
         }
         _.set(requestBody, field.figName, value);
-      }
-    }
-    
-    //Figshare documentation https://docs.figshare.com/#private_article_embargo_update
-    //Validate that embargo date is in the future or otherwise it will fail with Invalid Embargo
-    private setArticleEmbargoDate(dataPublicationRecord, requestBody) {
-      
-      let embargoOptions = requestBody[this.embargoOptionsFA];
-      let dataPubAccessRights = dataPublicationRecord[this.metadataDP][this.accessRightDP];
-      sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - setArticleEmbargoDate - embargoOptions '+JSON.stringify(embargoOptions));
-      sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - setArticleEmbargoDate - dataPubAccessRights '+dataPubAccessRights);
-
-      //article or file (if embargo type file needs document attached or cannot be published)
-      if(_.has(dataPublicationRecord, this.metadataDP + '.' + this.fullEmgardoDateDP) && !_.isEmpty(dataPublicationRecord[this.metadataDP][this.fullEmgardoDateDP])) {
-
-        // Date Format in Figshare documentation is + '2022-02-27T00:00:00' but 'YYYY-MM-DD' works
-        let figArtFullEmbargoDate = dataPublicationRecord[this.metadataDP][this.fullEmgardoDateDP];
-        sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - setArticleEmbargoDate - fullEmgardoDateDP '+figArtFullEmbargoDate);
-        _.set(requestBody, this.isEmbargoedFA, true);
-        _.set(requestBody, this.embargoDateFA, figArtFullEmbargoDate);
-        _.set(requestBody, this.embargoTypeFA, 'article'); 
-        _.set(requestBody, this.embargoTitleFA, 'full article embargo'); 
-        _.set(requestBody, this.embargoReasonFA, dataPublicationRecord[this.metadataDP][this.embargoNoteDP]);
-        _.set(requestBody, this.embargoOptionsFA, embargoOptions);
-
-      } else if (dataPubAccessRights == 'mediated' || 
-        (_.has(dataPublicationRecord, this.metadataDP+ '.' +this.fileEmbargoDateDP) && !_.isEmpty(dataPublicationRecord[this.metadataDP][this.fileEmbargoDateDP])
-        && dataPubAccessRights != 'citation')) {
-          
-        _.set(requestBody, this.isEmbargoedFA, true);
-        
-        if(dataPubAccessRights == 'mediated') {
-          _.set(requestBody, this.embargoDateFA, '0'); //set permanent embargo
-        } else {
-          let figArtFileEmbargoDate = dataPublicationRecord[this.metadataDP][this.fileEmbargoDateDP];
-          sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - setArticleEmbargoDate - fileEmbargoDateDP '+figArtFileEmbargoDate);
-          _.set(requestBody, this.embargoDateFA, figArtFileEmbargoDate);
-        }
-        _.set(requestBody, this.embargoTypeFA, 'file');
-        _.set(requestBody, this.embargoTitleFA, 'files only embargo');
-        _.set(requestBody, this.embargoReasonFA, dataPublicationRecord[this.metadataDP][this.embargoNoteDP]);
-        _.set(requestBody, this.embargoOptionsFA, embargoOptions);
-
-      } else {
-        _.set(requestBody, this.isEmbargoedFA, false);
-        _.set(requestBody, this.embargoDateFA, '');
-        _.set(requestBody, this.embargoTypeFA, 'article');
-        _.set(requestBody, this.embargoOptionsFA, embargoOptions);
-      }
-      sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - setArticleEmbargoDate - '+JSON.stringify(requestBody));
-    }
-    
-    private findLicenseValue(figArtLicense) {
-      let licenseValue = 0;
-      sails.log[this.createUpdateFigshareArticleLogLevel](figArtLicense);
-      let tmpLic = figArtLicense.replace('https://', '');
-      tmpLic = figArtLicense.replace('http://', '');
-      sails.log[this.createUpdateFigshareArticleLogLevel](tmpLic);
-      for (let license of this.figLicenses) {
-        if(!_.isUndefined(license.url) && !_.isEmpty(license.url) && license.url.includes(tmpLic)){
-          licenseValue = license.value;
-        }
-      }
-      return licenseValue;
-    }
-    
-    private setArticleLicense(dataPublicationRecord, requestBody) {
-      let accessType = _.get(dataPublicationRecord, this.metadataDP+ '.' +this.accessRightDP);
-      if(_.isUndefined(accessType) || _.isEmpty(accessType) || accessType == 'citation') {
-        sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - has metadata.license-identifier-default '+dataPublicationRecord[this.metadataDP][this.licenseDPDefault]);
-        let figArtLicenseDefault = dataPublicationRecord[this.metadataDP][this.licenseDPDefault];
-        sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - figArtLicense default '+figArtLicenseDefault);
-        let figArtLicenseIDDefault = this.findLicenseValue(figArtLicenseDefault);
-        _.set(requestBody, this.licenseFA,  figArtLicenseIDDefault);
-      } else {
-        if(_.has(dataPublicationRecord, this.metadataDP+ '.' +this.licenseDP)) {
-          sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - has metadata.license-identifier '+dataPublicationRecord[this.metadataDP][this.licenseDP]);
-          let figArtLicense = dataPublicationRecord[this.metadataDP][this.licenseDP];
-          sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - figArtLicense '+figArtLicense);
-          let figArtLicenseID = this.findLicenseValue(figArtLicense);
-          _.set(requestBody, this.licenseFA,  figArtLicenseID);
-        }
       }
     }
 
@@ -367,27 +279,6 @@ export module Services {
       return authors;
     }
 
-    //The impersonate option must be included in the query string when using the 
-    //GET and DELETE methods, and in the body when using the POST and PUT methods
-    //https://docs.figshare.com/#figshare_documentation_api_description_impersonation
-    private setImpersonateID(figshareAccountUserIDs, requestBody) {
-      sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - setArticleImpersonateID - enter');
-      // Chief investigator - CI
-      // Primary investigator - PI
-      // Principal investigator - PI
-      // Lead researcher - LR
-      let accountId;
-      if(!_.isUndefined(figshareAccountUserIDs) && figshareAccountUserIDs.length > 0) {
-        //The first of the list is the contributor_ci which is the account id used to impersonate
-        let authorPI = figshareAccountUserIDs[0];
-        sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - setArticleImpersonateID - authorPI');
-        sails.log[this.createUpdateFigshareArticleLogLevel](authorPI);
-        accountId = authorPI[this.accountIdFA];
-      } 
-      sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - setArticleImpersonateID - accountId '+accountId);
-      _.set(requestBody, this.impersonateFA, accountId);
-    } 
-
     private setCustomFieldInRequestBody(record: any, customFieldsTemplate:any, keyName:string, customFieldsMappings:any) {
       let customField = _.find(customFieldsMappings, { 'figName': keyName });
       let value = '';
@@ -436,9 +327,13 @@ export module Services {
     
     //FoR Codes 2020 converted to 2008
     private setArticleCategories(dataPublicationRecord, requestBody) {
+      //TODO FIXME this method needs more consideration on how can it be made configurable or generic
+      //it may be possible that if all instances are using FOR 2020 codes then the mapping as it was implemented is
+      //not needed but there may be in the future other institutions that may need a mapping of FOR codes other reasons
+      //or it may be possible that the mapping file needs to be generated in a case by case basis for each institution
       sails.log[this.createUpdateFigshareArticleLogLevel](`FigArticle - setArticleCategories`);
-      if(_.has(dataPublicationRecord, this.metadataDP + '.' + this.anzsrcForDP)) { 
-        let figCategoryIDs = this.findCategoryIDs(dataPublicationRecord[this.metadataDP][this.anzsrcForDP]);
+      if(_.has(dataPublicationRecord, this.metadataPathInRecord + '.' + this.anzsrcForDP)) {
+        let figCategoryIDs = this.findCategoryIDs(dataPublicationRecord[this.metadataPathInRecord][this.anzsrcForDP]);
         sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - setArticleCategories '+JSON.stringify(figCategoryIDs));
         if(!_.isUndefined(figCategoryIDs) && !_.isEmpty(figCategoryIDs)){
           _.set(requestBody, this.categoriesFA, figCategoryIDs);
@@ -462,7 +357,17 @@ export module Services {
               {
                 "value": 1,
                 "name": "CC BY",
-                "url": "http://creativecommons.org/licenses/by/4.0/"
+                "url": "http://creativecommons.org/licenses/by/4.0"
+              },
+              {
+                "value": 2,
+                "name": "BSD 3-Clause",
+                "url": "https://opensource.org/licenses/BSD-3-Clause"
+              },
+              {
+                "value": 3,
+                "name": "InC 1.0",
+                "url": "https://rightsstatements.org/page/InC/1.0/?language=en"
               }
             ];
           } else {
@@ -555,10 +460,9 @@ export module Services {
       for(let standardField of sails.config.figshareAPI.mapping.standardFields.update) {
         this.setStandardFieldInRequestBody(dataPublicationRecord,requestBodyUpdate,standardField);
       }
-      //TODO FIXME make below methods configurable that are dependent on live artifacts and/or API calls data that gets retrieved at runtime
       this.setFieldByNameInRequestBody(dataPublicationRecord,requestBodyUpdate,sails.config.figshareAPI.mapping.standardFields.update,'authors',figshareAccountAuthorIDs);
-      // this.setArticleAuthors(figshareAccountAuthorIDs, requestBodyUpdate);
-      this.setArticleLicense(dataPublicationRecord, requestBodyUpdate);
+      this.setFieldByNameInRequestBody(dataPublicationRecord,requestBodyUpdate,sails.config.figshareAPI.mapping.standardFields.update,'license',this.figLicenses);
+
       this.setArticleCategories(dataPublicationRecord, requestBodyUpdate);
 
       let customFieldsKeys = _.keys(customFields);
@@ -575,23 +479,24 @@ export module Services {
       let requestBodyCreate = new FigshareArticleImpersonate();
       //Open Access and Full Text URL custom fields have to be set on create because the figshare article 
       //cannot be Made non draft (publish) so reviewers can pick it up from the queue
-      let customFieldsImpersonate = _.clone(sails.config.figshareAPI.mapping.templates.customFields.createImpersonate);
+      let customFieldsImpersonate = _.clone(sails.config.figshareAPI.mapping.templates.customFields.create);
       let customFieldsKeys = _.keys(customFieldsImpersonate);
 
       
       //TODO FIXE me build artifacts and template context only once to keep memory usage efficient
       for(let customFieldKey of customFieldsKeys) {
-        this.setCustomFieldInRequestBody(dataPublicationRecord, customFieldsImpersonate, customFieldKey, sails.config.figshareAPI.mapping.customFields.createImpersonate);
+        this.setCustomFieldInRequestBody(dataPublicationRecord, customFieldsImpersonate, customFieldKey, sails.config.figshareAPI.mapping.customFields.create);
       }
 
-      for(let standardField of sails.config.figshareAPI.mapping.standardFields.createImpersonate) {
+      for(let standardField of sails.config.figshareAPI.mapping.standardFields.create) {
         this.setStandardFieldInRequestBody(dataPublicationRecord,requestBodyCreate,standardField);
       }
 
-      //TODO FIXME make below methods configurable that are dependent on live artifacts that get retrieved at runtime
-      this.setImpersonateID(figshareAccountAuthorIDs, requestBodyCreate);
+      this.setFieldByNameInRequestBody(dataPublicationRecord,requestBodyCreate,sails.config.figshareAPI.mapping.standardFields.impersonate,'impersonate',figshareAccountAuthorIDs);
+      this.setFieldByNameInRequestBody(dataPublicationRecord,requestBodyCreate,sails.config.figshareAPI.mapping.standardFields.create,'license',this.figLicenses);
+
       this.setArticleCategories(dataPublicationRecord, requestBodyCreate);
-      this.setArticleLicense(dataPublicationRecord, requestBodyCreate);
+
       _.set(requestBodyCreate, sails.config.figshareAPI.mapping.customFields.path, customFieldsImpersonate);
       return requestBodyCreate;
     }
@@ -600,15 +505,19 @@ export module Services {
       //figArticleEmbargoOptions = [{id: 1780}] = administrator
       let requestEmbargoBody = new FigshareArticleEmbargo(0, false,'','','','',this.figArticleEmbargoOptions);
 
-      //TODO FIXME make below methods configurable that are dependent on live artifacts that get retrieved at runtime
-      this.setImpersonateID(figshareAccountAuthorIDs, requestEmbargoBody);
-      this.setArticleEmbargoDate(dataPublicationRecord, requestEmbargoBody);
+      this.setFieldByNameInRequestBody(dataPublicationRecord,requestEmbargoBody,sails.config.figshareAPI.mapping.standardFields.impersonate,'impersonate',figshareAccountAuthorIDs);
+      
+      //TODO FIXE me build artifacts and template context only once to keep memory usage efficient
+      for(let standardField of sails.config.figshareAPI.mapping.standardFields.embargo) {
+        this.setStandardFieldInRequestBody(dataPublicationRecord,requestEmbargoBody,standardField);
+      }
+
       return requestEmbargoBody;
     }
 
     private getPublishRequestBody(figshareAccountAuthorIDs) {
       let requestBody = { impersonate: 0 };
-      this.setImpersonateID(figshareAccountAuthorIDs, requestBody);
+      this.setFieldByNameInRequestBody({},requestBody,sails.config.figshareAPI.mapping.standardFields.impersonate,'impersonate',figshareAccountAuthorIDs);
       return requestBody;
     }
 
@@ -619,11 +528,11 @@ export module Services {
         sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - -------------------------------------------');
         let articleId; 
 
-        if(_.has(dataPublicationRecord, this.metadataDP + '.' + this.figshareArticleID_DP) && 
-          !_.isUndefined(dataPublicationRecord[this.metadataDP][this.figshareArticleID_DP]) && 
-          dataPublicationRecord[this.metadataDP][this.figshareArticleID_DP] > 0) {
-          articleId = dataPublicationRecord[this.metadataDP][this.figshareArticleID_DP];
-          sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - sendDataPublicationToFigshare - metadata.figshare_article_id '+dataPublicationRecord[this.metadataDP][this.figshareArticleID_DP]);
+        if(_.has(dataPublicationRecord, this.metadataPathInRecord + '.' + this.figArticleIdPathInRecord) && 
+          !_.isUndefined(dataPublicationRecord[this.metadataPathInRecord][this.figArticleIdPathInRecord]) && 
+          dataPublicationRecord[this.metadataPathInRecord][this.figArticleIdPathInRecord] > 0) {
+          articleId = dataPublicationRecord[this.metadataPathInRecord][this.figArticleIdPathInRecord];
+          sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - sendDataPublicationToFigshare - metadata.figshare_article_id '+dataPublicationRecord[this.metadataPathInRecord][this.figArticleIdPathInRecord]);
         } else {
           articleId = 0;
         }
@@ -709,14 +618,14 @@ export module Services {
 
             if(!_.isUndefined(articleId) && articleId > 0) {
 
-              _.set(dataPublicationRecord,this.metadataDP+'.'+this.figshareArticleID_DP, articleId+'');
+              _.set(dataPublicationRecord,this.metadataPathInRecord+'.'+this.figArticleIdPathInRecord, articleId+'');
               sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - sendDataPublicationToFigshare responseCreate.data.location '+responseCreate.data.location);
 
               if(_.has(responseCreate.data, this.locationFAR) && !_.isEmpty(responseCreate.data.location)) {
                 
                 let articleLocationURL = responseCreate.data.location.replace(`${sails.config.figshareAPI.baseURL}/account/articles/`,`${sails.config.figshareAPI.frontEndURL}/account/articles/`);
                 sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - sendDataPublicationToFigshare articleLocationURL '+articleLocationURL);
-                _.set(dataPublicationRecord, this.metadataDP+'.'+this.figshareArticleLocationDP, articleLocationURL);
+                _.set(dataPublicationRecord, this.metadataPathInRecord+'.'+this.figArticleURLPathInRecord, articleLocationURL);
                 
                 //https://docs.figshare.com/#private_article_publish
                 let requestBodyPublishAfterCreate = this.getPublishRequestBody(this.figshareAccountAuthorIDs);
@@ -774,11 +683,11 @@ export module Services {
 
               let articleLocationURL = responseUpdate.data.location.replace(`${sails.config.figshareAPI.baseURL}/account/articles/`,`${sails.config.figshareAPI.frontEndURL}/account/articles/`);
               sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - articleLocationURL '+articleLocationURL);
-              _.set(dataPublicationRecord, this.metadataDP+'.'+this.figshareArticleLocationDP, articleLocationURL);
+              _.set(dataPublicationRecord, this.metadataPathInRecord+'.'+this.figArticleURLPathInRecord, articleLocationURL);
 
               let requestBodyPublishAfterUpdate = this.getPublishRequestBody(this.figshareAccountAuthorIDs);
               sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - sendDataPublicationToFigshare before impersonate publish response location '+responseUpdate.data.location);
-              sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - sendDataPublicationToFigshare before impersonate publish figshare_article_location '+dataPublicationRecord[this.metadataDP][this.figshareArticleLocationDP]);
+              sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - sendDataPublicationToFigshare before impersonate publish figshare_article_location '+dataPublicationRecord[this.metadataPathInRecord][this.figArticleURLPathInRecord]);
               sails.log[this.createUpdateFigshareArticleLogLevel](requestBodyPublishAfterUpdate);
 
               //https://docs.figshare.com/#private_article_publish
@@ -821,17 +730,11 @@ export module Services {
 
     private validateEmbargoRequestBody(dataPublicationRecord, requestBody) {
       let valid = '';
-      let dateFormat = 'YYYY-MM-DD';
-      let dataPubAccessRights = dataPublicationRecord[this.metadataDP][this.accessRightDP];
-      if(!_.isEmpty(requestBody[this.embargoDateFA]) && dataPubAccessRights != 'mediated') {
-        let now = moment().utc().format(dateFormat);
-        sails.log[this.createUpdateFigshareArticleLogLevel](now);
-        let compareDate = moment(requestBody[this.embargoDateFA], dateFormat).utc().format(dateFormat);
-        sails.log[this.createUpdateFigshareArticleLogLevel](compareDate);
-        let isAfter = moment(compareDate).isAfter(now);
-        sails.log[this.createUpdateFigshareArticleLogLevel](isAfter);
-        if(!isAfter) {
-          valid = TranslationService.t('@dataPublication-embargoDate-validationMessage');
+
+      for(let embargoField of sails.config.figshareAPI.mapping.standardFields.embargo) {
+        valid = this.validateFieldInRequestBody(requestBody,embargoField,'',dataPublicationRecord);
+        if(valid != '') {
+          return valid;
         }
       }
 
@@ -845,19 +748,24 @@ export module Services {
     private checkArticleCreateFields(requestBody) {
       let valid = '';
       
-      if(_.isUndefined(requestBody[this.impersonateFA])) {
-        valid = TranslationService.t('@dataPublication-accountIdNotFound-validationMessage');
-        return valid;
+      let impersonate = sails.config.figshareAPI.mapping.standardFields.impersonate;
+      if(!_.isEmpty(impersonate)) {
+        for(let impersonateField of impersonate) {
+          valid = this.validateFieldInRequestBody(requestBody,impersonateField);
+          if(valid != '') {
+            return valid;
+          }
+        }
       }
 
-      for(let standardField of sails.config.figshareAPI.mapping.standardFields.createImpersonate) {
+      for(let standardField of sails.config.figshareAPI.mapping.standardFields.create) {
         valid = this.validateFieldInRequestBody(requestBody,standardField);
         if(valid != '') {
           return valid;
         }
       }
 
-      for(let customField of sails.config.figshareAPI.mapping.customFields.createImpersonate) {
+      for(let customField of sails.config.figshareAPI.mapping.customFields.create) {
         valid = this.validateFieldInRequestBody(requestBody,customField,sails.config.figshareAPI.mapping.customFields.path);
         if(valid != '') {
           return valid;
@@ -867,12 +775,13 @@ export module Services {
       return valid;
     }
 
-    private validateFieldInRequestBody(requestBody:any, field:any, customFieldPath:string ='') {
+    private validateFieldInRequestBody(requestBody:any, field:any, customFieldPath:string ='', record:any={}) {
       let invalidValueForField = TranslationService.t('@backend-prefix-validationMessage'); //'Invalid value for field: ';
       let maxLengthIs =  TranslationService.t('@backend-maxlength-validationMessage'); //', maximum length is ';
       let idNotFound = TranslationService.t('@backend-idNotFound-validationMessage'); //' Id Not Found in Figshare';
       let valid = '';
       let passed = true;
+      let context = {};
       let validations = _.get(field,'validations',{});
       sails.log[this.createUpdateFigshareArticleLogLevel](`FigArticle ---- requestBody ---- ${JSON.stringify(requestBody)}`);
       sails.log[this.createUpdateFigshareArticleLogLevel](`FigArticle ---- field ---- ${JSON.stringify(field)} --- path ${customFieldPath}`);
@@ -884,12 +793,25 @@ export module Services {
           let addSuffix = _.get(validation,'addSuffix',false);
           let overridePrefix = _.get(validation,'overridePrefix','');
           let overrideSuffix = _.get(validation,'overrideSuffix','');
+          let regexValidation = _.get(validation,'regexValidation','');
           if(!_.isUndefined(template) && template.indexOf('<%') != -1) {
-            let context = {
-              request: requestBody,
-              moment: moment,
-              field: field,
-              artifacts: sails.config.figshareAPI.mapping.artifacts
+            if(_.isEmpty(context)) {
+              if(!_.isEmpty(record)) {
+                context = {
+                  request: requestBody,
+                  moment: moment,
+                  field: field,
+                  artifacts: sails.config.figshareAPI.mapping.artifacts,
+                  record: record
+                }
+              } else {
+                context = {
+                  request: requestBody,
+                  moment: moment,
+                  field: field,
+                  artifacts: sails.config.figshareAPI.mapping.artifacts
+                }
+              }
             }
             passed = _.template(template)(context);
             sails.log[this.createUpdateFigshareArticleLogLevel](`FigArticle ---- field ---- ${field.figName} ----  template ---- ${passed}`);
@@ -909,6 +831,20 @@ export module Services {
             sails.log[this.createUpdateFigshareArticleLogLevel](`FigArticle ---- standardField ---- ${field.figName} ----  maxLength ---- ${passed}`);
             if(!passed) {
               valid = TranslationService.t(_.get(validation,'message','Error on request to Figshare') + maxLengthIs + maxLength);
+            }
+          } else if(regexValidation != ''){
+            let val = _.get(requestBody,field.figName,'');
+            let caseSensitive = _.get(validation,'caseSensitive',true);
+            if(caseSensitive) {
+              let re = new RegExp(regexValidation);
+              if(!re.test(val)) {
+                valid = TranslationService.t(_.get(validation,'message','Error on request to Figshare'));
+              }
+            } else {
+              let re = new RegExp(regexValidation,'i');
+              if(!re.test(val)) {
+                valid = TranslationService.t(_.get(validation,'message','Error on request to Figshare'));
+              }
             }
           }
           if(valid != ''){
@@ -943,22 +879,6 @@ export module Services {
 
     private checkArticleUpdateFields(requestBody) {
       let valid = '';
-      let invalidValueForField = TranslationService.t('@backend-prefix-validationMessage'); //'Invalid value for field: ';
-
-      // Figshare format requires to remove domain in example
-      // https://dx.doi.org/10.25946/5f48373c5ac76
-      // has to be stripped of domain to 
-      // 10.25946/5f48373c5ac76
-      // Regex to validate DOI taken from
-      // https://www.crossref.org/blog/dois-and-matching-regular-expressions/
-      let resourceDOI = requestBody[this.resourceDOI_FA];
-      if(!_.isEmpty(resourceDOI)) {
-        let re = new RegExp('^10.\\d{4,9}\/[-._;()\/:A-Z0-9]+$','i');
-        if(!re.test(resourceDOI)) {
-          valid = invalidValueForField + TranslationService.t('@dataPublication-relatedResources-validationMessage');
-          return valid;
-        }
-      }
 
       for(let standardField of sails.config.figshareAPI.mapping.standardFields.update) {
         valid = this.validateFieldInRequestBody(requestBody,standardField);
@@ -1004,11 +924,11 @@ export module Services {
         sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - -------------------------------------------');
 
         let articleId;
-        if(_.has(dataPublicationRecord, this.metadataDP + '.' + this.figshareArticleID_DP) && 
-          !_.isUndefined(dataPublicationRecord[this.metadataDP][this.figshareArticleID_DP]) && 
-          dataPublicationRecord[this.metadataDP][this.figshareArticleID_DP] > 0) {
-          articleId = dataPublicationRecord[this.metadataDP][this.figshareArticleID_DP];
-          sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - checkUploadFilesPending - metadata.figshare_article_id '+dataPublicationRecord[this.metadataDP][this.figshareArticleID_DP]);
+        if(_.has(dataPublicationRecord, this.metadataPathInRecord + '.' + this.figArticleIdPathInRecord) && 
+          !_.isUndefined(dataPublicationRecord[this.metadataPathInRecord][this.figArticleIdPathInRecord]) && 
+          dataPublicationRecord[this.metadataPathInRecord][this.figArticleIdPathInRecord] > 0) {
+          articleId = dataPublicationRecord[this.metadataPathInRecord][this.figArticleIdPathInRecord];
+          sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - checkUploadFilesPending - metadata.figshare_article_id '+dataPublicationRecord[this.metadataPathInRecord][this.figArticleIdPathInRecord]);
         } else {
           articleId = 0;
         }
@@ -1042,8 +962,8 @@ export module Services {
               fs.mkdirSync(filePath);
             }
 
-            let dataLocations = dataPublicationRecord[this.metadataDP][this.dataLocationsDP];
-            let accessRights = dataPublicationRecord[this.metadataDP][this.accessRightDP];
+            let dataLocations = dataPublicationRecord[this.metadataPathInRecord][this.dataLocationsPathInRecord];
+            let accessRights = dataPublicationRecord[this.metadataPathInRecord][this.accessRightDP];
             let foundAttachment = this.isFileAttachmentInDataLocations(dataLocations);
             //Citation hides the locations component but if there are left over attached files but hidden then these should not be uploaded 
             if(accessRights == 'citation') {
@@ -1185,7 +1105,7 @@ export module Services {
       let fileFullPath = filePath+'/'+fileName;
 
       sails.log[this.createUpdateFigshareArticleLogLevel](dataPublicationRecord);
-      let dataLocations = dataPublicationRecord[this.metadataDP][this.dataLocationsDP];
+      let dataLocations = dataPublicationRecord[this.metadataPathInRecord][this.dataLocationsPathInRecord];
       //Print the list of files in the dataPublication record 
       for(let attachmentFile of dataLocations) {
         sails.log[this.createUpdateFigshareArticleLogLevel](attachmentFile);
@@ -1233,7 +1153,7 @@ export module Services {
             name: fileName,
             size: fileSize
           }
-          this.setImpersonateID(this.figshareAccountAuthorIDs, requestStep1);
+          this.setFieldByNameInRequestBody(dataPublicationRecord,requestStep1,sails.config.figshareAPI.mapping.standardFields.impersonate,'impersonate',this.figshareAccountAuthorIDs);
           
           let configStep1 = this.getAxiosConfig('post',`/account/articles/${articleId}/files`,requestStep1);
           
@@ -1351,7 +1271,7 @@ export module Services {
                 let paramsImpersonate: {
                   impersonate: 0
                 }
-                this.setImpersonateID(this.figshareAccountAuthorIDs, paramsImpersonate);
+                this.setFieldByNameInRequestBody(dataPublicationRecord,paramsImpersonate,sails.config.figshareAPI.mapping.standardFields.impersonate,'impersonate',this.figshareAccountAuthorIDs);
                 let configStep4 = {
                   headers: { 
                     'Content-Type': 'application/octet-stream',
@@ -1373,7 +1293,7 @@ export module Services {
 
               //complete upload step 5
               let requestBodyComplete = { impersonate: 0 };
-              this.setImpersonateID(this.figshareAccountAuthorIDs, requestBodyComplete);
+              this.setFieldByNameInRequestBody(dataPublicationRecord,requestBodyComplete,sails.config.figshareAPI.mapping.standardFields.impersonate,'impersonate',this.figshareAccountAuthorIDs);
               let configStep5 = this.getAxiosConfig('post', `/account/articles/${articleId}/files/${fileId}`, requestBodyComplete);
               sails.log[this.createUpdateFigshareArticleLogLevel](`FigArticle - processFilePartUploadToFigshare - ${configStep5.method} - ${configStep5.url}`);
               let responseStep5 = await axios(configStep5);
@@ -1466,11 +1386,11 @@ export module Services {
         sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - -------------------------------------------');
 
         let articleId;
-        if(_.has(dataPublicationRecord, this.metadataDP + '.' + this.figshareArticleID_DP) && 
-          !_.isUndefined(dataPublicationRecord[this.metadataDP][this.figshareArticleID_DP]) && 
-          dataPublicationRecord[this.metadataDP][this.figshareArticleID_DP] > 0) {
-          articleId = dataPublicationRecord[this.metadataDP][this.figshareArticleID_DP];
-          sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - deleteFilesAndUpdateDataLocationEntries - metadata.figshare_article_id '+dataPublicationRecord[this.metadataDP][this.figshareArticleID_DP]);
+        if(_.has(dataPublicationRecord, this.metadataPathInRecord + '.' + this.figArticleIdPathInRecord) && 
+          !_.isUndefined(dataPublicationRecord[this.metadataPathInRecord][this.figArticleIdPathInRecord]) && 
+          dataPublicationRecord[this.metadataPathInRecord][this.figArticleIdPathInRecord] > 0) {
+          articleId = dataPublicationRecord[this.metadataPathInRecord][this.figArticleIdPathInRecord];
+          sails.log[this.createUpdateFigshareArticleLogLevel]('FigArticle - deleteFilesAndUpdateDataLocationEntries - metadata.figshare_article_id '+dataPublicationRecord[this.metadataPathInRecord][this.figArticleIdPathInRecord]);
         } else {
           articleId = 0;
         }
@@ -1485,7 +1405,7 @@ export module Services {
           sails.log[this.createUpdateFigshareArticleLogLevel](`FigArticle - deleteFilesAndUpdateDataLocationEntries - status: ${responseArticleList.status} statusText: ${responseArticleList.statusText}`);
           let articleFileList = responseArticleList.data;
 
-          let dataLocations = dataPublicationRecord[this.metadataDP][this.dataLocationsDP];
+          let dataLocations = dataPublicationRecord[this.metadataPathInRecord][this.dataLocationsPathInRecord];
           let urlList = [];
 
           //delete files from redbox
@@ -1509,9 +1429,9 @@ export module Services {
               let newUrl = {type: 'url', location: fileUrl['download_url'], notes: fileNameNotes};
               sails.log[this.createUpdateFigshareArticleLogLevel](newUrl);
               //remove existing entry to the file attachment
-              _.remove(dataPublicationRecord[this.metadataDP][this.dataLocationsDP], ['name', fileName]);
+              _.remove(dataPublicationRecord[this.metadataPathInRecord][this.dataLocationsPathInRecord], ['name', fileName]);
               //add new entry as URL to the same file already uploaded to Figshare
-              dataPublicationRecord[this.metadataDP][this.dataLocationsDP].push(newUrl);
+              dataPublicationRecord[this.metadataPathInRecord][this.dataLocationsPathInRecord].push(newUrl);
             } 
           }
 
