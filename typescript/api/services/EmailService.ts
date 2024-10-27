@@ -51,23 +51,63 @@ export module Services {
 
     /**
      * Simple API service to POST a message queue to Redbox.
-     *
      * Base email sending method.
-     * Return: code, msg
+     *
+     * The email address properties are a nodemailer address object.
+     * In practice this is a single string, so only the 'plain', 'formatted name',
+     * and 'comma separated list' within a string should be used.
+     * See: https://nodemailer.com/message/addresses/
+     *
+     * @param msgTo Email address(es) of recipients for 'to' field.
+     * @param msgBody The message content in the format set by 'msgFormat'.
+     * @param msgSubject The email subject.
+     * @param msgFrom Email address of the sender.
+     * @param msgFormat The body format, either 'html' or 'text'.
+     * @param cc Email address(es) of recipients for 'cc' field.
+     * @param bcc Email address(es) of recipients for 'bcc' field.
+     * @return A promise that evaluates to the result of sending the email.
      */
-    public sendMessage(msgTo, msgBody: string,
-      msgSubject: string = sails.config.emailnotification.defaults.subject,
-      msgFrom: string = sails.config.emailnotification.defaults.from,
-      msgFormat: string = sails.config.emailnotification.defaults.format,
-      cc: string = _.get(sails.config.emailnotification.defaults, 'cc', ''),
-      bcc: string = ''): Observable<any> {
+    public sendMessage(
+        msgTo,
+        msgBody: string,
+        msgSubject: string = sails.config.emailnotification.defaults.subject,
+        msgFrom: string = sails.config.emailnotification.defaults.from,
+        msgFormat: string = sails.config.emailnotification.defaults.format,
+        cc: string = _.get(sails.config.emailnotification.defaults, 'cc', ''),
+        bcc: string = _.get(sails.config.emailnotification.defaults, 'bcc', '')
+    ): Observable<any> {
 
       return Observable.fromPromise(this.sendMessageAsync(msgTo, msgBody, msgSubject, msgFrom, msgFormat, cc, bcc));
 
     }
 
-
-    private async sendMessageAsync(msgTo, msgBody: string, msgSubject: string, msgFrom: string, msgFormat: string, cc: string, bcc: string): Promise<any> {
+    /**
+     * Send an email asynchronously.
+     *
+     * The email address properties are a nodemailer address object.
+     * In practice this is a single string, so only the 'plain', 'formatted name',
+     * and 'comma separated list' within a string should be used.
+     * See: https://nodemailer.com/message/addresses/
+     *
+     * @param msgTo Email address(es) of recipients for 'to' field.
+     * @param msgBody The message content in the format set by 'msgFormat'.
+     * @param msgSubject The email subject.
+     * @param msgFrom Email address of the sender.
+     * @param msgFormat The body format, either 'html' or 'text'.
+     * @param cc Email address(es) of recipients for 'cc' field.
+     * @param bcc Email address(es) of recipients for 'bcc' field.
+     * @return The result of sending the email.
+     * @private
+     */
+    private async sendMessageAsync(
+        msgTo,
+        msgBody: string,
+        msgSubject: string,
+        msgFrom: string,
+        msgFormat: string,
+        cc: string,
+        bcc: string
+    ): Promise<any> {
       if (!sails.config.emailnotification.settings.enabled) {
         sails.log.debug("Received email notification request, but is disabled. Ignoring.");
         return {
@@ -119,13 +159,14 @@ export module Services {
     }
 
     /**
-     * Build Email Body from Template
+     * Build Email Body from an EJS Template.
+     * Templates are defined in sails config.
      *
-     * Templates are defined in sails config
-     *
-     * Return: status, body, exc
+     * @param template The file name without extension.
+     * @param data The variables to use when rendering the template.
+     * @param res The response object. Will contain 'status', 'body', might contain 'ex'.
+     * @return The response object with 'status', 'body', and maybe 'ex' set.
      */
-
     public async buildFromTemplateAsync(template: string, data: any = {}, res: any = {}) {
       try {
         let readTemplate = fs.readFileSync(sails.config.emailnotification.settings.templateDir + template + '.ejs', 'utf-8')
@@ -149,16 +190,28 @@ export module Services {
       }
     }
 
+    /**
+     * Build Email Body from Template.
+     * Templates are defined in sails config.
+     *
+     * @param template The file name without extension.
+     * @param data The variables to use when rendering the template.
+     * @return A promise that evaluates to the response object with 'status', 'body', and maybe 'ex' set.
+     */
     public buildFromTemplate(template: string, data: any = {}): Observable<any> {
       return Observable.fromPromise(this.buildFromTemplateAsync(template, data));      
     }
 
     /**
-     * Send Email from Template
+     * Send Email from Template.
+     * Templates are defined in sails config.
      *
-     * Templates are defined in sails config
+     * No return. The email is sent after the built template promise is evaluated.
      *
-     * Return: status, body, exc
+     * @param to Email address(es) of recipients for 'to' field.
+     * @param subject The email subject.
+     * @param template The file name without extension.
+     * @param data The variables to use when rendering the template.
      */
     public sendTemplate(to, subject, template, data) {
       sails.log.verbose("Inside Send Template");
@@ -177,6 +230,13 @@ export module Services {
       });
     }
 
+    /**
+     * Render a lodash template from a string.
+     * @param template The template string.
+     * @param variables The variables to use when rendering the template.
+     * @return The rendered template string.
+     * @protected
+     */
     protected runTemplate(template: string, variables) {
       if (template && template.indexOf('<%') != -1) {
         return _.template(template, variables)();
@@ -184,6 +244,16 @@ export module Services {
       return template;
     }
 
+    /**
+     * Send an email build from the given record data.
+     *
+     * @param oid The record identifier.
+     * @param record The record data.
+     * @param options The email options.
+     * @param user The optional user.
+     * @param response The optional response to return.
+     * @return The response if provided or the record data.
+     */
     public sendRecordNotification(oid, record, options, user, response) {
       const isSailsEmailConfigDisabled = (_.get(sails.config, 'services.email.disabled', false) == "true");
       if (isSailsEmailConfigDisabled) {
