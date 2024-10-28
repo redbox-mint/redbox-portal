@@ -46,7 +46,8 @@ export module Services {
       'sendMessage',
       'buildFromTemplate',
       'sendTemplate',
-      'sendRecordNotification'
+      'sendRecordNotification',
+      'evaluateProperties',
     ];
 
     /**
@@ -325,6 +326,190 @@ export module Services {
       } else {
         return Observable.of(record);
       }
+    }
+
+    /**
+     *
+     * @param options
+     * @param config
+     * @param templateData
+     */
+    public evaluateProperties(options: object, config: object = {}, templateData: object = {}):
+        {
+          format: string, from: string, to: string, cc: string, bcc: string, subject: string,
+          template: any, evaluatedValue: any,
+        } {
+      const result = {
+        format: "", from: "", to: "", cc: "", bcc: "", subject: "", template: null, evaluatedValue: null,
+      };
+
+      if (_.isNil(options)) {
+        return result;
+      }
+
+      const mergedConfig = _.merge({
+        format: {
+          names: ["msgFormat", "format",],
+          defaultKey: "format",
+        },
+        from: {
+          names: ["msgFrom", "from"],
+          defaultKey: "from",
+          templateFunc: this.runTemplate,
+        },
+        to: {
+          names: ["msgTo", "to"],
+          templateFunc: this.runTemplate,
+        },
+        cc: {
+          names: ["cc"],
+          defaultKey: "cc",
+          templateFunc: this.runTemplate,
+        },
+        bcc: {
+          names: ["bcc"],
+          defaultKey: "bcc",
+          templateFunc: this.runTemplate,
+        },
+        subject: {
+          names: ["subject"],
+          defaultKey: "subject",
+          templatesKey: "subject",
+          templateFunc: this.runTemplate,
+        },
+        template: {
+          names: ["template"],
+          templateFunc: this.buildFromTemplate,
+        }
+      }, config);
+
+      // Add the sails config to the template data.
+      templateData['sailsConfig'] = sails.config;
+
+      // Get the template name first, so it is available for the other properties.
+      let templateName = null;
+      templateName = this.evaluatePropertyOptions(options, templateName, mergedConfig.template);
+      templateName = this.evaluatePropertyDefault(templateName, mergedConfig.template);
+
+      // Evaluate each property.
+      for (const prop in mergedConfig) {
+        const propConfig = mergedConfig[prop];
+
+        this.evaluateProperty(options, prop, propConfig, templateData, templateName);
+      }
+
+      return result;
+    }
+
+    /**
+     * Evaluate a property.
+     *
+     * @param options Object containing one of the keys in the property configuration.
+     * @param prop The property name.
+     * @param propConfig The property configuration.
+     * @param templateData The template variables to render.
+     * @param templateName The name of the template.
+     * @return An object with the un-rendered property value with the property name as the key,
+     *         and the rendered value with the property name + 'Rendered' as the key.
+     * @private
+     */
+    private evaluateProperty(options: object, prop: string, propConfig: object, templateData: object, templateName: string | null) {
+      const result = {};
+      let propValue = null;
+
+      propValue = this.evaluatePropertyOptions(options, propValue, propConfig);
+      propValue = this.evaluatePropertyDefault(propValue, propConfig);
+      propValue = this.evaluatePropertyTemplateConfig(prop, propValue, propConfig, templateName);
+
+      result[prop] = propValue;
+
+      const propRendered = this.evaluatePropertyTemplate(propValue, propConfig, templateData);
+      if (!_.isNil(propRendered)) {
+        result[`${prop}Rendered`] = propRendered;
+      }
+
+      return result;
+    }
+
+    /**
+     * Get the property value from the provided options.
+     *
+     * @param options Object containing one of the keys in the property configuration.
+     * @param propValue The value of the property obtained from the provided options or defaults.
+     * @param propConfig The property configuration.
+     * @return The property value if it is in options, otherwise null.
+     * @private
+     */
+    private evaluatePropertyOptions(options: object, propValue: string | null, propConfig: object) {
+      //
+      const propNames = _.get(propConfig, "names", []);
+      if (!_.isNil(propNames)) {
+        for (const propName of propNames) {
+          propValue = _.get(options, propName, null);
+          if (!_.isNil(propValue)) {
+            break;
+          }
+        }
+      }
+
+      return propValue;
+    }
+
+    /**
+     * Get a property default value from the emailnotification defaults configuration.
+     *
+     * @param propValue The value of the property obtained from the provided options or defaults.
+     * @param propConfig The property configuration.
+     * @return The default value from the defaults configuration, or the property value.
+     * @private
+     */
+    private evaluatePropertyDefault(propValue: string | null, propConfig: object) {
+      const propDefaultKey = _.get(propConfig, "defaultKey", null);
+      if (!_.isNil(propValue) && !_.isNil(propDefaultKey)) {
+        propValue = _.get(sails.config.emailnotification.defaults, propDefaultKey, null);
+      }
+      return propValue;
+    }
+
+    /**
+     * Get a property default value from the emailnotification templates configuration.
+     *
+     * @param prop The property name.
+     * @param propValue The value of the property obtained from the provided options or defaults.
+     * @param propConfig The property configuration.
+     * @param templateName The name of the template.
+     * @return The default value from the templates configuration, or the property value.
+     * @private
+     */
+    private evaluatePropertyTemplateConfig(prop: string, propValue: string | null, propConfig: object, templateName: string | null) {
+      const propTemplateConfigKey = _.get(propConfig, "templatesKey", null);
+      if (!_.isNil(propValue) || _.isNil(propTemplateConfigKey) || _.isNil(templateName)) {
+        return propValue;
+      }
+
+      const templatesConfigItem = _.get(sails.config.emailnotification.templates, templateName);
+      if (!_.isNil(templatesConfigItem)) {
+        return _.get(templatesConfigItem, prop, null);
+      }
+
+      return propValue;
+    }
+
+    /**
+     * Render the property using the template function.
+     *
+     * @param propValue The value of the property obtained from the provided options or defaults.
+     * @param propConfig The property configuration.
+     * @param templateData The template variables to render.
+     * @return The result of rendering the template function with the data, or the property value if there is no template function.
+     * @private
+     */
+    private evaluatePropertyTemplate(propValue: string | null, propConfig: object, templateData: object) {
+      const templateFunc = _.get(propConfig, 'templateFunc', null);
+      if (!_.isNil(propValue) && !_.isNil(templateFunc)) {
+        return templateFunc(propValue, templateData);
+      }
+      return propValue;
     }
   }
 
