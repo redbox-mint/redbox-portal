@@ -183,7 +183,7 @@ export module Services {
         res['body'] = renderedTemplate;
         return res;
       } catch (err) {
-        sails.log.error(`Unable to render template ${template} with data: ${data}`);
+        sails.log.error(`Unable to render template ${template} with data: ${JSON.stringify(data)}`);
         res['status'] = 500;
         res['body'] = 'Templating error.';
         res['ex'] = err;

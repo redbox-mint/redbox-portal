@@ -17,6 +17,9 @@ headers {
 body:json {
     {
         "from": "from-example@redboxresearchdata.com.au",
+        "to": "to-example@redboxresearchdata.com.au",
+        "cc": "cc-example@redboxresearchdata.com.au",
+        "bcc": "bcc-example@redboxresearchdata.com.au",
         "data": {
             "data": "the test data"
         }
@@ -24,10 +27,10 @@ body:json {
 }
 
 tests {
-  test("Status code is 500", function () {
-      expect(res.getStatus()).to.equal(500);
+  test("Status code is 400", function () {
+      expect(res.getStatus()).to.equal(400);
   });
   test("Message contains error", function () {
-      expect(res.getBody().message).to.contain("Email sent successfully.");
+      expect(res.getBody().message).to.contain("An error has occurred");
   });
 }
