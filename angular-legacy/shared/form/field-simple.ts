@@ -421,12 +421,14 @@ export class SaveButton extends FieldBase<string> {
   disableValidation: boolean;
   // added value when clicked
   clickedValue: string;
+  redirectDelaySeconds: number;
 
   constructor(options: any, injector: any) {
     super(options, injector);
     this.label = this.getTranslated(options['label'], 'Save');
     this.closeOnSave = options['closeOnSave'] || false;
     this.redirectLocation = options['redirectLocation'] || false;
+    this.redirectDelaySeconds = options['redirectDelaySeconds'] || 3;
     this.cssClasses = options['cssClasses'] || "btn-primary";
     this.targetStep = options['targetStep'] || null;
     this.additionalData = options['additionalData'] || null;

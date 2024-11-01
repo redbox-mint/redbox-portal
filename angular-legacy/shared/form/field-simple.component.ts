@@ -760,7 +760,9 @@ export class SaveButtonComponent extends SimpleComponent {
             let oid = this.field.fieldMap._rootComp.oid;
             location = this.field.redirectLocation.replace("@oid", oid)
           }
+          setTimeout(function() {
           window.location.href = location;
+        }, this.field.redirectDelaySeconds * 1000);
         }
       }
       if (this.field.confirmationMessage) {
