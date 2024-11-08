@@ -652,12 +652,12 @@ export class HtmlRawComponent extends SimpleComponent {
   selector: 'text-block',
   template: `
   <div *ngIf="field.visible" [ngSwitch]="field.type">
-    <span *ngSwitchCase="'h1'" [ngClass]="field.cssClasses">{{field.value == null? '' : field.value}}</span>
-    <span *ngSwitchCase="'h2'" [ngClass]="field.cssClasses">{{field.value == null? '' : field.value}}</span>
-    <span *ngSwitchCase="'h3'" [ngClass]="field.cssClasses">{{field.value == null? '' : field.value}}</span>
-    <span *ngSwitchCase="'h4'" [ngClass]="field.cssClasses">{{field.value == null? '' : field.value}}</span>
-    <span *ngSwitchCase="'h5'" [ngClass]="field.cssClasses">{{field.value == null? '' : field.value}}</span>
-    <span *ngSwitchCase="'h6'" [ngClass]="field.cssClasses">{{field.value == null? '' : field.value}}</span>
+    <span *ngSwitchCase="'h1'" role="heading" aria-level="1" [ngClass]="field.cssClasses">{{field.value == null? '' : field.value}}</span>
+    <span *ngSwitchCase="'h2'" role="heading" aria-level="2" [ngClass]="field.cssClasses">{{field.value == null? '' : field.value}}</span>
+    <span *ngSwitchCase="'h3'" role="heading" aria-level="3" [ngClass]="field.cssClasses">{{field.value == null? '' : field.value}}</span>
+    <span *ngSwitchCase="'h4'" role="heading" aria-level="4" [ngClass]="field.cssClasses">{{field.value == null? '' : field.value}}</span>
+    <span *ngSwitchCase="'h5'" role="heading" aria-level="5" [ngClass]="field.cssClasses">{{field.value == null? '' : field.value}}</span>
+    <span *ngSwitchCase="'h6'" role="heading" aria-level="6" [ngClass]="field.cssClasses">{{field.value == null? '' : field.value}}</span>
     <hr *ngSwitchCase="'hr'" [ngClass]="field.cssClasses">
     <span *ngSwitchCase="'span'" [ngClass]="field.cssClasses">{{field.label == null? '' : field.label + ': '}}{{field.value == null? '' : field.value}}</span>
     <p *ngSwitchDefault [ngClass]="field.cssClasses" [innerHtml]="field.value == null? '' : field.value"></p>
