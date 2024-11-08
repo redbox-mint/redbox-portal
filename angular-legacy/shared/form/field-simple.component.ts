@@ -527,8 +527,8 @@ Container components
   <div *ngIf="field.editMode" class="row" style="min-height:300px;">
     <div [ngClass]="field.cssClasses">
       <div [ngClass]="field.tabNavContainerClass">
-        <ul [ngClass]="field.tabNavClass">
-          <li *ngFor="let tab of field.fields"><a href="#{{tab.id}}" [ngClass]="{'active': tab.active}" data-bs-toggle="tab" role="tab">{{tab.label}}</a></li>
+        <ul role="tablist" [ngClass]="field.tabNavClass">
+          <li *ngFor="let tab of field.fields"><a href="#{{tab.id}}" [attr.aria-selected]="tab.active == true? 'true': 'false'" [ngClass]="{'active': tab.active}" data-bs-toggle="tab" role="tab">{{tab.label}}</a></li>
         </ul>
       </div>
       <div [ngClass]="field.tabContentContainerClass">
