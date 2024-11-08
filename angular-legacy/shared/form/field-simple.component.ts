@@ -829,8 +829,8 @@ export class CancelButtonComponent extends SimpleComponent {
 @Component({
   selector: 'anchor-button',
   template: `
-  <button *ngIf="field.controlType=='button' && field.visible" type="{{field.type}}" [ngClass]="field.cssClasses" (click)="onClick($event)" [disabled]="isDisabled()">{{field.label}}</button>
-  <a *ngIf="field.controlType=='anchor' && field.visible && field.skip!==field.visible" href='{{field.value}}' [ngClass]="field.cssClasses" ><span *ngIf="field.showPencil" class="glyphicon glyphicon-pencil">&nbsp;</span>{{field.label}}</a>
+  <button *ngIf="field.controlType=='button' && field.visible" type="{{field.type}}" [ngClass]="field.cssClasses" role="button" (click)="onClick($event)" [disabled]="isDisabled()">{{field.label}}</button>
+  <a *ngIf="field.controlType=='anchor' && field.visible && field.skip!==field.visible" href='{{field.value}}' [ngClass]="field.cssClasses"role="button" ><span *ngIf="field.showPencil" class="glyphicon glyphicon-pencil">&nbsp;</span>{{field.label}}</a>
   <a *ngIf="field.controlType=='htmlAnchor' && field.visible" href='{{field.value}}' [ngClass]="field.cssClasses" [innerHtml]="field.anchorHtml"></a>
   `,
 })
