@@ -174,10 +174,12 @@ export class RecordSearchComponent extends LoadableComponent {
         this.dashboardService.setDashboardTitle(null, res.records);
         this.params.setFacetValues(res.facets);
         this.plans = res.records;
+        document.getElementById('searchMsg').focus();
       }).catch((err:any) => {
         this.isSearching = false;
         this.searchMsg = err;
         this.searchMsgType = "danger";
+        document.getElementById('searchMsg').focus();
       });
     }
   }
