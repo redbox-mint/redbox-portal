@@ -15,7 +15,7 @@
     <div *ngIf="!field.value.oid">
       <div class="input-group">
         <span class="input-group-addon" id="name-addon">{{ 'search-by-name' | translate }}</span>
-        <input [attr.aria-label]="field.label" type="text" (keyup)="field.onFilterChange()" [(ngModel)]="field.searchFilterName" class="form-control" placeholder="Name" aria-describedby="name-addon">
+        <input [attr.aria-label]="field.label" type="text" (keyup)="field.onFilterChange()" [(ngModel)]="field.searchFilterName" class="form-control" placeholder="Name" aria-labelledby="name-addon" aria-describedby="name-addon">
         <span  (click)="field.resetFilter()" class="input-group-btn"><button class="btn btn-primary" type='button'>{{ 'transfer-ownership-reset' | translate }}</button></span>
       </div>
       <div><br/></div>
@@ -27,9 +27,12 @@
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let plan of field.filteredPlans" (click)="field.recordSelectedEmit(plan,$event)">
-              <td>{{ plan.title }}</td>
-            </tr>
+            <tr *ngFor="let plan of field.filteredPlans" >
+            <td><a (click)="field.recordSelectedEmit(plan, $event)"
+              (keydown)="onRowKeydown($event, plan)"
+              tabindex="0"
+              role="button">{{ plan.title }}</a></td>
+          </tr>          
           </tbody>
         </table>
       </div>

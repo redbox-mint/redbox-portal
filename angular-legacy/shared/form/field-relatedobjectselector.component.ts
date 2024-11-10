@@ -162,4 +162,11 @@ export class RelatedObjectSelectorComponent extends SimpleComponent {
   hasFilteredResults() {
     return this.field.searchFilterName && !_.isEmpty(_.trim(this.field.searchFilterName)) && this.field.filteredPlans && this.field.filteredPlans.length > 0;
   }
+
+  onRowKeydown(event: KeyboardEvent, plan: any): void {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault(); // Prevent default scrolling behavior for the spacebar
+      this.field.recordSelectedEmit(plan, event);
+    }
+  }
 }

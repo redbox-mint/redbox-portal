@@ -7312,6 +7312,10 @@ button.close {
     text-shadow: none
 }
 
+#searchMsg {
+    outline: none;
+}
+
 @media screen and (min-width: 768px) {
     .carousel-control .glyphicon-chevron-left,.carousel-control .glyphicon-chevron-right,.carousel-control .icon-next,.carousel-control .icon-prev {
         width:30px;

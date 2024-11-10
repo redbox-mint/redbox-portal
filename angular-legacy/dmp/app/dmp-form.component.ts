@@ -626,4 +626,13 @@ export class DmpFormComponent extends LoadableComponent {
       event.returnValue = warningMessage;
     }
   }
+
+  onKeydown(event: KeyboardEvent, parentId: string): void {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      this.gotoTab(parentId);
+    }
+  }
+
+
 }

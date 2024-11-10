@@ -527,8 +527,8 @@ Container components
   <div *ngIf="field.editMode" class="row" style="min-height:300px;">
     <div [ngClass]="field.cssClasses">
       <div [ngClass]="field.tabNavContainerClass">
-        <ul [ngClass]="field.tabNavClass">
-          <li *ngFor="let tab of field.fields"><a href="#{{tab.id}}" [ngClass]="{'active': tab.active}" data-bs-toggle="tab" role="tab">{{tab.label}}</a></li>
+        <ul role="tablist" [ngClass]="field.tabNavClass">
+          <li *ngFor="let tab of field.fields"><a href="#{{tab.id}}" [attr.aria-selected]="tab.active == true? 'true': 'false'" [ngClass]="{'active': tab.active}" data-bs-toggle="tab" role="tab">{{tab.label}}</a></li>
         </ul>
       </div>
       <div [ngClass]="field.tabContentContainerClass">
@@ -652,12 +652,12 @@ export class HtmlRawComponent extends SimpleComponent {
   selector: 'text-block',
   template: `
   <div *ngIf="field.visible" [ngSwitch]="field.type">
-    <span *ngSwitchCase="'h1'" [ngClass]="field.cssClasses">{{field.value == null? '' : field.value}}</span>
-    <span *ngSwitchCase="'h2'" [ngClass]="field.cssClasses">{{field.value == null? '' : field.value}}</span>
-    <span *ngSwitchCase="'h3'" [ngClass]="field.cssClasses">{{field.value == null? '' : field.value}}</span>
-    <span *ngSwitchCase="'h4'" [ngClass]="field.cssClasses">{{field.value == null? '' : field.value}}</span>
-    <span *ngSwitchCase="'h5'" [ngClass]="field.cssClasses">{{field.value == null? '' : field.value}}</span>
-    <span *ngSwitchCase="'h6'" [ngClass]="field.cssClasses">{{field.value == null? '' : field.value}}</span>
+    <span *ngSwitchCase="'h1'" role="heading" aria-level="1" [ngClass]="field.cssClasses">{{field.value == null? '' : field.value}}</span>
+    <span *ngSwitchCase="'h2'" role="heading" aria-level="2" [ngClass]="field.cssClasses">{{field.value == null? '' : field.value}}</span>
+    <span *ngSwitchCase="'h3'" role="heading" aria-level="3" [ngClass]="field.cssClasses">{{field.value == null? '' : field.value}}</span>
+    <span *ngSwitchCase="'h4'" role="heading" aria-level="4" [ngClass]="field.cssClasses">{{field.value == null? '' : field.value}}</span>
+    <span *ngSwitchCase="'h5'" role="heading" aria-level="5" [ngClass]="field.cssClasses">{{field.value == null? '' : field.value}}</span>
+    <span *ngSwitchCase="'h6'" role="heading" aria-level="6" [ngClass]="field.cssClasses">{{field.value == null? '' : field.value}}</span>
     <hr *ngSwitchCase="'hr'" [ngClass]="field.cssClasses">
     <span *ngSwitchCase="'span'" [ngClass]="field.cssClasses">{{field.label == null? '' : field.label + ': '}}{{field.value == null? '' : field.value}}</span>
     <p *ngSwitchDefault [ngClass]="field.cssClasses" [innerHtml]="field.value == null? '' : field.value"></p>
@@ -760,7 +760,9 @@ export class SaveButtonComponent extends SimpleComponent {
             let oid = this.field.fieldMap._rootComp.oid;
             location = this.field.redirectLocation.replace("@oid", oid)
           }
+          setTimeout(function() {
           window.location.href = location;
+        }, this.field.redirectDelaySeconds * 1000);
         }
       }
       if (this.field.confirmationMessage) {
@@ -827,8 +829,8 @@ export class CancelButtonComponent extends SimpleComponent {
 @Component({
   selector: 'anchor-button',
   template: `
-  <button *ngIf="field.controlType=='button' && field.visible" type="{{field.type}}" [ngClass]="field.cssClasses" (click)="onClick($event)" [disabled]="isDisabled()">{{field.label}}</button>
-  <a *ngIf="field.controlType=='anchor' && field.visible && field.skip!==field.visible" href='{{field.value}}' [ngClass]="field.cssClasses" ><span *ngIf="field.showPencil" class="glyphicon glyphicon-pencil">&nbsp;</span>{{field.label}}</a>
+  <button *ngIf="field.controlType=='button' && field.visible" type="{{field.type}}" [ngClass]="field.cssClasses" role="button" (click)="onClick($event)" [disabled]="isDisabled()">{{field.label}}</button>
+  <a *ngIf="field.controlType=='anchor' && field.visible && field.skip!==field.visible" href='{{field.value}}' [ngClass]="field.cssClasses"role="button" ><span *ngIf="field.showPencil" class="glyphicon glyphicon-pencil">&nbsp;</span>{{field.label}}</a>
   <a *ngIf="field.controlType=='htmlAnchor' && field.visible" href='{{field.value}}' [ngClass]="field.cssClasses" [innerHtml]="field.anchorHtml"></a>
   `,
 })
