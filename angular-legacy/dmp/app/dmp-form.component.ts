@@ -249,10 +249,28 @@ export class DmpFormComponent extends LoadableComponent {
           this.oid = res.oid;
           this.recordCreated.emit({oid: this.oid});
           this.LocationService.go(`record/edit/${this.oid}`);
-          this.setError(`${this.getMessage(this.formDef.messages.saveError)} ${res.message}`);
+          try {
+            let errorFieldMap = JSON.parse(res.message);
+            if(!_.isEmpty(errorFieldMap.errorFieldList)) {
+              this.isValid(false, errorFieldMap);
+            } else {
+              this.setError(`${this.getMessage(this.formDef.messages.saveError)} ${res.message}`);
+            }
+          } catch(error) {
+            this.setError(`${this.getMessage(this.formDef.messages.saveError)} ${res.message}`);
+          }
           return Observable.of(false);
         } else {
-          this.setError(`${this.getMessage(this.formDef.messages.saveError)} ${res.message}`);
+          try {
+            let errorFieldMap = JSON.parse(res.message);
+            if(!_.isEmpty(errorFieldMap.errorFieldList)) {
+              this.isValid(false, errorFieldMap);
+            } else {
+              this.setError(`${this.getMessage(this.formDef.messages.saveError)} ${res.message}`);
+            }
+          } catch(error) {
+            this.setError(`${this.getMessage(this.formDef.messages.saveError)} ${res.message}`);
+          }
           return Observable.of(false);
         }
       }).catch((err:any)=>{
