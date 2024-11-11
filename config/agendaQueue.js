@@ -45,6 +45,14 @@ module.exports.agendaQueue = {
     {
       name: 'RaidMintRetryJob',
       fnName: 'raidservice.mintRetryJob'
+    },
+    {
+      name: 'MoveCompletedJobsToHistory',
+      fnName: 'agendaqueueservice.moveCompletedJobsToHistory',
+      schedule: {
+        method: 'every',
+        intervalOrSchedule: '5 minutes'
+      }
     }
   ]
 };

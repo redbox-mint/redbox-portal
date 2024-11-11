@@ -429,7 +429,7 @@ export class RepeatableVocab extends RepeatableContainer {
   <div *ngIf="field.editMode && field.visible">
     <div *ngIf="field.hideWhenZeroRows?field.fields.length >0 : true" class="row">
       <div class="col-xs-12">
-      <label [attr.for]="field.name">{{field.label}}
+      <label [attr.for]="field.name">{{field.label}} <span class="form-field-required-indicator" [innerHTML]="getRequiredLabelStr()"></span>
         <button type="button" class="btn btn-default" *ngIf="field.help" (click)="toggleHelp()" [attr.aria-label]="'help' | translate "><span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span></button>
       </label>
       <span id="{{ 'helpBlock_' + field.name }}" class="help-block" *ngIf="this.helpShow" [innerHtml]="field.help"></span>
@@ -647,6 +647,9 @@ export class RepeatableContributorComponent extends RepeatableComponent implemen
     newElem.setupEventHandlers();
     newElem.showHeader = false;
     newElem.componentReactors.push(this);
+    // Re-initialize the lookup data service for the new element otherwise the subject
+    //  that supplies the results will point to the original record
+    newElem.vocabField.initLookupData();
   }
 
   removeElem(event: any, i: number) {

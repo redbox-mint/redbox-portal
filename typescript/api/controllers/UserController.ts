@@ -122,6 +122,12 @@ export module Controllers {
       if (req.session.user && req.session.user.type == 'oidc') {
         redirUrl = req.session.logoutUrl;
       }
+      
+      // If the redirect URL is empty then revert back to the default
+      if(_.isEmpty(redirUrl)) {
+        redirUrl = _.isEmpty(sails.config.auth.postLogoutRedir)?`${BrandingService.getBrandAndPortalPath(req)}/home`: sails.config.auth.postLogoutRedir;
+      }
+
       let user = req.session.user ? req.session.user : req.user;
       req.logout(function(err) {
         if (err) { res.send(500, 'Logout failed'); }
