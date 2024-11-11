@@ -201,9 +201,7 @@ export class DmpFormComponent extends LoadableComponent {
         }).catch((err:any) => {
           console.log("Error loading form...");
           console.log(err);
-          if (err.status == false) {
-              this.criticalError = err.message;
-          }
+          this.criticalError = err.message;
           this.setLoading(false);
         });
       });
