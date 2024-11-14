@@ -180,8 +180,8 @@ describe('The EmailService', function () {
                 expect(result.ccRendered).to.eql(null);
                 expect(result.bcc).to.eql(null);
                 expect(result.bccRendered).to.eql(null);
-                expect(result.subject).to.eql("ReDBox Notification");
-                expect(result.subjectRendered).to.eql("ReDBox Notification");
+                expect(result.subject).to.eql("Test Email Message");
+                expect(result.subjectRendered).to.eql("Test Email Message");
                 expect(result.template).to.eql(options.template);
                 expect(buildResult['body']).to.eql(`<h1>Hello!</h1>
 <p>This is a test email from redbox portal</p>
