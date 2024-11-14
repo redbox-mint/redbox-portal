@@ -439,8 +439,8 @@ export module Services {
       let propValue = null;
 
       propValue = this.evaluatePropertyOptions(options, propValue, propConfig);
-      propValue = this.evaluatePropertyDefault(propValue, propConfig);
       propValue = this.evaluatePropertyTemplateConfig(prop, propValue, propConfig, templateName);
+      propValue = this.evaluatePropertyDefault(propValue, propConfig);
       sails.log.verbose(`EmailService::EvaluateProperty: Prop ${prop} value: ${JSON.stringify(propValue)}.`);
       result[prop] = propValue;
 
