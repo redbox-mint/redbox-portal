@@ -5,6 +5,7 @@ networks:
 services:
   redboxportal:
     image: qcifengineering/redbox-portal:develop
+    pull_policy: 'always'
     ports:
        - "1500:1500"
       # Debugging port
@@ -20,6 +21,8 @@ services:
       mongodb:
         condition: 'service_healthy'
       solr:
+        condition: 'service_healthy'
+      email:
         condition: 'service_healthy'
     expose:
        - "1500"
@@ -41,7 +44,8 @@ services:
          - redboxportal
     # add 'node --inspect=0.0.0.0:9876' to entrypoint for debugging
     entrypoint: >-
-      /bin/bash -c "cd /opt/redbox-portal && 
+      /bin/bash -c "cd /opt/redbox-portal &&
+      ./support/integration-testing/prepare-guest.sh /opt/redbox-portal &&
       npm install -g nyc &&
       npm install &&
       nyc
@@ -55,6 +59,7 @@ services:
       test/unit/**/*.test.js"
   mongodb:
     image: mongo:latest
+    pull_policy: 'always'
     networks:
       main:
         aliases:
@@ -69,6 +74,7 @@ services:
       start_period: '30s'
   solr:
     image: solr:latest
+    pull_policy: 'always'
     expose:
       - "8983"
     ports:
@@ -91,6 +97,7 @@ services:
       - redbox
   keycloak:
     image: quay.io/keycloak/keycloak:17.0.1
+    pull_policy: 'always'
     expose:
       - "8080"
     ports:
@@ -109,3 +116,24 @@ services:
          - keycloak
     command:
       - start-dev
+  email:
+    image: axllent/mailpit:latest
+    pull_policy: 'always'
+    expose:
+      - '1025'
+      - '8025'
+    ports:
+      - '8025:8025'
+      - '1025:1025'
+    environment:
+      MP_MAX_MESSAGES: 5000
+      MP_DATABASE: '/data/mailpit.db'
+      MP_SMTP_AUTH_ACCEPT_ANY: 1
+      MP_SMTP_AUTH_ALLOW_INSECURE: 1
+      TZ: 'Australia/Brisbane'
+    volumes:
+      - '../../.tmp/email:/data'
+    networks:
+      main:
+        aliases:
+          - 'email'

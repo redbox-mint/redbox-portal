@@ -60,7 +60,8 @@ export module Services {
        'now',
        'jobs',
        'sampleFunctionToDemonstrateHowToDefineAJobFunction',
-       'defineJob'
+       'defineJob',
+       'moveCompletedJobsToHistory'
       ];
 
       protected agenda: Agenda;
@@ -128,7 +129,7 @@ export module Services {
             if (method == 'now') {
               this.now(job.name, data)
             } else if (method == 'every') {
-              this.every(job.name, intervalOrSchedule, data, opts);
+              this.every(job.name, intervalOrSchedule,  data, opts);
             } else if (method == 'schedule') {
               this.schedule(job.name, intervalOrSchedule, data);
             } else {
@@ -184,6 +185,24 @@ export module Services {
             sails.log.verbose(`AgendaQueue:: Defined job: ${name}`);
 
       }
+
+      /**
+       * 
+       * There are significant slowdowns with Agenda when the jobs collection grows large. This function moves all completed jobs to a history collection so we still have the data but it doesn't affect the peformance of the job processor. 
+       * 
+       * @param job 
+       */
+      public async moveCompletedJobsToHistory(job:any) {
+        const dbManager = User.getDatastore().manager;
+        const collectionName = _.get(sails.config.agendaQueue, 'collection', 'agendaJobs');
+        await dbManager.collection(collectionName).find({ nextRunAt: null }).forEach(async (doc) => {
+          await dbManager.collection(`${collectionName}History`).insertOne(doc);
+          await dbManager.collection(collectionName).deleteOne({ _id: doc._id });
+        });
+
+        sails.log.verbose(`moveCompletedJobsToHistory:: Moved completed jobs to history`);
+      }
+
 
       private setOptionIfDefined(agendaOpts, optionName, optionVal) {
         if (!_.isEmpty(optionVal)) {

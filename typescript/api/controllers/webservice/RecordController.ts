@@ -831,7 +831,18 @@ export module Controllers {
         return this.apiFailWrapper(req, res, 400, null, null,
             "Missing ID of record.");
       }
-      const response = await this.RecordsService.delete(oid, permanentlyDelete, user);
+      let record = await this.RecordsService.getMeta(oid);
+      if (_.isEmpty(record)) {
+        return this.apiFailWrapper(req, res, 400, null, null,
+            "Record not found!");
+      }
+      const brand:BrandingModel = BrandingService.getBrand(req.session.branding);
+      if (_.isEmpty(brand)) {
+        return this.apiFailWrapper(req, res, 400, null, null,
+            "Missing brand.");
+      }
+      let recordType = await RecordTypesService.get(brand, record.metaMetadata.type).toPromise();
+      const response = await this.RecordsService.delete(oid, permanentlyDelete, record, recordType, user);
       if (response.isSuccessful()) {
         this.apiRespond(req, res, response);
       } else {
@@ -880,7 +891,7 @@ export module Controllers {
         }
         const recType = await RecordTypesService.get(brand, record.metaMetadata.type).toPromise();
         const nextStep = await WorkflowStepsService.get(recType, targetStepName).toPromise();
-        this.RecordsService.setWorkflowStepRelatedMetadata(record, nextStep);
+        await this.RecordsService.transitionWorkflowStep(record, recType, nextStep, req.user, true, true);
         const response = await this.RecordsService.updateMeta(brand, oid, record, req.user);
         this.apiRespond(req, res, response);
       } catch (err) {

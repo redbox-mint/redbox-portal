@@ -1,4 +1,4 @@
-<a href="#" (click)="headerSortClicked()" class="record-table-heading-sort">
+<a href="#" role="button" [attr.aria-sort]="sort === 'asc'? 'ascending' : sort === 'desc' ? 'descending' : null" (click)="headerSortClicked()" class="record-table-heading-sort">
   {{title}}
   <i
     *ngIf="sort == 'asc'" class="fa fa-sort-asc"></i><i

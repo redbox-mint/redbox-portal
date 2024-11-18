@@ -344,6 +344,12 @@ export class DateTime extends FieldBase<any> {
     this.adjustStartRange = !_.isUndefined(options['adjustStartRange']) ? options['adjustStartRange'] : false;
   }
 
+  public createFormModel(valueElem: any = null): any {
+    this.value = valueElem || this.value;
+    this.value = this.value ? this.parseToDate(this.value) : this.value;
+    return super.createFormModel(this.value);
+  }
+
   updatePlaceholderAsFormat(options: any, fieldName = 'placeholderAsFormat') {
     if (_.get(options, fieldName, false) && _.get(options, 'format')) {
       _.set(options, 'placeholder', _.get(options, 'format'));
@@ -415,12 +421,14 @@ export class SaveButton extends FieldBase<string> {
   disableValidation: boolean;
   // added value when clicked
   clickedValue: string;
+  redirectDelaySeconds: number;
 
   constructor(options: any, injector: any) {
     super(options, injector);
     this.label = this.getTranslated(options['label'], 'Save');
     this.closeOnSave = options['closeOnSave'] || false;
     this.redirectLocation = options['redirectLocation'] || false;
+    this.redirectDelaySeconds = options['redirectDelaySeconds'] || 3;
     this.cssClasses = options['cssClasses'] || "btn-primary";
     this.targetStep = options['targetStep'] || null;
     this.additionalData = options['additionalData'] || null;

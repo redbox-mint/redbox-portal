@@ -43,7 +43,8 @@ export module Services {
       'getBrandFromReq',
       'getPortalFromReq',
       'getFullPath',
-      'getRootContext'
+      'getRootContext',
+      'getBrandById'
     ];
 
     protected availableBrandings: any = []
@@ -87,6 +88,10 @@ export module Services {
 
     public getBrand = (name): BrandingModel => {
       return _.find(this.brandings, (o) => { return o.name == name });
+    }
+
+    public getBrandById = (id): BrandingModel => {
+      return _.find(this.brandings, (o) => { return o.id == id });
     }
 
     public getAvailable = () => {
