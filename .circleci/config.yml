@@ -106,14 +106,14 @@ jobs:
             /tmp/.codecov-cli/codecov --verbose upload-process --fail-on-error --disable-search \
               --token "${CODECOV_TOKEN}" --name "job-${CIRCLE_BUILD_NUM}-${CIRCLE_TAG:-$CIRCLE_BRANCH}" \
               --flag "backend-mocha" --file "./coverage/mocha/lcov.info" --branch "${CIRCLE_TAG:-$CIRCLE_BRANCH}"
-          when: true
+          when: always
       - run:
           name: Run angular tests
           # uses the codecov binary installed in previous step
           command: |
             chmod +x support/unit-testing/angular/testAngular.sh
             source support/unit-testing/angular/testAngular.sh
-          when: true
+          when: always
       - run:
           name: Install npm packages for project
           command: |
