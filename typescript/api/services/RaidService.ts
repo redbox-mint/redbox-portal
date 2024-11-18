@@ -25,10 +25,12 @@ import {
   Sails,
   Model
 } from "sails";
-import { RaidoStableV1Api, RaidCreateRequest, Title, ModelDate, Description, Access, AlternateUrl, Contributor, ContributorRoleCreditNisoOrgType, ContributorRoleSchemeType, Organisation } from '@researchdatabox/raido-openapi-generated-node';
+import { RaidApi, RaidCreateRequest, Title, ModelDate, Description, Access, AlternateUrl, Contributor, ContributorRoleCreditNisoOrgType, ContributorRoleSchemeType, Organisation } from '@researchdatabox/raido-openapi-generated-node';
 
 import moment = require('moment');
 import numeral from 'numeral';
+import axios from 'axios';
+import {clientFactory} from '@scienta/axios-oauth2';
 
 
 declare var sails: Sails;
@@ -52,6 +54,12 @@ export module Services {
       'mintPostCreateRetryHandler',
       'mintRetryJob'
     ];    
+
+    protected oauthTokenData = {
+      accessTokenExpiryMillis: null,
+      accessToken: null,
+      responseData: null
+    };
 
     constructor() {
       super();
@@ -89,13 +97,65 @@ export module Services {
         this.scheduleMintRetry({oid: oid, options: _.get(record.metaMetadata, 'raid.options'), attemptCount: attemptCount });
       }
     }
+    /**
+     * Returns `sails.config.raid.token`
+     * 
+     * If not set, retrieves an access token using `sails.config.raid.username` and `sails.config.raid.password`
+     * 
+     * Access tokens have 24 hour validity
+     * 
+     * @returns access token
+     */
+    private async getToken() {
+      if (!_.isEmpty(_.trim(sails.config.raid.token))) {
+        sails.log.verbose(`${this.logHeader} getToken() -> Using 'sails.config.raid.token'`);
+        return sails.config.raid.token;      
+      }
+      const now = Date.now();
+      if (this.oauthTokenData.accessTokenExpiryMillis && now < this.oauthTokenData.accessTokenExpiryMillis) {
+        sails.log.verbose(`${this.logHeader} getToken() -> Using cached accessToken`);
+        return this.oauthTokenData.accessToken;
+      }
+      const oauthUrl = sails.config.raid.oauth.url;
+      const oauthClientId = sails.config.raid.oauth.client_id;
+      const username = sails.config.raid.oauth.username;
+      const password = sails.config.raid.oauth.password;
+      // FYI: as of 03 October 2024, the staging environment's  `refresh_expires_in` has the same value as `expires_in` rendering it useless
+      if (_.isEmpty(username) || _.isEmpty(password)) {
+        sails.log.error(`${this.logHeader} mintRaid() -> Username and/or Password not configured!`);
+        let errorMessage = TranslationService.t('raid-mint-transform-validation-error');
+        throw new RBValidationError(errorMessage);
+      }
+      
+      try {
+        sails.log.verbose(`${this.logHeader} getToken() -> Getting new access token...`);
+        const oauthConfig = {
+          url: oauthUrl,
+          grant_type: 'password',
+          username: username,
+          password: password,
+          client_id: oauthClientId
+        };
+        //@ts-ignore
+        const client = clientFactory(axios.create(), oauthConfig);
+        const auth1 = await client();
+        sails.log.verbose(`${this.logHeader} getToken() -> Got new token!`);
+        this.oauthTokenData.responseData = auth1;
+        this.oauthTokenData.accessTokenExpiryMillis = Date.now() + (auth1.expires_in * 1000);
+        this.oauthTokenData.accessToken = auth1.access_token;
+      } catch (err) {
+        sails.log.error(`${this.logHeader} getToken() -> Failed to get token!`);
+        sails.log.error(err);
+        let errorMessage = TranslationService.t('raid-mint-transform-validation-error');
+        throw new RBValidationError(errorMessage);
+      }
+      return this.oauthTokenData.accessToken;
+    }
 
     private async mintRaid(oid, record, options, attemptCount:number = 0): Promise<any> {
       const basePath = sails.config.raid.basePath;
-      const apiToken = sails.config.raid.token;      
-      // Stable API: https://github.com/au-research/raido/blob/main/api-svc/idl-raid-v2/src/raido-stable-v1.yaml
-      const api = new RaidoStableV1Api();
-      api.basePath = basePath;
+      const apiToken = await this.getToken(); 
+      const api = new RaidApi(basePath, null, basePath);
       api.accessToken = apiToken;
       const request = new RaidCreateRequest();
       try {
@@ -157,7 +217,7 @@ export module Services {
       try {
         sails.log.verbose(`${this.logHeader} mintRaid() ${oid} -> Sending data::`);
         sails.log.verbose(JSON.stringify(request));
-        const apiResp = await api.createRaidV1(request);
+        const apiResp = await api.mintRaid(request);
         _.set(apiResp, 'request.headers.Authorization', '-redacted-');
         response = apiResp.response;
         body = apiResp.body;
@@ -180,13 +240,19 @@ export module Services {
         }
       } catch (error) {
         _.set(error, 'response.request.headers.Authorization', '-redacted-');
-        if (_.get(error, 'statusCode') == 401 || _.get(error, 'statusCode') == 403 ) {
-          sails.log.error(`${this.logHeader} mintRaid() ${oid} -> Authentication failed, check if the auth token is properly configured.`);
+        const statusCode = _.get(error, 'statusCode');
+        if (statusCode == 401 || statusCode == 403 || statusCode == 400) {
+          let errLogMsg = `${this.logHeader} mintRaid() ${oid} -> Authentication failed, check if the auth token is properly configured.`;
+          if (statusCode == 400 ) {
+            errLogMsg = `${this.logHeader} mintRaid() ${oid} -> Possible validation issues!`;
+          }
+          sails.log.error(errLogMsg);
+          sails.log.error(`${this.logHeader} mintRaid() ${oid} -> Error: ${JSON.stringify(error)}`);
           let errorMessage = TranslationService.t('raid-mint-server-error');
           let customError:RBValidationError = new RBValidationError(errorMessage);
           throw customError;
         }
-        // This is the generic handler for when the API call itself throws an exception
+        // This is the generic handler for when the API call itself throws an exception, e.g. 404, 5xx status code that can possibly be resolved by retrying the request
         sails.log.error(`${this.logHeader} mintRaid() ${oid} -> API error, Status Code: '${error.statusCode}'`);
         sails.log.error(`${this.logHeader} mintRaid() ${oid} -> Error: ${JSON.stringify(error)}`);
         // set response as the error so it can be saved in the retry block
@@ -351,8 +417,8 @@ export module Services {
 
     private getContributorRole(type: string) {
       return {
-        schemaUri: ContributorRoleSchemeType.HttpsCreditNisoOrg,
-        id: `${ContributorRoleSchemeType.HttpsCreditNisoOrg}contributor-roles/${ContributorRoleCreditNisoOrgType[type]}/`
+        schemaUri: sails.config.raid.types.contributor.roles.schemaUri,
+        id: `${sails.config.raid.types.contributor.roles.schemaUri}contributor-roles/${sails.config.raid.types.contributor.roles.types[type]}/`
       } // not currently matching to any generated class so returning as POJO
     }
 
