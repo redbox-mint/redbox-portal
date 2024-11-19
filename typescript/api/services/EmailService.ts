@@ -67,6 +67,7 @@ export module Services {
      * @param msgFormat The body format, either 'html' or 'text'.
      * @param cc Email address(es) of recipients for 'cc' field.
      * @param bcc Email address(es) of recipients for 'bcc' field.
+     * @param otherSendOptions Additional sending options.
      * @return A promise that evaluates to the result of sending the email.
      */
     public sendMessage(
@@ -76,10 +77,11 @@ export module Services {
         msgFrom: string = sails.config.emailnotification.defaults.from,
         msgFormat: string = sails.config.emailnotification.defaults.format,
         cc: string = _.get(sails.config.emailnotification.defaults, 'cc', ''),
-        bcc: string = _.get(sails.config.emailnotification.defaults, 'bcc', '')
+        bcc: string = _.get(sails.config.emailnotification.defaults, 'bcc', ''),
+        otherSendOptions: {[dict_key: string]: any} = _.get(sails.config.emailnotification.defaults, 'otherSendOptions', {}),
     ): Observable<any> {
 
-      return Observable.fromPromise(this.sendMessageAsync(msgTo, msgBody, msgSubject, msgFrom, msgFormat, cc, bcc));
+      return Observable.fromPromise(this.sendMessageAsync(msgTo, msgBody, msgSubject, msgFrom, msgFormat, cc, bcc, otherSendOptions));
 
     }
 
@@ -98,6 +100,7 @@ export module Services {
      * @param msgFormat The body format, either 'html' or 'text'.
      * @param cc Email address(es) of recipients for 'cc' field.
      * @param bcc Email address(es) of recipients for 'bcc' field.
+     * @param otherSendOptions Additional sending options.
      * @return The result of sending the email.
      * @private
      */
@@ -108,7 +111,8 @@ export module Services {
         msgFrom: string,
         msgFormat: string,
         cc: string,
-        bcc: string
+        bcc: string,
+        otherSendOptions: {[dict_key: string]: any} = {},
     ): Promise<any> {
       if (!sails.config.emailnotification.settings.enabled) {
         sails.log.debug("Received email notification request, but is disabled. Ignoring.");
@@ -130,13 +134,13 @@ export module Services {
         };
       }
 
-      var message = {
+      const message = _.merge(otherSendOptions, {
         "to": msgTo,
         "subject": msgSubject,
         "from": msgFrom,
         "cc": cc,
-        "bcc": bcc
-      };
+        "bcc": bcc,
+      });
 
       message[msgFormat] = msgBody;
       let response = {
@@ -297,6 +301,7 @@ export module Services {
                 optionsEvaluated.formatRendered,
                 optionsEvaluated.ccRendered,
                 optionsEvaluated.bccRendered,
+                _.get(options, 'otherSendOptions', {}),
             );
           })
           .flatMap(sendResult => {

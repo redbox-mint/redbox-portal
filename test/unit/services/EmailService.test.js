@@ -58,8 +58,9 @@ describe('The EmailService', function () {
         const format =  "html";
         const cc =  'info@redboxresearchdata.com.au';
         const bcc =  'support@redboxresearchdata.com.au';
+        const replyTo =  'replyTo@redboxresearchdata.com.au';
 
-        const sendResponse = EmailService.sendMessage(to, body, subject, from, format, cc, bcc);
+        const sendResponse = EmailService.sendMessage(to, body, subject, from, format, cc, bcc, {replyTo: replyTo});
 
         sendResponse.subscribe(sendResult => {
             expect(sendResult['success']).to.eql(true);
