@@ -477,6 +477,7 @@ export class DmpFormComponent extends LoadableComponent {
       } else {
         this.setError(this.getMessage(this.formDef.messages.validationFail));
       }
+      this.failedValidationLinks = this.failedValidationLinks || [];
       this.generateBackendFailedValidationLinks(backendFieldList);
       return false;
     } else {
