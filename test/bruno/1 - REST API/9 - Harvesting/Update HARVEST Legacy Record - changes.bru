@@ -1,7 +1,7 @@
 meta {
-  name: Create HARVEST Legacy Record
+  name: Update HARVEST Legacy Record - changes
   type: http
-  seq: 32
+  seq: 4
 }
 
 post {
@@ -57,6 +57,7 @@ body:json {
 
 assert {
   res.body[0].harvestId: eq s123456
+  res.body[0].message: eq Record updated successfully
 }
 
 tests {

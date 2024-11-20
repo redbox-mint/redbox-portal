@@ -1,0 +1,77 @@
+meta {
+  name: Create HARVEST Record
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{host}}/default/rdmp/api/records/harvest/rdmp
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+  Authorization: Bearer {{token}}
+}
+
+body:json {
+  {
+    "records": [
+        {
+            "harvestId": "s123456",
+            "recordRequest": {
+                "metadata": {
+                    "ID": "s123456",
+                    "GIVEN_NAME": "Ant",
+                    "OTHER_NAMES": "",
+                    "FAMILY_NAME": "S",
+                    "PREF_NAME": "",
+                    "HONORIFIC": "",
+                    "EMAIL": "notAReal@email.edu.au",
+                    "JOB_TITLE": "Assistant Professor",
+                    "URI": "",
+                    "NLA_PARTY_IDENTIFIER": "",
+                    "ORCID": "0000-0001-7269-2286",
+                    "PERSONAL_HOMEPAGE": "",
+                    "STAFF_PROFILE_HOMEPAGE": "",
+                    "DESCRIPTION": "",
+                    "RESEARCH_ELEMENTS_USER_ID": "12345678",
+                    "title": "Mock mint record type rdmp integration test",
+                    "contributor_ci": {
+                        "text_full_name": "Prof Ant Season",
+                        "email": "notAReal@email.edu.au",
+                        "orcid": "http://orcid.org/0000-0000-0000-000"
+                    },
+                    "contributor_data_manager": {
+                        "text_full_name": "Prof Ant Season",
+                        "email": "notAReal@email.edu.au",
+                        "orcid": "http://orcid.org/0000-0000-0000-000"
+                    }
+                }
+            }
+        }
+    ]
+  }
+}
+
+tests {
+  
+  test("Status code is 200", function () {
+      expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("Test oid exists", function () {
+        var jsonData = res.getBody();
+        expect(jsonData[0]).to.have.property('oid');
+  });
+  
+  test("Test harvestId exists and value is as expected", function () {
+        var jsonData = res.getBody();
+        expect(jsonData[0]).to.have.property('harvestId');
+        expect(jsonData[0]).to.have.property('message');
+        expect(jsonData[0].harvestId).to.equal('s123456');
+        expect(jsonData[0].message).to.equal('Record updated successfully');
+  });
+  
+}
