@@ -366,7 +366,7 @@ export module Services {
       }
 
       let form = await FormsService.getFormByName(record.metaMetadata.form, true).toPromise()
-      record.metaMetadata.attachmentFields = form.attachmentFields;
+      record.metaMetadata.attachmentFields = form != undefined ? form.attachmentFields : [];
       
       // process pre-save
       if (!_.isEmpty(brand) && triggerPreSaveTriggers === true) {
