@@ -1028,7 +1028,7 @@ export module Services {
               record = await this.resolveHookResponse(hookResponse);
               sails.log.debug(`${preSaveUpdateHookFunctionString} response now is:`);
               sails.log.verbose(JSON.stringify(record));
-              sails.log.debug(`post-save sync trigger ${preSaveUpdateHookFunctionString} completed for ${oid}`);
+              sails.log.debug(`pre-save sync trigger ${preSaveUpdateHookFunctionString} completed for ${oid}`);
             } catch (err) {
               sails.log.error(`pre-save trigger ${preSaveUpdateHookFunctionString} failed to complete`);
               sails.log.error(err)

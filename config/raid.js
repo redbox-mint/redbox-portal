@@ -1,5 +1,5 @@
 module.exports.raid = {
-  basePath: 'https://api.demo.raid.org.au',
+  basePath: 'https://api.stage.raid.org.au',
   token: '',
   saveBodyInMeta: true,
   retryJobName: 'RaidMintRetryJob',
@@ -8,94 +8,129 @@ module.exports.raid = {
   orcidBaseUrl: "https://orcid.org/",
   raidFieldName: 'raidUrl', // the `record.metadata` field name where the raid will be stored
   types: {
+    // Based on https://vocabs.ardc.edu.au/viewById/682
     title: {
       'Primary': {
-        id: "https://github.com/au-research/raid-metadata/blob/main/scheme/title/type/v1/primary.json",
-        schemaUri: "https://github.com/au-research/raid-metadata/tree/main/scheme/title/type/v1/"
+        id: "https://vocabulary.raid.org/title.type.schema/5",
+        schemaUri: "https://vocabulary.raid.org/title.type.schema/376"
       },
       'Alternative': {
-        "id": "https://github.com/au-research/raid-metadata/blob/main/scheme/title/type/v1/alternative.json",
-        "schemaUri": "https://github.com/au-research/raid-metadata/tree/main/scheme/title/type/v1/"
+        id: "https://vocabulary.raid.org/title.type.schema/4",
+        schemaUri: "https://vocabulary.raid.org/title.type.schema/376"
       },
     },
     description: {
       'Primary': {
-        "id": "https://github.com/au-research/raid-metadata/blob/main/scheme/description/type/v1/primary.json",
-        "schemaUri": "https://github.com/au-research/raid-metadata/tree/main/scheme/description/type/v1/"
+        "id": "https://vocabulary.raid.org/description.type.schema/318",
+        "schemaUri": "https://vocabulary.raid.org/description.type.schema/320"
       },
       'Alternative': {
-        "id": "https://github.com/au-research/raid-metadata/blob/main/scheme/description/type/v1/alternative.json",
-        "schemaUri": "https://github.com/au-research/raid-metadata/tree/main/scheme/description/type/v1/"
+        "id": "https://vocabulary.raid.org/description.type.schema/319",
+        "schemaUri": "https://vocabulary.raid.org/description.type.schema/320"
       }
     },
     language: {
       'eng': {
         "id": "eng",
-        "schemaUri": "https://iso639-3.sil.org" 
+        "schemaUri": "https://www.iso.org/standard/74575.html" 
       }
     },
     access: {
       'open': {
-        "id": "https://github.com/au-research/raid-metadata/blob/main/scheme/access/type/v1/open.json",
-        "schemaUri": "https://github.com/au-research/raid-metadata/tree/main/scheme/access/type/v1/"
+        "id": "https://vocabularies.coar-repositories.org/access_rights/c_abf2/",
+        "schemaUri": "https://vocabularies.coar-repositories.org/access_rights/"
       },
       'closed': {
-        "id": "https://github.com/au-research/raid-metadata/blob/main/scheme/access/type/v1/closed.json",
-        "schemaUri": "https://github.com/au-research/raid-metadata/tree/main/scheme/access/type/v1/"
+        "id": "https://vocabularies.coar-repositories.org/access_rights/c_16ec/",
+        "schemaUri": "https://vocabularies.coar-repositories.org/access_rights/"
       },
       'embargoed': {
-        "id": "https://github.com/au-research/raid-metadata/blob/main/scheme/access/type/v1/embargoed.json",
-        "schemaUri": "https://github.com/au-research/raid-metadata/tree/main/scheme/access/type/v1/"
+        "id": "https://vocabularies.coar-repositories.org/access_rights/c_f1cf/",
+        "schemaUri": "https://vocabularies.coar-repositories.org/access_rights/"
       }
     },
     contributor: {
+      // https://metadata.raid.org/en/latest/core/contributors.html#contributor-position-id
       position: {
-        'Leader': {
-            "schemaUri": "https://github.com/au-research/raid-metadata/tree/main/scheme/contributor/position/v1/",
-            "id": "https://github.com/au-research/raid-metadata/blob/main/scheme/contributor/position/v1/leader.json"
-        },
+        // 'Leader': {
+        //     "schemaUri": "https://orcid.org/",
+        //     "id": "https://github.com/au-research/raid-metadata/blob/main/scheme/contributor/position/v1/leader.json"
+        // },
         'PrincipalInvestigator': {
-          "schemaUri": "https://github.com/au-research/raid-metadata/tree/main/scheme/contributor/position/v1/",
-          "id": "https://github.com/au-research/raid-metadata/blob/main/scheme/contributor/position/v1/principal-investigator.json"
+          "schemaUri": "https://vocabulary.raid.org/contributor.position.schema/305",
+          "id": "https://vocabulary.raid.org/contributor.position.schema/307"
         },
-        'ContactPerson': {
-          "schemaUri": "https://github.com/au-research/raid-metadata/tree/main/scheme/contributor/position/v1/",
-          "id": "https://github.com/au-research/raid-metadata/blob/main/scheme/contributor/position/v1/contact-person.json"
-        },
+        // 'ContactPerson': {
+        //   "schemaUri": "https://orcid.org/",
+        //   "id": "https://github.com/au-research/raid-metadata/blob/main/scheme/contributor/position/v1/contact-person.json"
+        // },
         'CoInvestigator': {
-          "schemaUri": "https://github.com/au-research/raid-metadata/tree/main/scheme/contributor/position/v1/",
-          "id": "https://github.com/au-research/raid-metadata/blob/main/scheme/contributor/position/v1/co-investigator.json"
+          "schemaUri": "https://vocabulary.raid.org/contributor.position.schema/305",
+          "id": "https://vocabulary.raid.org/contributor.position.schema/308"
+        },
+        'PartnerInvestigator': {
+          "schemaUri": "https://vocabulary.raid.org/contributor.position.schema/305",
+          "id": "https://vocabulary.raid.org/contributor.position.schema/309"
+        },
+        'Consultant': {
+          "schemaUri": "https://vocabulary.raid.org/contributor.position.schema/305",
+          "id": "https://vocabulary.raid.org/contributor.position.schema/310"
         },
         'OtherParticipant': {
-          "schemaUri": "https://github.com/au-research/raid-metadata/tree/main/scheme/contributor/position/v1/",
-          "id": "https://github.com/au-research/raid-metadata/blob/main/scheme/contributor/position/v1/other-participant.json"
+          "schemaUri": "https://vocabulary.raid.org/contributor.position.schema/305",
+          "id": "https://vocabulary.raid.org/contributor.position.schema/311"
+        },
+        'OtherParticipantDataManager': {
+          "schemaUri": "https://vocabulary.raid.org/contributor.position.schema/305",
+          "id": "https://vocabulary.raid.org/contributor.position.schema/311"
         }
       },
       flags: {
-        leader: ['PrincipalInvestigator', 'Leader'],
-        contact: ['ContactPerson']
+        leader: ['PrincipalInvestigator'],
+        contact: ['OtherParticipantDataManager']
       },
       hiearchy: {
-        position: ['Leader', 'PrincipalInvestigator', 'CoInvestigator', 'ContactPerson', 'OtherParticipant']
+        position: ['PrincipalInvestigator', 'CoInvestigator', 'PartnerInvestigator', 'Consultant', 'OtherParticipant']
+      },
+      // FYI: in pre-prod versions this used to be mapped via pre-generated enum, now it is hard coded here
+      roles: {
+        schemaUri: "https://credit.niso.org/",
+        types: {
+          "Conceptualization": "conceptualization",
+          "DataCuration": "data-curation",
+          "FormalAnalysis": "formal-analysis",
+          "FundingAcquisition": "funding-acquisition",
+          "Investigation": "investigation",
+          "Methodology": "methodology",
+          "ProjectAdministration": "project-administration",
+          "Resources": "resources",
+          "Software": "software",
+          "Supervision": "supervision",
+          "Validation": "validation",
+          "Visualization": "visualization",
+          "WritingOriginalDraft": "writing-original-draft",
+          "WritingReviewEditing": "writing-review-editing"
+        }
       }
     },
     organisation: {
       role: {
         'Lead': {
-          "schemaUri": "https://github.com/au-research/raid-metadata/tree/main/scheme/organisation/role/v1/",
-          "id": "https://github.com/au-research/raid-metadata/blob/main/scheme/organisation/role/v1/lead-research-organisation.json"
+          "schemaUri": "https://vocabulary.raid.org/organisation.role.schema/359",
+          "id": "https://vocabulary.raid.org/organisation.role.schema/182"
         }
       }
     },
     subject: {
       for: {
         "id": "https://linked.data.gov.au/def/anzsrc-for/2020/",
-        "schemaUri": "https://linked.data.gov.au/def/anzsrc-for/2020/"
+        "schemaUri": "https://vocabs.ardc.edu.au/viewById/316"
       },
       seo: {
-        "id": "https://linked.data.gov.au/def/anzsrc-seo/2020/",
-        "schemaUri": "https://linked.data.gov.au/def/anzsrc-seo/2020/"
+        "id": "https://vocabs.ardc.edu.au/repository/api/lda/anzsrc-2020-seo/resource?https://linked.data.gov.au/def/anzsrc-seo/2020/",
+        "schemaUri": "https://vocabs.ardc.edu.au/viewById/316"
       }
+      
     }
   },
   mapping: {
@@ -175,13 +210,13 @@ module.exports.raid = {
         contributorMap: {
           contributor_ci: {
             fieldMap: { id: 'orcid' }, // allows for the orcid to be renamed or be sourced elsewhere
-            position: 'Leader',
+            position: 'PrincipalInvestigator',
             role: 'ProjectAdministration',
             requireOrcid: true // defaults to false, when set records will be skipped if orcid value is missing      
           },
           contributor_data_manager: {
             fieldMap: { id: 'orcid' },
-            position: 'ContactPerson',
+            position: 'OtherParticipantDataManager',
             role: 'ProjectAdministration'        
           },
           contributors: {
@@ -191,7 +226,7 @@ module.exports.raid = {
           },
           contributor_supervisor: {
             fieldMap: { id: 'orcid' },
-            position: 'Leader',
+            position: 'PartnerInvestigator',
             role: 'Supervision'        
           }
         }

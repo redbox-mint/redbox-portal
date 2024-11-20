@@ -891,7 +891,7 @@ export module Controllers {
         }
         const recType = await RecordTypesService.get(brand, record.metaMetadata.type).toPromise();
         const nextStep = await WorkflowStepsService.get(recType, targetStepName).toPromise();
-        this.RecordsService.setWorkflowStepRelatedMetadata(record, nextStep);
+        await this.RecordsService.transitionWorkflowStep(record, recType, nextStep, req.user, true, true);
         const response = await this.RecordsService.updateMeta(brand, oid, record, req.user);
         this.apiRespond(req, res, response);
       } catch (err) {
