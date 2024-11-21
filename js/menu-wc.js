@@ -151,6 +151,23 @@ customElements.define('compodoc-menu', class extends HTMLElement {
                                     </li>
                             </li>
                             <li class="link">
+                                <a href="modules/DeletedRecordsModule.html" data-type="entity-link" >DeletedRecordsModule</a>
+                                    <li class="chapter inner">
+                                        <div class="simple menu-toggler" data-bs-toggle="collapse" ${ isNormalMode ?
+                                            'data-bs-target="#components-links-module-DeletedRecordsModule-b9a28ca4d0d2f93c3792994f11459a9464a09fbb06a162e79c0e57175843140e3eb3610714450c01b3d984f8a86dc8f377460aab0c0c5a88f55e71590a156aaa"' : 'data-bs-target="#xs-components-links-module-DeletedRecordsModule-b9a28ca4d0d2f93c3792994f11459a9464a09fbb06a162e79c0e57175843140e3eb3610714450c01b3d984f8a86dc8f377460aab0c0c5a88f55e71590a156aaa"' }>
+                                            <span class="icon ion-md-cog"></span>
+                                            <span>Components</span>
+                                            <span class="icon ion-ios-arrow-down"></span>
+                                        </div>
+                                        <ul class="links collapse" ${ isNormalMode ? 'id="components-links-module-DeletedRecordsModule-b9a28ca4d0d2f93c3792994f11459a9464a09fbb06a162e79c0e57175843140e3eb3610714450c01b3d984f8a86dc8f377460aab0c0c5a88f55e71590a156aaa"' :
+                                            'id="xs-components-links-module-DeletedRecordsModule-b9a28ca4d0d2f93c3792994f11459a9464a09fbb06a162e79c0e57175843140e3eb3610714450c01b3d984f8a86dc8f377460aab0c0c5a88f55e71590a156aaa"' }>
+                                            <li class="link">
+                                                <a href="components/DeletedRecordsComponent.html" data-type="entity-link" data-context="sub-entity" data-context-id="modules" >DeletedRecordsComponent</a>
+                                            </li>
+                                        </ul>
+                                    </li>
+                            </li>
+                            <li class="link">
                                 <a href="modules/ExportModule.html" data-type="entity-link" >ExportModule</a>
                                     <li class="chapter inner">
                                         <div class="simple menu-toggler" data-bs-toggle="collapse" ${ isNormalMode ?
@@ -273,13 +290,16 @@ customElements.define('compodoc-menu', class extends HTMLElement {
                                 <a href="modules/RedboxPortalCoreModule.html" data-type="entity-link" >RedboxPortalCoreModule</a>
                                     <li class="chapter inner">
                                         <div class="simple menu-toggler" data-bs-toggle="collapse" ${ isNormalMode ?
-                                            'data-bs-target="#components-links-module-RedboxPortalCoreModule-1dd743b0006c8c20132606b2db75308febea13a1f33fc1b02d8f9afc48d5843d12153a37cf6a77b16da10514c8130920da0826c9c35cff5431119ec47073adcd"' : 'data-bs-target="#xs-components-links-module-RedboxPortalCoreModule-1dd743b0006c8c20132606b2db75308febea13a1f33fc1b02d8f9afc48d5843d12153a37cf6a77b16da10514c8130920da0826c9c35cff5431119ec47073adcd"' }>
+                                            'data-bs-target="#components-links-module-RedboxPortalCoreModule-c93471b3d66bcda5795c3b6b0a2ebd51b4d0fbb8e5d5fe134abf8de15f3e7773217be37604bedf1df90a4e84a76169976536d55dd89e55ab331de9b7d61ccd38"' : 'data-bs-target="#xs-components-links-module-RedboxPortalCoreModule-c93471b3d66bcda5795c3b6b0a2ebd51b4d0fbb8e5d5fe134abf8de15f3e7773217be37604bedf1df90a4e84a76169976536d55dd89e55ab331de9b7d61ccd38"' }>
                                             <span class="icon ion-md-cog"></span>
                                             <span>Components</span>
                                             <span class="icon ion-ios-arrow-down"></span>
                                         </div>
-                                        <ul class="links collapse" ${ isNormalMode ? 'id="components-links-module-RedboxPortalCoreModule-1dd743b0006c8c20132606b2db75308febea13a1f33fc1b02d8f9afc48d5843d12153a37cf6a77b16da10514c8130920da0826c9c35cff5431119ec47073adcd"' :
-                                            'id="xs-components-links-module-RedboxPortalCoreModule-1dd743b0006c8c20132606b2db75308febea13a1f33fc1b02d8f9afc48d5843d12153a37cf6a77b16da10514c8130920da0826c9c35cff5431119ec47073adcd"' }>
+                                        <ul class="links collapse" ${ isNormalMode ? 'id="components-links-module-RedboxPortalCoreModule-c93471b3d66bcda5795c3b6b0a2ebd51b4d0fbb8e5d5fe134abf8de15f3e7773217be37604bedf1df90a4e84a76169976536d55dd89e55ab331de9b7d61ccd38"' :
+                                            'id="xs-components-links-module-RedboxPortalCoreModule-c93471b3d66bcda5795c3b6b0a2ebd51b4d0fbb8e5d5fe134abf8de15f3e7773217be37604bedf1df90a4e84a76169976536d55dd89e55ab331de9b7d61ccd38"' }>
+                                            <li class="link">
+                                                <a href="components/HeaderSortComponent.html" data-type="entity-link" data-context="sub-entity" data-context-id="modules" >HeaderSortComponent</a>
+                                            </li>
                                             <li class="link">
                                                 <a href="components/RecordTableComponent.html" data-type="entity-link" data-context="sub-entity" data-context-id="modules" >RecordTableComponent</a>
                                             </li>
@@ -287,13 +307,13 @@ customElements.define('compodoc-menu', class extends HTMLElement {
                                     </li>
                                 <li class="chapter inner">
                                     <div class="simple menu-toggler" data-bs-toggle="collapse" ${ isNormalMode ?
-                                        'data-bs-target="#injectables-links-module-RedboxPortalCoreModule-1dd743b0006c8c20132606b2db75308febea13a1f33fc1b02d8f9afc48d5843d12153a37cf6a77b16da10514c8130920da0826c9c35cff5431119ec47073adcd"' : 'data-bs-target="#xs-injectables-links-module-RedboxPortalCoreModule-1dd743b0006c8c20132606b2db75308febea13a1f33fc1b02d8f9afc48d5843d12153a37cf6a77b16da10514c8130920da0826c9c35cff5431119ec47073adcd"' }>
+                                        'data-bs-target="#injectables-links-module-RedboxPortalCoreModule-c93471b3d66bcda5795c3b6b0a2ebd51b4d0fbb8e5d5fe134abf8de15f3e7773217be37604bedf1df90a4e84a76169976536d55dd89e55ab331de9b7d61ccd38"' : 'data-bs-target="#xs-injectables-links-module-RedboxPortalCoreModule-c93471b3d66bcda5795c3b6b0a2ebd51b4d0fbb8e5d5fe134abf8de15f3e7773217be37604bedf1df90a4e84a76169976536d55dd89e55ab331de9b7d61ccd38"' }>
                                         <span class="icon ion-md-arrow-round-down"></span>
                                         <span>Injectables</span>
                                         <span class="icon ion-ios-arrow-down"></span>
                                     </div>
-                                    <ul class="links collapse" ${ isNormalMode ? 'id="injectables-links-module-RedboxPortalCoreModule-1dd743b0006c8c20132606b2db75308febea13a1f33fc1b02d8f9afc48d5843d12153a37cf6a77b16da10514c8130920da0826c9c35cff5431119ec47073adcd"' :
-                                        'id="xs-injectables-links-module-RedboxPortalCoreModule-1dd743b0006c8c20132606b2db75308febea13a1f33fc1b02d8f9afc48d5843d12153a37cf6a77b16da10514c8130920da0826c9c35cff5431119ec47073adcd"' }>
+                                    <ul class="links collapse" ${ isNormalMode ? 'id="injectables-links-module-RedboxPortalCoreModule-c93471b3d66bcda5795c3b6b0a2ebd51b4d0fbb8e5d5fe134abf8de15f3e7773217be37604bedf1df90a4e84a76169976536d55dd89e55ab331de9b7d61ccd38"' :
+                                        'id="xs-injectables-links-module-RedboxPortalCoreModule-c93471b3d66bcda5795c3b6b0a2ebd51b4d0fbb8e5d5fe134abf8de15f3e7773217be37604bedf1df90a4e84a76169976536d55dd89e55ab331de9b7d61ccd38"' }>
                                         <li class="link">
                                             <a href="injectables/AppConfigService.html" data-type="entity-link" data-context="sub-entity" data-context-id="modules" >AppConfigService</a>
                                         </li>

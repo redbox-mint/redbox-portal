@@ -157,19 +157,24 @@
                 <td class="col-md-9"><pre class="line-numbers"><code class="language-html">&lt;div class&#x3D;&quot;mb-3&quot;&gt;
   &lt;legend *ngIf&#x3D;&quot;props.label&quot;&gt;{{ props.label }}&lt;/legend&gt;
   &lt;p *ngIf&#x3D;&quot;props.description&quot;&gt;{{ props.description }}&lt;/p&gt;
-  &lt;div class&#x3D;&quot;d-flex flex-row-reverse&quot;&gt;
-    &lt;button class&#x3D;&quot;btn btn-primary&quot; type&#x3D;&quot;button&quot; (click)&#x3D;&quot;add()&quot;&gt;+&lt;/button&gt;
-  &lt;/div&gt;
 
   &lt;div class&#x3D;&quot;alert alert-danger&quot; role&#x3D;&quot;alert&quot; *ngIf&#x3D;&quot;showError &amp;&amp; formControl.errors&quot;&gt;
     &lt;formly-validation-message [field]&#x3D;&quot;field&quot;&gt;&lt;/formly-validation-message&gt;
   &lt;/div&gt;
 
   &lt;div *ngFor&#x3D;&quot;let field of field.fieldGroup; let i &#x3D; index&quot; class&#x3D;&quot;row align-items-start&quot;&gt;
-    &lt;formly-field class&#x3D;&quot;col&quot; [field]&#x3D;&quot;field&quot;&gt;&lt;/formly-field&gt;
-    &lt;div  class&#x3D;&quot;col-2 text-right&quot;&gt;
-      &lt;button class&#x3D;&quot;btn btn-danger&quot; type&#x3D;&quot;button&quot; (click)&#x3D;&quot;remove(i)&quot;&gt;-&lt;/button&gt;
+    &lt;formly-field class&#x3D;&quot;col-xs-10&quot; [field]&#x3D;&quot;field&quot;&gt;&lt;/formly-field&gt;
+    &lt;div class&#x3D;&quot;col-xs-2 text-right&quot;&gt;
+      &lt;button type&#x3D;&quot;button&quot; (click)&#x3D;&quot;remove(i)&quot;
+              class&#x3D;&quot;fa fa-minus-circle btn text-20 pull-right btn-danger&quot; &gt;&lt;/button&gt;
     &lt;/div&gt;
+  &lt;/div&gt;
+
+  &lt;div class&#x3D;&quot;row&quot;&gt;
+  &lt;span class&#x3D;&quot;col-xs-12&quot;&gt;
+    &lt;button type&#x3D;&#x27;button&#x27; (click)&#x3D;&quot;add()&quot;
+            class&#x3D;&quot;btn btn-primary fa fa-plus-circle btn text-20 pull-right btn-success&quot;&gt;&lt;/button&gt;
+  &lt;/span&gt;
   &lt;/div&gt;
 &lt;/div&gt;
 </code></pre></td>
@@ -208,24 +213,30 @@ import { FieldArrayType } from &#x27;@ngx-formly/core&#x27;;
     &lt;div class&#x3D;&quot;mb-3&quot;&gt;
       &lt;legend *ngIf&#x3D;&quot;props.label&quot;&gt;{{ props.label }}&lt;/legend&gt;
       &lt;p *ngIf&#x3D;&quot;props.description&quot;&gt;{{ props.description }}&lt;/p&gt;
-      &lt;div class&#x3D;&quot;d-flex flex-row-reverse&quot;&gt;
-        &lt;button class&#x3D;&quot;btn btn-primary&quot; type&#x3D;&quot;button&quot; (click)&#x3D;&quot;add()&quot;&gt;+&lt;/button&gt;
-      &lt;/div&gt;
 
       &lt;div class&#x3D;&quot;alert alert-danger&quot; role&#x3D;&quot;alert&quot; *ngIf&#x3D;&quot;showError &amp;&amp; formControl.errors&quot;&gt;
         &lt;formly-validation-message [field]&#x3D;&quot;field&quot;&gt;&lt;/formly-validation-message&gt;
       &lt;/div&gt;
 
       &lt;div *ngFor&#x3D;&quot;let field of field.fieldGroup; let i &#x3D; index&quot; class&#x3D;&quot;row align-items-start&quot;&gt;
-        &lt;formly-field class&#x3D;&quot;col&quot; [field]&#x3D;&quot;field&quot;&gt;&lt;/formly-field&gt;
-        &lt;div  class&#x3D;&quot;col-2 text-right&quot;&gt;
-          &lt;button class&#x3D;&quot;btn btn-danger&quot; type&#x3D;&quot;button&quot; (click)&#x3D;&quot;remove(i)&quot;&gt;-&lt;/button&gt;
+        &lt;formly-field class&#x3D;&quot;col-xs-10&quot; [field]&#x3D;&quot;field&quot;&gt;&lt;/formly-field&gt;
+        &lt;div class&#x3D;&quot;col-xs-2 text-right&quot;&gt;
+          &lt;button type&#x3D;&quot;button&quot; (click)&#x3D;&quot;remove(i)&quot;
+                  class&#x3D;&quot;fa fa-minus-circle btn text-20 pull-right btn-danger&quot; &gt;&lt;/button&gt;
         &lt;/div&gt;
+      &lt;/div&gt;
+
+      &lt;div class&#x3D;&quot;row&quot;&gt;
+      &lt;span class&#x3D;&quot;col-xs-12&quot;&gt;
+        &lt;button type&#x3D;&#x27;button&#x27; (click)&#x3D;&quot;add()&quot;
+                class&#x3D;&quot;btn btn-primary fa fa-plus-circle btn text-20 pull-right btn-success&quot;&gt;&lt;/button&gt;
+      &lt;/span&gt;
       &lt;/div&gt;
     &lt;/div&gt;
   &#x60;,
 })
-export class ArrayTypeComponent extends FieldArrayType {}</code></pre>
+export class ArrayTypeComponent extends FieldArrayType {}
+</code></pre>
     </div>
 
 
@@ -255,8 +266,8 @@ export class ArrayTypeComponent extends FieldArrayType {}</code></pre>
 <script src="../js/libs/htmlparser.js"></script>
 <script src="../js/libs/deep-iterator.js"></script>
 <script>
-        var COMPONENT_TEMPLATE = '<div><div class="mb-3">  <legend *ngIf="props.label">{{ props.label }}</legend>  <p *ngIf="props.description">{{ props.description }}</p>  <div class="d-flex flex-row-reverse">    <button class="btn btn-primary" type="button" (click)="add()">+</button>  </div>  <div class="alert alert-danger" role="alert" *ngIf="showError && formControl.errors">    <formly-validation-message [field]="field"></formly-validation-message>  </div>  <div *ngFor="let field of field.fieldGroup; let i = index" class="row align-items-start">    <formly-field class="col" [field]="field"></formly-field>    <div  class="col-2 text-right">      <button class="btn btn-danger" type="button" (click)="remove(i)">-</button>    </div>  </div></div></div>'
-    var COMPONENTS = [{'name': 'AppConfigComponent', 'selector': 'app-config'},{'name': 'ArrayTypeComponent', 'selector': 'formly-array-type'},{'name': 'BaseComponent', 'selector': ''},{'name': 'DashboardComponent', 'selector': 'dashboard'},{'name': 'ExportComponent', 'selector': 'export'},{'name': 'FormBaseComponent', 'selector': ''},{'name': 'FormComponent', 'selector': 'redbox-form'},{'name': 'FormFieldWrapperComponent', 'selector': 'redbox-form-field'},{'name': 'LocalAuthComponent', 'selector': 'local-auth'},{'name': 'ManageRolesComponent', 'selector': 'manage-roles'},{'name': 'ManageUsersComponent', 'selector': 'manage-users'},{'name': 'ObjectTypeComponent', 'selector': 'formly-object-type'},{'name': 'RecordTableComponent', 'selector': 'record-table'},{'name': 'ReportComponent', 'selector': 'report'},{'name': 'SortComponent', 'selector': 'sort'},{'name': 'TextAreaComponent', 'selector': 'formly-textarea-type'},{'name': 'TextFieldComponent', 'selector': 'textfield'}];
+        var COMPONENT_TEMPLATE = '<div><div class="mb-3">  <legend *ngIf="props.label">{{ props.label }}</legend>  <p *ngIf="props.description">{{ props.description }}</p>  <div class="alert alert-danger" role="alert" *ngIf="showError && formControl.errors">    <formly-validation-message [field]="field"></formly-validation-message>  </div>  <div *ngFor="let field of field.fieldGroup; let i = index" class="row align-items-start">    <formly-field class="col-xs-10" [field]="field"></formly-field>    <div class="col-xs-2 text-right">      <button type="button" (click)="remove(i)"              class="fa fa-minus-circle btn text-20 pull-right btn-danger" ></button>    </div>  </div>  <div class="row">  <span class="col-xs-12">    <button type=\'button\' (click)="add()"            class="btn btn-primary fa fa-plus-circle btn text-20 pull-right btn-success"></button>  </span>  </div></div></div>'
+    var COMPONENTS = [{'name': 'AppConfigComponent', 'selector': 'app-config'},{'name': 'ArrayTypeComponent', 'selector': 'formly-array-type'},{'name': 'BaseComponent', 'selector': ''},{'name': 'DashboardComponent', 'selector': 'dashboard'},{'name': 'DeletedRecordsComponent', 'selector': 'deleted-records'},{'name': 'ExportComponent', 'selector': 'export'},{'name': 'FormBaseComponent', 'selector': ''},{'name': 'FormComponent', 'selector': 'redbox-form'},{'name': 'FormFieldWrapperComponent', 'selector': 'redbox-form-field'},{'name': 'HeaderSortComponent', 'selector': 'header-sort'},{'name': 'LocalAuthComponent', 'selector': 'local-auth'},{'name': 'ManageRolesComponent', 'selector': 'manage-roles'},{'name': 'ManageUsersComponent', 'selector': 'manage-users'},{'name': 'ObjectTypeComponent', 'selector': 'formly-object-type'},{'name': 'RecordTableComponent', 'selector': 'record-table'},{'name': 'ReportComponent', 'selector': 'report'},{'name': 'SortComponent', 'selector': 'sort'},{'name': 'TextAreaComponent', 'selector': 'formly-textarea-type'},{'name': 'TextFieldComponent', 'selector': 'textfield'}];
     var DIRECTIVES = [{'name': 'FormFieldWrapperDirective', 'selector': '[formFieldComp]'}];
     var ACTUAL_COMPONENT = {'name': 'ArrayTypeComponent'};
 </script>

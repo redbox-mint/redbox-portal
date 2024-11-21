@@ -199,41 +199,42 @@
         <pre class="line-numbers compodoc-sourcecode"><code class="language-typescript">import { map, firstValueFrom } from &#x27;rxjs&#x27;;
 import { Injectable, Inject } from &#x27;@angular/core&#x27;;
 import { APP_BASE_HREF } from &#x27;@angular/common&#x27;;
-import { HttpClient } from &#x27;@angular/common/http&#x27;;
+import { HttpClient, HttpHeaders } from &#x27;@angular/common/http&#x27;;
 import { ConfigService } from &#x27;./config.service&#x27;;
 import { UtilityService } from &#x27;./utility.service&#x27;;
 import { LoggerService } from &#x27;./logger.service&#x27;;
 import { HttpClientService } from &#x27;./httpClient.service&#x27;;
-import { merge as _merge, isUndefined as _isUndefined, isEmpty as _isEmpty, get as _get, isArray as _isArray } from &#x27;lodash-es&#x27;;
+import { merge as _merge, isUndefined as _isUndefined, isEmpty as _isEmpty, get as _get, isArray as _isArray, clone as _clone, isString as _isString, isNumber as _isNumber } from &#x27;lodash-es&#x27;;
+import { RecordResponseTable } from &quot;./dashboard-models&quot;;
 
 export interface RecordTypeConf {
   name: string;
 }
 /**
  * Record Service
- * 
+ *
  * Author: &lt;a href&#x3D;&#x27;https://github.com/shilob&#x27; target&#x3D;&#x27;_blank&#x27;&gt;Shilo Banihit&lt;/a&gt;
  */
 @Injectable()
 export class RecordService extends HttpClientService {
-  private requestOptions:any &#x3D; null as any;
+  private requestOptions: any &#x3D; null as any;
 
-  constructor( 
-    @Inject(HttpClient) protected override http: HttpClient, 
+  constructor(
+    @Inject(HttpClient) protected override http: HttpClient,
     @Inject(APP_BASE_HREF) public override rootContext: string,
     @Inject(UtilityService) protected override utilService: UtilityService,
     @Inject(ConfigService) protected override configService: ConfigService,
     @Inject(LoggerService) private loggerService: LoggerService
   ) {
     super(http, rootContext, utilService, configService);
-    this.requestOptions &#x3D; {responseType: &#x27;json&#x27;, observe: &#x27;body&#x27;};
+    this.requestOptions &#x3D; { responseType: &#x27;json&#x27;, observe: &#x27;body&#x27; };
   }
 
   public override async waitForInit(): Promise&lt;any&gt; {
     await super.waitForInit();
     this.enableCsrfHeader();
     this.loggerService.debug(&#x27;waitForInit RecordService&#x27;);
-    _merge(this.requestOptions, {context: this.httpContext});
+    _merge(this.requestOptions, { context: this.httpContext });
     return this;
   }
 
@@ -241,16 +242,16 @@ export class RecordService extends HttpClientService {
     let url &#x3D; &#x60;${this.brandingAndPortalUrl}/record/wfSteps/${name}&#x60;;
     const result$ &#x3D; this.http.get(url).pipe(map(res &#x3D;&gt; res));
     let result &#x3D; await firstValueFrom(result$);
-    return result; 
+    return result;
   }
 
   private getDocMetadata(doc: any) {
     let metadata: any &#x3D; {};
-    for(var key in doc){
-      if(key.indexOf(&#x27;authorization_&#x27;) !&#x3D; 0 &amp;&amp; key.indexOf(&#x27;metaMetadata_&#x27;) !&#x3D; 0) {
+    for (var key in doc) {
+      if (key.indexOf(&#x27;authorization_&#x27;) !&#x3D; 0 &amp;&amp; key.indexOf(&#x27;metaMetadata_&#x27;) !&#x3D; 0) {
         metadata[key] &#x3D; doc[key];
       }
-      if(key &#x3D;&#x3D; &#x27;authorization_editRoles&#x27;) {
+      if (key &#x3D;&#x3D; &#x27;authorization_editRoles&#x27;) {
         metadata[key] &#x3D; doc[key];
       }
     }
@@ -258,25 +259,25 @@ export class RecordService extends HttpClientService {
   }
 
   public async getRelatedRecords(oid: string) {
-    
+
     let url &#x3D; &#x60;${this.brandingAndPortalUrl}/record/${oid}/relatedRecords&#x60;;
     const result$ &#x3D; this.http.get(url).pipe(map(res &#x3D;&gt; res));
     let relatedRecords &#x3D; await firstValueFrom(result$);
-    
+
     let response: any &#x3D; {};
     let items &#x3D; [];
     let childOrTreeLevel2: any &#x3D; _get(relatedRecords, &#x27;processedRelationships&#x27;);
 
-    for(let childNameStr of childOrTreeLevel2) {
-      let childArr &#x3D; _get(relatedRecords,&#x27;relatedObjects.&#x27;+childNameStr);
-      
-      if(!_isUndefined(childArr) &amp;&amp; _isArray(childArr)) {
+    for (let childNameStr of childOrTreeLevel2) {
+      let childArr &#x3D; _get(relatedRecords, &#x27;relatedObjects.&#x27; + childNameStr);
+
+      if (!_isUndefined(childArr) &amp;&amp; _isArray(childArr)) {
         for (let child of childArr) {
           let item: any &#x3D; {};
           item[&quot;oid&quot;] &#x3D; child[&quot;redboxOid&quot;];
           item[&quot;title&quot;] &#x3D; child[&quot;metadata&quot;][&quot;title&quot;];
-          item[&quot;metadata&quot;]&#x3D; this.getDocMetadata(child);
-          item[&quot;dateCreated&quot;] &#x3D;  child[&quot;dateCreated&quot;];
+          item[&quot;metadata&quot;] &#x3D; this.getDocMetadata(child);
+          item[&quot;dateCreated&quot;] &#x3D; child[&quot;dateCreated&quot;];
           item[&quot;dateModified&quot;] &#x3D; child[&quot;lastSaveDate&quot;];
           //TODO double check that this is needed or not
           // item[&quot;hasEditAccess&quot;] &#x3D; RecordsService.hasEditAccess(brand, user, roles, doc);
@@ -289,30 +290,127 @@ export class RecordService extends HttpClientService {
     return response;
   }
 
-  public async getRecords(recordType:string,state:string,pageNumber:number,packageType:string&#x3D;&#x27;&#x27;, sort:string&#x3D;&#x27;&#x27;, filterFields:string&#x3D;&#x27;&#x27;, filterString:string&#x3D;&#x27;&#x27;, filterMode:string&#x3D;&#x27;&#x27;) {
+  public async getRecords(
+    recordType: string,
+    state: string,
+    pageNumber: number,
+    packageType: string &#x3D; &#x27;&#x27;,
+    sort: string &#x3D; &#x27;&#x27;,
+    filterFields: string &#x3D; &#x27;&#x27;,
+    filterString: string &#x3D; &#x27;&#x27;,
+    filterMode: string &#x3D; &#x27;&#x27;,
+    secondarySort: string &#x3D; &#x27;&#x27;) {
     let rows &#x3D; 10;
-    let start &#x3D; (pageNumber-1) * rows;
-    recordType &#x3D; (!_isEmpty(recordType) &amp;&amp; !_isUndefined(recordType)) ? &#x60;recordType&#x3D;${recordType}&#x60; : &#x27;&#x27;;
-    packageType &#x3D; (!_isEmpty(packageType) &amp;&amp; !_isUndefined(packageType)) ? &#x60;packageType&#x3D;${packageType}&#x60; : &#x27;&#x27;;
-    sort &#x3D; (!_isEmpty(sort) &amp;&amp; !_isUndefined(sort)) ? &#x60;&amp;sort&#x3D;${sort}&#x60; : &#x27;&#x27;;
-    state &#x3D; (!_isEmpty(state) &amp;&amp; !_isUndefined(state)) ? &#x60;&amp;state&#x3D;${state}&#x60; : &#x27;&#x27;;
-    filterFields &#x3D; (!_isEmpty(filterFields) &amp;&amp; !_isUndefined(filterFields)) ? &#x60;&amp;filterFields&#x3D;${filterFields}&#x60; : &#x27;&#x27;;
-    filterString &#x3D; (!_isEmpty(filterString) &amp;&amp; !_isUndefined(filterString)) ? &#x60;&amp;filter&#x3D;${filterString}&#x60; : &#x27;&#x27;;
-    filterMode &#x3D; (!_isEmpty(filterMode) &amp;&amp; !_isUndefined(filterMode)) ? &#x60;&amp;filterMode&#x3D;${filterMode}&#x60; : &#x27;&#x27;;
-    let url &#x3D; &#x60;${this.brandingAndPortalUrl}/listRecords?${recordType}${packageType}${state}${sort}${filterFields}${filterString}${filterMode}&amp;start&#x3D;${start}&amp;rows&#x3D;${rows}&#x60;;
-    const result$ &#x3D; this.http.get(url).pipe(map(res &#x3D;&gt; res));
+    let start &#x3D; (pageNumber - 1) * rows;
+
+    const items &#x3D; {
+      recordType: recordType,
+      packageType: packageType,
+      sort: sort,
+      secondarySort: secondarySort,
+      state: state,
+      filterFields: filterFields,
+      filter: filterString,
+      filterMode: filterMode,
+      start: start,
+      rows: rows,
+    };
+
+    const listRecordsUrl &#x3D; new URL(&#x60;${this.brandingAndPortalUrl}/listRecords&#x60;);
+    for (const [key, value] of Object.entries(items)) {
+      if (!_isUndefined(value)) {
+        if (_isString(value) &amp;&amp; !_isEmpty(value)) {
+          listRecordsUrl.searchParams.set(key, value?.toString());
+        } else {
+          if (_isNumber(value)) {
+            listRecordsUrl.searchParams.set(key, value?.toString());
+          }
+        }
+      }
+    }
+
+    const result$ &#x3D; this.http.get(listRecordsUrl.toString()).pipe(map(res &#x3D;&gt; res));
     let result &#x3D; await firstValueFrom(result$);
     return result;
+  }
+
+  public async getDeletedRecords(
+    recordType: string,
+    state: string,
+    pageNumber: number,
+    packageType: string &#x3D; &#x27;&#x27;,
+    sort: string &#x3D; &#x27;&#x27;,
+    filterFields: string &#x3D; &#x27;&#x27;,
+    filterString: string &#x3D; &#x27;&#x27;,
+    filterMode: string &#x3D; &#x27;&#x27;
+  ): Promise&lt;RecordResponseTable&gt; {
+    let rows &#x3D; 10;
+    let start &#x3D; (pageNumber - 1) * rows;
+
+    const items &#x3D; {
+      recordType: recordType,
+      packageType: packageType,
+      sort: sort,
+      state: state,
+      filterFields: filterFields,
+      filter: filterString,
+      filterMode: filterMode,
+      start: start,
+      rows: rows,
+    };
+
+    const listDeletedRecordsUrl &#x3D; new URL(&#x60;${this.brandingAndPortalUrl}/listDeletedRecords&#x60;);
+    for (const [key, value] of Object.entries(items)) {
+      if (!_isUndefined(value)) {
+        if (_isString(value) &amp;&amp; !_isEmpty(value)) {
+          listDeletedRecordsUrl.searchParams.set(key, value?.toString());
+        } else {
+          if (_isNumber(value)) {
+            listDeletedRecordsUrl.searchParams.set(key, value?.toString());
+          }
+        }
+      }
+    }
+
+    const result$ &#x3D; this.http.get(listDeletedRecordsUrl.toString()).pipe(map(res &#x3D;&gt; res));
+    let result: any &#x3D; await firstValueFrom(result$);
+    return result;
+  }
+
+  public async restoreDeletedRecord(oid: string) {
+    const httpOptions &#x3D; this.getHttpOptions();
+    const restoreDeletedRecordUrl &#x3D; new URL(&#x60;${this.brandingAndPortalUrl}/record/delete/${oid}&#x60;);
+    const result$ &#x3D; this.http.put(restoreDeletedRecordUrl.toString(), undefined, httpOptions).pipe(map(res &#x3D;&gt; res));
+    let result: any &#x3D; await firstValueFrom(result$);
+    return result;
+  }
+
+  public async destroyDeletedRecord(oid: string) {
+    const httpOptions &#x3D; this.getHttpOptions();
+    const destroyDeletedRecordUrl &#x3D; new URL(&#x60;${this.brandingAndPortalUrl}/record/destroy/${oid}&#x60;);
+    const result$ &#x3D; this.http.delete(destroyDeletedRecordUrl.toString(), httpOptions).pipe(map(res &#x3D;&gt; res));
+    let result: any &#x3D; await firstValueFrom(result$);
+    return result;
+  }
+
+
+  /**
+   * Retrieves the default HTTP request options that includes the CSRF-TOKEN-HEADER.
+   *
+   * @returns {any} A cloned copy of the default request options.
+   */
+  private getHttpOptions(): any {
+    return _clone(this.requestOptions);
   }
 
   public async getAllTypes() {
     let url &#x3D; &#x60;${this.brandingAndPortalUrl}/record/type&#x60;;
     const result$ &#x3D; this.http.get(url).pipe(map(res &#x3D;&gt; res));
-    let result &#x3D; await firstValueFrom(result$);
+    let result: any &#x3D; await firstValueFrom(result$);
     return result;
   }
 
-  public async getDashboardType(dashboardType:string) {
+  public async getDashboardType(dashboardType: string) {
     let url &#x3D; &#x60;${this.brandingAndPortalUrl}/dashboard/type/${dashboardType}&#x60;;
     const result$ &#x3D; this.http.get(url).pipe(map(res &#x3D;&gt; res));
     let result &#x3D; await firstValueFrom(result$);

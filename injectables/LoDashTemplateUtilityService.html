@@ -220,8 +220,8 @@
 
                     <tr>
                         <td class="col-md-4">
-                            <div class="io-line">Defined in <a href="" data-line="78"
-                                    class="link-to-prism">angular/projects/researchdatabox/portal-ng-common/src/lib/lodash-template-utility.service.ts:78</a></div>
+                            <div class="io-line">Defined in <a href="" data-line="79"
+                                    class="link-to-prism">angular/projects/researchdatabox/portal-ng-common/src/lib/lodash-template-utility.service.ts:79</a></div>
                         </td>
                     </tr>
 
@@ -301,8 +301,8 @@
 
                     <tr>
                         <td class="col-md-4">
-                            <div class="io-line">Defined in <a href="" data-line="83"
-                                    class="link-to-prism">angular/projects/researchdatabox/portal-ng-common/src/lib/lodash-template-utility.service.ts:83</a></div>
+                            <div class="io-line">Defined in <a href="" data-line="84"
+                                    class="link-to-prism">angular/projects/researchdatabox/portal-ng-common/src/lib/lodash-template-utility.service.ts:84</a></div>
                         </td>
                     </tr>
 
@@ -394,8 +394,8 @@
 
                     <tr>
                         <td class="col-md-4">
-                            <div class="io-line">Defined in <a href="" data-line="107"
-                                    class="link-to-prism">angular/projects/researchdatabox/portal-ng-common/src/lib/lodash-template-utility.service.ts:107</a></div>
+                            <div class="io-line">Defined in <a href="" data-line="108"
+                                    class="link-to-prism">angular/projects/researchdatabox/portal-ng-common/src/lib/lodash-template-utility.service.ts:108</a></div>
                         </td>
                     </tr>
 
@@ -496,8 +496,8 @@
 
                     <tr>
                         <td class="col-md-4">
-                            <div class="io-line">Defined in <a href="" data-line="99"
-                                    class="link-to-prism">angular/projects/researchdatabox/portal-ng-common/src/lib/lodash-template-utility.service.ts:99</a></div>
+                            <div class="io-line">Defined in <a href="" data-line="100"
+                                    class="link-to-prism">angular/projects/researchdatabox/portal-ng-common/src/lib/lodash-template-utility.service.ts:100</a></div>
                         </td>
                     </tr>
 
@@ -577,8 +577,8 @@
 
                     <tr>
                         <td class="col-md-4">
-                            <div class="io-line">Defined in <a href="" data-line="115"
-                                    class="link-to-prism">angular/projects/researchdatabox/portal-ng-common/src/lib/lodash-template-utility.service.ts:115</a></div>
+                            <div class="io-line">Defined in <a href="" data-line="116"
+                                    class="link-to-prism">angular/projects/researchdatabox/portal-ng-common/src/lib/lodash-template-utility.service.ts:116</a></div>
                         </td>
                     </tr>
 
@@ -713,7 +713,8 @@
     first: _first,
     merge: _merge,
     extend: _extend,
-    template: _template
+    template: _template,
+    toLower: _toLower
   }</code>
                     </td>
                 </tr>
@@ -787,7 +788,7 @@
     <div class="tab-pane fade  tab-source-code" id="source">
         <pre class="line-numbers compodoc-sourcecode"><code class="language-typescript">import { Injectable } from &#x27;@angular/core&#x27;;
 import { DateTime } from &#x27;luxon&#x27;;
-import { get as _get, set as _set, extend as _extend, isEmpty as _isEmpty, isUndefined as _isUndefined, merge as _merge, trim as _trim, isNull as _isNull, orderBy as _orderBy, map as _map, find as _find, indexOf as _indexOf, isArray as _isArray, forEach as _forEach, join as _join, first as _first, template as _template } from &#x27;lodash-es&#x27;;
+import { get as _get, set as _set, extend as _extend, isEmpty as _isEmpty, isUndefined as _isUndefined, merge as _merge, trim as _trim, isNull as _isNull, orderBy as _orderBy, map as _map, find as _find, indexOf as _indexOf, isArray as _isArray, forEach as _forEach, join as _join, first as _first, template as _template, toLower as _toLower } from &#x27;lodash-es&#x27;;
 
 /**
  * Utility functions to run and render loadash templates
@@ -839,7 +840,8 @@ export class LoDashTemplateUtilityService {
     first: _first,
     merge: _merge,
     extend: _extend,
-    template: _template
+    template: _template,
+    toLower: _toLower
   }
 
   public formatDate(date: Date, format: string): string {

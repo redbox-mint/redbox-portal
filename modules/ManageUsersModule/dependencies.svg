@@ -24,13 +24,13 @@
 <title>cluster_ManageUsersModule</title>
 <polygon fill="none" stroke="black" stroke-dasharray="1,5" points="59,-70 59,-268 437,-268 437,-70 59,-70"/>
 </g>
-<g id="clust4" class="cluster">
-<title>cluster_ManageUsersModule_imports</title>
-<polygon fill="none" stroke="black" points="249,-78 249,-130 429,-130 429,-78 249,-78"/>
-</g>
 <g id="clust6" class="cluster">
 <title>cluster_ManageUsersModule_bootstrap</title>
 <polygon fill="none" stroke="black" points="158,-208 158,-260 336,-260 336,-208 158,-208"/>
+</g>
+<g id="clust4" class="cluster">
+<title>cluster_ManageUsersModule_imports</title>
+<polygon fill="none" stroke="black" points="249,-78 249,-130 429,-130 429,-78 249,-78"/>
 </g>
 <g id="clust2" class="cluster">
 <title>cluster_ManageUsersModule_declarations</title>
