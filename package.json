@@ -6,7 +6,7 @@
   "dependencies": {
     "@researchdatabox/oni-ocfl": "^1.4.0",
     "@researchdatabox/raido-openapi-generated-node": "^0.0.3",
-    "@researchdatabox/redbox-core-types": "file:core",
+    "@researchdatabox/redbox-core-types": "^1.4.7",
     "@researchdatabox/sails-hook-redbox-storage-mongo": "^1.4.6",
     "@researchdatabox/sails-ng-common": "^0.1.0",
     "@scienta/axios-oauth2": "^1.2.1",
