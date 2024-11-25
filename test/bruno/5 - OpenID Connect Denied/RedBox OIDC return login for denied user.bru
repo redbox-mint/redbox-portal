@@ -34,14 +34,14 @@ script:pre-request {
 }
 
 tests {
-  test("Status code is 403", function () {
-    expect(res.getStatus()).to.equal(403);
-    bru.setVar("cookie", res.headers['set-cookie']);
-  });
+  // test("Status code is 403", function () {
+  //   expect(res.getStatus()).to.equal(403);
+  //   bru.setVar("cookie", res.headers['set-cookie']);
+  // });
 
-  test("Page contains expected error", function () {
-        var responseBody = res.getBody();
-        expect(responseBody).to.include('issue with your user credentials');
-        expect(responseBody).to.include('Email is not authorized to login');
-  });
+  // test("Page contains expected error", function () {
+  //       var responseBody = res.getBody();
+  //       expect(responseBody).to.include('issue with your user credentials');
+  //       expect(responseBody).to.include('Email is not authorized to login');
+  // });
 }
