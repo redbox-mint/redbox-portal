@@ -73,6 +73,7 @@ export class VocabField extends FieldBase<any> {
   public groupClass: string;
   public inputClass: string;
   storedEventData: null;
+  public storeFreeTextAsString: boolean;
 
   @Output() onItemSelect: EventEmitter<any> = new EventEmitter<any>();
   
@@ -106,6 +107,7 @@ export class VocabField extends FieldBase<any> {
     this.dontEmitEventOnLoad = _.isUndefined(options['dontEmitEventOnLoad']) ? false : options['dontEmitEventOnLoad'];
     this.groupClasses = _.isUndefined(options['groupClasses']) ? '' : options['groupClasses'];
     this.cssClasses = _.isUndefined(options['cssClasses']) ? '' : options['cssClasses'];
+    this.storeFreeTextAsString = _.isUndefined(options['storeFreeTextAsString']) ? false : options['storeFreeTextAsString'];
   }
 
   createFormModel(valueElem: any = undefined, createFormGroup: boolean = false) {
@@ -145,7 +147,7 @@ export class VocabField extends FieldBase<any> {
 
   public reactEvent(eventName: string, eventData: any, origData: any) {
     let selected = {};
-    if (this.storeLabelOnly) {
+    if (this.storeLabelOnly || this.storeFreeTextAsString) {
       selected['title'] = eventData; 
     }
     selected['originalObject'] = eventData;
@@ -231,7 +233,8 @@ export class VocabField extends FieldBase<any> {
         this.titleFieldArr,
         this.titleFieldDelim,
         this.vocabQueryResultMaxRows,
-        this.queryDelayTimeMs
+        this.queryDelayTimeMs,
+        this.storeFreeTextAsString
       );
     }
   }
@@ -256,6 +259,12 @@ export class VocabField extends FieldBase<any> {
           }
         });
       } else {
+        // Also, check if the `data.title` already has the first of the delim prefix, skipping if it does to avoid double prefixing (brackets)
+        const startDelim = _.get(_.head(this.titleFieldDelim), 'prefix');
+        if (data.title && _.startsWith(data.title, startDelim)) {
+          title = data.title;
+          return title;
+        }
         // expecting a delim pair array, 'prefix', 'suffix'
         _.forEach(this.titleFieldArr, (titleFld: string, idx) => {
           const delimPair = this.titleFieldDelim[idx];
@@ -274,7 +283,7 @@ export class VocabField extends FieldBase<any> {
     if (!_.isUndefined(data) && !_.isEmpty(data)) {
       if (_.isString(data)) {
         console.log(`Data is string...`)
-        if (this.storeLabelOnly) {
+        if (this.storeLabelOnly || this.storeFreeTextAsString) {
           return data;
         } else {
           valObj[this.stringLabelToField] = data;
@@ -447,7 +456,8 @@ class ReDBoxQueryLookupDataService extends Subject<CompleterItem[]> implements C
     private titleFieldArr: string[],
     private titleFieldDelim: string,
     private maxRows: string,
-    private queryDelayTimeMs: number = 300) {
+    private queryDelayTimeMs: number = 300,
+    private storeFreeTextAsString: boolean = false) {
     super();
     this.searchSubscription = this.searchTerms.pipe(
       debounceTime(this.queryDelayTimeMs), // Wait for a default 300ms of inactivity
@@ -513,12 +523,26 @@ class ReDBoxQueryLookupDataService extends Subject<CompleterItem[]> implements C
           }
         });
       } else {
+        // Intention is to wrap the title with a prefix and suffix if the underlying value is an object
+        // However, the completerItem always converts a string array entry to a object with a 'title' field
+        // When the field is storing freely entered text, then there is no need to wrap the title
+        if (_.isString(data) || (this.storeFreeTextAsString && _.isObject(data) && _.keys(data).length === 1 && _.isString(_.values(data)[0]))) {
+          return _.isString(data) ? data : _.values(data)[0];
+        }
+        // Also, check if the `data.title` already has the first of the delim prefix, skipping if it does to avoid double prefixing (brackets)
+        const startDelim = _.get(_.head(this.titleFieldDelim), 'prefix');
+        if (data.title && _.startsWith(data.title, startDelim)) {
+          title = data.title;
+          return title;
+        }
         // expecting a delim pair array, 'prefix', 'suffix'
         _.forEach(this.titleFieldArr, (titleFld: string, idx) => {
           const delimPair: any = this.titleFieldDelim[idx];
           const titleVal = data[titleFld];
           if (titleVal) {
-            title = `${title} ${titleVal}${delimPair.suffix}`;
+            // The previous code was only adding the suffix to the last field, but not the prefix as shown in the commented line below. If this is intentional, please don't merge this change.
+            // title = `${title} ${titleVal}${delimPair.suffix}`;
+            title = `${title}${delimPair.prefix}${titleVal}${delimPair.suffix}`;
           }
         });
       }
@@ -872,6 +896,10 @@ export class VocabFieldComponent extends SimpleComponent {
       }
       if (this.field.storeLabelOnly) {
         this.field.setValue(this.field.getValue(selected.title), emitEvent, updateTitle);
+      } else if (this.field.storeFreeTextAsString && (_.isString(selected['originalObject']) || _.keys(selected['originalObject']).length == 1) ) {
+        // the above condition is true when the field is storing freely entered text
+        const title = selected.title || selected['originalObject'];
+        this.field.setValue(this.field.getValue(title), emitEvent, updateTitle);
       } else {
         this.field.setValue(this.field.getValue(selected['originalObject']), emitEvent, updateTitle);
       }
@@ -891,7 +919,11 @@ export class VocabFieldComponent extends SimpleComponent {
   onKeyup(value: any) {
     let disableEditAfterSelect = this.disableEditAfterSelect && this.field.disableEditAfterSelect;
     if (!disableEditAfterSelect && !this.field.restrictToSelection) {
-      this.field.formModel.setValue(this.field.getValue(this.field.searchStr));
+      if (this.field.storeFreeTextAsString) {
+        this.field.formModel.setValue(this.field.searchStr);
+      } else {
+        this.field.formModel.setValue(this.field.getValue(this.field.searchStr));
+      }
     }
 
   }
