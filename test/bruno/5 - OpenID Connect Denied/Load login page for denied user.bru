@@ -1,11 +1,11 @@
 meta {
-  name: RedBox OIDC return login
+  name: Load login page
   type: http
-  seq: 6
+  seq: 2
 }
 
 get {
-  url: {{host}}/default/rdmp/researcher/home
+  url: {{host}}/default/rdmp/user/login
   body: none
   auth: none
 }
@@ -16,32 +16,25 @@ headers {
   Cache-Control: no-cache
   Connection: keep-alive
   Pragma: no-cache
+  Referer: {{host}}/default/rdmp/user/login
   Sec-Fetch-Dest: document
   Sec-Fetch-Mode: navigate
-  Sec-Fetch-Site: cross-site
+  Sec-Fetch-Site: same-origin
   Sec-Fetch-User: ?1
   Upgrade-Insecure-Requests: 1
   User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.4896.88 Safari/537.36
+  sec-ch-ua: " Not A;Brand";v="99", "Chromium";v="100", "Google Chrome";v="100"
+  sec-ch-ua-mobile: ?0
+  sec-ch-ua-platform: "macOS"
 }
 
-script:pre-request {
-  req.setMaxRedirects(0);
-  const cookie = bru.getVar("cookie");
-    
-  if(cookie) {
-    req.setHeader("Cookie", cookie)
-  }
+script:post-response {
+  bru.setVar("cookie",res.headers['set-cookie']);
 }
 
 tests {
-  
-  
-   test("Status code is 200", function () {
-       expect(res.getStatus()).to.equal(200);
-   });
-  
-   test("Welcome message in HTML", function () {
-       // Testing login worked by looking for welcome message on page
-       expect(res.getBody()).to.include("Test Researcher")
-   });
+  test("Status code is 200", function () {
+      // Just loading page to get a session cookie
+      expect(res.getStatus()).to.equal(200);
+  });
 }

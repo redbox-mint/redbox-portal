@@ -5,7 +5,7 @@ meta {
 }
 
 get {
-  url: {{host}}/default/rdmp/researcher/home
+  url: {{rb_login_url}}
   body: none
   auth: none
 }
@@ -34,14 +34,14 @@ script:pre-request {
 }
 
 tests {
-  
-  
-   test("Status code is 200", function () {
-       expect(res.getStatus()).to.equal(200);
-   });
-  
-   test("Welcome message in HTML", function () {
-       // Testing login worked by looking for welcome message on page
-       expect(res.getBody()).to.include("Test Researcher")
-   });
+  test("Status code is 403", function () {
+    expect(res.getStatus()).to.equal(403);
+    bru.setVar("cookie", res.headers['set-cookie']);
+  });
+
+  test("Page contains expected error", function () {
+        var responseBody = res.getBody();
+        expect(responseBody).to.include('issue with your user credentials');
+        expect(responseBody).to.include('Email is not authorized to login');
+  });
 }
