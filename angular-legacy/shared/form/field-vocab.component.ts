@@ -898,7 +898,7 @@ export class VocabFieldComponent extends SimpleComponent {
         this.field.setValue(this.field.getValue(selected.title), emitEvent, updateTitle);
       } else if (this.field.storeFreeTextAsString && (_.isString(selected['originalObject']) || _.keys(selected['originalObject']).length == 1) ) {
         // the above condition is true when the field is storing freely entered text
-        const title = selected.title || selected['originalObject'];
+        const title = selected.title || (_.get(selected['originalObject'], 'title') || selected['originalObject']);
         this.field.setValue(this.field.getValue(title), emitEvent, updateTitle);
       } else {
         this.field.setValue(this.field.getValue(selected['originalObject']), emitEvent, updateTitle);
