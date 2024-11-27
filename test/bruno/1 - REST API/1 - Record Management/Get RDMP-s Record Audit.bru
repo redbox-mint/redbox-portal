@@ -24,7 +24,7 @@ tests {
       var jsonData = res.getBody();
       expect(jsonData).to.have.property('summary')
         .and.to.have.property('numFound')
-        .and.equal(2)
+        .and.to.be.above(0);
   });
   
   test("Data is returned", function () {

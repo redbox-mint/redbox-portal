@@ -19,7 +19,7 @@ services:
          - bruno
     entrypoint: >-
       /bin/bash -c "cd /opt/redbox-portal/test/bruno && 
-      npm install -g @usebruno/cli &&
+      npm install -g @usebruno/cli@1.34.1 &&
       npm install && 
       bru run 
       --env int-test 

@@ -6,7 +6,7 @@
   "dependencies": {
     "@researchdatabox/oni-ocfl": "^1.4.0",
     "@researchdatabox/raido-openapi-generated-node": "^0.0.3",
-    "@researchdatabox/redbox-core-types": "file:core",
+    "@researchdatabox/redbox-core-types": "^1.4.7",
     "@researchdatabox/sails-hook-redbox-storage-mongo": "^1.4.6",
     "@researchdatabox/sails-ng-common": "^0.1.0",
     "@scienta/axios-oauth2": "^1.2.1",
@@ -119,7 +119,7 @@
     "chai": "^5.1.2",
     "ejs-cli": "^2.2.3",
     "istanbul": "^0.4.5",
-    "mocha": "^10.7.3",
+    "mocha": "^10.8.2",
     "mocha-junit-reporter": "^2.2.1",
     "supertest": "^7.0.0",
     "uglify-es": "^3.3.10"

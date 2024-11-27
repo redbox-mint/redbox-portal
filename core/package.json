@@ -1,6 +1,6 @@
 {
   "name": "@researchdatabox/redbox-core-types",
-  "version": "1.4.5",
+  "version": "1.4.7",
   "description": "",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

@@ -1,11 +1,11 @@
 meta {
-  name: Create HARVEST Legacy Record
+  name: Create HARVEST Record
   type: http
-  seq: 32
+  seq: 1
 }
 
 post {
-  url: {{host}}/default/rdmp/api/mint/harvest/rdmp
+  url: {{host}}/default/rdmp/api/records/harvest/rdmp
   body: json
   auth: none
 }
@@ -19,10 +19,10 @@ body:json {
   {
     "records": [
         {
-            "harvest_id": "s123456",
-            "metadata": {
-                "data": {
-                    "ID": "s123456",
+            "harvestId": "s123459",
+            "recordRequest": {
+                "metadata": {
+                    "ID": "s123459",
                     "GIVEN_NAME": "Ant",
                     "OTHER_NAMES": "",
                     "FAMILY_NAME": "S",
@@ -55,10 +55,6 @@ body:json {
   }
 }
 
-assert {
-  res.body[0].harvestId: eq s123456
-}
-
 tests {
   
   test("Status code is 200", function () {
@@ -73,6 +69,9 @@ tests {
   test("Test harvestId exists and value is as expected", function () {
         var jsonData = res.getBody();
         expect(jsonData[0]).to.have.property('harvestId');
-        expect(jsonData[0].harvestId).to.equal('s123456');
+        expect(jsonData[0]).to.have.property('message');
+        expect(jsonData[0].harvestId).to.equal('s123459');
+        expect(jsonData[0].message).to.equal('Record created successfully');
   });
+  
 }
