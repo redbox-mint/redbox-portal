@@ -193,4 +193,59 @@ describe('The EmailService', function () {
         });
     });
 
+    describe('send record notification', function () {
+        let originalEmailDisabledValue;
+        beforeEach(function (done) {
+            originalEmailDisabledValue = _.get(sails.config , 'services.email.disabled');
+            done();
+        });
+        afterEach(function (done) {
+            _.set(sails.config , 'services.email.disabled', originalEmailDisabledValue);
+            done();
+        });
+        it('should respect disabled setting', async function () {
+            _.set(sails.config, 'services.email.disabled', "true");
+            const oid = "test-oid";
+            const record = "";
+            const options = {triggerCondition: ""};
+            const user = "";
+            const response = "";
+            const result = await EmailService.sendRecordNotification(oid, record, options, user, response).toPromise();
+            expect(result).to.equal(null);
+        });
+
+        it('should fail when to address is not valid', async function () {
+            const oid = "test-oid";
+            const record = {testing: true};
+            const options = {triggerCondition: "<%= record.testing %>"};
+            const user = "";
+            const response = {};
+            const result = await EmailService.sendRecordNotification(oid, record, options, user, response).toPromise();
+            expect(result).to.equal(null);
+        });
+
+        it('should send email when trigger condition matches', async function () {
+            const oid = "test-oid";
+            const record = {
+                metadata: {
+                    testing: true,
+                    title: "Testing title",
+                    email_address: "abc@example.com",
+                }
+            };
+            const options = {
+                triggerCondition: "<%= record.metadata.testing == true %>",
+                to: "<%= record.metadata.email_address %>",
+                subject: "Testing email sending",
+                template: "publicationReview",
+                otherSendOptions: {
+                    'replyTo': 'replyto@example.com',
+                }
+            };
+            const user = "";
+            const response = {content: "response content"};
+            const result = await EmailService.sendRecordNotification(oid, record, options, user, response).toPromise();
+            expect(result).to.equal(response);
+        });
+    });
 });
