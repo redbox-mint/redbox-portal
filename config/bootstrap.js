@@ -20,7 +20,7 @@
    sails.log.verbose("Roles service, bootstrapped.");
    let reportsBootstrapResult = await sails.services.reportsservice.bootstrap(sails.services.brandingservice.getDefault()).toPromise();
    sails.log.verbose("Reports service, bootstrapped.");
-   let namedQueriesBootstrapResult = await sails.services.namedqueryservice.bootstrap(sails.services.brandingservice.getDefault()).toPromise();
+   let namedQueriesBootstrapResult = await sails.services.namedqueryservice.bootstrap(sails.services.brandingservice.getDefault());
    sails.log.verbose("Named Query service, bootstrapped.");
    // sails doesn't support 'populating' of nested associations
    // intentionally queried again because of nested 'users' population, couldn't be bothered with looping thru the results

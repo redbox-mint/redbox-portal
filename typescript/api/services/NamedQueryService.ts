@@ -50,31 +50,29 @@ export module Services {
       "getNamedQueryConfig"
     ];
 
-    public bootstrap = (defBrand) => {
-      return super.getObservable(NamedQuery.find({
+     public async bootstrap (defBrand) {
+      let namedQueries = await super.getObservable(NamedQuery.find({
         branding: defBrand.id
-      })).flatMap(namedQueries => {
-        if (_.isEmpty(namedQueries)) {
-          var rTypes = [];
-          sails.log.verbose("Bootstrapping report definitions... ");
-          _.forOwn(sails.config.namedQuery, (config, namedQuery) => {
-            var obs = this.create(defBrand, namedQuery, config);
-            obs.subscribe(repProcessed => { })
-            rTypes.push(obs);
-          });
-          return Observable.from(rTypes);
+      })).toPromise()
+      
+        if (!_.isEmpty(namedQueries)) {
+          if (sails.config.appmode.bootstrapAlways) {
+            for(let namedQuery of namedQueries) {
+              await NamedQuery.destroyOne({id: namedQuery.id});
+            }
+          } else {
+            return;
+          }
+        } 
+        sails.log.verbose("Bootstrapping named query definitions... ");
+        await this.createNamedQueriesForBrand(defBrand);
+    }
 
-        } else {
-
-          var rTypes = [];
-          _.each( namedQueries, function (namedQuery) {
-            rTypes.push(Observable.of(namedQuery));
-          });
-          sails.log.verbose("Default reports definition(s) exist.");
-          return Observable.from(rTypes);
-        }
-      })
-        .last();
+    private async createNamedQueriesForBrand(defBrand: any) {
+      for (const [namedQuery, config] of Object.entries(sails.config.namedQuery)) {
+        const namedQueryConfig: any = config;
+        await this.create(defBrand, namedQuery, namedQueryConfig).toPromise();
+      }
     }
 
     public create(brand, name, config: NamedQueryConfig) {

@@ -145,7 +145,7 @@ export module Services {
       return response.data;
     }
 
-    public async findRecords(sourceType:string, brand:BrandingModel, searchString:string, start:number, rows:number): Promise<any> {
+    public async findRecords(sourceType:string, brand:BrandingModel, searchString:string, start:number, rows:number, user:any): Promise<any> {
 
       const queryConfig:VocabQueryConfig = sails.config.vocab.queries[sourceType];
 
@@ -159,7 +159,7 @@ export module Services {
         let brandIdFieldPath = _.get(namedQueryConfig, 'brandIdFieldPath', '');
         let mongoQuery = _.clone(configMongoQuery);
         let queryParams = namedQueryConfig.queryParams;
-        let paramMap = this.buildNamedQueryParamMap(queryConfig, searchString);
+        let paramMap = this.buildNamedQueryParamMap(queryConfig, searchString, user);
 
         let dbResults = await NamedQueryService.performNamedQuery(brandIdFieldPath, resultObjectMapping, collectionName, mongoQuery, queryParams, paramMap, brand, start, rows);
         if(queryConfig.resultObjectMapping) {
@@ -178,10 +178,15 @@ export module Services {
       }
     }
 
-    buildNamedQueryParamMap(queryConfig:VocabQueryConfig, searchString:string):any {
+    buildNamedQueryParamMap(queryConfig:VocabQueryConfig, searchString:string, user:any):any {
       let paramMap = {}
       if (queryConfig.queryField.type == 'text') {
         paramMap[queryConfig.queryField.property] = searchString;
+      }
+      if (queryConfig.userQueryFields != null) {
+        for(let userQueryField of queryConfig.userQueryFields) {
+          paramMap[userQueryField.property] = _.get(user,userQueryField.userValueProperty, null);
+        }
       }
       return paramMap;
     }
