@@ -23,7 +23,8 @@ import {
 import {
   QueueService,
   Services as services,
-  RBValidationError
+  RBValidationError,
+  StorageServiceResponse
 } from '@researchdatabox/redbox-core-types';
 import {
   Sails,
@@ -197,14 +198,14 @@ export module Services {
         sails.log[processRecordCountersLogLevel](`incrementCounter - newVal: ${newVal}`);
         sails.log[processRecordCountersLogLevel]('incrementCounter - counter:');
         sails.log[processRecordCountersLogLevel](counter);
-        const templateData = _.extend({newVal: newVal}, counter);
+        const templateData = _.extend({ newVal: newVal }, counter);
         const templateImportData = {
           imports: {
             moment: moment,
             numeral: numeral
           }
         };
-        if(_.isString(counter.template)) {
+        if (_.isString(counter.template)) {
           const compiledTemplate = _.template(counter.template, templateImportData);
           counter.template = compiledTemplate;
         }
@@ -650,7 +651,8 @@ export module Services {
       return Observable.of(record);
     }
 
-    public runTemplates(oid, record, options, user) {
+    public runTemplates(oid, record, options, user, response: StorageServiceResponse = null) {
+
       sails.log.verbose(`runTemplates config:`);
       sails.log.verbose(JSON.stringify(options.templates));
       sails.log.verbose(`runTemplates oid: ${oid} with user: ${JSON.stringify(user)}`);
@@ -662,7 +664,7 @@ export module Services {
         _.each(options.templates, (templateConfig) => {
           tmplConfig = templateConfig;
           const imports = _.extend({
-            
+
             moment: moment,
             numeral: numeral
           }, this);
@@ -693,16 +695,18 @@ export module Services {
         sails.log.error(e);
         return Observable.throw(new Error(errLog));
       }
+
       return Observable.of(record);
+
     }
 
     public async addWorkspaceToRecord(oid, workspaceData, options, user, response) {
       const rdmpOid = workspaceData.metadata.rdmpOid;
       sails.log.verbose(`Generic adding workspace ${oid} to record: ${rdmpOid}`);
-      response = await WorkspaceService.addWorkspaceToRecord(workspaceData.metadata.rdmpOid, oid);
+      const workspaceResponse = await WorkspaceService.addWorkspaceToRecord(workspaceData.metadata.rdmpOid, oid);
       _.set(response, 'workspaceOid', oid);
       _.set(response, 'workspaceData', workspaceData);
-      return response;
+      return workspaceData;
     }
   }
 }
