@@ -246,19 +246,19 @@ export module Services {
 
           // update the metadata ...
           createResponse = await this.updateMeta(brand, oid, record, user, false, false);
+        }
+        // FIX: targetStep not getting applied when creating new records. 
+        // Moved the target step outside of the datastream attachments update block
+        if (createResponse && _.isFunction(createResponse.isSuccessful) && createResponse.isSuccessful()) {
+          sails.log.verbose(`RecordsService - create - before ajaxOk`);
 
-          if (createResponse && _.isFunction(createResponse.isSuccessful) && createResponse.isSuccessful()) {
-            sails.log.verbose(`RecordsService - create - before ajaxOk`);
-
-            if (targetStep) {
-              let wfStep = await WorkflowStepsService.get(recordType.name, targetStep).toPromise();
-              this.setWorkflowStepRelatedMetadata(record, wfStep);
-            }
-
-          } else {
-            sails.log.error('RecordsService - create - Failed to save record: ' + JSON.stringify(createResponse));
-            return createResponse;
+          if (targetStep) {
+            let wfStep = await WorkflowStepsService.get(recordType.name, targetStep).toPromise();
+            this.setWorkflowStepRelatedMetadata(record, wfStep);
           }
+        } else {
+          sails.log.error('RecordsService - create - Failed to save record: ' + JSON.stringify(createResponse));
+          return createResponse;
         }
 
         if (triggerPostSaveTriggers) {
